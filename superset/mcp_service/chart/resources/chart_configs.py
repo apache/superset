@@ -27,7 +27,7 @@ from superset.mcp_service.auth import mcp_auth_hook
 logger = logging.getLogger(__name__)
 
 
-@mcp.resource("superset://chart/configs")
+@mcp.resource("chart://configs")
 @mcp_auth_hook
 def get_chart_configs_resource() -> str:
     """
@@ -40,67 +40,71 @@ def get_chart_configs_resource() -> str:
     - Best practices for each chart type configuration
     """
 
-    # Valid XYChartConfig examples - these match the exact schema
+    # XY chart examples covering all chart kinds and features
     xy_chart_configs = {
         "line_chart": {
-            "description": "Basic line chart for time series analysis",
+            "description": "Line chart with daily time grain",
             "config": {
                 "chart_type": "xy",
                 "kind": "line",
-                "x": {"name": "created_on", "label": "Date Created"},
+                "x": {"name": "order_date", "label": "Date"},
                 "y": [
                     {
-                        "name": "count_metric",
-                        "aggregate": "COUNT",
-                        "label": "Total Count",
+                        "name": "revenue",
+                        "aggregate": "SUM",
+                        "label": "Daily Revenue",
                     }
                 ],
+                "time_grain": "P1D",
             },
-            "use_cases": [
-                "Time series trends",
-                "Historical analysis",
-                "Growth tracking",
-            ],
+            "use_cases": ["Time series trends", "Growth tracking"],
         },
         "bar_chart": {
-            "description": "Bar chart for category comparison",
+            "description": "Bar chart for category comparison with axis formatting",
             "config": {
                 "chart_type": "xy",
                 "kind": "bar",
                 "x": {"name": "category", "label": "Category"},
                 "y": [{"name": "sales", "aggregate": "SUM", "label": "Total Sales"}],
-                "x_axis": {"title": "Product Categories", "scale": "linear"},
-                "y_axis": {
-                    "title": "Revenue ($)",
-                    "format": "$,.0f",
-                    "scale": "linear",
-                },
+                "x_axis": {"title": "Product Categories"},
+                "y_axis": {"title": "Revenue", "format": ",.0f"},
             },
-            "use_cases": ["Category comparison", "Rankings", "Performance metrics"],
+            "use_cases": ["Category comparison", "Rankings"],
+        },
+        "stacked_bar": {
+            "description": "Stacked bar chart with group_by dimension",
+            "config": {
+                "chart_type": "xy",
+                "kind": "bar",
+                "x": {"name": "quarter", "label": "Quarter"},
+                "y": [
+                    {"name": "revenue", "aggregate": "SUM", "label": "Revenue"},
+                ],
+                "group_by": [{"name": "region", "label": "Region"}],
+                "stacked": True,
+                "legend": {"show": True, "position": "right"},
+            },
+            "use_cases": ["Composition analysis", "Regional breakdown"],
         },
         "multi_metric_line": {
-            "description": "Multi-metric line chart with grouping",
+            "description": "Multi-metric line chart with filters and monthly grain",
             "config": {
                 "chart_type": "xy",
                 "kind": "line",
-                "x": {"name": "date_column", "label": "Date"},
+                "x": {"name": "order_date", "label": "Date"},
                 "y": [
                     {"name": "revenue", "aggregate": "SUM", "label": "Revenue"},
                     {
-                        "name": "users",
+                        "name": "customer_id",
                         "aggregate": "COUNT_DISTINCT",
-                        "label": "Unique Users",
+                        "label": "Unique Customers",
                     },
                 ],
-                "group_by": {"name": "region", "label": "Region"},
-                "legend": {"show": True, "position": "right"},
+                "time_grain": "P1M",
+                "legend": {"show": True, "position": "top"},
                 "filters": [{"column": "status", "op": "=", "value": "active"}],
             },
-            "use_cases": [
-                "Multi-dimensional analysis",
-                "Regional comparisons",
-                "KPI tracking",
-            ],
+            "use_cases": ["KPI tracking", "Multi-dimensional analysis"],
         },
         "scatter_plot": {
             "description": "Scatter plot for correlation analysis",
@@ -108,7 +112,7 @@ def get_chart_configs_resource() -> str:
                 "chart_type": "xy",
                 "kind": "scatter",
                 "x": {
-                    "name": "advertising_spend",
+                    "name": "ad_spend",
                     "aggregate": "AVG",
                     "label": "Avg Ad Spend",
                 },
@@ -119,56 +123,105 @@ def get_chart_configs_resource() -> str:
                         "label": "Avg Conversion Rate",
                     }
                 ],
-                "group_by": {"name": "campaign_type", "label": "Campaign Type"},
-                "x_axis": {"title": "Average Advertising Spend", "format": "$,.0f"},
-                "y_axis": {"title": "Conversion Rate", "format": ".2%"},
+                "group_by": [{"name": "campaign_type", "label": "Campaign"}],
+                "x_axis": {"format": ",.0f"},
+                "y_axis": {"format": ".2%"},
+            },
+            "use_cases": ["Correlation analysis", "Outlier detection"],
+        },
+        "horizontal_bar": {
+            "description": "Horizontal bar chart for categories with long names",
+            "config": {
+                "chart_type": "xy",
+                "kind": "bar",
+                "orientation": "horizontal",
+                "x": {"name": "department", "label": "Department"},
+                "y": [
+                    {
+                        "name": "headcount",
+                        "aggregate": "SUM",
+                        "label": "Headcount",
+                    }
+                ],
+                "y_axis": {"title": "Department"},
+                "x_axis": {"title": "Number of Employees"},
             },
             "use_cases": [
-                "Correlation analysis",
-                "Outlier detection",
-                "Performance relationships",
+                "Long category labels",
+                "Rankings and leaderboards",
+                "Survey results",
             ],
         },
-        "area_chart": {
-            "description": "Area chart for volume visualization",
+        "stacked_area": {
+            "description": "Stacked area chart for volume composition over time",
             "config": {
                 "chart_type": "xy",
                 "kind": "area",
-                "x": {"name": "month", "label": "Month"},
-                "y": [
-                    {"name": "signups", "aggregate": "SUM", "label": "Monthly Signups"}
-                ],
-                "filters": [
-                    {"column": "year", "op": ">=", "value": 2023},
-                    {"column": "active", "op": "=", "value": True},
-                ],
+                "x": {"name": "order_date", "label": "Date"},
+                "y": [{"name": "signups", "aggregate": "SUM", "label": "Signups"}],
+                "group_by": [{"name": "channel", "label": "Channel"}],
+                "stacked": True,
+                "time_grain": "P1W",
             },
-            "use_cases": ["Volume trends", "Cumulative metrics", "Stacked comparisons"],
+            "use_cases": ["Volume trends", "Channel attribution"],
         },
     }
 
-    # Valid TableChartConfig examples - these match the exact schema
+    # Bullet chart examples
+    bullet_chart_configs = {
+        "attainment_against_targets": {
+            "description": (
+                "Revenue attainment against qualitative thresholds and a plan marker"
+            ),
+            "config": {
+                "chart_type": "bullet",
+                "metric": {
+                    "name": "revenue",
+                    "aggregate": "SUM",
+                    "label": "Revenue",
+                },
+                "ranges": [100000, 250000, 500000],
+                "range_labels": ["Minimum", "Target", "Stretch"],
+                "markers": [300000],
+                "marker_labels": ["Plan"],
+                "show_labels": True,
+                "y_axis_format": ",.0f",
+            },
+            "use_cases": ["Goal attainment", "KPI target comparison"],
+        },
+        "regional_attainment": {
+            "description": "One bullet row per region using a saved metric",
+            "config": {
+                "chart_type": "bullet",
+                "metric": {"name": "attainment", "saved_metric": True},
+                "dimensions": [{"name": "region"}],
+                "marker_lines": [1],
+                "marker_line_labels": ["Goal"],
+                "show_legend": True,
+                "y_axis_format": ".0%",
+                "row_limit": 100,
+            },
+            "use_cases": ["Regional scorecards", "Progress by team"],
+        },
+    }
+
+    # Table chart examples
     table_chart_configs = {
         "basic_table": {
-            "description": "Basic data table with multiple columns",
+            "description": "Standard table with dimensions and aggregated metrics",
             "config": {
                 "chart_type": "table",
                 "columns": [
-                    {"name": "name", "label": "Customer Name"},
-                    {"name": "email", "label": "Email Address"},
+                    {"name": "customer_name", "label": "Customer"},
                     {"name": "orders", "aggregate": "COUNT", "label": "Total Orders"},
                     {"name": "revenue", "aggregate": "SUM", "label": "Total Revenue"},
                 ],
                 "sort_by": ["Total Revenue"],
             },
-            "use_cases": [
-                "Detailed data views",
-                "Customer lists",
-                "Transaction records",
-            ],
+            "use_cases": ["Detail views", "Customer lists"],
         },
         "aggregated_table": {
-            "description": "Table with aggregated metrics and filters",
+            "description": "Table with multiple aggregations and filters",
             "config": {
                 "chart_type": "table",
                 "columns": [
@@ -190,171 +243,238 @@ def get_chart_configs_resource() -> str:
                     },
                 ],
                 "filters": [
-                    {"column": "sale_date", "op": ">=", "value": "2024-01-01"},
                     {"column": "status", "op": "!=", "value": "cancelled"},
                 ],
-                "sort_by": ["Total Sales", "Sales Region"],
+                "sort_by": ["Total Sales"],
             },
-            "use_cases": ["Summary reports", "Regional analysis", "Performance tables"],
+            "use_cases": ["Summary reports", "Regional analysis"],
+        },
+        "ag_grid_table": {
+            "description": "Interactive AG Grid table with advanced features",
+            "config": {
+                "chart_type": "table",
+                "viz_type": "ag-grid-table",
+                "columns": [
+                    {"name": "product_name", "label": "Product"},
+                    {"name": "category", "label": "Category"},
+                    {"name": "quantity", "aggregate": "SUM", "label": "Qty Sold"},
+                    {"name": "revenue", "aggregate": "SUM", "label": "Revenue"},
+                ],
+            },
+            "use_cases": [
+                "Interactive exploration",
+                "Large datasets with client-side sorting/filtering",
+            ],
         },
     }
 
-    # Schema reference for developers
-    schema_reference = {
-        "ChartConfig": {
-            "description": "Union type - XYChartConfig or TableChartConfig by type",
-            "discriminator": "chart_type",
-            "types": ["xy", "table"],
-        },
-        "XYChartConfig": {
-            "required_fields": ["chart_type", "x", "y"],
-            "optional_fields": [
-                "kind",
-                "group_by",
-                "x_axis",
-                "y_axis",
-                "legend",
-                "filters",
-            ],
-            "chart_type": "xy",
-            "kind_options": ["line", "bar", "area", "scatter"],
-            "validation_rules": [
-                "All column labels must be unique across x, y, and group_by",
-                "Y-axis must have at least one column",
-                "Column names must match pattern: ^[a-zA-Z0-9_][a-zA-Z0-9_\\s\\-\\.]*$",
-            ],
-        },
-        "TableChartConfig": {
-            "required_fields": ["chart_type", "columns"],
-            "optional_fields": ["filters", "sort_by"],
-            "chart_type": "table",
-            "validation_rules": [
-                "Must have at least one column",
-                "All column labels must be unique",
-                "Column names must match pattern: ^[a-zA-Z0-9_][a-zA-Z0-9_\\s\\-\\.]*$",
+    sunburst_chart_configs = {
+        "hierarchical_revenue": {
+            "description": "Nested revenue from region to country to product",
+            "config": {
+                "chart_type": "sunburst",
+                "hierarchy": [
+                    {"name": "region"},
+                    {"name": "country"},
+                    {"name": "product"},
+                ],
+                "metric": {
+                    "name": "revenue",
+                    "aggregate": "SUM",
+                    "label": "Revenue",
+                },
+                "show_labels": True,
+                "show_labels_threshold": 3,
+                "sort_by_metric": True,
+            },
+            "use_cases": [
+                "Hierarchical part-to-whole analysis",
+                "Drilling from broad categories to nested contributors",
             ],
         },
-        "ColumnRef": {
-            "required_fields": ["name"],
-            "optional_fields": ["label", "dtype", "aggregate"],
-            "aggregate_options": [
-                "SUM",
-                "COUNT",
-                "AVG",
-                "MIN",
-                "MAX",
-                "COUNT_DISTINCT",
-                "STDDEV",
-                "VAR",
-                "MEDIAN",
-                "PERCENTILE",
+        "ratio_colored_hierarchy": {
+            "description": (
+                "Arc size from a primary metric and sequential color from a "
+                "secondary-to-primary ratio"
+            ),
+            "config": {
+                "chart_type": "sunburst",
+                "hierarchy": [{"name": "division"}, {"name": "product_line"}],
+                "metric": {"name": "sales", "aggregate": "SUM"},
+                "secondary_metric": {"name": "profit", "aggregate": "SUM"},
+                "linear_color_scheme": "superset_seq_1",
+                "number_format": ",.0f",
+                "show_total": True,
+            },
+            "use_cases": [
+                "Comparing magnitude and performance in one hierarchy",
+                "Finding high-volume branches with weak secondary ratios",
             ],
-            "validation_rules": [
-                "Name cannot be empty and must follow pattern",
-                "Labels are HTML-escaped to prevent XSS",
-                "Aggregates are validated against allowed functions",
-            ],
-        },
-        "FilterConfig": {
-            "required_fields": ["column", "op", "value"],
-            "operator_options": ["=", ">", "<", ">=", "<=", "!="],
-            "value_types": ["string", "number", "boolean"],
-            "validation_rules": [
-                "Column names are sanitized to prevent injection",
-                "Values are checked for malicious patterns",
-                "String values are HTML-escaped",
-            ],
-        },
-        "AxisConfig": {
-            "optional_fields": ["title", "scale", "format"],
-            "scale_options": ["linear", "log"],
-            "format_examples": ["$,.2f", ".2%", ",.0f", ".1f"],
-        },
-        "LegendConfig": {
-            "optional_fields": ["show", "position"],
-            "show_default": True,
-            "position_options": ["top", "bottom", "left", "right"],
-            "position_default": "right",
         },
     }
 
-    # Best practices for each configuration type
+    gantt_chart_configs = {
+        "project_schedule": {
+            "description": "Task intervals grouped by owner",
+            "config": {
+                "chart_type": "gantt",
+                "start_time": {"name": "start_time"},
+                "end_time": {"name": "end_time"},
+                "category": {"name": "task_name"},
+                "series": {"name": "owner"},
+                "tooltip_columns": [{"name": "project"}],
+                "order_by": [{"column": "start_time", "ascending": True}],
+                "subcategories": True,
+            },
+            "use_cases": ["Project schedules", "Task and phase timelines"],
+        },
+    }
+
+    from superset.mcp_service.chart.registry import get_registry
+
+    interactive_pivot_configs = {}
+    if get_registry().get("interactive_pivot") is not None:
+        interactive_pivot_configs["ag_grid_interactive_pivot"] = {
+            "description": (
+                "AG Grid pivot with explicit side-panel groups and a "
+                "year-over-year comparison"
+            ),
+            "config": {
+                "chart_type": "interactive_pivot",
+                "rows": [{"name": "region"}, {"name": "country"}],
+                "columns": [{"name": "order_date"}],
+                "metrics": [
+                    {"name": "revenue", "aggregate": "SUM", "label": "Revenue"},
+                    {"name": "margin", "aggregate": "AVG", "label": "Margin"},
+                ],
+                "temporal_column": "order_date",
+                "time_grain": "P1M",
+                "comparison_period": "1 year ago",
+                "comparison_type": "percentage",
+                "show_row_totals": True,
+                "show_column_totals": True,
+                "show_column_subtotals": True,
+            },
+            "use_cases": [
+                "Spreadsheet-style multidimensional analysis",
+                "Interactive regrouping and pivoting",
+                "Period-over-period comparison",
+            ],
+        }
+
+    gauge_configs = {
+        "attainment_gauge": {
+            "description": "Gauge with a target range and formatted value",
+            "config": {
+                "chart_type": "gauge",
+                "metric": {"name": "attainment", "aggregate": "AVG"},
+                "min_val": 0,
+                "max_val": 100,
+                "number_format": ".1f",
+                "value_formatter": "{value}%",
+                "intervals": "50,80,100",
+                "interval_color_indices": "6,7,3",
+            },
+            "use_cases": ["Target attainment", "SLA health", "Progress tracking"],
+        }
+    }
+
+    # Best practices
     best_practices = {
         "xy_charts": [
-            "Use descriptive labels for axes and metrics",
-            "Choose appropriate aggregation functions for your data",
-            "Limit the number of Y-axis metrics (3-5 maximum)",
-            "Use filters to focus on relevant data",
-            "Configure axis formatting for better readability",
-            "Consider grouping when comparing categories",
-            "Use chart kinds: line for trends, bar for comparisons, scatter plots",
+            "Use time_grain for temporal x-axis columns (P1D, P1W, P1M, P1Y)",
+            "Limit Y-axis metrics to 3-5 maximum for readability",
+            "Use group_by to split data into series for comparison",
+            "Use stacked=true for bar/area charts showing composition",
+            (
+                "Use readable axis formats (,.0f for numbers, .2% for pct). "
+                "Use currency formatting only when user instructions or source "
+                "metadata establish the currency."
+            ),
+            "Use orientation='horizontal' for bar charts with long category names",
         ],
         "table_charts": [
-            "Include essential columns only to avoid clutter",
-            "Use meaningful column labels",
-            "Apply sorting to highlight important data",
-            "Use filters to limit result sets",
-            "Mix dimensions and aggregated metrics appropriately",
-            "Ensure unique labels to avoid conflicts",
-            "Consider performance with large datasets",
+            "Include only essential columns to avoid clutter",
+            "Use meaningful labels different from raw column names",
+            "Apply sort_by to highlight important data",
+            "Use ag-grid-table viz_type for large interactive datasets",
+        ],
+        "bullet_charts": [
+            "Use one numeric metric; COUNT/COUNT_DISTINCT work for text columns",
+            "Use dimensions only when separate bullet rows are meaningful",
+            "Keep range/marker labels aligned one-for-one with their values",
+            "Use marker_lines for hard targets and markers for point comparisons",
+        ],
+        "interactive_pivots": [
+            "Use rows for AG Grid row groups and columns for pivot labels",
+            "Metric aggregates also seed AG Grid's group aggregation model",
+            "Pair comparison_period with comparison_type for time comparison",
+            "This type appears only when the host enables its visualization plugin",
+        ],
+        "gantt_charts": [
+            "Use temporal dataset columns for both start_time and end_time",
+            "Use category for the task/status row and series for color grouping",
+            "Set subcategories=true only when series is configured",
+            "Use tooltip_columns for dimensions and tooltip_metrics for aggregates",
+        ],
+        "gauge_charts": [
+            "Use the public chart_type='gauge'; gauge_chart is the native viz_type",
+            "Use an aggregate, saved metric, or SQL metric that returns finite numbers",
+            "Set min_val/max_val and aligned intervals for a stable shared scale",
+        ],
+        "sunburst_charts": [
+            "Order hierarchy from broad/root categories to narrow/leaf categories",
+            "Use unique physical columns for every hierarchy level",
+            "Use secondary_metric when its ratio to the primary metric should drive "
+            "a sequential color scale; omit it for categorical colors",
+            "Keep row_limit and hierarchy cardinality bounded for readable rings",
+            "Use show_labels_threshold to suppress labels on very small arcs",
         ],
         "general": [
-            "Always specify chart_type as the first field",
-            "Use consistent naming conventions for columns",
-            "Validate column names exist in your dataset",
-            "Test configurations with actual data",
-            "Consider caching for frequently accessed charts",
-            "Apply security best practices - avoid user input in column names",
+            "Always verify column names with get_dataset_info before charting",
+            "Set temporal_column when dashboard time filters should use a column "
+            "other than the dataset's main temporal column",
+            "Use generate_explore_link for preview, generate_chart for saving",
+            "Each column label must be unique across the entire configuration",
+            "Column names must match: ^[a-zA-Z0-9_][a-zA-Z0-9_ \\-\\.]*$",
         ],
-    }
-
-    # Common patterns and examples
-    common_patterns = {
-        "time_series": {
-            "description": "Standard time-based analysis",
-            "x_column_types": ["date", "datetime", "timestamp"],
-            "recommended_aggregations": ["SUM", "COUNT", "AVG"],
-            "best_chart_types": ["line", "area", "bar"],
-        },
-        "categorical_analysis": {
-            "description": "Comparing discrete categories",
-            "x_column_types": ["string", "category", "enum"],
-            "recommended_aggregations": ["SUM", "COUNT", "COUNT_DISTINCT", "AVG"],
-            "best_chart_types": ["bar", "table"],
-        },
-        "correlation_analysis": {
-            "description": "Finding relationships between variables",
-            "requirements": ["Two numerical metrics"],
-            "recommended_aggregations": ["AVG", "SUM", "MEDIAN"],
-            "best_chart_types": ["scatter"],
-        },
     }
 
     resource_data = {
         "xy_chart_configs": xy_chart_configs,
+        "bullet_chart_configs": bullet_chart_configs,
         "table_chart_configs": table_chart_configs,
-        "schema_reference": schema_reference,
-        "best_practices": best_practices,
-        "common_patterns": common_patterns,
-        "metadata": {
-            "version": "1.0",
-            "schema_version": "ChartConfig v1.0",
-            "last_updated": "2025-08-07",
-            "usage_notes": [
-                "All examples are valid ChartConfig objects that pass validation",
-                "Copy these configurations directly into generate_chart requests",
-                "Modify column names and labels to match your actual dataset",
-                "Test configurations with get_dataset_info to verify columns",
-                "All examples follow security best practices and input validation",
-            ],
-            "validation_info": [
-                "Column names must match: ^[a-zA-Z0-9_][a-zA-Z0-9_\\s\\-\\.]*$",
-                "Labels are automatically HTML-escaped for security",
-                "Filter values are sanitized to prevent injection attacks",
-                "All field lengths are validated against schema limits",
-                "Duplicate labels are automatically detected and rejected",
-            ],
+        "sunburst_chart_configs": sunburst_chart_configs,
+        "interactive_pivot_configs": interactive_pivot_configs,
+        "gantt_chart_configs": gantt_chart_configs,
+        "gauge_configs": gauge_configs,
+        "geographic_configs": {
+            "regional_choropleth": {
+                "chart_type": "country_map",
+                "country": "usa",
+                "region_format": "abbreviation",
+                "entity": {"name": "state"},
+                "metric": {"name": "sales", "aggregate": "SUM"},
+            },
+            "country_choropleth": {
+                "chart_type": "world_map",
+                "country_format": "cca2",
+                "entity": {"name": "country"},
+                "metric": {"name": "sales", "aggregate": "SUM"},
+            },
+            "geographic_points": {
+                "chart_type": "deck_scatter",
+                "latitude": {"name": "latitude"},
+                "longitude": {"name": "longitude"},
+            },
         },
+        "best_practices": best_practices,
+        "usage_notes": [
+            "All examples are valid ChartConfig objects that pass validation",
+            "Modify column names and labels to match your actual dataset",
+            "Use get_dataset_info to verify column names before charting",
+            "For complete schema details, see the generate_chart tool parameters",
+        ],
     }
 
     from superset.utils import json

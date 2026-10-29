@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { t } from '@superset-ui/core';
-import { css } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -29,11 +29,16 @@ import {
 } from 'src/components/ListView';
 import { Typography } from '@superset-ui/core/components';
 import { fetchUserOptions } from 'src/features/groups/utils';
+import { JsonModal } from 'src/components/JsonModal';
+import { safeJsonObjectParse } from 'src/components/JsonModal/utils';
 
 export type ActionLogObject = {
   user: {
     username: string;
+    first_name?: string;
+    last_name?: string;
   };
+
   action: string;
   dttm: string | null;
   dashboard_id?: number;
@@ -44,6 +49,15 @@ export type ActionLogObject = {
 };
 
 const PAGE_SIZE = 25;
+
+const JsonCellTrigger = styled.div`
+  > [role='button'] {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+`;
 
 function ActionLogList() {
   const { addDangerToast, addSuccessToast } = useToasts();
@@ -149,11 +163,29 @@ function ActionLogList() {
       {
         accessor: 'user',
         Header: t('User'),
+        // The log API only orders by scalar fields (e.g. `user.username`),
+        // not the `user` relationship itself.
+        disableSortBy: true,
         Cell: ({
           row: {
             original: { user },
           },
-        }: any) => <span>{user?.username}</span>,
+        }: any) => {
+          const username = user?.username ?? '';
+          const fullName = [user?.first_name, user?.last_name]
+            .filter(Boolean)
+            .join(' ');
+
+          const displayName = fullName || username;
+
+          return (
+            <Typography.Text
+              ellipsis={fullName ? { tooltip: { title: username } } : true}
+            >
+              {displayName}
+            </Typography.Text>
+          );
+        },
       },
 
       {
@@ -194,24 +226,42 @@ function ActionLogList() {
           row: {
             original: { json },
           },
-        }: any) => (
-          <Typography.Text
-            css={css`
-              .ant-typography-copy {
-                visibility: hidden;
-              }
-              &:hover .ant-typography-copy {
-                visibility: visible;
-              }
-            `}
-            copyable={!!json}
-            ellipsis={{
-              tooltip: { styles: { root: { maxWidth: '900px' } }, title: json },
-            }}
-          >
-            {json}
-          </Typography.Text>
-        ),
+        }: any) => {
+          const jsonObject = safeJsonObjectParse(json);
+          if (jsonObject) {
+            return (
+              <JsonCellTrigger>
+                <JsonModal
+                  modalTitle={t('JSON')}
+                  jsonObject={jsonObject}
+                  jsonValue={json}
+                  wrapContent={false}
+                />
+              </JsonCellTrigger>
+            );
+          }
+          return (
+            <Typography.Text
+              css={css`
+                .ant-typography-copy {
+                  visibility: hidden;
+                }
+                &:hover .ant-typography-copy {
+                  visibility: visible;
+                }
+              `}
+              copyable={!!json}
+              ellipsis={{
+                tooltip: {
+                  styles: { root: { maxWidth: '900px' } },
+                  title: json,
+                },
+              }}
+            >
+              {json}
+            </Typography.Text>
+          );
+        },
       },
 
       {

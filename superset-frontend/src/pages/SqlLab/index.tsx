@@ -19,15 +19,17 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
-import { css } from '@apache-superset/core/ui';
+import { css } from '@apache-superset/core/theme';
 import { useSqlLabInitialState } from 'src/hooks/apiResources/sqlLab';
 import type { InitialState } from 'src/hooks/apiResources/sqlLab';
 import { resetState } from 'src/SqlLab/actions/sqlLab';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { ErrorAlert } from 'src/components/ErrorMessage';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import { SqlLabGlobalStyles } from 'src/SqlLab//SqlLabGlobalStyles';
 import App from 'src/SqlLab/components/App';
-import { Loading } from '@superset-ui/core/components';
+import { Button, Loading } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core/translation';
 import EditorAutoSync from 'src/SqlLab/components/EditorAutoSync';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { LocationProvider } from './LocationContext';
@@ -36,7 +38,7 @@ export default function SqlLab() {
   const lastInitializedAt = useSelector<SqlLabRootState, number>(
     state => state.sqlLab.queriesLastUpdate || 0,
   );
-  const { data, isLoading, isError, error, fulfilledTimeStamp } =
+  const { data, isLoading, isError, error, fulfilledTimeStamp, refetch } =
     useSqlLabInitialState();
   const shouldInitialize = lastInitializedAt <= (fulfilledTimeStamp || 0);
   const dispatch = useDispatch();
@@ -55,11 +57,39 @@ export default function SqlLab() {
     }
   }, [data, initBootstrapData]);
 
+  useEffect(() => {
+    if (isError) {
+      dispatch(addDangerToast(error?.message || t('An error occurred')));
+    }
+  }, [isError, error, dispatch]);
+
   if (isLoading || shouldInitialize) return <Loading />;
 
-  if (isError && error?.message) {
-    dispatch(addDangerToast(error?.message));
-    return null;
+  if (isError) {
+    return (
+      <div
+        css={css`
+          padding: 24px;
+        `}
+      >
+        <ErrorAlert
+          errorType={t('Could not load SQL Lab')}
+          message={t(
+            'An error occurred while loading SQL Lab. This may be caused by a corrupted query state.',
+          )}
+        >
+          <Button
+            buttonStyle="primary"
+            onClick={refetch}
+            css={css`
+              margin-top: 16px;
+            `}
+          >
+            {t('Reload SQL Lab')}
+          </Button>
+        </ErrorAlert>
+      </div>
+    );
   }
 
   return (

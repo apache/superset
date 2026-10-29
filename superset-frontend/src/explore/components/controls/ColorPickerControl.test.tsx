@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import {
   CategoricalScheme,
   getCategoricalSchemeRegistry,
@@ -28,67 +33,208 @@ const defaultProps = {
   onChange: jest.fn(),
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('ColorPickerControl', () => {
-  beforeAll(() => {
-    getCategoricalSchemeRegistry()
-      .registerValue(
-        'test',
-        new CategoricalScheme({
-          id: 'test',
-          colors: ['#ff0000', '#00ff00', '#0000ff'],
-        }),
-      )
-      .setDefaultKey('test');
+beforeAll(() => {
+  getCategoricalSchemeRegistry()
+    .registerValue(
+      'test',
+      new CategoricalScheme({
+        id: 'test',
+        colors: ['#ff0000', '#00ff00', '#0000ff'],
+      }),
+    )
+    .setDefaultKey('test');
+});
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
+test('renders a ColorPicker component', () => {
+  render(<ColorPickerControl {...defaultProps} />);
+
+  // AntD ColorPicker renders a trigger element with class
+  const colorPickerTrigger = document.querySelector(
+    '.ant-color-picker-trigger',
+  );
+  expect(colorPickerTrigger).toBeInTheDocument();
+});
+
+test('displays the correct color value', () => {
+  render(<ColorPickerControl {...defaultProps} />);
+
+  // The color should be displayed as hex #007A87 (uppercase in AntD)
+  expect(screen.getByText('#007A87')).toBeInTheDocument();
+});
+
+test('calls onChange with RGB values when color changes', async () => {
+  const onChange = jest.fn();
+  render(<ColorPickerControl {...defaultProps} onChange={onChange} />);
+
+  // Open the color picker
+  const colorPickerTrigger = document.querySelector(
+    '.ant-color-picker-trigger',
+  );
+  expect(colorPickerTrigger).toBeInTheDocument();
+
+  if (colorPickerTrigger) {
+    await userEvent.click(colorPickerTrigger);
+  }
+
+  // Note: Testing actual color selection in AntD ColorPicker would require more complex mocking
+  // as it uses complex internal components. The main functionality is covered by the component itself.
+});
+
+test('includes preset colors from the categorical scheme', () => {
+  render(<ColorPickerControl {...defaultProps} />);
+
+  // The component should have access to the preset colors from the registry
+  // This is tested by ensuring the component renders without errors with the presets
+  const colorPickerTrigger = document.querySelector(
+    '.ant-color-picker-trigger',
+  );
+  expect(colorPickerTrigger).toBeInTheDocument();
+});
+
+test('calls onChange with string key "Green" when resolveThemeTokens is true', async () => {
+  const onChange = jest.fn();
+
+  render(
+    <ColorPickerControl
+      {...defaultProps}
+      onChange={onChange}
+      resolveThemeTokens
+      presets={[{ label: 'Special Colors', colors: ['Green', 'Red'] }]}
+    />,
+  );
+
+  const colorPickerTrigger = document.querySelector(
+    '.ant-color-picker-trigger',
+  );
+  expect(colorPickerTrigger).toBeInTheDocument();
+  await userEvent.click(colorPickerTrigger!);
+
+  await waitFor(() => {
+    expect(
+      document.querySelector('.ant-color-picker-presets-color'),
+    ).toBeInTheDocument();
   });
 
-  beforeEach(() => {
-    jest.clearAllMocks();
+  const presets = document.querySelectorAll('.ant-color-picker-presets-color');
+  const greenPreset = presets[0];
+
+  expect(greenPreset).toBeInTheDocument();
+  await userEvent.click(greenPreset);
+
+  expect(onChange).toHaveBeenCalledWith('Green');
+});
+
+test('calls onChange with RGB object when resolveThemeTokens is false', async () => {
+  const onChange = jest.fn();
+
+  render(
+    <ColorPickerControl
+      {...defaultProps}
+      onChange={onChange}
+      resolveThemeTokens={false}
+      outputFormat="hex"
+      presets={[{ label: 'Special Colors', colors: ['Green', 'Red'] }]}
+    />,
+  );
+
+  const colorPickerTrigger = document.querySelector(
+    '.ant-color-picker-trigger',
+  );
+  expect(colorPickerTrigger).toBeInTheDocument();
+  await userEvent.click(colorPickerTrigger!);
+
+  await waitFor(() => {
+    expect(
+      document.querySelector('.ant-color-picker-presets-color'),
+    ).toBeInTheDocument();
   });
 
-  test('renders a ColorPicker component', () => {
-    render(<ColorPickerControl {...defaultProps} />);
+  const presets = document.querySelectorAll('.ant-color-picker-presets-color');
+  const greenPreset = presets[0];
 
-    // AntD ColorPicker renders a trigger element with class
-    const colorPickerTrigger = document.querySelector(
-      '.ant-color-picker-trigger',
-    );
-    expect(colorPickerTrigger).toBeInTheDocument();
+  expect(greenPreset).toBeInTheDocument();
+  await userEvent.click(greenPreset);
+
+  expect(onChange).toHaveBeenCalledWith('#00960033');
+});
+
+test('resolves colorSuccess theme token correctly when matching color is selected', async () => {
+  const onChange = jest.fn();
+
+  jest
+    .spyOn(require('@apache-superset/core/theme'), 'useTheme')
+    .mockReturnValue({
+      colors: {
+        colorSuccess: 'rgba(82, 196, 26, 1)',
+      },
+    });
+
+  render(
+    <ColorPickerControl
+      {...defaultProps}
+      onChange={onChange}
+      resolveThemeTokens
+      presets={[{ label: 'Theme Tokens', colors: ['colorSuccess'] }]}
+    />,
+  );
+
+  const colorPickerTrigger = document.querySelector(
+    '.ant-color-picker-trigger',
+  );
+  expect(colorPickerTrigger).toBeInTheDocument();
+  await userEvent.click(colorPickerTrigger!);
+
+  await waitFor(() => {
+    expect(
+      document.querySelector('.ant-color-picker-presets-items'),
+    ).toBeInTheDocument();
   });
 
-  test('displays the correct color value', () => {
-    render(<ColorPickerControl {...defaultProps} />);
+  const successPreset = document.querySelector(
+    '.ant-color-picker-presets-color [style*="82, 196, 26"]',
+  ) as HTMLElement | null;
 
-    // The color should be displayed as hex #007A87 (uppercase in AntD)
-    expect(screen.getByText('#007A87')).toBeInTheDocument();
-  });
+  expect(successPreset).toBeInTheDocument();
 
-  test('calls onChange with RGB values when color changes', async () => {
-    const onChange = jest.fn();
-    render(<ColorPickerControl {...defaultProps} onChange={onChange} />);
+  await userEvent.click(successPreset!);
 
-    // Open the color picker
-    const colorPickerTrigger = document.querySelector(
-      '.ant-color-picker-trigger',
-    );
-    expect(colorPickerTrigger).toBeInTheDocument();
+  expect(onChange).toHaveBeenCalledWith('colorSuccess');
+});
 
-    if (colorPickerTrigger) {
-      await userEvent.click(colorPickerTrigger);
-    }
+test('handles theme with nested colors object', () => {
+  jest
+    .spyOn(require('@apache-superset/core/theme'), 'useTheme')
+    .mockReturnValue({
+      colors: { primary: '#007bff' },
+    });
 
-    // Note: Testing actual color selection in AntD ColorPicker would require more complex mocking
-    // as it uses complex internal components. The main functionality is covered by the component itself.
-  });
+  const { container } = render(<ColorPickerControl {...defaultProps} />);
+  expect(
+    container.querySelector('.ant-color-picker-trigger'),
+  ).toBeInTheDocument();
+});
 
-  test('includes preset colors from the categorical scheme', () => {
-    render(<ColorPickerControl {...defaultProps} />);
+test('handles theme without colors field', () => {
+  jest
+    .spyOn(require('@apache-superset/core/theme'), 'useTheme')
+    .mockReturnValue({
+      primary: '#007bff',
+    });
 
-    // The component should have access to the preset colors from the registry
-    // This is tested by ensuring the component renders without errors with the presets
-    const colorPickerTrigger = document.querySelector(
-      '.ant-color-picker-trigger',
-    );
-    expect(colorPickerTrigger).toBeInTheDocument();
-  });
+  const { container } = render(<ColorPickerControl {...defaultProps} />);
+  expect(
+    container.querySelector('.ant-color-picker-trigger'),
+  ).toBeInTheDocument();
+});
+
+test('handles undefined theme gracefully', () => {
+  jest
+    .spyOn(require('@apache-superset/core/theme'), 'useTheme')
+    .mockReturnValue(undefined);
+
+  expect(() => render(<ColorPickerControl {...defaultProps} />)).not.toThrow();
 });

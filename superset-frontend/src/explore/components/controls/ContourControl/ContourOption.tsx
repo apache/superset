@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { ContourOptionProps } from './types';
 import ContourPopoverTrigger from './ContourPopoverTrigger';
 import OptionWrapper from '../DndColumnSelectControl/OptionWrapper';
@@ -49,7 +49,9 @@ const ContourOption = ({
 }: ContourOptionProps) => {
   const { lowerThreshold, upperThreshold, color, strokeWidth } = contour;
 
-  const isIsoband = upperThreshold;
+  const isIsoband =
+    (Boolean(upperThreshold) || upperThreshold === 0) &&
+    (Boolean(lowerThreshold) || lowerThreshold === 0);
 
   const formattedColor = color
     ? `rgba(${color.r}, ${color.g}, ${color.b}, 1)`
@@ -66,8 +68,8 @@ const ContourOption = ({
     }], color: ${formattedColor}`;
 
   const displayString = isIsoband
-    ? formatIsoband([lowerThreshold || -1, upperThreshold])
-    : formatIsoline(lowerThreshold || -1, strokeWidth);
+    ? formatIsoband([lowerThreshold ?? -1, upperThreshold])
+    : formatIsoline(lowerThreshold ?? -1, strokeWidth);
 
   const overlay = (
     <div className="contour-tooltip-overlay">

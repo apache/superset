@@ -83,3 +83,42 @@ def test_run_uses_get_session_id():
         mock_cache_key.assert_called_once_with(
             "test-session-id", 1, 1, 1, DatasourceType.TABLE
         )
+
+
+def test_run_sets_cache_with_explicit_timeout():
+    """cache.set must receive an explicit timeout sourced from config."""
+    from flask import current_app
+
+    cmd_params = CommandParameters(
+        datasource_id=1,
+        datasource_type=DatasourceType.TABLE,
+        chart_id=1,
+        tab_id=1,
+        form_data='{"test": "data"}',
+    )
+    command = CreateFormDataCommand(cmd_params)
+
+    expected_timeout = current_app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"].get(
+        "CACHE_DEFAULT_TIMEOUT"
+    )
+
+    with (
+        patch("superset.commands.explore.form_data.create.check_access"),
+        patch("superset.commands.explore.form_data.create.cache_key"),
+        patch(
+            "superset.commands.explore.form_data.create.cache_manager"
+        ) as mock_cache_manager,
+        patch(
+            "superset.commands.explore.form_data.create.random_key",
+            return_value="random-key",
+        ),
+        patch("superset.commands.explore.form_data.create.get_user_id", return_value=1),
+        patch.object(command, "_get_session_id", return_value="test-session-id"),
+    ):
+        mock_cache_manager.explore_form_data_cache.get.return_value = None
+
+        command.run()
+
+        for call in mock_cache_manager.explore_form_data_cache.set.call_args_list:
+            assert call.kwargs.get("timeout") == expected_timeout
+        assert mock_cache_manager.explore_form_data_cache.set.call_count >= 1

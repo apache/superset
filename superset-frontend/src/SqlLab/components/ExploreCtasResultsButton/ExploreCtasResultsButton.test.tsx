@@ -62,17 +62,20 @@ describe('ExploreCtasResultsButton', () => {
     const { getByText } = setup({}, mockStore(initialState));
 
     postFormSpy.mockClear();
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
     fetchMock.post(getOrCreateTableEndpoint, { result: { table_id: 1234 } });
 
     fireEvent.click(getByText('Explore'));
 
     await waitFor(() => {
       expect(postFormSpy).toHaveBeenCalledTimes(1);
-      expect(postFormSpy).toHaveBeenCalledWith('http://localhost/explore/', {
-        form_data:
-          '{"datasource":"1234__table","metrics":["count"],"groupby":[],"viz_type":"table","since":"100 years ago","all_columns":[],"row_limit":1000}',
-      });
+      expect(postFormSpy).toHaveBeenCalledWith(
+        { url: 'http://localhost/explore/' },
+        {
+          form_data:
+            '{"datasource":"1234__table","metrics":["count"],"groupby":[],"viz_type":"table","since":"100 years ago","all_columns":[],"row_limit":1000}',
+        },
+      );
     });
   });
 
@@ -80,7 +83,7 @@ describe('ExploreCtasResultsButton', () => {
     const { getByText } = setup({}, mockStore(initialState));
 
     postFormSpy.mockClear();
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
     fetchMock.post(getOrCreateTableEndpoint, {
       throws: new Error('Unexpected all to v1 API'),
     });

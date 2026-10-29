@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css } from '@apache-superset/core/theme';
 import { Form, StyledModal } from '@superset-ui/core/components';
 
 const MODAL_MARGIN = 16;
-const MIN_WIDTH = 880;
+const MODAL_WIDTH = 880;
 
 export interface BaseModalWrapperProps {
   expanded: boolean;
@@ -31,17 +31,27 @@ export interface BaseModalBodyProps {
 }
 
 export const BaseModalWrapper = styled(StyledModal)<BaseModalWrapperProps>`
-  min-width: ${MIN_WIDTH}px;
-  width: ${({ expanded }) => (expanded ? '100%' : MIN_WIDTH)} !important;
+  width: ${({ expanded }) =>
+    expanded ? '100%' : `${MODAL_WIDTH}px`} !important;
+  max-width: calc(100% - ${MODAL_MARGIN * 2}px);
 
-  @media (max-width: ${MIN_WIDTH + MODAL_MARGIN * 2}px) {
-    width: 100% !important;
-    min-width: auto;
+  .ant-modal-header {
+    margin-bottom: 0;
   }
 
   .ant-modal-body {
-    padding: 0px;
-    overflow: auto;
+    overflow: hidden;
+    padding: 0;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .ant-collapse {
+    border-bottom: 0;
+
+    .ant-collapse-item:last-child > .ant-collapse-panel {
+      border-radius: 0;
+    }
   }
 
   ${({ expanded }) =>
@@ -52,7 +62,7 @@ export const BaseModalWrapper = styled(StyledModal)<BaseModalWrapperProps>`
       .ant-modal-body {
         flex: 1 1 auto;
       }
-      .ant-modal-content {
+      .ant-modal-container {
         height: 100%;
       }
     `}
@@ -60,7 +70,8 @@ export const BaseModalWrapper = styled(StyledModal)<BaseModalWrapperProps>`
 
 export const BaseModalBody = styled.div<BaseModalBodyProps>`
   display: flex;
-  height: ${({ expanded }) => (expanded ? '100%' : '700px')};
+  height: 100%;
+  min-height: 500px;
   flex-direction: row;
   flex: 1;
 

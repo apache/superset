@@ -17,13 +17,14 @@
  * under the License.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
   makeApi,
   SupersetApiError,
-  t,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { styled, css, Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import { styled, css } from '@apache-superset/core/theme';
 import {
   Button,
   FormItem,
@@ -196,7 +197,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
       <h3>{t('Settings')}</h3>
       <Form layout="vertical">
         <FormItem
-          name="allowed-domains"
+          htmlFor="allowed-domains"
           label={
             <span>
               {t('Allowed Domains (comma separated)')}{' '}
@@ -212,7 +213,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
           <Input
             id="allowed-domains"
             value={allowedDomains}
-            placeholder="superset.example.com"
+            placeholder={t('superset.example.com')}
             onChange={event => setAllowedDomains(event.target.value)}
           />
         </FormItem>

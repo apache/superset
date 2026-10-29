@@ -31,13 +31,16 @@ import { ColorFormatters } from '@superset-ui/chart-controls';
 import { BaseChartProps, Refs } from '../types';
 
 export interface BigNumberDatum {
-  [key: string]: number | null;
+  [key: string]: number | string | null;
 }
+
+export type HeaderAlignment = 'left' | 'center' | 'right';
 
 export type BigNumberTotalFormData = QueryFormData & {
   metric?: QueryFormMetric;
   yAxisFormat?: string;
   forceTimestampFormatting?: boolean;
+  headerAlignment?: HeaderAlignment;
 };
 
 export type BigNumberWithTrendlineFormData = BigNumberTotalFormData & {
@@ -47,10 +50,14 @@ export type BigNumberWithTrendlineFormData = BigNumberTotalFormData & {
     b: number;
   };
   compareLag?: string | number;
+  xAxis: string;
+  showXAxis?: boolean;
+  showXAxisMinMaxLabels?: boolean;
+  showYAxis?: boolean;
+  showYAxisMinMaxLabels?: boolean;
 };
 
-export interface BigNumberTotalChartDataResponseResult
-  extends ChartDataResponseResult {
+export interface BigNumberTotalChartDataResponseResult extends ChartDataResponseResult {
   data: BigNumberDatum[];
 }
 
@@ -93,6 +100,7 @@ export type BigNumberVizProps = {
   trendLineData?: TimeSeriesDatum[];
   mainColor?: string;
   echartOptions?: EChartsCoreOption;
+  isRefreshing?: boolean;
   onContextMenu?: (
     clientX: number,
     clientY: number,
@@ -102,4 +110,5 @@ export type BigNumberVizProps = {
   formData?: BigNumberWithTrendlineFormData;
   refs: Refs;
   colorThresholdFormatters?: ColorFormatters;
+  headerAlignment?: HeaderAlignment;
 };

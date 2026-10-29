@@ -22,7 +22,7 @@ from typing import Any, TYPE_CHECKING
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.utils.core import QuerySource
 
 if TYPE_CHECKING:
@@ -35,6 +35,31 @@ class ParseableEngineSpec(BaseEngineSpec):
 
     engine = "parseable"
     engine_name = "Parseable"
+
+    metadata = {
+        "description": (
+            "Parseable is a distributed log analytics database "
+            "with SQL-like query interface."
+        ),
+        "categories": [DatabaseCategory.SEARCH_NOSQL, DatabaseCategory.OPEN_SOURCE],
+        "pypi_packages": ["sqlalchemy-parseable"],
+        "connection_string": (
+            "parseable://{username}:{password}@{hostname}:{port}/{stream_name}"
+        ),
+        "connection_examples": [
+            {
+                "description": "Example connection",
+                "connection_string": (
+                    "parseable://admin:admin@demo.parseable.com:443/ingress-nginx"
+                ),
+            },
+        ],
+        "notes": (
+            "Stream name in URI represents the Parseable logstream to query. "
+            "Supports HTTP (80) and HTTPS (443)."
+        ),
+        "docs_url": "https://www.parseable.io",
+    }
 
     _time_grain_expressions = {
         None: "{col}",

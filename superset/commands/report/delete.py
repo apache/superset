@@ -50,9 +50,9 @@ class DeleteReportScheduleCommand(BaseCommand):
         if not self._models or len(self._models) != len(self._model_ids):
             raise ReportScheduleNotFoundError()
 
-        # Check ownership
+        # Check editorship
         for model in self._models:
             try:
-                security_manager.raise_for_ownership(model)
+                security_manager.raise_for_editorship(model)
             except SupersetSecurityException as ex:
                 raise ReportScheduleForbiddenError() from ex

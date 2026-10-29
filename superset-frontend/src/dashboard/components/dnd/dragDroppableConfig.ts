@@ -34,7 +34,10 @@ export interface DragDroppableProps {
   component: LayoutItem;
   parentComponent?: LayoutItem;
   index: number;
+  depth: number;
   disableDragDrop: boolean;
+  orientation?: 'row' | 'column';
+  isDraggingOverShallow?: boolean;
   onDrop?: (dropResult: DropResult) => void;
   onHover?: () => void;
   dropToChild?: boolean | ((draggingItem: DragItem) => boolean);
@@ -84,6 +87,7 @@ export interface DropStateProps {
 
 export interface DragDroppableComponent {
   mounted: boolean;
+  ref?: HTMLElement | null;
   props: DragDroppableProps;
   setState: (stateUpdate: () => { dropIndicator: string | null }) => void;
 }

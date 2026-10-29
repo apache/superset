@@ -1,0 +1,117 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+from flask_babel import lazy_gettext as _, ngettext
+
+from superset.commands.exceptions import (
+    CommandException,
+    CommandInvalidError,
+    CreateFailedError,
+    DeleteFailedError,
+    ForbiddenError,
+    UpdateFailedError,
+)
+
+
+class SemanticViewNotFoundError(CommandException):
+    status = 404
+    message = _("Semantic view does not exist")
+
+
+class SemanticViewForbiddenError(ForbiddenError):
+    message = _("Changing this semantic view is forbidden")
+
+
+class SemanticViewInvalidError(CommandInvalidError):
+    message = _("Semantic view parameters are invalid.")
+
+
+class SemanticViewUpdateFailedError(UpdateFailedError):
+    message = _("Semantic view could not be updated.")
+
+
+class SemanticLayerNotFoundError(CommandException):
+    status = 404
+    message = _("Semantic layer does not exist")
+
+
+class SemanticLayerForbiddenError(ForbiddenError):
+    message = _("Changing this semantic layer is forbidden")
+
+
+class SemanticLayerInvalidError(CommandInvalidError):
+    message = _("Semantic layer parameters are invalid.")
+
+
+class SemanticLayerCreateFailedError(CreateFailedError):
+    message = _("Semantic layer could not be created.")
+
+
+class SemanticLayerUpdateFailedError(UpdateFailedError):
+    message = _("Semantic layer could not be updated.")
+
+
+class SemanticLayerDeleteFailedError(DeleteFailedError):
+    message = _("Semantic layer could not be deleted.")
+
+
+class SemanticViewCreateFailedError(CreateFailedError):
+    message = _("Semantic view could not be created.")
+
+
+class SemanticViewDeleteFailedError(DeleteFailedError):
+    message = _("Semantic view could not be deleted.")
+
+
+class SemanticDeleteDependentsError(CommandException):
+    """A semantic view or layer still has live or archived dependent assets."""
+
+    status: int = 409
+
+    def __init__(
+        self,
+        total: int,
+        dependents: list[dict[str, str | int]],
+        inaccessible_count: int = 0,
+        archived_count: int = 0,
+    ) -> None:
+        self.archived_count: int = archived_count
+        self.total: int = total
+        self.dependents: list[dict[str, str | int]] = dependents
+        self.inaccessible_count: int = inaccessible_count
+        message: str = ngettext(
+            "Semantic source is used by %(count)s dependent asset "
+            "and cannot be deleted.",
+            "Semantic source is used by %(count)s dependent assets "
+            "and cannot be deleted.",
+            total,
+            count=total,
+        )
+        message += " " + _(
+            "Remove or repoint these assets before deleting the semantic source."
+        )
+        if archived_count:
+            message += " " + ngettext(
+                "%(count)s dependent asset is archived.",
+                "%(count)s dependent assets are archived.",
+                archived_count,
+                count=archived_count,
+            )
+            message += " " + _(
+                "Go to Recently Archived to restore and repoint archived assets, "
+                "or delete them permanently, or ask an admin for help."
+            )
+        super().__init__(message)

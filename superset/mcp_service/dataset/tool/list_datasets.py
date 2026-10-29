@@ -23,55 +23,130 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 """
 
 import logging
+from typing import Annotated, TYPE_CHECKING
+from uuid import UUID
 
 from fastmcp import Context
+from pydantic import Field
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlaTable
+
+from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
+    DatasetError,
     DatasetFilter,
     DatasetInfo,
     DatasetList,
     ListDatasetsRequest,
     serialize_dataset_object,
 )
+from superset.mcp_service.dataset_scope import DatasetScopeFilter, get_dataset_scope
 from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    requires_data_model_metadata_access,
+    user_can_view_data_model_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
+# Minimal defaults for reduced token usage - users can request more via select_columns
+# NOTE: "database" (relationship) is included so the DAO eagerly loads it
+# via joinedload, which avoids N+1 lazy-load queries when the serializer
+# accesses dataset.database.name (via the database_name @property).
 DEFAULT_DATASET_COLUMNS = [
     "id",
     "table_name",
     "schema",
-    "uuid",
     "database_name",
-    "changed_by_name",
+    "database",
+    "description",
+    "certified_by",
+    "certification_details",
     "changed_on",
-    "created_by_name",
-    "created_on",
-    "metrics",
-    "columns",
+    "changed_on_humanized",
 ]
 
-SORTABLE_DATASET_COLUMNS = [
-    "id",
-    "table_name",
-    "schema",
-    "changed_on",
-    "created_on",
-]
+_DEFAULT_LIST_DATASETS_REQUEST = ListDatasetsRequest()
 
 
-@mcp.tool
-@mcp_auth_hook
-async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
-    """List datasets with filtering and search.
+@tool(
+    tags=["core"],
+    class_permission_name="Dataset",
+    annotations=ToolAnnotations(
+        title="List datasets",
+        readOnlyHint=True,
+        destructiveHint=False,
+        openWorldHint=False,
+    ),
+)
+@requires_data_model_metadata_access
+async def list_datasets(
+    request: Annotated[
+        ListDatasetsRequest | None,
+        Field(
+            description=(
+                'Wrap {"request": {...}}; Do NOT pass search/page/filters top-level. '
+                "Candidates, not a ranking: several fit? explain alternatives, "
+                "clarify before querying; empty result doesn't prove absence. "
+                "Never substitute out-of-scope data. "
+                "Users: find_users ID filter, not search."
+            )
+        ),
+    ] = None,
+    ctx: Context | None = None,
+) -> DatasetList | DatasetError:
+    """SQL datasets only.
 
-    Returns dataset metadata including columns and metrics.
+    For semantic views, use list_metrics for discovery and get_table for queries.
 
-    Sortable columns for order_column: id, table_name, schema, changed_on,
-    created_on
+    List/search/filter physical or virtual SQL datasets. Returns dataset metadata
+    including table name, schema, and last modified
+    time. Set ``request.certified`` to true to return only certified SQL
+    datasets; false returns only uncertified datasets, while
+    omitting it preserves the unfiltered behavior.
+
+    Search matches schema, SQL, table name, and description as case-insensitive
+    substrings. A complete UUID passed as ``search`` is treated as an exact UUID
+    lookup for compatibility; clients may also filter on the ``uuid`` column
+    explicitly. Results are candidates, not a relevance ranking. Compare
+    descriptions and metadata; when multiple candidates fit, explain the
+    alternatives and clarify before querying. An empty search result does not
+    establish that the requested data does not exist. Never substitute a
+    different dataset for one outside the MCP scope.
+
+    **IMPORTANT**: All parameters must be wrapped in a ``request`` object.
+    Do NOT pass ``search``, ``page``, ``page_size``, etc. as top-level
+    keyword arguments — they will be rejected. Use the ``request`` wrapper::
+
+        # Correct usage
+        list_datasets(request={"search": "sales", "page": 1, "page_size": 10})
+        list_datasets(request={"filters": [{"col": "table_name", "opr": "sw", "value": "orders"}]})
+        list_datasets(request={"filters": [{"col": "uuid", "opr": "eq", "value": "a1b2c3d4-5678-90ab-cdef-1234567890ab"}]})
+        list_datasets()  # no arguments returns first page with defaults
+
+        # Wrong — causes pydantic validation errors
+        list_datasets(search="sales", page=1)  # DO NOT DO THIS
+
+    Valid filter columns for ``filters[].col``:
+        ``uuid``, ``table_name``, ``schema``, ``database_name``,
+        ``created_by_fk``, ``changed_by_fk``
+
+    Sortable columns for ``order_column``:
+        ``id``, ``table_name``, ``schema``, ``changed_on``,
+        ``changed_on_delta_humanized`` (alias for ``changed_on``), ``created_on``
+
+    To filter by a person, call find_users to resolve the name to a user ID,
+    then pass it as a filter: filters=[{"col": "created_by_fk", "opr": "eq",
+    "value": <id>}] (or "changed_by_fk"). Do not pass the name as search.
     """
+    if ctx is None:
+        raise RuntimeError("FastMCP context is required for list_datasets")
+
+    request = request or _DEFAULT_LIST_DATASETS_REQUEST.model_copy(deep=True)
+
     await ctx.info(
         "Listing datasets: page=%s, page_size=%s, search=%s"
         % (
@@ -99,31 +174,92 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
         )
     )
 
+    if not user_can_view_data_model_metadata():
+        await ctx.warning("Dataset listing blocked by data-model privacy controls")
+        return DatasetError.create(
+            error="You don't have permission to access dataset details for your role.",
+            error_type=DATA_MODEL_METADATA_ERROR_TYPE,
+        )
+
     try:
         from superset.daos.dataset import DatasetDAO
+        from superset.datasets.filters import (
+            DatasetCertifiedFilter,
+            DatasetDeletedStateFilter,
+        )
+        from superset.mcp_service.common.schema_discovery import (
+            DATASET_SEARCH_COLUMNS,
+            DATASET_SORTABLE_COLUMNS,
+            get_all_column_names,
+            get_dataset_columns,
+        )
+
+        # Get all column names dynamically from the model
+        all_columns = get_all_column_names(get_dataset_columns())
+
+        def _serialize_dataset(
+            obj: "SqlaTable | None", cols: list[str] | None
+        ) -> DatasetInfo | None:
+            """Serialize dataset (filtering via model_serializer)."""
+            return serialize_dataset_object(obj)
 
         # Create tool with standard serialization
         tool = ModelListCore(
             dao_class=DatasetDAO,
             output_schema=DatasetInfo,
-            item_serializer=lambda obj, cols: serialize_dataset_object(obj),
+            item_serializer=_serialize_dataset,
             filter_type=DatasetFilter,
             default_columns=DEFAULT_DATASET_COLUMNS,
-            search_columns=["schema", "sql", "table_name", "uuid"],
+            search_columns=DATASET_SEARCH_COLUMNS,
             list_field_name="datasets",
             output_list_schema=DatasetList,
+            all_columns=all_columns,
+            sortable_columns=DATASET_SORTABLE_COLUMNS,
             logger=logger,
+            deleted_state_filter=DatasetDeletedStateFilter,
         )
 
-        result = tool.run_tool(
-            filters=request.filters,
-            search=request.search,
-            select_columns=request.select_columns,
-            order_column=request.order_column,
-            order_direction=request.order_direction,
-            page=max(request.page - 1, 0),
-            page_size=request.page_size,
-        )
+        with event_logger.log_context(action="mcp.list_datasets.query"):
+            custom_filters = {}
+            if request.certified is not None:
+                custom_filters["certified"] = tool.build_bound_filter(
+                    DatasetCertifiedFilter, request.certified
+                )
+            scope = get_dataset_scope()
+            if scope is not None:
+                custom_filters["mcp_dataset_scope"] = tool.build_bound_filter(
+                    DatasetScopeFilter, scope
+                )
+            filters = request.filters
+            search = request.search
+            if search is not None:
+                try:
+                    searched_uuid = UUID(search)
+                except (ValueError, AttributeError):
+                    pass
+                else:
+                    # UUID storage differs across database engines. Use an exact
+                    # typed filter instead of the text-cast substring search so
+                    # the long-supported ``search=<uuid>`` form is portable.
+                    filters = [
+                        *filters,
+                        DatasetFilter(col="uuid", opr="eq", value=str(searched_uuid)),
+                    ]
+                    search = None
+
+            result = tool.run_tool(
+                filters=filters,
+                search=search,
+                select_columns=request.select_columns,
+                order_column=request.order_column,
+                order_direction=request.order_direction,
+                page=max(request.page - 1, 0),
+                page_size=request.page_size,
+                created_by_me=request.created_by_me,
+                edited_by_me=request.edited_by_me,
+                deleted_state=request.deleted_state,
+                custom_filters=custom_filters or None,
+            )
 
         await ctx.info(
             "Datasets listed successfully: count=%s, total_count=%s, total_pages=%s"
@@ -134,7 +270,19 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
             )
         )
 
-        return result
+        # Apply field filtering via serialization context
+        # Always use columns_requested (either explicit select_columns or defaults)
+        # This triggers DatasetInfo._filter_fields_by_context for each dataset
+        columns_to_filter = result.columns_requested
+        await ctx.debug(
+            "Applying field filtering via serialization context: columns=%s"
+            % (columns_to_filter,)
+        )
+        with event_logger.log_context(action="mcp.list_datasets.serialization"):
+            return result.model_dump(
+                mode="json",
+                context={"select_columns": columns_to_filter},
+            )
 
     except Exception as e:
         await ctx.error(

@@ -19,8 +19,8 @@
 import { RefObject, useEffect, useRef, KeyboardEvent } from 'react';
 
 import { useSelector } from 'react-redux';
-import { t } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
 import { List, Popover } from '@superset-ui/core/components';
 import {
   FiltersContainer,
@@ -35,17 +35,19 @@ import { RootState } from 'src/dashboard/types';
 export interface DetailsPanelProps {
   appliedCrossFilterIndicators: Indicator[];
   appliedIndicators: Indicator[];
+  incompatibleIndicators?: Indicator[];
   onHighlightFilterSource: (path: string[]) => void;
   children: JSX.Element;
   popoverVisible: boolean;
   popoverContentRef: RefObject<HTMLDivElement>;
-  popoverTriggerRef: RefObject<HTMLDivElement>;
+  popoverTriggerRef: RefObject<HTMLButtonElement>;
   setPopoverVisible: (visible: boolean) => void;
 }
 
 const DetailsPanelPopover = ({
   appliedCrossFilterIndicators = [],
   appliedIndicators = [],
+  incompatibleIndicators = [],
   onHighlightFilterSource,
   children,
   popoverVisible,
@@ -175,13 +177,33 @@ const DetailsPanelPopover = ({
             </FiltersContainer>
           </div>
         ) : null}
+        {incompatibleIndicators.length ? (
+          <div>
+            {appliedCrossFilterIndicators.length || appliedIndicators.length ? (
+              <Separator />
+            ) : null}
+            <SectionName>
+              {t('Incompatible filters (%d)', incompatibleIndicators.length)}
+            </SectionName>
+            <FiltersContainer>
+              {incompatibleIndicators.map(indicator => (
+                <FilterIndicator
+                  ref={el => indicatorRefs.current.push(el)}
+                  key={indicatorKey(indicator)}
+                  indicator={indicator}
+                  onClick={onHighlightFilterSource}
+                />
+              ))}
+            </FiltersContainer>
+          </div>
+        ) : null}
       </div>
     </FiltersDetailsContainer>
   );
 
   return (
     <Popover
-      color={`${theme.colorBgElevated}cc`}
+      color={theme.colorBgElevated}
       content={content}
       open={popoverVisible}
       onOpenChange={handleVisibility}

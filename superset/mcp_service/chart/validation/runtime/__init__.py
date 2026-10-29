@@ -21,13 +21,9 @@ Validates performance, compatibility, and user experience issues.
 """
 
 import logging
-from typing import List, Tuple
+from typing import Any, Dict, List, Tuple
 
-from superset.mcp_service.chart.schemas import (
-    ChartConfig,
-    XYChartConfig,
-)
-from superset.mcp_service.common.error_schemas import ChartGenerationError
+from superset.mcp_service.chart.schemas import ChartConfig
 
 logger = logging.getLogger(__name__)
 
@@ -38,34 +34,33 @@ class RuntimeValidator:
     @staticmethod
     def validate_runtime_issues(
         config: ChartConfig, dataset_id: int | str
-    ) -> Tuple[bool, ChartGenerationError | None]:
+    ) -> Tuple[bool, Dict[str, Any] | None]:
         """
         Validate runtime issues that could affect chart rendering or performance.
+
+        Warnings are returned as informational metadata, NOT as errors.
+        Chart generation proceeds regardless of warnings.
 
         Args:
             config: Chart configuration to validate
             dataset_id: Dataset identifier
 
         Returns:
-            Tuple of (is_valid, error)
+            Tuple of (is_valid, warnings_metadata)
+            - is_valid: Always True (warnings don't block generation)
+            - warnings_metadata: Dict with warnings and suggestions, or None
         """
         warnings: List[str] = []
         suggestions: List[str] = []
 
-        # Only check XY charts for format and cardinality issues
-        if isinstance(config, XYChartConfig):
-            # Format-type compatibility validation
-            format_warnings = RuntimeValidator._validate_format_compatibility(config)
-            if format_warnings:
-                warnings.extend(format_warnings)
-
-            # Cardinality validation
-            cardinality_warnings, cardinality_suggestions = (
-                RuntimeValidator._validate_cardinality(config, dataset_id)
-            )
-            if cardinality_warnings:
-                warnings.extend(cardinality_warnings)
-                suggestions.extend(cardinality_suggestions)
+        # Per-plugin runtime warnings (format, cardinality, etc.)
+        plugin_warnings, plugin_suggestions = RuntimeValidator._validate_plugin_runtime(
+            config, dataset_id
+        )
+        if plugin_warnings:
+            warnings.extend(plugin_warnings)
+        if plugin_suggestions:
+            suggestions.extend(plugin_suggestions)
 
         # Chart type appropriateness validation (for all chart types)
         type_warnings, type_suggestions = RuntimeValidator._validate_chart_type(
@@ -75,79 +70,47 @@ class RuntimeValidator:
             warnings.extend(type_warnings)
             suggestions.extend(type_suggestions)
 
-        # If we have warnings, return them as a validation error
+        # Return warnings as metadata, NOT as errors
+        # Warnings should inform, not block chart generation
         if warnings:
-            from superset.mcp_service.utils.error_builder import (
-                ChartErrorBuilder,
+            logger.info(
+                "Runtime validation warnings for dataset %s: %s",
+                dataset_id,
+                warnings[:3],
             )
-
-            return False, ChartErrorBuilder.build_error(
-                error_type="runtime_semantic_warning",
-                template_key="performance_warning",
-                template_vars={
-                    "reason": "; ".join(warnings[:3])
-                    + ("..." if len(warnings) > 3 else "")
+            return (
+                True,
+                {
+                    "warnings": warnings[:5],  # Limit to 5 warnings
+                    "suggestions": suggestions[:5],  # Limit to 5 suggestions
                 },
-                custom_suggestions=suggestions[:5],  # Limit suggestions
-                error_code="RUNTIME_SEMANTIC_WARNING",
             )
 
         return True, None
 
     @staticmethod
-    def _validate_format_compatibility(config: XYChartConfig) -> List[str]:
-        """Validate format-type compatibility."""
-        warnings: List[str] = []
-
-        try:
-            # Import here to avoid circular imports
-            from .format_validator import FormatTypeValidator
-
-            is_valid, format_warnings = (
-                FormatTypeValidator.validate_format_compatibility(config)
-            )
-            if format_warnings:
-                warnings.extend(format_warnings)
-        except ImportError:
-            logger.warning("Format validator not available")
-        except Exception as e:
-            logger.warning("Format validation failed: %s", e)
-
-        return warnings
-
-    @staticmethod
-    def _validate_cardinality(
-        config: XYChartConfig, dataset_id: int | str
+    def _validate_plugin_runtime(
+        config: ChartConfig, dataset_id: int | str
     ) -> Tuple[List[str], List[str]]:
-        """Validate cardinality issues."""
-        warnings: List[str] = []
-        suggestions: List[str] = []
+        """Delegate per-chart-type runtime warnings to the plugin registry.
 
+        Each plugin's get_runtime_warnings() method returns chart-type-specific
+        warnings and suggestions (e.g. format/cardinality for XY). The registry
+        dispatch removes the previous isinstance(config, XYChartConfig) hardcoding.
+        """
         try:
-            # Import here to avoid circular imports
-            from .cardinality_validator import CardinalityValidator
+            from superset.mcp_service.chart.registry import get_registry
 
-            # Determine chart type for cardinality thresholds
-            chart_type = config.kind if hasattr(config, "kind") else "default"
-
-            # Check X-axis cardinality
-            is_ok, cardinality_info = CardinalityValidator.check_cardinality(
-                dataset_id=dataset_id,
-                x_column=config.x.name,
-                chart_type=chart_type,
-                group_by_column=config.group_by.name if config.group_by else None,
-            )
-
-            if not is_ok and cardinality_info:
-                warnings.extend(cardinality_info.get("warnings", []))
-                suggestions.extend(cardinality_info.get("suggestions", []))
-
-        except ImportError:
-            logger.warning("Cardinality validator not available")
-        except Exception as e:
-            logger.warning("Cardinality validation failed: %s", e)
-
-        return warnings, suggestions
+            chart_type = getattr(config, "chart_type", None)
+            if chart_type is None:
+                return [], []
+            plugin = get_registry().get(chart_type)
+            if plugin is None:
+                return [], []
+            return plugin.get_runtime_warnings(config, dataset_id)
+        except Exception as exc:  # noqa: BLE001 — plugin code is third-party-extensible
+            logger.warning("Plugin runtime validation failed: %s", exc)
+            return [], []
 
     @staticmethod
     def _validate_chart_type(
@@ -179,7 +142,7 @@ class RuntimeValidator:
 
         except ImportError:
             logger.warning("Chart type suggester not available")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — non-blocking warning path
             logger.warning("Chart type validation failed: %s", e)
 
         return warnings, suggestions

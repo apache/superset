@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FormItem } from '@superset-ui/core/components';
-import { css, styled, SupersetTheme } from '@apache-superset/core/ui';
+import { css, styled, SupersetTheme } from '@apache-superset/core/theme';
 
 const MODAL_BODY_HEIGHT = 180.5;
 

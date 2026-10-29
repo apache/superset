@@ -16,13 +16,13 @@
 # under the License.
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, TYPE_CHECKING
 
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -31,6 +31,30 @@ if TYPE_CHECKING:
 class CrateEngineSpec(BaseEngineSpec):
     engine = "crate"
     engine_name = "CrateDB"
+
+    metadata = {
+        "description": (
+            "CrateDB is a distributed SQL database for machine data and IoT workloads."
+        ),
+        "logo": "cratedb.svg",
+        "homepage_url": "https://cratedb.com",
+        "categories": [DatabaseCategory.TIME_SERIES, DatabaseCategory.OPEN_SOURCE],
+        "pypi_packages": ["crate", "sqlalchemy-cratedb"],
+        "connection_string": "crate://{host}:{port}",
+        "default_port": 4200,
+        "parameters": {
+            "host": "CrateDB host",
+            "port": "CrateDB HTTP port (default 4200)",
+        },
+        "drivers": [
+            {
+                "name": "crate",
+                "pypi_package": "sqlalchemy-cratedb",
+                "connection_string": "crate://{host}:{port}",
+                "is_recommended": True,
+            },
+        ],
+    }
 
     _time_grain_expressions = {
         None: "{col}",
@@ -64,5 +88,36 @@ class CrateEngineSpec(BaseEngineSpec):
 
     @classmethod
     def alter_new_orm_column(cls, orm_col: TableColumn) -> None:
-        if orm_col.type == "TIMESTAMP":
+        if orm_col.type in {
+            "TIMESTAMP",
+            "TIMESTAMP WITHOUT TIME ZONE",
+            "TIMESTAMP WITH TIME ZONE",
+        }:
             orm_col.python_date_format = "epoch_ms"
+
+    @classmethod
+    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
+        """Decode typed timestamp results without depending on dataset metadata."""
+        data = super().fetch_data(cursor, limit)
+        # CrateDB's DBAPI description omits type codes. The HTTP result retains
+        # them: 11 = TIMESTAMP WITH TIME ZONE, 15 = WITHOUT TIME ZONE.
+        timestamp_indexes = [
+            index
+            for index, type_code in enumerate(
+                getattr(cursor, "_result", {}).get("col_types", [])
+            )
+            if type_code in (11, 15)
+        ]
+        if not timestamp_indexes:
+            return data
+        rows = []
+        for row in data:
+            values = list(row)
+            for index in timestamp_indexes:
+                value = values[index]
+                if isinstance(value, (int, float)) and not isinstance(value, bool):
+                    # UTC-naive matches Superset's datetime normalization and
+                    # avoids interpreting epoch milliseconds as nanoseconds.
+                    values[index] = datetime(1970, 1, 1) + timedelta(milliseconds=value)
+            rows.append(tuple(values))
+        return rows

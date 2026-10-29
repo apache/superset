@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { tn } from '@superset-ui/core';
+import { tn } from '@apache-superset/core/translation';
 import { updateColumns } from '.';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -49,8 +49,8 @@ describe('updateColumns', () => {
     expect(addSuccessToast).toHaveBeenCalledTimes(1);
     expect(addSuccessToast).toHaveBeenCalledWith(
       tn(
-        'Added 1 new column to the virtual dataset',
-        'Added %s new columns to the virtual dataset',
+        'Added 1 new column to the dataset',
+        'Added %s new columns to the dataset',
         2,
         2,
       ),
@@ -87,8 +87,8 @@ describe('updateColumns', () => {
     expect(addSuccessToast).toHaveBeenCalledTimes(1);
     expect(addSuccessToast).toHaveBeenCalledWith(
       tn(
-        'Modified 1 column in the virtual dataset',
-        'Modified %s columns in the virtual dataset',
+        'Modified 1 column in the dataset',
+        'Modified %s columns in the dataset',
         1,
         1,
       ),
@@ -114,8 +114,8 @@ describe('updateColumns', () => {
     expect(addSuccessToast).toHaveBeenCalledTimes(1);
     expect(addSuccessToast).toHaveBeenCalledWith(
       tn(
-        'Removed 1 column from the virtual dataset',
-        'Removed %s columns from the virtual dataset',
+        'Removed 1 column from the dataset',
+        'Removed %s columns from the dataset',
         1,
         1,
       ),
@@ -147,24 +147,24 @@ describe('updateColumns', () => {
     expect(addSuccessToast.mock.calls).toEqual([
       [
         tn(
-          'Modified 1 column in the virtual dataset',
-          'Modified %s columns in the virtual dataset',
+          'Modified 1 column in the dataset',
+          'Modified %s columns in the dataset',
           1,
           1,
         ),
       ],
       [
         tn(
-          'Removed 1 column from the virtual dataset',
-          'Removed %s columns from the virtual dataset',
+          'Removed 1 column from the dataset',
+          'Removed %s columns from the dataset',
           1,
           1,
         ),
       ],
       [
         tn(
-          'Added 1 new column to the virtual dataset',
-          'Added %s new columns to the virtual dataset',
+          'Added 1 new column to the dataset',
+          'Added %s new columns to the dataset',
           1,
           1,
         ),
@@ -199,8 +199,8 @@ describe('updateColumns', () => {
     expect(addSuccessToast.mock.calls).toEqual([
       [
         tn(
-          'Modified 1 column in the virtual dataset',
-          'Modified %s columns in the virtual dataset',
+          'Modified 1 column in the dataset',
+          'Modified %s columns in the dataset',
           1,
           1,
         ),

@@ -16,10 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 
 export type ResultsPage = {
   total: number;
+  // `total` counts the rows up to this page and more exist past it; the
+  // backend skipped an exact COUNT(*) that would have been a full-table scan.
+  totalIsLowerBound?: boolean;
   data: Record<string, any>[];
   colNames: string[];
   colTypes: GenericDataType[];

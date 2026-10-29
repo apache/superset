@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import {
   render,
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
-import { SupersetClient } from '@superset-ui/core';
+import { FeatureFlag, SupersetClient } from '@superset-ui/core';
 import { createMemoryHistory } from 'history';
 import { Router } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
@@ -36,6 +38,10 @@ jest.mock('src/utils/export', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
+
+jest.mock('src/utils/getBootstrapData', () =>
+  mockUserSubjectsBootstrapData([1]),
+);
 
 const mockExport = handleResourceExport as jest.MockedFunction<
   typeof handleResourceExport
@@ -78,6 +84,7 @@ const mockDashboards = [
     changed_on_delta_humanized: '1 day ago',
     url: '/dashboard/1',
     thumbnail_url: '/thumbnail/1',
+    editors: [{ id: 1, label: 'Test User', type: 1 }],
   },
   {
     id: 2,
@@ -85,6 +92,7 @@ const mockDashboards = [
     changed_on_delta_humanized: '2 days ago',
     url: '/dashboard/2',
     thumbnail_url: '/thumbnail/2',
+    editors: [{ id: 1, label: 'Test User', type: 1 }],
   },
 ];
 
@@ -105,245 +113,421 @@ const defaultProps = {
   otherTabTitle: 'Examples',
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('DashboardTable', () => {
-  const history = createMemoryHistory();
-  const store = configureStore({
-    reducer: {
-      dashboards: (state = { dashboards: [] }) => state,
+const history = createMemoryHistory();
+const store = configureStore({
+  reducer: {
+    dashboards: (state = { dashboards: [] }) => state,
+  },
+  preloadedState: {
+    dashboards: {
+      dashboards: mockDashboards,
     },
-    preloadedState: {
-      dashboards: {
-        dashboards: mockDashboards,
-      },
-    },
-  });
+  },
+});
 
-  beforeEach(() => {
-    jest.spyOn(SupersetClient, 'get').mockImplementation(() =>
-      Promise.resolve({
-        json: {
-          result: mockDashboards[0],
-        },
-        response: new Response(),
-      }),
-    );
-
-    fetchMock.get(
-      'glob:*/api/v1/dashboard/*',
-      {
+beforeEach(() => {
+  jest.spyOn(SupersetClient, 'get').mockImplementation(() =>
+    Promise.resolve({
+      json: {
         result: mockDashboards[0],
       },
-      { overwriteRoutes: true },
-    ); // Add overwriteRoutes option
+      response: new Response(),
+    }),
+  );
 
-    // Mock loading state for first render
-    jest.spyOn(hooks, 'useListViewResource').mockImplementationOnce(() => ({
-      state: {
-        loading: true,
-        resourceCollection: [],
-        resourceCount: 0,
-        bulkSelectEnabled: false,
-        lastFetched: undefined,
-      },
-      setResourceCollection: jest.fn(),
-      hasPerm: jest.fn().mockReturnValue(true),
-      refreshData: jest.fn(),
-      fetchData: jest.fn(),
-      toggleBulkSelect: jest.fn(),
-    }));
+  const getDashboardMockUrl = 'glob:*/api/v1/dashboard/*';
+  fetchMock.removeRoute(getDashboardMockUrl);
+  fetchMock.get(
+    getDashboardMockUrl,
+    {
+      result: mockDashboards[0],
+    },
+    { name: getDashboardMockUrl },
+  );
+
+  // Mock loading state for first render
+  jest.spyOn(hooks, 'useListViewResource').mockImplementationOnce(() => ({
+    state: {
+      loading: true,
+      resourceCollection: [],
+      resourceCount: 0,
+      bulkSelectEnabled: false,
+      lastFetched: undefined,
+    },
+    setResourceCollection: jest.fn(),
+    hasPerm: jest.fn().mockReturnValue(true),
+    refreshData: jest.fn(),
+    fetchData: jest.fn(),
+    toggleBulkSelect: jest.fn(),
+  }));
+});
+
+test('renders loading state initially', () => {
+  render(
+    <Router history={history}>
+      <DashboardTable {...defaultProps} />
+    </Router>,
+    { store },
+  );
+  expect(screen.getByRole('img', { name: 'empty' })).toBeInTheDocument();
+});
+
+test('renders empty state when no dashboards', async () => {
+  render(
+    <Router history={history}>
+      <DashboardTable {...defaultProps} />
+    </Router>,
+    { store },
+  );
+
+  await waitFor(() => {
+    expect(screen.getByText('No results')).toBeInTheDocument();
   });
+});
 
-  test('renders loading state initially', () => {
-    render(
-      <Router history={history}>
-        <DashboardTable {...defaultProps} />
-      </Router>,
-      { store },
-    );
-    expect(screen.getByRole('img', { name: 'empty' })).toBeInTheDocument();
-  });
+test('renders dashboard cards when data is loaded', async () => {
+  jest.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
+    state: {
+      loading: false,
+      resourceCollection: mockDashboards,
+      resourceCount: mockDashboards.length,
+      bulkSelectEnabled: false,
+      lastFetched: new Date().toISOString(),
+    },
+    setResourceCollection: jest.fn(),
+    hasPerm: jest.fn().mockReturnValue(true),
+    refreshData: jest.fn(),
+    fetchData: jest.fn(),
+    toggleBulkSelect: jest.fn(),
+  }));
 
-  test('renders empty state when no dashboards', async () => {
-    render(
-      <Router history={history}>
-        <DashboardTable {...defaultProps} />
-      </Router>,
-      { store },
-    );
+  render(
+    <Router history={history}>
+      <DashboardTable {...defaultProps} mine={mockDashboards} />
+    </Router>,
+    { store },
+  );
 
-    await waitFor(() => {
-      expect(screen.getByText('No results')).toBeInTheDocument();
+  await waitFor(() => {
+    mockDashboards.forEach(dashboard => {
+      expect(screen.getByText(dashboard.dashboard_title)).toBeInTheDocument();
     });
   });
+});
 
-  test('renders dashboard cards when data is loaded', async () => {
-    jest.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
-      state: {
-        loading: false,
-        resourceCollection: mockDashboards,
-        resourceCount: mockDashboards.length,
-        bulkSelectEnabled: false,
-        lastFetched: new Date().toISOString(),
-      },
-      setResourceCollection: jest.fn(),
-      hasPerm: jest.fn().mockReturnValue(true),
-      refreshData: jest.fn(),
-      fetchData: jest.fn(),
-      toggleBulkSelect: jest.fn(),
-    }));
+test('switches to Mine tab correctly', async () => {
+  const props = {
+    ...defaultProps,
+    mine: mockDashboards,
+  };
 
-    render(
-      <Router history={history}>
-        <DashboardTable {...defaultProps} mine={mockDashboards} />
-      </Router>,
-      { store },
-    );
+  render(
+    <Router history={history}>
+      <DashboardTable {...props} />
+    </Router>,
+    { store },
+  );
 
-    await waitFor(() => {
-      mockDashboards.forEach(dashboard => {
-        expect(screen.getByText(dashboard.dashboard_title)).toBeInTheDocument();
-      });
-    });
+  const mineTab = screen.getByRole('menuitem', { name: /mine/i });
+  await userEvent.click(mineTab);
+  await waitFor(() => {
+    expect(mineTab).toHaveClass('ant-menu-item-selected');
+  });
+});
+
+test('handles create dashboard button click', async () => {
+  const assignMock = jest.fn();
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    assign: assignMock,
+  } as Location);
+
+  render(
+    <Router history={history}>
+      <DashboardTable {...defaultProps} />
+    </Router>,
+    { store },
+  );
+
+  const createButton = screen.getByRole('button', { name: /dashboard$/i });
+  // No pending state before the click — the button is idle.
+  expect(createButton).not.toHaveClass('ant-btn-loading');
+  await userEvent.click(createButton);
+  expect(assignMock).toHaveBeenCalledWith('/dashboard/new/');
+  // /dashboard/new/ is a hard navigation whose GET creates the dashboard
+  // server-side; the button must show a loading state for the whole
+  // round-trip instead of looking dead (issue #43385).
+  await waitFor(() => {
+    expect(createButton).toHaveClass('ant-btn-loading');
+  });
+  locationSpy.mockRestore();
+});
+
+test('switches to Other tab when available', async () => {
+  const props = {
+    ...defaultProps,
+    otherTabData: mockDashboards,
+    otherTabTitle: 'Examples',
+  };
+
+  render(
+    <Router history={history}>
+      <DashboardTable {...props} />
+    </Router>,
+    { store },
+  );
+
+  const otherTab = screen.getByRole('tab', { name: 'Examples' });
+  await userEvent.click(otherTab);
+  expect(otherTab).toHaveClass('active');
+});
+
+test('handles bulk dashboard export with correct ID and shows spinner', async () => {
+  // Mock export to take some time before calling the done callback
+  mockExport.mockImplementation(
+    (resource: string, ids: number[], done: () => void) =>
+      new Promise(resolve => {
+        setTimeout(() => {
+          done();
+          resolve();
+        }, 100);
+      }),
+  );
+
+  const props = {
+    ...defaultProps,
+    mine: mockDashboards,
+  };
+
+  jest.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
+    state: {
+      loading: false,
+      resourceCollection: mockDashboards,
+      resourceCount: mockDashboards.length,
+      bulkSelectEnabled: false,
+      lastFetched: new Date().toISOString(),
+    },
+    setResourceCollection: jest.fn(),
+    hasPerm: jest.fn().mockReturnValue(true),
+    refreshData: jest.fn(),
+    fetchData: jest.fn(),
+    toggleBulkSelect: jest.fn(),
+  }));
+
+  render(
+    <Router history={history}>
+      <DashboardTable {...props} />
+    </Router>,
+    { store },
+  );
+
+  const moreOptionsButton = screen.getAllByRole('img', {
+    name: 'more',
+  })[0];
+  await userEvent.click(moreOptionsButton);
+
+  // Wait for dropdown menu to appear
+  await waitFor(() => {
+    expect(screen.getByText('Export')).toBeInTheDocument();
   });
 
-  test('switches to Mine tab correctly', async () => {
-    const props = {
-      ...defaultProps,
-      mine: mockDashboards,
-    };
+  const exportOption = screen.getByText('Export');
+  await userEvent.click(exportOption);
 
-    render(
-      <Router history={history}>
-        <DashboardTable {...props} />
-      </Router>,
-      { store },
-    );
-
-    const mineTab = screen.getByRole('menuitem', { name: /mine/i });
-    await userEvent.click(mineTab);
-    await waitFor(() => {
-      expect(mineTab).toHaveClass('ant-menu-item-selected');
-    });
+  // Verify spinner shows up during export
+  await waitFor(() => {
+    expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
-  test('handles create dashboard button click', async () => {
-    const assignMock = jest.fn();
-    Object.defineProperty(window, 'location', {
-      value: { assign: assignMock },
-      writable: true,
-    });
+  // Verify the export was called with correct parameters
+  expect(mockExport).toHaveBeenCalledWith(
+    'dashboard',
+    [1],
+    expect.any(Function),
+  );
 
-    render(
-      <Router history={history}>
-        <DashboardTable {...defaultProps} />
-      </Router>,
-      { store },
-    );
+  // Wait for export to complete and spinner to disappear
+  await waitFor(
+    () => {
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    },
+    { timeout: 3000 },
+  );
+});
 
-    const createButton = screen.getByRole('button', { name: /dashboard$/i });
-    await userEvent.click(createButton);
-    expect(assignMock).toHaveBeenCalledWith('/dashboard/new');
+test('handles dashboard deletion confirmation', async () => {
+  const props = {
+    ...defaultProps,
+    mine: mockDashboards,
+  };
+
+  const refreshDataMock = jest.fn();
+  jest.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
+    state: {
+      loading: false,
+      resourceCollection: mockDashboards,
+      resourceCount: mockDashboards.length,
+      bulkSelectEnabled: false,
+      lastFetched: new Date().toISOString(),
+    },
+    setResourceCollection: jest.fn(),
+    hasPerm: jest.fn().mockReturnValue(true),
+    refreshData: refreshDataMock,
+    fetchData: jest.fn(),
+    toggleBulkSelect: jest.fn(),
+  }));
+
+  render(
+    <Router history={history}>
+      <DashboardTable {...props} />
+    </Router>,
+    { store },
+  );
+
+  const moreOptionsButton = screen.getAllByLabelText('more')[0];
+  await userEvent.click(moreOptionsButton);
+
+  await waitFor(() => {
+    expect(screen.getByText('Delete')).toBeInTheDocument();
   });
 
-  test('switches to Other tab when available', async () => {
-    const props = {
-      ...defaultProps,
-      otherTabData: mockDashboards,
-      otherTabTitle: 'Examples',
-    };
+  const deleteOption = screen.getByText('Delete');
+  await userEvent.click(deleteOption);
 
-    render(
-      <Router history={history}>
-        <DashboardTable {...props} />
-      </Router>,
-      { store },
-    );
+  // Verify Delete button is initially disabled
+  const confirmDeleteButton = screen.getByTestId('modal-confirm-button');
+  expect(confirmDeleteButton).toBeDisabled();
 
-    const otherTab = screen.getByRole('tab', { name: 'Examples' });
-    await userEvent.click(otherTab);
-    expect(otherTab).toHaveClass('active');
+  // Type DELETE in the confirmation input
+  const deleteInput = screen.getByTestId('delete-modal-input');
+  await userEvent.type(deleteInput, 'DELETE');
+
+  // Verify Delete button becomes enabled
+  await waitFor(() => {
+    expect(confirmDeleteButton).toBeEnabled();
   });
 
-  test('handles bulk dashboard export with correct ID and shows spinner', async () => {
-    // Mock export to take some time before calling the done callback
-    mockExport.mockImplementation(
-      (resource: string, ids: number[], done: () => void) =>
-        new Promise(resolve => {
-          setTimeout(() => {
-            done();
-            resolve();
-          }, 100);
-        }),
-    );
+  // Click the now-enabled Delete button
+  await userEvent.click(confirmDeleteButton);
 
-    const props = {
-      ...defaultProps,
-      mine: mockDashboards,
-    };
+  await waitFor(
+    () => {
+      expect(refreshDataMock).toHaveBeenCalled();
+    },
+    { timeout: 3000 },
+  );
 
-    jest.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
-      state: {
-        loading: false,
-        resourceCollection: mockDashboards,
-        resourceCount: mockDashboards.length,
-        bulkSelectEnabled: false,
-        lastFetched: new Date().toISOString(),
-      },
-      setResourceCollection: jest.fn(),
-      hasPerm: jest.fn().mockReturnValue(true),
-      refreshData: jest.fn(),
-      fetchData: jest.fn(),
-      toggleBulkSelect: jest.fn(),
-    }));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
 
-    render(
-      <Router history={history}>
-        <DashboardTable {...props} />
-      </Router>,
-      { store },
-    );
+test('passes correct parameters to handleDashboardDelete for Other tab', async () => {
+  const mockHandleDashboardDelete =
+    require('src/views/CRUD/utils').handleDashboardDelete;
+  mockHandleDashboardDelete.mockClear();
 
-    const moreOptionsButton = screen.getAllByRole('img', {
-      name: 'more',
-    })[0];
-    await userEvent.click(moreOptionsButton);
+  const refreshDataMock = jest.fn();
+  const fetchDataMock = jest.fn().mockName('getData');
 
-    // Wait for dropdown menu to appear
-    await waitFor(() => {
-      expect(screen.getByText('Export')).toBeInTheDocument();
-    });
+  jest.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
+    state: {
+      loading: false,
+      resourceCollection: mockDashboards,
+      resourceCount: mockDashboards.length,
+      bulkSelectEnabled: false,
+      lastFetched: new Date().toISOString(),
+    },
+    setResourceCollection: jest.fn(),
+    hasPerm: jest.fn().mockReturnValue(true),
+    refreshData: refreshDataMock,
+    fetchData: fetchDataMock,
+    toggleBulkSelect: jest.fn(),
+  }));
 
-    const exportOption = screen.getByText('Export');
-    await userEvent.click(exportOption);
+  const props = {
+    ...defaultProps,
+    otherTabData: mockDashboards,
+    otherTabTitle: 'All',
+  };
 
-    // Verify spinner shows up during export
-    await waitFor(() => {
-      expect(screen.getByRole('status')).toBeInTheDocument();
-    });
+  render(
+    <Router history={history}>
+      <DashboardTable {...props} />
+    </Router>,
+    { store },
+  );
 
-    // Verify the export was called with correct parameters
-    expect(mockExport).toHaveBeenCalledWith(
-      'dashboard',
-      [1],
-      expect.any(Function),
-    );
-
-    // Wait for export to complete and spinner to disappear
-    await waitFor(
-      () => {
-        expect(screen.queryByRole('status')).not.toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
+  await waitFor(() => {
+    expect(screen.getByText('Test Dashboard 1')).toBeInTheDocument();
   });
 
-  test('handles dashboard deletion confirmation', async () => {
-    const props = {
-      ...defaultProps,
-      mine: mockDashboards,
-    };
+  const otherTab = screen.getByRole('tab', { name: 'All' });
+  await userEvent.click(otherTab);
 
+  await waitFor(() => {
+    expect(screen.getByText('Test Dashboard 1')).toBeInTheDocument();
+  });
+
+  const moreOptionsButtons = screen.getAllByLabelText(/more|options/i);
+  expect(moreOptionsButtons.length).toBeGreaterThan(0);
+
+  await userEvent.click(moreOptionsButtons[0]);
+
+  await waitFor(() => {
+    expect(screen.getByText('Delete')).toBeInTheDocument();
+  });
+
+  const deleteOption = screen.getByText('Delete');
+  await userEvent.click(deleteOption);
+
+  await waitFor(() => {
+    expect(screen.getByText('Please confirm')).toBeInTheDocument();
+    expect(screen.getByTestId('delete-modal-input')).toBeInTheDocument();
+  });
+
+  const deleteInput = screen.getByTestId('delete-modal-input');
+  await userEvent.type(deleteInput, 'DELETE');
+
+  const confirmDeleteButton = screen.getByTestId('modal-confirm-button');
+
+  await waitFor(() => {
+    expect(confirmDeleteButton).toBeEnabled();
+  });
+
+  await userEvent.click(confirmDeleteButton);
+
+  await waitFor(() => {
+    expect(mockHandleDashboardDelete).toHaveBeenCalled();
+  });
+
+  expect(mockHandleDashboardDelete).toHaveBeenCalledWith(
+    expect.objectContaining({
+      id: 1,
+      dashboard_title: 'Test Dashboard 1',
+    }),
+    expect.any(Function),
+    expect.any(Function),
+    expect.any(Function),
+    'Other',
+    mockUser.userId,
+    expect.any(Function),
+  );
+
+  const lastCall = mockHandleDashboardDelete.mock.calls[0];
+  const getDataParam = lastCall[6];
+
+  getDataParam('Other');
+  expect(fetchDataMock).toHaveBeenCalledWith({
+    filters: [],
+    pageIndex: 0,
+    pageSize: 5,
+    sortBy: [{ desc: true, id: 'changed_on_delta_humanized' }],
+  });
+});
+
+test('with soft delete on, the card delete flow shows the archive dialog', async () => {
+  const originalFlags = window.featureFlags;
+  window.featureFlags = { [FeatureFlag.SoftDelete]: true };
+  try {
     const refreshDataMock = jest.fn();
     jest.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
       state: {
@@ -362,44 +546,37 @@ describe('DashboardTable', () => {
 
     render(
       <Router history={history}>
-        <DashboardTable {...props} />
+        <DashboardTable {...defaultProps} mine={mockDashboards} />
       </Router>,
       { store },
     );
 
-    const moreOptionsButton = screen.getAllByLabelText('more')[0];
-    await userEvent.click(moreOptionsButton);
+    await userEvent.click(screen.getAllByLabelText('more')[0]);
+    await userEvent.click(await screen.findByText('Archive'));
 
-    await waitFor(() => {
-      expect(screen.getByText('Delete')).toBeInTheDocument();
-    });
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByText(mockDashboards[0].dashboard_title, {
+        selector: 'bdi',
+      }),
+    ).toBeInTheDocument();
+    // The body comes from the shared soft-delete copy module; pin its stable
+    // prefix rather than the retention-dependent full sentence.
+    expect(
+      within(dialog).getByText(
+        /This dashboard will be moved to Recently Archived/,
+      ),
+    ).toBeInTheDocument();
+    // Recoverable deletes drop the type-DELETE friction.
+    expect(
+      within(dialog).queryByTestId('delete-modal-input'),
+    ).not.toBeInTheDocument();
 
-    const deleteOption = screen.getByText('Delete');
-    await userEvent.click(deleteOption);
-
-    // Verify Delete button is initially disabled
-    const confirmDeleteButton = screen.getByTestId('modal-confirm-button');
-    expect(confirmDeleteButton).toBeDisabled();
-
-    // Type DELETE in the confirmation input
-    const deleteInput = screen.getByTestId('delete-modal-input');
-    await userEvent.type(deleteInput, 'DELETE');
-
-    // Verify Delete button becomes enabled
-    await waitFor(() => {
-      expect(confirmDeleteButton).toBeEnabled();
-    });
-
-    // Click the now-enabled Delete button
-    await userEvent.click(confirmDeleteButton);
-
-    await waitFor(
-      () => {
-        expect(refreshDataMock).toHaveBeenCalled();
-      },
-      { timeout: 3000 },
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: 'Archive' }),
     );
-
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  });
+    await waitFor(() => expect(refreshDataMock).toHaveBeenCalled());
+  } finally {
+    window.featureFlags = originalFlags;
+  }
 });

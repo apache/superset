@@ -17,7 +17,7 @@
  * under the License.
  */
 import { JsonObject, StrictJsonValue } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { ControlFormItemSpec } from '@superset-ui/chart-controls';
 import {
   SHARED_COLUMN_CONFIG_PROPS,
@@ -29,7 +29,9 @@ import { ControlFormItemComponents } from './ControlForm';
  * Column formatting configs.
  */
 export type ColumnConfig = {
-  [key in SharedColumnConfigProp]?: (typeof SHARED_COLUMN_CONFIG_PROPS)[key]['value'];
+  [
+    key in SharedColumnConfigProp
+  ]?: (typeof SHARED_COLUMN_CONFIG_PROPS)[key]['value'];
 } & Record<string, StrictJsonValue>;
 
 /**
@@ -39,6 +41,7 @@ export type ColumnConfig = {
 export interface ColumnConfigInfo {
   isChildColumn: boolean;
   isTimeComparisonColumn: boolean;
+  key: string;
   name: string;
   type?: GenericDataType;
   config: JsonObject;
@@ -68,5 +71,3 @@ export function isTabLayoutItem(
 ): layoutItem is TabLayoutItem {
   return !!(layoutItem as TabLayoutItem)?.tab;
 }
-
-export default {};

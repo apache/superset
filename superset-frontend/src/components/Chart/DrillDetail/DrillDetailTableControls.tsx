@@ -19,31 +19,49 @@
 
 import { useCallback, useMemo } from 'react';
 import { Tag } from 'src/components/Tag';
+import { t } from '@apache-superset/core/translation';
 import {
   BinaryQueryObjectFilterClause,
   isAdhocColumn,
-  t,
 } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css, useTheme } from '@apache-superset/core/theme';
 import RowCountLabel from 'src/components/RowCountLabel';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { Tooltip } from '@superset-ui/core/components';
+import { CopyToClipboardButton } from 'src/explore/components/DataTableControl';
+import { TabularDataRow } from 'src/utils/common';
+import { usePermissions } from 'src/hooks/usePermissions';
+import DownloadDropdown from './DownloadDropdown';
 
 export type TableControlsProps = {
   filters: BinaryQueryObjectFilterClause[];
   setFilters: (filters: BinaryQueryObjectFilterClause[]) => void;
   totalCount?: number;
+  totalCountIsLowerBound?: boolean;
   loading: boolean;
   onReload: () => void;
+  canDownload: boolean;
+  onDownloadCSV: () => void;
+  onDownloadXLSX: () => void;
+  data?: TabularDataRow[];
+  columnNames?: string[];
 };
 
 export default function TableControls({
   filters,
   setFilters,
   totalCount,
+  totalCountIsLowerBound,
   loading,
   onReload,
+  canDownload,
+  onDownloadCSV,
+  onDownloadXLSX,
+  data,
+  columnNames,
 }: TableControlsProps) {
   const theme = useTheme();
+  const { canCopyClipboard: copyEnabled } = usePermissions();
   const filterMap: Record<string, BinaryQueryObjectFilterClause> = useMemo(
     () =>
       Object.assign(
@@ -58,7 +76,7 @@ export default function TableControls({
   );
 
   const removeFilter = useCallback(
-    colName => {
+    (colName: string) => {
       const updatedFilterMap = { ...filterMap };
       delete updatedFilterMap[colName];
       setFilters(Object.values(updatedFilterMap));
@@ -109,7 +127,7 @@ export default function TableControls({
             >
               {colName}
             </span>
-            <strong data-test="filter-val">{val}</strong>
+            <strong data-test="filter-val">{String(val)}</strong>
           </Tag>
         ))}
       </div>
@@ -118,16 +136,44 @@ export default function TableControls({
           display: flex;
           align-items: center;
           height: min-content;
+          gap: ${theme.sizeUnit * 3}px;
         `}
       >
-        <RowCountLabel loading={loading && !totalCount} rowcount={totalCount} />
-        <Icons.ReloadOutlined
-          iconColor={theme.colorIcon}
-          iconSize="l"
-          aria-label={t('Reload')}
-          role="button"
-          onClick={onReload}
+        <RowCountLabel
+          loading={loading && !totalCount}
+          rowcount={totalCount}
+          isLowerBound={totalCountIsLowerBound}
         />
+        {canDownload && (
+          <DownloadDropdown
+            onDownloadCSV={onDownloadCSV}
+            onDownloadXLSX={onDownloadXLSX}
+          />
+        )}
+        {copyEnabled ? (
+          <CopyToClipboardButton data={data} columns={columnNames} />
+        ) : (
+          <Tooltip title={t("You don't have permission to copy to clipboard")}>
+            <span>
+              <CopyToClipboardButton
+                data={data}
+                columns={columnNames}
+                disabled
+              />
+            </span>
+          </Tooltip>
+        )}
+        <Tooltip title={t('Reload')}>
+          {/* role is auto-computed by BaseIconComponent as "button" since
+              onClick is present, so no explicit role needed here. */}
+          <Icons.ReloadOutlined
+            iconColor={theme.colorIcon}
+            iconSize="l"
+            aria-label={t('Reload')}
+            tabIndex={0}
+            onClick={onReload}
+          />
+        </Tooltip>
       </div>
     </div>
   );

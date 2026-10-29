@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { useChangeEffect } from './useChangeEffect';
 
 test('call callback the first time with undefined and value', () => {

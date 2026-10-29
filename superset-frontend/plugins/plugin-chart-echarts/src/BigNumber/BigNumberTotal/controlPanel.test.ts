@@ -44,7 +44,7 @@ jest.mock('@superset-ui/chart-controls', () => {
 });
 
 describe('BigNumber Total Control Panel Config', () => {
-  it('should have the required control panel sections', () => {
+  test('should have the required control panel sections', () => {
     expect(controlPanel).toHaveProperty('controlPanelSections');
     const sections = controlPanel.controlPanelSections;
     expect(Array.isArray(sections)).toBe(true);
@@ -72,9 +72,19 @@ describe('BigNumber Total Control Panel Config', () => {
       row.some((control: any) => control.name === 'conditional_formatting'),
     );
     expect(conditionalFormattingRow).toBeTruthy();
+
+    // Check header_alignment control exists in one of the rows
+    const headerAlignmentRow = thirdSection.find(row =>
+      row.some((control: any) => control.name === 'header_alignment'),
+    );
+    expect(headerAlignmentRow).toBeTruthy();
+    expect(headerAlignmentRow![0]).toMatchObject({
+      name: 'header_alignment',
+      config: expect.objectContaining({ default: 'left' }),
+    });
   });
 
-  it('should have y_axis_format override with correct label', () => {
+  test('should have y_axis_format override with correct label', () => {
     expect(controlPanel).toHaveProperty('controlOverrides');
     expect(controlPanel.controlOverrides).toHaveProperty('y_axis_format');
     expect(controlPanel.controlOverrides!.y_axis_format!.label).toBe(
@@ -82,7 +92,7 @@ describe('BigNumber Total Control Panel Config', () => {
     );
   });
 
-  it('should override formData metric using getStandardizedControls', () => {
+  test('should override formData metric using getStandardizedControls', () => {
     const dummyFormData = { someProp: 'test' } as unknown as SqlaFormData;
     const newFormData = controlPanel.formDataOverrides!(dummyFormData);
 

@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useCallback } from 'react';
-import { t } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Icons, InfoTooltip } from '@superset-ui/core/components';
 import {
   CaretContainer,
@@ -27,6 +27,7 @@ import {
   Label,
 } from 'src/explore/components/controls/OptionControls';
 import { OptionProps } from 'src/explore/components/controls/DndColumnSelectControl/types';
+import PartitionPruningIndicator from 'src/explore/components/PartitionPruningIndicator';
 
 const StyledInfoTooltip = styled(InfoTooltip)`
   margin: 0 ${({ theme }) => theme.sizeUnit}px;
@@ -39,12 +40,13 @@ export default function Option({
   withCaret,
   isExtra,
   datasourceWarningMessage,
+  partitionMapping,
   canDelete = true,
   multiValueWarningMessage,
 }: OptionProps) {
   const theme = useTheme();
   const onClickClose = useCallback(
-    e => {
+    (e: React.MouseEvent) => {
       e.stopPropagation();
       clickClose(index);
     },
@@ -54,10 +56,10 @@ export default function Option({
     <OptionControlContainer data-test="option-label" withCaret={withCaret}>
       {canDelete && (
         <CloseContainer
+          type="button"
           css={css`
             text-align: center;
           `}
-          role="button"
           data-test="remove-control-button"
           onClick={onClickClose}
         >
@@ -71,6 +73,7 @@ export default function Option({
         </CloseContainer>
       )}
       <Label data-test="control-label">{children}</Label>
+      <PartitionPruningIndicator mapping={partitionMapping} />
       {!!multiValueWarningMessage && (
         <StyledInfoTooltip
           type="warning"

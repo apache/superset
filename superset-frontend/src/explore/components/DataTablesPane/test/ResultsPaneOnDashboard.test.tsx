@@ -20,13 +20,39 @@ import fetchMock from 'fetch-mock';
 import {
   screen,
   render,
-  userEvent,
+  act,
   waitForElementToBeRemoved,
   waitFor,
 } from 'spec/helpers/testing-library';
 import { ChartMetadata, ChartPlugin, VizType } from '@superset-ui/core';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
+import Tabs from '@superset-ui/core/components/Tabs';
 import { ResultsPaneOnDashboard } from '../components';
+import { useResultsPane } from '../components/useResultsPane';
 import { createResultsPaneOnDashboardProps } from './fixture';
+
+jest.mock('@superset-ui/core/components/Tabs', () => {
+  const actual = jest.requireActual('@superset-ui/core/components/Tabs');
+  return { __esModule: true, ...actual, default: jest.fn(actual.default) };
+});
+
+// Wraps the real hook; only overridden below to avoid mounting a second
+// real AG Grid instance, which jsdom doesn't support.
+jest.mock('../components/useResultsPane', () => {
+  const actual = jest.requireActual('../components/useResultsPane');
+  return {
+    __esModule: true,
+    useResultsPane: jest.fn(actual.useResultsPane),
+  };
+});
+
+const actualUseResultsPane = jest.requireActual(
+  '../components/useResultsPane',
+).useResultsPane;
+
+beforeAll(() => {
+  setupAGGridModules();
+});
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ResultsPaneOnDashboard', () => {
@@ -89,8 +115,12 @@ describe('ResultsPaneOnDashboard', () => {
 
   const setForceQuery = jest.fn();
 
+  afterEach(() => {
+    (useResultsPane as jest.Mock).mockImplementation(actualUseResultsPane);
+  });
+
   afterAll(() => {
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
     jest.resetAllMocks();
   });
 
@@ -102,6 +132,9 @@ describe('ResultsPaneOnDashboard', () => {
     expect(
       await findByText('No results were returned for this query'),
     ).toBeVisible();
+    const tabsMock = Tabs as unknown as jest.Mock;
+    const [tabsProps] = tabsMock.mock.calls[tabsMock.mock.calls.length - 1];
+    expect(tabsProps).toEqual(expect.objectContaining({ fullHeight: true }));
   });
 
   test('render errorMessage', async () => {
@@ -126,12 +159,12 @@ describe('ResultsPaneOnDashboard', () => {
     expect(await findByText('Bad request')).toBeVisible();
   });
 
-  test('force query, render and search', async () => {
+  test('force query, render', async () => {
     const props = createResultsPaneOnDashboardProps({
       sliceId: 144,
       queryForce: true,
     });
-    const { queryByText, getByPlaceholderText } = render(
+    const { queryByText } = render(
       <ResultsPaneOnDashboard {...props} setForceQuery={setForceQuery} />,
       {
         useRedux: true,
@@ -144,11 +177,6 @@ describe('ResultsPaneOnDashboard', () => {
     expect(queryByText('2 rows')).toBeVisible();
     expect(queryByText('Action')).toBeVisible();
     expect(queryByText('Horror')).toBeVisible();
-
-    userEvent.type(getByPlaceholderText('Search'), 'hor');
-    await waitForElementToBeRemoved(() => queryByText('Action'));
-    expect(queryByText('Horror')).toBeVisible();
-    expect(queryByText('Action')).not.toBeInTheDocument();
   });
 
   test('multiple results pane', async () => {
@@ -219,5 +247,37 @@ describe('ResultsPaneOnDashboard', () => {
     expect(tab1).toBeVisible();
     expect(tab2).toBeVisible();
     expect(tab3).toBeNull();
+  });
+
+  test('falls back to the first results tab when the active one disappears', async () => {
+    const mockedUseResultsPane = useResultsPane as jest.Mock;
+    mockedUseResultsPane.mockReturnValue([<div key="a" />, <div key="b" />]);
+
+    const props = createResultsPaneOnDashboardProps({ sliceId: 999 });
+    const { rerender } = render(<ResultsPaneOnDashboard {...props} />, {
+      useRedux: true,
+    });
+
+    const latestTabsProps = () => {
+      const { calls } = (Tabs as unknown as jest.Mock).mock;
+      return calls[calls.length - 1][0];
+    };
+    expect(latestTabsProps().items.map((i: { key: string }) => i.key)).toEqual([
+      'results',
+      'results 2',
+    ]);
+
+    act(() => {
+      latestTabsProps().onChange('results 2');
+    });
+    expect(latestTabsProps().activeKey).toBe('results 2');
+
+    // A mixed chart dropped from two query results to one, removing "results 2"
+    mockedUseResultsPane.mockReturnValue([<div key="a" />]);
+    rerender(<ResultsPaneOnDashboard {...props} />);
+
+    await waitFor(() => {
+      expect(latestTabsProps().activeKey).toBe('results');
+    });
   });
 });

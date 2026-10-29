@@ -1,0 +1,11 @@
+{
+  "parameters": [
+    {
+      "description": "The theme id",
+      "in": "path",
+      "name": "pk",
+      "required": true,
+      "schema": { "type": "integer" }
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+---
+title: Event Logging
+sidebar_position: 9
+version: 1
+---
+
+# Logging
+
+## Event Logging
+
+Superset by default logs special action events in its internal database (DBEventLogger). These logs can be accessed
+on the UI by navigating to **Security > Action Log**. You can freely customize these logs by
+implementing your own event log class.
+**When custom log class is enabled DBEventLogger is disabled and logs
+stop being populated in UI logs view.**
+To achieve both, custom log class should extend built-in DBEventLogger log class.
+
+Here's an example of a simple JSON-to-stdout class:
+
+```python
+    def log(self, user_id, action, *args, **kwargs):
+        records = kwargs.get('records', list())
+        dashboard_id = kwargs.get('dashboard_id')
+        slice_id = kwargs.get('slice_id')
+        duration_ms = kwargs.get('duration_ms')
+        referrer = kwargs.get('referrer')
+
+        for record in records:
+            log = dict(
+                action=action,
+                json=record,
+                dashboard_id=dashboard_id,
+                slice_id=slice_id,
+                duration_ms=duration_ms,
+                referrer=referrer,
+                user_id=user_id
+            )
+            print(json.dumps(log))
+```
+
+End by updating your config to pass in an instance of the logger you want to use:
+
+```
+EVENT_LOGGER = JSONStdOutEventLogger()
+```
+
+## StatsD Logging
+
+Superset can be configured to log events to [StatsD](https://github.com/statsd/statsd)
+if desired. Most endpoints hit are logged as
+well as key events like query start and end in SQL Lab.
+
+Superset can also collect gunicorn [metrics](https://gunicorn.org/instrumentation/).
+To enable these, the following environment variables should be set:
+
+```bash
+SERVER_STATSD_HOST=localhost
+SERVER_STATSD_PORT=8125
+SERVER_STATSD_PREFIX=superset
+```
+
+To setup StatsD logging for Superset, it’s a matter of configuring the logger in your `superset_config.py`.
+
+```python
+import os
+from superset.stats_logger import StatsdStatsLogger
+
+try:
+    STATSD_PORT = int(os.environ.get("SERVER_STATSD_PORT", "8125"))
+except ValueError:
+    STATSD_PORT = 8125
+
+STATS_LOGGER = StatsdStatsLogger(
+    host=os.environ.get("SERVER_STATSD_HOST", "localhost"),
+    port=STATSD_PORT,
+    prefix=os.environ.get("SERVER_STATSD_PREFIX", "superset"),
+)
+```
+
+[statsd](https://pypi.org/project/statsd/) in version ~3.3.0 must be installed.
+
+Note that it’s also possible to implement your own logger by deriving
+`superset.stats_logger.BaseStatsLogger`.

@@ -25,8 +25,20 @@ from superset_extensions_cli.cli import app, validate_npm
 
 # Validate Command Tests
 @pytest.mark.cli
-def test_validate_command_success(cli_runner):
+def test_validate_command_success(cli_runner, isolated_filesystem):
     """Test validate command succeeds when npm is available and valid."""
+    # Create minimal extension.json for validation
+    extension_json = {
+        "publisher": "test-org",
+        "name": "test-extension",
+        "displayName": "Test Extension",
+        "version": "1.0.0",
+        "permissions": [],
+    }
+    import json
+
+    (isolated_filesystem / "extension.json").write_text(json.dumps(extension_json))
+
     with patch("superset_extensions_cli.cli.validate_npm") as mock_validate:
         result = cli_runner.invoke(app, ["validate"])
 
@@ -195,3 +207,66 @@ def test_validate_npm_with_empty_version_output_raises_error(mock_run, mock_whic
     # semver.compare will raise ValueError for empty version
     with pytest.raises(ValueError):
         validate_npm()
+
+
+# Version Consistency Tests
+@pytest.mark.cli
+def test_validate_fails_on_version_mismatch(
+    cli_runner, isolated_filesystem, extension_with_versions
+):
+    """Test validate fails when frontend/backend versions differ from extension.json."""
+    extension_with_versions(
+        isolated_filesystem,
+        ext_version="2.0.0",
+        frontend_version="1.0.0",
+        backend_version="1.0.0",
+    )
+
+    with patch("superset_extensions_cli.cli.validate_npm"):
+        result = cli_runner.invoke(app, ["validate"])
+
+    assert result.exit_code != 0
+    assert "Metadata mismatch" in result.output
+    assert "superset-extensions update" in result.output
+
+
+@pytest.mark.cli
+def test_validate_passes_with_matching_versions(
+    cli_runner, isolated_filesystem, extension_with_versions
+):
+    """Test validate passes when all versions match extension.json."""
+    extension_with_versions(
+        isolated_filesystem,
+        ext_version="1.0.0",
+        frontend_version="1.0.0",
+        backend_version="1.0.0",
+    )
+
+    with patch("superset_extensions_cli.cli.validate_npm"):
+        result = cli_runner.invoke(app, ["validate"])
+
+    assert result.exit_code == 0
+    assert "Validation successful" in result.output
+
+
+@pytest.mark.cli
+def test_validate_fails_on_license_mismatch(
+    cli_runner, isolated_filesystem, extension_with_versions
+):
+    """Test validate fails when frontend/backend licenses differ from extension.json."""
+    extension_with_versions(
+        isolated_filesystem,
+        ext_version="1.0.0",
+        frontend_version="1.0.0",
+        backend_version="1.0.0",
+        ext_license="Apache-2.0",
+        frontend_license="MIT",
+        backend_license="MIT",
+    )
+
+    with patch("superset_extensions_cli.cli.validate_npm"):
+        result = cli_runner.invoke(app, ["validate"])
+
+    assert result.exit_code != 0
+    assert "Metadata mismatch" in result.output
+    assert "license" in result.output

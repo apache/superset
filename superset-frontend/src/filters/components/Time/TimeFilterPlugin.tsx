@@ -17,7 +17,7 @@
  * under the License.
  */
 import { NO_TIME_RANGE, getExtensionsRegistry } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { useCallback, useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { PluginFilterTimeProps } from './types';
@@ -131,6 +131,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
             unsetFocusedFilter();
           }}
           isOverflowingFilterBar={isOverflowingFilterBar}
+          displayFormat={props.formData.displayFormat}
         />
       </ControlContainer>
     </TimeFilterStyles>

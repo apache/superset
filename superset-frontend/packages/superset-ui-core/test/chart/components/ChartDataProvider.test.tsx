@@ -70,8 +70,9 @@ describe('ChartDataProvider', () => {
     formData: { ...bigNumberFormData },
     children: ({ loading, payload, error }) => (
       <div>
+        {/* eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- mirrors the real Loading component's role="status" pattern */}
         {loading && <span role="status">Loading...</span>}
-        {payload && <pre role="contentinfo">{JSON.stringify(payload)}</pre>}
+        {payload && <footer>{JSON.stringify(payload)}</footer>}
         {error && <div role="alert">{error.message}</div>}
       </div>
     ),
@@ -81,13 +82,13 @@ describe('ChartDataProvider', () => {
     return render(<ChartDataProvider {...props} {...overrideProps} />);
   }
 
-  it('instantiates a new ChartClient()', () => {
+  test('instantiates a new ChartClient()', () => {
     setup();
     expect(ChartClientMock).toHaveBeenCalledTimes(1);
   });
 
   describe('ChartClient.loadFormData', () => {
-    it('calls method on mount', () => {
+    test('calls method on mount', () => {
       setup();
       expect(mockLoadFormData).toHaveBeenCalledTimes(1);
       expect(mockLoadFormData.mock.calls[0][0]).toEqual({
@@ -96,14 +97,14 @@ describe('ChartDataProvider', () => {
       });
     });
 
-    it('should pass formDataRequestOptions to ChartClient.loadFormData', () => {
+    test('should pass formDataRequestOptions to ChartClient.loadFormData', () => {
       const options = { host: 'override' };
       setup({ formDataRequestOptions: options });
       expect(mockLoadFormData).toHaveBeenCalledTimes(1);
       expect(mockLoadFormData.mock.calls[0][1]).toEqual(options);
     });
 
-    it('calls ChartClient.loadFormData when formData or sliceId change', async () => {
+    test('calls ChartClient.loadFormData when formData or sliceId change', async () => {
       const { rerender } = setup();
       const newProps = { sliceId: 123, formData: undefined };
       expect(mockLoadFormData).toHaveBeenCalledTimes(1);
@@ -115,7 +116,7 @@ describe('ChartDataProvider', () => {
   });
 
   describe('ChartClient.loadDatasource', () => {
-    it('does not call method if loadDatasource is false', async () => {
+    test('does not call method if loadDatasource is false', async () => {
       setup({ loadDatasource: false });
       await act(async () => {
         await new Promise(resolve => setTimeout(resolve, 0));
@@ -123,7 +124,7 @@ describe('ChartDataProvider', () => {
       expect(mockLoadDatasource).not.toHaveBeenCalled();
     });
 
-    it('calls method on mount if loadDatasource is true', async () => {
+    test('calls method on mount if loadDatasource is true', async () => {
       setup({ loadDatasource: true });
       await act(async () => {
         await new Promise(resolve => setTimeout(resolve, 0));
@@ -135,7 +136,7 @@ describe('ChartDataProvider', () => {
       ]);
     });
 
-    it('should pass datasourceRequestOptions to ChartClient.loadDatasource', async () => {
+    test('should pass datasourceRequestOptions to ChartClient.loadDatasource', async () => {
       const options = { host: 'override' };
       setup({ loadDatasource: true, datasourceRequestOptions: options });
       await act(async () => {
@@ -145,7 +146,7 @@ describe('ChartDataProvider', () => {
       expect(mockLoadDatasource.mock.calls[0][1]).toEqual(options);
     });
 
-    it('calls ChartClient.loadDatasource if loadDatasource is true and formData or sliceId change', async () => {
+    test('calls ChartClient.loadDatasource if loadDatasource is true and formData or sliceId change', async () => {
       const { rerender } = setup({ loadDatasource: true });
       const newDatasource = 'test';
 
@@ -177,7 +178,7 @@ describe('ChartDataProvider', () => {
   });
 
   describe('ChartClient.loadQueryData', () => {
-    it('calls method on mount', async () => {
+    test('calls method on mount', async () => {
       setup();
       await act(async () => {
         await new Promise(resolve => setTimeout(resolve, 0));
@@ -189,7 +190,7 @@ describe('ChartDataProvider', () => {
       ]);
     });
 
-    it('should pass queryDataRequestOptions to ChartClient.loadQueryData', async () => {
+    test('should pass queryDataRequestOptions to ChartClient.loadQueryData', async () => {
       const options = { host: 'override' };
       setup({ queryRequestOptions: options });
       await act(async () => {
@@ -202,7 +203,7 @@ describe('ChartDataProvider', () => {
       );
     });
 
-    it('calls ChartClient.loadQueryData when formData or sliceId change', async () => {
+    test('calls ChartClient.loadQueryData when formData or sliceId change', async () => {
       const { rerender } = setup();
       const newFormData = { key: 'test' };
 
@@ -225,16 +226,16 @@ describe('ChartDataProvider', () => {
   });
 
   describe('children', () => {
-    it('shows loading state initially', async () => {
+    test('shows loading state initially', async () => {
       mockLoadFormData.mockImplementation(() => new Promise(() => {}));
       mockLoadQueryData.mockImplementation(() => new Promise(() => {}));
       mockLoadDatasource.mockImplementation(() => new Promise(() => {}));
 
       setup();
-      await screen.findByRole('status');
+      expect(await screen.findByRole('status')).toBeInTheDocument();
     });
 
-    it('shows payload when loaded', async () => {
+    test('shows payload when loaded', async () => {
       mockLoadFormData.mockResolvedValue(props.formData);
       mockLoadQueryData.mockResolvedValue([props.formData]);
       mockLoadDatasource.mockResolvedValue(props.formData.datasource);
@@ -251,7 +252,7 @@ describe('ChartDataProvider', () => {
       });
     });
 
-    it('shows error message upon request error', async () => {
+    test('shows error message upon request error', async () => {
       const errorMessage = 'error';
       mockLoadFormData.mockRejectedValue(new Error(errorMessage));
 
@@ -262,7 +263,7 @@ describe('ChartDataProvider', () => {
       expect(errorElement).toHaveTextContent(errorMessage);
     });
 
-    it('shows error message upon JS error', async () => {
+    test('shows error message upon JS error', async () => {
       mockLoadFormData.mockImplementation(() => {
         throw new Error('non-async error');
       });
@@ -276,7 +277,7 @@ describe('ChartDataProvider', () => {
   });
 
   describe('callbacks', () => {
-    it('calls onLoaded when loaded', async () => {
+    test('calls onLoaded when loaded', async () => {
       const onLoaded = jest.fn();
       mockLoadFormData.mockResolvedValue(props.formData);
       mockLoadQueryData.mockResolvedValue([props.formData]);
@@ -296,7 +297,7 @@ describe('ChartDataProvider', () => {
       });
     });
 
-    it('calls onError upon request error', async () => {
+    test('calls onError upon request error', async () => {
       const onError = jest.fn();
       mockLoadFormData.mockRejectedValue(new Error('error'));
 
@@ -310,7 +311,7 @@ describe('ChartDataProvider', () => {
       expect(onError).toHaveBeenCalledWith(new Error('error'));
     });
 
-    it('calls onError upon JS error', async () => {
+    test('calls onError upon JS error', async () => {
       const onError = jest.fn();
       mockLoadFormData.mockImplementation(() => {
         throw new Error('non-async error');

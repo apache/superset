@@ -43,7 +43,7 @@ export const shouldSort = ({
   gridInitialState,
 }: {
   colId: string;
-  sortDir: string;
+  sortDir: string | null;
   percentMetrics: string[];
   serverPagination: boolean;
   gridInitialState: GridState;

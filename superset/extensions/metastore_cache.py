@@ -21,7 +21,7 @@ from uuid import UUID, uuid3
 
 from flask import current_app, Flask, has_app_context
 from flask_caching import BaseCache
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from superset import db
 from superset.key_value.exceptions import KeyValueCreateFailedError
@@ -44,8 +44,9 @@ class SupersetMetastoreCache(BaseCache):
         namespace: UUID,
         codec: KeyValueCodec,
         default_timeout: int = 300,
+        ignore_delete_many_errors: bool = False,
     ) -> None:
-        super().__init__(default_timeout)
+        super().__init__(default_timeout, ignore_delete_many_errors)
         self.namespace = namespace
         self.codec = codec
 
@@ -54,7 +55,7 @@ class SupersetMetastoreCache(BaseCache):
         cls, app: Flask, config: dict[str, Any], args: list[Any], kwargs: dict[str, Any]
     ) -> BaseCache:
         seed = config.get("CACHE_KEY_PREFIX", "")
-        kwargs["namespace"] = get_uuid_namespace(seed)
+        kwargs["namespace"] = get_uuid_namespace(seed, app)
         codec = config.get("CODEC") or PickleKeyValueCodec()
         if (
             has_app_context()
@@ -81,14 +82,23 @@ class SupersetMetastoreCache(BaseCache):
         # pylint: disable=import-outside-toplevel
         from superset.daos.key_value import KeyValueDAO
 
-        KeyValueDAO.upsert_entry(
-            resource=RESOURCE,
-            key=self.get_key(key),
-            value=value,
-            codec=self.codec,
-            expires_on=self._get_expiry(timeout),
-        )
-        db.session.commit()  # pylint: disable=consider-using-transaction
+        try:
+            KeyValueDAO.upsert_entry(
+                resource=RESOURCE,
+                key=self.get_key(key),
+                value=value,
+                codec=self.codec,
+                expires_on=self._get_expiry(timeout),
+            )
+            db.session.commit()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            # A failed write leaves db.session in "pending rollback" state, so
+            # every later statement in this request would fail on this write
+            # rather than on its own merits. Callers treat a cache write as
+            # best-effort and swallow the error, which would otherwise strand
+            # the session. Repair it, then let the error propagate unchanged.
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            raise
         return True
 
     def add(self, key: str, value: Any, timeout: Optional[int] = None) -> bool:
@@ -110,11 +120,94 @@ class SupersetMetastoreCache(BaseCache):
             db.session.rollback()  # pylint: disable=consider-using-transaction
             return False
 
+    def compare_and_set(
+        self,
+        key: str,
+        value: Any,
+        expected: Any | None,
+        timeout: Optional[int] = None,
+    ) -> bool:
+        """Atomically replace ``expected`` at ``key`` with ``value``.
+
+        ``None`` represents an absent or expired entry. Existing values are
+        replaced with one conditional SQL update, including on SQLite where
+        ``SELECT FOR UPDATE`` is unavailable. Concurrent attempts to create an
+        absent entry are serialized by the key's unique constraint.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.key_value import KeyValueDAO
+        from superset.key_value.models import KeyValueEntry
+        from superset.utils.core import get_user_id
+
+        try:
+            cache_key = self.get_key(key)
+            now = datetime.now()
+            expires_on = self._get_expiry(timeout)
+            updates = {
+                KeyValueEntry.value: self.codec.encode(value),
+                KeyValueEntry.expires_on: expires_on,
+                KeyValueEntry.changed_on: now,
+                KeyValueEntry.changed_by_fk: get_user_id(),
+            }
+            query = db.session.query(KeyValueEntry).filter_by(
+                resource=RESOURCE.value,
+                uuid=cache_key,
+            )
+
+            if expected is not None:
+                updated = query.filter(
+                    KeyValueEntry.value == self.codec.encode(expected),
+                    (
+                        KeyValueEntry.expires_on.is_(None)
+                        | (KeyValueEntry.expires_on > now)
+                    ),
+                ).update(updates, synchronize_session=False)
+                if updated != 1:
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                    return False
+            else:
+                # Reuse an expired row when present; otherwise the unique key
+                # makes the insert below an atomic create-if-absent operation.
+                updated = query.filter(
+                    KeyValueEntry.expires_on.is_not(None),
+                    KeyValueEntry.expires_on <= now,
+                ).update(updates, synchronize_session=False)
+                if updated != 1:
+                    KeyValueDAO.create_entry(
+                        resource=RESOURCE,
+                        key=cache_key,
+                        value=value,
+                        codec=self.codec,
+                        expires_on=expires_on,
+                    )
+
+            db.session.commit()  # pylint: disable=consider-using-transaction
+            return True
+        except IntegrityError:
+            # A concurrent insert of an absent key loses the unique-key race.
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            return False
+        except (SQLAlchemyError, KeyValueCreateFailedError):
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            raise
+        except Exception:
+            # Clear a failed codec operation before propagating it to the caller.
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            raise
+
     def get(self, key: str) -> Any:
         # pylint: disable=import-outside-toplevel
         from superset.daos.key_value import KeyValueDAO
 
-        return KeyValueDAO.get_value(RESOURCE, self.get_key(key), self.codec)
+        try:
+            return KeyValueDAO.get_value(RESOURCE, self.get_key(key), self.codec)
+        except SQLAlchemyError:
+            # Callers treat a cache read failure as a miss and carry on to
+            # query live data -- which is exactly the work that would then fail
+            # on this session rather than on its own merits. Repair it, then
+            # let the error propagate unchanged.
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            raise
 
     def has(self, key: str) -> bool:
         entry = self.get(key)

@@ -194,7 +194,6 @@ const baseFilter: Filter = {
 };
 
 jest.mock('@superset-ui/core', () => ({
-  // @ts-ignore
   ...jest.requireActual('@superset-ui/core'),
   getChartMetadataRegistry: () => ({
     get: (type: string) => {
@@ -285,7 +284,7 @@ test('filter card with dependency', () => {
   expect(screen.getByText('Native filter 2')).toBeVisible();
 });
 
-test('focus filter on filter card dependency click', () => {
+test('focus filter on filter card dependency click', async () => {
   const useDispatchMock = jest.spyOn(reactRedux, 'useDispatch');
   const dummyDispatch = jest.fn();
   useDispatchMock.mockReturnValue(dummyDispatch);
@@ -296,7 +295,7 @@ test('focus filter on filter card dependency click', () => {
   };
   renderContent(filter);
 
-  userEvent.click(screen.getByText('Native filter 2'));
+  await userEvent.click(screen.getByText('Native filter 2'));
   expect(dummyDispatch).toHaveBeenCalledWith({
     type: SET_DIRECT_PATH,
     path: ['NATIVE_FILTER-2'],
@@ -326,10 +325,14 @@ test('open modal on edit filter button click', async () => {
   const editButton = screen.getByRole('img', { name: /edit/i });
 
   expect(
-    screen.queryByRole('dialog', { name: /add and edit filters/i }),
+    screen.queryByRole('dialog', {
+      name: /add or edit display controls/i,
+    }),
   ).not.toBeInTheDocument();
-  userEvent.click(editButton);
+  await userEvent.click(editButton);
   expect(
-    await screen.findByRole('dialog', { name: /add and edit filters/i }),
+    await screen.findByRole('dialog', {
+      name: /add or edit display controls/i,
+    }),
   ).toBeInTheDocument();
 });

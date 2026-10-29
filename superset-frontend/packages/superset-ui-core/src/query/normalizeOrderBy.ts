@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 
 import { QueryObject } from './types';
 
@@ -63,7 +63,6 @@ export default function normalizeOrderBy(
   ) {
     return {
       ...cloneQueryObject,
-      // @ts-ignore
       orderby: [[queryObject.legacy_order_by, isAsc]],
     };
   }

@@ -22,15 +22,20 @@ This module contains helper functions used by system tools for calculating
 instance metrics, dashboard breakdowns, database breakdowns, and activity summaries.
 """
 
-from typing import Any, Dict
+import logging
+from typing import Any, Callable, Dict
 
 from superset.mcp_service.system.schemas import (
     DashboardBreakdown,
     DatabaseBreakdown,
+    FeatureAvailability,
+    InstanceInfo,
     InstanceSummary,
     PopularContent,
     RecentActivity,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def calculate_dashboard_breakdown(
@@ -67,8 +72,8 @@ def calculate_dashboard_breakdown(
         dashboards_with_charts = (
             db.session.query(Dashboard).join(Dashboard.slices).distinct().count()
         )
-        dashboards_without_charts = (
-            base_counts.get("total_dashboards", 0) - dashboards_with_charts
+        dashboards_without_charts = max(
+            0, base_counts.get("total_dashboards", 0) - dashboards_with_charts
         )
 
         return DashboardBreakdown(
@@ -194,3 +199,58 @@ def calculate_popular_content(
         top_tags=[],
         top_creators=[],
     )
+
+
+def calculate_feature_availability(
+    base_counts: Dict[str, int],
+    time_metrics: Dict[str, Dict[str, int]],
+    dao_classes: Dict[str, Any],
+) -> FeatureAvailability:
+    """Detect available features dynamically from menus.
+
+    Queries the FAB security manager for menu items accessible to the
+    current user.
+    """
+    accessible_menus: list[str] = []
+
+    try:
+        from superset import security_manager
+
+        menu_names = security_manager.user_view_menu_names("menu_access")
+        accessible_menus = sorted(menu_names)
+    except Exception as exc:
+        logger.debug("Could not retrieve accessible menus: %s", exc)
+
+    return FeatureAvailability(
+        accessible_menus=accessible_menus,
+    )
+
+
+def redact_data_model_metadata(result: InstanceInfo) -> InstanceInfo:
+    """Remove dataset/database counts and activity from instance overview."""
+    data = result.model_copy(deep=True)
+    data.instance_summary.total_datasets = 0
+    data.instance_summary.total_databases = 0
+    data.recent_activity.datasets_created_last_30_days = 0
+    data.recent_activity.datasets_modified_last_7_days = 0
+    data.database_breakdown.by_type = {}
+    data.data_model_metadata_redacted = True
+    return data
+
+
+# Shared by the get_instance_info tool and the instance://metadata resource so a
+# newly required InstanceInfo field only needs a calculator registered once.
+INSTANCE_INFO_METRIC_CALCULATORS: Dict[str, Callable[..., Any]] = {
+    "instance_summary": calculate_instance_summary,
+    "recent_activity": calculate_recent_activity,
+    "dashboard_breakdown": calculate_dashboard_breakdown,
+    "database_breakdown": calculate_database_breakdown,
+    "popular_content": calculate_popular_content,
+    "feature_availability": calculate_feature_availability,
+}
+
+INSTANCE_INFO_TIME_WINDOWS: Dict[str, int] = {
+    "recent": 7,
+    "monthly": 30,
+    "quarterly": 90,
+}

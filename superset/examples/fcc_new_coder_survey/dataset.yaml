@@ -1,0 +1,1760 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+always_filter_main_dttm: false
+cache_timeout: null
+catalog: null
+columns:
+- advanced_data_type: null
+  column_name: willing_to_relocate
+  description: null
+  expression: "CASE \nWHEN job_relocate = 0 THEN 'No: Not Willing to' \nWHEN job_relocate\
+    \ = 1 THEN 'Yes: Willing To'\nELSE 'No Answer'\nEND"
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: STRING
+  verbose_name: Willing To Relocate
+- advanced_data_type: null
+  column_name: age
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: BIGINT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: highest_degree_earned
+  description: Highest Degree Earned
+  expression: "CASE \n  WHEN school_degree = 'no high school (secondary school)' THEN\
+    \ 'A. No high school (secondary school)'\n  WHEN school_degree =  'some high school'\
+    \ THEN 'B. Some high school'\n  WHEN school_degree = 'high school diploma or equivalent\
+    \ (GED)' THEN 'C. High school diploma or equivalent (GED)'\n  WHEN school_degree\
+    \ = 'associate''s degree' THEN 'D. Associate''s degree'\n  WHEN school_degree\
+    \ = 'some college credit, no degree' THEN 'E. Some college credit, no degree'\n\
+    \  WHEN school_degree = 'bachelor''s degree' THEN 'F. Bachelor''s degree'\n  WHEN\
+    \ school_degree = 'trade, technical, or vocational training' THEN 'G. Trade, technical,\
+    \ or vocational training'\n  WHEN school_degree = 'master''s degree (non-professional)'\
+    \ THEN 'H. Master''s degree (non-professional)'\n  WHEN school_degree = 'Ph.D.'\
+    \ THEN 'I. Ph.D.'\n  WHEN school_degree = 'professional degree (MBA, MD, JD, etc.)'\
+    \ THEN 'J. Professional degree (MBA, MD, JD, etc.)'\nEND"
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: STRING
+  verbose_name: Highest Degree Earned
+- advanced_data_type: null
+  column_name: job_location_preference
+  description: null
+  expression: "case \nwhen job_lctn_pref is Null then 'No Answer' \nwhen job_lctn_pref\
+    \ = 'from home' then 'From Home'\nwhen job_lctn_pref = 'no preference' then 'No\
+    \ Preference'\nwhen job_lctn_pref = 'in an office with other developers' then\
+    \ 'In an Office (with Other Developers)'\nelse job_lctn_pref\nend "
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: null
+  verbose_name: Job Location Preference
+- advanced_data_type: null
+  column_name: ethnic_minority
+  description: null
+  expression: "CASE \nWHEN is_ethnic_minority = 0 THEN 'No, not an ethnic minority'\
+    \ \nWHEN is_ethnic_minority = 1 THEN 'Yes, an ethnic minority' \nELSE 'No Answer'\n\
+    END"
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: null
+  python_date_format: null
+  type: STRING
+  verbose_name: Ethnic Minority
+- advanced_data_type: null
+  column_name: developer_type
+  description: null
+  expression: CASE WHEN is_software_dev = 0 THEN 'Aspiring Developer' WHEN is_software_dev
+    = 1 THEN 'Currently A Developer' END
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: STRING
+  verbose_name: Developer Type
+- advanced_data_type: null
+  column_name: first_time_developer
+  description: null
+  expression: "CASE \nWHEN is_first_dev_job = 0 THEN 'No' \nWHEN is_first_dev_job\
+    \ = 1 THEN 'Yes' \nELSE 'No Answer'\nEND"
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: null
+  verbose_name: First Time Developer
+- advanced_data_type: null
+  column_name: calc_first_time_dev
+  description: null
+  expression: CASE WHEN is_first_dev_job = 0 THEN 'No' WHEN is_first_dev_job = 1 THEN
+    'Yes' END
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: STRING
+  verbose_name: null
+- advanced_data_type: null
+  column_name: yt_codingtuts360
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: is_recv_disab_bnft
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: job_intr_qa_engn
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: has_high_spd_ntnet
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: is_first_dev_job
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: job_intr_ux_engn
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: bootcamp_have_loan
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_js_jabber
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: job_intr_datasci
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: job_intr_dataengn
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: rsrc_khan_acdm
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: has_finance_depends
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: has_served_military
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: job_intr_backend
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: job_intr_teacher
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: months_job_search
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: student_debt_has
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: student_debt_amt
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: job_intr_gamedev
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: rsrc_code_wars
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: do_finance_support
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: last_yr_income
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: is_software_dev
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: money_for_learning
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: home_mrtg_has
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: job_intr_mobile
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: job_intr_infosec
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: job_intr_fllstck
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: job_intr_frntend
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: job_intr_devops
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: job_intr_projm
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: rsrc_css_tricks
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: yt_cs_dojo
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: is_ethnic_minority
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: yt_mit_ocw
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: is_self_employed
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: home_mrtg_owe
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: yt_engn_truth
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: bootcamp_attend
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: yt_derekbanas
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: yt_learncodeacdm
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_changelog
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: rsrc_hackerrank
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_devtea
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_sedaily
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_seradio
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: codeevnt_gamejam
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_geekspeak
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_talkpythonme
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_hanselmnts
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_syntaxfm
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_shoptalk
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: yt_mozillahacks
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_codingblcks
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_codenewbie
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: bootcamp_recommend
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: codeevnt_railsbrdg
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: bootcamp_finished
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_rubyrogues
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: job_relocate
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: debt_amt
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: rsrc_codeacdm
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_fcc
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_codepenrd
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_fullstckrd
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: codeevnt_hackthn
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: rsrc_udacity
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_ltcwm
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: rsrc_coursera
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: codeevnt_djangogrls
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: codeevnt_startupwknd
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_progthrwdwn
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: expected_earn
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: rsrc_egghead
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: codeevnt_railsgrls
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: has_children
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_frnthppyhr
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: yt_codingtrain
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: rsrc_lynda
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: hours_learning
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: yt_simplilearn
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: codeevnt_wkndbtcmp
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: codeevnt_fcc
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: rsrc_fcc
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: codeevnt_coderdojo
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: codeevnt_nodeschl
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: codeevnt_womenwc
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: codeevnt_confs
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: yt_fcc
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: codeevnt_girldevit
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: codeevnt_meetup
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: codeevnt_workshps
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: rsrc_frntendmstr
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: num_children
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: rsrc_udemy
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: rsrc_edx
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: rsrc_mdn
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: rsrc_treehouse
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: yt_computerphile
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: yt_funfunfunct
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: rsrc_so
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: yt_googledevs
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: yt_devtips
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: yt_simpleprog
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: yt_lvluptuts
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: DOUBLE PRECISION
+  verbose_name: null
+- advanced_data_type: null
+  column_name: time_start
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: true
+  python_date_format: null
+  type: DATETIME
+  verbose_name: null
+- advanced_data_type: null
+  column_name: time_total_sec
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: BIGINT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: months_programming
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: BIGINT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: ID
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: reasons_to_code_other
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: lang_at_home
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: when_appl_job
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: reasons_to_code
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: live_city_population
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: job_lctn_pref
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: job_intr_other
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: marital_status
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: bootcamp_name
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: podcast_other
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: school_major
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: job_pref
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: country_citizen
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: school_degree
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: codeevnt_other
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: curr_field
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: communite_time
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: rsrc_other
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: country_live
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: gender_other
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: time_end
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: network_id
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: yt_other
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: gender
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: TEXT
+  verbose_name: null
+data_file: data.parquet
+database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
+default_endpoint: null
+description: null
+extra: null
+fetch_values_predicate: null
+filter_select_enabled: true
+folders: null
+main_dttm_col: null
+metrics:
+- currency: null
+  d3format: null
+  description: null
+  expression: COUNT(*)
+  extra: null
+  metric_name: count
+  metric_type: null
+  verbose_name: COUNT(*)
+  warning_text: null
+normalize_columns: false
+offset: 0
+params: null
+schema: null
+sql: null
+table_name: FCC 2018 Survey
+template_params: null
+uuid: d95a2865-53ce-1f82-a53d-8e3c89331469
+version: 1.0.0

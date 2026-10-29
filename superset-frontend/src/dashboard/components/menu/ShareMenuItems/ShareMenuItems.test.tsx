@@ -45,29 +45,35 @@ const createProps = () => ({
   submenuKey: 'share',
 });
 
-const { location } = window;
+const postDashboardPermalinkMockUrl = `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`;
 
-beforeAll((): void => {
-  // @ts-ignore
-  delete window.location;
-  fetchMock.post(
-    `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`,
-    { key: '123', url: 'http://localhost/superset/dashboard/p/123/' },
-    {
-      sendAsJson: true,
-    },
-  );
-});
+let hrefValue = '';
+let locationSpy: jest.SpyInstance;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  window.location = {
-    href: '',
-  } as any;
+  hrefValue = '';
+  locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    get href() {
+      return hrefValue;
+    },
+    set href(v: string) {
+      hrefValue = v;
+    },
+  } as Location);
+  fetchMock.clearHistory().removeRoutes();
+  fetchMock.post(
+    postDashboardPermalinkMockUrl,
+    { key: '123', url: 'http://localhost/superset/dashboard/p/123/' },
+    { name: postDashboardPermalinkMockUrl },
+  );
 });
 
-afterAll((): void => {
-  window.location = location;
+afterEach(() => {
+  locationSpy.mockRestore();
+  window.featureFlags = {};
+  fetchMock.clearHistory().removeRoutes();
 });
 
 const MenuWrapper = (
@@ -113,7 +119,12 @@ test('Click on "Copy dashboard URL" and succeed', async () => {
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 
-  userEvent.click(screen.getByText('Copy dashboard URL'));
+  // forceSubMenuRender keeps the menu item in the DOM for querying even
+  // though the submenu popup is visually closed (pointer-events: none), so
+  // bypass user-event's pointer events check to click it directly.
+  await userEvent.click(screen.getByText('Copy dashboard URL'), {
+    pointerEventsCheck: 0,
+  });
 
   await waitFor(async () => {
     expect(spy).toHaveBeenCalledTimes(1);
@@ -145,7 +156,12 @@ test('Click on "Copy dashboard URL" and fail', async () => {
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 
-  userEvent.click(screen.getByText('Copy dashboard URL'));
+  // forceSubMenuRender keeps the menu item in the DOM for querying even
+  // though the submenu popup is visually closed (pointer-events: none), so
+  // bypass user-event's pointer events check to click it directly.
+  await userEvent.click(screen.getByText('Copy dashboard URL'), {
+    pointerEventsCheck: 0,
+  });
 
   await waitFor(async () => {
     expect(spy).toHaveBeenCalledTimes(1);
@@ -177,7 +193,12 @@ test('Click on "Share dashboard by email" and succeed', async () => {
     expect(window.location.href).toBe('');
   });
 
-  userEvent.click(screen.getByText('Share dashboard by email'));
+  // forceSubMenuRender keeps the menu item in the DOM for querying even
+  // though the submenu popup is visually closed (pointer-events: none), so
+  // bypass user-event's pointer events check to click it directly.
+  await userEvent.click(screen.getByText('Share dashboard by email'), {
+    pointerEventsCheck: 0,
+  });
 
   await waitFor(() => {
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
@@ -188,11 +209,8 @@ test('Click on "Share dashboard by email" and succeed', async () => {
 });
 
 test('Click on "Share dashboard by email" and fail', async () => {
-  fetchMock.post(
-    `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`,
-    { status: 404 },
-    { overwriteRoutes: true },
-  );
+  fetchMock.removeRoute(postDashboardPermalinkMockUrl);
+  fetchMock.post(postDashboardPermalinkMockUrl, { status: 404 });
   const props = createProps();
   render(
     <MenuWrapper
@@ -210,7 +228,12 @@ test('Click on "Share dashboard by email" and fail', async () => {
     expect(window.location.href).toBe('');
   });
 
-  userEvent.click(screen.getByText('Share dashboard by email'));
+  // forceSubMenuRender keeps the menu item in the DOM for querying even
+  // though the submenu popup is visually closed (pointer-events: none), so
+  // bypass user-event's pointer events check to click it directly.
+  await userEvent.click(screen.getByText('Share dashboard by email'), {
+    pointerEventsCheck: 0,
+  });
 
   await waitFor(() => {
     expect(window.location.href).toBe('');

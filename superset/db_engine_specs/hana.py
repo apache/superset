@@ -15,11 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from sqlalchemy import types
+from sqlalchemy.sql.elements import ColumnElement
 
 from superset.constants import TimeGrain
+from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.sql.parse import LimitMethod
 
@@ -27,6 +29,28 @@ from superset.sql.parse import LimitMethod
 class HanaEngineSpec(PostgresBaseEngineSpec):
     engine = "hana"
     engine_name = "SAP HANA"
+
+    # `PostgresBaseEngineSpec._extended_aggregations` (MEDIAN/STDDEV_SAMP/VAR_SAMP)
+    # is verified against real Postgres behavior, not HANA's; disable it here
+    # until someone confirms the same expressions against a live HANA instance.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {}
+
+    metadata = {
+        "description": (
+            "SAP HANA is an in-memory relational database and application platform."
+        ),
+        "logo": "sap-hana.png",
+        "homepage_url": "https://www.sap.com/products/technology-platform/hana.html",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["hdbcli", "sqlalchemy-hana"],
+        "install_instructions": "pip install apache_superset[hana]",
+        "connection_string": "hana://{username}:{password}@{host}:{port}",
+        "default_port": 30015,
+        "docs_url": "https://github.com/SAP/sqlalchemy-hana",
+    }
     limit_method = LimitMethod.WRAP_SQL
     force_column_alias_quotes = True
     max_column_name_length = 30

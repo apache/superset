@@ -35,7 +35,7 @@ with contextlib.suppress(ImportError, RuntimeError):  # pyocient may not be inst
     pyocient.logger.setLevel(superset_log_level)
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.models.sql_lab import Query
@@ -236,6 +236,17 @@ class OcientEngineSpec(BaseEngineSpec):
     query_id_mapping: dict[str, str] = {}
     query_id_mapping_lock = threading.Lock()
 
+    metadata = {
+        "description": "Ocient is a hyperscale data analytics database.",
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["sqlalchemy-ocient"],
+        "connection_string": "ocient://{username}:{password}@{host}:{port}/{database}",
+        "install_instructions": "pip install sqlalchemy-ocient",
+    }
+
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         CONNECTION_INVALID_USERNAME_REGEX: (
             __('The username "%(username)s" does not exist.'),
@@ -381,7 +392,13 @@ class OcientEngineSpec(BaseEngineSpec):
     def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
         with OcientEngineSpec.query_id_mapping_lock:
             if query.id in OcientEngineSpec.query_id_mapping:
-                cursor.execute(f"CANCEL {OcientEngineSpec.query_id_mapping[query.id]}")
+                ocient_query_id = OcientEngineSpec.query_id_mapping[query.id]
+                # Validate query ID to prevent SQL injection (defense-in-depth)
+                # Ocient query IDs are alphanumeric with underscores and dashes
+                if not cls.validate_cancel_query_id(str(ocient_query_id), r"^[\w\-]+$"):
+                    return False
+
+                cursor.execute(f"CANCEL {ocient_query_id}")
                 # Query has been cancelled, so we can safely remove the cursor from
                 # the cache
                 del OcientEngineSpec.query_id_mapping[query.id]

@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import buildQuery from './buildQuery';
-import { PluginFilterSelectQueryFormData } from './types';
+import {
+  PluginFilterSelectQueryFormData,
+  SelectFilterOperatorType,
+} from './types';
+import { getSelectExtraFormData } from '../../utils';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Select buildQuery', () => {
@@ -113,6 +117,38 @@ describe('Select buildQuery', () => {
     ]);
   });
 
+  test('should not sort by the searched column', () => {
+    // Ordering by a high-cardinality column makes the engine sort every match
+    // before applying the row limit; the dropdown re-sorts the page anyway.
+    const queryContext = buildQuery(
+      { ...formData, sortAscending: true },
+      {
+        ownState: {
+          search: 'abc',
+          coltypeMap: { my_col: GenericDataType.String },
+        },
+      },
+    );
+    const [query] = queryContext.queries;
+    expect(query.orderby).toEqual([]);
+  });
+
+  test('should keep the sort metric while searching', () => {
+    // A sort metric decides which rows come back, so dropping it would change
+    // the result set rather than just its order.
+    const queryContext = buildQuery(
+      { ...formData, sortMetric: 'my_metric', sortAscending: false },
+      {
+        ownState: {
+          search: 'abc',
+          coltypeMap: { my_col: GenericDataType.String },
+        },
+      },
+    );
+    const [query] = queryContext.queries;
+    expect(query.orderby).toEqual([['my_metric', false]]);
+  });
+
   test('should add text search parameter for numeric to query filter', () => {
     const queryContext = buildQuery(formData, {
       ownState: {
@@ -126,4 +162,92 @@ describe('Select buildQuery', () => {
       { col: 'my_col', op: 'ILIKE', val: '%123%' },
     ]);
   });
+});
+
+test('getSelectExtraFormData generates IN filter by default', () => {
+  const result = getSelectExtraFormData('name', ['Jennifer']);
+  expect(result.filters).toEqual([
+    { col: 'name', op: 'IN', val: ['Jennifer'] },
+  ]);
+});
+
+test('getSelectExtraFormData generates NOT IN filter with excludeFilter', () => {
+  const result = getSelectExtraFormData('name', ['Jennifer'], false, true);
+  expect(result.filters).toEqual([
+    { col: 'name', op: 'NOT IN', val: ['Jennifer'] },
+  ]);
+});
+
+test('getSelectExtraFormData generates ILIKE contains filter', () => {
+  const result = getSelectExtraFormData(
+    'name',
+    ['Jen'],
+    false,
+    false,
+    SelectFilterOperatorType.Contains,
+  );
+  expect(result.filters).toEqual([{ col: 'name', op: 'ILIKE', val: '%Jen%' }]);
+});
+
+test('getSelectExtraFormData generates ILIKE starts-with filter', () => {
+  const result = getSelectExtraFormData(
+    'name',
+    ['Jen'],
+    false,
+    false,
+    SelectFilterOperatorType.StartsWith,
+  );
+  expect(result.filters).toEqual([{ col: 'name', op: 'ILIKE', val: 'Jen%' }]);
+});
+
+test('getSelectExtraFormData generates ILIKE ends-with filter', () => {
+  const result = getSelectExtraFormData(
+    'name',
+    ['son'],
+    false,
+    false,
+    SelectFilterOperatorType.EndsWith,
+  );
+  expect(result.filters).toEqual([{ col: 'name', op: 'ILIKE', val: '%son' }]);
+});
+
+test('getSelectExtraFormData generates NOT ILIKE with excludeFilter and LIKE operator', () => {
+  const result = getSelectExtraFormData(
+    'name',
+    ['Jen'],
+    false,
+    true,
+    SelectFilterOperatorType.Contains,
+  );
+  expect(result.filters).toEqual([
+    { col: 'name', op: 'NOT ILIKE', val: '%Jen%' },
+  ]);
+});
+
+test('getSelectExtraFormData returns empty object for null value with LIKE operator', () => {
+  const result = getSelectExtraFormData(
+    'name',
+    null,
+    false,
+    false,
+    SelectFilterOperatorType.Contains,
+  );
+  expect(result).toEqual({});
+});
+
+test('getSelectExtraFormData returns adhoc_filters for emptyFilter with LIKE operator', () => {
+  const result = getSelectExtraFormData(
+    'name',
+    [],
+    true,
+    false,
+    SelectFilterOperatorType.Contains,
+  );
+  expect(result.adhoc_filters).toEqual([
+    {
+      expressionType: 'SQL',
+      clause: 'WHERE',
+      sqlExpression: '1 = 0',
+    },
+  ]);
 });

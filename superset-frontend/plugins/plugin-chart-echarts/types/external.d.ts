@@ -23,3 +23,11 @@ declare module '*.png' {
 }
 
 declare module '*.jpg';
+
+// echarts publishes its i18n bundles through the package `exports` map
+// without type declarations; the locale loaders in components/Echart.tsx
+// import them explicitly. Their shape is whatever registerLocale accepts.
+declare module 'echarts/i18n/lang*' {
+  const lang: Parameters<typeof import('echarts/core').registerLocale>[1];
+  export default lang;
+}

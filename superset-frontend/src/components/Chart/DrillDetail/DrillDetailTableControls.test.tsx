@@ -17,20 +17,27 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import TableControls from './DrillDetailTableControls';
+import TableControls, { TableControlsProps } from './DrillDetailTableControls';
 
 const setFilters = jest.fn();
 const onReload = jest.fn();
-const setup = (overrides: Record<string, any> = {}) => {
+const onDownloadCSV = jest.fn();
+const onDownloadXLSX = jest.fn();
+const setup = (overrides: Partial<TableControlsProps> = {}) => {
   const props = {
     filters: [],
     setFilters,
     onReload,
     loading: false,
     totalCount: 0,
+    canDownload: true,
+    onDownloadCSV,
+    onDownloadXLSX,
+    data: [],
+    columnNames: [],
     ...overrides,
   };
-  return render(<TableControls {...props} />);
+  return render(<TableControls {...props} />, { useRedux: true });
 };
 test('should render', () => {
   const { container } = setup();
@@ -61,9 +68,9 @@ test('should show the loading indicator', () => {
   expect(screen.getByText('Loading...')).toBeInTheDocument();
 });
 
-test('should call onreload', () => {
+test('should call onreload', async () => {
   setup();
-  userEvent.click(screen.getByRole('button', { name: 'Reload' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Reload' }));
   expect(onReload).toHaveBeenCalledTimes(1);
 });
 
@@ -88,7 +95,7 @@ test('should render with filters', () => {
   expect(screen.getByText('IT')).toBeInTheDocument();
 });
 
-test('should remove the filters on close', () => {
+test('should remove the filters on close', async () => {
   setup({
     filters: [
       {
@@ -101,6 +108,6 @@ test('should remove the filters on close', () => {
   expect(screen.getByText('platform')).toBeInTheDocument();
   expect(screen.getByText('GB')).toBeInTheDocument();
 
-  userEvent.click(screen.getByLabelText('Close'));
+  await userEvent.click(screen.getByLabelText('Close'));
   expect(setFilters).toHaveBeenCalledWith([]);
 });

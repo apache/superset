@@ -19,49 +19,11 @@
 
 import {
   BackendOwnState,
+  ChartStateConverterOptions,
   QuerySortBy,
   type AgGridChartState,
   type AgGridSortModel,
-  type AgGridFilterModel,
-  type AgGridFilter,
 } from '@superset-ui/core';
-
-/**
- * AG Grid text filter type to backend operator mapping
- */
-const TEXT_FILTER_OPERATORS: Record<string, string> = {
-  equals: '==',
-  notEqual: '!=',
-  contains: 'ILIKE',
-  notContains: 'NOT ILIKE',
-  startsWith: 'ILIKE',
-  endsWith: 'ILIKE',
-};
-
-/**
- * AG Grid number filter type to backend operator mapping
- */
-const NUMBER_FILTER_OPERATORS: Record<string, string> = {
-  equals: '==',
-  notEqual: '!=',
-  lessThan: '<',
-  lessThanOrEqual: '<=',
-  greaterThan: '>',
-  greaterThanOrEqual: '>=',
-};
-
-function getTextComparator(type: string, value: string): string {
-  if (type === 'contains' || type === 'notContains') {
-    return `%${value}%`;
-  }
-  if (type === 'startsWith') {
-    return `${value}%`;
-  }
-  if (type === 'endsWith') {
-    return `%${value}`;
-  }
-  return value;
-}
 
 /**
  * Converts AG Grid sortModel to backend sortBy format
@@ -97,105 +59,6 @@ export function convertColumnState(
 }
 
 /**
- * Converts any AG Grid filter to a SQL WHERE/HAVING clause.
- * Recursively handles both simple filters (single condition) and complex filters (multiple conditions with AND/OR).
- *
- * Examples:
- * - Simple text: {filterType: 'text', type: 'contains', filter: 'abc'} → "column_name ILIKE '%abc%'"
- * - Simple number: {filterType: 'number', type: 'greaterThan', filter: 5} → "column_name > 5"
- * - Complex: {operator: 'AND', condition1: {type: 'greaterThan', filter: 1}, condition2: {type: 'lessThan', filter: 16}}
- *   → "(column_name > 1 AND column_name < 16)"
- * - Set: {filterType: 'set', values: ['a', 'b']} → "column_name IN ('a', 'b')"
- */
-function convertFilterToSQL(
-  colId: string,
-  filter: AgGridFilter,
-): string | null {
-  // Complex filter: has operator and conditions
-  if (
-    filter.operator &&
-    (filter.condition1 || filter.condition2 || filter.conditions)
-  ) {
-    const conditions: string[] = [];
-
-    // Collect all conditions
-    [filter.condition1, filter.condition2, ...(filter.conditions || [])]
-      .filter(Boolean)
-      .forEach(condition => {
-        const sql = convertFilterToSQL(colId, condition!);
-        if (sql) conditions.push(sql);
-      });
-
-    if (conditions.length === 0) return null;
-    if (conditions.length === 1) return conditions[0];
-
-    return `(${conditions.join(` ${filter.operator} `)})`;
-  }
-
-  if (filter.filterType === 'text' && filter.filter && filter.type) {
-    const op = TEXT_FILTER_OPERATORS[filter.type];
-    const val = getTextComparator(filter.type, String(filter.filter));
-    return op === 'ILIKE' || op === 'NOT ILIKE'
-      ? `${colId} ${op} '${val}'`
-      : `${colId} ${op} '${filter.filter}'`;
-  }
-
-  if (
-    filter.filterType === 'number' &&
-    filter.filter !== undefined &&
-    filter.type
-  ) {
-    const op = NUMBER_FILTER_OPERATORS[filter.type];
-    return `${colId} ${op} ${filter.filter}`;
-  }
-
-  if (filter.filterType === 'date' && filter.dateFrom && filter.type) {
-    const op = NUMBER_FILTER_OPERATORS[filter.type];
-    return `${colId} ${op} '${filter.dateFrom}'`;
-  }
-
-  if (
-    filter.filterType === 'set' &&
-    Array.isArray(filter.values) &&
-    filter.values.length > 0
-  ) {
-    const values = filter.values.map((v: string) => `'${v}'`).join(', ');
-    return `${colId} IN (${values})`;
-  }
-
-  return null;
-}
-
-/**
- * Converts AG Grid filterModel to SQL WHERE/HAVING clauses.
- * All filters (simple and complex) are uniformly converted to SQL for consistent backend handling.
- *
- * Returns a map of column IDs to their SQL filter expressions.
- */
-export function convertFilterModel(
-  filterModel: AgGridFilterModel,
-): { sqlClauses?: Record<string, string> } | undefined {
-  if (!filterModel || Object.keys(filterModel).length === 0) {
-    return undefined;
-  }
-
-  const sqlClauses: Record<string, string> = {};
-
-  Object.entries(filterModel).forEach(([colId, filter]) => {
-    const sqlClause = convertFilterToSQL(colId, filter);
-    if (sqlClause) {
-      sqlClauses[colId] = sqlClause;
-    }
-  });
-
-  if (Object.keys(sqlClauses).length === 0) {
-    return undefined;
-  }
-
-  return { sqlClauses };
-}
-
-/**
  * Base converter for AG Grid-based charts (table, pivot, etc.)
  * Converts AG Grid state to backend-compatible format.
  *
@@ -204,7 +67,24 @@ export function convertFilterModel(
  */
 export function convertAgGridStateToOwnState(
   agGridState: AgGridChartState,
+  options: ChartStateConverterOptions = {},
 ): Partial<BackendOwnState> {
+  // In client mode, AG Grid handles sort/filter/pagination locally, so for
+  // the *live* query none of it needs to reach the backend -- folding it
+  // into ownState there would only trigger an unnecessary requery/remount.
+  // A *download* query has no client-side pass to apply that state though:
+  // dashboard doesn't consume the Explore-only clientView snapshot, so
+  // exports still need it converted to reproduce the displayed
+  // sort/filter/columns (options.forExport).
+  //
+  // Only an explicit `false` is treated as "definitely client mode":
+  // legacy persisted table_state/permalinks predate serverPagination and
+  // have it `undefined`, and treating that the same as `false` would
+  // silently drop their persisted server-side sort/filter on restore.
+  if (agGridState.serverPagination === false && !options.forExport) {
+    return {};
+  }
+
   const ownState: Partial<BackendOwnState> = {};
 
   const sortBy = convertSortModel(agGridState.sortModel);
@@ -217,9 +97,18 @@ export function convertAgGridStateToOwnState(
     ownState.columnOrder = columnOrder;
   }
 
-  const filterConversion = convertFilterModel(agGridState.filterModel);
-  if (filterConversion?.sqlClauses) {
-    ownState.sqlClauses = filterConversion.sqlClauses;
+  // Forward the raw AG Grid filter model so buildQuery can convert header
+  // filters into structured, dialect-safe `{ col, op, val }` filters for
+  // download queries (see buildQuery's isDownloadQuery branch). Serializing raw
+  // SQL clauses here instead leaves column identifiers unquoted, which breaks
+  // CSV/Excel export for column names with spaces or reserved words.
+  //
+  // Always forward it when present (even when empty) so a cleared filter set
+  // overwrites any previously persisted model on merge, rather than leaving a
+  // stale filter to be re-applied on the next export. An empty model yields no
+  // filters in buildQuery.
+  if (agGridState.filterModel) {
+    ownState.agGridFilterModel = agGridState.filterModel;
   }
 
   if (agGridState.pageSize !== undefined) {

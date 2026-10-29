@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import getOwnerName from 'src/utils/getOwnerName';
-import { t } from '@superset-ui/core';
+import getUserName from 'src/utils/getUserName';
+import { t } from '@apache-superset/core/translation';
 import { Tooltip } from '@superset-ui/core/components';
-import type { ModifiedInfoProps } from './types';
+import type { AuditInfoProps } from './types';
 
-export const ModifiedInfo = ({ user, date }: ModifiedInfoProps) => {
+export const ModifiedInfo = ({ user, date }: AuditInfoProps) => {
   const dateSpan = (
     <span className="no-wrap" data-test="audit-info-date">
       {date}
@@ -29,7 +29,7 @@ export const ModifiedInfo = ({ user, date }: ModifiedInfoProps) => {
   );
 
   if (user) {
-    const userName = getOwnerName(user);
+    const userName = getUserName(user);
     const title = t('Modified by: %s', userName);
     return (
       <Tooltip title={title} placement="bottom">
@@ -40,4 +40,23 @@ export const ModifiedInfo = ({ user, date }: ModifiedInfoProps) => {
   return dateSpan;
 };
 
-export type { ModifiedInfoProps };
+export const CreatedInfo = ({ user, date }: AuditInfoProps) => {
+  const dateSpan = (
+    <span className="no-wrap" data-test="audit-info-date">
+      {date}
+    </span>
+  );
+
+  if (user) {
+    const userName = getUserName(user);
+    const title = t('Created by: %s', userName);
+    return (
+      <Tooltip title={title} placement="bottom">
+        {dateSpan}
+      </Tooltip>
+    );
+  }
+  return dateSpan;
+};
+
+export type { AuditInfoProps };

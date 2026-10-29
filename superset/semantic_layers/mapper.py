@@ -1,0 +1,1730 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""
+Functions for mapping `QueryObject` to semantic layers.
+
+These functions validate and convert a `QueryObject` into one or more `SemanticQuery`,
+which are then passed to semantic layer implementations for execution, returning a
+single dataframe.
+
+"""
+
+import logging
+from collections.abc import Callable, Collection
+from dataclasses import dataclass, replace
+from datetime import date, datetime, time, timedelta, tzinfo
+from time import time as current_time
+from typing import Any, cast, ParamSpec, Sequence, TypeGuard, TypeVar
+from zoneinfo import ZoneInfo
+
+import isodate
+import numpy as np
+import pyarrow as pa
+from flask_babel import gettext as _
+from superset_core.semantic_layers.types import (
+    AdhocExpression,
+    Dimension,
+    Filter,
+    FilterExpression,
+    FilterValues,
+    Grain,
+    Grains,
+    GroupLimit,
+    Metric,
+    Operator,
+    OrderDirection,
+    OrderTuple,
+    OrFilter,
+    PredicateType,
+    SemanticQuery,
+    SemanticResult,
+)
+from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
+
+from superset.common.db_query_status import QueryStatus
+from superset.common.query_object import QueryObject
+from superset.common.utils.time_range_utils import (
+    get_since_until_from_query_object,
+    get_since_until_from_time_range,
+    get_time_range_from_filters,
+)
+from superset.connectors.sqla.models import BaseDatasource
+from superset.constants import (
+    EMPTY_STRING,
+    NO_TIME_RANGE,
+    NULL_STRING,
+    SemanticCacheStatus,
+)
+from superset.exceptions import QueryObjectValidationError
+from superset.models.helpers import QueryResult
+from superset.result_set import stringify_extension_columns
+from superset.semantic_layers import cache as semantic_cache
+from superset.semantic_layers.cache import SemanticCacheOutcome
+from superset.semantic_layers.cache_host import build_cache_configuration
+from superset.semantic_layers.cache_policy import ContainmentCapabilities
+from superset.semantic_layers.cache_repository import ViewMeta
+from superset.semantic_layers.dimension_resolution import (
+    DimensionUsage,
+    resolve_dimensions,
+)
+from superset.semantic_layers.exceptions import (
+    discover_dimensions,
+    discover_metrics,
+    DiscoveryTarget,
+    execute_semantic_query,
+)
+from superset.semantic_layers.members import members_by_key
+from superset.semantic_layers.ordering import with_default_order
+from superset.superset_typing import (
+    AdhocColumn,
+    Column,
+    FilterValues as QueryFilterValues,
+)
+from superset.utils.core import (
+    FilterOperator,
+    QueryObjectFilterClause,
+    TIME_COMPARISON,
+)
+from superset.utils.date_parser import get_past_or_future, is_no_time_range
+
+logger: logging.Logger = logging.getLogger(__name__)
+
+OPERATOR_MAP = {
+    FilterOperator.EQUALS.value: Operator.EQUALS,
+    FilterOperator.NOT_EQUALS.value: Operator.NOT_EQUALS,
+    FilterOperator.GREATER_THAN.value: Operator.GREATER_THAN,
+    FilterOperator.LESS_THAN.value: Operator.LESS_THAN,
+    FilterOperator.GREATER_THAN_OR_EQUALS.value: Operator.GREATER_THAN_OR_EQUAL,
+    FilterOperator.LESS_THAN_OR_EQUALS.value: Operator.LESS_THAN_OR_EQUAL,
+    FilterOperator.IN.value: Operator.IN,
+    FilterOperator.NOT_IN.value: Operator.NOT_IN,
+    FilterOperator.LIKE.value: Operator.LIKE,
+    FilterOperator.NOT_LIKE.value: Operator.NOT_LIKE,
+    # Case-insensitive matching is passed through to the provider, which
+    # resolves it per its own collation rules. There is no capability flag for
+    # this yet, so a provider that cannot express it will surface an error.
+    FilterOperator.ILIKE.value: Operator.ILIKE,
+    FilterOperator.NOT_ILIKE.value: Operator.NOT_ILIKE,
+    FilterOperator.IS_NULL.value: Operator.IS_NULL,
+    FilterOperator.IS_NOT_NULL.value: Operator.IS_NOT_NULL,
+}
+
+SUPPORTED_FILTER_OPERATORS = frozenset(OPERATOR_MAP) | {
+    FilterOperator.TEMPORAL_RANGE.value
+}
+
+
+class SemanticQueryInputError(ValueError):
+    """
+    A query the semantic view cannot answer as written.
+
+    Raised for selections, filters and time ranges the caller can correct,
+    and reported as a 400 at the host boundary; any other exception from
+    mapping is a backend fault. It subclasses ``ValueError`` so direct
+    callers that catch ``ValueError`` keep working; the base can be dropped
+    once those callers catch this type instead.
+    """
+
+
+ParserArguments = ParamSpec("ParserArguments")
+Parsed = TypeVar("Parsed")
+
+
+def _parse_time_input(
+    parser: Callable[ParserArguments, Parsed],
+    *args: ParserArguments.args,
+    **kwargs: ParserArguments.kwargs,
+) -> Parsed:
+    """Report a date parser's ``ValueError`` as input the caller can correct."""
+    try:
+        return parser(*args, **kwargs)
+    except ValueError as ex:
+        raise SemanticQueryInputError(str(ex)) from ex
+
+
+class ValidatedQueryObjectFilterClause(QueryObjectFilterClause):
+    """
+    A validated QueryObject filter clause with a string column name.
+
+    The `col` in a `QueryObjectFilterClause` can be either a string (column name) or an
+    adhoc column, but we only support the former in semantic layers.
+    """
+
+    # overwrite to narrow type; mypy complains about more restrictive typed dicts,
+    # but the alternative would be to redefine the object
+    col: str  # type: ignore[misc]
+    op: str  # type: ignore[misc]
+
+
+class ValidatedQueryObject(QueryObject):
+    """
+    A query object that has a datasource defined.
+    """
+
+    datasource: BaseDatasource
+
+    # overwrite to narrow type; mypy complains about the assignment since the base type
+    # allows adhoc filters, but we only support validated filters here
+    filter: list[ValidatedQueryObjectFilterClause]  # type: ignore[assignment]
+    series_columns: Sequence[str]  # type: ignore[assignment]
+    series_limit_metric: str | None
+    # ``_validate_metrics`` rejects adhoc metrics, so by this point every entry
+    # is a member name that can key the mapping built by ``members_by_key``.
+    metrics: list[str] | None  # type: ignore[assignment]
+
+
+def _dispatch_semantic_query(
+    datasource: BaseDatasource,
+    dispatcher: Callable[[SemanticQuery], SemanticResult],
+    query: SemanticQuery,
+    *,
+    force: bool = False,
+    cacheable: bool = True,
+    cache_timeout: int | None = None,
+    row_count: bool = False,
+) -> SemanticCacheOutcome:
+    # Normalize before any store or reuse: a provider may return
+    # ``SemanticResult(results=None)`` for zero rows, and a cached ``None``
+    # table would break every later transformation of that entry. Order cannot
+    # change a row count, so count dispatches skip the default order, and they
+    # never reach the cache, whose descriptors assume the default was applied.
+    def normalized_dispatcher(dispatched_query: SemanticQuery) -> SemanticResult:
+        result: SemanticResult = execute_semantic_query(
+            dispatcher,
+            dispatched_query if row_count else with_default_order(dispatched_query),
+        )
+        return _coerce_empty_result(result, dispatched_query)
+
+    if (
+        row_count
+        or not cacheable
+        or not semantic_cache.semantic_cache_service.state.effective
+    ):
+        return semantic_cache.semantic_cache_service.execute_provider(
+            query, normalized_dispatcher
+        )
+    cache_configuration: tuple[ViewMeta, ContainmentCapabilities] | None = (
+        build_cache_configuration(datasource, cache_timeout=cache_timeout)
+    )
+    if cache_configuration is None:
+        return semantic_cache.semantic_cache_service.execute_provider(
+            query, normalized_dispatcher
+        )
+    meta: ViewMeta
+    capabilities: ContainmentCapabilities
+    meta, capabilities = cache_configuration
+    return semantic_cache.semantic_cache_service.execute(
+        meta,
+        query,
+        normalized_dispatcher,
+        capabilities=capabilities,
+        force=force,
+    )
+
+
+@dataclass(frozen=True)
+class _ViewMetadata:
+    """One query's member observation, preserving provider iteration order."""
+
+    metrics: tuple[Metric, ...]
+    dimensions: tuple[Dimension, ...]
+
+    @classmethod
+    def from_view(cls, view: SemanticView, target: DiscoveryTarget) -> "_ViewMetadata":
+        return cls(
+            tuple(discover_metrics(lambda: view, target)),
+            tuple(discover_dimensions(lambda: view, target)),
+        )
+
+
+def get_results(query_object: QueryObject) -> QueryResult:
+    """
+    Run 1+ queries based on `QueryObject` and return the results.
+
+    :param query_object: The QueryObject containing query specifications
+    :return: QueryResult compatible with Superset's query interface
+    """
+    if not query_object.datasource:
+        raise ValueError("QueryObject must have a datasource defined.")
+    query_object = cast(ValidatedQueryObject, query_object)
+    metadata: _ViewMetadata = _validation_metadata(query_object)
+
+    # Track validation, translation and execution time, excluding discovery.
+    start_time: float = current_time()
+    # Step 1: Translate the main query followed by any time-offset queries.
+    try:
+        _validate_query_object(query_object, metadata)
+        queries: list[SemanticQuery] = _map_query_object(query_object, metadata)
+    except SemanticQueryInputError as ex:
+        raise QueryObjectValidationError(str(ex)) from ex
+
+    semantic_view = query_object.datasource.implementation
+    dispatcher = (
+        semantic_view.get_row_count
+        if query_object.is_rowcount
+        else semantic_view.get_table
+    )
+
+    # Step 2: Execute the main query (first in the list)
+    main_query = queries[0]
+    main_outcome: SemanticCacheOutcome = _dispatch_semantic_query(
+        query_object.datasource,
+        dispatcher,
+        main_query,
+        force=query_object.force_query,
+        # Row-count results share the query's logical identity but not its
+        # shape: a cached table result would satisfy a row-count lookup (and
+        # vice versa) and break server-side pagination. Containment reuse is
+        # only defined over tabular results, so row-count dispatches bypass
+        # the cache entirely. Nonzero row offsets cannot be reused either;
+        # storing those pages would only evict usable first-page descriptors.
+        cacheable=not query_object.is_rowcount and not query_object.row_offset,
+        cache_timeout=query_object.cache_timeout,
+        row_count=query_object.is_rowcount,
+    )
+    main_result: SemanticResult = main_outcome.result
+    main_result = _coerce_empty_result(main_result, main_query)
+    # One flag per dispatched semantic query, so the reported provenance
+    # covers the offset queries and not only the main one.
+    cache_hits: list[bool] = [main_outcome.cache_hit]
+
+    main_df = stringify_extension_columns(main_result.results).to_pandas(
+        integer_object_nulls=True,
+    )
+
+    # Collect all requests (SQL queries, HTTP requests, etc.) for troubleshooting
+    all_requests = list(main_result.requests)
+
+    # If no time offsets, return the main result as-is
+    if not query_object.time_offsets or len(queries) <= 1:
+        duration = timedelta(seconds=current_time() - start_time)
+        return map_semantic_result_to_query_result(
+            main_result,
+            query_object,
+            duration,
+            metadata,
+            semantic_cache_status=SemanticCacheStatus.from_hits(cache_hits),
+        )
+
+    # Get metric names from the main query
+    # These are the columns that will be renamed with offset suffixes
+    metric_names = [metric.name for metric in main_query.metrics]
+
+    # Join keys are all columns except metrics
+    # These will be used to match rows between main and offset DataFrames
+    join_keys = [col for col in main_df.columns if col not in metric_names]
+
+    # Step 3 & 4: Execute each time offset query and join results
+    for offset_query, time_offset in zip(
+        queries[1:],
+        query_object.time_offsets,
+        strict=False,
+    ):
+        # Execute the offset query
+        outcome: SemanticCacheOutcome = _dispatch_semantic_query(
+            query_object.datasource,
+            dispatcher,
+            offset_query,
+            force=query_object.force_query,
+            cacheable=not query_object.is_rowcount and not query_object.row_offset,
+            cache_timeout=query_object.cache_timeout,
+            row_count=query_object.is_rowcount,
+        )
+        cache_hits.append(outcome.cache_hit)
+        result: SemanticResult = outcome.result
+        result = _coerce_empty_result(result, offset_query)
+
+        # Add this query's requests to the collection
+        all_requests.extend(result.requests)
+
+        offset_df = stringify_extension_columns(result.results).to_pandas(
+            integer_object_nulls=True,
+        )
+        # A missing join match would upcast int64 offset metrics to float64.
+        offset_df = offset_df.astype(
+            {
+                metric: object
+                for metric in metric_names
+                if metric in offset_df and offset_df[metric].dtype.kind == "i"
+            }
+        )
+
+        # Handle empty results - add NaN columns directly instead of merging
+        # This avoids dtype mismatch issues with empty DataFrames
+        if offset_df.empty:
+            # Add offset metric columns with NaN values directly to main_df
+            for metric in metric_names:
+                offset_col_name = TIME_COMPARISON.join([metric, time_offset])
+                main_df[offset_col_name] = np.nan
+        elif not join_keys:
+            # No dimensions to join on — this is an aggregate-only query
+            # (e.g. ``metrics: ["Orders Count"]`` with empty ``columns``),
+            # which produces a single-row DataFrame. ``pandas.merge`` on an
+            # empty ``on=`` list crashes with ``IndexError`` deep in the
+            # join-indexer code, so we lift the offset metric values from
+            # the first row of ``offset_df`` straight onto ``main_df``.
+            for metric in metric_names:
+                offset_col_name = TIME_COMPARISON.join([metric, time_offset])
+                main_df[offset_col_name] = (
+                    offset_df[metric].iloc[0] if metric in offset_df else np.nan
+                )
+        else:
+            # Rename metric columns with time offset suffix
+            # Format: "{metric_name}__{time_offset}"
+            # Example: "revenue" -> "revenue__1 week ago"
+            offset_df = offset_df.rename(
+                columns={
+                    metric: TIME_COMPARISON.join([metric, time_offset])
+                    for metric in metric_names
+                }
+            )
+
+            # Step 5: Perform left join on dimension columns
+            # This preserves all rows from main_df and adds offset metrics
+            # where they match
+            main_df = main_df.merge(
+                offset_df,
+                on=join_keys,
+                how="left",
+                suffixes=("", "__duplicate"),
+            )
+
+            # Clean up any duplicate columns that might have been created
+            # (shouldn't happen with proper join keys, but defensive programming)
+            duplicate_cols = [
+                col for col in main_df.columns if col.endswith("__duplicate")
+            ]
+            if duplicate_cols:
+                main_df = main_df.drop(columns=duplicate_cols)
+
+    # Convert final result to QueryResult
+    semantic_result = SemanticResult(
+        requests=all_requests,
+        results=pa.Table.from_pandas(main_df),
+    )
+    duration = timedelta(seconds=current_time() - start_time)
+    return map_semantic_result_to_query_result(
+        semantic_result,
+        query_object,
+        duration,
+        metadata,
+        semantic_cache_status=SemanticCacheStatus.from_hits(cache_hits),
+    )
+
+
+def _coerce_empty_result(
+    semantic_result: SemanticResult,
+    query: SemanticQuery,
+) -> SemanticResult:
+    """
+    Guard against ``SemanticResult.results is None``.
+
+    Some semantic-layer driver implementations return ``None`` when a query
+    produces zero rows (for example, ``snowflake.connector``'s
+    ``fetch_arrow_all`` does this). Downstream consumers expect an Arrow table,
+    so build an empty one with the columns implied by the query's dimensions
+    and metrics.
+    """
+    if semantic_result.results is not None:
+        return semantic_result
+
+    columns = {
+        **{dim.name: pa.array([], type=dim.type) for dim in query.dimensions},
+        **{metric.name: pa.array([], type=metric.type) for metric in query.metrics},
+    }
+    return SemanticResult(
+        requests=semantic_result.requests,
+        results=pa.table(columns),
+    )
+
+
+def map_semantic_result_to_query_result(
+    semantic_result: SemanticResult,
+    query_object: ValidatedQueryObject,
+    duration: timedelta,
+    metadata: _ViewMetadata | None = None,
+    *,
+    semantic_cache_status: SemanticCacheStatus = SemanticCacheStatus.MISS,
+) -> QueryResult:
+    """
+    Convert a SemanticResult to a QueryResult.
+
+    :param semantic_result: Result from the semantic layer
+    :param query_object: Original QueryObject (for passthrough attributes)
+    :param duration: Time taken to execute the query
+    :param metadata: Member snapshot used to validate and execute this query
+    :return: QueryResult compatible with Superset's query interface
+    """
+    # Get the query string from requests (typically one or more SQL queries)
+    query_str = ""
+    if semantic_result.requests:
+        # Join all requests for display (could be multiple for time comparisons)
+        query_str = "\n\n".join(
+            f"-- {req.type}\n{req.definition}" for req in semantic_result.requests
+        )
+
+    dimension_names: set[str] = {
+        dimension.name
+        for dimension in (
+            metadata.dimensions
+            if metadata is not None
+            else discover_dimensions(
+                lambda: query_object.datasource.implementation,
+                DiscoveryTarget.of(query_object.datasource),
+            )
+        )
+    }
+    filter_columns: list[Column] = [filter_["col"] for filter_ in query_object.filter]
+
+    return QueryResult(
+        # Core data
+        df=stringify_extension_columns(semantic_result.results).to_pandas(
+            integer_object_nulls=True,
+        ),
+        query=query_str,
+        duration=duration,
+        # Template filters - not applicable to semantic layers
+        # (semantic layers don't use Jinja templates)
+        applied_template_filters=None,
+        # Dashboard (isExtra) filters on columns the view lacks are reported
+        # as rejected; chart-defined ones were refused during validation.
+        applied_filter_columns=[
+            column
+            for column in filter_columns
+            if isinstance(column, str) and column in dimension_names
+        ],
+        rejected_filter_columns=[
+            column
+            for column in filter_columns
+            if not isinstance(column, str) or column not in dimension_names
+        ],
+        # Status - always success if we got here
+        # (errors would raise exceptions before reaching this point)
+        status=QueryStatus.SUCCESS,
+        error_message=None,
+        errors=None,
+        # Time range - pass through from original query_object
+        from_dttm=query_object.from_dttm,
+        to_dttm=query_object.to_dttm,
+        semantic_cache_status=semantic_cache_status.value,
+    )
+
+
+def _normalize_column(column: str | AdhocColumn, dimension_names: set[str]) -> str:
+    """
+    Normalize a column to its dimension name.
+
+    Columns can be either:
+    - A string (dimension name directly)
+    - An AdhocColumn with isColumnReference=True and sqlExpression containing the
+      dimension name
+    """
+    if isinstance(column, str):
+        return column
+
+    # Handle column references (e.g., from time-series charts)
+    if column.get("isColumnReference") and (sql_expr := column.get("sqlExpression")):
+        if sql_expr in dimension_names:
+            return sql_expr
+
+    raise SemanticQueryInputError(
+        "Adhoc dimensions are not supported in Semantic Views."
+    )
+
+
+def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
+    """Map a query using a fresh observation of the provider's metadata."""
+    metadata: _ViewMetadata = _ViewMetadata.from_view(
+        query_object.datasource.implementation,
+        DiscoveryTarget.of(query_object.datasource),
+    )
+    return _map_query_object(query_object, metadata)
+
+
+def _map_query_object(
+    query_object: ValidatedQueryObject, metadata: _ViewMetadata
+) -> list[SemanticQuery]:
+    """Use the same members for the main query and every time comparison."""
+    view_metrics: tuple[Metric, ...] = metadata.metrics
+    view_dimensions: tuple[Dimension, ...] = metadata.dimensions
+
+    all_metrics: dict[str, Metric] = members_by_key(view_metrics)
+    all_dimensions: dict[str, Dimension] = resolve_dimensions(
+        view_dimensions, usage=DimensionUsage.FILTER
+    )
+
+    validate_filter_columns(query_object.filter, all_dimensions, all_metrics)
+
+    # Normalize columns (may be dicts with isColumnReference=True for time-series)
+    dimension_names = set(all_dimensions.keys())
+    normalized_column_order: list[str] = list(
+        dict.fromkeys(
+            _normalize_column(column, dimension_names)
+            for column in query_object.columns
+        )
+    )
+    normalized_columns: set[str] = set(normalized_column_order)
+
+    metrics = [all_metrics[metric] for metric in (query_object.metrics or [])]
+
+    grain = _convert_time_grain(query_object.extras.get("time_grain_sqla"))
+    time_axis_column = _get_grain_time_axis_column(query_object, all_dimensions)
+    grouping_grains: dict[str, Grain | None] = (
+        {time_axis_column: grain}
+        if time_axis_column is not None and time_axis_column in normalized_columns
+        else {}
+    )
+    grouping_grains.update(_explicit_column_grains(query_object, dimension_names))
+    grouping_dimensions: dict[str, Dimension] = resolve_dimensions(
+        view_dimensions, usage=DimensionUsage.GROUP, grouping_grains=grouping_grains
+    )
+    dimensions: list[Dimension] = [
+        grouping_dimensions[name]
+        for name in normalized_column_order
+        if name in grouping_dimensions
+    ]
+    order: list[OrderTuple] = _get_order_from_query_object(
+        query_object,
+        all_metrics,
+        resolve_dimensions(
+            view_dimensions, usage=DimensionUsage.ORDER, grouping_grains=grouping_grains
+        ),
+    )
+    limit = query_object.row_limit
+    offset = query_object.row_offset
+
+    group_limit = _get_group_limit_from_query_object(
+        query_object,
+        all_metrics,
+        all_dimensions=all_dimensions,
+        view_dimensions=view_dimensions,
+        ranking_dimensions=resolve_dimensions(
+            view_dimensions,
+            usage=DimensionUsage.SERIES_LIMIT,
+            grouping_grains=grouping_grains,
+        ),
+    )
+
+    offset_axis_column: str | None = _get_time_axis_column(query_object, all_dimensions)
+    queries = []
+    for time_offset in [None] + query_object.time_offsets:
+        filters = _get_filters_from_query_object(
+            query_object,
+            time_offset,
+            all_dimensions,
+            is_time_series=offset_axis_column in normalized_columns,
+            view_dimensions=view_dimensions,
+        )
+        queries.append(
+            SemanticQuery(
+                metrics=metrics,
+                dimensions=dimensions,
+                filters=filters,
+                order=order,
+                limit=limit,
+                offset=offset,
+                group_limit=group_limit,
+                selection_identity_version=query_object.extras.get(
+                    "semantic_selection_version"
+                ),
+            )
+        )
+
+    return queries
+
+
+def _get_filters_from_query_object(
+    query_object: ValidatedQueryObject,
+    time_offset: str | None,
+    all_dimensions: dict[str, Dimension],
+    *,
+    is_time_series: bool = False,
+    view_dimensions: tuple[Dimension, ...] = (),
+) -> set[FilterExpression]:
+    """
+    Extract all filters from the query object, including time range filters.
+
+    This simplifies the complexity of from_dttm/to_dttm/inner_from_dttm/inner_to_dttm
+    by converting all time constraints into filters.
+    """
+    filters: set[FilterExpression] = set()
+
+    # 1. Add fetch values predicate if present
+    if (
+        query_object.apply_fetch_values_predicate
+        and query_object.datasource.fetch_values_predicate
+    ):
+        filters.add(
+            Filter(
+                type=PredicateType.WHERE,
+                column=None,
+                operator=Operator.ADHOC,
+                value=query_object.datasource.fetch_values_predicate,
+            )
+        )
+
+    # 2. Add time range filter based on from_dttm/to_dttm
+    # For time offsets, this automatically calculates the shifted bounds
+    time_filters: set[Filter] = _get_time_filter(
+        query_object,
+        time_offset,
+        all_dimensions,
+    )
+    filters.update(time_filters)
+
+    # 3. Add filters from query_object.extras (WHERE and HAVING clauses)
+    extras_filters = _get_filters_from_extras(query_object.extras)
+    filters.update(extras_filters)
+
+    replaced_time_axis: str | None = (
+        _get_time_axis_column(query_object, all_dimensions) if time_filters else None
+    )
+    filters.update(
+        _get_adhoc_filters(
+            query_object,
+            all_dimensions,
+            replaced_time_axis,
+            replace_all_axis_ranges=time_offset is not None and is_time_series,
+            time_shift=time_offset if not is_time_series else None,
+            view_dimensions=view_dimensions,
+        )
+    )
+
+    return filters
+
+
+def _get_adhoc_filters(
+    query_object: ValidatedQueryObject,
+    all_dimensions: dict[str, Dimension],
+    replaced_time_axis: str | None,
+    *,
+    replace_all_axis_ranges: bool = False,
+    time_shift: str | None = None,
+    view_dimensions: tuple[Dimension, ...] = (),
+) -> set[FilterExpression]:
+    """Replace axis predicates with the factory-derived bounds.
+
+    Match its original expression before parsing: relative clocks, time shifts
+    and custom anchors can make a second evaluation differ from those bounds.
+    Time-series offsets and separate inner-bound queries replace all ranges on
+    the selected axis. Non-series offsets shift remaining temporal ranges
+    independently, matching the SQL-dataset comparison paths.
+    """
+    replaced_range: str | None = (
+        _parse_time_input(
+            get_time_range_from_filters,
+            query_object.time_range,
+            query_object.filter,
+            query_object.columns,
+        )
+        if replaced_time_axis is not None
+        else None
+    )
+    filters: set[FilterExpression] = set()
+    converted: set[FilterExpression] | None
+    for filter_ in query_object.filter:
+        if (
+            replaced_time_axis is not None
+            and filter_["op"] == FilterOperator.TEMPORAL_RANGE.value
+            and filter_["col"] == replaced_time_axis
+            and (replace_all_axis_ranges or filter_["val"] == replaced_range)
+        ):
+            continue
+        converted = _convert_query_object_filter(
+            filter_,
+            all_dimensions,
+            time_shift=time_shift,
+            view_dimensions=view_dimensions,
+        )
+        if converted:
+            filters.update(converted)
+    return filters
+
+
+def _get_filters_from_extras(extras: dict[str, Any]) -> set[Filter]:
+    """Reject SQL extras even when callers bypass QueryObject validation."""
+    if extras.get("where") or extras.get("having"):
+        raise SemanticQueryInputError(
+            _(
+                "SQL WHERE/HAVING expressions are not supported for semantic "
+                "views. Remove the SQL clause or use a semantic dimension filter."
+            )
+        )
+    return set()
+
+
+def _get_time_axis_column(
+    query_object: ValidatedQueryObject,
+    all_dimensions: dict[str, Dimension],
+) -> str | None:
+    """
+    Determine which selected column is the time-axis (the one a time offset
+    applies to).
+
+    Legacy time-series charts encode this as ``query_object.granularity``.
+    Modern x-axis charts leave that empty and put the temporal column in
+    ``query_object.columns`` instead. Aggregate-only charts that just use a
+    ``TEMPORAL_RANGE`` adhoc filter (e.g. for time comparisons) carry the
+    temporal column only in ``query_object.filter``; we fall back to that so
+    the offset-aware filter path can still find a column to shift.
+    """
+    if query_object.granularity:
+        return query_object.granularity
+
+    dimension_names = set(all_dimensions.keys())
+
+    def is_temporal(name: str) -> bool:
+        dim = all_dimensions.get(name)
+        return dim is not None and (
+            pa.types.is_timestamp(dim.type)
+            or pa.types.is_date(dim.type)
+            or pa.types.is_time(dim.type)
+        )
+
+    for column in query_object.columns or []:
+        try:
+            name = _normalize_column(column, dimension_names)
+        except SemanticQueryInputError:
+            continue
+        if is_temporal(name):
+            return name
+
+    # Last resort: a TEMPORAL_RANGE filter (the shape produced by adhoc
+    # time-range filters on aggregate-only charts) carries the temporal
+    # column name in its ``col`` field.
+    for filter_ in query_object.filter or []:
+        if filter_.get("op") != FilterOperator.TEMPORAL_RANGE.value or not isinstance(
+            filter_.get("val"), str
+        ):
+            continue
+        col = filter_.get("col")
+        if isinstance(col, str) and is_temporal(col):
+            return col
+
+    return None
+
+
+def _get_time_filter(
+    query_object: ValidatedQueryObject,
+    time_offset: str | None,
+    all_dimensions: dict[str, Dimension],
+) -> set[Filter]:
+    """
+    Create a time range filter from the query object.
+
+    This handles both regular queries and time offset queries, simplifying the
+    complexity of from_dttm/to_dttm/inner_from_dttm/inner_to_dttm by using the
+    same time bounds for both the main query and series limit subqueries.
+
+    The time column is resolved via ``_get_time_axis_column`` so that
+    aggregate-only charts that only reference the temporal column inside a
+    ``TEMPORAL_RANGE`` adhoc filter still get offset-aware bounds applied.
+    """
+    filters: set[Filter] = set()
+
+    time_axis_column = _get_time_axis_column(query_object, all_dimensions)
+    if not time_axis_column:
+        return filters
+
+    time_dimension = all_dimensions.get(time_axis_column)
+    if not time_dimension:
+        return filters
+
+    # Get the appropriate time bounds based on whether this is a time offset query
+    from_dttm, to_dttm = _get_time_bounds(query_object, time_offset)
+
+    if not from_dttm or not to_dttm:
+        return filters
+
+    # Create a filter with >= and < operators
+    return {
+        Filter(
+            type=PredicateType.WHERE,
+            column=time_dimension,
+            operator=Operator.GREATER_THAN_OR_EQUAL,
+            value=from_dttm,
+        ),
+        Filter(
+            type=PredicateType.WHERE,
+            column=time_dimension,
+            operator=Operator.LESS_THAN,
+            value=to_dttm,
+        ),
+    }
+
+
+def _get_time_bounds(
+    query_object: ValidatedQueryObject,
+    time_offset: str | None,
+) -> tuple[datetime | None, datetime | None]:
+    """
+    Get the appropriate time bounds for the query.
+
+    For regular queries (time_offset is None), returns from_dttm/to_dttm.
+    For time offset queries, calculates the shifted bounds.
+
+    This simplifies the inner_from_dttm/inner_to_dttm complexity by using
+    the same bounds for both main queries and series limit subqueries (Option 1).
+    """
+    if time_offset is None:
+        # Main query: use from_dttm/to_dttm directly
+        return query_object.from_dttm, query_object.to_dttm
+
+    # Time offset query: calculate shifted bounds
+    # Use from_dttm/to_dttm if available, otherwise try to get from time_range
+    outer_from = query_object.from_dttm
+    outer_to = query_object.to_dttm
+
+    if not outer_from or not outer_to:
+        # Fall back to parsing time_range if from_dttm/to_dttm not set
+        outer_from, outer_to = _parse_time_input(
+            get_since_until_from_query_object, query_object
+        )
+
+    if not outer_from or not outer_to:
+        return None, None
+
+    # Apply the offset to both bounds
+    offset_from: datetime = _parse_time_input(
+        get_past_or_future, time_offset, outer_from
+    )
+    offset_to: datetime = _parse_time_input(get_past_or_future, time_offset, outer_to)
+
+    return offset_from, offset_to
+
+
+def _resolve_filter_grain(
+    dimension: Dimension,
+    raw_value: QueryFilterValues | None,
+    filter_grain: str | None,
+    view_dimensions: tuple[Dimension, ...],
+) -> tuple[Dimension, QueryFilterValues | None]:
+    """Match a drill bucket against its provider-declared grain variant."""
+    if filter_grain:
+        grain = _convert_time_grain(filter_grain)
+        grained = next(
+            (
+                dim
+                for dim in view_dimensions
+                if dim.name == dimension.name and dim.grain == grain
+            ),
+            None,
+        )
+        if grained is None:
+            raise QueryObjectValidationError(
+                "The time grain is not supported for the filter column in the "
+                "Semantic View."
+            )
+        dimension = grained
+        if (
+            isinstance(raw_value, (int, float))
+            and not isinstance(raw_value, bool)
+            and (
+                pa.types.is_timestamp(dimension.type)
+                or pa.types.is_date(dimension.type)
+            )
+        ):
+            # Chart-data temporal records use Unix milliseconds, not seconds.
+            raw_value = datetime.fromtimestamp(raw_value / 1000, tz=ZoneInfo("UTC"))
+            if _timestamp_target_tz(dimension.type) is None:
+                raw_value = raw_value.replace(tzinfo=None)
+
+    return dimension, raw_value
+
+
+def _convert_query_object_filter(
+    filter_: ValidatedQueryObjectFilterClause,
+    all_dimensions: dict[str, Dimension],
+    *,
+    time_shift: str | None = None,
+    view_dimensions: tuple[Dimension, ...] = (),
+) -> set[FilterExpression] | None:
+    """
+    Convert a QueryObject filter dict to a semantic layer Filter.
+    """
+    operator_str = filter_["op"]
+
+    # Handle simple column filters
+    col = filter_.get("col")
+    if col not in all_dimensions:
+        # Incompatible columns are included in rejected_filter_columns.
+        return None
+
+    dimension = all_dimensions[col]
+
+    raw_value: QueryFilterValues | None = filter_["val"]
+    dimension, raw_value = _resolve_filter_grain(
+        dimension, raw_value, filter_.get("grain"), view_dimensions
+    )
+
+    # Special case for temporal range
+    if operator_str == FilterOperator.TEMPORAL_RANGE.value:
+        if not isinstance(raw_value, str) or raw_value == NO_TIME_RANGE:
+            return None
+        start: datetime | None
+        end: datetime | None
+        start, end = _parse_time_input(
+            get_since_until_from_time_range,
+            time_range=raw_value,
+            time_shift=time_shift,
+        )
+        filters: set[FilterExpression] = set()
+        if start is not None:
+            filters.add(
+                Filter(
+                    type=PredicateType.WHERE,
+                    column=dimension,
+                    operator=Operator.GREATER_THAN_OR_EQUAL,
+                    value=_coerce_scalar_filter_value(start, dimension),
+                )
+            )
+        if end is not None:
+            filters.add(
+                Filter(
+                    type=PredicateType.WHERE,
+                    column=dimension,
+                    operator=Operator.LESS_THAN,
+                    value=_coerce_scalar_filter_value(end, dimension),
+                )
+            )
+        return filters or None
+
+    operator: Operator | None = OPERATOR_MAP.get(operator_str)
+    if not operator:
+        # Unknown operator - raise error to prevent unauthorized access
+        raise SemanticQueryInputError(f"Unsupported filter operator: {operator_str}")
+
+    value: FilterValues | frozenset[FilterValues]
+    if operator in {Operator.IN, Operator.NOT_IN}:
+        # Coerce before deduplicating: equal raw values (0 and False) may differ
+        # in validity for the selected dimension's type.
+        value = (
+            frozenset(
+                _coerce_scalar_filter_value(item, dimension) for item in raw_value
+            )
+            if isinstance(raw_value, (list, tuple))
+            else _coerce_scalar_filter_value(raw_value, dimension)
+        )
+    elif operator in {Operator.IS_NULL, Operator.IS_NOT_NULL}:
+        value = None
+    else:
+        # Match the native datasource's scalar handling of collection inputs.
+        scalar: FilterValues = (
+            (raw_value[0] if raw_value else None)
+            if isinstance(raw_value, (list, tuple))
+            else raw_value
+        )
+        value = _coerce_scalar_filter_value(scalar, dimension)
+        if value is None and operator not in {Operator.EQUALS, Operator.NOT_EQUALS}:
+            raise QueryObjectValidationError(
+                "Must specify a value for this comparison."
+            )
+
+    return _normalize_membership_filter(
+        Filter(
+            type=PredicateType.WHERE,
+            column=dimension,
+            operator=operator,
+            value=value,
+        )
+    )
+
+
+def _normalize_membership_filter(filter_: Filter) -> set[FilterExpression]:
+    """Normalize NULL equality/membership and reject empty membership selections."""
+    negated: bool = filter_.operator in {Operator.NOT_EQUALS, Operator.NOT_IN}
+    null_filter: Filter = replace(
+        filter_,
+        operator=Operator.IS_NOT_NULL if negated else Operator.IS_NULL,
+        value=None,
+    )
+    if filter_.operator in {Operator.EQUALS, Operator.NOT_EQUALS}:
+        return {null_filter} if filter_.value is None else {filter_}
+    if filter_.operator not in {Operator.IN, Operator.NOT_IN}:
+        return {filter_}
+
+    values: frozenset[FilterValues] = (
+        frozenset(filter_.value)
+        if isinstance(filter_.value, (tuple, frozenset))
+        else frozenset({filter_.value})
+    )
+    if not values:
+        raise QueryObjectValidationError("Semantic IN/NOT IN filters cannot be empty.")
+    if None not in values:
+        return {filter_}
+
+    non_null_values: frozenset[FilterValues] = values - {None}
+    if not non_null_values:
+        return {null_filter}
+    comparison: Filter = replace(filter_, value=non_null_values)
+    if negated:
+        return {comparison, null_filter}
+    return {OrFilter(frozenset({comparison, null_filter}))}
+
+
+def _timestamp_target_tz(dtype: pa.DataType) -> tzinfo | None:
+    tz_name: str | None = getattr(dtype, "tz", None)
+    try:
+        return ZoneInfo(tz_name) if tz_name else None
+    except ValueError as ex:
+        raise RuntimeError("Invalid timezone in semantic dimension metadata") from ex
+
+
+def _align_tz(dt: datetime, target_tz: tzinfo | None) -> datetime:
+    if target_tz is None:
+        return dt
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=target_tz)
+    return dt.astimezone(target_tz)
+
+
+def _coerce_scalar_filter_value(  # noqa: C901 — type dispatch, complexity is inherent
+    value: FilterValues, dimension: Dimension
+) -> FilterValues:
+    if isinstance(value, str):
+        if value == NULL_STRING:
+            return None
+        if value == EMPTY_STRING:
+            value = ""
+    if value is None:
+        return None
+
+    dtype = dimension.type
+
+    if pa.types.is_boolean(dtype):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)) and value in (0, 1):
+            return bool(value)
+        if isinstance(value, str):
+            parsed = value.strip().lower()
+            if parsed in {"true", "t", "1", "yes", "y", "on"}:
+                return True
+            if parsed in {"false", "f", "0", "no", "n", "off"}:
+                return False
+        raise SemanticQueryInputError(
+            f"Invalid boolean value {value!r} for filter column {dimension.name}"
+        )
+
+    if pa.types.is_integer(dtype):
+        if isinstance(value, bool):
+            raise SemanticQueryInputError(
+                f"Invalid integer value {value!r} for filter column {dimension.name}"
+            )
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float) and value.is_integer():
+            return int(value)
+        if isinstance(value, str):
+            try:
+                return int(value.strip())
+            except ValueError as ex:
+                raise SemanticQueryInputError(
+                    f"Invalid integer value {value!r} for filter column "
+                    f"{dimension.name}"
+                ) from ex
+        raise SemanticQueryInputError(
+            f"Invalid integer value {value!r} for filter column {dimension.name}"
+        )
+
+    if pa.types.is_floating(dtype) or pa.types.is_decimal(dtype):
+        # Decimal dimensions are coerced through ``float`` because ``FilterValues``
+        # does not include ``Decimal``. That is lossless for the common case
+        # (≤ ~15 significant digits) and matches how downstream semantic-view
+        # implementations consume numeric filters; high-precision decimals would
+        # need a wider ``FilterValues`` union and propagation through the cache's
+        # comparability checks.
+        if isinstance(value, bool):
+            raise SemanticQueryInputError(
+                f"Invalid numeric value {value!r} for filter column {dimension.name}"
+            )
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            try:
+                return float(value.strip())
+            except ValueError as ex:
+                raise SemanticQueryInputError(
+                    f"Invalid numeric value {value!r} for filter column "
+                    f"{dimension.name}"
+                ) from ex
+        raise SemanticQueryInputError(
+            f"Invalid numeric value {value!r} for filter column {dimension.name}"
+        )
+
+    if pa.types.is_date(dtype):
+        if isinstance(value, datetime):
+            return value.date()
+        if isinstance(value, date):
+            return value
+        if isinstance(value, str):
+            try:
+                return datetime.fromisoformat(value.strip()).date()
+            except ValueError as ex:
+                raise SemanticQueryInputError(
+                    f"Invalid date value {value!r} for filter column {dimension.name}"
+                ) from ex
+        raise SemanticQueryInputError(
+            f"Invalid date value {value!r} for filter column {dimension.name}"
+        )
+
+    if pa.types.is_timestamp(dtype):
+        target_tz = _timestamp_target_tz(dtype)
+        if isinstance(value, datetime):
+            return _align_tz(value, target_tz)
+        if isinstance(value, date):
+            return _align_tz(datetime.combine(value, time.min), target_tz)
+        if isinstance(value, str):
+            normalized = value.strip().replace("Z", "+00:00")
+            try:
+                return _align_tz(datetime.fromisoformat(normalized), target_tz)
+            except ValueError as ex:
+                raise SemanticQueryInputError(
+                    f"Invalid timestamp value {value!r} for filter column "
+                    f"{dimension.name}"
+                ) from ex
+        raise SemanticQueryInputError(
+            f"Invalid timestamp value {value!r} for filter column {dimension.name}"
+        )
+
+    if pa.types.is_time(dtype):
+        if isinstance(value, time):
+            return value
+        if isinstance(value, str):
+            try:
+                return time.fromisoformat(value.strip())
+            except ValueError as ex:
+                raise SemanticQueryInputError(
+                    f"Invalid time value {value!r} for filter column {dimension.name}"
+                ) from ex
+        raise SemanticQueryInputError(
+            f"Invalid time value {value!r} for filter column {dimension.name}"
+        )
+
+    return value
+
+
+def _get_order_from_query_object(
+    query_object: ValidatedQueryObject,
+    all_metrics: dict[str, Metric],
+    all_dimensions: dict[str, Dimension],
+) -> list[OrderTuple]:
+    order: list[OrderTuple] = []
+    for element, ascending in query_object.orderby:
+        direction = OrderDirection.ASC if ascending else OrderDirection.DESC
+
+        # adhoc
+        if isinstance(element, dict):
+            if element["sqlExpression"] is not None:
+                order.append(
+                    (
+                        AdhocExpression(
+                            id=element["label"] or element["sqlExpression"],
+                            definition=element["sqlExpression"],
+                        ),
+                        direction,
+                    )
+                )
+        elif element in all_dimensions:
+            order.append((all_dimensions[element], direction))
+        elif element in all_metrics:
+            order.append((all_metrics[element], direction))
+
+    return order
+
+
+def _get_group_limit_from_query_object(
+    query_object: ValidatedQueryObject,
+    all_metrics: dict[str, Metric],
+    *,
+    all_dimensions: dict[str, Dimension],
+    ranking_dimensions: dict[str, Dimension],
+    view_dimensions: tuple[Dimension, ...] = (),
+) -> GroupLimit | None:
+    if query_object.series_limit > 0 and not query_object.series_columns:
+        logger.debug(
+            "Treating semantic series_limit=%s as 0 without series columns",
+            query_object.series_limit,
+        )
+        return None
+
+    # no limit
+    if query_object.series_limit == 0 or not query_object.columns:
+        return None
+
+    dimensions: list[Dimension] = [
+        ranking_dimensions[dim_id] for dim_id in query_object.series_columns
+    ]
+    top = query_object.series_limit
+    metric = (
+        all_metrics[query_object.series_limit_metric]
+        if query_object.series_limit_metric
+        else None
+    )
+    direction = OrderDirection.DESC if query_object.order_desc else OrderDirection.ASC
+    group_others = query_object.group_others_when_limit_reached
+
+    # Check if we need separate filters for the group limit subquery
+    # This happens when inner_from_dttm/inner_to_dttm differ from from_dttm/to_dttm
+    group_limit_filters: set[FilterExpression] | None = _get_group_limit_filters(
+        query_object, all_dimensions, view_dimensions=view_dimensions
+    )
+
+    return GroupLimit(
+        dimensions=dimensions,
+        top=top,
+        metric=metric,
+        direction=direction,
+        group_others=group_others,
+        filters=group_limit_filters,
+    )
+
+
+def _get_group_limit_filters(
+    query_object: ValidatedQueryObject,
+    all_dimensions: dict[str, Dimension],
+    *,
+    view_dimensions: tuple[Dimension, ...] = (),
+) -> set[FilterExpression] | None:
+    """
+    Get separate filters for the group limit subquery if needed.
+
+    This is used when inner_from_dttm/inner_to_dttm differ from from_dttm/to_dttm,
+    which happens during time comparison queries. The group limit subquery may need
+    different time bounds to determine the top N groups.
+
+    Returns None if the group limit should use the same filters as the main query.
+    """
+    # Check if inner time bounds are explicitly set and differ from outer bounds
+    if (
+        query_object.inner_from_dttm is None
+        or query_object.inner_to_dttm is None
+        or (
+            query_object.inner_from_dttm == query_object.from_dttm
+            and query_object.inner_to_dttm == query_object.to_dttm
+        )
+    ):
+        # No separate bounds needed - use the same filters as the main query
+        return None
+
+    # Create separate filters for the group limit subquery
+    filters: set[FilterExpression] = set()
+    time_bounds_emitted = False
+
+    # Add time range filter using inner bounds. The temporal column is resolved
+    # via ``_get_time_axis_column`` so aggregate-only charts that carry the
+    # time column only in a ``TEMPORAL_RANGE`` adhoc filter still get the
+    # group-limit subquery scoped to the inner bounds instead of falling
+    # through to the outer bounds.
+    time_axis_column: str | None = _get_time_axis_column(query_object, all_dimensions)
+    time_dimension: Dimension | None
+    if time_axis_column and (time_dimension := all_dimensions.get(time_axis_column)):
+        filters.update(
+            {
+                Filter(
+                    type=PredicateType.WHERE,
+                    column=time_dimension,
+                    operator=Operator.GREATER_THAN_OR_EQUAL,
+                    value=query_object.inner_from_dttm,
+                ),
+                Filter(
+                    type=PredicateType.WHERE,
+                    column=time_dimension,
+                    operator=Operator.LESS_THAN,
+                    value=query_object.inner_to_dttm,
+                ),
+            }
+        )
+        time_bounds_emitted = True
+
+    # Add fetch values predicate if present
+    if (
+        query_object.apply_fetch_values_predicate
+        and query_object.datasource.fetch_values_predicate
+    ):
+        filters.add(
+            Filter(
+                type=PredicateType.WHERE,
+                column=None,
+                operator=Operator.ADHOC,
+                value=query_object.datasource.fetch_values_predicate,
+            )
+        )
+
+    # Add filters from query_object.extras (WHERE and HAVING clauses)
+    extras_filters = _get_filters_from_extras(query_object.extras)
+    filters.update(extras_filters)
+
+    filters.update(
+        _get_adhoc_filters(
+            query_object,
+            all_dimensions,
+            time_axis_column if time_bounds_emitted else None,
+            replace_all_axis_ranges=time_bounds_emitted,
+            view_dimensions=view_dimensions,
+        )
+    )
+
+    return filters if filters else None
+
+
+def _explicit_column_grains(
+    query_object: ValidatedQueryObject, dimension_names: set[str]
+) -> dict[str, Grain | None]:
+    """Read grains explicitly attached to physical BASE_AXIS references."""
+    return {
+        _normalize_column(column, dimension_names): _convert_time_grain(
+            column["timeGrain"]
+        )
+        for column in query_object.columns or []
+        if isinstance(column, dict)
+        and column.get("columnType") == "BASE_AXIS"
+        and column.get("isColumnReference") is True
+        and column.get("timeGrain")
+    }
+
+
+def _get_grain_time_axis_column(
+    query_object: ValidatedQueryObject,
+    all_dimensions: dict[str, Dimension],
+) -> str | None:
+    """
+    Determine which selected column is the time-axis (the one a time grain
+    applies to).
+
+    Legacy time-series charts encode this as ``query_object.granularity``;
+    modern x-axis charts leave that empty and put the temporal column in
+    ``query_object.columns`` instead, with the grain on
+    ``extras["time_grain_sqla"]``. In that case we only claim an axis when
+    the selected columns include exactly one temporal dimension — otherwise
+    which one is the x-axis is ambiguous from the ``QueryObject`` alone
+    (form_data's ``x_axis`` is not available here). Returning ``None`` on
+    ambiguity lets the grain-application code fall back to raw variants for
+    every column rather than silently applying the grain to whichever
+    temporal column happens to be iterated first.
+    """
+    if query_object.granularity:
+        return query_object.granularity
+
+    dimension_names = set(all_dimensions.keys())
+    temporal_columns: list[str] = []
+    for column in query_object.columns or []:
+        try:
+            name = _normalize_column(column, dimension_names)
+        except SemanticQueryInputError:
+            continue
+        dim = all_dimensions.get(name)
+        if dim is None:
+            continue
+        if (
+            pa.types.is_timestamp(dim.type)
+            or pa.types.is_date(dim.type)
+            or pa.types.is_time(dim.type)
+        ):
+            temporal_columns.append(name)
+
+    if len(temporal_columns) == 1:
+        return temporal_columns[0]
+    return None
+
+
+def _convert_time_grain(time_grain: str | None) -> Grain | None:
+    """
+    Convert a time grain string (ISO 8601 duration) to a Grain instance.
+
+    Returns None when ``time_grain`` is None or empty (no grain selected).
+    """
+    if not time_grain:
+        return None
+    try:
+        return Grains.get(time_grain)
+    except (TypeError, ValueError, isodate.ISO8601Error):
+        return None
+
+
+def validate_query_object(
+    query_object: QueryObject,
+) -> TypeGuard[ValidatedQueryObject]:
+    """
+    Validate that the `QueryObject` is compatible with the `SemanticView`.
+
+    If some semantic view implementation supports these features we should add an
+    attribute to the `SemanticViewImplementation` to indicate support for them.
+    """
+    if not query_object.datasource:
+        return False
+
+    validated: ValidatedQueryObject = cast(ValidatedQueryObject, query_object)
+    metadata: _ViewMetadata = _validation_metadata(validated)
+    try:
+        _validate_query_object(validated, metadata)
+    except SemanticQueryInputError as ex:
+        raise QueryObjectValidationError(str(ex)) from ex
+    return True
+
+
+def _validation_metadata(query_object: ValidatedQueryObject) -> _ViewMetadata:
+    """Check member identity before fetching metadata for validation."""
+    view: SemanticView = query_object.datasource.implementation
+    view.validate_selection_version(
+        query_object.extras.get("semantic_selection_version")
+    )
+    return _ViewMetadata.from_view(view, DiscoveryTarget.of(query_object.datasource))
+
+
+def _validate_query_object(
+    query_object: ValidatedQueryObject, metadata: _ViewMetadata
+) -> None:
+    _get_filters_from_extras(query_object.extras)
+    _validate_metrics(query_object, metadata)
+    _validate_dimensions(query_object, metadata)
+    _validate_filters(query_object, metadata)
+    _validate_granularity(query_object, metadata)
+    _validate_group_limit(query_object, metadata)
+    _validate_orderby(query_object, metadata)
+
+
+def _validate_metrics(
+    query_object: ValidatedQueryObject, metadata: _ViewMetadata
+) -> None:
+    """
+    Make sure metrics are defined in the semantic view.
+    """
+
+    if any(not isinstance(metric, str) for metric in (query_object.metrics or [])):
+        raise SemanticQueryInputError(
+            "Adhoc metrics are not supported in Semantic Views."
+        )
+
+    metric_names: set[str] = {metric.name for metric in metadata.metrics}
+    if not set(query_object.metrics or []) <= metric_names:
+        raise SemanticQueryInputError(
+            "All metrics must be defined in the Semantic View."
+        )
+
+
+def _validate_dimensions(
+    query_object: ValidatedQueryObject, metadata: _ViewMetadata
+) -> None:
+    """
+    Make sure all dimensions are defined in the semantic view.
+    """
+    dimension_names: set[str] = {dimension.name for dimension in metadata.dimensions}
+
+    # Normalize all columns to dimension names
+    normalized_columns = [
+        _normalize_column(column, dimension_names) for column in query_object.columns
+    ]
+
+    if not set(normalized_columns) <= dimension_names:
+        raise SemanticQueryInputError(
+            "All dimensions must be defined in the Semantic View."
+        )
+
+
+def validate_filter_columns(
+    filters: Sequence[QueryObjectFilterClause | ValidatedQueryObjectFilterClause],
+    dimension_names: Collection[str],
+    metric_names: Collection[str],
+) -> None:
+    """Refuse chart-defined predicates on metrics or on columns the view lacks.
+
+    Dashboard (``isExtra``) filters are not refused: incompatible ones are
+    skipped and reported, so a dashboard filter cannot break the chart. A
+    "No filter" time range constrains nothing, so missing columns are allowed;
+    chart-defined metric filters remain unsupported.
+    """
+    for filter_ in filters:
+        column: Column = filter_["col"]
+        if (
+            not isinstance(column, str)
+            or column in dimension_names
+            or filter_.get("isExtra")
+        ):
+            continue
+        if column in metric_names:
+            raise QueryObjectValidationError(
+                _(
+                    "Filter column '%(column)s' is a metric; semantic views only "
+                    "filter on dimensions. Select a dimension or remove the filter.",
+                    column=column,
+                )
+            )
+        if _is_no_op_time_range(filter_):
+            continue
+        raise QueryObjectValidationError(
+            _(
+                "Filter column '%(column)s' is not in this semantic view. Select a "
+                "dimension or remove the filter.",
+                column=column,
+            )
+        )
+
+
+def _is_no_op_time_range(
+    filter_: QueryObjectFilterClause | ValidatedQueryObjectFilterClause,
+) -> bool:
+    """Whether a filter is a time range that applies no bounds."""
+    value: object = filter_.get("val")
+    return filter_.get("op") == FilterOperator.TEMPORAL_RANGE.value and (
+        value is None or (isinstance(value, str) and is_no_time_range(value))
+    )
+
+
+def _validate_filters(
+    query_object: ValidatedQueryObject, metadata: _ViewMetadata
+) -> None:
+    """
+    Make sure all filters are valid.
+    """
+    for filter_ in query_object.filter:
+        if isinstance(filter_["col"], dict):
+            raise SemanticQueryInputError(
+                "Adhoc columns are not supported in Semantic View filters."
+            )
+        if not filter_.get("op"):
+            raise SemanticQueryInputError("All filters must have an operator defined.")
+    if query_object.filter:
+        dimension_names: set[str] = {
+            dimension.name for dimension in metadata.dimensions
+        }
+        metric_names: set[str] = {metric.name for metric in metadata.metrics}
+        validate_filter_columns(query_object.filter, dimension_names, metric_names)
+
+
+def _validate_granularity(
+    query_object: ValidatedQueryObject, metadata: _ViewMetadata
+) -> None:
+    """
+    Make sure time column and time grain are valid.
+    """
+    view_dimensions: tuple[Dimension, ...] = metadata.dimensions
+    all_dimensions: dict[str, Dimension] = resolve_dimensions(
+        view_dimensions, usage=DimensionUsage.METADATA
+    )
+    dimension_names = set(all_dimensions.keys())
+
+    if (legacy_time_column := query_object.granularity) and (
+        legacy_time_column not in dimension_names
+    ):
+        raise SemanticQueryInputError(
+            "The time column must be defined in the Semantic View dimensions."
+        )
+
+    column_grains = _explicit_column_grains(query_object, dimension_names)
+    if time_grain := query_object.extras.get("time_grain_sqla"):
+        time_column = _get_grain_time_axis_column(query_object, all_dimensions)
+        if not time_column and not column_grains:
+            raise SemanticQueryInputError(
+                "A time column must be specified when a time grain is provided."
+            )
+        if time_column:
+            column_grains.setdefault(time_column, _convert_time_grain(time_grain))
+
+    for time_column, grain in column_grains.items():
+        supported_time_grains = {
+            dimension.grain
+            for dimension in view_dimensions
+            if dimension.name == time_column and dimension.grain
+        }
+        if grain not in supported_time_grains:
+            raise QueryObjectValidationError(
+                "The time grain is not supported for the time column in the "
+                "Semantic View."
+            )
+
+
+def _validate_group_limit(
+    query_object: ValidatedQueryObject, metadata: _ViewMetadata
+) -> None:
+    """
+    Validate group limit related features in the query object.
+    """
+    semantic_view = query_object.datasource.implementation
+
+    # no limit
+    if query_object.series_limit == 0:
+        return
+
+    if query_object.series_limit > 0 and not query_object.series_columns:
+        return
+
+    if (
+        query_object.series_columns
+        and SemanticViewFeature.GROUP_LIMIT not in semantic_view.features
+    ):
+        raise SemanticQueryInputError(
+            "Group limit is not supported in this Semantic View."
+        )
+
+    if any(not isinstance(col, str) for col in query_object.series_columns):
+        raise SemanticQueryInputError(
+            "Adhoc dimensions are not supported in series columns."
+        )
+
+    metric_names: set[str] = {metric.name for metric in metadata.metrics}
+    if query_object.series_limit_metric and (
+        not isinstance(query_object.series_limit_metric, str)
+        or query_object.series_limit_metric not in metric_names
+    ):
+        raise SemanticQueryInputError(
+            "The series limit metric must be defined in the Semantic View."
+        )
+
+    dimension_names: set[str] = {dimension.name for dimension in metadata.dimensions}
+    if not set(query_object.series_columns) <= dimension_names:
+        raise SemanticQueryInputError(
+            "All series columns must be defined in the Semantic View."
+        )
+
+    if (
+        query_object.group_others_when_limit_reached
+        and SemanticViewFeature.GROUP_OTHERS not in semantic_view.features
+    ):
+        raise SemanticQueryInputError(
+            "Grouping others when limit is reached is not supported in this Semantic "
+            "View."
+        )
+
+
+def _validate_orderby(
+    query_object: ValidatedQueryObject, metadata: _ViewMetadata
+) -> None:
+    """
+    Validate order by elements in the query object.
+    """
+    semantic_view = query_object.datasource.implementation
+
+    if (
+        any(not isinstance(element, str) for element, _ in query_object.orderby)
+        and SemanticViewFeature.ADHOC_EXPRESSIONS_IN_ORDERBY
+        not in semantic_view.features
+    ):
+        raise SemanticQueryInputError(
+            "Adhoc expressions in order by are not supported in this Semantic View."
+        )
+
+    elements: set[str] = {
+        element for element, _ in query_object.orderby if isinstance(element, str)
+    }
+    metric_names: set[str] = {metric.name for metric in metadata.metrics}
+    dimension_names: set[str] = {dimension.name for dimension in metadata.dimensions}
+    if not elements <= metric_names | dimension_names:
+        raise SemanticQueryInputError(
+            "All order by elements must be defined in the Semantic View."
+        )

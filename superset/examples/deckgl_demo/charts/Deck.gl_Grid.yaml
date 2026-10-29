@@ -1,0 +1,59 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: a46c986d-8780-4745-91ff-7fefeef69f3c
+description: null
+params:
+  autozoom: false
+  color_picker:
+    a: 1
+    b: 0
+    g: 255
+    r: 14
+  datasource: 5__table
+  extruded: true
+  granularity_sqla: null
+  grid_size: 120
+  groupby: []
+  mapbox_style: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+  point_radius: Auto
+  point_radius_fixed:
+    type: fix
+    value: 2000
+  point_radius_unit: Pixels
+  row_limit: 5000
+  size: count
+  spatial:
+    latCol: LAT
+    lonCol: LON
+    type: latlong
+  time_grain_sqla: null
+  time_range: No filter
+  viewport:
+    bearing: 155.80099696026355
+    latitude: 37.7942314882596
+    longitude: -122.42066918995666
+    pitch: 53.470800300695146
+    zoom: 12.699690845482069
+  viz_type: deck_grid
+query_context: null
+slice_name: Deck.gl Grid
+uuid: 5a42df97-80a7-49ee-8985-fcb7fc0bf281
+version: 1.0.0
+viz_type: deck_grid

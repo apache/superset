@@ -27,14 +27,10 @@ type GetCellClassParams = CellClassParams & {
 
 const getCellClass = (params: GetCellClassParams) => {
   const { col, emitCrossFilters } = params;
-  const isActiveFilterValue = params?.context?.isActiveFilterValue;
   let className = '';
   if (emitCrossFilters) {
     if (!col?.isMetric) {
       className += ' dt-is-filter';
-    }
-    if (isActiveFilterValue?.(col?.key, params?.value)) {
-      className += ' dt-is-active-filter';
     }
     if (col?.config?.truncateLongCells) {
       className += ' dt-truncate-cell';

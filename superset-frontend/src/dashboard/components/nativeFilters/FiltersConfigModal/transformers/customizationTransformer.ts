@@ -1,0 +1,224 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import {
+  ChartCustomization,
+  ChartCustomizationDivider,
+  ChartCustomizationType,
+  NativeFilterTarget,
+  Filter,
+  Divider,
+  NativeFilterType,
+} from '@superset-ui/core';
+import { omit } from 'lodash-es';
+import {
+  getAllowedGroupByColumns,
+  pruneGroupByDataMask,
+} from 'src/chartCustomizations/components/DynamicGroupBy/columnAllowlist';
+import { ChartCustomizationPlugins } from 'src/constants';
+import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import {
+  ChartCustomizationsFormItem,
+  NativeFiltersFormItem,
+  NativeFilterDivider,
+} from '../types';
+import {
+  buildNativeFilterTarget,
+  buildNativeFilterDefaultDataMask,
+} from './buildTarget';
+
+type CustomizationFormInput =
+  | ChartCustomizationsFormItem
+  | ChartCustomizationDivider
+  | ChartCustomization
+  | NativeFiltersFormItem
+  | NativeFilterDivider
+  | Filter
+  | Divider;
+
+type ChartCustomizationFormOrSaved =
+  | ChartCustomizationsFormItem
+  | ChartCustomization;
+
+function isFilterType(
+  formInputs: CustomizationFormInput,
+): formInputs is
+  | NativeFiltersFormItem
+  | NativeFilterDivider
+  | Filter
+  | Divider {
+  return (
+    'type' in formInputs &&
+    (formInputs.type === NativeFilterType.NativeFilter ||
+      formInputs.type === NativeFilterType.Divider)
+  );
+}
+
+function isDividerType(
+  formInputs: CustomizationFormInput,
+): formInputs is ChartCustomizationDivider {
+  return formInputs.type === ChartCustomizationType.Divider;
+}
+
+function isFormInput(
+  formInputs: ChartCustomizationFormOrSaved,
+): formInputs is ChartCustomizationsFormItem {
+  // Mirrors `filterTransformer`: a saved customization always carries a
+  // serialized `targets` array, and dataset-less types (e.g. the deck.gl layer
+  // visibility customization) have no `dataset` to discriminate on.
+  return !('targets' in formInputs);
+}
+
+function transformCustomizationDivider(
+  id: string,
+  formInputs: ChartCustomizationDivider,
+): ChartCustomizationDivider {
+  return {
+    id,
+    type: ChartCustomizationType.Divider,
+    title: formInputs.title,
+    description: formInputs.description,
+  };
+}
+
+function buildCustomizationTarget(
+  formInputs: ChartCustomizationsFormItem,
+): Partial<NativeFilterTarget> {
+  return buildNativeFilterTarget(formInputs);
+}
+
+/**
+ * A Group By allowlist that selects every groupable column is equivalent to
+ * "no restriction". Collapse it back to unset so the saved config does not
+ * freeze a snapshot of the dataset's columns: a column added to the dataset
+ * later then stays available to viewers, exactly like a control that never
+ * stored an allowlist.
+ */
+export function collapseFullColumnsAllowlist(
+  controlValues: ChartCustomizationsFormItem['controlValues'] | undefined,
+  groupableColumns: string[] | undefined,
+): ChartCustomizationsFormItem['controlValues'] {
+  const allowlist = controlValues?.columnsAllowlist;
+  if (
+    !controlValues ||
+    !Array.isArray(allowlist) ||
+    !groupableColumns?.length
+  ) {
+    return controlValues ?? {};
+  }
+  const selected = new Set<string>(allowlist);
+  if (!groupableColumns.every(column => selected.has(column))) {
+    return controlValues;
+  }
+  return omit(controlValues, 'columnsAllowlist');
+}
+
+/**
+ * A Group By default must not group viewers by a column the allowlist (or the
+ * dataset's groupable set) excludes. The default-value picker already prunes
+ * as the builder edits; this re-checks on save so an excluded default can
+ * never be persisted.
+ */
+function pruneGroupByDefault(formInputs: ChartCustomizationsFormItem) {
+  const mask = formInputs.defaultDataMask ?? {};
+  if (formInputs.filterType !== ChartCustomizationPlugins.DynamicGroupBy) {
+    return mask;
+  }
+  return pruneGroupByDataMask(
+    mask,
+    getAllowedGroupByColumns(
+      formInputs.controlValues?.columnsAllowlist,
+      formInputs.groupableColumns,
+    ),
+  );
+}
+
+function transformFormInput(
+  id: string,
+  formInputs: ChartCustomizationsFormItem,
+): ChartCustomization {
+  const defaultScope = {
+    rootPath: [DASHBOARD_ROOT_ID],
+    excluded: [],
+  };
+
+  const result: ChartCustomization = {
+    id,
+    type: ChartCustomizationType.ChartCustomization,
+    name: formInputs.name,
+    filterType: formInputs.filterType,
+    description: (formInputs.description || '').trim(),
+    targets: [buildCustomizationTarget(formInputs)],
+    scope: formInputs.scope || defaultScope,
+    controlValues: collapseFullColumnsAllowlist(
+      formInputs.controlValues,
+      formInputs.groupableColumns,
+    ),
+    defaultDataMask: buildNativeFilterDefaultDataMask(
+      formInputs,
+      pruneGroupByDefault(formInputs),
+    ),
+    removed: false,
+  };
+
+  if (formInputs.time_grains?.length) {
+    result.time_grains = formInputs.time_grains;
+  }
+
+  return result;
+}
+
+function transformSavedCustomization(
+  id: string,
+  customization: ChartCustomization,
+): ChartCustomization {
+  return {
+    ...customization,
+    id,
+    description: (customization.description || '').trim(),
+  };
+}
+
+function transformCustomization(
+  id: string,
+  formInputs: ChartCustomizationFormOrSaved,
+): ChartCustomization {
+  if (isFormInput(formInputs)) {
+    return transformFormInput(id, formInputs);
+  }
+  return transformSavedCustomization(id, formInputs);
+}
+
+export function transformCustomizationForSave(
+  id: string,
+  formInputs: CustomizationFormInput | undefined,
+): ChartCustomization | ChartCustomizationDivider | undefined {
+  if (!formInputs) {
+    return undefined;
+  }
+
+  if (isFilterType(formInputs)) {
+    return undefined;
+  }
+
+  if (isDividerType(formInputs)) {
+    return transformCustomizationDivider(id, formInputs);
+  }
+
+  return transformCustomization(id, formInputs);
+}

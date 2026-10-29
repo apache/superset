@@ -29,6 +29,12 @@ export interface DatasourceModalProps {
   addSuccessToast: (msg: string) => void;
   addDangerToast: (msg: string) => void;
   datasource: DatasetObject;
+  /**
+   * ETag of the dataset read the form was seeded from. Replayed as `If-Match`
+   * on save so a stale form can't clobber a newer write. Fetched by the modal
+   * when the caller doesn't already have one.
+   */
+  etag?: string;
   onChange: () => {};
   onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
   onHide: () => {};
@@ -54,25 +60,58 @@ export interface CRUDCollectionProps {
   expandFieldset?: ReactNode;
   extraButtons?: ReactNode;
   itemGenerator?: () => any;
-  itemCellProps?: ((
-    val: unknown,
-    label: string,
-    record: any,
-  ) => DetailedHTMLProps<
-    TdHTMLAttributes<HTMLTableCellElement>,
-    HTMLTableCellElement
-  >)[];
-  itemRenderers?: ((
-    val: unknown,
-    onChange: () => void,
-    label: string,
-    record: any,
-  ) => ReactNode)[];
+  itemCellProps?: Record<
+    string,
+    (
+      val: unknown,
+      label: string,
+      record: any,
+    ) => DetailedHTMLProps<
+      TdHTMLAttributes<HTMLTableCellElement>,
+      HTMLTableCellElement
+    >
+  >;
+  itemRenderers?: Record<
+    string,
+    (
+      val: unknown,
+      onChange: (value: unknown) => void,
+      label: string,
+      record: any,
+    ) => ReactNode
+  >;
   onChange?: (arg0: any) => void;
   tableColumns: any[];
   tableLayout?: 'fixed' | 'auto';
   sortColumns: string[];
   stickyHeader?: boolean;
+  pagination?:
+    | boolean
+    | {
+        pageSize?: number;
+        showSizeChanger?: boolean;
+        pageSizeOptions?: number[];
+      };
+  filterTerm?: string;
+  filterFields?: string[];
+  /** Per-row class, e.g. to mute a row that is not a normal editable column. */
+  rowClassName?: (record: any) => string;
+  /**
+   * Expand the first row this matches, for links elsewhere in the editor that
+   * point at a particular item. Expansion is additive: rows the user opened
+   * themselves stay open.
+   *
+   * Only consulted when `expandItemNonce` changes, so an inline arrow -- whose
+   * identity changes every render -- cannot force a row the user just
+   * collapsed back open.
+   */
+  expandItemWhere?: (record: any) => boolean;
+  /**
+   * Bumped once per reveal request. A request is an event rather than a state:
+   * the same row can be asked for twice, with a manual collapse in between, and
+   * a nonce is what makes the second ask visible.
+   */
+  expandItemNonce?: number;
 }
 
 export type Sort = number | string | boolean | any;
@@ -83,10 +122,8 @@ export enum SortOrder {
   Unsorted = 0,
 }
 
-export interface CRUDCollectionState {
-  collection: Record<PropertyKey, any>;
-  collectionArray: Record<PropertyKey, any>[];
-  expandedColumns: Record<PropertyKey, any>;
-  sortColumn: string;
-  sort: SortOrder;
+export enum FoldersEditorItemType {
+  Folder = 'folder',
+  Column = 'column',
+  Metric = 'metric',
 }

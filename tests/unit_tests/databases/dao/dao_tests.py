@@ -54,7 +54,9 @@ def test_database_get_ssh_tunnel(session_with_data: Session) -> None:
     from superset.daos.database import DatabaseDAO
     from superset.databases.ssh_tunnel.models import SSHTunnel
 
-    result = DatabaseDAO.get_ssh_tunnel(1)
+    database = DatabaseDAO.find_by_id(1, skip_base_filter=True)
+    assert database is not None
+    result = database.ssh_tunnel
 
     assert result
     assert isinstance(result, SSHTunnel)
@@ -64,6 +66,7 @@ def test_database_get_ssh_tunnel(session_with_data: Session) -> None:
 def test_database_get_ssh_tunnel_not_found(session_with_data: Session) -> None:
     from superset.daos.database import DatabaseDAO
 
-    result = DatabaseDAO.get_ssh_tunnel(2)
+    database = DatabaseDAO.find_by_id(2, skip_base_filter=True)
+    result = database.ssh_tunnel if database else None
 
     assert result is None

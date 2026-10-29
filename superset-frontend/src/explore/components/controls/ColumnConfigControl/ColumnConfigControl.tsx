@@ -17,12 +17,13 @@
  * under the License.
  */
 import { useMemo, useState } from 'react';
-import { t } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   COLUMN_NAME_ALIASES,
   ControlComponentProps,
+  normalizeColumnConfigKeys,
 } from '@superset-ui/chart-controls';
 import { Icons } from '@superset-ui/core/components';
 import ColumnConfigItem from './ColumnConfigItem';
@@ -41,6 +42,7 @@ export type ColumnConfigControlProps<T extends ColumnConfig> =
       coltypes: GenericDataType[];
       childColumnMap?: Record<string, boolean>;
       timeComparisonColumnMap?: Record<string, boolean>;
+      knownKeys?: string[];
     };
     configFormLayout?: ColumnConfigFormLayout;
     appliedColumnNames?: string[];
@@ -66,7 +68,11 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
   height,
   ...props
 }: ColumnConfigControlProps<T>) {
-  const { colnames: _colnames, coltypes: _coltypes } = columnsPropsObject || {};
+  const {
+    colnames: _colnames,
+    coltypes: _coltypes,
+    knownKeys,
+  } = columnsPropsObject || {};
   let colnames: string[] = [];
   let coltypes: GenericDataType[] = [];
   if (appliedColumnNames.length === 0) {
@@ -82,33 +88,45 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
     });
   }
   const theme = useTheme();
+  const columnConfigKnownKeys = useMemo(
+    () => [...new Set([...(knownKeys ?? []), ...colnames])],
+    [colnames, knownKeys],
+  );
+  const normalizedValue = useMemo(
+    () => normalizeColumnConfigKeys(value, colnames, columnConfigKnownKeys),
+    [colnames, columnConfigKnownKeys, value],
+  );
+
   const columnConfigs = useMemo(() => {
     const configs: Record<string, ColumnConfigInfo> = {};
     colnames?.forEach((col, idx) => {
       configs[col] = {
+        key: col,
         name: COLUMN_NAME_ALIASES[col] || col,
         type: coltypes?.[idx],
-        config: value?.[col] || {},
+        config: normalizedValue[col] || {},
         isChildColumn: columnsPropsObject?.childColumnMap?.[col] ?? false,
         isTimeComparisonColumn:
           columnsPropsObject?.timeComparisonColumnMap?.[col] ?? false,
       };
     });
     return configs;
-  }, [value, colnames, coltypes, columnsPropsObject?.childColumnMap]);
+  }, [colnames, coltypes, columnsPropsObject?.childColumnMap, normalizedValue]);
 
   const [showAllColumns, setShowAllColumns] = useState(false);
 
   const getColumnInfo = (col: string) => columnConfigs[col] || {};
+
   const setColumnConfig = (col: string, config: T) => {
     if (onChange) {
-      // Only keep configs for known columns
-      const validConfigs: Record<string, T> =
-        colnames && value
-          ? Object.fromEntries(
-              Object.entries(value).filter(([key]) => colnames.includes(key)),
-            )
-          : { ...value };
+      const colnamesSet = colnames ? new Set(colnames) : undefined;
+      const validConfigs = colnamesSet
+        ? Object.fromEntries(
+            Object.entries(normalizedValue).filter(([key]) =>
+              colnamesSet.has(key),
+            ),
+          )
+        : normalizedValue;
       onChange({
         ...validConfigs,
         [col]: config,
@@ -137,9 +155,9 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
       >
         {columnsWithChildInfo.map(col => (
           <ColumnConfigItem
-            key={col.name}
+            key={col.key}
             column={col}
-            onChange={config => setColumnConfig(col.name, config as T)}
+            onChange={config => setColumnConfig(col.key, config as T)}
             configFormLayout={
               col.isTimeComparisonColumn
                 ? ({
@@ -164,10 +182,14 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
           />
         ))}
         {needShowMoreButton && (
-          <div
-            role="button"
-            tabIndex={-1}
+          <button
+            type="button"
             css={{
+              appearance: 'none',
+              border: 'none',
+              background: 'none',
+              font: 'inherit',
+              width: '100%',
               padding: theme.sizeUnit * 2,
               textAlign: 'center',
               cursor: 'pointer',
@@ -188,7 +210,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
                 <Icons.DownOutlined /> &nbsp; {t('Show all columns')}
               </>
             )}
-          </div>
+          </button>
         )}
       </div>
     </>

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { Behavior, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
@@ -27,6 +28,7 @@ export default class TimeFilterPlugin extends ChartPlugin {
       name: t('Time filter'),
       description: t('Custom time filter plugin'),
       behaviors: [Behavior.InteractiveChart, Behavior.NativeFilter],
+      supportsCascadeDependencies: true,
       thumbnail,
       tags: [t('Experimental')],
       datasourceCount: 0,

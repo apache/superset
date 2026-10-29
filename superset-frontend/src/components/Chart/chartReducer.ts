@@ -17,8 +17,8 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { t } from '@superset-ui/core';
-import { omit } from 'lodash';
+import { t } from '@apache-superset/core/translation';
+import { omit } from 'lodash-es';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 import { DatasourcesAction } from 'src/dashboard/actions/datasources';
 import { ChartState } from 'src/explore/types';
@@ -78,11 +78,19 @@ export default function chartReducer(
       };
     },
     [actions.CHART_UPDATE_STOPPED](state) {
+      if (
+        action.queryController &&
+        state.queryController &&
+        action.queryController !== state.queryController
+      ) {
+        return state;
+      }
       return {
         ...state,
         chartStatus: 'stopped',
         chartAlert: t('Updating chart was stopped'),
         chartUpdateEndTime: now(),
+        queryController: null,
       };
     },
     [actions.CHART_RENDERING_SUCCEEDED](state) {
@@ -215,6 +223,11 @@ export default function chartReducer(
   }
 
   if (action.type in actionHandlers) {
+    // ADD_CHART creates the entry, so it runs without prior state; every other
+    // handler reads state that is absent once the chart has been removed
+    if (action.type !== actions.ADD_CHART && !charts[action.key]) {
+      return charts;
+    }
     return {
       ...charts,
       [action.key]: actionHandlers[action.type](charts[action.key]),

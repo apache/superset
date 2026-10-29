@@ -18,17 +18,22 @@
  */
 import type { FormInstance } from '@superset-ui/core/components';
 import { nanoid } from 'nanoid';
-import { getInitialDataMask } from 'src/dataMask/reducer';
 import {
   FilterConfiguration,
   NativeFilterType,
-  NativeFilterTarget,
-  logging,
-  Filter,
-  Divider,
+  ChartCustomizationType,
+  ChartCustomizationConfiguration,
+  ChartCustomization,
+  ChartCustomizationDivider,
 } from '@superset-ui/core';
-import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import { FilterChangesType, FilterRemoval, NativeFiltersForm } from './types';
+import { logging } from '@apache-superset/core/utils';
+import {
+  ChartCustomizationsForm,
+  FilterChangesType,
+  FilterRemoval,
+  NativeFiltersForm,
+  ItemType,
+} from './types';
 
 export const REMOVAL_DELAY_SECS = 5;
 
@@ -90,73 +95,6 @@ export const validateForm = async (
   }
 };
 
-export const createHandleSave =
-  (
-    saveForm: Function,
-    filterChanges: FilterChangesType,
-    values: NativeFiltersForm,
-    filterConfigMap: Record<string, Filter | Divider>,
-  ) =>
-  async () => {
-    const transformFilter = (id: string) => {
-      const formInputs = values.filters?.[id] || filterConfigMap[id];
-      if (!formInputs) {
-        return undefined;
-      }
-      if (formInputs.type === NativeFilterType.Divider) {
-        return {
-          id,
-          type: NativeFilterType.Divider,
-          scope: {
-            rootPath: [DASHBOARD_ROOT_ID],
-            excluded: [],
-          },
-          title: formInputs.title,
-          description: formInputs.description,
-        };
-      }
-
-      const target: Partial<NativeFilterTarget> = {};
-      if (formInputs.dataset) {
-        target.datasetId = formInputs.dataset.value;
-      }
-      if (formInputs.dataset && formInputs.column) {
-        target.column = { name: formInputs.column };
-      }
-
-      return {
-        id,
-        adhoc_filters: formInputs.adhoc_filters,
-        time_range: formInputs.time_range,
-        controlValues: formInputs.controlValues ?? {},
-        granularity_sqla: formInputs.granularity_sqla,
-        requiredFirst: Object.values(formInputs.requiredFirst ?? {}).find(
-          rf => rf,
-        ),
-        name: formInputs.name,
-        filterType: formInputs.filterType,
-        targets: [target],
-        defaultDataMask: formInputs.defaultDataMask ?? getInitialDataMask(),
-        cascadeParentIds: formInputs.dependencies || [],
-        scope: formInputs.scope,
-        sortMetric: formInputs.sortMetric,
-        type: formInputs.type,
-        description: (formInputs.description || '').trim(),
-      };
-      return undefined;
-    };
-
-    const transformedModified = filterChanges.modified
-      .map(transformFilter)
-      .filter(Boolean);
-
-    const newFilterChanges = {
-      ...filterChanges,
-      modified: transformedModified,
-    };
-    await saveForm(newFilterChanges);
-  };
-
 export const createHandleRemoveItem =
   (
     setRemovedFilters: (
@@ -202,6 +140,13 @@ export const createHandleRemoveItem =
 
 export const NATIVE_FILTER_PREFIX = 'NATIVE_FILTER-';
 export const NATIVE_FILTER_DIVIDER_PREFIX = 'NATIVE_FILTER_DIVIDER-';
+
+export const isNativeFilter = (id: string): boolean =>
+  id.startsWith(NATIVE_FILTER_PREFIX);
+
+export const isNativeFilterDivider = (id: string): boolean =>
+  id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX);
+
 export const generateFilterId = (type: NativeFilterType): string => {
   const prefix =
     type === NativeFilterType.NativeFilter
@@ -212,3 +157,146 @@ export const generateFilterId = (type: NativeFilterType): string => {
 
 export const getFilterIds = (config: FilterConfiguration) =>
   config.map(filter => filter.id);
+
+export const createHandleCustomizationSave =
+  (
+    saveForm: Function,
+    filterChanges: FilterChangesType,
+    values: ChartCustomizationsForm,
+    customizationsConfigMap: Record<
+      string,
+      ChartCustomization | ChartCustomizationDivider
+    >,
+  ) =>
+  async () => {
+    const transformCustomization = (id: string) => {
+      const formInputs = values.filters?.[id] || customizationsConfigMap[id];
+      if (!formInputs) {
+        return undefined;
+      }
+      if (formInputs.type === ChartCustomizationType.Divider) {
+        return {
+          id,
+          removed: false,
+          customization: {
+            name: formInputs.title,
+            dataset: null,
+            column: null,
+          },
+        };
+      }
+
+      const datasetValue =
+        formInputs.dataset && typeof formInputs.dataset === 'object'
+          ? formInputs.dataset.value
+          : formInputs.dataset;
+
+      return {
+        id,
+        title: formInputs.name,
+        description: (formInputs.description || '').trim(),
+        removed: false,
+        chartId:
+          (formInputs as any).chartId ||
+          (customizationsConfigMap[id] as any)?.chartId,
+        customization: {
+          name: formInputs.name || '',
+          dataset: datasetValue,
+          datasetInfo: formInputs.datasetInfo,
+          filterType: formInputs.filterType,
+          column: formInputs.column || null,
+          description: (formInputs.description || '').trim(),
+          hasDefaultValue: formInputs.hasDefaultValue,
+          defaultValue: formInputs.defaultValue,
+          isRequired: formInputs.controlValues?.enableEmptyFilter || false,
+          selectFirst: formInputs.selectFirst,
+          defaultDataMask: formInputs.defaultDataMask,
+          defaultValueQueriesData: formInputs.defaultValueQueriesData,
+          aggregation: formInputs.aggregation,
+          canSelectMultiple: formInputs.canSelectMultiple ?? true,
+          controlValues: formInputs.controlValues ?? {},
+        },
+      };
+    };
+
+    const transformedModified = filterChanges.modified
+      .map(transformCustomization)
+      .filter(Boolean);
+
+    const deletedCustomizations = filterChanges.deleted.map(id => ({
+      id,
+      removed: true,
+      customization: {
+        name: '',
+        dataset: null,
+        column: null,
+      },
+    }));
+
+    await saveForm([...transformedModified, ...deletedCustomizations]);
+  };
+
+export const CHART_CUSTOMIZATION_PREFIX = 'CHART_CUSTOMIZATION-';
+export const CHART_CUSTOMIZATION_DIVIDER_PREFIX =
+  'CHART_CUSTOMIZATION_DIVIDER-';
+export const LEGACY_GROUPBY_PREFIX = 'groupby_';
+
+export const isChartCustomization = (id: string): boolean =>
+  id.startsWith(CHART_CUSTOMIZATION_PREFIX) ||
+  id.startsWith(LEGACY_GROUPBY_PREFIX);
+
+export const isChartCustomizationDivider = (id: string): boolean =>
+  id.startsWith(CHART_CUSTOMIZATION_DIVIDER_PREFIX);
+
+export const generateChartCustomizationId = (
+  type: ChartCustomizationType,
+): string => {
+  const prefix =
+    type === ChartCustomizationType.ChartCustomization
+      ? CHART_CUSTOMIZATION_PREFIX
+      : CHART_CUSTOMIZATION_DIVIDER_PREFIX;
+  return `${prefix}${nanoid()}`;
+};
+
+export const getChartCustomizationIds = (
+  config: ChartCustomizationConfiguration,
+) => config.map(filter => filter.id);
+
+export const isFilterId = (id: string): boolean =>
+  id.startsWith(NATIVE_FILTER_PREFIX) ||
+  id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX);
+
+export const isChartCustomizationId = (id: string): boolean =>
+  id.startsWith(CHART_CUSTOMIZATION_PREFIX) ||
+  id.startsWith(CHART_CUSTOMIZATION_DIVIDER_PREFIX) ||
+  id.startsWith(LEGACY_GROUPBY_PREFIX);
+
+export const getItemType = (id: string): ItemType => {
+  if (isFilterId(id)) return 'filter';
+  if (isChartCustomizationId(id)) return 'customization';
+  throw new Error(`Unknown item type for id: ${id}`);
+};
+
+export const getItemTypeInfo = (type: ItemType) => ({
+  dividerPrefix:
+    type === 'filter'
+      ? NATIVE_FILTER_DIVIDER_PREFIX
+      : CHART_CUSTOMIZATION_DIVIDER_PREFIX,
+  dividerType:
+    type === 'filter'
+      ? NativeFilterType.Divider
+      : ChartCustomizationType.Divider,
+  itemTypeName: type === 'filter' ? 'filter' : 'customization',
+});
+
+export const isDivider = (id: string): boolean =>
+  isNativeFilterDivider(id) || isChartCustomizationDivider(id);
+
+export const transformDividerId = (
+  oldId: string,
+  targetType: ItemType,
+): string => {
+  const hash = oldId.split('-').pop();
+  const { dividerPrefix } = getItemTypeInfo(targetType);
+  return `${dividerPrefix}${hash}`;
+};

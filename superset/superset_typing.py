@@ -30,6 +30,46 @@ if TYPE_CHECKING:
 SQLType: TypeAlias = TypeEngine | type[TypeEngine]
 
 
+class DatasetColumnData(TypedDict, total=False):
+    """Type for column metadata in ExplorableData datasets."""
+
+    advanced_data_type: str | None
+    certification_details: str | None
+    certified_by: str | None
+    column_name: str
+    description: str | None
+    expression: str | None
+    filterable: bool
+    groupby: bool
+    id: int | None
+    uuid: str | None
+    is_certified: bool
+    is_dttm: bool
+    python_date_format: str | None
+    type: str
+    type_generic: NotRequired["GenericDataType" | None]
+    verbose_name: str | None
+    warning_markdown: str | None
+
+
+class DatasetMetricData(TypedDict, total=False):
+    """Type for metric metadata in ExplorableData datasets."""
+
+    certification_details: str | None
+    certified_by: str | None
+    currency: NotRequired[dict[str, Any]]
+    d3format: str | None
+    description: str | None
+    expression: str | None
+    id: int | None
+    uuid: str | None
+    is_certified: bool
+    metric_name: str
+    warning_markdown: str | None
+    warning_text: str | None
+    verbose_name: str | None
+
+
 class LegacyMetric(TypedDict):
     label: str | None
 
@@ -92,6 +132,16 @@ class ResultSetColumnType(TypedDict):
 
     query_as: NotRequired[Any]
 
+    # A SQL expression (without an alias) that should be used to select this
+    # column, e.g. for a nested field whose path segments must each be quoted
+    # separately rather than the whole dotted name being quoted as a single
+    # identifier.
+    expression: NotRequired[Any]
+
+    # Set on columns an engine spec expanded from a nested type (e.g. a STRUCT
+    # member); such a column never replaces a calculated column of its name.
+    nested_field: NotRequired[bool]
+
 
 CacheConfig: TypeAlias = dict[str, Any]
 DbapiDescriptionRow: TypeAlias = tuple[
@@ -108,12 +158,23 @@ DbapiDescription: TypeAlias = (
 )
 DbapiResult: TypeAlias = Sequence[list[Any] | tuple[Any, ...]]
 FilterValue: TypeAlias = bool | datetime | float | int | str
-FilterValues: TypeAlias = FilterValue | list[FilterValue] | tuple[FilterValue]
+FilterValues: TypeAlias = (
+    FilterValue | list[FilterValue | None] | tuple[FilterValue | None, ...]
+)
 FormData: TypeAlias = dict[str, Any]
 Granularity: TypeAlias = str | dict[str, str | float]
 Column: TypeAlias = AdhocColumn | str
 Metric: TypeAlias = AdhocMetric | str
 OrderBy: TypeAlias = tuple[Metric | Column, bool]
+
+
+class FetchedRows(list[tuple[Any, ...]]):
+    """List-compatible engine results carrying fetch truncation metadata."""
+
+    def __init__(self, rows: list[tuple[Any, ...]], *, truncated: bool) -> None:
+        """Keep engine truncation with the rows, independent of Flask context."""
+        super().__init__(rows)
+        self.truncated = truncated
 
 
 class QueryObjectDict(TypedDict, total=False):
@@ -161,9 +222,11 @@ class QueryObjectDict(TypedDict, total=False):
 
     # Core fields from QueryObject.to_dict()
     apply_fetch_values_predicate: bool
+    cache_timeout: int | None
     columns: list[Column]
     extras: dict[str, Any]
     filter: list["QueryObjectFilterClause"]
+    force_query: bool
     from_dttm: datetime | None
     granularity: str | None
     inner_from_dttm: datetime | None
@@ -179,8 +242,11 @@ class QueryObjectDict(TypedDict, total=False):
     series_limit: int
     series_limit_metric: Metric | None
     group_others_when_limit_reached: bool
+    grouping_sets: list[list[str]]
     to_dttm: datetime | None
     time_shift: str | None
+    time_compare_full_range: bool
+    post_processing: list[dict[str, Any]]
 
     # Additional fields used throughout the codebase
     time_range: str | None
@@ -195,15 +261,19 @@ class QueryObjectDict(TypedDict, total=False):
     timeseries_limit_metric: Metric | None
 
 
-class BaseDatasourceData(TypedDict, total=False):
+class ExplorableData(TypedDict, total=False):
     """
-    TypedDict for datasource data returned to the frontend.
+    TypedDict for explorable data returned to the frontend.
 
-    This represents the structure of the dictionary returned from BaseDatasource.data
-    property. It provides datasource information to the frontend for visualization
-    and querying.
+    This represents the structure of the dictionary returned from the `data` property
+    of any Explorable (BaseDatasource, Query, etc.). It provides datasource/query
+    information to the frontend for visualization and querying.
 
-    Core fields from BaseDatasource.data:
+    All fields are optional (total=False) since different explorable types provide
+    different subsets of these fields. Query objects provide a minimal subset while
+    SqlaTable provides the full set.
+
+    Core fields:
         id: Unique identifier for the datasource
         uid: Unique identifier including type (e.g., "1__table")
         column_formats: D3 format strings for columns
@@ -228,7 +298,7 @@ class BaseDatasourceData(TypedDict, total=False):
         metrics: List of metric definitions
         folders: Folder structure (JSON field)
         order_by_choices: Available ordering options
-        owners: List of owner IDs or owner details
+        editors: List of editor IDs or editor details
         verbose_map: Mapping of column/metric names to verbose names
         select_star: SELECT * query for this datasource
 
@@ -238,6 +308,10 @@ class BaseDatasourceData(TypedDict, total=False):
         granularity_sqla: Available time granularities
         time_grain_sqla: Available time grains
         main_dttm_col: Main datetime column
+        currency_code_column: Column containing currency codes for dynamic formatting
+        partition_column: Physical column the engine partitions on
+        partition_mapped_column: Explicit override for the mirrored column
+        partition_filter_mapping: Summary of the active mapping, or None
         fetch_values_predicate: Predicate for fetching filter values
         template_params: Template parameters for Jinja
         is_sqllab_view: Whether this is a SQL Lab view
@@ -247,12 +321,15 @@ class BaseDatasourceData(TypedDict, total=False):
         normalize_columns: Whether to normalize column names
     """
 
+    semantic_selection_version: str | None
+
     # Core fields from BaseDatasource.data
-    id: int
+    id: int | str  # String for UUID-based explorables like SemanticView
     uid: str
     column_formats: dict[str, str | None]
     description: str | None
     database: dict[str, Any]
+    parent: dict[str, Any]
     default_endpoint: str | None
     filter_select: bool
     filter_select_enabled: bool
@@ -268,20 +345,27 @@ class BaseDatasourceData(TypedDict, total=False):
     perm: str | None
     edit_url: str
     sql: str | None
-    columns: list[dict[str, Any]]
-    metrics: list[dict[str, Any]]
+    columns: list["DatasetColumnData"]
+    metrics: list["DatasetMetricData"]
     folders: Any  # JSON field, can be list or dict
     order_by_choices: list[tuple[str, str]]
-    owners: list[int] | list[dict[str, Any]]  # Can be either format
+    editors: list[int] | list[dict[str, Any]]  # Can be either format
     verbose_map: dict[str, str]
     select_star: str | None
 
+    # Semantic-view fields
+    # Stable string values of the SemanticViewFeature members the view's
+    # provider declares; consumed by the explore UI to derive picker
+    # capabilities. Absent for non-semantic explorables.
+    semantic_view_features: list[str]
+
     # Additional fields from SqlaTable and data_for_slices
-    column_types: list[Any]
-    column_names: set[str] | set[Any]
+    column_types: list["GenericDataType"]
+    column_names: set[str] | list[str]
     granularity_sqla: list[tuple[Any, Any]]
     time_grain_sqla: list[tuple[Any, Any]]
     main_dttm_col: str | None
+    currency_code_column: str | None
     fetch_values_predicate: str | None
     template_params: str | None
     is_sqllab_view: bool
@@ -289,46 +373,18 @@ class BaseDatasourceData(TypedDict, total=False):
     extra: str | None
     always_filter_main_dttm: bool
     normalize_columns: bool
-
-
-class QueryData(TypedDict, total=False):
-    """
-    TypedDict for SQL Lab query data returned to the frontend.
-
-    This represents the structure of the dictionary returned from Query.data property
-    in SQL Lab. It provides query information to the frontend for execution and display.
-
-    Fields:
-        time_grain_sqla: Available time grains for this database
-        filter_select: Whether filter select is enabled
-        name: Query tab name
-        columns: List of column definitions
-        metrics: List of metrics (always empty for queries)
-        id: Query ID
-        type: Object type (always "query")
-        sql: SQL query text
-        owners: List of owner information
-        database: Database connection details
-        order_by_choices: Available ordering options
-        catalog: Catalog name if applicable
-        schema: Schema name if applicable
-        verbose_map: Mapping of column names to verbose names (empty for queries)
-    """
-
-    time_grain_sqla: list[tuple[Any, Any]]
-    filter_select: bool
-    name: str | None
-    columns: list[dict[str, Any]]
-    metrics: list[Any]
-    id: int
-    type: str
-    sql: str | None
-    owners: list[dict[str, Any]]
-    database: dict[str, Any]
-    order_by_choices: list[tuple[str, str]]
-    catalog: str | None
-    schema: str | None
-    verbose_map: dict[str, str]
+    partition_column: str | None
+    partition_mapped_column: str | None
+    # Self-contained summary for the Explore indicator. Kept separate from
+    # `columns` because `data_for_slices` prunes columns no chart references,
+    # and the partition column is typically referenced by none of them.
+    partition_filter_mapping: dict[str, Any] | None
+    rls_filters: list[dict[str, Any]]
+    # Set by datasources that cannot return raw row samples (e.g. semantic
+    # views, which only expose pre-defined metrics and dimensions).
+    supports_samples: bool
+    # Set by datasources that cannot answer drill-to-detail requests.
+    supports_drill_to_detail: bool
 
 
 VizData: TypeAlias = list[Any] | dict[Any, Any] | None
@@ -389,7 +445,7 @@ class OAuth2TokenResponse(TypedDict, total=False):
     refresh_token: str
 
 
-class OAuth2State(TypedDict):
+class OAuth2State(TypedDict, total=False):
     """
     Type for the state passed during OAuth2.
     """

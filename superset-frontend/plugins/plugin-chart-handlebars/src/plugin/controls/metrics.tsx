@@ -21,11 +21,9 @@ import {
   ControlSetItem,
   ControlState,
   sharedControls,
-  Dataset,
-  ColumnMeta,
   defineSavedMetrics,
 } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { getQueryMode, isAggMode, validateAggControlValues } from './shared';
 
 const percentMetrics: typeof sharedControls.metrics = {
@@ -77,11 +75,7 @@ export const metricsControlSetItem: ControlSetItem = {
       { controls, datasource, form_data }: ControlPanelState,
       controlState: ControlState,
     ) => ({
-      columns: datasource?.columns[0]?.hasOwnProperty('filterable')
-        ? (datasource as Dataset)?.columns?.filter(
-            (c: ColumnMeta) => c.filterable,
-          )
-        : datasource?.columns,
+      columns: datasource?.columns || [],
       savedMetrics: defineSavedMetrics(datasource),
       // current active adhoc metrics
       selectedMetrics:

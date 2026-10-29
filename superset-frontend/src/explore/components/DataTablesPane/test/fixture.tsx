@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactElement } from 'react';
-import { DatasourceType, VizType } from '@superset-ui/core';
+import { DatasourceType, QueryData, VizType } from '@superset-ui/core';
 import { ChartStatus } from 'src/explore/types';
 import {
   DataTablesPaneProps,
@@ -90,6 +90,10 @@ export const createSamplesPaneProps = ({
   ({
     isRequest,
     datasource: { ...datasource, id: datasourceId },
+    queryFormData: {
+      ...queryFormData,
+      datasource: `${datasourceId}__table`,
+    },
     queryForce,
     isVisible: true,
     setForceQuery: jest.fn(),
@@ -102,12 +106,16 @@ export const createResultsPaneOnDashboardProps = ({
   vizType = VizType.Table,
   queryForce = false,
   isRequest = true,
+  queriesResponse,
+  rowLimit,
 }: {
   sliceId: number;
   vizType?: string;
   errorMessage?: ReactElement;
   queryForce?: boolean;
   isRequest?: boolean;
+  queriesResponse?: QueryData[] | null;
+  rowLimit?: number;
 }) =>
   ({
     isRequest,
@@ -115,10 +123,12 @@ export const createResultsPaneOnDashboardProps = ({
       ...queryFormData,
       slice_id: sliceId,
       viz_type: vizType,
+      ...(rowLimit !== undefined ? { row_limit: rowLimit } : {}),
     },
     queryForce,
     isVisible: true,
     setForceQuery: jest.fn(),
     errorMessage,
     canDownload: true,
+    queriesResponse,
   }) as ResultsPaneProps;

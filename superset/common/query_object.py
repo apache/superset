@@ -17,15 +17,17 @@
 # pylint: disable=invalid-name
 from __future__ import annotations
 
+import inspect
 import logging
 from datetime import datetime
 from pprint import pformat
-from typing import Any, NamedTuple, TYPE_CHECKING
+from typing import Any, cast, NamedTuple, TYPE_CHECKING
 
-from flask import g
+from flask import current_app
 from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas import DataFrame
+from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
 
 from superset import feature_flag_manager
 from superset.common.chart_data import ChartDataResultType
@@ -35,22 +37,25 @@ from superset.exceptions import (
     QueryObjectValidationError,
 )
 from superset.extensions import event_logger
-from superset.sql.parse import sanitize_clause
+from superset.sql.parse import sanitize_clause, transpile_to_dialect
 from superset.superset_typing import Column, Metric, OrderBy, QueryObjectDict
 from superset.utils import json, pandas_postprocessing
+from superset.utils.cache_keys import add_impersonation_cache_key_if_needed
 from superset.utils.core import (
     DTTM_ALIAS,
     find_duplicates,
+    format_list,
     get_column_names,
     get_metric_names,
     is_adhoc_metric,
     QueryObjectFilterClause,
 )
-from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.hashing import hash_from_dict
 from superset.utils.json import json_int_dttm_ser
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
+    from superset.semantic_layers.models import SemanticView
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +80,13 @@ DEPRECATED_EXTRAS_FIELDS = (
     DeprecatedField(old_name="having", new_name="having"),
 )
 
+# Post-processing options that QueryObject resolves before calling the operation.
+# They are not parameters of the pandas function and would otherwise be stripped
+# by ``_drop_unsupported_options``.
+_QUERY_OBJECT_RESOLVED_OPTIONS: dict[str, frozenset[str]] = {
+    "resample": frozenset({"fill_time_range"}),
+}
+
 
 class QueryObject:  # pylint: disable=too-many-instance-attributes
     """
@@ -84,12 +96,15 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     annotation_layers: list[dict[str, Any]]
     applied_time_extras: dict[str, str]
     apply_fetch_values_predicate: bool
+    cache_timeout: int | None
     columns: list[Column]
     datasource: BaseDatasource | None
     extras: dict[str, Any]
     filter: list[QueryObjectFilterClause]
+    force_query: bool
     from_dttm: datetime | None
     granularity: str | None
+    grouping_sets: list[list[str]]
     inner_from_dttm: datetime | None
     inner_to_dttm: datetime | None
     is_rowcount: bool
@@ -105,6 +120,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     series_limit: int
     series_limit_metric: Metric | None
     time_offsets: list[str]
+    time_compare_full_range: bool
     time_shift: str | None
     time_range: str | None
     to_dttm: datetime | None
@@ -115,10 +131,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         annotation_layers: list[dict[str, Any]] | None = None,
         applied_time_extras: dict[str, str] | None = None,
         apply_fetch_values_predicate: bool = False,
+        cache_timeout: int | None = None,
         columns: list[Column] | None = None,
         datasource: BaseDatasource | None = None,
         extras: dict[str, Any] | None = None,
         filters: list[QueryObjectFilterClause] | None = None,
+        force_query: bool = False,
         granularity: str | None = None,
         is_rowcount: bool = False,
         is_timeseries: bool | None = None,
@@ -132,6 +150,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         series_limit: int = 0,
         series_limit_metric: Metric | None = None,
         group_others_when_limit_reached: bool = False,
+        grouping_sets: list[list[str]] | None = None,
         time_range: str | None = None,
         time_shift: str | None = None,
         **kwargs: Any,
@@ -139,10 +158,14 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self._set_annotation_layers(annotation_layers)
         self.applied_time_extras = applied_time_extras or {}
         self.apply_fetch_values_predicate = apply_fetch_values_predicate or False
+        # Resolved chart/custom/datasource cache timeout; None until the query
+        # context processor resolves it.
+        self.cache_timeout = cache_timeout
         self.columns = columns or []
         self.datasource = datasource
         self.extras = extras or {}
         self.filter = filters or []
+        self.force_query = force_query
         self.granularity = granularity
         self.is_rowcount = is_rowcount
         self._set_is_timeseries(is_timeseries)
@@ -156,12 +179,18 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.series_limit = series_limit
         self.series_limit_metric = series_limit_metric
         self.group_others_when_limit_reached = group_others_when_limit_reached
+        self.grouping_sets = grouping_sets or []
         self.time_range = time_range
         self.time_shift = time_shift
         self.from_dttm = kwargs.get("from_dttm")
         self.to_dttm = kwargs.get("to_dttm")
         self.result_type = kwargs.get("result_type")
+        # Per-query forced-refresh idempotency nonce (the async task's UUID). Set
+        # on the async read-back so a re-issued force reads the warmed result the
+        # task cached instead of recomputing; see QueryContextProcessor.
+        self.force_nonce = kwargs.get("force_nonce")
         self.time_offsets = kwargs.get("time_offsets", [])
+        self.time_compare_full_range = kwargs.get("time_compare_full_range", False)
         self.inner_from_dttm = kwargs.get("inner_from_dttm")
         self.inner_to_dttm = kwargs.get("inner_to_dttm")
         self._rename_deprecated_fields(kwargs)
@@ -189,19 +218,125 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         #   1. 'metric_name'   - name of predefined metric
         #   2. { label: 'label_name' }  - legacy format for a predefined metric
         #   3. { expressionType: 'SIMPLE' | 'SQL', ... } - adhoc metric
-        def is_str_or_adhoc(metric: Metric) -> bool:
-            return isinstance(metric, str) or is_adhoc_metric(metric)
+        # Keys that only ever appear on an ad-hoc metric definition. A dict
+        # carrying one of these but missing `expressionType` is a malformed
+        # ad-hoc metric, not a legacy predefined-metric reference, and must
+        # not be silently collapsed to its label, which would later be
+        # misread as a request for a saved metric of that name.
+        adhoc_metric_keys = {"sqlExpression", "aggregate", "column"}
 
-        self.metrics = metrics and [
-            x if is_str_or_adhoc(x) else x["label"]  # type: ignore
-            for x in metrics
-        ]
+        def normalize_metric(metric: Metric) -> Metric:
+            if isinstance(metric, str) or is_adhoc_metric(metric):
+                return metric
+            if adhoc_metric_keys & metric.keys():
+                raise QueryObjectValidationError(
+                    _(
+                        "Invalid ad-hoc metric %(label)s: `expressionType` is missing",
+                        label=metric.get("label"),
+                    )
+                )
+            return metric["label"]  # type: ignore
+
+        self.metrics = metrics and [normalize_metric(x) for x in metrics]
 
     def _set_post_processing(
         self, post_processing: list[dict[str, Any] | None] | None
     ) -> None:
-        post_processing = post_processing or []
-        self.post_processing = [post_proc for post_proc in post_processing if post_proc]
+        self.post_processing = [
+            self._drop_unsupported_options(post_proc)
+            for post_proc in post_processing or []
+            if post_proc
+        ]
+
+    @staticmethod
+    def _drop_unsupported_options(post_proc: dict[str, Any]) -> dict[str, Any]:
+        """
+        Drop options that the post-processing operation no longer accepts.
+
+        A chart's ``query_context`` is written when the chart is saved and is
+        never rewritten afterwards, while Explore rebuilds the query from
+        ``form_data`` at every render. A chart saved by an older version of
+        Superset can therefore reference an option that has since been removed
+        from the operation. ``exec_post_processing`` passes the stored options
+        as keyword arguments, so that option raises a bare ``TypeError`` on
+        every path that replays the stored ``query_context`` -- the chart data
+        endpoint, alerts and reports, thumbnails, CSV export -- while the same
+        chart still renders correctly in Explore.
+
+        Comparing against the signature avoids a hard-coded list of removed
+        option names, which would need extending at each release.
+
+        Only the built-in operations in ``pandas_postprocessing.__all__`` are
+        inspected. The module also exposes helpers, imported submodules and
+        typing aliases, none of which are operations; and options belonging to a
+        callable registered through ``EXTRA_PANDAS_POSTPROCESSING_OPS`` are the
+        operator's to manage, so both are passed through untouched.
+        """
+        operation = post_proc.get("operation")
+        function = (
+            getattr(pandas_postprocessing, operation, None)
+            if isinstance(operation, str) and operation in pandas_postprocessing.__all__
+            else None
+        )
+        if function is None:
+            # A missing, unknown or operator-registered operation is left
+            # untouched, so that exec_post_processing either dispatches it or
+            # reports it as InvalidPostProcessingError.
+            return post_proc
+
+        # ``function`` is only resolved when ``operation`` is a known builtin name.
+        assert isinstance(operation, str)
+
+        parameters = inspect.signature(function).parameters
+        if any(
+            parameter.kind is inspect.Parameter.VAR_KEYWORD
+            for parameter in parameters.values()
+        ):
+            return post_proc
+
+        # `exec_post_processing` calls the operation as `operation(df, **options)`,
+        # so an option can only reach a parameter that a caller may fill by
+        # keyword. That excludes the first parameter, which receives the
+        # DataFrame positionally, and any positional-only or `*args` parameter.
+        keyword_parameters = {
+            name
+            for position, (name, parameter) in enumerate(parameters.items())
+            if position > 0
+            and parameter.kind
+            in (
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.KEYWORD_ONLY,
+            )
+        }
+        # Options that QueryObject resolves itself before invoking the operation
+        # (e.g. ``fill_time_range`` → ``time_range_start`` / ``time_range_end``).
+        # They are not kwargs of the pandas function, but must survive until
+        # ``exec_post_processing``.
+        keyword_parameters |= _QUERY_OBJECT_RESOLVED_OPTIONS.get(operation, frozenset())
+
+        options = post_proc.get("options") or {}
+        unsupported = {key for key in options if key not in keyword_parameters}
+        if not unsupported:
+            return post_proc
+
+        # Logged at info: a chart saved before the option was removed hits this
+        # on every render, so a warning would repeat for as long as the chart
+        # is not resaved, without anything new to report.
+        logger.info(
+            "Dropping unsupported option(s) %s of post-processing operation "
+            "`%s`. The chart's stored query_context predates the current "
+            "signature of that operation.",
+            sorted(unsupported),
+            operation,
+        )
+        return {
+            **post_proc,
+            "options": {
+                key: value
+                for key, value in options.items()
+                if key in keyword_parameters
+            },
+        }
 
     def _init_series_columns(
         self,
@@ -218,9 +353,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
     def _rename_deprecated_fields(self, kwargs: dict[str, Any]) -> None:
         # rename deprecated fields
+        # Logged at info: a chart saved before the field was renamed hits this
+        # on every render, so a warning would repeat for as long as the chart
+        # is not resaved, without anything new to report.
         for field in DEPRECATED_FIELDS:
             if field.old_name in kwargs:
-                logger.warning(
+                logger.info(
                     "The field `%s` is deprecated, please use `%s` instead.",
                     field.old_name,
                     field.new_name,
@@ -228,7 +366,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 value = kwargs[field.old_name]
                 if value:
                     if hasattr(self, field.new_name):
-                        logger.warning(
+                        logger.info(
                             "The field `%s` is already populated, "
                             "replacing value with contents from `%s`.",
                             field.new_name,
@@ -238,9 +376,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
     def _move_deprecated_extra_fields(self, kwargs: dict[str, Any]) -> None:
         # move deprecated extras fields to extras
+        # Logged at info: same rationale as `_rename_deprecated_fields` above.
         for field in DEPRECATED_EXTRAS_FIELDS:
             if field.old_name in kwargs:
-                logger.warning(
+                logger.info(
                     "The field `%s` is deprecated and should "
                     "be passed to `extras` via the `%s` property.",
                     field.old_name,
@@ -249,7 +388,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 value = kwargs[field.old_name]
                 if value:
                     if hasattr(self.extras, field.new_name):
-                        logger.warning(
+                        logger.info(
                             "The field `%s` is already populated in "
                             "`extras`, replacing value with contents "
                             "from `%s`.",
@@ -281,6 +420,63 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     ) -> QueryObjectValidationError | None:
         """Validate query object"""
         try:
+            self._validate_semantic_view_extras()
+            if self.datasource and self.datasource.type == "semantic_view":
+                implementation: SemanticViewABC = cast(
+                    "SemanticView", self.datasource
+                ).implementation
+                try:
+                    implementation.validate_selection_version(
+                        self.extras.get("semantic_selection_version")
+                    )
+                except ValueError as ex:
+                    if self.extras.get("semantic_selection_version") == (
+                        "unverified-external-selections"
+                    ):
+                        raise QueryObjectValidationError(
+                            _(
+                                "A dashboard filter or display control has "
+                                "incompatible semantic selections. Dynamic group-by "
+                                "is unsupported on versioned semantic views; remove "
+                                "this chart from that control's scope. For other "
+                                "filters or controls, reset and reselect fields or "
+                                "saved values. If it targets another semantic view, "
+                                "remove this chart from its scope."
+                            )
+                        ) from ex
+                    raise QueryObjectValidationError(
+                        _(
+                            "Saved semantic selections use an older identity format. "
+                            "Reset and explicitly reselect the metrics and dimensions, "
+                            "then save the chart. Display titles cannot be recovered "
+                            "automatically. For API requests, select current member "
+                            "IDs and supply semantic_selection_version from "
+                            "datasource metadata or MCP list_metrics."
+                        )
+                    ) from ex
+                if self.filter:
+                    # Validate before result-cache access, including old entries
+                    # computed while non-dimension predicates were discarded.
+                    # avoid circular import: mapper imports QueryObject.
+                    from superset.semantic_layers.exceptions import (
+                        discover_dimensions,
+                        discover_metrics,
+                        DiscoveryTarget,
+                    )
+                    from superset.semantic_layers.mapper import validate_filter_columns
+
+                    target: DiscoveryTarget = DiscoveryTarget.of(self.datasource)
+                    dimension_names: set[str] = {
+                        dimension.name
+                        for dimension in discover_dimensions(
+                            lambda: implementation, target
+                        )
+                    }
+                    metric_names: set[str] = {
+                        metric.name
+                        for metric in discover_metrics(lambda: implementation, target)
+                    }
+                    validate_filter_columns(self.filter, dimension_names, metric_names)
             self._validate_there_are_no_missing_series()
             self._validate_no_have_duplicate_labels()
             self._validate_time_offsets()
@@ -291,6 +487,20 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 raise
             return ex
 
+    def _validate_semantic_view_extras(self) -> None:
+        """Reject unsupported SQL clauses before resolving a semantic provider."""
+        if (
+            self.datasource
+            and self.datasource.type == "semantic_view"
+            and (self.extras.get("where") or self.extras.get("having"))
+        ):
+            raise QueryObjectValidationError(
+                _(
+                    "SQL WHERE/HAVING expressions are not supported for semantic "
+                    "views. Remove the SQL clause or use a semantic dimension filter."
+                )
+            )
+
     def _validate_no_have_duplicate_labels(self) -> None:
         all_labels = self.metric_names + self.column_names
         if len(set(all_labels)) < len(all_labels):
@@ -299,7 +509,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 _(
                     "Duplicate column/metric labels: %(labels)s. Please make "
                     "sure all columns and metrics have a unique label.",
-                    labels=", ".join(f'"{x}"' for x in dup_labels),
+                    labels=format_list(dup_labels),
                 )
             )
 
@@ -337,12 +547,16 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     def _sanitize_filters(self) -> None:
         from superset.jinja_context import get_template_processor
 
+        needs_transpilation = self.extras.get("transpile_to_dialect", False)
+
         for param in ("where", "having"):
             clause = self.extras.get(param)
             if clause and self.datasource:
                 try:
                     database = self.datasource.database
-                    processor = get_template_processor(database=database)
+                    processor = get_template_processor(
+                        database=database, table=self.datasource
+                    )
                     try:
                         clause = processor.process_template(clause, force=True)
                     except TemplateError as ex:
@@ -352,10 +566,22 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                                 msg=ex.message,
                             )
                         ) from ex
+
                     engine = database.db_engine_spec.engine
+
+                    if needs_transpilation:
+                        # source_engine=engine ensures idempotency: this
+                        # method can run more than once (validate() is called
+                        # from both raise_for_access and get_df_payload), so
+                        # the second pass must be able to re-parse the
+                        # dialect-specific output (e.g. BigQuery backticks)
+                        # produced by the first pass.
+                        clause = transpile_to_dialect(
+                            clause, engine, source_engine=engine, identify=True
+                        )
+
                     sanitized_clause = sanitize_clause(clause, engine)
-                    if sanitized_clause != clause:
-                        self.extras[param] = sanitized_clause
+                    self.extras[param] = sanitized_clause
                 except QueryClauseValidationException as ex:
                     raise QueryObjectValidationError(ex.message) from ex
 
@@ -366,16 +592,18 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 _(
                     "The following entries in `series_columns` are missing "
                     "in `columns`: %(columns)s. ",
-                    columns=", ".join(f'"{x}"' for x in missing_series),
+                    columns=format_list([str(col) for col in missing_series]),
                 )
             )
 
     def to_dict(self) -> QueryObjectDict:
         query_object_dict: QueryObjectDict = {
             "apply_fetch_values_predicate": self.apply_fetch_values_predicate,
+            "cache_timeout": self.cache_timeout,
             "columns": self.columns,
             "extras": self.extras,
             "filter": self.filter,
+            "force_query": self.force_query,
             "from_dttm": self.from_dttm,
             "granularity": self.granularity,
             "inner_from_dttm": self.inner_from_dttm,
@@ -385,14 +613,17 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "metrics": self.metrics,
             "order_desc": self.order_desc,
             "orderby": self.orderby,
+            "post_processing": self.post_processing,
             "row_limit": self.row_limit,
             "row_offset": self.row_offset,
             "series_columns": self.series_columns,
             "series_limit": self.series_limit,
             "series_limit_metric": self.series_limit_metric,
             "group_others_when_limit_reached": self.group_others_when_limit_reached,
+            "grouping_sets": self.grouping_sets,
             "to_dttm": self.to_dttm,
             "time_shift": self.time_shift,
+            "time_compare_full_range": self.time_compare_full_range,
         }
         return query_object_dict
 
@@ -416,6 +647,27 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         cache_dict: dict[str, Any] = dict(self.to_dict())
         cache_dict.update(extra)
 
+        if "extra_cache_keys" in cache_dict:
+            # Order carries no meaning here (an unordered set of opaque
+            # Jinja url_param()-derived values), but hash_from_dict only
+            # sorts dict keys, not list values, so an unsorted list makes
+            # the cache key depend on Python's per-process hash-randomized
+            # set iteration order (see SqlaTable.get_extra_cache_keys).
+            # Normalize once here so every producer of extra_cache_keys is
+            # safe by construction. Sort on (type name, str value) rather
+            # than a bare str() so values that stringify identically but
+            # differ in type (e.g. 1 and "1") still sort deterministically
+            # instead of falling back to input order.
+            cache_dict["extra_cache_keys"] = sorted(
+                cache_dict["extra_cache_keys"],
+                key=lambda value: (type(value).__name__, str(value)),
+            )
+
+        # Force refresh and timeout control cache reads and retention, not the
+        # logical result identity.
+        cache_dict.pop("force_query", None)
+        cache_dict.pop("cache_timeout", None)
+
         # TODO: the below KVs can all be cleaned up and moved to `to_dict()` at some
         #  predetermined point in time when orgs are aware that the previously
         #  cached results will be invalidated.
@@ -428,12 +680,30 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         if self.time_range:
             cache_dict["time_range"] = self.time_range
         if self.post_processing:
-            cache_dict["post_processing"] = self.post_processing
+            # Exclude contribution_totals from post_processing as it's computed at
+            # runtime and varies per request, which would cause cache key mismatches
+            post_processing_for_cache = []
+            for pp in self.post_processing:
+                pp_copy = dict(pp)
+                if pp_copy.get("operation") == "contribution" and "options" in pp_copy:
+                    options = dict(pp_copy["options"])
+                    # Remove contribution_totals as it's dynamically calculated
+                    options.pop("contribution_totals", None)
+                    pp_copy["options"] = options
+                post_processing_for_cache.append(pp_copy)
+            cache_dict["post_processing"] = post_processing_for_cache
         if self.time_offsets:
             cache_dict["time_offsets"] = self.time_offsets
 
-        for k in ["from_dttm", "to_dttm"]:
-            del cache_dict[k]
+        # Resolved bounds are normally excluded so a relative range ("Last 7
+        # days") keeps one key as time passes; ``time_range`` stands in for them.
+        # Without it — a caller that passes the range only as a TEMPORAL_RANGE
+        # filter, which ``_apply_granularity`` then removes — they are all that
+        # distinguishes one range from another.
+        for key in ["from_dttm", "to_dttm"]:
+            bound = cache_dict.pop(key)
+            if bound is not None and not self.time_range:
+                cache_dict[key] = bound
 
         annotation_fields = [
             "annotationType",
@@ -458,29 +728,22 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         # or if the CACHE_QUERY_BY_USER flag is on or per_user_caching is enabled on
         #  the database
         try:
-            database = self.datasource.database  # type: ignore
-            extra = json.loads(database.extra or "{}")
-            if (
-                (
-                    feature_flag_manager.is_feature_enabled("CACHE_IMPERSONATION")
-                    and database.impersonate_user
-                )
-                or feature_flag_manager.is_feature_enabled("CACHE_QUERY_BY_USER")
-                or extra.get("per_user_caching", False)
-            ):
-                if key := database.db_engine_spec.get_impersonation_key(
-                    getattr(g, "user", None)
-                ):
-                    logger.debug(
-                        "Adding impersonation key to QueryObject cache dict: %s", key
-                    )
-
-                    cache_dict["impersonation_key"] = key
+            add_impersonation_cache_key_if_needed(self.datasource.database, cache_dict)  # type: ignore
         except AttributeError:
             # datasource or database do not exist
             pass
 
-        return md5_sha_from_dict(cache_dict, default=json_int_dttm_ser, ignore_nan=True)
+        cache_key = hash_from_dict(
+            cache_dict, default=json_int_dttm_ser, ignore_nan=True
+        )
+        # Log QueryObject cache key generation for debugging
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                "QueryObject CACHE KEY generated: %s from dict with keys: %s",
+                cache_key,
+                sorted(cache_dict.keys()),
+            )
+        return cache_key
 
     def exec_post_processing(self, df: DataFrame) -> DataFrame:
         """
@@ -500,13 +763,49 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     raise InvalidPostProcessingError(
                         _("`operation` property of post processing object undefined")
                     )
-                if not hasattr(pandas_postprocessing, operation):
-                    raise InvalidPostProcessingError(
-                        _(
-                            "Unsupported post processing operation: %(operation)s",
-                            type=operation,
-                        )
+                # ``OPERATIONS`` is the authoritative list of built-in operations;
+                # excludes escape_separator/unescape_separator (str -> str helpers
+                # used by flatten, not DataFrame post-processing operations).
+                if operation in pandas_postprocessing.OPERATIONS:
+                    func = getattr(pandas_postprocessing, operation)
+                else:
+                    extra_ops = pandas_postprocessing.build_extra_ops_map(
+                        current_app.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
                     )
+                    if operation not in extra_ops:
+                        raise InvalidPostProcessingError(
+                            _(
+                                "Unsupported post processing operation: %(operation)s",
+                                operation=operation,
+                            )
+                        )
+                    func = extra_ops[operation]
                 options = post_process.get("options", {})
-                df = getattr(pandas_postprocessing, operation)(df, **options)
+                if operation == "resample":
+                    options = self._resolve_resample_options(options)
+                df = func(df, **options)
             return df
+
+    def _resolve_resample_options(self, options: dict[str, Any]) -> dict[str, Any]:
+        """
+        Translate the `fill_time_range` flag into explicit resample boundaries.
+
+        Clients cannot supply the boundaries themselves because time ranges may be
+        expressed in natural language (e.g. `Last week`) and are only resolved into
+        concrete datetimes server side. Client-supplied ``time_range_start`` /
+        ``time_range_end`` are ignored in favor of the query's resolved bounds.
+
+        :param options: Options of the `resample` post processing operation.
+        :return: Options with the boundaries of the queried time range applied.
+        """
+        if not options.get("fill_time_range"):
+            return options
+
+        resolved = {
+            key: value
+            for key, value in options.items()
+            if key not in ("fill_time_range", "time_range_start", "time_range_end")
+        }
+        resolved["time_range_start"] = self.from_dttm
+        resolved["time_range_end"] = self.to_dttm
+        return resolved

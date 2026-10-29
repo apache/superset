@@ -29,24 +29,21 @@ DEFAULT_PORTS: dict[str, int] = {
 
 
 def mask_password_info(ssh_tunnel: dict[str, Any]) -> dict[str, Any]:
-    if ssh_tunnel.pop("password", None) is not None:
-        ssh_tunnel["password"] = PASSWORD_MASK
-    if ssh_tunnel.pop("private_key", None) is not None:
-        ssh_tunnel["private_key"] = PASSWORD_MASK
-    if ssh_tunnel.pop("private_key_password", None) is not None:
-        ssh_tunnel["private_key_password"] = PASSWORD_MASK
+    for key in {"password", "private_key", "private_key_password"}:
+        if ssh_tunnel.pop(key, None) is not None:
+            ssh_tunnel[key] = PASSWORD_MASK
+
     return ssh_tunnel
 
 
 def unmask_password_info(
-    ssh_tunnel: dict[str, Any], model: SSHTunnel
+    ssh_tunnel: dict[str, Any],
+    model: SSHTunnel,
 ) -> dict[str, Any]:
-    if ssh_tunnel.get("password") == PASSWORD_MASK:
-        ssh_tunnel["password"] = model.password
-    if ssh_tunnel.get("private_key") == PASSWORD_MASK:
-        ssh_tunnel["private_key"] = model.private_key
-    if ssh_tunnel.get("private_key_password") == PASSWORD_MASK:
-        ssh_tunnel["private_key_password"] = model.private_key_password
+    for key in {"password", "private_key", "private_key_password"}:
+        if ssh_tunnel.get(key) == PASSWORD_MASK:
+            ssh_tunnel[key] = getattr(model, key)
+
     return ssh_tunnel
 
 

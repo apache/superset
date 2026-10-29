@@ -37,10 +37,11 @@ const mockCreateResource = jest.fn();
 jest.mock('src/views/CRUD/hooks', () => ({
   useSingleViewResource: () => ({
     createResource: mockCreateResource,
+    state: { loading: false },
   }),
   getDatabaseDocumentationLinks: () => ({
     support:
-      'https://superset.apache.org/docs/databases/installing-database-drivers',
+      'https://superset.apache.org/user-docs/databases/#installing-database-drivers',
   }),
 }));
 
@@ -55,7 +56,7 @@ const mockPropsWithDataset = {
       id: '1',
       database_name: 'examples',
     },
-    owners: [1, 2, 3],
+    editors: [1, 2, 3],
     schema: 'public',
     dataset_name: 'Untitled',
     table_name: 'real_info',
@@ -118,7 +119,7 @@ describe('Footer', () => {
 
     // Find and click the dropdown trigger (the arrow part)
     const dropdownTrigger = screen.getByRole('button', { name: 'down' });
-    userEvent.click(dropdownTrigger);
+    await userEvent.click(dropdownTrigger);
 
     // Check that the dropdown menu option is visible
     await waitFor(() => {
@@ -135,7 +136,7 @@ describe('Footer', () => {
       name: /Create and explore dataset/i,
     });
 
-    userEvent.click(createButton);
+    await userEvent.click(createButton);
 
     await waitFor(() => {
       expect(mockCreateResource).toHaveBeenCalledWith({
@@ -157,13 +158,10 @@ describe('Footer', () => {
 
     // Open dropdown menu
     const dropdownTrigger = screen.getByRole('button', { name: 'down' });
-    userEvent.click(dropdownTrigger);
+    await userEvent.click(dropdownTrigger);
 
     // Click the "Create dataset" option
-    await waitFor(() => {
-      const datasetOnlyOption = screen.getByText('Create dataset');
-      userEvent.click(datasetOnlyOption);
-    });
+    await userEvent.click(await screen.findByText('Create dataset'));
 
     await waitFor(() => {
       expect(mockCreateResource).toHaveBeenCalledWith({
@@ -185,7 +183,7 @@ describe('Footer', () => {
       name: /Create and explore dataset/i,
     });
 
-    userEvent.click(createButton);
+    await userEvent.click(createButton);
 
     await waitFor(() => {
       expect(mockCreateResource).toHaveBeenCalled();
@@ -211,7 +209,7 @@ describe('Footer', () => {
       name: /Create and explore dataset/i,
     });
 
-    userEvent.click(createButton);
+    await userEvent.click(createButton);
 
     await waitFor(() => {
       expect(mockCreateResource).toHaveBeenCalledWith({

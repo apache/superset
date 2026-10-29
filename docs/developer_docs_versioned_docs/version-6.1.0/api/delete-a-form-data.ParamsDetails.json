@@ -1,0 +1,11 @@
+{
+  "parameters": [
+    {
+      "description": "The form_data key.",
+      "in": "path",
+      "name": "key",
+      "required": true,
+      "schema": { "type": "string" }
+    }
+  ]
+}

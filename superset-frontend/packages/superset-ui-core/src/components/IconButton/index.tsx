@@ -18,7 +18,7 @@
  */
 
 // eslint-disable-next-line
-import { SupersetTheme, css } from '@apache-superset/core/ui';
+import { SupersetTheme, css } from '@apache-superset/core/theme';
 import { Typography } from '../Typography';
 import { Icons } from '../Icons';
 import { Card } from '../Card';
@@ -79,8 +79,12 @@ const IconButton: React.FC<IconButtonProps> = ({
   };
 
   return (
+    // antd's Card renders a fixed <div> (no polymorphic tag support) with
+    // its own rich internal layout (cover/title/tooltip); that doesn't map
+    // onto a native <button>, so role="button" is used instead.
     <Card
       hoverable
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role="button"
       tabIndex={0}
       aria-label={buttonText}

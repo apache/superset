@@ -17,39 +17,51 @@
  * under the License.
  */
 import { useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import Split from 'react-split';
+import { t } from '@apache-superset/core/translation';
 import {
-  DatasourceType,
   ensureIsArray,
   isFeatureEnabled,
   FeatureFlag,
-  getChartMetadataRegistry,
   SupersetClient,
-  t,
   QueryFormData,
   JsonObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
+import { logging } from '@apache-superset/core/utils';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
+import { ExploreStandaloneMode } from 'src/explore/constants';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import ChartContainer from 'src/components/Chart/ChartContainer';
+import { updateExploreChartState } from 'src/explore/actions/exploreActions';
+import {
+  convertChartStateToOwnState,
+  hasChartStateConverter,
+} from 'src/dashboard/util/chartStateConverter';
 import {
   getItem,
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
-import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
 import { getChartRequiredFieldsMissingMessage } from 'src/utils/getChartRequiredFieldsMissingMessage';
 import type { ChartState, Datasource } from 'src/explore/types';
+import type { ExploreState } from 'src/explore/reducers/exploreReducer';
 import type { Slice } from 'src/types/Chart';
+import LastQueriedLabel from 'src/components/LastQueriedLabel';
 import { DataTablesPane } from '../DataTablesPane';
 import { ChartPills } from '../ChartPills';
 import { ExploreAlert } from '../ExploreAlert';
+import { LegacyAggregationAlert } from '../LegacyAggregationAlert';
 import useResizeDetectorByObserver from './useResizeDetectorByObserver';
+import StandaloneDownloadControl from './StandaloneDownloadControl';
 
 const extensionsRegistry = getExtensionsRegistry();
-const DefaultHeader: React.FC = ({ children }) => <>{children}</>;
+const DefaultHeader: React.FC<{ children?: React.ReactNode }> = ({
+  children,
+}) => <>{children}</>;
 
 export interface ExploreChartPanelProps {
   actions: {
@@ -79,7 +91,7 @@ export interface ExploreChartPanelProps {
   vizType: string;
   form_data: QueryFormData;
   ownState?: JsonObject;
-  standalone?: boolean;
+  standalone?: number;
   force?: boolean;
   timeout?: number;
   chartIsStale?: boolean;
@@ -87,6 +99,7 @@ export interface ExploreChartPanelProps {
   errorMessage?: ReactNode;
   triggerRender?: boolean;
   chartAlert?: string;
+  exploreState?: JsonObject;
 }
 
 type PanelSizes = [number, number];
@@ -123,6 +136,28 @@ const Styles = styled.div<{ showSplite: boolean }>`
   }
 `;
 
+const EMPTY_OBJECT: Record<string, never> = {};
+
+const createOwnStateWithChartState = (
+  baseOwnState: JsonObject,
+  chartState: { state?: JsonObject } | undefined,
+  vizTypeArg: string,
+): JsonObject => {
+  if (!hasChartStateConverter(vizTypeArg)) {
+    return baseOwnState;
+  }
+  const state = chartState?.state;
+  if (!state) {
+    return baseOwnState;
+  }
+  const convertedState = convertChartStateToOwnState(vizTypeArg, state);
+  return {
+    ...baseOwnState,
+    ...convertedState,
+    chartState: state,
+  };
+};
+
 const ExploreChartPanel = ({
   chart,
   slice,
@@ -142,11 +177,37 @@ const ExploreChartPanel = ({
   can_download: canDownload,
 }: ExploreChartPanelProps) => {
   const theme = useTheme();
+  const dispatch = useDispatch();
+  const showDownload = getUrlParam(URL_PARAMS.showDownload);
   const gutterMargin = theme.sizeUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.sizeUnit * GUTTER_SIZE_FACTOR;
+
+  const chartState = useSelector(
+    (state: { explore?: ExploreState }) =>
+      state.explore?.chartStates?.[chart.id],
+  );
+
+  const handleChartStateChange = useCallback(
+    (chartStateArg: JsonObject) => {
+      if (hasChartStateConverter(vizType)) {
+        dispatch(updateExploreChartState(chart.id, chartStateArg));
+      }
+    },
+    [dispatch, chart.id, vizType],
+  );
+
+  const mergedOwnState = useMemo(
+    () =>
+      createOwnStateWithChartState(
+        ownState || EMPTY_OBJECT,
+        chartState as { state?: JsonObject } | undefined,
+        vizType,
+      ),
+    [ownState, chartState, vizType],
+  );
+
   const {
     ref: chartPanelRef,
-    observerRef: resizeObserverRef,
     width: chartPanelWidth,
     height: chartPanelHeight,
   } = useResizeDetectorByObserver();
@@ -164,30 +225,23 @@ const ExploreChartPanel = ({
       : getItem(LocalStorageKeys.IsDatapanelOpen, false),
   );
 
-  const [showDatasetModal, setShowDatasetModal] = useState(false);
-
-  const metaDataRegistry = getChartMetadataRegistry();
-  const { useLegacyApi } = metaDataRegistry.get(vizType) ?? {};
-  const vizTypeNeedsDataset =
-    useLegacyApi && datasource.type !== DatasourceType.Table;
   // added boolean column to below show boolean so that the errors aren't overlapping
   const showAlertBanner =
     !chartAlert &&
     chartIsStale &&
-    !vizTypeNeedsDataset &&
     chart.chartStatus !== 'failed' &&
     ensureIsArray(chart.queriesResponse).length > 0;
 
   const updateQueryContext = useCallback(
     async function fetchChartData() {
-      if (slice && slice.query_context === null) {
+      if (slice && slice.query_context === null && slice.form_data) {
         const queryContext = await buildV1ChartDataPayload({
           formData: slice.form_data,
           force,
           resultFormat: 'json',
           resultType: 'full',
-          setDataMask: null,
-          ownState: null,
+          setDataMask: undefined,
+          ownState: undefined,
         });
 
         await SupersetClient.put({
@@ -204,7 +258,16 @@ const ExploreChartPanel = ({
   );
 
   useEffect(() => {
-    updateQueryContext();
+    updateQueryContext().catch(error => {
+      // Best-effort backfill; the chart renders either way. A 403 is expected
+      // (no write access, or a managed chart), so it stays at debug.
+      const message = 'Skipped background query context backfill';
+      if (error?.status === 403) {
+        logging.debug(message, error);
+      } else {
+        logging.warn(message, error);
+      }
+    });
   }, [updateQueryContext]);
 
   useEffect(() => {
@@ -248,7 +311,7 @@ const ExploreChartPanel = ({
         css={css`
           min-height: 0;
           flex: 1;
-          overflow: auto;
+          overflow: hidden;
         `}
         ref={chartPanelRef}
       >
@@ -256,7 +319,7 @@ const ExploreChartPanel = ({
           <ChartContainer
             width={Math.floor(chartPanelWidth)}
             height={chartPanelHeight}
-            ownState={ownState}
+            ownState={mergedOwnState}
             annotationData={chart.annotationData}
             chartId={chart.id}
             triggerRender={triggerRender}
@@ -268,10 +331,13 @@ const ExploreChartPanel = ({
             onQuery={onQuery}
             queriesResponse={chart.queriesResponse}
             chartIsStale={chartIsStale}
-            setControlValue={actions.setControlValue}
+            setControlValue={(name, value) =>
+              actions.setControlValue(name, value, chart.id)
+            }
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
             vizType={vizType}
+            onChartStateChange={handleChartStateChange}
             {...(chart.chartAlert && { chartAlert: chart.chartAlert })}
             {...(chart.chartStackTrace && {
               chartStackTrace: chart.chartStackTrace,
@@ -299,8 +365,9 @@ const ExploreChartPanel = ({
       errorMessage,
       force,
       formData,
+      handleChartStateChange,
       onQuery,
-      ownState,
+      mergedOwnState,
       timeout,
       triggerRender,
       vizType,
@@ -316,32 +383,9 @@ const ExploreChartPanel = ({
           flex-direction: column;
           padding-top: ${theme.sizeUnit * 2}px;
         `}
-        ref={resizeObserverRef}
       >
-        {vizTypeNeedsDataset && (
-          <Alert
-            message={t('Chart type requires a dataset')}
-            type="error"
-            css={theme => css`
-              margin: 0 0 ${theme.sizeUnit * 4}px 0;
-            `}
-            description={
-              <>
-                {t(
-                  'This chart type is not supported when using an unsaved query as a chart source. ',
-                )}
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setShowDatasetModal(true)}
-                  css={{ textDecoration: 'underline' }}
-                >
-                  {t('Create a dataset')}
-                </span>
-                {t(' to visualize your data.')}
-              </>
-            }
-          />
+        {vizType === 'pivot_table_v2' && (
+          <LegacyAggregationAlert sliceId={slice?.slice_id} />
         )}
         {showAlertBanner && (
           <ExploreAlert
@@ -358,9 +402,21 @@ const ExploreChartPanel = ({
                   {t(
                     'You updated the values in the control panel, but the chart was not updated automatically. Run the query by clicking on the "Update chart" button or',
                   )}{' '}
-                  <span role="button" tabIndex={0} onClick={onQuery}>
+                  <button
+                    type="button"
+                    onClick={onQuery}
+                    css={css`
+                      appearance: none;
+                      border: none;
+                      background: none;
+                      padding: 0;
+                      font: inherit;
+                      color: inherit;
+                      cursor: pointer;
+                    `}
+                  >
                     {t('click here')}
-                  </span>
+                  </button>
                   .
                 </span>
               )
@@ -393,16 +449,34 @@ const ExploreChartPanel = ({
             })}
             {...(chart.chartStatus && { chartStatus: chart.chartStatus })}
             hideRowCount={
-              formData?.matrixify_enable_vertical_layout === true ||
-              formData?.matrixify_enable_horizontal_layout === true
+              formData?.matrixify_enable === true &&
+              ((formData?.matrixify_mode_rows !== undefined &&
+                formData?.matrixify_mode_rows !== 'disabled') ||
+                (formData?.matrixify_mode_columns !== undefined &&
+                  formData?.matrixify_mode_columns !== 'disabled'))
             }
+            formData={formData}
           />
         </ChartHeaderExtension>
         {renderChart()}
+        {!chart.chartStatus || chart.chartStatus !== 'loading' ? (
+          <div
+            css={css`
+              display: flex;
+              justify-content: flex-end;
+              padding-top: ${theme.sizeUnit * 2}px;
+            `}
+          >
+            <LastQueriedLabel
+              queriedDttm={chart.queriesResponse?.[0]?.queried_dttm ?? null}
+            />
+          </div>
+        ) : null}
       </div>
     ),
     [
-      resizeObserverRef,
+      vizType,
+      slice?.slice_id,
       showAlertBanner,
       errorMessage,
       onQuery,
@@ -412,9 +486,10 @@ const ExploreChartPanel = ({
       chart.chartUpdateEndTime,
       refreshCachedQuery,
       formData?.row_limit,
-      formData?.matrixify_enable_vertical_layout,
-      formData?.matrixify_enable_horizontal_layout,
+      formData?.matrixify_mode_rows,
+      formData?.matrixify_mode_columns,
       renderChart,
+      theme.sizeUnit,
     ],
   );
 
@@ -445,7 +520,7 @@ const ExploreChartPanel = ({
     [gutterMargin],
   );
 
-  if (standalone) {
+  if (standalone === ExploreStandaloneMode.HideNav) {
     // dom manipulation hack to get rid of the bootstrap theme's body background
     const standaloneClass = 'background-transparent';
     const bodyClasses = document.body.className.split(' ');
@@ -453,7 +528,23 @@ const ExploreChartPanel = ({
       document.body.className += ` ${standaloneClass}`;
     }
     return (
-      <div id="app" data-test="standalone-app" ref={resizeObserverRef}>
+      <div
+        id="app"
+        data-test="standalone-app"
+        css={css`
+          position: relative;
+          height: 100%;
+        `}
+      >
+        {showDownload && canDownload && (
+          <StandaloneDownloadControl
+            latestQueryFormData={chart.latestQueryFormData}
+            canDownload={canDownload}
+            slice={slice}
+            ownState={mergedOwnState}
+          />
+        )}
+
         {standaloneChartBody}
       </div>
     );
@@ -481,19 +572,9 @@ const ExploreChartPanel = ({
           errorMessage={errorMessage}
           setForceQuery={actions.setForceQuery}
           canDownload={canDownload}
+          queriesResponse={chart.queriesResponse}
         />
       </Split>
-      {showDatasetModal && (
-        <SaveDatasetModal
-          visible={showDatasetModal}
-          onHide={() => setShowDatasetModal(false)}
-          buttonTextOnSave={t('Save')}
-          buttonTextOnOverwrite={t('Overwrite')}
-          datasource={getDatasourceAsSaveableDataset(datasource)}
-          openWindow={false}
-          formData={formData}
-        />
-      )}
     </Styles>
   );
 };

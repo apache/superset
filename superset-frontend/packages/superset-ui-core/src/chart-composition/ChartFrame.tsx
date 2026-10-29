@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { PureComponent, ReactNode } from 'react';
+import { memo, ReactNode } from 'react';
 
 import { isDefined } from '../utils';
 
@@ -29,7 +29,7 @@ type Props = {
   contentWidth?: number;
   contentHeight?: number;
   height: number;
-  renderContent: ({
+  renderContent?: ({
     height,
     width,
   }: {
@@ -39,36 +39,35 @@ type Props = {
   width: number;
 };
 
-export default class ChartFrame extends PureComponent<Props, {}> {
-  static defaultProps = {
-    renderContent() {},
-  };
+function ChartFrame({
+  contentWidth,
+  contentHeight,
+  width,
+  height,
+  renderContent = () => null,
+}: Props) {
+  const overflowX = checkNumber(contentWidth) && contentWidth > width;
+  const overflowY = checkNumber(contentHeight) && contentHeight > height;
 
-  render() {
-    const { contentWidth, contentHeight, width, height, renderContent } =
-      this.props;
-
-    const overflowX = checkNumber(contentWidth) && contentWidth > width;
-    const overflowY = checkNumber(contentHeight) && contentHeight > height;
-
-    if (overflowX || overflowY) {
-      return (
-        <div
-          style={{
-            height,
-            overflowX: overflowX ? 'auto' : 'hidden',
-            overflowY: overflowY ? 'auto' : 'hidden',
-            width,
-          }}
-        >
-          {renderContent({
-            height: Math.max(contentHeight ?? 0, height),
-            width: Math.max(contentWidth ?? 0, width),
-          })}
-        </div>
-      );
-    }
-
-    return renderContent({ height, width });
+  if (overflowX || overflowY) {
+    return (
+      <div
+        style={{
+          height,
+          overflowX: overflowX ? 'auto' : 'hidden',
+          overflowY: overflowY ? 'auto' : 'hidden',
+          width,
+        }}
+      >
+        {renderContent({
+          height: Math.max(contentHeight ?? 0, height),
+          width: Math.max(contentWidth ?? 0, width),
+        })}
+      </div>
+    );
   }
+
+  return <>{renderContent({ height, width })}</>;
 }
+
+export default memo(ChartFrame);

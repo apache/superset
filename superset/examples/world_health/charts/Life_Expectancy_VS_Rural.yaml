@@ -1,0 +1,84 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: 69e9de42-fe7f-4948-946a-f7913227aee8
+description: null
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator:
+    - TCA
+    - MNP
+    - DMA
+    - MHL
+    - MCO
+    - SXM
+    - CYM
+    - TUV
+    - IMY
+    - KNA
+    - ASM
+    - ADO
+    - AMA
+    - PLW
+    expressionType: SIMPLE
+    filterOptionName: 2745eae5
+    operator: NOT IN
+    subject: country_code
+  color_scheme: supersetColors
+  entity: country_name
+  granularity: year
+  legendOrientation: top
+  legendType: scroll
+  max_bubble_size: '50'
+  opacity: 0.6
+  order_desc: true
+  row_limit: 500
+  series: region
+  show_legend: true
+  size:
+    aggregate: SUM
+    column:
+      column_name: SP_POP_TOTL
+    expressionType: SIMPLE
+    label: SUM(SP_POP_TOTL)
+    optionName: metric_size_life_expectancy_vs_rural
+  time_range: '2011-01-01 : 2011-01-02'
+  tooltipSizeFormat: SMART_NUMBER
+  truncateXAxis: true
+  viz_type: bubble_v2
+  x:
+    aggregate: SUM
+    column:
+      column_name: SP_RUR_TOTL_ZS
+    expressionType: SIMPLE
+    label: SUM(SP_RUR_TOTL_ZS)
+    optionName: metric_x_life_expectancy_vs_rural
+  y:
+    aggregate: SUM
+    column:
+      column_name: SP_DYN_LE00_IN
+    expressionType: SIMPLE
+    label: SUM(SP_DYN_LE00_IN)
+    optionName: metric_y_life_expectancy_vs_rural
+query_context: null
+slice_name: Life Expectancy VS Rural %
+uuid: c18faec9-ec43-4d36-8b66-4c8b1372020f
+version: 1.0.0
+viz_type: bubble_v2

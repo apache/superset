@@ -17,11 +17,15 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
+
+import yaml
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils.core import EXTENDED_METRIC_AGGREGATES
 
 LIMIT_METHODS = {
     "FORCE_LIMIT": (
@@ -80,6 +84,17 @@ ADVANCED_FEATURES = {
     "sql_validation": "Supports validating SQL before running query",
 }
 
+# Engines wired to a SQL validator by the ``SQL_VALIDATORS_BY_ENGINE`` default in
+# superset/config.py, which is the source of truth. It is restated rather than
+# imported because importing that module here would execute the operator's
+# ``superset_config.py`` on any import of this one, and read from it rather than
+# from ``current_app.config`` because this feeds a published capability matrix,
+# which should describe the shipped default and not one deployment's overrides.
+# The generator in docs/scripts/generate-database-docs.mjs restates it a third
+# time; keep all three in sync. The SQLite-family validator ships too, but is
+# opt-in as it needs the optional ``syntaqlite`` package.
+SQL_VALIDATION_ENGINES = frozenset({"presto"})
+
 
 def has_custom_method(spec: type[BaseEngineSpec], method: str) -> bool:
     """
@@ -100,21 +115,22 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
     """
     Run basic diagnostics on a given DB engine spec.
     """
-    # pylint: disable=import-outside-toplevel
-    from superset.sql_validators.postgres import PostgreSQLValidator
-    from superset.sql_validators.presto_db import PrestoDBSQLValidator
-
-    sql_validators = {
-        "presto": PrestoDBSQLValidator,
-        "postgresql": PostgreSQLValidator,
-    }
-
     output: dict[str, Any] = {}
 
     output["time_grains"] = {}
     supported_time_grains = spec.get_time_grain_expressions()
     for time_grain in TimeGrain:
         output["time_grains"][time_grain.name] = time_grain in supported_time_grains
+
+    # MEDIAN/STDDEV_SAMP/VAR_SAMP: engines not handled by the generic `sa.func`
+    # mapping opt in individually via `_extended_aggregations`, verified per
+    # engine (see `BaseEngineSpec.get_extended_aggregation_func`); this
+    # doesn't imply the other 6 base aggregates (SUM/COUNT/AVG/MIN/MAX/
+    # COUNT_DISTINCT), which every engine spec already supports unconditionally.
+    output["extended_aggregations"] = {
+        aggregate: spec.get_extended_aggregation_func(aggregate) is not None
+        for aggregate in sorted(EXTENDED_METRIC_AGGREGATES)
+    }
 
     output.update(
         {
@@ -166,7 +182,7 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
             "query_cost_estimation": has_custom_method(spec, "estimate_query_cost")
             or has_custom_method(spec, "estimate_statement_cost"),
             # SQL validation is implemented in external classes
-            "sql_validation": spec.engine in sql_validators,
+            "sql_validation": spec.engine in SQL_VALIDATION_ENGINES,
         },
     )
 
@@ -662,11 +678,179 @@ def generate_table() -> list[list[Any]]:
     return rows
 
 
+def infer_category(name: str) -> str:
+    """
+    Infer database category from name for unmigrated specs.
+
+    This is used as a fallback when a spec doesn't have category in metadata.
+    Once all specs are migrated to use metadata.category, this can be removed.
+    """
+    from superset.db_engine_specs.base import DatabaseCategory
+
+    name_lower = name.lower()
+
+    if "aws" in name_lower or "amazon" in name_lower:
+        return DatabaseCategory.CLOUD_AWS
+    if "google" in name_lower or "bigquery" in name_lower:
+        return DatabaseCategory.CLOUD_GCP
+    if "azure" in name_lower or "microsoft" in name_lower:
+        return DatabaseCategory.CLOUD_AZURE
+    if "snowflake" in name_lower or "databricks" in name_lower:
+        return DatabaseCategory.CLOUD_DATA_WAREHOUSES
+    if (
+        "apache" in name_lower
+        or "druid" in name_lower
+        or "hive" in name_lower
+        or "spark" in name_lower
+    ):
+        return DatabaseCategory.APACHE_PROJECTS
+    if (
+        "postgres" in name_lower
+        or "mysql" in name_lower
+        or "sqlite" in name_lower
+        or "mariadb" in name_lower
+    ):
+        return DatabaseCategory.TRADITIONAL_RDBMS
+    if (
+        "clickhouse" in name_lower
+        or "vertica" in name_lower
+        or "starrocks" in name_lower
+    ):
+        return DatabaseCategory.ANALYTICAL_DATABASES
+    if "elastic" in name_lower or "solr" in name_lower or "couchbase" in name_lower:
+        return DatabaseCategory.SEARCH_NOSQL
+    if "trino" in name_lower or "presto" in name_lower:
+        return DatabaseCategory.QUERY_ENGINES
+
+    return DatabaseCategory.OTHER
+
+
+def get_documentation_metadata(spec: type[BaseEngineSpec], name: str) -> dict[str, Any]:
+    """
+    Get documentation metadata for a database engine spec.
+
+    Documentation metadata should be defined in the spec's `metadata` attribute.
+    If not present, returns minimal fallback with just connection string.
+    """
+    # Check if the spec has metadata attribute with content
+    if spec_metadata := getattr(spec, "metadata", {}):
+        result = dict(spec_metadata)
+        # Ensure category is present
+        if "category" not in result:
+            result["category"] = infer_category(name)
+        return result
+
+    # Minimal fallback for specs without metadata
+    return {
+        "pypi_packages": [],
+        "connection_string": getattr(spec, "sqlalchemy_uri_placeholder", ""),
+        "category": infer_category(name),
+    }
+
+
+def generate_yaml_docs(output_dir: str | None = None) -> dict[str, dict[str, Any]]:
+    """
+    Generate YAML documentation files for all database engine specs.
+
+    Args:
+        output_dir: Directory to write YAML files. If None, returns dict only.
+
+    Returns:
+        Dictionary mapping database names to their full documentation data.
+    """
+    all_docs: dict[str, dict[str, Any]] = {}
+
+    for spec in sorted(load_engine_specs(), key=get_name):
+        # Skip non-superset modules (3rd party)
+        if not spec.__module__.startswith("superset"):
+            continue
+
+        name = get_name(spec)
+
+        # Skip "base" specs (e.g. PostgresBaseEngineSpec) that share an engine_name
+        # with a real product spec but have no concrete engine value.  When multiple
+        # specs share the same engine_name the one with a non-empty engine string is
+        # the authoritative product spec; letting a base class overwrite it would
+        # produce incorrect capability flags.
+        if not spec.engine and name in all_docs:
+            continue
+
+        doc_data = diagnose(spec)
+
+        # Get documentation metadata (prefers spec.metadata over DATABASE_DOCS)
+        doc_data["documentation"] = get_documentation_metadata(spec, name)
+
+        # Add engine spec metadata
+        doc_data["engine"] = spec.engine
+        doc_data["engine_name"] = name
+        doc_data["engine_aliases"] = list(getattr(spec, "engine_aliases", set()))
+        doc_data["default_driver"] = getattr(spec, "default_driver", None)
+        doc_data["supports_file_upload"] = spec.supports_file_upload
+        doc_data["supports_dynamic_schema"] = spec.supports_dynamic_schema
+        doc_data["supports_catalog"] = spec.supports_catalog
+        doc_data["supports_dynamic_catalog"] = spec.supports_dynamic_catalog
+
+        all_docs[name] = doc_data
+
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Write individual YAML files for each database
+        for name, data in all_docs.items():
+            # Create a safe filename
+            safe_name = name.lower().replace(" ", "-").replace(".", "")
+            filepath = os.path.join(output_dir, f"{safe_name}.yaml")
+            with open(filepath, "w") as f:
+                yaml.dump(
+                    {name: data},
+                    f,
+                    default_flow_style=False,
+                    sort_keys=False,
+                    allow_unicode=True,
+                )
+
+        # Also write a combined index file
+        index_filepath = os.path.join(output_dir, "_index.yaml")
+        with open(index_filepath, "w") as f:
+            yaml.dump(
+                all_docs,
+                f,
+                default_flow_style=False,
+                sort_keys=False,
+                allow_unicode=True,
+            )
+
+        print(f"Generated {len(all_docs)} YAML files in {output_dir}")
+
+    return all_docs
+
+
 if __name__ == "__main__":
+    import argparse
+
     from superset.app import create_app
+
+    parser = argparse.ArgumentParser(description="Generate database documentation")
+    parser.add_argument(
+        "--format",
+        choices=["markdown", "yaml"],
+        default="markdown",
+        help="Output format (default: markdown)",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=None,
+        help="Directory for YAML output files",
+    )
+    args = parser.parse_args()
 
     app = create_app()
     with app.app_context():
-        output = generate_feature_tables()
-
-    print(output)
+        if args.format == "yaml":
+            output_dir = args.output_dir or "docs/static/databases"
+            docs = generate_yaml_docs(output_dir)
+            print(f"\nGenerated documentation for {len(docs)} databases")
+        else:
+            output = generate_feature_tables()
+            print(output)

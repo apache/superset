@@ -16,9 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecord, DTTM_ALIAS, ValueFormatter } from '@superset-ui/core';
+import {
+  DataRecord,
+  DTTM_ALIAS,
+  tooltipMarker,
+  truncateLabel,
+  TooltipTruncationMode,
+  ValueFormatter,
+} from '@superset-ui/core';
 import type { OptionName, SeriesOption } from 'echarts/types/src/util/types';
-import type { TooltipMarker } from 'echarts/types/src/util/format';
 import {
   ForecastSeriesContext,
   ForecastSeriesEnum,
@@ -54,21 +60,34 @@ export const extractForecastSeriesContexts = (
     {} as { [key: string]: ForecastSeriesEnum[] },
   );
 
+/**
+ * Collapses raw ECharts series ids onto the names used to key tooltip rows.
+ *
+ * Tooltip values are grouped by forecast-stripped name, so any ordering derived
+ * from the raw series ids has to be expressed in the same terms before it can be
+ * matched against them. This matters beyond real Prophet output: a metric simply
+ * labelled `ci__yhat_lower` collapses to `ci` exactly like a forecast bound
+ * does, and a chart whose every series carries such a suffix has no id that
+ * survives the comparison untouched.
+ */
+export const collapseForecastKeys = (seriesIds: string[]): string[] =>
+  Array.from(
+    new Set(seriesIds.map(id => extractForecastSeriesContext(id).name)),
+  );
+
 export const extractForecastValuesFromTooltipParams = (
   params: any[],
   isHorizontal = false,
 ): Record<string, ForecastValue> => {
   const values: Record<string, ForecastValue> = {};
   params.forEach(param => {
-    const { marker, seriesId, value } = param;
+    const { seriesId, value, color } = param;
     const context = extractForecastSeriesContext(seriesId);
     const numericValue = isHorizontal ? value[0] : value[1];
     if (typeof numericValue === 'number') {
-      if (!(context.name in values))
-        values[context.name] = {
-          marker: marker || '',
-        };
+      if (!(context.name in values)) values[context.name] = {};
       const forecastValues = values[context.name];
+      forecastValues.color = color;
       if (context.type === ForecastSeriesEnum.Observation)
         forecastValues.observation = numericValue;
       if (context.type === ForecastSeriesEnum.ForecastTrend)
@@ -88,24 +107,40 @@ export const formatForecastTooltipSeries = ({
   forecastTrend,
   forecastLower,
   forecastUpper,
-  marker,
+  color,
+  symbol,
   formatter,
+  truncation = 'end',
 }: ForecastValue & {
   seriesName: string;
-  marker: TooltipMarker;
+  symbol?: string;
   formatter: ValueFormatter;
+  truncation?: TooltipTruncationMode;
 }): string[] => {
-  const name = `${marker}${sanitizeHtml(seriesName)}`;
+  // The marker is built here rather than taken from ECharts: the sanitizer
+  // blanks ECharts' own box marker. Truncate before prepending it, since
+  // slicing a string that already contains markup would cut into the tag.
+  const marker = tooltipMarker(color, symbol);
+  const name = `${marker}${sanitizeHtml(truncateLabel(seriesName, truncation))}`;
   let value = typeof observation === 'number' ? formatter(observation) : '';
-  if (forecastTrend || forecastLower || forecastUpper) {
+  // Use finite-number checks rather than truthiness so that legitimate
+  // zero values (e.g. a forecast that crosses zero, or a confidence bound of
+  // exactly 0) are not dropped from the tooltip, while non-finite values
+  // (NaN/Infinity) are still excluded.
+  const isFiniteNumber = (val: number | undefined): val is number =>
+    typeof val === 'number' && Number.isFinite(val);
+  const hasTrend = isFiniteNumber(forecastTrend);
+  const hasLower = isFiniteNumber(forecastLower);
+  const hasUpper = isFiniteNumber(forecastUpper);
+  if (hasTrend || hasLower || hasUpper) {
     // forecast values take the form of "20, y = 30 (10, 40)"
     // where the first part is the observation, the second part is the forecast trend
     // and the third part is the lower and upper bounds
-    if (forecastTrend) {
+    if (hasTrend) {
       if (value) value += ', ';
       value += `ŷ = ${formatter(forecastTrend)}`;
     }
-    if (forecastLower && forecastUpper) {
+    if (hasLower && hasUpper) {
       if (value) value += ' ';
       // the lower bound needs to be added to the upper bound
       value += `(${formatter(forecastLower)}, ${formatter(

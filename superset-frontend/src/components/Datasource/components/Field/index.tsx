@@ -18,7 +18,7 @@
  */
 import { useCallback, ReactNode, ReactElement, cloneElement } from 'react';
 
-import { css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import { css, SupersetTheme, useTheme } from '@apache-superset/core/theme';
 import {
   Icons,
   Tooltip,
@@ -26,17 +26,27 @@ import {
   FormLabel,
 } from '@superset-ui/core/components';
 
-interface FieldProps<V> {
+export interface FieldProps<V> {
   fieldKey: string;
   value?: V;
   label: string;
   description?: ReactNode;
   control: ReactElement;
   additionalControl?: ReactElement;
-  onChange: (fieldKey: string, newValue: V) => void;
-  compact: boolean;
-  inline: boolean;
+  onChange?: (fieldKey: string, newValue: V) => void;
+  compact?: boolean;
+  inline?: boolean;
   errorMessage?: string | ReactElement;
+  /**
+   * The record the enclosing Fieldset is editing. Injected by Fieldset.
+   */
+  item?: Record<string, any>;
+  /**
+   * Pass `item` through to the control. Opt-in: a control that reads more of
+   * the record than its own field needs it, while handing an unrecognised
+   * `item` prop to TextControl or Select would do nothing good.
+   */
+  passItemToControl?: boolean;
 }
 
 export default function Field<V>({
@@ -48,11 +58,13 @@ export default function Field<V>({
   additionalControl,
   onChange = () => {},
   compact = false,
-  inline,
+  inline = false,
   errorMessage,
+  item,
+  passItemToControl = false,
 }: FieldProps<V>) {
   const onControlChange = useCallback(
-    newValue => {
+    (newValue: V) => {
       onChange(fieldKey, newValue);
     },
     [onChange, fieldKey],
@@ -89,6 +101,7 @@ export default function Field<V>({
         {infoTooltip}
       </FormLabel>
     ),
+    ...(passItemToControl ? { item } : {}),
   });
 
   return (

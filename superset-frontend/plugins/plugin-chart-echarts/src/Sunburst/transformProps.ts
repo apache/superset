@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
   CategoricalColorNamespace,
   DataRecordValue,
@@ -24,9 +25,11 @@ import {
   getNumberFormatter,
   getSequentialSchemeRegistry,
   getTimeFormatter,
+  getTimeFormatterForGranularity,
+  SMART_DATE_ID,
+  TimeGranularity,
   getValueFormatter,
   NumberFormats,
-  t,
   tooltipHtml,
   ValueFormatter,
 } from '@superset-ui/core';
@@ -43,7 +46,9 @@ import {
   NodeItemOption,
   SunburstTransformedProps,
 } from './types';
+import { getSunburstTimeGrain } from './timeGrain';
 import { getDefaultTooltip } from '../utils/tooltip';
+import { getSunburstSelectionKey, isSunburstPathSelected } from './utils';
 
 export function getLinearDomain(
   treeData: TreeNode[],
@@ -170,7 +175,7 @@ export default function transformProps(
     emitCrossFilters,
     datasource,
   } = chartProps;
-  const { data = [] } = queriesData[0];
+  const { data = [], detected_currency: detectedCurrency } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const {
     groupby = [],
@@ -186,12 +191,16 @@ export default function transformProps(
     showLabels,
     showLabelsThreshold,
     showTotal,
+    // Default to true so charts saved before this control existed keep
+    // showing null values instead of silently hiding them on upgrade.
+    showNullValues = true,
     sliceId,
   } = formData;
   const {
     currencyFormats = {},
     columnFormats = {},
     verboseMap = {},
+    currencyCodeColumn,
   } = datasource;
   const refs: Refs = {};
   const primaryValueFormatter = getValueFormatter(
@@ -200,6 +209,10 @@ export default function transformProps(
     columnFormats,
     numberFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
   const secondaryValueFormatter = secondaryMetric
     ? getValueFormatter(
@@ -208,6 +221,10 @@ export default function transformProps(
         columnFormats,
         numberFormat,
         currencyFormat,
+        undefined,
+        data,
+        currencyCodeColumn,
+        detectedCurrency,
       )
     : undefined;
 
@@ -242,6 +259,7 @@ export default function transformProps(
     columnLabels,
     metricLabel,
     secondaryMetricLabel,
+    !showNullValues,
   );
   const totalValue = treeData.reduce(
     (result, treeNode) => result + treeNode.value,
@@ -276,8 +294,6 @@ export default function transformProps(
   }
   const labelProps = {
     color: theme.colorText,
-    textBorderColor: theme.colorBgBase,
-    textBorderWidth: 1,
   };
   const traverse = (
     treeNodes: TreeNode[],
@@ -287,9 +303,22 @@ export default function transformProps(
     treeNodes.map(treeNode => {
       const { name: nodeName, value, secondaryValue, groupBy } = treeNode;
       const records = [...(pathRecords || []), nodeName];
+      const timeGrain = getSunburstTimeGrain(
+        formData,
+        columns[records.length - 1],
+      );
       let name = formatSeriesName(nodeName, {
         numberFormatter,
-        timeFormatter: getTimeFormatter(dateFormat),
+        timeFormatter:
+          dateFormat === SMART_DATE_ID &&
+          timeGrain &&
+          [
+            TimeGranularity.MONTH,
+            TimeGranularity.QUARTER,
+            TimeGranularity.YEAR,
+          ].some(grain => grain === timeGrain)
+            ? getTimeFormatterForGranularity(timeGrain)
+            : getTimeFormatter(dateFormat),
         ...(coltypeMapping[groupBy] && {
           coltype: coltypeMapping[groupBy],
         }),
@@ -312,7 +341,18 @@ export default function transformProps(
         name = newPath.join(',');
       }
       columnsLabelMap.set(name, newPath);
-      if (filterState.selectedValues?.[0]?.includes(name) === false) {
+      const selectionKey = getSunburstSelectionKey(
+        records,
+        newPath,
+        columns,
+        coltypeMapping,
+      );
+      const selectedValue = filterState.selectedValues?.[0];
+      if (
+        selectedValue != null &&
+        !isSunburstPathSelected(selectedValue, selectionKey) &&
+        !isSunburstPathSelected(selectedValue, newPath.join(','))
+      ) {
         item = {
           ...item,
           itemStyle: {
@@ -380,6 +420,7 @@ export default function transformProps(
             text: t('Total: %s', primaryValueFormatter(totalValue)),
             fontSize: 16,
             fontWeight: 'bold',
+            fill: theme.colorText,
           },
           z: 10,
         }

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Filter, NativeFilterType } from '@superset-ui/core';
+import { DatasourceType, Filter, NativeFilterType } from '@superset-ui/core';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import type { FormInstance } from '@superset-ui/core/components';
 import getControlItemsMap, { ControlItemsProps } from './getControlItemsMap';
@@ -119,7 +119,6 @@ function renderControlItems(
   controlItemsMap: ReturnType<typeof getControlItemsMap>,
 ) {
   return render(
-    // @ts-ignore
     <>
       {Object.values(controlItemsMap.controlItems).map(value => value.element)}
     </>,
@@ -183,19 +182,33 @@ test('Should render ControlItems', () => {
   expect(screen.getAllByRole('checkbox')).toHaveLength(2);
 });
 
-test('Clicking on checkbox', () => {
+test('Clicking on checkbox', async () => {
   const props = createProps();
   (getControlItems as jest.Mock).mockReturnValue(createControlItems());
   const controlItemsMap = getControlItemsMap(props);
   renderControlItems(controlItemsMap);
   expect(props.forceUpdate).not.toHaveBeenCalled();
   expect(setNativeFilterFieldValues).not.toHaveBeenCalled();
-  userEvent.click(screen.getByRole('checkbox'));
+  await userEvent.click(screen.getByRole('checkbox'));
   expect(setNativeFilterFieldValues).toHaveBeenCalled();
   expect(props.forceUpdate).toHaveBeenCalled();
 });
 
-test('Clicking on checkbox when resetConfig:false', () => {
+test('excludes displayFormat from the generic checkbox control items', () => {
+  const props = createProps();
+  (getControlItems as jest.Mock).mockReturnValue([
+    {
+      name: 'displayFormat',
+      config: { renderTrigger: true, label: 'Display format' },
+    },
+  ]);
+  const controlItemsMap = getControlItemsMap(props);
+  expect(controlItemsMap.controlItems).not.toHaveProperty('displayFormat');
+  renderControlItems(controlItemsMap);
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+});
+
+test('Clicking on checkbox when resetConfig:false', async () => {
   const props = createProps();
   (getControlItems as jest.Mock).mockReturnValue([
     { name: 'name_1', config: { renderTrigger: true, resetConfig: false } },
@@ -204,7 +217,7 @@ test('Clicking on checkbox when resetConfig:false', () => {
   renderControlItems(controlItemsMap);
   expect(props.forceUpdate).not.toHaveBeenCalled();
   expect(setNativeFilterFieldValues).not.toHaveBeenCalled();
-  userEvent.click(screen.getByRole('checkbox'));
+  await userEvent.click(screen.getByRole('checkbox'));
   expect(props.forceUpdate).toHaveBeenCalled();
   expect(setNativeFilterFieldValues).not.toHaveBeenCalled();
 });
@@ -226,7 +239,7 @@ describe('ColumnSelect filterValues behavior', () => {
       ...createProps(),
       formFilter: { filterType: 'filterType' },
     };
-    // @ts-ignore: bypass incomplete formFilter type for test
+    // @ts-expect-error: bypass incomplete formFilter type for test
     const element = getControlItemsMap(props).mainControlItems.groupby
       .element as React.ReactElement;
     render(element);
@@ -241,12 +254,29 @@ describe('ColumnSelect filterValues behavior', () => {
       ...createProps(),
       formFilter: { filterType: 'filterType' },
     };
-    // @ts-ignore: bypass incomplete formFilter type for test
+    // @ts-expect-error: bypass incomplete formFilter type for test
     const element = getControlItemsMap(props).mainControlItems.groupby
       .element as React.ReactElement;
     render(element);
     expect(screen.queryByText('col1')).not.toBeInTheDocument();
     expect(screen.queryByText('col3')).not.toBeInTheDocument();
     expect(screen.queryByText('col2')).not.toBeInTheDocument();
+  });
+  test('passes the datasource type so semantic range filters can require numeric columns', () => {
+    (doesColumnMatchFilterType as jest.Mock).mockReturnValue(true);
+    const props = {
+      ...createProps(),
+      datasourceType: DatasourceType.SemanticView,
+      formFilter: { filterType: 'filter_range' },
+    };
+    // @ts-expect-error: bypass incomplete formFilter type for test
+    const element = getControlItemsMap(props).mainControlItems.groupby
+      .element as React.ReactElement;
+    render(element);
+    expect(doesColumnMatchFilterType).toHaveBeenCalledWith(
+      'filter_range',
+      expect.objectContaining({ name: 'col1' }),
+      DatasourceType.SemanticView,
+    );
   });
 });

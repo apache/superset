@@ -31,15 +31,16 @@ export default function useResizeDetectorByObserver() {
       setChartPanelSize({ width, height });
     }
   }, []);
-  const { ref: observerRef } = useResizeDetector({
+  // Use targetRef to observe the same element we measure
+  useResizeDetector({
     refreshMode: 'debounce',
     refreshRate: 300,
     onResize,
+    targetRef: ref,
   });
 
   return {
     ref,
-    observerRef,
     width,
     height,
   };

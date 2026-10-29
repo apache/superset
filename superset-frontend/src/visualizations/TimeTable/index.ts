@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import { transformProps, controlPanel } from './config';
 import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
@@ -33,7 +34,6 @@ const metadata = new ChartMetadata({
   tags: [
     t('Multi-Variables'),
     t('Comparison'),
-    t('Legacy'),
     t('Percentages'),
     t('Tabular'),
     t('Text'),
@@ -41,7 +41,6 @@ const metadata = new ChartMetadata({
   ],
   thumbnail,
   thumbnailDark,
-  useLegacyApi: true,
 });
 
 export default class TimeTableChartPlugin extends ChartPlugin {
@@ -49,6 +48,7 @@ export default class TimeTableChartPlugin extends ChartPlugin {
     super({
       metadata,
       transformProps,
+      loadBuildQuery: () => import('./config/buildQuery'),
       loadChart: () => import('./TimeTable'),
       controlPanel,
     });

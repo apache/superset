@@ -17,29 +17,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const fs = require('fs');
-const path = require('path');
-const webpack = require('webpack');
-
-const { ModuleFederationPlugin } = webpack.container;
-const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
-const CopyPlugin = require('copy-webpack-plugin');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-const TerserPlugin = require('terser-webpack-plugin');
-const LightningCSS = require('lightningcss');
-const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
-const {
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import webpack from 'webpack';
+import * as webpackBundleAnalyzer from 'webpack-bundle-analyzer';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import MinimizerPlugin from 'minimizer-webpack-plugin';
+import * as LightningCSS from 'lightningcss';
+import SpeedMeasurePlugin from 'speed-measure-webpack-plugin';
+import {
   WebpackManifestPlugin,
   getCompilerHooks,
-} = require('webpack-manifest-plugin');
-const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
-const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
-const parsedArgs = require('yargs').argv;
-const Visualizer = require('webpack-visualizer-plugin2');
-const getProxyConfig = require('./webpack.proxy-config');
-const packageConfig = require('./package.json');
+} from 'webpack-manifest-plugin';
+import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
+import Visualizer from 'webpack-visualizer-plugin2';
+import getProxyConfig from './webpack.proxy-config.js';
+
+const { ModuleFederationPlugin } = webpack.container;
+const { BundleAnalyzerPlugin } = webpackBundleAnalyzer;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const resolveEsmModule = specifier =>
+  fileURLToPath(import.meta.resolve(specifier));
+
+const packageConfig = JSON.parse(
+  fs.readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
+);
+
+const parsedArgs = yargs(hideBin(process.argv)).parse();
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -66,25 +77,47 @@ const devserverHost =
   cliHost || process.env.WEBPACK_DEVSERVER_HOST || '127.0.0.1';
 
 const isDevMode = mode !== 'production';
-const isDevServer = process.argv[1].includes('webpack-dev-server');
+const isDevServer = process.argv[1]?.includes('webpack-dev-server') ?? false;
 
-// TypeScript checker memory limit (in MB)
-const TYPESCRIPT_MEMORY_LIMIT = 4096;
+const defaultEntryFilename = isDevMode
+  ? '[name].[contenthash:8].entry.js'
+  : nameChunks
+    ? '[name].[chunkhash].entry.js'
+    : '[name].[chunkhash].entry.js';
+
+const defaultChunkFilename = isDevMode
+  ? '[name].[contenthash:8].chunk.js'
+  : nameChunks
+    ? '[name].[chunkhash].chunk.js'
+    : '[chunkhash].chunk.js';
 
 const output = {
   path: BUILD_DIR,
   publicPath: '/static/assets/',
+  filename: pathData =>
+    pathData.chunk?.name === 'service-worker'
+      ? '../service-worker.js'
+      : defaultEntryFilename,
+  chunkFilename: pathData =>
+    pathData.chunk?.name === 'service-worker'
+      ? '../service-worker.js'
+      : defaultChunkFilename,
+  copy: [
+    'package.json',
+    { from: 'src/assets/images', to: 'images' },
+    // maplibre-gl 6's ESM-only build loads its worker from a real URL
+    // instead of an inlined blob (see MapLibre.tsx for the matching
+    // maplibregl.setWorkerUrl() call). The worker's own bundle does a
+    // relative ESM import of its "shared" chunk, so both files must be
+    // copied verbatim, unhashed, into the same output directory.
+    {
+      from: 'node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs',
+    },
+    {
+      from: 'node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs',
+    },
+  ],
 };
-if (isDevMode) {
-  output.filename = '[name].[contenthash:8].entry.js';
-  output.chunkFilename = '[name].[contenthash:8].chunk.js';
-} else if (nameChunks) {
-  output.filename = '[name].[chunkhash].entry.js';
-  output.chunkFilename = '[name].[chunkhash].chunk.js';
-} else {
-  output.filename = '[name].[chunkhash].entry.js';
-  output.chunkFilename = '[chunkhash].chunk.js';
-}
 
 if (!isDevMode) {
   output.clean = true;
@@ -93,7 +126,7 @@ if (!isDevMode) {
 const plugins = [
   new webpack.ProvidePlugin({
     process: 'process/browser.js',
-    ...(isDevMode ? { Buffer: ['buffer', 'Buffer'] } : {}), // Fix legacy-plugin-chart-paired-t-test broken Story
+    ...(isDevMode ? { Buffer: ['buffer', 'Buffer'] } : {}), // Fix plugin-chart-paired-t-test broken Story
   }),
 
   // creates a manifest.json mapping of name to hashed output used in template files
@@ -138,10 +171,6 @@ const plugins = [
     'process.env.SCARF_ANALYTICS': JSON.stringify(process.env.SCARF_ANALYTICS),
   }),
 
-  new CopyPlugin({
-    patterns: ['package.json', { from: 'src/assets/images', to: 'images' }],
-  }),
-
   // static pages
   new HtmlWebpackPlugin({
     template: './src/assets/staticPages/404.html',
@@ -174,6 +203,10 @@ const plugins = [
         requiredVersion: packageConfig.dependencies.antd,
         eager: true,
       },
+      '@apache-superset/core': {
+        singleton: true,
+        eager: true,
+      },
     },
   }),
 ];
@@ -184,11 +217,24 @@ if (!process.env.CI) {
 
 // Add React Refresh plugin for development mode
 if (isDevMode) {
-  plugins.push(new ReactRefreshWebpackPlugin());
+  plugins.push(
+    new ReactRefreshWebpackPlugin({
+      // Exclude:
+      //   - node_modules (the plugin's default — must be re-added when overriding
+      //     `exclude`, otherwise pre-bundled ESM packages such as
+      //     react-checkbox-tree get the refresh loader injected into their
+      //     nested webpack runtime, causing
+      //     `__webpack_require__.$Refresh$ is undefined` at module factory
+      //     execution time.
+      //   - service worker (runs in a worker context without DOM/window and
+      //     does not need HMR).
+      exclude: [/node_modules/, /service-worker/],
+    }),
+  );
 }
 
 if (!isDevMode) {
-  // text loading (webpack 4+)
+  // CSS extraction for production builds
   plugins.push(
     new MiniCssExtractPlugin({
       filename: '[name].[chunkhash].entry.css',
@@ -197,38 +243,16 @@ if (!isDevMode) {
   );
 }
 
-// TypeScript type checking configuration
-// SWC handles transpilation, but we still need ForkTsCheckerWebpackPlugin
-// to generate .d.ts files for the plugin packages
-if (!isDevMode) {
-  plugins.push(
-    new ForkTsCheckerWebpackPlugin({
-      async: false,
-      typescript: {
-        memoryLimit: 4096,
-        build: true, // CRITICAL: Generate .d.ts files for plugins
-        mode: 'write-references', // Handle project references
-        configOverwrite: {
-          compilerOptions: {
-            skipLibCheck: true,
-            incremental: true,
-          },
-        },
-      },
-    }),
-  );
-}
+// Type checking does not run inside webpack: SWC only transpiles, and the
+// native TypeScript compiler is fast enough to run on its own. Use
+// `npm run type` (or `npm run type -- --watch`) for type errors, and
+// `npm run plugins:build` (or `npx tsc --build --watch`) to refresh the
+// packages' .d.ts output while editing plugins/packages.
 
-const PREAMBLE = [path.join(APP_DIR, '/src/preamble.ts')];
-if (isDevMode) {
-  // A Superset webpage normally includes two JS bundles in dev, `theme.ts` and
-  // the main entrypoint. Only the main entry should have the dev server client,
-  // otherwise the websocket client will initialize twice, creating two sockets.
-  // Ref: https://github.com/gaearon/react-hot-loader/issues/141
-  PREAMBLE.unshift(
-    `webpack-dev-server/client?http://localhost:${devserverPort}`,
-  );
-}
+// In dev mode, include theme.ts in preamble to avoid separate chunk HMR issues
+const PREAMBLE = isDevMode
+  ? [path.join(APP_DIR, 'src/theme.ts'), path.join(APP_DIR, 'src/preamble.ts')]
+  : [path.join(APP_DIR, 'src/preamble.ts')];
 
 function addPreamble(entry) {
   return PREAMBLE.concat([path.join(APP_DIR, entry)]);
@@ -296,17 +320,29 @@ function createSwcLoader(syntax = 'typescript', tsx = true) {
 const config = {
   entry: {
     preamble: PREAMBLE,
-    theme: path.join(APP_DIR, '/src/theme.ts'),
+    // In dev mode, theme is included in preamble to avoid separate chunk HMR issues
+    ...(isDevMode ? {} : { theme: path.join(APP_DIR, 'src/theme.ts') }),
     menu: addPreamble('src/views/menu.tsx'),
-    spa: addPreamble('/src/views/index.tsx'),
-    embedded: addPreamble('/src/embedded/index.tsx'),
+    spa: addPreamble('src/views/index.tsx'),
+    embedded: addPreamble('src/embedded/index.tsx'),
+    'service-worker': path.join(APP_DIR, 'src/service-worker.ts'),
   },
   cache: {
-    type: 'filesystem', // Enable filesystem caching
+    type: 'filesystem',
     cacheDirectory: path.resolve(__dirname, '.temp_cache'),
+    // Separate cache for dev vs prod builds
+    name: `${isDevMode ? 'development' : 'production'}-cache`,
+    // Invalidate cache when these files change
     buildDependencies: {
-      config: [__filename],
+      config: [
+        __filename,
+        path.resolve(__dirname, 'package-lock.json'),
+        path.resolve(__dirname, 'babel.config.js'),
+        path.resolve(__dirname, 'tsconfig.json'),
+      ],
     },
+    // Compress cache for smaller disk usage (slight CPU tradeoff)
+    compression: isDevMode ? false : 'gzip',
   },
   output,
   stats: 'minimal',
@@ -351,16 +387,10 @@ const config = {
             `/node_modules/(${[
               'react',
               'react-dom',
-              'prop-types',
-              'react-prop-types',
-              'prop-types-extra',
               'redux',
               'react-redux',
-              'react-hot-loader',
-              'react-sortable-hoc',
               'react-table',
               'react-ace',
-              '@hot-loader.*',
               'webpack.*',
               '@?babel.*',
               'lodash.*',
@@ -387,20 +417,18 @@ const config = {
     },
     usedExports: 'global',
     minimizer: [
-      new CssMinimizerPlugin({
-        minify: CssMinimizerPlugin.lightningCssMinify,
+      new MinimizerPlugin({
+        test: /\.css(\?.*)?$/i,
+        minify: MinimizerPlugin.lightningCssMinify,
         minimizerOptions: {
-          targets: LightningCSS.browserslistToTargets([
-            'last 3 chrome versions',
-            'last 3 firefox versions',
-            'last 3 safari versions',
-            'last 3 edge versions',
-          ]),
+          targets: LightningCSS.browserslistToTargets(
+            packageConfig.browserslist,
+          ),
         },
       }),
-      new TerserPlugin({
-        minify: TerserPlugin.swcMinify,
-        terserOptions: {
+      new MinimizerPlugin({
+        minify: MinimizerPlugin.swcMinify,
+        minimizerOptions: {
           compress: {
             drop_console: false,
           },
@@ -421,6 +449,7 @@ const config = {
       path.resolve(APP_DIR, 'plugins'),
     ],
     alias: {
+      '@storybook-shared': path.resolve(APP_DIR, '.storybook/shared'),
       react: path.resolve(path.join(APP_DIR, './node_modules/react')),
       // TODO: remove Handlebars alias once Handlebars NPM package has been updated to
       // correctly support webpack import (https://github.com/handlebars-lang/handlebars.js/issues/953)
@@ -431,22 +460,14 @@ const config = {
       This prevents "Module not found" errors for moment locale files.
       */
       'moment/min/moment-with-locales': false,
-      // Temporary workaround to allow Storybook 8 to work with existing React v16-compatible stories.
-      // Remove below alias once React has been upgreade to v18.
-      '@storybook/react-dom-shim': path.resolve(
-        path.join(
-          APP_DIR,
-          './node_modules/@storybook/react-dom-shim/dist/react-16',
-        ),
-      ),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
       fs: false,
-      vm: require.resolve('vm-browserify'),
+      vm: false,
       path: false,
-      stream: require.resolve('stream-browserify'),
-      ...(isDevMode ? { buffer: require.resolve('buffer/') } : {}), // Fix legacy-plugin-chart-paired-t-test broken Story
+      stream: resolveEsmModule('stream-browserify'),
+      ...(isDevMode ? { buffer: resolveEsmModule('buffer/') } : {}), // Fix plugin-chart-paired-t-test broken Story
     },
   },
   context: APP_DIR, // to automatically find tsconfig.json
@@ -467,9 +488,15 @@ const config = {
         },
       },
       {
+        test: /node_modules\/(geostyler|geostyler-openlayers-parser|geostyler-mapbox-parser|geostyler-sld-parser)\/.*\.js$/,
+        resolve: {
+          fullySpecified: false,
+        },
+      },
+      {
         test: /\.tsx?$/,
         exclude: [/\.test.tsx?$/, /node_modules/],
-        use: ['thread-loader', createSwcLoader('typescript', true)],
+        use: [createSwcLoader('typescript', true)],
       },
       {
         test: /\.jsx?$/,
@@ -503,7 +530,7 @@ const config = {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: true,
+              sourceMap: !isDevMode,
             },
           },
         ],
@@ -561,20 +588,6 @@ const config = {
         test: /\.geojson$/,
         type: 'asset/resource',
       },
-      // {
-      //   test: /\.mdx?$/,
-      //   use: [
-      //     {
-      //       loader: require.resolve('@storybook/mdx2-csf/loader'),
-      //       options: {
-      //         skipCsf: false,
-      //         mdxCompileOptions: {
-      //           remarkPlugins: [remarkGfm],
-      //         },
-      //       },
-      //     },
-      //   ],
-      // },
     ],
   },
   externals: {
@@ -587,10 +600,22 @@ const config = {
   watchOptions: isDevMode
     ? {
         // Watch all plugin and package source directories
-        ignored: ['**/node_modules', '**/.git', '**/lib', '**/esm', '**/dist'],
-        // Poll less frequently to reduce file handles
+        ignored: [
+          '**/node_modules',
+          '**/.git',
+          '**/lib',
+          '**/esm',
+          '**/dist',
+          '**/.temp_cache',
+          '**/coverage',
+          '**/*.test.*',
+          '**/*.stories.*',
+          '**/*.geojson',
+        ],
+        // Poll-based watching is needed in Docker/VM where native fs events
+        // don't propagate from host to container.
         poll: 2000,
-        // Aggregate changes for 500ms before rebuilding
+        // Aggregate changes before rebuilding
         aggregateTimeout: 500,
       }
     : undefined,
@@ -626,13 +651,24 @@ if (isDevMode) {
 
   config.devServer = {
     devMiddleware: {
+      publicPath: '/static/assets/',
       writeToDisk: true,
     },
     historyApiFallback: true,
-    hot: true,
+    hot: 'only', // HMR only, no page reload fallback
+    liveReload: false,
     host: devserverHost,
     port: devserverPort,
-    allowedHosts: ['localhost', '.localhost', '127.0.0.1', '::1', '.local'],
+    allowedHosts: [
+      ...new Set([
+        devserverHost,
+        'localhost',
+        '.localhost',
+        '127.0.0.1',
+        '::1',
+        '.local',
+      ]),
+    ],
     proxy: [() => proxyConfig],
     client: {
       overlay: {
@@ -640,7 +676,7 @@ if (isDevMode) {
         warnings: false,
         runtimeErrors: error => !/ResizeObserver/.test(error.message),
       },
-      logging: 'error',
+      logging: 'info', // Show HMR messages
       webSocketURL: {
         hostname: '0.0.0.0',
         pathname: '/ws',
@@ -675,4 +711,14 @@ const smp = new SpeedMeasurePlugin({
   disable: !measure,
 });
 
-module.exports = smp.wrap(config);
+// Emits per-asset/entrypoint sizes via `--json` (the default `stats: 'minimal'`
+// above omits both). Not `normal`/`detailed` stats: those also serialize the
+// full ~15k-module dependency graph, which is hundreds of MB for this app --
+// large enough to exceed Node's max string length when read back with
+// `fs.readFileSync`. Used by scripts/bundle-size-summary.js in CI.
+// e.g. BUNDLE_SIZE_STATS=true npm run build -- --json=stats.json
+if (process.env.BUNDLE_SIZE_STATS) {
+  config.stats = { all: false, assets: true, entrypoints: true };
+}
+
+export default smp.wrap(config);

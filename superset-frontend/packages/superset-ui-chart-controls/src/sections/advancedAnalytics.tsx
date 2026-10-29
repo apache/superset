@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, RollingType, ComparisonType } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { RollingType, ComparisonType } from '@superset-ui/core';
 
 import { ControlSubSectionHeader } from '../components/ControlSubSectionHeader';
 import { ControlPanelSectionConfig } from '../types';
@@ -133,6 +134,26 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
     ],
     [
       {
+        name: 'time_compare_full_range',
+        config: {
+          type: 'CheckboxControl',
+          label: t('Show full range for time shift'),
+          default: false,
+          description: t(
+            'Plot each time-shifted series across its full time range instead ' +
+              'of truncating it to the main series. Useful for comparing a ' +
+              'partial current period (e.g. today so far) against complete ' +
+              'prior periods (e.g. all of yesterday).',
+          ),
+          visibility: ({ controls }) =>
+            Boolean(controls?.time_compare?.value) &&
+            (!Array.isArray(controls?.time_compare?.value) ||
+              controls.time_compare.value.length > 0),
+        },
+      },
+    ],
+    [
+      {
         name: 'comparison_type',
         config: {
           type: 'SelectControl',
@@ -193,6 +214,30 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
             ['sum', t('Sum values')],
           ],
           description: t('Pandas resample method'),
+        },
+      },
+    ],
+    [
+      {
+        name: 'resample_fill_time_range',
+        config: {
+          type: 'CheckboxControl',
+          label: t('Fill the entire time range'),
+          default: false,
+          description: t(
+            'Fill missing periods across the whole time range of the chart ' +
+              'instead of only between the first and the last data point. ' +
+              'Useful to keep a series anchored to the selected time range ' +
+              'when the data starts late or ends early.',
+          ),
+          visibility: ({ controls }, { name }) => {
+            // `_b` suffixed controls refer to Query B in mixed timeseries
+            const suffix = name.endsWith('_b') ? '_b' : '';
+            return Boolean(
+              controls[`resample_rule${suffix}`]?.value &&
+              controls[`resample_method${suffix}`]?.value,
+            );
+          },
         },
       },
     ],

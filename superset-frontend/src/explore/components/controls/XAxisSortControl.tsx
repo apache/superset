@@ -16,21 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import SelectControl from './SelectControl';
 
-export default function XAxisSortControl(props: {
+interface XAxisSortControlProps {
   onChange: (val: string | undefined) => void;
   value: string | null;
   shouldReset: boolean;
-}) {
-  const [value, setValue] = useState(props.value);
+  name?: string;
+  [key: string]: unknown;
+}
+
+export default function XAxisSortControl(props: XAxisSortControlProps) {
   useEffect(() => {
     if (props.shouldReset) {
       props.onChange(undefined);
-      setValue(null);
     }
   }, [props.shouldReset, props.value]);
 
-  return <SelectControl {...props} value={value} />;
+  return (
+    <SelectControl
+      {...props}
+      name={props.name ?? 'x_axis_sort'}
+      // The parent owns this value, so it is read straight from the props.
+      // Copying it into local state on mount froze the control at whatever
+      // value it first rendered with: a later change coming from form_data
+      // never reached it, and only a `shouldReset` could unblock it.
+      value={props.shouldReset ? undefined : props.value}
+    />
+  );
 }

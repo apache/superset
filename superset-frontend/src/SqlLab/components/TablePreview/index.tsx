@@ -17,10 +17,13 @@
  * under the License.
  */
 import { type FC, useCallback, useMemo, useRef, useState } from 'react';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { nanoid } from 'nanoid';
-import { ClientErrorObject, getExtensionsRegistry, t } from '@superset-ui/core';
-import { css, styled, Alert, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { ClientErrorObject, getExtensionsRegistry } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import {
   SafeMarkdown,
   Breadcrumb,
@@ -28,10 +31,14 @@ import {
   Skeleton,
   Flex,
 } from '@superset-ui/core/components';
-import AutoSizer from 'react-virtualized-auto-sizer';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { CopyToClipboard, FilterableTable } from 'src/components';
+import {
+  CopyToClipboard,
+  ErrorMessageWithStackTrace,
+  FilterableTable,
+} from 'src/components';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
   tableApiUtil,
@@ -40,6 +47,7 @@ import {
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
 import { runTablePreviewQuery } from 'src/SqlLab/actions/sqlLab';
+import { PREVIEW_QUERY_LIMIT } from 'src/SqlLab/constants';
 import { ActionButton } from '@superset-ui/core/components/ActionButton';
 import ResultSet from '../ResultSet';
 import ShowSQL from '../ShowSQL';
@@ -62,7 +70,6 @@ const TABS_KEYS = {
   SAMPLE: 'sample',
 };
 const TAB_HEADER_HEIGHT = 80;
-const PREVIEW_QUERY_LIMIT = 100;
 
 const Title = styled.div`
   ${({ theme }) => css`
@@ -72,8 +79,6 @@ const Title = styled.div`
     column-gap: ${theme.sizeUnit}px;
     font-size: ${theme.fontSizeLG}px;
     font-weight: ${theme.fontWeightStrong};
-    padding-top: ${theme.sizeUnit * 2}px;
-    padding-left: ${theme.sizeUnit * 4}px;
   `}
 `;
 const renderWell = (partitions: TableMetaData['partitions']) => {
@@ -110,7 +115,7 @@ const renderWell = (partitions: TableMetaData['partitions']) => {
 };
 
 const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const theme = useTheme();
   const [databaseName, backend, disableDataPreview] = useSelector<
     SqlLabRootState,
@@ -256,13 +261,26 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
   }
 
   if (hasMetadataError || metadataExtrError) {
-    return (
-      <Alert
-        type="warning"
-        message={
-          ((metadataError || metadataExtrError) as ClientErrorObject)?.error
-        }
-      />
+    // Pass the structured SupersetError through to ErrorMessageWithStackTrace so
+    // that OAuth2 redirect errors (error_type=OAUTH2_REDIRECT) render the
+    // "Authorization needed" link and auto-retry once the OAuth2 dance completes.
+    // The source="crud" value drives the tag-invalidation retry in
+    // OAuth2RedirectMessage.tsx (which invalidates the TableMetadatas tag).
+    // Errors without a structured errors[] array (raw 500s, timeouts, network
+    // failures) fall back to the plain message so it isn't swallowed.
+    // Both requests can fail at once, so pick whichever carries a structured
+    // payload rather than always preferring the main request — otherwise a
+    // generic failure there would mask an actionable OAUTH2_REDIRECT from the
+    // extended-metadata request.
+    const clientErrors = [metadataError, metadataExtrError].filter(
+      Boolean,
+    ) as ClientErrorObject[];
+    const errorPayload = clientErrors.find(({ errors }) => errors?.length)
+      ?.errors?.[0];
+    return errorPayload ? (
+      <ErrorMessageWithStackTrace error={errorPayload} source="crud" />
+    ) : (
+      <Alert type="warning" message={clientErrors[0]?.error} />
     );
   }
   if (!data) {
@@ -282,23 +300,17 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
         flex-direction: column;
       `}
     >
-      <Breadcrumb
-        separator=">"
-        css={css`
-          padding-left: ${theme.sizeUnit * 4}px;
-        `}
-      >
+      <Breadcrumb separator=">">
         <Breadcrumb.Item>{backend}</Breadcrumb.Item>
         <Breadcrumb.Item>{databaseName}</Breadcrumb.Item>
         {catalog && <Breadcrumb.Item>{catalog}</Breadcrumb.Item>}
-        {schema && <Breadcrumb.Item>{schema}</Breadcrumb.Item>}
         <Breadcrumb.Item> </Breadcrumb.Item>
       </Breadcrumb>
-      <div style={{ display: 'none' }}>
+      <div style={{ display: 'none' }} aria-hidden="true">
         <CopyToClipboard
           copyNode={
             <button type="button" ref={copyStatementActionRef}>
-              invisible button
+              {t('Copy')}
             </button>
           }
           text={tableData.selectStar}
@@ -311,7 +323,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
             title={t('CREATE VIEW statement')}
             triggerNode={
               <button type="button" ref={showViewStatementActionRef}>
-                invisible button
+                {t('Show SQL')}
               </button>
             }
           />
@@ -319,6 +331,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
       </div>
       <Title>
         <Icons.InsertRowAboveOutlined iconSize="l" />
+        {schema ? `${schema}.` : ''}
         {tableName}
         {titleActions()}
       </Title>
@@ -333,8 +346,8 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
               flex: 1 1 auto;
             `}
           >
-            <AutoSizer disableWidth>
-              {({ height }) => {
+            <AutoSizer
+              renderProp={({ height = TAB_HEADER_HEIGHT }) => {
                 const tabItems = [];
 
                 tabItems.push({
@@ -421,13 +434,10 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
                     `}
                     tabBarStyle={{ paddingLeft: theme.sizeUnit * 4 }}
                     items={tabItems}
-                    contentStyle={css`
-                      padding-left: ${theme.sizeUnit * 4}px;
-                    `}
                   />
                 );
               }}
-            </AutoSizer>
+            />
           </div>
         </>
       )}

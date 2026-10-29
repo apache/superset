@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { Tag } from 'src/components';
 import { FC } from 'react';
 import { ExtentTagProps } from './types';
@@ -34,13 +34,20 @@ export const ExtentTag: FC<ExtentTagProps> = ({
 
   return (
     <Tag onClick={onClick} className={className}>
-      {zoomName}: {value.fixedZoom ? Math.round(value.fixedZoom) : unsetName}
+      {zoomName}:{' '}
+      {typeof value.fixedZoom === 'number'
+        ? Math.round(value.fixedZoom)
+        : unsetName}
       {' | '}
       {latName}:{' '}
-      {value.fixedLatitude ? value.fixedLatitude.toFixed(6) : unsetName}
+      {typeof value.fixedLatitude === 'number'
+        ? value.fixedLatitude.toFixed(6)
+        : unsetName}
       {' | '}
       {lonName}:{' '}
-      {value.fixedLongitude ? value.fixedLongitude.toFixed(6) : unsetName}
+      {typeof value.fixedLongitude === 'number'
+        ? value.fixedLongitude.toFixed(6)
+        : unsetName}
     </Tag>
   );
 };

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { testQueryResponse } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { checkColumnType, TestDataset } from '../../src';
 
 test('checkColumnType columns from a Dataset', () => {

@@ -18,7 +18,7 @@
  */
 
 import { useMemo, useState } from 'react';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import type { TagType } from 'src/types/TagType';
 import { Tag } from 'src/components/Tag';
 

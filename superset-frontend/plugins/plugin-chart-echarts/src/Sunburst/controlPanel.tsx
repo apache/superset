@@ -16,16 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { ensureIsArray, isPhysicalColumn } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
+  ControlState,
   ControlSubSectionHeader,
   D3_FORMAT_DOCS,
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
   getStandardizedControls,
+  DEFAULT_TIME_FORMAT,
+  sharedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
@@ -38,6 +42,37 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['columns'],
+        [
+          {
+            name: 'time_grain_sqla',
+            config: {
+              ...sharedControls.time_grain_sqla,
+              // Keep the saved grain (or none). Unlike the shared control, a
+              // new chart starts without a grain, so temporal levels keep
+              // their raw values until one is chosen.
+              initialValue: (control: ControlState) => control.value,
+              default: null,
+              description: t(
+                'Time grain applied to the temporal levels of the hierarchy.',
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) => {
+                const dttmLookup = Object.fromEntries(
+                  ensureIsArray(controls?.columns?.options).map(option => [
+                    option.column_name,
+                    option.is_dttm,
+                  ]),
+                );
+                // buildQuery grains only physical temporal levels, so an adhoc
+                // level alone does not show a grain that would not apply.
+                return ensureIsArray(controls?.columns?.value).some(
+                  selection =>
+                    isPhysicalColumn(selection) && !!dttmLookup[selection],
+                );
+              },
+            },
+          },
+          'temporal_columns_lookup',
+        ],
         ['metric'],
         ['secondary_metric'],
         ['adhoc_filters'],
@@ -93,6 +128,20 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'show_null_values',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Null Values'),
+              default: true,
+              renderTrigger: true,
+              description: t(
+                'Whether to display entries with null values in the hierarchy',
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'label_type',
             config: {
               type: 'SelectControl',
@@ -132,7 +181,7 @@ const config: ControlPanelConfig = {
               label: t('Date format'),
               renderTrigger: true,
               choices: D3_TIME_FORMAT_OPTIONS,
-              default: 'smart_date',
+              default: DEFAULT_TIME_FORMAT,
               description: D3_FORMAT_DOCS,
             },
           },
@@ -163,7 +212,7 @@ const config: ControlPanelConfig = {
       visibility: ({ controls }: ControlPanelsContainerProps) =>
         Boolean(
           !controls?.secondary_metric?.value ||
-            controls?.secondary_metric?.value === controls?.metric.value,
+          controls?.secondary_metric?.value === controls?.metric.value,
         ),
     },
     linear_color_scheme: {
@@ -173,7 +222,7 @@ const config: ControlPanelConfig = {
       visibility: ({ controls }: ControlPanelsContainerProps) =>
         Boolean(
           controls?.secondary_metric?.value &&
-            controls?.secondary_metric?.value !== controls?.metric.value,
+          controls?.secondary_metric?.value !== controls?.metric.value,
         ),
     },
     columns: {

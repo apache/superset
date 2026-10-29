@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { t } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Link } from 'react-router-dom';
@@ -71,8 +71,8 @@ export const useDashboardsMenuItems = ({
           label: (
             <Link
               target="_blank"
-              rel="noreferer noopener"
-              to={`/superset/dashboard/${dashboard.id}${urlQueryString}`}
+              rel="noreferrer noopener"
+              to={`/dashboard/${dashboard.id}${urlQueryString}`}
               css={css`
                 display: flex;
                 flex-direction: row;

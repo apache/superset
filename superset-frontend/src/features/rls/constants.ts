@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 
 export const FILTER_OPTIONS = [
   {

@@ -15,27 +15,212 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Any, cast
 
-from flask import current_app as app, request
-from flask_appbuilder.api import expose, protect, safe
+from flask import current_app as app, make_response, request, Response
+from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api.schemas import get_list_schema
+from marshmallow import ValidationError
 
-from superset import event_logger
-from superset.connectors.sqla.models import BaseDatasource
+from superset import event_logger, is_feature_enabled, security_manager
+from superset.commands.datasource.list import GetCombinedDatasourceListCommand
+from superset.commands.exceptions import CommandException
+from superset.common.chart_data import ChartDataResultFormat
+from superset.common.tabular_query import (
+    build_query_dict,
+    execute_tabular_query,
+    resolve_explorable,
+    ResolvedExplorable,
+    TabularQueryValidationError,
+    validate_names,
+    validate_query_names,
+)
+from superset.connectors.sqla.models import BaseDatasource, SqlaTable
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
-from superset.exceptions import SupersetSecurityException
+from superset.datasource.schemas import DatasourceQuerySchema
+from superset.errors import SupersetErrorType
+from superset.exceptions import (
+    QueryObjectValidationError,
+    SupersetException,
+    SupersetSecurityException,
+)
+from superset.extensions import cache_manager
+from superset.models.sql_lab import Query
+from superset.semantic_layers.access import SemanticLayersDisabledError
+from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
+from superset.semantic_layers.exceptions import (
+    SemanticLayerExecutionError,
+    SemanticLayerQueryRejectedError,
+)
+from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
+from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import FlaskResponse
-from superset.utils.core import apply_max_row_limit, DatasourceType, SqlExpressionType
-from superset.views.base_api import BaseSupersetApi, statsd_metrics
+from superset.utils import json
+from superset.utils.core import (
+    apply_max_row_limit,
+    DatasourceType,
+    FilterOperator,
+    parse_boolean_string,
+    SqlExpressionType,
+)
+from superset.utils.error_sanitization import sanitize_error_message
+from superset.utils.hashing import hash_from_dict
+from superset.views.base_api import BaseSupersetApi, protect_read, statsd_metrics
 
 logger = logging.getLogger(__name__)
+
+# Cache lifetime for search-filtered column values, in seconds.
+SEARCH_CACHE_TIMEOUT = 60
+
+
+class _HttpError(Exception):
+    """Carry an HTTP status and response payload out of the resolve helper."""
+
+    def __init__(
+        self, status: int, message: str, *, error: dict[str, Any] | None = None
+    ) -> None:
+        super().__init__(message)
+        self.status: int = status
+        self.payload: dict[str, Any] = {"message": message}
+        if error is not None:
+            self.payload["errors"] = [error]
+
+
+def _column_values_cache_key(
+    datasource: BaseDatasource | SemanticView, query: dict[str, Any]
+) -> str:
+    """Bind a value query to its producer guarantee and existing security scope."""
+    material: dict[str, Any] = dict(query)
+    if isinstance(datasource, SemanticView):
+        material["metadata_version"] = datasource.metadata_generation
+        discriminator: tuple[str, str] | None = datasource.result_cache_discriminator
+        if discriminator is not None:
+            material["semantic_result_version"] = discriminator
+    material.update(
+        uid=datasource.uid,
+        rls=security_manager.get_rls_cache_key(datasource),
+        changed_on=str(getattr(datasource, "changed_on", "")),
+    )
+    # The canonical RLS key contains raw clauses, not their rendered values.
+    if isinstance(datasource, SqlaTable) and (
+        rendered_rls := datasource.get_rendered_rls_cache_key()
+    ):
+        material["rendered_rls"] = rendered_rls
+    # Executing a virtual dataset (or a SQL Lab query) also injects the RLS of
+    # the tables its SQL reads, which ``get_rls_cache_key`` does not cover.
+    # Only added when non-empty, so keys without inner rules keep their bytes.
+    if isinstance(datasource, (SqlaTable, Query)) and (
+        inner_rls := datasource.get_inner_rls_cache_key()
+    ):
+        material["inner_rls"] = inner_rls
+    return "col_values:" + hash_from_dict(material)
+
+
+def get_cached_column_values(
+    datasource: BaseDatasource | SemanticView,
+    *,
+    column_name: str,
+    limit: int,
+    denormalize_column: bool,
+    array_elements: bool = False,
+    search: str | None = None,
+    selection_version: str | None = None,
+    force: bool = False,
+) -> tuple[list[Any], bool]:
+    """Return a column's distinct values through the shared ``data_cache`` entry.
+
+    Used by the column-values endpoint and by callers that read the same
+    values (e.g. the MCP filter validation), so they share cache entries and
+    a heavy virtual dataset's DISTINCT query runs once per key, not once per
+    caller (#39342).
+
+    Callers must have authorized the datasource (``raise_for_access``) first:
+    the key partitions entries by effective RLS (the datasource's own rules and
+    those of the tables its SQL reads), not by user, so the cache itself is not
+    an access check. ``search`` must already be stripped, with
+    ``None`` for "no search", so equal queries produce equal keys.
+
+    Returns ``(values, cache_hit)``. ``force`` skips the read and refreshes
+    the entry.
+    """
+    cache_key: str = _column_values_cache_key(
+        datasource,
+        {
+            **(
+                {"semantic_selection_version": selection_version}
+                if selection_version is not None
+                else {}
+            ),
+            "col": column_name,
+            "limit": limit,
+            "denorm": denormalize_column,
+            "elements": array_elements,
+            "q": search,
+        },
+    )
+    timeout: int = datasource.cache_timeout or app.config.get(
+        "CACHE_DEFAULT_TIMEOUT", 300
+    )
+    cached: list[Any] | None
+    if (
+        timeout != CACHE_DISABLED_TIMEOUT
+        and not force
+        and (cached := cache_manager.data_cache.get(cache_key)) is not None
+    ):
+        logger.debug(
+            "column-values cache HIT: uid=%s col=%s", datasource.uid, column_name
+        )
+        return cached, True
+    payload: list[Any] = datasource.values_for_column(
+        column_name=column_name,
+        limit=limit,
+        denormalize_column=denormalize_column,
+        array_elements=array_elements,
+        search=search,
+    )
+
+    # Warn before caching very large payloads (high-cardinality columns)
+    # so operators can spot cache-memory pressure before Redis OOMs.
+    # Threshold is operator-tunable; defaults to 100k rows.
+    warn_threshold: int = app.config.get("FILTER_VALUES_CACHE_WARN_THRESHOLD", 100_000)
+    payload_size: int
+    if (payload_size := len(payload)) > warn_threshold:
+        logger.warning(
+            "column-values payload exceeds cache-warn threshold: "
+            "uid=%s col=%s rows=%d threshold=%d",
+            datasource.uid,
+            column_name,
+            payload_size,
+            warn_threshold,
+        )
+
+    # Bound each distinct search term's lifetime instead of retaining one
+    # entry per keystroke for the full default timeout.
+    timeout = min(timeout, SEARCH_CACHE_TIMEOUT) if search else timeout
+    if timeout != CACHE_DISABLED_TIMEOUT:
+        cache_manager.data_cache.set(cache_key, payload, timeout=timeout)
+    logger.debug("column-values cache MISS: uid=%s col=%s", datasource.uid, column_name)
+    return payload, False
 
 
 class DatasourceRestApi(BaseSupersetApi):
     allow_browser_login = True
     class_permission_name = "Datasource"
+    method_permission_name = {
+        "combined_list": "read",
+        # Both new routes share can_query. Notably `datasource_info` is NOT
+        # named `get`: PUBLIC_ROLE_PERMISSIONS already grants
+        # ("can_get", "Datasource") for chart rendering, so a method named
+        # `get` would expose datasource metadata to unauthenticated users
+        # wherever PUBLIC_ROLE_LIKE = "Public".
+        "query": "query",
+        "datasource_info": "query",
+    }
     resource_name = "datasource"
     openapi_spec_tag = "Datasources"
+    openapi_spec_component_schemas = (DatasourceQuerySchema,)
 
     @expose(
         "/<datasource_type>/<int:datasource_id>/column/<column_name>/values/",
@@ -45,8 +230,9 @@ class DatasourceRestApi(BaseSupersetApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".get_column_values",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.get_column_values"
+        ),
         log_to_statsd=False,
     )
     def get_column_values(
@@ -72,6 +258,23 @@ class DatasourceRestApi(BaseSupersetApi):
               type: string
             name: column_name
             description: The name of the column to get values for
+          - in: query
+            schema:
+              type: string
+            name: q
+            description: >-
+              Optional substring search for SQL dataset columns and text semantic
+              dimensions. Semantic non-text dimensions return the bounded page
+              without server-side search. Case sensitivity follows the datasource
+              or semantic provider.
+          - in: query
+            schema:
+              type: string
+            name: semantic_selection_version
+            description: >-
+              Identity version from the saved or explicitly initialized field
+              selections. Required for versioned semantic views; never infer it
+              from current datasource metadata for legacy selections.
           responses:
             200:
               description: A List of distinct values for the column
@@ -80,6 +283,13 @@ class DatasourceRestApi(BaseSupersetApi):
                   schema:
                     type: object
                     properties:
+                      suggestions_status:
+                        type: string
+                        enum: [unavailable_versioned_view]
+                        description: >-
+                          Selection provenance is missing or stale for this
+                          versioned semantic view; reselect fields or enter
+                          values manually.
                       result:
                         type: array
                         items:
@@ -111,20 +321,86 @@ class DatasourceRestApi(BaseSupersetApi):
             )
         except DatasourceTypeNotSupportedError as ex:
             return self.response(400, message=ex.message)
-        except DatasourceNotFound as ex:
+        except (DatasourceNotFound, SemanticLayersDisabledError) as ex:
             return self.response(404, message=ex.message)
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
 
-        row_limit = apply_max_row_limit(app.config["FILTER_SELECT_ROW_LIMIT"])
-        denormalize_column = not datasource.normalize_columns
         try:
-            payload = datasource.values_for_column(
+            return self._column_values_response(
+                datasource, datasource_type, column_name
+            )
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message, errors=[ex.to_dict()])
+
+    def _column_values_response(
+        self, datasource: BaseDatasource, datasource_type: str, column_name: str
+    ) -> FlaskResponse:
+        """Return suggestions for an authorized datasource, gating before cache."""
+        # A saved display title may equal a different member's stable ID.
+        # Check the caller's selection version before cache access or value
+        # retrieval. The marker is the caller's assertion, not proof of
+        # provenance: anyone can copy it from datasource metadata. It only
+        # prevents stale-title collisions; authorization is enforced above.
+        selection_version: str | None = None
+        if datasource_type == DatasourceType.SEMANTIC_VIEW.value:
+            selection_version = cast(
+                SemanticView, datasource
+            ).implementation.selection_identity_version
+            if (
+                selection_version is not None
+                and request.args.get("semantic_selection_version") != selection_version
+            ):
+                return self.response(
+                    200,
+                    result=[],
+                    suggestions_status="unavailable_versioned_view",
+                )
+
+        row_limit: int = apply_max_row_limit(app.config["FILTER_SELECT_ROW_LIMIT"])
+        denormalize_column: bool = not datasource.normalize_columns
+        # Element-level operators (Contains any / Contains all) request the
+        # distinct array *elements* rather than distinct whole arrays.
+        array_elements: bool = parse_boolean_string(request.args.get("array_elements"))
+        # Server-side search. Without it the client can only match against the
+        # bounded first page, so a value beyond ``FILTER_SELECT_ROW_LIMIT`` is
+        # unfindable on a high-cardinality column.
+        search: str | None = (request.args.get("q") or "").strip() or None
+
+        # Cache distinct column-value results so a dashboard with many filters
+        # backed by the same (often heavy) virtual dataset doesn't re-execute
+        # the wrapping query per filter (#39342).
+        #
+        # Key fields:
+        # - ``rls`` — raw own-RLS clauses and grouping from the canonical
+        #   helper; ``rendered_rls`` adds the effective own predicates when
+        #   supported cache-varying macros occur. ``inner_rls`` binds injected
+        #   predicates to the tables read inside virtual/SQL Lab SQL.
+        #   Equal RLS scopes can share an entry without a blanket user-id key.
+        # - ``changed_on`` — auto-busts cached entries when the dataset's
+        #   underlying SQL is edited.
+        # - ``uid`` / ``col`` / ``limit`` / ``denorm`` — basic query-shape
+        #   isolation so different inputs never collide.
+        # - ``semantic_result_version`` — opt-in producer guarantee, omitted
+        #   for SDK-default providers to preserve their legacy key bytes.
+        force: bool = parse_boolean_string(request.args.get("force"))
+        try:
+            payload, cache_hit = get_cached_column_values(
+                datasource,
                 column_name=column_name,
                 limit=row_limit,
                 denormalize_column=denormalize_column,
+                array_elements=array_elements,
+                search=search,
+                selection_version=selection_version,
+                force=force,
             )
-            return self.response(200, result=payload)
+        except (SemanticLayerQueryRejectedError, SemanticLayerExecutionError) as ex:
+            return self.response(ex.status, message=ex.message)
+        except QueryObjectValidationError as ex:
+            # Validation errors can quote dataset SQL; embedded guests get the
+            # same generic text as the chart-data API.
+            return self.response(400, message=sanitize_error_message(str(ex)))
         except KeyError:
             return self.response(
                 400, message=f"Column name {column_name} does not exist"
@@ -138,6 +414,10 @@ class DatasourceRestApi(BaseSupersetApi):
                 ),
             )
 
+        response: Response = self.response(200, result=payload, limit=row_limit)
+        response.headers["X-Cache-Status"] = "HIT" if cache_hit else "MISS"
+        return response
+
     @expose(
         "/<datasource_type>/<int:datasource_id>/validate_expression/",
         methods=("POST",),
@@ -146,8 +426,9 @@ class DatasourceRestApi(BaseSupersetApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".validate_expression",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.validate_expression"
+        ),
         log_to_statsd=False,
     )
     def validate_expression(
@@ -247,7 +528,7 @@ class DatasourceRestApi(BaseSupersetApi):
             return self.response(400, message=str(ex))
         except DatasourceTypeNotSupportedError as ex:
             return self.response(400, message=ex.message)
-        except DatasourceNotFound as ex:
+        except (DatasourceNotFound, SemanticLayersDisabledError) as ex:
             return self.response(404, message=ex.message)
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
@@ -303,3 +584,553 @@ class DatasourceRestApi(BaseSupersetApi):
                 f"Invalid expression type: {expression_type}. "
                 f"Valid types are: column, metric, where, having"
             ) from None
+
+    @expose(
+        "/<datasource_type>/<int:datasource_id>/compatible",
+        methods=("POST",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.compatible",
+        log_to_statsd=False,
+    )
+    def compatible(  # noqa: C901
+        self, datasource_type: str, datasource_id: int
+    ) -> FlaskResponse:
+        """Return compatible members, refusing unknown selected names with a 400.
+
+        Non-string entries in selection lists do not select datasource members.
+        ---
+        post:
+          summary: Get compatible metrics and dimensions
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: datasource_type
+          - in: path
+            schema:
+              type: integer
+            name: datasource_id
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    selected_metrics:
+                      type: array
+                      items:
+                        type: string
+                    selected_dimensions:
+                      type: array
+                      items:
+                        type: string
+          responses:
+            200:
+              description: Compatible metrics and dimensions
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          compatible_metrics:
+                            type: array
+                            items:
+                              type: string
+                          compatible_dimensions:
+                            type: array
+                            items:
+                              type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        try:
+            datasource = DatasourceDAO.get_datasource(
+                DatasourceType(datasource_type), datasource_id
+            )
+            datasource.raise_for_access()
+        except ValueError:
+            return self.response(
+                400, message=f"Invalid datasource type: {datasource_type}"
+            )
+        except DatasourceTypeNotSupportedError as ex:
+            return self.response(400, message=ex.message)
+        except (DatasourceNotFound, SemanticLayersDisabledError) as ex:
+            return self.response(404, message=ex.message)
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message)
+
+        body: Any = request.get_json(silent=True) or {}
+        raw_metrics: object = body.get("selected_metrics", [])
+        raw_dimensions: object = body.get("selected_dimensions", [])
+        if not isinstance(raw_metrics, list) or not isinstance(raw_dimensions, list):
+            return self.response(
+                400, message="selected_metrics and selected_dimensions must be lists"
+            )
+
+        selected_metrics: list[str] = [
+            name for name in raw_metrics if isinstance(name, str)
+        ]
+        selected_dimensions: list[str] = [
+            name for name in raw_dimensions if isinstance(name, str)
+        ]
+
+        # Check names before the result cache: live datasource members can change
+        # without invalidating a previously cached compatibility result.
+        selection_errors: list[str] = []
+        if selected_metrics:
+            selection_errors.extend(
+                validate_names(
+                    selected_metrics,
+                    {metric.metric_name for metric in datasource.metrics},
+                    "metric",
+                )
+            )
+        if selected_dimensions:
+            try:
+                selection_errors.extend(
+                    validate_names(
+                        selected_dimensions,
+                        {dimension.column_name for dimension in datasource.columns},
+                        "dimension",
+                    )
+                )
+            except AmbiguousDimensionError as ex:
+                return self.response(400, message=str(ex))
+        if selection_errors:
+            return self.response(400, message="; ".join(selection_errors))
+
+        try:
+            datasource_uid: str = datasource.uid
+            metadata_version: str | None = (
+                datasource.metadata_generation
+                if isinstance(datasource, SemanticView)
+                else None
+            )
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message, errors=[ex.to_dict()])
+
+        # Build a stable cache key from the datasource identity and the
+        # (sorted) selection so that order differences don't cause cache misses.
+        cache_key = "compatible:" + hash_from_dict(
+            {
+                "uid": datasource_uid,
+                "changed_on": str(getattr(datasource, "changed_on", "")),
+                "metadata_version": metadata_version,
+                "m": sorted(selected_metrics),
+                "d": sorted(selected_dimensions),
+            }
+        )
+
+        timeout: int = datasource.cache_timeout or app.config.get(
+            "CACHE_DEFAULT_TIMEOUT", 300
+        )
+        cached: dict[str, list[str]] | None
+        if (
+            timeout != CACHE_DISABLED_TIMEOUT
+            and (cached := cache_manager.data_cache.get(cache_key)) is not None
+        ):
+            return self.response(200, result=cached)
+
+        try:
+            result: dict[str, list[str]] = {
+                "compatible_metrics": datasource.get_compatible_metrics(
+                    selected_metrics, selected_dimensions
+                ),
+                "compatible_dimensions": datasource.get_compatible_dimensions(
+                    selected_metrics, selected_dimensions
+                ),
+            }
+        except AmbiguousDimensionError as ex:
+            return self.response(400, message=str(ex))
+
+        if timeout != CACHE_DISABLED_TIMEOUT:
+            cache_manager.data_cache.set(cache_key, result, timeout=timeout)
+
+        return self.response(200, result=result)
+
+    def _resolve_for_query(
+        self, datasource_type: str, datasource_id: int, payload: dict[str, Any]
+    ) -> ResolvedExplorable:
+        """Resolve + authorize, translating DAO/security errors to HTTP."""
+        try:
+            return resolve_explorable(
+                datasource_type,
+                datasource_id,
+                time_column=payload.get("time_column"),
+                has_time_range=bool(payload.get("time_range")),
+            )
+        except DatasourceTypeNotSupportedError as ex:
+            raise _HttpError(400, ex.message) from ex
+        except (DatasourceNotFound, SemanticLayersDisabledError) as ex:
+            raise _HttpError(404, ex.message) from ex
+        except SupersetSecurityException as ex:
+            if (
+                ex.error.error_type
+                == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
+            ):
+                raise _HttpError(403, ex.message, error=ex.to_dict()) from ex
+            raise _HttpError(403, ex.message) from ex
+        except TabularQueryValidationError as ex:
+            raise _HttpError(400, str(ex)) from ex
+
+    @expose("/<datasource_type>/<int:datasource_id>/query", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.query",
+        log_to_statsd=False,
+    )
+    def query(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
+        """Query a datasource using metric and dimension names.
+        ---
+        post:
+          summary: Query a datasource by its semantic definitions
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: datasource_type
+          - in: path
+            schema:
+              type: integer
+            name: datasource_id
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/DatasourceQuerySchema'
+          responses:
+            200:
+              description: Query result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          type: object
+                application/vnd.apache.arrow.stream:
+                  schema:
+                    type: string
+                    format: binary
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        try:
+            payload = DatasourceQuerySchema().load(request.json or {})
+        except ValidationError as ex:
+            return self.response_400(message=ex.messages)
+
+        try:
+            resolved = self._resolve_for_query(datasource_type, datasource_id, payload)
+        except _HttpError as ex:
+            return self.response(ex.status, **ex.payload)
+        except ValueError:
+            return self.response(
+                400, message=f"Invalid datasource type: {datasource_type}"
+            )
+
+        if errors := validate_query_names(
+            resolved.valid_metrics,
+            resolved.valid_dimensions,
+            metrics=payload["metrics"],
+            dimensions=payload["dimensions"],
+            filters=payload["filters"],
+            order_names=[term["column"] for term in payload["order"]],
+            metrics_full_list_hint=(
+                f"GET /api/v1/datasource/{datasource_type}/{datasource_id}"
+            ),
+        ):
+            return self.response_400(message="; ".join(errors))
+
+        return self._execute_and_respond(resolved, payload)
+
+    def _execute_and_respond(
+        self, resolved: ResolvedExplorable, payload: dict[str, Any]
+    ) -> FlaskResponse:
+        """Run the query and render it in the requested result format."""
+        database = getattr(resolved.explorable, "database", None)
+        if (
+            payload["offset"]
+            and database
+            and not database.db_engine_spec.supports_offset
+        ):
+            # get_sqla_query drops row_offset for these engines, so the request
+            # would return the first page again under a 200.
+            return self.response_400(
+                message=(
+                    f"{database.db_engine_spec.engine} does not support offset "
+                    "pagination."
+                )
+            )
+
+        grain_column = resolved.resolve_grain_column(
+            payload["time_column"], payload["dimensions"]
+        )
+        if payload["time_grain"]:
+            if not grain_column:
+                # Silently dropping the grain would return unbucketed rows that
+                # look correct, so refuse instead.
+                return self.response_400(
+                    message=(
+                        "time_grain requires a temporal column. Set time_column, "
+                        "include a datetime dimension, or provide time_range."
+                    )
+                )
+            supported = {
+                grain["duration"] for grain in resolved.explorable.get_time_grains()
+            }
+            if payload["time_grain"] not in supported:
+                # Unsupported grains reach get_timestamp_expr, which raises
+                # NotImplementedError rather than a validation error.
+                return self.response_400(
+                    message=(
+                        f"Unsupported time_grain: '{payload['time_grain']}'. "
+                        f"Supported: {', '.join(sorted(g for g in supported if g))}."
+                    )
+                )
+
+        try:
+            query_dict = self._build_query_dict(resolved, payload, grain_column)
+        except ValidationError as ex:
+            return self.response_400(message=ex.messages)
+        except ValueError as ex:
+            return self.response_400(message=str(ex))
+
+        return self._run(resolved, payload, query_dict)
+
+    @staticmethod
+    def _build_query_dict(
+        resolved: ResolvedExplorable, payload: dict[str, Any], grain_column: str | None
+    ) -> dict[str, Any]:
+        return build_query_dict(
+            time_column=resolved.time_column,
+            metrics=payload["metrics"],
+            dimensions=payload["dimensions"],
+            filters=payload["filters"],
+            time_range=payload["time_range"],
+            time_grain=payload["time_grain"],
+            grain_column=grain_column,
+            semantic_selection_version=payload.get("semantic_selection_version"),
+            rewrite_one_sided_time_range=(
+                resolved.explorable.type == DatasourceType.SEMANTIC_VIEW.value
+            ),
+            limit=payload["limit"],
+            offset=payload["offset"],
+            order=[(term["column"], term["descending"]) for term in payload["order"]],
+            # No wire field for this; follow the leading term's direction.
+            order_desc=(
+                payload["order"][0]["descending"] if payload["order"] else True
+            ),
+        )
+
+    def _run(
+        self,
+        resolved: ResolvedExplorable,
+        payload: dict[str, Any],
+        query_dict: dict[str, Any],
+    ) -> FlaskResponse:
+        result_format = payload["result_format"]
+
+        try:
+            result = execute_tabular_query(
+                int(resolved.explorable.id),
+                str(resolved.explorable.type),
+                query_dict,
+                result_format=result_format,
+                use_cache=payload["use_cache"],
+                force=payload["force"],
+                cache_timeout=payload["cache_timeout"],
+            )
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message)
+        except (ValueError, QueryObjectValidationError) as ex:
+            return self.response_400(message=str(ex))
+        except CommandException as ex:
+            return self.response_400(message=ex.message or str(ex))
+
+        queries = result.get("queries") or []
+        if result_format == ChartDataResultFormat.ARROW:
+            if len(queries) != 1:
+                return self.response_400(
+                    message="Arrow result format supports exactly one query."
+                )
+            return Response(
+                queries[0]["data"],
+                mimetype="application/vnd.apache.arrow.stream",
+            )
+        response = make_response(
+            json.dumps(
+                {"result": queries},
+                default=json.json_int_dttm_ser,
+                ignore_nan=True,
+            ),
+            200,
+        )
+        response.headers["Content-Type"] = "application/json; charset=utf-8"
+        return response
+
+    @expose("/<datasource_type>/<int:datasource_id>", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.datasource_info"
+        ),
+        log_to_statsd=False,
+    )
+    def datasource_info(
+        self, datasource_type: str, datasource_id: int
+    ) -> FlaskResponse:
+        """Get datasource metadata and query capabilities.
+        ---
+        get:
+          summary: Get datasource metadata and capabilities
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: datasource_type
+          - in: path
+            schema:
+              type: integer
+            name: datasource_id
+          responses:
+            200:
+              description: Datasource metadata plus a capabilities block
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        try:
+            resolved = self._resolve_for_query(datasource_type, datasource_id, {})
+        except _HttpError as ex:
+            return self.response(ex.status, **ex.payload)
+        except ValueError:
+            return self.response(
+                400, message=f"Invalid datasource type: {datasource_type}"
+            )
+
+        try:
+            datasource = resolved.explorable
+            is_semantic_view = (
+                DatasourceType(datasource_type) == DatasourceType.SEMANTIC_VIEW
+            )
+            supported_operators = (
+                SUPPORTED_FILTER_OPERATORS
+                if is_semantic_view
+                else {op.value for op in FilterOperator}
+            )
+            features = sorted(
+                feature.value
+                for feature in getattr(
+                    getattr(datasource, "implementation", None), "features", set()
+                )
+            )
+            result = dict(datasource.data)
+            result["capabilities"] = {
+                "is_rls_supported": datasource.is_rls_supported,
+                "query_language": datasource.query_language,
+                "supports_samples": getattr(datasource, "supports_samples", True),
+                "supports_drill_to_detail": getattr(
+                    datasource, "supports_drill_to_detail", True
+                ),
+                # Datasets accept ad-hoc metrics; semantic views reject them in the
+                # mapper, since the provider owns metric definitions.
+                "supports_adhoc_metrics": not is_semantic_view,
+                "time_grains": datasource.get_time_grains(),
+                "supported_operators": sorted(supported_operators),
+                "features": features,
+            }
+            return self.response(200, result=result)
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message)
+        except (ValueError, SupersetException) as ex:
+            return self.response_400(message=str(ex))
+
+    @expose("/", methods=("GET",))
+    @protect_read("Dataset", "SemanticView")
+    @safe
+    @statsd_metrics
+    @rison(get_list_schema)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.combined_list",
+        log_to_statsd=False,
+    )
+    def combined_list(self, **kwargs: Any) -> FlaskResponse:
+        """List datasets and semantic views combined.
+        ---
+        get:
+          summary: List datasets and semantic views combined
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_list_schema'
+          responses:
+            200:
+              description: Combined list of datasets and semantic views
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        can_read_datasets = security_manager.can_access("can_read", "Dataset")
+        can_read_sv = is_feature_enabled(
+            "SEMANTIC_LAYERS"
+        ) and security_manager.can_access("can_read", "SemanticView")
+
+        if not can_read_datasets and not can_read_sv:
+            return self.response(403, message="Access denied")
+
+        try:
+            result = GetCombinedDatasourceListCommand(
+                args=kwargs.get("rison", {}),
+                can_read_datasets=can_read_datasets,
+                can_read_semantic_views=can_read_sv,
+            ).run()
+        except ValueError as ex:
+            return self.response(400, message=str(ex))
+
+        return self.response(200, **result)

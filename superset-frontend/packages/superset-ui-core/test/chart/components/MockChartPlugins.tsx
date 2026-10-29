@@ -19,7 +19,7 @@
 
 /* eslint-disable max-classes-per-file */
 import { QueryFormData, ChartMetadata, ChartPlugin } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { useTheme } from '@apache-superset/core/theme';
 
 const DIMENSION_STYLE = {
   fontSize: 36,

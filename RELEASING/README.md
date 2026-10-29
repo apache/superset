@@ -223,7 +223,17 @@ Next, update the `CHANGELOG/<version>.md` with all the changes that are included
 Make sure the branch has been pushed to `origin` to ensure the changelog generator
 can pick up changes since the previous release.
 Similar to `cherrytree`, the change log script requires a github token, either as an env var
-(`GITHUB_TOKEN`) or as the parameter `--access_token`.
+(`GITHUB_TOKEN`) or as the parameter `--access_token`. If you use the GitHub CLI, you can
+reuse its token with `export GITHUB_TOKEN=$(gh auth token)`.
+
+Fetching the pull request details from github can take hours for a large release, as the
+script makes two API requests per pull request and has to wait whenever it hits github's
+rate limit. The fetched details are cached in a file (see `--cache_file`), so if a run is
+interrupted, rerunning the same command resumes where it left off. Pull requests that github
+no longer serves, for example ones hidden along with a suspended account, are listed using
+their commit details instead, and the script prints a warning for each so they can be
+checked by hand. Pull requests reverted on the release branch itself with `git revert` are
+left out, and pull requests merged more than once are listed once.
 
 #### Initial release (e.g. 1.5.0)
 
@@ -232,7 +242,7 @@ the previous release (in the example, the previous release branch is `1.4`, so r
 update it accordingly):
 
 ```bash
-python changelog.py --previous_version 1.4 --current_version ${SUPERSET_GITHUB_BRANCH} changelog
+python changelog.py --previous_version 1.4 --current_version ${SUPERSET_GITHUB_BRANCH} changelog > ../CHANGELOG/${SUPERSET_VERSION}.md
 ```
 
 You can get a list of pull requests with labels started with blocking, risk, hold, revert and security by using the parameter `--risk`.
@@ -242,9 +252,10 @@ Example:
 python changelog.py --previous_version 0.37 --current_version 0.38 changelog --access_token {GITHUB_TOKEN} --risk
 ```
 
-The script will checkout both branches, compare all the PRs, and output the lines that are needed to be added to the
-`CHANGELOG/<version>.md` file in the root of the repo. Remember to also make sure to update the branch id (with the above command
-`1.5` needs to be changed to `1.5.0`)
+The script will checkout both branches, compare all the PRs, and print the complete
+`CHANGELOG/<version>.md` file. The version in its heading is taken from `SUPERSET_VERSION`
+(set by `set_release_env.sh`), or from `--release_version` if given. Add the new file to the
+list in `CHANGELOG.md`.
 
 Then, in `UPDATING.md`, a file that contains a list of notifications around
 deprecations and upgrading-related topics,
@@ -257,7 +268,7 @@ To compare the forthcoming patch release with the latest release from the same b
 `--previous_version` as the tag of the previous release (in this example `1.5.0`; remember to update accordingly)
 
 ```bash
-python changelog.py --previous_version 1.5.0 --current_version ${SUPERSET_GITHUB_BRANCH} changelog
+python changelog.py --previous_version 1.5.0 --current_version ${SUPERSET_GITHUB_BRANCH} changelog > ../CHANGELOG/${SUPERSET_VERSION}.md
 ```
 
 ### Set version number
@@ -423,7 +434,7 @@ git push origin ${SUPERSET_VERSION}
 
 ### Publishing a Convenience Release to PyPI
 
-Extract the release to the `/tmp` folder to build the PiPY release. Files in the `/tmp` folder will be automatically deleted by the OS.
+Extract the release to the `/tmp` folder to build the PyPI release. Files in the `/tmp` folder will be automatically deleted by the OS.
 
 ```bash
 mkdir -p /tmp/superset && cd /tmp/superset
@@ -458,7 +469,7 @@ cd ../
 sed -i '' "s/version_string = .*/version_string = \"$SUPERSET_VERSION\"/" setup.py
 
 # build the python distribution
-python setup.py sdist
+python -m build
 ```
 
 Publish to PyPI

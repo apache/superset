@@ -19,6 +19,7 @@
 import {
   DataMaskStateWithId,
   ExtraFormData,
+  Filter,
   NativeFiltersState,
   NativeFilterType,
 } from '@superset-ui/core';
@@ -132,7 +133,7 @@ export const NATIVE_FILTER_ID = 'NATIVE_FILTER-p4LImrSgA';
 export const singleNativeFiltersState = {
   filters: {
     [NATIVE_FILTER_ID]: {
-      id: [NATIVE_FILTER_ID],
+      id: NATIVE_FILTER_ID,
       name: 'eth',
       type: 'text',
       filterType: 'filter_select',
@@ -457,6 +458,25 @@ export const mockQueryDataForCountries = [
   { country_name: 'Zambia', 'SUM(SP_POP_TOTL)': 438847085 },
   { country_name: 'Zimbabwe', 'SUM(SP_POP_TOTL)': 509866860 },
 ];
+
+export const createSelectNativeFilter = (
+  id: string,
+  name: string,
+  column: string = name,
+): Filter => ({
+  id,
+  name,
+  type: NativeFilterType.NativeFilter,
+  filterType: 'filter_select',
+  targets: [{ datasetId: 2, column: { name: column } }],
+  defaultDataMask: { filterState: { value: null }, extraFormData: {} },
+  controlValues: {},
+  cascadeParentIds: [],
+  scope: { rootPath: ['ROOT_ID'], excluded: [] },
+  description: '',
+  chartsInScope: [],
+  tabsInScope: [],
+});
 
 export const buildNativeFilter = (
   id: string,

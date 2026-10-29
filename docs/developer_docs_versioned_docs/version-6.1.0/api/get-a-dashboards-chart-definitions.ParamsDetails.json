@@ -1,0 +1,10 @@
+{
+  "parameters": [
+    {
+      "in": "path",
+      "name": "id_or_slug",
+      "required": true,
+      "schema": { "type": "string" }
+    }
+  ]
+}

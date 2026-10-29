@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
 
 import { Tooltip } from '@superset-ui/core/components';
 import { ClassNames } from '@emotion/react';
@@ -85,7 +85,7 @@ dateunit = (year | month | week)`}</code>
     </div>
     <div>
       <h3>HOLIDAY</h3>
-      <p>{t('Get the specify date for the holiday')}</p>
+      <p>{t('Get the specified date for the holiday')}</p>
       <h4>{t('Syntax')}</h4>
       <pre>
         <code>{`holiday([string])
@@ -111,27 +111,25 @@ const StyledTooltip = (props: any) => {
       {({ css }) => (
         <Tooltip
           overlayClassName={css`
-            .ant-tooltip-content {
+            .ant-tooltip-container {
               min-width: ${theme.sizeUnit * 125}px;
+              max-width: ${theme.sizeUnit * 125}px;
               max-height: 410px;
               overflow-y: scroll;
 
-              .ant-tooltip-inner {
-                max-width: ${theme.sizeUnit * 125}px;
-                h3 {
-                  font-size: ${theme.fontSize}px;
-                  font-weight: ${theme.fontWeightStrong};
-                }
-                h4 {
-                  font-size: ${theme.fontSize}px;
-                  font-weight: ${theme.fontWeightStrong};
-                }
-                pre {
-                  border: none;
-                  text-align: left;
-                  word-break: break-word;
-                  font-size: ${theme.fontSizeSM}px;
-                }
+              h3 {
+                font-size: ${theme.fontSize}px;
+                font-weight: ${theme.fontWeightStrong};
+              }
+              h4 {
+                font-size: ${theme.fontSize}px;
+                font-weight: ${theme.fontWeightStrong};
+              }
+              pre {
+                border: none;
+                text-align: left;
+                word-break: break-word;
+                font-size: ${theme.fontSizeSM}px;
               }
             }
           `}

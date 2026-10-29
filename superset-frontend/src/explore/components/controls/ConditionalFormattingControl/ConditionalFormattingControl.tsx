@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
-import { t } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { useEffect, useRef, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { styled, css } from '@apache-superset/core/theme';
 import { Comparator } from '@superset-ui/chart-controls';
 import { Icons } from '@superset-ui/core/components/Icons';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -74,17 +74,25 @@ const ConditionalFormattingControl = ({
   verboseMap,
   removeIrrelevantConditions,
   extraColorChoices,
-  conditionalFormattingFlag,
+  allColumns,
+  metricOnly,
+  serverPagination,
   ...props
 }: ConditionalFormattingControlProps) => {
   const [conditionalFormattingConfigs, setConditionalFormattingConfigs] =
     useState<ConditionalFormattingConfig[]>(value ?? []);
+  // Report formatters only once they differ from what the control mounted
+  // with. Echoing the mounted value back would make an untouched chart look
+  // edited (e.g. writing [] in version history), and a stale echo could
+  // overwrite a value the parent supplies later.
+  const initialConfigs = useRef(conditionalFormattingConfigs);
+  const isUntouched = conditionalFormattingConfigs === initialConfigs.current;
 
   useEffect(() => {
-    if (onChange) {
+    if (onChange && !isUntouched) {
       onChange(conditionalFormattingConfigs);
     }
-  }, [conditionalFormattingConfigs, onChange]);
+  }, [conditionalFormattingConfigs, isUntouched, onChange]);
 
   useEffect(() => {
     if (removeIrrelevantConditions) {
@@ -136,6 +144,11 @@ const ConditionalFormattingControl = ({
         return `${targetValueLeft} ${Comparator.LessOrEqual} ${columnName} ${Comparator.LessThan} ${targetValueRight}`;
       case Comparator.BetweenOrRightEqual:
         return `${targetValueLeft} ${Comparator.LessThan} ${columnName} ${Comparator.LessOrEqual} ${targetValueRight}`;
+      case Comparator.IsTrue:
+      case Comparator.IsFalse:
+      case Comparator.IsNull:
+      case Comparator.IsNotNull:
+        return `${columnName} ${operator}`;
       default:
         return `${columnName} ${operator} ${targetValue}`;
     }
@@ -157,8 +170,11 @@ const ConditionalFormattingControl = ({
               onChange={(newConfig: ConditionalFormattingConfig) =>
                 onEdit(newConfig, index)
               }
-              destroyTooltipOnHide
+              destroyOnHidden
               extraColorChoices={extraColorChoices}
+              allColumns={allColumns}
+              metricOnly={metricOnly}
+              serverPagination={serverPagination}
             >
               <OptionControlContainer withCaret>
                 <Label>{createLabel(config)}</Label>
@@ -173,9 +189,11 @@ const ConditionalFormattingControl = ({
           title={t('Add new formatter')}
           columns={columnOptions}
           onChange={onSave}
-          destroyTooltipOnHide
+          destroyOnHidden
           extraColorChoices={extraColorChoices}
-          conditionalFormattingFlag={conditionalFormattingFlag}
+          allColumns={allColumns}
+          metricOnly={metricOnly}
+          serverPagination={serverPagination}
         >
           <AddControlLabel>
             <Icons.PlusOutlined

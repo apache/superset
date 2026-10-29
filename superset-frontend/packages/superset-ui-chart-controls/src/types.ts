@@ -22,16 +22,22 @@ import { ReactElement, ReactNode, ReactText, ComponentType } from 'react';
 import type {
   AdhocColumn,
   Column,
+  CurrencyFormatter,
   Currency,
   DatasourceType,
+  DataRecordValue,
   JsonObject,
   JsonValue,
   Metric,
+  NumberFormatter,
   QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
   QueryResponse,
+  TimeFormatter,
 } from '@superset-ui/core';
+import { type RGBColor } from '@superset-ui/core/components';
+import { GenericDataType } from '@apache-superset/core/common';
 import { sharedControls, sharedControlComponents } from './shared-controls';
 
 export type { Metric } from '@superset-ui/core';
@@ -64,6 +70,7 @@ export type ColumnMeta = Omit<Column, 'id'> & {
 } & AnyDict;
 
 export interface Dataset {
+  semantic_selection_version?: string | null;
   id: number;
   type: DatasourceType;
   columns: ColumnMeta[];
@@ -72,6 +79,7 @@ export interface Dataset {
   currency_formats?: Record<string, Currency>;
   verbose_map: Record<string, string>;
   main_dttm_col: string;
+  currency_code_column?: string;
   // eg. ['["ds", true]', 'ds [asc]']
   order_by_choices?: [string, string][] | null;
   time_grain_sqla?: [string, string][];
@@ -80,7 +88,7 @@ export interface Dataset {
   name?: string;
   description: string | null;
   uid?: string;
-  owners?: Owner[];
+  editors?: Owner[];
   filter_select?: boolean;
   filter_select_enabled?: boolean;
   column_names?: string[];
@@ -90,7 +98,53 @@ export interface Dataset {
   database?: Record<string, unknown>;
   normalize_columns?: boolean;
   always_filter_main_dttm?: boolean;
+  partition_column?: string | null;
+  partition_mapped_column?: string | null;
+  // Self-contained summary for the partition pruning indicator. Kept separate
+  // from `columns` because the dashboard payload prunes columns no chart
+  // references, and the partition column is typically referenced by none.
+  partition_filter_mapping?: PartitionFilterMapping | null;
   extra?: object | string;
+  /**
+   * Stable string values of the features a semantic view's provider declares.
+   * Only present for semantic views; absent elsewhere.
+   */
+  semantic_view_features?: string[];
+}
+
+export interface PartitionFilterMapping {
+  partition_column: string;
+  mapped_column: string | null;
+  active: boolean;
+  /**
+   * Whether the last probe of this transform produced a mirror. `active` is a
+   * parse, which a misspelled function clears happily, so this is the weaker
+   * claim that only the engine can answer. `null`/absent means nothing has
+   * probed yet -- honest on a cold cache, and deliberately not `false`.
+   */
+  evaluable?: boolean | null;
+  /** Whether the owner declared the value transform order-preserving. */
+  is_monotonic: boolean;
+  /**
+   * Backend `FilterOperator` values (`==`, `IN`, `TEMPORAL_RANGE`, ...) whose
+   * predicates this mapping mirrors. Computed server-side from
+   * `is_monotonic` so the operator matrix lives in one place.
+   */
+  mirrorable_operators: string[];
+  /**
+   * How much of a filter's value this engine compares on the mapped column.
+   * `day` means a `DATE`-typed column whose comparison drops the time of day,
+   * so an `=` or `IN` carrying one is declined server-side -- see
+   * `hasMirrorableValue`.
+   */
+  literal_resolution?: 'full' | 'second' | 'day';
+  /**
+   * Characters this database's driver and engine do not spell the same way in
+   * a string literal, so a filter value carrying one is declined server-side
+   * -- see `hasMirrorableValue`. Computed server-side because it is a property
+   * of the driver and engine pair, which the client cannot see.
+   */
+  unmirrorable_value_chars?: string[];
 }
 
 export interface ControlPanelState {
@@ -163,7 +217,9 @@ export type InternalControlType =
   | 'DateFilterControl'
   | 'FixedOrMetricControl'
   | 'ColorBreakpointsControl'
+  | 'HeaderGroupsControl'
   | 'HiddenControl'
+  | 'JSEditorControl'
   | 'SelectAsyncControl'
   | 'SelectControl'
   | 'SliderControl'
@@ -197,8 +253,14 @@ export type TabOverride = 'data' | 'customize' | 'matrixify' | boolean;
  * these configs will be passed to the UI component for control as props.
  *
  * - type: the control type, referencing a React component of the same name
- * - label: the label as shown in the control's header
- * - description: shown in the info tooltip of the control's header
+ * - label: the label as shown in the control's header. When the value involves
+ *   `t()`/`tn()`, prefer the arrow-function form (`label: () => t('Foo')`) so
+ *   the lookup runs at render time rather than at module load — eager
+ *   `label: t('Foo')` captures the fallback language before i18n initializes
+ *   and does not update on runtime language change. The
+ *   `i18n-strings/no-eager-t-in-config` lint rule autofixes this.
+ * - description: shown in the info tooltip of the control's header. Same
+ *   lazy-form guidance as `label`.
  * - default: the default value when opening a new chart, or changing visualization type
  * - renderTrigger: a bool that defines whether the visualization should be re-rendered
  *    when changed. This should `true` for controls that only affect the rendering (client side)
@@ -250,6 +312,16 @@ export interface BaseControlConfig<
   validators?: ControlValueValidator<T, O, V>[];
   warning?: ReactNode;
   error?: ReactNode;
+  /**
+   * Names of *other* controls whose value this control's validation or
+   * `mapStateToProps` depends on. When one of them changes, the explore reducer
+   * rebuilds this control against the new form data.
+   *
+   * A control must not name itself: the rebuild reuses the value held before
+   * the action, so a self-naming control overwrites the value that action just
+   * set. Use `shouldMapStateToProps` to recompute a control's own props.
+   */
+  validationDependencies?: string[];
   /**
    * Add additional props to chart control.
    */
@@ -462,6 +534,10 @@ export enum Comparator {
   EndsWith = 'ends with',
   Containing = 'containing',
   NotContaining = 'not containing',
+  IsTrue = 'is true',
+  IsFalse = 'is false',
+  IsNull = 'is null',
+  IsNotNull = 'is not null',
 }
 
 export const MultipleValueComparators = [
@@ -471,25 +547,53 @@ export const MultipleValueComparators = [
   Comparator.BetweenOrRightEqual,
 ];
 
+export enum BoundUnit {
+  Value = 'value',
+  Percent = 'percent',
+}
+
+export enum PercentDenominator {
+  Sum = 'sum',
+  Max = 'max',
+}
+
 export type ConditionalFormattingConfig = {
   operator?: Comparator;
   targetValue?: number | string;
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;
-  colorScheme?: string;
+  colorScheme?: RGBColor | string;
   toAllRow?: boolean;
   toTextColor?: boolean;
+  useGradient?: boolean;
+  columnFormatting?: string;
+  objectFormatting?: ObjectFormattingEnum;
+  minBound?: number;
+  maxBound?: number;
+  centerValue?: number;
+  lowColor?: RGBColor | string;
+  midColor?: RGBColor | string;
+  highColor?: RGBColor | string;
+  boundUnit?: BoundUnit;
+  percentDenominator?: PercentDenominator;
 };
 
 export type ColorFormatters = {
   column: string;
   toAllRow?: boolean;
   toTextColor?: boolean;
-  getColorFromValue: (value: number | string) => string | undefined;
+  columnFormatting?: string;
+  objectFormatting?: ObjectFormattingEnum;
+  getColorFromValue: (
+    value: number | string | boolean | null,
+  ) => string | undefined;
 }[];
 
-export default {};
+export type ResolvedColorFormatterResult = {
+  backgroundColor?: string;
+  color?: string;
+};
 
 export function isColumnMeta(column: AnyDict): column is ColumnMeta {
   return !!column && 'column_name' in column;
@@ -565,6 +669,7 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
       creatable?: boolean;
       minWidth?: number | string;
       validators?: ControlFormValueValidator<string>[];
+      tokenSeparators?: string[];
     }
   : T extends 'RadioButtonControl'
     ? {
@@ -600,3 +705,88 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
                 defaultValue?: Currency;
               }
             : {});
+
+export enum ObjectFormattingEnum {
+  BACKGROUND_COLOR = 'BACKGROUND_COLOR',
+  TEXT_COLOR = 'TEXT_COLOR',
+  CELL_BAR = 'CELL_BAR',
+  ENTIRE_ROW = 'ENTIRE_ROW',
+}
+
+export enum ColorSchemeEnum {
+  Green = 'Green',
+  Red = 'Red',
+}
+
+/** ----------------------------------------------
+ * Shared Table Chart Types
+ * Used by plugin-chart-table and plugin-chart-ag-grid-table
+ * --------------------------------------------- */
+
+export type CustomFormatter = (value: DataRecordValue) => string;
+
+export type BasicColorFormatterType = {
+  backgroundColor: string;
+  arrowColor: string;
+  mainArrow: string;
+};
+
+export type SortByItem = {
+  id: string;
+  key: string;
+  desc?: boolean;
+};
+
+export type SearchOption = {
+  value: string;
+  label: string;
+};
+
+export interface ServerPaginationData {
+  pageSize?: number;
+  currentPage?: number;
+  sortBy?: SortByItem[];
+  searchText?: string;
+  searchColumn?: string;
+}
+
+export type TableColumnConfig = {
+  d3NumberFormat?: string;
+  // Allow null to match JSON round-trips, where an unset value deserializes
+  // from the metadata DB as `null` rather than `undefined`.
+  d3SmallNumberFormat?: string | null;
+  d3TimeFormat?: string;
+  columnWidth?: number;
+  horizontalAlign?: 'left' | 'right' | 'center';
+  showCellBars?: boolean;
+  alignPositiveNegative?: boolean;
+  colorPositiveNegative?: boolean;
+  truncateLongCells?: boolean;
+  currencyFormat?: Currency;
+  visible?: boolean;
+  customColumnName?: string;
+  displayTypeIcon?: boolean;
+};
+
+export interface DataColumnMeta {
+  // `key` is what is called `label` in the input props
+  key: string;
+  // `label` is verbose column name used for rendering
+  label: string;
+  // `originalLabel` preserves the original label when time comparison transforms the labels
+  originalLabel?: string;
+  dataType: GenericDataType;
+  formatter?:
+    | TimeFormatter
+    | NumberFormatter
+    | CustomFormatter
+    | CurrencyFormatter;
+  isMetric?: boolean;
+  isPercentMetric?: boolean;
+  isNumeric?: boolean;
+  config?: TableColumnConfig;
+  isChildColumn?: boolean;
+  description?: string;
+  currencyCodeColumn?: string;
+  isFilterable?: boolean;
+}

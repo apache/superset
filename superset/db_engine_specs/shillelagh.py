@@ -16,11 +16,19 @@
 # under the License.
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from datetime import datetime
+from typing import Any, TYPE_CHECKING
 
+from sqlalchemy import event, types
+
+from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
 if TYPE_CHECKING:
+    from sqlalchemy.engine.base import Engine
+    from sqlalchemy.engine.interfaces import DBAPIConnection
+    from sqlalchemy.pool import ConnectionPoolEntry
+
     from superset.models.core import Database
 
 
@@ -36,6 +44,37 @@ class ShillelaghEngineSpec(SqliteEngineSpec):
     allows_joins = True
     allows_subqueries = True
 
+    metadata = {
+        "description": (
+            "Shillelagh is a Python library that allows querying many data sources "
+            "using SQL, including Google Sheets, CSV files, and APIs."
+        ),
+        "logo": "shillelagh.png",
+        "homepage_url": "https://shillelagh.readthedocs.io/",
+        "categories": [DatabaseCategory.OTHER, DatabaseCategory.OPEN_SOURCE],
+        "pypi_packages": ["shillelagh[gsheetsapi]"],
+        "connection_string": "shillelagh://",
+        "notes": (
+            "Shillelagh uses virtual tables to query external data sources. "
+            "Google Sheets requires OAuth credentials configured."
+        ),
+    }
+
+    @classmethod
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
+        """
+        Write a bare date for DATE columns.
+
+        Shillelagh reads a date filter with ``date.fromisoformat``, which rejects a
+        time part and drops the filter without an error, so every row would come
+        back. A time other than midnight is cut to its date.
+        """
+        if isinstance(cls.get_sqla_column_type(target_type), types.Date):
+            return f"'{dttm.date().isoformat()}'"
+        return super().convert_dttm(target_type, dttm, db_extra=db_extra)
+
     @classmethod
     def get_function_names(
         cls,
@@ -46,3 +85,36 @@ class ShillelaghEngineSpec(SqliteEngineSpec):
             "version",
             "get_metadata",
         ]
+
+    @classmethod
+    def register_engine_events(cls, engine: Engine) -> None:
+        super().register_engine_events(engine)
+        # Non-APSW shillelagh backends (``sqlglot``, ``multicorn2``) reach this
+        # spec through the backend-only fallback in ``get_engine_spec`` and have
+        # no APSW handle to limit.
+        if engine.dialect.driver == "apsw":
+            event.listen(engine, "connect", cls._scope_connection_to_adapters)
+
+    @staticmethod
+    def _scope_connection_to_adapters(
+        dbapi_connection: DBAPIConnection,
+        _connection_record: ConnectionPoolEntry,
+    ) -> None:
+        """
+        Keep a query scoped to the connection's configured data source.
+
+        A shillelagh database reaches external sources through its adapters;
+        ``ATTACH DATABASE`` is not part of that surface, and the underlying APSW
+        driver would otherwise let a query open unrelated local SQLite files.
+        """
+        # pylint: disable=import-outside-toplevel
+        import apsw
+
+        apsw_connection = getattr(dbapi_connection, "_connection", None)
+        if not isinstance(apsw_connection, apsw.Connection):
+            raise TypeError(
+                f"Expected an APSW connection on {type(dbapi_connection).__name__}, "
+                f"got {type(apsw_connection).__name__}"
+            )
+
+        apsw_connection.limit(apsw.SQLITE_LIMIT_ATTACHED, 0)

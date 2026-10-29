@@ -17,7 +17,8 @@
  * under the License.
  */
 import { buildQueryContext, QueryFormData } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
+import isSemanticRange from './isSemanticRange';
 
 /**
  * The buildQuery function is used to create an instance of QueryContext that's
@@ -34,9 +35,12 @@ import { GenericDataType } from '@apache-superset/core/api/core';
  * if a viz needs multiple different result sets.
  */
 export default function buildQuery(formData: QueryFormData) {
+  if (isSemanticRange(formData)) {
+    return buildQueryContext(formData, () => []);
+  }
   const { groupby } = formData;
   const [column = ''] = groupby || [];
-  // @ts-ignore (need update interface Column )
+  // @ts-expect-error (need update interface Column )
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,

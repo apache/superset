@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import utc from 'dayjs/plugin/utc';
+// Type augmentation for dayjs plugins
+import 'dayjs/plugin/utc';
 import {
   getTimeFormatter,
   getTimeFormatterForGranularity,
@@ -29,8 +30,6 @@ import {
   TimeGranularity,
 } from '@superset-ui/core';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
-
-dayjs.extend(utc);
 
 export const parseMetricValue = (metricValue: number | string | null) => {
   if (typeof metricValue === 'string') {
@@ -50,19 +49,25 @@ export const getDateFormatter = (
 ) =>
   timeFormat === SMART_DATE_ID
     ? getTimeFormatterForGranularity(granularity)
-    : getTimeFormatter(timeFormat ?? fallbackFormat);
+    : getTimeFormatter(timeFormat ?? fallbackFormat, granularity);
 
 export function getOriginalLabel(
   metric: QueryFormMetric,
   metrics: Metric[] = [],
+  verboseMap: Record<string, string> = {},
 ): string {
   const metricLabel = typeof metric === 'string' ? metric : metric.label || '';
 
   if (isSavedMetric(metric)) {
     const metricEntry = metrics.find(m => m.metric_name === metric);
+    if (metricEntry) {
+      return metricEntry.verbose_name || metric;
+    }
+    const verboseName = Object.prototype.hasOwnProperty.call(verboseMap, metric)
+      ? verboseMap[metric]
+      : undefined;
     return (
-      metricEntry?.verbose_name ||
-      metricEntry?.metric_name ||
+      (typeof verboseName === 'string' ? verboseName : undefined) ||
       metric ||
       'Unknown Metric'
     );

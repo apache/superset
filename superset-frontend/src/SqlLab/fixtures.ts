@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import sinon from 'sinon';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
 import {
@@ -26,11 +25,14 @@ import {
   QueryResponse,
   QueryState,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { LatestQueryEditorVersion } from 'src/SqlLab/types';
 import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
+import { SubjectType } from 'src/types/Subject';
 
-export const mockedActions = sinon.stub({ ...actions });
+export const mockedActions = Object.fromEntries(
+  Object.keys(actions).map(key => [key, jest.fn()]),
+);
 
 export const alert = { bsStyle: 'danger', msg: 'Oops', id: 'lksvmcx32' };
 export const table = {
@@ -361,7 +363,7 @@ export const queryWithNoQueryLimit = {
       },
       {
         is_dttm: false,
-        name: 'gender',
+        column_name: 'gender',
         type: 'STRING',
       },
     ],
@@ -774,7 +776,7 @@ export const testQuery: ISaveableDatasource = {
   ],
 };
 
-export const mockdatasets = new Array(3).fill(undefined).map((_, i) => ({
+export const mockdatasets = Array.from({ length: 3 }, (_, i) => ({
   changed_by_name: 'user',
   kind: i === 0 ? 'virtual' : 'physical', // ensure there is 1 virtual
   changed_by: 'user',
@@ -785,5 +787,5 @@ export const mockdatasets = new Array(3).fill(undefined).map((_, i) => ({
   catalog: null,
   schema: `schema ${i}`,
   table_name: `coolest table ${i}`,
-  owners: [{ username: 'admin', userId: 1 }],
+  editors: [{ id: i + 1, label: `Editor ${i + 1}`, type: SubjectType.User }],
 }));

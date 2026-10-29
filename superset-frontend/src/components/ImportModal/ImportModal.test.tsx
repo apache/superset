@@ -28,7 +28,6 @@ const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const DATABASE_IMPORT_URL = 'glob:*/api/v1/database/import/';
-fetchMock.config.overwriteRoutes = true;
 fetchMock.post(DATABASE_IMPORT_URL, { result: 'OK' });
 
 const requiredProps = {
@@ -44,6 +43,7 @@ const requiredProps = {
 };
 
 afterEach(() => {
+  fetchMock.clearHistory();
   jest.clearAllMocks();
 });
 
@@ -105,11 +105,13 @@ test('should POST with request header `Accept: application/json`', async () => {
   );
   fireEvent.click(getByRole('button', { name: 'Import' }));
   await waitFor(() =>
-    expect(fetchMock.calls(DATABASE_IMPORT_URL)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(DATABASE_IMPORT_URL)).toHaveLength(1),
   );
-  expect(fetchMock.calls(DATABASE_IMPORT_URL)[0][1]?.headers).toStrictEqual({
-    Accept: 'application/json',
-    'X-CSRFToken': '1234',
+  expect(
+    fetchMock.callHistory.calls(DATABASE_IMPORT_URL)[0].options?.headers,
+  ).toStrictEqual({
+    accept: 'application/json',
+    'x-csrftoken': '1234',
   });
 });
 
@@ -137,4 +139,48 @@ test('should render ssh_tunnel private_key_password fields when needed for impor
     sshTunnelPrivateKeyPasswordFields: ['databases/examples.yaml'],
   });
   expect(getByTestId('ssh_tunnel_private_key_password')).toBeInTheDocument();
+});
+
+test('should render encrypted extra secret fields when needed for import', () => {
+  const { getByTestId } = setup({
+    encryptedExtraFields: [
+      {
+        fileName: 'databases/examples.yaml',
+        fields: [
+          {
+            path: '$.credentials_info.private_key',
+            label: 'Service Account Private Key',
+          },
+        ],
+      },
+    ],
+  });
+  expect(getByTestId('encrypted_extra_secret')).toBeInTheDocument();
+});
+
+test('should render multiple encrypted extra secret fields for multiple files', () => {
+  const { getAllByTestId } = setup({
+    encryptedExtraFields: [
+      {
+        fileName: 'databases/bigquery.yaml',
+        fields: [
+          {
+            path: '$.credentials_info.private_key',
+            label: 'Service Account Private Key',
+          },
+        ],
+      },
+      {
+        fileName: 'databases/snowflake.yaml',
+        fields: [
+          { path: '$.auth_params.privatekey_body', label: 'Private Key Body' },
+          {
+            path: '$.auth_params.privatekey_pass',
+            label: 'Private Key Password',
+          },
+        ],
+      },
+    ],
+  });
+  expect(getAllByTestId('encrypted_extra_secret')).toHaveLength(3);
 });

@@ -16,13 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import memoizeOne from 'memoize-one';
-import { addAlpha, DataRecord } from '@superset-ui/core';
+import memoizeOne, { type MemoizedFn } from 'memoize-one';
+import { isString, isBoolean } from 'lodash-es';
+import { isBlank } from '@apache-superset/core/utils';
+import { addAlpha, DataRecord, rgbaToHex } from '@superset-ui/core';
+import { type RGBColor } from '@superset-ui/core/components';
+import tinycolor from 'tinycolor2';
 import {
   ColorFormatters,
   Comparator,
   ConditionalFormattingConfig,
   MultipleValueComparators,
+  ResolvedColorFormatterResult,
+  ColorSchemeEnum,
+  BoundUnit,
+  PercentDenominator,
 } from '../types';
 
 export const round = (num: number, precision = 0) =>
@@ -31,8 +39,13 @@ export const round = (num: number, precision = 0) =>
 const MIN_OPACITY_BOUNDED = 0.05;
 const MIN_OPACITY_UNBOUNDED = 0;
 const MAX_OPACITY = 1;
+const READABLE_TEXT_COLORS = [
+  { r: 0, g: 0, b: 0 },
+  { r: 255, g: 255, b: 255 },
+];
+
 export const getOpacity = (
-  value: number | string,
+  value: number | string | boolean | null,
   cutoffPoint: number | string,
   extremeValue: number | string,
   minOpacity = MIN_OPACITY_BOUNDED,
@@ -62,6 +75,61 @@ export const getOpacity = (
   );
 };
 
+const parseColorToRgb = (color: RGBColor | string) => {
+  if (typeof color === 'string') {
+    const { r, g, b } = tinycolor(color).toRgb();
+    return { r, g, b };
+  }
+  return { r: color.r, g: color.g, b: color.b };
+};
+
+export const getDivergingColor = (
+  value: number,
+  cutoffValue: number,
+  centerValue: number,
+  extremeValue: number,
+  lowColor: RGBColor | string,
+  midColor: RGBColor | string,
+  highColor: RGBColor | string,
+): string => {
+  const clampedValue = Math.min(Math.max(value, cutoffValue), extremeValue);
+  const belowCenter = clampedValue <= centerValue;
+  const from = parseColorToRgb(belowCenter ? lowColor : midColor);
+  const to = parseColorToRgb(belowCenter ? midColor : highColor);
+  const rangeStart = belowCenter ? cutoffValue : centerValue;
+  const rangeEnd = belowCenter ? centerValue : extremeValue;
+  const ratio =
+    rangeEnd === rangeStart
+      ? 1
+      : (clampedValue - rangeStart) / (rangeEnd - rangeStart);
+  return rgbaToHex({
+    r: from.r + (to.r - from.r) * ratio,
+    g: from.g + (to.g - from.g) * ratio,
+    b: from.b + (to.b - from.b) * ratio,
+    a: 1,
+  });
+};
+
+const isValidDivergingConfig = (
+  centerValue: number | undefined,
+  lowColor: RGBColor | string | undefined,
+  midColor: RGBColor | string | undefined,
+  highColor: RGBColor | string | undefined,
+  cutoffValue: number | string,
+  extremeValue: number | string,
+): centerValue is number =>
+  centerValue !== undefined &&
+  lowColor !== undefined &&
+  midColor !== undefined &&
+  highColor !== undefined &&
+  typeof cutoffValue === 'number' &&
+  typeof extremeValue === 'number' &&
+  centerValue > cutoffValue &&
+  centerValue < extremeValue;
+
+const isSpecialColor = (value: unknown): value is ColorSchemeEnum =>
+  Object.values(ColorSchemeEnum).includes(value as ColorSchemeEnum);
+
 export const getColorFunction = (
   {
     operator,
@@ -69,17 +137,68 @@ export const getColorFunction = (
     targetValueLeft,
     targetValueRight,
     colorScheme,
+    useGradient,
+    minBound: rawMinBound,
+    maxBound: rawMaxBound,
+    centerValue: rawCenterValue,
+    lowColor,
+    midColor,
+    highColor,
+    boundUnit,
+    percentDenominator,
   }: ConditionalFormattingConfig,
-  columnValues: number[] | string[],
+  columnValues: number[] | string[] | (boolean | null)[],
   alpha?: boolean,
 ) => {
+  const resolvePercentBound = (bound: number | undefined) => {
+    if (boundUnit !== BoundUnit.Percent || bound === undefined) {
+      return bound;
+    }
+    const numericColumnValues = (
+      columnValues as (number | string | boolean | null)[]
+    ).filter((value): value is number => typeof value === 'number');
+    if (numericColumnValues.length === 0) {
+      return undefined;
+    }
+    // Sum magnitudes independently so mixed signs do not cancel into an
+    // unstable denominator. A non-positive column maximum cannot produce
+    // ordered percentage bounds, so it falls back to the automatic range.
+    const denominatorValue =
+      percentDenominator === PercentDenominator.Sum
+        ? numericColumnValues.reduce((sum, value) => sum + Math.abs(value), 0)
+        : numericColumnValues.reduce(
+            (max, value) => (value > max ? value : max),
+            -Infinity,
+          );
+    if (denominatorValue <= 0) {
+      return undefined;
+    }
+    return (bound / 100) * denominatorValue;
+  };
+
+  const minBound = resolvePercentBound(rawMinBound);
+  const maxBound = resolvePercentBound(rawMaxBound);
+  const centerValue = resolvePercentBound(rawCenterValue);
+
   let minOpacity = MIN_OPACITY_BOUNDED;
   const maxOpacity = MAX_OPACITY;
 
-  let comparatorFunction: (
-    value: number | string,
-    allValues: number[] | string[],
-  ) => false | { cutoffValue: number | string; extremeValue: number | string };
+  type ComparatorFunction = (
+    value: number | string | boolean | null,
+    allValues: number[] | string[] | (boolean | null)[],
+  ) =>
+    | false
+    | {
+        cutoffValue: number | string;
+        extremeValue: number | string;
+        opacityValue?: number;
+      };
+  // Forward-compat: TS 6.0 checks each branch's narrower comparator against
+  // `ComparatorFunction` contravariantly and rejects the assignment. Each
+  // branch is only ever invoked below with a `value`/`allValues` pair whose
+  // runtime type matches its own operator (callers pick the operator based
+  // on the column's actual type), so the cast is safe.
+  let comparatorFunction: ComparatorFunction;
   if (operator === undefined || colorScheme === undefined) {
     return () => undefined;
   }
@@ -99,61 +218,84 @@ export const getColorFunction = (
   switch (operator) {
     case Comparator.None:
       minOpacity = MIN_OPACITY_UNBOUNDED;
-      comparatorFunction = (value: number | string, allValues: number[]) => {
+      comparatorFunction = ((value: number | string, allValues: number[]) => {
         if (typeof value !== 'number') {
           return { cutoffValue: value!, extremeValue: value! };
         }
-        const cutoffValue = Math.min(...allValues);
-        const extremeValue = Math.max(...allValues);
+        const cutoffValue = minBound ?? Math.min(...allValues);
+        const extremeValue = maxBound ?? Math.max(...allValues);
+        const hasManualBound = minBound !== undefined || maxBound !== undefined;
+        if (cutoffValue > extremeValue) {
+          return false;
+        }
+        if (hasManualBound) {
+          return {
+            cutoffValue,
+            extremeValue,
+            opacityValue: Math.min(Math.max(value, cutoffValue), extremeValue),
+          };
+        }
         return value >= cutoffValue && value <= extremeValue
           ? { cutoffValue, extremeValue }
           : false;
-      };
+      }) as ComparatorFunction;
       break;
     case Comparator.GreaterThan:
-      comparatorFunction = (value: number, allValues: number[]) =>
+      comparatorFunction = ((value: number, allValues: number[]) =>
         typeof targetValue === 'number' && value > targetValue!
           ? {
               cutoffValue: targetValue!,
-              extremeValue: Math.max(...allValues),
+              extremeValue:
+                maxBound !== undefined && maxBound > targetValue
+                  ? maxBound
+                  : Math.max(...allValues),
             }
-          : false;
+          : false) as ComparatorFunction;
       break;
     case Comparator.LessThan:
-      comparatorFunction = (value: number, allValues: number[]) =>
+      comparatorFunction = ((value: number, allValues: number[]) =>
         typeof targetValue === 'number' && value < targetValue!
           ? {
               cutoffValue: targetValue!,
-              extremeValue: Math.min(...allValues),
+              extremeValue:
+                minBound !== undefined && minBound < targetValue
+                  ? minBound
+                  : Math.min(...allValues),
             }
-          : false;
+          : false) as ComparatorFunction;
       break;
     case Comparator.GreaterOrEqual:
-      comparatorFunction = (value: number, allValues: number[]) =>
+      comparatorFunction = ((value: number, allValues: number[]) =>
         typeof targetValue === 'number' && value >= targetValue!
           ? {
               cutoffValue: targetValue!,
-              extremeValue: Math.max(...allValues),
+              extremeValue:
+                maxBound !== undefined && maxBound > targetValue
+                  ? maxBound
+                  : Math.max(...allValues),
             }
-          : false;
+          : false) as ComparatorFunction;
       break;
     case Comparator.LessOrEqual:
-      comparatorFunction = (value: number, allValues: number[]) =>
+      comparatorFunction = ((value: number, allValues: number[]) =>
         typeof targetValue === 'number' && value <= targetValue!
           ? {
               cutoffValue: targetValue!,
-              extremeValue: Math.min(...allValues),
+              extremeValue:
+                minBound !== undefined && minBound < targetValue
+                  ? minBound
+                  : Math.min(...allValues),
             }
-          : false;
+          : false) as ComparatorFunction;
       break;
     case Comparator.Equal:
-      comparatorFunction = (value: number | string) =>
+      comparatorFunction = ((value: number | string) =>
         value === targetValue!
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
-          : false;
+          : false) as ComparatorFunction;
       break;
     case Comparator.NotEqual:
-      comparatorFunction = (value: number, allValues: number[]) => {
+      comparatorFunction = ((value: number, allValues: number[]) => {
         if (typeof targetValue === 'number') {
           if (value === targetValue!) {
             return false;
@@ -169,87 +311,210 @@ export const getColorFunction = (
           };
         }
         return false;
-      };
+      }) as ComparatorFunction;
 
       break;
     case Comparator.Between:
-      comparatorFunction = (value: number) =>
+      comparatorFunction = ((value: number) =>
         value > targetValueLeft! && value < targetValueRight!
           ? { cutoffValue: targetValueLeft!, extremeValue: targetValueRight! }
-          : false;
+          : false) as ComparatorFunction;
       break;
     case Comparator.BetweenOrEqual:
-      comparatorFunction = (value: number) =>
+      comparatorFunction = ((value: number) =>
         value >= targetValueLeft! && value <= targetValueRight!
           ? { cutoffValue: targetValueLeft!, extremeValue: targetValueRight! }
-          : false;
+          : false) as ComparatorFunction;
       break;
     case Comparator.BetweenOrLeftEqual:
-      comparatorFunction = (value: number) =>
+      comparatorFunction = ((value: number) =>
         value >= targetValueLeft! && value < targetValueRight!
           ? { cutoffValue: targetValueLeft!, extremeValue: targetValueRight! }
-          : false;
+          : false) as ComparatorFunction;
       break;
     case Comparator.BetweenOrRightEqual:
-      comparatorFunction = (value: number) =>
+      comparatorFunction = ((value: number) =>
         value > targetValueLeft! && value <= targetValueRight!
           ? { cutoffValue: targetValueLeft!, extremeValue: targetValueRight! }
-          : false;
+          : false) as ComparatorFunction;
       break;
     case Comparator.BeginsWith:
-      comparatorFunction = (value: string) =>
+      comparatorFunction = ((value: string) =>
         isString(value) && value?.startsWith(targetValue as string)
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
-          : false;
+          : false) as ComparatorFunction;
       break;
     case Comparator.EndsWith:
-      comparatorFunction = (value: string) =>
+      comparatorFunction = ((value: string) =>
         isString(value) && value?.endsWith(targetValue as string)
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
-          : false;
+          : false) as ComparatorFunction;
       break;
     case Comparator.Containing:
-      comparatorFunction = (value: string) =>
+      comparatorFunction = ((value: string) =>
         isString(value) &&
         value?.toLowerCase().includes((targetValue as string).toLowerCase())
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
-          : false;
+          : false) as ComparatorFunction;
       break;
     case Comparator.NotContaining:
-      comparatorFunction = (value: string) =>
+      comparatorFunction = ((value: string) =>
         isString(value) &&
         !value?.toLowerCase().includes((targetValue as string).toLowerCase())
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
-          : false;
+          : false) as ComparatorFunction;
+
+      break;
+    case Comparator.IsTrue:
+      comparatorFunction = ((value: boolean | null) =>
+        isBoolean(value) && value
+          ? { cutoffValue: targetValue!, extremeValue: targetValue! }
+          : false) as ComparatorFunction;
+      break;
+    case Comparator.IsFalse:
+      comparatorFunction = ((value: boolean | null) =>
+        isBoolean(value) && !value
+          ? { cutoffValue: targetValue!, extremeValue: targetValue! }
+          : false) as ComparatorFunction;
+      break;
+    case Comparator.IsNull:
+      comparatorFunction = ((value: boolean | null) =>
+        value === null
+          ? { cutoffValue: targetValue!, extremeValue: targetValue! }
+          : false) as ComparatorFunction;
+      break;
+    case Comparator.IsNotNull:
+      comparatorFunction = ((value: boolean | null) =>
+        isBoolean(value) && value !== null
+          ? { cutoffValue: targetValue!, extremeValue: targetValue! }
+          : false) as ComparatorFunction;
       break;
     default:
       comparatorFunction = () => false;
       break;
   }
 
-  return (value: number | string) => {
+  return (value: number | string | boolean | null) => {
+    if (isBlank(value) && operator !== Comparator.IsNull) {
+      return undefined;
+    }
     const compareResult = comparatorFunction(value, columnValues);
     if (compareResult === false) return undefined;
-    const { cutoffValue, extremeValue } = compareResult;
-    if (alpha === undefined || alpha) {
-      return addAlpha(
-        colorScheme,
-        getOpacity(value, cutoffValue, extremeValue, minOpacity, maxOpacity),
+    const { cutoffValue, extremeValue, opacityValue } = compareResult;
+    const resolvedValue = opacityValue ?? value;
+
+    if (
+      useGradient !== false &&
+      operator === Comparator.None &&
+      typeof resolvedValue === 'number' &&
+      isValidDivergingConfig(
+        centerValue,
+        lowColor,
+        midColor,
+        highColor,
+        cutoffValue,
+        extremeValue,
+      )
+    ) {
+      return getDivergingColor(
+        resolvedValue,
+        cutoffValue as number,
+        centerValue,
+        extremeValue as number,
+        lowColor!,
+        midColor!,
+        highColor!,
       );
     }
-    return colorScheme;
+
+    if (typeof colorScheme === 'string') {
+      if (isSpecialColor(colorScheme)) {
+        return colorScheme;
+      }
+
+      if (
+        useGradient === false ||
+        (useGradient === undefined && colorScheme.length === 9)
+      ) {
+        if (alpha === false) {
+          return colorScheme.length === 9
+            ? colorScheme.slice(0, 7)
+            : colorScheme;
+        }
+        return colorScheme;
+      }
+
+      const cleanHex =
+        colorScheme.length === 9 ? colorScheme.slice(0, 7) : colorScheme;
+
+      if (alpha === undefined || alpha) {
+        return addAlpha(
+          cleanHex,
+          getOpacity(
+            opacityValue ?? value,
+            cutoffValue,
+            extremeValue,
+            minOpacity,
+            maxOpacity,
+          ),
+        );
+      }
+      return colorScheme;
+    }
+    // If useGradient is explicitly false, return solid color
+    if (useGradient === false || useGradient === undefined) {
+      if (alpha === false) {
+        return rgbaToHex({ ...colorScheme, a: 1 });
+      }
+      return rgbaToHex(colorScheme);
+    }
+
+    const baseHexColor = rgbaToHex({ ...colorScheme, a: 1 });
+    // Otherwise apply gradient (default behavior for backward compatibility)
+    if (alpha === undefined || alpha) {
+      return addAlpha(
+        baseHexColor,
+        getOpacity(
+          opacityValue ?? value,
+          cutoffValue,
+          extremeValue,
+          minOpacity,
+          maxOpacity,
+        ),
+      );
+    }
+    return baseHexColor;
   };
 };
 
-export const getColorFormatters = memoizeOne(
+type GetColorFormatters = (
+  columnConfig: ConditionalFormattingConfig[] | undefined,
+  data: DataRecord[],
+  theme?: Record<string, any>,
+  alpha?: boolean,
+  disablePercentBounds?: boolean,
+) => ColorFormatters;
+
+export const getColorFormatters: MemoizedFn<GetColorFormatters> = memoizeOne(
   (
     columnConfig: ConditionalFormattingConfig[] | undefined,
     data: DataRecord[],
     theme?: Record<string, any>,
     alpha?: boolean,
+    disablePercentBounds = false,
   ) =>
     columnConfig?.reduce(
       (acc: ColorFormatters, config: ConditionalFormattingConfig) => {
+        const colorFunctionConfig =
+          disablePercentBounds && config.boundUnit === BoundUnit.Percent
+            ? {
+                ...config,
+                boundUnit: BoundUnit.Value,
+                minBound: undefined,
+                maxBound: undefined,
+                centerValue: undefined,
+              }
+            : config;
         let resolvedColorScheme = config.colorScheme;
         if (
           theme &&
@@ -273,8 +538,10 @@ export const getColorFormatters = memoizeOne(
             column: config?.column,
             toAllRow: config?.toAllRow,
             toTextColor: config?.toTextColor,
+            columnFormatting: config?.columnFormatting,
+            objectFormatting: config?.objectFormatting,
             getColorFromValue: getColorFunction(
-              { ...config, colorScheme: resolvedColorScheme },
+              { ...colorFunctionConfig, colorScheme: resolvedColorScheme },
               data.map(row => row[config.column!] as number),
               alpha,
             ),
@@ -286,6 +553,58 @@ export const getColorFormatters = memoizeOne(
     ) ?? [],
 );
 
-function isString(value: unknown) {
-  return typeof value === 'string';
-}
+export const getReadableTextColor = (
+  backgroundColor: string | undefined,
+  surfaceColor: string,
+): string | undefined => {
+  if (!backgroundColor) {
+    return undefined;
+  }
+
+  const background = tinycolor(backgroundColor);
+  const surface = tinycolor(surfaceColor);
+
+  if (!background.isValid() || !surface.isValid()) {
+    return undefined;
+  }
+
+  const { r: bgR, g: bgG, b: bgB, a: bgAlpha } = background.toRgb();
+  const { r: surfaceR, g: surfaceG, b: surfaceB } = surface.toRgb();
+  const alpha = bgAlpha;
+
+  const compositeColor = tinycolor({
+    r: bgR * alpha + surfaceR * (1 - alpha),
+    g: bgG * alpha + surfaceG * (1 - alpha),
+    b: bgB * alpha + surfaceB * (1 - alpha),
+  });
+
+  return tinycolor
+    .mostReadable(compositeColor, READABLE_TEXT_COLORS, {
+      includeFallbackColors: true,
+      level: 'AA',
+      size: 'small',
+    })
+    .toRgbString();
+};
+
+export const getNormalizedTextColor = (
+  color: string | undefined,
+): string | undefined => {
+  if (!color) {
+    return undefined;
+  }
+
+  const parsedColor = tinycolor(color);
+  if (!parsedColor.isValid()) {
+    return color;
+  }
+
+  return parsedColor.setAlpha(1).toRgbString();
+};
+
+export const getTextColorForBackground = (
+  result: ResolvedColorFormatterResult,
+  surfaceColor: string,
+): string | undefined =>
+  getNormalizedTextColor(result.color) ??
+  getReadableTextColor(result.backgroundColor, surfaceColor);

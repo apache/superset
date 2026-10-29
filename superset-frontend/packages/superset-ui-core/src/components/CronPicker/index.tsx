@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import ReactCronPicker from 'react-js-cron';
 import type { Locale, CronProps } from './types';
 
@@ -104,8 +104,12 @@ export const LOCALE: Locale = {
   ],
 };
 
+// react-js-cron v6 treats `* * * * *` as an "empty" value and, with its default
+// allowEmpty='for-default-value', flags it as invalid whenever the user picks
+// "Every minute" (or "Every hour" at every minute) and the initial value
+// differed. It is a valid schedule that the backend accepts, so allow it.
 export const CronPicker = styled((props: CronProps) => (
-  <ReactCronPicker locale={LOCALE} {...props} />
+  <ReactCronPicker locale={LOCALE} allowEmpty="always" {...props} />
 ))`
   ${({ theme }) => `
 
@@ -175,7 +179,7 @@ export const CronPicker = styled((props: CronProps) => (
 
     .react-js-cron-select.ant-select {
       width: 100%;
-      .ant-select-selector {
+      .ant-select-content {
         flex-wrap: nowrap;
       }
     }
@@ -188,12 +192,12 @@ export const CronPicker = styled((props: CronProps) => (
       }
     }
 
-    .react-js-cron-custom-select .ant-select-selection-placeholder {
+    .react-js-cron-custom-select .ant-select-placeholder {
       flex: auto;
       border-radius: ${theme.borderRadius}px;
     }
 
-    .react-js-cron-custom-select .ant-select-selection-overflow-item {
+    .react-js-cron-custom-select .ant-select-content-item {
       align-self: center;
     }
 

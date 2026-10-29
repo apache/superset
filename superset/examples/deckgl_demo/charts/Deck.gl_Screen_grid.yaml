@@ -1,0 +1,57 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: a46c986d-8780-4745-91ff-7fefeef69f3c
+description: null
+params:
+  color_picker:
+    a: 1
+    b: 0
+    g: 255
+    r: 14
+  datasource: 5__table
+  granularity_sqla: null
+  grid_size: 20
+  groupby: []
+  mapbox_style: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+  point_radius: Auto
+  point_radius_fixed:
+    type: fix
+    value: 2000
+  point_unit: square_m
+  row_limit: 5000
+  size: count
+  spatial:
+    latCol: LAT
+    lonCol: LON
+    type: latlong
+  time_grain_sqla: null
+  time_range: No filter
+  viewport:
+    bearing: -4.952916738791771
+    latitude: 37.76024135844065
+    longitude: -122.41827069521386
+    pitch: 4.750411100577438
+    zoom: 14.161641703941438
+  viz_type: deck_screengrid
+query_context: null
+slice_name: Deck.gl Screen grid
+uuid: f3adb73f-1c57-4a0c-86fb-8b1f81cfc427
+version: 1.0.0
+viz_type: deck_screengrid

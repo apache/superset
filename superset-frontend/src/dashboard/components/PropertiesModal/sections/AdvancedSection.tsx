@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -16,13 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
-import { JsonEditor } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
+import type { editors } from '@apache-superset/core';
+import { EditorHost } from 'src/core/editors';
 import { ModalFormField } from 'src/components/Modal';
 import { ValidationObject } from 'src/components/Modal/useModalValidation';
 
-const StyledJsonEditor = styled(JsonEditor)`
+type EditorAnnotation = editors.EditorAnnotation;
+
+/**
+ * Convert Ace annotation format to EditorAnnotation format.
+ */
+const toEditorAnnotations = (
+  aceAnnotations: Array<{
+    type: string;
+    row: number;
+    column: number;
+    text: string;
+  }>,
+): EditorAnnotation[] =>
+  aceAnnotations.map(ann => ({
+    severity: ann.type as EditorAnnotation['severity'],
+    line: ann.row,
+    column: ann.column,
+    message: ann.text,
+  }));
+
+const StyledEditorHost = styled(EditorHost)`
   /* Border is already applied by AceEditor itself */
 `;
 
@@ -39,34 +60,36 @@ const AdvancedSection = ({
   validationStatus,
   onJsonMetadataChange,
 }: AdvancedSectionProps) => (
-  <ModalFormField
-    label={t('JSON Metadata')}
-    testId="dashboard-metadata-field"
-    helperText={t(
-      'This JSON object is generated dynamically when clicking the save ' +
-        'or overwrite button in the dashboard view. It is exposed here for ' +
-        'reference and for power users who may want to alter specific parameters.',
-    )}
-    error={
-      validationStatus.advanced?.hasErrors && jsonAnnotations.length > 0
-        ? t('Invalid JSON metadata')
-        : undefined
-    }
-    bottomSpacing={false}
-  >
-    <StyledJsonEditor
-      data-test="dashboard-metadata-editor"
-      showLoadingForImport
-      name="json_metadata"
-      value={jsonMetadata}
-      onChange={onJsonMetadataChange}
-      tabSize={2}
-      width="100%"
-      height="200px"
-      wrapEnabled
-      annotations={jsonAnnotations}
-    />
-  </ModalFormField>
+  <>
+    <ModalFormField
+      label={t('JSON Metadata')}
+      testId="dashboard-metadata-field"
+      helperText={t(
+        'This JSON object is generated dynamically when clicking the save ' +
+          'or overwrite button in the dashboard view. It is exposed here for ' +
+          'reference and for power users who may want to alter specific parameters.',
+      )}
+      error={
+        validationStatus.advanced?.hasErrors && jsonAnnotations.length > 0
+          ? t('Invalid JSON metadata')
+          : undefined
+      }
+      bottomSpacing={false}
+    >
+      <StyledEditorHost
+        id="dashboard-json-metadata"
+        data-test="dashboard-metadata-editor"
+        value={jsonMetadata}
+        onChange={onJsonMetadataChange}
+        language="json"
+        tabSize={2}
+        wordWrap
+        width="100%"
+        height="60vh"
+        annotations={toEditorAnnotations(jsonAnnotations)}
+      />
+    </ModalFormField>
+  </>
 );
 
 export default AdvancedSection;

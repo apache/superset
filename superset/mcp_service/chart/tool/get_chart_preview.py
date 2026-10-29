@@ -19,13 +19,63 @@
 MCP tool: get_chart_preview
 """
 
+import asyncio
+import base64
 import logging
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
+from contextvars import copy_context
+from io import BytesIO
 from typing import Any, Dict, List, Protocol
 
 from fastmcp import Context
+from flask import g
+from PIL import Image
+from sqlalchemy.exc import SQLAlchemyError
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
+from superset import security_manager
+from superset.commands.exceptions import CommandException
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    SupersetException,
+    SupersetSecurityException,
+)
+from superset.extensions import db, event_logger
+from superset.mcp_service import guest_scope
+from superset.mcp_service.chart.ascii_charts import (
+    generate_ascii_chart,
+    generate_ascii_table,
+)
+from superset.mcp_service.chart.chart_helpers import (
+    build_query_context_from_form_data,
+    canonicalize_operation_form_data,
+    find_chart_by_identifier,
+)
+from superset.mcp_service.chart.chart_utils import (
+    DatasetValidationResult,
+    validate_chart_dataset,
+)
+from superset.mcp_service.chart.datasource_resolver import (
+    resolve_semantic_view,
+    view_not_found_error,
+)
+from superset.mcp_service.chart.preview_utils import (
+    fallback_vega_lite_preview,
+    fit_ascii_frame,
+    plugin_ascii_preview,
+    plugin_table_preview,
+    plugin_unsupported_preview,
+    plugin_vega_lite_preview,
+)
+from superset.mcp_service.chart.query_result import (
+    first_query_data,
+    normalize_chart_query_result,
+    null_data_is_empty,
+)
+from superset.mcp_service.chart.registry import plugin_for_viz_type
+from superset.mcp_service.chart.response_preflight import finalize_chart_response
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -34,13 +84,30 @@ from superset.mcp_service.chart.schemas import (
     GetChartPreviewRequest,
     InteractivePreview,
     PerformanceMetadata,
+    PNGPreview,
     TablePreview,
     URLPreview,
     VegaLitePreview,
 )
+from superset.mcp_service.utils.oauth2_utils import (
+    build_oauth2_redirect_message,
+    OAUTH2_CONFIG_ERROR_MESSAGE,
+)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
+from superset.superset_typing import Column, Metric
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
+
+# Keep browser captures separate from the default pool used for transport auth.
+_PNG_EXECUTOR = ThreadPoolExecutor(max_workers=2, thread_name_prefix="mcp-png")
+
+
+def _finalize_response(
+    response: ChartPreview | ChartError,
+) -> ChartPreview | ChartError:
+    """Preflight every public preview response without changing its schema."""
+    return finalize_chart_response(response)
 
 
 class ChartLike(Protocol):
@@ -56,6 +123,125 @@ class ChartLike(Protocol):
     uuid: Any
 
 
+def _build_query_columns(form_data: Dict[str, Any]) -> list[Column]:
+    """Build query columns list from form_data, including both x_axis and groupby.
+
+    Handles chart-type-specific keys:
+    - Standard charts: ``groupby`` + ``x_axis``
+    - Pivot tables: ``groupbyColumns`` + ``groupbyRows`` (when ``groupby`` is absent)
+    - Mixed timeseries: ``groupby_b`` (secondary groupby)
+    """
+    x_axis_config: Column | None = form_data.get("x_axis")
+    groupby_columns: list[Column] = form_data.get("groupby") or []
+
+    # Pivot tables store dimensions under groupbyColumns / groupbyRows
+    if not groupby_columns:
+        pivot_rows: list[Column] = form_data.get("groupbyRows") or []
+        pivot_cols: list[Column] = form_data.get("groupbyColumns") or []
+        groupby_columns = list(pivot_rows) + list(pivot_cols)
+
+    # Mixed timeseries stores secondary groupby under groupby_b
+    groupby_b: list[Column] = form_data.get("groupby_b") or []
+    for col in groupby_b:
+        if col not in groupby_columns:
+            groupby_columns.append(col)
+
+    # Deduplicate while preserving order
+    seen: set[str] = set()
+    columns: list[Column] = []
+
+    def _add_unique(col: Column) -> None:
+        key = col if isinstance(col, str) else col.get("label", str(col))
+        if key not in seen:
+            columns.append(col)
+            seen.add(key)
+
+    if x_axis_config and isinstance(x_axis_config, str):
+        _add_unique(x_axis_config)
+    elif x_axis_config and isinstance(x_axis_config, dict):
+        col_name = x_axis_config.get("column_name")
+        if col_name and isinstance(col_name, str):
+            _add_unique(col_name)
+
+    for col in groupby_columns:
+        _add_unique(col)
+
+    return columns
+
+
+def _build_query_metrics(form_data: Dict[str, Any]) -> list[Metric]:
+    """Extract metrics from form_data, handling chart-type variations.
+
+    Handles:
+    - ``metrics`` (plural) — most chart types
+    - ``metric`` (singular) — Pie charts
+    - ``metrics_b`` — secondary y-axis in Mixed Timeseries charts
+    """
+    metrics: list[Metric] = list(form_data.get("metrics") or [])
+    if not metrics:
+        singular: Metric | None = form_data.get("metric")
+        if singular:
+            metrics = [singular]
+
+    # Mixed timeseries stores the second y-axis metrics under metrics_b
+    metrics_b: list[Metric] = form_data.get("metrics_b") or []
+    for m in metrics_b:
+        if m not in metrics:
+            metrics.append(m)
+
+    return metrics
+
+
+def _first_query_has_fields(query_context: Any) -> bool:
+    """Return True if the rendered query has metrics or columns configured.
+
+    A chart with neither (e.g. a big_number chart saved without a metric)
+    cannot be previewed; downstream query execution would only surface a
+    generic "empty query" error. Preview strategies render only the first
+    query result, so validation must inspect that same query.
+    """
+    queries = getattr(query_context, "queries", None)
+    if not queries:
+        # No queries to inspect (or an object without a `.queries`
+        # attribute, e.g. a test double) — defer to normal query
+        # execution rather than guessing.
+        return True
+    query = queries[0]
+    return bool(query.metrics or query.columns)
+
+
+def _no_query_fields_error(chart: ChartLike) -> ChartError:
+    """Build a clear error for charts with no metrics/columns to query."""
+    return ChartError(
+        error=(
+            f"Chart {chart.slice_name or chart.id!r} "
+            f"(viz_type={chart.viz_type!r}) has no metrics or columns "
+            "configured, so a preview cannot be generated."
+        ),
+        error_type="NoQueryFields",
+    )
+
+
+def _preview_row_limit(form_data: dict[str, Any], fallback: int) -> int:
+    """Keep plugin previews aligned with their frontend row limits."""
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    if plugin is None:
+        return fallback
+    return plugin.preview_row_limit(form_data, fallback)
+
+
+def _build_chart_description(chart: ChartLike) -> str:
+    """Build a human-readable chart description, with hints for special chart types."""
+    base = (
+        f"Preview of {chart.viz_type or 'chart'}: "
+        f"{chart.slice_name or f'Chart {chart.id}'}"
+    )
+    plugin = plugin_for_viz_type(chart.viz_type)
+    if plugin is not None and plugin.preview_note:
+        base += f". Note: {plugin.preview_note}"
+    return base
+
+
 class PreviewFormatStrategy:
     """Base class for preview format strategies."""
 
@@ -67,61 +253,55 @@ class PreviewFormatStrategy:
         """Generate preview in the specific format."""
         raise NotImplementedError
 
+    def _authorize_guest_query(self, query_context: Any) -> None:
+        """For a guest, attach the dashboard context so raise_for_access
+        authorizes the preview query."""
+        if (dashboard_id := guest_scope.guest_dashboard_id(self.chart)) is not None:
+            guest_scope.authorize_query(query_context, dashboard_id, self.chart)
+
+    def _canonical_form_data(self, form_data: dict[str, Any]) -> dict[str, Any]:
+        """Bind saved-preview identity to the resolved chart and datasource."""
+        canonical = canonicalize_operation_form_data(
+            form_data,
+            datasource_id=self.chart.datasource_id,
+            datasource_type=self.chart.datasource_type,
+            chart_id=self.chart.id,
+        )
+        if self.chart.viz_type:
+            canonical["viz_type"] = self.chart.viz_type
+        return canonical
+
+    def _seed_query_context_form_data(self, query_context: Any) -> None:
+        """Seed Flask form data before saved-preview query execution."""
+        if not hasattr(query_context, "form_data") or not isinstance(
+            getattr(query_context, "queries", None), (list, tuple)
+        ):
+            return
+        from superset.charts.data.form_data import set_query_context_form_data
+
+        set_query_context_form_data(
+            query_context,
+            self.chart.datasource_id,
+            self.chart.datasource_type,
+        )
+
 
 class URLPreviewStrategy(PreviewFormatStrategy):
-    """Generate URL-based image preview."""
+    """Generate URL-based preview with explore link."""
 
     def generate(self) -> URLPreview | ChartError:
-        try:
-            from flask import g
-
-            from superset.mcp_service.screenshot.pooled_screenshot import (
-                PooledChartScreenshot,
-            )
-            from superset.mcp_service.utils.url_utils import get_superset_base_url
-
-            # Check if chart.id is None
-            if self.chart.id is None:
-                return ChartError(
-                    error="Chart has no ID - cannot generate URL preview",
-                    error_type="InvalidChart",
-                )
-
-            # Use configured Superset base URL instead of Flask's url_for
-            # which may not respect SUPERSET_WEBSERVER_ADDRESS
-            base_url = get_superset_base_url()
-            chart_url = f"{base_url}/superset/slice/{self.chart.id}/"
-            screenshot = PooledChartScreenshot(chart_url, self.chart.digest)
-
-            window_size = (self.request.width or 800, self.request.height or 600)
-            image_data = screenshot.get_screenshot(user=g.user, window_size=window_size)
-
-            if image_data:
-                # Use the MCP service screenshot URL via centralized helper
-                from superset.mcp_service.utils.url_utils import (
-                    get_chart_screenshot_url,
-                )
-
-                preview_url = get_chart_screenshot_url(self.chart.id)
-
-                return URLPreview(
-                    preview_url=preview_url,
-                    width=self.request.width or 800,
-                    height=self.request.height or 600,
-                )
-            else:
-                return ChartError(
-                    error=f"Could not generate screenshot for chart {self.chart.id}",
-                    error_type="ScreenshotError",
-                )
-        except Exception as e:
-            logger.error("URL preview generation failed: %s", e)
+        chart = self.chart
+        if not chart.id:
             return ChartError(
-                error=f"Failed to generate URL preview: {str(e)}", error_type="URLError"
+                error="URL preview not available for transient charts without an ID",
+                error_type="UnsupportedFormat",
             )
-
-
-# Base64 preview support removed - we never return base64 data
+        explore_url = f"{get_superset_base_url()}/explore/?slice_id={chart.id}"
+        return URLPreview(
+            preview_url=explore_url,
+            width=self.request.width or 800,
+            height=self.request.height or 600,
+        )
 
 
 class ASCIIPreviewStrategy(PreviewFormatStrategy):
@@ -130,10 +310,11 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
     def generate(self) -> ASCIIPreview | ChartError:
         try:
             from superset.commands.chart.data.get_data_command import ChartDataCommand
-            from superset.common.query_context_factory import QueryContextFactory
             from superset.utils import json as utils_json
 
-            form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
+            form_data = self._canonical_form_data(
+                utils_json.loads(self.chart.params) if self.chart.params else {}
+            )
 
             logger.info("Chart form_data keys: %s", list(form_data.keys()))
             logger.info("Chart viz_type: %s", self.chart.viz_type)
@@ -147,58 +328,72 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                     error_type="InvalidChart",
                 )
 
-            # Build query for chart data
-            x_axis_config = form_data.get("x_axis")
-            groupby_columns = form_data.get("groupby", [])
-            metrics = form_data.get("metrics", [])
-
-            columns = groupby_columns.copy()
-            if x_axis_config and isinstance(x_axis_config, str):
-                columns.append(x_axis_config)
-            elif x_axis_config and isinstance(x_axis_config, dict):
-                if "column_name" in x_axis_config:
-                    columns.append(x_axis_config["column_name"])
-
-            factory = QueryContextFactory()
-            query_context = factory.create(
-                datasource={
-                    "id": self.chart.datasource_id,
-                    "type": self.chart.datasource_type,
-                },
-                queries=[
-                    {
-                        "filters": form_data.get("filters", []),
-                        "columns": columns,
-                        "metrics": metrics,
-                        "row_limit": 50,
-                        "order_desc": True,
-                    }
-                ],
-                form_data=form_data,
+            query_context = build_query_context_from_form_data(
+                form_data,
+                chart=self.chart,
+                extra_form_data=self.request.extra_form_data,
+                row_limit=_preview_row_limit(form_data, 50),
+                order_desc=form_data.get("order_desc", True),
                 force=False,
             )
 
+            if not _first_query_has_fields(query_context):
+                return _no_query_fields_error(self.chart)
+
+            self._authorize_guest_query(query_context)
+            self._seed_query_context_form_data(query_context)
             command = ChartDataCommand(query_context)
+            command.validate()
             result = command.run()
 
-            data = []
-            if result and "queries" in result and len(result["queries"]) > 0:
-                data = result["queries"][0].get("data", [])
+            result = normalize_chart_query_result(result, form_data)
+            if isinstance(result, ChartError):
+                return result
+            data, result_error = first_query_data(
+                result, none_as_empty=null_data_is_empty(self.chart.viz_type)
+            )
+            if result_error is not None:
+                return result_error
+            assert data is not None
 
-            ascii_chart = generate_ascii_chart(
+            ascii_chart = plugin_ascii_preview(
                 data,
-                self.chart.viz_type or "table",
+                form_data,
                 self.request.ascii_width or 80,
                 self.request.ascii_height or 20,
             )
+            if isinstance(ascii_chart, str):
+                # Plugin renderers may ignore the frame; clip like the unsaved
+                # path so the reported width/height describe the content.
+                ascii_chart = fit_ascii_frame(
+                    ascii_chart,
+                    self.request.ascii_width or 80,
+                    self.request.ascii_height or 20,
+                )
+            if ascii_chart is None:
+                ascii_chart = generate_ascii_chart(
+                    data,
+                    self.chart.viz_type or "table",
+                    self.request.ascii_width or 80,
+                    self.request.ascii_height or 20,
+                )
 
+            if isinstance(ascii_chart, ChartError):
+                return ascii_chart
             return ASCIIPreview(
                 ascii_content=ascii_chart,
                 width=self.request.ascii_width or 80,
                 height=self.request.ascii_height or 20,
             )
 
-        except Exception as e:
+        except (
+            CommandException,
+            SupersetException,
+            ValueError,
+            KeyError,
+            AttributeError,
+            TypeError,
+        ) as e:
             logger.error("ASCII preview generation failed: %s", e)
             return ChartError(
                 error=f"Failed to generate ASCII preview: {str(e)}",
@@ -210,12 +405,17 @@ class TablePreviewStrategy(PreviewFormatStrategy):
     """Generate table preview of chart data."""
 
     def generate(self) -> TablePreview | ChartError:
+        if (
+            unsupported := plugin_unsupported_preview(self.chart.viz_type, "table")
+        ) is not None:
+            return unsupported
         try:
             from superset.commands.chart.data.get_data_command import ChartDataCommand
-            from superset.common.query_context_factory import QueryContextFactory
             from superset.utils import json as utils_json
 
-            form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
+            form_data = self._canonical_form_data(
+                utils_json.loads(self.chart.params) if self.chart.params else {}
+            )
 
             # Check if datasource_id is None
             if self.chart.datasource_id is None:
@@ -224,40 +424,52 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                     error_type="InvalidChart",
                 )
 
-            factory = QueryContextFactory()
-            query_context = factory.create(
-                datasource={
-                    "id": self.chart.datasource_id,
-                    "type": self.chart.datasource_type,
-                },
-                queries=[
-                    {
-                        "filters": form_data.get("filters", []),
-                        "columns": form_data.get("groupby", []),
-                        "metrics": form_data.get("metrics", []),
-                        "row_limit": 20,
-                        "order_desc": True,
-                    }
-                ],
-                form_data=form_data,
+            query_context = build_query_context_from_form_data(
+                form_data,
+                chart=self.chart,
+                extra_form_data=self.request.extra_form_data,
+                row_limit=_preview_row_limit(form_data, 20),
+                order_desc=form_data.get("order_desc", True),
                 force=False,
             )
 
+            if not _first_query_has_fields(query_context):
+                return _no_query_fields_error(self.chart)
+
+            self._authorize_guest_query(query_context)
+            self._seed_query_context_form_data(query_context)
             command = ChartDataCommand(query_context)
+            command.validate()
             result = command.run()
 
-            data = []
-            if result and "queries" in result and len(result["queries"]) > 0:
-                data = result["queries"][0].get("data", [])
+            result = normalize_chart_query_result(result, form_data)
+            if isinstance(result, ChartError):
+                return result
+            data, result_error = first_query_data(
+                result, none_as_empty=null_data_is_empty(self.chart.viz_type)
+            )
+            if result_error is not None:
+                return result_error
+            assert data is not None
 
-            table_data = _generate_ascii_table(data, 120)
+            if (plugin_preview := plugin_table_preview(data, form_data)) is not None:
+                return plugin_preview
+
+            table_data = generate_ascii_table(data, 120)
 
             return TablePreview(
                 table_data=table_data,
                 row_count=len(data),
             )
 
-        except Exception as e:
+        except (
+            CommandException,
+            SupersetException,
+            ValueError,
+            KeyError,
+            AttributeError,
+            TypeError,
+        ) as e:
             logger.error("Table preview generation failed: %s", e)
             return ChartError(
                 error=f"Failed to generate table preview: {str(e)}",
@@ -276,16 +488,40 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
                 return utils_json.loads(self.chart.params)
             return None
-        except Exception:
+        except (ValueError, TypeError):
             return None
 
-    def generate(self) -> VegaLitePreview | ChartError:
+    def _create_plugin_preview(
+        self, data: Any, form_data: Dict[str, Any]
+    ) -> VegaLitePreview | ChartError | None:
+        """Return the owning plugin's preview framed for this saved chart."""
+        preview = plugin_vega_lite_preview(data, form_data)
+        plugin = plugin_for_viz_type(form_data.get("viz_type"))
+        if not isinstance(preview, VegaLitePreview) or plugin is None:
+            return preview
+        if plugin.resizes_saved_preview:
+            preview.specification.update(
+                {
+                    "description": (
+                        "Chart preview for "
+                        f"{getattr(self.chart, 'slice_name', 'Untitled Chart')}"
+                    ),
+                    "width": self.request.width or 400,
+                    "height": self.request.height or 300,
+                }
+            )
+        return preview
+
+    def generate(self) -> VegaLitePreview | ChartError:  # noqa: C901
         """Generate Vega-Lite JSON specification from chart data."""
+        if (
+            unsupported := plugin_unsupported_preview(self.chart.viz_type, "vega_lite")
+        ) is not None:
+            return unsupported
         try:
             # Get chart data directly using the same logic as get_chart_data tool
             # but without calling the MCP tool wrapper
             from superset.commands.chart.data.get_data_command import ChartDataCommand
-            from superset.common.query_context_factory import QueryContextFactory
             from superset.daos.chart import ChartDAO
             from superset.utils import json as utils_json
 
@@ -310,48 +546,65 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                         error_type="ChartNotFound",
                     )
 
-                form_data = (
+                form_data = self._canonical_form_data(
                     utils_json.loads(chart_obj.params) if chart_obj.params else {}
                 )
             else:
-                form_data = (
+                form_data = self._canonical_form_data(
                     utils_json.loads(self.chart.params) if self.chart.params else {}
                 )
 
-            # Create query context for data retrieval
-            factory = QueryContextFactory()
-            query_context = factory.create(
-                datasource={
-                    "id": self.chart.datasource_id,
-                    "type": self.chart.datasource_type,
-                },
-                queries=[
-                    {
-                        "filters": form_data.get("filters", []),
-                        "columns": form_data.get("groupby", []),
-                        "metrics": form_data.get("metrics", []),
-                        "row_limit": 1000,  # More data for visualization
-                        "order_desc": True,
-                    }
-                ],
-                form_data=form_data,
+            query_context = build_query_context_from_form_data(
+                form_data,
+                chart=self.chart,
+                extra_form_data=self.request.extra_form_data,
+                row_limit=_preview_row_limit(form_data, 1000),
+                order_desc=form_data.get("order_desc", True),
                 force=self.request.force_refresh,
             )
 
             # Execute the query
+            self._authorize_guest_query(query_context)
+            self._seed_query_context_form_data(query_context)
             command = ChartDataCommand(query_context)
+            command.validate()
             result = command.run()
 
-            # Extract data from result
-            chart_data = []
-            if result and "queries" in result and len(result["queries"]) > 0:
-                chart_data = result["queries"][0].get("data", [])
+            result = normalize_chart_query_result(result, form_data)
+            if isinstance(result, ChartError):
+                return result
+            data, result_error = first_query_data(
+                result, none_as_empty=null_data_is_empty(self.chart.viz_type)
+            )
+            if result_error is not None:
+                return result_error
+            assert data is not None
 
-            if not chart_data or not isinstance(chart_data, list):
+            # Extract data from result
+            chart_data = data
+
+            plugin = plugin_for_viz_type(form_data.get("viz_type"))
+            if not chart_data and not (plugin and plugin.allows_empty_result):
                 return ChartError(
                     error="No data available for Vega-Lite visualization",
                     error_type="NoDataError",
                 )
+            # Plugin-owned previews share the unsaved-chart renderer, subject
+            # to the plugin's explicit empty-result contract.
+            if (
+                plugin_preview := self._create_plugin_preview(chart_data, form_data)
+            ) is not None:
+                return plugin_preview
+            if not isinstance(chart_data, list):
+                return ChartError(
+                    error="Chart result data is not an array of rows",
+                    error_type="InvalidResultData",
+                )
+
+            if (
+                fallback := fallback_vega_lite_preview(chart_data, form_data)
+            ) is not None:
+                return fallback
 
             # Convert Superset chart type to Vega-Lite specification
             vega_spec = self._create_vega_lite_spec(chart_data)
@@ -362,7 +615,14 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                 supports_streaming=False,
             )
 
-        except Exception as e:
+        except (
+            CommandException,
+            SupersetException,
+            ValueError,
+            KeyError,
+            AttributeError,
+            TypeError,
+        ) as e:
             logger.exception(
                 "Error generating Vega-Lite preview for chart %s", self.chart.id
             )
@@ -373,8 +633,19 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
     def _create_vega_lite_spec(self, data: List[Any]) -> Dict[str, Any]:
         """Create Vega-Lite specification from chart data."""
-        if not data:
-            return {"data": {"values": []}, "mark": "point"}
+        form_data = self._get_form_data() or {}
+        viz_type = (
+            getattr(self.chart, "viz_type", None)
+            or form_data.get("viz_type")
+            or "table"
+        )
+        plugin_preview = self._create_plugin_preview(
+            data, {**form_data, "viz_type": viz_type}
+        )
+        if isinstance(plugin_preview, ChartError):
+            raise ValueError(plugin_preview.error)
+        if plugin_preview is not None:
+            return plugin_preview.specification
 
         # Get data fields and analyze types
         first_row = data[0] if data else {}
@@ -382,8 +653,6 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
         field_types = self._analyze_field_types(data, fields)
 
         # Determine chart type based on Superset viz_type
-        viz_type = getattr(self.chart, "viz_type", "table") or "table"
-
         # Basic Vega-Lite specification
         spec = {
             "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
@@ -419,12 +688,15 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                 "echarts_timeseries_column",
                 "bar",
                 "column",
+                # Waterfall is a bar-mark construction; a bar preview is the
+                # closest faithful approximation.
+                "waterfall",
             ],
             "area": ["echarts_area", "area"],
             "scatter": ["echarts_timeseries_scatter", "scatter"],
             "pie": ["pie"],
             "big_number": ["big_number", "big_number_total"],
-            "histogram": ["histogram"],
+            "histogram": ["histogram", "histogram_v2"],
             "box_plot": ["box_plot"],
             "heatmap": ["heatmap", "heatmap_v2", "cal_heatmap"],
             "funnel": ["funnel"],
@@ -472,14 +744,14 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     field_type = self._determine_field_type(sample_values)
                     field_types[field] = field_type
 
-                except Exception as e:
+                except (TypeError, ValueError, KeyError, AttributeError) as e:
                     logger.warning("Error analyzing field '%s': %s", field, e)
                     field_types[field] = "nominal"  # Safe default
 
-        except Exception as e:
+        except (TypeError, ValueError, KeyError, AttributeError) as e:
             logger.warning("Error in field type analysis: %s", e)
             # Return nominal types for all fields as fallback
-            return {field: "nominal" for field in fields}
+            return dict.fromkeys(fields, "nominal")
 
         return field_types
 
@@ -934,872 +1206,117 @@ class PreviewFormatGenerator:
         return strategy.generate()
 
 
-def generate_ascii_chart(
-    data: List[Any], chart_type: str, width: int = 80, height: int = 20
-) -> str:
-    """Generate ASCII art chart from data."""
-    if not data or len(data) == 0:
-        return "No data available for ASCII chart"
+async def _run_png_render(
+    render: Callable[[], PNGPreview | ChartError],
+) -> PNGPreview | ChartError:
+    """Run the blocking PNG render in a worker thread with error mapping.
 
+    Chart-level access denials raised inside render() surface as Forbidden,
+    not as a rendering failure. Browser errors may contain URLs or page data,
+    so those stay server-side.
+    """
     try:
-        logger.info(
-            "generate_ascii_chart: chart_type=%s, data_rows=%s", chart_type, len(data)
+        context = copy_context()
+        return await asyncio.get_running_loop().run_in_executor(
+            _PNG_EXECUTOR, context.run, render
+        )
+    except SupersetSecurityException:
+        return ChartError(error="Chart access denied", error_type="Forbidden")
+    except Exception:
+        logger.exception("PNG chart rendering failed")
+        return ChartError(error="Chart rendering failed", error_type="RenderError")
+
+
+async def _generate_png_preview(
+    chart_id: int, request: GetChartPreviewRequest
+) -> PNGPreview | ChartError:
+    """Render saved charts as the caller in an isolated browser and app context."""
+    if (
+        not chart_id
+        or request.form_data_key
+        or request.extra_form_data
+        or guest_scope.is_guest_read()
+    ):
+        return ChartError(
+            error="PNG previews require a saved chart and a non-guest user, "
+            "without unsaved state or extra filters.",
+            error_type="UnsupportedFormat",
+        )
+    user_id = getattr(getattr(g, "user", None), "id", None)
+    if not isinstance(user_id, int):
+        return ChartError(error="Authentication required", error_type="Forbidden")
+    width = 800 if request.width is None else request.width
+    height = 600 if request.height is None else request.height
+    if not (64 <= width <= 4096 and 64 <= height <= 4096):
+        return ChartError(
+            error="PNG dimensions must be between 64 and 4096 pixels.",
+            error_type="ValidationError",
         )
 
-        # Generate appropriate ASCII chart based on type
-        if chart_type in ["bar", "column", "echarts_timeseries_bar"]:
-            logger.info("Generating bar chart")
-            return _generate_ascii_bar_chart(data, width, height)
-        elif chart_type in ["line", "echarts_timeseries_line"]:
-            logger.info("Generating line chart")
-            return _generate_ascii_line_chart(data, width, height)
-        elif chart_type in ["scatter", "echarts_timeseries_scatter"]:
-            logger.info("Generating scatter chart")
-            return _generate_ascii_scatter_chart(data, width, height)
-        else:
-            # Default to table format for unsupported chart types
-            logger.info(
-                "Unsupported chart type '%s', falling back to table", chart_type
-            )
-            return _generate_ascii_table(data, width)
-    except Exception as e:
-        logger.error("ASCII chart generation failed: %s", e)
-        import traceback
-
-        logger.error("Traceback: %s", traceback.format_exc())
-        return f"ASCII chart generation failed: {str(e)}"
-
-
-def _generate_ascii_bar_chart(data: List[Any], width: int, height: int) -> str:
-    """Generate enhanced ASCII bar chart with horizontal and vertical options."""
-    if not data:
-        return "No data for bar chart"
-
-    # Extract numeric values for bars
-    values = []
-    labels = []
-
-    for row in data[:12]:  # Increased limit for better charts
-        if isinstance(row, dict):
-            # Find numeric and string values
-            numeric_val = None
-            label_val = None
-
-            for _key, val in row.items():
-                if isinstance(val, (int, float)) and numeric_val is None:
-                    numeric_val = val
-                elif isinstance(val, str) and label_val is None:
-                    label_val = val
-
-            if numeric_val is not None:
-                values.append(numeric_val)
-                labels.append(label_val or f"Item {len(values)}")
-
-    if not values:
-        return "No numeric data found for bar chart"
-
-    # Decide between horizontal and vertical based on label lengths
-    avg_label_length = sum(len(str(label)) for label in labels) / len(labels)
-    use_horizontal = avg_label_length > 8 or len(values) > 8
-
-    if use_horizontal:
-        return _generate_horizontal_bar_chart(values, labels, width)
-    else:
-        return _generate_vertical_bar_chart(values, labels, width, height)
-
-
-def _generate_horizontal_bar_chart(
-    values: List[float], labels: List[str], width: int
-) -> str:
-    """Generate horizontal ASCII bar chart."""
-    lines = []
-    lines.append("📊 Horizontal Bar Chart")
-    lines.append("═" * min(width, 60))
-
-    max_val = max(values) if values else 1
-    min_val = min(values) if values else 0
-    max_bar_width = min(40, width - 20)  # Leave space for labels and values
-
-    # Add scale indicator
-    lines.append(f"Scale: {min_val:.1f} ────────────── {max_val:.1f}")
-    lines.append("")
-
-    for label, value in zip(labels, values, strict=False):
-        # Calculate bar length
-        if max_val > min_val:
-            normalized = (value - min_val) / (max_val - min_val)
-            bar_length = max(1, int(normalized * max_bar_width))
-        else:
-            bar_length = 1
-
-        # Create bar with gradient effect
-        bar = _create_gradient_bar(bar_length, value, max_val)
-
-        # Format value
-        if abs(value) >= 1000000:
-            value_str = f"{value / 1000000:.1f}M"
-        elif abs(value) >= 1000:
-            value_str = f"{value / 1000:.1f}K"
-        else:
-            value_str = f"{value:.1f}"
-
-        # Truncate label if too long
-        display_label = label[:15] if len(label) > 15 else label
-        lines.append(f"{display_label:>15} ▐{bar:<{max_bar_width}} {value_str}")
-
-    return "\n".join(lines)
-
-
-def _generate_vertical_bar_chart(  # noqa: C901
-    values: List[float], labels: List[str], width: int, height: int
-) -> str:
-    """Generate vertical ASCII bar chart."""
-    lines = []
-    lines.append("📊 Vertical Bar Chart")
-    lines.append("═" * min(width, 60))
-
-    max_val = max(values) if values else 1
-    min_val = min(values) if values else 0
-    chart_height = min(15, height - 8)  # Leave space for title and labels
-
-    # Create the chart grid
-    grid = []
-    for _ in range(chart_height):
-        grid.append([" "] * len(values))
-
-    # Fill the bars
-    for col, value in enumerate(values):
-        if max_val > min_val:
-            normalized = (value - min_val) / (max_val - min_val)
-            bar_height = max(1, int(normalized * chart_height))
-        else:
-            bar_height = 1
-
-        # Fill from bottom up
-        for row_idx in range(chart_height - bar_height, chart_height):
-            if row_idx < len(grid):
-                # Use different characters for height effect
-                if row_idx == chart_height - bar_height:
-                    grid[row_idx][col] = "▀"  # Top of bar
-                elif row_idx == chart_height - 1:
-                    grid[row_idx][col] = "█"  # Bottom of bar
-                else:
-                    grid[row_idx][col] = "█"  # Middle of bar
-
-    # Add Y-axis scale
-    for i, row_data in enumerate(grid):
-        y_val = (
-            max_val - (i / (chart_height - 1)) * (max_val - min_val)
-            if chart_height > 1
-            else max_val
+    def render() -> PNGPreview | ChartError:
+        from superset import is_feature_enabled
+        from superset.mcp_service.auth import _mcp_tool_call_context
+        from superset.utils.core import override_user
+        from superset.utils.screenshots import (
+            PNG_MAGIC_BYTES,
+            validate_screenshot_image,
         )
-        if abs(y_val) >= 1000:
-            y_label = f"{y_val:.0f}"
-        else:
-            y_label = f"{y_val:.1f}"
-        lines.append(f"{y_label:>6} ┤ " + "".join(f"{cell:^3}" for cell in row_data))
-
-    # Add X-axis
-    lines.append("       └" + "───" * len(values))
-
-    # Add labels
-    label_line = "        "
-    for label in labels:
-        short_label = label[:3] if len(label) > 3 else label
-        label_line += f"{short_label:^3}"
-    lines.append(label_line)
-
-    return "\n".join(lines)
-
-
-def _create_gradient_bar(length: int, value: float, max_val: float) -> str:
-    """Create a gradient bar with visual effects."""
-    if length <= 0:
-        return ""
-
-    # Create gradient effect based on value intensity
-    intensity = value / max_val if max_val > 0 else 0
-
-    if intensity > 0.8:
-        # High values - solid bars
-        return "█" * length
-    elif intensity > 0.6:
-        # Medium-high values - mostly solid with some texture
-        return "█" * (length - 1) + "▉" if length > 1 else "█"
-    elif intensity > 0.4:
-        # Medium values - mixed texture
-        return "▊" * length
-    elif intensity > 0.2:
-        # Low-medium values - lighter texture
-        return "▋" * length
-    else:
-        # Low values - lightest texture
-        return "▌" * length
-
-
-def _generate_ascii_line_chart(data: List[Any], width: int, height: int) -> str:
-    """Generate enhanced ASCII line chart with trend analysis."""
-    if not data:
-        return "No data for line chart"
-
-    lines = []
-    lines.append("📈 Line Chart with Trend Analysis")
-    lines.append("═" * min(width, 60))
-
-    # Extract values and labels for plotting
-    values, labels = _extract_time_series_data(data)
-
-    if not values:
-        return "No numeric data found for line chart"
-
-    # Generate enhanced line chart
-    if len(values) >= 3:
-        lines.extend(_create_enhanced_line_chart(values, labels, width, height))
-    else:
-        # Fallback to sparkline for small datasets
-        sparkline_data = _create_sparkline(values)
-        lines.extend(sparkline_data)
-
-    # Add trend analysis
-    trend_analysis = _analyze_trend(values)
-    lines.append("")
-    lines.append("📊 Trend Analysis:")
-    lines.extend(trend_analysis)
-
-    return "\n".join(lines)
-
-
-def _extract_time_series_data(data: List[Any]) -> tuple[List[float], List[str]]:
-    """Extract time series data with labels."""
-    values = []
-    labels = []
-
-    for row in data[:20]:  # Limit points for readability
-        if isinstance(row, dict):
-            # Find the first numeric value and first string/date value
-            numeric_val = None
-            label_val = None
-
-            for key, val in row.items():
-                if isinstance(val, (int, float)) and numeric_val is None:
-                    numeric_val = val
-                elif isinstance(val, str) and label_val is None:
-                    # Use the key name if it looks like a date/time field
-                    if any(
-                        date_word in key.lower()
-                        for date_word in ["date", "time", "month", "day", "year"]
-                    ):
-                        label_val = str(val)[:10]  # Truncate long dates
-                    else:
-                        label_val = str(val)[:8]  # Truncate long strings
-
-            if numeric_val is not None:
-                values.append(numeric_val)
-                labels.append(label_val or f"P{len(values)}")
-
-    return values, labels
-
-
-def _create_enhanced_line_chart(
-    values: List[float], labels: List[str], width: int, height: int
-) -> List[str]:
-    """Create an enhanced ASCII line chart with better visualization."""
-    lines = []
-    chart_width = min(50, width - 15)
-    chart_height = min(12, height - 8)
-
-    if len(values) < 2:
-        return ["Insufficient data for line chart"]
-
-    # Normalize values to chart height
-    min_val = min(values)
-    max_val = max(values)
-    val_range = max_val - min_val if max_val != min_val else 1
-
-    # Create chart grid
-    grid = [[" " for _ in range(chart_width)] for _ in range(chart_height)]
-
-    # Plot the line with connecting segments
-    prev_x, prev_y = None, None
-
-    for i, value in enumerate(values):
-        # Map to grid coordinates
-        x = int((i / (len(values) - 1)) * (chart_width - 1)) if len(values) > 1 else 0
-        y = chart_height - 1 - int(((value - min_val) / val_range) * (chart_height - 1))
-
-        # Ensure coordinates are within bounds
-        x = max(0, min(x, chart_width - 1))
-        y = max(0, min(y, chart_height - 1))
-
-        # Mark the point
-        grid[y][x] = "●"
-
-        # Draw line segment to previous point
-        if prev_x is not None and prev_y is not None:
-            _draw_line_segment(grid, prev_x, prev_y, x, y, chart_width, chart_height)
-
-        prev_x, prev_y = x, y
-
-    # Render the chart with Y-axis labels
-    for i, row in enumerate(grid):
-        y_val = (
-            max_val - (i / (chart_height - 1)) * val_range
-            if chart_height > 1
-            else max_val
+        from superset.utils.urls import get_url_path
+        from superset.utils.webdriver import (
+            _PlaywrightBrowserManager,
+            WebDriverPlaywright,
         )
-        if abs(y_val) >= 1000:
-            y_label = f"{y_val:.0f}"
-        else:
-            y_label = f"{y_val:.1f}"
-        lines.append(f"{y_label:>8} ┤ " + "".join(row))
 
-    # Add X-axis
-    lines.append("         └" + "─" * chart_width)
-
-    # Add selected X-axis labels (show every few labels to avoid crowding)
-    label_line = "          "
-    step = max(1, len(labels) // 6)  # Show max 6 labels
-    for i in range(0, len(labels), step):
-        pos = int((i / (len(values) - 1)) * (chart_width - 1)) if len(values) > 1 else 0
-        # Add spacing to position the label
-        while len(label_line) - 10 < pos:
-            label_line += " "
-        label_line += labels[i][:8]
-
-    lines.append(label_line)
-
-    return lines
-
-
-def _draw_line_segment(
-    grid: List[List[str]], x1: int, y1: int, x2: int, y2: int, width: int, height: int
-) -> None:
-    """Draw a line segment between two points using Bresenham-like algorithm."""
-    # Simple line drawing - connect points with line characters
-    if x1 == x2:  # Vertical line
-        start_y, end_y = sorted([y1, y2])
-        for y in range(start_y + 1, end_y):
-            if 0 <= y < height and 0 <= x1 < width:
-                grid[y][x1] = "│"
-    elif y1 == y2:  # Horizontal line
-        start_x, end_x = sorted([x1, x2])
-        for x in range(start_x + 1, end_x):
-            if 0 <= y1 < height and 0 <= x < width:
-                grid[y1][x] = "─"
-    else:  # Diagonal line - use simple interpolation
-        steps = max(abs(x2 - x1), abs(y2 - y1))
-        for step in range(1, steps):
-            x = x1 + int((x2 - x1) * step / steps)
-            y = y1 + int((y2 - y1) * step / steps)
-            if 0 <= x < width and 0 <= y < height:
-                if abs(x2 - x1) > abs(y2 - y1):
-                    grid[y][x] = "─"
-                else:
-                    grid[y][x] = "│"
-
-
-def _analyze_trend(values: List[float]) -> List[str]:
-    """Analyze trend in the data."""
-    if len(values) < 2:
-        return ["• Insufficient data for trend analysis"]
-
-    analysis = []
-
-    # Calculate basic statistics
-    first_val = values[0]
-    last_val = values[-1]
-    min_val = min(values)
-    max_val = max(values)
-    avg_val = sum(values) / len(values)
-
-    # Overall trend
-    if last_val > first_val * 1.1:
-        trend_icon = "📈"
-        trend_desc = "Strong upward trend"
-    elif last_val > first_val * 1.05:
-        trend_icon = "📊"
-        trend_desc = "Moderate upward trend"
-    elif last_val < first_val * 0.9:
-        trend_icon = "📉"
-        trend_desc = "Strong downward trend"
-    elif last_val < first_val * 0.95:
-        trend_icon = "📊"
-        trend_desc = "Moderate downward trend"
-    else:
-        trend_icon = "➡️"
-        trend_desc = "Relatively stable"
-
-    analysis.append(f"• {trend_icon} {trend_desc}")
-    analysis.append(f"• Range: {min_val:.1f} to {max_val:.1f} (avg: {avg_val:.1f})")
-
-    # Volatility
-    if len(values) >= 3:
-        changes = [abs(values[i] - values[i - 1]) for i in range(1, len(values))]
-        avg_change = sum(changes) / len(changes)
-        volatility = "High" if avg_change > (max_val - min_val) * 0.1 else "Low"
-        analysis.append(f"• Volatility: {volatility}")
-
-    return analysis
-
-
-def _extract_numeric_values(data: List[Any]) -> List[float]:
-    """Extract numeric values from data for line chart."""
-    values = []
-    for row in data[:20]:  # Limit points
-        if isinstance(row, dict):
-            for _key, val in row.items():
-                if isinstance(val, (int, float)):
-                    values.append(val)
-                    break
-    return values
-
-
-def _create_sparkline(values: List[float]) -> List[str]:
-    """Create sparkline visualization from values."""
-    if len(values) <= 1:
-        return []
-
-    max_val = max(values)
-    min_val = min(values)
-    range_val = max_val - min_val if max_val != min_val else 1
-
-    sparkline = ""
-    for val in values:
-        normalized = (val - min_val) / range_val
-        if normalized < 0.2:
-            sparkline += "▁"
-        elif normalized < 0.4:
-            sparkline += "▂"
-        elif normalized < 0.6:
-            sparkline += "▄"
-        elif normalized < 0.8:
-            sparkline += "▆"
-        else:
-            sparkline += "█"
-
-    # Safe formatting to avoid NaN display
-    if _is_nan_value(min_val) or _is_nan_value(max_val):
-        return ["Range: Unable to calculate from data", sparkline]
-    else:
-        return [f"Range: {min_val:.2f} to {max_val:.2f}", sparkline]
-
-
-def _is_nan_value(value: Any) -> bool:
-    """Check if a value is NaN or invalid."""
-    try:
-        import math
-
-        return math.isnan(float(value))
-    except (ValueError, TypeError):
-        return True
-
-
-def _generate_ascii_scatter_chart(data: List[Any], width: int, height: int) -> str:
-    """Generate ASCII scatter plot."""
-    if not data:
-        return "No data for scatter chart"
-
-    lines = []
-    lines.append("ASCII Scatter Plot")
-    lines.append("=" * min(width, 50))
-
-    # Extract data points
-    x_values, y_values, x_column, y_column = _extract_scatter_data(data)
-
-    # Debug info
-    lines.extend(_create_debug_info(x_values, y_values, x_column, y_column, data))
-
-    # Check if we have enough data
-    if len(x_values) < 2:
-        return _generate_ascii_table(data, width)
-
-    # Add axis info
-    lines.extend(_create_axis_info(x_values, y_values, x_column, y_column))
-
-    # Create and render grid
-    grid = _create_scatter_grid(x_values, y_values, width, height)
-    lines.extend(_render_scatter_grid(grid, x_values, y_values, width, height))
-
-    return "\n".join(lines)
-
-
-def _extract_scatter_data(
-    data: List[Any],
-) -> tuple[List[float], List[float], str | None, str | None]:
-    """Extract X,Y data from scatter chart data."""
-    x_values = []
-    y_values = []
-    x_column = None
-    y_column = None
-    numeric_columns = []
-
-    if data and isinstance(data[0], dict):
-        # Find the first two numeric columns
-        for key, val in data[0].items():
-            if isinstance(val, (int, float)) and not (
-                isinstance(val, float) and (val != val)
-            ):  # Exclude NaN
-                numeric_columns.append(key)
-
-        if len(numeric_columns) >= 2:
-            x_column = numeric_columns[0]
-            y_column = numeric_columns[1]
-
-            # Extract X,Y pairs
-            for row in data[:50]:  # Limit for ASCII display
-                if isinstance(row, dict):
-                    x_val = row.get(x_column)
-                    y_val = row.get(y_column)
-                    # Check for valid numbers (not NaN)
+        # Resolve ORM objects in a fresh context; neither the request session nor
+        # Flask's mutable g is shared with the rendering worker.
+        with _mcp_tool_call_context():
+            user = security_manager.find_user(id=user_id)
+            if user is None or not user.is_active:
+                return ChartError(
+                    error="Authentication required", error_type="Forbidden"
+                )
+            with override_user(user):
+                chart = find_chart_by_identifier(chart_id)
+                if chart is None:
+                    return ChartError(error="Chart not found", error_type="NotFound")
+                security_manager.raise_for_access(chart=chart)
+                if is_feature_enabled(
+                    "GRANULAR_EXPORT_CONTROLS"
+                ) and not security_manager.can_access("can_export_image", "Superset"):
+                    return ChartError(
+                        error="Image export is not permitted", error_type="Forbidden"
+                    )
+                url = get_url_path(
+                    "Superset.slice", slice_id=chart_id, standalone="true"
+                )
+                manager = _PlaywrightBrowserManager()
+                try:
+                    driver = WebDriverPlaywright(
+                        "",
+                        (width, height),
+                        require_complete_capture=True,
+                        browser_manager=manager,
+                    )
+                    image = driver.get_screenshot(url, "chart-container", user=user)
                     if (
-                        isinstance(x_val, (int, float))
-                        and isinstance(y_val, (int, float))
-                        and not (
-                            isinstance(x_val, float) and (x_val != x_val)
-                        )  # Not NaN
-                        and not (isinstance(y_val, float) and (y_val != y_val))
-                    ):  # Not NaN
-                        x_values.append(x_val)
-                        y_values.append(y_val)
-
-    return x_values, y_values, x_column, y_column
-
-
-def _create_debug_info(
-    x_values: List[float],
-    y_values: List[float],
-    x_column: str | None,
-    y_column: str | None,
-    data: List[Any],
-) -> List[str]:
-    """Create debug information lines for scatter chart."""
-    numeric_columns = []
-    if data and isinstance(data[0], dict):
-        for key, val in data[0].items():
-            if isinstance(val, (int, float)) and not (
-                isinstance(val, float) and (val != val)
-            ):
-                numeric_columns.append(key)
-
-    return [
-        f"DEBUG: Found {len(numeric_columns)} numeric columns: {numeric_columns}",
-        f"DEBUG: X column: {x_column}, Y column: {y_column}",
-        f"DEBUG: Valid X,Y pairs: {len(x_values)}",
-    ]
-
-
-def _create_axis_info(
-    x_values: List[float],
-    y_values: List[float],
-    x_column: str | None,
-    y_column: str | None,
-) -> List[str]:
-    """Create axis information lines."""
-    return [
-        f"X-axis: {x_column} (range: {min(x_values):.2f} to {max(x_values):.2f})",
-        f"Y-axis: {y_column} (range: {min(y_values):.2f} to {max(y_values):.2f})",
-        f"Showing {len(x_values)} data points",
-        "",
-    ]
-
-
-def _create_scatter_grid(
-    x_values: List[float], y_values: List[float], width: int, height: int
-) -> List[List[str]]:
-    """Create and populate the scatter plot grid."""
-    plot_width = min(40, width - 10)
-    plot_height = min(15, height - 8)
-
-    # Normalize values to fit in grid
-    x_min, x_max = min(x_values), max(x_values)
-    y_min, y_max = min(y_values), max(y_values)
-    x_range = x_max - x_min if x_max != x_min else 1
-    y_range = y_max - y_min if y_max != y_min else 1
-
-    # Create grid
-    grid = [[" " for _ in range(plot_width)] for _ in range(plot_height)]
-
-    # Plot points
-    for x, y in zip(x_values, y_values, strict=False):
-        try:
-            grid_x = int(((x - x_min) / x_range) * (plot_width - 1))
-            grid_y = int(((y - y_min) / y_range) * (plot_height - 1))
-            grid_y = plot_height - 1 - grid_y  # Flip Y axis for display
-
-            if 0 <= grid_x < plot_width and 0 <= grid_y < plot_height:
-                if grid[grid_y][grid_x] == " ":
-                    grid[grid_y][grid_x] = "•"
-                else:
-                    grid[grid_y][grid_x] = "█"  # Multiple points
-        except (ValueError, OverflowError):
-            # Skip points that can't be converted to integers (NaN, inf, etc.)
-            continue
-
-    return grid
-
-
-def _render_scatter_grid(
-    grid: List[List[str]],
-    x_values: List[float],
-    y_values: List[float],
-    width: int,
-    height: int,
-) -> List[str]:
-    """Render the scatter plot grid with axes and labels."""
-    lines = []
-    plot_width = min(40, width - 10)
-    plot_height = min(15, height - 8)
-
-    x_min, x_max = min(x_values), max(x_values)
-    y_min, y_max = min(y_values), max(y_values)
-    y_range = y_max - y_min if y_max != y_min else 1
-
-    # Add Y-axis labels and plot
-    for i, row in enumerate(grid):
-        y_val = y_max - (i / (plot_height - 1)) * y_range if plot_height > 1 else y_max
-        y_label = f"{y_val:.1f}" if abs(y_val) < 1000 else f"{y_val:.0f}"
-        lines.append(f"{y_label:>6} |{''.join(row)}")
-
-    # Add X-axis
-    x_axis_line = " " * 7 + "+" + "-" * plot_width
-    lines.append(x_axis_line)
-
-    # Add X-axis labels
-    x_left_label = f"{x_min:.1f}" if abs(x_min) < 1000 else f"{x_min:.0f}"
-    x_right_label = f"{x_max:.1f}" if abs(x_max) < 1000 else f"{x_max:.0f}"
-    x_labels = (
-        " " * 8
-        + x_left_label
-        + " " * (plot_width - len(x_left_label) - len(x_right_label))
-        + x_right_label
-    )
-    lines.append(x_labels)
-
-    return lines
-
-
-def _generate_ascii_table(data: List[Any], width: int) -> str:
-    """Generate enhanced ASCII table with better formatting."""
-    if not data:
-        return "No data for table"
-
-    lines = []
-    lines.append("📋 Data Table")
-    lines.append("═" * min(width, 70))
-
-    # Get column headers from first row
-    if isinstance(data[0], dict):
-        # Select best columns to display
-        all_headers = list(data[0].keys())
-        headers = _select_display_columns(all_headers, data, max_cols=6)
-
-        # Calculate optimal column widths
-        col_widths = _calculate_column_widths(headers, data, width)
-
-        # Create enhanced header
-        lines.append(_create_table_header(headers, col_widths))
-        lines.append(_create_table_separator(col_widths))
-
-        # Add data rows with better formatting
-        row_count = min(15, len(data))  # Show more rows
-        for i, row in enumerate(data[:row_count]):
-            formatted_row = _format_table_row(row, headers, col_widths)
-            lines.append(formatted_row)
-
-            # Add separator every 5 rows for readability
-            if i > 0 and (i + 1) % 5 == 0 and i < row_count - 1:
-                lines.append(_create_light_separator(col_widths))
-
-        # Add footer with stats
-        lines.append(_create_table_separator(col_widths))
-        lines.append(f"📊 Showing {row_count} of {len(data)} rows")
-
-        # Add column summaries for numeric columns
-        numeric_summaries = _create_numeric_summaries(data, headers)
-        if numeric_summaries:
-            lines.append("")
-            lines.append("📈 Numeric Summaries:")
-            lines.extend(numeric_summaries)
-
-    return "\n".join(lines)
-
-
-def _select_display_columns(
-    all_headers: List[str], data: List[Any], max_cols: int = 6
-) -> List[str]:
-    """Select the most interesting columns to display."""
-    if len(all_headers) <= max_cols:
-        return all_headers
-
-    # Prioritize columns by interest level
-    priority_scores = {}
-
-    for header in all_headers:
-        score = 0
-        header_lower = header.lower()
-
-        # Higher priority for common business fields
-        if any(word in header_lower for word in ["name", "title", "id"]):
-            score += 10
-        if any(
-            word in header_lower
-            for word in ["amount", "price", "cost", "revenue", "sales"]
-        ):
-            score += 8
-        if any(word in header_lower for word in ["date", "time", "created", "updated"]):
-            score += 6
-        if any(word in header_lower for word in ["count", "total", "sum", "avg"]):
-            score += 5
-
-        # Check data variety (more variety = more interesting)
-        sample_values = [
-            str(row.get(header, "")) for row in data[:10] if isinstance(row, dict)
-        ]
-        unique_values = len(set(sample_values))
-        if unique_values > 1:
-            score += min(unique_values, 5)
-
-        priority_scores[header] = score
-
-    # Return top scoring columns
-    sorted_headers = sorted(
-        all_headers, key=lambda h: priority_scores.get(h, 0), reverse=True
-    )
-    return sorted_headers[:max_cols]
-
-
-def _calculate_column_widths(
-    headers: List[str], data: List[Any], total_width: int
-) -> List[int]:
-    """Calculate optimal column widths based on content."""
-    if not headers:
-        return []
-
-    # Start with minimum widths based on header lengths
-    min_widths = [max(8, min(len(h) + 2, 15)) for h in headers]
-
-    # Check actual data to adjust widths
-    for row in data[:10]:  # Sample first 10 rows
-        if isinstance(row, dict):
-            for i, header in enumerate(headers):
-                val = row.get(header, "")
-                if isinstance(val, float):
-                    content_len = len(f"{val:.2f}")
-                elif isinstance(val, int):
-                    content_len = len(str(val))
-                else:
-                    content_len = len(str(val))
-
-                min_widths[i] = max(min_widths[i], min(content_len + 1, 20))
-
-    # Distribute remaining space proportionally
-    used_width = sum(min_widths) + len(headers) * 3  # Account for separators
-    available_width = min(total_width - 10, 80)  # Leave margins
-
-    if used_width < available_width:
-        # Distribute extra space
-        extra_space = available_width - used_width
-        for i in range(len(min_widths)):
-            min_widths[i] += extra_space // len(min_widths)
-
-    return min_widths
-
-
-def _create_table_header(headers: List[str], widths: List[int]) -> str:
-    """Create formatted table header."""
-    formatted_headers = []
-    for header, width in zip(headers, widths, strict=False):
-        # Truncate and center header
-        display_header = header[: width - 2] if len(header) > width - 2 else header
-        formatted_headers.append(f"{display_header:^{width}}")
-
-    return (
-        "┌"
-        + "┬".join("─" * w for w in widths)
-        + "┐\n│"
-        + "│".join(formatted_headers)
-        + "│"
-    )
-
-
-def _create_table_separator(widths: List[int]) -> str:
-    """Create table separator line."""
-    return "├" + "┼".join("─" * w for w in widths) + "┤"
-
-
-def _create_light_separator(widths: List[int]) -> str:
-    """Create light separator line."""
-    return "├" + "┼".join("┈" * w for w in widths) + "┤"
-
-
-def _format_table_row(
-    row: Dict[str, Any], headers: List[str], widths: List[int]
-) -> str:
-    """Format a single table row."""
-    formatted_values = []
-
-    for header, width in zip(headers, widths, strict=False):
-        val = row.get(header, "")
-
-        # Format value based on type
-        if isinstance(val, float):
-            if abs(val) >= 1000000:
-                formatted_val = f"{val / 1000000:.1f}M"
-            elif abs(val) >= 1000:
-                formatted_val = f"{val / 1000:.1f}K"
-            else:
-                formatted_val = f"{val:.2f}"
-        elif isinstance(val, int):
-            if abs(val) >= 1000000:
-                formatted_val = f"{val // 1000000}M"
-            elif abs(val) >= 1000:
-                formatted_val = f"{val // 1000}K"
-            else:
-                formatted_val = str(val)
-        else:
-            formatted_val = str(val)
-
-        # Truncate if too long
-        if len(formatted_val) > width - 2:
-            formatted_val = formatted_val[: width - 5] + "..."
-
-        # Align numbers right, text left
-        if isinstance(val, (int, float)):
-            formatted_values.append(f"{formatted_val:>{width - 2}}")
-        else:
-            formatted_values.append(f"{formatted_val:<{width - 2}}")
-
-    return "│ " + " │ ".join(formatted_values) + " │"
-
-
-def _create_numeric_summaries(data: List[Any], headers: List[str]) -> List[str]:
-    """Create summaries for numeric columns."""
-    summaries = []
-
-    for header in headers:
-        # Collect numeric values
-        values = []
-        for row in data:
-            if isinstance(row, dict):
-                val = row.get(header)
-                if isinstance(val, (int, float)):
-                    values.append(val)
-
-        if len(values) >= 2:
-            min_val = min(values)
-            max_val = max(values)
-            avg_val = sum(values) / len(values)
-
-            if abs(avg_val) >= 1000:
-                avg_str = f"{avg_val / 1000:.1f}K"
-            else:
-                avg_str = f"{avg_val:.1f}"
-
-            summaries.append(
-                f"  {header}: avg={avg_str}, range={min_val:.1f}-{max_val:.1f}"
-            )
-
-    return summaries
+                        image is None
+                        or not image.startswith(PNG_MAGIC_BYTES)
+                        or validate_screenshot_image(image)
+                    ):
+                        return ChartError(
+                            error="Chart rendering failed", error_type="RenderError"
+                        )
+                    with Image.open(BytesIO(image)) as rendered:
+                        image_width, image_height = rendered.size
+                    return PNGPreview(
+                        data=base64.b64encode(image).decode("ascii"),
+                        width=image_width,
+                        height=image_height,
+                    )
+                finally:
+                    manager._cleanup()
+
+    return await _run_png_render(render)
 
 
 async def _get_chart_preview_internal(  # noqa: C901
@@ -1807,88 +1324,175 @@ async def _get_chart_preview_internal(  # noqa: C901
     ctx: Context,
 ) -> ChartPreview | ChartError:
     """
-    Get a visual preview of a chart with URLs for LLM embedding.
+    Get a preview of a chart in the requested format.
 
-    This tool generates or retrieves URLs for chart images that can be
-    displayed directly in LLM clients. The URLs point to Superset's
-    screenshot endpoints for proper image serving.
+    This tool can return text previews for direct LLM responses, Explore URLs
+    for interactive inspection, tabular data, or Vega-Lite specifications.
 
     Supports lookup by:
     - Numeric ID (e.g., 123)
     - UUID string (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
 
-    Returns a ChartPreview with Superset URLs for the chart image or
-    ChartError on error.
+    Returns a ChartPreview in the requested format or ChartError on error.
     """
     try:
         await ctx.report_progress(1, 3, "Looking up chart")
-        from superset.daos.chart import ChartDAO
 
         # Find the chart
-        chart: Any = None
-        if isinstance(request.identifier, int) or (
-            isinstance(request.identifier, str) and request.identifier.isdigit()
-        ):
-            chart_id = (
-                int(request.identifier)
-                if isinstance(request.identifier, str)
-                else request.identifier
-            )
-            await ctx.debug(
-                "Performing ID-based chart lookup: chart_id=%s" % (chart_id,)
-            )
-            chart = ChartDAO.find_by_id(chart_id)
-        else:
-            await ctx.debug(
-                "Performing UUID-based chart lookup: uuid=%s" % (request.identifier,)
-            )
-            # Try UUID lookup using DAO flexible method
-            chart = ChartDAO.find_by_id(request.identifier, id_column="uuid")
+        with event_logger.log_context(action="mcp.get_chart_preview.chart_lookup"):
+            chart: Any = None
 
-            # If not found and looks like a form_data_key, try to create transient chart
-            if (
-                not chart
-                and isinstance(request.identifier, str)
-                and len(request.identifier) > 8
-            ):
-                # This might be a form_data_key, try to get form data from cache
-                from superset.commands.explore.form_data.get import GetFormDataCommand
-                from superset.commands.explore.form_data.parameters import (
-                    CommandParameters,
+            # Handle unsaved chart (form_data_key only, no identifier)
+            if not request.identifier and request.form_data_key:
+                with event_logger.log_context(
+                    action="mcp.get_chart_preview.unsaved_chart_from_cache"
+                ):
+                    await ctx.info(
+                        "No chart identifier - creating transient chart from "
+                        "form_data_key=%s" % (request.form_data_key,)
+                    )
+                    from superset.commands.explore.form_data.get import (
+                        GetFormDataCommand,
+                    )
+                    from superset.commands.explore.form_data.parameters import (
+                        CommandParameters,
+                    )
+                    from superset.utils import json as utils_json
+
+                    try:
+                        cmd_params = CommandParameters(key=request.form_data_key)
+                        form_data_json = GetFormDataCommand(cmd_params).run()
+                        if form_data_json:
+                            form_data = utils_json.loads(form_data_json)
+
+                            class TransientChartFromKey:
+                                def __init__(self, fd: Dict[str, Any]):
+                                    self.id = 0
+                                    self.slice_name = "Unsaved Chart Preview"
+                                    self.viz_type = fd.get("viz_type", "table")
+                                    ds = fd.get("datasource", "")
+                                    parts = str(ds).split("__") if ds else []
+                                    self.datasource_id = (
+                                        int(parts[0])
+                                        if len(parts) == 2
+                                        else fd.get("datasource_id")
+                                    )
+                                    self.datasource_type = (
+                                        parts[1]
+                                        if len(parts) == 2
+                                        else fd.get("datasource_type", "table")
+                                    )
+                                    self.params = utils_json.dumps(fd)
+                                    self.form_data = fd
+                                    self.uuid = None
+
+                            chart = TransientChartFromKey(form_data)
+                    except (
+                        CommandException,
+                        ValueError,
+                        KeyError,
+                        AttributeError,
+                        TypeError,
+                    ) as e:
+                        logger.warning(
+                            "Failed to get form data for key %s: %s",
+                            request.form_data_key,
+                            e,
+                        )
+                        return ChartError(
+                            error="No cached chart data found for form_data_key. "
+                            "The cache may have expired.",
+                            error_type="NotFound",
+                        )
+
+            else:
+                await ctx.debug(
+                    "Looking up chart: identifier=%s" % (request.identifier,)
                 )
+                if request.identifier is None:
+                    return ChartError(
+                        error="Chart identifier is required",
+                        error_type="ValidationError",
+                    )
+                chart = find_chart_by_identifier(request.identifier)
 
-                try:
-                    cmd_params = CommandParameters(key=request.identifier)
-                    cmd = GetFormDataCommand(cmd_params)
-                    form_data_json = cmd.run()
-                    if form_data_json:
-                        from superset.utils import json as utils_json
+                # Eagerly refresh all attributes while the session is still
+                # active.  SQLAlchemy expires object attributes after any
+                # commit; if a downstream operation commits before the strategy
+                # classes access chart attributes, a DetachedInstanceError will
+                # be raised.  Calling refresh() here ensures all column values
+                # are loaded into the object's __dict__ upfront.
+                if chart is not None:
+                    db.session.refresh(chart)
 
-                        form_data = utils_json.loads(form_data_json)
-
-                        # Create a transient chart object from form data
-                        class TransientChart:
-                            def __init__(self, form_data: Dict[str, Any]):
-                                self.id = None
-                                self.slice_name = "Unsaved Chart Preview"
-                                self.viz_type = form_data.get("viz_type", "table")
-                                self.datasource_id = None
-                                self.datasource_type = "table"
-                                self.params = utils_json.dumps(form_data)
-                                self.form_data = form_data
-                                self.uuid = None
-
-                        chart = TransientChart(form_data)
-                except Exception as e:
-                    # Form data key not found or invalid
-                    logger.debug(
-                        "Failed to get form data for key %s: %s", request.identifier, e
+                # If not found and looks like a form_data_key, try transient
+                if (
+                    not chart
+                    and isinstance(request.identifier, str)
+                    and len(request.identifier) > 8
+                ):
+                    # This might be a form_data_key
+                    from superset.commands.explore.form_data.get import (
+                        GetFormDataCommand,
+                    )
+                    from superset.commands.explore.form_data.parameters import (
+                        CommandParameters,
                     )
 
+                    try:
+                        cmd_params = CommandParameters(key=request.identifier)
+                        cmd = GetFormDataCommand(cmd_params)
+                        form_data_json = cmd.run()
+                        if form_data_json:
+                            from superset.utils import json as utils_json
+
+                            form_data = utils_json.loads(form_data_json)
+
+                            # Create a transient chart object from form data
+                            class TransientChart:
+                                def __init__(self, form_data: Dict[str, Any]):
+                                    self.id = 0
+                                    self.slice_name = "Unsaved Chart Preview"
+                                    self.viz_type = form_data.get("viz_type", "table")
+                                    self.datasource_id = None
+                                    self.datasource_type = "table"
+                                    self.params = utils_json.dumps(form_data)
+                                    self.form_data = form_data
+                                    self.uuid = None
+
+                            chart = TransientChart(form_data)
+                    except (
+                        CommandException,
+                        ValueError,
+                        KeyError,
+                        AttributeError,
+                        TypeError,
+                    ) as e:
+                        # Form data key not found or invalid
+                        logger.debug(
+                            "Failed to get form data for key %s: %s",
+                            request.identifier,
+                            e,
+                        )
+
         if not chart:
-            await ctx.error("Chart not found: identifier=%s" % (request.identifier,))
+            await ctx.warning("Chart not found: identifier=%s" % (request.identifier,))
+            is_form_data_key = (
+                isinstance(request.identifier, str)
+                and len(request.identifier) > 8
+                and not request.identifier.isdigit()
+            )
+            if is_form_data_key:
+                recovery = (
+                    "If using a form_data_key, it may have expired — "
+                    "use generate_explore_link to get a fresh key, "
+                    "or use list_charts to find a saved chart by ID."
+                )
+            else:
+                recovery = "Use list_charts to get valid chart IDs."
+            display_id = str(request.identifier)[:200]
             return ChartError(
-                error=f"No chart found with identifier: {request.identifier}",
+                error=f"No chart found with identifier: {display_id}. {recovery}",
                 error_type="NotFound",
             )
 
@@ -1911,6 +1515,77 @@ async def _get_chart_preview_internal(  # noqa: C901
         logger.info("Generating preview for chart %s", getattr(chart, "id", "NO_ID"))
         logger.info("Chart datasource_id: %s", getattr(chart, "datasource_id", "NONE"))
 
+        # Transient charts have a falsy id of 0, so skip the pre-check for them.
+        # Table guests keep the existence check but skip RBAC (dashboard-authorized).
+        if getattr(chart, "id", None):
+            if chart.datasource_type == DatasourceType.SEMANTIC_VIEW.value:
+                # Semantic IDs must not inherit a colliding table's access result.
+                if resolve_semantic_view(chart.datasource_id) is None:
+                    return ChartError(
+                        error=view_not_found_error(chart.datasource_id).message,
+                        error_type="DatasetNotAccessible",
+                    )
+            else:
+                validation_result: DatasetValidationResult = validate_chart_dataset(
+                    chart.datasource_id, check_access=not guest_scope.is_guest_read()
+                )
+                if not validation_result.is_valid:
+                    await ctx.warning(
+                        "Chart found but dataset is not accessible: %s"
+                        % (validation_result.error,)
+                    )
+                    return ChartError(
+                        error=validation_result.error
+                        or "Chart's dataset is not accessible. Dataset may be deleted.",
+                        error_type="DatasetNotAccessible",
+                    )
+                # Log any warnings (e.g., virtual dataset warnings)
+                warning: str
+                for warning in validation_result.warnings:
+                    await ctx.warning("Dataset warning: %s" % (warning,))
+
+        # If form_data_key is provided, override chart.params with cached
+        # form_data so the preview reflects what the user actually sees
+        if request.form_data_key and getattr(chart, "id", None) is not None:
+            with event_logger.log_context(
+                action="mcp.get_chart_preview.unsaved_state_override"
+            ):
+                await ctx.info(
+                    "Retrieving unsaved chart state from cache: form_data_key=%s"
+                    % (request.form_data_key,)
+                )
+                from superset.commands.explore.form_data.get import (
+                    GetFormDataCommand,
+                )
+                from superset.commands.explore.form_data.parameters import (
+                    CommandParameters,
+                )
+
+                try:
+                    cmd_params = CommandParameters(key=request.form_data_key)
+                    cached_form_data = GetFormDataCommand(cmd_params).run()
+                    if cached_form_data:
+                        chart.params = cached_form_data
+                        from superset.utils import json as utils_json
+
+                        parsed = utils_json.loads(cached_form_data)
+                        if isinstance(parsed, dict) and "viz_type" in parsed:
+                            chart.viz_type = parsed["viz_type"]
+                        await ctx.info(
+                            "Chart params overridden with unsaved state from cache"
+                        )
+                    else:
+                        await ctx.warning(
+                            "form_data_key provided but no cached data found. "
+                            "The cache may have expired. Using saved chart "
+                            "configuration."
+                        )
+                except (CommandException, ValueError, KeyError) as e:
+                    await ctx.warning(
+                        "Failed to retrieve cached form_data: %s. "
+                        "Using saved chart configuration." % (str(e),)
+                    )
+
         import time
 
         start_time = time.time()
@@ -1929,8 +1604,14 @@ async def _get_chart_preview_internal(  # noqa: C901
         )
 
         # Handle different preview formats using strategy pattern
-        preview_generator = PreviewFormatGenerator(chart, request)
-        content = preview_generator.generate()
+        with event_logger.log_context(
+            action="mcp.get_chart_preview.preview_generation"
+        ):
+            content = (
+                await _generate_png_preview(chart.id, request)
+                if request.format == "png"
+                else PreviewFormatGenerator(chart, request).generate()
+            )
 
         if isinstance(content, ChartError):
             await ctx.error(
@@ -1948,18 +1629,19 @@ async def _get_chart_preview_internal(  # noqa: C901
         await ctx.report_progress(3, 3, "Building response")
 
         # Create performance and accessibility metadata
-        execution_time = int((time.time() - start_time) * 1000)
-        performance = PerformanceMetadata(
-            query_duration_ms=execution_time,
-            cache_status="miss",
-            optimization_suggestions=[],
-        )
+        with event_logger.log_context(action="mcp.get_chart_preview.metadata"):
+            execution_time = int((time.time() - start_time) * 1000)
+            performance = PerformanceMetadata(
+                query_duration_ms=execution_time,
+                cache_status="miss",
+                optimization_suggestions=[],
+            )
 
-        accessibility = AccessibilityMetadata(
-            color_blind_safe=True,
-            alt_text=f"Preview of {chart.slice_name or f'Chart {chart.id}'}",
-            high_contrast_available=False,
-        )
+            accessibility = AccessibilityMetadata(
+                color_blind_safe=True,
+                alt_text=f"Preview of {chart.slice_name or f'Chart {chart.id}'}",
+                high_contrast_available=False,
+            )
 
         await ctx.debug(
             "Preview generation completed: execution_time_ms=%s, content_type=%s"
@@ -1976,33 +1658,35 @@ async def _get_chart_preview_internal(  # noqa: C901
             chart_type=chart.viz_type or "unknown",
             explore_url=f"{get_superset_base_url()}/explore/?slice_id={chart.id}",
             content=content,
-            chart_description=(
-                f"Preview of {chart.viz_type or 'chart'}: "
-                f"{chart.slice_name or f'Chart {chart.id}'}"
-            ),
+            chart_description=_build_chart_description(chart),
             accessibility=accessibility,
             performance=performance,
         )
 
-        # Add format-specific fields for backward compatibility
-        if isinstance(content, URLPreview):
-            result.format = "url"
-            result.preview_url = content.preview_url
-            result.width = content.width
-            result.height = content.height
-        elif isinstance(content, ASCIIPreview):
-            result.format = "ascii"
-            result.ascii_chart = content.ascii_content
-            result.width = content.width
-            result.height = content.height
-        elif isinstance(content, TablePreview):
-            result.format = "table"
-            result.table_data = content.table_data
-        # Base64 preview support removed
-
         return result
 
-    except Exception as e:
+    except SQLAlchemyError as e:
+        # Catch DetachedInstanceError and other SQLAlchemy errors that can
+        # surface when the ORM session expires or commits mid-request.
+        await ctx.error(
+            "Chart preview failed due to database session error: "
+            "identifier=%s, error_type=%s, error=%s"
+            % (request.identifier, type(e).__name__, str(e))
+        )
+        logger.exception("SQLAlchemy error in get_chart_preview: %s", e)
+        return ChartError(
+            error="Database session error while generating chart preview. "
+            "Please retry the request.",
+            error_type="InternalError",
+        )
+    except (
+        CommandException,
+        SupersetException,
+        ValueError,
+        KeyError,
+        AttributeError,
+        TypeError,
+    ) as e:
         await ctx.error(
             "Chart preview generation failed: identifier=%s, format=%s, error=%s, "
             "error_type=%s"
@@ -2019,14 +1703,32 @@ async def _get_chart_preview_internal(  # noqa: C901
         )
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool(
+    tags=["data"],
+    class_permission_name="Chart",
+    annotations=ToolAnnotations(
+        title="Get chart preview",
+        readOnlyHint=True,
+        destructiveHint=False,
+        openWorldHint=False,
+    ),
+)
 async def get_chart_preview(
     request: GetChartPreviewRequest, ctx: Context
 ) -> ChartPreview | ChartError:
     """Get chart preview by ID or UUID.
 
-    Returns preview URL or formatted content (ascii, table, vega_lite).
+    Returns preview URL or formatted content (ascii, table, vega_lite, png).
+
+    PNG renders saved charts as the calling non-guest user; unsaved state and
+    extra filters are unsupported.
+
+    Pass extra_form_data (e.g. a dashboard's active native filters) to render
+    the preview over the filtered data rather than the full dataset.
+
+    When format includes 'url', the returned preview_url uses the same scheme
+    as the configured instance URL (HTTPS in production/staging, HTTP in local
+    development).
     """
     await ctx.info(
         "Starting chart preview generation: identifier=%s, format=%s, width=%s, "
@@ -2056,7 +1758,7 @@ async def get_chart_preview(
                 "has_preview_url=%s"
                 % (
                     getattr(result, "chart_id", None),
-                    result.format,
+                    getattr(result.content, "type", None),
                     bool(getattr(result, "preview_url", None)),
                 )
             )
@@ -2066,8 +1768,37 @@ async def get_chart_preview(
                 % (result.error_type, result.error)
             )
 
-        return result
-    except Exception as e:
+        return _finalize_response(result)
+    except OAuth2RedirectError as ex:
+        await ctx.warning(
+            "Chart preview requires OAuth authentication: identifier=%s"
+            % request.identifier
+        )
+        return _finalize_response(
+            ChartError(
+                error=build_oauth2_redirect_message(ex),
+                error_type="OAUTH2_REDIRECT",
+            )
+        )
+    except OAuth2Error:
+        await ctx.error(
+            "OAuth2 configuration error: identifier=%s" % request.identifier
+        )
+        return _finalize_response(
+            ChartError(
+                error=OAUTH2_CONFIG_ERROR_MESSAGE,
+                error_type="OAUTH2_REDIRECT_ERROR",
+            )
+        )
+    except (
+        SupersetException,
+        CommandException,
+        SQLAlchemyError,
+        KeyError,
+        ValueError,
+        TypeError,
+        AttributeError,
+    ) as e:
         await ctx.error(
             "Chart preview generation failed: identifier=%s, error=%s, error_type=%s"
             % (
@@ -2076,7 +1807,9 @@ async def get_chart_preview(
                 type(e).__name__,
             )
         )
-        return ChartError(
-            error=f"Failed to generate chart preview: {str(e)}",
-            error_type="InternalError",
+        return _finalize_response(
+            ChartError(
+                error=f"Failed to generate chart preview: {str(e)}",
+                error_type="InternalError",
+            )
         )

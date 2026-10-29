@@ -26,7 +26,7 @@ import {
 } from './dates';
 
 describe('extendedDayjs', () => {
-  it('returns dayjs object with extended methods', () => {
+  test('returns dayjs object with extended methods', () => {
     const dayjs = extendedDayjs();
     expect(dayjs).toHaveProperty('utc');
     expect(dayjs).toHaveProperty('calendar');
@@ -44,58 +44,58 @@ describe('extendedDayjs', () => {
 });
 
 describe('fDuration', () => {
-  it('is a function', () => {
+  test('is a function', () => {
     expect(typeof fDuration).toBe('function');
   });
 
-  it('returns a string', () => {
+  test('returns a string', () => {
     expect(typeof fDuration(new Date().getTime(), new Date().getTime())).toBe(
       'string',
     );
   });
 
-  it('returns the expected output', () => {
+  test('returns the expected output', () => {
     const output = fDuration(1496293608897, 1496293623406);
     expect(output).toBe('00:00:14.509');
   });
 });
 
 describe('now', () => {
-  it('is a function', () => {
+  test('is a function', () => {
     expect(typeof now).toBe('function');
   });
 
-  it('returns a number', () => {
+  test('returns a number', () => {
     expect(typeof now()).toBe('number');
   });
 });
 
 describe('epochTimeXHoursAgo', () => {
-  it('is a function', () => {
+  test('is a function', () => {
     expect(typeof epochTimeXHoursAgo).toBe('function');
   });
 
-  it('returns a number', () => {
+  test('returns a number', () => {
     expect(typeof epochTimeXHoursAgo(1)).toBe('number');
   });
 });
 
 describe('epochTimeXDaysAgo', () => {
-  it('is a function', () => {
+  test('is a function', () => {
     expect(typeof epochTimeXDaysAgo).toBe('function');
   });
 
-  it('returns a number', () => {
+  test('returns a number', () => {
     expect(typeof epochTimeXDaysAgo(1)).toBe('number');
   });
 });
 
 describe('epochTimeXYearsAgo', () => {
-  it('is a function', () => {
+  test('is a function', () => {
     expect(typeof epochTimeXYearsAgo).toBe('function');
   });
 
-  it('returns a number', () => {
+  test('returns a number', () => {
     expect(typeof epochTimeXYearsAgo(1)).toBe('number');
   });
 });

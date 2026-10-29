@@ -17,11 +17,18 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { isFeatureEnabled } from '@superset-ui/core';
 import ChartList from 'src/pages/ChartList';
 import { API_ENDPOINTS, mockCharts, setupMocks } from './ChartList.testHelpers';
@@ -51,10 +58,19 @@ const PERMISSIONS = {
   NONE: [],
 };
 
+const getRoleName = (
+  permissions: (typeof PERMISSIONS)[keyof typeof PERMISSIONS],
+) => (permissions === PERMISSIONS.ADMIN ? 'Admin' : 'TestRole');
+
 const createMockUser = (overrides = {}) => ({
   userId: 1,
   firstName: 'Test',
   lastName: 'User',
+  username: 'testuser',
+  permissions: {
+    database_access: [],
+    datasource_access: [],
+  },
   roles: {
     Admin: [
       ['can_sqllab', 'Superset'],
@@ -68,9 +84,9 @@ const createMockUser = (overrides = {}) => ({
 const createMockStore = (initialState: any = {}) =>
   configureStore({
     reducer: {
-      user: (state = initialState.user || {}, action: any) => state,
-      common: (state = initialState.common || {}, action: any) => state,
-      charts: (state = initialState.charts || {}, action: any) => state,
+      user: (state = initialState.user || {}, _action: any) => state,
+      common: (state = initialState.common || {}, _action: any) => state,
+      charts: (state = initialState.charts || {}, _action: any) => state,
     },
     preloadedState: initialState,
     middleware: getDefaultMiddleware =>
@@ -87,7 +103,7 @@ const createStoreStateWithPermissions = (
   user: userId
     ? {
         ...createMockUser({ userId }),
-        roles: { TestRole: permissions },
+        roles: { [getRoleName(permissions)]: permissions },
       }
     : {},
   common: {
@@ -116,7 +132,7 @@ const renderChartList = (
   return render(
     <Provider store={store}>
       <MemoryRouter>
-        <QueryParamProvider>
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
           <ChartList user={user} {...props} />
         </QueryParamProvider>
       </MemoryRouter>
@@ -124,22 +140,15 @@ const renderChartList = (
   );
 };
 
-// Setup API permissions mock
-const setupApiPermissions = (permissions: string[]) => {
-  fetchMock.get(
-    API_ENDPOINTS.CHARTS_INFO,
-    {
-      permissions,
-    },
-    { overwriteRoutes: true },
-  );
-};
-
 // Render with permissions and wait for load
 const renderWithPermissions = async (
   permissions = PERMISSIONS.ADMIN,
   userId: number | undefined = 1,
-  featureFlags: { tagging?: boolean; cardView?: boolean } = {},
+  featureFlags: {
+    tagging?: boolean;
+    cardView?: boolean;
+    softDelete?: boolean;
+  } = {},
 ) => {
   (
     isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
@@ -147,12 +156,12 @@ const renderWithPermissions = async (
     if (feature === 'TAGGING_SYSTEM') return featureFlags.tagging === true;
     if (feature === 'LISTVIEWS_DEFAULT_CARD_VIEW')
       return featureFlags.cardView === true;
+    if (feature === 'SOFT_DELETE') return featureFlags.softDelete === true;
     return false;
   });
 
   // Convert role permissions to API permissions
-  const apiPermissions = permissions.map(perm => perm[0]);
-  setupApiPermissions(apiPermissions);
+  setupMocks({ [API_ENDPOINTS.CHARTS_INFO]: permissions.map(perm => perm[0]) });
 
   const storeState = createStoreStateWithPermissions(permissions, userId);
 
@@ -161,7 +170,7 @@ const renderWithPermissions = async (
     ? {
         user: {
           ...createMockUser({ userId }),
-          roles: { TestRole: permissions },
+          roles: { [getRoleName(permissions)]: permissions },
         },
       }
     : { user: { userId: undefined } }; // Explicitly set userId to undefined for logged-out state
@@ -176,12 +185,7 @@ const renderWithPermissions = async (
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartList - Permission-based UI Tests', () => {
   beforeEach(() => {
-    setupMocks();
-  });
-
-  afterEach(() => {
-    fetchMock.resetHistory();
-    fetchMock.restore();
+    fetchMock.clearHistory().removeRoutes();
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
     ).mockReset();
@@ -194,7 +198,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     await screen.findByTestId('chart-list-view');
 
     // Verify all admin controls are visible
-    expect(screen.getByRole('button', { name: /chart/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /chart$/i })).toBeInTheDocument();
     expect(screen.getByTestId('import-button')).toBeInTheDocument();
     expect(screen.getByTestId('bulk-select')).toBeInTheDocument();
 
@@ -222,7 +226,7 @@ describe('ChartList - Permission-based UI Tests', () => {
 
     // Verify permission-gated elements are hidden
     expect(
-      screen.queryByRole('button', { name: /chart/i }),
+      screen.queryByRole('button', { name: /chart$/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
   });
@@ -241,6 +245,55 @@ describe('ChartList - Permission-based UI Tests', () => {
     // Check for action buttons using test-ids (delete, upload, edit-alt)
     const deleteButtons = screen.getAllByTestId('delete');
     expect(deleteButtons).toHaveLength(mockCharts.length);
+  });
+
+  test('enables table actions for an admin who is not a chart editor', async () => {
+    await renderWithPermissions(PERMISSIONS.ADMIN);
+    await screen.findByTestId('chart-list-view');
+
+    const row = (await screen.findByText(mockCharts[1].slice_name)).closest(
+      'tr',
+    );
+    const editButton = within(row!).getByTestId('chart-row-edit');
+    const deleteButton = within(row!).getByTestId('chart-row-delete');
+
+    expect(editButton).toHaveAttribute('aria-disabled', 'false');
+    expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
+  });
+
+  test.each([
+    [true, 'archive'],
+    [false, 'delete'],
+  ])(
+    'soft delete %s uses the chart row permission hint for %s',
+    async (enabled, verb) => {
+      await renderWithPermissions(PERMISSIONS.WRITE_ONLY, 9, {
+        softDelete: enabled,
+      });
+      const row = (await screen.findByText(mockCharts[0].slice_name)).closest(
+        'tr',
+      );
+      const action = within(row!).getByTestId('chart-row-delete');
+      fireEvent.mouseOver(action);
+      expect(await screen.findByRole('tooltip')).toHaveTextContent(
+        `You must be a chart editor in order to ${verb}.`,
+      );
+    },
+  );
+
+  test('enables card actions for an admin who is not a chart editor', async () => {
+    await renderWithPermissions(PERMISSIONS.ADMIN, 1, { cardView: true });
+    await screen.findByTestId('chart-list-view');
+
+    const cardMenus = await screen.findAllByTestId('chart-card-menu');
+    fireEvent.click(cardMenus[1]);
+
+    expect(
+      (await screen.findByText('Edit')).closest('[role="menuitem"]'),
+    ).toHaveAttribute('aria-disabled', 'false');
+    expect(
+      screen.getByText('Delete').closest('[role="menuitem"]'),
+    ).toHaveAttribute('aria-disabled', 'false');
   });
 
   test('hides Actions column for users with read-only permissions', async () => {
@@ -346,7 +399,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     await renderWithPermissions(PERMISSIONS.WRITE_ONLY);
     await screen.findByTestId('chart-list-view');
 
-    expect(screen.getByRole('button', { name: /chart/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /chart$/i })).toBeInTheDocument();
     expect(screen.getByTestId('import-button')).toBeInTheDocument();
   });
 
@@ -354,7 +407,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     await renderWithPermissions(PERMISSIONS.ADMIN);
     await screen.findByTestId('chart-list-view');
 
-    expect(screen.getByRole('button', { name: /chart/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /chart$/i })).toBeInTheDocument();
     expect(screen.getByTestId('import-button')).toBeInTheDocument();
   });
 
@@ -363,7 +416,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     await screen.findByTestId('chart-list-view');
 
     expect(
-      screen.queryByRole('button', { name: /chart/i }),
+      screen.queryByRole('button', { name: /chart$/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
   });
@@ -373,7 +426,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     await screen.findByTestId('chart-list-view');
 
     expect(
-      screen.queryByRole('button', { name: /chart/i }),
+      screen.queryByRole('button', { name: /chart$/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
   });
@@ -451,7 +504,7 @@ describe('ChartList - Permission-based UI Tests', () => {
 
     // Create and Import should be hidden (no can_write)
     expect(
-      screen.queryByRole('button', { name: /chart/i }),
+      screen.queryByRole('button', { name: /chart$/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
   });
@@ -465,7 +518,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(screen.queryByTitle('Tags')).not.toBeInTheDocument();
     expect(screen.queryByTestId('bulk-select')).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /chart/i }),
+      screen.queryByRole('button', { name: /chart$/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
 

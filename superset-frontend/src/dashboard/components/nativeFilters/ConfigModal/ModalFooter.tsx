@@ -23,15 +23,16 @@ import {
   Icons,
   Flex,
 } from '@superset-ui/core/components';
-import { t } from '@superset-ui/core';
-import { styled, css, useTheme, Alert } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { BaseExpandButtonWrapper } from './SharedStyles';
 
 const StyledAlert = styled(Alert)`
   text-align: left;
   flex: 1;
 
-  & .ant-alert-action {
+  & .ant-alert-actions {
     align-self: center;
   }
 `;

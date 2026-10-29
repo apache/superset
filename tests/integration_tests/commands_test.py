@@ -16,6 +16,7 @@
 # under the License.
 import copy
 from unittest.mock import patch
+from uuid import uuid4
 
 import yaml
 from flask import g
@@ -24,10 +25,11 @@ from superset import db
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.assets import ImportAssetsCommand
 from superset.commands.importers.v1.utils import is_valid_config
+from superset.models.annotations import Annotation, AnnotationLayer
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import SupersetTestCase, user_is_editor
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
     dashboard_config,
@@ -63,6 +65,62 @@ class TestImportAssetsCommand(SupersetTestCase):
         user = self.get_user("admin")
         self.user = user
         g.user = user
+
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_assets_resolves_native_annotation_layer(self, mock_add_permissions):
+        """Annotation layers in an assets bundle are imported and bound by UUID."""
+        layer_uuid = str(uuid4())
+        imported_chart_config = copy.deepcopy(chart_config)
+        imported_chart_config["params"]["annotation_layers"] = [
+            {
+                "name": "Native",
+                "annotationType": "EVENT",
+                "sourceType": "NATIVE",
+                "value": layer_uuid,
+            }
+        ]
+        contents = {
+            "metadata.yaml": yaml.safe_dump(metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/imported_chart.yaml": yaml.safe_dump(imported_chart_config),
+            "annotation_layers/imported_layer.yaml": yaml.safe_dump(
+                {
+                    "name": f"Assets Layer {layer_uuid}",
+                    "descr": None,
+                    "uuid": layer_uuid,
+                    "version": "1.0.0",
+                    "annotation": [
+                        {
+                            "uuid": str(uuid4()),
+                            "short_descr": "assets-child",
+                            "start_dttm": "2020-01-01T00:00:00",
+                            "end_dttm": "2020-01-02T00:00:00",
+                        }
+                    ],
+                }
+            ),
+        }
+
+        ImportAssetsCommand(contents).run()
+
+        chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
+        layer = db.session.query(AnnotationLayer).filter_by(uuid=layer_uuid).one()
+        try:
+            params_layers = json.loads(chart.params)["annotation_layers"]
+            assert [annotation["value"] for annotation in params_layers] == [layer.id]
+            assert [annotation.short_descr for annotation in layer.annotation] == [
+                "assets-child"
+            ]
+        finally:
+            dataset = chart.table
+            database = dataset.database
+            db.session.query(Annotation).filter_by(layer_id=layer.id).delete()
+            db.session.delete(layer)
+            db.session.delete(chart)
+            db.session.delete(dataset)
+            db.session.delete(database)
+            db.session.commit()
 
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_assets(self, mock_add_permissions):
@@ -129,6 +187,7 @@ class TestImportAssetsCommand(SupersetTestCase):
         assert json.loads(dashboard.json_metadata) == {
             "color_scheme": None,
             "expanded_slices": {str(new_chart_id): True},
+            "expand_all_slices": False,
             "import_time": 1604342885,
             "native_filter_configuration": [],
             "refresh_frequency": 0,
@@ -167,9 +226,10 @@ class TestImportAssetsCommand(SupersetTestCase):
         database = dataset.database
         assert str(database.uuid) == database_config["uuid"]
 
-        assert dashboard.owners == [self.user]
+        assert len(dashboard.editors) == 1
+        assert user_is_editor(self.user, dashboard)
 
-        mock_add_permissions.assert_called_with(database, None)
+        mock_add_permissions.assert_called_with(database)
 
         db.session.delete(dashboard)
         db.session.delete(chart)
@@ -214,7 +274,7 @@ class TestImportAssetsCommand(SupersetTestCase):
         dataset = chart.table
         database = dataset.database
 
-        mock_add_permissions.assert_called_with(database, None)
+        mock_add_permissions.assert_called_with(database)
 
         db.session.delete(dashboard)
         db.session.delete(chart)

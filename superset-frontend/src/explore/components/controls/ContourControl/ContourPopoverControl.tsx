@@ -19,8 +19,9 @@
 import { useState, useEffect } from 'react';
 import { Button, Row, Col } from '@superset-ui/core/components';
 import Tabs from '@superset-ui/core/components/Tabs';
-import { legacyValidateInteger, t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { legacyValidateInteger } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import ControlHeader from '../../ControlHeader';
 import TextControl from '../TextControl';
 import ColorPickerControl from '../ColorPickerControl';
@@ -45,12 +46,9 @@ const StyledRow = styled(Row)`
   gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
-const isIsoband = (contour: ContourType) => {
-  if (Object.keys(contour).length < 4) {
-    return false;
-  }
-  return contour.upperThreshold && contour.lowerThreshold;
-};
+const isIsoband = (contour: ContourType) =>
+  (contour.upperThreshold || contour.upperThreshold === 0) &&
+  (contour.lowerThreshold || contour.lowerThreshold === 0);
 
 const getTabKey = (contour: ContourType | undefined) =>
   contour && isIsoband(contour) ? ContourTypes.Isoband : ContourTypes.Isoline;
@@ -79,8 +77,8 @@ const determineErrorMap = (tab: string, contour: ContourType) => {
     if (
       !upperThresholdError &&
       !lowerThresholdError &&
-      contour.upperThreshold &&
-      contour.lowerThreshold
+      contour.upperThreshold != null &&
+      contour.lowerThreshold != null
     ) {
       const lower = parseFloat(contour.lowerThreshold);
       const upper = parseFloat(contour.upperThreshold);
@@ -101,7 +99,9 @@ const convertContourToNumeric = (contour: ContourType) => {
   const formattedContour = { ...contour };
   const numericKeys = ['lowerThreshold', 'upperThreshold', 'strokeWidth'];
   numericKeys.forEach(key => {
-    formattedContour[key] = Number(formattedContour[key]);
+    if (formattedContour[key] != null) {
+      formattedContour[key] = Number(formattedContour[key]);
+    }
   });
   return formattedContour;
 };
@@ -285,7 +285,7 @@ const ContourPopoverControl = ({
                 hovered
               />
               <TextControl
-                value={contour.lowerThreshold || ''}
+                value={contour.lowerThreshold ?? ''}
                 onChange={updateLowerThreshold}
               />
             </Col>
@@ -300,7 +300,7 @@ const ContourPopoverControl = ({
                 hovered
               />
               <TextControl
-                value={contour.upperThreshold || ''}
+                value={contour.upperThreshold ?? ''}
                 onChange={updateUpperThreshold}
               />
             </Col>

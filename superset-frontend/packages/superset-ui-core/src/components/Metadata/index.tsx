@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 
 const MetadataWrapper = styled.div`
   display: flex;

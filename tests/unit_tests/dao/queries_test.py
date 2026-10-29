@@ -21,7 +21,7 @@ import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
-from superset.exceptions import QueryNotFoundException, SupersetCancelQueryException
+from superset.exceptions import QueryNotFoundException
 
 
 def test_query_dao_save_metadata(session: Session) -> None:
@@ -146,6 +146,8 @@ def test_query_dao_stop_query_not_found(
 
     db.session.add(database)
     db.session.add(query_obj)
+    # Persist the fixture before testing a different query identifier.
+    db.session.commit()
 
     mocker.patch("superset.sql_lab.cancel_query", return_value=False)
 
@@ -197,9 +199,10 @@ def test_query_dao_stop_query_not_running(
     assert query.status == QueryStatus.FAILED
 
 
-def test_query_dao_stop_query_failed(
+def test_query_dao_stop_query_accepts_uncancelable_engine(
     mocker: MockerFixture, app: Any, session: Session
 ) -> None:
+    """A missing engine cancellation does not reject a durable Stop."""
     from superset import db
     from superset.common.db_query_status import QueryStatus
     from superset.models.core import Database
@@ -228,16 +231,20 @@ def test_query_dao_stop_query_failed(
 
     db.session.add(database)
     db.session.add(query_obj)
+    # The query must exist before the Stop transaction can lock its row.
+    db.session.commit()
 
-    mocker.patch("superset.sql_lab.cancel_query", return_value=False)
+    cancel_query = mocker.patch("superset.sql_lab.cancel_query", return_value=False)
 
     from superset.daos.query import QueryDAO
 
-    with pytest.raises(SupersetCancelQueryException):
-        QueryDAO.stop_query(query_obj.client_id)
+    assert QueryDAO.stop_query(query_obj.client_id) is query_obj
+    cancel_query.assert_called_once_with(query_obj)
 
+    db.session.expire_all()
     query = db.session.query(Query).one()
-    assert query.status == QueryStatus.RUNNING
+    assert query.status == QueryStatus.STOPPED
+    assert query.end_time is not None
 
 
 def test_query_dao_stop_query(
@@ -279,3 +286,51 @@ def test_query_dao_stop_query(
     QueryDAO.stop_query(query_obj.client_id)
     query = db.session.query(Query).one()
     assert query.status == QueryStatus.STOPPED
+
+
+def test_query_dao_stop_query_wrong_user(
+    mocker: MockerFixture, app: Any, session: Session
+) -> None:
+    """A user cannot stop a query that belongs to a different user."""
+    from superset import db
+    from superset.common.db_query_status import QueryStatus
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+
+    engine = db.session.get_bind()
+    Query.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+
+    query_obj = Query(
+        client_id="foo",
+        database=database,
+        tab_name="test_tab",
+        sql_editor_id="test_editor_id",
+        sql="select * from bar",
+        select_sql="select * from bar",
+        executed_sql="select * from bar",
+        limit=100,
+        select_as_cta=False,
+        rows=100,
+        error_message="none",
+        results_key="abc",
+        status=QueryStatus.RUNNING,
+        user_id=1,
+    )
+
+    db.session.add(database)
+    db.session.add(query_obj)
+    # Persist the fixture before testing ownership scoping.
+    db.session.commit()
+
+    # Simulate a different user (user 2) attempting to stop user 1's query
+    mocker.patch("superset.daos.query.get_user_id", return_value=2)
+
+    from superset.daos.query import QueryDAO
+
+    with pytest.raises(QueryNotFoundException):
+        QueryDAO.stop_query(query_obj.client_id)
+
+    query = db.session.query(Query).one()
+    assert query.status == QueryStatus.RUNNING

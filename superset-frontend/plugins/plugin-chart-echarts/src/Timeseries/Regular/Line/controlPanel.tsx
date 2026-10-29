@@ -16,8 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { getColumnLabel, QueryFormColumn } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
+  checkColumnType,
   ControlPanelConfig,
   ControlPanelsContainerProps,
   ControlSubSectionHeader,
@@ -34,6 +37,9 @@ import {
 import {
   legendSection,
   minorTicks,
+  axisTicks,
+  gridlines,
+  valueAxisLabels,
   richTooltipSection,
   seriesOrderSection,
   showValueSection,
@@ -41,6 +47,8 @@ import {
   xAxisBounds,
   xAxisLabelRotation,
   xAxisLabelInterval,
+  xAxisMinInterval,
+  yAxisMinInterval,
   forceMaxInterval,
 } from '../../../controls';
 
@@ -105,6 +113,22 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'rebase_percent_change',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Percent change'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Rebase each series to its percent change from a baseline ' +
+                  'point, like the legacy Time-series Percent Change chart. ' +
+                  'Drag the vertical baseline on the chart to re-index.',
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'markerEnabled',
             config: {
               type: 'CheckboxControl',
@@ -137,6 +161,9 @@ const config: ControlPanelConfig = {
         ],
         ['zoomable'],
         [minorTicks],
+        [axisTicks],
+        [gridlines],
+        [valueAxisLabels],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         [
@@ -144,19 +171,59 @@ const config: ControlPanelConfig = {
             name: 'x_axis_time_format',
             config: {
               ...sharedControls.x_axis_time_format,
-              default: 'smart_date',
               description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                checkColumnType(
+                  getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+                  controls?.datasource?.datasource,
+                  [GenericDataType.Temporal],
+                ),
+              disableStash: true,
+              resetOnHide: false,
+            },
+          },
+        ],
+        [
+          {
+            name: 'x_axis_number_format',
+            config: {
+              ...sharedControls.x_axis_number_format,
+              default: '~g',
+              mapStateToProps: undefined,
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                checkColumnType(
+                  getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+                  controls?.datasource?.datasource,
+                  [GenericDataType.Numeric],
+                ),
             },
           },
         ],
         [xAxisLabelRotation],
         [xAxisLabelInterval],
+        [
+          {
+            name: xAxisMinInterval.name,
+            config: {
+              ...xAxisMinInterval.config,
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                checkColumnType(
+                  getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+                  controls?.datasource?.datasource,
+                  [GenericDataType.Temporal, GenericDataType.Numeric],
+                ),
+              disableStash: true,
+              resetOnHide: false,
+            },
+          },
+        ],
         [forceMaxInterval],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         ['y_axis_format'],
         ['currency_format'],
+        [yAxisMinInterval],
         [
           {
             name: 'logAxis',
@@ -216,6 +283,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['echart_options'],
       ],
     },
   ],

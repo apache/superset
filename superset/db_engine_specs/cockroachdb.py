@@ -15,16 +15,43 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from sqlalchemy import types
+from sqlalchemy.sql.elements import ColumnElement
 
+from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 
 
 class CockroachDbEngineSpec(PostgresEngineSpec):
     engine = "cockroachdb"
     engine_name = "CockroachDB"
+
+    # `PostgresEngineSpec._extended_aggregations` (MEDIAN/STDDEV_SAMP/VAR_SAMP)
+    # is verified against real Postgres behavior, not CockroachDB's distributed
+    # query engine; disable it here until someone confirms the same expressions
+    # against a live CockroachDB instance.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {}
+
+    metadata = {
+        "description": (
+            "CockroachDB is a distributed SQL database built for cloud applications."
+        ),
+        "logo": "cockroachdb.png",
+        "homepage_url": "https://www.cockroachlabs.com/",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        # sqlalchemy-cockroachdb declares no DBAPI dependency of its own (see
+        # the comment on the `cockroachdb` extra in pyproject.toml), so a
+        # plain `cockroachdb://` URL also needs psycopg2 installed to connect.
+        "pypi_packages": ["sqlalchemy-cockroachdb", "psycopg2-binary"],
+        "connection_string": "cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable",
+        "default_port": 26257,
+        "docs_url": "https://github.com/cockroachdb/sqlalchemy-cockroachdb",
+    }
 
     @classmethod
     def convert_dttm(

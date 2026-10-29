@@ -73,7 +73,7 @@ The tables below (generated via `python superset/db_engine_specs/lib.py`) summar
 | Apache Spark SQL | 140 | Supported | Not supported | Supported | Partial | Partial | Partial |
 | Databricks Interactive Cluster | 140 | Supported | Not supported | Supported | Partial | Partial | Partial |
 | base | 109 | Supported | Partial | Supported | Partial | Partial | Partial |
-| Aurora PostgreSQL (Data API) | 104 | Supported | Partial | Supported | Partial | Partial | Partial |
+| Aurora PostgreSQL (Data API) | 94 | Supported | Partial | Supported | Partial | Partial | Partial |
 | CockroachDB | 94 | Supported | Partial | Supported | Partial | Partial | Partial |
 | RisingWave | 94 | Supported | Partial | Supported | Partial | Partial | Partial |
 | Google BigQuery | 83 | Supported | Partial | Supported | Partial | Partial | Partial |
@@ -83,7 +83,7 @@ The tables below (generated via `python superset/db_engine_specs/lib.py`) summar
 | Databricks (legacy) | 70 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | StarRocks | 69 | Supported | Partial | Supported | Partial | Partial | Partial |
 | SingleStore | 68 | Supported | Partial | Supported | Not supported | Partial | Not supported |
-| ClickHouse Connect (Superset) | 61 | Supported | Partial | Partial | Partial | Partial | Not supported |
+| ClickHouse Connect (Superset) | 62 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | Google Sheets | 61 | Supported | Partial | Supported | Supported | Partial | Partial |
 | Aurora MySQL (Data API) | 59 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | MariaDB | 59 | Supported | Partial | Supported | Partial | Partial | Not supported |
@@ -91,7 +91,7 @@ The tables below (generated via `python superset/db_engine_specs/lib.py`) summar
 | OceanBase | 59 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | MotherDuck | 58 | Supported | Partial | Supported | Not supported | Partial | Not supported |
 | KustoSQL | 54 | Supported | Partial | Supported | Partial | Partial | Not supported |
-| ClickHouse | 51 | Supported | Partial | Partial | Partial | Partial | Not supported |
+| ClickHouse | 52 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | Databend | 51 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | Apache Drill | 50 | Supported | Partial | Supported | Partial | Partial | Partial |
 | Apache Druid | 47 | Partial | Partial | Supported | Partial | Partial | Not supported |
@@ -293,8 +293,8 @@ The tables below (generated via `python superset/db_engine_specs/lib.py`) summar
 | Aurora MySQL (Data API) | True | True | True | True | True | True | True | True |
 | Aurora PostgreSQL (Data API) | True | True | True | True | True | True | True | True |
 | Azure Synapse | True | True | True | True | True | True | True | True |
-| ClickHouse | False | True | True | True | True | True | True | True |
-| ClickHouse Connect (Superset) | False | True | True | True | True | True | True | True |
+| ClickHouse | True | True | True | True | True | True | True | True |
+| ClickHouse Connect (Superset) | True | True | True | True | True | True | True | True |
 | CockroachDB | True | True | True | True | True | True | True | True |
 | Couchbase | True | True | True | True | False | True | True | True |
 | CrateDB | True | True | True | True | True | True | True | True |
@@ -504,7 +504,7 @@ Integration with platform features and metadata handling.
 | Apache Spark SQL | True | True | True | False |
 | Ascend | False | False | False | False |
 | Aurora MySQL (Data API) | False | False | False | False |
-| Aurora PostgreSQL (Data API) | False | False | True | True |
+| Aurora PostgreSQL (Data API) | False | False | True | False |
 | Azure Synapse | False | False | False | False |
 | ClickHouse | False | False | False | False |
 | ClickHouse Connect (Superset) | False | False | False | False |
@@ -555,6 +555,161 @@ Integration with platform features and metadata handling.
 | Vertica | False | False | False | False |
 | YDB | False | False | False | False |
 | base | False | False | True | False |
+
+## How to Add a New Database
+
+Adding a new database to Superset involves creating a DB engine spec file with a `metadata` attribute. This metadata is used to generate documentation and provide connection information to users.
+
+### Quick Start
+
+1. **Create a new file** in `superset/db_engine_specs/` (e.g., `mydatabase.py`)
+2. **Add metadata** with required fields (description, category, pypi_packages, connection_string)
+3. **Run the linter** to verify completeness: `python superset/db_engine_specs/lint_metadata.py`
+4. **Add a logo** (optional) in `docs/static/img/databases/`
+
+### Minimal Example
+
+```python
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+
+class MyDatabaseEngineSpec(BaseEngineSpec):
+    engine = "mydatabase"
+    engine_name = "My Database"
+
+    metadata = {
+        # Required fields
+        "description": "A brief description of the database.",
+        "category": DatabaseCategory.TRADITIONAL_RDBMS,
+        "pypi_packages": ["my-database-driver"],
+        "connection_string": "mydatabase://{username}:{password}@{host}:{port}/{database}",
+
+        # Recommended fields
+        "logo": "mydatabase.svg",
+        "homepage_url": "https://mydatabase.example.com/",
+        "default_port": 5432,
+    }
+```
+
+### Full Example with All Fields
+
+```python
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+
+class MyDatabaseEngineSpec(BaseEngineSpec):
+    engine = "mydatabase"
+    engine_name = "My Database"
+
+    metadata = {
+        # Required fields
+        "description": "A brief description of the database.",
+        "category": DatabaseCategory.TRADITIONAL_RDBMS,
+        "pypi_packages": ["my-database-driver"],
+        "connection_string": "mydatabase://{username}:{password}@{host}:{port}/{database}",
+
+        # Recommended fields
+        "logo": "mydatabase.svg",  # Logo file in docs/static/img/databases/
+        "logo_dark": "mydatabase-dark.svg",  # Optional variant for dark theme
+        "homepage_url": "https://mydatabase.example.com/",
+        "default_port": 5432,
+
+        # Optional fields
+        "docs_url": "https://mydatabase.example.com/docs",
+        "notes": "Any special notes about configuration or usage.",
+        "install_instructions": "pip install my-database-driver",
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "Hostname or IP address",
+            "port": "Port number (default: 5432)",
+            "database": "Database name",
+        },
+        "connection_examples": [
+            {
+                "description": "Local connection",
+                "connection_string": "mydatabase://user:pass@localhost:5432/mydb",
+            },
+        ],
+        "authentication_methods": [
+            {
+                "name": "OAuth2",
+                "description": "Token-based authentication",
+            },
+        ],
+        "drivers": [
+            {
+                "name": "Default Driver",
+                "pypi_package": "my-database-driver",
+                "connection_string": "mydatabase://...",
+                "is_recommended": True,
+            },
+        ],
+        "compatible_databases": [
+            {
+                "name": "Compatible DB",
+                "description": "A database that uses the same protocol",
+            },
+        ],
+    }
+```
+
+### Database Categories
+
+Use constants from `DatabaseCategory` to categorize your database:
+
+| Category | Description | Examples |
+|----------|-------------|----------|
+| `CLOUD_AWS` | AWS cloud services | Athena, Redshift, DynamoDB |
+| `CLOUD_GCP` | Google Cloud services | BigQuery, Sheets |
+| `CLOUD_AZURE` | Azure cloud services | Synapse, Kusto |
+| `CLOUD_DATA_WAREHOUSES` | Cloud data warehouses | Snowflake, Databricks |
+| `APACHE_PROJECTS` | Apache projects | Druid, Hive, Spark, Pinot |
+| `TRADITIONAL_RDBMS` | Traditional databases | PostgreSQL, MySQL, Oracle |
+| `ANALYTICAL_DATABASES` | Analytical/OLAP databases | ClickHouse, StarRocks |
+| `SEARCH_NOSQL` | Search and NoSQL databases | Elasticsearch, Couchbase |
+| `QUERY_ENGINES` | Query engines | Trino, Presto |
+| `TIME_SERIES` | Time-series databases | TDengine, TimescaleDB |
+| `OTHER` | Other databases | - |
+
+### Metadata Completeness Linter
+
+A linter is available to check metadata completeness across all engine specs:
+
+```bash
+# Run the linter to see current status
+python superset/db_engine_specs/lint_metadata.py
+
+# Generate a markdown report
+python superset/db_engine_specs/lint_metadata.py --markdown
+
+# Output to a file
+python superset/db_engine_specs/lint_metadata.py --markdown -o METADATA_STATUS.md
+```
+
+The linter checks for:
+- **Required fields**: description, category, pypi_packages, connection_string
+- **Recommended fields**: logo, homepage_url, default_port
+
+See [METADATA_STATUS.md](METADATA_STATUS.md) for the current completeness report.
+
+### PostgreSQL-Compatible Databases
+
+If your database is PostgreSQL-compatible, inherit from `PostgresBaseEngineSpec`:
+
+```python
+from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
+
+class MyPostgresCompatibleEngineSpec(PostgresBaseEngineSpec):
+    engine = "mydb"
+    engine_name = "My PostgreSQL-Compatible DB"
+
+    metadata = {
+        "description": "A PostgreSQL-compatible database.",
+        "category": DatabaseCategory.TRADITIONAL_RDBMS,
+        "pypi_packages": ["psycopg2"],  # Uses the PostgreSQL driver
+        "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+        "notes": "Uses the PostgreSQL driver. psycopg2 comes bundled with Superset.",
+    }
+```
 
 ## Database information
 
@@ -1167,6 +1322,8 @@ Some databases have an implicit query cancelation. When a cursor stops being pol
 
 For other databases, DB engine specs can implement query cancelation via the `prepare_cancel_query` and `cancel_query` methods. Implementation of query cancelation is usually heavily dependent on the database, but the DB engine specs that support it can serve as an example.
 
+These methods must not flush or commit the metadata session. `prepare_cancel_query` can stage cancellation intent on the query; its caller persists that intent together with a conditional stop, preserving any terminal result committed while cancellation was in flight.
+
 ### Get metrics on dataset creation
 
 When a physical dataset is first created, the `get_metrics` class method is called on the table. The base implementation returns the `COUNT(*)` metric, but DB engine specs can override `get_metrics` to return other metrics. This method is useful for semantic layers that contain their own metrics definitions; when Superset connect to them it can automatically create those metrics when a dataset is added.
@@ -1209,7 +1366,7 @@ The `query_cost_formatter` can be overridden with an arbitrary function via the 
 
 A few databases support validating the syntax of the SQL as the user is typing it, indicating in SQL Lab any errors. This is usually done using an `EXPLAIN` query and, because it gets called every few seconds as the user types, it's important that the database returns the result quickly.
 
-This is currently implement for Presto and Postgres, via custom classes in `superset/sql_validators` that should be enabled in the configuration. Implementing this as custom classes, instead of a `validate_sql` method in the DB engine spec offers no advantages, and ideally in the future we should move the logic to DB engine specs.
+This is implemented for Presto, via a custom class in `superset/sql_validators` that is enabled by default in the configuration. A SQLite-family validator also ships there, but it is opt-in: it requires the optional `syntaqlite` package and an explicit `SQL_VALIDATORS_BY_ENGINE` entry, so the tables above report it as unsupported. Implementing this as custom classes, instead of a `validate_sql` method in the DB engine spec offers no advantages, and ideally in the future we should move the logic to DB engine specs.
 
 ## Testing DB engine specs
 

@@ -18,6 +18,7 @@
  */
 
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
   BinaryQueryObjectFilterClause,
   BaseFormData,
@@ -25,11 +26,11 @@ import {
   QueryData,
   ensureIsArray,
   isDefined,
-  t,
   ContextMenuFilters,
   AdhocFilter,
 } from '@superset-ui/core';
-import { css, useTheme, Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {
@@ -53,13 +54,14 @@ import {
   LOG_ACTIONS_FURTHER_DRILL_BY,
 } from 'src/logger/LogUtils';
 import { findPermission } from 'src/utils/findPermission';
-import { getQuerySettings } from 'src/explore/exploreUtils';
+import { exportChart } from 'src/explore/exploreUtils';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
+import { useAsyncModeOverride } from 'src/utils/asyncMode';
 import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
 import { ContextMenuItem } from '../ChartContextMenu/ChartContextMenu';
 import { useContextMenu } from '../ChartContextMenu/useContextMenu';
-import { getChartDataRequest, handleChartDataResponse } from '../chartAction';
+import { requestChartDataResolved } from '../chartAction';
 import { useDisplayModeToggle } from './useDisplayModeToggle';
 import { useResultsTableView } from './useResultsTableView';
 
@@ -177,6 +179,8 @@ export default function DrillByModal({
   const theme = useTheme();
   const { addDangerToast } = useToasts();
   const [isChartDataLoading, setIsChartDataLoading] = useState(true);
+  // Drill-by queries honor the same async policy as the dashboard's charts.
+  const asyncModeOverride = useAsyncModeOverride();
 
   const [drillByConfigs, setDrillByConfigs] = useState<DrillByConfigs>([
     { ...drillByConfig, column },
@@ -207,12 +211,6 @@ export default function DrillByModal({
 
   const { displayModeToggle, drillByDisplayMode } = useDisplayModeToggle();
   const [chartDataResult, setChartDataResult] = useState<QueryData[]>();
-
-  const resultsTable = useResultsTableView(
-    chartDataResult,
-    formData.datasource,
-    canDownload,
-  );
 
   const [currentFormData, setCurrentFormData] = useState(formData);
   const [usedGroupbyColumns, setUsedGroupbyColumns] = useState<Column[]>(
@@ -376,6 +374,61 @@ export default function DrillByModal({
     formData,
   ]);
 
+  const handleDownload = useCallback(
+    (exportType: 'csv' | 'xlsx') => {
+      Promise.resolve(
+        exportChart({
+          formData: drilledFormData,
+          resultFormat: exportType,
+          resultType: 'full',
+        }),
+      ).catch(error => {
+        addDangerToast(
+          t('Failed to generate download: %s', error?.message || error),
+        );
+      });
+    },
+    [drilledFormData, addDangerToast],
+  );
+
+  const handleDownloadCSV = useCallback(
+    () => handleDownload('csv'),
+    [handleDownload],
+  );
+
+  const handleDownloadXLSX = useCallback(
+    () => handleDownload('xlsx'),
+    [handleDownload],
+  );
+
+  const handleReload = useCallback(() => {
+    setChartDataResult(undefined);
+    setIsChartDataLoading(true);
+
+    requestChartDataResolved({
+      formData: drilledFormData,
+      requestParams: { async_mode_override: asyncModeOverride },
+    })
+      .then(queriesResponse => {
+        setChartDataResult(queriesResponse);
+      })
+      .catch(() => {
+        addDangerToast(t('Failed to load chart data.'));
+      })
+      .finally(() => {
+        setIsChartDataLoading(false);
+      });
+  }, [addDangerToast, asyncModeOverride, drilledFormData]);
+
+  const resultsTable = useResultsTableView(
+    chartDataResult,
+    formData.datasource,
+    canDownload,
+    handleDownloadCSV,
+    handleDownloadXLSX,
+    handleReload,
+  );
+
   useEffect(() => {
     setUsedGroupbyColumns(usedCols =>
       !currentColumn ||
@@ -439,15 +492,12 @@ export default function DrillByModal({
 
   useEffect(() => {
     if (drilledFormData) {
-      const [useLegacyApi] = getQuerySettings(drilledFormData);
       setIsChartDataLoading(true);
       setChartDataResult(undefined);
-      getChartDataRequest({
+      requestChartDataResolved({
         formData: drilledFormData,
+        requestParams: { async_mode_override: asyncModeOverride },
       })
-        .then(({ response, json }) =>
-          handleChartDataResponse(response, json, useLegacyApi),
-        )
         .then(queriesResponse => {
           setChartDataResult(queriesResponse);
         })
@@ -458,7 +508,7 @@ export default function DrillByModal({
           setIsChartDataLoading(false);
         });
     }
-  }, [addDangerToast, drilledFormData]);
+  }, [addDangerToast, asyncModeOverride, drilledFormData]);
   const { metadataBar } = useDatasetMetadataBar({ dataset });
 
   return (
@@ -508,17 +558,21 @@ export default function DrillByModal({
                 {paths}
               </span>
             ) : (
-              <span
+              <button
+                type="button"
                 data-test="drill-by-breadcrumb-item"
-                role="button"
-                tabIndex={0}
                 onClick={route.onClick}
                 css={css`
+                  appearance: none;
+                  border: none;
+                  background: none;
+                  padding: 0;
+                  font: inherit;
                   cursor: pointer;
                 `}
               >
                 {route.title}
-              </span>
+              </button>
             );
           }}
         />

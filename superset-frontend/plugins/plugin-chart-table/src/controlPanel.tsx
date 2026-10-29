@@ -39,24 +39,32 @@ import {
   shouldSkipMetricColumn,
   isRegularMetric,
   isPercentMetric,
+  isServerPaginationUnsupported,
+  hasMatchingDatasourceMetadata,
+  getHeaderGroupsControlProps,
+  getTimeComparisonColumnKeys,
+  getKnownColumnConfigKeys,
   ConditionalFormattingConfig,
+  ObjectFormattingEnum,
+  ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
+  DatasourceType,
   isAdhocColumn,
   isPhysicalColumn,
-  legacyValidateInteger,
+  validateInteger,
   QueryFormColumn,
   QueryMode,
   SMART_DATE_ID,
-  t,
   validateMaxValue,
   validateServerPagination,
+  withLabel,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
-import { isEmpty, last } from 'lodash';
+import { GenericDataType } from '@apache-superset/core/common';
+import { isEmpty, last } from 'lodash-es';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
-import { ColorSchemeEnum } from './types';
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
@@ -124,6 +132,7 @@ const allColumnsControl: typeof sharedControls.groupby = {
   }),
   visibility: isRawMode,
   resetOnHide: false,
+  rerender: ['order_by_cols'],
 };
 
 const percentMetricsControl: typeof sharedControls.metrics = {
@@ -156,12 +165,8 @@ const percentMetricsControl: typeof sharedControls.metrics = {
 /**
  * Generate comparison column names for a given column.
  */
-const generateComparisonColumns = (colname: string) => [
-  `${t('Main')} ${colname}`,
-  `# ${colname}`,
-  `△ ${colname}`,
-  `% ${colname}`,
-];
+const generateComparisonColumns = (colname: string) =>
+  getTimeComparisonColumnKeys(colname);
 
 /**
  * Generate column types for the comparison columns.
@@ -187,31 +192,29 @@ const percentMetricCalculationControl: ControlConfig<'SelectControl'> = {
 };
 
 const processComparisonColumns = (columns: any[], suffix: string) =>
-  columns
-    .map(col => {
-      if (!col.label.includes(suffix)) {
-        return [
-          {
-            label: `${t('Main')} ${col.label}`,
-            value: `${t('Main')} ${col.value}`,
-          },
-          {
-            label: `# ${col.label}`,
-            value: `# ${col.value}`,
-          },
-          {
-            label: `△ ${col.label}`,
-            value: `△ ${col.value}`,
-          },
-          {
-            label: `% ${col.label}`,
-            value: `% ${col.value}`,
-          },
-        ];
-      }
-      return [];
-    })
-    .flat();
+  columns.flatMap(col => {
+    if (!col.label.includes(suffix)) {
+      return [
+        {
+          label: `${t('Main')} ${col.label}`,
+          value: `${t('Main')} ${col.value}`,
+        },
+        {
+          label: `# ${col.label}`,
+          value: `# ${col.value}`,
+        },
+        {
+          label: `△ ${col.label}`,
+          value: `△ ${col.value}`,
+        },
+        {
+          label: `% ${col.label}`,
+          value: `% ${col.value}`,
+        },
+      ];
+    }
+    return [];
+  });
 
 /*
 Options for row limit control
@@ -270,9 +273,15 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.time_grain_sqla,
               visibility: ({ controls }) => {
+                // Time grain only applies to the aggregate query, so the
+                // control must follow the query mode like its siblings do.
+                if (!isAggMode({ controls })) {
+                  return false;
+                }
+
                 const dttmLookup = Object.fromEntries(
                   ensureIsArray(controls?.groupby?.options).map(option => [
-                    option.column_name,
+                    (option.column_name || '').toLowerCase(),
                     option.is_dttm,
                   ]),
                 );
@@ -283,7 +292,7 @@ const config: ControlPanelConfig = {
                       return true;
                     }
                     if (isPhysicalColumn(selection)) {
-                      return !!dttmLookup[selection];
+                      return !!dttmLookup[(selection || '').toLowerCase()];
                     }
                     return false;
                   })
@@ -291,7 +300,26 @@ const config: ControlPanelConfig = {
               },
             },
           },
-          'temporal_columns_lookup',
+          {
+            name: 'temporal_columns_lookup',
+            config: {
+              ...sharedControls.temporal_columns_lookup,
+              // A missing entry is unknown, not evidence of a non-temporal
+              // column when classifying a dormant semantic grain.
+              initialValue: (
+                control: ControlState,
+                state: ControlPanelState | null,
+              ) =>
+                Object.fromEntries(
+                  (state?.datasource?.columns ?? [])
+                    .filter(column => typeof column.is_dttm === 'boolean')
+                    .map(column => [
+                      column.column_name ?? column.name,
+                      column.is_dttm,
+                    ]),
+                ),
+            },
+          },
         ],
         [
           {
@@ -304,11 +332,7 @@ const config: ControlPanelConfig = {
                 { controls, datasource, form_data }: ControlPanelState,
                 controlState: ControlState,
               ) => ({
-                columns: datasource?.columns[0]?.hasOwnProperty('filterable')
-                  ? (datasource as Dataset)?.columns?.filter(
-                      (c: ColumnMeta) => c.filterable,
-                    )
-                  : datasource?.columns,
+                columns: datasource?.columns || [],
                 savedMetrics: defineSavedMetrics(datasource),
                 // current active adhoc metrics
                 selectedMetrics:
@@ -352,11 +376,36 @@ const config: ControlPanelConfig = {
               description: t('Order results by selected columns'),
               multi: true,
               default: [],
-              mapStateToProps: ({ datasource }) => ({
-                choices: datasource?.hasOwnProperty('order_by_choices')
-                  ? (datasource as Dataset)?.order_by_choices
-                  : datasource?.columns || [],
-              }),
+              mapStateToProps: ({ datasource, controls }) => {
+                if (datasource?.type === DatasourceType.SemanticView) {
+                  const selectedColumns = [
+                    ...new Set(
+                      ensureIsArray(
+                        controls?.all_columns?.value as
+                          | QueryFormColumn[]
+                          | undefined,
+                      ).filter(isPhysicalColumn),
+                    ),
+                  ];
+                  return {
+                    choices: selectedColumns.flatMap(column => [
+                      [
+                        JSON.stringify([column, true]),
+                        `${column} ${t('[asc]')}`,
+                      ],
+                      [
+                        JSON.stringify([column, false]),
+                        `${column} ${t('[desc]')}`,
+                      ],
+                    ]),
+                  };
+                }
+                return {
+                  choices: datasource?.hasOwnProperty('order_by_choices')
+                    ? (datasource as Dataset)?.order_by_choices
+                    : datasource?.columns || [],
+                };
+              },
               visibility: isRawMode,
               resetOnHide: false,
             },
@@ -392,6 +441,16 @@ const config: ControlPanelConfig = {
                 'Enable server side pagination of results (experimental feature)',
               ),
               default: false,
+              shouldMapStateToProps: () => true,
+              mapStateToProps: state => ({
+                disabled: isServerPaginationUnsupported(state),
+                disabledReason: hasMatchingDatasourceMetadata(state)
+                  ? t('This semantic view does not support server pagination.')
+                  : undefined,
+                resetLabel: hasMatchingDatasourceMetadata(state)
+                  ? t('Turn off server pagination')
+                  : undefined,
+              }),
             },
           },
         ],
@@ -404,9 +463,14 @@ const config: ControlPanelConfig = {
               label: t('Server Page Length'),
               default: 10,
               choices: SERVER_PAGE_SIZE_OPTIONS,
+              shouldMapStateToProps: () => true,
+              mapStateToProps: state => ({
+                disabled: isServerPaginationUnsupported(state),
+              }),
               description: t('Rows per page, 0 means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.server_pagination?.value),
+              validators: [withLabel(validateInteger, t('Server Page Length'))],
             },
           },
         ],
@@ -418,37 +482,56 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Row limit'),
               clearable: false,
+              shouldMapStateToProps: () => true,
               mapStateToProps: state => ({
+                paginationUnsupported: isServerPaginationUnsupported(state),
+                choices: formatSelectOptions(
+                  ROW_LIMIT_OPTIONS_TABLE.filter(
+                    value =>
+                      !isServerPaginationUnsupported(state) ||
+                      value <=
+                        (state?.common?.conf?.SQL_MAX_ROW || DEFAULT_MAX_ROW),
+                  ),
+                ),
                 maxValue: state?.common?.conf?.TABLE_VIZ_MAX_ROW_SERVER,
                 server_pagination: state?.form_data?.server_pagination,
                 maxValueWithoutServerPagination:
                   state?.common?.conf?.SQL_MAX_ROW,
               }),
               validators: [
-                legacyValidateInteger,
+                withLabel(validateInteger, t('Row limit')),
                 (v, state) =>
                   validateMaxValue(
                     v,
                     state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
                   ),
                 (v, state) =>
-                  validateServerPagination(
-                    v,
-                    state?.server_pagination,
-                    state?.maxValueWithoutServerPagination || DEFAULT_MAX_ROW,
-                    state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
-                  ),
+                  state?.paginationUnsupported && !state?.server_pagination
+                    ? validateMaxValue(
+                        v,
+                        state?.maxValueWithoutServerPagination ||
+                          DEFAULT_MAX_ROW,
+                      ) &&
+                      t(
+                        'Lower the row limit to SQL_MAX_ROW (%s) or less.',
+                        state?.maxValueWithoutServerPagination ||
+                          DEFAULT_MAX_ROW,
+                      )
+                    : validateServerPagination(
+                        v,
+                        state?.server_pagination,
+                        state?.maxValueWithoutServerPagination ||
+                          DEFAULT_MAX_ROW,
+                        state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
+                      ),
               ],
               // Re run the validations when this control value
-              validationDependancies: ['server_pagination'],
+              validationDependencies: ['server_pagination'],
               default: 10000,
               choices: formatSelectOptions(ROW_LIMIT_OPTIONS_TABLE),
               description: t(
                 'Limits the number of the rows that are computed in the query that is the source of the data used for this chart.',
               ),
-            },
-            override: {
-              default: 1000,
             },
           },
         ],
@@ -470,6 +553,35 @@ const config: ControlPanelConfig = {
                 'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
               ),
               visibility: isAggMode,
+              resetOnHide: false,
+            },
+          },
+        ],
+        [
+          {
+            name: 'totals_aggregate',
+            config: {
+              type: 'SelectControl',
+              label: t('Summary aggregation'),
+              description: t(
+                'Aggregation used for the summary row. By default each metric ' +
+                  'keeps its own aggregation; Sum and Average override it for ' +
+                  'the summary row only. The override applies to simple ' +
+                  'metrics (a metric built from custom SQL always keeps its ' +
+                  'own aggregation). Overriding a count or a distinct count ' +
+                  'sums the counted column instead, which fails outright on a ' +
+                  'non-numeric column.',
+              ),
+              default: 'ORIGINAL',
+              clearable: false,
+              choices: [
+                ['ORIGINAL', t("Each metric's own")],
+                ['SUM', t('Sum')],
+                ['AVG', t('Average')],
+              ],
+              visibility: ({ controls }) =>
+                isAggMode({ controls }) &&
+                Boolean(controls?.show_totals?.value),
               resetOnHide: false,
             },
           },
@@ -536,7 +648,8 @@ const config: ControlPanelConfig = {
                 "Allow end user to drag-and-drop column headers to rearrange them. Note their changes won't persist for the next time they open the chart.",
               ),
               visibility: ({ controls }) =>
-                isEmpty(controls?.time_compare?.value),
+                isEmpty(controls?.time_compare?.value) &&
+                isEmpty(controls?.header_groups?.value),
             },
           },
         ],
@@ -554,6 +667,35 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+      ],
+    },
+    {
+      label: t('Multi-level header'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'header_groups',
+            config: {
+              type: 'HeaderGroupsControl',
+              label: t('Column groups'),
+              default: [],
+              renderTrigger: true,
+              shouldMapStateToProps() {
+                return true;
+              },
+              mapStateToProps(explore, _, chart) {
+                return getHeaderGroupsControlProps(explore, chart);
+              },
+            },
+          },
+        ],
+      ],
+    },
+    {
+      label: t('Visual formatting'),
+      expanded: true,
+      controlSetRows: [
         [
           {
             name: 'column_config',
@@ -644,24 +786,22 @@ const config: ControlPanelConfig = {
                     coltypes,
                     childColumnMap,
                     timeComparisonColumnMap,
+                    knownKeys: getKnownColumnConfigKeys(
+                      _colnames || [],
+                      explore.datasource,
+                    ),
                   },
                 };
               },
             },
           },
         ],
-      ],
-    },
-    {
-      label: t('Visual formatting'),
-      expanded: true,
-      controlSetRows: [
         [
           {
             name: 'show_cell_bars',
             config: {
               type: 'CheckboxControl',
-              label: t('Show cell bars'),
+              label: t('Show cell bars for all columns'),
               renderTrigger: true,
               default: true,
               description: t(
@@ -675,7 +815,7 @@ const config: ControlPanelConfig = {
             name: 'align_pn',
             config: {
               type: 'CheckboxControl',
-              label: t('Align +/-'),
+              label: t('Align +/- for all columns'),
               renderTrigger: true,
               default: false,
               description: t(
@@ -689,7 +829,7 @@ const config: ControlPanelConfig = {
             name: 'color_pn',
             config: {
               type: 'CheckboxControl',
-              label: t('Add colors to cell bars for +/-'),
+              label: t('Add colors to cell bars for +/- for all columns'),
               renderTrigger: true,
               default: true,
               description: t(
@@ -745,16 +885,6 @@ const config: ControlPanelConfig = {
               type: 'ConditionalFormattingControl',
               renderTrigger: true,
               label: t('Custom conditional formatting'),
-              extraColorChoices: [
-                {
-                  value: ColorSchemeEnum.Green,
-                  label: t('Green for increase, red for decrease'),
-                },
-                {
-                  value: ColorSchemeEnum.Red,
-                  label: t('Red for increase, green for decrease'),
-                },
-              ],
               description: t(
                 'Apply conditional color formatting to numeric columns',
               ),
@@ -767,6 +897,18 @@ const config: ControlPanelConfig = {
                 )
                   ? (explore?.datasource as Dataset)?.verbose_map
                   : (explore?.datasource?.columns ?? {});
+                const timeCompareValue = explore?.controls?.time_compare?.value;
+                const hasTimeComparison = !isEmpty(timeCompareValue);
+
+                const extraColorChoices = hasTimeComparison
+                  ? [
+                      {
+                        label: t('Trend colors'),
+                        colors: [ColorSchemeEnum.Green, ColorSchemeEnum.Red],
+                      },
+                    ]
+                  : [];
+
                 const chartStatus = chart?.chartStatus;
                 const value = _?.value ?? [];
                 if (value && Array.isArray(value)) {
@@ -774,47 +916,86 @@ const config: ControlPanelConfig = {
                     (item: ConditionalFormattingConfig, index, array) => {
                       if (
                         item.colorScheme &&
+                        typeof item.colorScheme === 'string' &&
                         !['Green', 'Red'].includes(item.colorScheme)
                       ) {
-                        if (!item.toAllRow || !item.toTextColor) {
+                        if (item.columnFormatting === undefined) {
                           // eslint-disable-next-line no-param-reassign
                           array[index] = {
                             ...item,
-                            toAllRow: item.toAllRow ?? false,
-                            toTextColor: item.toTextColor ?? false,
+                            ...(item.toTextColor === true && {
+                              objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
+                            }),
+                            ...(item.toAllRow === true && {
+                              columnFormatting: ObjectFormattingEnum.ENTIRE_ROW,
+                            }),
                           };
                         }
                       }
                     },
                   );
                 }
-                const { colnames, coltypes } =
+                const { colnames: queryColnames, coltypes: queryColtypes } =
                   chart?.queriesResponse?.[0] ?? {};
-                const numericColumns =
-                  Array.isArray(colnames) && Array.isArray(coltypes)
-                    ? colnames.reduce((acc, colname, index) => {
-                        if (
-                          coltypes[index] === GenericDataType.Numeric ||
-                          (!explore?.controls?.time_compare?.value &&
-                            coltypes[index] === GenericDataType.String)
-                        ) {
-                          acc.push({
-                            value: colname,
-                            label: Array.isArray(verboseMap)
-                              ? colname
-                              : (verboseMap[colname] ?? colname),
-                            dataType: coltypes[index],
-                          });
-                        }
-                        return acc;
-                      }, [])
-                    : [];
-                const columnOptions = explore?.controls?.time_compare?.value
+                const hasQueryColumns =
+                  Array.isArray(queryColnames) &&
+                  Array.isArray(queryColtypes) &&
+                  queryColnames.length > 0;
+
+                // Fall back to datasource columns when query results are empty
+                const datasourceColumns = ensureIsArray(
+                  (explore?.datasource as Dataset)?.columns,
+                );
+                const colnames = hasQueryColumns
+                  ? queryColnames
+                  : datasourceColumns.map((col: ColumnMeta) => col.column_name);
+                const coltypes = hasQueryColumns
+                  ? queryColtypes
+                  : datasourceColumns.map(
+                      (col: ColumnMeta) =>
+                        col.type_generic ?? GenericDataType.String,
+                    );
+
+                const hasColumns = colnames.length > 0;
+                const allColumns = hasColumns
+                  ? [
+                      {
+                        value: ObjectFormattingEnum.ENTIRE_ROW,
+                        label: t('entire row'),
+                        dataType: GenericDataType.String,
+                      },
+                      ...colnames.map((colname: string, index: number) => ({
+                        value: colname,
+                        label: Array.isArray(verboseMap)
+                          ? colname
+                          : (verboseMap[colname] ?? colname),
+                        dataType: coltypes[index],
+                      })),
+                    ]
+                  : [];
+                const numericColumns = hasColumns
+                  ? colnames.reduce((acc, colname, index) => {
+                      if (
+                        coltypes[index] === GenericDataType.Numeric ||
+                        (!hasTimeComparison &&
+                          (coltypes[index] === GenericDataType.String ||
+                            coltypes[index] === GenericDataType.Boolean))
+                      ) {
+                        acc.push({
+                          value: colname,
+                          label: Array.isArray(verboseMap)
+                            ? colname
+                            : (verboseMap[colname] ?? colname),
+                          dataType: coltypes[index],
+                        });
+                      }
+                      return acc;
+                    }, [])
+                  : [];
+                const columnOptions = hasTimeComparison
                   ? processComparisonColumns(
                       numericColumns || [],
-                      ensureIsArray(
-                        explore?.controls?.time_compare?.value,
-                      )[0]?.toString() || '',
+                      ensureIsArray(timeCompareValue)[0]?.toString() || '',
                     )
                   : numericColumns;
 
@@ -822,10 +1003,11 @@ const config: ControlPanelConfig = {
                   removeIrrelevantConditions: chartStatus === 'success',
                   columnOptions,
                   verboseMap,
-                  conditionalFormattingFlag: {
-                    toAllRowCheck: true,
-                    toColorTextCheck: true,
-                  },
+                  allColumns,
+                  extraColorChoices,
+                  serverPagination: Boolean(
+                    explore?.controls?.server_pagination?.value,
+                  ),
                 };
               },
             },
@@ -839,7 +1021,7 @@ const config: ControlPanelConfig = {
         showCalculationType: false,
         showFullChoices: false,
       }),
-      visibility: isAggMode,
+      visibility: ({ controls }) => isAggMode({ controls }),
     },
     sections.matrixifyRowSection,
     sections.matrixifyColumnSection,

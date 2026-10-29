@@ -18,7 +18,7 @@
  * under the License.
  */
 
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { QueryFormColumn } from './QueryFormData';
 
 export interface AdhocColumn {
@@ -82,5 +82,3 @@ export function isAdhocColumnReference(column?: any): column is AdhocColumn {
 export function isQueryFormColumn(column: any): column is QueryFormColumn {
   return isPhysicalColumn(column) || isAdhocColumn(column);
 }
-
-export default {};

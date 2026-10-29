@@ -17,7 +17,7 @@
  * under the License.
  */
 import { buildConfig } from '../src/config';
-import { expect, test } from '@jest/globals';
+import { expect, test } from 'vitest';
 
 test('buildConfig() builds configuration and applies env var overrides', () => {
   let config = buildConfig();
@@ -25,46 +25,89 @@ test('buildConfig() builds configuration and applies env var overrides', () => {
   expect(config.jwtSecret).toEqual(
     'test123-test123-test123-test123-test123-test123-test123',
   );
+  expect(config.previousJwtSecret).toEqual(
+    'old123-old123-old123-old123-old123-old123-old123',
+  );
   expect(config.redis.host).toEqual('127.0.0.1');
   expect(config.redis.port).toEqual(6379);
   expect(config.redis.password).toEqual('some pwd');
   expect(config.redis.db).toEqual(10);
   expect(config.redis.ssl).toEqual(false);
+  expect(config.redis.validateHostname).toEqual(true);
+  expect(config.redis.sslCertReqs).toEqual('required');
+  expect(config.redis.sslCaCerts).toEqual('');
+  expect(config.redis.sentinels).toEqual([]);
   expect(config.statsd.host).toEqual('127.0.0.1');
   expect(config.statsd.port).toEqual(8125);
   expect(config.statsd.globalTags).toEqual([]);
+  expect(config.realtimeChannelPrefix).toEqual('');
 
   process.env.JWT_SECRET = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+  process.env.PREVIOUS_JWT_SECRET = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
   process.env.REDIS_HOST = '10.10.10.10';
   process.env.REDIS_PORT = '6380';
   process.env.REDIS_PASSWORD = 'admin';
   process.env.REDIS_DB = '4';
   process.env.REDIS_SSL = 'true';
+  process.env.REDIS_VALIDATE_HOSTNAME = 'false';
+  process.env.REDIS_SSL_CA_CERTS = '/certs/ca.pem';
+  process.env.REDIS_SSL_CERTFILE = '/certs/client.pem';
+  process.env.REDIS_SSL_KEYFILE = '/certs/client.key';
+  process.env.REDIS_SSL_CERT_REQS = 'NONE';
+  process.env.REDIS_SENTINELS =
+    's1:26380, s2 ,[::1]:26381,bad:port,toobig:70000';
+  process.env.REDIS_SENTINEL_MASTER = 'mymaster';
+  process.env.REDIS_SENTINEL_PASSWORD = 'sentinel-pwd';
   process.env.STATSD_HOST = '15.15.15.15';
   process.env.STATSD_PORT = '8000';
   process.env.STATSD_GLOBAL_TAGS = 'tag-1,tag-2';
+  process.env.REALTIME_CHANNEL_PREFIX = 'tenant-a:';
 
   config = buildConfig();
 
   expect(config.jwtSecret).toEqual('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+  expect(config.previousJwtSecret).toEqual('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
   expect(config.redis.host).toEqual('10.10.10.10');
   expect(config.redis.port).toEqual(6380);
   expect(config.redis.password).toEqual('admin');
   expect(config.redis.db).toEqual(4);
   expect(config.redis.ssl).toEqual(true);
+  expect(config.redis.validateHostname).toEqual(false);
+  expect(config.redis.sslCaCerts).toEqual('/certs/ca.pem');
+  expect(config.redis.sslCertfile).toEqual('/certs/client.pem');
+  expect(config.redis.sslKeyfile).toEqual('/certs/client.key');
+  expect(config.redis.sslCertReqs).toEqual('none');
+  expect(config.redis.sentinels).toEqual([
+    { host: 's1', port: 26380 },
+    { host: 's2', port: 26379 },
+    { host: '::1', port: 26381 },
+  ]);
+  expect(config.redis.sentinelMaster).toEqual('mymaster');
+  expect(config.redis.sentinelPassword).toEqual('sentinel-pwd');
   expect(config.statsd.host).toEqual('15.15.15.15');
   expect(config.statsd.port).toEqual(8000);
   expect(config.statsd.globalTags).toEqual(['tag-1', 'tag-2']);
+  expect(config.realtimeChannelPrefix).toEqual('tenant-a:');
 
   delete process.env.JWT_SECRET;
+  delete process.env.PREVIOUS_JWT_SECRET;
   delete process.env.REDIS_HOST;
   delete process.env.REDIS_PORT;
   delete process.env.REDIS_PASSWORD;
   delete process.env.REDIS_DB;
   delete process.env.REDIS_SSL;
+  delete process.env.REDIS_VALIDATE_HOSTNAME;
+  delete process.env.REDIS_SSL_CA_CERTS;
+  delete process.env.REDIS_SSL_CERTFILE;
+  delete process.env.REDIS_SSL_KEYFILE;
+  delete process.env.REDIS_SSL_CERT_REQS;
+  delete process.env.REDIS_SENTINELS;
+  delete process.env.REDIS_SENTINEL_MASTER;
+  delete process.env.REDIS_SENTINEL_PASSWORD;
   delete process.env.STATSD_HOST;
   delete process.env.STATSD_PORT;
   delete process.env.STATSD_GLOBAL_TAGS;
+  delete process.env.REALTIME_CHANNEL_PREFIX;
 });
 
 test('buildConfig() performs deep merge between configs', () => {
@@ -73,4 +116,33 @@ test('buildConfig() performs deep merge between configs', () => {
   expect(config.redis.ssl).toEqual(false);
   // We overrode the pwd
   expect(config.redis.password).toEqual('some pwd');
+});
+
+test('buildConfig() falls back to the default for a malformed numeric override', () => {
+  const { maxTotalConnections, socketResponseTimeoutMs } = buildConfig();
+
+  process.env.MAX_TOTAL_CONNECTIONS = 'many';
+  process.env.SOCKET_RESPONSE_TIMEOUT_MS = '-1';
+  process.env.MAX_CONNECTIONS_PER_CHANNEL = '25';
+
+  const config = buildConfig();
+
+  // A typo'd limit must not become NaN, which compares falsy against every
+  // threshold and would silently disable the limit it was meant to set.
+  expect(config.maxTotalConnections).toEqual(maxTotalConnections);
+  expect(config.socketResponseTimeoutMs).toEqual(socketResponseTimeoutMs);
+  expect(config.maxConnectionsPerChannel).toEqual(25);
+
+  delete process.env.MAX_TOTAL_CONNECTIONS;
+  delete process.env.SOCKET_RESPONSE_TIMEOUT_MS;
+  delete process.env.MAX_CONNECTIONS_PER_CHANNEL;
+});
+
+test('buildConfig() falls back to the default for an invalid REDIS_SSL_CERT_REQS', () => {
+  process.env.REDIS_SSL_CERT_REQS = 'sometimes';
+
+  // A typo must not silently weaken verification.
+  expect(buildConfig().redis.sslCertReqs).toEqual('required');
+
+  delete process.env.REDIS_SSL_CERT_REQS;
 });

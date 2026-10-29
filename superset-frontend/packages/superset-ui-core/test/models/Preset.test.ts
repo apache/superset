@@ -20,19 +20,19 @@
 import { Plugin, Preset } from '@superset-ui/core';
 
 describe('Preset', () => {
-  it('exists', () => {
+  test('exists', () => {
     expect(Preset).toBeDefined();
   });
 
   describe('new Preset()', () => {
-    it('creates new preset', () => {
+    test('creates new preset', () => {
       const preset = new Preset();
       expect(preset).toBeInstanceOf(Preset);
     });
   });
 
   describe('.register()', () => {
-    it('register all listed presets then plugins', () => {
+    test('register all listed presets then plugins', () => {
       const values: number[] = [];
       class Plugin1 extends Plugin {
         register() {
@@ -78,7 +78,7 @@ describe('Preset', () => {
       expect(values).toEqual([1, 2, 3, 9]);
     });
 
-    it('returns itself', () => {
+    test('returns itself', () => {
       const preset = new Preset();
       expect(preset.register()).toBe(preset);
     });

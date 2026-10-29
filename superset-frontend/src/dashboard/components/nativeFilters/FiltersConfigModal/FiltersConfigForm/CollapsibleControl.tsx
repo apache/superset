@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode, useEffect, useState } from 'react';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Checkbox, InfoTooltip } from '@superset-ui/core/components';
 
 interface CollapsibleControlProps {

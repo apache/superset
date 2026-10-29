@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { act, renderHook } from '@testing-library/react-hooks';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   createWrapper,
   defaultStore as store,
@@ -44,7 +44,7 @@ const expectSql = 'SELECT * from example_table';
 const expectTemplateParams = '{"a": 1, "v": "str"}';
 
 afterEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   act(() => {
     store.dispatch(api.util.resetApiState());
   });
@@ -53,7 +53,7 @@ afterEach(() => {
 test('returns api response mapping json result', async () => {
   const queryValidationApiRoute = `glob:*/api/v1/database/${expectDbId}/validate_sql/`;
   fetchMock.post(queryValidationApiRoute, fakeApiResult);
-  const { result, waitFor } = renderHook(
+  const { result } = renderHook(
     () =>
       useQueryValidationsQuery({
         dbId: expectDbId,
@@ -69,12 +69,14 @@ test('returns api response mapping json result', async () => {
     },
   );
   await waitFor(() =>
-    expect(fetchMock.calls(queryValidationApiRoute).length).toBe(1),
+    expect(fetchMock.callHistory.calls(queryValidationApiRoute).length).toBe(1),
   );
   expect(result.current.data).toEqual(expectedResult);
-  expect(fetchMock.calls(queryValidationApiRoute).length).toBe(1);
+  expect(fetchMock.callHistory.calls(queryValidationApiRoute).length).toBe(1);
   expect(
-    JSON.parse(`${fetchMock.calls(queryValidationApiRoute)[0][1]?.body}`),
+    JSON.parse(
+      `${fetchMock.callHistory.calls(queryValidationApiRoute)[0].options?.body}`,
+    ),
   ).toEqual({
     schema: expectSchema,
     sql: expectSql,
@@ -84,7 +86,7 @@ test('returns api response mapping json result', async () => {
     result.current.refetch();
   });
   await waitFor(() =>
-    expect(fetchMock.calls(queryValidationApiRoute).length).toBe(2),
+    expect(fetchMock.callHistory.calls(queryValidationApiRoute).length).toBe(2),
   );
   expect(result.current.data).toEqual(expectedResult);
 });
@@ -92,7 +94,7 @@ test('returns api response mapping json result', async () => {
 test('returns cached data without api request', async () => {
   const queryValidationApiRoute = `glob:*/api/v1/database/${expectDbId}/validate_sql/`;
   fetchMock.post(queryValidationApiRoute, fakeApiResult);
-  const { result, waitFor, rerender } = renderHook(
+  const { result, rerender } = renderHook(
     () =>
       useQueryValidationsQuery({
         dbId: expectDbId,
@@ -108,8 +110,8 @@ test('returns cached data without api request', async () => {
     },
   );
   await waitFor(() => expect(result.current.data).toEqual(expectedResult));
-  expect(fetchMock.calls(queryValidationApiRoute).length).toBe(1);
+  expect(fetchMock.callHistory.calls(queryValidationApiRoute).length).toBe(1);
   rerender();
   await waitFor(() => expect(result.current.data).toEqual(expectedResult));
-  expect(fetchMock.calls(queryValidationApiRoute).length).toBe(1);
+  expect(fetchMock.callHistory.calls(queryValidationApiRoute).length).toBe(1);
 });

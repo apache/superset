@@ -18,6 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import {
+  cloneElement,
   isValidElement,
   ReactNode,
   useCallback,
@@ -27,9 +28,9 @@ import {
   useRef,
   useState,
 } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
-  t,
   getChartControlPanelRegistry,
   QueryFormData,
   DatasourceType,
@@ -39,8 +40,14 @@ import {
   usePrevious,
   isFeatureEnabled,
   FeatureFlag,
+  VizType,
 } from '@superset-ui/core';
-import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import {
+  styled,
+  css,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
 import {
   ControlPanelSectionConfig,
   ControlState,
@@ -48,11 +55,15 @@ import {
   Dataset,
   ExpandedControlItem,
   isCustomControlItem,
+  getHeaderGroupsControlProps,
+  headerGroupsHaveSameContent,
   isTemporalColumn,
   sections,
+  syncTimeComparisonGroups,
+  type HeaderGroupConfig,
 } from '@superset-ui/chart-controls';
 import { useSelector } from 'react-redux';
-import { kebabCase, isEqual } from 'lodash';
+import { kebabCase, isEqual } from 'lodash-es';
 
 import {
   Collapse,
@@ -72,7 +83,7 @@ import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
 import { RunQueryButton } from './RunQueryButton';
-import { Operators } from '../constants';
+import { CONTROL_SECTIONS_ID, Operators } from '../constants';
 import { Clauses } from './controls/FilterControl/types';
 import StashFormDataContainer from './StashFormDataContainer';
 
@@ -82,9 +93,18 @@ const TABS_KEYS = {
   MATRIXIFY: 'MATRIXIFY',
 };
 
+// Table charts don't support matrixify feature
+const MATRIXIFY_INCOMPATIBLE_CHARTS = new Set([
+  VizType.Table,
+  VizType.TableAgGrid,
+  VizType.PivotTable,
+  VizType.TimeTable,
+  VizType.TimePivot,
+]);
+
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
-  actions: ExploreActions;
+  actions: Pick<ExploreActions, 'setControlValue' | 'resetSemanticSelections'>;
   datasource_type: DatasourceType;
   chart: ChartState;
   controls: Record<string, ControlState>;
@@ -135,8 +155,8 @@ const Styles = styled.div`
   display: flex;
   flex-direction: column;
 
-  // Resizable add overflow-y: auto as a style to this div
-  // To override it, we need to use !important
+  /* Resizable adds overflow-y: auto as a style to this div */
+  /* To override it, we need to use !important */
   overflow: visible !important;
 
   #controlSections {
@@ -149,28 +169,28 @@ const Styles = styled.div`
     flex: 1 1 100%;
   }
 
-  // Ensure Ant Design tabs allow content to expand
+  /* Ensure Ant Design tabs allow content to expand */
+  .ant-tabs-body {
+    overflow: visible;
+    height: auto;
+  }
+
+  .ant-tabs-body-holder {
+    overflow: visible;
+    height: auto;
+  }
+
   .ant-tabs-content {
     overflow: visible;
     height: auto;
   }
 
-  .ant-tabs-content-holder {
-    overflow: visible;
-    height: auto;
-  }
-
-  .ant-tabs-tabpane {
-    overflow: visible;
-    height: auto;
-  }
-
-  // Ensure collapse components can expand
-  .ant-collapse-content {
+  /* Ensure collapse components can expand */
+  .ant-collapse-panel {
     overflow: visible;
   }
 
-  .ant-collapse-content-box {
+  .ant-collapse-body {
     overflow: visible;
   }
 
@@ -289,6 +309,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const prevChartStatus = usePrevious(props.chart.chartStatus);
 
   const [showDatasourceAlert, setShowDatasourceAlert] = useState(false);
+  const [activeTabKey, setActiveTabKey] = useState<string>(TABS_KEYS.DATA);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -306,6 +327,70 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const { x_axis, adhoc_filters } = form_data;
 
   const previousXAxis = usePrevious(x_axis);
+
+  const hasHeaderGroupsControl = Boolean(props.controls.header_groups);
+  const headerGroupsValue = props.controls.header_groups?.value;
+  const exploreDatasource = props.exploreState.datasource;
+  const exploreFormData = props.exploreState.form_data;
+  const exploreControls = props.exploreState.controls;
+  const timeCompareValue = exploreControls?.time_compare?.value;
+  const queryModeValue = exploreControls?.query_mode?.value;
+  const comparisonTypeValue = exploreControls?.comparison_type?.value;
+  const queryColnames = props.chart.queriesResponse?.[0]?.colnames;
+
+  // HeaderGroupsControl is on the Customize tab and is not mounted until that
+  // tab is opened. Sync time-comparison auto-groups into form_data here so
+  // enabling Time Comparison updates the chart without visiting Customize.
+  useEffect(() => {
+    if (!hasHeaderGroupsControl || !setControlValue) {
+      return;
+    }
+    const current = ensureIsArray(headerGroupsValue) as HeaderGroupConfig[];
+    const { timeComparisonGroups } = getHeaderGroupsControlProps(
+      {
+        datasource: exploreDatasource,
+        form_data: {
+          metrics: exploreFormData?.metrics,
+          percent_metrics: exploreFormData?.percent_metrics,
+          groupby: exploreFormData?.groupby,
+          all_columns: exploreFormData?.all_columns,
+          query_mode: exploreFormData?.query_mode,
+          comparison_type: exploreFormData?.comparison_type,
+          time_compare: exploreFormData?.time_compare,
+        },
+        controls: {
+          time_compare: { value: timeCompareValue },
+          query_mode: { value: queryModeValue },
+          comparison_type: { value: comparisonTypeValue },
+        },
+      },
+      {
+        queriesResponse: queryColnames ? [{ colnames: queryColnames }] : null,
+      },
+    );
+    const next = syncTimeComparisonGroups(current, timeComparisonGroups);
+    if (!headerGroupsHaveSameContent(current, next)) {
+      setControlValue('header_groups', next, undefined, {
+        programmatic: true,
+      });
+    }
+  }, [
+    exploreDatasource,
+    comparisonTypeValue,
+    exploreFormData?.all_columns,
+    exploreFormData?.comparison_type,
+    exploreFormData?.groupby,
+    exploreFormData?.metrics,
+    exploreFormData?.percent_metrics,
+    exploreFormData?.query_mode,
+    exploreFormData?.time_compare,
+    hasHeaderGroupsControl,
+    headerGroupsValue,
+    queryColnames,
+    queryModeValue,
+    setControlValue,
+    timeCompareValue,
+  ]);
 
   useEffect(() => {
     if (
@@ -385,7 +470,14 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               props.controls[controlName].value,
             );
         if (shouldUpdateControls) {
-          props.actions.setControlValue(controlName, alteredControls);
+          props.actions.setControlValue(
+            controlName,
+            alteredControls,
+            undefined,
+            {
+              programmatic: true,
+            },
+          );
         }
       });
     }
@@ -575,7 +667,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const renderControlPanelSection = (
     section: ExpandedControlPanelSectionConfig,
   ) => {
-    const { controls } = props;
+    const { controls, chart, exploreState, form_data, actions } = props;
     const { label, description, visibility } = section;
 
     // Section label can be a ReactNode but in some places we want to
@@ -612,10 +704,17 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             line-height: 1.3;
           `}
         >
-          {label}
+          {typeof label === 'function' ? (label as () => ReactNode)() : label}
         </span>{' '}
         {description && (
-          <Tooltip id={sectionId} title={description}>
+          <Tooltip
+            id={sectionId}
+            title={
+              typeof description === 'function'
+                ? (description as () => ReactNode)()
+                : description
+            }
+          >
             <Icons.InfoCircleOutlined css={iconStyles} />
           </Tooltip>
         )}
@@ -630,6 +729,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       </span>
     );
 
+    let isInSubSection = false;
     const PanelChildren = (
       <>
         <StashFormDataContainer
@@ -647,8 +747,19 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             .filter(Boolean)}
         />
         {isVisible && (
-          <>
+          <div style={{ paddingLeft: theme.sizeUnit * 2 }}>
             {section.controlSetRows.map((controlSets, i) => {
+              // Detect sub-section header rows (React elements with no name prop)
+              const isSubSectionHeaderRow = controlSets.some(
+                item =>
+                  isValidElement(item) &&
+                  !(item as React.ReactElement<Record<string, unknown>>).props
+                    ?.name,
+              );
+              if (isSubSectionHeaderRow) {
+                isInSubSection = true;
+              }
+
               const renderedControls = controlSets
                 .map(controlItem => {
                   if (!controlItem) {
@@ -657,7 +768,32 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                   }
                   if (isValidElement(controlItem)) {
                     // When the item is a React element
-                    return controlItem;
+                    const element = controlItem as React.ReactElement<
+                      Record<string, unknown>
+                    >;
+
+                    const controlName = (element.props as { name: string })
+                      .name;
+                    if (!controlName) {
+                      return element;
+                    }
+                    const controlState = controls[controlName];
+
+                    return cloneElement(element, {
+                      ...(element.props as Record<string, unknown>),
+                      actions,
+                      controls,
+                      chart,
+                      exploreState,
+                      form_data,
+                      ...(controlState && {
+                        value: controlState.value,
+                        validationErrors: controlState.validationErrors,
+                        default: controlState.default,
+                        onChange: (value: unknown, errors: unknown[]) =>
+                          setControlValue(controlName, value, errors),
+                      }),
+                    });
                   }
                   if (
                     isCustomControlItem(controlItem) &&
@@ -672,14 +808,23 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               if (renderedControls.length === 0) {
                 return null;
               }
-              return (
+              // Indent controls within sub-sections for visual hierarchy
+              const paddingLeft =
+                isInSubSection && !isSubSectionHeaderRow
+                  ? theme.sizeUnit * 3
+                  : 0;
+              return paddingLeft ? (
+                <div key={`controlsetrow-${i}`} style={{ paddingLeft }}>
+                  <ControlRow controls={renderedControls} />
+                </div>
+              ) : (
                 <ControlRow
                   key={`controlsetrow-${i}`}
                   controls={renderedControls}
                 />
               );
             })}
-          </>
+          </div>
         )}
       </>
     );
@@ -689,7 +834,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       label: <PanelHeader />,
       children: PanelChildren,
       className: section.label ? '' : 'hidden-collapse-header',
-      style: { visibility: isVisible ? 'visible' : 'hidden' },
+      style: { display: isVisible ? 'block' : 'none' },
     };
   };
 
@@ -766,8 +911,33 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     props.errorMessage,
   ]);
 
+  const requiresSemanticReselection = Boolean(
+    props.exploreState.datasource?.semantic_selection_version &&
+    form_data.semantic_selection_version !==
+      props.exploreState.datasource.semantic_selection_version,
+  );
   const showCustomizeTab = customizeSections.length > 0;
-  const showMatrixifyTab = isFeatureEnabled(FeatureFlag.Matrixify);
+  const showMatrixifyTab =
+    !requiresSemanticReselection &&
+    isFeatureEnabled(FeatureFlag.Matrixify) &&
+    !MATRIXIFY_INCOMPATIBLE_CHARTS.has(form_data.viz_type as VizType);
+
+  // Check if matrixify is enabled in form_data
+  const matrixifyIsEnabled =
+    form_data.matrixify_enable === true &&
+    ((form_data.matrixify_mode_rows !== undefined &&
+      form_data.matrixify_mode_rows !== 'disabled') ||
+      (form_data.matrixify_mode_columns !== undefined &&
+        form_data.matrixify_mode_columns !== 'disabled'));
+
+  // Auto-switch to Matrixify tab when it's enabled
+  useEffect(() => {
+    if (requiresSemanticReselection) {
+      setActiveTabKey(TABS_KEYS.DATA);
+    } else if (showMatrixifyTab && matrixifyIsEnabled) {
+      setActiveTabKey(TABS_KEYS.MATRIXIFY);
+    }
+  }, [requiresSemanticReselection, showMatrixifyTab, matrixifyIsEnabled]);
 
   // Check if matrixify sections have validation errors
   const matrixifyHasErrors = useMemo(() => {
@@ -853,23 +1023,40 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     <>
       <Styles ref={containerRef}>
         <Tabs
-          id="controlSections"
+          id={CONTROL_SECTIONS_ID}
           data-test="control-tabs"
           allowOverflow={false}
+          activeKey={activeTabKey}
+          onChange={(key: string) => setActiveTabKey(key)}
           items={[
             {
               key: TABS_KEYS.DATA,
               label: dataTabTitle,
               children: (
                 <>
+                  {requiresSemanticReselection && (
+                    <ExploreAlert
+                      title={t('Choose current semantic fields')}
+                      bodyText={t(
+                        'Start field selection using current member IDs. This clears any existing query and formatting settings. Saved display titles cannot be safely mapped to member IDs. The saved chart is unchanged until you save.',
+                      )}
+                      primaryButtonText={t('Start field selection')}
+                      primaryButtonAction={() =>
+                        actions.resetSemanticSelections(form_data.slice_id)
+                      }
+                      type="warning"
+                    />
+                  )}
                   {showDatasourceAlert && <DatasourceAlert />}
-                  <Collapse
-                    defaultActiveKey={expandedQuerySections}
-                    expandIconPosition="end"
-                    ghost
-                    bordered
-                    items={querySections.map(renderControlPanelSection)}
-                  />
+                  {!requiresSemanticReselection && (
+                    <Collapse
+                      defaultActiveKey={expandedQuerySections}
+                      expandIconPosition="end"
+                      ghost
+                      bordered
+                      items={querySections.map(renderControlPanelSection)}
+                    />
+                  )}
                 </>
               ),
             },

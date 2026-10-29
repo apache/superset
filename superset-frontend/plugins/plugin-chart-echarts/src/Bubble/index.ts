@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { Behavior, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
 import transformProps from './transformProps';
@@ -28,7 +29,6 @@ import example2 from './images/example2.png';
 import example2Dark from './images/example2-dark.png';
 import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 
-// TODO: Implement cross filtering
 export default class EchartsBubbleChartPlugin extends ChartPlugin<
   EchartsBubbleFormData,
   EchartsBubbleChartProps
@@ -47,6 +47,11 @@ export default class EchartsBubbleChartPlugin extends ChartPlugin<
         exampleGallery: [
           { url: example1, urlDark: example1Dark },
           { url: example2, urlDark: example2Dark },
+        ],
+        behaviors: [
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
         ],
         name: t('Bubble Chart'),
         tags: [

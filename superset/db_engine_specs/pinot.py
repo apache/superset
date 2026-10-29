@@ -14,12 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from sqlalchemy import types
-from sqlalchemy.engine.interfaces import Dialect
-from sqlalchemy.types import TypeEngine
-
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 
 
 class PinotEngineSpec(BaseEngineSpec):
@@ -30,6 +26,50 @@ class PinotEngineSpec(BaseEngineSpec):
     allows_joins = False
     allows_alias_in_select = False
     allows_alias_in_orderby = False
+
+    # pinotdb only sets cursor.description when the response contains
+    # columnDataTypes, which Pinot omits for zero-row results.
+    type_probe_needs_row = True
+
+    metadata = {
+        "description": "Apache Pinot is a real-time distributed OLAP datastore.",
+        "logo": "apache-pinot.svg",
+        "homepage_url": "https://pinot.apache.org/",
+        "categories": [
+            DatabaseCategory.APACHE_PROJECTS,
+            DatabaseCategory.TIME_SERIES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["pinotdb"],
+        "version_requirements": (
+            "The Pinot extra requires pinotdb[sqlalchemy]>=9.2.2,<10.0.0."
+            " Releases below 8.0.0 declare SQLAlchemy below 2 in their SQLAlchemy"
+            " extra; releases below 9.2.1 compile TIMESTAMP columns as NUMERIC"
+            " (startreedata/pinot-dbapi#224)."
+        ),
+        "connection_string": (
+            "pinot+http://{broker_host}:{broker_port}/query"
+            "?controller=http://{controller_host}:{controller_port}/"
+        ),
+        "default_port": 8099,
+        "connection_examples": [
+            {
+                "description": "With authentication",
+                "connection_string": (
+                    "pinot://{username}:{password}@{broker_host}:{broker_port}/query/sql"
+                    "?controller=http://{controller_host}:{controller_port}/verify_ssl=true"
+                ),
+            },
+        ],
+        "engine_parameters": [
+            {
+                "name": "Multi-stage Query Engine",
+                "description": "Enable for Explore view, joins, window functions",
+                "json": {"connect_args": {"use_multistage_engine": "true"}},
+                "docs_url": "https://docs.pinot.apache.org/reference/multi-stage-engine",
+            },
+        ],
+    }
 
     # https://docs.pinot.apache.org/users/user-guide-query/supported-transformations#datetime-functions
     _time_grain_expressions = {
@@ -70,12 +110,8 @@ class PinotEngineSpec(BaseEngineSpec):
         )
 
     @classmethod
-    def column_datatype_to_string(
-        cls, sqla_column_type: TypeEngine, dialect: Dialect
-    ) -> str:
-        # Pinot driver infers TIMESTAMP column as LONG, so make the quick fix.
-        # When the Pinot driver fix this bug, current method could be removed.
-        if isinstance(sqla_column_type, types.TIMESTAMP):
-            return sqla_column_type.compile().upper()
-
-        return super().column_datatype_to_string(sqla_column_type, dialect)
+    def epoch_us_to_dttm(cls) -> str:
+        return (
+            "DATETIMECONVERT({col}, '1:MICROSECONDS:EPOCH', "
+            + "'1:MICROSECONDS:EPOCH', '1:MICROSECONDS')"
+        )

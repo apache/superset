@@ -27,16 +27,17 @@ import {
 } from 'react';
 
 import { useDispatch, useSelector } from 'react-redux';
-import { uniqWith } from 'lodash';
+import { uniqWith } from 'lodash-es';
 import cx from 'classnames';
+import { t } from '@apache-superset/core/translation';
 import {
   DataMaskStateWithId,
+  DatasourceType,
   Filters,
   JsonObject,
-  t,
   usePrevious,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
@@ -49,13 +50,17 @@ import {
   selectNativeIndicatorsForChart,
 } from '../nativeFilters/selectors';
 import { Chart, RootState } from '../../types';
+import { useIsAutoRefreshing } from '../../contexts/AutoRefreshContext';
 
 export interface FiltersBadgeProps {
   chartId: number;
 }
 
-const StyledFilterCount = styled.div`
+const StyledFilterCount = styled.button`
   ${({ theme }) => `
+    appearance: none;
+    border: none;
+    font: inherit;
     display: flex;
     justify-items: center;
     align-items: center;
@@ -106,10 +111,14 @@ const indicatorsInitialState: Indicator[] = [];
 
 export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const dispatch = useDispatch();
-  const datasources = useSelector<RootState, any>(state => state.datasources);
-  const dashboardFilters = useSelector<RootState, any>(
-    state => state.dashboardFilters,
+  const isAutoRefreshing = useIsAutoRefreshing();
+  const datasources = useSelector<RootState, RootState['datasources']>(
+    state => state.datasources,
   );
+  const dashboardFilters = useSelector<
+    RootState,
+    RootState['dashboardFilters']
+  >(state => state.dashboardFilters);
   const nativeFilters = useSelector<RootState, Filters>(
     state => state.nativeFilters?.filters,
   );
@@ -130,7 +139,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   );
   const [popoverVisible, setPopoverVisible] = useState(false);
   const popoverContentRef = useRef<HTMLDivElement>(null);
-  const popoverTriggerRef = useRef<HTMLDivElement>(null);
+  const popoverTriggerRef = useRef<HTMLButtonElement>(null);
 
   const onHighlightFilterSource = useCallback(
     (path: string[]) => {
@@ -139,7 +148,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     [dispatch],
   );
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === 'Enter') {
       setPopoverVisible(true);
     }
@@ -161,7 +170,12 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   }, [popoverVisible]);
 
   useEffect(() => {
-    if (!showIndicators && dashboardIndicators.length > 0) {
+    // During auto-refresh, don't clear indicators - preserve previous state
+    if (
+      !showIndicators &&
+      dashboardIndicators.length > 0 &&
+      !isAutoRefreshing
+    ) {
       setDashboardIndicators(indicatorsInitialState);
     } else if (prevChartStatus !== 'success') {
       if (
@@ -188,6 +202,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     dashboardFilters,
     dashboardIndicators.length,
     datasources,
+    isAutoRefreshing,
     prevChart?.queriesResponse,
     prevChartStatus,
     prevDashboardFilters,
@@ -201,36 +216,43 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const prevChartConfig = usePrevious(chartConfiguration);
 
   useEffect(() => {
-    if (!showIndicators && nativeIndicators.length > 0) {
+    // During auto-refresh, don't clear indicators - preserve previous state
+    // Clear indicators when chart is loading/not showing (unless auto-refreshing)
+    const shouldReset =
+      !showIndicators && nativeIndicators.length > 0 && !isAutoRefreshing;
+
+    const shouldRecalculate =
+      chart?.queriesResponse?.[0]?.rejected_filters !==
+        prevChart?.queriesResponse?.[0]?.rejected_filters ||
+      chart?.queriesResponse?.[0]?.applied_filters !==
+        prevChart?.queriesResponse?.[0]?.applied_filters ||
+      nativeFilters !== prevNativeFilters ||
+      chartLayoutItems !== prevChartLayoutItems ||
+      dataMask !== prevDataMask ||
+      prevChartConfig !== chartConfiguration;
+
+    if (shouldReset) {
       setNativeIndicators(indicatorsInitialState);
-    } else if (prevChartStatus !== 'success') {
-      if (
-        chart?.queriesResponse?.[0]?.rejected_filters !==
-          prevChart?.queriesResponse?.[0]?.rejected_filters ||
-        chart?.queriesResponse?.[0]?.applied_filters !==
-          prevChart?.queriesResponse?.[0]?.applied_filters ||
-        nativeFilters !== prevNativeFilters ||
-        chartLayoutItems !== prevChartLayoutItems ||
-        dataMask !== prevDataMask ||
-        prevChartConfig !== chartConfiguration
-      ) {
-        setNativeIndicators(
-          selectNativeIndicatorsForChart(
-            nativeFilters,
-            dataMask,
-            chartId,
-            chart,
-            chartLayoutItems,
-            chartConfiguration,
-          ),
-        );
-      }
+    } else if (
+      showIndicators &&
+      (shouldRecalculate || nativeIndicators.length === 0)
+    ) {
+      const newIndicators = selectNativeIndicatorsForChart(
+        nativeFilters,
+        dataMask,
+        chartId,
+        chart,
+        chartLayoutItems,
+        chartConfiguration,
+      );
+      setNativeIndicators(newIndicators);
     }
   }, [
     chart,
     chartId,
     chartConfiguration,
     dataMask,
+    isAutoRefreshing,
     nativeFilters,
     nativeIndicators.length,
     prevChart?.queriesResponse,
@@ -272,8 +294,16 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   );
   const filterCount =
     appliedIndicators.length + appliedCrossFilterIndicators.length;
+  const incompatibleIndicators = chart?.form_data?.datasource?.endsWith(
+    `__${DatasourceType.SemanticView}`,
+  )
+    ? indicators.filter(
+        indicator => indicator.status === IndicatorStatus.Incompatible,
+      )
+    : [];
+  const totalFilterCount = filterCount + incompatibleIndicators.length;
 
-  if (!appliedCrossFilterIndicators.length && !appliedIndicators.length) {
+  if (!totalFilterCount) {
     return null;
   }
 
@@ -281,6 +311,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     <DetailsPanelPopover
       appliedCrossFilterIndicators={appliedCrossFilterIndicators}
       appliedIndicators={appliedIndicators}
+      incompatibleIndicators={incompatibleIndicators}
       onHighlightFilterSource={onHighlightFilterSource}
       setPopoverVisible={setPopoverVisible}
       popoverVisible={popoverVisible}
@@ -288,22 +319,25 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       popoverTriggerRef={popoverTriggerRef}
     >
       <StyledFilterCount
-        aria-label={t('Applied filters (%s)', filterCount)}
+        type="button"
+        aria-label={
+          incompatibleIndicators.length
+            ? t('Filters (%s)', totalFilterCount)
+            : t('Applied filters (%s)', filterCount)
+        }
         aria-haspopup="true"
-        role="button"
         ref={popoverTriggerRef}
         className={cx(
           'filter-counts',
           !!appliedCrossFilterIndicators.length && 'has-cross-filters',
         )}
-        tabIndex={0}
         onKeyDown={handleKeyDown}
       >
         <Icons.FilterOutlined iconSize="m" />
         <StyledBadge
           data-test="applied-filter-count"
           className="applied-count"
-          count={filterCount}
+          count={totalFilterCount}
           size="small"
           showZero
         />

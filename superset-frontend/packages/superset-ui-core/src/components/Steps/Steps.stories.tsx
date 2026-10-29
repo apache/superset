@@ -22,12 +22,21 @@ import { Steps, type StepsProps } from '.';
 export default {
   title: 'Components/Steps',
   component: Steps as typeof AntdSteps,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'A navigation component for guiding users through multi-step workflows. Supports horizontal, vertical, and inline layouts with progress tracking.',
+      },
+    },
+  },
 };
 
 export const InteractiveSteps = (args: StepsProps) => <Steps {...args} />;
+
 InteractiveSteps.args = {
   direction: 'horizontal',
-  initial: 0,
+  current: 1,
   labelPlacement: 'horizontal',
   progressDot: false,
   size: 'default',
@@ -51,23 +60,145 @@ InteractiveSteps.args = {
 
 InteractiveSteps.argTypes = {
   direction: {
-    options: ['horizontal', 'vertical'],
     control: { type: 'select' },
+    options: ['horizontal', 'vertical'],
+    description: 'Layout direction of the steps.',
+  },
+  current: {
+    control: { type: 'number' },
+    description: 'Index of the current step (zero-based).',
   },
   labelPlacement: {
-    options: ['horizontal', 'vertical'],
     control: { type: 'select' },
+    options: ['horizontal', 'vertical'],
+    description: 'Position of step labels relative to the step icon.',
+  },
+  progressDot: {
+    control: 'boolean',
+    description: 'Whether to use a dot style instead of numbered icons.',
   },
   size: {
-    options: ['default', 'small'],
     control: { type: 'select' },
+    options: ['default', 'small'],
+    description: 'Size of the step icons and text.',
   },
   status: {
-    options: ['wait', 'process', 'finish', 'error'],
     control: { type: 'select' },
+    options: ['wait', 'process', 'finish', 'error'],
+    description: 'Status of the current step.',
   },
   type: {
-    options: ['default', 'navigation', 'inline'],
     control: { type: 'select' },
+    options: ['default', 'navigation', 'inline'],
+    description:
+      'Visual style: default numbered, navigation breadcrumb, or inline compact.',
+  },
+};
+
+InteractiveSteps.parameters = {
+  docs: {
+    staticProps: {
+      items: [
+        { title: 'Connect Database', description: 'Configure the connection' },
+        { title: 'Create Dataset', description: 'Select tables and columns' },
+        { title: 'Build Chart', description: 'Choose visualization type' },
+      ],
+    },
+    liveExample: `function Demo() {
+  return (
+    <Steps
+      current={1}
+      items={[
+        { title: 'Connect Database', description: 'Configure the connection' },
+        { title: 'Create Dataset', description: 'Select tables and columns' },
+        { title: 'Build Chart', description: 'Choose visualization type' },
+      ]}
+    />
+  );
+}`,
+    examples: [
+      {
+        title: 'Vertical Steps',
+        code: `function VerticalSteps() {
+  return (
+    <Steps
+      direction="vertical"
+      current={1}
+      items={[
+        { title: 'Upload CSV', description: 'Select a file from your computer' },
+        { title: 'Configure Columns', description: 'Set data types and names' },
+        { title: 'Review', description: 'Verify the data looks correct' },
+        { title: 'Import', description: 'Save the dataset' },
+      ]}
+    />
+  );
+}`,
+      },
+      {
+        title: 'Status Indicators',
+        code: `function StatusSteps() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+      <div>
+        <h4>Error on Step 2</h4>
+        <Steps
+          current={1}
+          status="error"
+          items={[
+            { title: 'Connection', description: 'Configured' },
+            { title: 'Validation', description: 'Failed to validate' },
+            { title: 'Complete' },
+          ]}
+        />
+      </div>
+      <div>
+        <h4>All Complete</h4>
+        <Steps
+          current={3}
+          items={[
+            { title: 'Step 1' },
+            { title: 'Step 2' },
+            { title: 'Step 3' },
+          ]}
+        />
+      </div>
+    </div>
+  );
+}`,
+      },
+      {
+        title: 'Dot Style and Small Size',
+        code: `function DotAndSmall() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+      <div>
+        <h4>Progress Dots</h4>
+        <Steps
+          progressDot
+          current={1}
+          items={[
+            { title: 'Create', description: 'Define the resource' },
+            { title: 'Configure', description: 'Set parameters' },
+            { title: 'Deploy', description: 'Go live' },
+          ]}
+        />
+      </div>
+      <div>
+        <h4>Small Size</h4>
+        <Steps
+          size="small"
+          current={2}
+          items={[
+            { title: 'Login' },
+            { title: 'Verify' },
+            { title: 'Done' },
+          ]}
+        />
+      </div>
+    </div>
+  );
+}`,
+      },
+    ],
   },
 };

@@ -34,6 +34,55 @@ type GetCrossFilterDataMaskProps = {
   timestampFormatter: (value: DataRecordValue) => string;
 };
 
+type BuildSelectionCrossFilterProps = {
+  key: string;
+  values: DataRecordValue[];
+  timeGrain?: TimeGranularity;
+  timestampFormatter: (value: DataRecordValue) => string;
+};
+
+export const buildSelectionCrossFilterDataMask = ({
+  key,
+  values,
+  timeGrain,
+  timestampFormatter,
+}: BuildSelectionCrossFilterProps) => {
+  if (values.length === 0) {
+    return {
+      dataMask: {
+        extraFormData: { filters: [] },
+        filterState: { label: null, value: null, filters: null },
+      },
+    };
+  }
+
+  const updatedFilters: DataRecordFilters = { [key]: values };
+  const isTimestamp = key === DTTM_ALIAS;
+  const label = values
+    .map(v => (isTimestamp ? timestampFormatter(v) : v))
+    .join(', ');
+
+  return {
+    dataMask: {
+      extraFormData: {
+        filters: [
+          {
+            col: key,
+            op: 'IN' as const,
+            val: values.map(el => (el instanceof Date ? el.getTime() : el!)),
+            grain: isTimestamp ? timeGrain : undefined,
+          },
+        ],
+      },
+      filterState: {
+        label,
+        value: [values],
+        filters: updatedFilters,
+      },
+    },
+  };
+};
+
 export const getCrossFilterDataMask = ({
   key,
   value,

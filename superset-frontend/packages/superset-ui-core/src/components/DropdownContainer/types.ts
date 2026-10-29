@@ -17,7 +17,6 @@
  * under the License.
  */
 import type { CSSProperties, ReactElement, RefObject, ReactNode } from 'react';
-import { IconType } from '../Icons';
 
 /**
  * Container item.
@@ -70,7 +69,7 @@ export interface DropdownContainerProps {
   /**
    * Icon of the dropdown trigger.
    */
-  dropdownTriggerIcon?: IconType;
+  dropdownTriggerIcon?: ReactNode;
   /**
    * Text of the dropdown trigger.
    */
@@ -84,7 +83,9 @@ export interface DropdownContainerProps {
    */
   style?: CSSProperties;
   /**
-   * Force render popover content before it's first opened
+   * Force render popover content before it's first opened.
+   * Note: Do not use when dropdown items contain reverse portals (e.g. FilterControls),
+   * as forced rendering in hidden DOM steals portal DOM nodes from the main container.
    */
   forceRender?: boolean;
 }

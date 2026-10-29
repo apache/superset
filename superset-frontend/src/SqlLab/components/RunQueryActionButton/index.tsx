@@ -16,16 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, FC, ReactElement } from 'react';
+import {
+  useMemo,
+  FC,
+  ReactElement,
+  type SyntheticEvent,
+  type ReactNode,
+} from 'react';
 
-import { t } from '@superset-ui/core';
-import { styled, useTheme, SupersetTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme, SupersetTheme } from '@apache-superset/core/theme';
 
 import { Button, DropdownButton } from '@superset-ui/core/components';
-import { IconType, Icons } from '@superset-ui/core/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { detectOS } from 'src/utils/common';
 import { QueryButtonProps } from 'src/SqlLab/types';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import useRunStopButton from 'src/hooks/useRunStopButton';
 import {
   LOG_ACTIONS_SQLLAB_RUN_QUERY,
   LOG_ACTIONS_SQLLAB_STOP_QUERY,
@@ -33,10 +40,10 @@ import {
 import useLogAction from 'src/logger/useLogAction';
 
 export interface RunQueryActionButtonProps {
+  compactMode?: boolean;
   queryEditorId: string;
-  allowAsync: boolean;
   queryState?: string;
-  runQuery: (c?: boolean) => void;
+  runQuery: () => void;
   stopQuery: () => void;
   overlayCreateAsMenu: ReactElement | null;
 }
@@ -45,15 +52,16 @@ const buildTextAndIcon = (
   shouldShowStopButton: boolean,
   selectedText: string | undefined,
   theme: SupersetTheme,
-): { text: string; icon?: IconType } => {
+): { text: string; icon?: ReactNode } => {
   let text = t('Run');
-  let icon: IconType | undefined;
+  let icon: ReactNode = <Icons.CaretRightOutlined />;
   if (selectedText) {
     text = t('Run selection');
+    icon = <Icons.StepForwardOutlined />;
   }
   if (shouldShowStopButton) {
     text = t('Stop');
-    icon = <Icons.Square iconSize="xs" iconColor={theme.colorIcon} />;
+    icon = <Icons.Square iconColor={theme.colorIcon} />;
   }
   return {
     text,
@@ -62,32 +70,33 @@ const buildTextAndIcon = (
 };
 
 const onClick = (
-  shouldShowStopButton: boolean,
-  allowAsync: boolean,
-  runQuery: (c?: boolean) => void = () => undefined,
+  isStopAction: boolean,
+  runQuery: () => void = () => undefined,
   stopQuery = () => {},
   logAction: (name: string, payload: Record<string, any>) => void,
 ): void => {
-  const eventName = shouldShowStopButton
+  const eventName = isStopAction
     ? LOG_ACTIONS_SQLLAB_STOP_QUERY
     : LOG_ACTIONS_SQLLAB_RUN_QUERY;
 
   logAction(eventName, { shortcut: false });
-  if (shouldShowStopButton) return stopQuery();
-  if (allowAsync) {
-    return runQuery(true);
-  }
-  return runQuery(false);
+  if (isStopAction) return stopQuery();
+  runQuery();
 };
+
+/** Only the main split button changes action; caret gestures open a menu. */
+const isMainButtonGesture = (event: SyntheticEvent<HTMLSpanElement>) =>
+  event.target instanceof Element &&
+  event.target.closest('button') ===
+    event.currentTarget.querySelector('button');
 
 const StyledButton = styled.span`
   button {
     line-height: 13px;
-    // this is to over ride a previous transition built into the component
-    transition: background-color 0ms;
-    &:last-of-type {
-      margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
-    }
+    min-width: auto !important;
+    padding: 0 ${({ theme }) => theme.sizeUnit * 3}px 0
+      ${({ theme }) => theme.sizeUnit * 2}px;
+
     span[name='caret-down'] {
       display: flex;
       margin-left: ${({ theme }) => theme.sizeUnit * 1}px;
@@ -96,7 +105,6 @@ const StyledButton = styled.span`
 `;
 
 const RunQueryActionButton = ({
-  allowAsync = false,
   queryEditorId,
   queryState,
   overlayCreateAsMenu,
@@ -114,6 +122,14 @@ const RunQueryActionButton = ({
 
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
+  const {
+    onPointerDownCapture,
+    onKeyDownCapture,
+    onBlurCapture,
+    onClick: handleClick,
+  } = useRunStopButton(shouldShowStopBtn, () =>
+    onClick(shouldShowStopBtn, runQuery, stopQuery, logAction),
+  );
 
   const ButtonComponent: FC<QueryButtonProps> = overlayCreateAsMenu
     ? (DropdownButton as FC)
@@ -138,12 +154,18 @@ const RunQueryActionButton = ({
   );
 
   return (
-    <StyledButton>
+    <StyledButton
+      onBlurCapture={onBlurCapture}
+      onPointerDownCapture={event => {
+        if (isMainButtonGesture(event)) onPointerDownCapture(event);
+      }}
+      onKeyDownCapture={event => {
+        if (isMainButtonGesture(event)) onKeyDownCapture(event);
+      }}
+    >
       <ButtonComponent
         data-test="run-query-action"
-        onClick={() =>
-          onClick(shouldShowStopBtn, allowAsync, runQuery, stopQuery, logAction)
-        }
+        onClick={handleClick}
         disabled={isDisabled}
         tooltip={
           (!isDisabled &&
@@ -154,14 +176,18 @@ const RunQueryActionButton = ({
         cta
         {...(overlayCreateAsMenu
           ? {
-              overlay: overlayCreateAsMenu,
+              popupRender: () => overlayCreateAsMenu,
               icon: (
                 <Icons.DownOutlined
                   iconColor={
-                    isDisabled ? theme.colorTextDisabled : theme.colorIcon
+                    isDisabled
+                      ? theme.colorTextDisabled
+                      : theme.colorTextLightSolid
                   }
                 />
               ),
+              type: 'primary',
+              danger: shouldShowStopBtn,
               trigger: 'click',
             }
           : {
@@ -169,6 +195,7 @@ const RunQueryActionButton = ({
               icon,
             })}
       >
+        {overlayCreateAsMenu && <>{icon}</>}
         {text}
       </ButtonComponent>
     </StyledButton>

@@ -23,16 +23,23 @@ import {
   getStandardizedControls,
   sharedControls,
 } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   isAdhocColumn,
   isPhysicalColumn,
   QueryFormMetric,
   SMART_DATE_ID,
-  t,
   validateNonEmpty,
+  QueryFormColumn,
 } from '@superset-ui/core';
-import { MetricsLayoutEnum } from '../types';
+import { MetricsLayoutEnum, ShowValuesAsEnum } from '../types';
+import {
+  getResultAggregation,
+  METRIC_DEFINITION_AGGREGATION,
+  RESULT_AGGREGATIONS,
+  RESULT_AGGREGATION_LABELS,
+} from './resultAggregation';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -106,7 +113,10 @@ const config: ControlPanelConfig = {
             name: 'metricsLayout',
             config: {
               type: 'RadioButtonControl',
-              renderTrigger: true,
+              // Not a renderTrigger: the axis the metrics land on decides which
+              // collapsed rollup level the totals/subtotals options need (see
+              // `buildGroupbyCombinations`), so changing it needs a real
+              // requery rather than a client-side-only re-render.
               label: t('Apply metrics on'),
               default: MetricsLayoutEnum.COLUMNS,
               options: [
@@ -120,14 +130,28 @@ const config: ControlPanelConfig = {
           },
         ],
         ['adhoc_filters'],
-        ['series_limit'],
+        [
+          {
+            name: 'series_limit',
+            config: {
+              ...sharedControls.series_limit,
+              visibility: ({ form_data }) =>
+                !form_data.datasource?.endsWith('__semantic_view'),
+            },
+          },
+        ],
         [
           {
             name: 'row_limit',
             config: {
               ...sharedControls.row_limit,
               label: t('Cell limit'),
-              description: t('Limits the number of cells that get retrieved.'),
+              description: t(
+                'Limits the number of cells that get retrieved. Not applied when ' +
+                  'non-additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) ' +
+                  'are present, since totals and subtotals are then computed via a ' +
+                  'database rollup query that must see every row to stay correct.',
+              ),
             },
           },
         ],
@@ -164,50 +188,18 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [
           {
-            name: 'aggregateFunction',
-            config: {
-              type: 'SelectControl',
-              label: t('Aggregation function'),
-              clearable: false,
-              choices: [
-                ['Count', t('Count')],
-                ['Count Unique Values', t('Count Unique Values')],
-                ['List Unique Values', t('List Unique Values')],
-                ['Sum', t('Sum')],
-                ['Average', t('Average')],
-                ['Median', t('Median')],
-                ['Sample Variance', t('Sample Variance')],
-                ['Sample Standard Deviation', t('Sample Standard Deviation')],
-                ['Minimum', t('Minimum')],
-                ['Maximum', t('Maximum')],
-                ['First', t('First')],
-                ['Last', t('Last')],
-                ['Sum as Fraction of Total', t('Sum as Fraction of Total')],
-                ['Sum as Fraction of Rows', t('Sum as Fraction of Rows')],
-                ['Sum as Fraction of Columns', t('Sum as Fraction of Columns')],
-                ['Count as Fraction of Total', t('Count as Fraction of Total')],
-                ['Count as Fraction of Rows', t('Count as Fraction of Rows')],
-                [
-                  'Count as Fraction of Columns',
-                  t('Count as Fraction of Columns'),
-                ],
-              ],
-              default: 'Sum',
-              description: t(
-                'Aggregate function to apply when pivoting and computing the total rows and columns',
-              ),
-              renderTrigger: true,
-            },
-          },
-        ],
-        [
-          {
             name: 'rowTotals',
             config: {
               type: 'CheckboxControl',
-              label: t('Show rows total'),
+              // The displayed value may be a result aggregation (Median,
+              // Average, ...) rather than a plain total once `aggregateFunction`
+              // is set below, so "summary" rather than "total".
+              label: t('Show row summaries'),
               default: false,
-              renderTrigger: true,
+              // Not a renderTrigger: for non-additive metrics, the totals and
+              // subtotals are rollup levels fetched by the query (see
+              // `buildGroupbyCombinations`), so toggling this needs a real
+              // requery rather than a client-side-only re-render.
               description: t('Display row level total'),
             },
           },
@@ -219,8 +211,24 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Show rows subtotal'),
               default: false,
-              renderTrigger: true,
               description: t('Display row level subtotal'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'collapseRows',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Collapse rows by default'),
+              default: false,
+              renderTrigger: true,
+              description: t(
+                'Start with row groups collapsed when row subtotals are shown. ' +
+                  'Each group can still be expanded with its arrow.',
+              ),
+              visibility: ({ controls }) =>
+                Boolean(controls?.rowSubTotals?.value),
             },
           },
         ],
@@ -229,9 +237,8 @@ const config: ControlPanelConfig = {
             name: 'colTotals',
             config: {
               type: 'CheckboxControl',
-              label: t('Show columns total'),
+              label: t('Show column summaries'),
               default: false,
-              renderTrigger: true,
               description: t('Display column level total'),
             },
           },
@@ -243,7 +250,6 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Show columns subtotal'),
               default: false,
-              renderTrigger: true,
               description: t('Display column level subtotal'),
             },
           },
@@ -255,8 +261,11 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Transpose pivot'),
               default: false,
+              // Not a renderTrigger: swapping rows and columns changes which
+              // dimensions form the rollup levels the totals/subtotals options
+              // need (see `buildGroupbyCombinations`), so it needs a real
+              // requery rather than a client-side-only re-render.
               description: t('Swap rows and columns'),
-              renderTrigger: true,
             },
           },
         ],
@@ -267,11 +276,81 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Combine metrics'),
               default: false,
+              // Not a renderTrigger: combining metrics removes the per-metric
+              // subtotal level and the metric-axis rollup levels (see
+              // `buildGroupbyCombinations`), so changing it needs a real
+              // requery rather than a client-side-only re-render.
               description: t(
                 'Display metrics side by side within each column, as ' +
                   'opposed to each column being displayed side by side for each metric.',
               ),
-              renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'aggregateFunction',
+            config: {
+              type: 'SelectControl',
+              label: t('Aggregation function'),
+              default: METRIC_DEFINITION_AGGREGATION,
+              clearable: false,
+              // Not a renderTrigger: switching in or out of a result
+              // aggregation changes whether the query uses GROUPING SETS at
+              // all (see buildQuery.ts), so it needs a real requery.
+              choices: [
+                [METRIC_DEFINITION_AGGREGATION, t('Use metric definition')],
+                ...RESULT_AGGREGATIONS.map(
+                  name =>
+                    [name, RESULT_AGGREGATION_LABELS[name]] as [string, string],
+                ),
+              ],
+              description: t(
+                'Use each metric’s own definition for cells and ' +
+                  'summaries (the default since SIP-216), or aggregate a ' +
+                  'second time over the metric’s own grouped results — ' +
+                  'e.g. the median of a set of per-store averages. Query ' +
+                  'limits apply before a result aggregation runs.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'showValuesAs',
+            config: {
+              type: 'SelectControl',
+              label: t('Show values as'),
+              default: ShowValuesAsEnum.ACTUAL,
+              // Not a renderTrigger: for non-additive metrics, a percent choice
+              // here can require a rollup level (see `buildGroupbyCombinations`)
+              // that a prior query never fetched, so switching it needs a real
+              // requery rather than a client-side-only re-render.
+              choices: [
+                [ShowValuesAsEnum.ACTUAL, t('Actual values')],
+                [ShowValuesAsEnum.PERCENT_OF_ROW, t('% of row total')],
+                [ShowValuesAsEnum.PERCENT_OF_COLUMN, t('% of column total')],
+                [ShowValuesAsEnum.PERCENT_OF_TOTAL, t('% of grand total')],
+              ],
+              description: t(
+                'Display each cell as a percentage of its row, column, or ' +
+                  'grand total, instead of its actual value. Totals and ' +
+                  'subtotals are still computed correctly first; this only ' +
+                  'changes how they are displayed.',
+              ),
+              // A result aggregation (anything but "Use metric definition")
+              // has its own "... as Fraction of ..." choices built in, and
+              // takes over the cell/summary computation entirely -- this
+              // control's percent transform would otherwise be silently
+              // ignored rather than applied on top of it. Route through
+              // `getResultAggregation` rather than comparing the raw value,
+              // so an unrecognized/stale `aggregateFunction` falls back to
+              // "Use metric definition" the same way the renderer does,
+              // instead of hiding this control for a value that doesn't
+              // actually select a result aggregation.
+              visibility: ({ controls }) =>
+                getResultAggregation(controls?.aggregateFunction?.value) ===
+                undefined,
             },
           },
         ],
@@ -403,10 +482,21 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               label: t('Conditional formatting'),
               description: t('Apply conditional color formatting to metrics'),
+              shouldMapStateToProps() {
+                return true;
+              },
               mapStateToProps(explore, _, chart) {
-                const values =
+                const metrics =
                   (explore?.controls?.metrics?.value as QueryFormMetric[]) ??
                   [];
+                const columns =
+                  (explore?.controls?.groupbyColumns
+                    ?.value as QueryFormColumn[]) ?? [];
+                const rows =
+                  (explore?.controls?.groupbyRows
+                    ?.value as QueryFormColumn[]) ?? [];
+                const values = [...new Set([...metrics, ...columns, ...rows])];
+
                 const verboseMap = explore?.datasource?.hasOwnProperty(
                   'verbose_map',
                 )

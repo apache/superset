@@ -18,19 +18,48 @@
  * under the License.
  */
 
-import { isProbablyHTML, sanitizeHtml, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { isProbablyHTML, sanitizeHtml } from '@superset-ui/core';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Tooltip } from '@superset-ui/core/components';
 import { CellRendererProps } from '../types';
 import { SummaryContainer, SummaryText } from '../styles';
+import { JsonCellRenderer } from './JsonCellRenderer';
+import { parseJsonCellValue } from './parseJsonCellValue';
 
 const SUMMARY_TOOLTIP_TEXT = t(
   'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
 );
 
+/**
+ * A column formatter rewrote the cell when its display text is neither the
+ * default String(value) nor a JSON serialization of the raw value.
+ */
+function columnFormatterRewroteCell(
+  value: unknown,
+  valueFormatted: unknown,
+): boolean {
+  if (typeof valueFormatted !== 'string' || valueFormatted === String(value)) {
+    return false;
+  }
+  try {
+    return valueFormatted !== JSON.stringify(value);
+  } catch {
+    return true;
+  }
+}
+
 export const TextCellRenderer = (params: CellRendererProps) => {
-  const { node, api, colDef, columns, allowRenderHtml, value, valueFormatted } =
-    params;
+  const {
+    node,
+    api,
+    colDef,
+    columns,
+    allowRenderHtml,
+    jsonInCell = false,
+    value,
+    valueFormatted,
+  } = params;
 
   if (node?.rowPinned === 'bottom') {
     const cols = api.getAllGridColumns().filter(col => col.isVisible());
@@ -50,10 +79,8 @@ export const TextCellRenderer = (params: CellRendererProps) => {
     }
   }
 
-  if (!(typeof value === 'string' || value instanceof Date)) {
-    return valueFormatted ?? value;
-  }
-
+  // URLs and opt-in HTML keep their existing renderers. JSON is only used
+  // when those paths do not claim the value.
   if (typeof value === 'string') {
     if (value.startsWith('http://') || value.startsWith('https://')) {
       return (
@@ -63,9 +90,36 @@ export const TextCellRenderer = (params: CellRendererProps) => {
       );
     }
     if (allowRenderHtml && isProbablyHTML(value)) {
+      // Safe: HTML is sanitized before rendering
+      // eslint-disable-next-line react/no-danger
       return <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(value) }} />;
     }
   }
 
-  return <div>{valueFormatted ?? value}</div>;
+  const parsedJson = parseJsonCellValue(value);
+  if (parsedJson && !columnFormatterRewroteCell(value, valueFormatted)) {
+    return (
+      <JsonCellRenderer
+        value={parsedJson}
+        rawText={typeof value === 'string' ? value : undefined}
+        colId={colDef?.field || colDef?.colId || 'json'}
+        autoHeight={Boolean(colDef?.autoHeight)}
+        wrapText={Boolean(colDef?.wrapText)}
+        jsonInCell={jsonInCell}
+        api={api}
+        node={node}
+        eGridCell={params.eGridCell}
+      />
+    );
+  }
+
+  if (!(typeof value === 'string' || value instanceof Date)) {
+    return valueFormatted ?? value;
+  }
+
+  return (
+    <div>
+      {valueFormatted ?? (value instanceof Date ? value.toISOString() : value)}
+    </div>
+  );
 };

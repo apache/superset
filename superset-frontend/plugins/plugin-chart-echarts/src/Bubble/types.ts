@@ -21,11 +21,7 @@ import {
   ChartDataResponseResult,
   QueryFormData,
 } from '@superset-ui/core';
-import {
-  LegendFormData,
-  BaseTransformedProps,
-  CrossFilterTransformedProps,
-} from '../types';
+import { LegendFormData, BaseTransformedProps } from '../types';
 
 export type EchartsBubbleFormData = QueryFormData &
   LegendFormData & {
@@ -41,17 +37,15 @@ export type EchartsBubbleFormData = QueryFormData &
     colorScheme?: string;
     defaultValue?: string[] | null;
     dateFormat: string;
-    emitFilter: boolean;
     tooltipFormat: string;
     x: string;
     y: string;
   };
 
-export interface EchartsBubbleChartProps
-  extends ChartProps<EchartsBubbleFormData> {
+export interface EchartsBubbleChartProps extends ChartProps<EchartsBubbleFormData> {
   formData: EchartsBubbleFormData;
   queriesData: ChartDataResponseResult[];
 }
 
 export type BubbleChartTransformedProps =
-  BaseTransformedProps<EchartsBubbleFormData> & CrossFilterTransformedProps;
+  BaseTransformedProps<EchartsBubbleFormData>;
