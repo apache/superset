@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Refreshing a dataset's columns from its source (the "Sync columns from
+  source" button, `PUT /api/v1/dataset/<id>?override_columns=true`, or
+  `PUT /api/v1/dataset/<id>/refresh`) no longer resets **Is dimension** and
+  **Is filterable** on existing columns. Newly discovered columns still arrive
+  with both enabled; a deployment that relied on a resync to restore those
+  defaults must set them explicitly.
+
 - **`/chart/add` no longer preselects a dataset from `?dataset=<name>`.** Use
   `?dataset_id=<id>` instead. Dataset names are only unique per database,
   catalog and schema, so a name could select the wrong dataset. Links built with

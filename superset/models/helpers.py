@@ -378,7 +378,18 @@ def _parse_temporal_join_values(series: pd.Series, column_name: str) -> pd.Serie
         return series
     try:
         return pd.to_datetime(series, errors="coerce", format="mixed")
-    except (TypeError, ValueError) as ex:
+    except ValueError as ex:
+        if "Mixed timezones" in str(ex):
+            # pandas 3 refuses to unify a column of strings carrying different
+            # fixed UTC offsets into a single dtype; parsed element-by-element
+            # it still yields each value's own tz-aware Timestamp (object
+            # dtype), which the wall-clock fallback in this function's caller
+            # (`_coerce_temporal_join_series`) already knows how to normalize.
+            return series.map(
+                lambda value: pd.NaT if pd.isna(value) else pd.to_datetime(value)
+            )
+        raise _temporal_axis_parse_error(column_name) from ex
+    except TypeError as ex:
         raise _temporal_axis_parse_error(column_name) from ex
 
 
@@ -4417,6 +4428,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         query_obj: QueryObjectDict,
         default_schema: str | None = None,
         resolve_catalog: Callable[[], str | None] | None = None,
+        resolve_schema: Callable[[], str] | None = None,
     ) -> list[str]:
         """Collect expression-only RLS rules without building or executing SQL.
 
@@ -4433,6 +4445,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if not query_obj or not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
             return []
         resolve_catalog = resolve_catalog or cache(self.database.get_default_catalog)
+        resolve_schema = resolve_schema or cache(self._get_rls_schema)
         extras = query_obj.get("extras") or {}
         granularity = query_obj.get("granularity")
         if granularity is not None and granularity not in self.dttm_cols:
@@ -4477,8 +4490,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             else:
                 if not parsed.has_subquery():
                     continue
-            if default_schema is None:
-                default_schema = self._get_rls_schema()
             # A query root lets scope traversal find tables in scalar expressions
             # and select-list fragments such as DISTINCT (SELECT ...). Execution
             # applies every rule, global guest rules included, to these tables.
@@ -4490,6 +4501,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     default_schema,
                     include_global_guest_rls=True,
                     resolve_catalog=resolve_catalog,
+                    resolve_schema=resolve_schema if default_schema is None else None,
                 )
             )
         if opaque_templates:
@@ -4502,7 +4514,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         for prequery_obj in prequery_objs:
             predicates.update(
                 self._get_query_rls_cache_keys(
-                    prequery_obj, default_schema, resolve_catalog
+                    prequery_obj, default_schema, resolve_catalog, resolve_schema
                 )
             )
         return sorted(predicates)
