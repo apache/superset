@@ -3855,8 +3855,13 @@ def merge_bullet_form_data(
         if values_key in new_form_data and labels_key not in new_form_data:
             new_form_data[labels_key] = ""
     # Per-band colors are applied by position, so replacing the thresholds
-    # without colors must not re-apply the old colors to the new bands.
-    if "ranges" in new_form_data and "range_colors" not in new_form_data:
+    # without colors must not re-apply the old colors to the new bands. Repeating
+    # the saved thresholds leaves the bands unchanged, so their colors are kept.
+    if (
+        "ranges" in new_form_data
+        and "range_colors" not in new_form_data
+        and new_form_data["ranges"] != existing_form_data.get("ranges")
+    ):
         new_form_data["range_colors"] = []
 
     preserve_orderby = (
