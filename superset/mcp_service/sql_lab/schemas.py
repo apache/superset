@@ -27,6 +27,7 @@ from pydantic import (
     field_validator,
     model_serializer,
 )
+from pydantic_core import PydanticCustomError
 
 from superset.mcp_service.utils.serialization import (
     JsonSafeRows,
@@ -72,9 +73,12 @@ class ExecuteSqlRequest(BaseModel):
     limit: int | None = Field(
         default=None,
         description=(
-            "Maximum number of rows to return. "
-            "If not specified, respects the LIMIT in your SQL query. "
-            "If specified, overrides any SQL LIMIT clause."
+            "Maximum rows returned by the last statement. "
+            "Omitted: respects SQL LIMIT. "
+            "If set, caps its outer LIMIT at min(SQL LIMIT, "
+            "this value), adding a LIMIT if absent. "
+            "Never raises stricter SQL limits or changes inner limits. "
+            "Explicit limits also obey server SQL_MAX_ROW."
         ),
         ge=1,
         le=10000,
@@ -147,10 +151,15 @@ class StatementInfo(BaseModel):
     """Information about a single SQL statement execution."""
 
     original_sql: str = Field(..., description="Original SQL as submitted")
-    executed_sql: str = Field(
-        ..., description="SQL after transformations (RLS, mutations, limits)"
+    executed_sql: str | None = Field(
+        None,
+        description=(
+            "SQL after transformations (RLS, mutations, limits). "
+            "Null when identical to original_sql; use original_sql in that case."
+        ),
     )
     row_count: RowCount = Field(..., description="Number of rows returned/affected")
+    truncated: bool = Field(False, description="Rows omitted by the fetch cap")
     execution_time_ms: float | None = Field(
         None, description="Statement execution time in milliseconds"
     )
@@ -158,8 +167,10 @@ class StatementInfo(BaseModel):
         None,
         description=(
             "Row data and column metadata for this statement. "
-            "Present for data-bearing statements (e.g., SELECT), "
-            "absent for DML/DDL statements (e.g., SET, UPDATE)."
+            "Present for earlier data-bearing statements (e.g., SELECT). "
+            "Null for the last data-bearing statement, whose rows/columns "
+            "are returned only at the top level, and for statements "
+            "without data (e.g., SET, UPDATE)."
         ),
     )
 
@@ -169,10 +180,18 @@ class ExecuteSqlResponse(BaseModel):
 
     success: bool = Field(..., description="Whether query executed successfully")
     rows: JsonSafeRows | None = Field(
-        None, description="Query result rows as list of dictionaries"
+        None,
+        description=(
+            "Last data-bearing statement's result rows as list of dictionaries. "
+            "Earlier results are in statements[].data.rows."
+        ),
     )
     columns: list[ColumnInfo] | None = Field(
-        None, description="Column metadata information"
+        None,
+        description=(
+            "Last data-bearing statement's column metadata. "
+            "Earlier metadata is in statements[].data.columns."
+        ),
     )
     row_count: OptionalRowCount = Field(None, description="Number of rows returned")
     affected_rows: OptionalRowCount = Field(
@@ -184,7 +203,12 @@ class ExecuteSqlResponse(BaseModel):
     error: str | None = Field(None, description="Error message if query failed")
     error_type: str | None = Field(None, description="Type of error if failed")
     statements: list[StatementInfo] | None = Field(
-        None, description="Per-statement execution info (for multi-statement queries)"
+        None,
+        description=(
+            "Execution metadata for every statement, including single-statement "
+            "queries. Data is included only for earlier data-bearing statements; "
+            "the last data-bearing result is at the top level."
+        ),
     )
     multi_statement_warning: str | None = Field(
         None,
@@ -192,7 +216,8 @@ class ExecuteSqlResponse(BaseModel):
             "Warning when multiple data-bearing statements were executed. "
             "The top-level rows/columns contain only the last "
             "data-bearing statement's results. "
-            "Check each entry in the statements array for per-statement data."
+            "Earlier results are in statements[].data; the last data-bearing "
+            "statement's data is null to avoid duplicating the top-level result."
         ),
     )
     template_warning: str | None = Field(
@@ -240,11 +265,16 @@ class SaveSqlQueryRequest(BaseModel):
             raise ValueError("SQL query cannot be empty")
         return v.strip()
 
-    @field_validator("label")
+    @field_validator("label", mode="before")
     @classmethod
-    def label_not_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Label cannot be empty")
+    def label_not_empty(cls, v: object) -> object:
+        """Trim labels and reject blanks before checking their length."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
+        if not isinstance(v, str):
+            return v
+        if not v.strip():
+            raise PydanticCustomError("empty_text", "Label cannot be empty")
         return v.strip()
 
 
@@ -300,13 +330,16 @@ class OpenSqlLabRequest(BaseModel):
         max_length=256,
     )
 
-    @field_validator("title")
+    @field_validator("title", mode="before")
     @classmethod
-    def title_strip_or_none(cls, v: str | None) -> str | None:
+    def title_strip_or_none(cls, v: object) -> object:
+        """Normalize tab titles before enforcing the persisted length cap."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
         # Whitespace-only would render as a blank tab label; fall back to
         # SQL Lab's default "Untitled Query N" naming instead.
-        if v is None:
-            return None
+        if not isinstance(v, str):
+            return v
         stripped = v.strip()
         return stripped or None
 

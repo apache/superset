@@ -24,7 +24,7 @@ import re
 import urllib.parse
 from collections.abc import Callable
 from dataclasses import dataclass
-from functools import lru_cache
+from functools import cached_property, lru_cache
 from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
 
 import sqlglot
@@ -37,6 +37,7 @@ from sqlglot.dialects.dialect import (
     DialectType,
     NormalizationStrategy,
 )
+from sqlglot.dialects.mysql import MySQL
 from sqlglot.dialects.singlestore import SingleStore
 from sqlglot.errors import OptimizeError, ParseError
 from sqlglot.generator import Generator
@@ -120,6 +121,7 @@ SQLGLOT_DIALECTS = {
     "cockroachdb": Dialects.POSTGRES,
     "couchbase": Dialects.MYSQL,
     # "crate": ???
+    "d1": Dialects.SQLITE,
     "databend": Databend,
     "databricks": Dialects.DATABRICKS,
     "db2": DB2,
@@ -266,6 +268,33 @@ def has_aggregate(
     )
 
 
+def is_constant_expression(expression: str, engine: str = "base") -> bool:
+    """
+    Return True if the SQL expression is a bare constant: a string or numeric
+    literal (including a negated number such as ``-1``), ``NULL``, or (outside
+    SQLite) a boolean literal, optionally wrapped in parentheses.
+
+    Anything that merely contains a constant (``CASE WHEN 1=1 THEN 'x' END``,
+    ``CAST('x' AS VARCHAR)``, ``'a' || col``) is not a bare constant. Fails closed
+    (returns False) on a parse error, so an expression that can't be proven
+    constant is never treated as one.
+
+    ``TRUE``/``FALSE`` are not bare constants on SQLite: they are ordinary
+    identifiers there, resolved to a column of that name when one exists.
+    """
+    dialect = SQLGLOT_DIALECTS.get(engine)
+    try:
+        parsed = sqlglot.parse_one(f"SELECT {expression}", dialect=dialect)
+    except Exception:
+        return False
+    if not isinstance(parsed, exp.Select) or len(parsed.expressions) != 1:
+        return False
+    node = parsed.expressions[0].unnest()
+    if isinstance(node, exp.Boolean):
+        return dialect != Dialects.SQLITE
+    return node.is_number or isinstance(node, (exp.Literal, exp.Null))
+
+
 class LimitMethod(enum.Enum):
     """
     Limit methods.
@@ -276,6 +305,9 @@ class LimitMethod(enum.Enum):
     FORCE_LIMIT = enum.auto()
     WRAP_SQL = enum.auto()
     FETCH_MANY = enum.auto()
+    # Wrap the query and filter on Oracle's `ROWNUM`, for releases before 12c,
+    # which have no `FETCH FIRST`.
+    WRAP_ROWNUM = enum.auto()
 
 
 class CTASMethod(enum.Enum):
@@ -651,6 +683,16 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def get_client_file_transfer_command(self) -> str | None:
+        """
+        Return the client-side file-transfer command head, if this is one.
+
+        Defaults to ``None``; engines that have such commands override this.
+
+        :return: The uppercased command head (e.g. ``"PUT"``), else ``None``.
+        """
+        return None
+
     def optimize(self) -> BaseSQLStatement[InternalRepresentation]:
         """
         Return optimized statement.
@@ -744,6 +786,16 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def cap_limit_value(
+        self,
+        limit: int,
+        method: LimitMethod = LimitMethod.FORCE_LIMIT,
+    ) -> None:
+        """Apply a row cap without increasing an existing smaller limit."""
+        current_limit = self.get_limit_value()
+        if current_limit is None or limit < current_limit:
+            self.set_limit_value(limit, method)
+
     def set_limit_value(
         self,
         limit: int,
@@ -790,6 +842,14 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         Check if the statement has a subquery.
 
         :return: True if the statement has a subquery at the top level.
+        """
+        raise NotImplementedError()
+
+    def get_select_aliases(self) -> list[str | None]:
+        """
+        The alias of each expression in this statement's ``SELECT`` list.
+
+        :return: one entry per select expression, ``None`` where unaliased
         """
         raise NotImplementedError()
 
@@ -887,6 +947,229 @@ def _find_last_token_node(node: exp.Expression) -> exp.Expression:
     return node
 
 
+def _collect_sql_statements(
+    statements: list[exp.Expression | None],
+) -> list[exp.Expression]:
+    """Collect real statements and attach comment-only segments in source order."""
+    parsed_statements: list[exp.Expression] = []
+    leading_comments: list[str] = []
+    for statement in statements:
+        # Empty statements from consecutive semicolons have no AST.
+        if statement is None:
+            continue
+        # sqlglot represents comment-only segments as Semicolon nodes.
+        if isinstance(statement, exp.Semicolon):
+            if parsed_statements:
+                target = _find_last_token_node(parsed_statements[-1])
+                target.add_comments(statement.comments or [])
+            else:
+                leading_comments.extend(statement.comments or [])
+            continue
+        if leading_comments:
+            statement.comments = leading_comments + (statement.comments or [])
+            leading_comments = []
+        parsed_statements.append(statement)
+
+    return parsed_statements
+
+
+# Alternation ordered so a quoted region is consumed whole before either
+# comment form can match inside it, keeping a `--` or `/*` that is merely
+# part of a literal from truncating the text after it. Each of the two
+# regions that scan forward for a closing delimiter -- the dollar-quoted
+# literal and the block comment -- needs a trailing "runs to end"
+# alternative for the unterminated case: without one the lazy `.*?` rescans
+# to end of text from every opener in turn, which is quadratic on input a
+# user controls. The unterminated literal stays inside the `literal` group
+# so it is preserved rather than blanked, since text a gate would match must
+# not disappear.
+_COMMENT_RE_TEMPLATE = r"""
+      (?P<literal>
+          {single_quoted}                       # single-quoted string
+        | {double_quoted}                       # double-quoted identifier
+        | \$(?P<tag>\w*)\$.*?\$(?P=tag)\$       # dollar-quoted string
+        | \$\w*\$.*                             # unterminated: runs to end
+      )
+    | {line_comment}[^\n]*                      # line comment
+    | /\*.*?\*/                                 # block comment
+    | /\*.*                                     # unterminated: runs to end
+    """
+
+
+def _quoted_literal_pattern(quote: str, backslash_escapes: bool) -> str:
+    """
+    Build the pattern matching one quoted region, delimiters included.
+
+    The doubled delimiter (``'it''s'``) always escapes. A backslash only
+    escapes on the dialects that say so, and where it does it must be
+    recognised: without it the scan ends the literal at the escaped quote of
+    ``'it\\'s -- x'``, reads the rest as code, and lets the ``--`` blank out
+    text the server actually runs, hiding it from every gate that scans here.
+
+    The alternatives are kept mutually exclusive -- the negated class drops
+    the escape character rather than overlapping with it -- so exactly one
+    branch can start at any position. An overlapping form would let a run of
+    backslashes with no closing quote backtrack exponentially, on text a user
+    controls.
+
+    :param quote: The delimiter character
+    :param backslash_escapes: Whether a backslash escapes on this dialect
+    :return: The pattern for one quoted region
+    """
+    if backslash_escapes:
+        return rf"{quote}(?:[^{quote}\\]|\\.|{quote}{quote})*{quote}"
+    return rf"{quote}(?:[^{quote}]|{quote}{quote})*{quote}"
+
+
+@lru_cache(maxsize=None)
+def _comment_re_for(dialect: Dialects | None) -> re.Pattern[str]:
+    """
+    Return the comment pattern a dialect's raw statement text is lexed with.
+
+    Both rules that vary are read off sqlglot rather than listed here, so a
+    dialect cannot be lexed with the wrong one because a list was not kept in
+    step: the MySQL family is identified by subclassing (``Doris``,
+    ``StarRocks`` and ``SingleStore`` all subclass ``MySQL``, as does this
+    repo's own ``Pinot``), and backslash escaping is read off the tokenizer.
+
+    MySQL-family engines only start a comment on ``--`` when whitespace (or
+    end of line) follows: ``1--2`` is arithmetic there. Stripping it as a
+    comment would delete text the server executes and blind every gate that
+    scans this body, so those dialects get the stricter rule.
+
+    An unknown dialect is lexed as if backslashes escape. That direction is
+    the safe one: treating an escape that is not one only ever folds more
+    text into a literal, which is preserved and still scanned, while missing
+    a real escape blanks executable text.
+
+    Cached because the answer depends only on the dialect, so a script would
+    otherwise re-derive it, and instantiate a sqlglot ``Dialect``, per
+    statement.
+
+    :param dialect: The statement's sqlglot dialect, or ``None`` when unknown
+    :return: The compiled comment pattern
+    """
+    dialect_cls = Dialect.get_or_raise(dialect) if dialect else None
+    backslash_escapes = (
+        dialect_cls is None or "\\" in dialect_cls.tokenizer_class.STRING_ESCAPES
+    )
+    line_comment = r"--(?=[ \t\r\n]|$)" if isinstance(dialect_cls, MySQL) else "--"
+    return re.compile(
+        _COMMENT_RE_TEMPLATE.format(
+            single_quoted=_quoted_literal_pattern("'", backslash_escapes),
+            double_quoted=_quoted_literal_pattern('"', backslash_escapes),
+            line_comment=line_comment,
+        ),
+        re.DOTALL | re.VERBOSE,
+    )
+
+
+# Oracle 11g and older cap identifiers at 30 bytes.
+ORACLE_LEGACY_MAX_IDENTIFIER_LENGTH = 30
+
+
+def _oracle_output_identifier(projection: exp.Expression) -> exp.Identifier | None:
+    """
+    Return the identifier naming a projected column, if it has one.
+    """
+    if isinstance(projection, exp.Alias):
+        identifier = projection.args.get("alias")
+    elif isinstance(projection, exp.Column):
+        identifier = projection.this
+    else:
+        return None
+    return identifier if isinstance(identifier, exp.Identifier) else None
+
+
+def _oracle_name_key(identifier: exp.Identifier) -> str:
+    """
+    Return the name Oracle compares, since unquoted names are case-insensitive.
+    """
+    return identifier.name if identifier.quoted else identifier.name.upper()
+
+
+def _unique_oracle_alias(identifier: exp.Identifier, taken: set[str]) -> exp.Identifier:
+    """
+    Return a `_2`, `_3`, ... variant of the identifier that isn't taken yet.
+
+    The limit is in bytes, so a multibyte name is cut on a character boundary.
+    """
+    suffix = 2
+    while True:
+        tail = f"_{suffix}"
+        budget = ORACLE_LEGACY_MAX_IDENTIFIER_LENGTH - len(tail)
+        stem = identifier.name.encode()[:budget].decode(errors="ignore")
+        alias = exp.to_identifier(stem + tail, quoted=identifier.quoted)
+        if _oracle_name_key(alias) not in taken:
+            return alias
+        suffix += 1
+
+
+def _deduplicate_oracle_output_names(query: exp.Expression) -> None:
+    """
+    Rename repeated output columns so the query can be wrapped on Oracle.
+
+    Before 12c the row limit wraps the query in `SELECT * FROM (<query>) WHERE
+    ROWNUM <= n`, and Oracle 11g rejects that wrapper when the query returns two
+    columns with the same name, as in `SELECT a.id, b.id FROM a JOIN b ...`, with
+    "ORA-00918: column ambiguously defined". The second and later copies get a
+    `_2`, `_3`, ... suffix instead. A set operation takes its column names from
+    its leftmost query, so that is the one renamed, and parentheses around the
+    query are looked through.
+
+    Two shapes are left as they are and still fail with ORA-00918 once wrapped:
+    qualified stars such as `a.*, b.*` or `a.*, b.id`, whose names aren't known
+    without the schema (a bare `*` over a join works), and a repeated expression
+    without an alias, such as `SELECT 1 + 1, 1 + 1`, which Oracle names after its
+    text. Neither ran before 12c without this rewrite either, since `FETCH FIRST`
+    fails there, and listing the columns with aliases avoids both.
+    """
+    while isinstance(query, (exp.SetOperation, exp.Subquery)):
+        query = query.this
+    if not isinstance(query, exp.Select):
+        return
+
+    identifiers = [_oracle_output_identifier(p) for p in query.expressions]
+    taken = {_oracle_name_key(identifier) for identifier in identifiers if identifier}
+    seen: set[str] = set()
+    for projection, identifier in zip(query.expressions, identifiers, strict=True):
+        if identifier is None:
+            continue
+        if _oracle_name_key(identifier) not in seen:
+            seen.add(_oracle_name_key(identifier))
+            continue
+
+        alias = _unique_oracle_alias(identifier, taken)
+        taken.add(_oracle_name_key(alias))
+        if isinstance(projection, exp.Alias):
+            projection.set("alias", alias)
+        else:
+            projection.replace(exp.alias_(projection.copy(), alias))
+
+
+def _flatten_and(condition: exp.Expression) -> list[exp.Expression]:
+    """
+    Return the leaves of a chain of `AND`s, looking through parentheses.
+
+    `exp.And.flatten()` only unwraps a left- or right-leaning chain of plain
+    `AND`s; a nested `AND` grouped in parentheses, as in `x AND (y AND z)`,
+    comes back as a single `And` leaf rather than its own `y` and `z` leaves.
+    This walks an explicit stack instead, so a condition `AND`-ed together with
+    others stays found regardless of how it is grouped, and a long chain of
+    predicates cannot hit the recursion limit.
+    """
+    leaves: list[exp.Expression] = []
+    stack = [condition]
+    while stack:
+        node = stack.pop().unnest()
+        if isinstance(node, exp.And):
+            stack.append(node.expression)
+            stack.append(node.this)
+        else:
+            leaves.append(node)
+    return leaves
+
+
 class SQLStatement(BaseSQLStatement[exp.Expression]):
     """
     A SQL statement.
@@ -916,6 +1199,22 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # last value, so it is intentionally not listed.)
             "SETVAL",
             "NEXTVAL",
+            # dblink functions open a separate connection and auto-commit,
+            # so writes persist even when the outer transaction is read-only.
+            "DBLINK",
+            "DBLINK_EXEC",
+            "DBLINK_CONNECT",
+            "DBLINK_CONNECT_U",
+            "DBLINK_SEND_QUERY",
+            # PostgreSQL state-mutating functions callable via SELECT
+            "PG_CANCEL_BACKEND",
+            "PG_RELOAD_CONF",
+            "PG_ROTATE_LOGFILE",
+            "PG_STAT_RESET",
+            "PG_SWITCH_WAL",
+            "PG_LOGICAL_EMIT_MESSAGE",
+            "PG_CREATE_RESTORE_POINT",
+            "PG_DROP_REPLICATION_SLOT",
         }
     )
 
@@ -1002,6 +1301,41 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         }
     )
 
+    # Stage file-management heads: ``PUT``/``GET`` move files between the host
+    # running the query and a stage, so they do host file I/O; ``REMOVE`` and
+    # its ``RM`` alias delete files within the stage. None read or write table
+    # data. This is Snowflake syntax but is matched on every dialect, since the
+    # heads are not valid statements elsewhere: a global list cannot reject a
+    # real query, while scoping it to one dialect would let Snowflake-compatible
+    # engines through.
+    _CLIENT_FILE_TRANSFER_COMMAND_NAMES: frozenset[str] = frozenset(
+        {"PUT", "GET", "REMOVE", "RM"}
+    )
+
+    # The same heads inside a nested body, which cannot be re-parsed and so is
+    # matched on raw text. A stage (``@``) or a ``file://`` URL has to follow
+    # the head, since these words are ordinary identifiers elsewhere and a bare
+    # keyword match would flag a body merely selecting a column named
+    # ``remove``. A run of quotes is skipped rather than exactly one: a body
+    # nested inside a string literal carries its own quotes doubled
+    # (``EXECUTE IMMEDIATE 'PUT ''file://...'''``).
+    _CLIENT_FILE_TRANSFER_NESTED_BODY_RE = re.compile(
+        rf"\b({'|'.join(sorted(_CLIENT_FILE_TRANSFER_COMMAND_NAMES))})"
+        r"""\s+['"]*(?:@|file://)""",
+        re.IGNORECASE,
+    )
+
+    # Opening delimiter of a dollar-quoted region, e.g. `$$` or `$tag$`.
+    _DOLLAR_QUOTE_OPEN_RE = re.compile(r"\$\w*\$")
+
+    # A literal nests once per level of dynamic-SQL indirection (an
+    # `EXECUTE IMMEDIATE` inside an `EXECUTE IMMEDIATE`), so a handful covers
+    # every form that actually executes. The bound is what stops a body of
+    # deeply nested `$tag$` regions, whose nesting a user controls, from
+    # recursing once per level and exhausting the stack; past it the text is
+    # left as found, which keeps it visible to the gates rather than removed.
+    _MAX_LITERAL_NESTING = 32
+
     # Command-fallback heads that are only mutating on dialects where the
     # structured form (`exp.Set`) is reserved for benign session variables,
     # so the opaque-Command fallback is reached exclusively by the dangerous
@@ -1042,6 +1376,245 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         }
     )
 
+    def count_select_expressions(self) -> int:
+        """
+        How many expressions this statement's ``SELECT`` list holds.
+
+        A caller that wraps a user-supplied fragment in ``SELECT <fragment>``
+        parses successfully whether the fragment is one expression or a
+        comma-separated list, and the two are not interchangeable: the second
+        returns more columns than the caller asked for. Returns 0 for anything
+        that is not a ``SELECT``.
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return 0
+        return len(self._parsed.expressions)
+
+    def is_bare_select_expression(self) -> bool:
+        """
+        Whether this is ``SELECT <one expression>`` and nothing else.
+
+        `count_select_expressions` counts only the projection, so
+        ``SELECT secret FROM vault`` holds one expression and satisfies it. A
+        caller that splices a user-supplied fragment into a larger statement as
+        *text* needs the stronger claim: no FROM, no WHERE, no GROUP BY, no
+        clause of any kind -- otherwise whatever the caller appends after the
+        fragment lands inside the fragment's own syntax instead of its own.
+
+        Stated as "no populated argument other than the projection" rather than
+        as a denylist of clause names, so a sqlglot release or a dialect that
+        introduces a clause this does not know about fails closed.
+
+        This says nothing about sub-queries, which live *inside* the projection:
+        callers that care need `has_subquery` as well.
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return False
+        if len(self._parsed.expressions) != 1:
+            return False
+        return not self.get_clause_names()
+
+    def get_clause_names(self) -> set[str]:
+        """
+        Which clauses other than the projection this ``SELECT`` populates.
+
+        `is_bare_select_expression` answers "none of them", which is too strong
+        for a caller that assembles a statement with a FROM clause of its own
+        and needs to know that nothing *else* came along with it.
+
+        Reported as the set that is present rather than as a denylist of clause
+        names, for the same reason: a sqlglot release or a dialect introducing a
+        clause this does not know about shows up in the answer instead of being
+        silently permitted.
+
+        Returns an empty set for anything that is not a ``SELECT``, which such a
+        caller has to reject on other grounds anyway.
+
+        Trailing underscores are stripped, because sqlglot appends one to the
+        names that collide with a Python keyword -- its FROM clause is
+        ``from_``. Callers should not have to know that, nor track it across
+        sqlglot releases.
+
+        :return: clause names, e.g. ``{"from", "where"}``
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return set()
+        return {
+            key.rstrip("_")
+            for key, value in self._parsed.args.items()
+            if value and key != "expressions"
+        }
+
+    def get_from_clause_sql(self) -> str | None:
+        """
+        This statement's ``FROM`` clause, rendered back to SQL.
+
+        For comparing an assembled statement's FROM against the one its builder
+        intended. Both sides are rendered rather than compared as raw text, so
+        the comparison does not depend on the whitespace the builder happened to
+        use. Identifier case is preserved, as it has to be for an engine that
+        treats it as significant.
+
+        :return: the rendered clause, or ``None`` where there is no FROM
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return None
+        # ``from_`` is sqlglot's own name for it, the trailing underscore being
+        # how it avoids the Python keyword; both are read so that the lookup
+        # does not depend on which one a given release uses.
+        from_clause = self._parsed.args.get("from_") or self._parsed.args.get("from")
+        return from_clause.sql(dialect=self._dialect) if from_clause else None
+
+    def get_select_aliases(self) -> list[str | None]:
+        """
+        The alias of each expression in this statement's ``SELECT`` list.
+
+        ``None`` where an expression carries no alias. A caller that builds a
+        projection per input and reads the results back positionally needs the
+        aliases it asked for to have survived -- a comment inside a spliced
+        fragment swallows the rest of its line, alias included, and the query
+        still returns the right number of columns.
+
+        Returns an empty list for anything that is not a ``SELECT``.
+
+        :return: one entry per select expression, in order
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return []
+        return [
+            expression.alias if isinstance(expression, exp.Alias) else None
+            for expression in self._parsed.expressions
+        ]
+
+    def get_select_literal_value(self) -> str | None:
+        """
+        The string this statement's single projection denotes, if it is one.
+
+        For a caller that rendered a value into SQL text and needs to know that
+        the engine reads it back as the same value. Whether the renderer's
+        escaping is the escaping the engine honours is a per-engine, and
+        sometimes per-session, property; parsing the rendered text in the
+        engine's own dialect answers it rather than assuming it.
+
+        ``None`` where the projection is anything but exactly one string
+        literal -- a value that broke out of its quotes parses as a
+        concatenation, a function call or a syntax error, and none of those is
+        the value the caller rendered.
+
+        An alias is not part of what the projection denotes, so one is read
+        through: ``SELECT 'a' AS v0`` answers ``a``.
+
+        :return: the string the projection denotes, or ``None``
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return None
+        expressions = self._parsed.expressions
+        if len(expressions) != 1:
+            return None
+        expression = expressions[0].unalias()
+        if not isinstance(expression, exp.Literal) or not expression.is_string:
+            return None
+        return str(expression.this)
+
+    def has_comment(self) -> bool:
+        """
+        Whether this statement carries a SQL comment anywhere in it.
+
+        Read off the parse rather than from the text, which is what makes it
+        both dialect-aware and literal-aware for free: sqlglot attaches a
+        comment to the node it follows only where its lexer for that dialect
+        saw a comment, so a value of ``a--b`` inside a string literal is data
+        and answers ``False``.
+
+        For a caller that assembles a statement and reads its results back
+        positionally: a comment swallows the rest of its line, and text the
+        caller appended after a spliced fragment can end up inside it.
+
+        :return: whether any node carries a comment
+        """
+        return any(node.comments for node in self._parsed.walk())
+
+    def count_bare_column_references(self, name: str) -> int:
+        """
+        How many times ``name`` appears as a column reference in this statement.
+
+        A caller that stands a placeholder in for a value -- replacing it in the
+        *text* before parsing -- cannot otherwise tell whether the placeholder
+        landed somewhere the engine will evaluate. Substituting an identifier
+        and counting the column references it produced answers that: a
+        substitution that fell inside a string literal or a comment yields no
+        column reference at all, because neither holds parseable nodes.
+
+        Compared case-insensitively, since a dialect may normalize the case of
+        an unquoted identifier.
+
+        :param name: the identifier to count references to
+        :return: the number of column references to ``name``
+        """
+        target = name.lower()
+        return sum(
+            1
+            for column in self._parsed.find_all(exp.Column)
+            if column.name.lower() == target
+        )
+
+    def get_column_names(self) -> set[str]:
+        """
+        The unqualified names of every column reference in this statement.
+
+        Qualified or not: ``orders_seq.NEXTVAL`` answers ``{"nextval"}``, which
+        is what a caller asking about a pseudo-column needs, since the
+        qualifier is the sequence's own name.
+
+        Lowercased, since a dialect may normalize the case of an unquoted
+        identifier.
+
+        :return: the column names referenced, lowercased
+        """
+        return {
+            column.name.lower()
+            for column in self._parsed.find_all(exp.Column)
+            if column.name
+        }
+
+    def get_niladic_functions(self) -> set[str]:
+        """
+        Names of functions called with no arguments.
+
+        Some functions mean something entirely different with an empty argument
+        list: on Hive and Impala ``unix_timestamp()`` is the current time while
+        ``unix_timestamp(x)`` is a pure conversion. Callers that care about
+        determinism have to tell those apart by arity, so a name-based check
+        like ``check_functions_present`` is not enough.
+        """
+        niladic: set[str] = set()
+        for function in self._parsed.find_all(exp.Func):
+            sql_name = function.sql_name()
+            name = function.name.upper() if sql_name == "ANONYMOUS" else sql_name
+            if not self._function_args(function):
+                niladic.add(name.upper())
+        return niladic
+
+    @staticmethod
+    def _function_args(function: exp.Func) -> list[Any]:
+        """
+        The arguments a function node was called with.
+
+        `exp.Anonymous` keeps the function *name* in `this` and the arguments in
+        `expressions`, while a named node like `exp.Lower` keeps its single
+        argument in `this` -- so the two shapes have to be read differently or
+        every anonymous call looks like it takes one argument.
+        """
+        if isinstance(function, exp.Anonymous):
+            return list(function.expressions or [])
+
+        args: list[Any] = []
+        for value in function.args.values():
+            if value is None:
+                continue
+            args.extend(value if isinstance(value, list) else [value])
+        return args
+
     def __init__(
         self,
         statement: str | None = None,
@@ -1081,7 +1654,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                     # If MySQL dialect also fails, raise the original error
                     pass
                 else:
-                    return statements
+                    return _collect_sql_statements(statements)
 
             kwargs = (
                 {
@@ -1100,15 +1673,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 message="Unable to parse script",
             ) from ex
 
-        # `sqlglot` will parse comments after the last semicolon as a separate
-        # statement; move them back to the last token in the last real statement
-        if len(statements) > 1 and isinstance(statements[-1], exp.Semicolon):
-            last_statement = statements.pop()
-            target = _find_last_token_node(statements[-1])
-            target.comments = target.comments or []
-            target.comments.extend(last_statement.comments)
-
-        return statements
+        return _collect_sql_statements(statements)
 
     @classmethod
     def split_script(
@@ -1172,20 +1737,157 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         parsed = self._parsed
         return parsed.name.upper() if isinstance(parsed, exp.Command) else None
 
+    @cached_property
     def _nested_body_text(self) -> str | None:
         """
         Return the raw body of a command that carries a statement as text.
 
         The body of a :attr:`_NESTED_BODY_COMMAND_NAMES` command is invisible
         to node-type matching and cannot be re-parsed, so gates that inspect
-        the tree fall back to scanning this text.
+        the tree fall back to scanning this text. Comments are stripped here
+        rather than by each caller, so every such gate scans the same text;
+        see :meth:`_strip_comments` for why.
 
-        :return: The raw body text, or ``None`` when this statement does not
-            carry a nested body
+        Cached because three gates ask for the same body in a single request,
+        one of them twice, so the strip would otherwise run about five times
+        over identical text. Caching is safe
+        because the two methods that rebuild ``_parsed`` in place cannot reach a
+        statement this returns text for: ``set_limit`` returns early unless the
+        node is an ``exp.Query``, and ``remove_unbounded_top_level_order_by``
+        needs an ``order`` argument, while a nested body is only ever carried by
+        an opaque ``exp.Command``, which is neither.
+
+        :return: The body text with comments removed, or ``None`` when this
+            statement does not carry a nested body
         """
-        if self._command_head() not in self._NESTED_BODY_COMMAND_NAMES:
+        if (head := self._command_head()) not in self._NESTED_BODY_COMMAND_NAMES:
             return None
-        return str(self._parsed.expression)
+        body = self._parsed.expression
+        # sqlglot keeps the body as a literal node, whose `str()` re-renders it
+        # as a quoted SQL string: the whole body gets wrapped in quotes and the
+        # quotes inside it are doubled. Reading the value off the node yields
+        # the body as written, so a scan sees the same text the server runs.
+        text = body.name if isinstance(body, exp.Literal) else str(body)
+        # A `DO $$ ... $$` body arrives with its dollar-quote wrapper attached.
+        # That wrapper is statement syntax, not a literal -- the code inside it
+        # runs -- so it is peeled off before the strip, leaving the text either
+        # side of it in place. Any `$tag$` region still nested inside really is
+        # a literal, and is preserved as one.
+        text = self._peel_dollar_quote(text, head)
+        return self._strip_comments(text)
+
+    @property
+    def _comment_re(self) -> re.Pattern[str]:
+        """
+        Return the comment pattern this statement's dialect is lexed with.
+
+        :return: The compiled comment pattern for this statement's dialect
+        """
+        return _comment_re_for(self._dialect)
+
+    @classmethod
+    def _peel_dollar_quote(cls, text: str, head: str | None) -> str:
+        """
+        Remove the delimiters of the body's dollar-quoted code wrapper, keeping
+        its contents and the text either side of it.
+
+        Only a region that the head itself introduces is a wrapper: a ``DO``
+        block, which takes nothing else, or a region running to the end of the
+        body (``EXECUTE IMMEDIATE $$...$$``). A region that stops short of the
+        end is one argument among several (``CALL p($q$...$q$, ...)``) and so is
+        an ordinary literal; unwrapping that would expose its contents as code,
+        letting a ``--`` inside it comment out the rest of the body and blind
+        every gate that scans this text.
+
+        Matching the closing delimiter by search rather than by backtracking
+        regex keeps this linear: a pattern that scans forward for a closer
+        rescans to end of text from every opener that has none, which is
+        quadratic on input a user controls.
+
+        :param text: The raw body text to peel
+        :param head: The statement's command head, which decides whether a
+            region that stops short of the end is a wrapper or an argument
+        :return: The text with the wrapper's delimiters removed, or unchanged
+            when the body has no dollar-quoted wrapper
+        """
+        if not (opener := cls._DOLLAR_QUOTE_OPEN_RE.search(text)):
+            return text
+        delimiter = opener.group()
+        closer = text.find(delimiter, opener.end())
+        if closer == -1:
+            return text
+        if head != "DO" and text[closer + len(delimiter) :].strip():
+            return text
+        return (
+            text[: opener.start()]
+            + text[opener.end() : closer]
+            + text[closer + len(delimiter) :]
+        )
+
+    @staticmethod
+    def _split_literal(literal: str) -> tuple[str, str, str]:
+        """
+        Split a matched literal into its delimiters and the text between them.
+
+        :param literal: The literal as matched, delimiters included
+        :return: The opening delimiter, the interior, and the closing
+            delimiter, which is empty when the literal is unterminated
+        """
+        if not literal.startswith("$"):
+            # `'...'` and `"..."` both delimit with a single character.
+            return literal[0], literal[1:-1], literal[-1]
+        delimiter = literal[: literal.index("$", 1) + 1]
+        interior = literal[len(delimiter) :]
+        if not interior.endswith(delimiter):
+            return delimiter, interior, ""
+        return delimiter, interior[: -len(delimiter)], delimiter
+
+    def _strip_comments(self, text: str, depth: int = 0) -> str:
+        """
+        Blank out SQL comments in raw statement text, preserving literals.
+
+        Commented-out code never runs, so no gate should classify on it.
+        Literals are deliberately kept: a nested body runs its dynamic SQL out
+        of a literal (``EXECUTE IMMEDIATE '...'``), so dropping them would
+        blind such a scan to the very form it exists to catch.
+
+        That same reason makes the text *inside* a literal executable, so its
+        comments are stripped too, one literal at a time. Rescanning only the
+        interior is what keeps that safe: a `--` inside a literal can blank out
+        the rest of that literal, but never reaches past the closing delimiter
+        to truncate the statements after it. Without this a comment wedged into
+        a quoted body (``EXECUTE IMMEDIATE 'PUT/**/file:///a @s'``) would split
+        a head from its argument and hide it from every gate that scans here,
+        while the dollar-quoted spelling of the same statement was caught.
+
+        :param text: The raw statement text to scan
+        :param depth: How many levels of literal this text is already inside
+        :return: The text with each comment replaced by a single space, so
+            tokens either side of a removed comment stay separated
+        """
+        # Text carrying neither comment opener has nothing to strip, and the
+        # substitution below would be an identity: no comment branch can match,
+        # and every literal branch returns the literal unchanged. This is the
+        # same test `replace` already applies per literal, hoisted to the whole
+        # scan so the common comment-free body skips the pass entirely.
+        if "--" not in text and "/*" not in text:
+            return text
+
+        def replace(match: re.Match[str]) -> str:
+            if (literal := match.group("literal")) is None:
+                return " "
+            # A literal carrying neither comment opener has nothing to strip,
+            # and descending anyway costs a full scan per literal on text a
+            # user controls: a body of nothing but quotes is one recursion per
+            # `''` pair, which is ~20x the per-character cost of ordinary text.
+            if depth >= self._MAX_LITERAL_NESTING or (
+                "--" not in literal and "/*" not in literal
+            ):
+                return literal
+            opening, interior, closing = self._split_literal(literal)
+            return opening + self._strip_comments(interior, depth + 1) + closing
+
+        return self._comment_re.sub(replace, text)
 
     def _explain_analyze_body(self) -> str | None:
         """
@@ -1395,6 +2097,28 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         return False
 
+    def get_client_file_transfer_command(self) -> str | None:
+        """
+        Return the client-side file-transfer command head, if this is one.
+
+        :return: The uppercased command head (e.g. ``"PUT"``), else ``None``.
+        """
+        # Three shapes to cover: sqlglot models only the quoted-path forms
+        # structurally (``PUT 'file://...' @s`` -> ``exp.Put``, whose ``key`` is
+        # the head lowercased); every other form falls back to an opaque
+        # ``exp.Command``; and a nested body executes for real yet is invisible
+        # to both, so it is scanned as raw text, as ``changes_search_path``
+        # does for its own forms.
+        if isinstance(self._parsed, (exp.Put, exp.Get)):
+            return self._parsed.key.upper()
+        if (head := self._command_head()) in self._CLIENT_FILE_TRANSFER_COMMAND_NAMES:
+            return head
+        if (body := self._nested_body_text) and (
+            match := self._CLIENT_FILE_TRANSFER_NESTED_BODY_RE.search(body)
+        ):
+            return match.group(1).upper()
+        return None
+
     def is_destructive(self) -> bool:
         """
         Check if the statement is destructive DDL (DROP, TRUNCATE, ALTER).
@@ -1429,6 +2153,31 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             pretty=True,
             comments=comments,
         ).generate(self._parsed, copy=True)
+
+    def format_select_clause(
+        self, *, orderby: bool = False, apply_dialect: bool = True
+    ) -> str:
+        """Unwrap a synthetic SELECT using its parsed projection or ORDER BY nodes.
+
+        Extract clauses structurally so keywords inside comments are never wrappers.
+        Disable dialect rewrites when unwrapping sanitize_clause's neutral output.
+        """
+        if not isinstance(self._parsed, exp.Select):
+            raise SupersetParseError("Expected a SELECT statement")
+        select = self._parsed
+        clause = select.args.get("order") if orderby else select
+        if clause is None:
+            raise SupersetParseError("Expected an ORDER BY clause")
+        expressions = [expression.copy() for expression in clause.expressions]
+        if expressions:
+            expressions[0].add_comments(select.comments)
+        generator = _normalized_generator(
+            self._dialect if apply_dialect else None, pretty=False, comments=True
+        )
+        result = ", ".join(generator.generate(expression) for expression in expressions)
+        if not orderby and (distinct := select.args.get("distinct")):
+            result = f"{generator.generate(distinct.copy())} {result}"
+        return result
 
     def get_settings(self) -> dict[str, str | bool]:
         """
@@ -1616,7 +2365,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # because a computed setting name never spells the latter
         # contiguously. Whole-word matching keeps an unrelated identifier that
         # merely embeds one of them (`reset_config`) from being flagged.
-        body = self._nested_body_text()
+        body = self._nested_body_text
         return bool(
             body and re.search(r"\b(search_path|set_config)\b", body, re.IGNORECASE)
         )
@@ -1661,7 +2410,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # required: a body that merely creates or references one is not a
         # rebind. The optional qualifier mirrors the tokens the non-nested
         # path strips, so `SET LOCAL SCHEMA` is matched in either position.
-        body = self._nested_body_text()
+        body = self._nested_body_text
         if body and re.search(
             r"\bset\s+(?:(?:session|local|current)\s+)?(?:schema|catalog)\b",
             body,
@@ -1784,7 +2533,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
     def get_limit_value(self) -> int | None:
         """
-        Parse a SQL query and return the `LIMIT` or `TOP` value, if present.
+        Return a fixed outer `LIMIT`, `TOP`, or `FETCH` row count, if known.
         """
         # `LIMIT 2 BY id` bounds each group, not the result set, so reporting 2
         # here would make `_set_query_limit()` clamp the whole query to 2 rows.
@@ -1792,13 +2541,101 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             return None
 
         if limit_node := self._parsed.args.get("limit"):
-            literal = limit_node.args.get("expression") or getattr(
-                limit_node, "this", None
-            )
+            options = limit_node.args.get("limit_options")
+            if options and (
+                options.args.get("percent") or options.args.get("with_ties")
+            ):
+                return None
+            if isinstance(limit_node, exp.Fetch):
+                literal = limit_node.args.get("count")
+                # FETCH FIRST ROW ONLY has an implicit count of one.
+                if literal is None:
+                    return 1
+            else:
+                literal = limit_node.args.get("expression")
+            while isinstance(literal, exp.Paren):
+                literal = literal.this
             if isinstance(literal, exp.Literal) and literal.is_int:
                 return int(literal.name)
 
-        return None
+        return self._get_rownum_limit()
+
+    def _get_rownum_limit(self) -> int | None:
+        """
+        Return the row cap of a top-level Oracle `ROWNUM` filter, if any.
+
+        Oracle releases before 12c have no `FETCH FIRST`, so a `ROWNUM <= n`
+        condition in the outer `WHERE` is how a query caps its rows there. It is
+        also the shape `set_limit_value()` produces with `WRAP_ROWNUM`. Only
+        conditions that are `AND`-ed into the filter count: under an `OR` the
+        comparison no longer bounds the result.
+        """
+        if self._dialect != Dialects.ORACLE or not isinstance(self._parsed, exp.Select):
+            return None
+
+        where = self._parsed.args.get("where")
+        if where is None:
+            return None
+
+        conditions = _flatten_and(where.this)
+        caps = []
+        for predicate in conditions:
+            predicate = predicate.unnest()
+            if isinstance(predicate, (exp.LTE, exp.LT)):
+                rownum, bound = predicate.this, predicate.expression
+            elif isinstance(predicate, (exp.GTE, exp.GT)):
+                bound, rownum = predicate.this, predicate.expression
+            else:
+                continue
+
+            rownum = rownum.unnest()
+            bound = bound.unnest()
+            if (
+                isinstance(rownum, exp.Column)
+                and not rownum.table
+                # A quoted "rownum" is a column of that name, not the pseudocolumn.
+                and not rownum.this.quoted
+                and rownum.name.upper() == "ROWNUM"
+                and isinstance(bound, exp.Literal)
+                and bound.is_int
+            ):
+                # `ROWNUM < n` keeps one row fewer than `ROWNUM <= n`.
+                strict = isinstance(predicate, (exp.LT, exp.GT))
+                caps.append(max(int(bound.name) - strict, 0))
+
+        return min(caps, default=None)
+
+    def cap_limit_value(
+        self,
+        limit: int,
+        method: LimitMethod = LimitMethod.FORCE_LIMIT,
+    ) -> None:
+        """Preserve complex limits, using a SQL cap only when safe to wrap."""
+        if (
+            self._parsed.args.get("limit") is not None
+            and self.get_limit_value() is None
+            and method in {LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL}
+            and isinstance(self._parsed, exp.Query)
+        ):
+            # SQL Server derived tables reject unnamed or duplicate output
+            # columns, including names hidden behind stars. Preserve the SQL
+            # restriction and let the executor cap returned rows instead.
+            if self._dialect == Dialects.TSQL:
+                return
+
+            # PERCENT, WITH TIES and expressions aren't fixed row counts. Keep
+            # them intact: replacing them could enlarge a smaller result set.
+            self.set_limit_value(limit, LimitMethod.WRAP_SQL)
+            subquery = self._parsed.args["from_"].this
+            subquery.set(
+                "alias",
+                exp.TableAlias(this=exp.to_identifier("__superset_limit")),
+            )
+            # Keep CTEs at statement level rather than inside the derived table.
+            if cte := subquery.this.args.pop("with_", None):
+                self._parsed.set("with_", cte)
+        else:
+            super().cap_limit_value(limit, method)
 
     def set_limit_value(
         self,
@@ -1826,6 +2663,36 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # special-case so it holds for every non-query statement, including ones
         # whose generators may learn to render a `limit` arg in a later sqlglot.
         if not isinstance(self._parsed, exp.Query):
+            return
+
+        # Oracle only gained `FETCH FIRST` in 12c, and that is how sqlglot
+        # renders every Oracle limit, so on 10g and 11g a limited query fails
+        # with "ORA-00933: SQL command not properly ended". There, cap the rows
+        # by filtering the original query on `ROWNUM` from outside. `ROWNUM` is
+        # assigned after the inner `ORDER BY` runs, so the first `n` rows are
+        # still the top `n`. SQLAlchemy uses the same rewrite for pre-12c
+        # servers. The wrapper rejects duplicate output column names (ORA-00918)
+        # on 11g and 23ai alike, so they are renamed first, and later releases
+        # keep `FETCH FIRST`, which accepts them.
+        if method == LimitMethod.WRAP_ROWNUM:
+            inner = self._parsed.copy()
+            # Keep CTEs at statement level rather than inside the derived table.
+            cte = inner.args.pop("with_", None)
+            _deduplicate_oracle_output_names(inner)
+            wrapper = exp.Select(
+                expressions=[exp.Star()],
+                from_=exp.From(this=exp.Subquery(this=inner)),
+                where=exp.Where(
+                    this=exp.LTE(
+                        this=exp.column("ROWNUM"),
+                        expression=exp.Literal.number(limit),
+                    )
+                ),
+            )
+            if cte:
+                wrapper.set("with_", cte)
+
+            self._parsed = wrapper
             return
 
         # A ClickHouse `LIMIT ... BY` occupies the very `limit`/`offset` slot that
@@ -1953,6 +2820,46 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         Check if the statement is a top-level set operation (UNION/INTERSECT/EXCEPT).
         """
         return isinstance(self._parsed, exp.SetOperation)
+
+    def get_unmodelled_functions(self) -> set[str]:
+        """
+        Return the names of function calls SQLGlot does not model.
+
+        Such calls parse into ``exp.Anonymous`` and their behavior is opaque: a
+        user-defined function or a dialect builtin such as ``query_to_xml`` or
+        ``dblink`` can read tables named in string arguments, which ``tables``
+        cannot report.
+
+        :return: The function names, as written; a qualified call keeps its
+            qualifier (``my_schema.my_function``) so it is never mistaken for a
+            builtin of the same name
+        """
+        names: set[str] = set()
+        for node in self._parsed.find_all(exp.Anonymous):
+            parent = node.parent
+            if isinstance(parent, exp.Dot) and parent.expression is node:
+                names.add(f"{parent.this.sql()}.{node.name}")
+            else:
+                names.add(node.name)
+        return names
+
+    def has_dynamic_table_source(self) -> bool:
+        """
+        Check if the statement reads from something other than a named table.
+
+        Table functions (``read_csv(...)``, ``generate_series(...)``) and
+        dynamically named tables (``IDENTIFIER('t')``, Snowflake ``TABLE('t')``)
+        carry no table name for ``tables`` to report.
+
+        :return: True if any table source is not a plain named table
+        """
+        return (
+            any(
+                not isinstance(table.this, exp.Identifier)
+                for table in self._parsed.find_all(exp.Table)
+            )
+            or self._parsed.find(exp.TableFromRows) is not None
+        )
 
     def parse_predicate(self, predicate: str) -> exp.Expression:
         """
@@ -2512,6 +3419,25 @@ class SQLScript:
         :return: True if the script contains mutating statements
         """
         return any(statement.is_mutating() for statement in self.statements)
+
+    def get_client_file_transfer_commands(self) -> list[str]:
+        """
+        Return the client-side file-transfer command heads in the script.
+
+        Sorted here so that every caller renders the heads in the same order:
+        the set these are deduplicated into iterates arbitrarily, which would
+        otherwise leave each error message to remember to sort for itself.
+
+        :return: The sorted, deduplicated uppercased command heads found
+            (empty when none).
+        """
+        return sorted(
+            {
+                command
+                for statement in self.statements
+                if (command := statement.get_client_file_transfer_command()) is not None
+            }
+        )
 
     def has_destructive(self) -> bool:
         """

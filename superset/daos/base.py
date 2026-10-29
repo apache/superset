@@ -883,11 +883,16 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         search_columns: Optional[List[str]] = None,
         custom_filters: Optional[Dict[str, BaseFilter]] = None,
         columns: Optional[List[str]] = None,
+        with_count: bool = True,
     ) -> Tuple[List[Any], int]:
         """
         Generic list method for filtered, sorted, and paginated results.
         If columns is specified, returns a list of tuples (one per row),
         otherwise returns model instances.
+
+        When ``with_count`` is False the total-count query is skipped and the
+        returned count is -1; callers that paginate by keyset or lookahead
+        can use this to avoid a second statement per page.
         """
         data_model = SQLAInterface(cls.model_cls, db.session)
 
@@ -943,7 +948,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         # Count before adding relationship joins to avoid inflated counts
         # with one-to-many or many-to-many relationships
-        total_count = query.count()
+        total_count = query.count() if with_count else -1
 
         # Add relationship joins after counting
         if relationship_loads:

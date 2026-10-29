@@ -17,10 +17,11 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Any
 
 from flask_babel import gettext as _
-from pandas import DataFrame, MultiIndex
+from pandas import DataFrame, MultiIndex, Series
 from pandas.api.types import infer_dtype, is_bool_dtype, is_numeric_dtype
 
 from superset.exceptions import InvalidPostProcessingError
@@ -66,6 +67,23 @@ def _select_arithmetic_columns(df: DataFrame) -> DataFrame:
     return df.iloc[
         :, [is_arithmetic(position, dtype) for position, dtype in enumerate(df.dtypes)]
     ]
+
+
+def _align_total(total: Any, column: Series) -> Any:
+    """
+    Match a supplied contribution total to the column it divides.
+
+    Totals come from a separate query and can stay ``Decimal`` while the
+    column was converted to a numeric dtype; ``float`` and ``Decimal`` don't
+    divide, so such a total is converted to ``float``.
+
+    :param total: Total for the column, as supplied by the totals query.
+    :param column: Column the total divides.
+    :return: The total, converted to ``float`` when needed.
+    """
+    if isinstance(total, Decimal) and is_numeric_dtype(column.dtype):
+        return float(total)
+    return total
 
 
 @validate_column_args("columns")
@@ -132,7 +150,9 @@ def contribution(
                 if total is None or total == 0:
                     contribution_df[rename_col] = 0
                 else:
-                    contribution_df[rename_col] = numeric_df_view[col] / total
+                    contribution_df[rename_col] = numeric_df_view[col] / _align_total(
+                        total, numeric_df_view[col]
+                    )
         else:
             numeric_df_view = numeric_df_view / numeric_df_view.values.sum(
                 axis=0, keepdims=True

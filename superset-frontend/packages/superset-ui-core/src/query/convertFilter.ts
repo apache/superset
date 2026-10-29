@@ -28,11 +28,15 @@ export default function convertFilter(
   filter: SimpleAdhocFilter,
 ): QueryObjectFilterClause {
   const { subject } = filter;
+  const column = {
+    col: subject,
+    ...(filter.timeGrain && { grain: filter.timeGrain }),
+  };
   if (isUnaryAdhocFilter(filter)) {
     const { operator } = filter;
 
     return {
-      col: subject,
+      ...column,
       op: operator,
     };
   }
@@ -40,7 +44,7 @@ export default function convertFilter(
     const { operator } = filter;
 
     return {
-      col: subject,
+      ...column,
       op: operator,
       val: filter.comparator,
     };
@@ -49,7 +53,7 @@ export default function convertFilter(
   const { operator } = filter;
 
   return {
-    col: subject,
+    ...column,
     op: operator,
     val: filter.comparator,
   };
