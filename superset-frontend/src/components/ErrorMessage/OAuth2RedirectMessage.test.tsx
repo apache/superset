@@ -20,14 +20,13 @@
 import * as reduxHooks from 'react-redux';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';
-import { render, fireEvent, waitFor } from 'spec/helpers/testing-library';
+import { act, render, waitFor } from 'spec/helpers/testing-library';
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
 import { OAuth2RedirectMessage } from '.';
 
-// Mock the Redux store
 const mockStore = createStore(() => ({
   sqlLab: {
     queries: { 'query-id': { sql: 'SELECT * FROM table' } },
@@ -41,7 +40,6 @@ const mockStore = createStore(() => ({
   dashboardInfo: { id: 'dashboard-id' },
 }));
 
-// Mock actions
 jest.mock('src/SqlLab/actions/sqlLab', () => ({
   reRunQuery: jest.fn(),
 }));
@@ -54,29 +52,42 @@ jest.mock('src/dashboard/actions/dashboardState', () => ({
   onRefresh: jest.fn(),
 }));
 
-// Mock useDispatch
 const mockDispatch = jest.fn();
 jest.spyOn(reduxHooks, 'useDispatch').mockReturnValue(mockDispatch);
 
-// Mock global window functions
-const mockOpen = jest.spyOn(window, 'open').mockImplementation(() => null);
-const mockAddEventListener = jest.spyOn(window, 'addEventListener');
-const mockRemoveEventListener = jest.spyOn(window, 'removeEventListener');
+type OAuthMessage = { tabId?: string };
 
-// Mock window.postMessage
-const originalPostMessage = window.postMessage;
+const globalWithBroadcastChannel = global as unknown as {
+  BroadcastChannel: jest.Mock;
+};
+
+// Capture the channel created by the component so tests can drive its
+// onmessage handler and assert it gets closed on unmount.
+let capturedChannel: {
+  onmessage: ((event: { data: OAuthMessage }) => void) | null;
+  close: jest.Mock;
+};
+const channelCloseMock = jest.fn();
 
 beforeEach(() => {
-  window.postMessage = jest.fn();
+  jest.clearAllMocks();
+  capturedChannel = { onmessage: null, close: channelCloseMock };
+  globalWithBroadcastChannel.BroadcastChannel = jest
+    .fn()
+    .mockImplementation(() => capturedChannel);
 });
 
-afterEach(() => {
-  window.postMessage = originalPostMessage;
-});
+function simulateBroadcastMessage(data: OAuthMessage) {
+  capturedChannel.onmessage?.({ data });
+}
 
-function simulateMessageEvent(data: any, origin: string) {
-  const messageEvent = new MessageEvent('message', { data, origin });
-  window.dispatchEvent(messageEvent);
+function simulateStorageMessage(data: OAuthMessage) {
+  window.dispatchEvent(
+    new StorageEvent('storage', {
+      key: 'oauth2_auth_complete',
+      newValue: JSON.stringify(data),
+    }),
+  );
 }
 
 const defaultProps = {
@@ -86,7 +97,6 @@ const defaultProps = {
     extra: {
       url: 'https://example.com',
       tab_id: 'tabId',
-      redirect_uri: 'https://redirect.example.com',
     },
     level: 'warning' as ErrorLevel,
   },
@@ -95,67 +105,170 @@ const defaultProps = {
 
 const setup = (overrides = {}) => (
   <Provider store={mockStore}>
-    <OAuth2RedirectMessage {...defaultProps} {...overrides} />;
+    <OAuth2RedirectMessage {...defaultProps} {...overrides} />
   </Provider>
 );
 
-describe('OAuth2RedirectMessage Component', () => {
-  it('renders without crashing and displays the correct initial UI elements', () => {
-    const { getByText } = render(setup());
+test('renders the authorization link', () => {
+  const { getByText } = render(setup());
 
-    expect(getByText(/Authorization needed/i)).toBeInTheDocument();
-    expect(getByText(/provide authorization/i)).toBeInTheDocument();
+  expect(getByText(/Authorization needed/i)).toBeInTheDocument();
+  const link = getByText(/provide authorization/i);
+  expect(link).toHaveAttribute('href', 'https://example.com');
+  expect(link).toHaveAttribute('target', '_blank');
+});
+
+test('closes the BroadcastChannel on unmount', () => {
+  const { unmount } = render(setup());
+
+  expect(globalWithBroadcastChannel.BroadcastChannel).toHaveBeenCalledWith(
+    'oauth',
+  );
+  unmount();
+  expect(channelCloseMock).toHaveBeenCalled();
+});
+
+test('re-runs the SQL Lab query on a matching broadcast message', async () => {
+  render(setup());
+  simulateBroadcastMessage({ tabId: 'tabId' });
+  await waitFor(() => {
+    expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
   });
+});
 
-  it('opens a new window with the correct URL when the link is clicked', () => {
-    const { getByText } = render(setup());
-
-    const linkElement = getByText(/provide authorization/i);
-    fireEvent.click(linkElement);
-
-    expect(mockOpen).toHaveBeenCalledWith('https://example.com', '_blank');
+test('triggers the chart query for explore', async () => {
+  render(setup({ source: 'explore' }));
+  simulateBroadcastMessage({ tabId: 'tabId' });
+  await waitFor(() => {
+    expect(triggerQuery).toHaveBeenCalledWith(true, 123);
   });
+});
 
-  it('cleans up the message event listener on unmount', () => {
-    const { unmount } = render(setup());
-
-    expect(mockAddEventListener).toHaveBeenCalled();
-    unmount();
-    expect(mockRemoveEventListener).toHaveBeenCalled();
+test('refreshes the dashboard charts on a matching broadcast message', async () => {
+  render(setup({ source: 'dashboard' }));
+  simulateBroadcastMessage({ tabId: 'tabId' });
+  await waitFor(() => {
+    expect(onRefresh).toHaveBeenCalledWith([1, 2], true, 0, 'dashboard-id');
   });
+});
 
-  it('dispatches reRunQuery action when a message with correct tab ID is received for SQL Lab', async () => {
-    render(setup());
+test('refreshes the dashboard on a matching storage event', async () => {
+  render(setup({ source: 'dashboard' }));
+  simulateStorageMessage({ tabId: 'tabId' });
+  await waitFor(() => {
+    expect(onRefresh).toHaveBeenCalledWith([1, 2], true, 0, 'dashboard-id');
+  });
+});
 
-    simulateMessageEvent({ tabId: 'tabId' }, 'https://redirect.example.com');
+test('ignores messages for other tab IDs and malformed storage payloads', () => {
+  render(setup({ source: 'dashboard' }));
+  simulateBroadcastMessage({ tabId: 'other' });
+  simulateStorageMessage({ tabId: 'other' });
+  window.dispatchEvent(
+    new StorageEvent('storage', {
+      key: 'oauth2_auth_complete',
+      newValue: 'not-json',
+    }),
+  );
+  expect(onRefresh).not.toHaveBeenCalled();
+});
 
-    await waitFor(() => {
-      expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
+test('dispatches only once when both BroadcastChannel and storage signals arrive', async () => {
+  render(setup());
+  simulateBroadcastMessage({ tabId: 'tabId' });
+  simulateStorageMessage({ tabId: 'tabId' });
+  await waitFor(() => {
+    expect(reRunQuery).toHaveBeenCalledTimes(1);
+  });
+});
+
+test('falls back to storage events when BroadcastChannel construction throws', async () => {
+  globalWithBroadcastChannel.BroadcastChannel = jest
+    .fn()
+    .mockImplementation(() => {
+      throw new Error('blocked');
     });
+  render(setup());
+  simulateStorageMessage({ tabId: 'tabId' });
+  await waitFor(() => {
+    expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
+  });
+});
+
+test('dashboard: store updates while failed charts churn do not drop the completion message', () => {
+  // Simulates a dashboard whose chart state keeps changing (charts added,
+  // updated) while the error banner is displayed, then the OAuth tab reports
+  // completion. The listener must stay subscribed and refresh the latest chart set.
+  const initialState = {
+    charts: { '1': {}, '2': {} } as Record<string, object>,
+    dashboardInfo: { id: 'dashboard-id' },
+  };
+  const store = createStore(
+    (state: typeof initialState = initialState, action: { type: string }) =>
+      action.type === 'ADD_CHART'
+        ? { ...state, charts: { ...state.charts, '3': {} } }
+        : state,
+  );
+  render(
+    <Provider store={store}>
+      <OAuth2RedirectMessage {...defaultProps} source="dashboard" />
+    </Provider>,
+  );
+  expect(globalWithBroadcastChannel.BroadcastChannel).toHaveBeenCalledTimes(1);
+
+  act(() => {
+    store.dispatch({ type: 'ADD_CHART' });
   });
 
-  it('dispatches triggerQuery action for explore source upon receiving a correct message', async () => {
-    render(setup({ source: 'explore' }));
+  // The channel is not recreated on store updates...
+  expect(globalWithBroadcastChannel.BroadcastChannel).toHaveBeenCalledTimes(1);
+  expect(channelCloseMock).not.toHaveBeenCalled();
 
-    simulateMessageEvent({ tabId: 'tabId' }, 'https://redirect.example.com');
+  simulateBroadcastMessage({ tabId: 'tabId' });
+  // ...and the refresh covers the latest chart list.
+  expect(onRefresh).toHaveBeenCalledTimes(1);
+  expect(onRefresh).toHaveBeenCalledWith([1, 2, 3], true, 0, 'dashboard-id');
+});
 
-    await waitFor(() => {
-      expect(triggerQuery).toHaveBeenCalledWith(true, 123);
-    });
+test('re-processes a later signal when the first arrived before state was ready', async () => {
+  const initialState = {
+    sqlLab: {
+      queries: {},
+      queryEditors: [{ id: 'editor-id' }],
+      tabHistory: ['editor-id'],
+    },
+    explore: { slice: { slice_id: 123 } },
+    charts: {},
+    dashboardInfo: { id: 'dashboard-id' },
+  };
+  const dynamicStore = createStore(
+    (state: typeof initialState = initialState, action: { type: string }) =>
+      action.type === 'SET_READY'
+        ? {
+            ...state,
+            sqlLab: {
+              ...state.sqlLab,
+              queries: { 'query-id': { sql: 'SELECT * FROM table' } },
+              queryEditors: [{ id: 'editor-id', latestQueryId: 'query-id' }],
+            },
+          }
+        : state,
+  );
+  render(
+    <Provider store={dynamicStore}>
+      <OAuth2RedirectMessage {...defaultProps} />
+    </Provider>,
+  );
+
+  simulateBroadcastMessage({ tabId: 'tabId' });
+  expect(reRunQuery).not.toHaveBeenCalled();
+
+  act(() => {
+    dynamicStore.dispatch({ type: 'SET_READY' });
   });
+  simulateStorageMessage({ tabId: 'tabId' });
 
-  it('dispatches onRefresh action for dashboard source upon receiving a correct message', async () => {
-    render(setup({ source: 'dashboard' }));
-
-    simulateMessageEvent({ tabId: 'tabId' }, 'https://redirect.example.com');
-
-    await waitFor(() => {
-      expect(onRefresh).toHaveBeenCalledWith(
-        ['1', '2'],
-        true,
-        0,
-        'dashboard-id',
-      );
-    });
+  await waitFor(() => {
+    expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
   });
 });
