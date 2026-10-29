@@ -32,6 +32,7 @@ reported as skipped rather than revived or dangling.
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -40,11 +41,14 @@ from uuid import UUID
 
 import sqlalchemy as sa
 from flask_babel import gettext as _
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.attributes import set_committed_value
+from sqlalchemy.orm.exc import StaleDataError
 from sqlalchemy_continuum import version_class
 
 from superset.extensions import db
 from superset.versioning.baseline import OPERATION_DELETE, OPERATION_INSERT
+from superset.versioning.db_errors import is_foreign_key_violation
 from superset.versioning.queries import find_active_by_uuid
 from superset.versioning.utils import single_flush_scope
 
@@ -135,6 +139,30 @@ class RecycledChildIdentityError(Exception):
             "snapshot now identify different live columns or metrics, so the "
             "restore would overwrite them. The entity was left unchanged."
         )
+
+
+class ChartPurgedDuringRestoreError(Exception):
+    """A chart whose dashboard membership the restore was changing was
+    permanently deleted before the restore could write the change.
+
+    The purge commits between the restore's read of the dashboard's charts
+    and its write. Reattaching the chart then fails on the foreign key, and
+    unlinking it finds its ``dashboard_slices`` row already gone; either way
+    the whole restore rolls back. Retrying is safe: the next attempt no
+    longer finds the chart. ``chart_ids`` are the charts whose membership the
+    restore was changing, so the caller can confirm, after the rollback,
+    that one of them is gone. The message is user-facing.
+    """
+
+    def __init__(self, chart_ids: Sequence[int]) -> None:
+        super().__init__(
+            _(
+                "A chart on this dashboard or in this version was permanently "
+                "deleted while the dashboard was being restored, so nothing was "
+                "changed. Please try again."
+            )
+        )
+        self.chart_ids: list[int] = sorted(chart_ids)
 
 
 class MissingDatasourceError(Exception):
@@ -673,20 +701,25 @@ def restore_version(
     chart_datasource: Any | None = _lock_chart_datasource(model_cls, target_version)
 
     skipped_slice_ids: list[int] = []
+    changed_slice_ids: list[int] = []
+    # Read before the flush: after a failed flush, touching an expired
+    # attribute raises PendingRollbackError instead of the original error.
+    entity_id: int = entity.id
     try:
         with single_flush_scope(db.session):
             target_version.revert(relations=relations)
             _sync_chart_perms(entity, chart_datasource)
             if model_cls.__name__ == "Dashboard":
-                skipped_slice_ids = _restore_dashboard_membership(
+                skipped_slice_ids, changed_slice_ids = _restore_dashboard_membership(
                     entity, transaction_id
                 )
             _stamp_audit_fields_for_restore(entity)
-    except Exception:
+    except Exception as ex:
+        _raise_for_chart_purge_race(ex, changed_slice_ids)
         logger.exception(
             "Continuum revert() failed for %s id=%s tx=%s relations=%s",
             model_cls.__name__,
-            entity.id,
+            entity_id,
             transaction_id,
             relations,
         )
@@ -703,7 +736,40 @@ def restore_version(
     return RestoreResult(entity=entity, skipped_slice_ids=skipped_slice_ids)
 
 
-def _restore_dashboard_membership(dashboard: Any, transaction_id: int) -> list[int]:
+#: ``dashboard_slices`` as a whole word, so ``dashboard_slices_version`` (the
+#: association's history table) does not match.
+_DASHBOARD_SLICES_PATTERN: re.Pattern[str] = re.compile(r"\bdashboard_slices\b")
+
+
+def _raise_for_chart_purge_race(ex: Exception, changed_slice_ids: list[int]) -> None:
+    """Raise :class:`ChartPurgedDuringRestoreError` when *ex* is the
+    restore's write to ``dashboard_slices`` failing because a chart it was
+    linking or unlinking has been purged.
+
+    Linking a purged chart fails the row's foreign key; unlinking one finds
+    its row already deleted by the purge, so the delete matches no row.
+    Only failures of the ``dashboard_slices`` write itself are candidates,
+    and the caller still confirms, once the transaction has rolled back,
+    that one of the charts is gone. Any other failure returns, so it is
+    logged and re-raised as before.
+    """
+    if not changed_slice_ids:
+        return
+    if isinstance(ex, IntegrityError):
+        candidate: bool = is_foreign_key_violation(ex) and bool(
+            _DASHBOARD_SLICES_PATTERN.search(ex.statement or "")
+        )
+    elif isinstance(ex, StaleDataError):
+        candidate = _DASHBOARD_SLICES_PATTERN.search(str(ex)) is not None
+    else:
+        candidate = False
+    if candidate:
+        raise ChartPurgedDuringRestoreError(changed_slice_ids) from ex
+
+
+def _restore_dashboard_membership(
+    dashboard: Any, transaction_id: int
+) -> tuple[list[int], list[int]]:
     """Reset *dashboard*'s chart membership to what it was at
     *transaction_id*, reattaching only charts that still exist.
 
@@ -719,8 +785,10 @@ def _restore_dashboard_membership(dashboard: Any, transaction_id: int) -> list[i
     ``end_transaction_id`` the validity backfill does close (sc-119907).
 
     Returns the ids of snapshot members that no longer exist and were
-    skipped. Live charts' content is never touched — restoring a chart's
-    content is the chart's own restore endpoint's job.
+    skipped, and the ids of charts whose membership the restore changes:
+    those it attaches and those it unlinks. Live charts' content is never
+    touched — restoring a chart's content is the chart's own restore
+    endpoint's job.
 
     An archived (soft-deleted) chart still exists: it stays a recoverable
     member, so its membership follows the snapshot like any other chart's.
@@ -779,6 +847,8 @@ def _restore_dashboard_membership(dashboard: Any, transaction_id: int) -> list[i
     dashboard.slices = live_slices
     live_ids = {slc.id for slc in live_slices}
     skipped = sorted(set(member_ids) - live_ids)
+    current_ids: set[int] = {slc.id for slc in current_slices}
+    changed: list[int] = sorted(live_ids ^ current_ids)
     if skipped:
         logger.warning(
             "versioning: dashboard id=%s restore to tx=%s skipped %d "
@@ -788,7 +858,7 @@ def _restore_dashboard_membership(dashboard: Any, transaction_id: int) -> list[i
             len(skipped),
             skipped,
         )
-    return skipped
+    return skipped, changed
 
 
 def _stamp_audit_fields_for_restore(entity: Any) -> None:
