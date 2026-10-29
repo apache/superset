@@ -19,20 +19,27 @@
 import logging
 import secrets
 from collections.abc import Callable
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence, TYPE_CHECKING
 
 from fastmcp.server.auth.providers.jwt import JWTVerifier
 from flask import Flask
 
 from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET
-from superset.mcp_service.composite_token_verifier import CompositeTokenVerifier
+from superset.mcp_service.composite_token_verifier import (
+    CompositeTokenVerifier,
+    get_verifier_client_id,
+)
 from superset.mcp_service.constants import (
     DEFAULT_MAX_LIST_ITEMS,
+    DEFAULT_MAX_PNG_RESPONSE_BYTES,
     DEFAULT_MAX_RESPONSE_BYTES,
     DEFAULT_WARN_THRESHOLD_PCT,
 )
 from superset.mcp_service.guest_token_verifier import GuestTokenVerifier
 from superset.mcp_service.jwt_verifier import DetailedJWTVerifier, MCPJWTVerifier
+
+if TYPE_CHECKING:
+    from superset.mcp_service.dataset_scope import DatasetScopeResolver
 
 logger = logging.getLogger(__name__)
 
@@ -63,10 +70,34 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 # user's Superset administrator and the Apache Superset issue tracker.
 MCP_BUG_REPORT_CONTACT: str | None = None
 
-# Optional dataset routing mode: effective role names -> registered dataset UUIDs.
-# None preserves the complete MCP tool surface; {} permits no datasets.
-# This only narrows access and is not a substitute for permissions or RLS.
-MCP_DATASET_ROLE_ALLOWLIST: dict[str, list[str]] | None = None
+# Optional dataset routing mode, narrowing MCP tools to a set of registered
+# dataset UUIDs (see SCOPED_TOOLS in dataset_scope.py). None preserves the
+# complete MCP tool surface. This only narrows access and is not a substitute
+# for permissions or RLS.
+#
+# Two forms:
+#   dict[str, list[str]] -- static effective role name -> dataset UUID list,
+#     validated at startup. A caller's allowed datasets are the union of
+#     their effective roles' lists; an unlisted role (including Admin)
+#     contributes nothing. {} permits no datasets. Suitable for single-
+#     tenant installs where roles and dataset UUIDs are fixed at deploy time.
+#   Callable[[user], Iterable[str | UUID] | UNSCOPED | None] -- resolves the
+#     allowed dataset UUIDs for the current request's user instead of a static
+#     mapping. Use
+#     this when role names and dataset UUIDs are not static -- e.g. one MCP
+#     deployment serving many per-workspace tenants, each with its own roles
+#     and datasets. Called on every tool call that needs routing enforcement,
+#     possibly more than once per call, so it must be cheap, side-effect free
+#     and in-process (no slow network I/O per call).
+#     Return `superset.mcp_service.dataset_scope.UNSCOPED` to exempt the
+#     caller (e.g. a tenant that has not opted in) from routing constraints:
+#     full tool surface, no dataset filter. Import it inside the callable,
+#     since importing MCP modules while the config loads is circular.
+#     Fails CLOSED (denies every dataset for that request) if the callable
+#     raises (including during iteration), returns None or an empty iterable,
+#     or returns a value that cannot be parsed as dataset UUIDs -- only the
+#     explicit UNSCOPED sentinel lifts the constraints.
+MCP_DATASET_ROLE_ALLOWLIST: "dict[str, list[str]] | DatasetScopeResolver | None" = None
 
 # Maximum admitted warehouse-capable tool calls per application/process. There
 # is no waiting queue: a saturated pool returns a server-busy error. Timed-out
@@ -448,6 +479,7 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
 # --------------
 # - enabled: Toggle the guard on/off (default: True)
 # - max_bytes: Maximum serialized response size in bytes (default: 50,000)
+# - png_max_bytes: Maximum serialized PNG preview response size (default: 1,000,000)
 # - excluded_tools: Tools to skip checking (e.g., streaming tools)
 # - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
 # - max_list_items: Cap applied to list fields (e.g. ``charts``,
@@ -467,6 +499,7 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
 MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
     "enabled": True,  # Enabled by default to protect LLM clients
     "max_bytes": DEFAULT_MAX_RESPONSE_BYTES,
+    "png_max_bytes": DEFAULT_MAX_PNG_RESPONSE_BYTES,
     "warn_threshold_pct": DEFAULT_WARN_THRESHOLD_PCT,
     "max_list_items": DEFAULT_MAX_LIST_ITEMS,
     "excluded_tools": [  # Tools to skip size checking
@@ -924,8 +957,9 @@ def default_user_resolver(app: Any, access_token: Any) -> str | None:
     # Legacy attribute access for backward compatibility
     if hasattr(access_token, "subject") and access_token.subject:
         return access_token.subject
-    if hasattr(access_token, "client_id") and access_token.client_id:
-        return access_token.client_id
+    # The verifier's own client_id, not FastMCP MultiAuth's qualified form.
+    if client_id := get_verifier_client_id(access_token):
+        return client_id
     if hasattr(access_token, "payload") and isinstance(access_token.payload, dict):
         return (
             access_token.payload.get("sub")

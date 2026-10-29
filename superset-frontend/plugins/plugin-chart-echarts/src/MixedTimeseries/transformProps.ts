@@ -209,6 +209,7 @@ export default function transformProps(
     seriesType,
     seriesTypeB,
     showLegend,
+    showSelectorLegend,
     showValue,
     showValueB,
     labelPosition,
@@ -840,6 +841,7 @@ export default function transformProps(
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -1099,6 +1101,7 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
         zoomable,
         legendState,
         chartPadding,

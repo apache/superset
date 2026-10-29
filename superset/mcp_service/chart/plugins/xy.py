@@ -24,9 +24,12 @@ from collections.abc import Mapping
 from typing import Any, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
+    _add_adhoc_filters,
     _xy_chart_context,
     _xy_chart_what,
+    configure_temporal_handling,
     create_metric_object,
+    is_column_truly_temporal,
     map_xy_config,
 )
 from superset.mcp_service.chart.plugin import BaseChartPlugin
@@ -47,6 +50,13 @@ from superset.mcp_service.chart.validation.runtime.format_validator import (
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
 logger = logging.getLogger(__name__)
+
+_VIZ_TYPE_BY_KIND: Mapping[str, str] = {
+    "line": "echarts_timeseries_line",
+    "bar": "echarts_timeseries_bar",
+    "area": "echarts_area",
+    "scatter": "echarts_timeseries_scatter",
+}
 
 
 def _match_y_metric_name(raw_lower: str, y_configs: list[dict[str, Any]]) -> str | None:
@@ -283,6 +293,26 @@ class XYChartPlugin(BaseChartPlugin):
     ) -> dict[str, Any]:
         return map_xy_config(config, dataset_id=dataset_id)
 
+    def apply_temporal_columns(
+        self,
+        config: Any,
+        form_data: dict[str, Any],
+        temporal_columns: set[str],
+    ) -> None:
+        """Undo dataset-less time defaults for a categorical semantic x-axis."""
+        if (
+            config.x is None
+            or config.x.name is None
+            or is_column_truly_temporal(
+                config.x.name, None, temporal_columns=temporal_columns
+            )
+        ):
+            return
+        configure_temporal_handling(form_data, False, config.time_grain)
+        form_data.pop("adhoc_filters", None)
+        _add_adhoc_filters(form_data, config.filters)
+        form_data.pop("x_axis_time_format", None)
+
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
         config_dict = config.model_dump(exclude_unset=True)
         get_canonical = DatasetValidator.get_canonical_column_name
@@ -320,12 +350,25 @@ class XYChartPlugin(BaseChartPlugin):
 
     def resolve_viz_type(self, config: Any) -> str:
         kind = getattr(config, "kind", "line")
-        return {
-            "line": "echarts_timeseries_line",
-            "bar": "echarts_timeseries_bar",
-            "area": "echarts_area",
-            "scatter": "echarts_timeseries_scatter",
-        }.get(kind, "echarts_timeseries_line")
+        return _VIZ_TYPE_BY_KIND.get(kind, "echarts_timeseries_line")
+
+    def resolve_update_config(
+        self,
+        config: Any,
+        existing_form_data: dict[str, Any],
+        *,
+        dataset_rebind: bool,
+    ) -> Any:
+        """Keep the saved chart kind when the update does not name one."""
+        if not isinstance(config, XYChartConfig) or "kind" in config.model_fields_set:
+            return config
+        saved_viz_type = existing_form_data.get("viz_type")
+        for kind, viz_type in _VIZ_TYPE_BY_KIND.items():
+            if viz_type == saved_viz_type:
+                # model_copy marks the kind as set, which carries it through
+                # the exclude_unset rebuild in normalize_column_refs.
+                return config.model_copy(update={"kind": kind})
+        return config
 
     def get_runtime_warnings(
         self, config: Any, dataset_id: int | str
