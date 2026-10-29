@@ -377,6 +377,26 @@ def test_theme_default_logo_defaults() -> None:
     assert config.THEME_DEFAULT["token"]["brandLogoUrl"] == config.APP_ICON
 
 
+def test_theme_defaults_seed_tooltip_component_tokens() -> None:
+    """
+    Regression test for #38726: tooltips must render at the small font size.
+
+    The shipped light and dark themes both carry a ``components.Tooltip``
+    override; without it Ant Design falls back to the global ``fontSize``
+    and every tooltip renders two pixels larger than intended.
+    """
+    from superset import config
+
+    expected = {"fontSize": 12, "lineHeight": 1.6}
+    default_components = config.THEME_DEFAULT["components"]
+    assert default_components is not None
+    assert default_components["Tooltip"] == expected
+    assert config.THEME_DARK is not None
+    dark_components = config.THEME_DARK["components"]
+    assert dark_components is not None
+    assert dark_components["Tooltip"] == expected
+
+
 def test_smtp_ssl_server_auth_defaults_to_true() -> None:
     """
     The shipped default for SMTP_SSL_SERVER_AUTH validates the SMTP server's
