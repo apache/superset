@@ -219,8 +219,24 @@ asset-demo-help:
 # `make asset-demo` unusable on a clean clone.
 asset-demo-packages:
 	@echo "Building the workspace packages (first run only; a few minutes)."
+	# chart-controls is built on its own first, because `plugins:build` runs
+	# its tsc phase as `lerna exec --concurrency 3`, and `lerna exec` does not
+	# sort topologically. Seventeen plugins declare a project reference to
+	# chart-controls, so on a tree with no `lib/` several `tsc --build`
+	# processes race to produce the same declaration files and one of them
+	# reads a half-written one:
+	#
+	#   src/controlPanel.tsx(996,19): error TS2339: Property
+	#   'timeComparisonControls' does not exist on type 'typeof import(
+	#   ".../superset-ui-chart-controls/lib/sections/index")'
+	#
+	# which made `make asset-demo` fail on the first run of a fresh clone and
+	# succeed on the second. Building it once up front leaves the parallel
+	# phase nothing to write. Its own references pull in superset-core and
+	# superset-ui-core, so this covers all three shared packages.
 	docker run --rm -v "$(CURDIR):/app" -w /app/superset-frontend $(ASSET_DEMO_NODE) bash -lc "\
 	  [ -d node_modules ] || npm ci; \
+	  npx tsc --build packages/superset-ui-chart-controls && \
 	  npm run plugins:build"
 
 asset-demo-extension: asset-demo-packages
