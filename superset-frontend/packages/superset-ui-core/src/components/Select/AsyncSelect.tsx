@@ -82,6 +82,7 @@ import {
   StyledError,
   StyledErrorMessage,
   StyledHeader,
+  StyledNewOptionBadge,
   StyledSelect,
   StyledStopOutlined,
 } from './styles';
@@ -392,12 +393,26 @@ const AsyncSelect = forwardRef(
     const isRedundantNewOption = (
       opt: DefaultOptionType | AntdLabeledValue,
       incomingData: SelectOptionsType,
-    ) =>
-      isNewOption(opt) &&
-      ((typeof opt.label === 'string' || typeof opt.label === 'number'
-        ? hasOption(opt.label, incomingData, true)
-        : false) ||
-        hasOption(opt.value as RawValue | undefined, incomingData, true));
+    ) => {
+      if (!isNewOption(opt)) {
+        return false;
+      }
+      const label =
+        typeof opt.label === 'string' || typeof opt.label === 'number'
+          ? opt.label
+          : undefined;
+      return (
+        label !== undefined &&
+        incomingData.some(item => {
+          if (isObject(item) && Array.isArray((item as any).options)) {
+            return (item as any).options.some((child: any) =>
+              isEqual(child, label, 'label'),
+            );
+          }
+          return isEqual(item, label, 'label');
+        })
+      );
+    };
 
     const mergeData = useCallback(
       (data: SelectOptionsType) => {
@@ -630,7 +645,7 @@ const AsyncSelect = forwardRef(
                 isNewOption: true,
               };
             const cleanSelectOptions = fullSelectOptions.filter(
-              opt => !opt.isNewOption || hasOption(opt.value, selectValue),
+              opt => !isNewOption(opt) || hasOption(opt.value, selectValue),
             );
             const newOptions = newOption
               ? [newOption, ...cleanSelectOptions]

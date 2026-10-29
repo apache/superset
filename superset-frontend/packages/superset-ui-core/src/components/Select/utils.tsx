@@ -36,10 +36,8 @@ export function isLabeledValue(value: unknown): value is AntdLabeledValue {
   return isObject(value) && 'value' in value && 'label' in value;
 }
 
-export function isNewOption(
-  option: unknown,
-): option is { isNewOption: boolean } {
-  return isObject(option) && Boolean((option as { isNewOption?: boolean }).isNewOption);
+export function isNewOption(option: unknown): boolean {
+  return isObject(option) && Boolean(option.isNewOption);
 }
 
 export function getValue(
@@ -84,7 +82,7 @@ export function isEqual(
 }
 
 export function getOption(
-  value: V,
+  value: V | CustomLabeledValue,
   options?: V | CustomLabeledValue | (V | CustomLabeledValue)[],
   checkLabel = false,
 ): V | CustomLabeledValue {
@@ -114,7 +112,7 @@ export function getOption(
 }
 
 export function hasOption(
-  value: V,
+  value: V | CustomLabeledValue,
   options?: V | CustomLabeledValue | (V | CustomLabeledValue)[],
   checkLabel = false,
 ): boolean {

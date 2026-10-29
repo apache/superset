@@ -67,6 +67,7 @@ import {
   StyledCheckOutlined,
   StyledContainer,
   StyledHeader,
+  StyledNewOptionBadge,
   StyledSelect,
   StyledStopOutlined,
 } from './styles';
@@ -590,7 +591,7 @@ const Select = forwardRef(
               isNewOption: true,
             };
             const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
-              opt => !opt.isNewOption || hasOption(opt.value, selectValue),
+              opt => !isNewOption(opt) || hasOption(opt.value, selectValue),
             );
             updatedOptions = newOption
               ? [newOption, ...cleanSelectOptions]

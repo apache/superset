@@ -1361,7 +1361,7 @@ test('drops optimistic new option when paginated mergeData contains matching lab
     return { data: nextPageData, totalCount: 2 };
   });
 
-  const { rerender } = render(
+  render(
     <AsyncSelect {...defaultProps} options={loadOptions} allowNewOptions />,
   );
   await open();
@@ -1370,16 +1370,60 @@ test('drops optimistic new option when paginated mergeData contains matching lab
   // Type a term that will match next page's label
   await type('Created Later');
   await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(2));
-  const options = await findAllSelectOptions();
-  expect(
-    Array.from(options).some(opt => opt.textContent?.includes('Created Later')),
-  ).toBe(true);
 
-  // When next page loads and mergeData fires, duplicate optimistic option is dropped
-  rerender(
-    <AsyncSelect {...defaultProps} options={loadOptions} allowNewOptions />,
+  // Optimistic option is present with "new" badge before pagination
+  const optionsBefore = await findAllSelectOptions();
+  expect(
+    Array.from(optionsBefore).some(opt =>
+      opt.textContent?.includes('Created Later'),
+    ),
+  ).toBe(true);
+  expect(screen.getByTestId('new-option-badge')).toBeInTheDocument();
+
+  // Wait for loading to finish so handlePagination's `!isLoading` gate is open
+  await waitFor(() =>
+    expect(document.querySelector('.ant-select-suffix .ant-spin')).toBeNull(),
   );
-  expect(loadOptions).toBeDefined();
+
+  // Trigger pagination by dispatching a scroll event on the virtual-list container
+  const holder = document.querySelector(
+    '.ant-select-dropdown-list-holder',
+  ) as HTMLElement | null;
+  if (!holder) throw new Error('virtual-list holder not rendered');
+  Object.defineProperty(holder, 'scrollHeight', {
+    configurable: true,
+    get: () => 1000,
+  });
+  Object.defineProperty(holder, 'offsetHeight', {
+    configurable: true,
+    get: () => 200,
+  });
+  Object.defineProperty(holder, 'clientHeight', {
+    configurable: true,
+    get: () => 200,
+  });
+  Object.defineProperty(holder, 'scrollTop', {
+    configurable: true,
+    get: () => 900,
+    set: () => {},
+  });
+  fireEvent.scroll(holder);
+
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith(
+      'Created Later',
+      1,
+      expect.anything(),
+    ),
+  );
+
+  // After next page loads and mergeData fires, duplicate optimistic
+  // option is dropped and server option (without "new" badge) remains.
+  await waitFor(async () => {
+    const matchingOptions = screen.getAllByText('Created Later');
+    expect(matchingOptions).toHaveLength(1);
+    expect(screen.queryByTestId('new-option-badge')).not.toBeInTheDocument();
+  });
 });
 
 test('restores base options when search is cleared', async () => {
