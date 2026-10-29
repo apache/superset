@@ -35,9 +35,14 @@ from pydantic import (
     model_validator,
     StrictBool,
 )
+from pydantic_core import PydanticCustomError
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
+from superset.mcp_service.chart.schemas import (
+    DataColumn,
+    PerformanceMetadata,
+    UnknownFieldCheckMixin,
+)
 from superset.mcp_service.common.cache_schemas import (
     CacheStatus,
     CreatedByMeMixin,
@@ -60,6 +65,10 @@ from superset.mcp_service.system.schemas import (
     TagInfo,
 )
 from superset.mcp_service.utils.response_utils import humanize_timestamp
+from superset.mcp_service.utils.schema_utils import (
+    field_validation_error,
+    OmittedMeansUnchanged,
+)
 from superset.mcp_service.utils.serialization import (
     JsonSafeRows,
     OptionalRowCount,
@@ -67,15 +76,11 @@ from superset.mcp_service.utils.serialization import (
 )
 from superset.sql.parse import has_aggregate
 from superset.utils import json
+from superset.utils.number_format import is_valid_d3_format
 
 
 class DatasetFilter(ColumnOperator):
-    """
-    Filter object for dataset listing.
-    col: The column to filter on. Must be one of the allowed filter fields.
-    opr: The operator to use. Must be one of the supported operators.
-    value: The value to filter by (type depends on col and opr).
-    """
+    """Filter object for dataset listing."""
 
     col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "uuid",
@@ -87,10 +92,9 @@ class DatasetFilter(ColumnOperator):
         "changed_by_fk",
     ] = Field(
         ...,
-        description="Column to filter on. Use get_schema(model_type='dataset') for "
-        "available filter columns. To filter by a person, first call find_users "
-        "to resolve a name to a user ID, then filter by created_by_fk or "
-        "changed_by_fk with that integer ID.",
+        description="Filter column; see get_schema(model_type='dataset'). "
+        "For people, resolve names to IDs with find_users; filter by "
+        "created_by_fk or changed_by_fk with that integer ID.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -212,6 +216,16 @@ class DatasetInfo(BaseModel):
     url: str | None = Field(None, description="Explore view URL for this dataset")
     sql: str | None = Field(None, description="SQL for virtual datasets")
     main_dttm_col: str | None = Field(None, description="Main datetime column")
+    partition_column: str | None = Field(
+        None, description="Physical column the engine partitions on"
+    )
+    partition_mapped_column: str | None = Field(
+        None,
+        description=(
+            "Column whose filters are mirrored onto the partition column; "
+            "null means the main datetime column"
+        ),
+    )
     offset: int | None = Field(None, description="Offset")
     cache_timeout: int | None = Field(None, description="Cache timeout")
     params: Dict[str, Any | None] | None = Field(None, description="Extra params")
@@ -270,28 +284,53 @@ class DatasetList(PaginatedResponse[DatasetFilter]):
 
 
 class ListDatasetsRequest(
+    UnknownFieldCheckMixin,
     EditedByMeMixin,
     CreatedByMeMixin,
     MetadataCacheControl,
     PaginatedListRequest[DatasetFilter],
 ):
-    """Request schema for list_datasets with clear, unambiguous types.
+    """Request schema for list_datasets with clear, unambiguous types."""
 
-    Unlike its siblings, this schema does NOT parse JSON-string `filters`/
-    `select_columns` into lists — it relies on Pydantic's native list
-    validation instead. Preserved intentionally; see
-    test_list_datasets_with_string_filters.
-    """
+    model_config = ConfigDict(extra="forbid")
+
+    # Unlike its siblings, this schema does NOT parse JSON-string `filters`/
+    # `select_columns` into lists; it relies on Pydantic's native list
+    # validation instead. Preserved intentionally; see
+    # test_list_datasets_with_string_filters.
+
+    order_column: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Sortable columns: id, table_name, schema, changed_on, created_on; "
+                "changed_on_delta_humanized is an alias for changed_on."
+            ),
+        ),
+    ]
+
+    search: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Case-insensitive substring search of schema, SQL, table name, "
+                "and description. A complete UUID is an exact UUID lookup; "
+                "or use a uuid filter. Compare candidate descriptions "
+                "and metadata. Mutually exclusive with 'filters'."
+            ),
+        ),
+    ]
 
     certified: Annotated[
         StrictBool | None,
         Field(
             default=None,
             description=(
-                "Filter by governance certification status. Use true to return "
-                "only certified datasets (preferred when selecting governed "
-                "semantic-layer assets), false to return only uncertified "
-                "datasets, or omit to return both (default)."
+                "Use true to return only certified datasets (preferred for governed "
+                "semantic-layer assets), false to return only uncertified datasets; "
+                "omit to return both (default)."
             ),
         ),
     ]
@@ -451,6 +490,16 @@ class CreateDatasetMetric(BaseModel):
             )
         return value
 
+    @field_validator("d3format")
+    @classmethod
+    def d3format_must_be_valid(cls, value: str | None) -> str | None:
+        if not is_valid_d3_format(value):
+            raise ValueError(
+                "Invalid number format: must be a d3-format specifier or a "
+                "supported named format"
+            )
+        return value
+
 
 class CreateDatasetCalculatedColumn(BaseModel):
     """Calculated column definition for dataset creation."""
@@ -521,6 +570,8 @@ class CreateDatasetRequest(BaseModel):
         rejects them, rather than silently treating a malformed value (e.g. an
         int or dict) as an omitted namespace.
         """
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
         if isinstance(v, str):
             return v.strip() or None
         return v
@@ -529,6 +580,8 @@ class CreateDatasetRequest(BaseModel):
     @classmethod
     def _strip_table_name(cls, v: object) -> object:
         """Strip leading/trailing whitespace from table_name."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
         if isinstance(v, str):
             return v.strip()
         return v
@@ -586,12 +639,19 @@ class CreateVirtualDatasetRequest(BaseModel):
             raise ValueError("sql must not be empty")
         return v.strip()
 
-    @field_validator("dataset_name")
+    @field_validator("dataset_name", mode="before")
     @classmethod
-    def dataset_name_must_not_be_empty(cls, v: str) -> str:
-        if not v.strip():
-            raise ValueError("dataset_name must not be empty")
-        return v.strip()
+    def dataset_name_must_not_be_empty(cls, v: object) -> object:
+        """Trim names and reject blanks before checking their length."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
+        if isinstance(v, str):
+            if not v.strip():
+                raise PydanticCustomError(
+                    "empty_text", "dataset_name must not be empty"
+                )
+            return v.strip()
+        return v
 
 
 class CreateVirtualDatasetResponse(BaseModel):
@@ -635,7 +695,7 @@ UPDATABLE_METRIC_FIELDS: frozenset[str] = frozenset(
 )
 
 
-class MetricCurrency(BaseModel):
+class MetricCurrency(OmittedMeansUnchanged):
     """Currency formatting configuration for a metric."""
 
     symbol: str | None = Field(
@@ -648,7 +708,7 @@ class MetricCurrency(BaseModel):
     )
 
 
-class DatasetMetricProperties(BaseModel):
+class DatasetMetricProperties(OmittedMeansUnchanged):
     """Dataset identifier and writable saved-metric properties."""
 
     model_config = ConfigDict(populate_by_name=True)
@@ -694,6 +754,29 @@ class DatasetMetricProperties(BaseModel):
         None, description="JSON-encoded string with extra metric metadata."
     )
 
+    @field_validator("metric_name", mode="before")
+    @classmethod
+    def reject_blank_metric_name(cls, value: object) -> object:
+        """Reject blank names before the length cap without trimming valid names."""
+        if isinstance(value, (bytes, bytearray)):
+            try:
+                value = value.decode()
+            except UnicodeDecodeError:
+                return value  # Let Pydantic report its string_unicode error.
+        if isinstance(value, str) and not value.strip():
+            raise PydanticCustomError("empty_text", "metric_name cannot be empty")
+        return value
+
+    @field_validator("d3format")
+    @classmethod
+    def d3format_must_be_valid(cls, value: str | None) -> str | None:
+        if not is_valid_d3_format(value):
+            raise ValueError(
+                "Invalid number format: must be a d3-format specifier or a "
+                "supported named format"
+            )
+        return value
+
     def updates(self) -> Dict[str, Any]:
         """Return only the metric properties explicitly provided by the caller.
 
@@ -718,8 +801,11 @@ class DatasetMetricProperties(BaseModel):
                 "At least one metric property must be provided to update. "
                 f"Updatable properties: {sorted(UPDATABLE_METRIC_FIELDS)}."
             )
-        if "metric_name" in provided and not (self.metric_name or "").strip():
-            raise ValueError("metric_name cannot be empty or null")
+        if "metric_name" in provided and self.metric_name is None:
+            with field_validation_error("metric_name"):
+                raise PydanticCustomError(
+                    "empty_text", "metric_name cannot be empty or null"
+                )
         if "expression" in provided and not (self.expression or "").strip():
             raise ValueError("expression cannot be empty or null")
         if "extra" in provided and self.extra is not None:
@@ -946,7 +1032,7 @@ UPDATABLE_DATASET_FIELDS: frozenset[str] = frozenset(
 )
 
 
-class UpdateDatasetRequest(BaseModel):
+class UpdateDatasetRequest(OmittedMeansUnchanged):
     """Request schema for update_dataset."""
 
     model_config = ConfigDict(populate_by_name=True)
@@ -987,6 +1073,19 @@ class UpdateDatasetRequest(BaseModel):
         "to true when sql changes and false otherwise. Pass true alone to "
         "pick up schema changes in the underlying table or query.",
     )
+
+    @field_validator("table_name", mode="before")
+    @classmethod
+    def reject_blank_table_name(cls, value: object) -> object:
+        """Reject blank names before the length cap without trimming valid names."""
+        if isinstance(value, (bytes, bytearray)):
+            try:
+                value = value.decode()
+            except UnicodeDecodeError:
+                return value  # Let Pydantic report its string_unicode error.
+        if isinstance(value, str) and not value.strip():
+            raise PydanticCustomError("empty_text", "table_name cannot be empty")
+        return value
 
     @field_validator("dataset_id", mode="before")
     @classmethod
@@ -1029,8 +1128,11 @@ class UpdateDatasetRequest(BaseModel):
                 "sync_columns must be true. Updatable properties: "
                 f"{sorted(UPDATABLE_DATASET_FIELDS)}."
             )
-        if "table_name" in provided and not (self.table_name or "").strip():
-            raise ValueError("table_name cannot be empty or null")
+        if "table_name" in provided and self.table_name is None:
+            with field_validation_error("table_name"):
+                raise PydanticCustomError(
+                    "empty_text", "table_name cannot be empty or null"
+                )
         if "sql" in provided and not (self.sql or "").strip():
             raise ValueError("sql cannot be empty or null")
         return self
@@ -1115,16 +1217,12 @@ class QueryDatasetFilter(BaseModel):
 
     @model_validator(mode="after")
     def _validate_temporal_range_val(self) -> "QueryDatasetFilter":
-        """Hold a TEMPORAL_RANGE filter to the same grammar as ``time_range``.
+        """Validate a filter comparator before it reaches the shared parser.
 
-        This operator resolves through ``get_since_until()`` exactly like the
-        dedicated ``time_range`` field does, so an unparseable value here
-        produces the same silent full-table match. Validating only
-        ``time_range`` would leave that gap open to any caller that spells
-        the same filter out longhand.
+        Unlike optional top-level defaults, blank filter values are invalid.
         """
         if self.op == "TEMPORAL_RANGE" and isinstance(self.val, str):
-            self.val = validate_time_range(self.val)
+            self.val = validate_time_range(self.val, allow_empty=False)
         return self
 
 
@@ -1347,6 +1445,8 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         ),
         sql=getattr(dataset, "sql", None),
         main_dttm_col=getattr(dataset, "main_dttm_col", None),
+        partition_column=getattr(dataset, "partition_column", None),
+        partition_mapped_column=getattr(dataset, "partition_mapped_column", None),
         offset=getattr(dataset, "offset", None),
         cache_timeout=getattr(dataset, "cache_timeout", None),
         params=params,
