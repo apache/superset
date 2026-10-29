@@ -17,11 +17,12 @@
 from __future__ import annotations
 
 import inspect
+from copy import deepcopy
 from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
-from flask import Flask, g
+from flask import Flask, g, Response
 
 from superset.charts.data.api import ChartDataRestApi
 from superset.charts.data.dashboard_filter_context import (
@@ -44,6 +45,7 @@ from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.jinja_context import ExtraCache
 from superset.models.core import Database
+from superset.superset_typing import AdhocColumn
 from superset.utils import json
 from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
@@ -354,27 +356,51 @@ def test_apply_dashboard_filter_context_overrides_x_axis_time_grain() -> None:
     assert query["extras"]["time_grain_sqla"] == "P1Y"
 
 
-def test_apply_dashboard_filter_context_grain_targets_first_adhoc_column() -> None:
-    """
-    The grain override must land on ``columns[0]`` to match frontend logic.
-    """
-    query_context_json: dict[str, Any] = {
-        "queries": [
-            {
-                "columns": [
-                    {"timeGrain": "P1D", "sqlExpression": "order_date"},
-                    {"columnType": "BASE_AXIS", "sqlExpression": "other"},
-                ],
-                "extras": {},
-            }
-        ],
+@pytest.mark.parametrize("axis_index", [0, 1])
+@pytest.mark.parametrize("non_axis_grain", [None, "P1W"])
+def test_apply_dashboard_filter_context_grain_targets_base_axis(
+    axis_index: int,
+    non_axis_grain: str | None,
+) -> None:
+    """Grain follows BASE_AXIS, not list position, and leaves other columns alone."""
+    non_axis: AdhocColumn = {
+        "sqlExpression": "val",
+        "label": "val",
+        "isColumnReference": True,
     }
+    if non_axis_grain is not None:
+        non_axis["timeGrain"] = non_axis_grain
+    axis: AdhocColumn = {
+        "sqlExpression": "ts",
+        "label": "ts",
+        "isColumnReference": True,
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+    columns: list[AdhocColumn] = [deepcopy(non_axis)]
+    columns.insert(axis_index, axis)
+    query_context: dict[str, Any] = {
+        "queries": [{"columns": columns, "extras": {"time_grain_sqla": "P1D"}}]
+    }
+    expected = deepcopy(query_context)
+    expected_query = expected["queries"][0]
+    expected_query["columns"][axis_index]["timeGrain"] = "P1M"
+    expected_query["extras"]["time_grain_sqla"] = "P1M"
+    expected_query["time_grain_sqla"] = "P1M"
+    expected_query["extra_form_data"] = {"time_grain_sqla": "P1M"}
 
-    apply_dashboard_filter_context(query_context_json, {"time_grain_sqla": "P1Y"})
+    apply_dashboard_filter_context(query_context, {"time_grain_sqla": "P1M"})
 
-    columns = query_context_json["queries"][0]["columns"]
-    assert columns[0]["timeGrain"] == "P1Y"  # the column get_time_grain reads
-    assert "timeGrain" not in columns[1]  # the BASE_AXIS-tagged one is untouched
+    table = SqlaTable(
+        database=Database(database_name="db", sqlalchemy_uri="sqlite://"),
+        table_name="events",
+        columns=[TableColumn(column_name="ts", is_dttm=True, type="TIMESTAMP")],
+    )
+    sql_column, _ = table.adhoc_column_to_sqla(axis)
+    sql = str(sql_column.compile(compile_kwargs={"literal_binds": True}))
+    assert "start of month" in sql
+    assert columns[1 - axis_index] == non_axis
+    assert json.dumps(query_context) == json.dumps(expected)
 
 
 def test_apply_dashboard_filter_context_keeps_grain_when_no_grain_filter() -> None:
@@ -430,6 +456,50 @@ def test_send_chart_response_excludes_timing_by_default(app: SupersetApp) -> Non
     body = json.loads(response.get_data(as_text=True))
     assert body == {"result": [{"data": [{"col1": 1}], "query": "SELECT 1"}]}
     assert "timing" not in query_payload
+
+
+@pytest.mark.parametrize(
+    ("semantic_cache_statuses", "expected_status"),
+    [
+        (["HIT"], "HIT"),
+        (["MISS"], "MISS"),
+        ([None], "MISS"),
+        (["MIXED"], "MIXED"),
+        (["HIT", "MISS"], "MIXED"),
+        (["HIT", "MIXED"], "MIXED"),
+        (["HIT", None], "MIXED"),
+    ],
+)
+def test_send_chart_response_reports_semantic_cache_status(
+    app: SupersetApp,
+    semantic_cache_statuses: list[str | None],
+    expected_status: str,
+) -> None:
+    query_context: MagicMock = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.result_format = ChartDataResultFormat.JSON
+    query_results: tuple[QueryDataResult, ...] = tuple(
+        QueryDataResult(
+            payload={"semantic_cache_status": cache_status},
+            timing=_query_timing(),
+        )
+        for cache_status in semantic_cache_statuses
+    )
+    result: ChartDataExecutionResult = ChartDataExecutionResult(
+        query_context=query_context,
+        queries=query_results,
+    )
+
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch(
+            "superset.charts.data.api.security_manager.is_guest_user",
+            return_value=False,
+        ),
+    ):
+        response: Response = ChartDataRestApi()._send_chart_response(result)
+
+    assert response.headers["X-Superset-Semantic-Cache"] == expected_status
 
 
 def test_send_chart_response_includes_opt_in_timing(app: SupersetApp) -> None:
@@ -590,6 +660,47 @@ def test_send_chart_response_still_redacts_guest_errors_when_query_permitted(
     assert query["query"] == "SELECT 1"
     assert query["error"] == str(GENERIC_ERROR_MESSAGE)
     assert "stacktrace" not in query
+
+
+def test_send_chart_response_does_not_half_redact_guest_query_error(
+    app: SupersetApp,
+) -> None:
+    """
+    The redaction decision is resolved once and threaded down, so the block can
+    never pop ``stacktrace`` while leaking the raw ``error``. When the guest check
+    raises (e.g. a broken DB session), the request's guest token makes the
+    fallback fail closed, and both the stacktrace and the error are redacted.
+    """
+    result = _json_execution_result(
+        {
+            "error": "Table mydb.myschema.mytable was not found",
+            "stacktrace": "Traceback ...",
+            "query": "SELECT 1",
+        },
+        result_type=ChartDataResultType.QUERY,
+    )
+
+    header = app.config["GUEST_TOKEN_HEADER_NAME"]
+    api = ChartDataRestApi()
+    with (
+        app.test_request_context(
+            "/api/v1/chart/data", headers={header: "a.guest.token"}
+        ),
+        patch(
+            "superset.charts.data.api.security_manager.is_guest_user",
+            side_effect=RuntimeError("session broke mid-request"),
+        ) as mock_is_guest_user,
+        patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=False,
+        ),
+    ):
+        response = api._send_chart_response(result)
+
+    query = json.loads(response.get_data(as_text=True))["result"][0]
+    assert query["error"] == str(GENERIC_ERROR_MESSAGE)
+    assert "stacktrace" not in query
+    mock_is_guest_user.assert_called_once()
 
 
 def test_get_data_response_redacts_guest_query_failure(app: SupersetApp) -> None:
@@ -1357,3 +1468,200 @@ def test_create_query_context_from_form_converts_value_error_to_400() -> None:
             api._create_query_context_from_form({})
 
     assert message in str(excinfo.value)
+
+
+# ``security_manager`` is a proxy, so a plain ``patch`` turns ``can_access`` into
+# an async mock whose (truthy) coroutine would grant every permission; the tests
+# below patch it with ``new_callable=MagicMock`` so a denied permission is honored.
+def _csv_export_command(
+    result_format: ChartDataResultFormat = ChartDataResultFormat.CSV,
+    result_type: ChartDataResultType = ChartDataResultType.FULL,
+    num_queries: int = 1,
+) -> MagicMock:
+    """Build a chart-data command mock whose query context looks like an export."""
+    command = MagicMock()
+    command.query_context.result_format = result_format
+    command.query_context.result_type = result_type
+    command.query_context.slice_ = None
+    command.query_context.queries = [MagicMock() for _ in range(num_queries)]
+    return command
+
+
+def test_get_data_response_streams_large_csv_without_executing(
+    app: SupersetApp,
+) -> None:
+    """
+    When the client has decided to stream a large CSV export, the query must not
+    be executed and materialized first: the streaming command runs it on its own.
+    """
+    command = _csv_export_command()
+    api = ChartDataRestApi()
+    streamed: MagicMock = MagicMock()
+
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch.dict(app.config, {"CSV_STREAMING_ROW_THRESHOLD": 100000}),
+        patch(
+            "superset.charts.data.api.security_manager", new_callable=MagicMock
+        ) as mock_security_manager,
+        patch("superset.charts.data.api.is_feature_enabled", return_value=False),
+        patch.object(
+            api, "_create_streaming_csv_response", return_value=streamed
+        ) as mock_stream,
+    ):
+        mock_security_manager.can_access.return_value = True
+        response = api._get_data_response(
+            command,
+            form_data={"viz_type": "table"},
+            filename="export.csv",
+            expected_rows=380273,
+        )
+
+    assert response is streamed
+    command.execute.assert_not_called()
+    mock_security_manager.can_access.assert_called_once_with("can_csv", "Superset")
+    mock_stream.assert_called_once_with(
+        {"query_context": command.query_context},
+        {"viz_type": "table"},
+        filename="export.csv",
+        expected_rows=380273,
+        slice_=None,
+    )
+
+
+@pytest.mark.parametrize(
+    "result_format,result_type,expected_rows",
+    [
+        # below the threshold: regular export
+        (ChartDataResultFormat.CSV, ChartDataResultType.FULL, 99999),
+        # the client did not ask for streaming
+        (ChartDataResultFormat.CSV, ChartDataResultType.FULL, None),
+        # post-processed results (e.g. pivot tables) need the regular path
+        (ChartDataResultFormat.CSV, ChartDataResultType.POST_PROCESSED, 380273),
+        # only CSV has a streaming path
+        (ChartDataResultFormat.XLSX, ChartDataResultType.FULL, 380273),
+    ],
+)
+def test_get_data_response_executes_when_not_streaming_up_front(
+    app: SupersetApp,
+    result_format: ChartDataResultFormat,
+    result_type: ChartDataResultType,
+    expected_rows: int | None,
+) -> None:
+    command = _csv_export_command(result_format, result_type)
+    api = ChartDataRestApi()
+    sent = MagicMock()
+
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch.dict(app.config, {"CSV_STREAMING_ROW_THRESHOLD": 100000}),
+        patch.object(api, "_create_streaming_csv_response") as mock_stream,
+        patch.object(api, "_send_chart_response", return_value=sent),
+    ):
+        response = api._get_data_response(command, expected_rows=expected_rows)
+
+    assert response is sent
+    command.execute.assert_called_once()
+    mock_stream.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "granular_export_controls,permission",
+    [(False, "can_csv"), (True, "can_export_data")],
+)
+def test_get_data_response_streaming_up_front_requires_export_permission(
+    app: SupersetApp,
+    granular_export_controls: bool,
+    permission: str,
+) -> None:
+    command = _csv_export_command()
+    api = ChartDataRestApi()
+
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch.dict(app.config, {"CSV_STREAMING_ROW_THRESHOLD": 100000}),
+        patch(
+            "superset.charts.data.api.security_manager", new_callable=MagicMock
+        ) as mock_security_manager,
+        patch(
+            "superset.charts.data.api.is_feature_enabled",
+            return_value=granular_export_controls,
+        ),
+        patch.object(api, "_create_streaming_csv_response") as mock_stream,
+    ):
+        mock_security_manager.can_access.return_value = False
+        response = api._get_data_response(command, expected_rows=380273)
+
+    assert response.status_code == 403
+    mock_security_manager.can_access.assert_called_once_with(permission, "Superset")
+    command.execute.assert_not_called()
+    mock_stream.assert_not_called()
+
+
+def test_get_data_response_executes_multi_query_export(
+    app: SupersetApp,
+) -> None:
+    """
+    Multi-query contexts keep the regular path even above the threshold: the
+    streaming command exports a single query, while the regular path bundles
+    every query into a zip.
+    """
+    command = _csv_export_command(num_queries=2)
+    api = ChartDataRestApi()
+    sent = MagicMock()
+
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch.dict(app.config, {"CSV_STREAMING_ROW_THRESHOLD": 100000}),
+        patch.object(api, "_create_streaming_csv_response") as mock_stream,
+        patch.object(api, "_send_chart_response", return_value=sent),
+    ):
+        response = api._get_data_response(command, expected_rows=380273)
+
+    assert response is sent
+    command.execute.assert_called_once()
+    mock_stream.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "exc,status_code",
+    [
+        (ChartDataQueryFailedError("query boom"), 400),
+        (ChartDataCacheLoadError("cache boom"), 422),
+    ],
+)
+def test_get_data_response_streaming_up_front_maps_setup_errors(
+    app: SupersetApp,
+    exc: Exception,
+    status_code: int,
+) -> None:
+    """
+    Failures raised while the streaming response is set up (access validation,
+    SQL compilation) map to the same chart-data 4xx responses as the regular
+    execution path, instead of escaping as a 500.
+    """
+    command = _csv_export_command()
+    api = ChartDataRestApi()
+
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch.dict(app.config, {"CSV_STREAMING_ROW_THRESHOLD": 100000}),
+        patch(
+            "superset.charts.data.api.security_manager", new_callable=MagicMock
+        ) as mock_security_manager,
+        patch("superset.charts.data.api.is_feature_enabled", return_value=False),
+        patch.object(
+            api, "_create_streaming_csv_response", side_effect=exc
+        ) as mock_stream,
+        patch(
+            "superset.charts.data.api.sanitize_error_message",
+            side_effect=lambda message: message,
+        ),
+    ):
+        mock_security_manager.can_access.return_value = True
+        response = api._get_data_response(command, expected_rows=380273)
+
+    assert response.status_code == status_code
+    assert response.json["message"] == str(exc)
+    mock_stream.assert_called_once()
+    command.execute.assert_not_called()

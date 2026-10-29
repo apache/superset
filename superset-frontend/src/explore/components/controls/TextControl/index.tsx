@@ -63,7 +63,7 @@ function TextControl<T extends InputValueType = InputValueType>({
   hovered,
 }: TextControlProps<T>) {
   const [localValue, setLocalValue] = useState<string>(safeStringify(value));
-  const prevValueRef = useRef<T | null | undefined>(value);
+  const [prevValue, setPrevValue] = useState<T | null | undefined>(value);
 
   const handleChange = useCallback(
     (inputValue: string) => {
@@ -117,12 +117,16 @@ function TextControl<T extends InputValueType = InputValueType>({
     [handleChange],
   );
 
-  // Sync local value when prop value changes externally
-  let displayValue = localValue;
-  if (safeStringify(prevValueRef.current) !== safeStringify(value)) {
-    prevValueRef.current = value;
-    displayValue = safeStringify(value);
+  // Sync local value when prop value changes externally. Adjusting state during
+  // render is React's documented pattern for this; deriving a display value
+  // without writing it back left `localValue` holding the superseded text, so
+  // the very next render -- one that only changes an unrelated prop, and so
+  // does not re-enter this branch -- put the stale value back in the input.
+  if (safeStringify(prevValue) !== safeStringify(value)) {
+    setPrevValue(value);
+    setLocalValue(safeStringify(value));
   }
+  const displayValue = localValue;
 
   return (
     <div>

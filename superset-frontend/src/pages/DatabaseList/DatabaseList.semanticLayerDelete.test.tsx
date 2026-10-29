@@ -29,6 +29,12 @@ import {
 } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import DatabaseList from 'src/pages/DatabaseList';
+import { ComponentType } from 'react';
+
+jest.mock('src/components/MessageToasts/withToasts', () => ({
+  __esModule: true,
+  default: <P extends object>(Component: ComponentType<P>) => Component,
+}));
 
 /**
  * Deleting a semantic layer cascade-deletes its semantic views (SC-108418).
@@ -69,7 +75,14 @@ const mockUser = {
   userId: 1,
   firstName: 'Admin',
   lastName: 'User',
-  roles: { Admin: [['can_write', 'Database']] },
+  roles: {
+    Admin: [
+      ['can_read', 'Database'],
+      ['can_write', 'Database'],
+      ['can_read', 'SemanticLayer'],
+      ['can_write', 'SemanticLayer'],
+    ],
+  },
   permissions: {},
   isActive: true,
   email: 'admin@example.com',
@@ -87,16 +100,27 @@ const setupMocks = ({
   dependents,
   dependentsError = false,
   rows = [semanticLayerRow],
+  permissions = ['can_read', 'can_write', 'can_export'],
+  uploadResponse = { result: [], count: 0 },
+  deleteError,
 }: {
   dependents: { id: number; table_name: string }[];
   dependentsError?: boolean;
+  deleteError?: string;
   rows?: (typeof semanticLayerRow)[];
+  permissions?: string[];
+  uploadResponse?:
+    | number
+    | {
+        result: { engine_information: { supports_file_upload: boolean } }[];
+        count: number;
+      };
 }) => {
   fetchMock.clearHistory().removeRoutes();
   fetchMock.get('glob:*/api/v1/database/_info*', {
-    permissions: ['can_read', 'can_write', 'can_export'],
+    permissions,
   });
-  fetchMock.get('glob:*/api/v1/database/?q=*', { result: [], count: 0 });
+  fetchMock.get('glob:*/api/v1/database/?q=*', uploadResponse);
   fetchMock.get('glob:*/api/v1/database/related/*', { result: [], count: 0 });
   fetchMock.get(CONNECTIONS_ROUTE, {
     result: rows,
@@ -111,13 +135,21 @@ const setupMocks = ({
       { name: DATASOURCE_ROUTE },
     );
   }
-  fetchMock.delete(DELETE_ROUTE, {});
+  fetchMock.delete(
+    DELETE_ROUTE,
+    deleteError
+      ? {
+          status: 409,
+          body: { message: deleteError, total: 25, archived_count: 3 },
+        }
+      : {},
+  );
 };
 
-const renderDatabaseList = () => {
+const renderDatabaseList = (user = mockUser, addDangerToast = jest.fn()) => {
   const store = configureStore({
     reducer: {
-      user: (state = mockUser) => state,
+      user: (state = user) => state,
       common: (
         state = {
           conf: {
@@ -134,11 +166,18 @@ const renderDatabaseList = () => {
       getDefaultMiddleware({ serializableCheck: false, immutableCheck: false }),
   });
 
-  return render(<DatabaseList user={mockUser} />, {
-    store,
-    useQueryParams: true,
-    useRouter: true,
-  });
+  return render(
+    <DatabaseList
+      user={user}
+      addDangerToast={addDangerToast}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      store,
+      useQueryParams: true,
+      useRouter: true,
+    },
+  );
 };
 
 const openDeleteModal = async () => {
@@ -168,10 +207,11 @@ test('delete confirmation warns about cascade-deleting dependent views by count 
   renderDatabaseList();
 
   const dialog = await openDeleteModal();
+  expect(dialog).not.toHaveTextContent('Deletion is blocked');
 
   expect(
     within(dialog).getByText(
-      'This will also permanently delete its 3 semantic views. Charts built on those views will stop working.',
+      'This will also permanently delete its 3 semantic views. This cannot be undone.',
     ),
   ).toBeInTheDocument();
   expect(
@@ -198,7 +238,7 @@ test('a single dependent view is announced in the singular', async () => {
 
   expect(
     within(dialog).getByText(
-      'This will also permanently delete its 1 semantic view. Charts built on that view will stop working.',
+      'This will also permanently delete its 1 semantic view. This cannot be undone.',
     ),
   ).toBeInTheDocument();
 });
@@ -211,10 +251,12 @@ test('a genuinely empty layer says so instead of warning about nonexistent views
   renderDatabaseList();
 
   const dialog = await openDeleteModal();
+  expect(dialog).toHaveTextContent('This cannot be undone.');
+  expect(dialog).not.toHaveTextContent('Deletion is blocked');
 
   expect(
     within(dialog).getByText(
-      'This semantic layer has no dependent semantic views.',
+      'This semantic layer has no dependent semantic views. This cannot be undone.',
     ),
   ).toBeInTheDocument();
   expect(
@@ -241,7 +283,7 @@ test('a counted response with an empty name page keeps the count but omits the l
 
   expect(
     within(dialog).getByText(
-      'This will also permanently delete its 3 semantic views. Charts built on those views will stop working.',
+      'This will also permanently delete its 3 semantic views. This cannot be undone.',
     ),
   ).toBeInTheDocument();
   expect(
@@ -257,7 +299,7 @@ test('a failed dependent lookup still opens the modal with an uncounted warning'
 
   expect(
     within(dialog).getByText(
-      'Deleting this semantic layer also permanently deletes any semantic views it contains, and charts built on those views will stop working. The affected views could not be listed.',
+      'Deleting this semantic layer also permanently deletes any semantic views it contains. This cannot be undone. The affected views could not be listed.',
     ),
   ).toBeInTheDocument();
 });
@@ -282,7 +324,7 @@ test('the overflow footer reports dependent views beyond the listed page', async
 
   expect(
     within(dialog).getByText(
-      'This will also permanently delete its 12 semantic views. Charts built on those views will stop working.',
+      'This will also permanently delete its 12 semantic views. This cannot be undone.',
     ),
   ).toBeInTheDocument();
   expect(within(dialog).getByText('view_10')).toBeInTheDocument();
@@ -407,6 +449,38 @@ test("a stale lookup resolving late cannot replace a newer row's modal", async (
   expect(screen.queryByText('stale_view')).not.toBeInTheDocument();
 });
 
+test('layer delete displays the counted dependency conflict', async () => {
+  const reason =
+    'Semantic source is used by 25 dependent assets and cannot be deleted. 3 dependent assets are archived. Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.';
+  setupMocks({ dependents: [], deleteError: reason });
+  const addDangerToast = jest.fn();
+  renderDatabaseList(mockUser, addDangerToast);
+  const dialog = await openDeleteModal();
+  await userEvent.type(
+    within(dialog).getByTestId('delete-modal-input'),
+    'DELETE',
+  );
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+  const alert = await within(dialog).findByRole('alert');
+  expect(alert).toHaveTextContent('25 dependent assets');
+  expect(alert).toHaveTextContent('3 archived');
+  expect(
+    within(alert).getByRole('link', { name: 'Recently Archived' }),
+  ).toHaveAttribute('href', '/archived/');
+  expect(within(dialog).getByTestId('delete-modal-input')).toHaveValue(
+    'DELETE',
+  );
+  expect(addDangerToast).not.toHaveBeenCalled();
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+  await openDeleteModal();
+  expect(
+    within(screen.getByRole('dialog')).queryByRole('alert'),
+  ).not.toBeInTheDocument();
+  expect(
+    within(screen.getByRole('dialog')).getByTestId('delete-modal-input'),
+  ).toHaveValue('');
+});
+
 test('confirming the modal deletes the semantic layer', async () => {
   setupMocks({ dependents: [dependentView(1, 'marketing')] });
   renderDatabaseList();
@@ -422,4 +496,115 @@ test('confirming the modal deletes the semantic layer', async () => {
   await waitFor(() => {
     expect(fetchMock.callHistory.calls(DELETE_ROUTE)).toHaveLength(1);
   });
+});
+
+test('database write does not offer edit or delete for semantic layers', async () => {
+  setupMocks({ dependents: [] });
+  renderDatabaseList({
+    ...mockUser,
+    roles: {
+      Admin: [
+        ['can_read', 'Database'],
+        ['can_write', 'Database'],
+        ['can_read', 'SemanticLayer'],
+      ],
+    },
+  });
+  await screen.findByText('Demo Semantic Layer');
+  expect(screen.queryByTestId('Delete')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('Edit')).not.toBeInTheDocument();
+});
+
+test('layer-only writer gets layer actions without requesting Database endpoints', async () => {
+  setupMocks({ dependents: [] });
+  renderDatabaseList({
+    ...mockUser,
+    roles: {
+      Admin: [
+        ['can_read', 'SemanticLayer'],
+        ['can_write', 'SemanticLayer'],
+      ],
+    },
+  });
+  await screen.findByTestId('Delete');
+  expect(
+    fetchMock.callHistory.calls('glob:*/api/v1/database/_info*'),
+  ).toHaveLength(0);
+  expect(
+    fetchMock.callHistory.calls('glob:*/api/v1/database/?q=*'),
+  ).toHaveLength(0);
+});
+
+test('export-only database reader sees the Export action column', async () => {
+  const databaseRow = {
+    ...semanticLayerRow,
+    source_type: 'database',
+    id: 42,
+    database_name: 'Export database',
+  };
+  setupMocks({
+    dependents: [],
+    rows: [databaseRow],
+    permissions: ['can_read', 'can_export'],
+  });
+  renderDatabaseList({
+    ...mockUser,
+    roles: {
+      Admin: [
+        ['can_read', 'Database'],
+        ['can_export', 'Database'],
+        ['can_read', 'SemanticLayer'],
+      ],
+    },
+  });
+  await screen.findByText('Export database');
+  expect(await screen.findByTestId('database-export')).toBeInTheDocument();
+  expect(screen.queryByTestId('database-edit')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('database-delete')).not.toBeInTheDocument();
+});
+
+test.each([true, false])(
+  'authorized upload capability respects engine support: %s',
+  async supportsUpload => {
+    setupMocks({
+      dependents: [],
+      uploadResponse: {
+        result: [
+          { engine_information: { supports_file_upload: supportsUpload } },
+        ],
+        count: 1,
+      },
+    });
+    renderDatabaseList({
+      ...mockUser,
+      roles: { Admin: [...mockUser.roles.Admin, ['can_upload', 'Database']] },
+    });
+    await screen.findByText('Demo Semantic Layer');
+    if (supportsUpload) {
+      await userEvent.click(await screen.findByText('Upload file to database'));
+      expect(
+        await screen.findByRole('menuitem', { name: 'Upload CSV' }),
+      ).not.toHaveAttribute('aria-disabled', 'true');
+    } else {
+      expect(
+        screen.queryByText('Upload file to database'),
+      ).not.toBeInTheDocument();
+    }
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/database/?q=*'),
+    ).toHaveLength(1);
+  },
+);
+
+test('failed authorized upload lookup leaves uploads disabled', async () => {
+  setupMocks({ dependents: [], uploadResponse: 403 });
+  renderDatabaseList({
+    ...mockUser,
+    roles: { Admin: [...mockUser.roles.Admin, ['can_upload', 'Database']] },
+  });
+  await screen.findByText('Demo Semantic Layer');
+  expect(screen.queryByText('Upload file to database')).not.toBeInTheDocument();
+  expect(
+    fetchMock.callHistory.calls('glob:*/api/v1/database/?q=*'),
+  ).toHaveLength(1);
 });
