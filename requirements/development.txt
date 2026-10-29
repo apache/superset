@@ -537,6 +537,7 @@ jmespath==1.1.0
 joserfc==1.7.7
     # via
     #   -r requirements/development.in
+    #   apache-superset
     #   fastmcp-slim
 jsonpath-ng==1.13.0
     # via
@@ -953,6 +954,7 @@ python-ldap==3.4.8
 python-multipart==0.0.32
     # via
     #   -r requirements/development.in
+    #   apache-superset
     #   fastmcp-slim
     #   mcp
 pytz==2025.2
