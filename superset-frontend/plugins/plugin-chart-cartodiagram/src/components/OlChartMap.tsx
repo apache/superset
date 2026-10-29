@@ -387,19 +387,10 @@ export const OlChartMap = (props: OlChartMapProps) => {
       });
     };
 
-    // TODO: maybe replace with debounce from lodash
     // timeout=100ms seems to work well, 1000ms has other side-effects
-    function debounce(func: Function, timeout = 100) {
-      let timer: number;
-      return function (this: any, ...args: any) {
-        clearTimeout(timer);
-        timer = window.setTimeout(() => func.apply(this, args), timeout);
-      };
-    }
-
     const debouncedOnViewChange = debounce((event: BaseEvent) => {
       onViewChange(event);
-    });
+    }, 100);
 
     const listenerKey = view.on('change', debouncedOnViewChange);
 
@@ -407,6 +398,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
     // here we cleanup the listener
     return () => {
       unByKey(listenerKey);
+      debouncedOnViewChange.cancel();
     };
   }, [
     olMap,
@@ -524,6 +516,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
     // here we cleanup our listener.
     return () => {
       unByKey(listenerKey);
+      debouncedOnZoomChange.cancel();
     };
   }, [olMap, setControlValue, chartSize]);
 
