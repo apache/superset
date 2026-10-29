@@ -1422,7 +1422,8 @@ def test_a_string_in_list_of_dates_mirrors_element_wise(app: Flask) -> None:
     """
     The guard above is about a *time of day*, not about `IN` on a DATE column:
     every member at the start of its day is compared in full, so the list
-    mirrors and the pruning is kept.
+    mirrors and the pruning is kept -- probed at the days themselves, which is
+    what the engine compares.
     """
     table = _mapped_date_table()
 
@@ -1440,7 +1441,7 @@ def test_a_string_in_list_of_dates_mirrors_element_wise(app: Flask) -> None:
                     ],
                 )
 
-    assert probe.call_args.args[-1] == ["2026-01-01", "2026-01-02"]
+    assert probe.call_args.args[-1] == [date(2026, 1, 1), date(2026, 1, 2)]
     assert "dt_epoch IN (1767225600, 1767312000)" in sql
 
 
@@ -1497,12 +1498,21 @@ def test_a_string_upper_bound_rounds_outward_on_a_date_column(app: Flask) -> Non
     assert "dt_epoch <= 1768953600" in sql
 
 
-def test_a_date_only_string_equality_still_mirrors_unchanged(app: Flask) -> None:
+@pytest.mark.parametrize(
+    "value",
+    ["2026-01-01", "2026-01-01T00:00:00", "2026-01-01 00:00:00"],
+    ids=["date", "iso-t-midnight", "midnight"],
+)
+def test_a_midnight_string_equality_on_a_date_column_probes_the_day(
+    app: Flask, value: str
+) -> None:
     """
-    A value the engine compares in full is left exactly as it arrived, down to
-    the type the probe binds: reading the string back into an instant would
-    change the bind type and the probe's cache key on a query that was already
-    correct, for no gain at all.
+    The engine casts the text to the column's type and compares the day, so
+    the probe is handed the day whatever the spelling. Handed the text
+    verbatim, ``CAST(:value AS TEXT)`` onto a text day key answered
+    ``'2026-01-01T00:00:00'`` -- what drill-by sends at the "Original value"
+    grain -- and the mirror asked for a key no row holds: 0 rows on Postgres
+    where the filter matched 78.
     """
     table = _mapped_date_table()
 
@@ -1515,12 +1525,12 @@ def test_a_date_only_string_equality_still_mirrors_unchanged(app: Flask) -> None
                         {
                             "col": "event_date",
                             "op": FilterOperator.EQUALS.value,
-                            "val": "2026-01-01",
+                            "val": value,
                         }
                     ],
                 )
 
-    assert probe.call_args.args[-1] == ["2026-01-01"]
+    assert probe.call_args.args[-1] == [date(2026, 1, 1)]
     assert "dt_epoch = 1767225600" in sql
 
 
@@ -1553,14 +1563,18 @@ def test_a_datetime_lower_bound_rounds_outward_instead_of_declining(
     assert "dt_epoch >= 1767571200" in sql
 
 
-def test_a_string_filter_value_is_untouched_on_a_full_precision_engine(
-    app: Flask,
+@pytest.mark.parametrize(
+    "value", ["2026-01-05 10:00:00", "2026-01-05T10:00:00"], ids=["space", "iso-t"]
+)
+def test_a_string_filter_value_is_probed_as_its_instant_on_a_full_precision_engine(
+    app: Flask, value: str
 ) -> None:
     """
-    The widening is detected, not enumerated per engine. An engine whose
-    literal carries the whole value needs none of this, and substituting an
-    instant for the text would move the probe off the cache entry every
-    already-correct query shares.
+    An engine whose literal carries the whole value needs no widening, but it
+    still compares the instant the text denotes, not the text: Postgres reads
+    ``'2026-01-05T10:00:00'`` into the same timestamp as the spaced spelling.
+    Probed verbatim, ``CAST(:value AS TEXT)`` answered in the author's spelling
+    and the mirror asked for a key no row holds.
     """
     table = _table()
 
@@ -1577,18 +1591,18 @@ def test_a_string_filter_value_is_untouched_on_a_full_precision_engine(
                         {
                             "col": "event_time",
                             "op": FilterOperator.GREATER_THAN_OR_EQUALS.value,
-                            "val": "2026-01-05 10:00:00",
+                            "val": value,
                         }
                     ],
                 )
 
-    assert probe.call_args.args[-1] == ["2026-01-05 10:00:00"]
+    assert probe.call_args.args[-1] == [datetime(2026, 1, 5, 10, 0)]
 
 
-def test_a_string_in_list_is_untouched_on_a_full_precision_engine(
+def test_a_string_in_list_is_probed_as_instants_on_a_full_precision_engine(
     app: Flask,
 ) -> None:
-    """The `IN` counterpart: the new element-wise routing disturbs nothing."""
+    """The `IN` counterpart, member by member."""
     table = _table()
 
     with app.app_context():
@@ -1610,8 +1624,8 @@ def test_a_string_in_list_is_untouched_on_a_full_precision_engine(
                 )
 
     assert probe.call_args.args[-1] == [
-        "2026-01-01 10:00:00",
-        "2026-01-02 09:00:00",
+        datetime(2026, 1, 1, 10, 0),
+        datetime(2026, 1, 2, 9, 0),
     ]
     assert "dt_epoch IN (1, 2)" in sql
 
@@ -1703,15 +1717,15 @@ def test_an_unreadable_member_declines_an_in_list_on_a_date_column(
     assert "dt_epoch" not in sql
 
 
-def test_an_unreadable_string_is_left_alone_on_a_full_precision_engine(
+def test_an_unreadable_string_declines_on_a_full_precision_engine(
     app: Flask,
 ) -> None:
     """
-    The decline belongs to the coarseness, not to the format. On a TIMESTAMP
-    column the engine compares the whole string the chart author typed, so there
-    is nothing for the server to resolve and the probe is handed the text as it
-    arrived -- which is what keeps the same non-ISO filter working on a
-    timestamp mapped column while it declines on a DATE one.
+    A TIMESTAMP column declines a non-ISO string too. The engine compares the
+    instant it reads the text as -- Postgres reads ``'07/06/2026 10:08:11'``
+    under its ``DateStyle`` -- and the server cannot read it the same way
+    without guessing, so there is no instant to probe. Handing the probe the
+    text instead is what ``CAST(:value AS TEXT)`` answered wrongly.
     """
     table = _table()
 
@@ -1733,8 +1747,8 @@ def test_an_unreadable_string_is_left_alone_on_a_full_precision_engine(
                     ],
                 )
 
-    assert probe.call_args.args[-1] == ["07/06/2026 10:08:11"]
-    assert "dt_epoch = 1783332491" in sql
+    probe.assert_not_called()
+    assert "dt_epoch" not in sql
 
 
 def _on_postgres(table: SqlaTable) -> SqlaTable:

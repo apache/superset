@@ -2888,13 +2888,23 @@ def test_a_chart_bound_is_not_mirrored_when_its_text_form_reads_differently(
     assert cast(MagicMock, table.database.get_df).call_count == 1
 
 
-def _refusing_text(typed_answer: Any) -> Any:
+def _refusing_text(
+    typed_answer: Any, hour_answers: tuple[Any, Any] | None = None
+) -> Any:
     """Raise ORA-01830 on the text ``'2026-01-12 06:30:00'``; answer the typed
-    literal with ``typed_answer``."""
+    literal with ``typed_answer``.
+
+    ``hour_answers`` is what the day at 06:00 answers typed and written as
+    ``'2026-01-12 06'``, which is refused too where it is `None`."""
 
     def answer(sql: str, **kwargs: Any) -> pd.DataFrame:
         if "'2026-01-12 06:30:00'" in sql:
             raise RuntimeError("ORA-01830: date format picture ends before ...")
+        if "'2026-01-12 06'" in sql:
+            if hour_answers is None:
+                raise RuntimeError("ORA-01830: date format picture ends before ...")
+            row = [typed_answer, *hour_answers]
+            return pd.DataFrame([row], columns=["v0", "v1", "v2"])
         return pd.DataFrame([[typed_answer]], columns=["v0"])
 
     return answer
@@ -2925,8 +2935,9 @@ def test_a_chart_bound_whose_text_form_is_refused_is_held_to_its_instant(
     under its default ``NLS_DATE_FORMAT``, broken or not. Declining on the
     refusal alone kept ``TO_DATE(:value, 'YYYY-MM-DD')`` from emptying every
     time range, and cost ``CAST(:value AS DATE)`` its pruning with it. The
-    typed answer is asked alone instead -- a second round trip, only on this
-    path -- and kept where it can be a bucket of the instant.
+    typed answer is asked again instead -- only on this path -- and kept where
+    it can be a bucket of the instant. Under the default format the text to
+    the hour is refused too, so that is a third round trip.
     """
     table = _temporal_partition_table("sqlite://", "TIMESTAMP")
     mapping = resolve_partition_mapping(table)
@@ -2944,7 +2955,95 @@ def test_a_chart_bound_whose_text_form_is_refused_is_held_to_its_instant(
 
     assert bool(predicates) is mirrored
     assert bool(shape_errors) is not mirrored
+    assert cast(MagicMock, table.database.get_df).call_count == 3
+
+
+@pytest.mark.parametrize(
+    "typed_answer, hour_answers, mirrored",
+    [
+        # TO_DATE(:value, 'YYYY-MM-DD HH24') under an ISO date-only
+        # NLS_DATE_FORMAT: the typed value reaches the mask as '2026-01-12',
+        # so 06:30 answers midnight -- a bucket of the instant, and a whole
+        # hourly key short. The same day written to the hour says so.
+        (
+            datetime(2026, 1, 12),
+            (datetime(2026, 1, 12), datetime(2026, 1, 12, 6)),
+            False,
+        ),
+        # TRUNC(:value, 'HH') under a format that reads the hour: both forms
+        # agree.
+        (
+            datetime(2026, 1, 12, 6),
+            (datetime(2026, 1, 12, 6), datetime(2026, 1, 12, 6)),
+            True,
+        ),
+        # A text form answering NULL says nothing, as on the first round trip.
+        (datetime(2026, 1, 12, 6), (datetime(2026, 1, 12, 6), None), True),
+        # The year 0012 misreading still declines when the hour text answers.
+        (
+            datetime(12, 1, 26),
+            (datetime(12, 1, 26), datetime(12, 1, 26)),
+            False,
+        ),
+    ],
+    ids=["lost-time-of-day", "agree", "null-text", "year-0012"],
+)
+def test_a_refused_text_form_is_checked_again_at_the_hour(
+    app: Flask, typed_answer: Any, hour_answers: tuple[Any, Any], mirrored: bool
+) -> None:
+    """
+    Being near the instant does not make a typed answer right. Oracle refuses
+    ``'2026-01-12 06:30:00'`` under a ``'YYYY-MM-DD HH24'`` mask but reads
+    ``'2026-01-12 06'``, so the instant at the top of an hour is asked in both
+    forms alongside the typed values -- still a second round trip -- and the
+    two answers have to agree. A 06:30-18:30 range on an hourly key otherwise
+    returned 0 rows (48 with the flag off) while the preview said valid.
+    """
+    table = _temporal_partition_table("sqlite://", "TIMESTAMP")
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+    table.database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=_refusing_text(typed_answer, hour_answers)
+    )
+    shape_errors: list[str] = []
+
+    with app.app_context():
+        predicates = build_mirrored_predicates(
+            table,
+            mapping,
+            [(FilterOperator.GREATER_THAN_OR_EQUALS, datetime(2026, 1, 12, 6, 30))],
+            shape_errors=shape_errors,
+        )
+
+    assert bool(predicates) is mirrored
+    assert bool(shape_errors) is not mirrored
     assert cast(MagicMock, table.database.get_df).call_count == 2
+
+
+def test_the_preview_says_the_hour_text_reads_differently(app: Flask) -> None:
+    """The preview names both answers for the day at the hour."""
+    table = _temporal_partition_table("sqlite://", "TIMESTAMP")
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+    table.database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=_refusing_text(
+            datetime(2026, 1, 12),
+            (datetime(2026, 1, 12), datetime(2026, 1, 12, 6)),
+        )
+    )
+    shape_errors: list[str] = []
+
+    with app.app_context():
+        build_mirrored_predicates(
+            table,
+            mapping,
+            [(FilterOperator.GREATER_THAN_OR_EQUALS, datetime(2026, 1, 12, 6, 30))],
+            errors=[],
+            shape_errors=shape_errors,
+        )
+
+    assert "timestamp (2026-01-12 00:00:00)" in shape_errors[0]
+    assert "written as text (2026-01-12 06:00:00)" in shape_errors[0]
 
 
 def test_the_preview_says_the_text_form_was_refused(app: Flask) -> None:
