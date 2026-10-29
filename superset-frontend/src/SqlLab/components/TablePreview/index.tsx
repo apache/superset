@@ -31,7 +31,7 @@ import {
   Skeleton,
   Flex,
 } from '@superset-ui/core/components';
-import AutoSizer from 'react-virtualized-auto-sizer';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import {
@@ -346,8 +346,8 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
               flex: 1 1 auto;
             `}
           >
-            <AutoSizer disableWidth>
-              {({ height }) => {
+            <AutoSizer
+              renderProp={({ height = TAB_HEADER_HEIGHT }) => {
                 const tabItems = [];
 
                 tabItems.push({
@@ -437,7 +437,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
                   />
                 );
               }}
-            </AutoSizer>
+            />
           </div>
         </>
       )}

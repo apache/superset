@@ -42,6 +42,16 @@ import warnings
 # triggers the authlib.jose import. Placed in __init__.py so both the
 # production server path and test imports get it without duplicating the
 # filterwarnings call in every affected module.
+#
+# authlib.deprecate registers ``simplefilter("always", AuthlibDeprecationWarning)``
+# at import time, which lands in front of any filter registered earlier and
+# would override the ignore rule below. Import it first so its filter is
+# already installed and ours is inserted in front of it.
+try:
+    import authlib.deprecate  # noqa: F401
+except ImportError:  # authlib arrives transitively via fastmcp
+    pass
+
 warnings.filterwarnings(
     "ignore",
     message=r"authlib\.jose module is deprecated",

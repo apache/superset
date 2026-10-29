@@ -1077,6 +1077,7 @@ class TestUpdateChartNameOnly:
     @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
     @patch("superset.db.session")
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("sanitized", [False, True])
     async def test_name_only_update_success(
         self,
         mock_db_session,
@@ -1084,6 +1085,7 @@ class TestUpdateChartNameOnly:
         mock_update_cmd_cls,
         mock_check_access,
         mcp_server,
+        sanitized: bool,
     ):
         """Successful name-only update (identifier + chart_name, no config)."""
         mock_chart = Mock()
@@ -1110,13 +1112,18 @@ class TestUpdateChartNameOnly:
 
         request = {
             "identifier": 1,
-            "chart_name": "Renamed Chart",
+            "chart_name": "Renamed Chart <img src=x>" if sanitized else "Renamed Chart",
             "generate_preview": False,
         }
 
         async with Client(mcp) as client:
             result = await client.call_tool("update_chart", {"request": request})
 
+            if sanitized:
+                assert any(
+                    "sanitization" in warning
+                    for warning in result.structured_content["warnings"]
+                )
             assert result.structured_content["success"] is True
             assert result.structured_content["chart"]["slice_name"] == "Renamed Chart"
             assert result.structured_content["chart"]["is_unsaved_state"] is False
@@ -1546,6 +1553,104 @@ class TestUpdateChartSaveWithConfig:
         form_data = result.structured_content["form_data"]
         assert isinstance(form_data, dict)
         assert "viz_type" in form_data
+
+    @patch(
+        "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+        return_value=None,
+    )
+    @patch.object(
+        update_chart_module, "_validate_update_against_dataset", return_value=None
+    )
+    @patch.object(update_chart_module, "_create_preview_url", new_callable=Mock)
+    @patch(
+        "superset.commands.chart.update.UpdateChartCommand",
+        new_callable=Mock,
+    )
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("generate_preview", [False, True])
+    async def test_sql_trendline_is_kept_by_an_update_that_omits_it(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_check_access,
+        mock_update_cmd_cls,
+        mock_create_preview,
+        unused_validate_mock,
+        unused_find_dataset_mock,
+        mcp_server,
+        generate_preview: bool,
+    ):
+        """An update that only changes the metric keeps a SQL trendline column."""
+        sql_time_column = {
+            "expressionType": "SQL",
+            "sqlExpression": "DATE(ds)",
+            "label": "day",
+        }
+        mock_chart = Mock()
+        mock_chart.id = 77
+        mock_chart.datasource_id = 10
+        mock_chart.datasource_type = "table"
+        mock_chart.slice_name = "Daily signups"
+        mock_chart.viz_type = "big_number"
+        mock_chart.uuid = "uuid-77"
+        mock_chart.params = json.dumps(
+            {
+                "viz_type": "big_number",
+                "metric": "count",
+                "x_axis": sql_time_column,
+                "compare_lag": 7,
+            }
+        )
+        mock_find_by_id.return_value = mock_chart
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True,
+            dataset_id=10,
+            dataset_name="my_dataset",
+            warnings=[],
+        )
+        mock_update_cmd_cls.return_value.run.return_value = Mock(
+            id=77, slice_name="Daily signups", viz_type="big_number", uuid="uuid-77"
+        )
+        mock_create_preview.return_value = (
+            "http://localhost:8088/explore/?form_data_key=preview_key&slice_id=77",
+            "preview_key",
+            [],
+        )
+
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "update_chart",
+                {
+                    "request": {
+                        "identifier": 77,
+                        "generate_preview": generate_preview,
+                        "config": {
+                            "chart_type": "big_number",
+                            "metric": {"name": "revenue", "aggregate": "SUM"},
+                        },
+                    }
+                },
+            )
+
+        data = result.structured_content
+        assert data["success"] is True, data
+        form_data = data["form_data"]
+        assert form_data["viz_type"] == "big_number"
+        assert form_data["x_axis"] == sql_time_column
+        assert form_data["metric"]["label"] == "SUM(revenue)"
+        assert form_data["compare_lag"] == 7
+        if generate_preview:
+            mock_update_cmd_cls.assert_not_called()
+            return
+        payload = mock_update_cmd_cls.call_args[0][1]
+        assert payload["viz_type"] == "big_number"
+        assert json.loads(payload["params"])["x_axis"] == sql_time_column
 
 
 class TestUpdateChartErrorPaths:
@@ -3240,17 +3345,73 @@ def test_big_number_update_keeps_trendline_saved_under_x_axis(x_axis: Any) -> No
     assert params["adhoc_filters"] == [_BIG_NUMBER_TIME_RANGE_FILTER]
 
 
-def test_big_number_update_does_not_inherit_adhoc_trendline_column() -> None:
-    """A SQL expression x_axis has no column name the typed config can carry."""
-    saved = {
-        "viz_type": "big_number",
-        "metric": "count",
-        "x_axis": {
-            "expressionType": "SQL",
-            "sqlExpression": "DATE(ds)",
-            "label": "day",
-        },
-    }
+_BIG_NUMBER_SQL_TRENDLINE: dict[str, Any] = {
+    "viz_type": "big_number",
+    "metric": "count",
+    "x_axis": {
+        "expressionType": "SQL",
+        "sqlExpression": "DATE(ds)",
+        "label": "day",
+    },
+    "compare_lag": 7,
+    "adhoc_filters": [_BIG_NUMBER_TIME_RANGE_FILTER],
+}
+
+
+@_SAVE_AND_PREVIEW
+def test_big_number_update_keeps_a_sql_trendline_column(preview: bool) -> None:
+    """A SQL expression x_axis has no column name the typed config can carry.
+
+    The update inherits the saved expression as it is, so the chart keeps its
+    trendline and the settings that depend on it.
+    """
+    params = _saved_variant_update_params(
+        _BIG_NUMBER_SQL_TRENDLINE, _BIG_NUMBER_VARIANT_CONFIG, preview=preview
+    )
+
+    assert params["viz_type"] == "big_number"
+    assert params["metric"]["label"] == "SUM(revenue)"
+    assert params["x_axis"] == _BIG_NUMBER_SQL_TRENDLINE["x_axis"]
+    assert "granularity_sqla" not in params
+    assert params["compare_lag"] == 7
+    assert params["adhoc_filters"] == [_BIG_NUMBER_TIME_RANGE_FILTER]
+
+
+def test_big_number_update_replaces_a_sql_trendline_column() -> None:
+    from superset.mcp_service.chart.chart_helpers import resolve_big_number_columns
+
+    params = _saved_variant_update_params(
+        _BIG_NUMBER_SQL_TRENDLINE,
+        {**_BIG_NUMBER_VARIANT_CONFIG, "temporal_column": "order_date"},
+    )
+
+    assert params["viz_type"] == "big_number"
+    assert resolve_big_number_columns(params) == ["order_date"]
+    assert "x_axis" not in params
+    assert params["compare_lag"] == 7
+
+
+def test_big_number_update_with_show_trendline_false_drops_a_sql_trendline() -> None:
+    params = _saved_variant_update_params(
+        _BIG_NUMBER_SQL_TRENDLINE,
+        {**_BIG_NUMBER_VARIANT_CONFIG, "show_trendline": False},
+    )
+
+    assert params["viz_type"] == "big_number_total"
+
+
+def test_big_number_rebind_does_not_reject_a_sql_trendline_column() -> None:
+    """A rebind already replaces the saved time column, SQL expression or not."""
+    params = _saved_variant_update_params(
+        _BIG_NUMBER_SQL_TRENDLINE, _BIG_NUMBER_VARIANT_CONFIG, dataset_id=99
+    )
+
+    assert params["viz_type"] == "big_number_total"
+
+
+def test_big_number_update_without_a_saved_time_column_becomes_total() -> None:
+    """A saved trendline chart with no time column has no trendline to keep."""
+    saved = {"viz_type": "big_number", "metric": "count"}
 
     params = _saved_variant_update_params(saved, _BIG_NUMBER_VARIANT_CONFIG)
 
@@ -3297,3 +3458,53 @@ def test_big_number_rebind_does_not_inherit_saved_temporal_column() -> None:
 
     assert params["viz_type"] == "big_number_total"
     assert "granularity_sqla" not in params
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Users aged <30",
+        "Revenue <$1M",
+        "Love <3 charts",
+        "Users aged >30",
+        "Revenue\u00a0>\u00a0$1M",
+    ],
+)
+async def test_update_chart_literal_less_than_storage_round_trip(title: str) -> None:
+    """Rename persistence and the tool response use the same literal text."""
+    chart = Mock(id=1, datasource_id=10, slice_name="Old", viz_type="table", uuid="abc")
+
+    def update(_: int, payload: dict[str, Any]) -> Mock:
+        """Emulate the update command's persisted attribute mutation."""
+        chart.slice_name = payload["slice_name"]
+        return Mock(run=Mock(return_value=chart))
+
+    with (
+        patch("superset.db.session"),
+        patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart),
+        patch(
+            "superset.mcp_service.auth.check_chart_data_access",
+            return_value=DatasetValidationResult(
+                is_valid=True, dataset_id=10, dataset_name="ds", warnings=[]
+            ),
+        ),
+        patch(
+            "superset.commands.chart.update.UpdateChartCommand", side_effect=update
+        ) as command,
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "update_chart",
+                {
+                    "request": {
+                        "identifier": 1,
+                        "chart_name": title,
+                        "generate_preview": False,
+                    }
+                },
+            )
+    assert command.call_args.args[1]["slice_name"] == title
+    assert chart.slice_name == title
+    assert result.structured_content["success"] is True
+    assert result.structured_content["chart"]["slice_name"] == title
