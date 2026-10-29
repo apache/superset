@@ -914,6 +914,7 @@ export function getLegendProps(
   orientation: LegendOrientation,
   show: boolean,
   theme: SupersetTheme,
+  showSelectorLegend = true,
   zoomable = false,
   legendState?: LegendState,
   padding?: LegendPaddingType,
@@ -937,7 +938,9 @@ export function getLegendProps(
         }
       : {}),
     selected: legendState ?? {},
-    selector: ['all', 'inverse'],
+    // `selector: false` omits the All/Inv group from legend layout.
+    // The shorthand lets ECharts fill button titles from the chart locale.
+    selector: showSelectorLegend ? ['all', 'inverse'] : false,
     selectorLabel: {
       fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeSM,

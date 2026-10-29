@@ -15,7 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Pure policy types for semantic containment caching."""
+"""Pure policy types for semantic containment caching.
+
+OrFilter groups require identical canonical group sets on both queries. They
+never participate in containment/subset proofs or leftover row filtering;
+matching groups are strict predicates, which also preclude rollup reuse.
+"""
 
 from __future__ import annotations
 
@@ -24,8 +29,10 @@ import re
 from superset_core.semantic_layers.types import (
     Dimension,
     Filter,
+    FilterExpression,
     Metric,
     Operator,
+    OrFilter,
     PredicateType,
     SemanticQuery,
 )
@@ -40,6 +47,7 @@ from superset.semantic_layers.cache_types import (
     ROLLUP_COMPATIBLE_AGGREGATIONS,
     SAFE_CONTAINMENT_CAPABILITIES as SAFE_CONTAINMENT_CAPABILITIES,
 )
+from superset.semantic_layers.ordering import with_default_order
 
 
 def _comparable(left: object, right: object) -> bool:
@@ -220,11 +228,15 @@ def _supports_filter(
     return False
 
 
-def _strict_filters(filters: frozenset[Filter]) -> frozenset[Filter]:
+def _strict_filters(
+    filters: frozenset[FilterExpression],
+) -> frozenset[FilterExpression]:
     return frozenset(
         filter_
         for filter_ in filters
-        if filter_.type is PredicateType.HAVING or filter_.operator is Operator.ADHOC
+        if isinstance(filter_, OrFilter)
+        or filter_.type is PredicateType.HAVING
+        or filter_.operator is Operator.ADHOC
     )
 
 
@@ -238,15 +250,27 @@ def _filter_decision(
     entry: CachedEntry,
     capabilities: ContainmentCapabilities,
 ) -> frozenset[Filter] | None:
-    requested: frozenset[Filter] = frozenset(query.filters or set())
-    cached: frozenset[Filter] = entry.filters
-    requested_strict: frozenset[Filter] = _strict_filters(requested)
-    cached_strict: frozenset[Filter] = _strict_filters(cached)
+    requested: frozenset[FilterExpression] = frozenset(query.filters or set())
+    cached: frozenset[FilterExpression] = entry.filters
+    requested_strict: frozenset[FilterExpression] = _strict_filters(requested)
+    cached_strict: frozenset[FilterExpression] = _strict_filters(cached)
     if requested_strict != cached_strict:
         return None
+    # Dataclass equality preserves full member definitions but conflates True/1.
+    # Canonical equality additionally preserves each operand's literal type.
+    if SemanticCacheIdentityFactory.filters(
+        set(requested_strict)
+    ) != SemanticCacheIdentityFactory.filters(set(cached_strict)):
+        return None
 
-    requested_where: frozenset[Filter] = requested - requested_strict
-    cached_where: frozenset[Filter] = cached - cached_strict
+    requested_where: frozenset[Filter] = frozenset(
+        filter_
+        for filter_ in requested - requested_strict
+        if isinstance(filter_, Filter)
+    )
+    cached_where: frozenset[Filter] = frozenset(
+        filter_ for filter_ in cached - cached_strict if isinstance(filter_, Filter)
+    )
     for cached_filter in cached_where:
         if any(
             _same_filter(cached_filter, requested_filter)
@@ -315,12 +339,16 @@ def select_reuse(
     capabilities: ContainmentCapabilities,
 ) -> ReuseDecision | None:
     """Prove whether and how a cached descriptor can satisfy a query."""
-    query_order_key: str = SemanticCacheIdentityFactory.order(query.order)
+    # Compare the order the rows were cut by, defaults included: two unordered
+    # queries can default to different temporal dimensions.
+    order_compatible: bool = (
+        SemanticCacheIdentityFactory.order(with_default_order(query).order)
+        == entry.order_key
+    )
     query_offset: int = query.offset or 0
     pagination_compatible: bool = (
         query_offset == 0
         and entry.offset == 0
-        and query_order_key == entry.order_key
         and (
             entry.limit is None
             or (query.limit is not None and query.limit <= entry.limit)
@@ -335,6 +363,11 @@ def select_reuse(
     leftovers: frozenset[Filter] | None = _filter_decision(query, entry, capabilities)
     mode: ReuseMode | None = _reuse_mode(query, entry)
     if leftovers is None or mode is None:
+        return None
+    # EXACT and PROJECT keep the cached row order. A rollup comes from an
+    # unlimited entry and is re-sorted by the default order, so the order the
+    # entry was stored in does not matter.
+    if mode is not ReuseMode.ROLLUP and not order_compatible:
         return None
     if mode is ReuseMode.ROLLUP and query.order:
         return None

@@ -81,3 +81,34 @@ editing saved form data directly inherits the chart's version, so suggestions ar
 a usability aid for compatible selections, not a guarantee about each filter's
 provenance. The marker is not an authorization check; access to the datasource is
 verified separately.
+
+## NULL filter values
+
+For semantic views, a selected NULL value means a missing value, rather than SQL's
+unknown comparison result. Equality to NULL and `IN (NULL)` use `IS NULL`;
+inequality to NULL and `NOT IN (NULL)` use `IS NOT NULL`.
+
+A mixed selection such as `IN ('a', NULL)` means `IN ('a') OR IS NULL`. Its negative
+form, `NOT IN ('a', NULL)`, means `NOT IN ('a') AND IS NOT NULL`; it excludes both
+`'a'` and missing values. Empty IN and NOT IN selections are rejected with a query
+validation error. Non-NULL comparisons retain their existing semantics.
+
+Host filter-value types accept missing values (`None`) inside list selections
+and variable-length tuples, so multi-value selections can preserve NULL members.
+
+Every semantic provider must support mixed positive selections through grouped
+OR predicates. NULL-only and mixed negative selections use ordinary leaf
+predicates. Provider adapters must be upgraded before, or together with, the
+host/SDK so that mixed selections preserve missing-value rows.
+
+For adapter authors, see the [semantic filter contract](/developer-docs/extensions/extension-points/semantic-layers#filter-expressions).
+
+## Numerical range filters
+
+For semantic views, numerical range filters use **Minimum value** and
+**Maximum value** inputs instead of a slider. No query is sent to discover
+bounds. Leave either input empty for an unbounded end; leave both empty to
+remove the constraint unless **Filter value is required** is enabled.
+The minimum cannot exceed the maximum. Negative values and decimals are
+supported, and existing minimum, maximum, and exact single-value modes remain
+available. SQL dataset filters retain their discovered bounds and slider options.

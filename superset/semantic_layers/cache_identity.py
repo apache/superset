@@ -29,9 +29,11 @@ from superset_core.semantic_layers.types import (
     AdhocExpression,
     Dimension,
     Filter,
+    FilterExpression,
     GroupLimit,
     Metric,
     OrderTuple,
+    OrFilter,
     SemanticQuery,
 )
 
@@ -39,7 +41,7 @@ from superset.utils import json
 
 # Prefixes every bucket and value key. Bump it whenever the pickled shape of
 # ``cache_types.CachedEntry`` or the canonical query material changes.
-IDENTITY_FORMAT_VERSION: str = "v4"
+IDENTITY_FORMAT_VERSION: str = "v5"
 _SENSITIVE_KEY_PARTS: tuple[str, ...] = (
     "credential",
     "password",
@@ -170,6 +172,11 @@ class SemanticCacheIdentityFactory:
         )
 
     @staticmethod
+    def filters(filters: set[FilterExpression] | None) -> str:
+        """Serialize a predicate set with type-sensitive, order-independent groups."""
+        return _canonical_json(_canonical_filters(filters))
+
+    @staticmethod
     def group_limit(group_limit: GroupLimit | None) -> str:
         """Serialize group-limit behavior for descriptor compatibility checks."""
         if group_limit is None:
@@ -258,9 +265,20 @@ def _canonical_filter(filter_: Filter) -> Mapping[str, object]:
     }
 
 
-def _canonical_filters(filters: set[Filter] | None) -> list[Mapping[str, object]]:
-    canonical: list[Mapping[str, object]] = [
-        _canonical_filter(filter_) for filter_ in filters or set()
+def _canonical_filters(filters: set[FilterExpression] | None) -> list[object]:
+    canonical: list[object] = [
+        (
+            "or",
+            tuple(
+                sorted(
+                    (_canonical_filter(leaf) for leaf in filter_.filters),
+                    key=_canonical_json,
+                )
+            ),
+        )
+        if isinstance(filter_, OrFilter)
+        else _canonical_filter(filter_)
+        for filter_ in filters or set()
     ]
     return sorted(canonical, key=_canonical_json)
 

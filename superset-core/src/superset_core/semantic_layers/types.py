@@ -20,7 +20,7 @@ from __future__ import annotations
 import enum
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
-from typing import Any
+from typing import Any, TypeAlias
 
 import isodate
 import pyarrow as pa
@@ -66,16 +66,9 @@ class Grains:
        quarter, year;
     3. then any remaining grain representation, in lexical order.
 
-    This describes the intended contract. Resolving every host lookup through
-    this one preference is the work of apache/superset#44454; until it lands, the
-    host does not apply it everywhere. Filter resolution keeps whichever variant
-    of a name it sees last, and ``get_dimensions`` returns a set, so that choice
-    is arbitrary; the grouping fallback orders the remaining grains by name. A
-    provider should not rely on which variant a given lookup picks today.
-
-    Once that work lands, the preference governs column metadata, filters and the
+    The preference governs column metadata, filters and the
     grouping fallback. An explicit supported grouping grain is always honored.
-    Filters and time bounds will use the default preference **independently of
+    Filters and time bounds use the default preference **independently of
     grouping**: grouping by month with a lower bound of January 15 will still
     filter the raw time dimension from January 15 rather than testing month
     buckets against that bound. Sorting and series limits use the selected
@@ -89,10 +82,7 @@ class Grains:
     Conflicting IDs, types, definitions or descriptions for the same name and
     grain make the catalog ambiguous; that is a provider defect to fix rather
     than a tie for the host to break by picking a variant.
-    The host does not detect such a conflict: grouping keeps the first variant
-    it sees for a ``(name, grain)`` pair, while filters and ordering resolve the
-    name to the last variant seen, so one query can group and filter on
-    different IDs.
+    The host rejects conflicting variants rather than choosing an arbitrary ID.
     """
 
     SECOND = Grain("Second", "PT1S")
@@ -145,9 +135,9 @@ class Dimension:
     at most one per ``(name, grain)`` pair: two dimensions sharing a name and
     grain are a provider defect, not a tie for the host to break silently.
     Metric names are unique on their own, and must not collide with a dimension
-    name. Both rules are provider obligations: the host does not currently
-    detect a duplicate ``(name, grain)`` (grouping and filtering may then pick
-    different variants) or a metric name that collides with a dimension name.
+    name. Both rules are provider obligations: the host rejects conflicting
+    ``(name, grain)`` variants, but does not detect a metric name that collides
+    with a dimension name.
     A query selects at most one
     variant per name, so a result carries one column per selected member name.
 
@@ -249,11 +239,9 @@ class Operator(str, enum.Enum):
 
     Splitting a ``None`` operand out into those predicates is the host's
     responsibility, so that every provider sees the same already-normalized
-    filter set instead of reimplementing the rewrite. That normalization is
-    being added to the host mapper separately, in apache/superset#45133; until
-    it ships, the host still passes a ``None`` operand through with its original
-    operator, so a provider that already handles ``None`` correctly should keep
-    doing so.
+    filter set instead of reimplementing the rewrite. Mixed positive membership
+    selections use :class:`OrFilter` to combine non-NULL membership with
+    :attr:`IS_NULL`; providers must render both branches of the group.
     """
 
     EQUALS = "="
@@ -277,6 +265,13 @@ FilterValues = str | int | float | bool | datetime | date | time | timedelta | N
 
 
 class PredicateType(enum.Enum):
+    """
+    The stage a filter applies to.
+
+    ``HAVING`` is reserved. The host does not send HAVING predicates for chart
+    data, and a provider may reject one.
+    """
+
     WHERE = "WHERE"
     HAVING = "HAVING"
 
@@ -287,6 +282,32 @@ class Filter:
     column: Dimension | Metric | None
     operator: Operator
     value: FilterValues | tuple[FilterValues, ...] | frozenset[FilterValues]
+
+
+@dataclass(frozen=True)
+class OrFilter:
+    """A parenthesized disjunction of at least two leaves in one predicate stage.
+
+    Query filter collections combine their members with AND. A group is one member
+    of that collection and combines its leaves with OR. Nested groups are unsupported.
+    Providers must render these groups in query and group-limit filters. Sort leaves
+    deterministically when rendering, keeping each bound value paired with its
+    predicate; frozenset iteration order is not stable across processes.
+    """
+
+    filters: frozenset[Filter]
+
+    def __post_init__(self) -> None:
+        """Reject mutable, empty, nested, or mixed WHERE/HAVING groups."""
+        if not isinstance(self.filters, frozenset) or len(self.filters) < 2:
+            raise ValueError("OrFilter requires a frozenset of at least two leaves")
+        if not all(isinstance(leaf, Filter) for leaf in self.filters):
+            raise ValueError("OrFilter only accepts Filter leaves")
+        if len({leaf.type for leaf in self.filters}) != 1:
+            raise ValueError("OrFilter leaves must share one predicate stage")
+
+
+FilterExpression: TypeAlias = Filter | OrFilter
 
 
 class OrderDirection(enum.Enum):
@@ -315,7 +336,7 @@ class GroupLimit:
     metric: Metric | None
     direction: OrderDirection = OrderDirection.DESC
     group_others: bool = False
-    filters: set[Filter] | None = None
+    filters: set[FilterExpression] | None = None
 
 
 @dataclass(frozen=True)
@@ -355,6 +376,19 @@ class SemanticQuery:
     member must be defined by the view; an adhoc expression is only a valid
     order key for a view declaring ``ADHOC_EXPRESSIONS_IN_ORDERBY``.
 
+    **Default chronological order.** When ``order`` is empty (``None`` or
+    ``[]``) and ``dimensions`` includes a date, timestamp or time dimension, the
+    host sorts ascending by the first such dimension in ``dimensions`` (by list
+    position, not ``SemanticView.preferred_temporal_dimension``), before
+    ``offset`` and ``limit``. Rows that tie on it come back in no particular
+    order, and where its NULL values sort is not specified. The host applies
+    this both to the ``get_table`` query it sends the provider and to results it
+    serves from its cache. It is a default, never a prefix: a non-empty
+    ``order`` is used exactly as given. A ``get_table`` call therefore receives
+    an empty ``order`` only when no temporal dimension is selected, and may then
+    return rows in any order. ``get_row_count`` gets no default, since order
+    cannot change a count.
+
     ``group_limit`` is a separate ranking, with its own metric, direction and
     optional filters.
 
@@ -372,7 +406,7 @@ class SemanticQuery:
 
     metrics: list[Metric]
     dimensions: list[Dimension]
-    filters: set[Filter] | None = None
+    filters: set[FilterExpression] | None = None
     order: list[OrderTuple] | None = None
     limit: int | None = None
     offset: int | None = None

@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_babel import lazy_gettext as _
+from flask_babel import lazy_gettext as _, ngettext
 
 from superset.commands.exceptions import (
     CommandException,
@@ -74,3 +74,44 @@ class SemanticViewCreateFailedError(CreateFailedError):
 
 class SemanticViewDeleteFailedError(DeleteFailedError):
     message = _("Semantic view could not be deleted.")
+
+
+class SemanticDeleteDependentsError(CommandException):
+    """A semantic view or layer still has live or archived dependent assets."""
+
+    status: int = 409
+
+    def __init__(
+        self,
+        total: int,
+        dependents: list[dict[str, str | int]],
+        inaccessible_count: int = 0,
+        archived_count: int = 0,
+    ) -> None:
+        self.archived_count: int = archived_count
+        self.total: int = total
+        self.dependents: list[dict[str, str | int]] = dependents
+        self.inaccessible_count: int = inaccessible_count
+        message: str = ngettext(
+            "Semantic source is used by %(count)s dependent asset "
+            "and cannot be deleted.",
+            "Semantic source is used by %(count)s dependent assets "
+            "and cannot be deleted.",
+            total,
+            count=total,
+        )
+        message += " " + _(
+            "Remove or repoint these assets before deleting the semantic source."
+        )
+        if archived_count:
+            message += " " + ngettext(
+                "%(count)s dependent asset is archived.",
+                "%(count)s dependent assets are archived.",
+                archived_count,
+                count=archived_count,
+            )
+            message += " " + _(
+                "Go to Recently Archived to restore and repoint archived assets, "
+                "or delete them permanently, or ask an admin for help."
+            )
+        super().__init__(message)

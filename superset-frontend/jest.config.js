@@ -34,8 +34,9 @@ if (!process.env.CI) {
 export default {
   // [/\\] matches both path separators so the suite also collects on
   // native Windows, where jest hands the regex backslash-separated paths.
+  // Playwright helper unit tests use .test; browser suites use .spec.
   testRegex:
-    '[/\\\\]superset-frontend[/\\\\](spec|src|plugins|packages|tools)[/\\\\].*(_spec|\\.test)\\.[jt]sx?$',
+    '[/\\\\]superset-frontend[/\\\\](spec|src|plugins|packages|tools|playwright)[/\\\\].*(_spec|\\.test)\\.[jt]sx?$',
   moduleNameMapper: {
     '\\.(css|less|geojson)$': '<rootDir>/spec/__mocks__/mockExportObject.js',
     '\\.(gif|ttf|eot|png|jpg)$': '<rootDir>/spec/__mocks__/mockExportString.js',
@@ -123,4 +124,8 @@ export default {
   },
   reporters: reporters,
   testTimeout: 20000,
+  // CI and the default use 80% of the cores. Set JEST_MAX_WORKERS (a number or
+  // a percentage string such as "50%") to cap the worker pool on a shared or
+  // busy machine without changing the npm scripts.
+  maxWorkers: process.env.JEST_MAX_WORKERS || '80%',
 };
