@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Column,
   useFilters,
@@ -26,6 +26,7 @@ import {
   useSortBy,
   useTable,
 } from 'react-table';
+import type { ListViewColumn } from '@superset-ui/core/components/TableCollection';
 
 import {
   NumberParam,
@@ -175,7 +176,7 @@ export function convertFiltersRison(
 
 interface UseListViewConfig<D extends object = any> {
   fetchData: (conf: FetchDataConfig) => void;
-  columns: Column<D>[];
+  columns: ListViewColumn<D>[];
   data: D[];
   count: number;
   initialPageSize: number;
@@ -205,6 +206,8 @@ export function useListViewState<D extends object = any>({
     sortOrder: StringParam,
     viewMode: StringParam,
   });
+
+  const previousQuery = useRef(query);
 
   const initialSortBy = useMemo(
     () =>
@@ -272,7 +275,10 @@ export function useListViewState<D extends object = any>({
     state: { pageIndex, pageSize, sortBy, filters },
   } = useTable<D>(
     {
-      columns: columnsWithFilter,
+      // ListViewColumn is intentionally looser than react-table's own
+      // Column<D> (see its definition for why); react-table only reads
+      // these fields at runtime and doesn't care about the stricter typing.
+      columns: columnsWithFilter as unknown as Column<D>[],
       data,
       disableFilters: true,
       disableSortRemove: true,
@@ -308,6 +314,10 @@ export function useListViewState<D extends object = any>({
   }, [initialFilters]);
 
   useEffect(() => {
+    // Let URL navigation restore table state before writing or fetching it.
+    if (!isEqual(previousQuery.current, query)) {
+      return;
+    }
     // From internalFilters, produce a simplified obj
     const filterObj: Record<string, InnerFilterValue> = {};
 
@@ -343,8 +353,8 @@ export function useListViewState<D extends object = any>({
     const method =
       typeof query.pageIndex !== 'undefined' &&
       queryParams.pageIndex !== query.pageIndex
-        ? 'push'
-        : 'replace';
+        ? 'pushIn'
+        : 'replaceIn';
 
     setQuery(queryParams, method);
 
@@ -352,8 +362,20 @@ export function useListViewState<D extends object = any>({
   }, [fetchData, pageIndex, pageSize, sortBy, filters]);
 
   useEffect(() => {
+    previousQuery.current = query;
     if (!isEqual(initialState.pageIndex, pageIndex)) {
       gotoPage(initialState.pageIndex);
+    }
+    const restoredInternalFilters = mergeCreateFilterValues(
+      initialFilters,
+      query.filters || {},
+    );
+    const restoredFilters = convertFilters(restoredInternalFilters);
+    if (!isEqual(restoredFilters, filters)) {
+      setAllFilters(restoredFilters);
+    }
+    if (!isEqual(restoredInternalFilters, internalFilters)) {
+      setInternalFilters(restoredInternalFilters);
     }
   }, [query]);
 

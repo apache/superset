@@ -35,6 +35,7 @@ from superset.commands.chart.exceptions import (
     DatasourceTypeUpdateRequiredValidationError,
 )
 from superset.commands.chart.utils import (
+    touch_dashboards,
     validate_chart_datasource_type,
     validate_query_context_datasource,
 )
@@ -53,6 +54,7 @@ from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tags.models import ObjectType
+from superset.utils.core import DatasourceType
 from superset.utils.decorators import on_error, transaction
 from superset.versioning.changes.normalization import (
     register_matching_normalization_context,
@@ -103,6 +105,24 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
                 self._model.params,
                 self._properties["params"],
             )
+
+        # Touch dashboards whose links to this chart changed to bump their audit
+        # metadata (resolves #44305). Dashboards the chart was added to and
+        # removed from are both affected, so their last modified state stays
+        # accurate in either direction.
+        if "dashboards" in self._properties:
+            existing_dashboard_ids = {d.id for d in self._model.dashboards}
+            requested_dashboard_ids = {d.id for d in self._properties["dashboards"]}
+            affected_dashboards = [
+                dashboard
+                for dashboard in self._model.dashboards
+                if dashboard.id not in requested_dashboard_ids
+            ] + [
+                dashboard
+                for dashboard in self._properties["dashboards"]
+                if dashboard.id not in existing_dashboard_ids
+            ]
+            touch_dashboards(affected_dashboards)
 
         return ChartDAO.update(self._model, self._properties)
 
@@ -169,8 +189,9 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             raise ChartNotFoundError()
 
         # Check and update editorship; when only updating query context we relax
-        # editorship so report workers can save context. We still require chart
-        # access so users cannot rewrite query context for charts they cannot access.
+        # editorship so background workers can save context. Report and thumbnail
+        # executors resolve against the schedule or the requesting user, not the
+        # chart, so they are frequently not chart editors. Access is still required.
         if not is_query_context_update(self._properties):
             try:
                 security_manager.raise_for_editorship(self._model)
@@ -181,6 +202,12 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
                 exceptions.append(ex)
             raise_if_managed_externally(self._model, ChartForbiddenError)
         else:
+            # ``raise_for_access`` admits a guest for every chart on the dashboard
+            # its token embeds, but a guest holds no write capability (see the
+            # capability matrix in ``SECURITY.md``). The strict path inherits this
+            # deny from ``is_editor``; this branch has to state it.
+            if security_manager.is_guest_user():
+                raise ChartForbiddenError()
             try:
                 security_manager.raise_for_access(chart=self._model)
             except SupersetSecurityException as ex:
@@ -197,6 +224,15 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             # Keep the refreshed payload bound to the chart's own datasource so it
             # cannot be repointed at an unrelated one.
             self._validate_query_context_datasource(exceptions)
+
+        if (
+            not datasource_type
+            and self._model.datasource_type == DatasourceType.SEMANTIC_VIEW
+        ):
+            try:
+                validate_chart_datasource_type(self._model.datasource_type)
+            except ValidationError as ex:
+                exceptions.append(ex)
 
         # validate tags
         try:

@@ -142,6 +142,7 @@ export function sleep(time: number) {
 export {
   act,
   cleanup,
+  configure,
   createEvent,
   waitFor,
   fireEvent,
