@@ -26,7 +26,7 @@ from unittest.mock import patch
 import pytest
 from flask.ctx import AppContext
 from flask_appbuilder.security.sqla import models as ab_models
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 from sqlalchemy.engine import Connection
 
 from superset import db, security_manager
@@ -50,7 +50,7 @@ ADMIN_SCHEMA_NAME = "admin_database"
 
 
 @pytest.fixture(scope="session", autouse=True)
-def birth_names_table_first(load_birth_names_data: None) -> None:  # noqa: F811
+def birth_names_table_first(request: pytest.FixtureRequest) -> None:
     """Make ``birth_names`` the first SqlaTable of the session, with id 1.
 
     Many tests hard-code ``datasource_id=1`` (``insert_chart(..., 1)`` and
@@ -62,8 +62,15 @@ def birth_names_table_first(load_birth_names_data: None) -> None:  # noqa: F811
     once up front gives every session the same starting state, including
     each pytest-xdist worker, which otherwise reaches those tests with no
     table 1 at all or with some other table in that slot.
+
+    Jobs that run integration tests without a migrated metadata database (the
+    semantic-cache Redis coordination tests) have nothing to seed, so the
+    fixture is a no-op there.
     """
     with app.app_context():
+        if not inspect(db.engine).has_table("dbs"):
+            return
+        request.getfixturevalue("load_birth_names_data")
         dash_id, slice_ids = _create_birth_names_dashboard()
         _cleanup_birth_names_dashboard(dash_id, slice_ids)
 
