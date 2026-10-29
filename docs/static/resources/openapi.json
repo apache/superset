@@ -4998,6 +4998,12 @@
           "is_managed_externally": {
             "type": "boolean"
           },
+          "query_cost_warning": {
+            "readOnly": true
+          },
+          "query_warning_state": {
+            "readOnly": true
+          },
           "uuid": {
             "format": "uuid",
             "nullable": true,
@@ -5098,6 +5104,9 @@
             "type": "integer"
           },
           "query_cost_warning": {
+            "readOnly": true
+          },
+          "query_warning_state": {
             "readOnly": true
           },
           "uuid": {
@@ -7290,6 +7299,9 @@
             "nullable": true,
             "type": "string"
           },
+          "query_warning_supported": {
+            "type": "boolean"
+          },
           "supports_dynamic_catalog": {
             "description": "The database supports multiple catalogs in a single connection",
             "type": "boolean"
@@ -7322,7 +7334,7 @@
           },
           "check_warning": {
             "default": false,
-            "description": "Check the connection's advisory warning threshold",
+            "description": "Run the connection's advisory pre-execution check",
             "type": "boolean"
           },
           "database_id": {
@@ -8023,25 +8035,6 @@
         },
         "required": [
           "name"
-        ],
-        "type": "object"
-      },
-      "QueryCostWarning": {
-        "properties": {
-          "enabled": {
-            "type": "boolean"
-          },
-          "metric": {
-            "type": "string"
-          },
-          "threshold": {
-            "exclusiveMinimum": true,
-            "minimum": 0,
-            "type": "number"
-          }
-        },
-        "required": [
-          "enabled"
         ],
         "type": "object"
       },
@@ -11232,12 +11225,17 @@
             "type": "integer"
           },
           "query_cost_warning": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/QueryCostWarning"
-              }
+            "nullable": true,
+            "type": "object"
+          },
+          "query_warning_state": {
+            "enum": [
+              "unsupported",
+              "disabled",
+              "ready",
+              "invalid"
             ],
-            "nullable": true
+            "type": "string"
           }
         },
         "type": "object"
@@ -35117,7 +35115,7 @@
                 }
               }
             },
-            "description": "Formatted manual estimate, or an advisory status object when check_warning is true. Warning statuses are disabled, unsupported, within_threshold, exceeded, and unavailable. Active rules also return metric, label, unit, value, threshold, and a short message. BigQuery results retain accuracy and row_level_security_applied metadata."
+            "description": "Formatted manual estimate, or a warning decision when check_warning is true. The action is proceed when this check does not require confirmation. A confirm action includes a warning or unavailable reason, a nonempty message, and optional plain-text label/value details."
           },
           "400": {
             "$ref": "#/components/responses/400"

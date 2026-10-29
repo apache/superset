@@ -36,6 +36,7 @@ import {
 } from 'src/SqlLab/fixtures';
 import {
   queryEditorSetSelectedText,
+  setDatabases,
   syncQueryEditor,
 } from 'src/SqlLab/actions/sqlLab';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
@@ -182,6 +183,7 @@ function setup(
             backend: 'postgresql',
             allow_run_async: false,
             allows_cost_estimate: true,
+            query_warning_state: 'ready',
             engine_information: { query_cost_warning_metric: 'total_cost' },
             query_cost_warning: {
               enabled: true,
@@ -194,6 +196,7 @@ function setup(
             backend: 'postgresql',
             allow_run_async: false,
             allows_cost_estimate: true,
+            query_warning_state: 'ready',
             engine_information: { query_cost_warning_metric: 'total_cost' },
             query_cost_warning: {
               enabled: true,
@@ -212,13 +215,13 @@ function setup(
   return store;
 }
 const warning = {
-  status: 'exceeded',
-  metric: 'total_cost',
-  label: 'Estimated planner cost',
-  unit: 'planner cost units',
-  value: 12.5,
-  threshold: 10,
+  action: 'confirm',
+  reason: 'warning',
   message: 'Above threshold',
+  details: [
+    { label: 'Estimated planner cost', value: '12.5 planner cost units' },
+    { label: 'Warning threshold', value: '10 planner cost units' },
+  ],
 };
 const estimates = () => fetchMock.callHistory.calls('check');
 const executions = () => fetchMock.callHistory.calls('execution');
@@ -319,21 +322,91 @@ test('current-statement Run preserves an existing selection and cancel executes 
   expect(mockSetSelection).not.toHaveBeenCalled();
 });
 
-test('keyboard Run keeps the existing selected-SQL behavior through confirmation', async () => {
-  const store = setup('SELECT 1; SELECT 2;');
-  act(() => {
-    store.dispatch(queryEditorSetSelectedText(defaultQueryEditor, 'SELECT 2'));
-  });
-  fireEvent.keyDown(screen.getByRole('textbox', { name: 'SQL editor' }), {
-    key: 'Enter',
-    ctrlKey: true,
-  });
-  await screen.findByRole('dialog');
-  expect(JSON.parse(String(estimates()[0].options.body)).sql).toBe('SELECT 2');
-  fireEvent.click(screen.getByRole('button', { name: 'Run anyway' }));
-  await waitFor(() => expect(executions()).toHaveLength(1));
-  expect(JSON.parse(String(executions()[0].options.body)).sql).toBe('SELECT 2');
-});
+test.each([
+  { messageOnly: false, executionFails: false },
+  { messageOnly: true, executionFails: false },
+  { messageOnly: true, executionFails: true },
+])(
+  'keyboard Run confirms captured SQL (message-only=$messageOnly, execution-error=$executionFails)',
+  async ({ messageOnly, executionFails }) => {
+    const store = setup('SELECT 1; SELECT 2;');
+    if (messageOnly) {
+      jest
+        .mocked(isFeatureEnabled)
+        .mockImplementation(
+          flag => flag === FeatureFlag.SqlLabQueryCostWarnings,
+        );
+      const database = {
+        ...store.getState().sqlLab.databases[defaultQueryEditor.dbId!],
+        id: defaultQueryEditor.dbId!,
+        allow_run_async: false,
+        allows_cost_estimate: false,
+        query_warning_state: 'ready' as const,
+        query_cost_warning: { enabled: true },
+        engine_information: {
+          query_warning_supported: true,
+          query_cost_warning_metric: null,
+        },
+      };
+      act(() => {
+        store.dispatch(setDatabases([database]));
+      });
+      fetchMock.modifyRoute('check', {
+        response: {
+          result: {
+            action: 'confirm',
+            reason: 'warning',
+            message: 'Review this query.',
+          },
+        },
+      });
+    }
+    if (executionFails) {
+      fetchMock.modifyRoute('execution', {
+        response: { status: 500, body: { message: 'Execution failed' } },
+      });
+    }
+    act(() => {
+      store.dispatch(
+        queryEditorSetSelectedText(defaultQueryEditor, 'SELECT 2'),
+      );
+    });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'SQL editor' }), {
+      key: 'Enter',
+      ctrlKey: true,
+    });
+    await screen.findByRole('dialog', { name: 'Query warning' });
+    expect(JSON.parse(String(estimates()[0].options.body)).sql).toBe(
+      'SELECT 2',
+    );
+    expect(executions()).toHaveLength(0);
+    if (messageOnly) {
+      expect(screen.getByText('Review this query.')).toBeInTheDocument();
+      expect(screen.queryByText('Warning threshold')).not.toBeInTheDocument();
+    }
+    const continueButton = screen.getByRole('button', { name: 'Run anyway' });
+    fireEvent.click(continueButton);
+    fireEvent.click(continueButton);
+    await waitFor(() => expect(executions()).toHaveLength(1));
+    expect(JSON.parse(String(executions()[0].options.body)).sql).toBe(
+      'SELECT 2',
+    );
+    if (executionFails) {
+      await waitFor(() =>
+        expect(Object.values(store.getState().sqlLab.queries)).toEqual([
+          expect.objectContaining({
+            sql: 'SELECT 2',
+            state: 'failed',
+            errorMessage: 'Execution failed',
+          }),
+        ]),
+      );
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(estimates()).toHaveLength(1);
+      expect(executions()).toHaveLength(1);
+    }
+  },
+);
 
 test('current-statement Run still executes directly when warnings are off without changing selection', async () => {
   jest.mocked(isFeatureEnabled).mockReturnValue(false);
@@ -369,8 +442,7 @@ test('history action opens a tab, checks its effective inputs, and executes that
     response: {
       result: {
         ...warning,
-        status: 'unavailable',
-        value: null,
+        reason: 'unavailable',
         message: 'Templates cannot be estimated',
       },
     },
@@ -395,7 +467,7 @@ test('history action opens a tab, checks its effective inputs, and executes that
         qe.id === store.getState().sqlLab.tabHistory.slice(-1)[0],
     );
   expect(cloned?.id).not.toBe(defaultQueryEditor.id);
-  fireEvent.click(screen.getByRole('button', { name: 'Run without estimate' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Run anyway' }));
   await waitFor(() => expect(executions()).toHaveLength(1));
   expect(JSON.parse(String(executions()[0].options.body))).toMatchObject({
     sql: checked.sql,
@@ -420,25 +492,33 @@ test('cancelling history rerun confirmation keeps the new tab and never executes
   );
 });
 
-test('history rerun exposes loading and cancellation, and ignores a late check', async () => {
-  let finish: (body: object) => void = () => {};
-  const pending = new Promise<object>(resolve => {
-    finish = resolve;
-  });
-  fetchMock.modifyRoute('check', { response: () => pending });
-  await rerunFromHistory();
-  expect(
-    await screen.findByRole('button', { name: /Checking cost/ }),
-  ).toBeDisabled();
-  expect(executions()).toHaveLength(0);
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-  await act(async () => {
-    finish({ result: { ...warning, status: 'within_threshold' } });
-    await fetchMock.callHistory.flush(true);
-  });
-  expect(executions()).toHaveLength(0);
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-});
+test.each(['button', 'shortcut'])(
+  'history rerun Stop via %s ignores a late check',
+  async method => {
+    let finish: (body: object) => void = () => {};
+    const pending = new Promise<object>(resolve => {
+      finish = resolve;
+    });
+    fetchMock.modifyRoute('check', { response: () => pending });
+    await rerunFromHistory();
+    expect(await screen.findByRole('button', { name: /Stop$/ })).toBeEnabled();
+    expect(executions()).toHaveLength(0);
+    if (method === 'button') {
+      fireEvent.click(screen.getByRole('button', { name: /Stop$/ }));
+    } else {
+      fireEvent.keyDown(screen.getByRole('textbox', { name: 'SQL editor' }), {
+        key: 'e',
+        ctrlKey: true,
+      });
+    }
+    await act(async () => {
+      finish({ result: { action: 'proceed' } });
+      await fetchMock.callHistory.flush(true);
+    });
+    expect(executions()).toHaveLength(0);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  },
+);
 
 test('ordinary autorun retains its existing direct execution path', async () => {
   setup('SELECT 1', 'automatic');

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-29 13:19-0400\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -2828,6 +2828,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Asynchronous query execution"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Attribution"
 
@@ -3061,6 +3065,9 @@ msgstr "Zaman Dönemi ile Büyük Sayı Karşılaştırma"
 
 msgid "Big Number with Trendline"
 msgstr "Trendline ile Büyük Sayı"
+
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
 
 #, fuzzy
 msgid "Bins"
@@ -3418,9 +3425,6 @@ msgstr "İptal"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "Görevi İptal Et"
-
-msgid "Cancel cost check"
-msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "Pencere boşaltma olayı hakkında Cancel query"
@@ -3925,9 +3929,6 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
-msgstr ""
-
-msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -5012,6 +5013,11 @@ msgstr "Mevcut oturumdaki kullanıcıyı doğrulamayabilir."
 msgid ""
 "Could not verify which dimensions are compatible. All dimensions are "
 "shown."
+msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
 msgstr ""
 
 msgid "Count"
@@ -8254,7 +8260,13 @@ msgstr "Grafikleri filtrele"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -12779,12 +12791,6 @@ msgstr "Sorgu Geçmişi"
 msgid "Query State"
 msgstr "Sorgu ismi"
 
-msgid "Query cost check failed."
-msgstr ""
-
-msgid "Query cost warning"
-msgstr ""
-
 #, fuzzy
 msgid "Query data in SQL Lab"
 msgstr "Sorguyu SQL Lab’da aç"
@@ -12812,6 +12818,12 @@ msgstr "Sorgu ismi"
 
 msgid "Query preview"
 msgstr "Sorgu önizleme"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 msgid "Query was stopped"
 msgstr "Sorgu durduruldu"
@@ -13728,18 +13740,11 @@ msgstr "Çalıştır"
 msgid "Run query (Ctrl + Return)"
 msgstr "Çalıştır (Ctrl + Return)"
 
-#, python-format
-msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
-msgstr ""
-
 msgid "Run query in a new tab"
 msgstr "Sorguyu yeni sekmede çalıştır"
 
 msgid "Run selection"
 msgstr "Seçimi çalıştır"
-
-msgid "Run without estimate"
-msgstr ""
 
 msgid "Running"
 msgstr "Çalışıyor"
@@ -16444,6 +16449,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "Şablon parametreleri"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Template processing error: %(error)s"
 msgstr "Hata: %(error)s"
@@ -16915,9 +16923,6 @@ msgid ""
 "the warning threshold."
 msgstr ""
 
-msgid "The estimate is within this connection's warning threshold."
-msgstr ""
-
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "Tüm boyutları hesaplamak için exponent. \"EXP\" sadece"
 
@@ -17323,9 +17328,6 @@ msgstr ""
 msgid "The query cost warning metric is not supported by this engine."
 msgstr ""
 
-msgid "The query cost warning response was invalid."
-msgstr ""
-
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
@@ -17350,6 +17352,9 @@ msgstr "Sorunun bir sözcü hatası vardır."
 
 msgid "The query returned no data"
 msgstr "Soru hiçbir veri iade etmedi"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -17700,11 +17705,11 @@ msgstr "Değerler diğer uç noktaları değerleri örtüşür"
 msgid "The version of the service"
 msgstr "Hizmetin versiyonu"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "tabakanın görünür başlığı"
-
-msgid "The warning metric is not supported by this engine."
-msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "İşaretlerin X-aksi üzerinde ortaya çıkmasının yolu"
@@ -18511,6 +18516,11 @@ msgid ""
 msgstr ""
 "Bu bağlantı sizi harici bir web sitesine yönlendirecektir. Harici "
 "hedeflerin güvenliğini garanti edemeyiz."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 msgid "This markdown component has an error."
 msgstr "Bu işaret bileşeninin bir hatası vardır."
@@ -19611,6 +19621,10 @@ msgstr "Başlıksız sorgu"
 #, fuzzy
 msgid "Unverified"
 msgstr "Onaylı"
+
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
 
 msgid "Update"
 msgstr "Güncelle"
@@ -22050,9 +22064,6 @@ msgstr "locale_key"
 msgid "log"
 msgstr "log"
 
-msgid "lower bound"
-msgstr ""
-
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -22455,9 +22466,6 @@ msgstr "Haziran"
 #, fuzzy
 msgid "updated"
 msgstr "Güncelle"
-
-msgid "upper bound"
-msgstr ""
 
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"

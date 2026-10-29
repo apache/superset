@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-29 13:19-0400\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -2830,6 +2830,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Whakatutukitanga pātai kore-hangarite"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Whakatuakī"
 
@@ -3058,6 +3062,9 @@ msgstr "Tau Nui me te Whakatairite Wā"
 
 msgid "Big Number with Trendline"
 msgstr "Tau Nui me te Rārangi Ia"
+
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
 
 msgid "Bins"
 msgstr "Pouaka"
@@ -3410,9 +3417,6 @@ msgstr "Whakakore"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "Whakakore"
-
-msgid "Cancel cost check"
-msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "Whakakore pātai i te kaupapa tāruarunga matapihi"
@@ -3945,9 +3949,6 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
-msgstr ""
-
-msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -5037,6 +5038,11 @@ msgstr "Kāore i taea te manatoko i te kaiwhakamahi i te wātaka o nāianei."
 msgid ""
 "Could not verify which dimensions are compatible. All dimensions are "
 "shown."
+msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
 msgstr ""
 
 msgid "Count"
@@ -8269,7 +8275,13 @@ msgstr "Tātari kauwhata"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -12815,12 +12827,6 @@ msgstr "Hītori Pātai"
 msgid "Query State"
 msgstr "Pātai A"
 
-msgid "Query cost check failed."
-msgstr ""
-
-msgid "Query cost warning"
-msgstr ""
-
 #, fuzzy
 msgid "Query data in SQL Lab"
 msgstr "PĀTAI RARAUNGA I SQL LAB"
@@ -12848,6 +12854,12 @@ msgstr "Ingoa pātai"
 
 msgid "Query preview"
 msgstr "Arokite pātai"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 msgid "Query was stopped"
 msgstr "I whakamutua te pātai"
@@ -13771,18 +13783,11 @@ msgstr "Whakahaere pātai"
 msgid "Run query (Ctrl + Return)"
 msgstr "Whakahaere pātai (Ctrl + Return)"
 
-#, python-format
-msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
-msgstr ""
-
 msgid "Run query in a new tab"
 msgstr "Whakahaere pātai i tētahi ripa hou"
 
 msgid "Run selection"
 msgstr "Whakahaere tīpakonga"
-
-msgid "Run without estimate"
-msgstr ""
 
 msgid "Running"
 msgstr "E Rere Ana"
@@ -16480,6 +16485,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "Tawhā tauira"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, python-format
 msgid "Template processing error: %(error)s"
 msgstr ""
@@ -16951,9 +16959,6 @@ msgid ""
 "the warning threshold."
 msgstr ""
 
-msgid "The estimate is within this connection's warning threshold."
-msgstr ""
-
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "Te pūmahi hei tatau i ngā rahi katoa mai. \"EXP\" anake"
 
@@ -17386,9 +17391,6 @@ msgstr ""
 msgid "The query cost warning metric is not supported by this engine."
 msgstr ""
 
-msgid "The query cost warning response was invalid."
-msgstr ""
-
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
@@ -17413,6 +17415,9 @@ msgstr "He hapa wetereo tō te pātai."
 
 msgid "The query returned no data"
 msgstr "Kāore i whakahoki raraunga te pātai"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -17779,11 +17784,11 @@ msgstr "Ko ngā uara e tāruatia ana i ērā atu uara pūnaha whakawehe"
 msgid "The version of the service"
 msgstr "Te putanga o te ratonga"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "Te taitara kite o te papa"
-
-msgid "The warning metric is not supported by this engine."
-msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Te huarahi ka whakatakotohia ai ngā tika i te tukutuku-X"
@@ -18604,6 +18609,11 @@ msgid ""
 msgstr ""
 "Ka kawe tēnei hononga i a koe ki tētahi pae tukutuku ō waho. Kāore mātou "
 "e taea ana te tūtohu i te haumarutanga o ngā wāhi ō waho."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 msgid "This markdown component has an error."
 msgstr "He hapa tā tēnei waeine markdown."
@@ -19729,6 +19739,10 @@ msgstr "Pātai kāore i taitarahia"
 #, fuzzy
 msgid "Unverified"
 msgstr "Kāore i Tautuhia"
+
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
 
 msgid "Update"
 msgstr "Whakahou"
@@ -22195,9 +22209,6 @@ msgstr "Tauine Pūkete"
 msgid "log"
 msgstr "pūkete"
 
-msgid "lower bound"
-msgstr ""
-
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -22595,9 +22606,6 @@ msgstr "kāore i tautuhia"
 
 msgid "updated"
 msgstr "kua whakahouhia"
-
-msgid "upper bound"
-msgstr ""
 
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"

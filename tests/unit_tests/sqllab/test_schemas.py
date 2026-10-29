@@ -20,13 +20,30 @@ from marshmallow import ValidationError
 from superset.sqllab.schemas import EstimateQueryCostSchema
 
 
-def test_sqllab_bootstrap_database_allows_null_warning_rule() -> None:
+@pytest.mark.parametrize(
+    "rule,state,supported",
+    [
+        (None, "invalid", True),
+        ({"enabled": False}, "disabled", True),
+        ({"enabled": False}, "unsupported", False),
+        ({"enabled": True}, "ready", True),
+        ({"enabled": True, "metric": "total_cost", "threshold": 10}, "ready", True),
+    ],
+)
+def test_sqllab_bootstrap_database_allows_null_warning_rule(
+    rule: dict[str, object] | None, state: str, supported: bool
+) -> None:
     """Invalid saved rules are represented by null in the connection response."""
     from superset.sqllab.schemas import SQLLabBootstrapDatabaseSchema
 
     schema = SQLLabBootstrapDatabaseSchema()
-    assert schema.load({"query_cost_warning": None}) == {"query_cost_warning": None}
-    assert schema.dump({"query_cost_warning": None}) == {"query_cost_warning": None}
+    payload = {
+        "query_cost_warning": rule,
+        "query_warning_state": state,
+        "engine_information": {"query_warning_supported": supported},
+    }
+    assert schema.load(payload) == payload
+    assert schema.dump(payload) == payload
 
 
 def test_estimate_schema_keeps_manual_defaults() -> None:

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-29 13:19-0400\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -2804,6 +2804,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Ejecución de consultas asincrónicas"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Atribución"
 
@@ -3036,6 +3040,9 @@ msgstr "Número grande con comparación de periodo de tiempo"
 
 msgid "Big Number with Trendline"
 msgstr "Número grande con línea de tendencia"
+
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
 
 msgid "Bins"
 msgstr "Contenedores"
@@ -3403,9 +3410,6 @@ msgstr "Cancelar"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "Cancelar"
-
-msgid "Cancel cost check"
-msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "Cancelar consulta en el evento de descarga de la ventana"
@@ -3927,9 +3931,6 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
-msgstr ""
-
-msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -5009,6 +5010,11 @@ msgstr "No se ha podido validar al usuario en la sesión actual."
 msgid ""
 "Could not verify which dimensions are compatible. All dimensions are "
 "shown."
+msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
 msgstr ""
 
 msgid "Count"
@@ -8238,7 +8244,13 @@ msgstr "Filtro de gráficos"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -12786,12 +12798,6 @@ msgstr "Historial de consultas"
 msgid "Query State"
 msgstr "Consulta A"
 
-msgid "Query cost check failed."
-msgstr ""
-
-msgid "Query cost warning"
-msgstr ""
-
 #, fuzzy
 msgid "Query data in SQL Lab"
 msgstr "CONSULTAR DATOS EN SQL LAB"
@@ -12819,6 +12825,12 @@ msgstr "Nombre de la consulta"
 
 msgid "Query preview"
 msgstr "Vista previa de la consulta"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 msgid "Query was stopped"
 msgstr "La consulta se ha detenido"
@@ -13742,18 +13754,11 @@ msgstr "Ejecutar consulta"
 msgid "Run query (Ctrl + Return)"
 msgstr "Ejecutar consulta (Ctrl + Intro)"
 
-#, python-format
-msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
-msgstr ""
-
 msgid "Run query in a new tab"
 msgstr "Ejecutar consulta en una nueva pestaña"
 
 msgid "Run selection"
 msgstr "Ejecutar selección"
-
-msgid "Run without estimate"
-msgstr ""
 
 msgid "Running"
 msgstr "Ejecutando"
@@ -16420,6 +16425,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "Parámetros de plantilla"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Template processing error: %(error)s"
 msgstr "Error de análisis: %(error)s"
@@ -16910,9 +16918,6 @@ msgid ""
 "the warning threshold."
 msgstr ""
 
-msgid "The estimate is within this connection's warning threshold."
-msgstr ""
-
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "El exponente a partir del que calcular todos los tamaños. Solo «EXP»."
 
@@ -17362,9 +17367,6 @@ msgstr ""
 msgid "The query cost warning metric is not supported by this engine."
 msgstr ""
 
-msgid "The query cost warning response was invalid."
-msgstr ""
-
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
@@ -17390,6 +17392,9 @@ msgstr "La consulta tiene un error de sintaxis."
 
 msgid "The query returned no data"
 msgstr "La consulta no ha devuelto ningún dato"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -17763,11 +17768,11 @@ msgstr "Los valores se superponen con otros valores de puntos de interrupción"
 msgid "The version of the service"
 msgstr "La versión del servicio"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "El título visible de la capa"
-
-msgid "The warning metric is not supported by this engine."
-msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "La forma en que se colocan las marcas en el eje X"
@@ -18594,6 +18599,11 @@ msgid ""
 msgstr ""
 "Este enlace le llevará a un sitio web externo. No podemos garantizar la "
 "seguridad de los destinos externos."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 msgid "This markdown component has an error."
 msgstr "Este componente de nota tiene un error."
@@ -19715,6 +19725,10 @@ msgstr "Consulta sin título"
 #, fuzzy
 msgid "Unverified"
 msgstr "Sin definir"
+
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
 
 msgid "Update"
 msgstr "Actualizar"
@@ -22171,9 +22185,6 @@ msgstr "Escala logarítmica"
 msgid "log"
 msgstr "registro"
 
-msgid "lower bound"
-msgstr ""
-
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -22569,9 +22580,6 @@ msgstr "no establecido"
 
 msgid "updated"
 msgstr "actualizado"
-
-msgid "upper bound"
-msgstr ""
 
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"

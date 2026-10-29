@@ -172,11 +172,10 @@ class SqlLabRestApi(BaseSupersetApi):
           responses:
             200:
               description: >-
-                Formatted manual estimate, or an advisory status object when
-                check_warning is true. Warning statuses are disabled, unsupported,
-                within_threshold, exceeded, and unavailable. Active rules also return
-                metric, label, unit, value, threshold, and a short message. BigQuery
-                results retain accuracy and row_level_security_applied metadata.
+                Formatted manual estimate, or a warning decision when check_warning
+                is true. The action is proceed when this check does not require
+                confirmation. A confirm action includes a warning or unavailable
+                reason, a nonempty message, and optional plain-text label/value details.
               content:
                 application/json:
                   schema:

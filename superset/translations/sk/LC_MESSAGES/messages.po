@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-29 13:19-0400\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -2781,6 +2781,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Asynchrónne vykonávanie dotazov"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Atribuce"
 
@@ -3003,6 +3007,9 @@ msgstr "Velké číslo s porovnáním časových období"
 
 msgid "Big Number with Trendline"
 msgstr "Velké číslo s trendovou čárou"
+
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
 
 msgid "Bins"
 msgstr "Intervaly (Bins)"
@@ -3350,9 +3357,6 @@ msgstr "Zrušiť"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "Zrušiť"
-
-msgid "Cancel cost check"
-msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "Zrušiť dotaz pri události uvolnie je okna"
@@ -3856,9 +3860,6 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
-msgstr ""
-
-msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -4912,6 +4913,11 @@ msgstr "Nepodarilo sa overiť používateľa v aktuálny relácii."
 msgid ""
 "Could not verify which dimensions are compatible. All dimensions are "
 "shown."
+msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
 msgstr ""
 
 msgid "Count"
@@ -8065,7 +8071,13 @@ msgstr "Filtrovať grafy"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -12493,12 +12505,6 @@ msgstr "Historie dotazov"
 msgid "Query State"
 msgstr "Stav dotaze"
 
-msgid "Query cost check failed."
-msgstr ""
-
-msgid "Query cost warning"
-msgstr ""
-
 msgid "Query data in SQL Lab"
 msgstr "Data dotazu v SQL Labu"
 
@@ -12525,6 +12531,12 @@ msgstr "Názov dotaze"
 
 msgid "Query preview"
 msgstr "Náhľad dotazu"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 msgid "Query was stopped"
 msgstr "Dotaz bol zastaven"
@@ -13431,18 +13443,11 @@ msgstr "Spustiť dotaz"
 msgid "Run query (Ctrl + Return)"
 msgstr "Spustiť dotaz (Ctrl + Enter)"
 
-#, python-format
-msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
-msgstr ""
-
 msgid "Run query in a new tab"
 msgstr "Spustiť dotaz v nové karte"
 
 msgid "Run selection"
 msgstr "Spustiť výber"
-
-msgid "Run without estimate"
-msgstr ""
 
 msgid "Running"
 msgstr "Beží"
@@ -16034,6 +16039,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "Parametre šablony"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Template processing error: %(error)s"
 msgstr "Chyba pri vykonanie šablony: %(error)s"
@@ -16499,9 +16507,6 @@ msgid ""
 "the warning threshold."
 msgstr ""
 
-msgid "The estimate is within this connection's warning threshold."
-msgstr ""
-
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "Exponent pre výpočet všetkých veľkostí. Iba pre „EXP“"
 
@@ -16911,9 +16916,6 @@ msgstr ""
 msgid "The query cost warning metric is not supported by this engine."
 msgstr ""
 
-msgid "The query cost warning response was invalid."
-msgstr ""
-
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
@@ -16938,6 +16940,9 @@ msgstr "Dotaz má syntaktickou chybu."
 
 msgid "The query returned no data"
 msgstr "Dotaz nevrátil žiadna data"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -17285,11 +17290,11 @@ msgstr "Hodnoty překrývají hodnoty iných breakpointů"
 msgid "The version of the service"
 msgstr "Verzia služby"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "Viditelný názov vrstvy"
-
-msgid "The warning metric is not supported by this engine."
-msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Spôsob, jakým sú značky rozloženy na ose X"
@@ -18073,6 +18078,11 @@ msgid ""
 msgstr ""
 "Tento odkaz vás presmeruje na externú webovú stránku. Nemôžeme zaručiť "
 "bezpečnosť externých cieľov."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 msgid "This markdown component has an error."
 msgstr "Táto markdown komponenta obsahuje chybu."
@@ -19171,6 +19181,10 @@ msgstr "Nepojmenovaný dotaz"
 #, fuzzy
 msgid "Unverified"
 msgstr "Neoverené"
+
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
 
 msgid "Update"
 msgstr "Aktualizovať"
@@ -21573,9 +21587,6 @@ msgstr "Lokalní"
 msgid "log"
 msgstr "log"
 
-msgid "lower bound"
-msgstr ""
-
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -21969,9 +21980,6 @@ msgstr "nenastaveno"
 
 msgid "updated"
 msgstr "aktualizované"
-
-msgid "upper bound"
-msgstr ""
 
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"

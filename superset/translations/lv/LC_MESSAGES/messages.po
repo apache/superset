@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-29 13:19-0400\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -2760,6 +2760,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Asinhrona vaicājuma izpilde"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Attiecinājums"
 
@@ -2974,6 +2978,9 @@ msgstr "Lielais skaitlis ar laika periodu salīdzinājumu"
 
 msgid "Big Number with Trendline"
 msgstr "Lielais skaitlis ar tendences līniju"
+
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
 
 msgid "Bins"
 msgstr "Intervāli"
@@ -3319,9 +3326,6 @@ msgstr "Atcelt"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "Atcelt"
-
-msgid "Cancel cost check"
-msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "Atcelt vaicājumu, aizverot logu"
@@ -3818,9 +3822,6 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
-msgstr ""
-
-msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -4857,6 +4858,11 @@ msgstr "Nevarēja validēt lietotāju pašreizējā sesijā."
 msgid ""
 "Could not verify which dimensions are compatible. All dimensions are "
 "shown."
+msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
 msgstr ""
 
 msgid "Count"
@@ -7918,7 +7924,13 @@ msgstr "Filtrēt diagrammas"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -12257,12 +12269,6 @@ msgstr "Vaicājumu vēsture"
 msgid "Query State"
 msgstr "Vaicājuma stāvoklis"
 
-msgid "Query cost check failed."
-msgstr ""
-
-msgid "Query cost warning"
-msgstr ""
-
 msgid "Query data in SQL Lab"
 msgstr "Datu pieprasījums SQL Lab"
 
@@ -12289,6 +12295,12 @@ msgstr "Vaicājuma nosaukums"
 
 msgid "Query preview"
 msgstr "Vaicājuma priekšskats"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 msgid "Query was stopped"
 msgstr "Vaicājums tika apturēts"
@@ -13174,18 +13186,11 @@ msgstr "Izpildīt vaicājumu"
 msgid "Run query (Ctrl + Return)"
 msgstr "Izpildīt vaicājumu (Ctrl + Enter)"
 
-#, python-format
-msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
-msgstr ""
-
 msgid "Run query in a new tab"
 msgstr "Izpildīt vaicājumu jaunā cilnē"
 
 msgid "Run selection"
 msgstr "Izpildīt atlasi"
-
-msgid "Run without estimate"
-msgstr ""
 
 msgid "Running"
 msgstr "Darbojas"
@@ -15728,6 +15733,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "Veidnes parametri"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, python-format
 msgid "Template processing error: %(error)s"
 msgstr "Veidnes apstrādes kļūda: %(error)s"
@@ -16189,9 +16197,6 @@ msgid ""
 "the warning threshold."
 msgstr ""
 
-msgid "The estimate is within this connection's warning threshold."
-msgstr ""
-
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "Eksponents, no kura aprēķina visus izmērus. Tikai \"EXP\""
 
@@ -16600,9 +16605,6 @@ msgstr ""
 msgid "The query cost warning metric is not supported by this engine."
 msgstr ""
 
-msgid "The query cost warning response was invalid."
-msgstr ""
-
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
@@ -16627,6 +16629,9 @@ msgstr "Vaicājumam ir sintakses kļūda."
 
 msgid "The query returned no data"
 msgstr "Vaicājums neatgrieza datus"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16971,11 +16976,11 @@ msgstr "Vērtības pārklājas ar citām pārtraukuma punktu vērtībām"
 msgid "The version of the service"
 msgstr "Servisa versija"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "Slāņa redzamais virsraksts"
-
-msgid "The warning metric is not supported by this engine."
-msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Veids, kā atzīmes ir izvietotas uz X ass"
@@ -17737,6 +17742,11 @@ msgid ""
 msgstr ""
 "Šī saite aizvedīs jūs uz ārēju vietni. Mēs nevaram garantēt ārējo "
 "galamērķu drošību."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 msgid "This markdown component has an error."
 msgstr "Šajā Markdown komponentā ir kļūda."
@@ -18811,6 +18821,10 @@ msgstr "Vaicājums bez nosaukuma"
 
 msgid "Unverified"
 msgstr "Nepārbaudīts"
+
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
 
 msgid "Update"
 msgstr "Atjaunināt"
@@ -21184,9 +21198,6 @@ msgstr "Vietējs"
 msgid "log"
 msgstr "žurnāls"
 
-msgid "lower bound"
-msgstr ""
-
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -21575,9 +21586,6 @@ msgstr "atiestatīt"
 
 msgid "updated"
 msgstr "atjaunināts"
-
-msgid "upper bound"
-msgstr ""
 
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"

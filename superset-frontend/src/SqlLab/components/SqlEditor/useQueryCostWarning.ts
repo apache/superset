@@ -31,15 +31,7 @@ import {
   isFeatureEnabled,
   SupersetClient,
 } from '@superset-ui/core';
-import type {
-  DatabaseObject,
-  QueryCostWarningMetric,
-} from 'src/features/databases/types';
-import {
-  isQueryCostWarningEstimate,
-  isQueryCostWarningMetric,
-  isQueryCostWarningThreshold,
-} from 'src/features/databases/queryCostWarning';
+import type { DatabaseObject } from 'src/features/databases/types';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import {
   CtasEnum,
@@ -52,50 +44,42 @@ import {
 import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 
-export type WarningEstimate = {
-  status: 'exceeded' | 'unavailable' | 'within_threshold';
-  metric: QueryCostWarningMetric;
-  label: string;
-  unit: string;
-  value: number | bigint | null;
-  threshold: number | bigint;
-  message?: string;
-  accuracy?: string | null;
+export type QueryWarningConfirmation = {
+  action: 'confirm';
+  reason: 'warning' | 'unavailable';
+  message: string;
+  details?: { label: string; value: string }[];
 };
-type CheckResult = WarningEstimate | { status: 'disabled' | 'unsupported' };
-type Attempt = { query: Query; key: string; result?: WarningEstimate };
+type CheckResult = QueryWarningConfirmation | { action: 'proceed' };
+type Attempt = { query: Query; key: string; result?: QueryWarningConfirmation };
 
 /** Reject incomplete responses rather than treating them as permission to execute. */
 export function parseWarningResult(result: unknown): CheckResult {
-  const invalid = () =>
-    new Error(t('The query cost warning response was invalid.'));
-  if (!result || typeof result !== 'object') throw invalid();
+  const invalid = () => new Error(t('The query warning response was invalid.'));
+  if (!result || typeof result !== 'object' || Array.isArray(result))
+    throw invalid();
   const value = result as Record<string, unknown>;
-  if (value.status === 'disabled' || value.status === 'unsupported') {
-    return { status: value.status };
-  }
+  if (value.action === 'proceed') return { action: 'proceed' };
   if (
-    !['exceeded', 'within_threshold', 'unavailable'].includes(
-      String(value.status),
-    ) ||
-    !isQueryCostWarningMetric(value.metric) ||
-    typeof value.label !== 'string' ||
-    !value.label.trim() ||
-    typeof value.unit !== 'string' ||
-    !value.unit.trim() ||
-    !isQueryCostWarningThreshold(value.threshold, value.metric) ||
-    (value.message !== undefined && typeof value.message !== 'string') ||
-    (value.accuracy != null && typeof value.accuracy !== 'string')
+    value.action !== 'confirm' ||
+    (value.reason !== 'warning' && value.reason !== 'unavailable') ||
+    typeof value.message !== 'string' ||
+    !value.message.trim() ||
+    (value.details !== undefined &&
+      (!Array.isArray(value.details) ||
+        !value.details.every(
+          (detail: unknown) =>
+            detail !== null &&
+            typeof detail === 'object' &&
+            !Array.isArray(detail) &&
+            'label' in detail &&
+            'value' in detail &&
+            typeof detail.label === 'string' &&
+            typeof detail.value === 'string',
+        )))
   )
     throw invalid();
-  const usable = isQueryCostWarningEstimate(value.value, value.metric);
-  if (
-    (!usable && !(value.status === 'unavailable' && value.value === null)) ||
-    (value.status === 'unavailable' &&
-      (typeof value.message !== 'string' || !value.message.trim()))
-  )
-    throw invalid();
-  return value as WarningEstimate;
+  return value as QueryWarningConfirmation;
 }
 
 /** Own one captured Run attempt; cancellation invalidates callbacks, not database jobs. */
@@ -116,10 +100,7 @@ export default function useQueryCostWarning(
     const editor = getUpToDateQuery(state, props.queryEditor);
     const database: DatabaseObject | undefined =
       state.sqlLab.databases[editor.dbId || ''];
-    const flags = [
-      isFeatureEnabled(FeatureFlag.SqlLabQueryCostWarnings),
-      isFeatureEnabled(FeatureFlag.EstimateQueryCost),
-    ];
+    const enabled = isFeatureEnabled(FeatureFlag.SqlLabQueryCostWarnings);
     const key = JSON.stringify({
       id: editor.id,
       active: state.sqlLab.tabHistory.slice(-1)[0],
@@ -135,15 +116,14 @@ export default function useQueryCostWarning(
       tabViewId: editor.tabViewId,
       immutableId: editor.immutableId,
       backend: database?.backend,
-      estimation: database?.allows_cost_estimate,
       rule: database?.query_cost_warning,
-      metric: database?.engine_information?.query_cost_warning_metric,
-      flags,
+      warningState: database?.query_warning_state,
+      enabled,
     });
     return {
       editor,
       database,
-      flags,
+      enabled,
       key,
       active: state.sqlLab.tabHistory.slice(-1)[0] === editor.id,
     };
@@ -204,7 +184,7 @@ export default function useQueryCostWarning(
       sql?: string,
     ) => {
       if (current.current) return;
-      const { editor, database, flags, key, active } = readInputs();
+      const { editor, database, enabled, key, active } = readInputs();
       if (!database || (!active && !automatic)) return;
       const query = getSqlEditorQuery(
         { id: database.id, allow_run_async: Boolean(database.allow_run_async) },
@@ -217,10 +197,9 @@ export default function useQueryCostWarning(
       if (
         ctas ||
         automatic ||
-        flags.some(flag => !flag) ||
-        database.allows_cost_estimate === false ||
-        database.query_cost_warning?.enabled === false ||
-        database.engine_information?.query_cost_warning_metric === null
+        !enabled ||
+        database.query_warning_state === 'disabled' ||
+        database.query_warning_state === 'unsupported'
       ) {
         execute(query);
         return;
@@ -240,11 +219,10 @@ export default function useQueryCostWarning(
             template_params: JSON.parse(query.templateParams || '{}'),
             query_limit: query.queryLimit,
           },
-          parseMethod: 'json-bigint',
         });
         if (!isCurrent(attempt)) return;
         const result = parseWarningResult(json.result);
-        if (result.status === 'exceeded' || result.status === 'unavailable') {
+        if (result.action === 'confirm') {
           const confirmation = { ...attempt, result };
           current.current = confirmation;
           setPending(confirmation);
@@ -262,7 +240,7 @@ export default function useQueryCostWarning(
             clientError.error ||
               clientError.message ||
               clientError.statusText ||
-              t('Query cost check failed.'),
+              t('Query warning check failed.'),
           ),
         );
       }

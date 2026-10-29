@@ -2062,13 +2062,28 @@ def test_expand_nested_columns_default_returns_input() -> None:
     "value",
     [None, "1", True, False, -1, float("nan"), float("inf"), float("-inf"), {}, []],
 )
-def test_query_cost_warning_rejects_unusable_values(value: object) -> None:
+def test_query_cost_warning_rejects_unusable_values(
+    mocker: MockerFixture, value: object
+) -> None:
     """Unusable provider values cannot become an apparently safe zero."""
-    from superset.db_engine_specs.base import QueryCostEstimate
+    from superset.db_engine_specs.query_warning import (
+        QueryCostEstimate,
+        QueryCostThresholdCheck,
+    )
 
     estimate = QueryCostEstimate.from_value(value)
     assert estimate.value is None
-    assert estimate.compare(100) == "unavailable"
+    database = mocker.MagicMock()
+    database.db_engine_spec.estimate_query_cost_for_warning.return_value = estimate
+    result = QueryCostThresholdCheck("total_cost").assess(
+        database,
+        None,
+        "",
+        "SELECT 1",
+        {"enabled": True, "metric": "total_cost", "threshold": 100},
+    )
+    assert result["action"] == "confirm"
+    assert result["reason"] == "unavailable"
 
 
 @pytest.mark.parametrize(
@@ -2089,23 +2104,32 @@ def test_query_cost_warning_rejects_unusable_values(value: object) -> None:
     ],
 )
 def test_query_cost_warning_compares_raw_bounds(
-    value: int | float, accuracy: str | None, expected: str
+    mocker: MockerFixture, value: int | float, accuracy: str | None, expected: str
 ) -> None:
     """Only useful bounds prove a threshold crossing or a within-threshold estimate."""
-    from superset.db_engine_specs.base import QueryCostEstimate
+    from superset.db_engine_specs.query_warning import (
+        QueryCostEstimate,
+        QueryCostThresholdCheck,
+    )
 
     estimate = QueryCostEstimate.from_value(value, accuracy)
     assert estimate.value == value
-    assert estimate.compare(100) == expected
-
-
-def test_query_cost_warning_masked_estimate_is_unavailable() -> None:
-    """Keep row-security information without interpreting masked usage as safe."""
-    from superset.db_engine_specs.base import QueryCostEstimate
-
-    estimate = QueryCostEstimate.from_value(0, "PRECISE", True)
-    assert estimate.row_level_security_applied is True
-    assert estimate.compare(100) == "unavailable"
+    database = mocker.MagicMock()
+    database.db_engine_spec.estimate_query_cost_for_warning.return_value = estimate
+    result = QueryCostThresholdCheck("total_cost").assess(
+        database,
+        None,
+        "",
+        "SELECT 1",
+        {"enabled": True, "metric": "total_cost", "threshold": 100},
+    )
+    if expected == "within_threshold":
+        assert result == {"action": "proceed"}
+    else:
+        assert result["action"] == "confirm"
+        assert result["reason"] == (
+            "warning" if expected == "above_threshold" else "unavailable"
+        )
 
 
 def test_query_cost_warning_unsupported_engine_does_not_estimate() -> None:
@@ -2114,10 +2138,11 @@ def test_query_cost_warning_unsupported_engine_does_not_estimate() -> None:
 
     database = MagicMock()
     assert BaseEngineSpec.get_public_information()["query_cost_warning_metric"] is None
+    assert BaseEngineSpec.get_query_warning_check() is None
     assert (
         BaseEngineSpec.estimate_query_cost_for_warning(
             database, None, "", "SELECT 1"
-        ).compare(100)
-        == "unavailable"
+        ).value
+        is None
     )
     database.get_raw_connection.assert_not_called()

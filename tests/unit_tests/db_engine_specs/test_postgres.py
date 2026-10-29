@@ -1006,10 +1006,8 @@ def test_warning_estimate_missing_plan_is_unavailable(
     cursor = connection.cursor.return_value
     cursor.fetchone.return_value = row
     assert (
-        spec.estimate_query_cost_for_warning(database, None, "", "SELECT 1").compare(
-            100
-        )
-        == "unavailable"
+        spec.estimate_query_cost_for_warning(database, None, "", "SELECT 1").value
+        is None
     )
 
 
@@ -1035,6 +1033,7 @@ def test_warning_estimate_unverified_postgres_subclass_is_unsupported() -> None:
 
     database = MagicMock()
     assert UnverifiedPostgres.get_query_cost_warning_metric() is None
+    assert UnverifiedPostgres.get_query_warning_check() is None
     assert (
         UnverifiedPostgres.estimate_query_cost_for_warning(
             database, None, "", "SELECT 1"

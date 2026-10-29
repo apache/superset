@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-29 13:19-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2344,6 +2344,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr ""
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 msgid "Attribution"
 msgstr ""
 
@@ -2547,6 +2551,9 @@ msgid "Big Number with Time Period Comparison"
 msgstr ""
 
 msgid "Big Number with Trendline"
+msgstr ""
+
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
 msgstr ""
 
 msgid "Bins"
@@ -2809,9 +2816,6 @@ msgid "Cancel"
 msgstr ""
 
 msgid "Cancel Task"
-msgstr ""
-
-msgid "Cancel cost check"
 msgstr ""
 
 msgid "Cancel query on window unload event"
@@ -3262,9 +3266,6 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
-msgstr ""
-
-msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -4176,6 +4177,9 @@ msgid "Could not validate the user in the current session."
 msgstr ""
 
 msgid "Could not verify which dimensions are compatible. All dimensions are shown."
+msgstr ""
+
+msgid "Couldn't validate this semantic view: it may not exist, or the semantic layer is unreachable."
 msgstr ""
 
 msgid "Count"
@@ -6867,15 +6871,11 @@ msgid "Filter charts"
 msgstr ""
 
 #, python-format
-msgid ""
-"Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions. Select a dimension or remove the filter."
+msgid "Filter column '%(column)s' is a metric; semantic views only filter on dimensions. Select a dimension or remove the filter."
 msgstr ""
 
 #, python-format
-msgid ""
-"Filter column '%(column)s' is not in this semantic view. Select a "
-"dimension or remove the filter."
+msgid "Filter column '%(column)s' is not in this semantic view. Select a dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -10706,12 +10706,6 @@ msgstr ""
 msgid "Query State"
 msgstr ""
 
-msgid "Query cost check failed."
-msgstr ""
-
-msgid "Query cost warning"
-msgstr ""
-
 msgid "Query data in SQL Lab"
 msgstr ""
 
@@ -10737,6 +10731,12 @@ msgid "Query name"
 msgstr ""
 
 msgid "Query preview"
+msgstr ""
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
 msgstr ""
 
 msgid "Query was stopped"
@@ -11562,17 +11562,10 @@ msgstr ""
 msgid "Run query (Ctrl + Return)"
 msgstr ""
 
-#, python-format
-msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
-msgstr ""
-
 msgid "Run query in a new tab"
 msgstr ""
 
 msgid "Run selection"
-msgstr ""
-
-msgid "Run without estimate"
 msgstr ""
 
 msgid "Running"
@@ -14034,9 +14027,6 @@ msgstr ""
 msgid "The estimate is unavailable or cannot establish whether usage is within the warning threshold."
 msgstr ""
 
-msgid "The estimate is within this connection's warning threshold."
-msgstr ""
-
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr ""
 
@@ -14298,9 +14288,6 @@ msgstr ""
 msgid "The query cost warning metric is not supported by this engine."
 msgstr ""
 
-msgid "The query cost warning response was invalid."
-msgstr ""
-
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
@@ -14318,6 +14305,9 @@ msgid "The query has a syntax error."
 msgstr ""
 
 msgid "The query returned no data"
+msgstr ""
+
+msgid "The query warning response was invalid."
 msgstr ""
 
 #, python-format
@@ -14542,10 +14532,10 @@ msgstr ""
 msgid "The version of the service"
 msgstr ""
 
-msgid "The visible title of the layer"
+msgid "The view configuration must be a JSON object."
 msgstr ""
 
-msgid "The warning metric is not supported by this engine."
+msgid "The visible title of the layer"
 msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
@@ -15121,6 +15111,9 @@ msgid "This link expires in %(duration)s (%(when)s UTC)."
 msgstr ""
 
 msgid "This link will take you to an external website. We cannot guarantee the safety of external destinations."
+msgstr ""
+
+msgid "This lower-bound estimate cannot establish whether usage is within the warning threshold."
 msgstr ""
 
 msgid "This markdown component has an error."
@@ -15985,6 +15978,10 @@ msgid "Untitled query"
 msgstr ""
 
 msgid "Unverified"
+msgstr ""
+
+#, python-format
+msgid "Up to %(value)s"
 msgstr ""
 
 msgid "Update"
@@ -17903,9 +17900,6 @@ msgstr ""
 msgid "log"
 msgstr ""
 
-msgid "lower bound"
-msgstr ""
-
 msgid "lower percentile must be greater than 0 and less than 100. Must be lower than upper percentile."
 msgstr ""
 
@@ -18251,9 +18245,6 @@ msgstr ""
 msgid "updated"
 msgstr ""
 
-msgid "upper bound"
-msgstr ""
-
 msgid "upper percentile must be greater than 0 and less than 100. Must be higher than lower percentile."
 msgstr ""
 
@@ -18328,12 +18319,4 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
-msgstr ""
-
-msgid ""
-"Couldn't validate this semantic view: it may not exist, or the semantic layer"
-" is unreachable."
-msgstr ""
-
-msgid "The view configuration must be a JSON object."
 msgstr ""

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-29 13:19-0400\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -3280,6 +3280,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Асинхроно извршавање упита"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Attribution"
 msgstr "Атрибуција"
@@ -3547,6 +3551,9 @@ msgstr "Велики број са поређењем временских пе�
 # zh_TW]
 msgid "Big Number with Trendline"
 msgstr "Велики број са линијом тренда"
+
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
 
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid "Bins"
@@ -3970,9 +3977,6 @@ msgstr "Откажи"
 
 msgid "Cancel Task"
 msgstr "Откажи задатак"
-
-msgid "Cancel cost check"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Cancel query on window unload event"
@@ -4574,9 +4578,6 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
-msgstr ""
-
-msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -5827,6 +5828,11 @@ msgstr "Није могуће потврдити корисника у трен�
 msgid ""
 "Could not verify which dimensions are compatible. All dimensions are "
 "shown."
+msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -9577,7 +9583,13 @@ msgstr "Филтрирај графиконе"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -14842,12 +14854,6 @@ msgstr "Историја упита"
 msgid "Query State"
 msgstr "Стање упита"
 
-msgid "Query cost check failed."
-msgstr ""
-
-msgid "Query cost warning"
-msgstr ""
-
 # ru, sk, uk]
 msgid "Query data in SQL Lab"
 msgstr "Упит података у SQL Lab"
@@ -14887,6 +14893,12 @@ msgstr "Назив упита"
 # zh_TW]
 msgid "Query preview"
 msgstr "Преглед упита"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Query was stopped"
@@ -15956,10 +15968,6 @@ msgstr "Изврши упит"
 msgid "Run query (Ctrl + Return)"
 msgstr "Изврши упит (Ctrl + Return)"
 
-#, python-format
-msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
-msgstr ""
-
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Run query in a new tab"
@@ -15969,9 +15977,6 @@ msgstr "Изврши упит у новој картици"
 # zh_TW]
 msgid "Run selection"
 msgstr "Изврши избор"
-
-msgid "Run without estimate"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Running"
@@ -19004,6 +19009,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "Параметри шаблона"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 # uk]
 #, python-format
 msgid "Template processing error: %(error)s"
@@ -19526,9 +19534,6 @@ msgid ""
 "the warning threshold."
 msgstr ""
 
-msgid "The estimate is within this connection's warning threshold."
-msgstr ""
-
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "Експонент на основу којег се израчунавају све величине. Само за „EXP”"
@@ -19983,9 +19988,6 @@ msgstr ""
 msgid "The query cost warning metric is not supported by this engine."
 msgstr ""
 
-msgid "The query cost warning response was invalid."
-msgstr ""
-
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
@@ -20015,6 +20017,9 @@ msgstr "Упит има синтаксну грешку."
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The query returned no data"
 msgstr "Упит није вратио податке"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -20411,12 +20416,12 @@ msgstr "Вредности се преклапају са другим вред�
 msgid "The version of the service"
 msgstr "Верзија сервиса"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 # ja, lv, mi, ru, sk, uk]
 msgid "The visible title of the layer"
 msgstr "Видљив наслов слоја"
-
-msgid "The warning metric is not supported by this engine."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The way the ticks are laid out on the X-axis"
@@ -21285,6 +21290,11 @@ msgid ""
 msgstr ""
 "Ова веза ће вас одвести на спољни веб-сајт. Не можемо гарантовати "
 "безбедност спољних одредишта."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "This markdown component has an error."
@@ -22531,6 +22541,10 @@ msgstr "Неименован упит"
 # uk]
 msgid "Unverified"
 msgstr "Непроверено"
+
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Update"
@@ -25372,9 +25386,6 @@ msgstr "locale_key"
 msgid "log"
 msgstr "логаритамски"
 
-msgid "lower bound"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
@@ -25820,9 +25831,6 @@ msgstr "није постављено"
 # ja, lv, mi, ru, sk, uk]
 msgid "updated"
 msgstr "ажурирано"
-
-msgid "upper bound"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""

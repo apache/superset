@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-29 13:19-0400\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -2760,6 +2760,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "异步执行查询"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 msgid "Attribution"
 msgstr "归因"
 
@@ -3005,6 +3009,9 @@ msgstr "带时间周期比较的大数字"
 
 msgid "Big Number with Trendline"
 msgstr "带趋势线的数字"
+
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
 
 msgid "Bins"
 msgstr "分箱"
@@ -3347,9 +3354,6 @@ msgstr "取消"
 
 msgid "Cancel Task"
 msgstr "取消任务"
-
-msgid "Cancel cost check"
-msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "当窗口关闭时取消查询"
@@ -3869,9 +3873,6 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
-msgstr ""
-
-msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -4946,6 +4947,11 @@ msgstr "无法在当前会话中验证该用户。"
 msgid ""
 "Could not verify which dimensions are compatible. All dimensions are "
 "shown."
+msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
 msgstr ""
 
 #, fuzzy
@@ -8115,7 +8121,13 @@ msgstr "筛选图表"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -12677,12 +12689,6 @@ msgstr "历史查询"
 msgid "Query State"
 msgstr "查询状态"
 
-msgid "Query cost check failed."
-msgstr ""
-
-msgid "Query cost warning"
-msgstr ""
-
 #, fuzzy
 msgid "Query data in SQL Lab"
 msgstr "在SQL工具箱中查询数据"
@@ -12712,6 +12718,12 @@ msgstr "查询名称"
 
 msgid "Query preview"
 msgstr "查询预览"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 msgid "Query was stopped"
 msgstr "查询被终止。"
@@ -13637,18 +13649,11 @@ msgstr "运行查询"
 msgid "Run query (Ctrl + Return)"
 msgstr "运行查询 (Ctrl + Return)"
 
-#, python-format
-msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
-msgstr ""
-
 msgid "Run query in a new tab"
 msgstr "在新选项卡中运行查询"
 
 msgid "Run selection"
 msgstr "运行选定的查询"
-
-msgid "Run without estimate"
-msgstr ""
 
 msgid "Running"
 msgstr "正在执行"
@@ -16232,6 +16237,9 @@ msgstr "单元格标题的模板。使用Handlebars模板语法（一种流行�
 msgid "Template parameters"
 msgstr "模板参数"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Template processing error: %(error)s"
 msgstr "错误：%(error)s"
@@ -16687,9 +16695,6 @@ msgid ""
 "the warning threshold."
 msgstr ""
 
-msgid "The estimate is within this connection's warning threshold."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "The exponent to compute all sizes from. \"EXP\" only"
@@ -17074,9 +17079,6 @@ msgstr ""
 msgid "The query cost warning metric is not supported by this engine."
 msgstr ""
 
-msgid "The query cost warning response was invalid."
-msgstr ""
-
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
@@ -17099,6 +17101,9 @@ msgstr "查询有语法错误。"
 
 msgid "The query returned no data"
 msgstr "查询无结果"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -17419,11 +17424,11 @@ msgstr "这些值与其他断点值重叠"
 msgid "The version of the service"
 msgstr "服务的版本"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "图层的可见标题"
-
-msgid "The warning metric is not supported by this engine."
-msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "X轴刻度的布局方式"
@@ -18184,6 +18189,11 @@ msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
 msgstr "此链接将带您前往外部网站。我们无法保证外部目标的安全性。"
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 msgid "This markdown component has an error."
 msgstr "此 markdown 组件有错误。"
@@ -19287,6 +19297,10 @@ msgstr "未命名的查询"
 
 msgid "Unverified"
 msgstr "未验证"
+
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
 
 msgid "Update"
 msgstr "更新"
@@ -21714,9 +21728,6 @@ msgstr "locale_key"
 msgid "log"
 msgstr "日志"
 
-msgid "lower bound"
-msgstr ""
-
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -22137,9 +22148,6 @@ msgid "unset"
 msgstr "未设置"
 
 msgid "updated"
-msgstr ""
-
-msgid "upper bound"
 msgstr ""
 
 msgid ""

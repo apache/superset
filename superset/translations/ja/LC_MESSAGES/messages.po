@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-29 13:19-0400\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -2527,6 +2527,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "非同期クエリ実行"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 msgid "Attribution"
 msgstr "属性"
 
@@ -2731,6 +2735,9 @@ msgstr "期間比較付きビッグナンバー"
 
 msgid "Big Number with Trendline"
 msgstr "トレンドライン付きビッグナンバー"
+
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
 
 msgid "Bins"
 msgstr "ビン"
@@ -3034,9 +3041,6 @@ msgstr "キャンセル"
 
 msgid "Cancel Task"
 msgstr "タスクをキャンセル"
-
-msgid "Cancel cost check"
-msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "ウィンドウのアンロード時にクエリをキャンセル"
@@ -3505,9 +3509,6 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
-msgstr ""
-
-msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -4481,6 +4482,11 @@ msgstr "現在のセッションのユーザーを検証できませんでした
 msgid ""
 "Could not verify which dimensions are compatible. All dimensions are "
 "shown."
+msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
 msgstr ""
 
 msgid "Count"
@@ -7328,7 +7334,13 @@ msgstr "チャートをフィルター"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -11400,12 +11412,6 @@ msgstr "クエリ履歴"
 msgid "Query State"
 msgstr "クエリの状態"
 
-msgid "Query cost check failed."
-msgstr ""
-
-msgid "Query cost warning"
-msgstr ""
-
 msgid "Query data in SQL Lab"
 msgstr "SQL Labでデータをクエリする"
 
@@ -11432,6 +11438,12 @@ msgstr "クエリ名"
 
 msgid "Query preview"
 msgstr "クエリのプレビュー"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 msgid "Query was stopped"
 msgstr "クエリが停止されました"
@@ -12289,18 +12301,11 @@ msgstr "クエリを実行"
 msgid "Run query (Ctrl + Return)"
 msgstr "クエリを実行 (Ctrl + Return)"
 
-#, python-format
-msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
-msgstr ""
-
 msgid "Run query in a new tab"
 msgstr "新しいタブでクエリを実行"
 
 msgid "Run selection"
 msgstr "選択範囲を実行"
-
-msgid "Run without estimate"
-msgstr ""
 
 msgid "Running"
 msgstr "実行中"
@@ -14623,6 +14628,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "テンプレートパラメータ"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, python-format
 msgid "Template processing error: %(error)s"
 msgstr "テンプレート処理エラー: %(error)s"
@@ -15033,9 +15041,6 @@ msgid ""
 "the warning threshold."
 msgstr ""
 
-msgid "The estimate is within this connection's warning threshold."
-msgstr ""
-
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "すべてのサイズを計算するための指数。「EXP」タイプのみで使用"
 
@@ -15379,9 +15384,6 @@ msgstr ""
 msgid "The query cost warning metric is not supported by this engine."
 msgstr ""
 
-msgid "The query cost warning response was invalid."
-msgstr ""
-
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
@@ -15404,6 +15406,9 @@ msgstr "クエリに構文エラーがあります。"
 
 msgid "The query returned no data"
 msgstr "クエリがデータを返しませんでした"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -15699,11 +15704,11 @@ msgstr "この値は他のブレークポイント値と重複しています"
 msgid "The version of the service"
 msgstr "サービスのバージョン"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "表示されるレイヤーのタイトル"
-
-msgid "The warning metric is not supported by this engine."
-msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "X軸の目盛りの配置方法"
@@ -16390,6 +16395,11 @@ msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
 msgstr "このリンクは外部ウェブサイトへ移動します。外部の遷移先の安全性は保証できません。"
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 msgid "This markdown component has an error."
 msgstr "このマークダウンコンポーネントにエラーがあります。"
@@ -17363,6 +17373,10 @@ msgstr "無題のクエリ"
 
 msgid "Unverified"
 msgstr "未検証"
+
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
 
 msgid "Update"
 msgstr "更新"
@@ -19522,9 +19536,6 @@ msgstr "ロケールキー"
 msgid "log"
 msgstr "対数"
 
-msgid "lower bound"
-msgstr ""
-
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -19883,9 +19894,6 @@ msgstr "未設定"
 
 msgid "updated"
 msgstr "更新済み"
-
-msgid "upper bound"
-msgstr ""
 
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"

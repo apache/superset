@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-29 13:19-0400\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -2728,6 +2728,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "ஒத்திசைவற்ற வினவல் இயக்கம் (Asynchronous query execution)"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 msgid "Attribution"
 msgstr "பண்புக்கூறு (Attribution)"
 
@@ -2937,6 +2941,9 @@ msgstr "கால அளவு ஒப்பீட்டுடன் கூடி
 
 msgid "Big Number with Trendline"
 msgstr "போக்குக் கோட்டுடன் (Trendline) கூடிய பெரிய எண்"
+
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
 
 msgid "Bins"
 msgstr "பின்கள் (Bins)"
@@ -3271,9 +3278,6 @@ msgstr "ரத்து செய்"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "ரத்து செய்"
-
-msgid "Cancel cost check"
-msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "விண்டோ அன்லோட் (window unload) நிகழ்வின் போது வினவலை ரத்து செய்யவும்"
@@ -3774,9 +3778,6 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
-msgstr ""
-
-msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -4820,6 +4821,11 @@ msgstr "தற்போதைய அமர்வில் (session) பயனர
 msgid ""
 "Could not verify which dimensions are compatible. All dimensions are "
 "shown."
+msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
 msgstr ""
 
 msgid "Count"
@@ -7850,7 +7856,13 @@ msgstr "சார்ட்டுகளை வடிகட்டு"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -12043,12 +12055,6 @@ msgstr "வினவல் வரலாறு"
 msgid "Query State"
 msgstr "வினவல் நிலை"
 
-msgid "Query cost check failed."
-msgstr ""
-
-msgid "Query cost warning"
-msgstr ""
-
 msgid "Query data in SQL Lab"
 msgstr "SQL லேப்பில் தரவை வினவவும்"
 
@@ -12075,6 +12081,12 @@ msgstr "வினவல் பெயர்"
 
 msgid "Query preview"
 msgstr "வினவல் முன்னோட்டம்"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 msgid "Query was stopped"
 msgstr "வினவல் நிறுத்தப்பட்டது"
@@ -12945,18 +12957,11 @@ msgstr "வினவலை இயக்கு"
 msgid "Run query (Ctrl + Return)"
 msgstr "வினவலை இயக்கு (Ctrl + Return)"
 
-#, python-format
-msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
-msgstr ""
-
 msgid "Run query in a new tab"
 msgstr "புதிய தாவலில் வினவலை இயக்கு"
 
 msgid "Run selection"
 msgstr "தேர்ந்தெடுக்கப்பட்டதை இயக்கு"
-
-msgid "Run without estimate"
-msgstr ""
 
 msgid "Running"
 msgstr "இயங்குகிறது"
@@ -15397,6 +15402,9 @@ msgstr "செல் தலைப்புகளுக்கான டெம்�
 msgid "Template parameters"
 msgstr "டெம்ப்ளேட் அளவுருக்கள்"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, python-format
 msgid "Template processing error: %(error)s"
 msgstr "டெம்ப்ளேட் செயலாக்க பிழை: %(error)s"
@@ -15807,9 +15815,6 @@ msgid ""
 "the warning threshold."
 msgstr ""
 
-msgid "The estimate is within this connection's warning threshold."
-msgstr ""
-
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "அனைத்து அளவுகளையும் கணக்கிட வேண்டிய அடுக்கு (Exponent)."
 
@@ -16179,9 +16184,6 @@ msgstr ""
 msgid "The query cost warning metric is not supported by this engine."
 msgstr ""
 
-msgid "The query cost warning response was invalid."
-msgstr ""
-
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
@@ -16204,6 +16206,9 @@ msgstr "வினவலில் ஒரு தொடரியல் பிழை
 
 msgid "The query returned no data"
 msgstr "வினவல் தரவு எதையும் தரவில்லை"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16517,11 +16522,11 @@ msgstr "மதிப்புகள் மற்ற இடைவெளி மத
 msgid "The version of the service"
 msgstr "சேவையின் பதிப்பு"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "அடுக்கின் காணக்கூடிய தலைப்பு"
-
-msgid "The warning metric is not supported by this engine."
-msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "X-அச்சில் குறிகள் (Ticks) அமைக்கப்பட்டுள்ள விதம்"
@@ -17247,6 +17252,11 @@ msgstr ""
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
+msgstr ""
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
 msgstr ""
 
 msgid "This markdown component has an error."
@@ -18267,6 +18277,10 @@ msgstr "தலைப்பில்லாத வினவல்"
 
 msgid "Unverified"
 msgstr "சரிபார்க்கப்படாதது"
+
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
 
 msgid "Update"
 msgstr "புதுப்பிக்கவும்"
@@ -20571,9 +20585,6 @@ msgstr ""
 msgid "log"
 msgstr "லாக் (log)"
 
-msgid "lower bound"
-msgstr ""
-
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -20937,9 +20948,6 @@ msgstr "நீக்கு (unset)"
 
 msgid "updated"
 msgstr "புதுப்பிக்கப்பட்டது"
-
-msgid "upper bound"
-msgstr ""
 
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"

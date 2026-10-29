@@ -334,6 +334,7 @@ def test_database_connection(
             "driver": "gsheets",
             "engine_information": {
                 "query_cost_warning_metric": None,
+                "query_warning_supported": False,
                 "disable_ssh_tunneling": True,
                 "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
@@ -424,6 +425,8 @@ def test_database_connection(
             "allow_dml": False,
             "allow_file_upload": False,
             "allow_run_async": False,
+            "query_cost_warning": {"enabled": False},
+            "query_warning_state": "unsupported",
             "backend": "gsheets",
             "cache_timeout": None,
             "configuration_method": "sqlalchemy_form",
@@ -431,6 +434,7 @@ def test_database_connection(
             "driver": "gsheets",
             "engine_information": {
                 "query_cost_warning_metric": None,
+                "query_warning_supported": False,
                 "disable_ssh_tunneling": True,
                 "supports_dynamic_catalog": False,
                 "supports_file_upload": True,

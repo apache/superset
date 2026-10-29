@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-29 13:19-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -2926,6 +2926,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Execuție interogare asincronă"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Atribuție"
 
@@ -3159,6 +3163,9 @@ msgstr "Număr Mare cu Comparare Perioadă de Timp"
 
 msgid "Big Number with Trendline"
 msgstr "Număr Mare cu Linie de Tendință"
+
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
 
 msgid "Bins"
 msgstr "Compartimente"
@@ -3513,9 +3520,6 @@ msgstr "Anulează"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "Anulare sarcină"
-
-msgid "Cancel cost check"
-msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "Anulează interogarea la evenimentul de descărcare a ferestrei"
@@ -4035,9 +4039,6 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
-msgstr ""
-
-msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -5135,6 +5136,11 @@ msgstr "Nu s-a putut valida utilizatorul în sesiunea curentă."
 msgid ""
 "Could not verify which dimensions are compatible. All dimensions are "
 "shown."
+msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
 msgstr ""
 
 msgid "Count"
@@ -8441,7 +8447,13 @@ msgstr "Filtrează grafice"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -13043,12 +13055,6 @@ msgstr "Istoric interogări"
 msgid "Query State"
 msgstr "Starea interogării"
 
-msgid "Query cost check failed."
-msgstr ""
-
-msgid "Query cost warning"
-msgstr ""
-
 msgid "Query data in SQL Lab"
 msgstr "Interogare date în SQL Lab"
 
@@ -13075,6 +13081,12 @@ msgstr "Nume interogare"
 
 msgid "Query preview"
 msgstr "Previzualizare interogare"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 msgid "Query was stopped"
 msgstr "Interogarea a fost oprită"
@@ -14010,18 +14022,11 @@ msgstr "Rulează interogare"
 msgid "Run query (Ctrl + Return)"
 msgstr "Rulează interogare (Ctrl + Return)"
 
-#, python-format
-msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
-msgstr ""
-
 msgid "Run query in a new tab"
 msgstr "Rulează interogare într-un tab nou"
 
 msgid "Run selection"
 msgstr "Rulează selecția"
-
-msgid "Run without estimate"
-msgstr ""
 
 msgid "Running"
 msgstr "Rulează"
@@ -16750,6 +16755,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "Parametri șablon"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, python-format
 msgid "Template processing error: %(error)s"
 msgstr "Eroare procesare șablon: %(error)s"
@@ -17239,9 +17247,6 @@ msgid ""
 "the warning threshold."
 msgstr ""
 
-msgid "The estimate is within this connection's warning threshold."
-msgstr ""
-
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "Exponentul pentru calcularea tuturor dimensiunilor. Doar \"EXP\""
 
@@ -17673,9 +17678,6 @@ msgstr ""
 msgid "The query cost warning metric is not supported by this engine."
 msgstr ""
 
-msgid "The query cost warning response was invalid."
-msgstr ""
-
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
@@ -17700,6 +17702,9 @@ msgstr "Interogarea are o eroare de sintaxă."
 
 msgid "The query returned no data"
 msgstr "Interogarea nu a returnat date"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -18063,11 +18068,11 @@ msgstr "Valorile se suprapun cu alte valori de prag"
 msgid "The version of the service"
 msgstr "Versiunea serviciului"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "Titlul vizibil al stratului"
-
-msgid "The warning metric is not supported by this engine."
-msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Modul în care gradațiile sunt aranjate pe axa X"
@@ -18902,6 +18907,11 @@ msgid ""
 msgstr ""
 "Acest link vă va duce la un site web extern. Nu putem garanta siguranța "
 "destinațiilor externe."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 msgid "This markdown component has an error."
 msgstr "Acest component markdown are o eroare."
@@ -20034,6 +20044,10 @@ msgstr "interogare fără titlu"
 
 msgid "Unverified"
 msgstr "Neverificat"
+
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
 
 msgid "Update"
 msgstr "Actualizează"
@@ -22534,9 +22548,6 @@ msgstr "locale_key"
 msgid "log"
 msgstr "jurnal"
 
-msgid "lower bound"
-msgstr ""
-
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -22942,9 +22953,6 @@ msgstr "nesetat"
 
 msgid "updated"
 msgstr "actualizat"
-
-msgid "upper bound"
-msgstr ""
 
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"

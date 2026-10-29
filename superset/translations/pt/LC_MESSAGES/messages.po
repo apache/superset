@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-29 13:19-0400\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -3437,6 +3437,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Execução de consulta assíncrona"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Atribuição"
 
@@ -3746,6 +3750,9 @@ msgstr "Número Grande com Comparação de Período de Tempo"
 
 msgid "Big Number with Trendline"
 msgstr "Número grande com Trendline"
+
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
 
 msgid "Bins"
 msgstr "Caixas"
@@ -4205,9 +4212,6 @@ msgstr "Cancelar"
 
 msgid "Cancel Task"
 msgstr "Cancelar tarefa"
-
-msgid "Cancel cost check"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -4844,9 +4848,6 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
-msgstr ""
-
-msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -6177,6 +6178,11 @@ msgstr "Não foi possível validar o usuário na sessão atual."
 msgid ""
 "Could not verify which dimensions are compatible. All dimensions are "
 "shown."
+msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
 msgstr ""
 
 msgid "Count"
@@ -10071,7 +10077,13 @@ msgstr "Filtrar gráficos"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -15917,12 +15929,6 @@ msgstr "Histórico de consultas"
 msgid "Query State"
 msgstr "Estado da consulta"
 
-msgid "Query cost check failed."
-msgstr ""
-
-msgid "Query cost warning"
-msgstr ""
-
 msgid "Query data in SQL Lab"
 msgstr "Consultar dados no SQL Lab"
 
@@ -15954,6 +15960,12 @@ msgstr "Nome da consulta"
 
 msgid "Query preview"
 msgstr "Pré-visualização da consulta"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 msgid "Query was stopped"
 msgstr "A consulta foi interrompida"
@@ -17078,18 +17090,11 @@ msgstr "Executar consulta"
 msgid "Run query (Ctrl + Return)"
 msgstr "Executar consulta (Ctrl + Return)"
 
-#, python-format
-msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
-msgstr ""
-
 msgid "Run query in a new tab"
 msgstr "Executar consulta em uma nova guia"
 
 msgid "Run selection"
 msgstr "Executar seleção"
-
-msgid "Run without estimate"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20293,6 +20298,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "Parâmetros do Modelo"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ro, ru, sr, sr_Latn, uk]
 #, python-format
@@ -20871,9 +20879,6 @@ msgid ""
 "the warning threshold."
 msgstr ""
 
-msgid "The estimate is within this connection's warning threshold."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "The exponent to compute all sizes from. \"EXP\" only"
@@ -21410,9 +21415,6 @@ msgstr ""
 msgid "The query cost warning metric is not supported by this engine."
 msgstr ""
 
-msgid "The query cost warning response was invalid."
-msgstr ""
-
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
@@ -21446,6 +21448,9 @@ msgstr "A consulta tem um erro de sintaxe."
 # uk, zh, zh_TW]
 msgid "The query returned no data"
 msgstr "A consulta não retornou dados"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -21889,11 +21894,11 @@ msgstr "Os valores se sobrepõem a outros valores de ponto de interrupção"
 msgid "The version of the service"
 msgstr "A versão do serviço"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "O título visível da camada"
-
-msgid "The warning metric is not supported by this engine."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -22827,6 +22832,11 @@ msgid ""
 msgstr ""
 "Este link o levará a um site externo. Não podemos garantir a segurança de"
 " destinos externos."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -24215,6 +24225,10 @@ msgstr "Consulta sem título"
 
 msgid "Unverified"
 msgstr "Não verificado"
+
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -27438,9 +27452,6 @@ msgstr "locale_key"
 msgid "log"
 msgstr "log"
 
-msgid "lower bound"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -27926,9 +27937,6 @@ msgstr "desarmar"
 
 msgid "updated"
 msgstr "atualizado"
-
-msgid "upper bound"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

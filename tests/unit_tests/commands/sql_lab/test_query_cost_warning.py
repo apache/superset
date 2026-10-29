@@ -34,7 +34,11 @@ from superset.commands.sql_lab.estimate import (
     QueryEstimationCommand,
 )
 from superset.commands.sql_lab.execute import ExecuteSqlCommand
-from superset.db_engine_specs.base import BaseEngineSpec, QueryCostEstimate
+from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.query_warning import (
+    QueryCostEstimate,
+    QueryCostThresholdCheck,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
@@ -65,9 +69,9 @@ class WarningTestEngineSpec(BaseEngineSpec):
         return True
 
     @classmethod
-    def get_query_cost_warning_metric(cls) -> str | None:
-        """Opt this test engine into the existing planner-cost metric."""
-        return "total_cost"
+    def get_query_warning_check(cls) -> QueryCostThresholdCheck | None:
+        """Opt this test engine into the shared numeric check."""
+        return QueryCostThresholdCheck("total_cost")
 
     @classmethod
     def estimate_query_cost_for_warning(
@@ -121,6 +125,9 @@ def _make_command(
         side_effect=lambda name: name
         in {"SQLLAB_QUERY_COST_WARNINGS", "ESTIMATE_QUERY_COST"},
     )
+    mocker.patch(
+        "superset.db_engine_specs.query_warning.is_feature_enabled", return_value=True
+    )
     mocker.patch.object(database, "get_default_catalog", return_value="default_catalog")
     mocker.patch.object(
         database.db_engine_spec,
@@ -147,7 +154,7 @@ def _run_warning(command: QueryEstimationCommand) -> dict[str, Any]:
     """Narrow the endpoint's manual-or-warning result to the requested warning."""
     result = command.run()
     assert isinstance(result, dict)
-    return result
+    return dict(result)
 
 
 @pytest.mark.parametrize("engine", ["bigquery", "postgresql"])
@@ -163,16 +170,18 @@ def test_warning_comparison(
     command.validate()
     _estimator(command).return_value = QueryCostEstimate.from_value(value)
     result = _run_warning(command)
-    assert isinstance(result, dict)
-    assert result["status"] == status
-    assert result["value"] == value
-    assert result["threshold"] == 10
-    assert result["metric"] == (
-        "bytes_processed" if engine == "bigquery" else "total_cost"
-    )
-    assert result["unit"] == ("bytes" if engine == "bigquery" else "planner cost units")
-    assert result["label"]
-    assert result["message"]
+    if status == "within_threshold":
+        assert result == {"action": "proceed"}
+    else:
+        assert result["action"] == "confirm"
+        assert result["reason"] == "warning"
+        assert result["message"]
+        unit = "bytes" if engine == "bigquery" else "planner cost units"
+        assert result["details"][0]["value"] == f"{value:,} {unit}"
+        assert result["details"][1] == {
+            "label": "Warning threshold",
+            "value": f"10 {unit}",
+        }
 
 
 def test_warning_compares_postgres_decimals_before_display(
@@ -193,8 +202,9 @@ def test_warning_compares_postgres_decimals_before_display(
     )
     _estimator(command).return_value = QueryCostEstimate.from_value(10.12501)
     result = _run_warning(command)
-    assert result["status"] == "exceeded"
-    assert result["value"] == 10.12501
+    assert result["reason"] == "warning"
+    assert result["details"][0]["value"] == "10.12501 planner cost units"
+    assert result["details"][1]["value"] == "10.125 planner cost units"
 
 
 @pytest.mark.parametrize("metric", ["total_cost", "unknown", ""])
@@ -211,53 +221,124 @@ def test_warning_command_uses_metric_contract_for_test_engine(
     )
     if metric != "total_cost":
         mocker.patch.object(
-            WarningTestEngineSpec, "get_query_cost_warning_metric", return_value=metric
+            WarningTestEngineSpec,
+            "get_query_warning_check",
+            return_value=QueryCostThresholdCheck(metric),
         )
     estimator = mocker.spy(WarningTestEngineSpec, "estimate_query_cost_for_warning")
-    result = _run_warning(command)
     if metric != "total_cost":
-        assert result == {"status": "unsupported"}
+        with pytest.raises(SupersetErrorException) as error:
+            _run_warning(command)
+        assert error.value.status == 400
         estimator.assert_not_called()
     else:
-        assert result["status"] == "exceeded"
-        assert result["value"] == 10.25
-        assert result["threshold"] == 10
-        assert result["metric"] == "total_cost"
-        assert result["label"] == "Estimated planner cost"
-        assert result["unit"] == "planner cost units"
+        result = _run_warning(command)
+        assert result["action"] == "confirm"
+        assert result["reason"] == "warning"
+        assert result["details"] == [
+            {"label": "Estimated planner cost", "value": "10.25 planner cost units"},
+            {"label": "Warning threshold", "value": "10 planner cost units"},
+        ]
         estimator.assert_called_once()
 
 
+@pytest.mark.parametrize("enabled", [True, False])
+def test_warning_command_delegates_to_engine_check(
+    mocker: MockerFixture, client: Any, full_api_access: None, enabled: bool
+) -> None:
+    """The protected API uses a message-only check with manual estimation off."""
+    from tests.fixtures.query_warning import MessageOnlyQueryWarningCheck
+
+    command = _make_command(mocker)
+    rule = {"enabled": enabled}
+    _set_extra(command, {"query_cost_warning": rule, "cost_estimate_enabled": False})
+    check = MessageOnlyQueryWarningCheck()
+    validate = mocker.spy(check, "validate")
+    assess = mocker.spy(check, "assess")
+    mocker.patch(
+        "superset.commands.sql_lab.estimate.is_feature_enabled",
+        side_effect=lambda name: name == "SQLLAB_QUERY_COST_WARNINGS",
+    )
+    mocker.patch(
+        "superset.db_engine_specs.query_warning.is_feature_enabled", return_value=False
+    )
+    mocker.patch.object(
+        command._database.db_engine_spec, "get_query_warning_check", return_value=check
+    )
+    response = client.post(
+        "/api/v1/sqllab/estimate/",
+        json={
+            "database_id": 1,
+            "sql": "SELECT * FROM sales",
+            "catalog": "selected_catalog",
+            "schema": "selected_schema",
+            "query_limit": 100,
+            "check_warning": True,
+        },
+    )
+    assert response.status_code == 200
+    assert response.json == {
+        "result": (
+            {"action": "confirm", "reason": "warning", "message": "Review this query."}
+            if enabled
+            else {"action": "proceed"}
+        )
+    }
+    validate.assert_called_once_with(rule)
+    assert command._database.allows_cost_estimate is False
+    if enabled:
+        assess.assert_called_once()
+        database, catalog, schema, sql, assessed_rule = assess.call_args.args
+        assert database is command._database
+        assert catalog == "selected_catalog"
+        assert schema == "selected_schema"
+        assert (
+            SQLScript(sql, engine="postgresql").statements[0].get_limit_value() == 101
+        )
+        assert assessed_rule == rule
+    else:
+        assess.assert_not_called()
+    _estimator(command).assert_not_called()
+
+
 @pytest.mark.parametrize(
-    "value,accuracy,masked,status",
+    "value,accuracy,status",
     [
-        (10, "LOWER_BOUND", False, "unavailable"),
-        (9, "LOWER_BOUND", False, "unavailable"),
-        (11, "LOWER_BOUND", False, "exceeded"),
-        (10, "UPPER_BOUND", False, "within_threshold"),
-        (11, "UPPER_BOUND", False, "exceeded"),
-        (0, "UNKNOWN", False, "unavailable"),
-        (11, None, False, "unavailable"),
-        (11, "PRECISE", True, "unavailable"),
-        (2**63 - 1, "PRECISE", False, "exceeded"),
+        (10, "LOWER_BOUND", "unavailable"),
+        (9, "LOWER_BOUND", "unavailable"),
+        (11, "LOWER_BOUND", "exceeded"),
+        (10, "UPPER_BOUND", "within_threshold"),
+        (11, "UPPER_BOUND", "exceeded"),
+        (0, "UNKNOWN", "unavailable"),
+        (11, None, "unavailable"),
+        (2**63 - 1, "PRECISE", "exceeded"),
     ],
 )
 def test_warning_preserves_bigquery_bounds(
-    mocker: MockerFixture, value: int, accuracy: str | None, masked: bool, status: str
+    mocker: MockerFixture, value: int, accuracy: str | None, status: str
 ) -> None:
-    """Unknown or masked bytes never imply safety; bounds keep their meaning."""
+    """Unknown bounds never imply safety; usable bounds keep their meaning."""
     command = _make_command(mocker, "bigquery")
     command.validate()
-    _estimator(command).return_value = QueryCostEstimate.from_value(
-        value, accuracy, masked
-    )
+    _estimator(command).return_value = QueryCostEstimate.from_value(value, accuracy)
     result = _run_warning(command)
-    assert result["status"] == status
-    assert result["accuracy"] == accuracy
-    assert result["row_level_security_applied"] is masked
-    assert result["value"] == (
-        None if masked or accuracy in {None, "UNKNOWN"} else value
-    )
+    if status == "within_threshold":
+        assert result == {"action": "proceed"}
+    else:
+        assert result["action"] == "confirm"
+        assert result["reason"] == (
+            "warning" if status == "exceeded" else "unavailable"
+        )
+        assert result["message"]
+        if accuracy in {"PRECISE", "LOWER_BOUND", "UPPER_BOUND"}:
+            prefix = {"LOWER_BOUND": "At least ", "UPPER_BOUND": "Up to "}.get(
+                accuracy, ""
+            )
+            assert result["details"][0]["value"] == f"{prefix}{value:,} bytes"
+        else:
+            assert result["details"] == [
+                {"label": "Warning threshold", "value": "10 bytes"}
+            ]
 
 
 def test_warning_compares_large_bytes_exactly(mocker: MockerFixture) -> None:
@@ -275,17 +356,33 @@ def test_warning_compares_large_bytes_exactly(mocker: MockerFixture) -> None:
         },
     )
     _estimator(command).return_value = QueryCostEstimate.from_value(2**53)
-    assert _run_warning(command)["status"] == "exceeded"
+    result = _run_warning(command)
+    assert result["reason"] == "warning"
+    assert result["details"][0]["value"] == "9,007,199,254,740,992 bytes"
+    assert result["details"][1]["value"] == "9,007,199,254,740,991 bytes"
 
 
-def test_warning_unusable_estimate(mocker: MockerFixture) -> None:
+@pytest.mark.parametrize(
+    "unavailable_reason", [None, "The planner supplied no estimate."]
+)
+def test_warning_unusable_estimate(
+    mocker: MockerFixture, unavailable_reason: str | None
+) -> None:
     """An unusable engine estimate is unavailable, not within threshold."""
     command = _make_command(mocker)
     command.validate()
-    _estimator(command).return_value = QueryCostEstimate()
+    _estimator(command).return_value = QueryCostEstimate(
+        unavailable_reason=unavailable_reason
+    )
     result = _run_warning(command)
-    assert result["status"] == "unavailable"
-    assert result["value"] is None
+    assert result["action"] == "confirm"
+    assert result["reason"] == "unavailable"
+    assert result["message"]
+    if unavailable_reason:
+        assert result["message"] == unavailable_reason
+    assert result["details"] == [
+        {"label": "Warning threshold", "value": "10 planner cost units"}
+    ]
 
 
 @pytest.mark.parametrize("flag", ["SQLLAB_QUERY_COST_WARNINGS", "ESTIMATE_QUERY_COST"])
@@ -296,7 +393,11 @@ def test_warning_flag_off_still_checks_access(mocker: MockerFixture, flag: str) 
         "superset.commands.sql_lab.estimate.is_feature_enabled",
         side_effect=lambda name: name != flag,
     )
-    assert _run_warning(command) == {"status": "disabled"}
+    mocker.patch(
+        "superset.db_engine_specs.query_warning.is_feature_enabled",
+        side_effect=lambda name: name != flag,
+    )
+    assert _run_warning(command) == {"action": "proceed"}
     _estimator(command).assert_not_called()
     manager = mocker.patch(
         "superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock
@@ -344,14 +445,21 @@ def test_warning_connection_opt_out(
     """Connection estimation and explicit warning opt-in are independent switches."""
     command = _make_command(mocker)
     _set_extra(command, extra)
-    assert _run_warning(command) == {"status": "disabled"}
+    assert _run_warning(command) == {"action": "proceed"}
     _estimator(command).assert_not_called()
 
 
-def test_warning_unsupported_engine(mocker: MockerFixture) -> None:
+@pytest.mark.parametrize("enabled", [False, True])
+def test_warning_unsupported_engine(mocker: MockerFixture, enabled: bool) -> None:
     """Unsupported engines differ from supported engines with unestimatable SQL."""
     command = _make_command(mocker, "sqlite")
-    assert _run_warning(command) == {"status": "unsupported"}
+    _set_extra(command, {"query_cost_warning": {"enabled": enabled}})
+    if enabled:
+        with pytest.raises(SupersetErrorException) as error:
+            _run_warning(command)
+        assert error.value.status == 400
+    else:
+        assert _run_warning(command) == {"action": "proceed"}
     _estimator(command).assert_not_called()
 
 
@@ -408,7 +516,8 @@ def test_warning_unestimatable_sql(
     command.validate()
     command._database.allow_dml = True
     result = _run_warning(command)
-    assert result["status"] == "unavailable"
+    assert result["action"] == "confirm"
+    assert result["reason"] == "unavailable"
     assert reason in result["message"]
     _estimator(command).assert_not_called()
 
@@ -432,7 +541,9 @@ def test_warning_rejects_custom_transformations(
         "superset.commands.sql_lab.estimate.is_feature_enabled",
         side_effect=lambda name: name != "RLS_IN_SQLLAB",
     )
-    assert _run_warning(command)["status"] == "unavailable"
+    result = _run_warning(command)
+    assert result["action"] == "confirm"
+    assert result["reason"] == "unavailable"
     transform.assert_not_called()
 
 
@@ -485,13 +596,16 @@ def test_warning_rejects_configured_sql_mutator(tmp_path: Path) -> None:
                           side_effect=lambda name: name in {
                               "SQLLAB_QUERY_COST_WARNINGS", "ESTIMATE_QUERY_COST",
                           }),
+                    patch("superset.db_engine_specs.query_warning.is_feature_enabled",
+                          return_value=True),
                     patch.object(
                         PostgresEngineSpec, "estimate_query_cost_for_warning",
                         return_value=QueryCostEstimate.from_value(1),
                     ) as estimator,
                 ):
                     response = command.run()
-                    assert response["status"] == "unavailable", response
+                    assert response["action"] == "confirm", response
+                    assert response["reason"] == "unavailable", response
                     assert "custom SQL transformations" in response["message"]
                     config.SQL_QUERY_MUTATOR.assert_not_called()
                     estimator.assert_not_called()
@@ -628,7 +742,8 @@ def test_warning_known_timeout_is_unavailable(mocker: MockerFixture) -> None:
         SupersetErrorType.SQLLAB_TIMEOUT_ERROR, "timed out", ErrorLevel.ERROR
     )
     result = _run_warning(command)
-    assert result["status"] == "unavailable"
+    assert result["action"] == "confirm"
+    assert result["reason"] == "unavailable"
     assert "timed out" in result["message"]
 
 
@@ -670,11 +785,14 @@ def test_warning_sql_errors_are_not_unavailable(
     _estimator(command).assert_not_called()
 
 
+@pytest.mark.parametrize("value", [5, 11, None])
 def test_warning_endpoint(
-    mocker: MockerFixture, client: Any, full_api_access: None
+    mocker: MockerFixture, client: Any, full_api_access: None, value: int | None
 ) -> None:
-    """The existing protected endpoint accepts the optional warning request fields."""
-    _make_command(mocker)
+    """Serialize both decisions as plain text through the existing protected API."""
+    command = _make_command(mocker)
+    command.validate()
+    _estimator(command).return_value = QueryCostEstimate.from_value(value)
     response = client.post(
         "/api/v1/sqllab/estimate/",
         json={
@@ -688,7 +806,26 @@ def test_warning_endpoint(
         },
     )
     assert response.status_code == 200
-    assert response.json["result"]["status"] == "within_threshold"
+    if value == 5:
+        assert response.json["result"] == {"action": "proceed"}
+    else:
+        details = [{"label": "Warning threshold", "value": "10 planner cost units"}]
+        if value is not None:
+            details.insert(
+                0, {"label": "Estimated planner cost", "value": "11 planner cost units"}
+            )
+        assert response.json["result"] == {
+            "action": "confirm",
+            "reason": "unavailable" if value is None else "warning",
+            "message": (
+                "The estimate is unavailable or cannot establish whether "
+                "usage is within the warning threshold."
+                if value is None
+                else "The estimate exceeds this connection's warning threshold. "
+                "Planner cost is relative, not dollars or memory."
+            ),
+            "details": details,
+        }
 
 
 def test_warning_endpoint_rejects_invalid_input(
@@ -723,7 +860,7 @@ def test_warning_endpoint_invalid_rule_is_error(
         json={"database_id": 1, "sql": "SELECT 1", "check_warning": True},
     )
     assert response.status_code == 400
-    assert "status" not in response.json
+    assert "action" not in response.json
 
 
 def test_warning_endpoint_keeps_manual_response(

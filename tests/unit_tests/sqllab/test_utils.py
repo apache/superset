@@ -22,18 +22,24 @@ from superset.sqllab.utils import bootstrap_sqllab_data
 
 
 @pytest.mark.parametrize(
-    "rule",
+    "rule,state",
     [
-        {"enabled": False},
-        {"enabled": True, "metric": "bytes_processed", "threshold": 1024},
+        ({"enabled": False}, "disabled"),
+        ({"enabled": True, "metric": "bytes_processed", "threshold": 1024}, "ready"),
+        ({"enabled": False}, "unsupported"),
+        (None, "invalid"),
     ],
 )
-def test_bootstrap_includes_cost_warning_rule(rule: dict[str, object]) -> None:
+def test_bootstrap_includes_cost_warning_rule(
+    rule: dict[str, object] | None, state: str
+) -> None:
     """SQL Lab receives the computed policy without exposing database extras."""
     database = mock.MagicMock()
     database.id = 1
     database.to_json.return_value = {}
     database.query_cost_warning = rule
+    database.query_warning_state = state
+    database.engine_information = {"query_warning_supported": state != "unsupported"}
     with (
         mock.patch(
             "superset.sqllab.utils.DatabaseDAO.find_all", return_value=[database]
@@ -42,6 +48,8 @@ def test_bootstrap_includes_cost_warning_rule(rule: dict[str, object]) -> None:
     ):
         result = bootstrap_sqllab_data(user_id=1)
     assert result["databases"][1]["query_cost_warning"] == rule
+    assert result["databases"][1]["query_warning_state"] == state
+    assert result["databases"][1]["engine_information"] == database.engine_information
     assert "extra" not in result["databases"][1]
 
 

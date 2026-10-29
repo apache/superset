@@ -37,13 +37,13 @@ const featureEnabled = jest.mocked(isFeatureEnabled);
 const endpoint = 'glob:*/api/v1/sqllab/estimate/';
 const executeEndpoint = 'glob:*/api/v1/sqllab/execute/*';
 const warning = {
-  status: 'exceeded',
-  metric: 'total_cost',
-  label: 'Estimated planner cost',
-  unit: 'planner cost units',
-  value: 12.5,
-  threshold: 10,
+  action: 'confirm',
+  reason: 'warning',
   message: 'Above threshold',
+  details: [
+    { label: 'Estimated planner cost', value: '12.5 planner cost units' },
+    { label: 'Warning threshold', value: '10 planner cost units' },
+  ],
 };
 
 /** Control an estimate independently of the editor and execution response. */
@@ -106,6 +106,7 @@ function setup() {
           id: editor.dbId,
           allow_run_async: false,
           allows_cost_estimate: true,
+          query_warning_state: 'ready',
           query_cost_warning: {
             enabled: true,
             metric: 'total_cost',
@@ -170,64 +171,61 @@ afterEach(() => {
   featureEnabled.mockReset();
 });
 
-test.each(['disabled', 'unsupported', 'within_threshold'])(
-  'executes a captured request once for %s',
-  async status => {
-    const h = setup();
-    h.replace(state => ({
-      ...state,
-      sqlLab: {
-        ...state.sqlLab,
-        unsavedQueryEditor: {
-          id: h.editor.id,
-          sql: 'SELECT 99',
-          selectedText: 'SELECT 2',
-          catalog: 'catalog',
-          schema: 'schema',
-          templateParams: '{"x":2}',
-          queryLimit: 25,
-        },
+test('proceed executes a captured request once', async () => {
+  const h = setup();
+  h.replace(state => ({
+    ...state,
+    sqlLab: {
+      ...state.sqlLab,
+      unsavedQueryEditor: {
+        id: h.editor.id,
+        sql: 'SELECT 99',
+        selectedText: 'SELECT 2',
+        catalog: 'catalog',
+        schema: 'schema',
+        templateParams: '{"x":2}',
+        queryLimit: 25,
       },
-    }));
-    h.start();
-    h.start();
-    expect(h.result.current.checking).toBe(true);
-    await h.finish({ ...warning, status, value: 0 });
-    await waitFor(() => expect(h.executions()).toHaveLength(1));
-    const checked = JSON.parse(
-      String(fetchMock.callHistory.calls('warning-check')[0].options.body),
-    );
-    const executed = JSON.parse(String(h.executions()[0].options.body));
-    expect(checked).toEqual({
-      check_warning: true,
-      database_id: h.editor.dbId,
-      sql: 'SELECT 2',
-      catalog: 'catalog',
-      schema: 'schema',
-      template_params: { x: 2 },
-      query_limit: 25,
-    });
-    expect(executed).toMatchObject({
-      database_id: checked.database_id,
-      sql: checked.sql,
-      catalog: checked.catalog,
-      schema: checked.schema,
-      queryLimit: checked.query_limit,
-      templateParams: '{"x":2}',
-      runAsync: false,
-    });
-    expect(h.result.current.checking).toBe(false);
-  },
-);
+    },
+  }));
+  h.start();
+  h.start();
+  expect(h.result.current.checking).toBe(true);
+  await h.finish({ action: 'proceed' });
+  await waitFor(() => expect(h.executions()).toHaveLength(1));
+  const checked = JSON.parse(
+    String(fetchMock.callHistory.calls('warning-check')[0].options.body),
+  );
+  const executed = JSON.parse(String(h.executions()[0].options.body));
+  expect(checked).toEqual({
+    check_warning: true,
+    database_id: h.editor.dbId,
+    sql: 'SELECT 2',
+    catalog: 'catalog',
+    schema: 'schema',
+    template_params: { x: 2 },
+    query_limit: 25,
+  });
+  expect(executed).toMatchObject({
+    database_id: checked.database_id,
+    sql: checked.sql,
+    catalog: checked.catalog,
+    schema: checked.schema,
+    queryLimit: checked.query_limit,
+    templateParams: '{"x":2}',
+    runAsync: false,
+  });
+  expect(h.result.current.checking).toBe(false);
+});
 
 test.each([
-  { status: 'exceeded', runAsync: false, accuracy: undefined },
-  { status: 'exceeded', runAsync: true, accuracy: undefined },
-  { status: 'unavailable', runAsync: false, accuracy: undefined },
-  { status: 'unavailable', runAsync: false, accuracy: null },
+  { reason: 'warning', runAsync: false, details: warning.details },
+  { reason: 'warning', runAsync: true, details: warning.details },
+  { reason: 'unavailable', runAsync: false, details: undefined },
+  { reason: 'unavailable', runAsync: false, details: warning.details },
 ])(
-  'requires confirmation for $status with runAsync=$runAsync, accuracy=$accuracy and continues once',
-  async ({ status, runAsync, accuracy }) => {
+  'requires confirmation for $reason with runAsync=$runAsync and continues once',
+  async ({ reason, runAsync, details }) => {
     const h = setup();
     h.replace(state => ({
       ...state,
@@ -253,12 +251,11 @@ test.each([
     expect(h.executions()).toHaveLength(0);
     await h.finish({
       ...warning,
-      status,
-      value: status === 'unavailable' ? null : 12.5,
-      ...(accuracy === null && { accuracy, row_level_security_applied: null }),
+      reason,
+      details,
     });
     expect(h.executions()).toHaveLength(0);
-    expect(h.result.current.confirmation?.status).toBe(status);
+    expect(h.result.current.confirmation?.reason).toBe(reason);
     h.start();
     expect(fetchMock.callHistory.calls('warning-check')).toHaveLength(1);
     act(() => {
@@ -295,7 +292,7 @@ test.each(['checking', 'dialog'])(
     h.start();
     if (stage === 'dialog') await h.finish(warning);
     act(() => h.result.current.cancel());
-    if (stage === 'checking') await h.finish(warning);
+    if (stage === 'checking') await h.finish({ action: 'proceed' });
     act(() => h.result.current.continueRun());
     expect(h.executions()).toHaveLength(0);
     expect(h.result.current.checking).toBe(false);
@@ -308,12 +305,12 @@ test('a cancelled response cannot replace a newer attempt', async () => {
   h.start();
   act(() => h.result.current.cancel());
   h.start();
-  await h.finish({ ...warning, status: 'within_threshold' });
+  await h.finish({ action: 'proceed' });
   expect(h.result.current.checking).toBe(true);
   expect(h.result.current.confirmation).toBeUndefined();
   expect(h.executions()).toHaveLength(0);
   await h.finish(warning, 1);
-  expect(h.result.current.confirmation?.status).toBe('exceeded');
+  expect(h.result.current.confirmation?.reason).toBe('warning');
   act(() => h.result.current.continueRun());
   await waitFor(() => expect(h.executions()).toHaveLength(1));
 });
@@ -347,7 +344,7 @@ test.each([
   },
 );
 
-test.each(['async', 'rule', 'estimation', 'metric', 'tab'])(
+test.each(['async', 'rule', 'state', 'tab'])(
   'invalidates %s changes',
   async field => {
     const h = setup();
@@ -367,18 +364,15 @@ test.each(['async', 'rule', 'estimation', 'metric', 'tab'])(
                   ...(field === 'rule' && {
                     query_cost_warning: { enabled: false },
                   }),
-                  ...(field === 'estimation' && {
-                    allows_cost_estimate: false,
-                  }),
-                  ...(field === 'metric' && {
-                    engine_information: { query_cost_warning_metric: null },
+                  ...(field === 'state' && {
+                    query_warning_state: 'disabled' as const,
                   }),
                 },
               },
             }),
       },
     }));
-    await h.finish({ ...warning, status: 'within_threshold' });
+    await h.finish({ action: 'proceed' });
     expect(h.executions()).toHaveLength(0);
   },
 );
@@ -387,7 +381,7 @@ test('invalidates a default effective limit change', async () => {
   const h = setup();
   h.start();
   h.rerender({ limit: 2000 });
-  await h.finish({ ...warning, status: 'within_threshold', value: 0 });
+  await h.finish({ action: 'proceed' });
   await act(async () => {
     await fetchMock.callHistory.flush(true);
   });
@@ -414,7 +408,7 @@ test('unmounted editors ignore a late response', async () => {
   const h = setup();
   h.start();
   h.unmount();
-  await h.finish({ ...warning, status: 'within_threshold', value: 0 });
+  await h.finish({ action: 'proceed' });
   await act(async () => {
     await fetchMock.callHistory.flush(true);
   });
@@ -423,14 +417,18 @@ test('unmounted editors ignore a late response', async () => {
 
 test.each([
   {},
-  { status: 'bogus' },
-  { ...warning, value: '12' },
-  { ...warning, value: NaN },
-  { ...warning, threshold: 0 },
-  { ...warning, metric: 'unknown' },
-  { ...warning, metric: 'constructor' },
-  { ...warning, metric: '__proto__' },
-  { ...warning, metric: 'bytes_processed', threshold: 1.5 },
+  [],
+  { action: 'bogus' },
+  { status: 'disabled' },
+  { ...warning, action: undefined },
+  { ...warning, reason: 'bogus' },
+  { ...warning, message: undefined },
+  { ...warning, message: '  ' },
+  { ...warning, details: null },
+  { ...warning, details: {} },
+  { ...warning, details: [null] },
+  { ...warning, details: [{ label: 'Estimate', value: 12 }] },
+  { ...warning, details: [{ label: 1, value: '12' }] },
 ])('malformed response %j never executes', async result => {
   const h = setup();
   h.start();
@@ -464,89 +462,83 @@ test.each([403, 400, 500])(
   },
 );
 
-test.each([
-  'warning flag',
-  'estimate flag',
-  'estimation',
-  'rule',
-  'unsupported',
-  'ctas',
-  'automatic',
-])('known inactive %s keeps the existing execution path', async reason => {
+test.each(['warning flag', 'disabled', 'unsupported', 'ctas', 'automatic'])(
+  'known inactive %s keeps the existing execution path',
+  async reason => {
+    const h = setup();
+    if (reason === 'warning flag') featureEnabled.mockReturnValue(false);
+    if (reason === 'disabled' || reason === 'unsupported') {
+      h.replace(state => ({
+        ...state,
+        sqlLab: {
+          ...state.sqlLab,
+          databases: {
+            [h.editor.dbId!]: {
+              ...state.sqlLab.databases[h.editor.dbId!],
+              query_warning_state: reason,
+            },
+          },
+        },
+      }));
+    }
+    act(() => {
+      h.result.current.start(
+        '',
+        reason === 'ctas',
+        'TABLE',
+        reason === 'automatic',
+      );
+    });
+    await waitFor(() => expect(h.executions()).toHaveLength(1));
+    expect(fetchMock.callHistory.calls('warning-check')).toHaveLength(0);
+  },
+);
+
+test('ready checks do not require numeric estimation prerequisites', async () => {
   const h = setup();
-  if (reason === 'warning flag')
-    featureEnabled.mockImplementation(
-      flag => flag === FeatureFlag.EstimateQueryCost,
-    );
-  if (reason === 'estimate flag')
-    featureEnabled.mockImplementation(
-      flag => flag === FeatureFlag.SqlLabQueryCostWarnings,
-    );
-  if (['estimation', 'rule', 'unsupported'].includes(reason))
-    h.replace(state => ({
-      ...state,
-      sqlLab: {
-        ...state.sqlLab,
-        databases: {
-          [h.editor.dbId!]: {
-            ...state.sqlLab.databases[h.editor.dbId!],
-            ...(reason === 'estimation' && { allows_cost_estimate: false }),
-            ...(reason === 'rule' && {
-              query_cost_warning: { enabled: false },
-            }),
-            ...(reason === 'unsupported' && {
-              engine_information: { query_cost_warning_metric: null },
-            }),
+  featureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.SqlLabQueryCostWarnings,
+  );
+  h.replace(state => ({
+    ...state,
+    sqlLab: {
+      ...state.sqlLab,
+      databases: {
+        [h.editor.dbId!]: {
+          ...state.sqlLab.databases[h.editor.dbId!],
+          allows_cost_estimate: false,
+          query_cost_warning: { enabled: true, notice: 'Custom settings' },
+          engine_information: {
+            query_cost_warning_metric: null,
+            query_warning_supported: true,
           },
         },
       },
-    }));
-  act(() => {
-    h.result.current.start(
-      '',
-      reason === 'ctas',
-      'TABLE',
-      reason === 'automatic',
-    );
-  });
+    },
+  }));
+  h.start();
+  await h.finish({ action: 'proceed' });
+  expect(fetchMock.callHistory.calls('warning-check')).toHaveLength(1);
   await waitFor(() => expect(h.executions()).toHaveLength(1));
-  expect(fetchMock.callHistory.calls('warning-check')).toHaveLength(0);
 });
 
-test('byte results preserve values beyond JavaScript safe integers', () => {
-  const value = BigInt('9007199254740993123');
-  expect(
-    parseWarningResult({ ...warning, metric: 'bytes_processed', value }),
-  ).toMatchObject({ value });
-  expect(() =>
-    parseWarningResult({
-      ...warning,
-      metric: 'bytes_processed',
-      value: 9007199254740992,
-    }),
-  ).toThrow('The query cost warning response was invalid.');
+test('display details preserve large counts and planner decimals as plain text', () => {
+  const result = {
+    ...warning,
+    details: [
+      { label: 'Usage', value: 'At least 9,007,199,254,740,993,123 bytes' },
+      { label: 'Planner cost', value: '0.123456789123456789' },
+    ],
+  };
+  expect(parseWarningResult(result)).toEqual(result);
+  expect(() => parseWarningResult({ ...result, message: '' })).toThrow(
+    'The query warning response was invalid.',
+  );
 });
 
-test('planner results preserve large finite integer values and thresholds', () => {
-  const threshold = BigInt('9007199254740993');
-  const value = threshold + BigInt(1);
-  expect(parseWarningResult({ ...warning, threshold, value })).toMatchObject({
-    threshold,
-    value,
-  });
-  expect(() =>
-    parseWarningResult({
-      ...warning,
-      metric: 'bytes_processed',
-      threshold,
-      value,
-    }),
-  ).toThrow('The query cost warning response was invalid.');
-});
-
-test.each([null, undefined])(
-  'a %s warning rule reaches server validation and errors never execute',
-  async rule => {
+test.each(['invalid', undefined] as const)(
+  '%s server state reaches validation and errors never execute',
+  async stateValue => {
     const h = setup();
     h.replace(state => ({
       ...state,
@@ -555,7 +547,8 @@ test.each([null, undefined])(
         databases: {
           [h.editor.dbId!]: {
             ...state.sqlLab.databases[h.editor.dbId!],
-            query_cost_warning: rule,
+            query_warning_state: stateValue,
+            query_cost_warning: { enabled: false },
           },
         },
       },
@@ -574,19 +567,17 @@ test.each([null, undefined])(
   },
 );
 
-test('the existing bigint response parser preserves large estimated bytes over HTTP', async () => {
+test('HTTP detail strings remain exact without a numeric parser', async () => {
   const h = setup();
+  const details = [
+    { label: 'Usage', value: 'Up to 9,007,199,254,740,993,123 bytes' },
+  ];
   fetchMock.modifyRoute('warning-check', {
-    response: {
-      body: '{"result":{"status":"exceeded","metric":"bytes_processed","label":"Estimated bytes processed","unit":"bytes","value":9007199254740993123,"threshold":100}}',
-      headers: { 'Content-Type': 'application/json' },
-    },
+    response: { body: { result: { ...warning, details } } },
   });
   h.start();
   await waitFor(() =>
-    expect(h.result.current.confirmation?.value).toBe(
-      BigInt('9007199254740993123'),
-    ),
+    expect(h.result.current.confirmation?.details).toEqual(details),
   );
   expect(h.executions()).toHaveLength(0);
 });

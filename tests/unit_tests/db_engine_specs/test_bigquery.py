@@ -1556,21 +1556,21 @@ def test_expand_nested_columns_keeps_user_alias() -> None:
 @pytest.mark.parametrize(
     "value,accuracy,row_security,expected",
     [
-        ("0", "PRECISE", False, "within_threshold"),
-        ("100", "PRECISE", False, "within_threshold"),
-        (str(2**60 + 1), "PRECISE", False, "above_threshold"),
-        ("101", "LOWER_BOUND", False, "above_threshold"),
-        ("100", "LOWER_BOUND", False, "unavailable"),
-        ("101", "UPPER_BOUND", False, "above_threshold"),
-        ("100", "UPPER_BOUND", False, "within_threshold"),
-        ("0", "UNKNOWN", False, "unavailable"),
-        ("101", None, False, "unavailable"),
-        ("101", "PRECISE", True, "unavailable"),
-        (None, "PRECISE", False, "unavailable"),
-        ("masked", "PRECISE", False, "unavailable"),
-        ("1.5", "PRECISE", False, "unavailable"),
-        (True, "PRECISE", False, "unavailable"),
-        (-1, "PRECISE", False, "unavailable"),
+        ("0", "PRECISE", False, 0),
+        ("100", "PRECISE", False, 100),
+        (str(2**60 + 1), "PRECISE", False, 2**60 + 1),
+        ("101", "LOWER_BOUND", False, 101),
+        ("100", "LOWER_BOUND", False, 100),
+        ("101", "UPPER_BOUND", False, 101),
+        ("100", "UPPER_BOUND", False, 100),
+        ("0", "UNKNOWN", False, 0),
+        ("101", None, False, 101),
+        ("101", "PRECISE", True, None),
+        (None, "PRECISE", False, None),
+        ("masked", "PRECISE", False, None),
+        ("1.5", "PRECISE", False, None),
+        (True, "PRECISE", False, None),
+        (-1, "PRECISE", False, None),
     ],
 )
 def test_warning_dry_run_uses_execution_client_and_raw_statistics(
@@ -1578,7 +1578,7 @@ def test_warning_dry_run_uses_execution_client_and_raw_statistics(
     value: object,
     accuracy: str | None,
     row_security: bool,
-    expected: str,
+    expected: int | None,
 ) -> None:
     """Exercise the SDK and driver's real connection shapes without a warehouse."""
     from google.auth.credentials import AnonymousCredentials
@@ -1628,9 +1628,12 @@ def test_warning_dry_run_uses_execution_client_and_raw_statistics(
             database, "project", "dataset", "SELECT 1"
         )
         query.assert_called_once()
-        assert estimate.compare(100) == expected
-        assert estimate.accuracy == accuracy
-        assert estimate.row_level_security_applied == row_security
+        assert estimate.accuracy == (None if row_security else accuracy)
+        assert bool(estimate.unavailable_reason) is row_security
+        assert estimate.value == expected
+        if row_security:
+            assert estimate.unavailable_reason is not None
+            assert "row-level security" in estimate.unavailable_reason
         if value == str(2**60 + 1):
             assert estimate.value == 2**60 + 1
         config = query.call_args.kwargs["job_config"]
@@ -1740,6 +1743,7 @@ def test_warning_dry_run_unverified_bigquery_subclass_is_unsupported(
 
     database = mocker.MagicMock()
     assert UnverifiedBigQuery.get_query_cost_warning_metric() is None
+    assert UnverifiedBigQuery.get_query_warning_check() is None
     assert (
         UnverifiedBigQuery.estimate_query_cost_for_warning(
             database, None, "", "SELECT 1"
@@ -1771,10 +1775,8 @@ def test_warning_dry_run_malformed_metadata_is_unavailable(statistics: object) -
     client = Client(project="project", credentials=AnonymousCredentials())
     job = QueryJob("dry-run", "SELECT 1", client)
     job._properties["statistics"] = statistics
-    assert (
-        BigQueryEngineSpec._query_cost_warning_estimate(job).compare(100)
-        == "unavailable"
-    )
+    estimate = BigQueryEngineSpec._query_cost_warning_estimate(job)
+    assert estimate.value is None or estimate.accuracy is None
 
 
 @pytest.mark.parametrize("sql", ["SELECT 1; SELECT 2", "CREATE TABLE t AS SELECT 1"])

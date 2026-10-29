@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-29 13:19-0400\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -3787,6 +3787,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "비동기 쿼리 실행"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 #, fuzzy
 msgid "Attribution"
 msgstr "설명"
@@ -4161,6 +4165,9 @@ msgstr "기간 비교가 있는 큰 숫자"
 #, fuzzy
 msgid "Big Number with Trendline"
 msgstr "추세선이 있는 큰 숫자"
+
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
 
 #, fuzzy
 msgid "Bins"
@@ -4694,9 +4701,6 @@ msgstr "취소"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "취소"
-
-msgid "Cancel cost check"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -5415,9 +5419,6 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
-msgstr ""
-
-msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -6998,6 +6999,11 @@ msgstr "현재 세션에서 사용자를 확인할 수 없습니다."
 msgid ""
 "Could not verify which dimensions are compatible. All dimensions are "
 "shown."
+msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
 msgstr ""
 
 #, fuzzy
@@ -11512,7 +11518,13 @@ msgstr "차트 수정"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -18377,12 +18389,6 @@ msgstr "Query 실행 이력"
 msgid "Query State"
 msgstr "Query 공유"
 
-msgid "Query cost check failed."
-msgstr ""
-
-msgid "Query cost warning"
-msgstr ""
-
 #, fuzzy
 msgid "Query data in SQL Lab"
 msgstr "새로운 탭에서 Query실행"
@@ -18421,6 +18427,12 @@ msgstr "Query 검색"
 
 msgid "Query preview"
 msgstr "데이터 미리보기"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -19753,10 +19765,6 @@ msgstr "Query 실행"
 msgid "Run query (Ctrl + Return)"
 msgstr "쿼리 실행 (Ctrl + Return)"
 
-#, python-format
-msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
-msgstr ""
-
 msgid "Run query in a new tab"
 msgstr "새로운 탭에서 Query실행"
 
@@ -19766,9 +19774,6 @@ msgstr "새로운 탭에서 Query실행"
 #, fuzzy
 msgid "Run selection"
 msgstr "선택 실행"
-
-msgid "Run without estimate"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -23484,6 +23489,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "템플릿 매개변수"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Template processing error: %(error)s"
 msgstr "부적절한 요청입니다 : %(error)s"
@@ -24120,9 +24128,6 @@ msgid ""
 "the warning threshold."
 msgstr ""
 
-msgid "The estimate is within this connection's warning threshold."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -24676,9 +24681,6 @@ msgstr ""
 msgid "The query cost warning metric is not supported by this engine."
 msgstr ""
 
-msgid "The query cost warning response was invalid."
-msgstr ""
-
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
@@ -24717,6 +24719,9 @@ msgstr "쿼리에 구문 오류가 있습니다."
 #, fuzzy
 msgid "The query returned no data"
 msgstr "쿼리가 데이터를 반환하지 않았습니다"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -25199,14 +25204,14 @@ msgstr "값이 다른 중단점 값과 겹칩니다."
 msgid "The version of the service"
 msgstr "서비스 버전"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
 msgid "The visible title of the layer"
 msgstr "레이어의 표시 제목"
-
-msgid "The warning metric is not supported by this engine."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -26232,6 +26237,11 @@ msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
 msgstr "이 링크를 클릭하면 외부 웹사이트로 이동합니다. 외부 목적지의 안전을 보장할 수 없습니다."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -27814,6 +27824,10 @@ msgstr "Query 공유"
 #, fuzzy
 msgid "Unverified"
 msgstr "수정됨"
+
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -31500,9 +31514,6 @@ msgstr "레이블"
 msgid "log"
 msgstr "로그"
 
-msgid "lower bound"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -32068,9 +32079,6 @@ msgstr "컬럼 추가"
 #, fuzzy
 msgid "updated"
 msgstr "분기"
-
-msgid "upper bound"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-29 13:19-0400\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -3281,6 +3281,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Asinhrono izvršavanje upita"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Attribution"
 msgstr "Atribucija"
@@ -3550,6 +3554,9 @@ msgstr "Veliki broj sa poređenjem vremenskih perioda"
 # zh_TW]
 msgid "Big Number with Trendline"
 msgstr "Veliki broj sa linijom trenda"
+
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
 
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid "Bins"
@@ -3973,9 +3980,6 @@ msgstr "Otkaži"
 
 msgid "Cancel Task"
 msgstr "Otkaži zadatak"
-
-msgid "Cancel cost check"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Cancel query on window unload event"
@@ -4577,9 +4581,6 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
-msgstr ""
-
-msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -5830,6 +5831,11 @@ msgstr "Nije moguće potvrditi korisnika u trenutnoj sesiji."
 msgid ""
 "Could not verify which dimensions are compatible. All dimensions are "
 "shown."
+msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -9581,7 +9587,13 @@ msgstr "Filtriraj grafikone"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -14849,12 +14861,6 @@ msgstr "Istorija upita"
 msgid "Query State"
 msgstr "Stanje upita"
 
-msgid "Query cost check failed."
-msgstr ""
-
-msgid "Query cost warning"
-msgstr ""
-
 # ru, sk, uk]
 msgid "Query data in SQL Lab"
 msgstr "Upit podataka u SQL Lab"
@@ -14894,6 +14900,12 @@ msgstr "Naziv upita"
 # zh_TW]
 msgid "Query preview"
 msgstr "Pregled upita"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Query was stopped"
@@ -15963,10 +15975,6 @@ msgstr "Izvrši upit"
 msgid "Run query (Ctrl + Return)"
 msgstr "Izvrši upit (Ctrl + Return)"
 
-#, python-format
-msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
-msgstr ""
-
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Run query in a new tab"
@@ -15976,9 +15984,6 @@ msgstr "Izvrši upit u novoj kartici"
 # zh_TW]
 msgid "Run selection"
 msgstr "Izvrši izbor"
-
-msgid "Run without estimate"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Running"
@@ -19012,6 +19017,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "Parametri šablona"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 # uk]
 #, python-format
 msgid "Template processing error: %(error)s"
@@ -19534,9 +19542,6 @@ msgid ""
 "the warning threshold."
 msgstr ""
 
-msgid "The estimate is within this connection's warning threshold."
-msgstr ""
-
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "Eksponent na osnovu kojeg se izračunavaju sve veličine. Samo za „EXP”"
@@ -19991,9 +19996,6 @@ msgstr ""
 msgid "The query cost warning metric is not supported by this engine."
 msgstr ""
 
-msgid "The query cost warning response was invalid."
-msgstr ""
-
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
@@ -20023,6 +20025,9 @@ msgstr "Upit ima sintaksnu grešku."
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The query returned no data"
 msgstr "Upit nije vratio podatke"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -20421,12 +20426,12 @@ msgstr "Vrednosti se preklapaju sa drugim vrednostima prekidnih tačaka"
 msgid "The version of the service"
 msgstr "Verzija servisa"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 # ja, lv, mi, ru, sk, uk]
 msgid "The visible title of the layer"
 msgstr "Vidljiv naslov sloja"
-
-msgid "The warning metric is not supported by this engine."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The way the ticks are laid out on the X-axis"
@@ -21302,6 +21307,11 @@ msgid ""
 msgstr ""
 "Ova veza će vas odvesti na spoljni veb-sajt. Ne možemo garantovati "
 "bezbednost spoljnih odredišta."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "This markdown component has an error."
@@ -22548,6 +22558,10 @@ msgstr "Neimenovan upit"
 # uk]
 msgid "Unverified"
 msgstr "Neprovereno"
+
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Update"
@@ -25390,9 +25404,6 @@ msgstr "locale_key"
 msgid "log"
 msgstr "logaritamski"
 
-msgid "lower bound"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
@@ -25838,9 +25849,6 @@ msgstr "nije postavljeno"
 # ja, lv, mi, ru, sk, uk]
 msgid "updated"
 msgstr "ažurirano"
-
-msgid "upper bound"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""

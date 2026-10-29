@@ -38,10 +38,7 @@ export interface RunQueryActionButtonProps {
   queryState?: string;
   runQuery: () => void;
   stopQuery: () => void;
-  runTooltipText?: string;
   overlayCreateAsMenu: ReactElement | null;
-  checkingCost?: boolean;
-  cancelCostCheck?: () => void;
   awaitingConfirmation?: boolean;
 }
 
@@ -101,9 +98,6 @@ const RunQueryActionButton = ({
   overlayCreateAsMenu,
   runQuery,
   stopQuery,
-  runTooltipText,
-  checkingCost = false,
-  cancelCostCheck,
   awaitingConfirmation = false,
 }: RunQueryActionButtonProps) => {
   const theme = useTheme();
@@ -118,8 +112,7 @@ const RunQueryActionButton = ({
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
 
-  const showMenu =
-    overlayCreateAsMenu && !checkingCost && !awaitingConfirmation;
+  const showMenu = overlayCreateAsMenu && !awaitingConfirmation;
   const ButtonComponent: FC<QueryButtonProps> = showMenu
     ? (DropdownButton as FC)
     : Button;
@@ -127,8 +120,7 @@ const RunQueryActionButton = ({
   const sqlContent = selectedText || sql || '';
   const isDisabled =
     !shouldShowStopBtn &&
-    (checkingCost ||
-      awaitingConfirmation ||
+    (awaitingConfirmation ||
       !sqlContent
         ?.replace(/(\/\*[^*]*\*\/)|(\/\/[^*]*)|(--[^.].*)/gm, '')
         .trim());
@@ -158,7 +150,7 @@ const RunQueryActionButton = ({
           (!isDisabled &&
             (shouldShowStopBtn
               ? stopButtonTooltipText
-              : (runTooltipText ?? t('Run query (Ctrl + Return)')))) as string
+              : t('Run query (Ctrl + Return)'))) as string
         }
         cta
         {...(showMenu
@@ -183,17 +175,8 @@ const RunQueryActionButton = ({
             })}
       >
         {showMenu && <>{icon}</>}
-        {checkingCost && !shouldShowStopBtn ? t('Checking cost…') : text}
+        {text}
       </ButtonComponent>
-      {checkingCost && (
-        <Button
-          buttonStyle="secondary"
-          onClick={cancelCostCheck}
-          tooltip={t('Cancel cost check')}
-        >
-          {t('Cancel')}
-        </Button>
-      )}
     </StyledButton>
   );
 };

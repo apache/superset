@@ -39,6 +39,7 @@ DATABASE_KEYS = [
     "allow_run_async",
     "allows_cost_estimate",
     "query_cost_warning",
+    "query_warning_state",
     "allows_subquery",
     "backend",
     "database_name",

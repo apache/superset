@@ -52,7 +52,7 @@ def test_query_cost_warning_requires_boolean_opt_in(
     enabled: object,
 ) -> None:
     """Warning activation never coerces a truthy value to an opt-in."""
-    from superset.databases.schemas import QueryCostWarningSchema
+    from superset.db_engine_specs.query_warning import QueryCostWarningSchema
 
     message = (
         "Field may not be null."
@@ -76,7 +76,7 @@ def test_query_cost_warning_rejects_invalid_thresholds(
     threshold: object,
 ) -> None:
     """A supplied threshold must be valid even when warnings are disabled."""
-    from superset.databases.schemas import QueryCostWarningSchema
+    from superset.db_engine_specs.query_warning import QueryCostWarningSchema
 
     message = (
         "Field may not be null."
@@ -95,7 +95,7 @@ def test_query_cost_warning_requires_safe_whole_bytes(
     threshold: int | float,
 ) -> None:
     """Byte thresholds cannot be fractional or lose precision in SQL Lab."""
-    from superset.databases.schemas import QueryCostWarningSchema
+    from superset.db_engine_specs.query_warning import QueryCostWarningSchema
 
     with pytest.raises(ValidationError):
         QueryCostWarningSchema().load(
@@ -118,7 +118,7 @@ def test_query_cost_warning_preserves_valid_rules(
     rule: dict[str, object],
 ) -> None:
     """Valid rules retain their values even when warnings are disabled."""
-    from superset.databases.schemas import QueryCostWarningSchema
+    from superset.db_engine_specs.query_warning import QueryCostWarningSchema
 
     assert QueryCostWarningSchema().load(rule) == rule
 
@@ -156,7 +156,7 @@ def test_invalid_query_cost_warning_is_rejected(
     rule: object,
 ) -> None:
     """A supplied rule must be well formed and complete when enabled."""
-    from superset.databases.schemas import QueryCostWarningSchema
+    from superset.db_engine_specs.query_warning import QueryCostWarningSchema
 
     with pytest.raises(ValidationError):
         QueryCostWarningSchema().load(rule)
@@ -165,12 +165,12 @@ def test_invalid_query_cost_warning_is_rejected(
 def test_connection_schemas_reject_invalid_query_cost_warning(
     warning_extra_loader: Callable[[dict[str, object]], dict[str, object]],
 ) -> None:
-    """Create, update, and import reject enabled rules without a threshold."""
+    """Outer schemas reject invalid opt-in before engine-specific validation."""
     with pytest.raises(ValidationError) as exc_info:
         warning_extra_loader(
-            {"query_cost_warning": {"enabled": True, "metric": "total_cost"}}
+            {"query_cost_warning": {"enabled": "true", "metric": "total_cost"}}
         )
-    assert "threshold" in str(exc_info.value.messages)
+    assert "enabled" in str(exc_info.value.messages)
 
 
 @pytest.mark.parametrize(
@@ -1093,3 +1093,52 @@ def test_warning_schema_keeps_omitted_extra_absent(
         payload.update(uuid="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", version="1.0.0")
 
     assert "extra" not in getattr(schemas, schema_name)().load(payload)
+
+
+@pytest.mark.parametrize(
+    "schema_name", ["DatabasePostSchema", "DatabasePutSchema", "ImportV1DatabaseSchema"]
+)
+@pytest.mark.parametrize(
+    "rule,valid",
+    [
+        ({"enabled": True}, True),
+        ({"enabled": False, "notice": "Review this query."}, True),
+        ({"enabled": True, "notice": 12}, False),
+        ({"enabled": "true"}, False),
+    ],
+)
+def test_warning_settings_delegate_fields_to_selected_check(
+    mocker: MockerFixture, schema_name: str, rule: dict[str, object], valid: bool
+) -> None:
+    """Non-numeric checks accept opt-in without numeric fields."""
+    from superset.databases import schemas
+    from tests.fixtures.query_warning import MessageOnlyQueryWarningCheck
+
+    check = MessageOnlyQueryWarningCheck()
+    spec = mocker.Mock()
+    spec.get_query_warning_check.return_value = check
+    mocker.patch("superset.databases.schemas.get_engine_spec", return_value=spec)
+    session = mocker.patch("superset.databases.schemas.db.session")
+    session.query.return_value.filter_by.return_value.first.return_value = None
+    extra = {"query_cost_warning": rule, "cost_estimate_enabled": False}
+    payload = {
+        "database_name": "test",
+        "sqlalchemy_uri": "postgresql://",
+        "extra": extra
+        if schema_name == "ImportV1DatabaseSchema"
+        else json.dumps(extra),
+    }
+    if schema_name == "ImportV1DatabaseSchema":
+        payload.update(uuid="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", version="1.0.0")
+    if not valid:
+        with pytest.raises(
+            ValidationError, match="notice" if "notice" in rule else "enabled"
+        ):
+            getattr(schemas, schema_name)().load(payload)
+        return
+    result = getattr(schemas, schema_name)().load(payload)
+    assert (
+        result["extra"]
+        if schema_name == "ImportV1DatabaseSchema"
+        else json.loads(result["extra"])
+    ) == extra

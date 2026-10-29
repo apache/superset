@@ -47,9 +47,12 @@ from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicPropertiesType,
     DatabaseCategory,
-    QueryCostEstimate,
 )
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+from superset.db_engine_specs.query_warning import (
+    QueryCostEstimate,
+    QueryCostThresholdCheck,
+)
 from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.sql.parse import SQLScript, Table
@@ -904,9 +907,13 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return True
 
     @classmethod
-    def get_query_cost_warning_metric(cls) -> str | None:
-        """Expose byte warnings only for the verified BigQuery engine spec."""
-        return "bytes_processed" if cls is BigQueryEngineSpec else None
+    def get_query_warning_check(cls) -> QueryCostThresholdCheck | None:
+        """Opt only the verified BigQueryEngineSpec into native cost warnings."""
+        return (
+            QueryCostThresholdCheck("bytes_processed")
+            if cls is BigQueryEngineSpec
+            else None
+        )
 
     @classmethod
     def estimate_query_cost_for_warning(
@@ -917,7 +924,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         sql: str,
     ) -> QueryCostEstimate:
         """Dry-run with the execution connection's client and job defaults."""
-        if cls.get_query_cost_warning_metric() is None or not dependencies_installed:
+        if cls.get_query_warning_check() is None or not dependencies_installed:
             return QueryCostEstimate()
         script = SQLScript(sql, engine=cls.engine)
         if len(script.statements) != 1 or not script.statements[0].is_select():
@@ -962,6 +969,13 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         row_security = security.get("rowLevelSecurityApplied")
         if row_security is not None and not isinstance(row_security, bool):
             return QueryCostEstimate()
+        if row_security is True:
+            return QueryCostEstimate(
+                unavailable_reason=__(
+                    "BigQuery cannot provide an estimate when row-level "
+                    "security hides usage."
+                )
+            )
         value = query.get("totalBytesProcessed")
         # The REST API represents int64 byte counts as decimal strings.
         if isinstance(value, str) and re.fullmatch(r"[0-9]+", value):
@@ -974,7 +988,6 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return QueryCostEstimate.from_value(
             value,
             accuracy if isinstance(accuracy, str) else None,
-            row_security,
         )
 
     @classmethod

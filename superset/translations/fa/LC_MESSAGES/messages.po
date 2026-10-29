@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-29 13:19-0400\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -2835,6 +2835,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "اجرای کوئری به صورت ناهمزمان"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 #, fuzzy
 msgid "Attribution"
 msgstr "توزیع"
@@ -3072,6 +3076,9 @@ msgstr "عدد بزرگ با مقایسه دوره زمانی"
 
 msgid "Big Number with Trendline"
 msgstr "عدد بزرگ با خط روند"
+
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
 
 msgid "Bins"
 msgstr "باین‌ها"
@@ -3433,9 +3440,6 @@ msgstr "انصراف"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "انصراف"
-
-msgid "Cancel cost check"
-msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "لغو کوئری در رویداد بارگذاری مجدد پنجره"
@@ -3968,9 +3972,6 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
-msgstr ""
-
-msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -5085,6 +5086,11 @@ msgstr "تأیید هویت کاربر در جلسه فعلی امکان‌پذ�
 msgid ""
 "Could not verify which dimensions are compatible. All dimensions are "
 "shown."
+msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
 msgstr ""
 
 msgid "Count"
@@ -8370,7 +8376,13 @@ msgstr "فیلتر چارت‌ها"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -12985,12 +12997,6 @@ msgstr "تاریخچه درخواست‌ها"
 msgid "Query State"
 msgstr "کوئری A"
 
-msgid "Query cost check failed."
-msgstr ""
-
-msgid "Query cost warning"
-msgstr ""
-
 #, fuzzy
 msgid "Query data in SQL Lab"
 msgstr "کوئری داده‌ها در آزمایشگاه SQL"
@@ -13018,6 +13024,12 @@ msgstr "نام کوئری"
 
 msgid "Query preview"
 msgstr "پیش‌نمایش کوئری"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 msgid "Query was stopped"
 msgstr "کوئری متوقف شد"
@@ -13946,18 +13958,11 @@ msgstr "اجرای کوئری"
 msgid "Run query (Ctrl + Return)"
 msgstr "اجرای کوئری (Ctrl + Enter)"
 
-#, python-format
-msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
-msgstr ""
-
 msgid "Run query in a new tab"
 msgstr "در یک تب جدید کوئری را اجرا کنید"
 
 msgid "Run selection"
 msgstr "اجرای انتخاب"
-
-msgid "Run without estimate"
-msgstr ""
 
 msgid "Running"
 msgstr "در حال اجرا"
@@ -16670,6 +16675,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "پارامترهای الگو"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Template processing error: %(error)s"
 msgstr "خطای تجزیه: %(error)s"
@@ -17150,9 +17158,6 @@ msgid ""
 "the warning threshold."
 msgstr ""
 
-msgid "The estimate is within this connection's warning threshold."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -17578,9 +17583,6 @@ msgstr ""
 msgid "The query cost warning metric is not supported by this engine."
 msgstr ""
 
-msgid "The query cost warning response was invalid."
-msgstr ""
-
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
@@ -17605,6 +17607,9 @@ msgstr "این سؤال دارای یک خطای نگارشی است."
 
 msgid "The query returned no data"
 msgstr "نتیجه جستجو داده‌ای بازنگرداند."
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -17971,12 +17976,12 @@ msgstr "مقادیر با مقادیر دیگر نقاط شکست همپوشان
 msgid "The version of the service"
 msgstr "موقعیت افسانه را انتخاب کنید"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 #, fuzzy
 msgid "The visible title of the layer"
 msgstr "نمایش مقدار بر روی نوار"
-
-msgid "The warning metric is not supported by this engine."
-msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "شیوه چیدمان تیک‌ها بر روی محور X"
@@ -18804,6 +18809,11 @@ msgid ""
 msgstr ""
 "این پیوند شما را به یک وب‌سایت خارجی هدایت می‌کند. ما نمی‌توانیم ایمنی "
 "مقاصد خارجی را تضمین کنیم."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 msgid "This markdown component has an error."
 msgstr "این مؤلفه مارک‌داون دارای یک خطا است."
@@ -19940,6 +19950,10 @@ msgstr "کوئری بی‌عنوان"
 #, fuzzy
 msgid "Unverified"
 msgstr "تعریف نشده"
+
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
 
 msgid "Update"
 msgstr "به‌روزرسانی"
@@ -22408,9 +22422,6 @@ msgstr "مقیاس لگاریتمی"
 msgid "log"
 msgstr "لاگ"
 
-msgid "lower bound"
-msgstr ""
-
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -22810,9 +22821,6 @@ msgid "unset"
 msgstr "ژوئن"
 
 msgid "updated"
-msgstr ""
-
-msgid "upper bound"
 msgstr ""
 
 msgid ""

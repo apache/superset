@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-29 13:19-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -4181,6 +4181,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "การประมวลผลคำค้นหาแบบอะซิงโครนัส"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -4571,6 +4575,9 @@ msgstr "ตัวเลขขนาดใหญ่พร้อมการเป
 #, fuzzy
 msgid "Big Number with Trendline"
 msgstr "ตัวเลขขนาดใหญ่พร้อมเส้นแนวโน้ม"
+
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
@@ -5151,9 +5158,6 @@ msgstr "ยกเลิก"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "ยกเลิก"
-
-msgid "Cancel cost check"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -5954,9 +5958,6 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
-msgstr ""
-
-msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -7650,6 +7651,11 @@ msgstr "ไม่สามารถตรวจสอบผู้ใช้ใน
 msgid ""
 "Could not verify which dimensions are compatible. All dimensions are "
 "shown."
+msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -12751,7 +12757,13 @@ msgstr "กรองแผนภูมิ"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -20056,12 +20068,6 @@ msgstr "ประวัติการสืบค้น"
 msgid "Query State"
 msgstr "สถานะการสืบค้น"
 
-msgid "Query cost check failed."
-msgstr ""
-
-msgid "Query cost warning"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, lv,
 # ru, sk, uk]
 #, fuzzy
@@ -20119,6 +20125,12 @@ msgstr "ชื่อการสืบค้น"
 #, fuzzy
 msgid "Query preview"
 msgstr "ตัวอย่างการสืบค้น"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -21550,10 +21562,6 @@ msgstr "เรียกใช้คิวรี"
 msgid "Run query (Ctrl + Return)"
 msgstr "เรียกใช้คิวรี (Ctrl + Return)"
 
-#, python-format
-msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -21567,9 +21575,6 @@ msgstr "เรียกใช้คิวรีในแท็บใหม่"
 #, fuzzy
 msgid "Run selection"
 msgstr "เรียกใช้ส่วนที่เลือก"
-
-msgid "Run without estimate"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -25798,6 +25803,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "พารามิเตอร์เทมเพลต"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy, python-format
@@ -26446,9 +26454,6 @@ msgid ""
 "the warning threshold."
 msgstr ""
 
-msgid "The estimate is within this connection's warning threshold."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -27007,9 +27012,6 @@ msgstr ""
 msgid "The query cost warning metric is not supported by this engine."
 msgstr ""
 
-msgid "The query cost warning response was invalid."
-msgstr ""
-
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
@@ -27046,6 +27048,9 @@ msgstr "คิวรีมีข้อผิดพลาดทางไวยา
 #, fuzzy
 msgid "The query returned no data"
 msgstr "คิวรีไม่มีข้อมูลที่ส่งคืน"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -27536,14 +27541,14 @@ msgstr "ค่าทับซ้อนกับค่าจุดแบ่งอ
 msgid "The version of the service"
 msgstr "เวอร์ชันของบริการ"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
 #, fuzzy
 msgid "The visible title of the layer"
 msgstr "ชื่อที่แสดงของเลเยอร์"
-
-msgid "The warning metric is not supported by this engine."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -28619,6 +28624,11 @@ msgid ""
 msgstr ""
 "ลิงก์นี้จะพาคุณไปยังเว็บไซต์ภายนอก "
 "เราไม่สามารถรับประกันความปลอดภัยของปลายทางภายนอกได้"
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -30269,6 +30279,10 @@ msgstr "การสืบค้นที่ไม่มีชื่อ"
 #, fuzzy
 msgid "Unverified"
 msgstr "ยังไม่ได้ตรวจสอบ"
+
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -34095,9 +34109,6 @@ msgstr "ท้องถิ่น"
 msgid "log"
 msgstr "ลอการิทึม"
 
-msgid "lower bound"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -34720,9 +34731,6 @@ msgstr "ไม่ได้ตั้งค่า"
 #, fuzzy
 msgid "updated"
 msgstr "อัปเดตแล้ว"
-
-msgid "upper bound"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]

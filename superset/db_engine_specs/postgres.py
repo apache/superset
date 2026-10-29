@@ -45,8 +45,11 @@ from superset.db_engine_specs.base import (
     BasicParametersSchema,
     BasicParametersType,
     DatabaseCategory,
-    QueryCostEstimate,
     TimestampExpression,
+)
+from superset.db_engine_specs.query_warning import (
+    QueryCostEstimate,
+    QueryCostThresholdCheck,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
@@ -914,9 +917,11 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         return True
 
     @classmethod
-    def get_query_cost_warning_metric(cls) -> str | None:
-        """Expose planner-cost warnings only for the verified PostgreSQL spec."""
-        return "total_cost" if cls is PostgresEngineSpec else None
+    def get_query_warning_check(cls) -> QueryCostThresholdCheck | None:
+        """Opt only the verified PostgresEngineSpec into native cost warnings."""
+        return (
+            QueryCostThresholdCheck("total_cost") if cls is PostgresEngineSpec else None
+        )
 
     @classmethod
     def estimate_query_cost_for_warning(
@@ -927,7 +932,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         sql: str,
     ) -> QueryCostEstimate:
         """Read the root planner cost with EXPLAIN, without executing the SQL."""
-        if cls.get_query_cost_warning_metric() is None:
+        if cls.get_query_warning_check() is None:
             return QueryCostEstimate()
         script = SQLScript(sql, engine=cls.engine)
         if len(script.statements) != 1 or not script.statements[0].is_select():

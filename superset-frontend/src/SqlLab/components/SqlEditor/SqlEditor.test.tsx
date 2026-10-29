@@ -206,12 +206,12 @@ describe('SqlEditor', () => {
   });
 
   test.each([
-    { status: 'within_threshold', proceed: false, executions: 1 },
-    { status: 'exceeded', proceed: false, executions: 0 },
-    { status: 'exceeded', proceed: true, executions: 1 },
+    { action: 'proceed', proceed: false, executions: 1 },
+    { action: 'confirm', proceed: false, executions: 0 },
+    { action: 'confirm', proceed: true, executions: 1 },
   ])(
-    'pre-run $status, continue $proceed executes $executions queries',
-    async ({ status, proceed, executions }) => {
+    'pre-run $action, continue $proceed executes $executions queries',
+    async ({ action, proceed, executions }) => {
       mockIsFeatureEnabled.mockImplementation(flag =>
         [
           FeatureFlag.EstimateQueryCost,
@@ -222,12 +222,8 @@ describe('SqlEditor', () => {
         'glob:*/api/v1/sqllab/estimate/',
         {
           result: {
-            status,
-            metric: 'bytes_processed',
-            label: 'Estimated bytes processed',
-            unit: 'bytes',
-            value: 101,
-            threshold: 100,
+            action,
+            reason: 'warning',
             message: 'Estimate result',
           },
         },
@@ -257,7 +253,7 @@ describe('SqlEditor', () => {
         await act(async () => {
           await fetchMock.callHistory.flush(true);
         });
-        if (status === 'exceeded') {
+        if (action === 'confirm') {
           fireEvent.click(
             await findByRole('button', {
               name: proceed ? 'Run anyway' : 'Cancel',

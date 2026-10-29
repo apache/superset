@@ -28,8 +28,11 @@ from marshmallow import ValidationError
 from superset import config, db, is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand
 from superset.daos.database import DatabaseDAO
-from superset.databases.schemas import get_query_cost_warning
-from superset.db_engine_specs.base import QUERY_COST_WARNING_METRICS
+from superset.db_engine_specs.query_warning import (
+    QueryWarningCheck,
+    QueryWarningResult,
+    validate_query_warning_rule,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
@@ -175,18 +178,13 @@ class QueryEstimationCommand(BaseCommand):
 
         return sql
 
-    def _get_warning_rule(self, metric: str) -> dict[str, Any]:
+    def _get_warning_rule(self, check: QueryWarningCheck | None) -> dict[str, Any]:
         """Validate saved settings directly so invalid rules remain errors."""
         try:
-            rule = get_query_cost_warning(json.loads(self._database.extra or "{}"))
-            if rule["enabled"] and rule["metric"] != metric:
-                raise ValidationError(
-                    {
-                        "metric": [
-                            __("The warning metric is not supported by this engine.")
-                        ]
-                    }
-                )
+            rule = json.loads(self._database.extra or "{}").get(
+                "query_cost_warning", {"enabled": False}
+            )
+            rule = validate_query_warning_rule(rule, check)
         except ValidationError as ex:
             raise SupersetErrorException(
                 SupersetError(
@@ -235,80 +233,44 @@ class QueryEstimationCommand(BaseCommand):
         apply_limit(query, script.statements[0])
         return script.format(comments=spec.allows_sql_comments), None
 
-    def _run_warning_check(self) -> dict[str, Any]:
-        """Compare raw usage while keeping failures distinct from advisory opt-outs."""
-        if not (
-            is_feature_enabled("SQLLAB_QUERY_COST_WARNINGS")
-            and is_feature_enabled("ESTIMATE_QUERY_COST")
-        ):
-            return {"status": "disabled"}
-        spec = self._database.db_engine_spec
-        metric = spec.get_query_cost_warning_metric()
-        if metric is None or metric not in QUERY_COST_WARNING_METRICS:
-            return {"status": "unsupported"}
-        if self._database.allows_cost_estimate is not True:
-            return {"status": "disabled"}
-        rule = self._get_warning_rule(metric)
-        if rule["enabled"] is False:
-            return {"status": "disabled"}
-
-        definition = QUERY_COST_WARNING_METRICS[metric]
-        result: dict[str, Any] = {
-            "status": "unavailable",
-            "metric": metric,
-            "label": str(definition.label),
-            "unit": str(definition.unit),
-            "value": None,
-            "threshold": rule["threshold"],
-        }
+    def _run_warning_check(self) -> QueryWarningResult:
+        """Prepare the intended query and delegate assessment to its engine check."""
+        if not is_feature_enabled("SQLLAB_QUERY_COST_WARNINGS"):
+            return {"action": "proceed"}
+        check = self._database.db_engine_spec.get_query_warning_check()
+        rule = self._get_warning_rule(check)
+        if check is None or not rule["enabled"] or not check.is_enabled(self._database):
+            return {"action": "proceed"}
         sql, reason = self._prepare_warning_sql()
         if sql is None:
-            return {**result, "message": reason}
-
-        timeout = app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
-        try:
-            with utils.timeout(
-                seconds=timeout,
-                error_message=f"The estimation exceeded the {timeout} seconds timeout.",
-            ):
-                estimate = spec.estimate_query_cost_for_warning(
-                    self._database, self._catalog, self._schema, sql
-                )
-        except SupersetTimeoutException:
-            return {**result, "message": __("The query cost estimate timed out.")}
-
-        comparison = estimate.compare(rule["threshold"])
-        result.update(
-            accuracy=estimate.accuracy,
-            row_level_security_applied=estimate.row_level_security_applied,
-        )
-        if estimate.row_level_security_applied is not True and estimate.accuracy in {
-            "PRECISE",
-            "LOWER_BOUND",
-            "UPPER_BOUND",
-        }:
-            result["value"] = estimate.value
-        if comparison == "unavailable":
             return {
-                **result,
-                "message": __(
+                "action": "confirm",
+                "reason": "unavailable",
+                "message": reason
+                or __(
                     "The estimate is unavailable or cannot establish whether "
                     "usage is within the warning threshold."
                 ),
             }
-        result["status"] = (
-            "exceeded" if comparison == "above_threshold" else "within_threshold"
-        )
-        result["message"] = (
-            __("The estimate exceeds this connection's warning threshold.")
-            if result["status"] == "exceeded"
-            else __("The estimate is within this connection's warning threshold.")
-        )
-        return result
+        timeout = app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
+        try:
+            with utils.timeout(
+                seconds=timeout,
+                error_message=f"The assessment exceeded the {timeout} seconds timeout.",
+            ):
+                return check.assess(
+                    self._database, self._catalog, self._schema, sql, rule
+                )
+        except SupersetTimeoutException:
+            return {
+                "action": "confirm",
+                "reason": "unavailable",
+                "message": __("The query cost estimate timed out."),
+            }
 
     def run(
         self,
-    ) -> list[dict[str, Any]] | dict[str, Any]:
+    ) -> list[dict[str, Any]] | QueryWarningResult:
         self.validate()
 
         if self._check_warning:

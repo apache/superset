@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-29 13:19-0400\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -2929,6 +2929,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Asynchroniczne wykonywanie zapytań"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 #, fuzzy
 msgid "Attribution"
 msgstr "Rozkład"
@@ -3169,6 +3173,9 @@ msgstr "Duża liczba z porównaniem okresów"
 
 msgid "Big Number with Trendline"
 msgstr "Duża liczba z linią trendu"
+
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
 
 msgid "Bins"
 msgstr "Kosze"
@@ -3530,9 +3537,6 @@ msgstr "Anuluj"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "Anuluj"
-
-msgid "Cancel cost check"
-msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "Anuluj zapytanie podczas zdarzenia zamykania okna"
@@ -4067,9 +4071,6 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
-msgstr ""
-
-msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -5240,6 +5241,11 @@ msgstr "Nie udało się zweryfikować użytkownika w bieżącej sesji."
 msgid ""
 "Could not verify which dimensions are compatible. All dimensions are "
 "shown."
+msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
 msgstr ""
 
 #, fuzzy
@@ -8684,7 +8690,13 @@ msgstr "Filtruj wykresy"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -13449,12 +13461,6 @@ msgstr "Historia zapytań"
 msgid "Query State"
 msgstr "Zapytanie A"
 
-msgid "Query cost check failed."
-msgstr ""
-
-msgid "Query cost warning"
-msgstr ""
-
 #, fuzzy
 msgid "Query data in SQL Lab"
 msgstr "ZAPYTAJ DANE W SQL LAB"
@@ -13485,6 +13491,12 @@ msgstr "Nazwa zapytania"
 
 msgid "Query preview"
 msgstr "Podgląd zapytania"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 msgid "Query was stopped"
 msgstr "Zapytanie zostało zatrzymane"
@@ -14466,18 +14478,11 @@ msgstr "Uruchom zapytanie"
 msgid "Run query (Ctrl + Return)"
 msgstr "Uruchom zapytanie (Ctrl + Return)"
 
-#, python-format
-msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
-msgstr ""
-
 msgid "Run query in a new tab"
 msgstr "Uruchom zapytanie w nowej karcie"
 
 msgid "Run selection"
 msgstr "Uruchom zaznaczenie"
-
-msgid "Run without estimate"
-msgstr ""
 
 msgid "Running"
 msgstr "W toku"
@@ -17353,6 +17358,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "Parametry szablonu"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Template processing error: %(error)s"
 msgstr "Błąd parsowania: %(error)s"
@@ -17846,9 +17854,6 @@ msgid ""
 "the warning threshold."
 msgstr ""
 
-msgid "The estimate is within this connection's warning threshold."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -18296,9 +18301,6 @@ msgstr ""
 msgid "The query cost warning metric is not supported by this engine."
 msgstr ""
 
-msgid "The query cost warning response was invalid."
-msgstr ""
-
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
@@ -18323,6 +18325,9 @@ msgstr "Zapytanie zawiera błąd składniowy."
 
 msgid "The query returned no data"
 msgstr "Zapytanie nie zwróciło danych."
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -18694,12 +18699,12 @@ msgstr "Wartości nakładają się na inne wartości punktów przerwania"
 msgid "The version of the service"
 msgstr "Wybierz udział w sumie"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 #, fuzzy
 msgid "The visible title of the layer"
 msgstr "Pokaż wartość na górze słupka"
-
-msgid "The warning metric is not supported by this engine."
-msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Sposób rozmieszczenia podziałek na osi X."
@@ -19549,6 +19554,11 @@ msgid ""
 msgstr ""
 "Ten link przeniesie Cię na zewnętrzną stronę internetową. Nie możemy "
 "zagwarantować bezpieczeństwa zewnętrznych miejsc docelowych."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 msgid "This markdown component has an error."
 msgstr "Ten komponent Markdown zawiera błąd."
@@ -20738,6 +20748,10 @@ msgstr "Zapytanie bez tytułu"
 #, fuzzy
 msgid "Unverified"
 msgstr "Niezdefiniowane"
+
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
 
 msgid "Update"
 msgstr "Aktualizuj"
@@ -23315,9 +23329,6 @@ msgstr "Skala logarytmiczna"
 msgid "log"
 msgstr "dziennik"
 
-msgid "lower bound"
-msgstr ""
-
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -23750,9 +23761,6 @@ msgid "unset"
 msgstr "Czerwiec"
 
 msgid "updated"
-msgstr ""
-
-msgid "upper bound"
 msgstr ""
 
 msgid ""

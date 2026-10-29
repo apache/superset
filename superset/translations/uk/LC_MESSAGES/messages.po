@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-29 13:19-0400\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -2771,6 +2771,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Асинхронне виконання запитів"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Розподіл"
 
@@ -2985,6 +2989,9 @@ msgstr "Лічильник з порівнянням періодів"
 
 msgid "Big Number with Trendline"
 msgstr "Лічильник з динамікою"
+
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
 
 msgid "Bins"
 msgstr "Проміжки"
@@ -3327,9 +3334,6 @@ msgstr "Скасувати"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "Скасувати"
-
-msgid "Cancel cost check"
-msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "Скасувати запит після закриття вкладки"
@@ -3826,9 +3830,6 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
-msgstr ""
-
-msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -4864,6 +4865,11 @@ msgstr "Не вдалося підтвердити користувача в п�
 msgid ""
 "Could not verify which dimensions are compatible. All dimensions are "
 "shown."
+msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
 msgstr ""
 
 msgid "Count"
@@ -7936,7 +7942,13 @@ msgstr "Відфільтрувати діаграми"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -12255,12 +12267,6 @@ msgstr "Історія запитів"
 msgid "Query State"
 msgstr "Стан запиту"
 
-msgid "Query cost check failed."
-msgstr ""
-
-msgid "Query cost warning"
-msgstr ""
-
 msgid "Query data in SQL Lab"
 msgstr "Дослідити дані в майстерні запитів"
 
@@ -12287,6 +12293,12 @@ msgstr "Назва запиту"
 
 msgid "Query preview"
 msgstr "Огляд запиту"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 msgid "Query was stopped"
 msgstr "Запит зупинено"
@@ -13173,18 +13185,11 @@ msgstr "Виконати запит"
 msgid "Run query (Ctrl + Return)"
 msgstr "Виконати запит (Ctrl + Return)"
 
-#, python-format
-msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
-msgstr ""
-
 msgid "Run query in a new tab"
 msgstr "Виконати запит в окремій вкладці"
 
 msgid "Run selection"
 msgstr "Виконати вибране"
-
-msgid "Run without estimate"
-msgstr ""
 
 msgid "Running"
 msgstr "Виконується"
@@ -15736,6 +15741,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "Параметри шаблону"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, python-format
 msgid "Template processing error: %(error)s"
 msgstr "Помилка опрацювання шаблону: %(error)s"
@@ -16194,9 +16202,6 @@ msgid ""
 "the warning threshold."
 msgstr ""
 
-msgid "The estimate is within this connection's warning threshold."
-msgstr ""
-
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "Ступінь для обчислення всіх розмірів. Тільки для «EXP»"
 
@@ -16604,9 +16609,6 @@ msgstr ""
 msgid "The query cost warning metric is not supported by this engine."
 msgstr ""
 
-msgid "The query cost warning response was invalid."
-msgstr ""
-
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
@@ -16631,6 +16633,9 @@ msgstr "Запит містить синтаксичну помилку."
 
 msgid "The query returned no data"
 msgstr "Запит не повернув жодних даних"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16976,11 +16981,11 @@ msgstr "Значення перетинаються з іншими порога
 msgid "The version of the service"
 msgstr "Версія служби"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "Видима назва шару"
-
-msgid "The warning metric is not supported by this engine."
-msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Розташування поділок на осі X"
@@ -17742,6 +17747,11 @@ msgid ""
 msgstr ""
 "Це посилання переведе вас на зовнішній веб-сайт. Ми не можемо гарантувати"
 " безпеку зовнішніх ресурсів."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 msgid "This markdown component has an error."
 msgstr "Ця розмітка містить помилку."
@@ -18814,6 +18824,10 @@ msgstr "Без назви"
 
 msgid "Unverified"
 msgstr "Не перевірено"
+
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
 
 msgid "Update"
 msgstr "Оновити"
@@ -21192,9 +21206,6 @@ msgstr "Місцева"
 msgid "log"
 msgstr "журнал"
 
-msgid "lower bound"
-msgstr ""
-
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -21582,9 +21593,6 @@ msgstr "скинути"
 
 msgid "updated"
 msgstr "оновлено"
-
-msgid "upper bound"
-msgstr ""
 
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"
