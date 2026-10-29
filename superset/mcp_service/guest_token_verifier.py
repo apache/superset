@@ -50,8 +50,10 @@ from superset.security.guest_token import (
 
 logger = logging.getLogger(__name__)
 
-# Namespaced claim flagging an AccessToken as a verified guest token. The paired
-# ``client_id == "guest"`` check keeps an external IdP JWT from posing as a guest.
+# Namespaced claim flagging an AccessToken as a verified guest token. At
+# resolution it is honored only with the verifier's ``client_id == "guest"`` and
+# a bearer that re-verifies as a guest token, so an external IdP JWT carrying the
+# claim cannot pose as a guest.
 GUEST_TOKEN_CLAIM: str = "_superset_mcp_guest_token"  # noqa: S105
 
 

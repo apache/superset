@@ -69,7 +69,15 @@ from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
-from sqlalchemy import and_, func as sa_func, inspect, or_, select, Table as SQLATable
+from sqlalchemy import (
+    and_,
+    false,
+    func as sa_func,
+    inspect,
+    or_,
+    select,
+    Table as SQLATable,
+)
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import MultipleResultsFound
@@ -501,6 +509,46 @@ class ExcludeUsersFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         return query
 
 
+class UserSearchFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    ILIKE search across the columns a user can be recognized by.
+
+    The frontend labels user options with the full name, falling back to the
+    username, so a free-text search has to match either one. The full name is
+    matched as a whole so that a search such as "Jane Sm" still finds the user
+    labelled "Jane Smith". Email is included because single sign-on usernames
+    are frequently opaque identifiers.
+    """
+
+    name = _("All Text")
+    arg_name = "user_all_text"
+
+    def apply(self, query: SqlaQuery, value: Any) -> SqlaQuery:
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.base import _escape_like
+
+        # Mirror the DAO LIKE operators: ``x ILIKE NULL`` matches no rows, so
+        # a ``None`` value must never degrade into a match-everything pattern.
+        if value is None:
+            return query.filter(false())
+        # Surrounding whitespace is never meaningful in a name search, and the
+        # ListView filter path sends the raw input, so trim it here. LIKE
+        # metacharacters (percent, underscore, backslash) are escaped so they
+        # match literally instead of acting as wildcards.
+        ilike_value = f"%{_escape_like(str(value).strip())}%"
+        return query.filter(
+            or_(
+                User.username.ilike(ilike_value, escape="\\"),
+                User.first_name.ilike(ilike_value, escape="\\"),
+                User.last_name.ilike(ilike_value, escape="\\"),
+                (User.first_name + " " + User.last_name).ilike(
+                    ilike_value, escape="\\"
+                ),
+                User.email.ilike(ilike_value, escape="\\"),
+            )
+        )
+
+
 class SupersetUserApi(UserApi):
     """
     Overriding the UserApi to sync Subject rows, filter excluded users,
@@ -528,6 +576,7 @@ class SupersetUserApi(UserApi):
         "created_on",
         "changed_on",
     ]
+    search_filters = {"username": [UserSearchFilter]}
 
     def pre_add(self, item: Model) -> None:
         """Hash the password (FAB's own ``pre_add``), then sync the user's
@@ -2154,6 +2203,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     ADMIN_ONLY_PERMISSIONS = {
+        "can_manage_oauth2_tokens",
         "update_roles_users",
         "list_roles",
         "can_update_role",
@@ -2753,6 +2803,67 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
 
         return True
+
+    def can_access_dashboard_chart_labels(
+        self,
+        dashboard: "Dashboard",
+        chart: "Slice",
+        *,
+        guest_dashboard_access: bool | None = None,
+        datasource_access: bool | None = None,
+    ) -> bool:
+        """Authorize a member chart's configured display labels.
+
+        Guests must hold a grant for this exact dashboard and satisfy their
+        token's dataset allowlist. With the built-in chart checks these imply
+        the embedded-chart grant, avoiding per-chart metadata queries. Existing
+        custom chart-access overrides still run and may restrict that grant.
+        For non-guests without datasource access, the built-in chart checks
+        need only the chart's prefetched editors and viewers. Custom checks and
+        configured access bypasses retain the full chart authorization path.
+
+        :param dashboard: The dashboard whose member chart supplies the labels
+        :param chart: A member chart on its matching SQLAlchemy dataset
+        :param guest_dashboard_access: Request-local result of has_guest_access;
+            callers may supply it to reuse the same dashboard decision
+        :param datasource_access: Request-local result of can_access_datasource
+            for this chart's dataset; False avoids repeating a failed check
+        :returns: Whether the caller may receive the chart's display labels
+        """
+        if (
+            chart.datasource_type != DatasourceType.TABLE
+            or chart not in dashboard.slices
+        ):
+            return False
+
+        stock_chart_access = (
+            getattr(self.can_access_chart, "__func__", None) is STOCK_CAN_ACCESS_CHART
+            and getattr(self.raise_for_access, "__func__", None)
+            is STOCK_RAISE_FOR_ACCESS
+        )
+        if not self.is_guest_user():
+            if (
+                datasource_access is False
+                and stock_chart_access
+                and not current_app.config.get("EXTRA_RAISE_FOR_ACCESS_BYPASS")
+            ):
+                return (
+                    self.is_admin()
+                    or self.is_editor(chart)
+                    or (bool(chart.viewers) and self.is_viewer(chart))
+                )
+            return self.can_access_chart(chart)
+
+        if guest_dashboard_access is None:
+            guest_dashboard_access = self.has_guest_access(dashboard)
+        if not guest_dashboard_access or not self._guest_token_allows_dataset(
+            chart.datasource_id
+        ):
+            return False
+
+        if stock_chart_access:
+            return True
+        return self.can_access_chart(chart)
 
     def get_dashboard_access_error_object(  # pylint: disable=invalid-name
         self,
@@ -5029,9 +5140,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ``schema_access`` / ``datasource_access`` checks still apply).
             The paths that define or repoint a dataset over a table -- dataset
             create, update, v1 import, and the legacy ``/datasource/save/``
-            repoint -- and query-backed chart-data set this to False so that
-            binding a dataset to (or reading a stored query against) a table
-            requires real data access to that table, not editorship of a
+            repoint -- and the SQL Lab query paths (query-backed chart-data,
+            the Explore GET and the explore form-data step) set this to False
+            so that binding a dataset to (or reading a stored query against) a
+            table requires real data access to that table, not editorship of a
             same-named dataset -- otherwise a no-table decoy dataset named
             after the table would let its editor define a second dataset that
             reads it. Unlike ``force_dataset_match`` this keeps the
@@ -5409,8 +5521,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     #   * ``allow_editorship=False`` -- the paths that define
                     #     or repoint a dataset over a table (create, update, v1
                     #     import, and the legacy ``/datasource/save/`` repoint)
-                    #     and query-backed chart-data (which runs a stored
-                    #     query's raw SQL) -- which keep the catalog/schema
+                    #     and the SQL Lab query paths (query-backed
+                    #     chart-data, Explore) -- which keep the catalog/schema
                     #     fallthroughs but refuse editorship.
                     # Both must follow the user's live data-access grants, not
                     # editorship of a same-named dataset: any principal able to
@@ -6854,5 +6966,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     security_menu.childs.remove(item)
 
 
-# Keep the original function identity before operator configuration can replace it.
+# Keep original function identities before operator configuration can replace them.
 STOCK_RAISE_FOR_ACCESS: Callable[..., None] = SupersetSecurityManager.raise_for_access
+STOCK_CAN_ACCESS_CHART: Callable[..., bool] = SupersetSecurityManager.can_access_chart
