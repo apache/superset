@@ -79,9 +79,15 @@ def _release_session_after_poll(fn: Callable[[], T]) -> Callable[[], T]:
                 # Not a unit of work: this only discards a read poll's session,
                 # so @transaction (which commits on success) doesn't fit.
                 db.session.rollback()  # pylint: disable=consider-using-transaction
-                db.session.remove()
             except Exception:  # pylint: disable=broad-except
-                logger.debug("Session cleanup after poll failed", exc_info=True)
+                logger.debug("Session rollback after poll failed", exc_info=True)
+            finally:
+                # Always discard the session, even if rollback raised (the
+                # dropped-connection case), so later polls start clean.
+                try:
+                    db.session.remove()
+                except Exception:  # pylint: disable=broad-except
+                    logger.debug("Session removal after poll failed", exc_info=True)
 
     return wrapped
 

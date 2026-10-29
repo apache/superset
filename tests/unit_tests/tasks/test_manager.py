@@ -518,6 +518,22 @@ class TestAbortCheckSessionCleanup:
     @patch("superset.db")
     @patch("superset.tasks.manager.TaskManager._check_abort_status")
     @patch("superset.coordination.base.CoordinationService.listen_for_signal")
+    def test_rollback_failure_still_removes_session(
+        self, mock_listen, mock_check, mock_db
+    ):
+        mock_check.side_effect = RuntimeError("db blip")
+        mock_db.session.rollback.side_effect = RuntimeError("connection dropped")
+        TaskManager.listen_for_abort("u", MagicMock(), 1.0, app=None)
+
+        with pytest.raises(RuntimeError, match="db blip"):
+            mock_listen.call_args.kwargs["check"]()
+
+        mock_db.session.rollback.assert_called_once()
+        mock_db.session.remove.assert_called_once()
+
+    @patch("superset.db")
+    @patch("superset.tasks.manager.TaskManager._check_abort_status")
+    @patch("superset.coordination.base.CoordinationService.listen_for_signal")
     def test_successful_poll_releases_session(
         self, mock_listen, mock_check, mock_db
     ):

@@ -17,9 +17,10 @@
 from __future__ import annotations
 
 import threading
-from typing import Callable
+from typing import Any, Callable
 
 import pytest
+from flask import has_app_context
 from pytest_mock import MockerFixture
 
 from superset.coordination.base import _SIGNAL_STREAM_MAXLEN, CoordinationService
@@ -508,13 +509,29 @@ def test_listen_without_app_context_does_not_require_one(
     mocker: MockerFixture,
 ) -> None:
     """Callers outside an app context get the no-op context, not a RuntimeError."""
-    mocker.patch("superset.coordination.base.has_app_context", return_value=False)
     mocker.patch.object(CoordinationService, "get_backend", return_value=None)
 
     fired = threading.Event()
-    listener = CoordinationService.listen_for_signal(
-        "ch", check=lambda: True, on_signal=fired.set, poll_interval=0.01
-    )
+    outcome: dict[str, Any] = {}
+
+    def caller() -> None:
+        # A fresh thread has no app context even though the autouse fixture pushed
+        # one on the test thread, so this exercises the real has_app_context() guard.
+        outcome["has_context"] = has_app_context()
+        try:
+            outcome["listener"] = CoordinationService.listen_for_signal(
+                "ch", check=lambda: True, on_signal=fired.set, poll_interval=0.01
+            )
+        except Exception as ex:  # pylint: disable=broad-except
+            outcome["error"] = ex
+
+    thread = threading.Thread(target=caller)
+    thread.start()
+    thread.join(timeout=2.0)
+
+    assert outcome["has_context"] is False
+    assert "error" not in outcome
     assert fired.wait(timeout=2.0) is True
+    listener = outcome["listener"]
     listener.stop()
     listener._thread.join(timeout=2.0)
