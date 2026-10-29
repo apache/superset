@@ -1226,6 +1226,44 @@ def test_fetch_metadata_does_not_bump_changed_on_for_kept_virtual_columns(
     assert table.changed_on == original_changed_on
 
 
+def test_fetch_metadata_keeps_groupby_and_filterable_on_existing_columns(
+    mocker: MockerFixture,
+) -> None:
+    """A column sync must not reset flags the dataset owner turned off.
+
+    ``PUT /api/v1/dataset/<id>?override_columns=true`` runs ``fetch_metadata``
+    after the update commits, so resetting them reverted the same save.
+    """
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[
+            {"column_name": "id", "type": "INTEGER"},
+            {"column_name": "legacy", "type": "INTEGER"},
+            {"column_name": "name", "type": "VARCHAR"},
+        ],
+        existing=[
+            {"column_name": "id", "type": "INTEGER"},
+            {"column_name": "legacy", "type": "INTEGER"},
+        ],
+    )
+    table.columns[0].groupby = False
+    table.columns[0].filterable = False
+    # A row from before the flags had defaults: unset, not turned off.
+    table.columns[1].groupby = None
+    table.columns[1].filterable = None
+
+    table.fetch_metadata()
+
+    columns_by_name = {col.column_name: col for col in table.columns}
+    assert columns_by_name["id"].groupby is False
+    assert columns_by_name["id"].filterable is False
+    assert columns_by_name["legacy"].groupby is True
+    assert columns_by_name["legacy"].filterable is True
+    # A newly discovered column still gets the defaults.
+    assert columns_by_name["name"].groupby is True
+    assert columns_by_name["name"].filterable is True
+
+
 def test_fetch_metadata_keeps_dotted_calculated_column(
     mocker: MockerFixture,
 ) -> None:
@@ -1591,8 +1629,8 @@ def test_get_sqla_table_schema_not_qualified_when_engine_opts_out(
     database = mocker.MagicMock()
     database.db_engine_spec.supports_cross_catalog_queries = False
     database.db_engine_spec.quote_table_includes_schema = False
-    database.db_engine_spec.quote_table.side_effect = (
-        lambda table, dialect: dialect.identifier_preparer.quote(table.table)
+    database.db_engine_spec.quote_table.side_effect = lambda table, dialect: (
+        dialect.identifier_preparer.quote(table.table)
     )
     database.get_dialect.return_value = engine.dialect
 
