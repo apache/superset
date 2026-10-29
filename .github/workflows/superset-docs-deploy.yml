@@ -68,8 +68,9 @@ jobs:
           BUILD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
           EVENT_NAME: ${{ github.event_name }}
           REPO: ${{ github.repository }}
+          BRANCH: master
           OUTPUT_NAME: is-current
-        run: .github/workflows/scripts/check-docs-deploy-freshness.sh
+        run: .github/workflows/scripts/check-branch-freshness.sh
 
   build-deploy:
     needs: [config, check-freshness]
@@ -186,8 +187,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BUILD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
           REPO: ${{ github.repository }}
+          BRANCH: master
           OUTPUT_NAME: still-current
-        run: .github/workflows/scripts/check-docs-deploy-freshness.sh
+        run: .github/workflows/scripts/check-branch-freshness.sh
       - name: deploy docs
         if: github.event_name == 'workflow_dispatch' || steps.recheck-freshness.outputs.still-current == 'true'
         # github-action-push-to-another-repository is a submodule (not a
