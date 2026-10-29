@@ -6831,6 +6831,7 @@ def test_get_sqla_query_malformed_temporal_range_raises_validation_error(
     raises QueryObjectValidationError naming the column, returning 400 instead of 500.
     Fixes #45459.
     """
+    from superset.commands.chart.exceptions import TimeRangeParseFailError
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.exceptions import QueryObjectValidationError
 
@@ -6844,7 +6845,7 @@ def test_get_sqla_query_malformed_temporal_range_raises_validation_error(
         ],
     )
 
-    with pytest.raises(QueryObjectValidationError, match="other_ds"):
+    with pytest.raises(QueryObjectValidationError, match="other_ds") as exc_info:
         table.get_sqla_query(
             columns=["ds"],
             metrics=[],
@@ -6864,8 +6865,9 @@ def test_get_sqla_query_malformed_temporal_range_raises_validation_error(
             granularity=None,
             is_timeseries=False,
         )
+    assert isinstance(exc_info.value.__cause__, (TimeRangeParseFailError, ValueError))
 
-    with pytest.raises(QueryObjectValidationError, match="other_ds"):
+    with pytest.raises(QueryObjectValidationError, match="other_ds") as exc_info:
         table.get_sqla_query(
             columns=["ds"],
             metrics=[],
@@ -6885,18 +6887,127 @@ def test_get_sqla_query_malformed_temporal_range_raises_validation_error(
             granularity=None,
             is_timeseries=False,
         )
+    assert isinstance(exc_info.value.__cause__, (TimeRangeParseFailError, ValueError))
 
 
-def test_processing_time_offsets_malformed_time_range_raises_validation_error(
+def test_processing_time_offsets_malformed_relative_filter_raises_validation_error(
     database: Database,
 ) -> None:
     """
-    Test that processing_time_offsets raises QueryObjectValidationError on
-    malformed temporal filters when calculating time shifts.
+    Test that processing_time_offsets raises QueryObjectValidationError naming
+    the column and chaining TimeRangeParseFailError when rewriting temporal filters
+    for relative time shifts.
     Fixes #45459.
     """
     import pandas as pd
 
+    from superset.commands.chart.exceptions import TimeRangeParseFailError
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="category", type="VARCHAR(255)"),
+            TableColumn(column_name="ds", type="TIMESTAMP", is_dttm=True),
+            TableColumn(column_name="other_ds", type="TIMESTAMP", is_dttm=True),
+        ],
+    )
+
+    query_object = QueryObject(
+        columns=["category"],
+        time_range="2024-01-01 : 2024-01-02",
+        filters=[
+            {
+                "col": "ds",
+                "op": FilterOperator.TEMPORAL_RANGE,
+                "val": "2024-01-01 : 2024-01-02",
+            },
+            {
+                "col": "other_ds",
+                "op": FilterOperator.TEMPORAL_RANGE,
+                "val": "a : b",
+            },
+        ],
+        time_offsets=["1 day ago"],
+    )
+
+    df = pd.DataFrame({"category": ["A", "B"]})
+
+    with pytest.raises(QueryObjectValidationError, match="other_ds") as exc_info:
+        table.processing_time_offsets(df, query_object)
+
+    assert isinstance(exc_info.value.__cause__, TimeRangeParseFailError)
+
+
+def test_processing_time_offsets_malformed_date_range_offset_raises_validation_error(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that processing_time_offsets raises QueryObjectValidationError when
+    DATE_RANGE_TIMESHIFTS_ENABLED is enabled and a date range offset is invalid.
+    Fixes #45459.
+    """
+    import pandas as pd
+
+    from superset.commands.chart.exceptions import TimeRangeParseFailError
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    mocker.patch(
+        "superset.models.helpers.feature_flag_manager.is_feature_enabled",
+        side_effect=lambda feature: feature == "DATE_RANGE_TIMESHIFTS_ENABLED",
+    )
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="ds", type="TIMESTAMP", is_dttm=True),
+        ],
+    )
+
+    query_object = QueryObject(
+        columns=["ds"],
+        time_range="2024-01-01 : 2024-01-02",
+        filters=[
+            {
+                "col": "ds",
+                "op": FilterOperator.TEMPORAL_RANGE,
+                "val": "2024-01-01 : 2024-01-02",
+            },
+        ],
+        time_offsets=["2024-02-01 : 2024-01-01"],
+    )
+
+    df = pd.DataFrame({"ds": [pd.Timestamp("2024-01-01")]})
+
+    with pytest.raises(QueryObjectValidationError) as exc_info:
+        table.processing_time_offsets(df, query_object)
+
+    assert isinstance(
+        exc_info.value.__cause__,
+        (TimeRangeParseFailError, ValueError),
+    )
+
+
+def test_processing_time_offsets_malformed_outer_time_range_raises_validation_error(
+    database: Database,
+) -> None:
+    """
+    Test that processing_time_offsets raises QueryObjectValidationError when
+    the outer time range itself is malformed.
+    Fixes #45459.
+    """
+    import pandas as pd
+
+    from superset.commands.chart.exceptions import TimeRangeParseFailError
     from superset.common.query_object import QueryObject
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.exceptions import QueryObjectValidationError
@@ -6912,7 +7023,8 @@ def test_processing_time_offsets_malformed_time_range_raises_validation_error(
 
     query_object = QueryObject(
         columns=["ds"],
-        filter=[
+        time_range="a : b",
+        filters=[
             {"col": "ds", "op": FilterOperator.TEMPORAL_RANGE, "val": "a : b"},
         ],
         time_offsets=["1 day ago"],
@@ -6920,5 +7032,10 @@ def test_processing_time_offsets_malformed_time_range_raises_validation_error(
 
     df = pd.DataFrame({"ds": [pd.Timestamp("2024-01-01")]})
 
-    with pytest.raises(QueryObjectValidationError):
+    with pytest.raises(QueryObjectValidationError) as exc_info:
         table.processing_time_offsets(df, query_object)
+
+    assert isinstance(
+        exc_info.value.__cause__,
+        (TimeRangeParseFailError, ValueError),
+    )
