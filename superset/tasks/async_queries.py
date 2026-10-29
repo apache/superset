@@ -245,9 +245,14 @@ def _capture_query_cancellation(query_context: "QueryContext") -> Iterator[None]
     app = current_app._get_current_object()  # noqa: SLF001
     captured = False
 
-    def _sink(cursor: Any) -> None:
+    def _sink(cursor: Any, source_database: Any = None) -> None:
         nonlocal captured
         if captured:
+            return
+        # Only the task's own datasource database is cancellable here. A cursor
+        # from another database (e.g. an annotation layer's source chart) must
+        # not have its handle recorded against this one.
+        if source_database is not None and source_database.id != database.id:
             return
         cancel_id = capture_cancel_query_id(database, cursor)
         if cancel_id is None:

@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 from typing import Any
-from unittest.mock import ANY, call, Mock, patch, PropertyMock
+from unittest.mock import ANY, Mock, patch, PropertyMock
 from uuid import uuid4
 
 import pytest
@@ -320,6 +320,16 @@ def test_suggestion_cache_rotates_with_metadata_generation(
         assert cache.data_cache.get.call_args.args[0] != first
 
 
+def _saved_context_chart(view: SemanticView) -> Mock:
+    """A chart whose saved query context targets the given semantic view."""
+    saved_context: Mock = Mock(
+        queries=[Mock(annotation_layers=[], extras={})],
+        datasource=view,
+    )
+    saved_context.query_cache_key.return_value = "data-key"
+    return Mock(get_query_context=Mock(return_value=saved_context))
+
+
 def test_annotation_result_key_uses_saved_source_generation(
     app: Flask,
     session: Session,
@@ -329,32 +339,34 @@ def test_annotation_result_key_uses_saved_source_generation(
     from superset.common.query_context_processor import QueryContextProcessor
 
     view: SemanticView = SemanticView(name="view", semantic_layer=layer)
-    chart: Mock = Mock(query_context='{"datasource":{"id":17,"type":"semantic_view"}}')
+    chart: Mock = _saved_context_chart(view)
     query: Mock = Mock(annotation_layers=[{"sourceType": "line", "value": 7}])
     processor: QueryContextProcessor = QueryContextProcessor(Mock())
-    get_datasource: Mock
     with (
         app.app_context(),
         patch(
             "superset.common.query_context_processor.ChartDAO.find_by_id",
             return_value=chart,
         ),
-        patch(
-            "superset.daos.datasource.DatasourceDAO.get_datasource",
-            return_value=view,
-        ) as get_datasource,
-        patch(
-            "superset.common.query_context_processor.security_manager.get_rls_cache_key",
-            return_value=[],
-        ),
     ):
-        first: dict[str, Any] = processor._annotation_cache_context(query)
+        first: dict[str, Any] | None = processor._annotation_cache_context(query)
+        assert first is not None
         layer.cache_version = 1
         session.info.clear()
         view.forget_metadata()
-        assert processor._annotation_cache_context(query) != first
-    # The saved query context's datasource, not the chart's own, is resolved.
-    assert get_datasource.call_args_list == [call("semantic_view", 17)] * 2
+        second: dict[str, Any] | None = processor._annotation_cache_context(query)
+        # A scope-derivation failure also yields ``None`` (which differs from
+        # ``first``), so the rotated context must be present and differ only in
+        # the version field.
+        assert second is not None
+        first_scope: dict[str, Any] = first["source_scope"][0]
+        second_scope: dict[str, Any] = second["source_scope"][0]
+        assert second_scope["metadata_version"] != first_scope["metadata_version"]
+        assert {k: v for k, v in second_scope.items() if k != "metadata_version"} == {
+            k: v for k, v in first_scope.items() if k != "metadata_version"
+        }
+    # The saved query context's datasource, not the chart's own, is keyed.
+    assert chart.get_query_context.call_count == 2
 
 
 def test_stale_writers_each_increment_the_database_version(
@@ -637,13 +649,10 @@ def test_cache_keys_compose_metadata_and_producer_versions(
     """Neither independently changing cache guarantee may be lost in the merge."""
     from superset.common.query_context_processor import QueryContextProcessor
     from superset.datasource.api import _column_values_cache_key
-    from superset.models.slice import Slice
 
     view: SemanticView = SemanticView(name="view", semantic_layer=layer)
     provider: Mock = Mock(result_cache_version="v1")
-    chart: Slice = Slice(
-        datasource_type="semantic_view", datasource_id=17, semantic_view=view
-    )
+    chart: Mock = _saved_context_chart(view)
     query: Mock = Mock(annotation_layers=[{"sourceType": "line", "value": 7}])
     processor: QueryContextProcessor = QueryContextProcessor(Mock())
     with (
@@ -656,22 +665,22 @@ def test_cache_keys_compose_metadata_and_producer_versions(
             "superset.common.query_context_processor.ChartDAO.find_by_id",
             return_value=chart,
         ),
-        patch(
-            "superset.common.query_context_processor.security_manager.get_rls_cache_key",
-            return_value=[],
-        ),
     ):
         first_generation: str = view.metadata_generation
         first_result: list[Hashable] = view.get_extra_cache_keys({})
         first_values: str = _column_values_cache_key(view, {"col": "category"})
-        first_annotation: dict[str, Any] = processor._annotation_cache_context(query)
+        first_annotation: dict[str, Any] | None = processor._annotation_cache_context(
+            query
+        )
+        assert first_annotation is not None
         assert first_result == [
             first_generation,
             "semantic-null-filters-v1",
             ("semantic-result-version", "test", "v1"),
         ]
-        assert first_annotation["source_versions"] == {"7": first_generation}
-        assert first_annotation["semantic_result_versions"] == {"7": ("test", "v1")}
+        source_scope: dict[str, Any] = first_annotation["source_scope"][0]
+        assert source_scope["metadata_version"] == first_generation
+        assert source_scope["result_version"] == ("test", "v1")
         if changed == "metadata":
             layer.cache_version = 1
             session.info.clear()
@@ -680,7 +689,19 @@ def test_cache_keys_compose_metadata_and_producer_versions(
             provider.result_cache_version = "v2"
         assert view.get_extra_cache_keys({}) != first_result
         assert _column_values_cache_key(view, {"col": "category"}) != first_values
-        assert processor._annotation_cache_context(query) != first_annotation
+        rotated_annotation: dict[str, Any] | None = processor._annotation_cache_context(
+            query
+        )
+        # ``None`` (scope derivation failed) would also differ from the first
+        # context, so require a resolved one and compare field by field.
+        assert rotated_annotation is not None
+        rotated_scope: dict[str, Any] = rotated_annotation["source_scope"][0]
+        if changed == "metadata":
+            assert rotated_scope["metadata_version"] != source_scope["metadata_version"]
+            assert rotated_scope["result_version"] == source_scope["result_version"]
+        else:
+            assert rotated_scope["metadata_version"] == source_scope["metadata_version"]
+            assert rotated_scope["result_version"] != source_scope["result_version"]
         provider.assert_not_called()
 
 
