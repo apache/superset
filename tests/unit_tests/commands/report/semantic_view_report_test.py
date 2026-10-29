@@ -103,6 +103,7 @@ def semantic_report_state(
     mocker.patch.dict(
         app.config,
         {
+            "SEMANTIC_LAYER_CACHE_NAMESPACE": "semantic-report-tests",
             "ALERT_REPORTS_EXECUTORS": [FixedExecutor(username=user.username)],
             "THUMBNAIL_EXECUTORS": [FixedExecutor(username=user.username)],
         },

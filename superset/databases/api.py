@@ -33,6 +33,7 @@ from flask import (
     Response,
 )
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
+from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
@@ -49,10 +50,15 @@ from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
     DatabaseUpdateFailedError,
     InvalidParametersError,
+    OAuth2TokenNotFoundError,
+    OAuth2TokensDeleteFailedError,
 )
 from superset.commands.database.export import ExportDatabasesCommand
 from superset.commands.database.importers.dispatcher import ImportDatabasesCommand
-from superset.commands.database.oauth2 import OAuth2StoreTokenCommand
+from superset.commands.database.oauth2 import (
+    OAuth2DeleteTokensCommand,
+    OAuth2StoreTokenCommand,
+)
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDatabasePortError,
     SSHTunnelHostKeyVerificationError,
@@ -83,7 +89,11 @@ from superset.commands.importers.v1.utils import (
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.database import DatabaseDAO
 from superset.databases.decorators import check_table_access
-from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
+from superset.databases.filters import (
+    DatabaseFilter,
+    DatabaseOAuth2TokensUserFilter,
+    DatabaseUploadEnabledFilter,
+)
 from superset.databases.schemas import (
     CatalogsResponseSchema,
     database_catalogs_query_schema,
@@ -91,6 +101,7 @@ from superset.databases.schemas import (
     database_tables_query_schema,
     DatabaseConnectionSchema,
     DatabaseFunctionNamesResponse,
+    DatabaseOAuth2TokensDeleteSchema,
     DatabasePostSchema,
     DatabasePutSchema,
     DatabaseRelatedObjectsResponse,
@@ -125,7 +136,7 @@ from superset.exceptions import (
     TableNotFoundException,
 )
 from superset.extensions import security_manager
-from superset.models.core import Database
+from superset.models.core import Database, DatabaseUserOAuth2Tokens
 from superset.sql.parse import Partition, Table
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import (
@@ -275,7 +286,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     search_filters = {"allow_file_upload": [DatabaseUploadEnabledFilter]}
     allowed_rel_fields = {"changed_by", "created_by"}
 
-    list_select_columns = list_columns + ["extra", "sqlalchemy_uri", "password"]
+    list_select_columns = list_columns + [
+        "extra",
+        "sqlalchemy_uri",
+        "password",
+        "encrypted_extra",
+    ]
     order_columns = [
         "allow_file_upload",
         "allow_dml",
@@ -2141,3 +2157,202 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             database, database.get_default_catalog(), schemas_allowed, True
         )
         return self.response(200, schemas=schemas_allowed_processed)
+
+
+class DatabaseOAuth2TokensRestApi(BaseSupersetModelRestApi):
+    datamodel = SQLAInterface(DatabaseUserOAuth2Tokens)
+    resource_name = "database"
+    class_permission_name = "Database"
+    method_permission_name = {
+        "get_list": "manage_oauth2_tokens",
+        "delete_oauth2_tokens": "manage_oauth2_tokens",
+        "delete_all_oauth2_tokens": "manage_oauth2_tokens",
+    }
+    include_route_methods = {
+        RouteMethod.GET_LIST,
+        "delete_oauth2_tokens",
+        "delete_all_oauth2_tokens",
+    }
+    openapi_spec_component_schemas = (DatabaseOAuth2TokensDeleteSchema,)
+    allow_browser_login = True
+    openapi_spec_tag = "Database"
+    list_columns = [
+        "id",
+        "user.username",
+        "user.first_name",
+        "user.last_name",
+        "user.email",
+        "access_token_expiration",
+    ]
+    list_select_columns = list_columns
+    order_columns = ["id", "user.username", "access_token_expiration"]
+    base_order = ("id", "asc")
+    search_columns = ["id", "database"]
+    search_filters = {"id": [DatabaseOAuth2TokensUserFilter]}
+    max_page_size = 100
+
+    @expose("/<int:pk>/oauth2_tokens/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @parse_rison(get_list_schema)
+    def get_list(  # pylint: disable=arguments-differ
+        self, pk: int, **kwargs: Any
+    ) -> FlaskResponse:
+        """List OAuth2 token metadata scoped to the accessible database.
+        ---
+        get:
+          summary: List OAuth2 credential metadata for a database
+          parameters:
+          - in: path
+            name: pk
+            required: true
+            schema:
+              type: integer
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_list_schema'
+          responses:
+            200:
+              description: Paginated OAuth2 credential metadata
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      ids:
+                        type: array
+                        items:
+                          type: integer
+                      count:
+                        type: integer
+                      result:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/DatabaseOAuth2TokensRestApi.get_list'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """  # noqa: E501
+        database = DatabaseDAO.find_by_id(pk)
+        if database is None:
+            return self.response_404()
+        kwargs["rison"].setdefault("filters", []).append(
+            {"col": "database", "opr": "rel_o_m", "value": database.id}
+        )
+        return self.get_list_headless(**kwargs)
+
+    @expose("/<int:pk>/oauth2_tokens/delete/", methods=["POST"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.delete_oauth2_tokens",
+        log_to_statsd=False,
+    )
+    @requires_json
+    def delete_oauth2_tokens(self, pk: int) -> FlaskResponse:
+        """Delete specific OAuth2 tokens for a DB connection.
+        ---
+        post:
+          summary: Delete OAuth2 access and refresh tokens for a DB connection.
+          parameters:
+          - in: path
+            name: pk
+            required: true
+            schema:
+              type: integer
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/DatabaseOAuth2TokensDeleteSchema'
+          responses:
+            200:
+              description: OAuth2 credentials deleted successfully
+            400:
+              $ref: '#/components/responses/400'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        try:
+            parameters = DatabaseOAuth2TokensDeleteSchema().load(request.get_json())
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            OAuth2DeleteTokensCommand(pk, token_ids=parameters["token_ids"]).run()
+        except (DatabaseNotFoundError, OAuth2TokenNotFoundError):
+            return self.response_404()
+        except OAuth2TokensDeleteFailedError as ex:
+            logger.error(
+                "Error deleting OAuth2 tokens for database %s",
+                pk,
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+        return self.response(200, message="OK")
+
+    @expose("/<int:pk>/oauth2_tokens/all/", methods=["POST"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.delete_all_oauth2_tokens",
+        log_to_statsd=False,
+    )
+    def delete_all_oauth2_tokens(self, pk: int) -> FlaskResponse:
+        """Delete all OAuth2 tokens for a DB connection.
+        ---
+        post:
+          summary: Delete all OAuth2 access and refresh tokens  for a DB connection.
+          parameters:
+          - in: path
+            name: pk
+            required: true
+            schema:
+              type: integer
+          responses:
+            200:
+              description: All OAuth2 credentials deleted successfully
+            400:
+              $ref: '#/components/responses/400'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        try:
+            OAuth2DeleteTokensCommand(pk, delete_all=True).run()
+        except DatabaseNotFoundError:
+            return self.response_404()
+        except OAuth2TokensDeleteFailedError as ex:
+            logger.error(
+                "Error deleting OAuth2 tokens for database %s",
+                pk,
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+        return self.response(200, message="OK")

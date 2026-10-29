@@ -1279,6 +1279,9 @@ class IdentifierQuoteSchema(Schema):
 class EngineInformationSchema(Schema):
     query_cost_warning_metric = fields.String(allow_none=True)
     query_warning_supported = fields.Boolean()
+    oauth2_enabled = fields.Boolean(
+        metadata={"description": "OAuth2 authentication is enabled on this connection"}
+    )
     supports_file_upload = fields.Boolean(
         metadata={"description": "Users can upload files to the database"}
     )
@@ -1691,4 +1694,14 @@ class QualifiedTableSchema(Schema):
         required=False,
         load_default=None,
         metadata={"description": "The table catalog"},
+    )
+
+
+class DatabaseOAuth2TokensDeleteSchema(Schema):
+    """Require a nonempty list of credential IDs for selected deletion."""
+
+    token_ids = fields.List(
+        fields.Integer(strict=True, validate=Range(min=1)),
+        required=True,
+        validate=Length(min=1, max=100),
     )

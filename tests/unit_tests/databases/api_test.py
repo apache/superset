@@ -335,6 +335,7 @@ def test_database_connection(
             "engine_information": {
                 "query_cost_warning_metric": None,
                 "query_warning_supported": False,
+                "oauth2_enabled": False,
                 "disable_ssh_tunneling": True,
                 "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
@@ -435,6 +436,7 @@ def test_database_connection(
             "engine_information": {
                 "query_cost_warning_metric": None,
                 "query_warning_supported": False,
+                "oauth2_enabled": False,
                 "disable_ssh_tunneling": True,
                 "supports_dynamic_catalog": False,
                 "supports_file_upload": True,

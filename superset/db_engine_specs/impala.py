@@ -23,7 +23,6 @@ import time
 from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
 
-import requests
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app as app
 from sqlalchemy import text, types
@@ -34,7 +33,7 @@ from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.models.sql_lab import Query
 from superset.utils.core import QueryStatus
-from superset.utils.network import is_safe_host
+from superset.utils.network import get_ssrf_safe_requester, is_safe_host
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -49,6 +48,13 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     engine = "impala"
     engine_name = "Apache Impala"
+    # The engine's default text comparison is binary, so a mirrored
+    # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
+    binary_string_comparison = True
+
+    # Epoch-integer partition keys are the common Impala layout, and the
+    # one-argument form takes the bound being mirrored rather than "now".
+    partition_value_transform_default = "unix_timestamp(:value)"
 
     metadata = {
         "description": (
@@ -323,7 +329,15 @@ class ImpalaEngineSpec(BaseEngineSpec):
             url = f"http://{impala_host}:25000/cancel_query?query_id={cancel_query_id}"
             # Do not follow redirects: a validated host could otherwise 30x the
             # request to an internal target, bypassing the is_safe_host check.
-            response = requests.post(url, timeout=3, allow_redirects=False)
+            # get_ssrf_safe_requester also re-validates the actually-connected
+            # peer on this request, closing the DNS-rebinding/TOCTOU gap the
+            # upfront is_safe_host check alone leaves open.
+            requester = get_ssrf_safe_requester(
+                allow_unsafe_hosts=app.config[
+                    "IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS"
+                ]
+            )
+            response = requester.post(url, timeout=3, allow_redirects=False)
         except Exception:  # pylint: disable=broad-except
             return False
 
