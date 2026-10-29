@@ -25,6 +25,7 @@ from sqlalchemy.orm import lazyload, load_only
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
+    DatabaseSchemaNotFoundError,
     DatabaseTablesUnexpectedError,
 )
 from superset.connectors.sqla.models import SqlaTable
@@ -54,9 +55,6 @@ class TablesDatabaseCommand(BaseCommand):
 
     def run(self) -> dict[str, Any]:
         self.validate()
-        self._catalog_name = self._catalog_name or self._model.get_default_catalog()
-        if not self._model.db_engine_spec.supports_schemas:
-            self._schema_name = None
         try:
             tables = security_manager.get_datasources_accessible_by_user(
                 database=self._model,
@@ -177,3 +175,40 @@ class TablesDatabaseCommand(BaseCommand):
         self._model = cast(Database, DatabaseDAO.find_by_id(self._db_id))
         if not self._model:
             raise DatabaseNotFoundError()
+
+        self._catalog_name = self._catalog_name or self._model.get_default_catalog()
+        if not self._model.db_engine_spec.supports_schemas:
+            self._schema_name = None
+
+        if self._schema_name:
+            self._validate_schema(self._schema_name)
+
+    def _validate_schema(self, schema_name: str) -> None:
+        """
+        Accept only a schema that the schemas endpoint would list for this user.
+
+        The schema has to exist in the database and be accessible to the user,
+        otherwise ``DatabaseSchemaNotFoundError`` is raised before any table or
+        view lookup is run.
+        """
+        try:
+            schemas = self._model.get_all_schema_names(
+                catalog=self._catalog_name,
+                cache=self._model.schema_cache_enabled,
+                cache_timeout=self._model.schema_cache_timeout or None,
+                force=self._force,
+            )
+            accessible = schema_name in schemas and bool(
+                security_manager.get_schemas_accessible_by_user(
+                    self._model,
+                    self._catalog_name,
+                    {schema_name},
+                )
+            )
+        except SupersetException:
+            raise
+        except Exception as ex:
+            raise DatabaseTablesUnexpectedError(str(ex)) from ex
+
+        if not accessible:
+            raise DatabaseSchemaNotFoundError()

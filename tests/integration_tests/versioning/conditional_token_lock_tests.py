@@ -35,8 +35,6 @@ serialization failure for a locking read of a concurrently updated row
 instead of returning it -- a different, also-safe outcome.
 """
 
-from uuid import UUID
-
 import pytest
 import sqlalchemy as sa
 from sqlalchemy_continuum import version_class, versioning_manager
@@ -150,7 +148,7 @@ class TestConditionalTokenLockingRead(SupersetTestCase):
         original: str | None
         chart, original = self._versioned_chart()
         try:
-            chart_uuid: UUID = chart.uuid
+            chart_uuid = chart.uuid
             assert chart_uuid is not None
             plain: int | None = VersionDAO.current_live_transaction_id(
                 Slice, chart.id, chart_uuid
@@ -182,7 +180,7 @@ class TestConditionalTokenLockingRead(SupersetTestCase):
         original: str | None
         chart, original = self._versioned_chart()
         try:
-            chart_uuid: UUID = chart.uuid
+            chart_uuid = chart.uuid
             assert chart_uuid is not None
             db.session.execute(
                 sa.text("DELETE FROM slices_version WHERE id = :id"),
@@ -242,7 +240,7 @@ class TestConditionalTokenLockingRead(SupersetTestCase):
         original: str | None
         chart, original = self._versioned_chart()
         chart_id: int = chart.id
-        chart_uuid: UUID = chart.uuid
+        chart_uuid = chart.uuid
         assert chart_uuid is not None
         try:
             self._force_repeatable_read()
@@ -307,7 +305,7 @@ class TestConditionalTokenLockingRead(SupersetTestCase):
         original: str | None
         chart, original = self._versioned_chart()
         chart_id: int = chart.id
-        chart_uuid: UUID = chart.uuid
+        chart_uuid = chart.uuid
         assert chart_uuid is not None
         ver_tbl: sa.Table = version_class(Slice).__table__
         try:

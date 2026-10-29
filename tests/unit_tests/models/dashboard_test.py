@@ -16,10 +16,13 @@
 # under the License.
 
 import logging
+from typing import Any
 from unittest.mock import Mock, patch, PropertyMock
 
 import pytest
+import sqlalchemy as sqla
 from flask import current_app
+from flask_appbuilder.security.sqla.models import User
 
 from superset.connectors.sqla.models import BaseDatasource
 from superset.models.dashboard import Dashboard
@@ -737,3 +740,191 @@ def test_datasets_trimmed_for_slices_keeps_colliding_ids_separate() -> None:
     # with the exact slice list (no semantic-view slice leaking into it).
     assert result == [(table_datasource, {"cols": ["column"]})]
     table_datasource.data_for_slices.assert_called_once_with([sesh_table_slice])
+
+
+def test_custom_user_model_dashboard_copy_listener(app_context: None) -> None:
+    """Ensure dashboard copy events can be registered dynamically
+    for custom user models.
+    """
+    from superset.models.dashboard import register_dashboard_copy_events
+
+    assert callable(register_dashboard_copy_events)
+
+
+class CustomUserModel(User):
+    """Custom user model subclass for testing dynamic security manager models."""
+
+    __tablename__ = "ab_user"
+    custom_field = "custom_value"
+
+
+@pytest.fixture
+def custom_user_model() -> type[CustomUserModel]:
+    """Fixture providing a mock CustomUserModel class."""
+    return CustomUserModel
+
+
+@pytest.fixture
+def mock_dashboard_template() -> Dashboard:
+    """Fixture providing a mock template Dashboard instance."""
+    dash = Dashboard()
+    dash.id = 100
+    dash.dashboard_title = "Template Dashboard"
+    dash.position_json = "{}"
+    dash.description = "Template description"
+    dash.css = ""
+    dash.json_metadata = "{}"
+    dash.slices = []
+    return dash
+
+
+def test_register_dashboard_copy_events_dynamic_and_idempotent(
+    custom_user_model: type[CustomUserModel],
+) -> None:
+    """Ensure dynamic listener registration attaches to custom user model
+    and is strictly idempotent.
+    """
+    from superset.models.dashboard import (
+        copy_dashboard,
+        register_dashboard_copy_events,
+    )
+
+    register_dashboard_copy_events(custom_user_model)
+    assert sqla.event.contains(custom_user_model, "after_insert", copy_dashboard)
+
+    # Calling a second time should not register duplicate listeners
+    register_dashboard_copy_events(custom_user_model)
+    assert sqla.event.contains(custom_user_model, "after_insert", copy_dashboard)
+
+
+def test_copy_dashboard_early_return_when_no_template_configured(
+    app_context: None,
+) -> None:
+    """Ensure copy_dashboard returns early without query when no template
+    is configured.
+    """
+    from superset.models.dashboard import copy_dashboard
+
+    mock_connection = Mock()
+    mock_target = Mock()
+    with patch.dict(current_app.config, {"DASHBOARD_TEMPLATE_ID": None}):
+        copy_dashboard(Mock(), mock_connection, mock_target)
+
+    mock_connection.execute.assert_not_called()
+
+
+def test_copy_dashboard_missing_template_returns_early(
+    app_context: None,
+) -> None:
+    """Ensure copy_dashboard exits gracefully if template dashboard is not found."""
+    from superset.models.dashboard import copy_dashboard
+
+    mock_session = Mock()
+    mock_session.query.return_value.filter_by.return_value.first.return_value = None
+
+    target = Mock(id=42, groups=[])
+    with (
+        patch.dict(current_app.config, {"DASHBOARD_TEMPLATE_ID": 999}),
+        patch(
+            "superset.models.dashboard.Session",
+            return_value=mock_session,
+        ),
+    ):
+        mock_session.__enter__ = Mock(return_value=mock_session)
+        mock_session.__exit__ = Mock(return_value=None)
+        copy_dashboard(Mock(), Mock(), target)
+
+    mock_session.add.assert_not_called()
+    mock_session.commit.assert_not_called()
+
+
+def test_copy_dashboard_with_custom_user_model_in_isolated_session(
+    app_context: None,
+    mock_dashboard_template: Dashboard,
+) -> None:
+    """Ensure copy_dashboard copies the template dashboard for custom user model
+    using an isolated session without SQLAlchemy FlushError.
+    """
+    from superset.models.dashboard import copy_dashboard
+
+    target = Mock(id=55, groups=[])
+
+    mock_session = Mock()
+    mock_session.query.return_value.filter_by.return_value.first.return_value = (
+        mock_dashboard_template
+    )
+    mock_session.__enter__ = Mock(return_value=mock_session)
+    mock_session.__exit__ = Mock(return_value=None)
+
+    added_objects: list[Any] = []
+    mock_session.add.side_effect = lambda obj: added_objects.append(obj)
+
+    with (
+        patch.dict(current_app.config, {"DASHBOARD_TEMPLATE_ID": 100}),
+        patch(
+            "superset.models.dashboard.Session",
+            return_value=mock_session,
+        ),
+        patch("superset.subjects.utils.get_user_subject", return_value=None),
+        patch(
+            "superset.subjects.utils.get_default_viewers_for_groups",
+            return_value=[],
+        ),
+    ):
+        copy_dashboard(Mock(), Mock(), target)
+
+    mock_session.flush.assert_called_once()
+    mock_session.commit.assert_called_once()
+    assert len(added_objects) == 2
+    cloned_dashboard = added_objects[0]
+    extra_attributes = added_objects[1]
+    assert cloned_dashboard.dashboard_title == "Template Dashboard"
+    assert extra_attributes.user_id == 55
+
+
+def test_copy_dashboard_rebinds_subjects_in_isolated_session(
+    app_context: None,
+    mock_dashboard_template: Dashboard,
+) -> None:
+    """Ensure editors and viewers subjects are rebound in the isolated session."""
+    from superset.models.dashboard import copy_dashboard
+    from superset.subjects.models import Subject
+
+    group = Mock(id=10)
+    target = Mock(id=55, groups=[group])
+
+    db_subject = Subject()
+    db_subject.id = 1
+    rebound_subject = Subject()
+    rebound_subject.id = 1
+
+    mock_session = Mock()
+    mock_session.query.return_value.filter_by.return_value.first.return_value = (
+        mock_dashboard_template
+    )
+    mock_session.query.return_value.filter.return_value.all.return_value = [
+        rebound_subject
+    ]
+    mock_session.__enter__ = Mock(return_value=mock_session)
+    mock_session.__exit__ = Mock(return_value=None)
+
+    added_objects: list[Any] = []
+    mock_session.add.side_effect = lambda obj: added_objects.append(obj)
+
+    with (
+        patch.dict(current_app.config, {"DASHBOARD_TEMPLATE_ID": 100}),
+        patch("superset.models.dashboard.Session", return_value=mock_session),
+        patch("superset.subjects.utils.get_user_subject", return_value=db_subject),
+        patch(
+            "superset.subjects.utils.get_default_viewers_for_groups",
+            return_value=[db_subject],
+        ),
+    ):
+        copy_dashboard(Mock(), Mock(), target)
+
+    mock_session.flush.assert_called_once()
+    mock_session.commit.assert_called_once()
+    assert len(added_objects) == 2
+    cloned_dashboard = added_objects[0]
+    assert cloned_dashboard.editors == [rebound_subject]
+    assert cloned_dashboard.viewers == [rebound_subject]
