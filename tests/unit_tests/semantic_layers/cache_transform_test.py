@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from dataclasses import replace
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -42,6 +43,7 @@ from superset.semantic_layers.cache_types import (
     ContainmentCapabilities,
     ReuseDecision,
 )
+from superset.semantic_layers.ordering import with_default_order
 
 COUNTRY: Dimension = Dimension("country", "Country", pa.string())
 CITY: Dimension = Dimension("city", "City", pa.string())
@@ -58,7 +60,11 @@ def _reuse(
         metrics=frozenset(query.metrics),
         limit=None,
         offset=0,
-        order_key=SemanticCacheIdentityFactory.order(query.order),
+        # Stored as the repository does: keyed on the cached query's order,
+        # including its default chronological order.
+        order_key=SemanticCacheIdentityFactory.order(
+            with_default_order(replace(query, dimensions=dimensions)).order
+        ),
         group_limit_key=SemanticCacheIdentityFactory.group_limit(query.group_limit),
         value_key="precision-regression",
     )

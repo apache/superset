@@ -47,12 +47,14 @@ from superset.commands.chart.exceptions import (
     ChartDataCacheLoadError,
     ChartDataQueryFailedError,
 )
+from superset.commands.streaming_export.base import encode_csv_stream
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import ChartDataExecutionResult
 from superset.common.query_context_factory import QueryContextFactory
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import CACHE_DISABLED_TIMEOUT, SemanticCacheStatus
 from superset.daos.exceptions import DatasourceNotFound
+from superset.errors import SupersetErrorType
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.extensions import cache_manager, event_logger
 from superset.models.sql_lab import Query
@@ -230,7 +232,12 @@ class ChartDataRestApi(ChartRestApi):
             return self.response(404, message=str(error))
         except DatasourceNotFound:
             return self.response_404()
-        except SupersetSecurityException:
+        except SupersetSecurityException as ex:
+            if (
+                ex.error.error_type
+                == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
+            ):
+                raise
             return self.response_403()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
@@ -330,7 +337,12 @@ class ChartDataRestApi(ChartRestApi):
             return self.response(404, message=str(error))
         except DatasourceNotFound:
             return self.response_404()
-        except SupersetSecurityException:
+        except SupersetSecurityException as ex:
+            if (
+                ex.error.error_type
+                == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
+            ):
+                raise
             return self.response_403()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
@@ -887,7 +899,8 @@ class ChartDataRestApi(ChartRestApi):
 
         # Create response with streaming headers
         response = Response(
-            csv_generator_callable(),  # Call the callable to get generator
+            # Call the callable to get generator
+            encode_csv_stream(csv_generator_callable(), encoding),
             # Use content_type (not mimetype) so the charset is set verbatim;
             # passing a charset via mimetype makes Werkzeug append a second
             # charset, producing a malformed doubled Content-Type header.
