@@ -975,6 +975,59 @@ test('duplicate subscription opens the existing report for editing', async () =>
   fetchMock.removeRoute('post-duplicate-subscribe');
 });
 
+test('duplicate chart subscription opens the existing chart report for editing', async () => {
+  mockedGetBootstrapData.mockReturnValue(subscriberBootstrapData());
+  fetchMock.post(
+    'glob:*/api/v1/report/subscribe',
+    {
+      status: 409,
+      body: {
+        errors: [{ message: 'Resource already has an attached report.' }],
+      },
+    },
+    { name: 'post-duplicate-chart-subscribe' },
+  );
+  fetchMock.modifyRoute('report-list', {
+    response: {
+      result: [
+        {
+          id: 13,
+          chart_id: 1,
+          creation_method: 'charts',
+          name: 'My existing chart report',
+          crontab: '0 9 * * *',
+          report_format: 'PNG',
+        },
+      ],
+    },
+  });
+  const chartProps = {
+    ...defaultProps,
+    dashboardId: undefined,
+    chart: { id: 1, sliceFormData: { viz_type: VizType.Line } },
+    chartName: 'My Line Chart',
+    creationMethod: 'charts' as const,
+  };
+  const store = createStore({}, reducerIndex);
+  render(<ReportModal {...chartProps} />, { useRedux: true, store });
+
+  await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+  expect(await screen.findByText('Edit email report')).toBeInTheDocument();
+  expect(screen.getByTestId('report-name-test')).toHaveDisplayValue(
+    'My existing chart report',
+  );
+  const toasts = (store.getState() as any).messageToasts;
+  expect(
+    toasts.some((toast: { text: string }) =>
+      toast.text.includes('already subscribed to this chart'),
+    ),
+  ).toBe(true);
+
+  fetchMock.modifyRoute('report-list', { response: {} });
+  fetchMock.removeRoute('post-duplicate-chart-subscribe');
+});
+
 test('duplicate subscription shows the error when the existing report cannot be found', async () => {
   mockedGetBootstrapData.mockReturnValue(subscriberBootstrapData());
   fetchMock.post(
