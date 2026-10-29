@@ -24,6 +24,7 @@ which is where the correctness argument lives.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date, datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -43,7 +44,8 @@ from superset.superset_typing import QueryObjectDict
 from superset.utils import json
 from superset.utils.core import FilterOperator
 
-PROBE = "superset.connectors.sqla.partition_mapping.evaluate_transform"
+PARTITION_MAPPING = "superset.connectors.sqla.partition_mapping"
+PROBE = f"{PARTITION_MAPPING}.evaluate_transform"
 
 
 @pytest.fixture(autouse=True)
@@ -3448,3 +3450,149 @@ def test_a_raw_instant_transform_is_declined_onto_hourly_keys(
     assert connection.execute(unmirrored_sql).fetchall() == [("38000",)]
     assert preview["reason"] == "unbucketed_epoch"
     connection.close()
+
+
+@pytest.mark.parametrize(
+    "source_type, is_dttm, layout, transform, key_scale",
+    [
+        # A text timestamp column left at the default, not flagged temporal.
+        ("VARCHAR", False, "%Y-%m-%d %H:%M:%S", "unix_timestamp(:value)", 1),
+        # Microsecond instants onto a microsecond hour key.
+        (
+            "TIMESTAMP",
+            True,
+            "%Y-%m-%d %H:%M:%S",
+            "unix_timestamp(:value) * 1000000",
+            1000000,
+        ),
+        # ISO text with a `T`, parsed by a transform that reads no other layout.
+        ("VARCHAR", True, "%Y-%m-%dT%H:%M:%S", "iso_seconds(:value)", 1),
+        ("VARCHAR", False, "%Y-%m-%dT%H:%M:%S", "iso_seconds(:value)", 1),
+    ],
+)
+def test_raw_instants_are_declined_in_every_unit_and_text_layout(
+    app: Flask,
+    source_type: str,
+    is_dttm: bool,
+    layout: str,
+    transform: str,
+    key_scale: int,
+) -> None:
+    """
+    Raw instants are declined whatever their unit, and on text columns whatever
+    their layout or temporal flag; each of these dropped rows from hourly keys.
+    """
+    import sqlite3
+    from datetime import timezone
+    from unittest.mock import PropertyMock
+
+    from superset.connectors.sqla.partition_mapping import (
+        preview_partition_mapping,
+    )
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    def seconds_if(separator: str) -> Callable[[str], int | None]:
+        """Epoch seconds of text in one layout only, as Hive's parsers read it."""
+
+        def parse(value: str) -> int | None:
+            if not isinstance(value, str) or value[10:11] != separator:
+                return None
+            try:
+                parsed = datetime.fromisoformat(value)
+            except ValueError:
+                return None
+            return int(parsed.replace(tzinfo=timezone.utc).timestamp())
+
+        return parse
+
+    connection = sqlite3.connect(":memory:")
+    connection.create_function("unix_timestamp", 1, seconds_if(" "))
+    connection.create_function("iso_seconds", 1, seconds_if("T"))
+    connection.execute(
+        "CREATE TABLE web_events (country TEXT, event_time TEXT, dt_epoch BIGINT)"
+    )
+    origin = 1790812800  # 2026-10-01 UTC
+    connection.executemany(
+        "INSERT INTO web_events VALUES (?, ?, ?)",
+        [
+            (
+                str(offset),
+                datetime.fromtimestamp(origin + offset, timezone.utc).strftime(layout),
+                (origin + offset) // 3600 * 3600 * key_scale,
+            )
+            for offset in (37800, 38000, 39599)
+        ],
+    )
+    table = _table(transform=transform)
+    event_time = next(c for c in table.columns if c.column_name == "event_time")
+    event_time.type = source_type
+    event_time.is_dttm = is_dttm
+    value = datetime(2026, 10, 1, 10, 33, 20).strftime(layout)
+    arguments = {"filter": [{"col": "event_time", "op": "==", "val": value}]}
+    probes: dict[str, Any] = {}
+    with (
+        app.app_context(),
+        patch.object(
+            Database,
+            "get_df",
+            side_effect=lambda sql, **kwargs: pd.read_sql_query(sql, connection),
+        ),
+        patch(f"{PARTITION_MAPPING}._cache_get", side_effect=probes.get),
+        patch(f"{PARTITION_MAPPING}._cache_set", side_effect=probes.__setitem__),
+    ):
+        # Nothing probed yet, so the API has no refusal to report.
+        cold_summary = table.partition_filter_mapping_summary
+        assert cold_summary is not None
+        assert cold_summary["safety_refusal"] is None
+        # Elsewhere a raw epoch column is an ordinary index, so it still mirrors.
+        assert "dt_epoch" in _query(table, **arguments)
+        with patch.object(
+            Database,
+            "db_engine_spec",
+            new_callable=PropertyMock,
+            return_value=HiveEngineSpec,
+        ):
+            mirrored_sql = _query(table, **arguments)
+            preview = preview_partition_mapping(
+                table,
+                mapped_column="event_time",
+                value_transform=transform,
+                sample_values=[value],
+            )
+            summary = table.partition_filter_mapping_summary
+        table.partition_column = None
+        unmirrored_sql = _query(table, **arguments)
+    assert "dt_epoch" not in mirrored_sql
+    assert connection.execute(mirrored_sql).fetchall() == [("38000",)]
+    assert connection.execute(unmirrored_sql).fetchall() == [("38000",)]
+    assert preview["reason"] == "unbucketed_epoch"
+    # The API reports the refusal the probe found, not only the editor.
+    assert summary is not None
+    assert summary["safety_refusal"]["reason"] == "unbucketed_epoch"
+    connection.close()
+
+
+def test_a_text_layout_the_engine_rejects_does_not_hide_the_others() -> None:
+    """
+    An engine raising on one text layout fails the batched canary probe; each
+    layout is then asked alone, so the one the transform parses still counts.
+    """
+    from superset.connectors.sqla import partition_mapping
+
+    canaries = ["a", "b", "c", "d"]
+
+    def probe(database: Any, catalog: Any, schema: Any, transform: str, values: Any):
+        if values == canaries or values == ["a", "b"]:
+            return None
+        return [100, 100 + 2843]
+
+    with patch.object(partition_mapping, "_probe", side_effect=probe):
+        answers = partition_mapping._probe_canaries(MagicMock(), "t(:value)", canaries)
+    assert answers == [None, None, 100, 2943]
+    assert partition_mapping._answers_raw_instants(answers)
+
+    with patch.object(partition_mapping, "_probe", return_value=None):
+        assert (
+            partition_mapping._probe_canaries(MagicMock(), "t(:value)", canaries)
+            is None
+        )

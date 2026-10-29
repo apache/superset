@@ -1174,13 +1174,14 @@ def _unbucketed_epoch_message() -> str:
 
 #: Two instants 2843 seconds apart within one hour, probed for every
 #: temporal-to-numeric mirror. A transform that keeps that distance is answering
-#: raw epoch seconds (or milliseconds), not an hour or day key, whatever its
-#: spelling -- `CAST(unix_timestamp(:value) AS BIGINT)`, `+ 0`,
-#: `floor(unix_timestamp(:value))`. Mirroring raw instants onto bucketed keys
-#: drops rows; a Hive/Impala partition per second is not a layout a metastore
-#: survives, so declining costs pruning, never correctness.
+#: raw epoch instants, not an hour or day key, whatever its spelling --
+#: `CAST(unix_timestamp(:value) AS BIGINT)`, `+ 0`, `floor(unix_timestamp(:value))`,
+#: Impala's `utc_to_unix_micros(:value)`. Mirroring raw instants onto bucketed
+#: keys drops rows; a Hive/Impala partition per second is not a layout a
+#: metastore survives, so declining costs pruning, never correctness.
 _EPOCH_CANARIES = (datetime(2001, 1, 1, 10, 0, 0), datetime(2001, 1, 1, 10, 47, 23))
-_RAW_INSTANT_STEPS = {2843, 2843000}
+#: That distance in seconds, milliseconds, microseconds and nanoseconds.
+_RAW_INSTANT_STEPS = {2843 * 1000**power for power in range(4)}
 
 
 def _epoch_canaries(
@@ -1188,7 +1189,11 @@ def _epoch_canaries(
     mapped_column: str,
     partition_column: TableColumn,
 ) -> list[Any]:
-    """The canary inputs for this mapping, empty when the check does not apply."""
+    """
+    The canary inputs for this mapping, empty when the check does not apply.
+
+    A flat list of pairs, one pair per spelling of the two instants.
+    """
     from superset.db_engine_specs.hive import HiveEngineSpec
     from superset.db_engine_specs.impala import ImpalaEngineSpec
 
@@ -1207,10 +1212,29 @@ def _epoch_canaries(
     source_type = _native_generic_type(source)
     if source_type == utils.GenericDataType.TEMPORAL:
         return list(_EPOCH_CANARIES)
-    if source_type == utils.GenericDataType.STRING and source.is_dttm:
-        # A text timestamp column binds the text the author typed.
-        return [canary.isoformat(sep=" ") for canary in _EPOCH_CANARIES]
+    if source_type == utils.GenericDataType.STRING:
+        return _text_epoch_canaries(source)
     return []
+
+
+def _text_epoch_canaries(source: TableColumn) -> list[str]:
+    """
+    The canaries as the text a timestamp column may hold, one pair per form.
+
+    Whether or not the column is flagged temporal: ``is_dttm`` defaults to
+    false, and a filter binds the text the author typed either way. A transform
+    parsing one layout answers ``NULL`` for the others, so each common layout
+    gets a pair, plus the column's own `python_date_format`.
+    """
+    formats = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%SZ"]
+    date_format = source.python_date_format
+    if date_format and date_format not in ("epoch_s", "epoch_ms"):
+        formats.append(date_format)
+    pairs = utils.remove_duplicates(
+        tuple(canary.strftime(layout) for canary in _EPOCH_CANARIES)
+        for layout in formats
+    )
+    return [text for pair in pairs for text in pair]
 
 
 def _canary_answers(
@@ -1241,18 +1265,85 @@ def _canary_answers(
     )
     answers = _cache_get(key)
     if answers is None:
-        answers = _probe(
-            database,
-            datasource.catalog,
-            datasource.schema,
-            mapping.value_transform,
-            canaries,
-        )
+        answers = _probe_canaries(datasource, mapping.value_transform, canaries)
         # A failure is not cached: a transient blip must not switch the check
         # off for the whole cache timeout.
         if answers is not None:
             _cache_set(key, answers)
     return answers
+
+
+def cached_raw_instant_refusal(
+    datasource: SqlaTable,
+    mapped_column: str | None,
+    partition_column: str | None,
+    transform: str | None,
+) -> dict[str, str] | None:
+    """
+    The raw-instant refusal, as far as an earlier probe already answered it.
+
+    Reads the canary cache and never probes, so the dataset API can report a
+    transform the engine was seen to refuse without a round trip per request;
+    ``None`` on a cold cache, as ``evaluable`` is.
+    """
+    target = next(
+        (col for col in datasource.columns if col.column_name == partition_column),
+        None,
+    )
+    if not transform or not mapped_column or target is None:
+        return None
+    canaries = _epoch_canaries(datasource, mapped_column, target)
+    if not canaries:
+        return None
+    key = _probe_cache_key(
+        datasource.database,
+        datasource.catalog,
+        datasource.schema,
+        transform,
+        canaries,
+    )
+    if not _answers_raw_instants(_cache_get(key)):
+        return None
+    return {
+        "reason": "unbucketed_epoch",
+        "mapped_column": mapped_column,
+        "partition_column": str(partition_column),
+        "value_transform": transform,
+        "message": _unbucketed_epoch_message(),
+    }
+
+
+def _probe_canaries(
+    datasource: SqlaTable, transform: str, canaries: list[Any]
+) -> list[Any] | None:
+    """
+    Probe every canary pair at once, falling back to a probe per pair.
+
+    An engine that raises on a text layout its transform cannot parse, rather
+    than answering ``NULL``, fails the whole batch; the other layouts must still
+    be asked. A pair that fails alone answers ``None`` twice, and ``None``
+    overall only when every pair failed.
+    """
+    database = datasource.database
+    answers = _probe(
+        database, datasource.catalog, datasource.schema, transform, canaries
+    )
+    if answers is not None or len(canaries) <= len(_EPOCH_CANARIES):
+        return answers
+    step = len(_EPOCH_CANARIES)
+    per_pair = [
+        _probe(
+            database,
+            datasource.catalog,
+            datasource.schema,
+            transform,
+            canaries[start : start + step],
+        )
+        for start in range(0, len(canaries), step)
+    ]
+    if all(pair is None for pair in per_pair):
+        return None
+    return [answer for pair in per_pair for answer in (pair or [None] * step)]
 
 
 def _declined_as_raw_instants(
@@ -1285,10 +1376,18 @@ def _declined_as_raw_instants(
 
 
 def _answers_raw_instants(answers: list[Any] | None) -> bool:
-    """Whether the canary answers sit exactly as far apart as their inputs."""
-    if not answers or len(answers) != len(_EPOCH_CANARIES):
+    """Whether any pair of canary answers sits exactly as far apart as its inputs."""
+    step = len(_EPOCH_CANARIES)
+    if not answers or len(answers) % step:
         return False
-    low, high = (_to_python_scalar(answer) for answer in answers)
+    return any(
+        _pair_is_raw_instants(answers[start : start + step])
+        for start in range(0, len(answers), step)
+    )
+
+
+def _pair_is_raw_instants(pair: list[Any]) -> bool:
+    low, high = (_to_python_scalar(answer) for answer in pair)
     if any(
         isinstance(answer, bool) or not isinstance(answer, (int, float, Decimal))
         for answer in (low, high)
