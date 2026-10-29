@@ -16,9 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component, type ReactNode } from 'react';
+import { useCallback, useId, type ReactNode } from 'react';
 import { styled, css } from '@apache-superset/core/theme';
-import { Checkbox } from '@superset-ui/core/components';
+import {
+  Button,
+  Checkbox,
+  Space,
+  Typography,
+} from '@superset-ui/core/components';
 import ControlHeader from '../ControlHeader';
 
 interface CheckboxControlProps {
@@ -31,6 +36,9 @@ interface CheckboxControlProps {
   validationErrors?: string[];
   placeholder?: string;
   debounceDelay?: number;
+  disabled?: boolean;
+  disabledReason?: string;
+  resetLabel?: string;
 }
 
 const CheckBoxControlWrapper = styled.div`
@@ -47,32 +55,82 @@ const CheckBoxControlWrapper = styled.div`
   `}
 `;
 
-export default class CheckboxControl extends Component<CheckboxControlProps> {
-  static defaultProps = {
-    value: false,
-    onChange: () => {},
-  };
-
-  onChange = (): void => {
-    this.props.onChange?.(!this.props.value);
-  };
-
-  renderCheckbox(): ReactNode {
-    return <Checkbox onChange={this.onChange} checked={!!this.props.value} />;
-  }
-
-  render(): ReactNode {
-    if (this.props.label) {
-      return (
-        <CheckBoxControlWrapper>
-          <ControlHeader
-            {...this.props}
-            leftNode={this.renderCheckbox()}
-            onClick={this.onChange}
-          />
-        </CheckBoxControlWrapper>
-      );
+export default function CheckboxControl({
+  value = false,
+  label,
+  disabled = false,
+  disabledReason,
+  resetLabel,
+  onChange = () => {},
+  ...restProps
+}: CheckboxControlProps): JSX.Element {
+  const explanationId = useId();
+  const checkboxId = useId();
+  const handleChange = useCallback((): void => {
+    if (!disabled) {
+      onChange(!value);
     }
-    return this.renderCheckbox();
+  }, [disabled, onChange, value]);
+
+  const checkbox = (
+    <Checkbox
+      id={checkboxId}
+      onChange={handleChange}
+      checked={!!value}
+      disabled={disabled}
+      aria-describedby={disabled && disabledReason ? explanationId : undefined}
+    />
+  );
+  const explanation = disabled && disabledReason && (
+    <Typography.Text id={explanationId} type="secondary">
+      {disabledReason}
+    </Typography.Text>
+  );
+  const resetButton = disabled && value && resetLabel && (
+    <Button buttonSize="small" onClick={() => onChange(false)}>
+      {resetLabel}
+    </Button>
+  );
+  const feedback = (explanation || resetButton) && (
+    <Space direction="vertical" size="small">
+      {explanation}
+      {resetButton}
+    </Space>
+  );
+
+  if (label) {
+    return (
+      <CheckBoxControlWrapper>
+        <ControlHeader
+          {...restProps}
+          name={restProps.name || checkboxId}
+          inputId={checkboxId}
+          label={label}
+          leftNode={checkbox}
+          onClick={
+            disabled
+              ? undefined
+              : (event?: { preventDefault: () => void }) => {
+                  if (event) {
+                    event.preventDefault();
+                    // Preserve the label's focus behavior without a second toggle.
+                    document.getElementById(checkboxId)?.focus();
+                  }
+                  handleChange();
+                }
+          }
+        />
+        {feedback}
+      </CheckBoxControlWrapper>
+    );
   }
+  if (feedback) {
+    return (
+      <CheckBoxControlWrapper>
+        {checkbox}
+        {feedback}
+      </CheckBoxControlWrapper>
+    );
+  }
+  return checkbox;
 }

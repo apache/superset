@@ -27,11 +27,12 @@ import {
 } from 'react';
 
 import { useDispatch, useSelector } from 'react-redux';
-import { uniqWith } from 'lodash';
+import { uniqWith } from 'lodash-es';
 import cx from 'classnames';
 import { t } from '@apache-superset/core/translation';
 import {
   DataMaskStateWithId,
+  DatasourceType,
   Filters,
   JsonObject,
   usePrevious,
@@ -55,8 +56,11 @@ export interface FiltersBadgeProps {
   chartId: number;
 }
 
-const StyledFilterCount = styled.div`
+const StyledFilterCount = styled.button`
   ${({ theme }) => `
+    appearance: none;
+    border: none;
+    font: inherit;
     display: flex;
     justify-items: center;
     align-items: center;
@@ -135,7 +139,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   );
   const [popoverVisible, setPopoverVisible] = useState(false);
   const popoverContentRef = useRef<HTMLDivElement>(null);
-  const popoverTriggerRef = useRef<HTMLDivElement>(null);
+  const popoverTriggerRef = useRef<HTMLButtonElement>(null);
 
   const onHighlightFilterSource = useCallback(
     (path: string[]) => {
@@ -144,7 +148,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     [dispatch],
   );
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === 'Enter') {
       setPopoverVisible(true);
     }
@@ -290,8 +294,16 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   );
   const filterCount =
     appliedIndicators.length + appliedCrossFilterIndicators.length;
+  const incompatibleIndicators = chart?.form_data?.datasource?.endsWith(
+    `__${DatasourceType.SemanticView}`,
+  )
+    ? indicators.filter(
+        indicator => indicator.status === IndicatorStatus.Incompatible,
+      )
+    : [];
+  const totalFilterCount = filterCount + incompatibleIndicators.length;
 
-  if (!appliedCrossFilterIndicators.length && !appliedIndicators.length) {
+  if (!totalFilterCount) {
     return null;
   }
 
@@ -299,6 +311,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     <DetailsPanelPopover
       appliedCrossFilterIndicators={appliedCrossFilterIndicators}
       appliedIndicators={appliedIndicators}
+      incompatibleIndicators={incompatibleIndicators}
       onHighlightFilterSource={onHighlightFilterSource}
       setPopoverVisible={setPopoverVisible}
       popoverVisible={popoverVisible}
@@ -306,22 +319,25 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       popoverTriggerRef={popoverTriggerRef}
     >
       <StyledFilterCount
-        aria-label={t('Applied filters (%s)', filterCount)}
+        type="button"
+        aria-label={
+          incompatibleIndicators.length
+            ? t('Filters (%s)', totalFilterCount)
+            : t('Applied filters (%s)', filterCount)
+        }
         aria-haspopup="true"
-        role="button"
         ref={popoverTriggerRef}
         className={cx(
           'filter-counts',
           !!appliedCrossFilterIndicators.length && 'has-cross-filters',
         )}
-        tabIndex={0}
         onKeyDown={handleKeyDown}
       >
         <Icons.FilterOutlined iconSize="m" />
         <StyledBadge
           data-test="applied-filter-count"
           className="applied-count"
-          count={filterCount}
+          count={totalFilterCount}
           size="small"
           showZero
         />

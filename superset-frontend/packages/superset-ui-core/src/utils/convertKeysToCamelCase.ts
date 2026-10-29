@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { camelCase, isPlainObject, mapKeys } from 'lodash';
+import { camelCase, isPlainObject, mapKeys } from 'lodash-es';
 
 export default function convertKeysToCamelCase<T>(object: T) {
   if (object === null || object === undefined) {

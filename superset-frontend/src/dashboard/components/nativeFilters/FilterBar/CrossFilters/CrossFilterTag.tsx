@@ -67,13 +67,15 @@ const CrossFilterTag = (props: {
   return (
     <StyledTag
       css={css`
-        ${orientation === FilterBarOrientation.Vertical
-          ? `
+        ${
+          orientation === FilterBarOrientation.Vertical
+            ? `
             margin-top: ${theme.sizeUnit * 2}px;
           `
-          : `
+            : `
             margin-left: ${theme.sizeUnit * 2}px;
-          `}
+          `
+        }
       `}
       closable
       onClose={() => removeCrossFilter(filter.emitterId)}

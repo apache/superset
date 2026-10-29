@@ -22,6 +22,7 @@ import pytest
 from marshmallow import ValidationError
 
 from superset.row_level_security.schemas import RLSPostSchema, RLSPutSchema
+from superset.utils.core import RowLevelSecurityFilterType
 
 
 def _post_payload(**overrides: Any) -> dict[str, Any]:
@@ -29,7 +30,7 @@ def _post_payload(**overrides: Any) -> dict[str, Any]:
         "name": "rule",
         "filter_type": "Regular",
         "tables": [1],
-        "roles": [1],
+        "subjects": [1],
         "clause": "client_id = 9",
     }
     payload.update(overrides)
@@ -48,6 +49,26 @@ def test_rls_post_schema_accepts_non_blank_clause() -> None:
     """A non-blank clause is accepted on create."""
     result = RLSPostSchema().load(_post_payload(clause="1 = 0"))
     assert result["clause"] == "1 = 0"
+
+
+def test_rls_post_schema_rejects_regular_filter_without_subjects() -> None:
+    """Regular filters must target at least one subject."""
+    with pytest.raises(ValidationError) as exc:
+        RLSPostSchema().load(_post_payload(subjects=[]))
+
+    assert "subjects" in exc.value.messages
+
+
+def test_rls_post_schema_allows_base_filter_without_subjects() -> None:
+    """Base filters may omit subjects because they apply by exclusion."""
+    result = RLSPostSchema().load(
+        _post_payload(
+            filter_type=RowLevelSecurityFilterType.BASE.value,
+            subjects=[],
+        )
+    )
+
+    assert result["subjects"] == []
 
 
 @pytest.mark.parametrize("clause", ["", "   ", "\t\n"])

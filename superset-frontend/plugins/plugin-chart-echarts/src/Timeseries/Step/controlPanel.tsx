@@ -35,6 +35,9 @@ import { DEFAULT_FORM_DATA, TIME_SERIES_DESCRIPTION_TEXT } from '../constants';
 import {
   legendSection,
   minorTicks,
+  axisTicks,
+  gridlines,
+  valueAxisLabels,
   richTooltipSection,
   seriesOrderSection,
   showValueSection,
@@ -157,6 +160,9 @@ const config: ControlPanelConfig = {
         ],
         ['zoomable'],
         [minorTicks],
+        [axisTicks],
+        [gridlines],
+        [valueAxisLabels],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         [

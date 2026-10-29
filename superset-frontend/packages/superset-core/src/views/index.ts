@@ -30,12 +30,12 @@
  *
  * views.registerView(
  *   { id: 'my_ext.result_stats', name: 'Result Stats', location: 'sqllab.panels' },
- *   () => <ResultStatsPanel />,
+ *   ResultStatsPanel,
  * );
  * ```
  */
 
-import { ReactElement } from 'react';
+import { ComponentType } from 'react';
 import { Disposable, Event } from '../common';
 
 /**
@@ -58,7 +58,7 @@ export interface View {
  *
  * @param view The view descriptor (id and name).
  * @param location The location where this view should appear (e.g. "sqllab.panels").
- * @param provider A function that returns the React element to render.
+ * @param component The React component to render at that location.
  * @returns A Disposable that unregisters the view when disposed.
  *
  * @example
@@ -66,14 +66,14 @@ export interface View {
  * views.registerView(
  *   { id: 'my_ext.result_stats', name: 'Result Stats' },
  *   'sqllab.panels',
- *   () => <ResultStatsPanel />,
+ *   ResultStatsPanel,
  * );
  * ```
  */
 export declare function registerView(
   view: View,
   location: string,
-  provider: () => ReactElement,
+  component: ComponentType,
 ): Disposable;
 
 /**

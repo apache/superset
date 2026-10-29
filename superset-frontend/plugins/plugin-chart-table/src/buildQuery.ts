@@ -19,10 +19,12 @@
 import {
   AdhocColumn,
   BuildQuery,
+  DatasourceType,
   PostProcessingRule,
   QueryFormOrderBy,
   QueryMode,
   QueryObject,
+  TimeGranularity,
   buildQueryContext,
   ensureIsArray,
   getMetricLabel,
@@ -31,12 +33,44 @@ import {
 } from '@superset-ui/core';
 
 import {
+  getTotalsMetrics,
   isTimeComparison,
   timeCompareOperator,
+  toTotalsAggregate,
 } from '@superset-ui/chart-controls';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { TableChartFormData } from './types';
 import { updateTableOwnState } from './DataTable/utils/externalAPIs';
+
+// Only recognized duration choices are safe to treat as dormant. Legacy date
+// formats and anchored week intervals are not semantic-layer durations.
+const DURATION_GRAINS = new Set<string>(
+  Object.values(TimeGranularity).filter(
+    grain => grain.startsWith('P') && !grain.includes('/'),
+  ),
+);
+
+function omitDormantGrain(
+  query: QueryObject,
+  temporalColumns: Record<string, boolean> | undefined,
+): QueryObject {
+  const grain = query.extras?.time_grain_sqla;
+  if (
+    typeof grain !== 'string' ||
+    !DURATION_GRAINS.has(grain) ||
+    query.granularity ||
+    query.is_timeseries ||
+    !Array.isArray(query.columns) ||
+    !query.columns.every(
+      column => isPhysicalColumn(column) && temporalColumns?.[column] === false,
+    )
+  ) {
+    return query;
+  }
+  const extras = { ...query.extras };
+  delete extras.time_grain_sqla;
+  return { ...query, extras };
+}
 
 /**
  * Infer query mode from form data. If `all_columns` is set, then raw records mode,
@@ -64,6 +98,9 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
     extra_form_data,
   } = formData;
   const queryMode = getQueryMode(formData);
+  const isSemanticView = formData.datasource?.endsWith(
+    `__${DatasourceType.SemanticView}`,
+  );
   const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
   const time_grain_sqla =
     extra_form_data?.time_grain_sqla || formData.time_grain_sqla;
@@ -82,10 +119,17 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       return acc.concat([metric, ...newMetrics]);
     }, []);
 
-  return buildQueryContext(formDataCopy, baseQueryObject => {
+  const context = buildQueryContext(formDataCopy, baseQueryObject => {
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
     const { extras = {} } = baseQueryObject;
     const postProcessing: PostProcessingRule[] = [];
+    // Capture the percent-metric `contribution` rule so it can be reused for
+    // the totals query below. Without it the totals row's percent-metric
+    // columns are keyed `metric` instead of `%metric`, so the footer renders
+    // 0.000%. We reuse only this rule and not the full `postProcessing` array,
+    // which may also contain a time-comparison operator that must not run on
+    // the single totals row.
+    let contributionPostProcessing: PostProcessingRule | undefined;
     const nonCustomNorInheritShifts = ensureIsArray(
       formData.time_compare,
     ).filter((shift: string) => shift !== 'custom' && shift !== 'inherit');
@@ -135,14 +179,10 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
         // default to ordering by first metric in descending order
         // when no "sort by" metric is set (regardless if "SORT DESC" is set to true)
         orderby = [[metrics[0], false]];
+      } else if (isSemanticView) {
+        orderby = [];
       }
       // add postprocessing for percent metrics only when in aggregation mode
-      type PercentMetricCalculationMode = 'row_limit' | 'all_records';
-
-      const calculationMode: PercentMetricCalculationMode =
-        (formData.percent_metric_calculation as PercentMetricCalculationMode) ||
-        'row_limit';
-
       if (percentMetrics && percentMetrics.length > 0) {
         const percentMetricsLabelsWithTimeComparison = isTimeComparison(
           formData,
@@ -162,23 +202,14 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
           getMetricLabel,
         );
 
-        if (calculationMode === 'all_records') {
-          postProcessing.push({
-            operation: 'contribution',
-            options: {
-              columns: percentMetricLabels,
-              rename_columns: percentMetricLabels.map(m => `%${m}`),
-            },
-          });
-        } else {
-          postProcessing.push({
-            operation: 'contribution',
-            options: {
-              columns: percentMetricLabels,
-              rename_columns: percentMetricLabels.map(m => `%${m}`),
-            },
-          });
-        }
+        contributionPostProcessing = {
+          operation: 'contribution',
+          options: {
+            columns: percentMetricLabels,
+            rename_columns: percentMetricLabels.map(m => `%${m}`),
+          },
+        };
+        postProcessing.push(contributionPostProcessing);
       }
 
       // Add the operator for the time comparison if some is selected
@@ -202,6 +233,7 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
             sqlExpression: col,
             label: col,
             expressionType: 'SQL',
+            ...(isSemanticView ? { isColumnReference: true } : {}),
           } as AdhocColumn;
           temporalColumnAdded = true;
           return false; // Do not include this in the output; it's added separately
@@ -235,7 +267,10 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
         formData?.result_type === 'results');
 
     if (isDownloadQuery) {
-      moreProps.row_limit = Number(formDataCopy.row_limit) || 0;
+      moreProps.row_limit =
+        formDataCopy.row_limit != null
+          ? Number(formDataCopy.row_limit)
+          : undefined;
       moreProps.row_offset = 0;
     }
 
@@ -267,14 +302,34 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       sortByFromOwnState = [[sortByItem?.key, !sortByItem?.desc]];
     }
 
+    const requestedOrderby =
+      formData.server_pagination && sortByFromOwnState
+        ? sortByFromOwnState
+        : orderby;
+    const selectedColumns = new Set(
+      (baseQueryObject.columns || []).filter(isPhysicalColumn),
+    );
+    const sortableSemanticFields = new Set([
+      ...selectedColumns,
+      ...(queryMode === QueryMode.Aggregate
+        ? (metrics || []).map(getMetricLabel)
+        : []),
+    ]);
+    const effectiveOrderby =
+      isSemanticView &&
+      (queryMode === QueryMode.Raw ||
+        (formData.server_pagination && sortByFromOwnState))
+        ? requestedOrderby.filter(
+            ([column]) =>
+              isPhysicalColumn(column) && sortableSemanticFields.has(column),
+          )
+        : requestedOrderby;
+
     let queryObject = {
       ...baseQueryObject,
       columns,
       extras,
-      orderby:
-        formData.server_pagination && sortByFromOwnState
-          ? sortByFromOwnState
-          : orderby,
+      orderby: effectiveOrderby,
       metrics,
       post_processing: postProcessing,
       time_offsets: timeOffsets,
@@ -352,12 +407,20 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       formData.show_totals &&
       queryMode === QueryMode.Aggregate
     ) {
+      const totalsAggregate = toTotalsAggregate(formData.totals_aggregate);
       extraQueries.push({
         ...queryObject,
         columns: [],
+        metrics: getTotalsMetrics(metrics, totalsAggregate),
         row_limit: 0,
         row_offset: 0,
-        post_processing: [],
+        // Reapply only the percent-metric contribution rule so the totals row
+        // exposes `%metric` keys (value/value = 100% on the single aggregated
+        // row). The time-comparison operator from the main query is omitted on
+        // purpose; it must not run against the single-row totals query.
+        post_processing: contributionPostProcessing
+          ? [contributionPostProcessing]
+          : [],
         order_desc: undefined,
         orderby: undefined,
       });
@@ -390,6 +453,19 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
 
     return [queryObject, ...extraQueries];
   });
+
+  // Normalize only rebuilt frontend requests, never saved form data. GET chart
+  // data can bypass this builder, so old stored query contexts may still fail
+  // strict host validation. Classify each final query, including derived ones.
+  if (
+    context.datasource.type === DatasourceType.SemanticView &&
+    queryMode === QueryMode.Aggregate
+  ) {
+    context.queries = context.queries.map(query =>
+      omitDormantGrain(query, formData.temporal_columns_lookup),
+    );
+  }
+  return context;
 };
 
 // Use this closure to cache changing of external filters, if we have server pagination we need reset page to 0, after

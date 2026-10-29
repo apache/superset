@@ -18,20 +18,62 @@
 # pylint: disable=import-outside-toplevel, unused-argument
 
 from datetime import datetime, timezone
+from decimal import Decimal
 
 import numpy as np
 import pandas as pd
+import pytest
 from numpy.core.multiarray import array
 from pytest_mock import MockerFixture
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.result_set import (
+    dedup,
     stringify_extension_columns,
     stringify_values,
     SupersetResultSet,
 )
-from superset.superset_typing import DbapiResult
+from superset.superset_typing import DbapiDescription, DbapiResult
 from superset.utils import json as superset_json
+
+
+@pytest.mark.parametrize(
+    "names,case_sensitive,expected",
+    [
+        (["a", "a", "a__1"], True, ["a", "a__2", "a__1"]),
+        (["a__1", "a", "a"], True, ["a__1", "a", "a__2"]),
+        (["a", "a", "a__1", "a__2"], True, ["a", "a__3", "a__1", "a__2"]),
+        (["a", "A", "A__1"], False, ["a", "A__2", "A__1"]),
+        (["a", "A", "A__1"], True, ["a", "A", "A__1"]),
+    ],
+)
+def test_dedup_preserves_explicit_column_names(
+    names: list[str], case_sensitive: bool, expected: list[str]
+) -> None:
+    assert dedup(names, case_sensitive=case_sensitive) == expected
+
+
+def test_result_set_with_colliding_column_suffix() -> None:
+    description: DbapiDescription = [
+        (name, "INT", None, None, None, None, False) for name in ("a", "a", "a__1")
+    ]
+    result = SupersetResultSet([(1, 2, 3)], description, BaseEngineSpec)
+    assert result.to_pandas_df().to_dict("records") == [{"a": 1, "a__2": 2, "a__1": 3}]
+
+
+def test_dedup_case_insensitive_custom_suffix() -> None:
+    assert dedup(["a", "A", "ax1"], suffix="X", case_sensitive=False) == [
+        "a",
+        "AX2",
+        "ax1",
+    ]
+
+
+def test_dedup_reserves_generated_names() -> None:
+    """Names generated from different bases must not collide."""
+    result = dedup(["a"] * 14 + ["a1"] * 2, suffix="")
+    assert len(set(result)) == len(result)
+    assert result[-1] == "a15"
 
 
 def test_column_names_as_bytes() -> None:
@@ -522,6 +564,37 @@ def test_clickhouse_json_column_in_pa_table_is_valid_json() -> None:
     assert parsed1 == {"e": 5}
 
 
+def test_stringify_values_preserves_non_ascii_characters() -> None:
+    """
+    Non-ASCII text inside array/struct/JSON column values (e.g. the Cyrillic and
+    CJK strings produced by ``array_agg``) must render verbatim in the result
+    grid, not as ``\\uXXXX`` escape sequences. Regression test for #19388 and
+    #22904, where such values were displayed as "unicode gibberish".
+    """
+    data = np.array(
+        [
+            ["Лонгсливы", "Свитшоты"],
+            {"city": "北京", "country": "中国"},
+            "你好，世界！",
+        ],
+        dtype=object,
+    )
+    result = stringify_values(data)
+
+    # Array and dict values keep their characters intact and stay valid JSON
+    assert result[0] == '["Лонгсливы", "Свитшоты"]'
+    assert result[1] == '{"city": "北京", "country": "中国"}'
+    assert result[2] == "你好，世界！"
+
+    # No escape sequences leak through
+    assert "\\u" not in result[0]
+    assert "\\u" not in result[1]
+
+    # Still round-trips through a JSON parser
+    assert superset_json.loads(result[0]) == ["Лонгсливы", "Свитшоты"]
+    assert superset_json.loads(result[1]) == {"city": "北京", "country": "中国"}
+
+
 def test_stringify_values_non_serializable_dict_falls_back_to_str() -> None:
     """
     When a dict/list contains a value that json.dumps cannot serialize (e.g. bytes),
@@ -540,3 +613,144 @@ def test_stringify_values_non_serializable_dict_falls_back_to_str() -> None:
     # Must not raise — falls back to str()
     result = stringify_values(data)
     assert result[0] == str({"key": _Unserializable()})
+
+
+def test_empty_result_set_preserves_column_metadata() -> None:
+    """
+    Test that column metadata is preserved when query returns zero rows.
+
+    When a query returns no data but has a valid cursor description, the
+    column names and types from cursor_description should be preserved
+    in the result set. This allows downstream consumers (like the UI)
+    to display column headers even for empty result sets.
+    """
+    data: DbapiResult = []
+    description = [
+        ("id", "int", None, None, None, None, True),
+        ("name", "varchar", None, None, None, None, True),
+        ("created_at", "timestamp", None, None, None, None, True),
+    ]
+
+    result_set = SupersetResultSet(
+        data,
+        description,  # type: ignore
+        BaseEngineSpec,
+    )
+
+    # Verify column count
+    assert len(result_set.columns) == 3
+
+    # Verify column names are preserved
+    column_names = [col["column_name"] for col in result_set.columns]
+    assert column_names == ["id", "name", "created_at"]
+
+    assert result_set.columns[0]["type"] == BaseEngineSpec.get_datatype(
+        description[0][1]
+    )
+    assert result_set.columns[1]["type"] == BaseEngineSpec.get_datatype(
+        description[1][1]
+    )
+    assert result_set.columns[2]["type"] == BaseEngineSpec.get_datatype(
+        description[2][1]
+    )
+
+    # Verify the PyArrow table has the correct schema
+    assert result_set.table.num_rows == 0
+    assert len(result_set.table.column_names) == 3
+    assert list(result_set.table.column_names) == ["id", "name", "created_at"]
+
+    # Verify DataFrame conversion works
+    df = result_set.to_pandas_df()
+    assert len(df) == 0
+    assert list(map(str, df.columns)) == ["id", "name", "created_at"]
+
+
+def test_integers_outside_int64_are_stringified() -> None:
+    """
+    Integers PyArrow cannot hold in int64 must not fail the whole result set.
+
+    MySQL-family ``BIGINT UNSIGNED`` columns return Python ints up to 2**64 - 1,
+    and ``pa.array`` raises ``OverflowError`` for anything above 2**63 - 1. Such a
+    column falls back to strings, which also keeps the exact value that a
+    JavaScript number could not represent.
+    """
+    data = [(1, 18446744073709551615), (2, 0), (3, None)]
+    description = [
+        ("id", "int", None, None, None, None, True),
+        ("ubig", "int", None, None, None, None, True),
+    ]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+
+    df = result_set.to_pandas_df()
+    assert df["id"].tolist() == [1, 2, 3]
+    assert df["ubig"].iloc[:2].tolist() == ["18446744073709551615", "0"]
+    assert pd.isna(df["ubig"].iloc[2])
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        (
+            [Decimal("Infinity"), Decimal("-0.00000010")],
+            [None, "-0.00000010"],
+        ),
+        (
+            [Decimal("-Infinity"), Decimal("NaN"), Decimal("1E+3")],
+            [None, None, "1000"],
+        ),
+        (
+            [Decimal("-0.00000010"), 1.5, Decimal("0E-18")],
+            ["-0.00000010", "1.5", "0.000000000000000000"],
+        ),
+    ],
+    ids=["infinity", "nan", "decimal-and-float"],
+)
+def test_stringified_decimals_use_fixed_point(
+    values: list[Decimal | float], expected: list[str | None]
+) -> None:
+    """
+    Decimal columns PyArrow cannot type (non-finite values, or Decimals mixed
+    with floats) are stringified without scientific notation, so CSV export
+    does not formula-escape small negatives. NaN and Infinity become null.
+    """
+    from superset.dataframe import df_to_records
+    from superset.utils.csv import df_to_escaped_csv
+
+    description = [("value", "numeric", None, None, None, None, True)]
+    data = [(value,) for value in values]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+
+    records = df_to_records(result_set.to_pandas_df())
+    assert [record["value"] for record in records] == expected
+    csv = df_to_escaped_csv(pd.DataFrame(records), index=False, lineterminator="\n")
+    assert "'" not in csv
+    assert "E-" not in csv
+    assert "E+" not in csv
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        (
+            [Decimal("Infinity"), Decimal("-Infinity"), Decimal("NaN")],
+            [None, None, None],
+        ),
+        (
+            [Decimal("-0.00000010"), 1.5, Decimal("0E-18")],
+            ["-0.00000010", "1.5", "0.000000000000000000"],
+        ),
+    ],
+)
+def test_chart_dataframe_decimal_fallback(
+    mocker: MockerFixture,
+    values: list[Decimal | float],
+    expected: list[str | None],
+) -> None:
+    """Chart/dataset loading uses fixed-point strings and null non-finite Decimals."""
+    from superset.models.core import Database
+
+    database = mocker.Mock(db_engine_spec=BaseEngineSpec)
+    description = [("value", "numeric", None, None, None, None, True)]
+    df = Database.load_into_dataframe(database, description, [(v,) for v in values])
+
+    assert df["value"].tolist() == expected

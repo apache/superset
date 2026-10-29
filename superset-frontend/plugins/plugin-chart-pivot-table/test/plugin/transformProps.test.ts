@@ -20,7 +20,7 @@
 import { ChartProps, QueryFormData } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import transformProps from '../../src/plugin/transformProps';
-import { MetricsLayoutEnum } from '../../src/types';
+import { MetricsLayoutEnum, QueryData } from '../../src/types';
 
 const setDataMask = jest.fn();
 const formData = {
@@ -30,7 +30,6 @@ const formData = {
   tableRenderer: 'Table With Subtotal',
   colOrder: 'key_a_to_z',
   rowOrder: 'key_a_to_z',
-  aggregateFunction: 'Sum',
   transposePivot: true,
   combineMetric: true,
   rowSubtotalPosition: true,
@@ -64,36 +63,98 @@ const chartProps = new ChartProps<QueryFormData>({
   theme: supersetTheme,
 });
 
-test('should transform chart props for viz', () => {
-  expect(transformProps(chartProps)).toEqual({
+test('should pass through formData props for viz', () => {
+  const result = transformProps(chartProps) as ReturnType<
+    typeof transformProps
+  >;
+  expect(result.width).toBe(800);
+  expect(result.height).toBe(600);
+  expect(result.groupbyRows).toEqual(['row1', 'row2']);
+  expect(result.groupbyColumns).toEqual(['col1', 'col2']);
+  expect(result.metrics).toEqual(['metric1', 'metric2']);
+  expect(result.metricsLayout).toBe(MetricsLayoutEnum.COLUMNS);
+  expect(result.currencyFormat).toEqual({
+    symbol: 'USD',
+    symbolPosition: 'prefix',
+  });
+  // data is the per-level QueryData[] (split/synthesized), not raw rows.
+  expect(Array.isArray(result.data)).toBe(true);
+  result.data.forEach((level: QueryData) => {
+    expect(level).toHaveProperty('groupby');
+    expect(level).toHaveProperty('data');
+  });
+});
+
+test('should pass through showValuesAs', () => {
+  const cp = new ChartProps<QueryFormData>({
+    formData: { ...formData, showValuesAs: 'percent_total' },
     width: 800,
     height: 600,
-    groupbyRows: ['row1', 'row2'],
-    groupbyColumns: ['col1', 'col2'],
-    metrics: ['metric1', 'metric2'],
-    tableRenderer: 'Table With Subtotal',
-    colOrder: 'key_a_to_z',
-    rowOrder: 'key_a_to_z',
-    aggregateFunction: 'Sum',
-    transposePivot: true,
-    combineMetric: true,
-    rowSubtotalPosition: true,
-    colSubtotalPosition: true,
+    queriesData: [
+      {
+        data: [{ name: 'Hulk', sum__num: 1, __timestamp: 599616000000 }],
+        colnames: ['name', 'sum__num', '__timestamp'],
+        coltypes: [1, 0, 2],
+      },
+    ],
+    hooks: { setDataMask },
+    filterState: { selectedFilters: {} },
+    datasource: { verboseMap: {}, columnFormats: {} },
+    theme: supersetTheme,
+  });
+
+  const result = transformProps(cp) as ReturnType<typeof transformProps>;
+  expect(result.showValuesAs).toBe('percent_total');
+});
+
+test('non-additive: transformProps splits the GROUPING SETS result by level', () => {
+  const gm = (col: string) => `${col}__superset_grouping`;
+  const localFormData = {
+    ...formData,
+    combineMetric: false,
+    transposePivot: false,
+    metricsLayout: MetricsLayoutEnum.ROWS,
+    groupbyRows: ['region'],
+    groupbyColumns: [],
     colTotals: true,
     rowTotals: true,
-    valueFormat: 'SMART_NUMBER',
-    data: [{ name: 'Hulk', sum__num: 1, __timestamp: 599616000000 }],
-    setDataMask,
-    selectedFilters: {},
-    verboseMap: {},
-    metricsLayout: MetricsLayoutEnum.COLUMNS,
-    metricColorFormatters: [],
-    dateFormatters: {},
-    emitCrossFilters: false,
-    columnFormats: {},
-    currencyFormats: {},
-    currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
+    metrics: ['m'], // saved-metric string -> non-additive
+  };
+  const cp = new ChartProps<QueryFormData>({
+    formData: localFormData as unknown as QueryFormData,
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        // One combined GROUPING SETS result: leaf rows (region marker 0) +
+        // grand total row (region marker 1).
+        data: [
+          { region: 'US', m: 10, [gm('region')]: 0 },
+          { region: 'EU', m: 5, [gm('region')]: 0 },
+          { region: null, m: 15, [gm('region')]: 1 },
+        ],
+        colnames: ['region', 'm', gm('region')],
+        coltypes: [1, 0, 0],
+      },
+    ],
+    hooks: { setDataMask },
+    filterState: { selectedFilters: {} },
+    datasource: { verboseMap: {}, columnFormats: {} },
+    theme: supersetTheme,
   });
+
+  const result = transformProps(cp) as ReturnType<typeof transformProps>;
+  const grand = result.data.find(
+    (d: QueryData) =>
+      d.groupby.rows.length === 0 && d.groupby.columns.length === 0,
+  )!;
+  const leaf = result.data.find((d: QueryData) => d.groupby.rows.length === 1)!;
+  // Markers stripped; rows routed to the correct level.
+  expect(grand.data).toEqual([{ region: null, m: 15 }]);
+  expect(leaf.data).toEqual([
+    { region: 'US', m: 10 },
+    { region: 'EU', m: 5 },
+  ]);
 });
 
 test('should pass AUTO mode through for per-cell detection (single currency data)', () => {
@@ -334,4 +395,289 @@ test('should map conditional formatting rules to metricColorFormatters with corr
   expect(
     result.metricColorFormatters[1].getColorFromValue(column2Formatting),
   ).toEqual('#5ac189FF');
+});
+
+test('additive metrics: synthesizes rollup levels from a single leaf query', () => {
+  const additiveFormData = {
+    ...formData,
+    combineMetric: false,
+    transposePivot: false,
+    metricsLayout: MetricsLayoutEnum.ROWS,
+    groupbyRows: ['region'],
+    groupbyColumns: [],
+    colTotals: true,
+    rowTotals: true,
+    metrics: [
+      {
+        expressionType: 'SIMPLE',
+        aggregate: 'SUM',
+        column: { column_name: 'v' },
+        label: 'v',
+      },
+    ],
+  };
+  const additiveChartProps = new ChartProps<QueryFormData>({
+    formData: additiveFormData as unknown as QueryFormData,
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data: [
+          { region: 'US', v: 10 },
+          { region: 'EU', v: 5 },
+        ],
+        colnames: ['region', 'v'],
+        coltypes: [1, 0],
+      },
+    ],
+    hooks: { setDataMask },
+    filterState: { selectedFilters: {} },
+    datasource: { verboseMap: {}, columnFormats: {} },
+    theme: supersetTheme,
+  });
+
+  const result = transformProps(additiveChartProps);
+  // One query produced multiple synthesized rollup levels.
+  expect(result.data.length).toBeGreaterThan(1);
+  // Grand-total level: region collapsed -> v = 10 + 5 = 15.
+  const grand = result.data.find(
+    (d: QueryData) =>
+      d.groupby.rows.length === 0 && d.groupby.columns.length === 0,
+  )!;
+  expect(grand.data[0].v).toBe(15);
+  // Leaf level keeps per-region values.
+  const leaf = result.data.find((d: QueryData) => d.groupby.rows.length === 1)!;
+  expect(leaf.data).toEqual([
+    { region: 'US', v: 10 },
+    { region: 'EU', v: 5 },
+  ]);
+});
+
+test('conditional formatting scales over leaf cells only, not rollup totals', () => {
+  const gm = (col: string) => `${col}__superset_grouping`;
+  // `metrics` below is a plain string, i.e. a saved-metric reference.
+  // `isClientAggregatableMetric` treats every string as non-additive no matter what it is
+  // named, because form data does not reveal the aggregate behind a saved
+  // metric -- so a saved metric labelled "SUM(sales)" (as in the report this
+  // regression comes from) takes the non-additive path despite the name. That
+  // path issues a single GROUPING SETS query whose result carries the rollup
+  // levels alongside the leaf rows, so with both totals toggles on the grand
+  // total (100) is part of that result.
+  const row = (
+    productLine: string | null,
+    dealSize: string | null,
+    sales: number,
+  ) => ({
+    product_line: productLine,
+    deal_size: dealSize,
+    'SUM(sales)': sales,
+    [gm('product_line')]: productLine === null ? 1 : 0,
+    [gm('deal_size')]: dealSize === null ? 1 : 0,
+  });
+  const totalsChartProps = new ChartProps<QueryFormData>({
+    formData: {
+      ...formData,
+      combineMetric: false,
+      transposePivot: false,
+      metricsLayout: MetricsLayoutEnum.ROWS,
+      groupbyRows: ['product_line'],
+      groupbyColumns: ['deal_size'],
+      metrics: ['SUM(sales)'],
+      colTotals: true,
+      rowTotals: true,
+      conditionalFormatting: [
+        {
+          colorScheme: '#ACE1C4',
+          column: 'SUM(sales)',
+          operator: '>',
+          targetValue: 0,
+        },
+      ],
+    },
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data: [
+          // leaf cells
+          row('Classic Cars', 'Small', 10),
+          row('Classic Cars', 'Large', 20),
+          row('Motorcycles', 'Small', 30),
+          row('Motorcycles', 'Large', 40),
+          // row totals
+          row('Classic Cars', null, 30),
+          row('Motorcycles', null, 70),
+          // column totals
+          row(null, 'Small', 40),
+          row(null, 'Large', 60),
+          // grand total
+          row(null, null, 100),
+        ],
+        colnames: [
+          'product_line',
+          'deal_size',
+          'SUM(sales)',
+          gm('product_line'),
+          gm('deal_size'),
+        ],
+        coltypes: [1, 1, 0, 0, 0],
+      },
+    ],
+    hooks: { setDataMask },
+    filterState: { selectedFilters: {} },
+    datasource: { verboseMap: {}, columnFormats: {} },
+    theme: supersetTheme,
+  });
+
+  const { getColorFromValue } =
+    transformProps(totalsChartProps).metricColorFormatters[0];
+  // The largest leaf cell must be fully saturated. Including the grand total
+  // in the domain would stretch it to 100 and leave this cell washed out.
+  expect(getColorFromValue(40)).toEqual('#ACE1C4FF');
+});
+
+test('conditional formatting on the additive path uses the raw leaf query rows', () => {
+  // Counterpart to the test above for the additive fast path. Its query returns
+  // the leaf rows only, so the domain is those rows verbatim -- deliberately not
+  // the synthesized leaf level, whose reduction would coerce values through
+  // `Number` and drop non-numeric ones.
+  const additiveChartProps = new ChartProps<QueryFormData>({
+    formData: {
+      ...formData,
+      combineMetric: false,
+      transposePivot: false,
+      metricsLayout: MetricsLayoutEnum.ROWS,
+      groupbyRows: ['product_line'],
+      groupbyColumns: ['deal_size'],
+      metrics: [
+        {
+          expressionType: 'SIMPLE',
+          aggregate: 'SUM',
+          column: { column_name: 'sales' },
+          label: 'SUM(sales)',
+        },
+      ],
+      colTotals: true,
+      rowTotals: true,
+      conditionalFormatting: [
+        {
+          colorScheme: '#ACE1C4',
+          column: 'SUM(sales)',
+          operator: '>',
+          targetValue: 0,
+        },
+      ],
+    },
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data: [
+          {
+            product_line: 'Classic Cars',
+            deal_size: 'Small',
+            'SUM(sales)': 10,
+          },
+          {
+            product_line: 'Classic Cars',
+            deal_size: 'Large',
+            'SUM(sales)': 20,
+          },
+          { product_line: 'Motorcycles', deal_size: 'Small', 'SUM(sales)': 30 },
+          { product_line: 'Motorcycles', deal_size: 'Large', 'SUM(sales)': 40 },
+        ],
+        colnames: ['product_line', 'deal_size', 'SUM(sales)'],
+        coltypes: [1, 1, 0],
+      },
+    ],
+    hooks: { setDataMask },
+    filterState: { selectedFilters: {} },
+    datasource: { verboseMap: {}, columnFormats: {} },
+    theme: supersetTheme,
+  });
+
+  const { getColorFromValue } =
+    transformProps(additiveChartProps).metricColorFormatters[0];
+  // Scale spans the leaf cells (max 40), never the client-side grand total 100.
+  expect(getColorFromValue(40)).toEqual('#ACE1C4FF');
+});
+
+test('result aggregation passes the leaf query data through as a single, unsynthesized level', () => {
+  const resultChartProps = new ChartProps<QueryFormData>({
+    ...chartProps,
+    formData: { ...formData, aggregateFunction: 'Median' },
+    queriesData: [
+      {
+        data: [
+          { row1: 'a', row2: 'x', col1: 'p', col2: 'q', metric1: 10 },
+          { row1: 'a', row2: 'y', col1: 'p', col2: 'q', metric1: 20 },
+        ],
+        colnames: ['row1', 'row2', 'col1', 'col2', 'metric1'],
+        coltypes: [1, 1, 1, 1, 0],
+      },
+    ],
+  });
+
+  const result = transformProps(resultChartProps) as ReturnType<
+    typeof transformProps
+  >;
+  // Passed straight through to PivotTableChart/PivotData, which does the
+  // actual per-scope reduction (see react-pivottable/utilities.test.ts).
+  expect(result.aggregateFunction).toBe('Median');
+  expect(result.data).toHaveLength(1);
+  expect(result.data[0].data).toEqual(resultChartProps.queriesData[0].data);
+  // transposePivot is true in the shared fixture: rows/columns swap, same
+  // as buildQuery.ts's own fullGroupby.
+  expect(result.data[0].groupby).toEqual({
+    rows: formData.groupbyColumns,
+    columns: formData.groupbyRows,
+  });
+});
+
+test('result aggregation wins over the additive fast path for an additive metric', () => {
+  // A SIMPLE SUM metric is additive, which would otherwise take the
+  // synthesized-total path. With a result aggregation selected the leaf rows
+  // must pass through untouched so Median runs over 10/30, not 10/30/40.
+  const additiveResultProps = new ChartProps<QueryFormData>({
+    formData: {
+      ...formData,
+      aggregateFunction: 'Median',
+      combineMetric: false,
+      transposePivot: false,
+      metricsLayout: MetricsLayoutEnum.ROWS,
+      groupbyRows: ['store'],
+      groupbyColumns: [],
+      metrics: [
+        {
+          expressionType: 'SIMPLE',
+          aggregate: 'SUM',
+          column: { column_name: 'sales' },
+          label: 'SUM(sales)',
+        },
+      ],
+      colTotals: true,
+      rowTotals: true,
+    },
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data: [
+          { store: 'A', 'SUM(sales)': 10 },
+          { store: 'B', 'SUM(sales)': 30 },
+        ],
+        colnames: ['store', 'SUM(sales)'],
+        coltypes: [1, 0],
+      },
+    ],
+    hooks: { setDataMask },
+    filterState: { selectedFilters: {} },
+    datasource: { verboseMap: {}, columnFormats: {} },
+    theme: supersetTheme,
+  });
+
+  const result = transformProps(additiveResultProps);
+  expect(result.aggregateFunction).toBe('Median');
+  expect(result.data).toHaveLength(1);
+  expect(result.data[0].data).toEqual(additiveResultProps.queriesData[0].data);
 });

@@ -14,17 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from functools import partial
 from typing import Any, Optional
 
 from marshmallow import Schema
 from marshmallow.exceptions import ValidationError
-from sqlalchemy.sql import delete, insert
 
 from superset import db
+from superset.annotation_layers.schemas import ImportV1AnnotationLayerSchema
 from superset.charts.schemas import ImportV1ChartSchema
+from superset.commands.annotation_layer.importers.v1.utils import (
+    import_annotation_layer,
+)
 from superset.commands.base import BaseCommand
-from superset.commands.chart.importers.v1.utils import import_chart
+from superset.commands.chart.importers.v1.utils import import_charts
 from superset.commands.dashboard.importers.v1.utils import (
     find_chart_uuids,
     import_dashboard,
@@ -49,11 +51,25 @@ from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.extensions import feature_flag_manager
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.core import Database
-from superset.models.dashboard import Dashboard, dashboard_slices
+from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
+from superset.semantic_layers.import_export import (
+    consume_chart_semantic_reference,
+    resolve_bundle_references,
+    restore_dashboard_references,
+    SemanticReferenceError,
+)
+from superset.subjects.utils import get_default_viewers_for_current_user
 from superset.utils.decorators import on_error, transaction
+
+
+def _on_import_error(ex: Exception) -> None:
+    """Keep dependency validation actionable after the transaction rolls back."""
+    if isinstance(ex, SemanticReferenceError):
+        raise ex
+    on_error(ex, catches=(Exception,), reraise=ImportFailedError)
 
 
 class ImportAssetsCommand(BaseCommand):
@@ -65,6 +81,7 @@ class ImportAssetsCommand(BaseCommand):
     """
 
     schemas: dict[str, Schema] = {
+        "annotation_layers/": ImportV1AnnotationLayerSchema(),
         "charts/": ImportV1ChartSchema(),
         "dashboards/": ImportV1DashboardSchema(),
         "datasets/": ImportV1DatasetSchema(),
@@ -103,6 +120,7 @@ class ImportAssetsCommand(BaseCommand):
         overwrite: bool = True,
     ) -> None:
         contents = {} if contents is None else contents
+        semantic_info: dict[str, dict[str, Any]] = resolve_bundle_references(configs)
         # import databases first
         database_ids: dict[str, int] = {}
         dataset_info: dict[str, dict[str, Any]] = {}
@@ -135,53 +153,96 @@ class ImportAssetsCommand(BaseCommand):
             if file_name.startswith("datasets/"):
                 config["database_id"] = database_ids[config["database_uuid"]]
                 dataset = import_dataset(config, overwrite=overwrite)
-                dataset_info[str(dataset.uuid)] = {
+                # Key on the bundle's own uuid, which is what the bundle's
+                # charts reference. An import that resolves onto an existing
+                # dataset by physical identity returns a row whose uuid
+                # differs, and keying on that would strand those charts.
+                dataset_info[str(config["uuid"])] = {
                     "datasource_id": dataset.id,
                     "datasource_type": dataset.datasource_type,
                     "datasource_name": dataset.table_name,
                 }
 
-        # import charts
-        charts = []
+        # Resolve the creator's default viewers once for the whole bundle
+        # rather than once per chart/dashboard (a membership query each).
+        default_viewers = get_default_viewers_for_current_user()
+
+        # import annotation layers before charts so UUID→ID maps are ready
+        annotation_layer_ids: dict[str, int] = {}
+        for file_name, config in configs.items():
+            if file_name.startswith("annotation_layers/"):
+                layer = import_annotation_layer(config, overwrite=overwrite)
+                annotation_layer_ids[str(layer.uuid)] = layer.id
+
+        # import charts; annotation source charts go before the charts using them
+        chart_configs: list[dict[str, Any]] = []
         for file_name, config in configs.items():
             if file_name.startswith("charts/"):
-                dataset_dict = dataset_info[config["dataset_uuid"]]
-                config = update_chart_config_dataset(config, dataset_dict)
-                chart = import_chart(config, overwrite=overwrite)
-                charts.append(chart)
-                chart_ids[str(chart.uuid)] = chart.id
+                dataset_dict: dict[str, Any] | None = consume_chart_semantic_reference(
+                    config, semantic_info
+                )
+                if dataset_dict is None:
+                    dataset_dict = dataset_info[config["dataset_uuid"]]
+                chart_configs.append(update_chart_config_dataset(config, dataset_dict))
+        charts = []
+        for config, chart in import_charts(
+            chart_configs,
+            overwrite=overwrite,
+            default_viewers=default_viewers,
+            annotation_layer_ids=annotation_layer_ids,
+            chart_ids=chart_ids,
+        ):
+            charts.append(chart)
 
-                # Handle tags using import_tag function
-                if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-                    if "tags" in config:
-                        import_tag(
-                            config["tags"], contents, chart.id, "chart", db.session
-                        )
+            # Handle tags using import_tag function
+            if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+                if "tags" in config:
+                    import_tag(config["tags"], contents, chart.id, "chart", db.session)
 
         # import dashboards
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
+                restore_dashboard_references(
+                    config.get("metadata") or {}, semantic_info
+                )
                 config = update_id_refs(config, chart_ids, dataset_info)
-                dashboard = import_dashboard(config, overwrite=overwrite)
+                dashboard = import_dashboard(
+                    config, overwrite=overwrite, default_viewers=default_viewers
+                )
 
                 # set ref in the dashboard_slices table
-                dashboard_chart_ids: list[dict[str, int]] = []
+                # Use ORM-level reassignment instead of Core
+                # delete()/insert() so SQLAlchemy-Continuum's M2M tracker
+                # sees per-row changes through the ORM. Bulk DML via Core
+                # would emit a malformed INSERT into
+                # ``dashboard_slices_version`` (missing the composite-PK
+                # columns) — see the parallel rewrite in
+                # ``DatasetDAO.update_columns`` and the test-factory's
+                # ``delete_dashboard_slices_associations`` for the same
+                # reason.
+                slice_ids: list[int] = []
                 for uuid in find_chart_uuids(config["position"]):
+                    # Skip charts that weren't part of this import; ``continue``
+                    # (not ``break``) so a single missing/unresolved chart uuid
+                    # doesn't truncate the rest. ``find_chart_uuids`` returns a
+                    # set, so a ``break`` here would drop a non-deterministic
+                    # subset of the dashboard's charts.
                     if uuid not in chart_ids:
-                        break
-                    chart_id = chart_ids[uuid]
-                    dashboard_chart_id = {
-                        "dashboard_id": dashboard.id,
-                        "slice_id": chart_id,
-                    }
-                    dashboard_chart_ids.append(dashboard_chart_id)
+                        continue
+                    slice_ids.append(chart_ids[uuid])
 
-                db.session.execute(
-                    delete(dashboard_slices).where(
-                        dashboard_slices.c.dashboard_id == dashboard.id
-                    )
+                dashboard.slices = (
+                    db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+                    if slice_ids
+                    else []
                 )
-                db.session.execute(insert(dashboard_slices).values(dashboard_chart_ids))
+                # Flush eagerly so the M2M rows land in
+                # ``dashboard_slices`` before any subsequent autoflush
+                # fires an inner-flush event handler that would reset
+                # the relationship change (cf. the SAWarning at
+                # ``superset/models/helpers.py`` re. "attribute history
+                # events accumulated ... have been reset").
+                db.session.flush()
 
                 # Handle tags using import_tag function
                 if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
@@ -202,13 +263,7 @@ class ImportAssetsCommand(BaseCommand):
             if chart.viz_type == "filter_box":
                 db.session.delete(chart)
 
-    @transaction(
-        on_error=partial(
-            on_error,
-            catches=(Exception,),
-            reraise=ImportFailedError,
-        )
-    )
+    @transaction(on_error=_on_import_error)
     def run(self) -> None:
         self.validate()
         self._import(self._configs, self.sparse, self.contents, self.overwrite)

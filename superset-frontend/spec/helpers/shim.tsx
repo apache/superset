@@ -87,6 +87,8 @@ setupSupersetClient();
 // and https://github.com/facebook/jest/issues/6814 for more information.
 jest.mock('src/hooks/useTabId', () => ({
   useTabId: () => 1,
+  getTabId: () => 'test-tab-id',
+  subscribeTabIdChange: () => () => {},
 }));
 
 // Check https://github.com/remarkjs/react-markdown/issues/635
@@ -119,7 +121,7 @@ jest.mock('@superset-ui/core/components/Icons/AsyncIcon', () => ({
       const label =
         ariaLabel || fileName?.replace(/_/g, '-').toLowerCase() || '';
       return (
-        // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+        // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
         <span
           ref={ref}
           role={role || (onClick ? 'button' : 'img')}

@@ -1,0 +1,181 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
+import { render, screen } from 'spec/helpers/testing-library';
+import { DatasourceSecurityAccessErrorMessage } from './DatasourceSecurityAccessErrorMessage';
+
+jest.mock(
+  '@superset-ui/core/components/Icons/AsyncIcon',
+  () =>
+    ({ fileName }: { fileName: string }) => (
+      <img alt={fileName.replace('_', '-')} />
+    ),
+);
+
+const baseProps = {
+  error: {
+    error_type: ErrorTypeEnum.DATASOURCE_SECURITY_ACCESS_ERROR,
+    extra: {
+      is_access_denial: true,
+      owners: ['Jane Doe', 'Bob Smith'],
+      link: 'https://access.example.com/request?dataset=12',
+      issue_codes: [{ code: 1017, message: 'Permission issue' }],
+    },
+    level: 'error' as ErrorLevel,
+    message: 'You do not have permission to access this datasource',
+  },
+  source: 'dashboard' as ErrorSource,
+  subtitle: '',
+};
+
+test('shows a friendly title and generic access-denied message', () => {
+  render(<DatasourceSecurityAccessErrorMessage {...baseProps} />);
+  expect(
+    screen.getByText("You don't have access to this chart's data"),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(/You do not have permission to view this chart/),
+  ).toBeInTheDocument();
+});
+
+test('surfaces the chart owners to contact', () => {
+  render(<DatasourceSecurityAccessErrorMessage {...baseProps} />);
+  expect(
+    screen.getByText(/reach out to the chart owners: Jane Doe, Bob Smith/),
+  ).toBeInTheDocument();
+});
+
+test('renders a Request access link to the configured URL', () => {
+  render(<DatasourceSecurityAccessErrorMessage {...baseProps} />);
+  const link = screen.getByRole('link', { name: 'Request access' });
+  expect(link).toHaveAttribute(
+    'href',
+    'https://access.example.com/request?dataset=12',
+  );
+});
+
+test('falls back to administrator guidance when no owners are known', () => {
+  const props = {
+    ...baseProps,
+    error: {
+      ...baseProps.error,
+      extra: { is_access_denial: true },
+    },
+  };
+  render(<DatasourceSecurityAccessErrorMessage {...props} />);
+  expect(
+    screen.getByText(/contact your Superset administrator/),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Request access' })).toBeNull();
+});
+
+test('treats a pre-is_access_denial payload as an access denial', () => {
+  // During a rolling deploy an older API pod answers with `datasource` and
+  // `datasource_name` and no `is_access_denial` flag. The request-access
+  // guidance must still render, and the dataset name must stay hidden.
+  const props = {
+    ...baseProps,
+    error: {
+      ...baseProps.error,
+      extra: {
+        datasource: 12,
+        datasource_name: 'Quarterly Sales',
+        owners: ['Jane Doe'],
+      },
+      message: 'This endpoint requires the datasource 12',
+    },
+  };
+  render(<DatasourceSecurityAccessErrorMessage {...props} />);
+  expect(
+    screen.getByText("You don't have access to this chart's data"),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(/reach out to the chart owner: Jane Doe/),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(/Quarterly Sales/)).toBeNull();
+});
+
+test('suppresses the request-access link for a pre-is_access_denial payload', () => {
+  // A pre-fix backend may have already templated the dataset name into
+  // `extra.link`. Without `is_access_denial` (or `tables`) to prove the
+  // payload is safe, the link must not render even though it's present.
+  const props = {
+    ...baseProps,
+    error: {
+      ...baseProps.error,
+      extra: {
+        datasource: 12,
+        datasource_name: 'Quarterly Sales',
+        owners: ['Jane Doe'],
+        link: 'https://access.example.com/request?dataset=12&name=Quarterly+Sales',
+      },
+      message: 'This endpoint requires the datasource 12',
+    },
+  };
+  render(<DatasourceSecurityAccessErrorMessage {...props} />);
+  expect(screen.queryByRole('link', { name: 'Request access' })).toBeNull();
+});
+
+test('explains table access for TABLE_SECURITY_ACCESS_ERROR', () => {
+  const props = {
+    ...baseProps,
+    error: {
+      ...baseProps.error,
+      error_type: ErrorTypeEnum.TABLE_SECURITY_ACCESS_ERROR,
+      extra: { tables: ['public.sales', 'public.users'] },
+    },
+  };
+  render(<DatasourceSecurityAccessErrorMessage {...props} />);
+  expect(screen.getByText(/public.sales, public.users/)).toBeInTheDocument();
+});
+
+test('renders plainly when the error carries no access payload', () => {
+  // DATASOURCE_SECURITY_ACCESS_ERROR is reused for virtual-dataset SQL
+  // validation ("Only SELECT statements are allowed"); without an access
+  // payload the component must not show request-access guidance.
+  const props = {
+    ...baseProps,
+    error: {
+      ...baseProps.error,
+      extra: null,
+      message: 'Only `SELECT` statements are allowed',
+    },
+  };
+  render(<DatasourceSecurityAccessErrorMessage {...props} />);
+  expect(
+    screen.getByText(/Only `SELECT` statements are allowed/),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(/Request access/)).toBeNull();
+  expect(screen.queryByText(/access to this chart's data/)).toBeNull();
+});
+
+test('uses query wording for the sqllab source', () => {
+  const props = {
+    ...baseProps,
+    source: 'sqllab' as ErrorSource,
+  };
+  render(<DatasourceSecurityAccessErrorMessage {...props} />);
+  expect(
+    screen.getByText(/You do not have permission to view this data/),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText("You don't have access to this data"),
+  ).toBeInTheDocument();
+});

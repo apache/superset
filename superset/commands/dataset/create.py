@@ -16,11 +16,12 @@
 # under the License.
 import logging
 from functools import partial
-from typing import Any, Optional
+from typing import Any, TYPE_CHECKING
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
+from superset import is_feature_enabled
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.dataset.exceptions import (
     DatabaseNotFoundValidationError,
@@ -28,13 +29,40 @@ from superset.commands.dataset.exceptions import (
     DatasetDataAccessIsNotAllowed,
     DatasetExistsValidationError,
     DatasetInvalidError,
+    DatasetSoftDeletedTwinExistsError,
+    DatasetSqlRenderValidationError,
     TableNotFoundValidationError,
+    TEMPLATE_RENDER_ERRORS,
+    TemplateParamsInvalidValidationError,
+)
+from superset.commands.utils import populate_subjects
+from superset.connectors.sqla.partition_mapping import (
+    FEATURE_FLAG as PARTITION_FILTER_MAPPING,
+    validate_partition_mapping,
 )
 from superset.daos.dataset import DatasetDAO
-from superset.exceptions import SupersetParseError, SupersetSecurityException
+from superset.db_engine_specs.exceptions import (
+    SupersetDBAPIConnectionError,
+    SupersetDBAPIDatabaseError,
+    SupersetDBAPIOperationalError,
+)
+from superset.exceptions import (
+    OAuth2RedirectError,
+    SupersetException,
+    SupersetParseError,
+    SupersetSecurityException,
+    SupersetTimeoutException,
+)
 from superset.extensions import security_manager
-from superset.sql.parse import Table
+from superset.models.helpers import (
+    parse_template_params,
+    template_params_for_access_check,
+)
+from superset.sql.parse import process_jinja_sql, Table
 from superset.utils.decorators import on_error, transaction
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlaTable
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +76,40 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         self.validate()
 
         dataset = DatasetDAO.create(attributes=self._properties)
-        dataset.fetch_metadata()
+        try:
+            dataset.fetch_metadata()
+        except OAuth2RedirectError:
+            # Must reach the caller unchanged to start the OAuth2 dance.
+            raise
+        except (
+            SupersetTimeoutException,
+            SupersetDBAPIConnectionError,
+            SupersetDBAPIOperationalError,
+            SupersetDBAPIDatabaseError,
+        ):
+            # Infra-level failures (unreachable database, query timeout), not
+            # bad user input: let them propagate with their own status
+            # instead of being coerced into a 422 "invalid table" error.
+            raise
+        except SupersetException as ex:
+            # Not a SQLAlchemyError, so ``on_error`` re-raises it untouched and
+            # it escapes to FAB's ``@safe`` as an opaque 500 "Fatal error".
+            # Deliberately covers the 403 ``SupersetSecurityException`` raised
+            # for mutation/multi-statement SQL too: ``validate()`` already
+            # reports that class of rejection as a 422 on ``sql`` via
+            # ``DatasetDataAccessIsNotAllowed``.
+            raise DatasetInvalidError(
+                exceptions=[
+                    ValidationError(
+                        # ``lazy_gettext`` messages aren't ``str``, so
+                        # marshmallow won't wrap them into a list on its own.
+                        [str(ex.message)],
+                        field_name="sql" if self._properties.get("sql") else "table",
+                    )
+                ]
+            ) from ex
+
+        self._validate_partition_mapping_after_sync(dataset)
         return dataset
 
     def validate(self) -> None:  # noqa: C901
@@ -58,7 +119,23 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         schema = self._properties.get("schema")
         table_name = self._properties["table_name"]
         sql = self._properties.get("sql")
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
+        # The access check below must render the SQL with the same template
+        # params that will be stored and executed, so a templated table
+        # reference is authorized as the table it actually resolves to rather
+        # than its ``default()``. Only a virtual dataset's SQL renders them, so
+        # a physical dataset's params are left unparsed as before; params that
+        # cannot be read as execution reads them are rejected (fail closed)
+        # rather than authorized against a guess.
+        template_params: dict[str, Any] = {}
+        template_params_valid = True
+        if sql:
+            try:
+                template_params = parse_template_params(
+                    self._properties.get("template_params")
+                )
+            except ValueError:
+                template_params_valid = False
+                exceptions.append(TemplateParamsInvalidValidationError())
 
         # Validate/Populate database
         database = DatasetDAO.get_database_by_id(database_id)
@@ -71,9 +148,96 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             if not catalog:
                 catalog = self._properties["catalog"] = database.get_default_catalog()
 
+            if sql:
+                try:
+                    # Render with the params chart execution exposes, so the
+                    # derived schema comes from the SQL the access check sees.
+                    parse_result = process_jinja_sql(
+                        sql,
+                        database,
+                        template_params_for_access_check(template_params),
+                    )
+                except Exception:  # pylint: disable=broad-exception-caught
+                    logger.debug(
+                        "Keeping submitted dataset schema because optional SQL "
+                        "template processing failed",
+                        exc_info=True,
+                    )
+                else:
+                    script = parse_result.script
+                    tables = {table for table in parse_result.tables if table.table}
+                    if len(tables) != len(parse_result.tables):
+                        logger.debug(
+                            "Ignoring empty table-name parser artifacts while deriving "
+                            "the dataset schema"
+                        )
+
+                    if script.has_unparseable_statement:
+                        logger.debug(
+                            "Keeping submitted dataset schema because the SQL contains "
+                            "an unparseable statement"
+                        )
+                    elif script.has_show_statement():
+                        logger.debug(
+                            "Keeping submitted dataset schema because the SQL contains "
+                            "a metadata statement"
+                        )
+                    elif script.has_mutation():
+                        logger.debug(
+                            "Keeping submitted dataset schema because the SQL mutates "
+                            "database state"
+                        )
+                    elif script.changes_default_schema():
+                        logger.debug(
+                            "Keeping submitted dataset schema because the SQL changes "
+                            "the default schema"
+                        )
+                    elif script.has_quoted_table_location():
+                        logger.debug(
+                            "Keeping submitted dataset schema because a quoted table "
+                            "location may have case-sensitive identity"
+                        )
+                    elif not tables:
+                        logger.debug(
+                            "Keeping submitted dataset schema because the SQL has no "
+                            "table references"
+                        )
+                    elif any(table.schema is None for table in tables):
+                        logger.debug(
+                            "Keeping submitted dataset schema because the SQL has an "
+                            "unqualified table reference"
+                        )
+                    elif (
+                        len(
+                            qualified_table_locations := {
+                                (table.catalog, table.schema) for table in tables
+                            }
+                        )
+                        != 1
+                    ):
+                        logger.debug(
+                            "Keeping submitted dataset schema because the SQL spans "
+                            "multiple catalog/schema locations"
+                        )
+                    else:
+                        derived_catalog, derived_schema = next(
+                            iter(qualified_table_locations)
+                        )
+                        schema = self._properties["schema"] = derived_schema
+                        if derived_catalog is not None:
+                            catalog = self._properties["catalog"] = derived_catalog
+
             table = Table(table_name, schema, catalog)
 
             if not DatasetDAO.validate_uniqueness(database, table):
+                # Distinguish the hidden-twin case: uniqueness fails while
+                # the caller's dataset list looks empty. Raise the targeted
+                # 422 (naming the twin's uuid and the restore endpoint)
+                # instead of the opaque "already exists".
+                if soft_twin := DatasetDAO.find_soft_deleted_logical_duplicate(
+                    database, table
+                ):
+                    raise DatasetSoftDeletedTwinExistsError(str(soft_twin.uuid))
                 exceptions.append(DatasetExistsValidationError(table))
 
         # Validate table exists on dataset if sql is not provided
@@ -86,34 +250,151 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             exceptions.append(TableNotFoundValidationError(table))
 
         if sql:
-            try:
-                security_manager.raise_for_access(
-                    database=database,
-                    sql=sql,
-                    catalog=catalog,
-                    schema=schema,
-                )
-            except SupersetSecurityException as ex:
-                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
-            except SupersetParseError as ex:
-                exceptions.append(
-                    ValidationError(
-                        f"Invalid SQL: {ex.error.message}",
-                        field_name="sql",
+            # Unreadable params already failed validation above; skip the check
+            # rather than report an access decision made against other params.
+            if template_params_valid:
+                try:
+                    security_manager.raise_for_access(
+                        database=database,
+                        sql=sql,
+                        catalog=catalog,
+                        schema=schema,
+                        template_params=template_params_for_access_check(
+                            template_params
+                        ),
+                        allow_editorship=False,
                     )
-                )
+                except SupersetSecurityException as ex:
+                    exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
+                except SupersetParseError as ex:
+                    exceptions.append(
+                        ValidationError(
+                            f"Invalid SQL: {ex.error.message}",
+                            field_name="sql",
+                        )
+                    )
+                except TEMPLATE_RENDER_ERRORS as ex:
+                    exceptions.append(DatasetSqlRenderValidationError(ex))
         elif database:
             try:
                 security_manager.raise_for_access(
                     database=database,
                     table=table,
+                    allow_editorship=False,
                 )
             except SupersetSecurityException as ex:
                 exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
-        try:
-            owners = self.populate_owners(owner_ids)
-            self._properties["owners"] = owners
-        except ValidationError as ex:
-            exceptions.append(ex)
+
+        # Datasets have editors only — there is no ``sqlatable_viewers`` table,
+        # so a ``viewers`` key would be dropped by the DAO's ``setattr`` loop.
+        populate_subjects(self._properties, exceptions, include_viewers=False)
+
+        self._validate_partition_mapping(exceptions)
+
         if exceptions:
+            raise DatasetInvalidError(exceptions=exceptions)
+
+    def _validate_partition_mapping(self, exceptions: list[ValidationError]) -> None:
+        """
+        Reject a partition mapping that cannot work, at create time too.
+
+        `UpdateDatasetCommand` has validated this since the mapping landed, but
+        create did not, so the same mapping accepted on POST and rejected on PUT
+        was reachable -- and once stored it is only reported as broken by the
+        editor, which an API-only caller never opens.
+
+        What create can check here is narrower than what update can. The
+        dataset's columns are synced by `fetch_metadata` *after* this runs, so
+        "is that a real column?" has no answer yet; both submitted names are
+        therefore passed as known so the existence checks pass trivially and the
+        checks that do not need a column list still run. There is no column
+        payload on POST either, so no transform can arrive here to validate.
+
+        `_validate_partition_mapping_after_sync` asks the existence question
+        once the sync has answered it. Both passes earn their place: this one
+        rejects a self-mapping before anything is written, costing no insert and
+        no rollback.
+        """
+        if not is_feature_enabled(PARTITION_FILTER_MAPPING):
+            return
+
+        partition_column = self._properties.get("partition_column")
+        database = self._properties.get("database")
+        if not partition_column or not database:
+            # No database means the caller already has a
+            # `DatabaseNotFoundValidationError`; there is no engine to validate
+            # a mapping against and no value in a second error about it.
+            return
+
+        partition_mapped_column = self._properties.get("partition_mapped_column")
+        for issue in validate_partition_mapping(
+            column_names={
+                name
+                for name in (partition_column, partition_mapped_column)
+                if name is not None
+            },
+            partition_column=partition_column,
+            partition_mapped_column=partition_mapped_column,
+            main_dttm_col=None,
+            transform=None,
+            engine=database.backend,
+        ):
+            if issue.blocking:
+                exceptions.append(
+                    ValidationError(str(issue.message), field_name=issue.field)
+                )
+
+    def _validate_partition_mapping_after_sync(self, dataset: "SqlaTable") -> None:
+        """
+        Reject a mapping naming a column the dataset turns out not to have.
+
+        `validate()` cannot answer this -- the columns arrive from
+        `fetch_metadata`, which runs after it -- so a POST naming a column that
+        does not exist was accepted, and then failed *every* later save,
+        including a description-only PUT and a plain editor save with no change,
+        because `UpdateDatasetCommand` asks the same question against the real
+        columns. Clearing the partition column was the only way out: the dataset
+        was created in a state it could not be saved from.
+
+        Asked here rather than by introspecting the physical table during
+        `validate()`, because the sync answers for a virtual dataset too and
+        introspection would cover only half the cases.
+
+        Rejecting, not quietly dropping -- which is what `RefreshDatasetCommand`
+        and the v1 importer do after their own syncs. They reconcile a mapping
+        stored by an earlier request against columns that moved underneath it,
+        while this request named the column itself. Update draws the same line:
+        only a *stored* reference is forgiven.
+
+        The sync also populates `main_dttm_col`, so the implicit self-mapping
+        check is live here where it was inert in `validate()`. That one is Tier 2
+        by design -- blocking it would recreate exactly the unsaveable dataset
+        this method exists to prevent -- and filtering on `issue.blocking` drops
+        it. The transform is still `None`: POST carries no column payload.
+        """
+        if not is_feature_enabled(PARTITION_FILTER_MAPPING):
+            return
+
+        partition_column = self._properties.get("partition_column")
+        if not partition_column:
+            return
+
+        if exceptions := [
+            ValidationError(str(issue.message), field_name=issue.field)
+            for issue in validate_partition_mapping(
+                column_names={column.column_name for column in dataset.columns},
+                partition_column=partition_column,
+                partition_mapped_column=self._properties.get("partition_mapped_column"),
+                main_dttm_col=dataset.main_dttm_col,
+                transform=None,
+                engine=dataset.database.backend,
+            )
+            if issue.blocking
+        ]:
+            # Raised outside `run()`'s `try`, whose `SupersetException` arm
+            # relabels what it catches onto `sql`/`table`. `@transaction` rolls
+            # the insert back and re-raises anything that is not a
+            # `SQLAlchemyError` untouched, so the half-created dataset goes with
+            # the rollback and the caller gets the same 422, on the same field,
+            # with the same message a PUT would have given them.
             raise DatasetInvalidError(exceptions=exceptions)

@@ -135,17 +135,18 @@ def _add_table_metrics(datasource: SqlaTable) -> None:
     if not any(col.column_name == "num_california" for col in columns):
         col_state = str(column("state").compile(db.engine))
         col_num = str(column("num").compile(db.engine))
-        columns.append(
-            TableColumn(
-                column_name="num_california",
-                expression="CASE WHEN %s = 'CA' THEN %s ELSE 0 END"
-                % (col_state, col_num),
-            )
+        column_it = TableColumn(
+            column_name="num_california",
+            expression="CASE WHEN %s = 'CA' THEN %s ELSE 0 END" % (col_state, col_num),
         )
+        db.session.add(column_it)
+        columns.append(column_it)
 
     if not any(col.metric_name == "sum__num" for col in metrics):
         col = str(column("num").compile(db.engine))
-        metrics.append(SqlMetric(metric_name="sum__num", expression="SUM(%s)" % col))
+        metric = SqlMetric(metric_name="sum__num", expression="SUM(%s)" % col)
+        db.session.add(metric)
+        metrics.append(metric)
 
     for col in columns:
         if col.column_name == "ds":  # type: ignore
@@ -157,6 +158,8 @@ def _add_table_metrics(datasource: SqlaTable) -> None:
 
 
 def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
+    from superset.subjects.utils import get_user_subject
+
     owner = security_manager.get_user_by_id(1)
     metrics = [
         {
@@ -169,17 +172,18 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
     ]
     metric = "sum__num"
 
-    defaults = {
+    shared_defaults = {
         "compare_lag": "10",
         "compare_suffix": "o10Y",
         "limit": "25",
-        "granularity_sqla": "ds",
         "groupby": [],
         "row_limit": current_app.config["ROW_LIMIT"],
         "time_range": "100 years ago : now",
         "viz_type": "table",
         "markup_type": "markdown",
     }
+    non_echarts_defaults = {**shared_defaults, "granularity": "ds"}
+    echarts_x_axis_defaults = {**shared_defaults, "x_axis": "ds"}
 
     default_query_context = {
         "result_format": "json",
@@ -208,45 +212,47 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Participants",
             viz_type="big_number",
             params=get_slice_json(
-                defaults,
+                non_echarts_defaults,
                 viz_type="big_number",
-                granularity_sqla="ds",
+                granularity="ds",
                 compare_lag="5",
                 compare_suffix="over 5Y",
                 metric=metric,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
             slice_name="Genders",
             viz_type="pie",
             params=get_slice_json(
-                defaults, viz_type="pie", groupby=["gender"], metric=metric
+                non_echarts_defaults,
+                viz_type="pie",
+                groupby=["gender"],
+                metric=metric,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
             slice_name="Trends",
             viz_type="echarts_timeseries_line",
             params=get_slice_json(
-                defaults,
+                echarts_x_axis_defaults,
                 viz_type="echarts_timeseries_line",
                 groupby=["name"],
-                granularity_sqla="ds",
                 rich_tooltip=True,
                 show_legend=True,
                 metrics=metrics,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
             slice_name="Genders by State",
             viz_type="echarts_timeseries_bar",
             params=get_slice_json(
-                defaults,
+                echarts_x_axis_defaults,
                 adhoc_filters=[
                     {
                         "clause": "WHERE",
@@ -276,28 +282,28 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 ],
                 groupby=["state"],
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
             slice_name="Girls",
             viz_type="table",
             params=get_slice_json(
-                defaults,
+                non_echarts_defaults,
                 groupby=["name"],
                 adhoc_filters=[gen_filter("gender", "girl")],
                 row_limit=50,
-                timeseries_limit_metric=metric,
+                series_limit_metric=metric,
                 metrics=[metric],
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
             slice_name="Girl Name Cloud",
             viz_type="word_cloud",
             params=get_slice_json(
-                defaults,
+                non_echarts_defaults,
                 viz_type="word_cloud",
                 size_from="10",
                 series="name",
@@ -307,28 +313,28 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 adhoc_filters=[gen_filter("gender", "girl")],
                 metric=metric,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
             slice_name="Boys",
             viz_type="table",
             params=get_slice_json(
-                defaults,
+                non_echarts_defaults,
                 groupby=["name"],
                 adhoc_filters=[gen_filter("gender", "boy")],
                 row_limit=50,
-                timeseries_limit_metric=metric,
+                series_limit_metric=metric,
                 metrics=[metric],
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
             slice_name="Boy Name Cloud",
             viz_type="word_cloud",
             params=get_slice_json(
-                defaults,
+                non_echarts_defaults,
                 viz_type="word_cloud",
                 size_from="10",
                 series="name",
@@ -338,14 +344,14 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 adhoc_filters=[gen_filter("gender", "boy")],
                 metric=metric,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
             slice_name="Top 10 Girl Name Share",
             viz_type="echarts_area",
             params=get_slice_json(
-                defaults,
+                echarts_x_axis_defaults,
                 adhoc_filters=[gen_filter("gender", "girl")],
                 comparison_type="values",
                 groupby=["name"],
@@ -353,17 +359,17 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 stacked_style="expand",
                 time_grain_sqla="P1D",
                 viz_type="echarts_area",
-                x_axis_forma="smart_date",
+                x_axis_time_format="smart_date",
                 metrics=metrics,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
             slice_name="Top 10 Boy Name Share",
             viz_type="echarts_area",
             params=get_slice_json(
-                defaults,
+                echarts_x_axis_defaults,
                 adhoc_filters=[gen_filter("gender", "boy")],
                 comparison_type="values",
                 groupby=["name"],
@@ -371,17 +377,17 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 stacked_style="expand",
                 time_grain_sqla="P1D",
                 viz_type="echarts_area",
-                x_axis_forma="smart_date",
+                x_axis_time_format="smart_date",
                 metrics=metrics,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
             slice_name="Pivot Table v2",
             viz_type="pivot_table_v2",
             params=get_slice_json(
-                defaults,
+                non_echarts_defaults,
                 viz_type="pivot_table_v2",
                 groupbyRows=["name"],
                 groupbyColumns=["state"],
@@ -396,7 +402,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                     }
                 ],
             ),
-            owners=[],
+            editors=[],
         ),
     ]
     misc_slices = [
@@ -405,7 +411,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Average and Sum Trends",
             viz_type="mixed_timeseries",
             params=get_slice_json(
-                defaults,
+                echarts_x_axis_defaults,
                 viz_type="mixed_timeseries",
                 metrics=[
                     {
@@ -417,27 +423,28 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                     }
                 ],
                 metrics_b=["sum__num"],
-                granularity_sqla="ds",
                 yAxisIndex=0,
                 yAxisIndexB=1,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
             slice_name="Num Births Trend",
             viz_type="echarts_timeseries_line",
             params=get_slice_json(
-                defaults, viz_type="echarts_timeseries_line", metrics=metrics
+                echarts_x_axis_defaults,
+                viz_type="echarts_timeseries_line",
+                metrics=metrics,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
             slice_name="Daily Totals",
             viz_type="table",
             params=get_slice_json(
-                defaults,
+                non_echarts_defaults,
                 groupby=["ds"],
                 time_range="1983 : 2023",
                 viz_type="table",
@@ -453,14 +460,14 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                     }
                 ],
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
             slice_name="Number of California Births",
             viz_type="big_number_total",
             params=get_slice_json(
-                defaults,
+                non_echarts_defaults,
                 metric={
                     "expressionType": "SIMPLE",
                     "column": {
@@ -471,16 +478,16 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                     "label": "SUM(num_california)",
                 },
                 viz_type="big_number_total",
-                granularity_sqla="ds",
+                granularity="ds",
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
             slice_name="Top 10 California Names Timeseries",
             viz_type="echarts_timeseries_line",
             params=get_slice_json(
-                defaults,
+                echarts_x_axis_defaults,
                 metrics=[
                     {
                         "expressionType": "SIMPLE",
@@ -493,9 +500,8 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                     }
                 ],
                 viz_type="echarts_timeseries_line",
-                granularity_sqla="ds",
                 groupby=["name"],
-                timeseries_limit_metric={
+                series_limit_metric={
                     "expressionType": "SIMPLE",
                     "column": {
                         "column_name": "num_california",
@@ -506,18 +512,20 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 },
                 limit="10",
             ),
-            owners=[owner] if owner else [],
+            editors=[get_user_subject(owner.id)]
+            if owner and get_user_subject(owner.id)
+            else [],
         ),
         Slice(
             **slice_kwargs,
             slice_name="Names Sorted by Num in California",
             viz_type="table",
             params=get_slice_json(
-                defaults,
+                non_echarts_defaults,
                 metrics=metrics,
                 groupby=["name"],
                 row_limit=50,
-                timeseries_limit_metric={
+                series_limit_metric={
                     "expressionType": "SIMPLE",
                     "column": {
                         "column_name": "num_california",
@@ -527,34 +535,34 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                     "label": "SUM(num_california)",
                 },
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
             slice_name="Number of Girls",
             viz_type="big_number_total",
             params=get_slice_json(
-                defaults,
+                non_echarts_defaults,
                 metric=metric,
                 viz_type="big_number_total",
-                granularity_sqla="ds",
+                granularity="ds",
                 adhoc_filters=[gen_filter("gender", "girl")],
                 subheader="total female participants",
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
             slice_name="Pivot Table",
             viz_type="pivot_table_v2",
             params=get_slice_json(
-                defaults,
+                non_echarts_defaults,
                 viz_type="pivot_table_v2",
                 groupbyRows=["name"],
                 groupbyColumns=["state"],
                 metrics=metrics,
             ),
-            owners=[],
+            editors=[],
         ),
     ]
     for slc in slices:

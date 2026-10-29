@@ -25,10 +25,12 @@ pinning against regressions.
 
 import importlib.util
 import json  # noqa: TID251 - testing a standalone script that uses stdlib json
+import shlex
 from pathlib import Path
 
 import polib  # type: ignore[import-untyped]
 import pytest
+from babel.messages.frontend import CommandLineInterface
 
 _SCRIPT_PATH = (
     Path(__file__).resolve().parents[4] / "scripts" / "translations" / "backfill_po.py"
@@ -38,6 +40,24 @@ assert _spec is not None, f"Could not load {_SCRIPT_PATH}"
 assert _spec.loader is not None, f"No loader on spec for {_SCRIPT_PATH}"
 backfill_po = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(backfill_po)
+
+
+@pytest.mark.parametrize(
+    "lang",
+    ["fr", "de", "pt_BR", "zh_TW", "sr_Latn", "eng"],
+)
+def test_is_valid_lang_code_accepts_region_and_script_subtags(lang: str) -> None:
+    """Region (``pt_BR``) and script (``sr_Latn``) subtags are both valid."""
+    assert backfill_po._is_valid_lang_code(lang)
+
+
+@pytest.mark.parametrize(
+    "lang",
+    ["", "e", "EN", "fr_", "fr_br", "fr_BRA", "../etc", "en_US_x", "sr-Latn"],
+)
+def test_is_valid_lang_code_rejects_malformed_and_traversal(lang: str) -> None:
+    """Malformed codes and path-traversal attempts are rejected."""
+    assert not backfill_po._is_valid_lang_code(lang)
 
 
 def test_parse_response_singular_strings() -> None:
@@ -343,3 +363,414 @@ def test_ensure_license_header_dry_run_does_not_write(tmp_path: Path) -> None:
     po.write_text(original, encoding="utf-8")
     backfill_po._ensure_license_header(po, dry_run=True)
     assert po.read_text(encoding="utf-8") == original
+
+
+# --- _resilient_translate: batch bisection + plain-text fallback ---------------
+#
+# A source string containing a literal double-quote can make the model emit
+# unescaped quotes, so the batch's JSON response fails to parse and the whole
+# batch is lost. _resilient_translate isolates such entries by bisecting the
+# batch and falls back to a plain-text prompt for a lone offender. The stub
+# below simulates that failure mode: any batch containing a quoted msgid raises
+# ValueError (as parse_response would), everything else maps positionally.
+
+
+def _qitem(msgid: str) -> dict[str, str]:
+    return {"msgid": msgid, "index_key": msgid}
+
+
+def _fake_translate_batch(
+    model: str,
+    target_lang: str,
+    batch: list[dict[str, str]],
+    index: dict[str, object],
+) -> dict[int, str]:
+    if any('"' in it["msgid"] for it in batch):
+        raise ValueError("simulated unparseable JSON")
+    return {i: f"T:{it['msgid']}" for i, it in enumerate(batch)}
+
+
+def test_resilient_translate_passthrough_when_batch_parses(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A cleanly-parsing batch is returned as-is, without bisection."""
+    monkeypatch.setattr(backfill_po, "translate_batch", _fake_translate_batch)
+    result = backfill_po._resilient_translate(
+        "m", "fr", [_qitem("Alpha"), _qitem("Beta")], {}
+    )
+    assert result == {0: "T:Alpha", 1: "T:Beta"}
+
+
+def test_resilient_translate_bisects_and_falls_back_on_poison(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The quote-bearing entry is isolated and filled via plain-text fallback,
+    while every other entry keeps its original batch position."""
+    monkeypatch.setattr(backfill_po, "translate_batch", _fake_translate_batch)
+    monkeypatch.setattr(
+        backfill_po,
+        "_translate_single_plaintext",
+        lambda model, lang, item, index: f"PT:{item['msgid']}",
+    )
+    batch = [_qitem("Alpha"), _qitem("Beta"), _qitem('Has "quote"'), _qitem("Delta")]
+    result = backfill_po._resilient_translate("m", "fr", batch, {})
+    assert result == {
+        0: "T:Alpha",
+        1: "T:Beta",
+        2: 'PT:Has "quote"',
+        3: "T:Delta",
+    }
+
+
+def test_resilient_translate_drops_entry_when_fallback_returns_none(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A lone entry that even the plain-text fallback can't render is dropped
+    (absent key) rather than sinking the surviving entries."""
+    monkeypatch.setattr(backfill_po, "translate_batch", _fake_translate_batch)
+    monkeypatch.setattr(
+        backfill_po,
+        "_translate_single_plaintext",
+        lambda model, lang, item, index: None,
+    )
+    result = backfill_po._resilient_translate(
+        "m", "fr", [_qitem("Alpha"), _qitem('Bad "one"')], {}
+    )
+    assert result == {0: "T:Alpha"}
+
+
+def test_resilient_translate_propagates_runtime_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A CLI failure (RuntimeError) is not a content problem, so it propagates
+    to the caller's per-batch handler instead of triggering a bisect."""
+
+    def _boom(
+        model: str,
+        target_lang: str,
+        batch: list[dict[str, str]],
+        index: dict[str, object],
+    ) -> dict[int, str]:
+        raise RuntimeError("claude CLI exploded")
+
+    monkeypatch.setattr(backfill_po, "translate_batch", _boom)
+    with pytest.raises(RuntimeError):
+        backfill_po._resilient_translate("m", "fr", [_qitem("Alpha")], {})
+
+
+# --- _is_do_not_translate: never machine-fill literal tokens -------------------
+
+
+def test_is_do_not_translate_registry_msgid() -> None:
+    """A msgid in the do-not-translate registry is protected (icon names,
+    enum values, SQL keywords, API field names, placeholders)."""
+    for msgid in ("bolt", "error_message", "step-after", "GROUP BY"):
+        assert backfill_po._is_do_not_translate(polib.POEntry(msgid=msgid, msgstr=""))
+
+
+def test_load_do_not_translate_strips_whitespace(tmp_path: Path) -> None:
+    """Registry lines are stripped before the blank/comment checks (matching
+    apply_do_not_translate.py), so trailing spaces or indented comments never
+    yield msgids that fail to match catalog entries."""
+    registry = tmp_path / "do-not-translate.txt"
+    registry.write_text(
+        "error_message \n  # indented comment\n\t\nbolt\n", encoding="utf-8"
+    )
+    assert backfill_po._load_do_not_translate(registry) == frozenset(
+        {"error_message", "bolt"}
+    )
+
+
+def test_is_do_not_translate_honors_extracted_marker() -> None:
+    """The standardized `#. do-not-translate` extracted comment
+    (propagated from the .pot) is honored even for a msgid not in the registry."""
+    entry = polib.POEntry(msgid="not-in-registry-token", msgstr="")
+    entry.comment = "do-not-translate"  # polib .comment == `#.`
+    assert backfill_po._is_do_not_translate(entry)
+
+
+def test_is_do_not_translate_honors_translator_comment() -> None:
+    """An explicit do-not-translate translator comment is honored, in any
+    language (e.g. the ru catalog's Cyrillic marker) and phrasing."""
+    for comment in ("Не переводить", "do not translate", "DO-NOT-TRANSLATE"):
+        entry = polib.POEntry(msgid="Some label", msgstr="")
+        entry.tcomment = comment
+        assert backfill_po._is_do_not_translate(entry)
+
+
+def test_is_do_not_translate_allows_normal_entry() -> None:
+    """An ordinary translatable string is not flagged."""
+    entry = polib.POEntry(msgid="Save dashboard", msgstr="")
+    entry.tcomment = "Machine-translated via backfill_po.py (claude-x) [no refs]"
+    assert not backfill_po._is_do_not_translate(entry)
+
+
+@pytest.mark.parametrize(
+    "comment",
+    [
+        "i18n: the short identifier in a URL; do not translate as the animal",
+        "i18n: translate Slug as a URL identifier; do not translate as an animal",
+        "i18n: don't translate as a server tier",
+        "i18n: a URL identifier,\ndo not translate it as the animal",
+        "i18n: a product term, not on the do-not-translate list",
+    ],
+)
+def test_is_do_not_translate_ignores_prose_in_an_i18n_note(comment: str) -> None:
+    """An ``i18n:`` note saying how *not* to translate a term is guidance on
+    meaning, not a do-not-translate marker: the entry still gets translated,
+    with the note in the prompt."""
+    entry = polib.POEntry(msgid="Slug", msgstr="", comment=comment)
+    assert not backfill_po._is_do_not_translate(entry)
+
+
+def test_is_do_not_translate_honors_marker_beside_an_i18n_note() -> None:
+    """The stamped marker line still counts when the entry also has a note."""
+    entry = polib.POEntry(
+        msgid="not-in-registry-token",
+        msgstr="",
+        comment="i18n: an API field name\ndo-not-translate",
+    )
+    assert backfill_po._is_do_not_translate(entry)
+
+
+def test_backfill_skips_do_not_translate_entries_end_to_end(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """End-to-end: ``backfill`` must never hand a do-not-translate entry to the
+    translator, and must leave it untranslated in the written .po, while normal
+    entries are filled. Guards against the filter being applied at the wrong
+    stage or dropped entirely."""
+    lang = "es"
+    po_dir = tmp_path / lang / "LC_MESSAGES"
+    po_dir.mkdir(parents=True)
+    po_path = po_dir / "messages.po"
+    # One curated DNT msgid, one translator-marked DNT entry, one entry whose
+    # i18n note says "do not translate as ..." in prose, one normal entry.
+    po_path.write_text(
+        'msgid ""\nmsgstr ""\n\n'
+        'msgid "bolt"\nmsgstr ""\n\n'
+        '# Не переводить\nmsgid "Keep me literal"\nmsgstr ""\n\n'
+        "#. i18n: a URL identifier; do not translate as the animal\n"
+        'msgid "Slug"\nmsgstr ""\n\n'
+        'msgid "Save dashboard"\nmsgstr ""\n',
+        encoding="utf-8",
+    )
+    index_path = tmp_path / "translation_index.json"
+    index_path.write_text("{}", encoding="utf-8")
+
+    monkeypatch.setattr(backfill_po, "TRANSLATIONS_DIR", tmp_path)
+
+    seen_msgids: list[str] = []
+
+    def _fake_translate_batch(
+        model: str,
+        target_lang: str,
+        batch: list[dict[str, str]],
+        index: dict[str, object],
+    ) -> dict[int, str]:
+        seen_msgids.extend(it["msgid"] for it in batch)
+        return {i: f"T:{it['msgid']}" for i, it in enumerate(batch)}
+
+    monkeypatch.setattr(backfill_po, "translate_batch", _fake_translate_batch)
+
+    backfill_po.backfill(lang, index_path=index_path, mark_fuzzy=False)
+
+    # DNT entries never reached the translator …
+    assert "bolt" not in seen_msgids
+    assert "Keep me literal" not in seen_msgids
+    assert seen_msgids == ["Slug", "Save dashboard"]
+
+    # … and stay untranslated in the written file, while the normal one is filled.
+    written = polib.pofile(str(po_path))
+    assert written.find("bolt").msgstr == ""
+    assert written.find("Keep me literal").msgstr == ""
+    assert written.find("Slug").msgstr == "T:Slug"
+    assert written.find("Save dashboard").msgstr == "T:Save dashboard"
+
+
+# --- i18n: developer notes -------------------------------------------------
+
+_BACKEND_NOTE = (
+    "the kind of system behind a connection: a database engine "
+    "(PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver"
+)
+
+
+@pytest.mark.parametrize(
+    ("comment", "expected"),
+    [
+        ("i18n: a URL identifier, not the animal", "a URL identifier, not the animal"),
+        (
+            "i18n: the kind of system behind a connection: a database engine\n"
+            "(PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver",
+            _BACKEND_NOTE,
+        ),
+        ("i18n: a URL identifier\ndo-not-translate", "a URL identifier"),
+        ("do-not-translate\ni18n: a URL identifier", "a URL identifier"),
+        # A note may say "do not translate" in prose; only the exact stamped
+        # marker line ends it.
+        (
+            "i18n: the product name,\ndo not translate it",
+            "the product name, do not translate it",
+        ),
+        ("i18n: first note\ni18n: second note", "first note second note"),
+        ("do-not-translate", None),
+        ("", None),
+    ],
+)
+def test_developer_note_reads_the_i18n_comment(
+    comment: str, expected: str | None
+) -> None:
+    entry = polib.POEntry(msgid="Slug", msgstr="", comment=comment)
+    assert backfill_po._developer_note(entry) == expected
+
+
+def _babel_update_sh_update_args(template: Path, directory: Path) -> list[str]:
+    """The ``pybabel update`` call from babel_update.sh, with its paths replaced.
+
+    Only ``-i`` and ``-d`` change, so any other flag in the script reaches the
+    test unchanged.
+    """
+    script = (_SCRIPT_PATH.parent / "babel_update.sh").read_text(encoding="utf-8")
+    start = script.find("\npybabel update")
+    assert start >= 0, (
+        "babel_update.sh has no line starting with `pybabel update`; update "
+        "_babel_update_sh_update_args to find the catalog update call"
+    )
+    lines = script[start + 1 :].splitlines()
+    command: list[str] = []
+    for line in lines:
+        command.append(line.rstrip("\\").strip())
+        if not line.endswith("\\"):
+            break
+    args = shlex.split(" ".join(command))
+    assert args[:2] == ["pybabel", "update"], args
+    for flag, value in (("-i", template), ("-d", directory)):
+        args[args.index(flag) + 1] = str(value)
+    return args
+
+
+@pytest.mark.parametrize(
+    ("template_comment", "catalog_comment", "expected"),
+    [
+        # A note added in source reaches a catalog entry that had none.
+        (
+            "i18n: a URL identifier, not the animal",
+            "",
+            "a URL identifier, not the animal",
+        ),
+        # A reworded note replaces the catalog's stale wording.
+        ("i18n: the new wording", "i18n: the old wording", "the new wording"),
+        # A note removed from source is removed from the catalog.
+        ("", "i18n: a note since removed", None),
+        # A wrapped note keeps its continuation line and the stamped marker.
+        (
+            "i18n: the kind of system behind a connection: a database engine\n"
+            "(PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver\n"
+            "do-not-translate",
+            "",
+            _BACKEND_NOTE,
+        ),
+    ],
+)
+def test_pybabel_update_carries_the_note_into_catalogs(
+    tmp_path: Path,
+    template_comment: str,
+    catalog_comment: str,
+    expected: str | None,
+) -> None:
+    """``pybabel update``, with the flags from ``babel_update.sh``, syncs each note.
+
+    The backfill reads notes from the catalog it translates, so a note only
+    reaches the model once ``pybabel update`` has copied it from the template.
+    Committed catalogs may lag the template between catalog refreshes, so this
+    exercises the propagation itself on a throwaway catalog rather than the
+    state of the committed files.
+    """
+    template = polib.POFile()
+    template.append(polib.POEntry(msgid="Slug", msgstr="", comment=template_comment))
+    pot = tmp_path / "messages.pot"
+    template.save(str(pot))
+
+    catalog = polib.POFile()
+    catalog.metadata = {"Language": "es", "Content-Type": "text/plain; charset=UTF-8"}
+    catalog.append(polib.POEntry(msgid="Slug", msgstr="Slug", comment=catalog_comment))
+    po = tmp_path / "es" / "LC_MESSAGES" / "messages.po"
+    po.parent.mkdir(parents=True)
+    catalog.save(str(po))
+
+    args = _babel_update_sh_update_args(pot, tmp_path)
+    CommandLineInterface().run(args)
+
+    updated = polib.pofile(str(po)).find("Slug")
+    assert updated.msgstr == "Slug"
+    assert backfill_po._developer_note(updated) == expected, (
+        f"`{' '.join(args)}` did not sync the note into the es catalog; check the "
+        "pybabel update flags in babel_update.sh"
+    )
+
+
+def test_build_batch_items_carries_the_note_only_when_present() -> None:
+    noted = polib.POEntry(msgid="Slug", msgstr="", comment="i18n: a URL identifier")
+    plain = polib.POEntry(msgid="Save", msgstr="")
+    plural = polib.POEntry(
+        msgid="%(n)s chart",
+        msgid_plural="%(n)s charts",
+        msgstr_plural={0: "", 1: ""},
+        comment="i18n: saved charts, not a chart type",
+    )
+    items = backfill_po._build_batch_items([noted, plain, plural], index={}, lang="de")
+    assert items[0]["developer_note"] == "a URL identifier"
+    assert "developer_note" not in items[1]
+    assert items[2]["is_plural"]
+    assert items[2]["developer_note"] == "saved charts, not a chart type"
+
+
+def test_build_prompt_puts_the_note_above_reference_translations() -> None:
+    batch = [
+        {"msgid": "Slug", "index_key": "Slug", "developer_note": "a URL identifier"},
+        {"msgid": "Save", "index_key": "Save"},
+    ]
+    index = {"Slug": {"fr": "Slug", "de": "Kopfzeile"}}
+    prompt = backfill_po.build_prompt("es", batch, index)
+
+    assert 'Developer note: "a URL identifier"' in prompt
+    assert prompt.count("Developer note:") == 1
+    assert "follow the note" in prompt
+    # The note is rendered with its own entry, before that entry's references.
+    entry = prompt.split("--- [0]")[1].split("--- [1]")[0]
+    assert entry.index("Developer note:") < entry.index("German:")
+
+
+def test_build_prompt_has_no_note_section_without_notes() -> None:
+    batch = [{"msgid": "Save", "index_key": "Save"}]
+    prompt = backfill_po.build_prompt("es", batch, index={})
+    assert "Developer note" not in prompt
+
+
+def test_single_plaintext_fallback_sends_the_note(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sent: dict[str, str] = {}
+
+    def fake_run(args: list[str], **kwargs: object) -> object:
+        sent["prompt"] = str(kwargs["input"])
+
+        class Result:
+            returncode = 0
+            stdout = "Identificador"
+            stderr = ""
+
+        return Result()
+
+    monkeypatch.setattr(backfill_po.shutil, "which", lambda _name: "/usr/bin/claude")
+    monkeypatch.setattr(backfill_po.subprocess, "run", fake_run)
+    item = {"msgid": "Slug", "index_key": "Slug", "developer_note": "a URL identifier"}
+
+    result = backfill_po._translate_single_plaintext("model", "es", item, index={})
+
+    assert result == "Identificador"
+    assert (
+        "Developer note (authoritative on the intended meaning): a URL identifier"
+        in sent["prompt"]
+    )

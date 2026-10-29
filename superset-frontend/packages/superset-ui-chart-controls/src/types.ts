@@ -36,6 +36,7 @@ import type {
   QueryResponse,
   TimeFormatter,
 } from '@superset-ui/core';
+import { type RGBColor } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/common';
 import { sharedControls, sharedControlComponents } from './shared-controls';
 
@@ -69,6 +70,7 @@ export type ColumnMeta = Omit<Column, 'id'> & {
 } & AnyDict;
 
 export interface Dataset {
+  semantic_selection_version?: string | null;
   id: number;
   type: DatasourceType;
   columns: ColumnMeta[];
@@ -86,7 +88,7 @@ export interface Dataset {
   name?: string;
   description: string | null;
   uid?: string;
-  owners?: Owner[];
+  editors?: Owner[];
   filter_select?: boolean;
   filter_select_enabled?: boolean;
   column_names?: string[];
@@ -96,7 +98,53 @@ export interface Dataset {
   database?: Record<string, unknown>;
   normalize_columns?: boolean;
   always_filter_main_dttm?: boolean;
+  partition_column?: string | null;
+  partition_mapped_column?: string | null;
+  // Self-contained summary for the partition pruning indicator. Kept separate
+  // from `columns` because the dashboard payload prunes columns no chart
+  // references, and the partition column is typically referenced by none.
+  partition_filter_mapping?: PartitionFilterMapping | null;
   extra?: object | string;
+  /**
+   * Stable string values of the features a semantic view's provider declares.
+   * Only present for semantic views; absent elsewhere.
+   */
+  semantic_view_features?: string[];
+}
+
+export interface PartitionFilterMapping {
+  partition_column: string;
+  mapped_column: string | null;
+  active: boolean;
+  /**
+   * Whether the last probe of this transform produced a mirror. `active` is a
+   * parse, which a misspelled function clears happily, so this is the weaker
+   * claim that only the engine can answer. `null`/absent means nothing has
+   * probed yet -- honest on a cold cache, and deliberately not `false`.
+   */
+  evaluable?: boolean | null;
+  /** Whether the owner declared the value transform order-preserving. */
+  is_monotonic: boolean;
+  /**
+   * Backend `FilterOperator` values (`==`, `IN`, `TEMPORAL_RANGE`, ...) whose
+   * predicates this mapping mirrors. Computed server-side from
+   * `is_monotonic` so the operator matrix lives in one place.
+   */
+  mirrorable_operators: string[];
+  /**
+   * How much of a filter's value this engine compares on the mapped column.
+   * `day` means a `DATE`-typed column whose comparison drops the time of day,
+   * so an `=` or `IN` carrying one is declined server-side -- see
+   * `hasMirrorableValue`.
+   */
+  literal_resolution?: 'full' | 'second' | 'day';
+  /**
+   * Characters this database's driver and engine do not spell the same way in
+   * a string literal, so a filter value carrying one is declined server-side
+   * -- see `hasMirrorableValue`. Computed server-side because it is a property
+   * of the driver and engine pair, which the client cannot see.
+   */
+  unmirrorable_value_chars?: string[];
 }
 
 export interface ControlPanelState {
@@ -169,6 +217,7 @@ export type InternalControlType =
   | 'DateFilterControl'
   | 'FixedOrMetricControl'
   | 'ColorBreakpointsControl'
+  | 'HeaderGroupsControl'
   | 'HiddenControl'
   | 'JSEditorControl'
   | 'SelectAsyncControl'
@@ -263,6 +312,16 @@ export interface BaseControlConfig<
   validators?: ControlValueValidator<T, O, V>[];
   warning?: ReactNode;
   error?: ReactNode;
+  /**
+   * Names of *other* controls whose value this control's validation or
+   * `mapStateToProps` depends on. When one of them changes, the explore reducer
+   * rebuilds this control against the new form data.
+   *
+   * A control must not name itself: the rebuild reuses the value held before
+   * the action, so a self-naming control overwrites the value that action just
+   * set. Use `shouldMapStateToProps` to recompute a control's own props.
+   */
+  validationDependencies?: string[];
   /**
    * Add additional props to chart control.
    */
@@ -488,18 +547,36 @@ export const MultipleValueComparators = [
   Comparator.BetweenOrRightEqual,
 ];
 
+export enum BoundUnit {
+  Value = 'value',
+  Percent = 'percent',
+}
+
+export enum PercentDenominator {
+  Sum = 'sum',
+  Max = 'max',
+}
+
 export type ConditionalFormattingConfig = {
   operator?: Comparator;
   targetValue?: number | string;
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;
-  colorScheme?: string;
+  colorScheme?: RGBColor | string;
   toAllRow?: boolean;
   toTextColor?: boolean;
   useGradient?: boolean;
   columnFormatting?: string;
   objectFormatting?: ObjectFormattingEnum;
+  minBound?: number;
+  maxBound?: number;
+  centerValue?: number;
+  lowColor?: RGBColor | string;
+  midColor?: RGBColor | string;
+  highColor?: RGBColor | string;
+  boundUnit?: BoundUnit;
+  percentDenominator?: PercentDenominator;
 };
 
 export type ColorFormatters = {
@@ -517,8 +594,6 @@ export type ResolvedColorFormatterResult = {
   backgroundColor?: string;
   color?: string;
 };
-
-export default {};
 
 export function isColumnMeta(column: AnyDict): column is ColumnMeta {
   return !!column && 'column_name' in column;
@@ -713,4 +788,5 @@ export interface DataColumnMeta {
   isChildColumn?: boolean;
   description?: string;
   currencyCodeColumn?: string;
+  isFilterable?: boolean;
 }

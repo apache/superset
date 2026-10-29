@@ -20,8 +20,7 @@
 import { dirname, join } from 'path';
 // @ts-ignore -- yeoman-test type resolution differs between local and Docker environments
 import helpers from 'yeoman-test';
-// @ts-ignore -- fs-extra/esm has no type declarations
-import { copySync } from 'fs-extra/esm';
+import { cpSync } from 'fs';
 import { fileURLToPath } from 'url';
 import pluginChartModule from '../generators/plugin-chart';
 
@@ -31,9 +30,10 @@ test('generator-superset:plugin-chart:creates files', async () => {
     .onTargetDirectory((dir: string) => {
       // `dir` is the path to the new temporary directory
       const generatorDirname = dirname(fileURLToPath(import.meta.url));
-      copySync(
+      cpSync(
         join(generatorDirname, '../generators/plugin-chart/templates'),
         join(dir, 'unknown/templates'),
+        { recursive: true },
       );
     })
     .withPrompts({

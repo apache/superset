@@ -43,14 +43,89 @@ jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   SupersetClient: {
     get: jest.fn(),
+    post: jest.fn(),
   },
 }));
+
+// register stub buildQuery/transformProps for the layer types the tests use.
+// transformProps passes the mocked POST response's features straight through,
+// so each test controls layer content via the POST mock, exactly as the real
+// per-layer buildQuery/transformProps registry would.
+const { getChartBuildQueryRegistry, getChartTransformPropsRegistry } =
+  jest.requireActual('@superset-ui/core');
+['deck_scatter', 'deck_polygon'].forEach(vizType => {
+  getChartBuildQueryRegistry().registerValue(
+    vizType,
+    (formData: Record<string, unknown>) => ({
+      datasource: 'test_datasource',
+      queries: [{}],
+      form_data: formData,
+    }),
+  );
+  getChartTransformPropsRegistry().registerValue(
+    vizType,
+    (chartProps: any) => ({
+      payload: {
+        data: {
+          features: chartProps.queriesData?.[0]?.data ?? [],
+          mapboxApiKey: 'test-key',
+          metricLabels: [],
+        },
+      },
+    }),
+  );
+});
 
 const mockStore = configureStore({
   reducer: {
     dataMask: () => ({}),
   },
 });
+
+// The two sub-slices every test in this file fetches: slice 1 is a scatter
+// layer, slice 2 is a polygon layer -- mirroring the shape the old
+// legacy-payload fixture hardcoded, but now resolved through the real
+// GET /api/v1/chart/{id} -> POST /api/v1/chart/data v1 path.
+const SUBSLICES: Record<number, { vizType: string }> = {
+  1: { vizType: 'deck_scatter' },
+  2: { vizType: 'deck_polygon' },
+};
+
+// Keyed by viz_type so a test can control exactly what features each layer's
+// POST resolves with; defaults to empty so unconfigured layers are inert.
+let featuresByVizType: Record<string, unknown[]> = {};
+
+const mockFetchesFor = (subslices: Record<number, { vizType: string }>) => {
+  (SupersetClient.get as jest.Mock).mockImplementation(
+    ({ endpoint }: { endpoint: string }) => {
+      const sliceId = Number(endpoint.match(/\/chart\/(\d+)/)?.[1]);
+      const subslice = subslices[sliceId];
+      return Promise.resolve({
+        json: {
+          result: {
+            viz_type: subslice?.vizType,
+            datasource_id: 1,
+            datasource_type: 'table',
+            params: JSON.stringify({
+              viz_type: subslice?.vizType,
+              datasource: 'test_datasource',
+            }),
+          },
+        },
+      });
+    },
+  );
+  (SupersetClient.post as jest.Mock).mockImplementation(
+    ({ jsonPayload }: { jsonPayload: { form_data: { viz_type: string } } }) =>
+      Promise.resolve({
+        json: {
+          result: [
+            { data: featuresByVizType[jsonPayload.form_data.viz_type] || [] },
+          ],
+        },
+      }),
+  );
+};
 
 const baseMockProps = {
   formData: {
@@ -60,46 +135,7 @@ const baseMockProps = {
     autozoom: false,
     map_style: 'mapbox://styles/mapbox/light-v9',
   },
-  payload: {
-    data: {
-      slices: [
-        {
-          slice_id: 1,
-          form_data: {
-            viz_type: 'deck_scatter',
-            datasource: 'test_datasource',
-          },
-        },
-        {
-          slice_id: 2,
-          form_data: {
-            viz_type: 'deck_polygon',
-            datasource: 'test_datasource',
-          },
-        },
-      ],
-      features: {
-        deck_scatter: [{ position: [0, 0] }],
-        deck_polygon: [
-          {
-            polygon: [
-              [1, 1],
-              [2, 2],
-            ],
-          },
-        ],
-        deck_path: [],
-        deck_grid: [],
-        deck_contour: [],
-        deck_heatmap: [],
-        deck_hex: [],
-        deck_arc: [],
-        deck_geojson: [],
-        deck_screengrid: [],
-      },
-      mapboxApiKey: 'test-key',
-    },
-  },
+  payload: undefined,
   setControlValue: jest.fn(),
   viewport: { longitude: 0, latitude: 0, zoom: 1 },
   onAddFilter: jest.fn(),
@@ -128,336 +164,293 @@ const renderWithProviders = (component: React.ReactElement) =>
 describe('DeckMulti Autozoom Functionality', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (SupersetClient.get as jest.Mock).mockResolvedValue({
-      json: {
-        data: {
-          features: [],
-        },
-      },
-    });
+    featuresByVizType = {};
+    mockFetchesFor(SUBSLICES);
   });
 
-  test('should NOT apply autozoom when autozoom is false', () => {
+  test('should NOT apply autozoom when autozoom is false', async () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
+    featuresByVizType = { deck_scatter: [{ position: [1, 1] }] };
 
     const props = {
       ...baseMockProps,
-      formData: {
-        ...baseMockProps.formData,
-        autozoom: false,
-      },
+      formData: { ...baseMockProps.formData, autozoom: false },
     };
 
     renderWithProviders(<DeckMulti {...props} />);
 
-    // fitViewport should not be called when autozoom is false
+    await waitFor(() => expect(SupersetClient.post).toHaveBeenCalled());
     expect(fitViewportSpy).not.toHaveBeenCalled();
 
     fitViewportSpy.mockRestore();
   });
 
-  test('should apply autozoom when autozoom is true', () => {
+  test('should apply autozoom to points fetched from each layer when autozoom is true', async () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
     fitViewportSpy.mockReturnValue({
       longitude: -122.4,
       latitude: 37.8,
       zoom: 10,
     });
+    featuresByVizType = {
+      deck_scatter: [{ position: [1, 1] }, { position: [2, 2] }],
+      deck_polygon: [
+        {
+          polygon: [
+            [3, 3],
+            [4, 4],
+          ],
+        },
+      ],
+    };
 
     const props = {
       ...baseMockProps,
-      formData: {
-        ...baseMockProps.formData,
-        autozoom: true,
-      },
+      formData: { ...baseMockProps.formData, autozoom: true },
     };
 
     renderWithProviders(<DeckMulti {...props} />);
 
-    // fitViewport should be called with the points from all layers
-    expect(fitViewportSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        longitude: 0,
-        latitude: 0,
-        zoom: 1,
-      }),
-      expect.objectContaining({
-        width: 800,
-        height: 600,
-        points: expect.any(Array),
-      }),
+    await waitFor(() => {
+      expect(fitViewportSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ longitude: 0, latitude: 0, zoom: 1 }),
+        expect.objectContaining({
+          width: 800,
+          height: 600,
+          points: expect.any(Array),
+        }),
+      );
+    });
+    // Points from both layers should have been collected by the time the
+    // second (or later) refit happens -- this exercises the async, per-layer
+    // accumulation added to fix the "autozoom dead in the v1 path" bug.
+    const callWithBothLayers = fitViewportSpy.mock.calls.find(
+      call => call[1].points.length >= 4,
+    );
+    expect(callWithBothLayers).toBeDefined();
+
+    fitViewportSpy.mockRestore();
+  });
+
+  test('should refit as each layer arrives, even when they resolve out of order', async () => {
+    const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
+    fitViewportSpy.mockReturnValue({ longitude: 0, latitude: 0, zoom: 8 });
+
+    // The polygon layer (slice 2) resolves before the scatter layer (slice 1),
+    // the opposite of deck_slices order -- accumulation must not assume
+    // layers arrive in request order.
+    let resolveScatter: (value: unknown) => void = () => {};
+    (SupersetClient.post as jest.Mock).mockImplementation(
+      ({
+        jsonPayload,
+      }: {
+        jsonPayload: { form_data: { viz_type: string } };
+      }) => {
+        if (jsonPayload.form_data.viz_type === 'deck_scatter') {
+          return new Promise(resolve => {
+            resolveScatter = resolve;
+          });
+        }
+        return Promise.resolve({
+          json: {
+            result: [
+              {
+                data: [
+                  {
+                    polygon: [
+                      [3, 3],
+                      [4, 4],
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        });
+      },
     );
 
+    renderWithProviders(
+      <DeckMulti
+        {...baseMockProps}
+        formData={{ ...baseMockProps.formData, autozoom: true }}
+      />,
+    );
+
+    // Only the polygon layer's points have arrived so far.
+    await waitFor(() => {
+      const call = fitViewportSpy.mock.calls.at(-1);
+      expect(call?.[1].points.length).toBe(2);
+    });
+
+    resolveScatter({
+      json: {
+        result: [{ data: [{ position: [1, 1] }, { position: [2, 2] }] }],
+      },
+    });
+
+    // Once the scatter layer resolves, its points are added to the same
+    // accumulator rather than replacing the polygon layer's.
+    await waitFor(() => {
+      const call = fitViewportSpy.mock.calls.at(-1);
+      expect(call?.[1].points.length).toBe(4);
+    });
+
     fitViewportSpy.mockRestore();
   });
 
-  test('should use adjusted viewport when autozoom is enabled', async () => {
+  test('should set zoom to 0 when the fitted zoom is negative', async () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
-    const adjustedViewport = {
-      longitude: -122.4,
-      latitude: 37.8,
-      zoom: 12,
-    };
-    fitViewportSpy.mockReturnValue(adjustedViewport);
+    fitViewportSpy.mockReturnValue({ longitude: 0, latitude: 0, zoom: -5 });
+    featuresByVizType = { deck_scatter: [{ position: [1, 1] }] };
 
-    const props = {
-      ...baseMockProps,
-      formData: {
-        ...baseMockProps.formData,
-        autozoom: true,
-      },
-    };
-
-    renderWithProviders(<DeckMulti {...props} />);
+    renderWithProviders(
+      <DeckMulti
+        {...baseMockProps}
+        formData={{ ...baseMockProps.formData, autozoom: true }}
+      />,
+    );
 
     await waitFor(() => {
       const container = screen.getByTestId('deckgl-container');
       const viewportData = JSON.parse(
         container.getAttribute('data-viewport') || '{}',
       );
-
-      expect(viewportData.longitude).toBe(adjustedViewport.longitude);
-      expect(viewportData.latitude).toBe(adjustedViewport.latitude);
-      expect(viewportData.zoom).toBe(adjustedViewport.zoom);
-    });
-
-    fitViewportSpy.mockRestore();
-  });
-
-  test('should set zoom to 0 when calculated zoom is negative', async () => {
-    const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
-    fitViewportSpy.mockReturnValue({
-      longitude: 0,
-      latitude: 0,
-      zoom: -5, // negative zoom
-    });
-
-    const props = {
-      ...baseMockProps,
-      formData: {
-        ...baseMockProps.formData,
-        autozoom: true,
-      },
-    };
-
-    renderWithProviders(<DeckMulti {...props} />);
-
-    await waitFor(() => {
-      const container = screen.getByTestId('deckgl-container');
-      const viewportData = JSON.parse(
-        container.getAttribute('data-viewport') || '{}',
-      );
-
-      // Zoom should be 0, not negative
       expect(viewportData.zoom).toBe(0);
     });
 
     fitViewportSpy.mockRestore();
   });
 
-  test('should handle empty features gracefully when autozoom is enabled', () => {
+  test('should not refit when a layer resolves with no features', async () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
 
-    const props = {
-      ...baseMockProps,
-      formData: {
-        ...baseMockProps.formData,
-        autozoom: true,
-      },
-      payload: {
-        ...baseMockProps.payload,
-        data: {
-          ...baseMockProps.payload.data,
-          features: {
-            deck_scatter: [],
-            deck_polygon: [],
-            deck_path: [],
-            deck_grid: [],
-            deck_contour: [],
-            deck_heatmap: [],
-            deck_hex: [],
-            deck_arc: [],
-            deck_geojson: [],
-            deck_screengrid: [],
-          },
-        },
-      },
-    };
-
-    renderWithProviders(<DeckMulti {...props} />);
-
-    // fitViewport should not be called when there are no points
-    expect(fitViewportSpy).not.toHaveBeenCalled();
-
-    fitViewportSpy.mockRestore();
-  });
-
-  test('should collect points from all layer types when autozoom is enabled', () => {
-    const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
-    fitViewportSpy.mockReturnValue({
-      longitude: 0,
-      latitude: 0,
-      zoom: 10,
-    });
-
-    const props = {
-      ...baseMockProps,
-      formData: {
-        ...baseMockProps.formData,
-        autozoom: true,
-      },
-      payload: {
-        ...baseMockProps.payload,
-        data: {
-          ...baseMockProps.payload.data,
-          features: {
-            deck_scatter: [{ position: [1, 1] }, { position: [2, 2] }],
-            deck_polygon: [
-              {
-                polygon: [
-                  [3, 3],
-                  [4, 4],
-                ],
-              },
-            ],
-            deck_arc: [{ sourcePosition: [5, 5], targetPosition: [6, 6] }],
-            deck_path: [],
-            deck_grid: [],
-            deck_contour: [],
-            deck_heatmap: [],
-            deck_hex: [],
-            deck_geojson: [],
-            deck_screengrid: [],
-          },
-        },
-      },
-    };
-
-    renderWithProviders(<DeckMulti {...props} />);
-
-    expect(fitViewportSpy).toHaveBeenCalled();
-    const callArgs = fitViewportSpy.mock.calls[0];
-    const { points } = callArgs[1];
-
-    // Should have points from scatter (2), polygon (2), and arc (2) = 6 points total
-    expect(points.length).toBeGreaterThan(0);
-
-    fitViewportSpy.mockRestore();
-  });
-
-  test('should use original viewport when autozoom is disabled', async () => {
-    const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
-
-    const originalViewport = { longitude: -100, latitude: 40, zoom: 5 };
-    const props = {
-      ...baseMockProps,
-      viewport: originalViewport,
-      formData: {
-        ...baseMockProps.formData,
-        autozoom: false,
-      },
-    };
-
-    renderWithProviders(<DeckMulti {...props} />);
-
-    await waitFor(() => {
-      const container = screen.getByTestId('deckgl-container');
-      const viewportData = JSON.parse(
-        container.getAttribute('data-viewport') || '{}',
-      );
-
-      // Should use original viewport without modification
-      expect(viewportData.longitude).toBe(originalViewport.longitude);
-      expect(viewportData.latitude).toBe(originalViewport.latitude);
-      expect(viewportData.zoom).toBe(originalViewport.zoom);
-    });
-
-    // fitViewport should not have been called
-    expect(fitViewportSpy).not.toHaveBeenCalled();
-
-    fitViewportSpy.mockRestore();
-  });
-
-  test('should apply autozoom when autozoom is undefined (backward compatibility)', () => {
-    const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
-    fitViewportSpy.mockReturnValue({
-      longitude: -122.4,
-      latitude: 37.8,
-      zoom: 10,
-    });
-
-    const props = {
-      ...baseMockProps,
-      formData: {
-        ...baseMockProps.formData,
-        autozoom: undefined, // Simulating existing charts created before this feature
-      },
-    };
-
-    renderWithProviders(<DeckMulti {...props} />);
-
-    // fitViewport should be called for backward compatibility with existing charts
-    expect(fitViewportSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        longitude: 0,
-        latitude: 0,
-        zoom: 1,
-      }),
-      expect.objectContaining({
-        width: 800,
-        height: 600,
-        points: expect.any(Array),
-      }),
+    renderWithProviders(
+      <DeckMulti
+        {...baseMockProps}
+        formData={{ ...baseMockProps.formData, autozoom: true }}
+      />,
     );
 
+    await waitFor(() => expect(SupersetClient.post).toHaveBeenCalledTimes(2));
+    expect(fitViewportSpy).not.toHaveBeenCalled();
+
     fitViewportSpy.mockRestore();
   });
 
-  test('should use adjusted viewport when autozoom is undefined', async () => {
+  test('should use the original viewport when autozoom is disabled', async () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
-    const adjustedViewport = {
-      longitude: -122.4,
-      latitude: 37.8,
-      zoom: 12,
-    };
-    fitViewportSpy.mockReturnValue(adjustedViewport);
+    const originalViewport = { longitude: -100, latitude: 40, zoom: 5 };
 
-    const props = {
-      ...baseMockProps,
-      formData: {
-        ...baseMockProps.formData,
-        autozoom: undefined, // Simulating existing charts
-      },
-    };
-
-    renderWithProviders(<DeckMulti {...props} />);
+    renderWithProviders(
+      <DeckMulti
+        {...baseMockProps}
+        viewport={originalViewport}
+        formData={{ ...baseMockProps.formData, autozoom: false }}
+      />,
+    );
 
     await waitFor(() => {
       const container = screen.getByTestId('deckgl-container');
       const viewportData = JSON.parse(
         container.getAttribute('data-viewport') || '{}',
       );
-
-      // Should use adjusted viewport for backward compatibility
-      expect(viewportData.longitude).toBe(adjustedViewport.longitude);
-      expect(viewportData.latitude).toBe(adjustedViewport.latitude);
-      expect(viewportData.zoom).toBe(adjustedViewport.zoom);
+      expect(viewportData).toMatchObject(originalViewport);
     });
+    expect(fitViewportSpy).not.toHaveBeenCalled();
 
     fitViewportSpy.mockRestore();
+  });
+
+  test('should apply autozoom when autozoom is undefined (backward compatibility)', async () => {
+    const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
+    fitViewportSpy.mockReturnValue({
+      longitude: -122.4,
+      latitude: 37.8,
+      zoom: 10,
+    });
+    featuresByVizType = { deck_scatter: [{ position: [1, 1] }] };
+
+    renderWithProviders(
+      <DeckMulti
+        {...baseMockProps}
+        formData={{ ...baseMockProps.formData, autozoom: undefined }}
+      />,
+    );
+
+    await waitFor(() => expect(fitViewportSpy).toHaveBeenCalled());
+
+    fitViewportSpy.mockRestore();
+  });
+});
+
+describe('DeckMulti stale-response guard', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    featuresByVizType = {};
+    mockFetchesFor(SUBSLICES);
+  });
+
+  test('ignores a layer response that resolves after deck_slices has already changed again', async () => {
+    let resolveSlice1Load: (value: unknown) => void = () => {};
+    let resolveSlice2Load: (value: unknown) => void = () => {};
+    (SupersetClient.post as jest.Mock)
+      .mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            resolveSlice1Load = resolve;
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            resolveSlice2Load = resolve;
+          }),
+      )
+      .mockImplementation(() =>
+        Promise.resolve({ json: { result: [{ data: [] }] } }),
+      );
+
+    const { rerender } = renderWithProviders(<DeckMulti {...baseMockProps} />);
+
+    await waitFor(() => expect(SupersetClient.post).toHaveBeenCalledTimes(2));
+
+    // deck_slices changes to a single, different layer before the first
+    // load's requests resolve -- this starts a new generation.
+    rerender(
+      <Provider store={mockStore}>
+        <ThemeProvider theme={supersetTheme}>
+          <DeckMulti
+            {...baseMockProps}
+            formData={{ ...baseMockProps.formData, deck_slices: [2] }}
+          />
+        </ThemeProvider>
+      </Provider>,
+    );
+
+    await waitFor(() => expect(SupersetClient.post).toHaveBeenCalledTimes(3));
+
+    // The abandoned first-generation slice-1 and slice-2 responses now
+    // resolve. If they were not ignored, the container would show 2 layers
+    // (the stale slice 1 and 2) instead of just the current generation's 1.
+    resolveSlice1Load({ json: { result: [{ data: [] }] } });
+    resolveSlice2Load({ json: { result: [{ data: [] }] } });
+
+    await waitFor(() => {
+      expect(
+        screen
+          .getByTestId('deckgl-container')
+          .getAttribute('data-layers-count'),
+      ).toBe('1');
+    });
   });
 });
 
 describe('DeckMulti Component Rendering', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (SupersetClient.get as jest.Mock).mockResolvedValue({
-      json: {
-        data: {
-          features: [],
-        },
-      },
-    });
+    featuresByVizType = {};
+    mockFetchesFor(SUBSLICES);
   });
 
   test('should render DeckGLContainer', async () => {
@@ -468,7 +461,7 @@ describe('DeckMulti Component Rendering', () => {
     });
   });
 
-  test('should pass correct props to DeckGLContainer', async () => {
+  test('should pass the base viewport through to DeckGLContainer', async () => {
     renderWithProviders(<DeckMulti {...baseMockProps} />);
 
     await waitFor(() => {
@@ -496,45 +489,23 @@ describe('DeckMulti Component Rendering', () => {
 
     renderWithProviders(<DeckMulti {...props} />);
 
-    // Wait for child slice requests
-    await waitFor(() => {
-      expect(SupersetClient.get).toHaveBeenCalled();
-    });
+    await waitFor(() => expect(SupersetClient.post).toHaveBeenCalled());
 
-    // Check that all requests include the dashboardId
-    const { calls } = (SupersetClient.get as jest.Mock).mock;
+    const { calls } = (SupersetClient.post as jest.Mock).mock;
     calls.forEach(call => {
-      const url = call[0].endpoint;
-      const urlParams = new URLSearchParams(url.split('?')[1]);
-      const formDataString = urlParams.get('form_data');
-      const formData = JSON.parse(formDataString || '{}');
+      const formData = call[0].jsonPayload?.form_data || {};
       expect(formData.dashboardId).toBe(123);
     });
   });
 
   test('should not include dashboardId when not present', async () => {
-    const props = {
-      ...baseMockProps,
-      formData: {
-        ...baseMockProps.formData,
-        // No dashboardId
-      },
-    };
+    renderWithProviders(<DeckMulti {...baseMockProps} />);
 
-    renderWithProviders(<DeckMulti {...props} />);
+    await waitFor(() => expect(SupersetClient.post).toHaveBeenCalled());
 
-    // Wait for child slice requests
-    await waitFor(() => {
-      expect(SupersetClient.get).toHaveBeenCalled();
-    });
-
-    // Check that requests don't include dashboardId
-    const { calls } = (SupersetClient.get as jest.Mock).mock;
+    const { calls } = (SupersetClient.post as jest.Mock).mock;
     calls.forEach(call => {
-      const url = call[0].endpoint;
-      const formData = JSON.parse(
-        new URLSearchParams(url.split('?')[1]).get('form_data') || '{}',
-      );
+      const formData = call[0].jsonPayload?.form_data || {};
       expect(formData.dashboardId).toBeUndefined();
     });
   });
@@ -551,77 +522,43 @@ describe('DeckMulti Component Rendering', () => {
 
     renderWithProviders(<DeckMulti {...props} />);
 
-    // Wait for child slice requests
-    await waitFor(() => {
-      expect(SupersetClient.get).toHaveBeenCalled();
-    });
+    await waitFor(() => expect(SupersetClient.post).toHaveBeenCalled());
 
-    // Verify dashboardId is preserved with filters
-    const { calls } = (SupersetClient.get as jest.Mock).mock;
+    const { calls } = (SupersetClient.post as jest.Mock).mock;
     calls.forEach(call => {
-      const url = call[0].endpoint;
-      const formData = JSON.parse(
-        new URLSearchParams(url.split('?')[1]).get('form_data') || '{}',
-      );
+      const formData = call[0].jsonPayload?.form_data || {};
       expect(formData.dashboardId).toBe(456);
       expect(formData.extra_filters).toBeDefined();
     });
   });
 
-  test('should handle viewport changes', async () => {
+  test('should reload layers when deck_slices changes', async () => {
     const { rerender } = renderWithProviders(<DeckMulti {...baseMockProps} />);
 
-    // Wait for initial render
     await waitFor(() => {
       expect(screen.getByTestId('deckgl-container')).toBeInTheDocument();
     });
-
-    const newViewport = { longitude: 10, latitude: 20, zoom: 8 };
-    const updatedProps = {
-      ...baseMockProps,
-      viewport: newViewport,
-      formData: {
-        ...baseMockProps.formData,
-        deck_slices: [1, 2, 3], // Change deck_slices to trigger loadLayers
-      },
-    };
+    expect(SupersetClient.get).toHaveBeenCalledTimes(2);
 
     rerender(
       <Provider store={mockStore}>
         <ThemeProvider theme={supersetTheme}>
-          <DeckMulti {...updatedProps} />
+          <DeckMulti
+            {...baseMockProps}
+            formData={{ ...baseMockProps.formData, deck_slices: [1, 2, 3] }}
+          />
         </ThemeProvider>
       </Provider>,
     );
 
-    await waitFor(() => {
-      const container = screen.getByTestId('deckgl-container');
-      const viewportData = JSON.parse(
-        container.getAttribute('data-viewport') || '{}',
-      );
-
-      expect(viewportData.longitude).toBe(newViewport.longitude);
-      expect(viewportData.latitude).toBe(newViewport.latitude);
-    });
+    await waitFor(() => expect(SupersetClient.get).toHaveBeenCalledTimes(5));
   });
 });
 
 test('includes parent_slice_id in child slice requests when parent has slice_id', async () => {
   jest.clearAllMocks();
-  const mockGet = jest.fn().mockResolvedValue({
-    json: {
-      result: {
-        form_data: {
-          viz_type: 'deck_scatter',
-          datasource: '1__table',
-        },
-      },
-      data: {
-        features: [],
-      },
-    },
-  });
-  (SupersetClient.get as jest.Mock) = mockGet;
+  featuresByVizType = {};
+  mockFetchesFor(SUBSLICES);
   const parentSliceId = 99;
   const dashboardId = 5;
 
@@ -636,40 +573,22 @@ test('includes parent_slice_id in child slice requests when parent has slice_id'
 
   renderWithProviders(<DeckMulti {...props} />);
 
-  await waitFor(() => {
-    expect(mockGet).toHaveBeenCalled();
-  });
+  await waitFor(() => expect(SupersetClient.post).toHaveBeenCalled());
 
-  // Check that the child slice requests include parent_slice_id
-  const { calls } = mockGet.mock;
+  const { calls } = (SupersetClient.post as jest.Mock).mock;
   calls.forEach(call => {
-    const { endpoint } = call[0];
-    if (endpoint.includes('api/v1/explore/form_data')) {
-      const body = JSON.parse(call[0].body);
-      expect(body.form_data).toMatchObject({
-        dashboardId,
-        parent_slice_id: parentSliceId,
-      });
-    }
+    const formData = call[0].jsonPayload?.form_data || {};
+    expect(formData).toMatchObject({
+      dashboardId,
+      parent_slice_id: parentSliceId,
+    });
   });
 });
 
 test('includes parent_slice_id in embedded mode', async () => {
   jest.clearAllMocks();
-  const mockGet = jest.fn().mockResolvedValue({
-    json: {
-      result: {
-        form_data: {
-          viz_type: 'deck_scatter',
-          datasource: '1__table',
-        },
-      },
-      data: {
-        features: [],
-      },
-    },
-  });
-  (SupersetClient.get as jest.Mock) = mockGet;
+  featuresByVizType = {};
+  mockFetchesFor(SUBSLICES);
   const parentSliceId = 200;
   const dashboardId = 10;
 
@@ -685,60 +604,119 @@ test('includes parent_slice_id in embedded mode', async () => {
 
   renderWithProviders(<DeckMulti {...props} />);
 
-  await waitFor(() => {
-    expect(mockGet).toHaveBeenCalled();
-  });
+  await waitFor(() => expect(SupersetClient.post).toHaveBeenCalled());
 
-  // Verify parent_slice_id is included in embedded mode
-  const { calls } = mockGet.mock;
+  const { calls } = (SupersetClient.post as jest.Mock).mock;
   calls.forEach(call => {
-    const { endpoint } = call[0];
-    if (endpoint.includes('api/v1/explore/form_data')) {
-      const body = JSON.parse(call[0].body);
-      expect(body.form_data.parent_slice_id).toBe(parentSliceId);
-    }
+    const formData = call[0].jsonPayload?.form_data || {};
+    expect(formData.parent_slice_id).toBe(parentSliceId);
   });
 });
 
 test('does not include parent_slice_id when parent has no slice_id', async () => {
   jest.clearAllMocks();
-  const mockGet = jest.fn().mockResolvedValue({
-    json: {
-      result: {
-        form_data: {
-          viz_type: 'deck_scatter',
-          datasource: '1__table',
-        },
-      },
-      data: {
-        features: [],
-      },
-    },
-  });
-  (SupersetClient.get as jest.Mock) = mockGet;
+  featuresByVizType = {};
+  mockFetchesFor(SUBSLICES);
 
   const props = {
     ...baseMockProps,
     formData: {
       ...baseMockProps.formData,
-      // No slice_id in parent
       dashboardId: 5,
     },
   };
 
   renderWithProviders(<DeckMulti {...props} />);
 
-  await waitFor(() => {
-    expect(mockGet).toHaveBeenCalled();
-  });
+  await waitFor(() => expect(SupersetClient.post).toHaveBeenCalled());
 
-  // Verify parent_slice_id is not included when parent has no slice_id
-  const { calls } = mockGet.mock;
+  const { calls } = (SupersetClient.post as jest.Mock).mock;
   calls.forEach(call => {
-    const { endpoint } = call[0];
-    if (endpoint.includes('api/v1/explore/form_data')) {
-      const body = JSON.parse(call[0].body);
-      expect(body.form_data.parent_slice_id).toBeUndefined();
-    }
+    const formData = call[0].jsonPayload?.form_data || {};
+    expect(formData.parent_slice_id).toBeUndefined();
   });
+});
+
+test('falls back to a per-chart read for a layer missing from the persisted deck_slices', async () => {
+  // A saved container's `deck_slices` on the server can lag the in-memory
+  // Explore selection (e.g. layer 3 was just added but not saved yet), so
+  // the bulk deck_layers response only resolves layers 1 and 2. Layer 3
+  // must still be fetched (and previewed) via a per-chart read rather than
+  // silently dropped until the chart is saved.
+  jest.clearAllMocks();
+  featuresByVizType = {};
+  const parentSliceId = 50;
+
+  (SupersetClient.get as jest.Mock).mockImplementation(
+    ({ endpoint }: { endpoint: string }) => {
+      if (endpoint === `/api/v1/chart/${parentSliceId}/deck_layers/`) {
+        return Promise.resolve({
+          json: {
+            result: [1, 2].map(sliceId => ({
+              slice_id: sliceId,
+              viz_type: SUBSLICES[sliceId].vizType,
+              datasource_id: 1,
+              datasource_type: 'table',
+              params: JSON.stringify({
+                viz_type: SUBSLICES[sliceId].vizType,
+                datasource: 'test_datasource',
+              }),
+            })),
+          },
+        });
+      }
+      const subslice = { vizType: 'deck_scatter' };
+      return Promise.resolve({
+        json: {
+          result: {
+            viz_type: subslice.vizType,
+            datasource_id: 1,
+            datasource_type: 'table',
+            params: JSON.stringify({
+              viz_type: subslice.vizType,
+              datasource: 'test_datasource',
+            }),
+          },
+        },
+      });
+    },
+  );
+  (SupersetClient.post as jest.Mock).mockImplementation(
+    ({ jsonPayload }: { jsonPayload: { form_data: { viz_type: string } } }) =>
+      Promise.resolve({
+        json: {
+          result: [
+            { data: featuresByVizType[jsonPayload.form_data.viz_type] || [] },
+          ],
+        },
+      }),
+  );
+
+  const props = {
+    ...baseMockProps,
+    formData: {
+      ...baseMockProps.formData,
+      slice_id: parentSliceId,
+      deck_slices: [1, 2, 3],
+    },
+  };
+
+  renderWithProviders(<DeckMulti {...props} />);
+
+  await waitFor(() =>
+    expect(SupersetClient.get).toHaveBeenCalledWith(
+      expect.objectContaining({ endpoint: '/api/v1/chart/3' }),
+    ),
+  );
+  expect(SupersetClient.get).toHaveBeenCalledWith(
+    expect.objectContaining({
+      endpoint: `/api/v1/chart/${parentSliceId}/deck_layers/`,
+    }),
+  );
+  expect(SupersetClient.get).not.toHaveBeenCalledWith(
+    expect.objectContaining({ endpoint: '/api/v1/chart/1' }),
+  );
+  expect(SupersetClient.get).not.toHaveBeenCalledWith(
+    expect.objectContaining({ endpoint: '/api/v1/chart/2' }),
+  );
 });

@@ -54,6 +54,7 @@ describe('BigNumberTotal transformProps', () => {
     yAxisFormat: 'SMART_NUMBER',
     conditionalFormatting: [{ color: 'red', op: '>', value: 0 }],
     currencyFormat: { symbol: '$', symbolPosition: 'prefix' },
+    headerAlignment: 'center',
   };
 
   const baseDatasource = {
@@ -86,6 +87,7 @@ describe('BigNumberTotal transformProps', () => {
     expect(result.subtitle).toBe(baseFormData.subheader);
     expect(result.onContextMenu).toBe(onContextMenu);
     expect(result.refs).toEqual({});
+    expect(result.headerAlignment).toBe('center');
     // headerFormatter should be set even if there's no data
     expect(typeof result.headerFormatter).toBe('function');
     // colorThresholdFormatters fallback to empty array when getColorFormatters returns falsy
@@ -229,6 +231,56 @@ describe('BigNumberTotal transformProps', () => {
       chartProps as unknown as BigNumberTotalChartProps,
     );
     expect(result.headerFormatter(500)).toBe('$500');
+  });
+
+  test('should pass through non-numeric raw string when parseMetricValue returns null (e.g. VARCHAR MAX)', () => {
+    const { parseMetricValue } = jest.requireMock('../utils');
+    parseMetricValue.mockReturnValueOnce(null);
+
+    const chartProps = {
+      width: 400,
+      height: 300,
+      queriesData: [
+        {
+          data: [{ value: 'some-varchar-result' }],
+          coltypes: [GenericDataType.String],
+        },
+      ],
+      formData: baseFormData,
+      rawFormData: baseRawFormData,
+      hooks: baseHooks,
+      datasource: baseDatasource,
+    };
+
+    const result = transformProps(
+      chartProps as unknown as BigNumberTotalChartProps,
+    );
+    expect(result.bigNumber).toBe('some-varchar-result');
+  });
+
+  test('should pass through numeric-looking VARCHAR string literally (e.g. "123")', () => {
+    const { parseMetricValue } = jest.requireMock('../utils');
+    parseMetricValue.mockReturnValueOnce(null);
+
+    const chartProps = {
+      width: 400,
+      height: 300,
+      queriesData: [
+        {
+          data: [{ value: '123' }],
+          coltypes: [GenericDataType.String],
+        },
+      ],
+      formData: baseFormData,
+      rawFormData: baseRawFormData,
+      hooks: baseHooks,
+      datasource: baseDatasource,
+    };
+
+    const result = transformProps(
+      chartProps as unknown as BigNumberTotalChartProps,
+    );
+    expect(result.bigNumber).toBe('123');
   });
 
   test('should propagate colorThresholdFormatters from getColorFormatters', () => {

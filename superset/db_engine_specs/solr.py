@@ -43,6 +43,17 @@ class SolrEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             "[/?use_ssl=true|false]"
         ),
         "default_port": 8983,
+        "known_incompatibilities": [
+            {
+                "dependency": "SQLAlchemy 2.0",
+                "reason": (
+                    "sqlalchemy-solr hard-pins sqlalchemy~=1.4.7 and has seen no "
+                    "activity beyond dependabot bumps since 2024."
+                ),
+                "tracking_url": "https://github.com/aadel/sqlalchemy-solr",
+                "since": "2026-07-28",
+            }
+        ],
     }
 
     _time_grain_expressions = {

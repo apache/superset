@@ -15,17 +15,36 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 
 import numpy as np
 import pandas as pd
 import pytest
+from flask import Flask
+from pytest_mock import MockerFixture
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data_timing import QueryDataResult, QueryTiming
 from superset.common.db_query_status import QueryStatus
-from superset.common.query_context_processor import QueryContextProcessor
+from superset.common.query_context_processor import (
+    normalize_contribution_totals,
+    QueryContextProcessor,
+)
+from superset.exceptions import QueryObjectValidationError
+from superset.utils import json as superset_json
 from superset.utils.core import GenericDataType
+from superset.utils.date_parser import get_past_or_future
+
+
+@pytest.fixture
+def semantic_cache_namespace(app: Flask, mocker: MockerFixture) -> None:
+    """Isolate transient semantic datasource cache tests from metadata storage."""
+    mocker.patch.dict(
+        app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": "query-context-tests"}
+    )
 
 
 @pytest.fixture
@@ -34,6 +53,38 @@ def mock_query_context():
         "superset.common.query_context_processor.QueryContextProcessor"
     ) as mock_query_context_processor:
         yield mock_query_context_processor
+
+
+def _wire_contribution_totals(mock_query_context: MagicMock) -> None:
+    """Give a mock query context real totals normalization and cache metadata.
+
+    ``QueryContext`` owns the normalization and the processor delegates to it, so a
+    bare MagicMock would return a value the processor cannot unpack.
+    """
+    from superset.common.query_object import QueryObject
+
+    mock_query_context.prepare_contribution_totals.side_effect = lambda: (
+        normalize_contribution_totals(
+            mock_query_context.queries, mock_query_context.cache_values
+        )
+    )
+    mock_query_context.custom_cache_timeout = 300
+    mock_query_context.is_async_execution = False
+    mock_query_context.force = False
+    query: QueryObject
+    for query in mock_query_context.queries:
+        assert query.datasource is not None
+        query.datasource.database.extra = "{}"
+
+
+def _query_timing() -> QueryTiming:
+    return QueryTiming(
+        query_planning_ns=0,
+        cache_resolution_ns=0,
+        data_acquisition_ns=None,
+        payload_assembly_ns=0,
+        total_ns=0,
+    )
 
 
 @pytest.fixture
@@ -83,6 +134,25 @@ def processor(mock_query_context):
     )
 
     return processor
+
+
+def test_query_cache_key_binds_annotation_data_to_requesting_user(processor):
+    """The cache key for annotated queries must differ per requesting user."""
+    query_obj = MagicMock()
+    query_obj.annotation_layers = [{"sourceType": "NATIVE", "name": "a", "value": 1}]
+    with (
+        patch(
+            "superset.common.query_context_processor.get_user_id",
+            side_effect=[1, 2],
+        ),
+        patch("superset.common.query_context_processor.security_manager"),
+    ):
+        processor.query_cache_key(query_obj)
+        processor.query_cache_key(query_obj)
+    contexts = [
+        call.kwargs["annotation_context"] for call in query_obj.cache_key.call_args_list
+    ]
+    assert contexts[0] != contexts[1]
 
 
 def test_get_data_table_like(processor, mock_query_context):
@@ -145,12 +215,62 @@ def test_get_data_json(processor, mock_query_context):
     assert result == expected
 
 
+def test_get_data_json_preserves_browser_numeric_contract(
+    processor, mock_query_context
+) -> None:
+    """Producer output keeps big integers exact and classifies long doubles safely."""
+    finite_longdouble = np.longdouble("1e400")
+    frame = pd.DataFrame(
+        {
+            "big_integer": pd.Series([2**53 + 1, 2**53 + 1], dtype=object),
+            "longdouble": pd.Series(
+                [finite_longdouble, np.longdouble("inf")], dtype=object
+            ),
+        }
+    )
+    mock_query_context.result_format = ChartDataResultFormat.JSON
+
+    result = processor.get_data(
+        frame, [GenericDataType.NUMERIC, GenericDataType.NUMERIC]
+    )
+
+    assert result[0]["big_integer"] == str(2**53 + 1)
+    assert result[0]["longdouble"] is finite_longdouble
+    assert result[1]["longdouble"] is None
+    # The browser-visible integer and non-finite value stay strict-JSON safe.
+    assert superset_json.loads(
+        superset_json.dumps(
+            {
+                "big_integer": result[0]["big_integer"],
+                "longdouble_nonfinite": result[1]["longdouble"],
+            },
+            ignore_nan=False,
+        )
+    ) == {
+        "big_integer": str(2**53 + 1),
+        "longdouble_nonfinite": None,
+    }
+
+
+def test_get_data_json_keeps_decimals_numeric(processor, mock_query_context) -> None:
+    """Chart JSON keeps decimals as numbers; only SQL Lab quotes them."""
+    frame = pd.DataFrame({"amount": [Decimal("10.50")]})
+    mock_query_context.result_format = ChartDataResultFormat.JSON
+
+    result = processor.get_data(frame, [GenericDataType.NUMERIC])
+
+    assert type(result[0]["amount"]) is Decimal
+    assert superset_json.loads(superset_json.dumps(result)) == [{"amount": 10.5}]
+
+
 def test_get_data_invalid_dataframe(processor, mock_query_context):
     df = pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
     coltypes = [GenericDataType.NUMERIC, GenericDataType.STRING]
     mock_query_context.result_format = ChartDataResultFormat.JSON
 
-    with patch.object(df, "to_dict", side_effect=ValueError("Invalid DataFrame")):
+    with patch.object(
+        pd.DataFrame, "itertuples", side_effect=ValueError("Invalid DataFrame")
+    ):
         with pytest.raises(ValueError, match="Invalid DataFrame"):
             processor.get_data(df, coltypes)
 
@@ -389,8 +509,45 @@ def test_get_offset_custom_or_inherit_with_inherit(processor):
         "inherit", from_dttm, to_dttm
     )
 
-    # Should return the difference in days
-    assert result == "9 days ago"
+    # Should shift back by the length of the range: 9 days, in seconds
+    assert result == "777600 seconds ago"
+
+
+@pytest.mark.parametrize(
+    "hours",
+    [
+        # Sub-day ranges truncated to "0 days ago" and compared the range
+        # against itself.
+        1,
+        12,
+        # Ranges that are not a whole number of days truncated downwards and
+        # overlapped the range they were compared against.
+        36,
+        # Whole-day ranges were already correct and must stay so.
+        24,
+        48,
+    ],
+)
+def test_get_offset_custom_or_inherit_shifts_by_full_range(
+    processor, hours: int
+) -> None:
+    """
+    'inherit' compares a range against the period immediately preceding it,
+    for any range length. The offset must not be truncated to whole days: it
+    has to reproduce the range's exact duration, so that the comparison window
+    neither overlaps the range nor leaves a gap before it.
+    """
+    from_dttm = datetime(2024, 3, 10, 6, 0)
+    to_dttm = from_dttm + timedelta(hours=hours)
+
+    offset = processor._qc_datasource.get_offset_custom_or_inherit(
+        "inherit", from_dttm, to_dttm
+    )
+
+    shifted_from = get_past_or_future(offset, from_dttm)
+    shifted_to = get_past_or_future(offset, to_dttm)
+    assert shifted_to == from_dttm
+    assert shifted_to - shifted_from == to_dttm - from_dttm
 
 
 def test_get_offset_custom_or_inherit_with_date(processor):
@@ -1024,6 +1181,261 @@ def test_processing_time_offsets_updates_temporal_filter_with_adhoc_x_axis(proce
     assert "2025-06-01" in val, f"Expected shifted-to-dttm in val, got: {val!r}"
 
 
+def test_processing_time_offsets_quarter_offset_shifts_query_window(
+    processor: QueryContextProcessor,
+) -> None:
+    """A quarter offset must shift the offset query's window, not just the
+    join keys. parsedatetime does not understand "1 quarter ago", so without
+    rewriting quarters to months the offset subquery silently runs against
+    the current period and the comparison series joins to nulls. The fake
+    query below derives its rows from the requested window, so the join only
+    yields the expected values when the window was actually shifted.
+    """
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import ExploreMixin
+
+    # The fixture's datasource is a MagicMock, not a real Explorable
+    datasource: Any = processor._qc_datasource
+
+    for method in (
+        "processing_time_offsets",
+        "_align_offset_without_time_grain",
+        "_coalesce_offset_index",
+    ):
+        setattr(
+            datasource,
+            method,
+            getattr(ExploreMixin, method).__get__(datasource),
+        )
+
+    df = pd.DataFrame(
+        {
+            "__timestamp": pd.to_datetime(["2024-04-01", "2024-05-01", "2024-06-01"]),
+            "sum__num": [100, 200, 300],
+        }
+    )
+
+    query_object = QueryObject(
+        datasource=MagicMock(),
+        granularity="ds",
+        columns=[],
+        metrics=["sum__num"],
+        is_timeseries=True,
+        time_offsets=["1 quarter ago"],
+        filters=[
+            {
+                "col": "ds",
+                "op": "TEMPORAL_RANGE",
+                "val": "2024-04-01 : 2024-07-01",
+            }
+        ],
+    )
+
+    captured: list[dict[str, Any]] = []
+
+    def fake_query(dct: dict[str, Any]) -> MagicMock:
+        captured.append(dct)
+        result = MagicMock()
+        result.df = pd.DataFrame(
+            {
+                "__timestamp": pd.date_range(
+                    start=dct["from_dttm"], periods=3, freq="MS"
+                ),
+                "sum__num": [1.0, 2.0, 3.0],
+            }
+        )
+        result.query = "SELECT 1"
+        return result
+
+    datasource.query = fake_query
+    datasource.normalize_df = MagicMock(
+        side_effect=lambda offset_df, _query_object, _labels=None: offset_df
+    )
+
+    with (
+        patch(
+            "superset.models.helpers.get_since_until_from_query_object",
+            return_value=(pd.Timestamp("2024-04-01"), pd.Timestamp("2024-07-01")),
+        ),
+        patch(
+            "superset.common.utils.query_cache_manager.QueryCacheManager"
+        ) as mock_cache_manager,
+        patch.object(
+            datasource,
+            "get_time_grain",
+            return_value=None,
+        ),
+    ):
+        mock_cache = MagicMock()
+        mock_cache.is_loaded = False
+        mock_cache_manager.get.return_value = mock_cache
+
+        result = datasource.processing_time_offsets(df, query_object, None, None, False)
+
+    assert len(captured) == 1
+    assert captured[0]["from_dttm"] == pd.Timestamp("2024-01-01")
+    assert captured[0]["to_dttm"] == pd.Timestamp("2024-04-01")
+    assert result["df"]["sum__num__1 quarter ago"].tolist() == [1.0, 2.0, 3.0]
+
+
+def test_processing_time_offsets_accepts_zero_shift_offset(
+    processor: QueryContextProcessor,
+) -> None:
+    """An offset that legitimately parses to no shift (e.g. "0 days ago")
+    must render a self-comparison instead of being rejected as
+    uninterpretable: a zero delta is not a parse failure.
+    """
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import ExploreMixin
+
+    # The fixture's datasource is a MagicMock, not a real Explorable
+    datasource: Any = processor._qc_datasource
+
+    for method in (
+        "processing_time_offsets",
+        "_align_offset_without_time_grain",
+        "_coalesce_offset_index",
+    ):
+        setattr(
+            datasource,
+            method,
+            getattr(ExploreMixin, method).__get__(datasource),
+        )
+
+    df = pd.DataFrame(
+        {
+            "__timestamp": pd.to_datetime(["2024-04-01", "2024-05-01", "2024-06-01"]),
+            "sum__num": [100, 200, 300],
+        }
+    )
+
+    query_object = QueryObject(
+        datasource=MagicMock(),
+        granularity="ds",
+        columns=[],
+        metrics=["sum__num"],
+        is_timeseries=True,
+        time_offsets=["0 days ago"],
+        filters=[
+            {
+                "col": "ds",
+                "op": "TEMPORAL_RANGE",
+                "val": "2024-04-01 : 2024-07-01",
+            }
+        ],
+    )
+
+    captured: list[dict[str, Any]] = []
+
+    def fake_query(dct: dict[str, Any]) -> MagicMock:
+        captured.append(dct)
+        result = MagicMock()
+        result.df = pd.DataFrame(
+            {
+                "__timestamp": pd.date_range(
+                    start=dct["from_dttm"], periods=3, freq="MS"
+                ),
+                "sum__num": [1.0, 2.0, 3.0],
+            }
+        )
+        result.query = "SELECT 1"
+        return result
+
+    datasource.query = fake_query
+    datasource.normalize_df = MagicMock(
+        side_effect=lambda offset_df, _query_object, _labels=None: offset_df
+    )
+
+    with (
+        patch(
+            "superset.models.helpers.get_since_until_from_query_object",
+            return_value=(pd.Timestamp("2024-04-01"), pd.Timestamp("2024-07-01")),
+        ),
+        patch(
+            "superset.common.utils.query_cache_manager.QueryCacheManager"
+        ) as mock_cache_manager,
+        patch.object(
+            datasource,
+            "get_time_grain",
+            return_value=None,
+        ),
+    ):
+        mock_cache = MagicMock()
+        mock_cache.is_loaded = False
+        mock_cache_manager.get.return_value = mock_cache
+
+        result = datasource.processing_time_offsets(df, query_object, None, None, False)
+
+    # The offset query runs against the unshifted window and its rows join
+    # back onto the main series one-to-one
+    assert len(captured) == 1
+    assert captured[0]["from_dttm"] == pd.Timestamp("2024-04-01")
+    assert captured[0]["to_dttm"] == pd.Timestamp("2024-07-01")
+    assert result["df"]["sum__num__0 days ago"].tolist() == [1.0, 2.0, 3.0]
+
+
+def test_processing_time_offsets_rejects_unparseable_offset(
+    processor: QueryContextProcessor,
+) -> None:
+    """An offset no parser understands must fail with a validation error
+    instead of querying an unshifted window and presenting the current
+    period's rows as the comparison series.
+    """
+    from superset.common.query_object import QueryObject
+    from superset.exceptions import QueryObjectValidationError
+    from superset.models.helpers import ExploreMixin
+
+    # The fixture's datasource is a MagicMock, not a real Explorable
+    datasource: Any = processor._qc_datasource
+
+    datasource.processing_time_offsets = ExploreMixin.processing_time_offsets.__get__(
+        datasource
+    )
+
+    df = pd.DataFrame(
+        {
+            "__timestamp": pd.to_datetime(["2024-04-01"]),
+            "sum__num": [100],
+        }
+    )
+
+    query_object = QueryObject(
+        datasource=MagicMock(),
+        granularity="ds",
+        columns=[],
+        metrics=["sum__num"],
+        is_timeseries=True,
+        time_offsets=["not a real offset"],
+        filters=[
+            {
+                "col": "ds",
+                "op": "TEMPORAL_RANGE",
+                "val": "2024-04-01 : 2024-07-01",
+            }
+        ],
+    )
+
+    datasource.query = MagicMock()
+
+    with (
+        patch(
+            "superset.models.helpers.get_since_until_from_query_object",
+            return_value=(pd.Timestamp("2024-04-01"), pd.Timestamp("2024-07-01")),
+        ),
+        patch.object(
+            datasource,
+            "get_time_grain",
+            return_value=None,
+        ),
+    ):
+        with pytest.raises(
+            QueryObjectValidationError, match="Unable to interpret the time offset"
+        ):
+            datasource.processing_time_offsets(df, query_object, None, None, False)
+
+    datasource.query.assert_not_called()
+
+
 def test_ensure_totals_available_updates_cache_values():
     """
     Test that ensure_totals_available() updates the query objects AND
@@ -1109,6 +1521,10 @@ def test_ensure_totals_available_updates_cache_values():
         "result_format": "json",
     }
 
+    # Synchronous request: the async result-cache TTL floor does not apply.
+    mock_query_context.is_async_execution = False
+    _wire_contribution_totals(mock_query_context)
+
     # Create processor
     processor = QueryContextProcessor(mock_query_context)
     processor._qc_datasource = mock_datasource
@@ -1132,8 +1548,8 @@ def test_ensure_totals_available_updates_cache_values():
 
         # Now call get_payload which should update cache_values
         with patch(
-            "superset.common.query_context_processor.get_query_results"
-        ) as mock_get_query_results:
+            "superset.common.query_context_processor.get_query_results_with_timing"
+        ) as mock_get_query_results_with_timing:
             # Mock the query results
             mock_query_results_response = [
                 {
@@ -1141,7 +1557,10 @@ def test_ensure_totals_available_updates_cache_values():
                     "query": "SELECT ...",
                 }
             ]
-            mock_get_query_results.return_value = mock_query_results_response
+            mock_get_query_results_with_timing.return_value = QueryDataResult(
+                payload=mock_query_results_response[0],
+                timing=_query_timing(),
+            )
 
             # Mock cache manager to avoid actual caching
             with patch(
@@ -1197,6 +1616,8 @@ def test_get_df_payload_validates_before_cache_key_generation():
     mock_query_context = MagicMock()
     mock_query_context.force = False
     mock_query_context.result_type = "full"
+    # Synchronous request: the async result-cache TTL floor does not apply.
+    mock_query_context.is_async_execution = False
 
     # Create a mock datasource
     mock_datasource = MagicMock()
@@ -1328,6 +1749,9 @@ def test_cache_values_sync_after_ensure_totals_available():
         "result_type": "full",
         "result_format": "json",
     }
+    # Synchronous request: the async result-cache TTL floor does not apply.
+    mock_query_context.is_async_execution = False
+    _wire_contribution_totals(mock_query_context)
 
     # Create processor
     processor = QueryContextProcessor(mock_query_context)
@@ -1356,15 +1780,18 @@ def test_cache_values_sync_after_ensure_totals_available():
 
             # Mock the query results
             with patch(
-                "superset.common.query_context_processor.get_query_results"
-            ) as mock_get_query_results:
+                "superset.common.query_context_processor.get_query_results_with_timing"
+            ) as mock_get_query_results_with_timing:
                 mock_query_results_response = [
                     {
                         "data": [{"region": "North", "sales": 100}],
                         "query": "SELECT region, SUM(sales) FROM table GROUP BY region",
                     }
                 ]
-                mock_get_query_results.return_value = mock_query_results_response
+                mock_get_query_results_with_timing.return_value = QueryDataResult(
+                    payload=mock_query_results_response[0],
+                    timing=_query_timing(),
+                )
 
                 # Call get_payload - this internally calls ensure_totals_available()
                 # and then should update cache_values
@@ -1598,10 +2025,14 @@ def test_force_cached_normalizes_totals_query_row_limit():
         "queries": [main_query.to_dict(), totals_query.to_dict()]
     }
     mock_query_context.get_query_result = MagicMock()
+    # Synchronous request: the async result-cache TTL floor does not apply.
+    mock_query_context.is_async_execution = False
+    _wire_contribution_totals(mock_query_context)
 
     processor = QueryContextProcessor(mock_query_context)
     processor._qc_datasource = mock_datasource
     mock_query_context.get_df_payload = processor.get_df_payload
+    mock_query_context.get_df_payload_result = processor.get_df_payload_result
     mock_query_context.get_data = processor.get_data
 
     with patch(
@@ -1687,6 +2118,7 @@ def test_get_df_payload_invalidates_cache_missing_applied_filter_columns():
             self.annotation_data = {}
             self.bq_memory_limited = False
             self.bq_memory_limited_row_count = 0
+            self.result_persisted = False
             self.set_query_result = MagicMock()
 
     mock_cache = MockCache()
@@ -1857,3 +2289,984 @@ def test_raise_for_access_evaluates_access_before_validate():
             processor.raise_for_access()
 
     query.validate.assert_not_called()
+
+
+def test_raise_for_access_wraps_template_error_for_query_datasource():
+    """
+    When the datasource is a SQL Lab Query and raise_for_access() Jinja-renders
+    malformed SQL, the raw jinja2 TemplateError must be wrapped in
+    SupersetTemplateException (422) instead of leaking as an unhandled 500.
+    """
+    from jinja2.exceptions import TemplateSyntaxError
+
+    from superset.exceptions import SupersetTemplateException
+    from superset.utils.core import DatasourceType
+
+    query = MagicMock()
+    query_context = MagicMock()
+    query_context.queries = [query]
+    query_context.datasource.type = DatasourceType.QUERY
+
+    processor = QueryContextProcessor(query_context)
+
+    with patch(
+        "superset.common.query_context_processor.security_manager.raise_for_access",
+        side_effect=TemplateSyntaxError("unexpected end of template", lineno=1),
+    ):
+        with pytest.raises(SupersetTemplateException):
+            processor.raise_for_access()
+
+    query.validate.assert_not_called()
+
+
+def test_raise_for_access_query_datasource_disallows_editorship():
+    """
+    Query-backed chart-data runs the stored query's raw SQL, so it must
+    authorize with allow_editorship=False (editorship of a same-named dataset
+    must not stand in for data access), and a denial must stop query.validate().
+    """
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+    from superset.utils.core import DatasourceType
+
+    query = MagicMock()
+    query_context = MagicMock()
+    query_context.queries = [query]
+    query_context.datasource.type = DatasourceType.QUERY
+    processor = QueryContextProcessor(query_context)
+
+    denial = SupersetSecurityException(
+        SupersetError(
+            error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+            message="no access",
+            level=ErrorLevel.ERROR,
+        )
+    )
+    with patch(
+        "superset.common.query_context_processor.security_manager.raise_for_access",
+        side_effect=denial,
+    ) as raise_for_access:
+        with pytest.raises(SupersetSecurityException):
+            processor.raise_for_access()
+
+    assert raise_for_access.call_args.kwargs.get("allow_editorship") is False
+    query.validate.assert_not_called()
+
+
+def test_grouping_sets_fallback_handles_adhoc_and_physical_columns() -> None:
+    """
+    The fallback used on engines without native GROUPING SETS support must
+    build ``label_to_column`` from the same labels used to run each level's
+    subquery, for both physical (string) and adhoc (dict) columns, and in the
+    original column order. Otherwise an adhoc column ahead of a physical one
+    in ``query_object.columns`` misaligns the mapping, and adhoc groupby
+    columns referenced in ``grouping_sets`` are silently dropped.
+    """
+    import copy
+    from datetime import timedelta
+
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import QueryResult
+    from superset.superset_typing import AdhocColumn
+
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "DATE_TRUNC('month', dttm)",
+        "label": "month",
+    }
+    mock_datasource = MagicMock()
+
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=[adhoc_col, "state"],
+        grouping_sets=[["month", "state"], ["month"], []],
+    )
+
+    processor = QueryContextProcessor(MagicMock())
+    processor._qc_datasource = mock_datasource
+
+    captured_columns: list[list[Any]] = []
+
+    def fake_get_query_result(sub_query: QueryObject) -> QueryResult:
+        captured_columns.append(copy.copy(sub_query.columns))
+        return QueryResult(
+            df=pd.DataFrame({"metric": [1]}),
+            query="SELECT 1",
+            duration=timedelta(seconds=0),
+        )
+
+    mock_datasource.get_query_result.side_effect = fake_get_query_result
+
+    processor._grouping_sets_fallback(query_obj)
+
+    # Level ["month", "state"] must include both the adhoc and physical column,
+    # each mapped to its own definition (not swapped).
+    assert captured_columns[0] == [adhoc_col, "state"]
+    # Level ["month"] must still include the adhoc column, not drop it.
+    assert captured_columns[1] == [adhoc_col]
+    # Grand total level has no groupby columns.
+    assert captured_columns[2] == []
+
+
+def test_grouping_sets_fallback_applies_row_offset_once_globally() -> None:
+    """
+    The native GROUPING SETS path applies `row_offset` exactly once, to the
+    combined multi-level result (see the unconditional `qry.offset()` call in
+    `models/helpers.py`). The fallback must match that: it must not apply the
+    same offset independently to every per-level subquery, since that would
+    apply it once per level (and can drop an entire low-row-count level, e.g.
+    a single grand-total row, outright).
+    """
+    from datetime import timedelta
+
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import QueryResult
+
+    mock_datasource = MagicMock()
+
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["state"],
+        grouping_sets=[["state"], []],
+        row_offset=1,
+    )
+
+    processor = QueryContextProcessor(MagicMock())
+    processor._qc_datasource = mock_datasource
+
+    captured_offsets: list[int] = []
+
+    # Each level returns 2 rows regardless of the (should-be-ignored) offset,
+    # emulating a real datasource that would otherwise apply row_offset itself.
+    def fake_get_query_result(sub_query: QueryObject) -> QueryResult:
+        captured_offsets.append(sub_query.row_offset)
+        return QueryResult(
+            df=pd.DataFrame({"state": ["CA", "NY"]})
+            if sub_query.columns
+            else pd.DataFrame({"state": ["total"]}),
+            query="SELECT 1",
+            duration=timedelta(seconds=0),
+        )
+
+    mock_datasource.get_query_result.side_effect = fake_get_query_result
+
+    result = processor._grouping_sets_fallback(query_obj)
+
+    # Each per-level subquery must run unoffset...
+    assert captured_offsets == [0, 0]
+    # ...and the requested offset is applied exactly once, to the combined
+    # result: 2 + 1 = 3 total rows in, minus an offset of 1 = 2 rows out.
+    assert len(result.df) == 2
+
+
+def test_grouping_sets_fallback_mixed_levels_exact() -> None:
+    """
+    Concatenating the per-level results must keep an exact large integer exact:
+    one level carries the nullable-integer dimension as an object column, another
+    has no such column, a third carries it as float64. ``object`` + ``float64``
+    stays an exact ``object`` column (a nullable ``Int64`` would be widened to
+    ``Float64`` and round the value again).
+    """
+    from datetime import timedelta
+
+    import numpy as np
+
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import QueryResult
+
+    large = 2**62 + 1
+    levels = {
+        2: pd.DataFrame(
+            {
+                "state": ["CA", "NY"],
+                "big": pd.Series([large, None], dtype=object),
+                "value": [1, 2],
+            }
+        ),
+        1: pd.DataFrame({"state": ["CA", "NY"], "value": [3, 4]}),
+        0: pd.DataFrame(
+            {"big": pd.Series([7.0, np.nan], dtype="float64"), "value": [5, 6]}
+        ),
+    }
+    mock_datasource = MagicMock()
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["state", "big"],
+        grouping_sets=[["state", "big"], ["state"], []],
+    )
+    processor = QueryContextProcessor(MagicMock())
+    processor._qc_datasource = mock_datasource
+    mock_datasource.get_query_result.side_effect = lambda sub_query: QueryResult(
+        df=levels[len(sub_query.columns)],
+        query="SELECT 1",
+        duration=timedelta(seconds=0),
+    )
+
+    result = processor._grouping_sets_fallback(query_obj)
+
+    assert result.df["big"].dtype == object
+    assert result.df["big"].iloc[0] == large
+    assert type(result.df["big"].iloc[0]) is int
+
+
+def test_relative_offset_preserves_inner_bounds(
+    processor: QueryContextProcessor,
+) -> None:
+    """
+    Regression test for #40501: Relative time comparison offset should
+    preserve inner bounds as the original (unshifted) period, not the shifted one.
+
+    When comparing 2026-05-01 : 2026-05-28 with offset "365 days ago":
+    - inner_from_dttm should be 2026-05-01 (original), NOT 2025-05-01 (shifted)
+    - inner_to_dttm should be 2026-05-28 (original), NOT 2025-05-28 (shifted)
+    """
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import ExploreMixin
+
+    datasource: Any = processor._qc_datasource
+
+    for method in (
+        "processing_time_offsets",
+        "_align_offset_without_time_grain",
+        "_coalesce_offset_index",
+    ):
+        setattr(
+            datasource,
+            method,
+            getattr(ExploreMixin, method).__get__(datasource),
+        )
+
+    df = pd.DataFrame(
+        {
+            "__timestamp": pd.to_datetime(["2026-05-01", "2026-05-15", "2026-05-28"]),
+            "sum__num": [100, 200, 300],
+        }
+    )
+
+    query_object = QueryObject(
+        datasource=MagicMock(),
+        granularity="ds",
+        columns=[],
+        metrics=["sum__num"],
+        is_timeseries=True,
+        time_offsets=["365 days ago"],
+        filters=[
+            {
+                "col": "ds",
+                "op": "TEMPORAL_RANGE",
+                "val": "2026-05-01 : 2026-05-28",
+            }
+        ],
+    )
+
+    captured: list[dict[str, Any]] = []
+
+    def fake_query(dct: dict[str, Any]) -> MagicMock:
+        captured.append(dct)
+        result = MagicMock()
+        result.df = pd.DataFrame(
+            {
+                "__timestamp": pd.date_range(
+                    start=dct["from_dttm"], periods=3, freq="14D"
+                ),
+                "sum__num": [1.0, 2.0, 3.0],
+            }
+        )
+        result.query = "SELECT 1"
+        return result
+
+    datasource.query = fake_query
+    datasource.normalize_df = MagicMock(
+        side_effect=lambda offset_df, _query_object, _labels=None: offset_df
+    )
+
+    with (
+        patch(
+            "superset.models.helpers.get_since_until_from_query_object",
+            return_value=(pd.Timestamp("2026-05-01"), pd.Timestamp("2026-05-28")),
+        ),
+        patch(
+            "superset.common.utils.query_cache_manager.QueryCacheManager"
+        ) as mock_cache_manager,
+        patch.object(
+            datasource,
+            "get_time_grain",
+            return_value=None,
+        ),
+    ):
+        mock_cache = MagicMock()
+        mock_cache.is_loaded = False
+        mock_cache_manager.get.return_value = mock_cache
+
+        datasource.processing_time_offsets(df, query_object, None, None, False)
+
+    # The offset query should use shifted dates for the main window
+    assert len(captured) == 1
+    assert captured[0]["from_dttm"] == pd.Timestamp("2025-05-01")
+    assert captured[0]["to_dttm"] == pd.Timestamp("2025-05-28")
+
+    # The inner bounds (used for series-limit subquery) should be the
+    # ORIGINAL unshifted dates, not the shifted ones — this is the fix
+    # for #40501. Without the fix, inner_from/to_dttm == shifted dates.
+    assert captured[0]["inner_from_dttm"] == pd.Timestamp("2026-05-01")
+    assert captured[0]["inner_to_dttm"] == pd.Timestamp("2026-05-28")
+
+
+def test_get_native_annotation_data_requires_annotation_read_access():
+    """Native annotation layers are only served to users who can read them."""
+    query_obj = MagicMock()
+    query_obj.annotation_layers = [{"sourceType": "NATIVE", "name": "a", "value": 1}]
+    with (
+        patch(
+            "superset.common.query_context_processor.security_manager"
+        ) as security_manager_mock,
+        patch(
+            "superset.common.query_context_processor.AnnotationLayerDAO.find_by_ids",
+            return_value=[],
+        ) as find_by_ids_mock,
+    ):
+        # ``can_access`` is synchronous; force a plain Mock so the patched
+        # manager doesn't hand back a truthy coroutine that slips past the
+        # ``not can_access(...)`` guard.
+        security_manager_mock.can_access = MagicMock(return_value=False)
+        with pytest.raises(QueryObjectValidationError):
+            QueryContextProcessor.get_native_annotation_data(query_obj)
+    security_manager_mock.can_access.assert_called_once_with("can_read", "Annotation")
+    find_by_ids_mock.assert_not_called()
+
+
+# =============================================================================
+# Forced-refresh idempotency nonce (GTF async double-execution guard)
+# =============================================================================
+
+
+# A query object with no per-query nonce: the force helpers then fall back to the
+# context-level nonce (the path these tests exercise).
+_QO_NO_NONCE = MagicMock(force_nonce=None)
+
+
+def test_resolve_forced_query_false_when_not_forced(processor, mock_query_context):
+    mock_query_context.force = False
+    assert processor._resolve_forced_query(_QO_NO_NONCE, "ck") is False
+
+
+def test_resolve_forced_query_true_when_forced_without_nonce(
+    processor, mock_query_context
+):
+    """A forced refresh with no nonce (sync/legacy) forces verbatim."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = None
+    assert processor._resolve_forced_query(_QO_NO_NONCE, "ck") is True
+
+
+def test_resolve_forced_query_true_when_forced_without_cache_key(
+    processor, mock_query_context
+):
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    assert processor._resolve_forced_query(_QO_NO_NONCE, None) is True
+
+
+def test_resolve_forced_query_reads_cache_when_marker_present(
+    processor, mock_query_context
+):
+    """Marker present => this forced refresh already cached its result; read it."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    with patch(
+        "superset.common.query_context_processor.cache_manager"
+    ) as cache_manager:
+        cache_manager.data_cache.get.return_value = 1  # marker exists
+        assert processor._resolve_forced_query(_QO_NO_NONCE, "ck") is False
+    cache_manager.data_cache.get.assert_called_once_with("gtf-force-nonce:nonce-1:ck")
+
+
+def test_resolve_forced_query_forces_when_marker_absent(processor, mock_query_context):
+    """No marker for THIS (nonce, cache_key) — including a cache_key that shifted
+    since the forced compute (templated/time-relative keys) — forces a recompute
+    rather than mis-reading another key's result."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    with patch(
+        "superset.common.query_context_processor.cache_manager"
+    ) as cache_manager:
+        cache_manager.data_cache.get.return_value = None  # no marker
+        assert processor._resolve_forced_query(_QO_NO_NONCE, "ck") is True
+
+
+def test_mark_force_executed_sets_marker_for_nonce_refresh(
+    processor, mock_query_context
+):
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    with (
+        patch("superset.common.query_context_processor.cache_manager") as cache_manager,
+        patch.object(processor, "get_cache_timeout", return_value=123),
+    ):
+        processor._mark_force_executed(_QO_NO_NONCE, "ck", persisted=True)
+    cache_manager.data_cache.set.assert_called_once_with(
+        "gtf-force-nonce:nonce-1:ck", 1, timeout=123
+    )
+
+
+def test_mark_force_executed_noop_when_result_not_persisted(
+    processor, mock_query_context
+):
+    """If the fresh result wasn't actually cached (oversized/backend error), the
+    marker must NOT be written — otherwise a follow-up read stops forcing and can
+    serve a stale pre-refresh value."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    with patch(
+        "superset.common.query_context_processor.cache_manager"
+    ) as cache_manager:
+        processor._mark_force_executed(_QO_NO_NONCE, "ck", persisted=False)
+    cache_manager.data_cache.set.assert_not_called()
+
+
+def test_mark_force_executed_noop_without_nonce(processor, mock_query_context):
+    mock_query_context.force = True
+    mock_query_context.force_nonce = None
+    with patch(
+        "superset.common.query_context_processor.cache_manager"
+    ) as cache_manager:
+        processor._mark_force_executed(_QO_NO_NONCE, "ck", persisted=True)
+    cache_manager.data_cache.set.assert_not_called()
+
+
+def test_mark_force_executed_swallows_marker_write_error(processor, mock_query_context):
+    """A marker write failure is best-effort — logged and swallowed."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    with (
+        patch("superset.common.query_context_processor.cache_manager") as cache_manager,
+        patch.object(processor, "get_cache_timeout", return_value=123),
+    ):
+        cache_manager.data_cache.set.side_effect = RuntimeError("backend down")
+        processor._mark_force_executed(
+            _QO_NO_NONCE, "ck", persisted=True
+        )  # must not raise
+
+
+def test_resolve_forced_query_forces_when_marker_read_errors(
+    processor, mock_query_context
+):
+    """A marker read failure degrades to 'absent' (force), never an error."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    with patch(
+        "superset.common.query_context_processor.cache_manager"
+    ) as cache_manager:
+        cache_manager.data_cache.get.side_effect = RuntimeError("backend down")
+        assert processor._resolve_forced_query(_QO_NO_NONCE, "ck") is True
+
+
+def test_resolve_forced_query_prefers_per_query_nonce(processor, mock_query_context):
+    """The per-query nonce (the async task's UUID, set on the read-back) takes
+    precedence over the context-level nonce and keys the marker lookup."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "ctx-nonce"
+    query_obj = MagicMock(force_nonce="task-uuid")
+    with patch(
+        "superset.common.query_context_processor.cache_manager"
+    ) as cache_manager:
+        cache_manager.data_cache.get.return_value = 1  # marker exists
+        assert processor._resolve_forced_query(query_obj, "ck") is False
+    cache_manager.data_cache.get.assert_called_once_with("gtf-force-nonce:task-uuid:ck")
+
+
+def test_mark_force_executed_uses_per_query_nonce(processor, mock_query_context):
+    """The marker is written under the per-query nonce when present."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "ctx-nonce"
+    query_obj = MagicMock(force_nonce="task-uuid")
+    with (
+        patch("superset.common.query_context_processor.cache_manager") as cache_manager,
+        patch.object(processor, "get_cache_timeout", return_value=123),
+    ):
+        processor._mark_force_executed(query_obj, "ck", persisted=True)
+    cache_manager.data_cache.set.assert_called_once_with(
+        "gtf-force-nonce:task-uuid:ck", 1, timeout=123
+    )
+
+
+def test_gauge_json_metric_label_ignores_verbose_name(
+    processor: QueryContextProcessor, mock_query_context: MagicMock
+) -> None:
+    """Gauge JSON rows retain saved metric keys, unlike CSV/XLSX exports."""
+    from superset.mcp_service.chart.query_result import validate_gauge_query_result
+
+    mock_query_context.datasource.data = {"verbose_map": {"saved_sla": "SLA percent"}}
+    mock_query_context.result_format = ChartDataResultFormat.JSON
+    rows = processor.get_data(
+        pd.DataFrame({"saved_sla": [42]}), [GenericDataType.NUMERIC]
+    )
+    assert rows == [{"saved_sla": 42}]
+    assert (
+        validate_gauge_query_result(
+            {"queries": [{"data": rows}]},
+            {"viz_type": "gauge_chart", "metric": "saved_sla"},
+        )
+        is None
+    )
+
+
+def test_is_summable_accepts_decimal_columns():
+    """Decimal metrics must be summable for the contribution totals.
+
+    `decimal.Decimal` values -- how drivers such as psycopg2 hand back
+    NUMERIC/DECIMAL columns -- live in an object-dtype column, so the
+    `dtype.kind in "biufc"` test dropped them even though they sum and
+    divide fine. Columns holding anything else non-numeric must stay out.
+    """
+    from decimal import Decimal
+
+    from superset.common.query_context_processor import is_summable
+
+    assert is_summable(pd.Series([1.0, 2.0]))
+    assert is_summable(pd.Series([1, 2]))
+    assert is_summable(pd.Series([Decimal("1.5"), Decimal("2.5")]))
+    # a Decimal column that also carries nulls is still a Decimal column
+    assert is_summable(pd.Series([Decimal("1.5"), None]))
+
+    assert not is_summable(pd.Series(["a", "b"]))
+    assert not is_summable(pd.Series([{"a": 1}, {"b": 2}]))
+    assert not is_summable(pd.Series(pd.to_datetime(["2021-01-01", "2021-01-02"])))
+
+
+def test_ensure_totals_available_includes_decimal_metrics():
+    """A Decimal metric must reach `contribution_totals`.
+
+    When it is missing, `contribution()` looks the metric up, gets `None`
+    back and writes a zero contribution -- so the chart silently renders 0%
+    for every row of that metric rather than erroring.
+    """
+    from decimal import Decimal
+
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    mock_datasource.uid = "test_datasource"
+    mock_datasource.database.db_engine_spec.engine = "postgresql"
+    mock_datasource.cache_timeout = None
+    mock_datasource.changed_on = None
+
+    main_query = QueryObject(
+        datasource=mock_datasource,
+        columns=["brokerage"],
+        metrics=["decimal_metric", "float_metric"],
+        post_processing=[
+            {
+                "operation": "contribution",
+                "options": {"columns": ["decimal_metric", "float_metric"]},
+            }
+        ],
+    )
+    totals_query = QueryObject(
+        datasource=mock_datasource,
+        columns=[],
+        metrics=["decimal_metric", "float_metric"],
+        post_processing=[],
+    )
+
+    mock_query_context = MagicMock()
+    mock_query_context.queries = [main_query, totals_query]
+    mock_query_context.cache_values = {}
+    _wire_contribution_totals(mock_query_context)
+
+    mock_query_result = MagicMock()
+    mock_query_result.df = pd.DataFrame(
+        {
+            # what psycopg2 hands back for a NUMERIC column
+            "decimal_metric": [Decimal("40.0")],
+            "float_metric": [10.0],
+            # a non-numeric column must still be left out
+            "label": ["total"],
+        }
+    )
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+
+    with patch.object(
+        mock_query_context, "get_query_result", return_value=mock_query_result
+    ):
+        processor.ensure_totals_available()
+
+    totals = main_query.post_processing[0]["options"]["contribution_totals"]
+    assert totals == {"decimal_metric": Decimal("40.0"), "float_metric": 10.0}
+    assert "label" not in totals
+
+
+def test_contribution_uses_decimal_totals_rather_than_zero():
+    """End to end: the totals a Decimal metric produces yield real percentages."""
+    from decimal import Decimal
+
+    from superset.utils.core import PostProcessingContributionOrientation
+    from superset.utils.pandas_postprocessing import contribution
+
+    df = pd.DataFrame({"decimal_metric": [Decimal("10.0"), Decimal("30.0")]})
+
+    # totals as built by `ensure_totals_available`
+    processed = contribution(
+        df,
+        orientation=PostProcessingContributionOrientation.COLUMN,
+        columns=["decimal_metric"],
+        rename_columns=["%decimal_metric"],
+        contribution_totals={"decimal_metric": Decimal("40.0")},
+    )
+    assert processed["%decimal_metric"].tolist() == [0.25, 0.75]
+
+    # the pre-fix behaviour: the metric absent from totals collapses to zero
+    collapsed = contribution(
+        df,
+        orientation=PostProcessingContributionOrientation.COLUMN,
+        columns=["decimal_metric"],
+        rename_columns=["%decimal_metric"],
+        contribution_totals={"unrelated_metric": Decimal("40.0")},
+    )
+    assert collapsed["%decimal_metric"].tolist() == [0, 0]
+
+
+def test_get_viz_annotation_data_reports_missing_chart(app_context) -> None:
+    with patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=None,
+    ):
+        with pytest.raises(QueryObjectValidationError) as excinfo:
+            QueryContextProcessor.get_viz_annotation_data(
+                {"value": 42, "name": "My layer"}, force=False
+            )
+
+    assert str(excinfo.value.message) == (
+        "Chart with ID 42 (referenced by annotation layer 'My layer') was not "
+        "found. Please verify that the chart exists and is accessible."
+    )
+
+
+def test_get_viz_annotation_data_reports_missing_query_context(app_context) -> None:
+    chart = MagicMock(id=42)
+    chart.get_query_context.return_value = None
+    with patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=chart,
+    ):
+        with pytest.raises(QueryObjectValidationError) as excinfo:
+            QueryContextProcessor.get_viz_annotation_data(
+                {"value": 42, "name": "My layer"}, force=False
+            )
+
+    assert str(excinfo.value.message) == (
+        "The query context for chart ID 42 (referenced by annotation layer "
+        "'My layer') was not found. Please ensure the chart is properly "
+        "configured and has a valid query context."
+    )
+
+
+def test_completeness_error_escapes_failed_payload_conversion(
+    processor: QueryContextProcessor,
+) -> None:
+    from superset.exceptions import SemanticResultCompletenessError
+
+    query: MagicMock = MagicMock()
+    query.columns = []
+    query.metrics = []
+    query.filter = []
+    cache: MagicMock = MagicMock()
+    cache.is_loaded = False
+    error: SemanticResultCompletenessError = SemanticResultCompletenessError(
+        "unverified"
+    )
+    with (
+        patch.object(processor, "query_cache_key", return_value="new-generation"),
+        patch.object(processor, "get_cache_timeout", return_value=300),
+        patch(
+            "superset.common.query_context_processor.QueryCacheManager.get",
+            return_value=cache,
+        ),
+        patch.object(processor, "get_query_result", side_effect=error),
+    ):
+        with pytest.raises(SemanticResultCompletenessError):
+            processor.get_df_payload_result(query)
+    cache.set_query_result.assert_not_called()
+
+
+def test_semantic_annotation_generation_versions_sql_parent(
+    processor: QueryContextProcessor,
+    semantic_cache_namespace: None,
+) -> None:
+    from superset.semantic_layers.models import SemanticLayer, SemanticView
+
+    query: MagicMock = MagicMock()
+    query.annotation_layers = [{"sourceType": "line", "value": 7}]
+    view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
+    from superset.models.slice import Slice
+
+    chart: Slice = Slice(
+        datasource_type="semantic_view", datasource_id=17, semantic_view=view
+    )
+    provider: MagicMock = MagicMock(result_cache_version=None)
+    with (
+        patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}),
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch("superset.common.query_context_processor.get_user_id", return_value=42),
+        patch(
+            "superset.common.query_context_processor.security_manager.get_rls_cache_key",
+            return_value=["scope"],
+        ),
+    ):
+        old: dict[str, Any] = processor._annotation_cache_context(query)
+        provider.result_cache_version = "guarded-v1"
+        new: dict[str, Any] = processor._annotation_cache_context(query)
+    assert old == {
+        "user_id": 42,
+        "source_rls": {"7": ["scope"]},
+        "semantic_filter_protocol": "semantic-null-filters-v1",
+        "source_versions": {"7": view.metadata_generation},
+    }
+    assert new != old
+    assert new["user_id"] == old["user_id"]
+    assert new["source_rls"] == old["source_rls"]
+    provider.assert_not_called()
+
+
+def test_completeness_annotation_failure_preserves_subtype(app_context: Any) -> None:
+    from superset.exceptions import SemanticResultCompletenessError
+
+    chart: MagicMock = MagicMock(id=7)
+    with (
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            side_effect=SemanticResultCompletenessError("incomplete"),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate"
+        ),
+    ):
+        with pytest.raises(SemanticResultCompletenessError):
+            QueryContextProcessor.get_viz_annotation_data(
+                {"value": 7, "name": "fixture"}, force=False
+            )
+
+
+def test_data_generation_separates_late_legacy_writer_and_task_keys(
+    processor: QueryContextProcessor,
+    semantic_cache_namespace: None,
+) -> None:
+    from unittest.mock import PropertyMock
+
+    from superset.common.query_object import QueryObject
+    from superset.semantic_layers.models import SemanticLayer, SemanticView
+    from superset.tasks.async_queries import _query_task_cache_key
+
+    view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
+    provider: MagicMock = MagicMock(result_cache_version=None)
+    query: QueryObject = QueryObject(columns=[], metrics=[], row_limit=5000)
+    processor._qc_datasource = view
+    context: MagicMock = MagicMock(queries=[query])
+    context.query_cache_key.side_effect = processor.query_cache_key
+    with (
+        patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}),
+        patch.object(
+            SemanticView, "uid", new_callable=PropertyMock, return_value="fixture-uid"
+        ),
+        patch(
+            "superset.common.query_context_processor.security_manager.get_rls_cache_key",
+            return_value=["scope-a"],
+        ),
+    ):
+        legacy: str | None = processor.query_cache_key(query)
+        provider.result_cache_version = "guarded-v1"
+        guarded: str | None = processor.query_cache_key(query)
+        assert legacy is not None
+        assert guarded is not None
+        assert legacy != guarded
+        stored: dict[str, str] = {legacy: "partial"}
+        assert guarded not in stored
+        stored[guarded] = "complete"
+        stored[legacy] = "late partial writer"
+        readback: str | None = processor.query_cache_key(query)
+        assert readback is not None
+        assert stored[readback] == "complete"
+        assert _query_task_cache_key(context, 0) == guarded
+        query.force_nonce = "task-uuid"
+        assert processor.query_cache_key(query) == guarded
+    provider.assert_not_called()
+
+
+def test_get_viz_annotation_data_ignores_source_chart_annotations(
+    app_context: Any,
+) -> None:
+    """The source chart's annotation layers are dropped to avoid recursion."""
+    query_object: MagicMock = MagicMock(
+        annotation_layers=[{"sourceType": "line", "value": 1, "name": "Back"}],
+    )
+    query_context: MagicMock = MagicMock(queries=[query_object])
+    chart: MagicMock = MagicMock(id=42)
+    chart.get_query_context.return_value = query_context
+    command: MagicMock = MagicMock()
+    command.run.return_value = {"queries": [{"data": [{"x": 1}]}]}
+    with (
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        result: dict[str, Any] = QueryContextProcessor.get_viz_annotation_data(
+            {"value": 42, "name": "Source"}, force=False
+        )
+
+    assert result == {"records": [{"x": 1}]}
+    assert query_object.annotation_layers == []
+
+
+def test_semantic_annotation_null_protocol_versions_parent_cache(
+    app_context: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    semantic_cache_namespace: None,
+) -> None:
+    """Saved semantic annotation rows must not reuse pre-NULL-fix parent keys."""
+    from superset.common.query_context import QueryContext
+    from superset.common.query_object import QueryObject
+    from superset.models.slice import Slice
+    from superset.semantic_layers.models import SemanticLayer, SemanticView
+
+    view: SemanticView = SemanticView(
+        id=17, name="fixture", semantic_layer=SemanticLayer(type="fixture")
+    )
+    provider: MagicMock = MagicMock()
+    provider.result_cache_version = None
+    provider.get_dimensions.return_value = []
+    monkeypatch.setattr(
+        SemanticView, "implementation", PropertyMock(return_value=provider)
+    )
+    chart: Slice = Slice(
+        id=7,
+        datasource_id=17,
+        datasource_type="semantic_view",
+        query_context=superset_json.dumps(
+            {
+                "datasource": {"id": 17, "type": "semantic_view"},
+                "queries": [
+                    {
+                        "columns": [],
+                        "metrics": [],
+                        "filters": [
+                            {"col": "country", "op": "IN", "val": [None, "US"]}
+                        ],
+                    }
+                ],
+            }
+        ),
+    )
+    chart.semantic_view = view
+    assert chart.datasource is None
+    captured: list[QueryContext] = []
+
+    def payload(context: QueryContext, **kwargs: Any) -> dict[str, Any]:
+        """Capture real query routing while isolating provider execution."""
+        captured.append(context)
+        return {"queries": [{"data": [{"country": None}, {"country": "US"}]}]}
+
+    layer: dict[str, Any] = {
+        "sourceType": "line",
+        "annotationType": "TIME_SERIES",
+        "value": 7,
+        "name": "semantic source",
+    }
+    with (
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=view
+        ),
+        patch.object(QueryContext, "raise_for_access"),
+        patch.object(QueryContext, "get_payload", payload),
+    ):
+        result: dict[str, Any] = QueryContextProcessor.get_viz_annotation_data(
+            layer, force=False
+        )
+    assert result == {"records": [{"country": None}, {"country": "US"}]}
+    assert len(captured) == 1
+    assert captured[0].datasource is view
+    assert captured[0].queries[0].filter == [
+        {"col": "country", "op": "IN", "val": [None, "US"]}
+    ]
+    processor: QueryContextProcessor = QueryContextProcessor(MagicMock())
+    query: QueryObject = QueryObject(columns=[], metrics=[], annotation_layers=[layer])
+    with (
+        patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}),
+        patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=view
+        ),
+        patch(
+            "superset.common.query_context_processor.security_manager.get_rls_cache_key",
+            return_value=[],
+        ),
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch("superset.common.query_context_processor.get_user_id", return_value=42),
+    ):
+        context: dict[str, Any] = processor._annotation_cache_context(query)
+    legacy_context: dict[str, Any] = {"user_id": 42, "source_rls": {"7": []}}
+    legacy_key: str = query.cache_key(
+        datasource="native-1", annotation_context=legacy_context
+    )
+    current_key: str = query.cache_key(
+        datasource="native-1", annotation_context=context
+    )
+    assert current_key != legacy_key
+    assert context == {
+        **legacy_context,
+        "semantic_filter_protocol": "semantic-null-filters-v1",
+        "source_versions": {"7": view.metadata_generation},
+    }
+
+
+def test_get_df_payload_keeps_dataset_validation_type() -> None:
+    """A SQL dataset's run-time validation failure keeps its type in the payload."""
+    from superset.common.query_object import QueryObject
+    from superset.exceptions import QueryObjectValidationMessage
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+    query_obj = QueryObject(datasource=mock_datasource, columns=["missing"])
+    cache = MagicMock(
+        is_loaded=False,
+        df=pd.DataFrame(),
+        error_message=None,
+        bq_memory_limited=False,
+    )
+
+    with (
+        patch(
+            "superset.common.query_context_processor.QueryCacheManager"
+        ) as cache_manager,
+        patch.object(query_obj, "validate", return_value=None),
+        patch.object(processor, "query_cache_key", return_value="key"),
+        patch.object(processor, "get_cache_timeout", return_value=3600),
+    ):
+        cache_manager.get.return_value = cache
+        payload = processor.get_df_payload(query_obj)
+
+    assert isinstance(payload["error"], QueryObjectValidationMessage)
+    assert payload["error"] == "Columns missing in dataset: ['missing']"
+    cache.set_query_result.assert_not_called()

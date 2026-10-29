@@ -195,23 +195,6 @@ test('Scatter buildQuery should handle tooltip_contents', () => {
   expect(query.columns).toContain('description');
 });
 
-test('Scatter buildQuery should handle js_columns', () => {
-  const formData: DeckScatterFormData = {
-    ...baseFormData,
-    js_columns: ['custom_col1', 'custom_col2'],
-    point_radius_fixed: {
-      type: 'fix',
-      value: '1000',
-    },
-  };
-
-  const queryContext = buildQuery(formData);
-  const [query] = queryContext.queries;
-
-  expect(query.columns).toContain('custom_col1');
-  expect(query.columns).toContain('custom_col2');
-});
-
 test('Scatter buildQuery should handle adhoc SQL metric for point_radius_fixed', () => {
   const adhocMetric = {
     label: 'count(*) * 1.1',
@@ -546,4 +529,28 @@ test('Scatter buildQuery should deduplicate legacy string metric with existing m
   // Should not duplicate COUNT(*)
   expect(query.metrics).toEqual(['COUNT(*)', 'SUM(value)']);
   expect(query.metrics).toHaveLength(2);
+});
+
+test.each(['100', '2.5'])(
+  'typed geographic buildQuery treats numeric-string radius %s as fixed',
+  radius => {
+    const [query] = buildQuery({
+      ...baseFormData,
+      mcp_geographic: true,
+      point_radius_fixed: radius,
+    }).queries;
+
+    expect(query.metrics).toEqual([]);
+    expect(query.orderby).toEqual([]);
+  },
+);
+
+test('native buildQuery keeps a numeric-string radius as a saved metric', () => {
+  const [query] = buildQuery({
+    ...baseFormData,
+    point_radius_fixed: '100',
+  }).queries;
+
+  expect(query.metrics).toEqual(['100']);
+  expect(query.orderby).toEqual([['100', false]]);
 });

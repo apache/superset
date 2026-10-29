@@ -18,8 +18,10 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { Select, SelectValue } from '@superset-ui/core/components';
-import { ControlHeader } from '@superset-ui/chart-controls';
-import { ControlComponentProps } from '@superset-ui/chart-controls';
+import {
+  ControlHeader,
+  ControlComponentProps,
+} from '@superset-ui/chart-controls';
 
 type RotationControlProps = ControlComponentProps<string> & {
   choices?: [string, string][];

@@ -18,14 +18,17 @@
  */
 export * as common from './common';
 export * as authentication from './authentication';
+export * as chat from './chat';
 export * as commands from './commands';
 export * as editors from './editors';
 export * as extensions from './extensions';
 export * as menus from './menus';
+export * as navigation from './navigation';
 export * as sqlLab from './sqlLab';
 export * as views from './views';
 export * as contributions from './contributions';
 export * as theme from './theme';
 export * as translation from './translation';
 export * as components from './components';
+export * as storage from './storage';
 export * as utils from './utils';

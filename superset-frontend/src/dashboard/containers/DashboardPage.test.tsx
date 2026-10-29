@@ -22,6 +22,7 @@ import {
   createStore,
   render,
   screen,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
@@ -30,7 +31,13 @@ import {
   useDashboardCharts,
   useDashboardDatasets,
 } from 'src/hooks/apiResources';
-import { SupersetClient } from '@superset-ui/core';
+import {
+  DatasourceType,
+  SupersetApiError,
+  SupersetClient,
+} from '@superset-ui/core';
+import type { RootState } from 'src/dashboard/types';
+import { replaceDashboardSemanticDatasets } from 'src/dashboard/actions/dashboardInfo';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import {
@@ -61,8 +68,7 @@ const mockDashboard = {
   changed_by: { id: 1, first_name: 'Admin', last_name: 'User' },
   changed_on: '2024-01-01T00:00:00',
   charts: [],
-  owners: [],
-  roles: [],
+  editors: [],
   theme: mockTheme,
 };
 
@@ -181,6 +187,151 @@ beforeEach(() => {
     error: null,
     status: 'complete',
   });
+});
+
+test('page load treats an omitted semantic source as unproven despite retained Redux metadata', async () => {
+  const source = {
+    uid: '2__semantic_view',
+    type: 'semantic_view',
+    columns: [{ column_name: 'country', is_dttm: false }],
+  };
+  const store = createStore(
+    {
+      dashboardInfo: {
+        id: 1,
+        metadata: {},
+        semanticDatasets: { dashboardId: 1, datasets: [source] },
+      },
+      datasources: { [source.uid]: source },
+      dashboardState: { sliceIds: [] },
+      dashboardLayout: { past: [], future: [], present: {} },
+      nativeFilters: { filters: {} },
+      dataMask: {},
+    },
+    reducerIndex,
+  );
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    { store, useRouter: true },
+  );
+
+  await waitFor(() =>
+    expect(
+      (store.getState() as unknown as RootState).dashboardInfo.semanticDatasets
+        ?.datasets,
+    ).toEqual([]),
+  );
+  expect(
+    (store.getState() as unknown as RootState).datasources[source.uid],
+  ).toEqual(source);
+});
+
+test('same-dashboard remount accepts freshly loaded semantic metadata after a save', async () => {
+  const oldSource = {
+    uid: '2__semantic_view',
+    type: DatasourceType.SemanticView,
+    columns: [{ column_name: 'created_at', is_dttm: true }],
+  };
+  const freshSource = {
+    ...oldSource,
+    columns: [{ column_name: 'created_at', is_dttm: false }],
+  };
+  mockUseDashboardDatasets.mockReturnValue({
+    result: [oldSource],
+    error: null,
+    status: 'complete',
+  });
+  const store = createStore(
+    {
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: { sliceIds: [] },
+      dashboardLayout: { past: [], future: [], present: {} },
+      nativeFilters: { filters: {} },
+      dataMask: {},
+    },
+    reducerIndex,
+  );
+  const firstPage = render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    { store, useRouter: true },
+  );
+  await waitFor(() =>
+    expect(
+      (store.getState() as unknown as RootState).dashboardInfo.semanticDatasets
+        ?.datasets,
+    ).toEqual([oldSource]),
+  );
+  firstPage.unmount();
+
+  store.dispatch(replaceDashboardSemanticDatasets(1, null, 'save', true));
+  store.dispatch(replaceDashboardSemanticDatasets(1, [oldSource], 'save'));
+  mockUseDashboardDatasets.mockReturnValue({
+    result: [freshSource],
+    error: null,
+    status: 'complete',
+  });
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    { store, useRouter: true },
+  );
+  await waitFor(() =>
+    expect(
+      (store.getState() as unknown as RootState).dashboardInfo.semanticDatasets
+        ?.datasets,
+    ).toEqual([freshSource]),
+  );
+});
+
+test('new dashboard datasets are published after that dashboard hydrates', async () => {
+  const source = {
+    uid: '2__semantic_view',
+    type: 'semantic_view',
+    columns: [{ column_name: 'country', is_dttm: false }],
+  };
+  mockUseDashboard.mockReturnValue({
+    result: { ...mockDashboard, id: 2 },
+    error: null,
+  });
+  mockUseDashboardDatasets.mockReturnValue({
+    result: [source],
+    error: null,
+    status: 'complete',
+  });
+  const store = createStore(
+    {
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: { sliceIds: [] },
+      dashboardLayout: { past: [], future: [], present: {} },
+      nativeFilters: { filters: {} },
+      dataMask: {},
+    },
+    reducerIndex,
+  );
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="2" />
+    </Suspense>,
+    { store, useRouter: true },
+  );
+  await screen.findByText('DashboardBuilder');
+  store.dispatch({
+    type: 'DASHBOARD_INFO_UPDATED',
+    newInfo: { id: 2 },
+  });
+
+  await waitFor(() =>
+    expect(
+      (store.getState() as unknown as RootState).dashboardInfo.semanticDatasets,
+    ).toEqual({ dashboardId: 2, datasets: [source] }),
+  );
 });
 
 test('passes full theme object from dashboard API response to CrudThemeProvider', async () => {
@@ -559,6 +710,48 @@ test('does not overwrite filterState when modern native_filters URL format is us
   ).toBeUndefined();
 });
 
+test('renders a not-found state instead of throwing when the dashboard 404s', async () => {
+  mockUseDashboard.mockReturnValue({
+    result: null,
+    error: new SupersetApiError({ status: 404, message: 'Not found' }),
+  });
+  mockUseDashboardCharts.mockReturnValue({
+    result: null,
+    error: new SupersetApiError({ status: 404, message: 'Not found' }),
+  });
+  mockUseDashboardDatasets.mockReturnValue({
+    result: null,
+    error: new SupersetApiError({ status: 404, message: 'Not found' }),
+    status: 'error',
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="404" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: {},
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  expect(
+    await screen.findByText('This dashboard does not exist'),
+  ).toBeInTheDocument();
+  expect(screen.queryByTestId('dashboard-builder')).not.toBeInTheDocument();
+
+  await userEvent.click(
+    screen.getByRole('button', { name: 'See all dashboards' }),
+  );
+  expect(window.location.pathname).toBe('/dashboard/list/');
+});
+
 test('clears undo history after hydrating the dashboard', async () => {
   render(
     <Suspense fallback="loading">
@@ -587,4 +780,40 @@ test('clears undo history after hydrating the dashboard', async () => {
   const clearOrder = (clearDashboardHistory as jest.Mock).mock
     .invocationCallOrder[0];
   expect(clearOrder).toBeGreaterThan(hydrateOrder);
+});
+
+test('document.title falls back to the app name on unmount, not the title present at mount', async () => {
+  // A direct page load of a dashboard URL arrives with the dashboard name
+  // already in <title>, so restoring the title seen at mount leaves the stale
+  // name in the tab after navigating away.
+  const titleBeforeTest = document.title;
+  document.title = 'Test Dashboard';
+  try {
+    const { unmount } = render(
+      <Suspense fallback="loading">
+        <DashboardPage idOrSlug="1" />
+      </Suspense>,
+      {
+        useRedux: true,
+        useRouter: true,
+        initialState: {
+          dashboardInfo: { id: 1, metadata: {} },
+          dashboardState: { sliceIds: [] },
+          nativeFilters: { filters: {} },
+          dataMask: {},
+        },
+      },
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByText('loading')).not.toBeInTheDocument();
+    });
+    await waitFor(() => expect(document.title).toBe('Test Dashboard'));
+
+    unmount();
+
+    expect(document.title).toBe('Superset');
+  } finally {
+    document.title = titleBeforeTest;
+  }
 });

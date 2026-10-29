@@ -46,7 +46,7 @@ const DependencyValue = ({
   return (
     <span>
       {hasSeparator && <span>, </span>}
-      <DependencyItem role="button" onClick={handleClick} tabIndex={0}>
+      <DependencyItem type="button" onClick={handleClick}>
         {dependency.name}
       </DependencyItem>
     </span>

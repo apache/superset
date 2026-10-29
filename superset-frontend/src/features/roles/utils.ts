@@ -58,7 +58,11 @@ export const updateRoleName = async (roleId: number, name: string) =>
 export const formatPermissionLabel = (
   permissionName: string,
   viewMenuName: string,
-) => `${permissionName.replace(/_/g, ' ')} ${viewMenuName.replace(/_/g, ' ')}`;
+) =>
+  `${permissionName.replace(/_/g, ' ')} ${viewMenuName.replace(/_/g, ' ')}`.replace(
+    /%2e/gi,
+    '.',
+  );
 
 type PermissionResult = {
   id: number;
@@ -83,7 +87,7 @@ export const clearPermissionSearchCache = () => {
 
 const fetchPermissionPageRaw = async (queryParams: Record<string, unknown>) => {
   const response = await SupersetClient.get({
-    endpoint: `/api/v1/security/permissions-resources/?q=${rison.encode(queryParams)}`,
+    endpoint: `/api/v1/security/permissions-resources/?q=${encodeURIComponent(rison.encode(queryParams))}`,
   });
   return {
     data: mapPermissionResults(response.json?.result || []),
@@ -94,11 +98,14 @@ const fetchPermissionPageRaw = async (queryParams: Record<string, unknown>) => {
 const fetchAllPermissionPages = async (
   filters: Record<string, unknown>[],
 ): Promise<SelectOption[]> => {
-  const page0 = await fetchPermissionPageRaw({
-    page: 0,
+  const baseQuery = {
     page_size: PAGE_SIZE,
+    order_column: 'id',
+    order_direction: 'asc',
     filters,
-  });
+  };
+
+  const page0 = await fetchPermissionPageRaw({ ...baseQuery, page: 0 });
   if (page0.data.length === 0 || page0.data.length >= page0.totalCount) {
     return page0.data;
   }
@@ -113,11 +120,7 @@ const fetchAllPermissionPages = async (
     const batchEnd = Math.min(batch + CONCURRENCY_LIMIT, totalPages);
     const batchResults = await Promise.all(
       Array.from({ length: batchEnd - batch }, (_, i) =>
-        fetchPermissionPageRaw({
-          page: batch + i,
-          page_size: PAGE_SIZE,
-          filters,
-        }),
+        fetchPermissionPageRaw({ ...baseQuery, page: batch + i }),
       ),
     );
     for (const r of batchResults) {
@@ -138,7 +141,12 @@ export const fetchPermissionOptions = async (
 ) => {
   if (!filterValue) {
     try {
-      return await fetchPermissionPageRaw({ page, page_size: pageSize });
+      return await fetchPermissionPageRaw({
+        page,
+        page_size: pageSize,
+        order_column: 'id',
+        order_direction: 'asc',
+      });
     } catch {
       addDangerToast(t('There was an error while fetching permissions'));
       return { data: [], totalCount: 0 };
@@ -149,17 +157,30 @@ export const fetchPermissionOptions = async (
     const cacheKey = filterValue.trim().toLowerCase();
     let cached = permissionSearchCache.get(cacheKey);
     if (!cached) {
-      const [byViewMenu, byPermission] = await Promise.all([
+      const encodedFilterValue = filterValue
+        .split('].[')
+        .map(part => part.replace(/\./g, '%2E'))
+        .join('].[');
+      const searches = [
         fetchAllPermissionPages([
           { col: 'view_menu.name', opr: 'ct', value: filterValue },
         ]),
         fetchAllPermissionPages([
           { col: 'permission.name', opr: 'ct', value: filterValue },
         ]),
-      ]);
+      ];
+      if (encodedFilterValue !== filterValue) {
+        searches.push(
+          fetchAllPermissionPages([
+            { col: 'view_menu.name', opr: 'ct', value: encodedFilterValue },
+          ]),
+        );
+      }
+
+      const results = await Promise.all(searches);
 
       const seen = new Set<number>();
-      cached = [...byViewMenu, ...byPermission].filter(item => {
+      cached = results.flat().filter(item => {
         if (seen.has(item.value)) return false;
         seen.add(item.value);
         return true;
@@ -193,6 +214,8 @@ export const fetchGroupOptions = async (
   const query = rison.encode({
     page,
     page_size: pageSize,
+    order_column: 'name',
+    order_direction: 'asc',
     ...(filterValue
       ? { filters: [{ col: 'name', opr: 'ct', value: filterValue }] }
       : {}),

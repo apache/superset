@@ -33,23 +33,23 @@ The UnsavedChangesModal component from Superset's UI library.
 <StoryWithControls
   component="UnsavedChangesModal"
   props={{
-  showModal: false,
-  title: "Unsaved Changes"
-}}
+    showModal: false,
+    title: 'Unsaved Changes',
+  }}
   controls={[
-  {
-    name: "showModal",
-    label: "Show Modal",
-    type: "boolean",
-    description: "Whether the modal is visible."
-  },
-  {
-    name: "title",
-    label: "Title",
-    type: "text",
-    description: "Title text displayed in the modal header."
-  }
-]}
+    {
+      name: 'showModal',
+      label: 'Show Modal',
+      type: 'boolean',
+      description: 'Whether the modal is visible.',
+    },
+    {
+      name: 'title',
+      label: 'Title',
+      type: 'text',
+      description: 'Title text displayed in the modal header.',
+    },
+  ]}
   triggerProp="showModal"
   onHideProp="onHide,handleSave,onConfirmNavigation"
 />
@@ -69,8 +69,14 @@ function Demo() {
       <UnsavedChangesModal
         showModal={show}
         onHide={() => setShow(false)}
-        handleSave={() => { alert('Saved!'); setShow(false); }}
-        onConfirmNavigation={() => { alert('Discarded changes'); setShow(false); }}
+        handleSave={() => {
+          alert('Saved!');
+          setShow(false);
+        }}
+        onConfirmNavigation={() => {
+          alert('Discarded changes');
+          setShow(false);
+        }}
         title="Unsaved Changes"
       >
         If you don&apos;t save, changes will be lost.
@@ -87,9 +93,7 @@ function CustomTitle() {
   const [show, setShow] = React.useState(false);
   return (
     <div>
-      <Button onClick={() => setShow(true)}>
-        Close Without Saving
-      </Button>
+      <Button onClick={() => setShow(true)}>Close Without Saving</Button>
       <UnsavedChangesModal
         showModal={show}
         onHide={() => setShow(false)}
@@ -97,8 +101,8 @@ function CustomTitle() {
         onConfirmNavigation={() => setShow(false)}
         title="You have unsaved dashboard changes"
       >
-        Your dashboard layout and filter changes have not been saved.
-        Do you want to save before leaving?
+        Your dashboard layout and filter changes have not been saved. Do you
+        want to save before leaving?
       </UnsavedChangesModal>
     </div>
   );
@@ -107,10 +111,10 @@ function CustomTitle() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `showModal` | `boolean` | `false` | Whether the modal is visible. |
-| `title` | `string` | `"Unsaved Changes"` | Title text displayed in the modal header. |
+| Prop        | Type      | Default             | Description                               |
+| ----------- | --------- | ------------------- | ----------------------------------------- |
+| `showModal` | `boolean` | `false`             | Whether the modal is visible.             |
+| `title`     | `string`  | `"Unsaved Changes"` | Title text displayed in the modal header. |
 
 ## Import
 

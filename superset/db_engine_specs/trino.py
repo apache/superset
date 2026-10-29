@@ -22,7 +22,8 @@ import math
 import threading
 import time
 from collections.abc import Sequence
-from typing import Any, TYPE_CHECKING
+from decimal import Decimal
+from typing import Any, Callable, TYPE_CHECKING
 
 import requests
 from flask import copy_current_request_context, ctx, current_app as app, Flask, g
@@ -30,6 +31,7 @@ from flask_babel import gettext as __
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
+from sqlalchemy.types import DECIMAL, TypeEngine
 
 from superset import cache_manager, db
 from superset.common.db_query_status import QueryStatus
@@ -51,6 +53,7 @@ from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import json
 from superset.utils.core import create_ssl_cert_file, get_user_agent, QuerySource
+from superset.utils.dates import now_as_float
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -71,6 +74,24 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
     allows_alias_to_source_column = False
+    supports_grouping_sets = True
+    # The client sets queryId after its first request, then blocks in
+    # execute() until rows arrive or the query ends.
+    has_query_id_during_execute = True
+
+    encrypted_extra_sensitive_fields = {
+        **PrestoBaseEngineSpec.encrypted_extra_sensitive_fields,
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+
+    # Trino's DBAPI driver can return DECIMAL columns as plain strings
+    # (e.g. when a value's precision/scale can't be inferred from the
+    # column type alone), which later breaks numeric post-processing
+    # (e.g. pivot with a mean aggregate). Coerce them back to Decimal.
+    column_type_mutators: dict[TypeEngine, Callable[[Any], Any]] = {
+        **PrestoBaseEngineSpec.column_type_mutators,
+        DECIMAL: lambda val: Decimal(val) if isinstance(val, str) else val,
+    }
 
     # The full set of columns Trino's "<table>$partitions" exposes for an
     # Iceberg table. The real partition keys are nested in the "partition" ROW,
@@ -284,6 +305,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             if user_token is not None:
                 http_session = requests.Session()
                 http_session.headers.update({"Authorization": f"Bearer {user_token}"})
+                # Persists `verify` to the new `http_session`
+                if "verify" in connect_args:
+                    http_session.verify = connect_args["verify"]
                 connect_args["http_session"] = http_session
 
         return url, engine_kwargs
@@ -352,11 +376,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 QueryStatus.STOPPED,
                 QueryStatus.TIMED_OUT,
             ]:
-                cls.cancel_query(
-                    cursor=cursor,
-                    query=query,
-                    cancel_query_id=cancel_query_id,
-                )
+                cls._cancel_requested_query(cursor, query, cancel_query_id)
                 break
 
             needs_commit = False
@@ -381,6 +401,32 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 db.session.commit()  # pylint: disable=consider-using-transaction
 
             time.sleep(poll_interval)
+
+    @classmethod
+    def _cancel_requested_query(
+        cls, cursor: Cursor, query: Query, cancel_query_id: str
+    ) -> None:
+        """
+        Kill a query whose stop or timeout ``handle_cursor`` observed.
+
+        A stop requested before the query ID was published only left the
+        early-cancel flag, and this kill is what carries it out. STOPPED is
+        recorded before the killed statement raises, so the error handler keeps
+        it instead of writing FAILED. Nothing is recorded if the kill failed.
+        """
+        cancelled = cls.cancel_query(
+            cursor=cursor,
+            query=query,
+            cancel_query_id=cancel_query_id,
+        )
+        if cancelled and query.status not in (
+            QueryStatus.STOPPED,
+            QueryStatus.TIMED_OUT,
+        ):
+            query.status = QueryStatus.STOPPED
+            if not query.end_time:
+                query.end_time = now_as_float()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
     @classmethod
     def execute_with_cursor(
@@ -463,10 +509,25 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             raise err
 
     @classmethod
+    def get_cancel_query_id(cls, cursor: Cursor, query: Query) -> str | None:
+        """
+        Return the Trino queryId of the cursor's running query.
+
+        It is ``None`` until execution has started, so callers that ask before
+        executing (SQL Lab, chart-data tasks) record nothing and keep using
+        ``handle_cursor``. Another thread can read it while ``execute`` blocks.
+
+        :param cursor: Trino DB-API cursor
+        :param query: Query instance (unused)
+        :return: Trino queryId, or None before execution
+        """
+        return cursor.query_id
+
+    @classmethod
     def prepare_cancel_query(cls, query: Query) -> None:
+        """Stage early-cancel intent for the caller's guarded stop transaction."""
         if QUERY_CANCEL_KEY not in query.extra:
             query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
-            db.session.commit()  # pylint: disable=consider-using-transaction
 
     @classmethod
     def cancel_query(cls, cursor: Cursor, query: Query, cancel_query_id: str) -> bool:
@@ -602,7 +663,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         Expanded columns are named foo.bar.baz and we provide a query_as property to
         instruct the base engine spec how to correctly query them: instead of quoting
         the whole string they have to be quoted like "foo"."bar"."baz" and we then
-        alias them to the full dotted string for ease of reference.
+        alias them to the full dotted string for ease of reference. We also provide
+        an `expression` property with the same correctly quoted path (without the
+        alias), so that a physical `TableColumn` created from this metadata selects
+        the column correctly instead of quoting the whole dotted name as a single
+        (invalid) identifier.
         """
         # pylint: disable=import-outside-toplevel
         from trino.sqlalchemy import datatype
@@ -625,6 +690,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 column_name=name,
                 type=inner_type,
                 is_dttm=is_dttm,
+                expression=query_name,
                 query_as=f'{query_name} AS "{name}"',
             )
             cols.extend(cls._expand_columns(inner_col))

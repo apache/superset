@@ -25,8 +25,11 @@ export type Aggregate =
   | 'COUNT'
   | 'COUNT_DISTINCT'
   | 'MAX'
+  | 'MEDIAN'
   | 'MIN'
-  | 'SUM';
+  | 'STDDEV_SAMP'
+  | 'SUM'
+  | 'VAR_SAMP';
 
 export interface AdhocMetricBase {
   hasCustomLabel?: boolean;
@@ -94,5 +97,3 @@ export function isQueryFormMetric(metric: any): metric is QueryFormMetric {
     isAdhocMetricSQL(metric)
   );
 }
-
-export default {};

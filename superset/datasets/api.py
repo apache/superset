@@ -18,22 +18,25 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Callable
+from typing import Any, Callable, ClassVar
 from zipfile import is_zipfile, ZipFile
 
-from flask import request, Response, send_file
+from flask import current_app as app, request, Response
+from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.api.schemas import get_item_schema
 from flask_appbuilder.const import API_RESULT_RES_KEY, API_SELECT_COLUMNS_RIS_KEY
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import ngettext
-from jinja2.exceptions import TemplateSyntaxError
+from flask_babel import gettext as _, ngettext
+from jinja2.exceptions import TemplateError
 from marshmallow import ValidationError
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm.exc import MultipleResultsFound
 
-from superset import event_logger, is_feature_enabled, security_manager
+from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.commands.dataset.create import CreateDatasetCommand
 from superset.commands.dataset.delete import DeleteDatasetCommand
 from superset.commands.dataset.duplicate import DuplicateDatasetCommand
@@ -42,76 +45,250 @@ from superset.commands.dataset.exceptions import (
     DatasetDeleteFailedError,
     DatasetForbiddenError,
     DatasetInvalidError,
+    DatasetLogicalDuplicateError,
     DatasetNotFoundError,
     DatasetRefreshFailedError,
+    DatasetRestoreFailedError,
+    DatasetSoftDeletedTwinExistsError,
     DatasetUpdateFailedError,
 )
 from superset.commands.dataset.export import ExportDatasetsCommand
 from superset.commands.dataset.importers.dispatcher import ImportDatasetsCommand
 from superset.commands.dataset.refresh import RefreshDatasetCommand
+from superset.commands.dataset.restore import RestoreDatasetCommand
 from superset.commands.dataset.update import UpdateDatasetCommand
 from superset.commands.dataset.warm_up_cache import DatasetWarmUpCacheCommand
+from superset.commands.deletion_retention.purge_impact import (
+    DatasetPurgeImpact,
+    PurgeImpactChangedError,
+)
 from superset.commands.exceptions import CommandException
 from superset.commands.importers.exceptions import NoValidFilesFoundError
-from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.importers.v1.utils import (
+    get_contents_from_bundle,
+    open_import_bundle,
+)
+from superset.commands.purge import (
+    collect_dataset_impact,
+    PurgeArchivedCommand,
+    serialize_dataset_purge_impact,
+    SoftDeleteBinding,
+)
 from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.partition_mapping import preview_partition_mapping
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
 from superset.databases.filters import DatabaseFilter
-from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
+from superset.datasets.filters import (
+    DatasetCertifiedFilter,
+    DatasetDeletedRecencyFilter,
+    DatasetDeletedStateFilter,
+    DatasetEditableFilter,
+    DatasetIsNullOrEmptyFilter,
+)
 from superset.datasets.schemas import (
     DatasetCacheWarmUpRequestSchema,
     DatasetCacheWarmUpResponseSchema,
     DatasetDrillInfoSchema,
     DatasetDuplicateSchema,
     DatasetPostSchema,
+    DatasetPurgeImpactSchema,
+    DatasetPurgeRequestSchema,
     DatasetPutSchema,
     DatasetRelatedObjectsResponse,
     get_delete_ids_schema,
     get_drill_info_schema,
     get_export_ids_schema,
+    get_related_objects_ids_schema,
     GetOrCreateDatasetSchema,
     openapi_spec_methods_override,
+    PartitionMappingPreviewSchema,
 )
-from superset.exceptions import SupersetSyntaxErrorException, SupersetTemplateException
+from superset.exceptions import (
+    OAuth2RedirectError,
+    SupersetSecurityException,
+    SupersetSyntaxErrorException,
+    SupersetTemplateException,
+    SupersetTimeoutException,
+)
+from superset.extensions import cache_manager
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
-from superset.utils import json
-from superset.utils.core import parse_boolean_string, sanitize_cookie_token
+from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
+from superset.utils.core import (
+    FilterOperator,
+    get_user_id,
+    parse_boolean_string,
+    send_export_zip,
+    write_zip_entry,
+)
+from superset.versioning.api_helpers import (
+    concurrency_token_from,
+    current_entity_version_info,
+    entity_concurrency_token,
+    EntityVersionInfo,
+    get_version_endpoint,
+    list_versions_endpoint,
+    lock_entity_for_update,
+    restore_version_endpoint,
+)
+from superset.versioning.db_errors import is_lock_contention_error
+from superset.versioning.etag import (
+    is_conditional_write,
+    raise_for_stale_write,
+    set_version_etag,
+    StaleEntityError,
+)
+from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    parse_json_form_field,
     RelatedFieldFilter,
     requires_form_data,
     requires_json,
     statsd_metrics,
+    validate_feature_flags,
 )
 from superset.views.error_handling import handle_api_exception
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import (
+    BaseFilterRelatedUsers,
+    FilterRelatedUsers,
+    SoftDeleteApiMixin,
+)
 
 logger = logging.getLogger(__name__)
 
+_DATASET_PURGE_BINDING = SoftDeleteBinding(
+    dao=DatasetDAO,
+    not_found=DatasetNotFoundError,
+    forbidden=DatasetForbiddenError,
+    delete_failed=DatasetDeleteFailedError,
+    impact_collector=collect_dataset_impact,
+)
 
-class DatasetRestApi(BaseSupersetModelRestApi):
+
+#: How long one preview budget lasts, in seconds.
+PREVIEW_RATE_LIMIT_WINDOW = 60
+
+
+def _consume_preview_rate_limit(dataset_id: int) -> bool:
+    """
+    Fixed-window per-user, per-dataset throttle on the preview endpoint.
+
+    Debouncing on the client is a courtesy, not a guard: a held keydown, or a
+    handful of owners with the editor open, becomes sustained load on a
+    production cluster. Returns False once the window's budget is spent.
+
+    Counting is `add` then `inc` rather than read-then-write so it is atomic
+    where it matters: on Redis those are `SETNX` and `INCR`, so concurrent
+    previews cannot each read the same sub-limit value and all be let through.
+
+    The window comes from the *key*, not from the entry's lifetime. Each
+    `PREVIEW_RATE_LIMIT_WINDOW`-second bucket gets its own key, so a counter
+    that outlives its bucket is simply never read again, and the next request
+    starts from zero. Keying it this way is what makes "fixed window" true
+    rather than aspirational, because the TTL alone cannot carry that promise on
+    either supported backend:
+
+    - cachelib's generic `inc` is a read-modify-write whose `set` restamps
+      `CACHE_DEFAULT_TIMEOUT` -- a day, by default. On SimpleCache or
+      FileSystemCache, retrying after the budget was spent kept renewing a
+      day-long lockout.
+    - on Redis `INCR` leaves the TTL alone, but if the key expires between a
+      losing `add` and the `inc`, `INCR` recreates it with *no* TTL at all. That
+      counter never resets, so past the limit the owner was 429'd permanently.
+
+    The entry still carries a lifetime, now twice the window, purely so spent
+    buckets are evicted rather than accumulating.
+
+    Both calls go to the cachelib backend rather than the Flask-Caching wrapper
+    around it, which proxies `add` but not `inc`.
+    """
+    limit = app.config.get("PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT", 30)
+    if not limit:
+        return True
+
+    user_id = get_user_id() or 0
+    bucket = int(time.time()) // PREVIEW_RATE_LIMIT_WINDOW
+    key = f"partition_mapping_preview:{user_id}:{dataset_id}:{bucket}"
+    backend = cache_manager.cache.cache
+    try:
+        if backend.add(key, 1, timeout=PREVIEW_RATE_LIMIT_WINDOW * 2):
+            # First request in this bucket.
+            return True
+        used = backend.inc(key)
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        # A cache outage must not take the editor down with it.
+        return True
+    # `inc` reports None when the backend could not count -- a null cache, or a
+    # write that failed. Unenforceable is not the same as spent.
+    return used is None or used <= limit
+
+
+class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(SqlaTable)
+
+    restore_command_cls: ClassVar[type[RestoreDatasetCommand]] = RestoreDatasetCommand
+    soft_delete_not_found_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DatasetNotFoundError,
+    )
+    soft_delete_forbidden_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DatasetForbiddenError,
+    )
+    restore_failed_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DatasetRestoreFailedError,
+    )
+    restore_conflict_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DatasetLogicalDuplicateError,
+    )
+    soft_delete_logger: ClassVar[logging.Logger] = logger
     base_filters = [["id", DatasourceFilter, lambda: []]]
 
     resource_name = "dataset"
     allow_browser_login = True
     class_permission_name = "Dataset"
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+    # Custom methods (``restore``) need an explicit entry; FAB's @protect()
+    # decorator falls back to ``can_<method>_<class>`` (i.e.
+    # ``can_restore_Dataset``) when the mapping is missing, which standard
+    # roles don't carry. Mirrors the permission model documented for
+    # ``DELETE`` / ``bulk_delete``: endpoint-level ``can_write`` plus
+    # resource-level ``raise_for_editorship``. See themes/api.py for the
+    # established pattern.
+    method_permission_name = {
+        **MODEL_API_RW_METHOD_PERMISSION_MAP,
+        "restore": "write",
+        "restore_version": "write",
+        "purge": "write",
+        "purge_impact": "write",
+        # Preview reads a mapping the caller is entitled to *save*, so it is
+        # authorized the same way the PUT behind it is: ``can_write`` plus
+        # ``raise_for_editorship``. Without this entry a custom role holding
+        # ``can_write`` on Dataset -- enough to store the mapping -- is denied
+        # the preview of it unless an operator grants a second permission.
+        "partition_mapping_preview": "write",
+    }
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
         RouteMethod.RELATED,
         RouteMethod.DISTINCT,
         "bulk_delete",
+        "bulk_related_objects",
+        "restore",
+        "purge",
+        "purge_impact",
         "refresh",
         "related_objects",
         "duplicate",
         "get_or_create_dataset",
         "warm_up_cache",
         "get_drill_info",
+        "partition_mapping_preview",
+        "list_versions",
+        "get_version",
+        "activity",
+        "restore_version",
     }
     list_columns = [
         "id",
@@ -131,14 +308,13 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "explore_url",
         "extra",
         "kind",
-        "owners.id",
-        "owners.first_name",
-        "owners.last_name",
+        "editors.id",
+        "editors.label",
+        "editors.type",
         "catalog",
         "schema",
         "sql",
         "table_name",
-        "uuid",
     ]
     list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
     order_columns = [
@@ -148,6 +324,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "changed_by.first_name",
         "changed_on_delta_humanized",
         "database.database_name",
+        # Exposed so the Recently-Deleted view can sort archived datasets by
+        # deletion time (sc-111760).
+        "deleted_at",
     ]
     show_select_columns = [
         "id",
@@ -163,6 +342,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "description",
         "main_dttm_col",
         "currency_code_column",
+        "partition_column",
+        "partition_mapped_column",
         "normalize_columns",
         "always_filter_main_dttm",
         "offset",
@@ -171,9 +352,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "is_sqllab_view",
         "template_params",
         "select_star",
-        "owners.id",
-        "owners.first_name",
-        "owners.last_name",
+        "editors.id",
+        "editors.label",
+        "editors.type",
         "columns.advanced_data_type",
         "columns.changed_on",
         "columns.column_name",
@@ -186,6 +367,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "columns.is_active",
         "columns.extra",
         "columns.is_dttm",
+        # Without these the editor reopens a saved mapping as if it had no
+        # transform, and the next save writes that emptiness back.
+        "columns.partition_value_transform",
+        "columns.partition_transform_is_monotonic",
         "columns.python_date_format",
         "columns.type",
         "columns.uuid",
@@ -219,9 +404,39 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     ]
     show_columns = show_select_columns + [
         "columns.type_generic",
+        # Engine-supplied pre-fill for the editor's value transform input.
+        "partition_value_transform_default",
+        # The resolved mapping summary, which is what Explore's pruning
+        # indicator reads. Saving a dataset from Explore reloads this endpoint
+        # and replaces the chart's datasource with the response wholesale -- it
+        # is a replacement, not a merge -- so anything the summary carries and
+        # this payload does not is lost on an unrelated save and the glyphs
+        # vanish until the page is reloaded. Recomputing it client-side from
+        # `columns` is not an option: `data_for_slices` prunes the partition
+        # column on dashboards, which is why the summary is self-contained.
+        "partition_filter_mapping",
         "database.backend",
         "database.allow_multi_catalog",
         "columns.advanced_data_type",
+        # Certification/warning metadata is stored serialized in the ``extra``
+        # column and surfaced through model properties. Exposing them keeps this
+        # payload consistent with the datasource serialization used by Explore,
+        # so clients hydrating from this endpoint don't lose the badges.
+        "columns.certification_details",
+        "columns.certified_by",
+        "columns.is_certified",
+        "columns.warning_markdown",
+        "metrics.certification_details",
+        "metrics.certified_by",
+        "metrics.is_certified",
+        "metrics.warning_markdown",
+        # Listed here as well as in `show_select_columns` -- the latter drives
+        # the query, this drives what is actually serialized for a related
+        # model. `columns.advanced_data_type` above is in both for the same
+        # reason. Without it the editor reopens a saved mapping as if it had no
+        # transform, and the next save writes that emptiness back.
+        "columns.partition_value_transform",
+        "columns.partition_transform_is_monotonic",
         "is_managed_externally",
         "uid",
         "uuid",
@@ -236,7 +451,18 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
     duplicate_model_schema = DatasetDuplicateSchema()
-    add_columns = ["database", "catalog", "schema", "table_name", "sql", "owners"]
+    add_columns = [
+        "database",
+        "catalog",
+        "schema",
+        "table_name",
+        "sql",
+        "editors",
+        # `DatasetPostSchema` accepts these, so POST does persist a mapping;
+        # listing them keeps `/_info` and the generated spec honest about it.
+        "partition_column",
+        "partition_mapped_column",
+    ]
     edit_columns = [
         "table_name",
         "sql",
@@ -247,6 +473,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "description",
         "main_dttm_col",
         "currency_code_column",
+        "partition_column",
+        "partition_mapped_column",
         "normalize_columns",
         "always_filter_main_dttm",
         "offset",
@@ -254,7 +482,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "cache_timeout",
         "is_sqllab_view",
         "template_params",
-        "owners",
+        "editors",
         "columns",
         "metrics",
         "extra",
@@ -262,44 +490,69 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     openapi_spec_tag = "Datasets"
 
     base_related_field_filters = {
-        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
+        "editors": [
+            [
+                "type",
+                subject_type_filter("SUBJECTS_RELATED_TYPES"),
+                lambda: [],
+            ]
+        ],
     }
     related_field_filters = {
-        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
         "database": "database_name",
+        "editors": RelatedFieldFilter("label", FilterRelatedSubjects),
+    }
+    text_field_rel_fields = {
+        "editors": "label",
+    }
+    extra_fields_rel_fields = {
+        "editors": ["type", "active", "secondary_label", "img"],
     }
     search_filters = {
+        "deleted_at": [DatasetDeletedRecencyFilter],
         "sql": [DatasetIsNullOrEmptyFilter],
-        "id": [DatasetCertifiedFilter],
+        "id": [
+            DatasetCertifiedFilter,
+            DatasetDeletedStateFilter,
+            DatasetEditableFilter,
+        ],
     }
     search_columns = [
         "id",
         "uuid",
         "database",
-        "owners",
+        "editors",
         "catalog",
         "schema",
         "sql",
         "table_name",
         "created_by",
         "changed_by",
+        # Exposed so the Recently-Deleted view can filter archived datasets by a
+        # deletion-time cutoff (e.g. ``deleted_at`` ``gt`` cutoff) — sc-111760.
+        "deleted_at",
         "uuid",
     ]
-    allowed_rel_fields = {"database", "owners", "created_by", "changed_by"}
+    allowed_rel_fields = {"database", "created_by", "changed_by", "editors"}
     allowed_distinct_fields = {"catalog", "schema"}
 
     apispec_parameter_schemas = {
         "get_export_ids_schema": get_export_ids_schema,
+        "get_related_objects_ids_schema": get_related_objects_ids_schema,
     }
     openapi_spec_component_schemas = (
         DatasetCacheWarmUpRequestSchema,
         DatasetCacheWarmUpResponseSchema,
         DatasetRelatedObjectsResponse,
+        DatasetPurgeImpactSchema,
+        DatasetPurgeRequestSchema,
         DatasetDuplicateSchema,
         GetOrCreateDatasetSchema,
+        PartitionMappingPreviewSchema,
+        VersionListItemSchema,
     )
 
     openapi_spec_methods = openapi_spec_methods_override
@@ -308,9 +561,54 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     list_outer_default_load = True
     show_outer_default_load = True
 
+    def get_list_headless(self, **kwargs: Any) -> Response:
+        response = super().get_list_headless(**kwargs)
+        # TODO: Double-serialization note: `response.json` deserializes the
+        # response body back from bytes (produced by
+        # `super().get_list_headless()`), and then `self.response(200, **payload)`
+        # re-serializes it. For large dataset lists this is noticeable overhead.
+        # A follow-up improvement: override `_get_list_response_object` (or the
+        # equivalent Flask-AppBuilder hook) instead of `get_list_headless`, so the
+        # RLS data can be injected *before* the response is built rather than
+        # after. The current approach is functional; this TODO is an
+        # optimization to revisit.
+        if response.status_code == 200:
+            try:
+                payload = response.json
+                if payload and API_RESULT_RES_KEY in payload:
+                    dataset_ids = [
+                        item["id"]
+                        for item in payload[API_RESULT_RES_KEY]
+                        if "id" in item
+                    ]
+                    rls_map = DatasetDAO.get_rls_filters_for_datasets(dataset_ids)
+                    can_read_rls = security_manager.can_access(
+                        "can_read", "RowLevelSecurity"
+                    )
+                    for item in payload[API_RESULT_RES_KEY]:
+                        filters = rls_map.get(item.get("id"), [])
+                        if can_read_rls:
+                            item["rls_filters"] = filters
+                        else:
+                            item["rls_filters"] = [
+                                {
+                                    "id": f["id"],
+                                    "name": f["name"],
+                                    "filter_type": f["filter_type"],
+                                    "group_key": f.get("group_key"),
+                                }
+                                for f in filters
+                            ]
+                    response = self.response(200, **payload)
+            except Exception:  # noqa: BLE001
+                logger.warning(
+                    "Failed to annotate dataset list with RLS info",
+                    exc_info=True,
+                )
+        return response
+
     @expose("/", methods=("POST",))
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
@@ -365,6 +663,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 data=new_model.data,
                 uuid=new_model.uuid,
             )
+        except OAuth2RedirectError:
+            # Must reach the client unchanged to start the OAuth2 dance;
+            # ``@safe`` isn't used on this endpoint since it would otherwise
+            # swallow this into an opaque 500 that drops the ``url``/``tab_id``
+            # extras the frontend needs.
+            raise
+        except DatasetSoftDeletedTwinExistsError as ex:
+            return self.response_422(message=str(ex))
         except DatasetInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatasetCreateFailedError as ex:
@@ -375,6 +681,46 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except SupersetTimeoutException as ex:
+            # ``CreateDatasetCommand`` deliberately re-raises this, along with
+            # other infra-level failures, unchanged instead of coercing it
+            # into a 422 "invalid table"/"invalid sql" error. Of that group,
+            # only the timeout has a status (408) worth surfacing distinctly;
+            # the ``SupersetDBAPIError`` subclasses inherit the base class's
+            # 500 and fall through to the broad ``except Exception`` below so
+            # their raw driver/connection text isn't echoed to the client.
+            logger.warning("Error creating dataset: %s", ex, exc_info=True)
+            return self.response(ex.status, message=str(ex))
+        except Exception:  # pylint: disable=broad-except
+            # ``@safe`` isn't used on this endpoint (it would swallow the
+            # ``OAuth2RedirectError`` re-raised above into an opaque 500), so
+            # replicate its behavior here for any other unexpected exception:
+            # log the full error server-side, but don't echo internal details
+            # (ORM/driver error text, connection info) back to the caller.
+            logger.exception("Unexpected error in DatasetRestApi.post")
+            return self.response_500(message="Fatal error")
+
+    def _lock_contention_response(self) -> Response:
+        """The shared retryable 409 for a conditional save losing a lock race.
+
+        In the direct lock-acquisition and validator-read catches, the
+        rollback is LOAD-BEARING for lock-wait-timeout: with
+        ``innodb_rollback_on_timeout`` OFF (the MySQL default) a 1205
+        rolls back only the failing STATEMENT -- the transaction is still
+        alive and still holds any entity row lock already acquired, and
+        this rollback is what releases it. For a deadlock (1213) InnoDB
+        already rolled the transaction back and this clears the aborted
+        session before responding. The decorated command-failure path
+        already rolls back before raising; this shared cleanup is a
+        harmless no-op on that path, not an additional required rollback.
+        """
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        return self.response(
+            409,
+            message=_(
+                "Another save is in progress for this dataset. Retry the same request."
+            ),
+        )
 
     @expose("/<pk>", methods=("PUT",))
     @protect()
@@ -384,7 +730,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     @requires_json
-    def put(self, pk: int) -> Response:
+    def put(self, pk: int) -> Response:  # noqa: C901
         """Update a dataset.
         ---
         put:
@@ -398,6 +744,16 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             schema:
               type: boolean
             name: override_columns
+          - in: header
+            schema:
+              type: string
+            name: If-Match
+            description: >-
+              Optional optimistic-concurrency guard. Pass the ``ETag``
+              returned by a prior read of this dataset; the update is
+              rejected with 412 if the dataset has changed since, or
+              with a retryable 409 if a concurrent save won a lock race
+              (see those responses for which action each calls for).
           requestBody:
             description: Dataset schema
             required: true
@@ -417,6 +773,55 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                         type: number
                       result:
                         $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+                      old_version:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          0-based version_number of the live row before this
+                          update (null if the dataset had no prior history).
+                          Matches the ``version_number`` field of the list
+                          versions endpoint. Unstable under retention
+                          pruning — see ``old_transaction_id`` for a stable
+                          identifier.
+                      new_version:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          0-based version_number of the newly-live row after
+                          this update. Can equal ``old_version`` when no
+                          versioned column changed, or when retention
+                          pruning dropped an older closed row in the same
+                          commit.
+                      old_transaction_id:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          Continuum transaction_id of the live row before
+                          this update. Stable across retention pruning.
+                      new_transaction_id:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          Continuum transaction_id of the live row after
+                          this update. When this differs from
+                          ``old_transaction_id`` the update produced a new
+                          version row (regardless of whether ``new_version``
+                          changed).
+                      old_version_uuid:
+                        type: string
+                        format: uuid
+                        nullable: true
+                        description: >-
+                          Deterministic version_uuid of the live row before
+                          this update. Null when version capture is disabled
+                          or the dataset has no version rows yet.
+                      new_version_uuid:
+                        type: string
+                        format: uuid
+                        nullable: true
+                        description: >-
+                          Deterministic version_uuid of the live row after
+                          this update. Null when version capture is disabled.
             400:
               $ref: '#/components/responses/400'
             401:
@@ -425,6 +830,37 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            409:
+              description: >-
+                A concurrent save on this dataset won a database lock
+                race, so this conditional request could not be applied.
+                The client's ``If-Match`` token is NOT proven stale:
+                unlike a 412, the correct action is to retry the SAME
+                request (with backoff; a few attempts, then surface the
+                conflict) rather than refetch the entity for a new
+                token.
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            412:
+              description: >-
+                The dataset changed since the version identified by the
+                request's ``If-Match`` header; the update was not
+                applied. The token is stale: refetch the entity to pick
+                up the current version before retrying — retrying the
+                same request unchanged will fail again (contrast the
+                retryable 409 above).
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
             422:
               $ref: '#/components/responses/422'
             500:
@@ -440,23 +876,143 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+        # Serialise conditional saves on this dataset: the guard below reads
+        # the live version, the command writes, and the two must not interleave
+        # with another request's. Only a conditional save pays for the locks; an
+        # unconditional PUT behaves exactly as it did before the guard existed.
+        # The validator's transaction id uses a locking read. The displayed
+        # version number and lazy child reads can still observe an older
+        # MySQL REPEATABLE READ snapshot; see lock_entity_for_update.
+        conditional: bool = is_conditional_write()
+        if conditional:
+            # Blocking here is the serialisation doing its job; LOSING the
+            # race at this acquisition (deadlock, or lock-wait timeout
+            # after ``innodb_lock_wait_timeout``) is the most common
+            # contention outcome of all three lock points and maps to the
+            # same retryable 409 -- not an uncaught 500. The locked entity
+            # is HELD for the rest of the request: the session's identity
+            # map references clean objects weakly, so discarding the
+            # return value could let the refreshed object be collected and
+            # the command's find_by_id re-read a stale row on MySQL
+            # REPEATABLE READ (see lock_entity_for_update).
+            try:
+                _locked_entity: SqlaTable | None = lock_entity_for_update(SqlaTable, pk)
+            except OperationalError as ex:
+                if not is_lock_contention_error(ex):
+                    raise
+                return self._lock_contention_response()
+
+        # Live version identifiers before the update (empty + query-free when
+        # ``ENABLE_VERSIONING_CAPTURE`` is off). On the conditional path the
+        # live transaction id is read under an exclusive row lock: a plain
+        # read is served from the request's REPEATABLE READ snapshot on MySQL
+        # and can miss a concurrent commit, letting a stale If-Match token
+        # pass the guard. A lock race lost at that read (deadlock / lock
+        # wait) proves concurrent CONTENTION, not that this request's token
+        # is stale — so it maps to a retryable 409, and the client should
+        # retry the SAME request. (A deadlock at Continuum's version-row
+        # insert inside the command is classified by the
+        # DatasetUpdateFailedError handler below via ``__cause__`` and
+        # returns the same 409.)
         try:
+            old_info: EntityVersionInfo = current_entity_version_info(
+                SqlaTable, pk, lock_for_stale_check=conditional
+            )
+        except OperationalError as ex:
+            if not (conditional and is_lock_contention_error(ex)):
+                raise
+            return self._lock_contention_response()
+
+        try:
+            raise_for_stale_write(concurrency_token_from(old_info))
+        except StaleEntityError:
+            return set_version_etag(
+                self.response(
+                    412,
+                    message=_(
+                        "The dataset was changed by another user or browser tab "
+                        "after you opened it. Reopen it to pick up the latest "
+                        "version, then reapply your changes."
+                    ),
+                ),
+                concurrency_token_from(old_info),
+            )
+
+        try:
+            # Two commands, two commits, two Continuum transactions for an
+            # ``override_columns`` save — deliberately NOT merged into one
+            # transaction. A single-transaction design was attempted and
+            # reverted: ``DBEventLogger`` writes request logs through the
+            # SHARED scoped session and calls ``commit()`` /
+            # ``rollback()`` on it mid-request (superset/utils/log.py),
+            # so any save held uncommitted across a logged sub-action can
+            # be committed half-done (Postgres/MySQL) or rolled back
+            # entirely on a transient logger failure (SQLite's
+            # "database is locked"). Until the event logger gets its own
+            # session, per-command commit boundaries are the only shape
+            # whose failure modes are honest. Consequence the
+            # version-history UI must tolerate: one logical save can
+            # surface as two version transactions stamped the same second.
             changed_model = UpdateDatasetCommand(pk, item, override_columns).run()
+            # Capture the post-update identifiers BEFORE the refresh:
+            # RefreshDatasetCommand commits its own transaction, so reading
+            # afterwards would attribute the refresh's version to the
+            # user's update (and old→new would span two transactions).
+            new_info = current_entity_version_info(
+                SqlaTable, changed_model.id, changed_model.uuid
+            )
+            etag_version_uuid = concurrency_token_from(new_info)
             if override_columns:
                 RefreshDatasetCommand(pk).run()
-            response = self.response(200, id=changed_model.id, result=item)
+                # The ETag must reflect the entity's *current live* version,
+                # which after the refresh is the refresh's transaction —
+                # re-read it rather than reusing the pre-refresh uuid.
+                etag_version_uuid = entity_concurrency_token(
+                    SqlaTable, changed_model.id, changed_model.uuid
+                )
+            response = self.response(
+                200,
+                id=changed_model.id,
+                result=item,
+                old_version=old_info.version,
+                new_version=new_info.version,
+                old_transaction_id=old_info.transaction_id,
+                new_transaction_id=new_info.transaction_id,
+                old_version_uuid=old_info.version_uuid,
+                new_version_uuid=new_info.version_uuid,
+            )
+            set_version_etag(response, etag_version_uuid)
         except DatasetNotFoundError:
             response = self.response_404()
         except DatasetForbiddenError:
             response = self.response_403()
         except DatasetInvalidError as ex:
             response = self.response_422(message=ex.normalized_messages())
+        except DatasetSoftDeletedTwinExistsError as ex:
+            response = self.response_422(message=str(ex))
+        except DatasetRefreshFailedError as ex:
+            logger.exception(
+                "Error refreshing dataset during update %s: %s",
+                self.__class__.__name__,
+                str(ex),
+            )
+            response = self.response_422(message=str(ex))
         except DatasetUpdateFailedError as ex:
-            logger.error(
+            # The gap lock the conditional path's locking read takes on a
+            # zero-live-row range can deadlock against another conditional
+            # writer at Continuum's version-row INSERT inside the command;
+            # on_error chains the driver error as __cause__, and the update
+            # transaction has rolled back. (The post-commit override_columns
+            # refresh raises its own exception type and cannot reach this
+            # branch.) Same retryable classification as the read-point
+            # handler above: the token is not proven stale.
+            if conditional and is_lock_contention_error(ex.__cause__):
+                return self._lock_contention_response()
+            logger.exception(
                 "Error updating model %s: %s",
                 self.__class__.__name__,
                 str(ex),
-                exc_info=True,
             )
             response = self.response_422(message=str(ex))
         return response
@@ -470,10 +1026,18 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
-        """Delete a Dataset.
+        """Delete a dataset.
+
+        When the ``SOFT_DELETE`` feature flag is enabled, marks the dataset
+        as deleted (sets ``deleted_at``) and hides it from list/detail
+        endpoints and relationship loads; the row is preserved and
+        recoverable via ``POST /api/v1/dataset/<uuid>/restore`` by an editor
+        or admin. With the flag disabled (the default), the dataset is
+        permanently hard-deleted and is not recoverable.
         ---
         delete:
-          summary: Delete a dataset
+          summary: Delete a dataset (soft delete, recoverable via restore,
+            when the SOFT_DELETE feature flag is enabled; permanent otherwise)
           parameters:
           - in: path
             schema:
@@ -565,21 +1129,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 for file_name, file_content in ExportDatasetsCommand(
                     requested_ids
                 ).run():
-                    with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content().encode())
+                    write_zip_entry(
+                        bundle, f"{root}/{file_name}", file_content().encode()
+                    )
             except DatasetNotFoundError:
                 return self.response_404()
         buf.seek(0)
 
-        response = send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=filename,
-        )
-        if token := sanitize_cookie_token(request.args.get("token")):
-            response.set_cookie(token, "done", max_age=600)
-        return response
+        return send_export_zip(buf, filename)
 
     @expose("/duplicate", methods=("POST",))
     @protect()
@@ -768,9 +1325,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             if not dataset:
                 return self.response_404()
 
-            # Check ownership
+            # Check editorship
             try:
-                security_manager.raise_for_ownership(dataset)
+                security_manager.raise_for_editorship(dataset)
             except Exception:  # pylint: disable=broad-except
                 return self.response_403()
 
@@ -830,6 +1387,70 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         if not dataset:
             return self.response_404()
         data = DatasetDAO.get_related_objects(dataset.id)
+        return self.response(200, **self._related_objects_payload(data))
+
+    @expose("/related_objects/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @parse_rison(get_related_objects_ids_schema)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.bulk_related_objects"
+        ),
+        log_to_statsd=False,
+    )
+    def bulk_related_objects(self, **kwargs: Any) -> Response:
+        """Get charts and dashboards associated to multiple datasets.
+        ---
+        get:
+          summary: Get charts and dashboards associated to multiple datasets
+          description: >-
+            Aggregates the charts built on any of the requested datasets and the
+            dashboards those charts appear on. Each chart and dashboard is listed
+            once even if it depends on several of the datasets. Requested datasets
+            the user cannot see are ignored; the response is 404 only when none
+            of them are visible.
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_related_objects_ids_schema'
+          responses:
+            200:
+              description: Query result
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/DatasetRelatedObjectsResponse"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        datasets = DatasetDAO.find_by_ids(kwargs["rison"])
+        if not datasets:
+            return self.response_404()
+        data = DatasetDAO.get_related_objects_for_datasets(
+            [dataset.id for dataset in datasets]
+        )
+        return self.response(200, **self._related_objects_payload(data))
+
+    @staticmethod
+    def _related_objects_payload(data: dict[str, Any]) -> dict[str, Any]:
+        """
+        Serialize related charts and dashboards.
+
+        ``count`` is the full number of dependents so the caller can warn about
+        the real blast radius; ``result`` only lists the ones the current user
+        can access and ``restricted_count`` says how many were withheld.
+        """
         charts = [
             {
                 "id": chart.id,
@@ -849,11 +1470,18 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             for dashboard in data["dashboards"]
             if security_manager.can_access_dashboard(dashboard)
         ]
-        return self.response(
-            200,
-            charts={"count": len(charts), "result": charts},
-            dashboards={"count": len(dashboards), "result": dashboards},
-        )
+        return {
+            "charts": {
+                "count": len(data["charts"]),
+                "restricted_count": len(data["charts"]) - len(charts),
+                "result": charts,
+            },
+            "dashboards": {
+                "count": len(data["dashboards"]),
+                "restricted_count": len(data["dashboards"]) - len(dashboards),
+                "result": dashboards,
+            },
+        }
 
     @expose("/", methods=("DELETE",))
     @protect()
@@ -866,9 +1494,17 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Bulk delete datasets.
+
+        When the ``SOFT_DELETE`` feature flag is enabled, marks each dataset
+        as deleted (sets ``deleted_at``) and hides it from list/detail
+        endpoints and relationship loads; rows are preserved and recoverable
+        via ``POST /api/v1/dataset/<uuid>/restore`` by an editor or admin.
+        With the flag disabled (the default), the datasets are permanently
+        hard-deleted and are not recoverable.
         ---
         delete:
-          summary: Bulk delete datasets
+          summary: Bulk delete datasets (soft delete, recoverable via restore,
+            when the SOFT_DELETE feature flag is enabled; permanent otherwise)
           parameters:
           - in: query
             name: q
@@ -917,6 +1553,202 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except DatasetDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
+    @expose("/<uuid>/restore", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.restore",
+        log_to_statsd=False,
+    )
+    def restore(self, uuid: str) -> Response:
+        """Restore a soft-deleted dataset.
+        ---
+        post:
+          summary: Restore a soft-deleted dataset
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid
+          responses:
+            200:
+              description: Dataset restored
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        return self._restore_soft_deleted(uuid)
+
+    @expose("/<uuid>/purge-impact", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.purge_impact",
+        log_to_statsd=False,
+    )
+    def purge_impact(self, uuid: str) -> Response:
+        """Preview the dependency impact of purging an archived dataset.
+        ---
+        get:
+          summary: Preview the dependency impact of purging an archived dataset
+          description: >-
+            Report the charts and dashboards that depend on an archived
+            dataset, with an impact token that must be echoed back on the
+            purge request. Limited to owners and admins (same audience as
+            restore).
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid
+          responses:
+            200:
+              description: Dependency impact of purging the dataset
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/DatasetPurgeImpactSchema'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            impact: DatasetPurgeImpact = PurgeArchivedCommand(
+                uuid, _DATASET_PURGE_BINDING
+            ).preview_dataset_impact()
+            return self.response(200, **serialize_dataset_purge_impact(impact))
+        except DatasetNotFoundError:
+            return self.response_404()
+        except DatasetForbiddenError:
+            return self.response_403()
+        except Exception:  # noqa: BLE001
+            logger.exception("Unable to collect dataset purge impact")
+            return self.response_500(
+                message="The dependency impact could not be determined"
+            )
+
+    @expose("/<uuid>/purge", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.purge",
+        log_to_statsd=False,
+    )
+    @requires_json
+    def purge(self, uuid: str) -> Response:
+        """Permanently delete a soft-deleted (archived) dataset.
+        ---
+        post:
+          summary: Permanently delete a soft-deleted dataset
+          description: >-
+            Irreversibly remove an archived dataset and its dependents. Limited
+            to owners and admins (same audience as restore).
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid
+          requestBody:
+            description: Confirmed dependency impact
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/DatasetPurgeRequestSchema'
+          responses:
+            200:
+              description: Dataset permanently deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            409:
+              description: Dataset dependency impact changed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    required: [message, reason, impact]
+                    properties:
+                      message:
+                        type: string
+                      reason:
+                        type: string
+                        enum: [purge_impact_changed]
+                      impact:
+                        $ref: '#/components/schemas/DatasetPurgeImpactSchema'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            body: dict[str, Any] = DatasetPurgeRequestSchema().load(request.json)
+            confirmed_impact_token: str = body["confirmed_impact_token"]
+            PurgeArchivedCommand(
+                uuid,
+                _DATASET_PURGE_BINDING,
+                confirmed_impact_token=confirmed_impact_token,
+            ).run()
+            return self.response(200, message="OK")
+        except ValidationError as ex:
+            return self.response_400(message=ex.messages)
+        except PurgeImpactChangedError as ex:
+            return self.response(
+                409,
+                message=str(ex),
+                reason="purge_impact_changed",
+                impact=serialize_dataset_purge_impact(ex.impact),
+            )
+        except DatasetNotFoundError:
+            return self.response_404()
+        except DatasetForbiddenError:
+            return self.response_403()
+        except DatasetDeleteFailedError as ex:
+            logger.error(
+                "Error purging model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+
     @expose("/import/", methods=("POST",))
     @protect()
     @statsd_metrics
@@ -927,6 +1759,15 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @requires_form_data
     def import_(self) -> Response:
         """Import dataset(s) with associated databases.
+
+        When the ``SOFT_DELETE`` feature flag is enabled and an imported
+        dataset's UUID matches an existing **soft-deleted** dataset, the
+        import restores that dataset and applies the upload's contents —
+        **even when ``overwrite`` is not set**. Active datasets keep the
+        usual contract (never mutated without ``overwrite=true``); a
+        soft-deleted UUID match is treated as an explicit request to bring
+        the dataset back. Requires ``can_write`` and editorship of the
+        deleted row (or admin). See UPDATING.md for details.
         ---
         post:
           summary: Import dataset(s) with associated databases
@@ -1005,7 +1846,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         if not upload:
             return self.response_400()
         if is_zipfile(upload):
-            with ZipFile(upload) as bundle:
+            with open_import_bundle(upload) as bundle:
                 contents = get_contents_from_bundle(bundle)
         else:
             upload.seek(0)
@@ -1014,28 +1855,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         if not contents:
             raise NoValidFilesFoundError()
 
-        passwords = (
-            json.loads(request.form["passwords"])
-            if "passwords" in request.form
-            else None
-        )
+        passwords = parse_json_form_field("passwords")
         overwrite = request.form.get("overwrite") == "true"
         sync_columns = request.form.get("sync_columns") == "true"
         sync_metrics = request.form.get("sync_metrics") == "true"
-        ssh_tunnel_passwords = (
-            json.loads(request.form["ssh_tunnel_passwords"])
-            if "ssh_tunnel_passwords" in request.form
-            else None
-        )
-        ssh_tunnel_private_keys = (
-            json.loads(request.form["ssh_tunnel_private_keys"])
-            if "ssh_tunnel_private_keys" in request.form
-            else None
-        )
-        ssh_tunnel_priv_key_passwords = (
-            json.loads(request.form["ssh_tunnel_private_key_passwords"])
-            if "ssh_tunnel_private_key_passwords" in request.form
-            else None
+        ssh_tunnel_passwords = parse_json_form_field("ssh_tunnel_passwords")
+        ssh_tunnel_private_keys = parse_json_form_field("ssh_tunnel_private_keys")
+        ssh_tunnel_priv_key_passwords = parse_json_form_field(
+            "ssh_tunnel_private_key_passwords"
         )
 
         command = ImportDatasetsCommand(
@@ -1110,7 +1937,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         # physical Postgres/MySQL table stored with a non-NULL schema).
         # If two datasets share the ``table_name`` across schemas and the
         # caller omits ``schema``, surface a 400 with an actionable message
-        # instead of the original 500 ``MultipleResultsFound``.
+        # instead of the original 500 ``MultipleResultsFound``. The same guard
+        # applies when the caller supplies ``schema`` but two legacy rows still
+        # match with ``catalog=None`` (the composite unique constraint treats
+        # NULL catalogs as distinct), so both branches catch the exception.
         # Catalog follows the same literal-pass rule: existing datasets
         # created before multi-catalog support landed are stored with
         # ``catalog=None``, so applying ``database.get_default_catalog()``
@@ -1118,9 +1948,19 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         schema = body.get("schema") or None
         catalog = body.get("catalog") or None
         if schema:
-            table = DatasetDAO.get_table_by_catalog_schema_and_name(
-                database_id, schema, table_name, catalog=catalog
-            )
+            try:
+                table = DatasetDAO.get_table_by_catalog_schema_and_name(
+                    database_id, schema, table_name, catalog=catalog
+                )
+            except MultipleResultsFound:
+                return self.response_400(
+                    message=(
+                        f"Multiple datasets named '{table_name}' exist in "
+                        f"schema '{schema}' of this database with no catalog "
+                        "set. These are duplicate legacy rows; contact an "
+                        "admin to remove the duplicates."
+                    )
+                )
         else:
             try:
                 table = DatasetDAO.get_table_by_name(database_id, table_name)
@@ -1139,6 +1979,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         try:
             tbl = CreateDatasetCommand(body).run()
             return self.response(200, result={"table_id": tbl.id})
+        except DatasetSoftDeletedTwinExistsError as ex:
+            # Targeted hidden-twin 422 (single-sourced in the exception):
+            # names the twin's uuid and the restore endpoint.
+            return self.response_422(message=str(ex))
         except DatasetInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatasetCreateFailedError as ex:
@@ -1167,7 +2011,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             Warms up the cache for the table.
             Note for slices a force refresh occurs.
             In terms of the `extra_filters` these can be obtained from records in the JSON
-            encoded `logs.json` column associated with the `explore_json` action.
+            encoded `logs.json` column associated with the `explore` action.
           requestBody:
             description: >-
               Identifies the database and table to warm up cache for, and any
@@ -1285,7 +2129,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         response["id"] = table.id
         response[API_RESULT_RES_KEY] = show_model_schema.dump(table, many=False)
 
-        # remove folders from resposne if `DATASET_FOLDERS` is disabled, so that it's
+        # remove folders from response if `DATASET_FOLDERS` is disabled, so that it's
         # possible to inspect if the feature is supported or not
         if (
             not is_feature_enabled("DATASET_FOLDERS")
@@ -1302,7 +2146,152 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             except SupersetTemplateException as ex:
                 return self.response(ex.status, message=str(ex))
 
-        return self.response(200, **response)
+        detailed_rls = DatasetDAO.get_rls_filters_for_dataset(table.id)
+        if security_manager.can_access("can_read", "RowLevelSecurity"):
+            response[API_RESULT_RES_KEY]["rls_filters"] = detailed_rls
+        else:
+            response[API_RESULT_RES_KEY]["rls_filters"] = [
+                {
+                    "id": f["id"],
+                    "name": f["name"],
+                    "filter_type": f["filter_type"],
+                    "group_key": f.get("group_key"),
+                }
+                for f in detailed_rls
+            ]
+
+        return set_version_etag(
+            self.response(200, **response),
+            entity_concurrency_token(SqlaTable, table.id, table.uuid),
+        )
+
+    @expose("/<int:pk>/partition_mapping/preview/", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.partition_mapping_preview"
+        ),
+        log_to_statsd=False,
+    )
+    def partition_mapping_preview(self, pk: int) -> Response:
+        """Preview the predicate a partition value transform would emit.
+        ---
+        post:
+          summary: Preview a partition filter mapping
+          description: >-
+            Evaluate a partition value transform at sample values and return
+            the predicate that would be appended to queries. The predicate is
+            built by the same code the query path uses, so the preview cannot
+            drift from what a chart emits. Parse and denylist checks run
+            before anything reaches the engine, so an unparseable transform
+            costs no query.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The dataset ID
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/PartitionMappingPreviewSchema'
+          responses:
+            200:
+              description: Preview result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          valid:
+                            type: boolean
+                          reason:
+                            type: string
+                            description: >-
+                              Why the mapping is not valid. Absent when it is.
+                              The editor branches on this to decide how to
+                              present the failure.
+                            enum:
+                            - unconfigured
+                            - validation
+                            - parse
+                            - operator
+                            - resolution
+                            - offset
+                            - escaping
+                            - transform_escaping
+                            - engine
+                            - type
+                          sample_input:
+                            type: string
+                          emitted_predicate:
+                            type: string
+                          error:
+                            type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            429:
+              description: Too many preview requests for this dataset
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not is_feature_enabled("PARTITION_FILTER_MAPPING"):
+            return self.response_404()
+
+        dataset = DatasetDAO.find_by_id(pk)
+        if not dataset:
+            return self.response_404()
+        try:
+            security_manager.raise_for_editorship(dataset)
+        except SupersetSecurityException:
+            return self.response_403()
+
+        try:
+            payload = PartitionMappingPreviewSchema().load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        if not _consume_preview_rate_limit(pk):
+            return self.response(
+                429,
+                message=_(
+                    "Too many preview requests for this dataset. "
+                    "Wait a moment and try again."
+                ),
+            )
+
+        return self.response(
+            200,
+            result=preview_partition_mapping(
+                dataset,
+                mapped_column=payload["mapped_column"],
+                value_transform=payload["value_transform"],
+                sample_values=payload["sample_values"],
+                operator=FilterOperator(payload["operator"]),
+                is_monotonic=payload["is_monotonic"],
+                partition_column=payload["partition_column"],
+            ),
+        )
 
     @expose("/<int:pk>/drill_info/", methods=("GET",))
     @protect()
@@ -1351,8 +2340,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         drill_info_select_columns = [
             "id",
             "table_name",
-            "owners.first_name",
-            "owners.last_name",
+            "editors.label",
+            "editors.type",
             "created_by.first_name",
             "created_by.last_name",
             "created_on_humanized",
@@ -1362,6 +2351,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             "columns.column_name",
             "columns.verbose_name",
             "columns.groupby",
+            "metrics.metric_name",
+            "metrics.verbose_name",
         ]
         dataset_schema = DatasetDrillInfoSchema()
 
@@ -1440,10 +2431,274 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
             try:
                 data[new_key] = func(data[key])
-            except (TemplateSyntaxError, SupersetSyntaxErrorException) as ex:
+            except (TemplateError, SupersetSyntaxErrorException) as ex:
                 template_exception = SupersetTemplateException(
                     f"Unable to render expression from dataset {item_type}.",
                 )
                 raise template_exception from ex
 
         return data
+
+    @expose("/<uuid_str>/versions/", methods=("GET",))
+    @protect()
+    @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.list_versions",
+        log_to_statsd=False,
+    )
+    def list_versions(self, uuid_str: str) -> Response:
+        """List version history for a dataset.
+        ---
+        get:
+          summary: Return the version history for a dataset
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dataset UUID
+          responses:
+            200:
+              description: Version history ordered by oldest first
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/VersionListItemSchema'
+                      count:
+                        type: integer
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        return list_versions_endpoint(self, SqlaTable, uuid_str)
+
+    @expose(
+        "/<uuid_str>/versions/<version_uuid_str>/",
+        methods=("GET",),
+    )
+    @protect()
+    @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_version",  # noqa: E501
+        log_to_statsd=False,
+    )
+    def get_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Return the dataset's state at a specific version.
+        ---
+        get:
+          summary: Read-only snapshot of the dataset at a given version
+          description: >-
+            Returns the dataset's scalar fields plus reconstructed
+            ``columns`` and ``metrics`` lists as they were at the target
+            version. Does not modify live state.
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dataset UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: Version UUID as returned by the list endpoint
+          responses:
+            200:
+              description: Snapshot of the dataset at the target version
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        description: >-
+                          The dataset's scalar fields at the target version
+                          (entity-specific keys), plus `columns` / `metrics`
+                          as they were at that version, plus a `_version`
+                          block with the version-level metadata.
+                        properties:
+                          _version:
+                            $ref: '#/components/schemas/VersionListItemSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        return get_version_endpoint(self, SqlaTable, uuid_str, version_uuid_str)
+
+    @expose("/<uuid_str>/activity/", methods=("GET",))
+    @protect()
+    @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
+    @permission_name("get")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.activity",
+        log_to_statsd=False,
+    )
+    def activity(self, uuid_str: str) -> Response:
+        """Return the activity stream for a dataset.
+        ---
+        get:
+          summary: Get a dataset's activity stream
+          description: >-
+            A dataset's own edits only. Datasets have no transitive layer in
+            V2 — chart and dashboard edits that touch this dataset do NOT
+            appear here. ``?include=self`` and ``?include=all`` return the
+            dataset's own edits; ``?include=related`` returns an empty stream
+            (a dataset has no related entities to fan out to).
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dataset UUID
+          - in: query
+            schema:
+              type: string
+              format: date-time
+            name: since
+          - in: query
+            schema:
+              type: string
+              format: date-time
+            name: until
+          - in: query
+            schema:
+              type: string
+              enum: [self, related, all]
+              default: all
+            name: include
+          - in: query
+            schema:
+              type: string
+            name: q
+            description: >-
+              Case-insensitive search over the full history (summary,
+              entity name, kind, path, values) — applied before
+              pagination, so `count` reflects the matches.
+          - in: query
+            schema:
+              type: integer
+              minimum: 0
+              default: 0
+            name: page
+          - in: query
+            schema:
+              type: integer
+              minimum: 1
+              maximum: 200
+              default: 25
+            name: page_size
+          responses:
+            200:
+              description: Activity stream ordered newest-first
+              content:
+                application/json:
+                  schema: ActivityResponseSchema
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.versioning.activity import activity_endpoint
+
+        return activity_endpoint(self, SqlaTable, uuid_str, request.args)
+
+    @expose(
+        "/<uuid_str>/versions/<version_uuid_str>/restore",
+        methods=("POST",),
+    )
+    @protect()
+    @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.restore_version"
+        ),
+        log_to_statsd=False,
+    )
+    def restore_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Restore a dataset to a previous version.
+        ---
+        post:
+          summary: Revert a dataset to an earlier version (non-destructive)
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dataset UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: >-
+              Version UUID as returned by the list-versions endpoint.
+              Stable across retention pruning.
+          responses:
+            200:
+              description: Dataset was restored
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        # pylint: disable=import-outside-toplevel
+        # Local import: the command module transitively imports the
+        # versioning bootstrap graph; see changes/listener.py.
+        from superset.commands.dataset.restore_version import (
+            RestoreDatasetVersionCommand,
+        )
+
+        return restore_version_endpoint(
+            self,
+            SqlaTable,
+            RestoreDatasetVersionCommand,
+            uuid_str,
+            version_uuid_str,
+        )

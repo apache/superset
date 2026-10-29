@@ -39,5 +39,3 @@ export interface TimeCompare {
   time_compare?: string;
   comparison_type?: ComparisonType;
 }
-
-export default {};
