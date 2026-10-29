@@ -86,6 +86,7 @@ class MetricInfo(BaseModel):
     dataset_name: str | None = None
     view_id: int | None = None
     view_name: str | None = None
+    semantic_selection_version: str | None = None
     compatible_dimensions: list[DimensionInfo] = Field(default_factory=list)
 
 
@@ -188,19 +189,25 @@ class GetTableFilter(BaseModel):
 
     @model_validator(mode="after")
     def _validate_temporal_range_val(self) -> "GetTableFilter":
-        """Hold a TEMPORAL_RANGE filter to the same grammar as ``time_range``.
+        """Validate a filter comparator before it reaches the shared parser.
 
-        This operator resolves through ``get_since_until()`` exactly like the
-        dedicated ``time_range`` field does, so an unparseable value here
-        produces the same silent full-table match.
+        Unlike optional top-level defaults, blank filter values are invalid.
         """
         if self.op == "TEMPORAL_RANGE" and isinstance(self.val, str):
-            self.val = validate_time_range(self.val)
+            self.val = validate_time_range(self.val, allow_empty=False)
         return self
 
 
 class GetTableRequest(BaseModel):
     """Request schema for get_table."""
+
+    semantic_selection_version: str | None = Field(
+        default=None,
+        description=(
+            "Identity version returned by list_metrics for this view. Supply only "
+            "after explicitly selecting its current member IDs; never infer legacy IDs."
+        ),
+    )
 
     dataset_id: int | None = Field(
         default=None,

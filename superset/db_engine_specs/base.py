@@ -283,6 +283,7 @@ class CompatibleDatabase(TypedDict, total=False):
     name: str
     description: str
     logo: str
+    logo_dark: str
     homepage_url: str
     pypi_packages: list[str]
     connection_string: str
@@ -322,6 +323,13 @@ AURORA_DATA_API_KNOWN_INCOMPATIBILITIES: list[KnownIncompatibility] = [
     }
 ]
 
+# EPOCH_FORMATS keys resolve to a f"{pdf}_to_dttm" classmethod, except
+# "epoch_s": its method predates "epoch_ms"/"epoch_us" and kept the shorter
+# legacy name `epoch_to_dttm`. Only exceptions to the naming convention
+# belong here; a new EPOCH_FORMATS entry that follows the convention needs
+# no matching entry in this dict.
+_EPOCH_METHOD_ALIASES = {"epoch_s": "epoch_to_dttm"}
+
 
 class DBEngineSpecMetadata(TypedDict, total=False):
     """
@@ -335,6 +343,7 @@ class DBEngineSpecMetadata(TypedDict, total=False):
     # Basic information
     description: str
     logo: str  # Filename in docs/static/img/databases/ or full URL
+    logo_dark: str  # Optional dark-theme variant; falls back to logo
     homepage_url: str
     docs_url: str
     sqlalchemy_docs_url: str
@@ -571,6 +580,47 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_joins = True
     allows_subqueries = True
     allows_alias_in_select = True
+    # Appended to a ``SELECT`` that has no ``FROM`` -- evaluating expressions
+    # and nothing else. Most engines accept a bare ``SELECT 1``; Oracle, DB2
+    # and Db2 for i require a one-row table to select it from.
+    select_without_from_suffix: str = ""
+    # Whether ``=`` on a text column compares byte-exactly by default: no case
+    # folding, no trailing-space padding, no accent insensitivity.
+    #
+    # Partition filter mapping needs this. It mirrors ``col = v`` onto
+    # ``partition_col = T(v)`` on the strength of ``col = v`` implying
+    # ``T(col) = T(v)``, which holds for value equality and not for SQL
+    # equality: under a case-insensitive collation a stored ``'us'`` satisfies
+    # a filter for ``'US'``, while the mirror ``hex('US')`` excludes the row,
+    # and the chart silently loses it. False by default, so a spec that has
+    # not said so does not mirror string equality.
+    #
+    # This speaks for the engine's *default* comparison only. A column
+    # declaring its own non-binary collation (``country COLLATE NOCASE``) is
+    # invisible to Superset -- nothing in SQLAlchemy's reflection or the engine
+    # specs exposes it -- so on such a column the assumption remains the
+    # owner's, like ``p = T(mapped_col)`` itself.
+    binary_string_comparison: bool = False
+
+    # Every text form this engine reads as a date or timestamp when one is
+    # compared against a temporal column. `strftime`/`strptime` patterns.
+    #
+    # Partition filter mapping needs this. A bucketing key such as
+    # ``to_char(:value, 'YYYYMMDD')`` is legitimately text, so the mirror
+    # ``part_date = '20260115'`` has to be allowed against a ``DATE`` partition
+    # column -- but only where the engine reads it, because comparing a
+    # temporal column against text is an implicit coercion an engine need not
+    # have. Trino has no VARCHAR-to-DATE comparison and BigQuery coerces only a
+    # canonical ``YYYY-MM-DD`` *literal*, so on those even plain ISO text fails
+    # the whole chart rather than merely losing the pruning -- which is why the
+    # ISO forms are declared here too rather than assumed universal.
+    #
+    # Empty by default, so an engine Superset has not confirmed declines the
+    # mirror and keeps the query working. Declared on concrete specs, not on a
+    # shared base: `PostgresBaseEngineSpec` is inherited by Snowflake, whose
+    # AUTO date input reads an all-digit string as epoch seconds instead.
+    temporal_literal_formats: tuple[str, ...] = ()
+
     allows_alias_in_orderby = True
     allows_sql_comments = True
     allows_escaped_colons = True
@@ -745,6 +795,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         OAuth2RedirectError
     )
 
+    # Default partition value transform offered by the dataset editor when a
+    # temporal column is mapped onto a partition column. `:value` stands for the
+    # filter bound being mirrored. The expression is engine syntax, so the
+    # default only belongs on engines where it actually parses; `None` means the
+    # editor offers no pre-fill and the owner writes the transform themselves.
+    partition_value_transform_default: str | None = None
+
     # Does the query id related to the connection?
     # The default value is True, which means that the query id is determined when
     # the connection is created.
@@ -752,6 +809,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # is determined only after the specific query is executed and it will update
     # the `cancel_query` value in the `extra` field of the `query` object
     has_query_id_before_execute = True
+
+    # Can another thread read ``get_cancel_query_id`` from the live cursor
+    # while ``execute`` is still blocked? Clients that block until results are
+    # ready (e.g. Trino's) expose the id only then, which lets an execution
+    # owner cancel a query whose caller has given up.
+    has_query_id_during_execute = False
 
     @classmethod
     def apply_sampling_read_limit_override(cls, sql: str) -> str | None:
@@ -1129,6 +1192,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return cls.allows_alias_in_select
 
     @classmethod
+    def get_limit_method(
+        cls,
+        database: Database,  # pylint: disable=unused-argument
+    ) -> LimitMethod:
+        """
+        Method for dynamic `limit_method`.
+
+        In Oracle the limit syntax is version-dependent, so Superset needs to inspect
+        the database configuration in order to determine it. This method allows
+        engine-specs to define dynamic values for the attribute.
+        """
+        return cls.limit_method
+
+    @classmethod
     def supports_url(cls, url: URL) -> bool:
         """
         Returns true if the DB engine spec supports a given SQLAlchemy URL.
@@ -1384,12 +1461,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         # if epoch, translate to DATE using db specific conf
         if pdf in EPOCH_FORMATS:
-            epoch_to_dttm = {
-                "epoch_s": cls.epoch_to_dttm,
-                "epoch_ms": cls.epoch_ms_to_dttm,
-                "epoch_us": cls.epoch_us_to_dttm,
-            }[pdf]
-            time_expr = time_expr.replace("{col}", epoch_to_dttm())
+            # "epoch_s" predates "epoch_ms"/"epoch_us" and kept the shorter
+            # legacy method name; every other format follows f"{pdf}_to_dttm",
+            # so adding a new EPOCH_FORMATS entry needs no second edit here.
+            method_name = _EPOCH_METHOD_ALIASES.get(pdf, f"{pdf}_to_dttm")
+            time_expr = time_expr.replace("{col}", getattr(cls, method_name)())
         elif pdf == "%Y":
             # a bare four-digit year (e.g. the `year` column on the `video_game_sales`
             # example dataset) has no native date type to lean on; without this the
@@ -1888,6 +1964,24 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
+    def coerce_boolean_for_sql(cls, value: bool | None) -> Any:
+        """
+        Convert a Python boolean to the value used when building SQL filter
+        expressions for boolean columns.
+
+        Most engines accept Python booleans, but some drivers render them as
+        integer literals (0/1), which strict engines like Databricks reject
+        with a DATATYPE_MISMATCH error when the value is compared against a
+        boolean column (#36765). Override this in engine specs whose drivers
+        misrender Python booleans, returning an expression that compiles to an
+        explicit boolean literal (e.g. sqlalchemy.true()/false()).
+
+        :param value: Boolean value (True, False, or None)
+        :return: Value suitable for the engine's filter expressions
+        """
+        return value
+
+    @classmethod
     def handle_boolean_filter(
         cls, sqla_col: Any, op: str, value: bool
     ) -> BinaryExpression:
@@ -1903,6 +1997,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param value: Boolean value (True or False)
         :return: SQLAlchemy expression for the boolean filter
         """
+        value = cls.coerce_boolean_for_sql(value)
         if cls.use_equality_for_boolean_filters:
             return sqla_col == value
         else:
@@ -2751,6 +2846,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return None
 
+    @classmethod
+    def expand_nested_columns(
+        cls,
+        cursor: Any,
+        columns: list[ResultSetColumnType],
+    ) -> list[ResultSetColumnType]:
+        """
+        Add one column per nested field (e.g. STRUCT members) to the columns
+        inferred from ``cursor.description`` by ``get_columns_description``, so
+        virtual datasets get the dotted columns the inspector returns for
+        physical tables. The default returns ``columns`` unchanged.
+        """
+        return columns
+
     @staticmethod
     def pyodbc_rows_to_tuples(data: list[Any]) -> list[tuple[Any, ...]]:
         """
@@ -2969,6 +3078,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cancelation request has been received. For those cases, the db engine spec
         can record the cancelation intent so that the query can either be stopped
         prior to execution, or canceled once the query id is acquired.
+
+        Only stage changes on the query; do not flush or commit here. The caller
+        persists them with a guarded stop so a concurrent terminal result wins.
         """
         return None
 

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Optional, Union
+from typing import Any, Optional, Union
 from unittest import mock
 
 import pytest
@@ -24,7 +24,12 @@ from sqlalchemy.dialects import oracle
 from sqlalchemy.dialects.oracle import DATE, NVARCHAR, VARCHAR
 from sqlalchemy.sql import quoted_name
 
-from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
+from superset.sql.parse import LimitMethod
+from superset.utils.core import GenericDataType
+from tests.unit_tests.db_engine_specs.utils import (
+    assert_column_spec,
+    assert_convert_dttm,
+)
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
@@ -130,6 +135,62 @@ def test_denormalize_name(name: str, expected_result: str):
     assert spec.denormalize_name(oracle.dialect(), name) == expected_result
 
 
+@pytest.mark.parametrize(
+    "native_type,sqla_type,attrs,generic_type,is_dttm",
+    [
+        # Oracle-native types, as reflected by SQLAlchemy's Oracle dialect
+        ("NUMBER", types.Numeric, None, GenericDataType.NUMERIC, False),
+        ("NUMBER(10, 2)", types.Numeric, None, GenericDataType.NUMERIC, False),
+        ("NUMBER(19, 0)", types.Numeric, None, GenericDataType.NUMERIC, False),
+        ("BINARY_DOUBLE", types.Float, None, GenericDataType.NUMERIC, False),
+        ("BINARY_FLOAT", types.Float, None, GenericDataType.NUMERIC, False),
+        ("CLOB", types.Text, None, GenericDataType.STRING, False),
+        ("NCLOB", types.Text, None, GenericDataType.STRING, False),
+        ("LONG", types.Text, None, GenericDataType.STRING, False),
+        ("long", types.Text, None, GenericDataType.STRING, False),
+        # types already covered by the base mappings keep their behavior
+        ("INTEGER", types.Integer, None, GenericDataType.NUMERIC, False),
+        ("DOUBLE PRECISION", types.Float, None, GenericDataType.NUMERIC, False),
+        ("VARCHAR(40 CHAR)", types.String, None, GenericDataType.STRING, False),
+        ("DATE", types.Date, None, GenericDataType.TEMPORAL, True),
+        ("TIMESTAMP", types.TIMESTAMP, None, GenericDataType.TEMPORAL, True),
+    ],
+)
+def test_get_column_spec(
+    native_type: str,
+    sqla_type: type[types.TypeEngine],
+    attrs: Optional[dict[str, Any]],
+    generic_type: GenericDataType,
+    is_dttm: bool,
+) -> None:
+    """Map Oracle-native types and preserve the base numeric, text and date mappings."""
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    assert_column_spec(
+        OracleEngineSpec, native_type, sqla_type, attrs, generic_type, is_dttm
+    )
+
+
+@pytest.mark.parametrize(
+    "native_type",
+    [
+        "BLOB",
+        "RAW(16)",
+        "LONG RAW",
+        "long raw",
+        "NUMBERING",
+        "BINARY_FLOATING",
+        "CLOBBER",
+        "NCLOBS",
+    ],
+)
+def test_get_column_spec_unmapped_types(native_type: str) -> None:
+    """Leave binary types and unrelated names sharing mapped prefixes unmapped."""
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    assert OracleEngineSpec.get_column_spec(native_type) is None
+
+
 def test_get_cancel_query_id() -> None:
     from superset.db_engine_specs.oracle import OracleEngineSpec
     from superset.models.sql_lab import Query
@@ -175,3 +236,152 @@ def test_cancel_query_invalid_id(cancel_query_id: str) -> None:
     cursor = mock.Mock()
     assert OracleEngineSpec.cancel_query(cursor, Query(), cancel_query_id) is False
     cursor.execute.assert_not_called()
+
+
+@pytest.fixture
+def server_versions() -> Any:
+    """Start each test with no cached Oracle server versions."""
+    from superset.db_engine_specs import oracle as oracle_spec
+
+    oracle_spec._server_major_versions.clear()
+    yield oracle_spec._server_major_versions
+    oracle_spec._server_major_versions.clear()
+
+
+def mock_oracle_database(
+    version: Any = None,
+    server_version_info: Any = None,
+    error: Exception | None = None,
+) -> mock.MagicMock:
+    """A database whose engine reports `server_version_info` when connected."""
+    database = mock.MagicMock(id=1, sqlalchemy_uri="oracle+oracledb://u@h:1521/s")
+    database.get_extra.return_value = {} if version is None else {"version": version}
+    engine = database.get_sqla_engine.return_value.__enter__.return_value
+    # The engine hasn't connected yet, so SQLAlchemy doesn't know the version.
+    engine.dialect.server_version_info = None
+    if error is not None:
+        engine.connect.side_effect = error
+    connection = engine.connect.return_value.__enter__.return_value
+    connection.dialect.server_version_info = server_version_info
+    return database
+
+
+@pytest.mark.parametrize(
+    "version, expected",
+    [
+        ("10g", LimitMethod.WRAP_ROWNUM),
+        ("11g", LimitMethod.WRAP_ROWNUM),
+        ("11.2.0.4", LimitMethod.WRAP_ROWNUM),
+        (" 11", LimitMethod.WRAP_ROWNUM),
+        (11, LimitMethod.WRAP_ROWNUM),
+        ("12c", LimitMethod.FORCE_LIMIT),
+        ("12.1.0.2", LimitMethod.FORCE_LIMIT),
+        ("19c", LimitMethod.FORCE_LIMIT),
+        ("23ai", LimitMethod.FORCE_LIMIT),
+    ],
+)
+def test_get_limit_method_configured_version(
+    version: Any, expected: LimitMethod, server_versions: Any
+) -> None:
+    """
+    A version set in the DB extra decides the limit without connecting.
+    """
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    database = mock_oracle_database(version=version)
+    assert OracleEngineSpec.get_limit_method(database) == expected
+    database.get_sqla_engine.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "version, server_version_info, expected",
+    [
+        (None, (11, 2, 0, 2, 0), LimitMethod.WRAP_ROWNUM),
+        ("", (10, 2, 0, 5), LimitMethod.WRAP_ROWNUM),
+        ("latest", (11, 2, 0, 4), LimitMethod.WRAP_ROWNUM),
+        (None, (12, 1, 0, 2), LimitMethod.FORCE_LIMIT),
+        (None, (23, 26, 3, 0, 0), LimitMethod.FORCE_LIMIT),
+    ],
+)
+def test_get_limit_method_detected_version(
+    version: Any,
+    server_version_info: tuple[int, ...],
+    expected: LimitMethod,
+    server_versions: Any,
+) -> None:
+    """
+    Without a usable configured version, the server version is read once.
+    """
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    database = mock_oracle_database(version, server_version_info)
+    assert OracleEngineSpec.get_limit_method(database) == expected
+    assert OracleEngineSpec.get_limit_method(database) == expected
+    database.get_sqla_engine.assert_called_once_with()
+
+
+def test_get_limit_method_unknown_version(server_versions: Any) -> None:
+    """
+    If the version can't be read, keep `FETCH FIRST` and try again next time.
+    """
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    unreachable = mock_oracle_database(error=Exception("ORA-12541: no listener"))
+    assert OracleEngineSpec.get_limit_method(unreachable) == LimitMethod.FORCE_LIMIT
+    assert OracleEngineSpec.get_limit_method(unreachable) == LimitMethod.FORCE_LIMIT
+    assert unreachable.get_sqla_engine.call_count == 2
+
+    unreported = mock_oracle_database(server_version_info=None)
+    assert OracleEngineSpec.get_limit_method(unreported) == LimitMethod.FORCE_LIMIT
+    assert server_versions == {}
+
+
+def test_get_limit_method_reuses_connected_engine(server_versions: Any) -> None:
+    """
+    An engine that has connected already knows the version, so no new connection.
+    """
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    database = mock_oracle_database()
+    engine = database.get_sqla_engine.return_value.__enter__.return_value
+    engine.dialect.server_version_info = (11, 2, 0, 4, 0)
+
+    assert OracleEngineSpec.get_limit_method(database) == LimitMethod.WRAP_ROWNUM
+    engine.connect.assert_not_called()
+
+
+def test_register_engine_events_compiles_rownum_until_connected() -> None:
+    """
+    Before its first connection, SQLAlchemy can't tell 11g from 12c, so a new
+    engine compiles limits with `ROWNUM`, which every release accepts.
+    """
+    from sqlalchemy import select, table
+
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    dialect = oracle.dialect()
+    query = select(column("n")).select_from(table("t")).limit(5)
+    assert "FETCH FIRST" in str(query.compile(dialect=dialect))
+
+    OracleEngineSpec.register_engine_events(mock.Mock(dialect=dialect))
+
+    compiled = str(
+        query.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+    )
+    assert "ROWNUM <= 5" in compiled
+    assert "FETCH FIRST" not in compiled
+    # The first connection decides again from the server version.
+    assert dialect.enable_offset_fetch is True
+
+
+def test_register_engine_events_ignores_other_dialects() -> None:
+    """
+    Only SQLAlchemy's Oracle dialect has the `FETCH FIRST` switch.
+    """
+    from sqlalchemy.dialects import sqlite
+
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    dialect = sqlite.dialect()
+    OracleEngineSpec.register_engine_events(mock.Mock(dialect=dialect))
+    assert not hasattr(dialect, "_supports_offset_fetch")

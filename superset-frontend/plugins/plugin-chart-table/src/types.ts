@@ -32,9 +32,12 @@ import type {
   BasicColorFormatterType,
   ColorFormatters,
   DataColumnMeta,
+  HeaderGroupConfig,
   ServerPaginationData,
   TableColumnConfig,
 } from '@superset-ui/chart-controls';
+
+export type { HeaderGroupConfig };
 
 // Re-export shared types used by internal plugin files that import from './types'
 // Types used locally in this file - re-export from local binding
@@ -70,6 +73,7 @@ export type TableChartFormData = QueryFormData & {
   time_grain_sqla?: TimeGranularity;
   column_config?: Record<string, TableColumnConfig>;
   allow_rearrange_columns?: boolean;
+  header_groups?: HeaderGroupConfig[];
 };
 
 export interface TableChartProps extends ChartProps {
@@ -116,6 +120,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
     filters?: ContextMenuFilters,
   ) => void;
   isUsingTimeComparison?: boolean;
+  headerGroups?: HeaderGroupConfig[];
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
   startDateOffset?: string;

@@ -27,7 +27,7 @@ import mcp.types as mt
 from fastmcp.exceptions import ToolError, ValidationError as FastMCPValidationError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.middleware.middleware import CallNext
-from fastmcp.tools.tool import Tool, ToolResult
+from fastmcp.tools import Tool, ToolResult
 from flask import g
 from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError, TimeoutError
@@ -59,6 +59,7 @@ from superset.mcp_service.auth import (
 from superset.mcp_service.constants import (
     CONNECTION_ERROR_TYPES,
     DEFAULT_MAX_LIST_ITEMS,
+    DEFAULT_MAX_PNG_RESPONSE_BYTES,
     DEFAULT_MAX_RESPONSE_BYTES,
     DEFAULT_WARN_THRESHOLD_PCT,
 )
@@ -70,6 +71,8 @@ from superset.mcp_service.utils.response_size_utils import (
     format_size_limit_error,
     get_response_size_bytes,
     INFO_TOOLS,
+    PNG_PREVIEW_TOOLS,
+    RESPONSE_AWARE_SUGGESTION_TOOLS,
     string_clip_chars,
     STRING_FIELD_TRUNCATION_TOOLS,
     truncate_oversized_response,
@@ -77,7 +80,12 @@ from superset.mcp_service.utils.response_size_utils import (
     truncate_string_field_response,
 )
 from superset.mcp_service.utils.validation import validation_message
-from superset.utils.core import get_user_id
+from superset.mcp_service.worker import (
+    _worker_context,
+    get_context_user_id as get_user_id,
+    run_in_metadata_thread,
+    run_in_transport_thread,
+)
 
 logger = logging.getLogger(__name__)
 _mcp_call_id_var: ContextVar[str | None] = ContextVar("mcp_call_id", default=None)
@@ -208,15 +216,29 @@ def _invoke_error_hook(error: Exception, hook_context: dict[str, Any]) -> None:
     try:
         from superset.mcp_service.flask_singleton import get_flask_app
 
-        hook = get_flask_app().config.get("MCP_ERROR_HOOK")
+        app = get_flask_app()
+        hook = app.config.get("MCP_ERROR_HOOK")
     except Exception:  # noqa: BLE001
         return
     if hook is None:
         return
     try:
-        hook(error, hook_context)
+        # Hooks own their session if they use metadata, but do not require a
+        # user reload (or a working metadata database) merely to report errors.
+        with _worker_context(app):
+            hook(error, hook_context)
     except Exception as hook_error:  # noqa: BLE001
         logger.warning("MCP_ERROR_HOOK raised an exception: %s", hook_error)
+
+
+async def _invoke_error_hook_off_loop(
+    error: Exception, hook_context: dict[str, Any]
+) -> None:
+    """Keep hook I/O and context-setup failures outside the error boundary."""
+    try:
+        await run_in_transport_thread(_invoke_error_hook, error, hook_context)
+    except Exception as hook_error:  # noqa: BLE001
+        logger.warning("Could not run MCP_ERROR_HOOK: %s", hook_error)
 
 
 # The prefix FastMCP puts on every ToolError it wraps a tool exception in.
@@ -458,6 +480,19 @@ def _is_user_error(error: Exception) -> bool:
     return False
 
 
+def _is_user_error_for_reporting(error: Exception) -> bool:
+    """:func:`_is_user_error`, refined by :func:`_datasource_error_is_user_error`.
+
+    The single classification every ``MCP_ERROR_HOOK`` call site gates on, so
+    a failure is paged (or not) the same way whichever handler catches it.
+    """
+    # A datasource failure's severity follows what actually broke, not the
+    # 500 status a bare SupersetErrorException inherits.
+    if (datasource_is_user := _datasource_error_is_user_error(error)) is not None:
+        return datasource_is_user
+    return _is_user_error(error)
+
+
 _SENSITIVE_PARAM_KEYS = frozenset(
     {
         "password",
@@ -516,8 +551,29 @@ class LoggingMiddleware(Middleware):
     payload).
     """
 
-    #: Proxy name used by FastMCP tool-search transforms.
-    _CALL_TOOL_PROXY = "call_tool"
+    @staticmethod
+    def _call_tool_proxy_name() -> str:
+        """Return the configured name of the tool-search call proxy.
+
+        Read from the same ``MCP_TOOL_SEARCH_CONFIG["call_tool_name"]`` setting
+        the proxy is registered under, so a renamed proxy is still recognised.
+        Falls back to the packaged default when no Flask app is reachable.
+        """
+        from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
+
+        config: Any = MCP_TOOL_SEARCH_CONFIG
+        try:
+            from superset.mcp_service.flask_singleton import get_flask_app
+
+            config = get_flask_app().config.get(
+                "MCP_TOOL_SEARCH_CONFIG", MCP_TOOL_SEARCH_CONFIG
+            )
+        except Exception:  # noqa: BLE001
+            logger.debug("Flask app unavailable; using default call proxy name")
+        name = config.get("call_tool_name") if isinstance(config, dict) else None
+        if isinstance(name, str) and name:
+            return name
+        return MCP_TOOL_SEARCH_CONFIG["call_tool_name"]
 
     def _is_error_response(self, result: ToolResult) -> bool:
         """Check if a tool result contains an error schema response.
@@ -628,17 +684,17 @@ class LoggingMiddleware(Middleware):
     def _resolve_tool_name(tool_name: str | None, params: Any) -> str | None:
         """Resolve the underlying tool name from call_tool proxy arguments.
 
-        When tool search is enabled, the MCP client uses the ``call_tool``
-        proxy and passes the real tool name as the ``name`` argument.  This
-        helper extracts that value so we can log which tool was actually
-        executed rather than just ``"call_tool"``.
+        When tool search is enabled, the MCP client uses the configured call
+        proxy (``call_tool`` by default) and passes the real tool name as the
+        ``name`` argument.  This helper extracts that value so we can log which
+        tool was actually executed rather than just ``"call_tool"``.
 
         Returns:
             The resolved tool name if *tool_name* is the call_tool proxy and
             ``params["name"]`` is a non-empty string, otherwise ``None``.
         """
         if (
-            tool_name == LoggingMiddleware._CALL_TOOL_PROXY
+            tool_name == LoggingMiddleware._call_tool_proxy_name()
             and isinstance(params, dict)
             and isinstance(params.get("name"), str)
             and params["name"]
@@ -809,7 +865,7 @@ class LoggingMiddleware(Middleware):
             registered = None
         if registered is not None:
             return candidate
-        return "call_tool" if mcp_tool else "unknown"
+        return LoggingMiddleware._call_tool_proxy_name() if mcp_tool else "unknown"
 
     async def _emit_call_metrics(
         self,
@@ -823,6 +879,12 @@ class LoggingMiddleware(Middleware):
     ) -> None:
         """Emit the per-tool outcome counter and timing for one call.
 
+        An outcome the ``call_tool`` proxy merely forwards (``mcp_tool`` set,
+        nothing raised) was already counted and timed, with its own
+        user/system classification, when the proxied tool ran through this
+        middleware. Skip the redundant proxy emission for both successes
+        and failures, but still count exceptions raised by the proxy itself.
+
         Single emission point for the per-tool outcome counters —
         GlobalErrorHandlerMiddleware (inner) re-raises every failure as
         ToolError, so counting there as well would double-count raised
@@ -832,6 +894,8 @@ class LoggingMiddleware(Middleware):
         free-form error_type that cannot be reliably classified, so they
         count as error (the parsed error_type is in the curated payload).
         """
+        if mcp_tool is not None and raised_is_user_error is None:
+            return
         metric_tool = await self._resolve_metric_tool_name(context, tool_name, mcp_tool)
         if success:
             outcome = "success"
@@ -865,7 +929,13 @@ class LoggingMiddleware(Middleware):
         raised_is_user_error: bool | None = None
         try:
             result = await call_next(context)
-            success = not self._is_error_response(result)
+            # An error result returned rather than raised (e.g. a call
+            # forwarded by the tool-search call_tool proxy, whose inner call
+            # already converted its exception) is still a failure.
+            success = not (
+                (isinstance(result, ToolResult) and result.is_error)
+                or self._is_error_response(result)
+            )
             if not success and isinstance(result, ToolResult):
                 error_type = self._extract_error_type_from_response(result)
             if isinstance(result, ToolResult):
@@ -874,6 +944,7 @@ class LoggingMiddleware(Middleware):
                     content=result.content,
                     meta={**existing_meta, "mcp_call_id": mcp_call_id},
                     structured_content=result.structured_content,
+                    is_error=result.is_error,
                 )
             return result
         except Exception as exc:
@@ -906,22 +977,29 @@ class LoggingMiddleware(Middleware):
             # resolved user id.
             _mcp_user_id_var.set(None)
             duration_ms = int((time.time() - start_time) * 1000)
-            self._log_call_tool_result(
-                context=context,
-                tool_name=tool_name,
-                mcp_tool=mcp_tool,
-                mcp_call_id=mcp_call_id,
-                agent_id=agent_id,
-                user_id=user_id,
-                dashboard_id=dashboard_id,
-                slice_id=slice_id,
-                dataset_id=dataset_id,
-                params=params,
-                success=success,
-                error_type=error_type,
-                result=result,
-                start_time=start_time,
-            )
+            # The audit write needs a metadata connection. Tool workers can hold
+            # every pooled connection while they wait on this loop, so the loop
+            # must never wait for one itself.
+            try:
+                await run_in_metadata_thread(
+                    self._log_call_tool_result,
+                    context=context,
+                    tool_name=tool_name,
+                    mcp_tool=mcp_tool,
+                    mcp_call_id=mcp_call_id,
+                    agent_id=agent_id,
+                    user_id=user_id,
+                    dashboard_id=dashboard_id,
+                    slice_id=slice_id,
+                    dataset_id=dataset_id,
+                    params=params,
+                    success=success,
+                    error_type=error_type,
+                    result=result,
+                    start_time=start_time,
+                )
+            except Exception as log_error:  # noqa: BLE001
+                logger.warning("Failed to log mcp_tool_call event: %s", log_error)
             try:
                 await self._emit_call_metrics(
                     context,
@@ -956,34 +1034,61 @@ class LoggingMiddleware(Middleware):
                 user_id = resolved_user_id
             # See the matching reset in on_call_tool.
             _mcp_user_id_var.set(None)
+            # See the matching audit write in on_call_tool.
             try:
-                with _get_app_context_manager():
-                    event_logger.log(
-                        user_id=user_id,
-                        action="mcp_message",
-                        dashboard_id=dashboard_id,
-                        duration_ms=None,
-                        slice_id=slice_id,
-                        referrer=None,
-                        curated_payload={
-                            "tool": getattr(context.message, "name", None),
-                            "agent_id": agent_id,
-                            "params": _sanitize_params(params),
-                            "method": context.method,
-                            "dashboard_id": dashboard_id,
-                            "slice_id": slice_id,
-                            "dataset_id": dataset_id,
-                        },
-                    )
+                await run_in_metadata_thread(
+                    self._log_message,
+                    context=context,
+                    agent_id=agent_id,
+                    user_id=user_id,
+                    dashboard_id=dashboard_id,
+                    slice_id=slice_id,
+                    dataset_id=dataset_id,
+                    params=params,
+                )
             except Exception as log_error:  # noqa: BLE001
                 logger.warning("Failed to log mcp_message event: %s", log_error)
-            logger.info(
-                "MCP message: tool=%s, agent_id=%s, user_id=%s, method=%s",
-                getattr(context.message, "name", None),
-                agent_id,
-                user_id,
-                context.method,
-            )
+
+    @staticmethod
+    def _log_message(
+        *,
+        context: MiddlewareContext,
+        agent_id: str | None,
+        user_id: int | None,
+        dashboard_id: int | None,
+        slice_id: int | None,
+        dataset_id: int | None,
+        params: Any,
+    ) -> None:
+        """Record a non-tool message in the audit log."""
+        try:
+            with _get_app_context_manager():
+                event_logger.log(
+                    user_id=user_id,
+                    action="mcp_message",
+                    dashboard_id=dashboard_id,
+                    duration_ms=None,
+                    slice_id=slice_id,
+                    referrer=None,
+                    curated_payload={
+                        "tool": getattr(context.message, "name", None),
+                        "agent_id": agent_id,
+                        "params": _sanitize_params(params),
+                        "method": context.method,
+                        "dashboard_id": dashboard_id,
+                        "slice_id": slice_id,
+                        "dataset_id": dataset_id,
+                    },
+                )
+        except Exception as log_error:  # noqa: BLE001
+            logger.warning("Failed to log mcp_message event: %s", log_error)
+        logger.info(
+            "MCP message: tool=%s, agent_id=%s, user_id=%s, method=%s",
+            getattr(context.message, "name", None),
+            agent_id,
+            user_id,
+            context.method,
+        )
 
 
 class ToolResultCompatibilityMiddleware(Middleware):
@@ -1062,16 +1167,30 @@ class ToolResultCompatibilityMiddleware(Middleware):
             except Exception:  # noqa: BLE001
                 sanitized_message = type(e).__name__
             error_text = f"Error: {sanitized_message}"
-            if not isinstance(e, ToolError):
+            # Classification inspects attributes of an arbitrary exception
+            # (e.g. an unhashable ``error_type`` or a non-int ``status``) and
+            # can itself raise. Treat a classification failure as
+            # system-class so the hook still fires and this catch never
+            # propagates.
+            try:
+                is_user_error = _is_user_error_for_reporting(e)
+            except Exception:  # noqa: BLE001
+                is_user_error = False
+            if not isinstance(e, ToolError) and not is_user_error:
                 # GlobalErrorHandlerMiddleware converts every exception it
                 # sees into ToolError (and already invokes MCP_ERROR_HOOK
                 # for system-class errors there). A non-ToolError reaching
                 # this final catch means it slipped past that handler
-                # entirely — invoke the hook here as the true last-resort
-                # capture point. All contract keys are populated so hooks
-                # can index them unconditionally; user_id and duration_ms
-                # are unknown at this layer and passed as None.
-                _invoke_error_hook(
+                # entirely — e.g. when this middleware is registered inside
+                # it — so invoke the hook here as the true last-resort
+                # capture point. Only system-class errors are reported,
+                # matching GlobalErrorHandlerMiddleware: user errors (bad
+                # arguments, permission denials) are expected MCP traffic
+                # and would otherwise flood an error tracker. All contract
+                # keys are populated so hooks can index them
+                # unconditionally; user_id and duration_ms are unknown at
+                # this layer and passed as None.
+                await _invoke_error_hook_off_loop(
                     e,
                     {
                         "tool_name": getattr(context.message, "name", "unknown"),
@@ -1144,7 +1263,24 @@ class RBACToolVisibilityMiddleware(Middleware):
         call_next: CallNext[mt.ListToolsRequest, list[Tool]],
     ) -> list[Tool]:
         tools = await call_next(context)
+        # User and permission lookups need a metadata connection. Tool workers
+        # can hold every pooled connection while they wait on this loop, so the
+        # loop must never wait for one itself.
+        try:
+            return await run_in_metadata_thread(self._visible_tools, tools)
+        except Exception:  # noqa: BLE001
+            # A failure setting up the metadata thread itself (e.g. the
+            # metadata pool is exhausted) happens before _visible_tools's own
+            # try/except ever runs. Fail open the same way that branch does;
+            # call-time RBAC still enforces permissions.
+            logger.warning(
+                "MCP tool list: failed to filter tools, showing all", exc_info=True
+            )
+            return tools
 
+    @staticmethod
+    def _visible_tools(tools: list[Tool]) -> list[Tool]:
+        """Return the tools the calling user may execute."""
         try:
             with _get_app_context_manager():
                 # Use get_user_from_request directly rather than
@@ -1234,13 +1370,7 @@ class GlobalErrorHandlerMiddleware(Middleware):
         # Log with appropriate level: user errors (expected) → WARNING,
         # system errors (unexpected) → ERROR
         sanitized_error = _sanitize_error_for_logging(error)
-        is_user = _is_user_error(error)
-        # A datasource failure's severity follows what actually broke, not the
-        # 500 status a bare SupersetErrorException inherits. See
-        # _datasource_error_is_user_error.
-        datasource_is_user = _datasource_error_is_user_error(error)
-        if datasource_is_user is not None:
-            is_user = datasource_is_user
+        is_user = _is_user_error_for_reporting(error)
         log_fn = logger.warning if is_user else logger.error
         log_fn(
             "MCP tool call failed: tool=%s, user_id=%s, "
@@ -1255,7 +1385,8 @@ class GlobalErrorHandlerMiddleware(Middleware):
 
         # Log to Superset's event system
         try:
-            event_logger.log(
+            await run_in_metadata_thread(
+                event_logger.log,
                 user_id=user_id,
                 action="mcp_tool_error",
                 dashboard_id=None,
@@ -1283,7 +1414,7 @@ class GlobalErrorHandlerMiddleware(Middleware):
             # System-class errors only — user errors (bad params, permission
             # denials) are expected MCP traffic and would otherwise flood an
             # error tracker.
-            _invoke_error_hook(
+            await _invoke_error_hook_off_loop(
                 error,
                 {
                     "tool_name": tool_name,
@@ -1416,6 +1547,7 @@ class ResponseSizeGuardMiddleware(Middleware):
     - max_bytes: Maximum serialized response size in bytes (default: 50,000)
     - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
     - max_list_items: Cap for list fields during dynamic truncation (default: 100)
+    - png_max_bytes: Maximum PNG preview response size (default: 1,000,000)
     - excluded_tools: Tools to skip checking
     """
 
@@ -1425,8 +1557,10 @@ class ResponseSizeGuardMiddleware(Middleware):
         warn_threshold_pct: int = DEFAULT_WARN_THRESHOLD_PCT,
         excluded_tools: list[str] | str | None = None,
         max_list_items: int = DEFAULT_MAX_LIST_ITEMS,
+        png_max_bytes: int = DEFAULT_MAX_PNG_RESPONSE_BYTES,
     ) -> None:
         self.max_bytes = max_bytes
+        self.png_max_bytes = max(1, png_max_bytes)
         self.warn_threshold_pct = warn_threshold_pct
         self.warn_threshold = int(max_bytes * warn_threshold_pct / 100)
         if isinstance(excluded_tools, str):
@@ -1449,7 +1583,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         Returns the payload dict when extraction succeeds, or ``None`` when
         the response is not a ToolResult or cannot be parsed.
         """
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
 
         from superset.utils.json import loads as json_loads
 
@@ -1476,7 +1610,7 @@ class ResponseSizeGuardMiddleware(Middleware):
     @staticmethod
     def _rewrap_as_tool_result(payload: dict[str, Any], original: Any) -> Any:
         """Re-serialize a truncated payload dict back into a ToolResult."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         from superset.utils.json import dumps as json_dumps
@@ -2045,7 +2179,11 @@ class ResponseSizeGuardMiddleware(Middleware):
                 params=params,
                 actual_bytes=actual_bytes,
                 max_bytes=self.max_bytes,
-                response=None,
+                response=(
+                    self._extract_payload_from_tool_result(response)
+                    if tool_name in RESPONSE_AWARE_SUGGESTION_TOOLS
+                    else None
+                ),
             )
         )
 
@@ -2075,6 +2213,52 @@ class ResponseSizeGuardMiddleware(Middleware):
         # the oversized path below rather than slipping through unmeasured.
         actual_bytes = get_response_size_bytes(estimation_target)
 
+        # Choose the image budget from the returned payload, never request args.
+        # Other formats of this tool retain the normal text-response budget.
+        content = (
+            estimation_target.get("content")
+            if isinstance(estimation_target, dict)
+            else None
+        )
+        if (
+            tool_name in PNG_PREVIEW_TOOLS
+            and isinstance(content, dict)
+            and content.get("type") == "png"
+        ):
+            if actual_bytes > self.png_max_bytes:
+                logger.warning(
+                    "Response blocked for %s: %d bytes exceeds png_max_bytes of %d",
+                    tool_name,
+                    actual_bytes,
+                    self.png_max_bytes,
+                )
+                # Hop off the transport loop for the metadata write, as the
+                # text-path audit does: the loop must never wait on a pooled
+                # connection that a tool worker may be holding.
+                try:
+                    await run_in_metadata_thread(
+                        event_logger.log,
+                        user_id=get_user_id(),
+                        action="mcp_response_size_exceeded",
+                        dashboard_id=None,
+                        duration_ms=None,
+                        slice_id=None,
+                        referrer=None,
+                        curated_payload={
+                            "tool": tool_name,
+                            "actual_bytes": actual_bytes,
+                            "max_bytes": self.png_max_bytes,
+                        },
+                    )
+                except Exception as log_error:  # noqa: BLE001
+                    logger.warning("Failed to log size exceeded event: %s", log_error)
+                raise ToolError(
+                    f"PNG preview is {actual_bytes} bytes, exceeding the "
+                    f"{self.png_max_bytes}-byte limit. Request smaller width and "
+                    "height, or use the URL preview format."
+                )
+            return response
+
         # Log warning if approaching limit
         if actual_bytes > self.warn_threshold:
             logger.warning(
@@ -2087,8 +2271,12 @@ class ResponseSizeGuardMiddleware(Middleware):
 
         if actual_bytes > self.max_bytes:
             params = getattr(context.message, "arguments", {}) or {}
-            return self._handle_oversized_response(
-                tool_name, response, actual_bytes, params
+            return await run_in_metadata_thread(
+                self._handle_oversized_response,
+                tool_name,
+                response,
+                actual_bytes,
+                params,
             )
 
         return response
@@ -2195,6 +2383,9 @@ def create_response_size_guard_middleware() -> ResponseSizeGuardMiddleware | Non
             ),
             excluded_tools=config.get("excluded_tools"),
             max_list_items=max_list_items,
+            png_max_bytes=_safe_int_config(
+                config, "png_max_bytes", DEFAULT_MAX_PNG_RESPONSE_BYTES
+            ),
         )
 
         logger.info(

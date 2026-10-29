@@ -31,11 +31,34 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
+from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     from superset.models.core import Database
 
 logger = logging.getLogger()
+
+# Elasticsearch/OpenSearch field types that the default column type mappings
+# do not recognize. DOUBLE, FLOAT, INTEGER, LONG, BOOLEAN and DATETIME are
+# already covered by the defaults. Like the defaults, the patterns anchor only
+# at the start, so a parameterized name such as SCALED_FLOAT(100) still matches.
+FIELD_TYPE_MAPPINGS = (
+    (
+        re.compile(r"^(byte|short)", re.IGNORECASE),
+        types.SmallInteger(),
+        GenericDataType.NUMERIC,
+    ),
+    (
+        re.compile(r"^(half_float|scaled_float)", re.IGNORECASE),
+        types.Float(),
+        GenericDataType.NUMERIC,
+    ),
+    (
+        re.compile(r"^unsigned_long", re.IGNORECASE),
+        types.BigInteger(),
+        GenericDataType.NUMERIC,
+    ),
+)
 
 
 def _fetch_page_via_cursor(
@@ -45,6 +68,10 @@ def _fetch_page_via_cursor(
     page_size: int,
     sql_path: str,
     close_path: str,
+    *,
+    headers: dict[str, str] | None = None,
+    rows_key: str = "rows",
+    columns_key: str = "columns",
 ) -> tuple[list[list[Any]], list[str]]:
     """
     Iterate Elasticsearch/OpenSearch SQL cursor pagination to return a single
@@ -63,6 +90,10 @@ def _fetch_page_via_cursor(
     Deep pagination (hundreds of pages) will therefore be noticeably slower
     than on ``OFFSET``-capable engines. This is a protocol limitation, not
     an implementation choice.
+
+    ``headers`` are sent with every request when given. ``rows_key`` and
+    ``columns_key`` name the response fields: Elasticsearch answers
+    ``rows``/``columns``, the OpenSearch SQL plugin ``datarows``/``schema``.
     """
     # The Elasticsearch SQL API rejects trailing semicolons, and any LIMIT
     # in the submitted statement caps the result set before the cursor can
@@ -75,19 +106,23 @@ def _fetch_page_via_cursor(
         r"\s+LIMIT\s+\d+\s*$", "", sanitized_sql, flags=re.IGNORECASE
     )
 
-    # The raw transport does not auto-set Content-Type the way the Python
-    # DB-API driver does; ES rejects POSTs without a JSON content type.
-    json_headers = {"Content-Type": "application/json"}
+    request_kwargs: dict[str, Any] = {} if headers is None else {"headers": headers}
     with database.get_raw_connection() as conn:
         transport = conn.es.transport
         response = transport.perform_request(
             "POST",
             sql_path,
-            headers=json_headers,
             body={"query": sanitized_sql, "fetch_size": page_size},
+            **request_kwargs,
         )
-        columns = [col["name"] for col in response.get("columns", [])]
-        rows = response.get("rows", [])
+        # Column metadata comes from the remote service; fall back to a
+        # positional label rather than failing on an entry without a name.
+        # OpenSearch schema supplies aliases; Elasticsearch supplies names only.
+        columns = [
+            col.get("alias") or col.get("name") or f"column_{idx}"
+            for idx, col in enumerate(response.get(columns_key, []))
+        ]
+        rows = response.get(rows_key, [])
         cursor = response.get("cursor")
 
         try:
@@ -100,10 +135,10 @@ def _fetch_page_via_cursor(
                 response = transport.perform_request(
                     "POST",
                     sql_path,
-                    headers=json_headers,
                     body={"cursor": cursor},
+                    **request_kwargs,
                 )
-                rows = response.get("rows", [])
+                rows = response.get(rows_key, [])
                 cursor = response.get("cursor")
 
             return rows, columns
@@ -115,8 +150,8 @@ def _fetch_page_via_cursor(
                     transport.perform_request(
                         "POST",
                         close_path,
-                        headers=json_headers,
                         body={"cursor": cursor},
+                        **request_kwargs,
                     )
                 except Exception:  # pylint: disable=broad-except
                     logger.warning(
@@ -134,6 +169,7 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
     allows_subqueries = True
     allows_sql_comments = False
     supports_offset = False
+    column_type_mappings = FIELD_TYPE_MAPPINGS
 
     metadata = {
         "description": (
@@ -253,6 +289,9 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
             page_size=page_size,
             sql_path=cls.SQL_ENDPOINT,
             close_path=cls.SQL_CLOSE_ENDPOINT,
+            # elasticsearch-py's raw transport does not set Content-Type the
+            # way the DB-API driver does; ES rejects POSTs without it.
+            headers={"Content-Type": "application/json"},
         )
 
     @classmethod
@@ -310,6 +349,7 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     allows_subqueries = True
     allows_sql_comments = False
     supports_offset = False
+    column_type_mappings = FIELD_TYPE_MAPPINGS
 
     _time_grain_expressions = {
         None: "{col}",
@@ -367,6 +407,11 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             page_size=page_size,
             sql_path=cls.SQL_ENDPOINT,
             close_path=cls.SQL_CLOSE_ENDPOINT,
+            # opensearch-py already sends Content-Type: adding it again makes
+            # OpenSearch reject the request ("only one Content-Type header
+            # should be provided"). The SQL plugin answers in its JDBC format.
+            rows_key="datarows",
+            columns_key="schema",
         )
 
     @classmethod
