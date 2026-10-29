@@ -166,6 +166,19 @@ class MetadataResult:
     modified: list[str] = field(default_factory=list)
 
 
+def _default_unset_column_flags(column: TableColumn) -> None:
+    """Default *column*'s ``groupby`` and ``filterable`` flags when unset.
+
+    A column sync runs this on every column the source reports. A newly
+    discovered column, or a legacy row whose flags were never written,
+    gets both enabled; a flag the dataset owner turned off stays off.
+    """
+    if column.groupby is None:
+        column.groupby = True
+    if column.filterable is None:
+        column.filterable = True
+
+
 def _is_calculated_column(column: TableColumn) -> bool:
     """Return whether *column* is a user-defined virtual column.
 
@@ -2887,10 +2900,6 @@ class SqlaTable(
                 db_engine_spec.alter_new_orm_column(new_column)
                 if expression:
                     new_column.expression = expression
-                # Defaults for a newly discovered column only; an existing
-                # column keeps whatever the dataset owner chose.
-                new_column.groupby = True
-                new_column.filterable = True
             else:
                 new_column = old_column
                 # Type and physical expression both feed generated SQL, so
@@ -2905,6 +2914,7 @@ class SqlaTable(
                 # Set description from comment field if available
                 if col.get("comment"):
                     new_column.description = col["comment"]
+            _default_unset_column_flags(new_column)
             columns.append(new_column)
             # Never the partition column. It is a technical column -- an epoch
             # integer, a lowercased region key -- that no analyst filters on,

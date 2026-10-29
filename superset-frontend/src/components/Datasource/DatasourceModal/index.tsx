@@ -111,7 +111,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   // SQL of the server snapshot the form started from. The caller's, unless
   // this modal read the dataset itself — then "did the SQL change?" has to be
   // asked against the snapshot the payload is actually built from.
-  const [seededSql, setSeededSql] = useState<string | undefined>();
+  const [seededSql, setSeededSql] = useState<string | null | undefined>();
   const [versionEtag, setVersionEtag] = useState(etag);
   const [syncColumns, setSyncColumns] = useState(false);
   const currencies = useSelector<
@@ -171,7 +171,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       cancelled = true;
     };
   }, [datasource.id, etag, show]);
-  const baselineSql = seededSql ?? datasource.sql;
+  // A fresh read wins even when its SQL is `null` (a physical dataset).
+  const baselineSql = seededSql === undefined ? datasource.sql : seededSql;
   // The API reports a physical dataset's SQL as `null`, the editor as `''`.
   const sqlChanged = (baselineSql ?? '') !== (currentDatasource.sql ?? '');
 
@@ -270,7 +271,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     setIsSaving(true);
     try {
       await SupersetClient.put({
-        endpoint: `/api/v1/dataset/${currentDatasource.id}?override_columns=${syncColumns}`,
+        endpoint: `/api/v1/dataset/${currentDatasource.id}?override_columns=${sqlChanged && syncColumns}`,
         jsonPayload: buildPayload(currentDatasource),
         ...(versionEtag ? { headers: { 'If-Match': versionEtag } } : {}),
       });

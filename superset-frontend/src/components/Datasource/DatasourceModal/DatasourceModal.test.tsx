@@ -400,6 +400,94 @@ describe('DatasourceModal', () => {
     });
   });
 
+  test('does not offer a column sync when its own read reports null SQL', async () => {
+    // The caller's snapshot still holds SQL, but the read this modal edits
+    // against says the dataset is physical; that read is the baseline.
+    cleanup();
+    fetchMock.clearHistory().removeRoutes();
+    fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
+    fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
+    fetchMock.get(GET_DATASOURCE_ENDPOINT, {
+      body: { result: { ...mockedProps.datasource, sql: null } },
+      headers: { ETag: '"v2"' },
+    });
+    fetchMock.get(GET_DATABASE_ENDPOINT, { result: [] });
+
+    render(
+      <DatasourceModal
+        {...mockedProps}
+        datasource={{
+          ...mockedProps.datasource,
+          sql: 'SELECT * FROM stale_table',
+        }}
+      />,
+      { store, useRouter: true },
+    );
+
+    await waitForSaveEnabled();
+    fireEvent.click(screen.getByTestId('datasource-modal-save'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Confirm save')).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByText('Automatically sync columns'),
+    ).not.toBeInTheDocument();
+  });
+
+  test('does not sync columns once a SQL change is reverted', async () => {
+    cleanup();
+    fetchMock.clearHistory().removeRoutes();
+    fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
+    fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
+    fetchMock.get(GET_DATASOURCE_ENDPOINT, { result: {} });
+    fetchMock.get(GET_DATABASE_ENDPOINT, { result: [] });
+    const original = {
+      ...mockedProps.datasource,
+      sql: 'SELECT * FROM original_table',
+    };
+
+    const { rerender } = render(
+      <DatasourceModal {...mockedProps} datasource={original} etag='"v1"' />,
+      { store, useRouter: true },
+    );
+    // A SQL change ticks the sync checkbox; changing it back hides it.
+    rerender(
+      <DatasourceModal
+        {...mockedProps}
+        datasource={{ ...original, sql: 'SELECT * FROM new_table' }}
+        etag='"v1"'
+      />,
+    );
+    rerender(
+      <DatasourceModal {...mockedProps} datasource={original} etag='"v1"' />,
+    );
+
+    await waitForSaveEnabled();
+    fireEvent.click(screen.getByTestId('datasource-modal-save'));
+    await waitFor(() => {
+      expect(screen.getByText('Confirm save')).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByText('Automatically sync columns'),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+
+    await waitFor(() => {
+      const putCalls = fetchMock.callHistory
+        .calls()
+        .filter(
+          call =>
+            call.url.includes('/api/v1/dataset/7') &&
+            call.options?.method === 'put',
+        );
+      expect(putCalls.length).toBeGreaterThan(0);
+      expect(putCalls[putCalls.length - 1].url).toContain(
+        'override_columns=false',
+      );
+    });
+  });
+
   test('shows sync columns checkbox when SQL changes', async () => {
     cleanup();
     const datasourceWithSQL = {
