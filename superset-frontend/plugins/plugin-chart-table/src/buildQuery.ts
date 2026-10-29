@@ -385,7 +385,12 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
 
     const calculationMode = formData.percent_metric_calculation || 'row_limit';
 
+    // The summary row and the percent denominators are display features: a file download keeps
+    // one query so it is one file (several queries are bundled into a zip).
+    const isFileExport = ['csv', 'xlsx'].includes(formData.result_format ?? '');
+
     if (
+      !isFileExport &&
       calculationMode === 'all_records' &&
       percentMetrics &&
       percentMetrics.length > 0
@@ -401,10 +406,6 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
         is_timeseries: false,
       });
     }
-
-    // The summary row is a display feature: a file download keeps one query so it is one file
-    // (several queries are bundled into a zip).
-    const isFileExport = ['csv', 'xlsx'].includes(formData.result_format ?? '');
 
     if (
       metrics?.length &&

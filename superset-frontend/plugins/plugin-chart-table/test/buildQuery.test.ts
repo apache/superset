@@ -218,6 +218,27 @@ test.each([
   },
 );
 
+test.each([
+  ['json', 2],
+  ['csv', 1],
+  ['xlsx', 1],
+])(
+  'percent_metric_calculation all_records with result_format %s builds %i query(ies), so a download is one file',
+  (resultFormat, expectedQueries) => {
+    const { queries } = buildQueryUncached({
+      ...basicFormData,
+      groupby: ['col1'],
+      metrics: ['aaa'],
+      percent_metrics: ['aaa'],
+      percent_metric_calculation: 'all_records',
+      query_mode: QueryMode.Aggregate,
+      result_format: resultFormat,
+    } as TableChartFormData);
+
+    expect(queries).toHaveLength(expectedQueries);
+  },
+);
+
 const extraQueryFormData: TableChartFormData = {
   ...basicFormData,
   time_grain_sqla: TimeGranularity.MONTH,
