@@ -5413,6 +5413,9 @@ msgstr ""
 "Los campos SQL personalizados no se pueden analizar como una única "
 "sentencia SQL."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 #, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "Los campos SQL personalizados no pueden contener subconsultas."

@@ -5484,6 +5484,9 @@ msgstr "متریک‌های SQL سفارشی ad-hoc برای این مجموعه
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "فیلدهای SQL سفارشی را نمی‌توان به عنوان یک دستور SQL واحد تجزیه کرد."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 #, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "فیلدهای SQL سفارشی نمی‌توانند شامل زیرکوئریها باشند."

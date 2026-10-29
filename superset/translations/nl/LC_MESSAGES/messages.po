@@ -5601,6 +5601,9 @@ msgstr ""
 "Aangepaste SQL-velden kunnen niet worden geparseerd als één SQL-"
 "instructie."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 #, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "Aangepaste SQL velden mogen geen sub-query's bevatten."

@@ -5688,6 +5688,9 @@ msgstr "لم يتم تمكين مقاييس SQL المخصصة المخصصة ل
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "لا يمكن تحليل حقول SQL المخصصة كعبارة SQL واحدة."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 #, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "لا يمكن أن تحتوي حقول SQL المخصصة على استعلامات فرعية."

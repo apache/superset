@@ -2454,8 +2454,9 @@ whitespace-only input. A title containing only removed HTML/script content
 (`unsafe_text`), not an empty-text error. Optional titles on creation retain
 their existing empty-value behavior, including whitespace-only values longer
 than the title limit. On creation, blank chart names fall back to generated
-names; whitespace-only dashboard titles fall back to chart-based titles, while
-an explicit empty string is preserved. `update_dashboard` rejects explicit blank
+names; `generate_dashboard` falls back to chart-based titles when
+`dashboard_title` (or its `title` / `name` alias) is omitted, empty, or
+whitespace-only. `update_dashboard` rejects explicit blank
 or whitespace-only dashboard renames with "Text must not be empty"; omitting
 `dashboard_title` leaves the stored title unchanged.
 

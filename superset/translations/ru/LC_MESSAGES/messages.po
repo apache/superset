@@ -5177,6 +5177,9 @@ msgstr "Пользовательские ad-hoc меры SQL не разреше
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "Пользовательские поля SQL не могут быть разобраны как одна SQL-инструкция."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 #, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "Пользовательские поля SQL не могут содержать подзапросы"

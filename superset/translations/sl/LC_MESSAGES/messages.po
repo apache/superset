@@ -5322,6 +5322,9 @@ msgstr "Prilagodljive ad-hoc SQL-mere za ta podatkovni set niso omogočene"
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "Polja SQL po meri ni mogoče razčleniti kot en sam stavek SQL."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "Polja SQL po meri ne morejo vsebovati nabornih operacij."
 
