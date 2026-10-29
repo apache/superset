@@ -221,6 +221,18 @@ describe('layerUtil', () => {
       const colorAtLayer = style![2].getFill().getColor();
       expect(colorAtLayer).toEqual(fillColor);
     });
+
+    test('escapes HTML in the layer attribution', async () => {
+      const layerConf: DataLayerConf = {
+        ...dataLayerConf,
+        attribution: '(c) OSM <img src=x onerror=alert(1)>',
+      };
+      const layer = await createDataLayer(layerConf);
+      const attributions = layer!.getSource()?.getAttributions();
+      expect(attributions?.(undefined as never)).toEqual([
+        '(c) OSM &lt;img src=x onerror=alert(1)&gt;',
+      ]);
+    });
   });
 
   describe('createLayer', () => {
