@@ -18,6 +18,7 @@
  */
 import type { WorkBook } from 'xlsx';
 import { getNumberFormatterRegistry } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import exportPivotExcel from './downloadAsPivotExcel';
 
 const mockWriteFile = jest.fn();
@@ -28,6 +29,18 @@ jest.mock('xlsx', () => {
     ...actual,
     writeFile: (...args: unknown[]) => mockWriteFile(...args),
   };
+});
+
+jest.mock('@apache-superset/core/utils', () => ({
+  logging: { error: jest.fn() },
+}));
+
+jest.mock('@apache-superset/core/translation', () => ({
+  t: (str: string) => str,
+}));
+
+afterEach(() => {
+  jest.restoreAllMocks();
 });
 
 // Renders a single-row pivot table with the given cell values, runs the
@@ -113,4 +126,29 @@ test('leaves date-shaped strings as text rather than reinterpreting them as date
   expect(sheet.A1).toMatchObject({ t: 's', v: '2024-01-01' });
   expect(sheet.B1).toMatchObject({ t: 's', v: '2024-01-01 13:45:30' });
   expect(sheet.C1).toMatchObject({ t: 's', v: 'not-a-date' });
+});
+
+test('logs an error, warns the user via the bound toast callback, and returns early when table element is not found', () => {
+  jest.spyOn(document, 'querySelector').mockReturnValue(null);
+  const addWarningToast = jest.fn();
+
+  exportPivotExcel('.non-existent-selector', 'test-file', addWarningToast);
+
+  expect(logging.error as jest.Mock).toHaveBeenCalledWith(
+    '[exportPivotExcel] No element found for selector: ".non-existent-selector"',
+  );
+  // Passed in already bound to dispatch (e.g. via `useToasts()`), so calling
+  // it directly is what actually renders the toast -- unlike the raw action
+  // creator, which only builds a Redux action object.
+  expect(addWarningToast).toHaveBeenCalledWith(
+    'Pivot table download failed, please refresh and try again.',
+  );
+});
+
+test('does not throw when the table element is not found and no toast callback is provided', () => {
+  jest.spyOn(document, 'querySelector').mockReturnValue(null);
+
+  expect(() =>
+    exportPivotExcel('.non-existent-selector', 'test-file'),
+  ).not.toThrow();
 });

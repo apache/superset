@@ -29,6 +29,7 @@ import pytest
 import yaml
 from flask import current_app
 from flask_appbuilder.security.sqla.models import Role, User
+from jinja2.exceptions import TemplateError
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
@@ -40,12 +41,16 @@ from superset.commands.dataset.exceptions import (
     MultiCatalogDisabledValidationError,
 )
 from superset.commands.dataset.importers.v1.utils import (
+    drop_unusable_partition_transforms,
     import_dataset,
     validate_data_uri,
 )
 from superset.commands.exceptions import ImportFailedError
+from superset.commands.importers.exceptions import IncorrectFormatError
 from superset.connectors.sqla.models import SqlaTable, TableColumn
-from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.datasets.schemas import ImportV1ColumnSchema, ImportV1DatasetSchema
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
 from superset.utils import json
 from superset.utils.core import override_user
@@ -53,6 +58,7 @@ from tests.integration_tests.fixtures.importexport import (
     database_config,
     dataset_config as dataset_fixture,
 )
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
@@ -630,6 +636,694 @@ def _dataset_config_with_children(
     }
 
 
+def test_import_dataset_virtual_checks_sql_table_access(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A virtual dataset import validates access to the tables its SQL
+    references, not only access to the dataset object itself.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    def raise_for_access(**kwargs: object) -> None:
+        # Deny only the SQL/table-level check; the datasource-level check passes.
+        if kwargs.get("sql"):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                    message="You need access to the following tables",
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+    mocker.patch.object(
+        security_manager, "raise_for_access", side_effect=raise_for_access
+    )
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+    config["sql"] = "SELECT * FROM secret_table"
+
+    with pytest.raises(DatasetAccessDeniedError):
+        import_dataset(config)
+
+
+def test_import_dataset_virtual_sql_check_receives_template_params(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Jinja-templated SQL only resolves its real table references once the
+    template params are applied, so they must reach the access check.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    raise_for_access = mocker.patch.object(security_manager, "raise_for_access")
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+    config["sql"] = (
+        "{% if flag %}SELECT * FROM secret_table{% else %}SELECT 1{% endif %}"  # noqa: E501
+    )
+    config["template_params"] = {"flag": True}
+
+    import_dataset(config)
+
+    sql_call = next(
+        call for call in raise_for_access.call_args_list if call.kwargs.get("sql")
+    )
+    assert sql_call.kwargs["template_params"] == {"flag": True}
+    # Empty strings in the export payload must not be forwarded verbatim.
+    assert sql_call.kwargs["schema"] is None
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        SupersetParseError("SELECT", message="Could not parse SQL"),
+        TemplateError("Could not render SQL"),
+    ],
+)
+def test_import_dataset_virtual_invalid_sql_is_rejected_as_bad_payload(
+    error: Exception, mocker: MockerFixture, session: Session
+) -> None:
+    """
+    SQL that cannot be parsed or rendered can't be access-checked, so the
+    import fails closed as an invalid payload rather than an access denial.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    def raise_for_access(**kwargs: object) -> None:
+        # Only the SQL/table-level check fails, so the test still fails if the
+        # datasource-level call is the one that raises.
+        if kwargs.get("sql"):
+            raise error
+
+    mocker.patch.object(
+        security_manager, "raise_for_access", side_effect=raise_for_access
+    )
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+    config["sql"] = "SELECT +/"
+
+    with pytest.raises(IncorrectFormatError, match="Invalid SQL"):
+        import_dataset(config)
+
+
+def test_import_dataset_repoint_authorizes_requested_binding_pre_mutation(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Regression guard (schema-swap): an overwrite that repoints a dataset to a
+    new schema must authorize the REQUESTED binding with allow_editorship=False
+    and do so BEFORE the row is mutated -- otherwise the per-table lookup
+    resolves the dataset itself (whose perm omits the schema) and a
+    datasource_access holder could repoint it to a schema they can't read.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    ds_uuid = str(uuid.uuid4())
+    existing = SqlaTable(
+        table_name="orders",
+        schema="public",
+        catalog=None,
+        database=database,
+        uuid=ds_uuid,
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    seen: dict[str, Any] = {}
+
+    def record(**kwargs: Any) -> None:
+        if kwargs.get("table") is not None or kwargs.get("sql") is not None:
+            seen["kwargs"] = kwargs
+            seen["stored_schema"] = db.session.get(SqlaTable, existing.id).schema
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=record)
+
+    config = copy.deepcopy(dataset_fixture)
+    config.update(
+        {
+            "uuid": ds_uuid,
+            "table_name": "orders",
+            "schema": "private",
+            "catalog": None,
+            "sql": "",
+            "database_id": database.id,
+            "metrics": [],
+            "columns": [],
+        }
+    )
+    import_dataset(config, overwrite=True)
+
+    assert seen["kwargs"].get("allow_editorship") is False
+    assert seen["kwargs"]["table"].schema == "private"  # requested, not stored
+    assert seen["stored_schema"] == "public"  # check ran before import_from_dict
+
+
+def test_import_dataset_metadata_only_skips_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Regression guard (over-restriction): a metadata-only re-import (unchanged
+    table binding) must NOT run the table/SQL access check, so an editor
+    without separate data access can still re-import non-binding changes --
+    matching UpdateDatasetCommand, which only revalidates on a source change.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    ds_uuid = str(uuid.uuid4())
+    existing = SqlaTable(
+        table_name="orders",
+        schema="public",
+        catalog=None,
+        database=database,
+        uuid=ds_uuid,
+        description="old",
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+    binding_checks: list[dict[str, Any]] = []
+
+    def record(**kwargs: Any) -> None:
+        if kwargs.get("table") is not None or kwargs.get("sql") is not None:
+            binding_checks.append(kwargs)
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=record)
+
+    config = copy.deepcopy(dataset_fixture)
+    config.update(
+        {
+            "uuid": ds_uuid,
+            "table_name": "orders",
+            "schema": "public",
+            "catalog": None,
+            "sql": "",
+            "database_id": database.id,
+            "description": "new description",
+            "metrics": [],
+            "columns": [],
+        }
+    )
+    import_dataset(config, overwrite=True)
+
+    assert binding_checks == []  # unchanged binding -> no table/SQL access check
+
+
+def test_import_dataset_database_repoint_runs_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Regression guard: an overwrite that keeps table/schema/catalog/sql but
+    points at a DIFFERENT database still repoints the dataset, so the binding
+    check must run against the new database with allow_editorship=False -- the
+    database is part of the binding (matching UpdateDatasetCommand's repoint).
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    db_a = Database(database_name="db_a", sqlalchemy_uri="sqlite://")
+    db_b = Database(database_name="db_b", sqlalchemy_uri="sqlite://")
+    db.session.add_all([db_a, db_b])
+    db.session.flush()
+    ds_uuid = str(uuid.uuid4())
+    existing = SqlaTable(
+        table_name="orders",
+        schema="public",
+        catalog=None,
+        database=db_a,
+        uuid=ds_uuid,
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+    # The access check runs before import_from_dict; stub the mutation so the
+    # test isolates whether the binding check ran (a real DB-identity change
+    # drives import_from_dict down an insert path that is orthogonal here).
+    mocker.patch.object(SqlaTable, "import_from_dict", return_value=existing)
+    binding_checks: list[dict[str, Any]] = []
+
+    def record(**kwargs: Any) -> None:
+        if kwargs.get("table") is not None or kwargs.get("sql") is not None:
+            binding_checks.append(kwargs)
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=record)
+
+    config = copy.deepcopy(dataset_fixture)
+    config.update(
+        {
+            "uuid": ds_uuid,
+            "table_name": "orders",
+            "schema": "public",
+            "catalog": None,
+            "sql": "",
+            "database_id": db_b.id,  # repoint to a different database
+            "metrics": [],
+            "columns": [],
+        }
+    )
+    import_dataset(config, overwrite=True)
+
+    assert len(binding_checks) == 1
+    # Authorized against the REQUESTED connection, not the stored one.
+    assert binding_checks[0]["database"] is db_b
+    assert binding_checks[0]["table"].table == "orders"
+    assert binding_checks[0].get("allow_editorship") is False
+
+
+def test_import_dataset_template_params_only_change_runs_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Regression guard (templated repoint): an overwrite that keeps the SQL text
+    but changes only ``template_params`` still repoints where a Jinja ``FROM``
+    resolves, so the binding check must run against the NEW params with
+    allow_editorship=False -- the stored params are not what the overwrite
+    executes.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    ds_uuid = str(uuid.uuid4())
+    existing = SqlaTable(
+        table_name="orders",
+        schema="public",
+        catalog=None,
+        database=database,
+        sql="SELECT * FROM {{ t }}",
+        template_params=json.dumps({"t": "public.ok"}),
+        uuid=ds_uuid,
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+    binding_checks: list[dict[str, Any]] = []
+
+    def record(**kwargs: Any) -> None:
+        if kwargs.get("sql") is not None:
+            binding_checks.append(kwargs)
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=record)
+
+    config = copy.deepcopy(dataset_fixture)
+    config.update(
+        {
+            "uuid": ds_uuid,
+            "table_name": "orders",
+            "schema": "public",
+            "catalog": None,
+            "sql": "SELECT * FROM {{ t }}",  # unchanged SQL text
+            "database_id": database.id,
+            "template_params": {"t": "private.secret"},  # repoints the FROM
+            "metrics": [],
+            "columns": [],
+        }
+    )
+    import_dataset(config, overwrite=True)
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["template_params"] == {"t": "private.secret"}
+    assert binding_checks[0].get("allow_editorship") is False
+
+
+def _existing_dataset(**overrides: Any) -> tuple[SqlaTable, Database]:
+    """
+    Persist a dataset to overwrite-import -- by default a virtual one reading
+    ``SELECT * FROM orders`` in ``private``.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    existing = SqlaTable(
+        **{
+            "table_name": "orders_report",
+            "schema": "private",
+            "catalog": None,
+            "database": database,
+            "sql": "SELECT * FROM orders",
+            "uuid": str(uuid.uuid4()),
+            **overrides,
+        }
+    )
+    db.session.add(existing)
+    db.session.flush()
+    return existing, database
+
+
+def _overwrite_config(existing: SqlaTable, **overrides: Any) -> dict[str, Any]:
+    """An overwrite config for ``existing`` repeating its stored binding."""
+    config = copy.deepcopy(dataset_fixture)
+    config.update(
+        {
+            "uuid": str(existing.uuid),
+            "table_name": existing.table_name,
+            "schema": existing.schema,
+            "catalog": existing.catalog,
+            "sql": existing.sql,
+            "database_id": existing.database_id,
+            "template_params": None,
+            "metrics": [],
+            "columns": [],
+            **overrides,
+        }
+    )
+    return config
+
+
+def _record_binding_checks(mocker: MockerFixture) -> list[dict[str, Any]]:
+    """Allow every access check, recording the table/SQL binding ones."""
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+    binding_checks: list[dict[str, Any]] = []
+
+    def record(**kwargs: Any) -> None:
+        if kwargs.get("table") is not None or kwargs.get("sql") is not None:
+            binding_checks.append(kwargs)
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=record)
+    return binding_checks
+
+
+def test_import_dataset_template_params_type_change_runs_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite that changes only a param's JSON type (``1`` -> ``true``)
+    still repoints a templated ``FROM``, so it re-runs the binding check
+    rather than being judged unchanged by Python dict equality.
+    """
+    existing, _ = _existing_dataset(
+        sql="SELECT * FROM {{ t }}", template_params=json.dumps({"t": 1})
+    )
+    binding_checks = _record_binding_checks(mocker)
+
+    import_dataset(_overwrite_config(existing, template_params={"t": True}), True)
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["template_params"] == {"t": True}
+
+
+def test_import_dataset_reimport_keeps_legacy_nonobject_params(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Re-importing a bundle whose dataset carries a legacy non-object (but
+    executable) ``template_params`` must be treated as an unchanged binding,
+    not rejected -- the stored value is unchanged, so this is a metadata-only
+    re-import, matching UpdateDatasetCommand's echo handling.
+    """
+    existing, _ = _existing_dataset(
+        sql="SELECT * FROM {{ t }}",
+        template_params=json.dumps([["t", "public.ok"]]),
+    )
+    binding_checks = _record_binding_checks(mocker)
+
+    # The export carries the params as their parsed (list) form.
+    import_dataset(
+        _overwrite_config(existing, template_params=[["t", "public.ok"]]),
+        overwrite=True,
+    )
+
+    assert binding_checks == []
+
+
+def test_import_dataset_binding_check_drops_reserved_params(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    The import binding check renders with the submitted params minus the names
+    the processor consumes structurally, matching execution.
+    """
+    existing, _ = _existing_dataset(sql="SELECT * FROM {{ t }}")
+    binding_checks = _record_binding_checks(mocker)
+
+    import_dataset(
+        _overwrite_config(
+            existing, template_params={"t": "public.ok", "extra_cache_keys": []}
+        ),
+        True,
+    )
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["template_params"] == {"t": "public.ok"}
+
+
+def test_import_dataset_virtual_rename_skips_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A virtual dataset's ``table_name`` is only a label, so an overwrite that
+    renames it (same SQL, connection, catalog, schema and params) is not a
+    repoint -- as with PUT and ``/datasource/save/`` -- and stays open to an
+    editor without a grant on the underlying tables.
+    """
+    existing, _ = _existing_dataset()
+    binding_checks = _record_binding_checks(mocker)
+
+    import_dataset(
+        _overwrite_config(existing, table_name="orders_report_renamed"),
+        overwrite=True,
+    )
+
+    assert binding_checks == []
+
+
+def test_import_dataset_omitted_sql_authorizes_stored_sql_at_requested_schema(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite only applies the keys it carries, so omitting ``sql`` keeps
+    the stored SQL. Moving the schema must then authorize that stored SQL as
+    it will resolve under the requested schema -- not take the physical
+    branch and check ``<schema>.<table_name>``.
+    """
+    existing, database = _existing_dataset()
+    binding_checks = _record_binding_checks(mocker)
+    config = _overwrite_config(existing, schema="public")
+    del config["sql"]
+
+    import_dataset(config, overwrite=True)
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["database"] is database
+    assert binding_checks[0]["sql"] == "SELECT * FROM orders"
+    assert binding_checks[0]["schema"] == "public"
+    assert "table" not in binding_checks[0]
+    assert binding_checks[0].get("allow_editorship") is False
+
+
+def test_import_dataset_unreadable_stored_params_fail_closed(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Params stored on a physical dataset are never parsed, and execution would
+    still apply a list of pairs (via ``dict.update``). Converting it to a
+    templated virtual dataset while omitting ``template_params`` keeps those
+    params, so the import refuses to authorize the SQL against a guess.
+    """
+    existing, _ = _existing_dataset(
+        sql=None,
+        table_name="orders",
+        template_params='[["t", "private.secret"]]',
+    )
+    binding_checks = _record_binding_checks(mocker)
+    config = _overwrite_config(existing, sql="SELECT * FROM {{ t }}")
+    del config["template_params"]
+
+    with pytest.raises(IncorrectFormatError, match="template_params"):
+        import_dataset(config, overwrite=True)
+
+    assert binding_checks == []
+
+
+@pytest.mark.parametrize(
+    "template_params", ["{bad", '"t"', '["t"]', '[["t", "private.secret"]]']
+)
+def test_import_dataset_unreadable_config_params_fail_closed(
+    mocker: MockerFixture, session: Session, template_params: str
+) -> None:
+    """
+    Params that aren't a JSON object can't be read the way execution reads
+    them, so a virtual import carrying them is refused as a bad payload rather
+    than authorized against ``{}``.
+    """
+    existing, _ = _existing_dataset()
+    binding_checks = _record_binding_checks(mocker)
+
+    with pytest.raises(IncorrectFormatError, match="template_params"):
+        import_dataset(
+            _overwrite_config(existing, template_params=template_params),
+            overwrite=True,
+        )
+
+    assert binding_checks == []
+
+
+def test_import_dataset_params_checked_as_execution_reads_them(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    The import stores a config's params as ``json.dumps(params)`` and
+    execution reads them back with ``json_to_dict``, which rewrites ``", }"``
+    even inside a string value. The check must see what execution will see,
+    or it authorizes a branch of the template that never runs.
+    """
+    existing, _ = _existing_dataset()
+    binding_checks = _record_binding_checks(mocker)
+
+    import_dataset(
+        _overwrite_config(
+            existing,
+            sql="SELECT * FROM {{ 'secret_t' if p == 'x}' else 'ok_t' }}",
+            template_params={"p": "x, }"},
+        ),
+        overwrite=True,
+    )
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["template_params"] == {"p": "x}"}
+
+
+@pytest.mark.parametrize(
+    "overrides, expected",
+    [
+        # SQL replaced: the new SQL is authorized at the stored location.
+        ({"sql": "SELECT * FROM salaries"}, {"sql": "SELECT * FROM salaries"}),
+        # Catalog moved: unqualified names resolve elsewhere.
+        ({"catalog": "other"}, {"sql": "SELECT * FROM orders", "catalog": "other"}),
+    ],
+)
+def test_import_dataset_virtual_binding_change_runs_check(
+    mocker: MockerFixture,
+    session: Session,
+    overrides: dict[str, Any],
+    expected: dict[str, Any],
+) -> None:
+    """
+    Each part of a virtual dataset's binding other than its label is
+    re-authorized when an overwrite changes it, at the requested values.
+    """
+    existing, database = _existing_dataset()
+    binding_checks = _record_binding_checks(mocker)
+
+    import_dataset(_overwrite_config(existing, **overrides), overwrite=True)
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["database"] is database
+    assert binding_checks[0].get("allow_editorship") is False
+    for key, value in expected.items():
+        assert binding_checks[0][key] == value
+
+
+def test_import_dataset_physical_rename_runs_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A physical dataset's ``table_name`` *is* its binding, so an overwrite that
+    only renames it points the dataset at another table and is authorized
+    against that table.
+    """
+    existing, _ = _existing_dataset(sql=None, table_name="orders", schema="public")
+    binding_checks = _record_binding_checks(mocker)
+
+    import_dataset(_overwrite_config(existing, table_name="salaries"), overwrite=True)
+
+    assert len(binding_checks) == 1
+    table = binding_checks[0]["table"]
+    assert (table.table, table.schema, table.catalog) == ("salaries", "public", None)
+    assert binding_checks[0].get("allow_editorship") is False
+
+
+def test_import_dataset_omitted_fields_keep_stored_values(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite only applies the keys it carries: replacing the SQL while
+    omitting ``schema`` and ``template_params`` keeps the stored ones, so the
+    new SQL is authorized as it will run -- at the stored schema, rendered
+    with the stored params.
+    """
+    existing, _ = _existing_dataset(
+        sql="SELECT * FROM {{ t }}",
+        template_params=json.dumps({"t": "public.ok"}),
+    )
+    binding_checks = _record_binding_checks(mocker)
+    config = _overwrite_config(existing, sql="SELECT * FROM {{ t }} LIMIT 1")
+    del config["schema"]
+    del config["template_params"]
+
+    import_dataset(config, overwrite=True)
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["schema"] == "private"
+    assert binding_checks[0]["template_params"] == {"t": "public.ok"}
+
+
+def test_import_dataset_render_error_is_bad_payload(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    SQL that can't be rendered with its params (e.g. ``{{ p + 1 }}`` with
+    ``p = "a"``) can't be authorized: the import fails as a bad payload
+    rather than surfacing a 500.
+    """
+    existing, _ = _existing_dataset()
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+
+    def render_fails(**kwargs: Any) -> None:
+        if kwargs.get("sql"):
+            raise TypeError('can only concatenate str (not "int") to str')
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=render_fails)
+
+    with pytest.raises(IncorrectFormatError, match="Invalid SQL"):
+        import_dataset(
+            _overwrite_config(
+                existing, sql="SELECT {{ p + 1 }}", template_params={"p": "a"}
+            ),
+            overwrite=True,
+        )
+
+
 def test_import_dataset_schema_rejects_duplicate_metric_uuids() -> None:
     """
     Two metrics sharing a UUID must be rejected by the import schema.
@@ -771,6 +1465,148 @@ def test_import_dataset_no_folder(mocker: MockerFixture, session: Session) -> No
 
     sqla_table = import_dataset(config)
     assert sqla_table.folders is None
+
+
+def test_import_dataset_skips_has_table_check_without_data_uri(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Importing a dataset with no ``data`` URI should never call
+    ``Database.has_table`` - its result only ever gates ``load_data``, which
+    is already a no-op when there's no data URI to load. Skipping the call
+    avoids an unnecessary round trip to the target database on every
+    imported dataset, which is what made bulk imports of many datasets slow
+    enough to hit the gunicorn worker timeout.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    has_table = mocker.patch.object(Database, "has_table")
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = {
+        "table_name": "no_data_table",
+        "main_dttm_col": None,
+        "description": None,
+        "default_endpoint": None,
+        "offset": 0,
+        "cache_timeout": None,
+        "schema": None,
+        "sql": None,
+        "params": None,
+        "template_params": None,
+        "filter_select_enabled": False,
+        "fetch_values_predicate": None,
+        "extra": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    import_dataset(config)
+
+    has_table.assert_not_called()
+
+
+def test_import_dataset_checks_has_table_with_data_uri(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    When a ``data`` URI is present, ``Database.has_table`` should still be
+    consulted to decide whether the data needs to be (re-)loaded. A table that
+    already exists means the data is there, so it must not be re-loaded.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    has_table = mocker.patch.object(Database, "has_table", return_value=True)
+    load_data = mocker.patch("superset.commands.dataset.importers.v1.utils.load_data")
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = {
+        "table_name": "has_data_table",
+        "main_dttm_col": None,
+        "description": None,
+        "default_endpoint": None,
+        "offset": 0,
+        "cache_timeout": None,
+        "schema": None,
+        "sql": None,
+        "params": None,
+        "template_params": None,
+        "filter_select_enabled": False,
+        "fetch_values_predicate": None,
+        "extra": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+        "data": "https://example.com/data.csv",
+    }
+
+    import_dataset(config)
+
+    has_table.assert_called_once()
+    load_data.assert_not_called()
+
+
+def test_import_dataset_loads_data_when_table_is_missing(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    When a ``data`` URI is present and the target table doesn't exist yet, the
+    data must actually be loaded. This is the case ``has_table`` exists to
+    detect, and the one an inverted or misindented condition would silently
+    skip while still satisfying the checks above.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    has_table = mocker.patch.object(Database, "has_table", return_value=False)
+    load_data = mocker.patch("superset.commands.dataset.importers.v1.utils.load_data")
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = {
+        "table_name": "missing_data_table",
+        "main_dttm_col": None,
+        "description": None,
+        "default_endpoint": None,
+        "offset": 0,
+        "cache_timeout": None,
+        "schema": None,
+        "sql": None,
+        "params": None,
+        "template_params": None,
+        "filter_select_enabled": False,
+        "fetch_values_predicate": None,
+        "extra": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+        "data": "https://example.com/data.csv",
+    }
+
+    import_dataset(config)
+
+    has_table.assert_called_once()
+    load_data.assert_called_once()
 
 
 def test_import_dataset_rejects_non_default_catalog_when_multi_catalog_disabled(
@@ -1499,21 +2335,27 @@ def test_import_dataset_access_check(
     """
     Test that import_dataset raises DatasetAccessDeniedError when the user does not
     have datasource-level access to the target dataset.
+
+    Only the dataset-level (``datasource=``) gate denies: the table binding
+    check that runs first is allowed, so this fails if that gate is removed
+    instead of passing on the earlier check.
     """
     from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
     from superset.exceptions import SupersetSecurityException
 
-    mocker.patch.object(security_manager, "can_access", return_value=True)
-    mocker.patch.object(
-        security_manager,
-        "raise_for_access",
-        side_effect=SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                message="User does not have access to this datasource",
-                level=ErrorLevel.ERROR,
+    def deny_dataset_access(**kwargs: Any) -> None:
+        if kwargs.get("datasource") is not None:
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                    message="User does not have access to this datasource",
+                    level=ErrorLevel.ERROR,
+                )
             )
-        ),
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    raise_for_access = mocker.patch.object(
+        security_manager, "raise_for_access", side_effect=deny_dataset_access
     )
 
     engine = db.session.get_bind()
@@ -1528,6 +2370,14 @@ def test_import_dataset_access_check(
 
     with pytest.raises(DatasetAccessDeniedError):
         import_dataset(config)
+
+    gates = [
+        call.kwargs["datasource"]
+        for call in raise_for_access.call_args_list
+        if call.kwargs.get("datasource") is not None
+    ]
+    assert len(gates) == 1
+    assert gates[0].uuid == uuid.UUID(config["uuid"])
 
 
 def test_import_soft_deleted_dataset_overwrite_restores_in_place(
@@ -2241,6 +3091,171 @@ def test_import_restore_blocked_by_active_twin_at_incoming_identity(
     assert existing.deleted_at is not None
 
 
+@pytest.mark.parametrize("config_catalog", ["public", None])
+def test_import_dataset_identity_collision_requires_overwrite_permission(
+    mocker: MockerFixture, session: Session, config_catalog: str | None
+) -> None:
+    """
+    A config with a fresh UUID but the physical identity of an existing ACTIVE
+    dataset must go through the same overwrite permission gate as a UUID match.
+
+    The ``None`` case matters on its own: ``import_from_dict`` drops null keys
+    from its uniqueness predicate, so a catalog-less config still reaches a
+    dataset stored under a catalog.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=False)
+    mocker.patch.object(security_manager, "is_admin", return_value=False)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    victim = SqlaTable(
+        table_name="salaries",
+        schema="finance",
+        catalog="public",
+        database_id=database.id,
+        uuid="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        sql="SELECT * FROM finance.salaries",
+    )
+    db.session.add(victim)
+    db.session.flush()
+
+    importer_user = User(
+        username="importer",
+        first_name="at",
+        last_name="tacker",
+        email="importer@example.com",
+    )
+
+    # Fresh UUID, but the same physical identity as ``victim``.
+    config = {
+        "table_name": "salaries",
+        "schema": "finance",
+        "catalog": config_catalog,
+        "sql": "SELECT * FROM finance.salaries -- clobbered",
+        "uuid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    with override_user(importer_user):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_dataset(copy.deepcopy(config), overwrite=True)
+    assert "overwrite" in str(excinfo.value).lower()
+
+    # The victim dataset must not have been clobbered.
+    assert victim.sql == "SELECT * FROM finance.salaries"
+
+
+def test_import_dataset_identity_collision_overwrites_in_place_for_editor(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Once the gate passes, an identity collision updates the existing dataset in
+    place rather than creating a twin, and the caller's config is left alone so
+    a bundle importer that re-reads or retries it still sees its own UUID.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    existing = SqlaTable(
+        table_name="salaries",
+        schema="finance",
+        catalog="public",
+        database_id=database.id,
+        uuid="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        sql="SELECT * FROM finance.salaries",
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    config = {
+        "table_name": "salaries",
+        "schema": "finance",
+        "catalog": "public",
+        "sql": "SELECT * FROM finance.salaries -- updated",
+        "uuid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    imported = import_dataset(config, overwrite=True)
+
+    assert imported.id == existing.id
+    assert imported.sql == "SELECT * FROM finance.salaries -- updated"
+    assert db.session.query(SqlaTable).count() == 1
+    assert config["uuid"] == "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+
+
+def test_import_dataset_identity_collision_with_duplicate_rows_returns_existing(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A config that omits the catalog matches every row sharing its (database,
+    schema, table), so it can be ambiguous. ``import_from_dict`` then raises
+    ``MultipleResultsFound`` and the legacy fallback returns the existing row
+    unmodified. It must not look the incoming UUID up again: on an identity
+    match that UUID belongs to no row, and the lookup would raise.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    for dataset_uuid, catalog in (
+        ("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "public"),
+        ("cccccccc-cccc-cccc-cccc-cccccccccccc", "private"),
+    ):
+        db.session.add(
+            SqlaTable(
+                table_name="salaries",
+                schema="finance",
+                catalog=catalog,
+                database_id=database.id,
+                uuid=dataset_uuid,
+                sql="SELECT * FROM finance.salaries",
+            )
+        )
+    db.session.flush()
+
+    config = {
+        "table_name": "salaries",
+        "schema": "finance",
+        "sql": "SELECT * FROM finance.salaries -- updated",
+        "uuid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    dataset = import_dataset(copy.deepcopy(config), overwrite=True)
+
+    assert str(dataset.uuid) == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    assert dataset.sql == "SELECT * FROM finance.salaries"
+
+
 def test_peer_validating_connection_blocks_rebound_peer() -> None:
     """
     The import fetch validates the connected peer address, so a hostname that
@@ -2379,3 +3394,586 @@ def test_load_data_bounds_gzip_download_before_decompression(
     mock_gzip_open.assert_called_once_with(bounded_raw)
     # ...and the decompressed output is bounded again before parsing.
     assert mock_read_bounded.call_args_list[1].args[0] is decompressed
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_import_drops_a_transform_the_mapping_does_not_mirror(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An import is a writer like any other, and it bypasses the editor entirely.
+
+    A bundle carrying a transform on a column the mapping does not mirror would
+    otherwise land a value nothing renders and nothing can edit, waiting for the
+    mapped column to resolve back to it.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pfm_import_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config: dict[str, Any] = {
+        "table_name": "pfm_import_table",
+        "main_dttm_col": "event_time",
+        "schema": "main",
+        "sql": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "partition_column": "dt_epoch",
+        "partition_mapped_column": "event_time2",
+        "columns": [
+            {
+                "column_name": "event_time",
+                "is_dttm": True,
+                "partition_value_transform": "unix_timestamp(:value)",
+                "partition_transform_is_monotonic": True,
+            },
+            {
+                "column_name": "event_time2",
+                "is_dttm": True,
+                "partition_value_transform": "to_unixtime(:value)",
+                "partition_transform_is_monotonic": True,
+            },
+            {"column_name": "dt_epoch"},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    dataset = import_dataset(config)
+    db.session.flush()
+
+    transforms = {c.column_name: c.partition_value_transform for c in dataset.columns}
+    assert transforms == {
+        "event_time": None,
+        "event_time2": "to_unixtime(:value)",
+        "dt_epoch": None,
+    }
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+def test_import_with_the_flag_off_drops_a_transform_it_cannot_mirror(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    The flag-off half of its sibling above, and the window the leftover
+    actually arrives through.
+
+    `DatasetDAO.clear_unmapped_partition_transforms` runs on both sides of the
+    import, but it is gated on the feature flag -- rightly, since it discards
+    stored configuration and with the feature off that is pure loss. So a
+    bundle imported while the flag was off parked its transform in the metadata
+    database fully armed, waiting for an operator to turn the flag on, and then
+    a filter on the newly-resolved mapped column started mirroring an
+    expression nobody authored.
+
+    What is dropped here is a value this bundle is asking to write, which is a
+    different question from the flag's.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pfm_import_off_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config: dict[str, Any] = {
+        "table_name": "pfm_import_off_table",
+        "main_dttm_col": "event_time",
+        "schema": "main",
+        "sql": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "partition_column": "dt_epoch",
+        "partition_mapped_column": None,
+        "columns": [
+            {
+                "column_name": "event_time",
+                "is_dttm": True,
+                "partition_value_transform": "unix_timestamp(:value)",
+                "partition_transform_is_monotonic": True,
+            },
+            {
+                "column_name": "event_time2",
+                "is_dttm": True,
+                "partition_value_transform": "to_unixtime(:value)",
+                "partition_transform_is_monotonic": True,
+            },
+            {"column_name": "dt_epoch"},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    dataset = import_dataset(config)
+    db.session.flush()
+
+    transforms = {c.column_name: c.partition_value_transform for c in dataset.columns}
+    # The mapped column is `main_dttm_col`, there being no override, so
+    # `event_time` keeps what the bundle wrote for it and `event_time2` -- one
+    # re-pointing of the default datetime column away from being live -- does
+    # not.
+    assert transforms == {
+        "event_time": "unix_timestamp(:value)",
+        "event_time2": None,
+        "dt_epoch": None,
+    }
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_overwrite_import_disarms_a_transform_parked_on_the_old_mapping(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Omitted column fields keep their stored values, so a bundle that clears the
+    mapped-column override makes whatever `main_dttm_col` names the effective
+    column. A cleanup that only runs *after* the new references land resolves
+    the new mapping, finds that column effective and skips it -- so a transform
+    parked on it, invisible until now, goes live under a mapping nobody in the
+    bundle authored.
+
+    `DatasetDAO.update` is immune because it clears under the old resolution
+    too, before applying the request.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pfm_parked_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    dataset_uuid = uuid.uuid4()
+    base: dict[str, Any] = {
+        "table_name": "pfm_parked",
+        "main_dttm_col": "event_time",
+        "schema": "main",
+        "sql": None,
+        "uuid": dataset_uuid,
+        "metrics": [],
+        "partition_column": "dt_epoch",
+        "partition_mapped_column": "event_time2",
+        "columns": [
+            {"column_name": "event_time", "is_dttm": True},
+            {
+                "column_name": "event_time2",
+                "is_dttm": True,
+                "partition_value_transform": "to_unixtime(:value)",
+                "partition_transform_is_monotonic": True,
+            },
+            {"column_name": "dt_epoch"},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+    dataset = import_dataset(copy.deepcopy(base))
+    db.session.flush()
+
+    # Park a transform on the default datetime column, which the override
+    # currently hides. This is the state the editor can produce and the state
+    # the post-import cleanup is meant to leave unreachable.
+    for column in dataset.columns:
+        if column.column_name == "event_time":
+            column.partition_value_transform = "unix_timestamp(:value)"
+            column.partition_transform_is_monotonic = True
+    db.session.flush()
+
+    # Now clear the override, so `main_dttm_col` -- and the parked transform --
+    # becomes the effective mapping. The bundle says nothing about either
+    # column's transform.
+    overwrite = copy.deepcopy(base)
+    overwrite["partition_mapped_column"] = None
+    for column in overwrite["columns"]:
+        column.pop("partition_value_transform", None)
+        column.pop("partition_transform_is_monotonic", None)
+
+    dataset = import_dataset(overwrite, overwrite=True)
+    db.session.flush()
+
+    transforms = {c.column_name: c.partition_value_transform for c in dataset.columns}
+    assert transforms["event_time"] is None
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_import_clears_a_mapping_whose_column_the_sync_removed(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    An overwrite import syncs columns, so it can delete the column
+    `partition_column` names. Left dangling, the reference fails
+    `UpdateDatasetCommand`'s validation on every later edit -- including a
+    description-only PUT, which carries no columns payload and so cannot reach
+    the branch that forgives a stored-only dangle.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pfm_dangle_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    base: dict[str, Any] = {
+        "table_name": "pfm_dangle",
+        "main_dttm_col": "event_time",
+        "schema": "main",
+        "sql": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "partition_column": "dt_epoch",
+        "partition_mapped_column": "event_time",
+        "columns": [
+            {
+                "column_name": "event_time",
+                "is_dttm": True,
+                "partition_value_transform": "unix_timestamp(:value)",
+                "partition_transform_is_monotonic": True,
+            },
+            {"column_name": "dt_epoch"},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+    import_dataset(copy.deepcopy(base))
+    db.session.flush()
+
+    without_partition_column = copy.deepcopy(base)
+    without_partition_column["columns"] = [
+        column
+        for column in without_partition_column["columns"]
+        if column["column_name"] != "dt_epoch"
+    ]
+
+    dataset = import_dataset(without_partition_column, overwrite=True)
+    db.session.flush()
+
+    assert dataset.partition_column is None
+    assert dataset.partition_mapped_column is None
+
+
+def test_import_clears_a_mapping_that_names_the_partition_column_itself(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    A dangling reference is not the only mapping `UpdateDatasetCommand` refuses.
+    An *explicit* self-mapping -- `partition_mapped_column` equal to
+    `partition_column` -- is blocking there too, so a bundle setting both to
+    `event_time` imported happily and then failed every later edit, including a
+    description-only PUT, until someone repaired the mapping by hand.
+
+    Cleared rather than refused, which is the bargain the rest of the importer
+    strikes. Only the override goes, leaving the mapping following
+    `main_dttm_col` -- the state a bundle omitting the field would have given.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pfm_self_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config: dict[str, Any] = {
+        "table_name": "pfm_self",
+        "main_dttm_col": "event_time",
+        "schema": "main",
+        "sql": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "partition_column": "event_time",
+        "partition_mapped_column": "event_time",
+        "columns": [
+            {"column_name": "event_time", "is_dttm": True},
+            {"column_name": "dt_epoch"},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    dataset = import_dataset(config)
+    db.session.flush()
+
+    # The dataset imported, and the reference no later save would accept is gone.
+    assert dataset.partition_mapped_column is None
+    assert dataset.partition_column == "event_time"
+
+
+def _partition_mapping_config(database_id: int, transform: str) -> dict[str, Any]:
+    return {
+        "table_name": "web_events",
+        "uuid": uuid.uuid4(),
+        "database_id": database_id,
+        "main_dttm_col": "event_time",
+        "partition_column": "dt_epoch",
+        "partition_mapped_column": "event_time",
+        "columns": [
+            {
+                "column_name": "event_time",
+                "is_dttm": True,
+                "partition_value_transform": transform,
+                "partition_transform_is_monotonic": True,
+            },
+            {"column_name": "dt_epoch"},
+        ],
+        "metrics": [],
+    }
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+@pytest.mark.parametrize(
+    "transform",
+    ["unix_timestamp({{ current_username() }})", "rand() + 0 * :value"],
+    ids=["jinja", "non-deterministic"],
+)
+def test_import_drops_a_transform_the_save_path_would_reject(
+    session: Session, transform: str
+) -> None:
+    """
+    Import is the one door into this field that does not go through
+    `UpdateDatasetCommand`, so a bundle can carry a transform that will never
+    mirror a filter. Dropping it leaves a state an owner can see and fix rather
+    than a stored expression that looks configured and is not.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, transform)
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] is None
+    assert config["columns"][0]["partition_transform_is_monotonic"] is False
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_import_defaults_an_omitted_monotonic_declaration_to_false(
+    session: Session,
+) -> None:
+    """
+    `ImportV1ColumnSchema` gives the declaration a `load_default` of False, but
+    the importer applies the raw config and throws `schema.load()`'s output
+    away, so the default never reaches storage. On an overwrite that leaves a
+    stored True standing next to a *replacement* transform -- and a
+    non-monotonic transform declared monotonic enables range mirrors that
+    exclude rows the filter keeps.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, "hour(:value)")
+    del config["columns"][0]["partition_transform_is_monotonic"]
+
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] == "hour(:value)"
+    assert config["columns"][0]["partition_transform_is_monotonic"] is False
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_import_leaves_a_declared_monotonic_transform_declared(
+    session: Session,
+) -> None:
+    """
+    Only an *omitted* declaration is defaulted. A bundle that says True still
+    means it, or export-then-import would downgrade every range mirror to
+    equality-only.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, "unix_timestamp(:value)")
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_transform_is_monotonic"] is True
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_import_keeps_a_usable_transform(session: Session) -> None:
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, "unix_timestamp(:value)")
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] == "unix_timestamp(:value)"
+    assert config["columns"][0]["partition_transform_is_monotonic"] is True
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+def test_import_leaves_transforms_alone_while_the_feature_is_off(
+    session: Session,
+) -> None:
+    """
+    No *usability* check runs with the flag off: nothing mirrors, so there is
+    only stored configuration to lose. The structural check still runs, and
+    Jinja passes it -- balanced blocks are substituted out before parsing.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(
+        database.id, "unix_timestamp({{ current_username() }})"
+    )
+    drop_unusable_partition_transforms(config)
+
+    assert (
+        config["columns"][0]["partition_value_transform"]
+        == "unix_timestamp({{ current_username() }})"
+    )
+
+
+#: Expressions the save path refuses outright, rather than ones that merely
+#: never mirror. The probe splices a transform into SQL and runs it, so a
+#: bundle carrying one of these is a way to execute arbitrary SQL without the
+#: `sql_lab` role.
+UNSTORABLE_TRANSFORMS = pytest.mark.parametrize(
+    "transform",
+    [
+        "(SELECT password FROM ab_user LIMIT 1) || :value",
+        "unix_timestamp(:value) UNION ALL SELECT password FROM ab_user",
+        "unix_timestamp(:value); DROP TABLE ab_user",
+        "password || :value FROM ab_user",
+    ],
+    ids=["subquery", "set-operation", "multi-statement", "bare-from"],
+)
+
+
+def _assert_import_drops(transform: str) -> None:
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, transform)
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] is None
+    assert config["columns"][0]["partition_transform_is_monotonic"] is False
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+@UNSTORABLE_TRANSFORMS
+def test_import_drops_a_transform_that_is_not_a_storable_expression(
+    session: Session, transform: str
+) -> None:
+    _assert_import_drops(transform)
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+@UNSTORABLE_TRANSFORMS
+def test_import_drops_an_unstorable_transform_even_with_the_feature_off(
+    session: Session, transform: str
+) -> None:
+    """
+    The one check the flag does not switch off.
+
+    Everything else here asks whether a transform will mirror, which is a
+    question about a live feature. This asks whether the expression is one the
+    product stores at all, and a bundle imported with the flag off would
+    otherwise sit in the metadata DB fully armed, waiting for an operator to
+    turn the flag on.
+    """
+    _assert_import_drops(transform)
+
+
+#: A transform a PUT accepts and parks inactive, rather than one it refuses.
+#: `validate_transform` classifies an unparseable transform as a Tier-2 issue:
+#: the mapping saves and stays inactive until the owner finishes typing it.
+UNFINISHED_TRANSFORMS = pytest.mark.parametrize(
+    "transform",
+    ["unix_timestamp(:value", "unix_timestamp(:value))", "unix_timestamp(:value) +"],
+    ids=["unclosed", "extra-paren", "trailing-operator"],
+)
+
+
+def _assert_import_keeps(transform: str) -> None:
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, transform)
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] == transform
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+@UNFINISHED_TRANSFORMS
+def test_import_keeps_an_unfinished_transform_a_put_would_park(
+    session: Session, transform: str
+) -> None:
+    """
+    `stored_expression_error` fails closed on a transform that does not parse,
+    which is right for the probe and wrong here: a PUT saves the same transform
+    and reports it inactive, so nulling it on import means an export cannot
+    round-trip the dataset it was taken from. `UpdateDatasetCommand` puts the
+    same parseability condition in front of the same gate.
+    """
+    _assert_import_keeps(transform)
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+@UNFINISHED_TRANSFORMS
+def test_import_keeps_an_unfinished_transform_with_the_feature_off(
+    session: Session, transform: str
+) -> None:
+    """With the flag off there is only stored configuration to lose."""
+    _assert_import_keeps(transform)
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_unfinished_transform_survives_the_export_import_round_trip(
+    session: Session,
+) -> None:
+    """
+    The test that would have caught this. An owner mid-edit saves, exports, and
+    imports the bundle back: the transform has to come out the way it went in,
+    inactive but intact.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    transform = "unix_timestamp(:value"
+    stored = TableColumn(column_name="event_time", is_dttm=True)
+    stored.partition_value_transform = transform
+
+    # What export writes, from a column a PUT accepted and parked inactive.
+    exported = {
+        "column_name": stored.column_name,
+        "partition_value_transform": stored.partition_value_transform,
+        "partition_transform_is_monotonic": None,
+    }
+    loaded = ImportV1ColumnSchema().load(exported)
+
+    config = _partition_mapping_config(database.id, transform)
+    config["columns"][0] = loaded
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] == transform

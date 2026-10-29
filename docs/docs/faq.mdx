@@ -67,6 +67,11 @@ import FAQSchema from '@site/src/components/FAQSchema';
         'Superset is tested using MySQL, PostgreSQL, and SQLite backends for storing its internal metadata. While Superset supports many databases as data sources, only these are recommended for the metadata store in production.',
     },
     {
+      question: 'Can I hide an unavailable Druid database from SQL Lab?',
+      answer:
+        'Yes. Edit the existing Druid connection and uncheck Expose database in SQL Lab. Keep the database name and connection settings unchanged. If the connection check fails during permission synchronization, Superset saves the option and logs a warning without deleting the connection, datasets, or charts.',
+    },
+    {
       question: 'How can I configure OAuth authentication and authorization?',
       answer:
         'Take a look at the Flask-AppBuilder OAuth configuration example, which shows how to configure OAuth authentication and authorization in Superset.',
@@ -299,6 +304,14 @@ may work but isn’t tested. It has been reported that [Microsoft SQL Server doe
 work as a Superset backend](https://github.com/apache/superset/issues/18961). Column-store,
 non-OLTP databases are not designed for this type of workload.
 
+## Can I hide an unavailable Druid database from SQL Lab?
+
+Yes. Edit the existing Druid connection and uncheck **Expose database in SQL Lab**.
+Keep its database name and connection settings unchanged. If the connection check fails
+during permission synchronization, Superset saves the option and logs a warning without
+deleting the connection, datasets, or charts. Changes to the database name, credentials,
+or other connection settings still require successful synchronization.
+
 ## How can I configure OAuth authentication and authorization?
 
 You can take a look at this Flask-AppBuilder
@@ -414,7 +427,7 @@ This can be used, for example, to convert UTC time to local time.
 Superset uses [Scarf](https://about.scarf.sh/) by default to collect basic telemetry data upon installing and/or running Superset. This data helps the maintainers of Superset better understand which versions of Superset are being used, in order to prioritize patch/minor releases and security fixes.
 We use the [Scarf Gateway](https://docs.scarf.sh/gateway/) to sit in front of container registries, the [scarf-js](https://about.scarf.sh/package-sdks) package to track `npm` installations, and a Scarf pixel to gather anonymous analytics on Superset page views.
 Scarf purges PII and provides aggregated statistics. Superset users can easily opt out of analytics in various ways documented [here](https://docs.scarf.sh/gateway/#do-not-track) and [here](https://docs.scarf.sh/package-analytics/#as-a-user-of-a-package-using-scarf-js-how-can-i-opt-out-of-analytics).
-You can also opt out of the analytics pixel by setting the `SCARF_ANALYTICS` environment variable to `false`. This is read at runtime, so setting it on the Superset container (for example via `extraEnv` in the Helm chart, or `docker/.env` for Docker Compose) disables the pixel on the pre-built images without rebuilding the frontend. Note that this only disables the page-view pixel; the Scarf Gateway (container registry) and `scarf-js` (`npm`) channels are opted out separately, as described above.
+You can also opt out of the analytics pixel by setting the `SCARF_ANALYTICS` environment variable to `false`. This is read at runtime, so setting it on the Superset container (for example via your Kubernetes deployment configuration, or `docker/.env` for Docker Compose) disables the pixel on the pre-built images without rebuilding the frontend. Note that this only disables the page-view pixel; the Scarf Gateway (container registry) and `scarf-js` (`npm`) channels are opted out separately, as described above.
 Additional opt-out instructions are available on the [Docker Compose](/admin-docs/installation/docker-compose) and [Kubernetes](/admin-docs/installation/kubernetes) installation pages.
 
 ## Does Superset have an archive panel or trash bin from which a user can recover deleted assets?

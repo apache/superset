@@ -91,6 +91,10 @@ def test_get_oauth2_authorization_uri_uses_workspace_host(
         "superset.db.session.get",
         return_value=_mock_database(mocker, host),
     )
+    # is_safe_host does live DNS resolution; whether these fixture hosts
+    # happen to resolve depends on real-world DNS state outside test
+    # control, so pin it rather than relying on that.
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=True)
 
     state: OAuth2State = {
         "database_id": 1,

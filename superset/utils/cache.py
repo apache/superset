@@ -19,7 +19,7 @@ from __future__ import annotations
 import inspect
 import logging
 import pickle
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from functools import wraps
 from typing import Any, Callable
 
@@ -33,6 +33,7 @@ from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.extensions import cache_manager
 from superset.models.cache import CacheKey
 from superset.utils.cache_manager import configurable_hash_method
+from superset.utils.dates import naive_utcnow
 from superset.utils.hashing import hash_from_dict
 from superset.utils.json import json_int_dttm_ser
 
@@ -83,9 +84,7 @@ def set_and_log_cache(
     if timeout == CACHE_DISABLED_TIMEOUT:
         return False
     try:
-        dttm: str = (
-            datetime.now(timezone.utc).replace(tzinfo=None).isoformat().split(".")[0]
-        )
+        dttm: str = naive_utcnow().isoformat().split(".")[0]
         value = {**cache_value, "dttm": dttm}
 
         # Skip caching results that are too large to protect the cache backend
@@ -275,9 +274,7 @@ def etag_cache(  # noqa: C901
 
             # Check if the cache is stale. Default the content_changed_time to now
             # if we don't know when it was last modified.
-            content_changed_time: datetime = datetime.now(timezone.utc).replace(
-                tzinfo=None
-            )
+            content_changed_time: datetime = naive_utcnow()
             if get_last_modified:
                 content_changed_time = get_last_modified(*args, **kwargs)
                 if (
@@ -325,7 +322,7 @@ def etag_cache(  # noqa: C901
         wrapper.uncached = f  # type: ignore
         wrapper.cache_timeout = timeout  # type: ignore
         wrapper.make_cache_key = cache._memoize_make_cache_key(  # type: ignore # pylint: disable=protected-access
-            make_name=None, timeout=timeout, hash_method=configurable_hash_method
+            make_name=None, hash_method=configurable_hash_method
         )
 
         return wrapper

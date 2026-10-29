@@ -19,6 +19,8 @@ import os
 from typing import Any
 from unittest.mock import MagicMock, patch, PropertyMock
 
+import pytest
+from pytest_mock import MockerFixture
 from sqlalchemy.exc import OperationalError
 from werkzeug.test import Client
 from werkzeug.wrappers import Response
@@ -78,20 +80,19 @@ class TestSupersetApp:
             "Pending database migrations: run 'superset db upgrade'"
         )
 
-    @patch("superset.extensions.feature_flag_manager")
     @patch("superset.app.logger")
     @patch("superset.commands.theme.seed.SeedSystemThemesCommand")
     def test_sync_config_to_db_initializes_when_tables_exist(
         self,
-        mock_seed_themes_command,
-        mock_logger,
-        mock_feature_flag_manager,
-    ):
+        mock_seed_themes_command: MagicMock,
+        mock_logger: MagicMock,
+        mocker: MockerFixture,
+    ) -> None:
         """Test that features are initialized when database is up-to-date."""
         # Setup
         app = SupersetApp(__name__)
         app.config = {"SQLALCHEMY_DATABASE_URI": "postgresql://user:pass@host:5432/db"}
-        mock_feature_flag_manager.is_feature_enabled.return_value = True
+        mocker.patch("superset.semantic_layers.execution.bootstrap_semantic_namespace")
         mock_seed_themes = MagicMock()
         mock_seed_themes_command.return_value = mock_seed_themes
 
@@ -105,10 +106,8 @@ class TestSupersetApp:
             # Execute
             app.sync_config_to_db()
 
-        # Assert
-        mock_feature_flag_manager.is_feature_enabled.assert_called_with(
-            "TAGGING_SYSTEM"
-        )
+        # Assert: tagging listeners are registered regardless of the flag; the
+        # write listeners check TAGGING_SYSTEM themselves when they fire
         mock_register_listeners.assert_called_once()
         # Should seed themes
         mock_seed_themes_command.assert_called_once()
@@ -141,6 +140,78 @@ class TestSupersetAppInitializer:
         makedirs.assert_called_once_with("/var/lib/superset", exist_ok=True)
 
     @patch("superset.initialization.logger")
+    @patch("superset.initialization.stats_logger_manager")
+    @patch("superset.initialization.cache_manager")
+    @patch("superset.initialization.feature_flag_manager")
+    def test_semantic_cache_unsupported_coordination_is_nonfatal(
+        self,
+        mock_feature_flags: MagicMock,
+        mock_cache_manager: MagicMock,
+        mock_stats_manager: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        mock_app: MagicMock = MagicMock()
+        mock_app.config = {
+            "SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS": 1.0,
+            "SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS": 30,
+        }
+        mock_feature_flags.is_feature_enabled.return_value = True
+        mock_cache_manager.semantic_cache_coordination = None
+        mock_stats_manager.instance.gauge.side_effect = RuntimeError(
+            "metrics unavailable"
+        )
+        initializer: SupersetAppInitializer = SupersetAppInitializer(mock_app)
+
+        initializer.configure_semantic_cache()
+
+        mock_logger.warning.assert_called_once()
+        warning: str = mock_logger.warning.call_args.args[0]
+        assert "owner-token leases" in warning
+        mock_stats_manager.instance.gauge.assert_called_once_with(
+            "semantic_cache.containment.enabled", 0.0
+        )
+        mock_stats_manager.instance.incr.assert_called_once_with(
+            "semantic_cache.containment.unsupported"
+        )
+
+    @patch("superset.initialization.logger")
+    @patch("superset.initialization.stats_logger_manager")
+    @patch("superset.initialization.cache_manager")
+    @patch("superset.initialization.feature_flag_manager")
+    def test_semantic_cache_null_data_cache_warns_and_disables(
+        self,
+        mock_feature_flags: MagicMock,
+        mock_cache_manager: MagicMock,
+        mock_stats_manager: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        """The default ``NullCache`` data cache can never serve a containment
+        hit; enabling the flag on top of it must be surfaced, not silent."""
+        from flask_caching.backends.nullcache import NullCache
+
+        mock_app: MagicMock = MagicMock()
+        mock_app.config = {
+            "SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS": 1.0,
+            "SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS": 30,
+        }
+        mock_feature_flags.is_feature_enabled.return_value = True
+        mock_cache_manager.data_cache = NullCache()
+        mock_cache_manager.semantic_cache_coordination = MagicMock()
+        initializer: SupersetAppInitializer = SupersetAppInitializer(mock_app)
+
+        initializer.configure_semantic_cache()
+
+        mock_logger.warning.assert_called_once()
+        warning: str = mock_logger.warning.call_args.args[0]
+        assert "DATA_CACHE_CONFIG" in warning
+        mock_stats_manager.instance.gauge.assert_called_once_with(
+            "semantic_cache.containment.enabled", 0.0
+        )
+        mock_stats_manager.instance.incr.assert_called_once_with(
+            "semantic_cache.containment.unsupported"
+        )
+
+    @patch("superset.initialization.logger")
     def test_init_app_in_ctx_calls_sync_config_to_db(self, mock_logger):
         """Test that initialization calls app.sync_config_to_db()."""
         # Setup
@@ -159,6 +230,7 @@ class TestSupersetAppInitializer:
             patch.object(app_initializer, "configure_auth_provider"),
             patch.object(app_initializer, "configure_ssh_manager"),
             patch.object(app_initializer, "configure_stats_manager"),
+            patch.object(app_initializer, "configure_semantic_cache"),
             patch.object(app_initializer, "init_views"),
         ):
             app_initializer.init_app_in_ctx()
@@ -603,7 +675,8 @@ class TestRetentionBeatWarning:
         static feature-flag dictionaries from this config."""
         config.setdefault("DEFAULT_FEATURE_FLAGS", {"SOFT_DELETE": False})
         config.setdefault("FEATURE_FLAGS", {})
-        app = MagicMock()
+        config.setdefault("PURGE_AUDIT_PRUNING_ENABLED", False)
+        app: MagicMock = MagicMock()
         app.config = config
         return SupersetAppInitializer(app)
 
@@ -702,7 +775,7 @@ class TestRetentionBeatWarning:
         ``config_from_object``. The warn-log MUST discriminate by
         ``isinstance(dict)`` so an operator who supplies a dict with the
         entry doesn't see a false-positive warning."""
-        initializer = self._initializer(
+        initializer: SupersetAppInitializer = self._initializer(
             {
                 "CELERY_CONFIG": {
                     "broker_url": "redis://localhost",
@@ -727,7 +800,7 @@ class TestRetentionBeatWarning:
     ) -> None:
         """The dict-shape symmetry of the previous test: a dict without
         the entry MUST emit the warning, same as a class without it."""
-        initializer = self._initializer(
+        initializer: SupersetAppInitializer = self._initializer(
             {
                 "CELERY_CONFIG": {
                     "broker_url": "redis://localhost",
@@ -803,6 +876,143 @@ class TestRetentionBeatWarning:
             "Expected a WARNING naming the missing purge entry; "
             f"got {mock_logger.warning.call_args_list}"
         )
+
+    @patch("superset.initialization.logger")
+    def test_warn_when_soft_delete_on_and_prune_audit_entry_missing(
+        self, mock_logger: MagicMock
+    ) -> None:
+        """Warn when enabled audit pruning is absent from the schedule."""
+
+        class _NoPruneAuditCeleryConfig:
+            imports: tuple[str, ...] = (
+                "superset.tasks.version_history_retention",
+                "superset.tasks.deletion_retention",
+            )
+            beat_schedule: dict[str, dict[str, str]] = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+                "deletion_retention.purge_soft_deleted": {
+                    "task": "deletion_retention.purge_soft_deleted",
+                },
+            }
+
+        initializer: SupersetAppInitializer = self._initializer(
+            {
+                "CELERY_CONFIG": _NoPruneAuditCeleryConfig,
+                "FEATURE_FLAGS": {"SOFT_DELETE": True},
+                "PURGE_AUDIT_PRUNING_ENABLED": True,
+            }
+        )
+        initializer._warn_if_retention_beat_missing()
+
+        assert any(
+            "deletion_retention.prune_purge_audit" in str(call)
+            for call in mock_logger.warning.call_args_list
+        ), (
+            "Expected a WARNING naming the missing audit-prune entry; "
+            f"got {mock_logger.warning.call_args_list}"
+        )
+
+    @pytest.mark.parametrize("value", ["true", 1, "False", 0])
+    @patch("superset.initialization.logger")
+    def test_non_boolean_audit_pruning_switch_warns_and_stays_disabled(
+        self, mock_logger: MagicMock, value: Any
+    ) -> None:
+        """Name a non-boolean master switch at startup instead of hiding it.
+
+        The prune task fails closed on anything but the literal ``True``,
+        so a typo would otherwise disable pruning silently. The switch is
+        not treated as enabled either: no schedule diagnostic fires for it.
+        """
+
+        class _NoAuditPruningCeleryConfig:
+            imports: tuple[str, ...] = ("superset.tasks.version_history_retention",)
+            beat_schedule: dict[str, dict[str, str]] = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+            }
+
+        initializer: SupersetAppInitializer = self._initializer(
+            {
+                "CELERY_CONFIG": _NoAuditPruningCeleryConfig,
+                "FEATURE_FLAGS": {"SOFT_DELETE": False},
+                "PURGE_AUDIT_PRUNING_ENABLED": value,
+            }
+        )
+        initializer._warn_if_retention_beat_missing()
+
+        warnings: list[str] = [str(call) for call in mock_logger.warning.call_args_list]
+        assert any(
+            "PURGE_AUDIT_PRUNING_ENABLED" in text and repr(value) in text
+            for text in warnings
+        ), f"Expected a WARNING naming the non-boolean switch; got {warnings}"
+        assert not any(
+            "deletion_retention.prune_purge_audit" in text for text in warnings
+        ), "A non-boolean switch must not be diagnosed as enabled-but-unscheduled"
+
+    @patch("superset.initialization.logger")
+    def test_warn_for_enabled_audit_pruning_when_soft_delete_is_off(
+        self, mock_logger: MagicMock
+    ) -> None:
+        """Diagnose audit-prune scheduling independently of soft delete."""
+
+        class _NoAuditPruningCeleryConfig:
+            imports: tuple[str, ...] = ("superset.tasks.version_history_retention",)
+            beat_schedule: dict[str, dict[str, str]] = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+            }
+
+        initializer: SupersetAppInitializer = self._initializer(
+            {
+                "CELERY_CONFIG": _NoAuditPruningCeleryConfig,
+                "FEATURE_FLAGS": {"SOFT_DELETE": False},
+                "PURGE_AUDIT_PRUNING_ENABLED": True,
+            }
+        )
+        initializer._warn_if_retention_beat_missing()
+
+        warning_text: str = " ".join(
+            str(call) for call in mock_logger.warning.call_args_list
+        )
+        assert "deletion_retention.prune_purge_audit" in warning_text
+        assert "superset.tasks.deletion_retention" in warning_text
+
+    @patch("superset.initialization.logger")
+    def test_no_warn_when_soft_delete_on_and_all_entries_present(
+        self, mock_logger: MagicMock
+    ) -> None:
+        """Do not warn when all default-config retention entries are present."""
+
+        class _CompleteCeleryConfig:
+            imports: tuple[str, ...] = (
+                "superset.tasks.version_history_retention",
+                "superset.tasks.deletion_retention",
+            )
+            beat_schedule: dict[str, dict[str, str]] = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+                "deletion_retention.purge_soft_deleted": {
+                    "task": "deletion_retention.purge_soft_deleted",
+                },
+                "deletion_retention.prune_purge_audit": {
+                    "task": "deletion_retention.prune_purge_audit",
+                },
+            }
+
+        initializer: SupersetAppInitializer = self._initializer(
+            {
+                "CELERY_CONFIG": _CompleteCeleryConfig,
+                "FEATURE_FLAGS": {"SOFT_DELETE": True},
+            }
+        )
+        initializer._warn_if_retention_beat_missing()
+
+        mock_logger.warning.assert_not_called()
 
     @patch("superset.initialization.logger")
     def test_no_purge_warn_when_soft_delete_off(self, mock_logger: MagicMock) -> None:
@@ -1007,6 +1217,9 @@ class TestRetentionBeatWarning:
                 "purge_archived": {
                     "task": "deletion_retention.purge_soft_deleted",
                 },
+                "prune_audit": {
+                    "task": "deletion_retention.prune_purge_audit",
+                },
             }
 
         initializer = self._initializer(
@@ -1018,3 +1231,77 @@ class TestRetentionBeatWarning:
         initializer._warn_if_retention_beat_missing()
 
         mock_logger.warning.assert_not_called()
+
+
+class TestSetDbDefaultIsolation:
+    """sc-120480: the isolation default must actually reach the engine."""
+
+    @staticmethod
+    def _run_against(engine: Any, database_uri: str) -> None:
+        """Invoke set_db_default_isolation with *engine* as db.engine.
+
+        The initializer is constructed bare (no Flask app boot) and wired
+        with just the attributes the method reads; ``db`` is patched at
+        the module the method lives in.
+        """
+        initializer = SupersetAppInitializer.__new__(SupersetAppInitializer)
+        initializer.config = {"SQLALCHEMY_ENGINE_OPTIONS": {}}
+        initializer._db_uri_cache = database_uri  # read-only property
+        app = MagicMock()
+        app.app_context.return_value.__enter__ = MagicMock()
+        app.app_context.return_value.__exit__ = MagicMock(return_value=False)
+        initializer.superset_app = app
+
+        db_mock = MagicMock()
+        db_mock.engine = engine
+        with patch("superset.initialization.db", db_mock):
+            initializer.set_db_default_isolation()
+
+    def test_mysql_default_isolation_reaches_the_engine(self) -> None:
+        """The engine itself must carry READ COMMITTED after the call.
+
+        A REAL SQLAlchemy engine, not a mock: ``execution_options()`` is
+        generative (returns a new engine, original untouched), so a
+        mock-level "was it called" assertion passes for the broken
+        generative form too. Asserting on the engine's stored execution
+        options is the control — reverting the fix back to the
+        generative call makes this test fail with no isolation_level
+        present.
+        """
+        from sqlalchemy import create_engine
+
+        engine = create_engine("sqlite://")
+        assert "isolation_level" not in engine.get_execution_options()
+
+        self._run_against(engine, "mysql://user@localhost/superset")
+
+        assert engine.get_execution_options().get("isolation_level") == "READ COMMITTED"
+
+    def test_explicit_config_isolation_is_respected(self) -> None:
+        """An operator-set isolation_level in SQLALCHEMY_ENGINE_OPTIONS wins."""
+        from sqlalchemy import create_engine
+
+        engine = create_engine("sqlite://")
+        initializer = SupersetAppInitializer.__new__(SupersetAppInitializer)
+        initializer.config = {
+            "SQLALCHEMY_ENGINE_OPTIONS": {"isolation_level": "REPEATABLE READ"}
+        }
+        initializer._db_uri_cache = "mysql://user@localhost/superset"
+        initializer.superset_app = MagicMock()
+
+        db_mock = MagicMock()
+        db_mock.engine = engine
+        with patch("superset.initialization.db", db_mock):
+            initializer.set_db_default_isolation()
+
+        # The engine-level default is not applied; the operator's
+        # engine-options value governs (flask-sqlalchemy passes it at
+        # engine creation).
+        assert "isolation_level" not in engine.get_execution_options()
+
+    def test_non_mysql_pg_backend_is_untouched(self) -> None:
+        from sqlalchemy import create_engine
+
+        engine = create_engine("sqlite://")
+        self._run_against(engine, "sqlite:///superset.db")
+        assert "isolation_level" not in engine.get_execution_options()

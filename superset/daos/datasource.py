@@ -20,7 +20,7 @@ import uuid
 from typing import Any, cast, Union
 
 from sqlalchemy import and_, func, literal, or_, select
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, Query as ORMQuery
 from sqlalchemy.sql import Select
 
 from superset import db, security_manager
@@ -33,6 +33,10 @@ from superset.daos.exceptions import (
     DatasourceValueIsIncorrect,
 )
 from superset.models.sql_lab import Query, SavedQuery
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
+)
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.utils.core import DatasourceType
 from superset.utils.filters import get_dataset_access_filters
@@ -60,12 +64,18 @@ class DatasourceDAO(BaseDAO[Datasource]):
         datasource_type: Union[DatasourceType, str],
         database_id_or_uuid: int | str,
     ) -> Datasource:
+        if (
+            datasource_type == DatasourceType.SEMANTIC_VIEW
+            and not is_semantic_layers_enabled()
+        ):
+            raise SemanticLayersDisabledError()
+
         if datasource_type not in cls.sources:
             raise DatasourceTypeNotSupportedError()
 
         model = cls.sources[datasource_type]
 
-        if str(database_id_or_uuid).isdigit():
+        if str(database_id_or_uuid).isdecimal():
             filter = model.id == int(database_id_or_uuid)
         else:
             try:
@@ -91,11 +101,34 @@ class DatasourceDAO(BaseDAO[Datasource]):
 
         return datasource
 
+    @classmethod
+    def get_datasources_by_ids(
+        cls, datasource_type: str, datasource_ids: set[int]
+    ) -> dict[int, Datasource]:
+        """Fetch typed integer references in one query; omit invalid/missing IDs."""
+        if datasource_type not in cls.sources:
+            raise DatasourceTypeNotSupportedError()
+        ids: set[int] = {
+            value for value in datasource_ids if type(value) is int and value > 0
+        }
+        if not ids:
+            return {}
+        model: type[Datasource] = cls.sources[datasource_type]
+        query: ORMQuery[Datasource] = db.session.query(model)
+        if model is Query:
+            # Query.perm and schema checks read the database for every member.
+            query = query.options(joinedload(Query.database))
+        return {
+            item.id: item
+            for item in query.filter(model.id.in_(ids)).all()  # type: ignore[union-attr]
+        }
+
     @staticmethod
     def build_dataset_query(
         name_filter: str | None,
         sql_filter: bool | None,
         database_id: int | None = None,
+        schema_filter: str | None = None,
     ) -> Select:
         """Build a SELECT for datasets, applying access and content filters."""
         ds_table = SqlaTable.__table__
@@ -140,6 +173,9 @@ class DatasourceDAO(BaseDAO[Datasource]):
 
         if database_id is not None:
             ds_q = ds_q.where(SqlaTable.database_id == database_id)
+
+        if schema_filter is not None:
+            ds_q = ds_q.where(SqlaTable.schema == schema_filter)
 
         return ds_q
 

@@ -79,7 +79,7 @@ beforeAll(() => {
 test('empty-state link to the annotation layer list honors the app root', async () => {
   await waitFor(() => render(<AnnotationLayer {...defaultProps} />));
 
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation layer value' }),
   );
 

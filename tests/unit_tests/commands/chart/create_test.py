@@ -16,22 +16,31 @@
 # under the License.
 """Unit tests for CreateChartCommand.
 
-Regression coverage for apache/superset#29697: POST /api/v1/chart/ with
-datasource_type="saved_query" (or "query") crashes with an unhandled
-AttributeError -- reported to API clients as an opaque 500 "Fatal error" --
-because SavedQuery and Query models have no ``.name`` attribute, and because
-Slice.datasource only ever resolves a ``table``-typed datasource, so even a
-successfully created chart of another type could never actually render.
+Regression coverage for apache/superset#29697: unsupported SQL Lab query
+objects must be rejected before datasource lookup, not fail with an opaque
+500. Table and semantic-view datasources are supported chart sources.
 """
 
+from datetime import datetime
+from unittest.mock import MagicMock, Mock
+
 import pytest
+from flask import g
 from pytest_mock import MockerFixture
 
 from superset.commands.chart.create import CreateChartCommand
-from superset.commands.chart.exceptions import ChartForbiddenError, ChartInvalidError
+from superset.commands.chart.exceptions import (
+    ChartForbiddenError,
+    ChartInvalidError,
+    ChartQueryContextDatasourceMismatchValidationError,
+)
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.semantic_layers.models import SemanticView
+from superset.utils import json
+
+pytestmark: pytest.MarkDecorator = pytest.mark.usefixtures("semantic_layers_enabled")
 
 
 def _base_mocks(mocker: MockerFixture) -> None:
@@ -44,15 +53,13 @@ def _base_mocks(mocker: MockerFixture) -> None:
     )
 
 
-@pytest.mark.parametrize("datasource_type", ["saved_query", "query"])
+@pytest.mark.parametrize("datasource_type", ["saved_query", "query", "bogus"])
 def test_create_chart_rejects_non_table_datasource_type(
     mocker: MockerFixture, datasource_type: str
 ) -> None:
-    """A chart can only ever query a table-backed datasource -- Slice.datasource
-    only ever resolves the ``table`` relationship, so any other type would
-    produce a chart that "creates" successfully but can never render.
+    """SQL Lab query objects must not become persistent chart datasources.
 
-    The two types fail differently before this fix, which is exactly why
+    The two unsupported types can fail differently without validation, so
     both are covered here:
     - "saved_query": SavedQuery has no ``.name`` attribute, so validation
       crashes with an unhandled AttributeError -- surfaced to API clients as
@@ -97,7 +104,7 @@ def test_create_chart_rejects_non_table_datasource_type(
 
 
 def test_create_chart_accepts_table_datasource(mocker: MockerFixture) -> None:
-    """The one supported datasource_type must keep working."""
+    """The table datasource_type must keep working."""
     _base_mocks(mocker)
     datasource = mocker.MagicMock(name="table_datasource")
     datasource.name = "my_table"
@@ -118,6 +125,36 @@ def test_create_chart_accepts_table_datasource(mocker: MockerFixture) -> None:
     cmd.validate()
 
     assert cmd._properties["datasource_name"] == "my_table"
+
+
+def test_create_chart_accepts_semantic_view_datasource(
+    mocker: MockerFixture,
+) -> None:
+    """A chart backed by a SIP-182 semantic view must be accepted: the view
+    is a first-class resolvable datasource (Slice resolves it through the
+    type-guarded ``semantic_view`` relationship), so the non-table guard
+    must explicitly allow it (apache/superset#44167)."""
+    _base_mocks(mocker)
+    datasource = mocker.MagicMock(spec=SemanticView)
+    datasource.name = "my_semantic_view"
+    get_datasource_by_id = mocker.patch(
+        "superset.commands.chart.create.get_datasource_by_id",
+        return_value=datasource,
+    )
+    mocker.patch("superset.commands.chart.create.security_manager.raise_for_access")
+
+    cmd = CreateChartCommand(
+        {
+            "datasource_id": 11,
+            "datasource_type": "semantic_view",
+            "slice_name": "some_name",
+            "viz_type": "table",
+        }
+    )
+    cmd.validate()
+
+    assert cmd._properties["datasource_name"] == "my_semantic_view"
+    get_datasource_by_id.assert_called_once_with(11, "semantic_view")
 
 
 def test_create_chart_datasource_access_denied_still_raises_forbidden(
@@ -152,3 +189,366 @@ def test_create_chart_datasource_access_denied_still_raises_forbidden(
                 "viz_type": "table",
             }
         ).validate()
+
+
+def _create_payload(query_context: str) -> dict[str, object]:
+    return {
+        "datasource_id": 42,
+        "datasource_type": "table",
+        "slice_name": "some_name",
+        "viz_type": "table",
+        "query_context": query_context,
+    }
+
+
+def _mock_table_datasource(mocker: MockerFixture) -> None:
+    _base_mocks(mocker)
+    datasource = mocker.MagicMock()
+    datasource.name = "my_table"
+    mocker.patch(
+        "superset.commands.chart.create.get_datasource_by_id",
+        return_value=datasource,
+    )
+    mocker.patch("superset.commands.chart.create.security_manager.raise_for_access")
+
+
+@pytest.mark.parametrize("context_type", ["semantic_view", "table"])
+def test_semantic_create_query_context_keeps_type_identity(
+    mocker: MockerFixture, context_type: str
+) -> None:
+    """A same-ID table is not a matching semantic query-context target."""
+    _base_mocks(mocker)
+    datasource: Mock = Mock()
+    datasource.name = "semantic name"
+    mocker.patch(
+        "superset.commands.chart.create.get_datasource_by_id", return_value=datasource
+    )
+    mocker.patch("superset.commands.chart.create.security_manager.raise_for_access")
+    payload: dict[str, object] = _create_payload(
+        json.dumps(
+            {
+                "datasource": {"id": 42, "type": context_type},
+                "queries": [],
+            }
+        )
+    )
+    payload["datasource_type"] = "semantic_view"
+    command: CreateChartCommand = CreateChartCommand(payload)
+    if context_type == "semantic_view":
+        command.validate()
+        assert command._properties["datasource_name"] == "semantic name"
+    else:
+        error: pytest.ExceptionInfo[ChartInvalidError]
+        with pytest.raises(ChartInvalidError) as error:
+            command.validate()
+        assert any(
+            isinstance(ex, ChartQueryContextDatasourceMismatchValidationError)
+            for ex in error.value._exceptions
+        )
+
+
+def test_create_chart_query_context_matching_datasource_is_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """A query context targeting the chart's own datasource is accepted."""
+    _mock_table_datasource(mocker)
+
+    CreateChartCommand(
+        _create_payload(
+            json.dumps({"datasource": {"id": 42, "type": "table"}, "queries": []})
+        )
+    ).validate()
+
+
+@pytest.mark.parametrize(
+    "datasource",
+    [
+        {"id": 99, "type": "table"},  # different id
+        {"id": 42, "type": "query"},  # different type
+        {"id": "99", "type": "table"},  # different id as string
+        {"id": 42},  # matching id but missing type
+    ],
+)
+def test_create_chart_query_context_mismatched_datasource_is_rejected(
+    mocker: MockerFixture,
+    datasource: dict[str, object],
+) -> None:
+    """A query context pointing at a different datasource than the one the
+    chart is created against is rejected."""
+    _mock_table_datasource(mocker)
+
+    with pytest.raises(ChartInvalidError) as exc_info:
+        CreateChartCommand(
+            _create_payload(json.dumps({"datasource": datasource, "queries": []}))
+        ).validate()
+
+    assert any(
+        isinstance(ex, ChartQueryContextDatasourceMismatchValidationError)
+        for ex in exc_info.value._exceptions
+    )
+
+
+@pytest.mark.parametrize(
+    "query_context",
+    [
+        "{}",  # no datasource key
+        '{"datasource": null}',  # null datasource
+        "not-json",  # unparseable payload
+    ],
+)
+def test_create_chart_query_context_without_datasource_is_allowed(
+    mocker: MockerFixture,
+    query_context: str,
+) -> None:
+    """Payloads with no verifiable datasource fall back to the chart's own."""
+    _mock_table_datasource(mocker)
+
+    CreateChartCommand(_create_payload(query_context)).validate()
+
+
+def test_create_chart_updates_dashboard_changed_on(mocker: MockerFixture) -> None:
+    """Issue #44305: Creating a chart linked to dashboards must touch audit metadata."""
+    _mock_table_datasource(mocker)
+    user = MagicMock()
+    g.user = user
+
+    seeded_changed_on: datetime = datetime(2020, 1, 1)
+    dashboard = MagicMock(
+        is_managed_externally=False, changed_on=seeded_changed_on, changed_by=None
+    )
+    mocker.patch(
+        "superset.commands.chart.create.DashboardDAO.find_by_ids",
+        return_value=[dashboard],
+    )
+    mocker.patch(
+        "superset.commands.chart.create.security_manager.is_editor",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.chart.create.ChartDAO.create",
+        return_value=MagicMock(),
+    )
+
+    cmd = CreateChartCommand(
+        {
+            "datasource_id": 42,
+            "datasource_type": "table",
+            "slice_name": "New Chart",
+            "viz_type": "table",
+            "dashboards": [101],
+        }
+    )
+    cmd.run()
+
+    assert dashboard.changed_on > seeded_changed_on
+    assert dashboard.changed_by == user
+
+
+def test_create_chart_updates_multiple_dashboards_changed_on(
+    mocker: MockerFixture,
+) -> None:
+    """Ensure all dashboards linked to the newly created chart get touched."""
+    _mock_table_datasource(mocker)
+    user = MagicMock()
+    g.user = user
+
+    seeded_changed_on: datetime = datetime(2020, 1, 1)
+    d1 = MagicMock(
+        is_managed_externally=False, changed_on=seeded_changed_on, changed_by=None
+    )
+    d2 = MagicMock(
+        is_managed_externally=False, changed_on=seeded_changed_on, changed_by=None
+    )
+    mocker.patch(
+        "superset.commands.chart.create.DashboardDAO.find_by_ids",
+        return_value=[d1, d2],
+    )
+    mocker.patch(
+        "superset.commands.chart.create.security_manager.is_editor",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.chart.create.ChartDAO.create",
+        return_value=MagicMock(),
+    )
+
+    cmd = CreateChartCommand(
+        {
+            "datasource_id": 42,
+            "datasource_type": "table",
+            "slice_name": "Multi-Dash Chart",
+            "viz_type": "table",
+            "dashboards": [101, 102],
+        }
+    )
+    cmd.run()
+
+    assert d1.changed_on > seeded_changed_on
+    assert d1.changed_by == user
+    assert d2.changed_on > seeded_changed_on
+    assert d2.changed_by == user
+
+
+def test_create_chart_updates_dashboard_changed_on_without_user_preserves_attribution(
+    mocker: MockerFixture,
+) -> None:
+    """Issue #44305: In no-user contexts, audit metadata attribution is preserved."""
+    _mock_table_datasource(mocker)
+    g.user = None
+
+    seeded_changed_on: datetime = datetime(2020, 1, 1)
+    prior_user = MagicMock()
+    dashboard = MagicMock(
+        is_managed_externally=False,
+        changed_on=seeded_changed_on,
+        changed_by=prior_user,
+        changed_by_fk=42,
+    )
+    mocker.patch(
+        "superset.commands.chart.create.DashboardDAO.find_by_ids",
+        return_value=[dashboard],
+    )
+    mocker.patch(
+        "superset.commands.chart.create.security_manager.is_editor",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.chart.create.ChartDAO.create",
+        return_value=MagicMock(),
+    )
+
+    cmd = CreateChartCommand(
+        {
+            "datasource_id": 42,
+            "datasource_type": "table",
+            "slice_name": "New Chart Without User",
+            "viz_type": "table",
+            "dashboards": [101],
+        }
+    )
+    cmd.run()
+
+    assert dashboard.changed_on > seeded_changed_on
+    assert dashboard.changed_by == prior_user
+    assert dashboard.changed_by_fk == 42
+
+
+def test_create_chart_without_dashboards_runs_cleanly(
+    mocker: MockerFixture,
+) -> None:
+    """Creating a chart with no attached dashboards runs smoothly without error."""
+    _mock_table_datasource(mocker)
+    g.user = MagicMock()
+    create_mock = mocker.patch(
+        "superset.commands.chart.create.ChartDAO.create",
+        return_value=MagicMock(),
+    )
+
+    cmd = CreateChartCommand(
+        {
+            "datasource_id": 42,
+            "datasource_type": "table",
+            "slice_name": "Standalone Chart",
+            "viz_type": "table",
+        }
+    )
+    chart = cmd.run()
+    create_mock.assert_called_once()
+    assert chart == create_mock.return_value
+
+
+def test_touch_dashboards_with_no_user() -> None:
+    """When g.user is None, changed_on is updated while changed_by remains untouched."""
+    from superset.commands.chart.utils import touch_dashboards
+
+    seeded_changed_on: datetime = datetime(2020, 1, 1)
+    dashboard = MagicMock(changed_on=seeded_changed_on, changed_by=None)
+    g.user = None
+
+    touch_dashboards([dashboard])
+
+    assert dashboard.changed_on > seeded_changed_on
+    assert dashboard.changed_by is None
+
+
+def test_touch_dashboards_with_no_user_preserves_existing_attribution() -> None:
+    """When g.user is None, changed_on is updated while pre-existing
+    attribution is preserved.
+    """
+    from superset.commands.chart.utils import touch_dashboards
+
+    seeded_changed_on: datetime = datetime(2020, 1, 1)
+    prior_user = MagicMock()
+    dashboard = MagicMock(
+        changed_on=seeded_changed_on,
+        changed_by=prior_user,
+        changed_by_fk=42,
+    )
+    g.user = None
+
+    touch_dashboards([dashboard])
+
+    assert dashboard.changed_on > seeded_changed_on
+    assert dashboard.changed_by == prior_user
+    assert dashboard.changed_by_fk == 42
+
+
+def test_touch_dashboards_persisted_model_preserves_audit() -> None:
+    """Issue #44305: Ensure SQLAlchemy onupdate=get_user_id does not clear
+    changed_by_fk on a real persisted model in no-user contexts.
+    """
+    from typing import Any
+
+    import sqlalchemy as sa
+    from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+
+    from superset.commands.chart.utils import touch_dashboards
+
+    base: Any = declarative_base()
+
+    def mock_get_user_id() -> int | None:
+        return None
+
+    class User(base):
+        __tablename__ = "test_user"
+        id = sa.Column(sa.Integer, primary_key=True)
+        username = sa.Column(sa.String)
+
+    class PersistedDashboard(base):
+        __tablename__ = "test_dashboard"
+        id = sa.Column(sa.Integer, primary_key=True)
+        changed_on = sa.Column(sa.DateTime, default=datetime.now, onupdate=datetime.now)
+        changed_by_fk = sa.Column(
+            sa.Integer,
+            sa.ForeignKey("test_user.id"),
+            default=mock_get_user_id,
+            onupdate=mock_get_user_id,
+            nullable=True,
+        )
+        changed_by = relationship("User", foreign_keys=[changed_by_fk])
+
+    engine = sa.create_engine("sqlite:///:memory:")
+    base.metadata.create_all(engine)
+    session_factory = sessionmaker(bind=engine)
+    session = session_factory()
+
+    user = User(id=1, username="admin")
+    session.add(user)
+    session.commit()
+
+    initial_time: datetime = datetime(2020, 1, 1)
+    d = PersistedDashboard(id=10, changed_on=initial_time, changed_by=user)
+    session.add(d)
+    session.commit()
+
+    assert d.changed_by_fk == 1
+    assert d.changed_by.username == "admin"
+
+    g.user = None
+    touch_dashboards([d])
+    session.commit()
+
+    assert d.changed_on > initial_time
+    assert d.changed_by_fk == 1
+    assert d.changed_by is not None
+    assert d.changed_by.username == "admin"
