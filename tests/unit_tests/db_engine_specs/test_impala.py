@@ -45,6 +45,17 @@ def test_convert_dttm(
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
+def test_time_expression_week_grain_starts_on_monday() -> None:
+    """
+    'WW' truncates to the weekday of January 1, so the week start shifts
+    every year; 'D' always truncates to Monday.
+    """
+    from sqlalchemy import column
+
+    expr = spec.get_timestamp_expr(column("ts"), None, "P1W")
+    assert str(expr.compile()) == "TRUNC(ts, 'D')"
+
+
 def test_get_cancel_query_id() -> None:
     query = Query()
 

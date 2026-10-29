@@ -190,7 +190,7 @@ class OracleEngineSpec(BaseEngineSpec):
         TimeGrain.MINUTE: "TRUNC(CAST({col} as DATE), 'MI')",
         TimeGrain.HOUR: "TRUNC(CAST({col} as DATE), 'HH')",
         TimeGrain.DAY: "TRUNC(CAST({col} as DATE), 'DDD')",
-        TimeGrain.WEEK: "TRUNC(CAST({col} as DATE), 'WW')",
+        TimeGrain.WEEK: "TRUNC(CAST({col} as DATE), 'IW')",
         TimeGrain.MONTH: "TRUNC(CAST({col} as DATE), 'MONTH')",
         TimeGrain.QUARTER: "TRUNC(CAST({col} as DATE), 'Q')",
         TimeGrain.YEAR: "TRUNC(CAST({col} as DATE), 'YEAR')",

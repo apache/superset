@@ -78,7 +78,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         TimeGrain.MINUTE: "TRUNC({col}, 'MI')",
         TimeGrain.HOUR: "TRUNC({col}, 'HH')",
         TimeGrain.DAY: "TRUNC({col}, 'DD')",
-        TimeGrain.WEEK: "TRUNC({col}, 'WW')",
+        TimeGrain.WEEK: "TRUNC({col}, 'D')",
         TimeGrain.MONTH: "TRUNC({col}, 'MONTH')",
         TimeGrain.QUARTER: "TRUNC({col}, 'Q')",
         TimeGrain.YEAR: "TRUNC({col}, 'YYYY')",
