@@ -771,6 +771,39 @@ def test_engine_cache_evicted_on_update_and_delete(mocker: MockerFixture) -> Non
     assert any(k[0] == 2 for k in _ENGINE_CACHE)
 
 
+def test_engine_cache_eviction_survives_dispose_failure() -> None:
+    """
+    Evicted engines are disposed, and an engine that fails to dispose must not
+    interrupt the update or delete, nor keep the others from being disposed.
+    """
+    from unittest.mock import MagicMock
+
+    from superset.models.core import (
+        _ENGINE_CACHE,
+        _ENGINE_CACHE_LOCK,
+        _evict_engine_cache,
+    )
+
+    failing, healthy, other = MagicMock(), MagicMock(), MagicMock()
+    failing.dispose.side_effect = RuntimeError("boom")
+    with _ENGINE_CACHE_LOCK:
+        _ENGINE_CACHE.clear()
+        _ENGINE_CACHE[(1, "postgresql://old-host/db", "")] = failing
+        _ENGINE_CACHE[(1, "postgresql://new-host/db", "")] = healthy
+        _ENGINE_CACHE[(2, "postgresql://other/db", "")] = other
+
+    db_instance = MagicMock()
+    db_instance.id = 1
+    try:
+        _evict_engine_cache(mapper=None, connection=None, target=db_instance)
+
+        failing.dispose.assert_called_once()
+        healthy.dispose.assert_called_once()
+        other.dispose.assert_not_called()
+    finally:
+        _ENGINE_CACHE.clear()
+
+
 @pytest.fixture
 def duckdb_engine_cache() -> Iterator[None]:
     """

@@ -1580,15 +1580,15 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     def has_view(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
-            connection = engine.connect()
-            try:
-                views = engine.dialect.get_view_names(
-                    connection=connection,
-                    schema=table.schema,
-                )
-            except Exception:  # pylint: disable=broad-except
-                logger.warning("Has view failed", exc_info=True)
-                views = []
+            with engine.connect() as connection:
+                try:
+                    views = engine.dialect.get_view_names(
+                        connection=connection,
+                        schema=table.schema,
+                    )
+                except Exception:  # pylint: disable=broad-except
+                    logger.warning("Has view failed", exc_info=True)
+                    views = []
 
         return table.table in views
 
@@ -1740,16 +1740,29 @@ def _evict_engine_cache(
     """Evict all cached engines for a database when it is updated or deleted.
 
     URL/kwargs changes already produce a new cache key, so stale engines are
-    never served to callers.  This eviction step is purely to reclaim memory:
-    without it, old engines for a renamed host or rotated password would linger
-    in _ENGINE_CACHE until the process restarted.
+    never served to callers.  Eviction reclaims memory (old engines for a
+    renamed host or rotated password would otherwise linger in _ENGINE_CACHE
+    until the process restarted) and disposes the evicted engines so that the
+    connections their pools hold idle are closed. Some databases, such as
+    DuckDB, allow only one configuration per database file per process, so an
+    idle connection kept by an engine with the previous settings would block
+    opening the edited ones.
+
+    Disposal is not deterministic for connections checked out at that moment:
+    they stay on the engine's previous pool and are released when it is. It runs
+    after the cache lock is released, and a failure to dispose never interrupts
+    the update or delete.
     """
     if target.id is None:
         return
     with _ENGINE_CACHE_LOCK:
         stale = [k for k in _ENGINE_CACHE if k[0] == target.id]
-        for k in stale:
-            _ENGINE_CACHE.pop(k, None)
+        evicted = [_ENGINE_CACHE.pop(k) for k in stale]
+    for engine in evicted:
+        try:
+            engine.dispose()
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Failed to dispose an evicted engine", exc_info=True)
 
 
 sqla.event.listen(Database, "after_update", _evict_engine_cache)
