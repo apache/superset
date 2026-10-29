@@ -21,7 +21,6 @@ import { useSelector } from 'react-redux';
 
 import Point from 'ol/geom/Point';
 import { Map, View } from 'ol';
-import GeoJSON from 'ol/format/GeoJSON';
 import { unByKey } from 'ol/Observable';
 import { toLonLat, transformExtent } from 'ol/proj';
 import { isEqual } from 'lodash-es';
@@ -36,10 +35,7 @@ import {
   OlChartMapProps,
 } from '../types';
 import { isChartConfigEqual } from '../util/chartUtil';
-import {
-  getExtentFromFeatures,
-  getMapExtentPadding,
-} from '../util/geometryUtil';
+import { getMapExtentPadding } from '../util/geometryUtil';
 
 /**
  * Computes a transformed extent from a MapMaxExtentConfigs (if CUSTOM mode)
@@ -401,30 +397,12 @@ export const OlChartMap = (props: OlChartMapProps) => {
         .getArray()
         .find(layer => layer instanceof ChartLayer) as ChartLayer;
 
-      if (!chartLayer) {
+      if (!chartLayer || chartLayer.chartConfigs.features.length === 0) {
         return;
       }
 
-      const features = new GeoJSON().readFeatures(chartLayer.chartConfigs, {
-        featureProjection: 'EPSG:4326',
-      });
-
-      const extent = getExtentFromFeatures(features);
-
-      if (!extent) {
-        return;
-      }
-
-      const transformedExtent = transformExtent(
-        extent,
-        'EPSG:4326',
-        olMap.getView().getProjection(),
-      );
-
-      const view = olMap.getView();
       const padding = getMapExtentPadding(mapExtentPadding);
-
-      view.fit(transformedExtent, { padding });
+      fitMapToData(olMap, chartLayer.chartConfigs, padding);
     }
   }, [olMap, currentMapView.mode, mapExtentPadding]);
 
