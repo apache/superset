@@ -18,7 +18,17 @@
  */
 
 import { ColorSchemeControl } from '../src/plugin/controls';
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  CategoricalD3,
+  CategoricalModernSunset,
+  getCategoricalSchemeRegistry,
+} from '@superset-ui/core';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 
 const setup = (props = {}) => {
   const defaultProps = {
@@ -80,4 +90,36 @@ test('calls onChange when value changes', async () => {
   // Verify onChange was called with the new scheme value
   expect(onChange).toHaveBeenCalledWith(newScheme);
   expect(onChange).toHaveBeenCalledTimes(1);
+});
+
+test('portals the grouped palette popup outside the control with styles on its root', async () => {
+  const registry = getCategoricalSchemeRegistry();
+  [...CategoricalD3, ...CategoricalModernSunset].forEach(scheme =>
+    registry.registerValue(scheme.id, scheme),
+  );
+  const { container } = setup({
+    choices: registry.keys().map(s => [s, s]),
+    schemes: registry.getMap(),
+    clearable: true,
+  });
+  await userEvent.click(
+    screen.getByRole('combobox', { name: 'Select color scheme' }),
+  );
+  await waitFor(() => {
+    expect(screen.getByText('Featured color palettes')).toBeInTheDocument();
+  });
+  const popup = document.querySelector('.ant-select-dropdown')!;
+  expect(container.contains(popup)).toBe(false);
+  expect(document.body.contains(popup)).toBe(true);
+  const emotionClass = Array.from(popup.classList).find(cls =>
+    /^(superset|css)-(?!dev-only|var)/.test(cls),
+  );
+  expect(emotionClass).toBeDefined();
+  const styleText = Array.from(document.styleSheets)
+    .flatMap(sheet => Array.from(sheet.cssRules).map(rule => rule.cssText))
+    .join('\n');
+  expect(styleText).toContain(
+    `.${emotionClass} .ant-select-item-option-grouped`,
+  );
+  registry.clear();
 });
