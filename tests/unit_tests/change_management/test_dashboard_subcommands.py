@@ -52,7 +52,11 @@ COLORS = {"color_scheme": "supersetColors", "label_colors": {"a": "#000000"}}
 
 @pytest.fixture
 def dashboard(mocker: MockerFixture) -> MagicMock:
-    model = MagicMock(id=1, json_metadata="{}")
+    # is_managed_externally has to be set: left to MagicMock it is a truthy
+    # child mock, and the colors command's validate() refuses an
+    # authoritative color change on an externally managed dashboard, so
+    # every colors test 403s before it reaches the gate.
+    model = MagicMock(id=1, json_metadata="{}", is_managed_externally=False)
 
     def validate(self: UpdateDashboardCommand) -> None:
         self._model = model

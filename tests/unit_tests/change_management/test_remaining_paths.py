@@ -111,9 +111,20 @@ def test_version_restore_is_captured(
 
 
 def test_version_restore_unchanged_with_flag_off(
-    session: Session, restore: tuple[Any, MagicMock], review_off: MagicMock
+    callable_db_session: Session,
+    restore: tuple[Any, MagicMock],
+    review_off: MagicMock,
 ) -> None:
+    # Needs callable_db_session, not session: with review off the restore
+    # runs for real, so it reaches db.session() and goes looking for the
+    # row it is restoring, which has to be there.
+    from superset.models.dashboard import Dashboard
+
     command, applied = restore
+    Dashboard.metadata.create_all(callable_db_session.get_bind())
+    callable_db_session.add(Dashboard(id=1, uuid=command._uuid))
+    callable_db_session.commit()
+
     command.run()
     applied.assert_called_once()
     review_off.assert_not_called()
@@ -227,7 +238,8 @@ def test_assets_import_api_answers_refusal_with_422(
     mocker: MockerFixture, client: Any, full_api_access: None
 ) -> None:
     mocker.patch("superset.importexport.api.is_zipfile", return_value=True)
-    mocker.patch("superset.importexport.api.ZipFile")
+    # See test_import_refusal: the upload is read through open_import_bundle.
+    mocker.patch("superset.importexport.api.open_import_bundle")
     mocker.patch(
         "superset.importexport.api.get_contents_from_bundle",
         return_value={"metadata.yaml": "x"},

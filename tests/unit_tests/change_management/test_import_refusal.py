@@ -112,7 +112,10 @@ def test_import_api_answers_refusal_with_422(
     command_name: str,
 ) -> None:
     mocker.patch(f"{api_module}.is_zipfile", return_value=True)
-    mocker.patch(f"{api_module}.ZipFile")
+    # The endpoint reads the upload through open_import_bundle, not ZipFile.
+    # Left unpatched, the real one rejects these few bytes as a corrupt
+    # archive and the request never reaches the command under test.
+    mocker.patch(f"{api_module}.open_import_bundle")
     mocker.patch(
         f"{api_module}.get_contents_from_bundle",
         return_value={"metadata.yaml": "x"},

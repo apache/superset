@@ -31,8 +31,11 @@ be tested at all.
 
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
+from pytest_mock import MockerFixture
+from sqlalchemy.orm.session import Session
 
 EXTENSION_SRC = (
     Path(__file__).resolve().parents[3]
@@ -80,3 +83,30 @@ def answer_gate_signals(app: object) -> None:
 
         install_http()
         install_views()
+
+
+class _ScopedSessionShim:
+    """``db.session`` as production has it: callable, proxying the rest.
+
+    In production ``superset.db.session`` is a ``scoped_session``, so
+    ``db.session()`` returns the session for the current scope. Superset's
+    unit-test harness patches it with a plain ``Session``, which is not
+    callable, and any product code taking that route raises ``TypeError``
+    before the test reaches what it meant to exercise.
+    """
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def __call__(self) -> Session:
+        return self._session
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._session, name)
+
+
+@pytest.fixture
+def callable_db_session(mocker: MockerFixture, session: Session) -> Session:
+    """``session``, but reachable through ``db.session()`` as well."""
+    mocker.patch("superset.db.session", _ScopedSessionShim(session))
+    return session
