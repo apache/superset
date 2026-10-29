@@ -11095,6 +11095,9 @@ msgstr ""
 msgid "Raw records"
 msgstr ""
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 msgid "Rearranged layout"
 msgstr ""
 
