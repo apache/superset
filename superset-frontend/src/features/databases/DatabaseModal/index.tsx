@@ -572,7 +572,13 @@ export function dbReducer(
         ...trimmedState,
         [action.payload.name]: action.payload.value,
       };
-    case ActionType.Fetched:
+    case ActionType.Fetched: {
+      const configurationMethod =
+        action.payload.configuration_method ===
+          ConfigurationMethod.DynamicForm &&
+        !Object.keys(action.payload.parameters_schema?.properties || {}).length
+          ? ConfigurationMethod.SqlalchemyUri
+          : action.payload.configuration_method;
       // convert query to a string and store in query_input
       query = action.payload?.parameters?.query || {};
       // eslint-disable-next-line camelcase
@@ -598,7 +604,7 @@ export function dbReducer(
         return {
           ...action.payload,
           engine: action.payload.backend || trimmedState.engine,
-          configuration_method: action.payload.configuration_method,
+          configuration_method: configurationMethod,
           catalog: engineRootCatalog,
           parameters: {
             ...(action.payload.parameters || trimmedState.parameters),
@@ -616,7 +622,7 @@ export function dbReducer(
         ...action.payload,
         masked_encrypted_extra: action.payload.masked_encrypted_extra || '',
         engine: action.payload.backend || trimmedState.engine,
-        configuration_method: action.payload.configuration_method,
+        configuration_method: configurationMethod,
         parameters: action.payload.parameters || trimmedState.parameters,
         ssh_tunnel: action.payload.ssh_tunnel || trimmedState.ssh_tunnel,
         // eslint-disable-next-line camelcase
@@ -625,7 +631,7 @@ export function dbReducer(
         // eslint-disable-next-line camelcase
         query_input,
       };
-
+    }
     case ActionType.DbSelected:
       // set initial state for blank form
       return {
@@ -768,7 +774,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const showDBError = validationErrors || dbErrors;
   const history = useHistory();
 
-  const dbModel: DatabaseForm =
+  const availableDbModel: DatabaseForm =
     // TODO: we need a centralized engine in one place
 
     // first try to match both engine and driver
@@ -786,6 +792,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         available.engine === (isEditMode ? db?.backend : db?.engine),
     ) ||
     {};
+
+  // A saved driver's schema can remain usable even when that driver is no longer
+  // installed. Do not replace it with another driver's form for the same engine.
+  const dbModel: DatabaseForm =
+    isEditMode && db?.parameters_schema?.properties
+      ? {
+          ...availableDbModel,
+          parameters: db.parameters_schema as DatabaseForm['parameters'],
+        }
+      : availableDbModel;
 
   const handleClearValidationErrors = useCallback(() => {
     setValidationErrors(null);

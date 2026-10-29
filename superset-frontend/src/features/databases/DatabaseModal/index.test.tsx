@@ -2054,6 +2054,7 @@ describe('dbReducer', () => {
     const currentState = dbReducer({}, action);
     expect(currentState).toEqual({
       ...databaseFixture,
+      configuration_method: ConfigurationMethod.SqlalchemyUri,
       engine: 'postgres',
       masked_encrypted_extra: '',
       parameters: undefined,
@@ -2797,3 +2798,100 @@ describe('dbReducer', () => {
     });
   });
 });
+
+test.each([true, false])(
+  'editing an unavailable driver renders a usable form (saved schema: %s)',
+  async hasSavedSchema => {
+    const resource: DatabaseObject = {
+      ...databaseFixture,
+      id: 10,
+      backend: 'databricks',
+      driver: 'connector',
+      database_name: 'Legacy Databricks',
+      sqlalchemy_uri:
+        'databricks+connector://token:XXXXXXXXXX@example.cloud.databricks.com:443/default',
+      parameters: {
+        host: 'example.cloud.databricks.com',
+        port: 443,
+        access_token: 'XXXXXXXXXX',
+        database: 'default',
+      },
+      extra: JSON.stringify({
+        engine_params: {
+          connect_args: { http_path: '/sql/1.0/warehouses/example' },
+        },
+      }),
+      parameters_schema: hasSavedSchema
+        ? {
+            properties: {
+              host: { type: 'string' },
+              port: { type: 'integer' },
+              access_token: { type: 'string' },
+              database: { type: 'string' },
+              http_path: { type: 'string' },
+            },
+          }
+        : {},
+    };
+    const updateResource = jest.fn().mockResolvedValue(resource);
+    const hook = jest.spyOn(hooks, 'useSingleViewResource').mockReturnValue({
+      state: { loading: false, resource, error: null },
+      fetchResource: jest.fn().mockResolvedValue(resource),
+      createResource: jest.fn(),
+      updateResource,
+      clearError: jest.fn(),
+      setResource: jest.fn(),
+    });
+    // Matches the SQLAlchemy 2 installation: the old driver has no form in
+    // /available, but its saved schema and masked connection details survive.
+    fetchMock.get(AVAILABLE_DB_ENDPOINT, {
+      databases: [
+        {
+          engine: 'databricks',
+          name: 'Databricks',
+          default_driver: 'databricks-sql-python',
+          available_drivers: ['databricks'],
+        },
+      ],
+    });
+    try {
+      render(<DatabaseModal {...dbProps} databaseId={10} />, {
+        useRedux: true,
+      });
+      if (hasSavedSchema) {
+        expect(
+          await screen.findByDisplayValue('example.cloud.databricks.com'),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByDisplayValue('/sql/1.0/warehouses/example'),
+        ).toBeInTheDocument();
+        const token = screen.getByDisplayValue('XXXXXXXXXX');
+        fireEvent.change(token, {
+          target: { value: 'replacement-test-token' },
+        });
+        expect(token).toHaveValue('replacement-test-token');
+      } else {
+        const uri = await screen.findByTestId('sqlalchemy-uri-input');
+        expect(uri).toHaveValue(resource.sqlalchemy_uri);
+        fireEvent.change(uri, {
+          target: { value: 'databricks://example.cloud.databricks.com' },
+        });
+        expect(uri).toHaveValue('databricks://example.cloud.databricks.com');
+        await userEvent.click(
+          screen.getByRole('button', { name: /^finish$/i }),
+        );
+        expect(updateResource).toHaveBeenCalledWith(
+          10,
+          expect.objectContaining({
+            configuration_method: ConfigurationMethod.SqlalchemyUri,
+            sqlalchemy_uri: 'databricks://example.cloud.databricks.com',
+          }),
+          false,
+        );
+      }
+    } finally {
+      hook.mockRestore();
+      fetchMock.clearHistory().removeRoutes();
+    }
+  },
+);

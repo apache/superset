@@ -435,14 +435,13 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         # the sqlalchemy_uri
         # When returning the parameters we should use the masked SQLAlchemy URI and the
         # masked ``encrypted_extra`` to prevent exposing sensitive credentials.
-        masked_uri = make_url_safe(self.sqlalchemy_uri)
         encrypted_config = {}
         if (masked_encrypted_extra := self.masked_encrypted_extra) is not None:
             with suppress(TypeError, json.JSONDecodeError):
                 encrypted_config = json.loads(masked_encrypted_extra)
         try:
-            parameters = self.db_engine_spec.get_parameters_from_uri(  # type: ignore
-                masked_uri,
+            parameters = self.db_engine_spec.get_parameters_from_database(
+                self,
                 encrypted_extra=encrypted_config,
             )
         except Exception:  # pylint: disable=broad-except

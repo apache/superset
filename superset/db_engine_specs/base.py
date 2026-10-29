@@ -3218,6 +3218,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return json.dumps(new_config)
 
     @classmethod
+    def get_parameters_from_database(
+        cls,
+        database: Database,
+        encrypted_extra: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Return masked form parameters, including engine-specific stored settings."""
+        return cls.get_parameters_from_uri(  # type: ignore
+            make_url_safe(database.sqlalchemy_uri), encrypted_extra=encrypted_extra
+        )
+
+    @classmethod
     def get_public_information(cls) -> dict[str, Any]:
         """
         Construct a Dict with properties we want to expose.

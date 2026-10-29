@@ -866,6 +866,10 @@ error notice. This does not authorize replay of data-bearing notifications.
 - The Pinot extra requires pinotdb[sqlalchemy]>=8.0.0,<10.0.0. Earlier releases declare SQLAlchemy below 2 in their SQLAlchemy extra.
 
 - The Databricks extra requires databricks-sqlalchemy 2.x (at least 2.0.1). The 1.x dialect requires SQLAlchemy below 2.
+  Saved `databricks+connector://` connections are automatically migrated to
+  `databricks://` by `superset db upgrade`, preserving the separately encrypted
+  token and connection settings. Downgrade restores only connections marked by
+  this migration, not connections created natively with the new scheme.
 
 - `superset deletion-retention force-purge` now exits **1** when the target is
   blocked by a deletion rule or is not found (the messages are unchanged), so a

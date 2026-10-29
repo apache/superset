@@ -19,7 +19,7 @@
 from datetime import datetime
 from importlib import import_module
 from importlib.metadata import PackageNotFoundError, requires
-from typing import Any, Optional
+from typing import Any, cast, Optional
 from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlparse
 
@@ -43,6 +43,7 @@ from superset.db_engine_specs.databricks import (
     DatabricksHiveEngineSpec,
     DatabricksNativeEngineSpec,
     DatabricksPythonConnectorEngineSpec,
+    DatabricksPythonConnectorParametersType,
 )
 from superset.db_engine_specs.spark import SparkEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -136,9 +137,7 @@ def test_build_sqlalchemy_uri() -> None:
     sqlalchemy_uri = DatabricksNativeEngineSpec.build_sqlalchemy_uri(
         parameters, encrypted_extra
     )
-    assert sqlalchemy_uri == (
-        "databricks+connector://token:abc12345@my_hostname:1234/test"
-    )
+    assert sqlalchemy_uri == "databricks://token:abc12345@my_hostname:1234/test"
 
 
 def test_parameters_json_schema() -> None:
@@ -1646,3 +1645,86 @@ def test_databricks_hive_spec_shares_extended_aggregations() -> None:
 
     for aggregate in ("MEDIAN", "STDDEV_SAMP", "VAR_SAMP"):
         assert DatabricksHiveEngineSpec.get_extended_aggregation_func(aggregate)
+
+
+def test_native_connector_advertises_installed_driver() -> None:
+    """The SQLAlchemy 2 dialect must expose a field-based connection form."""
+    assert DatabricksPythonConnectorEngineSpec.default_driver == "databricks"
+    assert "databricks" in DatabricksPythonConnectorEngineSpec.drivers
+
+
+def test_converted_connection_parameters_include_legacy_settings() -> None:
+    """The native form retains masked credentials and settings stored in extra."""
+    from superset.models.core import Database
+
+    database = Database(
+        sqlalchemy_uri="databricks://token:XXXXXXXXXX@example.cloud.databricks.com:443/default",
+        extra=json.dumps(
+            {
+                "engine_params": {
+                    "connect_args": {
+                        "http_path": "/sql/1.0/warehouses/example",
+                        "catalog": "main",
+                    }
+                }
+            }
+        ),
+    )
+    assert database.parameters == {
+        "access_token": "XXXXXXXXXX",
+        "host": "example.cloud.databricks.com",
+        "port": 443,
+        "http_path_field": "/sql/1.0/warehouses/example",
+        "default_catalog": "main",
+        "default_schema": "default",
+        "encryption": False,
+    }
+    assert DatabricksPythonConnectorEngineSpec.get_default_catalog(database) == "main"
+
+
+def test_native_connector_preserves_legacy_schema_and_prioritizes_form_edits() -> None:
+    """Path schemas reach the dialect; query fields supersede legacy extra."""
+    spec = DatabricksPythonConnectorEngineSpec
+    uri, args = spec.adjust_engine_params(
+        make_url("databricks://token:masked@host:443/default"),
+        {"http_path": "/legacy", "catalog": "main"},
+    )
+    assert uri.query["schema"] == "default"
+    assert args == {"http_path": "/legacy", "catalog": "main"}
+    uri, args = spec.adjust_engine_params(
+        make_url("databricks://host?http_path=/edited&catalog=new&schema=edited"),
+        {"http_path": "/legacy", "catalog": "main", "schema": "old"},
+    )
+    assert uri.query == {"http_path": "/edited", "catalog": "new", "schema": "edited"}
+    assert args == {}
+
+
+def test_native_form_save_preserves_masked_token_and_updates_legacy_settings() -> None:
+    """Saving masked native fields keeps the token while accepting new settings."""
+    from superset.models.core import Database
+
+    database = Database(
+        extra=json.dumps(
+            {
+                "engine_params": {
+                    "connect_args": {"http_path": "/legacy", "catalog": "main"}
+                }
+            }
+        )
+    )
+    database.set_sqlalchemy_uri("databricks://token:form-test-token@host:443/default")
+    parameters = database.parameters
+    parameters["http_path_field"] = "/edited"
+    parameters["default_catalog"] = "updated"
+    uri = DatabricksPythonConnectorEngineSpec.build_sqlalchemy_uri(
+        cast(DatabricksPythonConnectorParametersType, parameters)
+    )
+    database.set_sqlalchemy_uri(uri)
+    assert database.url_object.password == "form-test-token"  # noqa: S105
+    assert database.parameters["http_path_field"] == "/edited"
+    assert database.parameters["default_catalog"] == "updated"
+    _, args = DatabricksPythonConnectorEngineSpec.adjust_engine_params(
+        database.url_object, database.connect_args
+    )
+    assert "http_path" not in args
+    assert "catalog" not in args
