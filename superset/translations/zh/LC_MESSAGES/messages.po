@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-29 11:28+0530\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -3497,8 +3497,14 @@ msgstr "计算列"
 msgid "Calculation type"
 msgstr "计算类型"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "日历热力图"
+
+msgid "Calendar date picker"
+msgstr ""
 
 msgid "Can not move top level tab into nested tabs"
 msgstr "无法将顶级选项卡移动到嵌套选项卡中"
@@ -4761,6 +4767,9 @@ msgstr "配置 %s"
 
 msgid "Configure Advanced Time Range "
 msgstr "配置进阶时间范围 "
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 #, fuzzy
 msgid "Configure Time Range: Current..."
@@ -15442,6 +15451,12 @@ msgid "Show a draggable slider to control the visible range of the Y-axis."
 msgstr "显示一个可拖动的滑块，用于控制 Y 轴的可见范围。"
 
 msgid ""
+"Show a plain date range picker that selects whole days, with the end date"
+" included, instead of all time range options. The default value is still "
+"set with all options."
+msgstr ""
+
+msgid ""
 "Show a summary row of total aggregations: the selected metrics in "
 "aggregate mode, or an aggregation of numeric columns in raw records mode."
 " Note that row limit does not apply to the result."
@@ -16067,6 +16082,9 @@ msgstr "起始经度/纬度"
 #, fuzzy
 msgid "Start Time"
 msgstr "开始时间"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 msgid "Start angle"
 msgstr "开始角度"
@@ -18792,6 +18810,11 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+msgid ""
+"This range includes a time of day, so it is not made of whole days. Pick "
+"dates to use whole days."
 msgstr ""
 
 msgid ""
