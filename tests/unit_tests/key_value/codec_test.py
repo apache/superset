@@ -156,12 +156,23 @@ def test_json_codec_rejects_bytes():
         JsonKeyValueCodec().encode(b"hello")
 
 
-def test_json_codec_rejects_nested_bytes():
+@pytest.mark.parametrize(
+    "value",
+    [
+        {"payload": b"hello"},
+        {"payload": [b"hello"]},
+        {b"hello": 1},
+        {"payload": (b"hello",)},
+        {"payload": {b"hello"}},
+        {"payload": frozenset({b"hello"})},
+        {"payload": bytearray(b"hello")},
+        {"payload": memoryview(b"hello")},
+    ],
+)
+def test_json_codec_rejects_nested_bytes(value: Any):
     """Bytes nested inside containers must raise rather than be altered."""
     with pytest.raises(KeyValueCodecEncodeException):
-        JsonKeyValueCodec().encode({"payload": b"hello"})
-    with pytest.raises(KeyValueCodecEncodeException):
-        JsonKeyValueCodec().encode({"payload": [b"hello"]})
+        JsonKeyValueCodec().encode(value)
 
 
 def test_json_codec_decodes_legacy_non_finite_floats():
