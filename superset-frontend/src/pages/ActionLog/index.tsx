@@ -18,7 +18,7 @@
  */
 import { useMemo } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { css } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -29,6 +29,8 @@ import {
 } from 'src/components/ListView';
 import { Typography } from '@superset-ui/core/components';
 import { fetchUserOptions } from 'src/features/groups/utils';
+import { JsonModal } from 'src/components/JsonModal';
+import { safeJsonObjectParse } from 'src/components/JsonModal/utils';
 
 export type ActionLogObject = {
   user: {
@@ -47,6 +49,15 @@ export type ActionLogObject = {
 };
 
 const PAGE_SIZE = 25;
+
+const JsonCellTrigger = styled.div`
+  > [role='button'] {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+`;
 
 function ActionLogList() {
   const { addDangerToast, addSuccessToast } = useToasts();
@@ -215,24 +226,42 @@ function ActionLogList() {
           row: {
             original: { json },
           },
-        }: any) => (
-          <Typography.Text
-            css={css`
-              .ant-typography-copy {
-                visibility: hidden;
-              }
-              &:hover .ant-typography-copy {
-                visibility: visible;
-              }
-            `}
-            copyable={!!json}
-            ellipsis={{
-              tooltip: { styles: { root: { maxWidth: '900px' } }, title: json },
-            }}
-          >
-            {json}
-          </Typography.Text>
-        ),
+        }: any) => {
+          const jsonObject = safeJsonObjectParse(json);
+          if (jsonObject) {
+            return (
+              <JsonCellTrigger>
+                <JsonModal
+                  modalTitle={t('JSON')}
+                  jsonObject={jsonObject}
+                  jsonValue={json}
+                  wrapContent={false}
+                />
+              </JsonCellTrigger>
+            );
+          }
+          return (
+            <Typography.Text
+              css={css`
+                .ant-typography-copy {
+                  visibility: hidden;
+                }
+                &:hover .ant-typography-copy {
+                  visibility: visible;
+                }
+              `}
+              copyable={!!json}
+              ellipsis={{
+                tooltip: {
+                  styles: { root: { maxWidth: '900px' } },
+                  title: json,
+                },
+              }}
+            >
+              {json}
+            </Typography.Text>
+          );
+        },
       },
 
       {

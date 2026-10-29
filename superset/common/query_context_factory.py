@@ -32,6 +32,7 @@ from superset.models.slice import Slice
 from superset.security.manager import STOCK_RAISE_FOR_ACCESS
 from superset.superset_typing import Column
 from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
+from superset.utils.date_parser import is_no_time_range
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
@@ -174,7 +175,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         query_object: QueryObject,
     ) -> QueryObject:
         self._apply_granularity(query_object, form_data, datasource)
-        self._apply_filters(query_object)
+        self._apply_filters(query_object, form_data)
         self._add_tooltip_columns(query_object, form_data)
         self._add_currency_column(query_object, form_data, datasource)
         return query_object
@@ -426,6 +427,10 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             # another temporal filter. A new filter based on the value of
             # the granularity will be added later in the code.
             # In practice, this is replacing the previous default temporal filter.
+            # Keep independent predicates when the Time Column is unchanged.
+            # A swapped x-axis drill can carry the overriding column's bucket.
+            # Sunburst levels are independent of the Time Column, so their
+            # non-dashboard predicates remain valid when that column changes.
             if filter_to_remove and is_adhoc_column(filter_to_remove):  # type: ignore
                 filter_to_remove = filter_to_remove.get("sqlExpression")
 
@@ -434,10 +439,36 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     filter
                     for filter in query_object.filter
                     if filter["col"] != filter_to_remove
+                    or (
+                        filter["op"] != "TEMPORAL_RANGE"
+                        and (
+                            filter_to_remove == granularity
+                            or (
+                                (form_data or {}).get("viz_type") == "sunburst_v2"
+                                # Dashboard filters can come from a swapped x-axis.
+                                and not filter.get("isExtra")
+                            )
+                        )
+                    )
                 ]
 
-    def _apply_filters(self, query_object: QueryObject) -> None:
+    def _apply_filters(
+        self, query_object: QueryObject, form_data: dict[str, Any] | None = None
+    ) -> None:
+        """Apply the time range, retaining the source of dashboard overrides."""
+        extra_form_data: object = (form_data or {}).get("extra_form_data")
+        dashboard_time_override: bool = (
+            isinstance(extra_form_data, dict)
+            and "time_range" in extra_form_data
+            and extra_form_data["time_range"] == query_object.time_range
+        )
         if query_object.time_range:
             for filter_object in query_object.filter:
                 if filter_object["op"] == "TEMPORAL_RANGE":
+                    saved: object = filter_object.get("val")
+                    was_unbounded: bool = saved is None or (
+                        isinstance(saved, str) and is_no_time_range(saved)
+                    )
                     filter_object["val"] = query_object.time_range
+                    if dashboard_time_override and was_unbounded:
+                        filter_object["isExtra"] = True
