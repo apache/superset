@@ -103,7 +103,6 @@ def validate_partition_data(
         queries=[
             {
                 "columns": [mapped_column, target_name],
-                "metrics": [],
                 "filters": [{"col": target_name, "op": "==", "val": key}],
                 "row_limit": 50,
                 "time_range": "No filter",

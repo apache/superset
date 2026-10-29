@@ -210,7 +210,7 @@ def test_data_validation_checks_corresponding_rows(
         assert request["filters"] == [{"col": "dt_epoch", "op": "==", "val": 3600}]
         assert request["columns"] == ["event_time", "dt_epoch"]
         assert request["row_limit"] == 50
-        assert request["metrics"] == []
+        assert "metrics" not in request
         assert probe.call_args.kwargs["fresh"] is True
         if status == "mismatch":
             assert result["examples"][0]["stored_key"] == "3600"
@@ -355,4 +355,6 @@ def test_real_sampling_query_preserves_partition_filter_and_rls(app: Flask) -> N
     assert len(reads) == 2
     assert all("LIMIT 50" in sql and "country = 'allowed'" in sql for sql in reads)
     assert all("COUNT(" not in sql.upper() for sql in executed)
+    # A raw read stops at the limit; GROUP BY would aggregate the whole partition.
+    assert all("GROUP BY" not in sql.upper() for sql in reads)
     connection.close()

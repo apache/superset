@@ -82,11 +82,20 @@ query and transform-evaluation sessions; `unix_timestamp` can depend on session 
 The numeric epoch examples avoid that conversion. Use mathematical floor, including for
 negative epochs. Millisecond inputs require conversion to seconds before these expressions;
 local-calendar-day keys are not interchangeable with fixed UTC 86,400-second buckets.
+A session in a non-UTC zone shifts these boundaries: under IST (UTC+05:30) the hourly
+timestamp recipe lands on the wrong hour key, five or six hours earlier, so mirrored filters
+miss the matching rows. The daily recipe puts early-morning rows on the previous day.
+Set the evaluating session to UTC, or use the
+numeric epoch recipes.
 
 Bare `unix_timestamp(:value)` is not suggested or mirrored for temporal-to-numeric
 mappings on Hive/Impala and their engine-spec subclasses. It produces an instant,
 not an hour/day boundary, and can silently exclude matching rows. Existing expressions
 remain editable; replace them with the pipeline's actual partition expression.
+Only that exact expression is recognised. Other spellings that still yield an unbucketed
+instant, such as `CAST(unix_timestamp(:value) AS BIGINT)`, `unix_timestamp(:value) + 0`
+or `floor(unix_timestamp(:value))`, or the bare form on a `STRING` timestamp column, are
+not detected. Check every transform with **Validate against data**.
 
 Dataset time-range bounds already pass through Superset's timezone/hour-offset adjustment
 before mirroring. Do not convert those bounds from the dataset timezone a second time.
@@ -124,7 +133,7 @@ Range filters — including the Explore time range, the most important case — 
 mirrored when you check **Transform preserves ordering**.
 
 Monotonicity is a property of the *transform*, not of the column's data type.
-`unix_timestamp(:value)` preserves ordering. `hour(:value)`,
+`CAST(floor(unix_timestamp(:value) / 3600) * 3600 AS BIGINT)` preserves ordering. `hour(:value)`,
 `date_format(:value, 'dd')` and `dayofweek(:value)` are all perfectly reasonable
 partition transforms on a `TIMESTAMP` column and none of them do: `hour('2026-01-01 23:00')`
 is greater than `hour('2026-01-02 01:00')` even though the first instant is earlier. Mirroring
@@ -149,7 +158,7 @@ says why. Any other engine declines too, until it is confirmed and declared.
 If your partition column is temporal and your transform returns text, the robust answer is
 to make the transform's return type match the column: `date(:value)` or
 `cast(... as date)` rather than `to_char(...)`. A *numeric* partition column — the
-`unix_timestamp(:value)` / epoch shape — is unaffected by any of this.
+epoch shape, such as `CAST(floor(unix_timestamp(:value) / 3600) * 3600 AS BIGINT)` — is unaffected by any of this.
 
 When the box is unchecked, `=` and `IN` filters still mirror; ranges do not.
 
@@ -324,7 +333,7 @@ accepts a comparison across those types: Postgres, Trino and BigQuery refuse it 
 SQLite compares it as never equal rather than erroring, which would drop every row the filter
 keeps. So Superset declines the mirror instead. The preview panel names the column and the
 value it got, and the fix is to cast the result to the key's own type —
-`cast(unix_timestamp(:value) as string)` for a text partition key.
+`date_format(:value, 'yyyyMMddHH')` for a text partition key holding hours.
 
 Because the evaluation happens in a **different session** from the chart query, transforms
 that call non-deterministic functions are rejected when you save. That includes `now()`,
