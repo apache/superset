@@ -147,3 +147,12 @@ Imported connections carrying the conversion marker are also eligible for rollba
 scheme changes. The migration keeps fingerprints in a bookkeeping table so these
 connections can also be safely downgraded without parsing their settings. Invalid
 settings may still need correction before the connection can execute queries.
+
+The Default Catalog field is optional. Connections converted from the legacy
+connector retain the legacy runtime default catalog when none is configured,
+so existing dataset catalogs and schema permissions remain consistent. Clearing
+a field removes its corresponding legacy `connect_args` override. Changing the
+connection destination requires re-entering the access token.
+
+The new-connection picker offers **Databricks**, not **Databricks (legacy)**.
+Existing legacy connections can still be edited with their saved form.

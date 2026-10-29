@@ -437,6 +437,12 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             except json.JSONDecodeError:
                 encrypted_extra = {}
 
+            if hasattr(engine_spec, "get_extra_from_parameters"):
+                extra = engine_spec.get_extra_from_parameters(
+                    parameters, data.get("extra")
+                )
+                if extra is not None:
+                    data["extra"] = extra
             data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(
                 parameters,
                 encrypted_extra,

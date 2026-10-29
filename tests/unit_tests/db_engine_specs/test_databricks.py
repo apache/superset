@@ -19,7 +19,7 @@
 from datetime import datetime
 from importlib import import_module
 from importlib.metadata import PackageNotFoundError, requires
-from typing import Any, cast, Optional
+from typing import Any, cast, Literal, Optional
 from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlparse
 
@@ -137,7 +137,9 @@ def test_build_sqlalchemy_uri() -> None:
     sqlalchemy_uri = DatabricksNativeEngineSpec.build_sqlalchemy_uri(
         parameters, encrypted_extra
     )
-    assert sqlalchemy_uri == "databricks://token:abc12345@my_hostname:1234/test"
+    assert (
+        sqlalchemy_uri == "databricks+connector://token:abc12345@my_hostname:1234/test"
+    )
 
 
 def test_parameters_json_schema() -> None:
@@ -1755,3 +1757,92 @@ def test_connection_identity_matches_legacy_settings_and_native_query() -> None:
     assert BaseEngineSpec.get_connection_identity(
         make_url("postgresql://u@host/db"), {"host": "other"}
     ) == make_url("postgresql://u@host/db")
+
+
+@pytest.mark.parametrize("catalogs", [[("hive_metastore",)], [("main",), ("other",)]])
+def test_migrated_default_catalog_preserves_legacy_runtime_default(
+    mocker: MockerFixture, catalogs: list[tuple[str]]
+) -> None:
+    """Converted rows keep the catalog used by their dataset permissions."""
+    from superset.models.core import Database
+
+    database = Database(
+        sqlalchemy_uri="databricks://token:XXXXXXXXXX@host:443/default",
+        extra=json.dumps(
+            {
+                "migrated_from_databricks_connector_uri": True,
+                "engine_params": {"connect_args": {"http_path": "/legacy"}},
+            }
+        ),
+    )
+    engine = mocker.MagicMock()
+    connection = (
+        engine.__enter__.return_value.connect.return_value.__enter__.return_value
+    )
+    result = mocker.MagicMock()
+    result.scalar.return_value = "hive_metastore"
+    connection.execute.side_effect = [catalogs, result]
+    mocker.patch.object(database, "get_sqla_engine", return_value=engine)
+    assert (
+        DatabricksPythonConnectorEngineSpec.get_default_catalog(database)
+        == "hive_metastore"
+    )
+    assert connection.execute.call_count == (1 if len(catalogs) == 1 else 2)
+    database.extra = "{}"
+    assert DatabricksPythonConnectorEngineSpec.get_default_catalog(database) is None
+
+
+def test_native_catalog_is_optional_in_form_schema() -> None:
+    """The browser must not require a catalog that legacy forms never collected."""
+    schema = DatabricksPythonConnectorEngineSpec.parameters_json_schema()
+    assert "default_catalog" not in schema["required"]
+
+
+@pytest.mark.parametrize(
+    "field, key",
+    [
+        ("default_catalog", "catalog"),
+        ("default_schema", "schema"),
+        ("http_path_field", "http_path"),
+    ],
+)
+def test_native_form_clear_overrides_legacy_connect_args(
+    field: Literal["default_catalog", "default_schema", "http_path_field"], key: str
+) -> None:
+    """Clearing a field removes its old connect_args value at connection time."""
+    parameters = DatabricksPythonConnectorParametersType(
+        host="host",
+        port=443,
+        access_token="test-token",  # noqa: S106
+        default_catalog="main",
+        default_schema="default",
+        http_path_field="/legacy",
+        encryption=False,
+    )
+    parameters[field] = ""
+    uri = make_url(DatabricksPythonConnectorEngineSpec.build_sqlalchemy_uri(parameters))
+    extra = DatabricksPythonConnectorEngineSpec.get_extra_from_parameters(
+        dict(parameters),
+        json.dumps({"engine_params": {"connect_args": {key: "old", "other": "kept"}}}),
+    )
+    assert extra is not None
+    adjusted, args = DatabricksPythonConnectorEngineSpec.adjust_engine_params(
+        uri, json.loads(extra)["engine_params"]["connect_args"]
+    )
+    assert args["other"] == "kept"
+    assert key not in args
+    assert key not in adjusted.query
+
+
+def test_legacy_form_preserves_connector_scheme() -> None:
+    """Unconverted forms must not silently change the credential destination."""
+    from superset.commands.database.utils import uri_identity_changed
+
+    parameters = DatabricksNativeEngineSpec.get_parameters_from_uri(
+        "databricks+connector://token:XXXXXXXXXX@host:443/default"
+    )
+    rebuilt = DatabricksNativeEngineSpec.build_sqlalchemy_uri(parameters)
+    assert rebuilt.startswith("databricks+connector://")
+    assert not uri_identity_changed(
+        "databricks+connector://token:XXXXXXXXXX@host:443/default", rebuilt
+    )

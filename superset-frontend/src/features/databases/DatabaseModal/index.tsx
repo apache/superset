@@ -211,6 +211,7 @@ export type DBReducerActionType =
     }
   | {
       type: ActionType.Fetched;
+      isEditMode?: boolean;
       payload: Partial<DatabaseObject>;
     }
   | {
@@ -574,6 +575,7 @@ export function dbReducer(
       };
     case ActionType.Fetched: {
       const configurationMethod =
+        action.isEditMode &&
         action.payload.configuration_method ===
           ConfigurationMethod.DynamicForm &&
         !Object.keys(action.payload.parameters_schema?.properties || {}).length
@@ -1538,13 +1540,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (dbFetched) {
       setDB({
         type: ActionType.Fetched,
+        isEditMode,
         payload: dbFetched,
       });
       // keep a copy of the name separate for display purposes
       // because it shouldn't change when the form is updated
       setDbName(dbFetched.database_name);
     }
-  }, [dbFetched]);
+  }, [dbFetched, isEditMode]);
 
   useEffect(() => {
     if (isLoading) {

@@ -18,7 +18,8 @@
 
 from collections.abc import Iterator
 from importlib import import_module
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 import sqlalchemy as sa
@@ -360,3 +361,57 @@ def test_downgrade_imported_marker_and_unmarked_native_rows(engine: Engine) -> N
             row.sqlalchemy_uri == NATIVE + MASKED_SUFFIX
             for row in conn.execute(sa.select(table))
         )
+
+
+@pytest.mark.parametrize("upgrading", [True, False])
+def test_migration_preserves_edit_after_batch_read(
+    engine: Engine, upgrading: bool
+) -> None:
+    """A concurrent edit must win over the batch's stale connection settings."""
+    table = migration.databases
+    with engine.begin() as conn:
+        conn.execute(
+            table.insert().values(
+                id=1, sqlalchemy_uri=LEGACY + MASKED_SUFFIX, extra="{}"
+            )
+        )
+    if not upgrading:
+        _run(engine, True)
+    with engine.begin() as conn:
+        original_execute = conn.execute
+        edited = False
+
+        def execute(
+            statement: sa.sql.Executable, *args: object, **kwargs: object
+        ) -> Any:
+            """Materialize a batch, then edit the row before the migration writes."""
+            nonlocal edited
+            result = original_execute(statement, *args, **kwargs)
+            if isinstance(statement, sa.sql.Select) and not edited:
+                rows = result.fetchall()
+                original_execute(
+                    table.update()
+                    .where(table.c.id == 1)
+                    .values(
+                        sqlalchemy_uri="postgresql://edited/db",
+                        extra='{"edited":true}',
+                    )
+                )
+                edited = True
+                result = MagicMock()
+                result.fetchall.return_value = rows
+            return result
+
+        with (
+            Operations.context(MigrationContext.configure(conn)),
+            patch.object(conn, "execute", side_effect=execute),
+        ):
+            if upgrading:
+                migration.upgrade()
+            else:
+                migration.downgrade()
+        row = original_execute(sa.select(table)).one()
+        assert row.sqlalchemy_uri == "postgresql://edited/db"
+        assert row.extra == '{"edited":true}'
+        if upgrading:
+            assert original_execute(sa.select(migration.records)).fetchall() == []

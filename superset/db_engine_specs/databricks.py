@@ -209,7 +209,7 @@ class DatabricksPythonConnectorSchema(DatabricksBaseSchema):
     """
 
     http_path_field = fields.Str(required=True)
-    default_catalog = fields.Str(required=True)
+    default_catalog = fields.Str(required=False)
     default_schema = fields.Str(required=True)
 
 
@@ -841,7 +841,6 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
     }
 
     required_parameters = DatabricksDynamicBaseEngineSpec.required_parameters | {
-        "default_catalog",
         "default_schema",
         "http_path_field",
     }
@@ -925,6 +924,29 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         return parameters
 
     @classmethod
+    def get_extra_from_parameters(
+        cls, parameters: dict[str, Any], extra: str | None
+    ) -> str | None:
+        """Remove legacy overrides when a native form explicitly clears a field."""
+        try:
+            settings = json.loads(extra or "{}")
+            connect_args = settings.get("engine_params", {}).get("connect_args", {})
+        except (ValueError, AttributeError, TypeError):
+            return extra
+        if not isinstance(connect_args, dict):
+            return extra
+        changed = False
+        for field, key in (
+            ("http_path_field", "http_path"),
+            ("default_catalog", "catalog"),
+            ("default_schema", "schema"),
+        ):
+            if field in parameters and not parameters[field] and key in connect_args:
+                del connect_args[key]
+                changed = True
+        return json.dumps(settings) if changed else extra
+
+    @classmethod
     def get_connection_identity(cls, uri: URL, connect_args: dict[str, Any]) -> URL:
         """
         Describe legacy connect_args and native query settings identically.
@@ -947,9 +969,14 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         cls,
         database: Database,
     ) -> str | None:
-        return database.url_object.query.get("catalog") or database.connect_args.get(
+        if catalog := database.url_object.query.get(
             "catalog"
-        )
+        ) or database.connect_args.get("catalog"):
+            return catalog
+        # Converted rows retain the runtime catalog used by legacy permissions.
+        if database.get_extra().get("migrated_from_databricks_connector_uri"):
+            return DatabricksNativeEngineSpec.get_default_catalog(database)
+        return None
 
     @classmethod
     def get_catalog_names(
@@ -999,7 +1026,7 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
     properties_schema = DatabricksNativePropertiesSchema()
 
     sqlalchemy_uri_placeholder = (
-        "databricks://token:{access_token}@{host}:{port}/{database_name}"
+        "databricks+connector://token:{access_token}@{host}:{port}/{database_name}"
     )
 
     metadata = {
@@ -1013,7 +1040,7 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         ],
         "pypi_packages": ["apache-superset[databricks]"],
         "connection_string": (
-            "databricks://token:{access_token}@{host}:{port}/{database_name}?http_path={http_path}"
+            "databricks+connector://token:{access_token}@{host}:{port}/{database_name}?http_path={http_path}"
         ),
         "default_port": 443,
         "parameters": {
@@ -1070,7 +1097,7 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         # False) is required here since this URI is stored/used to actually
         # connect, not just displayed.
         return URL.create(
-            cls.engine,
+            f"{cls.engine}+{cls.default_driver}",
             username="token",
             password=parameters.get("access_token"),
             host=parameters["host"],

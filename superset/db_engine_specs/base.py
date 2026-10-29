@@ -3226,6 +3226,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return uri
 
     @classmethod
+    def get_extra_from_parameters(
+        cls, parameters: dict[str, Any], extra: str | None
+    ) -> str | None:
+        """Reconcile field-form values with settings stored outside the URI."""
+        return extra
+
+    @classmethod
     def get_parameters_from_database(
         cls,
         database: Database,

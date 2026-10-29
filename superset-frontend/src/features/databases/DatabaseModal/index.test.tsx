@@ -44,6 +44,8 @@ jest.mock('@superset-ui/core', () => ({
   isFeatureEnabled: () => true,
 }));
 
+const realUseSingleViewResource = hooks.useSingleViewResource;
+
 const mockHistoryPush = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -1484,6 +1486,72 @@ describe('DatabaseModal', () => {
         });
       });
 
+      test('keeps a created PostgreSQL field connection on step 3 without a saved schema', async () => {
+        const resourceHook = jest.spyOn(hooks, 'useSingleViewResource');
+        const previousImplementation = resourceHook.getMockImplementation()!;
+        resourceHook.mockImplementation(realUseSingleViewResource);
+        try {
+          fetchMock.modifyRoute('database-connect', {
+            response: {
+              id: 10,
+              result: {
+                id: 10,
+                database_name: 'PostgreSQL',
+                backend: 'postgresql',
+                configuration_method: ConfigurationMethod.DynamicForm,
+              },
+            },
+          });
+          fetchMock.put(DATABASE_FETCH_ENDPOINT, { result: { id: 10 } });
+          const addDangerToast = jest.fn();
+          setup({ addDangerToast });
+          await userEvent.click(
+            await screen.findByRole('button', { name: /postgresql/i }),
+          );
+          expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+          const fieldByName = (name: string) =>
+            document.querySelector<HTMLInputElement>(`input[name="${name}"]`)!;
+          for (const [name, value] of Object.entries({
+            host: 'localhost',
+            port: '5432',
+            database: 'postgres',
+            username: 'testdb',
+          })) {
+            fireEvent.change(fieldByName(name), { target: { value } });
+          }
+          fireEvent.blur(fieldByName('username'));
+          const connectButton = screen.getByRole('button', { name: 'Connect' });
+          await waitFor(() => expect(connectButton).toBeEnabled());
+          fireEvent.click(connectButton);
+          await waitFor(() =>
+            expect(
+              fetchMock.callHistory.calls(DATABASE_CONNECT_ENDPOINT),
+            ).toHaveLength(1),
+          );
+          expect(await screen.findByText(/step 3 of 3/i)).toBeInTheDocument();
+          expect(screen.getByText('Database connected')).toBeInTheDocument();
+          expect(screen.queryByText('SQLAlchemy URI')).not.toBeInTheDocument();
+          await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
+          await waitFor(() =>
+            expect(
+              fetchMock.callHistory.calls(DATABASE_FETCH_ENDPOINT),
+            ).toHaveLength(1),
+          );
+          expect(
+            JSON.parse(
+              fetchMock.callHistory.lastCall(DATABASE_FETCH_ENDPOINT)!.options
+                .body as string,
+            ),
+          ).toEqual(
+            expect.objectContaining({
+              configuration_method: ConfigurationMethod.DynamicForm,
+            }),
+          );
+        } finally {
+          resourceHook.mockImplementation(previousImplementation);
+        }
+      });
+
       test('does not fire redundant validation on blur when db has not changed', async () => {
         setup();
 
@@ -2054,7 +2122,7 @@ describe('dbReducer', () => {
     const currentState = dbReducer({}, action);
     expect(currentState).toEqual({
       ...databaseFixture,
-      configuration_method: ConfigurationMethod.SqlalchemyUri,
+      configuration_method: ConfigurationMethod.DynamicForm,
       engine: 'postgres',
       masked_encrypted_extra: '',
       parameters: undefined,
@@ -2893,5 +2961,23 @@ test.each([true, false])(
       hook.mockRestore();
       fetchMock.clearHistory().removeRoutes();
     }
+  },
+);
+
+test.each(['postgresql', 'mysql', 'databricks', 'gsheets'])(
+  'only editing %s falls back to URI when the saved schema is absent',
+  backend => {
+    const payload = {
+      backend,
+      configuration_method: ConfigurationMethod.DynamicForm,
+    };
+    expect(
+      dbReducer({}, { type: ActionType.Fetched, payload, isEditMode: false })
+        ?.configuration_method,
+    ).toBe(ConfigurationMethod.DynamicForm);
+    expect(
+      dbReducer({}, { type: ActionType.Fetched, payload, isEditMode: true })
+        ?.configuration_method,
+    ).toBe(ConfigurationMethod.SqlalchemyUri);
   },
 );

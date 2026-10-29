@@ -83,6 +83,11 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                 ),
             )
 
+        if hasattr(engine_spec, "get_extra_from_parameters"):
+            self._properties["extra"] = engine_spec.get_extra_from_parameters(
+                self._properties.get("parameters", {}),
+                self._properties.get("extra", "{}"),
+            )
         # perform initial validation (host, port, database, username)
         errors = engine_spec.validate_parameters(self._properties)  # type: ignore
 
@@ -133,6 +138,25 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             self._properties.get("parameters"),
             encrypted_extra,
         )
+        if (
+            self._model
+            and self._properties["engine"] == "databricks"
+            and make_url_safe(sqlalchemy_uri).password == PASSWORD_MASK
+            and not self._reaches_stored_destination(sqlalchemy_uri)
+        ):
+            raise InvalidParametersError(
+                [
+                    SupersetError(
+                        message=__(
+                            "Re-enter the access token when changing the connection "
+                            "destination."
+                        ),
+                        error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+                        level=ErrorLevel.ERROR,
+                        extra={"invalid": ["access_token"]},
+                    )
+                ]
+            )
         if self._model and self._reaches_stored_destination(sqlalchemy_uri):
             if identity_changed:
                 raise InvalidParametersError(

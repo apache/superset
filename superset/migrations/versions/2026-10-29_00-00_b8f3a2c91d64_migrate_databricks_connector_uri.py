@@ -124,15 +124,7 @@ def _migrate(upgrading: bool) -> None:
                 if extra is not None and extra_marked:
                     extra[MARKER] = True
                     extra_text = json.dumps(extra)
-                # Preserve conflicting user settings instead of aborting the upgrade.
-                bind.execute(records.delete().where(records.c.id == row.id))
-                bind.execute(
-                    records.insert().values(
-                        id=row.id,
-                        fingerprint=_fingerprint(uri, extra_text, row.changed_on),
-                        extra_marked=extra_marked,
-                    )
-                )
+
             else:
                 unchanged = row.fingerprint == _fingerprint(
                     uri, extra_text, row.changed_on
@@ -152,11 +144,27 @@ def _migrate(upgrading: bool) -> None:
                 ):
                     del extra[MARKER]
                     extra_text = json.dumps(extra)
-            bind.execute(
+            # Only replace the snapshot that this batch actually read.
+            updated = bind.execute(
                 databases.update()
-                .where(databases.c.id == row.id)
+                .where(
+                    databases.c.id == row.id,
+                    databases.c.sqlalchemy_uri == row.sqlalchemy_uri,
+                    databases.c.extra == row.extra,
+                    databases.c.changed_on == row.changed_on,
+                )
                 .values(sqlalchemy_uri=uri, extra=extra_text)
             )
+            if upgrading and updated.rowcount:
+                # Preserve conflicting user settings instead of aborting the upgrade.
+                bind.execute(records.delete().where(records.c.id == row.id))
+                bind.execute(
+                    records.insert().values(
+                        id=row.id,
+                        fingerprint=_fingerprint(uri, extra_text, row.changed_on),
+                        extra_marked=extra_marked,
+                    )
+                )
 
 
 def upgrade() -> None:

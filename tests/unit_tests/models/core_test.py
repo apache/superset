@@ -40,7 +40,6 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import Select
 
-from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.databases.error_provenance import mark_database_engine_error
 from superset.errors import SupersetErrorType
@@ -289,17 +288,23 @@ def test_dttm_sql_literal(
     assert SqlaTable(database=database).dttm_sql_literal(dttm, col) == result
 
 
-def test_parameters_rejects_invalid_uri(app_context: None) -> None:
-    """
-    Test that an unparseable saved URI still raises instead of returning no parameters.
-    """
-    database = Database(
-        database_name="db",
-        sqlalchemy_uri="postgresql://user:pass@host:notaport/db",
-    )
+@pytest.mark.parametrize(
+    "uri",
+    [
+        "postgresql://user:pass@host:notaport/db",
+        "not a SQLAlchemy URI",
+        "uninstalled_dialect://host/db",
+    ],
+)
+def test_connection_details_allow_uri_repair(app_context: None, uri: str) -> None:
+    """Broken saved connections serialize enough information for the URI editor."""
+    from superset.databases.schemas import DatabaseConnectionSchema
 
-    with pytest.raises(DatabaseInvalidError):
-        _ = database.parameters
+    database = Database(database_name="db", sqlalchemy_uri=uri, extra="{}")
+    result = DatabaseConnectionSchema().dump(database)
+    assert result["parameters"] == {}
+    assert result["parameters_schema"] == {}
+    assert result["sqlalchemy_uri"] == uri
 
 
 def test_table_column_database() -> None:
