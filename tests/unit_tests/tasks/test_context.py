@@ -90,3 +90,29 @@ def test_immediate_write_on_first_update(context) -> None:
     ctx.update_task(payload={"cache_key": "abc"}, immediate=True)
     assert write.call_count == 1
     assert ctx._last_db_write_time is not None
+
+
+def test_persist_cancellation_writes_immediately_and_flushes_pending_updates(
+    context,
+) -> None:
+    ctx, write = context
+
+    ctx.update_task(payload={"a": 1})  # opens the throttle window
+    ctx.update_task(payload={"b": 2})  # deferred
+    assert write.call_count == 1
+
+    # A replaced or cleared cancel handle is written at once, so the orphan
+    # reaper never reads a handle the task is done with; the write also carries
+    # the deferred update.
+    ctx.persist_cancellation(7, "42")
+    assert write.call_count == 2
+    assert ctx._has_pending_updates is False
+    assert ctx._deferred_flush_timer is None
+    assert ctx._properties_cache["private"]["task"] == {
+        "cancel_database_id": 7,
+        "cancel_query_id": "42",
+    }
+
+    ctx.persist_cancellation(7, None)
+    assert write.call_count == 3
+    assert ctx._properties_cache["private"]["task"]["cancel_query_id"] is None

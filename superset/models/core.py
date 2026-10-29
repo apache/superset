@@ -1037,20 +1037,25 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             rows = None
             description = None
 
-            # Give an active GTF chart-data task a chance to capture an engine
-            # cancel id off the live cursor before the (blocking) execute below,
-            # so a concurrent abort/timeout can kill the query. No-op otherwise.
-            from superset.tasks.query_cancel import notify_cursor
-
-            notify_cursor(cursor)
-
             from superset.sql.execution.cancellation import (
                 cancellable_cursor,
                 check_query_deadline,
                 query_executed,
             )
+            from superset.tasks.query_cancel import (
+                CursorPhase,
+                notify_cursor,
+                tracked_cursor,
+            )
 
-            with cancellable_cursor(self, cursor, catalog, schema):
+            # Let an active GTF chart-data task follow the operation this cursor
+            # runs, so a concurrent abort/timeout can cancel it, and stop before
+            # the next fetch or statement once the abort is accepted. No-op
+            # otherwise.
+            with (
+                tracked_cursor(cursor, self),
+                cancellable_cursor(self, cursor, catalog, schema),
+            ):
                 for i, statement in enumerate(script.statements):
                     check_query_deadline()
                     # Execute a single statement as-is; statement.format()
@@ -1069,8 +1074,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         database=self,
                         object_ref=__name__,
                     ):
+                        notify_cursor(cursor, self, CursorPhase.SUBMITTING)
                         self.db_engine_spec.execute(cursor, sql_, self)
                         query_executed()
+                        notify_cursor(cursor, self, CursorPhase.SUBMITTED)
 
                     # Fetch results from last statement if requested
                     if fetch_last_result and i == len(script.statements) - 1:
