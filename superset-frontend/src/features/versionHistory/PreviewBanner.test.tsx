@@ -245,3 +245,20 @@ test('withholds restore until the previewed version is actually on screen', () =
     screen.queryByRole('button', { name: 'Restore this version' }),
   ).not.toBeInTheDocument();
 });
+
+test('the action slot can wrap under the message instead of crushing it', () => {
+  // In a narrow host (Explore's chart column), the no-shrink action buttons
+  // would otherwise squeeze the message into per-word wrapping; the banner
+  // must let the action row wrap to its own line instead. JSDOM performs no
+  // flex layout, so this pins the mechanism: wrap on the root, and the
+  // sizing applied through the Alert's semantic `styles.section` API (the
+  // element antd v6 actually renders — there is no .ant-alert-content).
+  renderBanner();
+  const banner = screen.getByTestId('version-preview-banner');
+  expect(banner).toHaveStyle({ flexWrap: 'wrap' });
+
+  const section = banner.querySelector('.ant-alert-section') as HTMLElement;
+  expect(section).not.toBeNull();
+  expect(section.style.flex).toBe('1 1 max-content');
+  expect(section.style.minWidth).toBe('0');
+});

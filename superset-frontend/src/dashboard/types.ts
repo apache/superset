@@ -35,6 +35,7 @@ import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 import Database from 'src/types/Database';
 import { UrlParamEntries } from 'src/utils/urlUtils';
+import { AsyncModeOverride } from 'src/utils/asyncMode';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import User from 'src/types/User';
@@ -161,6 +162,7 @@ export type DashboardState = {
   inactiveTabs?: string[];
   datasetsStatus?: ResourceStatus;
   expandedSlices?: Record<number, boolean>;
+  expandAllSlices?: boolean;
   refreshFrequency: number;
   shouldPersistRefreshFrequency?: boolean;
   colorNamespace?: string;
@@ -196,6 +198,7 @@ export type DashboardInfo = {
     refresh_frequency?: number;
     positions?: JsonObject;
     filter_scopes?: JsonObject;
+    async_mode?: AsyncModeOverride;
   };
   crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
@@ -207,6 +210,19 @@ export type DashboardInfo = {
   chartCustomizationData?: { [itemId: string]: ColumnOption[] };
   chartCustomizationLoading?: { [itemId: string]: boolean };
   pendingChartCustomizations?: Record<string, ChartCustomization>;
+  semanticDatasets?: {
+    dashboardId: number;
+    datasets: Pick<Datasource, 'uid' | 'type' | 'columns'>[];
+  } | null;
+  semanticDatasetsRequestId?: string;
+  semanticDatasetRequests?: Record<string, string>;
+  semanticDatasetOverrides?: Record<
+    string,
+    Pick<Datasource, 'uid' | 'type' | 'columns'> | null
+  >;
+  semanticDatasetsGeneration?: number;
+  semanticDatasetsSaveGeneration?: number;
+  semanticDatasetMutationGenerations?: Record<string, number>;
   theme?: {
     id: number;
     theme_name: string;
@@ -214,7 +230,7 @@ export type DashboardInfo = {
   } | null;
   css?: string;
   slug?: string;
-  description?: string;
+  description?: string | null;
   last_modified_time: number;
   certified_by?: string;
   certification_details?: string;
@@ -229,6 +245,7 @@ export type ChartsState = { [key: string]: Chart };
 
 export type Datasource = Dataset & {
   uid: string;
+  chart_display_labels?: Record<string, Record<string, string>>;
   column_types: GenericDataType[];
   table_name: string;
   database?: Database;

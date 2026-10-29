@@ -77,8 +77,9 @@ github:
         # combination here.
         contexts:
           - lint-check
-          - cypress-matrix-required
+          - babel-extract
           - dependency-review
+          - enforce-single-migration-head
           - frontend-build
           - playwright-tests-required
           - pre-commit (current)
@@ -88,6 +89,7 @@ github:
           - test-postgres-presto
           - test-sqlite
           - unit-tests-required
+          - frontend-tests-required
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false

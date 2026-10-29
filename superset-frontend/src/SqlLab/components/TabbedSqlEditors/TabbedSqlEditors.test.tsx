@@ -61,7 +61,11 @@ test('should removeQueryEditor', async () => {
     tab => !tab.classList.contains('ant-tabs-tab-remove'),
   ).length;
   const tabList = getByRole('tablist');
-  const closeButton = tabList.getElementsByTagName('button')[0];
+  // Target the tab's own remove ("x") button by its antd class rather than
+  // DOM order: the tab now also renders a "..." actions button ahead of it.
+  const closeButton = tabList.querySelector<HTMLButtonElement>(
+    'button.ant-tabs-tab-remove',
+  );
   expect(closeButton).toBeInTheDocument();
   if (closeButton) {
     fireEvent.click(closeButton);

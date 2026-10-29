@@ -39,13 +39,13 @@ jobs:
 
       - name: Check for file changes
         id: check
-        uses: ./.github/actions/change-detector/
+        uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
         if: steps.check.outputs.superset-extensions-cli
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
           requirements-type: dev
@@ -57,7 +57,7 @@ jobs:
 
       - name: Upload coverage reports to Codecov
         if: steps.check.outputs.superset-extensions-cli
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           file: ./coverage.xml
           flags: superset-extensions-cli
@@ -66,7 +66,7 @@ jobs:
 
       - name: Upload HTML coverage report
         if: steps.check.outputs.superset-extensions-cli
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: superset-extensions-cli-coverage-html
           path: htmlcov/
@@ -74,8 +74,8 @@ jobs:
   actions-timeline:
     needs: test-superset-extensions-cli-package
     if: always()
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     steps:
-      - uses: Kesin11/actions-timeline@7bf79990b7c09f5dfb570ac30b814ca597bd538e # v3.1.1
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
         with:
           expand-composite-actions: true

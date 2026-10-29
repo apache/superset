@@ -16,19 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { AdhocFilter as CoreAdhocFilter } from '@superset-ui/core';
+import type {
+  AdhocFilter as CoreAdhocFilter,
+  TimeGranularity,
+} from '@superset-ui/core';
 import {
   CUSTOM_OPERATORS,
   DISABLE_INPUT_OPERATORS,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
   Operators,
 } from 'src/explore/constants';
-import { translateToSql } from '../utils/translateToSQL';
+import { translateToSql, VerboseColumn } from '../utils/translateToSQL';
 import { Clauses, ExpressionTypes } from '../types';
 
 const CUSTOM_OPERATIONS = [...CUSTOM_OPERATORS].map(
   op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
 );
+
+// Charts saved before #32701 store `==` for IS_TRUE/IS_FALSE with the boolean
+// in the comparator; blanking it makes them query `col IS NULL`. Restoring it
+// leaves the emitted SQL untouched -- reconciling `operator` to `IS TRUE`
+// would not, and Druid rejects that predicate on VARCHAR columns.
+const LEGACY_BOOLEAN_COMPARATORS = new Map<string, boolean>([
+  [Operators.IsTrue, true],
+  [Operators.IsFalse, false],
+]);
 
 interface AdhocFilterInput {
   expressionType?: string;
@@ -36,6 +48,7 @@ interface AdhocFilterInput {
   operator?: string | null;
   operatorId?: string;
   comparator?: unknown;
+  timeGrain?: TimeGranularity;
   clause?: string | null;
   sqlExpression?: string | null;
   isExtra?: boolean;
@@ -54,6 +67,7 @@ export default class AdhocFilter {
   operator?: string | null;
   operatorId?: string;
   comparator?: unknown;
+  timeGrain?: TimeGranularity;
   clause?: string | null;
   sqlExpression?: string | null;
   isExtra: boolean;
@@ -70,12 +84,23 @@ export default class AdhocFilter {
       this.operator = adhocFilter.operator?.toUpperCase();
       this.operatorId = adhocFilter.operatorId;
       this.comparator = adhocFilter.comparator;
+      this.timeGrain = adhocFilter.timeGrain;
       if (
         adhocFilter.operatorId &&
         DISABLE_INPUT_OPERATORS.indexOf(adhocFilter.operatorId as Operators) >=
           0
       ) {
         this.comparator = undefined;
+      }
+      if (
+        this.operator ===
+          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.Equals].operation &&
+        adhocFilter.operatorId &&
+        LEGACY_BOOLEAN_COMPARATORS.has(adhocFilter.operatorId)
+      ) {
+        this.comparator = LEGACY_BOOLEAN_COMPARATORS.get(
+          adhocFilter.operatorId,
+        );
       }
       this.clause = adhocFilter.clause || Clauses.Where;
       this.sqlExpression = null;
@@ -114,6 +139,15 @@ export default class AdhocFilter {
   }
 
   duplicateWith(nextFields: Partial<AdhocFilterInput>): AdhocFilter {
+    // A changed bucket predicate becomes an ordinary filter. Metadata-only
+    // updates and unchanged duplicates retain the drill's grain.
+    const preservesBucket =
+      (!('subject' in nextFields) || nextFields.subject === this.subject) &&
+      (!('operator' in nextFields) || nextFields.operator === this.operator) &&
+      (!('comparator' in nextFields) ||
+        nextFields.comparator === this.comparator) &&
+      (!('expressionType' in nextFields) ||
+        nextFields.expressionType === this.expressionType);
     // Spread class properties as plain object for constructor input
     const currentFields: AdhocFilterInput = {
       expressionType: this.expressionType,
@@ -121,6 +155,7 @@ export default class AdhocFilter {
       operator: this.operator,
       operatorId: this.operatorId,
       comparator: this.comparator,
+      timeGrain: preservesBucket ? this.timeGrain : undefined,
       clause: this.clause,
       sqlExpression: this.sqlExpression,
       isExtra: this.isExtra,
@@ -142,7 +177,8 @@ export default class AdhocFilter {
       adhocFilter.operator === this.operator &&
       adhocFilter.operatorId === this.operatorId &&
       adhocFilter.comparator === this.comparator &&
-      adhocFilter.subject === this.subject
+      adhocFilter.subject === this.subject &&
+      adhocFilter.timeGrain === this.timeGrain
     );
   }
 
@@ -163,8 +199,10 @@ export default class AdhocFilter {
           // A non-empty array of values ('IN' or 'NOT IN' clauses)
           return this.comparator.length > 0;
         }
-        // A value has been selected or typed
-        return this.comparator !== null;
+        // A value has been selected or typed. An unset comparator is
+        // `undefined` rather than `null`: picking a new subject resets it, and
+        // the value Select's clear affordance emits `undefined` too.
+        return this.comparator != null;
       }
     }
 
@@ -174,17 +212,23 @@ export default class AdhocFilter {
     );
   }
 
-  getDefaultLabel(): string {
-    const label = this.translateToSql();
-    return label.length < 43 ? label : `${label.substring(0, 40)}...`;
+  getDefaultLabel(columns?: VerboseColumn[]): string {
+    const label = this.translateToSql({ columns });
+    const displayLabel = this.timeGrain
+      ? `[${this.timeGrain}] ${label}`
+      : label;
+    return displayLabel.length < 43
+      ? displayLabel
+      : `${displayLabel.substring(0, 40)}...`;
   }
 
   getTooltipTitle(): string {
-    return this.translateToSql();
+    const label = this.translateToSql();
+    return this.timeGrain ? `[${this.timeGrain}] ${label}` : label;
   }
 
-  translateToSql(): string {
-    return translateToSql(this as unknown as CoreAdhocFilter);
+  translateToSql(params: { columns?: VerboseColumn[] } = {}): string {
+    return translateToSql(this as unknown as CoreAdhocFilter, params);
   }
 }
 

@@ -190,6 +190,48 @@ class TestNonAdditiveTotalsTable(SupersetTestCase):
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+class TestTableTotalsAggregateOverride(SupersetTestCase):
+    """
+    #43021: "Show summary" lets a user choose the totals row's aggregation
+    (Sum or Average) independently of each metric's own aggregation. The
+    frontend (``getTotalsMetrics``) implements this by cloning a SIMPLE
+    metric with its ``aggregate`` swapped for just the totals query. Since
+    that query has no GROUP BY, the database evaluates the swapped
+    aggregate fresh over every row -- this guard pins that an AVG override
+    is a true row-level average (SUM / COUNT over all rows), not the
+    metric's own SUM aggregation and not a naive average of per-group sums.
+    """
+
+    def test_avg_totals_aggregate_matches_sum_over_count(self):
+        self.login("admin")
+
+        sum_metric = {
+            "expressionType": "SIMPLE",
+            "column": {"column_name": "num"},
+            "aggregate": "SUM",
+            "label": "sum__num",
+        }
+        count_metric = {
+            "expressionType": "SIMPLE",
+            "column": {"column_name": "num"},
+            "aggregate": "COUNT",
+            "label": "count__num",
+        }
+        avg_metric = {**sum_metric, "aggregate": "AVG", "label": "avg__num"}
+
+        total_sum = _result_df(_base_payload(sum_metric, []))["sum__num"].iloc[0]
+        total_count = _result_df(_base_payload(count_metric, []))["count__num"].iloc[0]
+        avg_total = _result_df(_base_payload(avg_metric, []))["avg__num"].iloc[0]
+
+        # Guard the fixture itself: the second assertion below only proves
+        # AVG != SUM when there's more than one row to average over.
+        assert total_count > 1
+
+        assert avg_total == pytest.approx(total_sum / total_count)
+        assert avg_total != pytest.approx(total_sum)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 class TestTablePercentMetricSummary(SupersetTestCase):
     """
     #37627 / #34350: a Table "Percentage metrics" column must appear in the

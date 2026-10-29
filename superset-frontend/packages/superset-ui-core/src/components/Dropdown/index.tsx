@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactElement, cloneElement } from 'react';
+import { ReactElement, cloneElement, forwardRef } from 'react';
 
 import { Dropdown as AntdDropdown, DropdownProps } from 'antd';
 import { styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
   IconOrientation,
@@ -65,11 +66,14 @@ const MenuDots = styled.div`
   }
 `;
 
-const MenuDotsWrapper = styled.div`
+const MenuDotsWrapper = styled.button`
   display: flex;
   align-items: center;
   padding: ${({ theme }) => theme.sizeUnit * 2}px;
   padding-left: ${({ theme }) => theme.sizeUnit}px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
 `;
 
 const RenderIcon = (
@@ -84,17 +88,23 @@ const RenderIcon = (
   return component;
 };
 
-export const MenuDotsDropdown = ({
-  overlay,
-  iconOrientation = IconOrientation.Vertical,
-  ...rest
-}: MenuDotsDropdownProps) => (
+export const MenuDotsDropdown = forwardRef<
+  HTMLButtonElement,
+  MenuDotsDropdownProps
+>(({ overlay, iconOrientation = IconOrientation.Vertical, ...rest }, ref) => (
   <AntdDropdown popupRender={() => overlay} {...rest}>
-    <MenuDotsWrapper data-test="dropdown-trigger">
+    <MenuDotsWrapper
+      ref={ref}
+      type="button"
+      aria-label={t('Actions')}
+      data-test="dropdown-trigger"
+    >
       {RenderIcon(iconOrientation)}
     </MenuDotsWrapper>
   </AntdDropdown>
-);
+));
+
+MenuDotsDropdown.displayName = 'MenuDotsDropdown';
 
 export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   const { children, onBlur, onKeyDown, ...rest } = props;

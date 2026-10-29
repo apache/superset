@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { VariableSizeList as List } from 'react-window';
+import { useCallback, useMemo, useRef } from 'react';
+import { List, type ListImperativeAPI } from 'react-window';
 import type { UniqueIdentifier } from '@dnd-kit/core';
 import type { Metric, ColumnMeta } from '@superset-ui/chart-controls';
 import { FoldersEditorItemType } from '../types';
@@ -82,7 +82,7 @@ export function VirtualizedTreeList({
   onStartEdit,
   onFinishEdit,
 }: VirtualizedTreeListProps) {
-  const listRef = useRef<List>(null);
+  const listRef = useRef<ListImperativeAPI>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Custom auto-scroll during drag (replaces dnd-kit's auto-scroll which conflicts with virtualization)
@@ -93,20 +93,15 @@ export function VirtualizedTreeList({
     listHeight: height,
   });
 
-  // Reset list cache when items structure changes, but not during drag
-  // Resetting during drag causes jumping/flickering
-  useEffect(() => {
-    if (!isDragging) {
-      listRef.current?.resetAfterIndex(0);
-    }
-  }, [
-    flattenedItems,
-    collapsedIds,
-    folderChildCounts,
-    itemSeparatorInfo,
-    visibleItemIds,
-    isDragging,
-  ]);
+  // No manual cache-reset is needed here (react-window v2 has no
+  // `resetAfterIndex`-style API): `getItemSize` below is a `useCallback`
+  // whose dependency list matches everything that can change row heights,
+  // so react-window's internal size cache - which is invalidated whenever
+  // the `rowHeight` function reference changes - recomputes automatically.
+  // Because `flattenedItems` is held stable during drag (see
+  // useDragHandlers), `getItemSize`'s reference - and therefore the cache -
+  // naturally stays stable during drag too, preserving the old "don't
+  // reset while dragging" behavior without needing an explicit gate.
 
   // Calculate item size for react-window
   const getItemSize = useCallback(
@@ -169,7 +164,7 @@ export function VirtualizedTreeList({
   );
 
   // Prepare item data for the row renderer
-  const itemData: VirtualizedTreeItemData = useMemo(
+  const rowProps: VirtualizedTreeItemData = useMemo(
     () => ({
       flattenedItems,
       collapsedIds,
@@ -218,16 +213,14 @@ export function VirtualizedTreeList({
   return (
     <div ref={containerRef} style={{ width, height, position: 'relative' }}>
       <List
-        ref={listRef}
-        width={width}
-        height={height}
-        itemCount={flattenedItems.length}
-        itemSize={getItemSize}
-        itemData={itemData}
+        listRef={listRef}
+        style={{ width, height }}
+        rowCount={flattenedItems.length}
+        rowHeight={getItemSize}
+        rowProps={rowProps}
+        rowComponent={VirtualizedTreeItem}
         overscanCount={overscanCount}
-      >
-        {VirtualizedTreeItem}
-      </List>
+      />
     </div>
   );
 }

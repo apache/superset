@@ -93,7 +93,7 @@ describe('StandaloneDownloadControl', () => {
       { useRedux: true },
     );
 
-    userEvent.click(screen.getByTestId('standalone-download-button'));
+    await userEvent.click(screen.getByTestId('standalone-download-button'));
 
     expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
     expect(screen.getByText('Export to .JSON')).toBeInTheDocument();
@@ -109,8 +109,8 @@ describe('StandaloneDownloadControl', () => {
       { useRedux: true },
     );
 
-    userEvent.click(screen.getByTestId('standalone-download-button'));
-    userEvent.click(await screen.findByText('Export to .CSV'));
+    await userEvent.click(screen.getByTestId('standalone-download-button'));
+    await userEvent.click(await screen.findByText('Export to .CSV'));
 
     expect(exportCSV).toHaveBeenCalledTimes(1);
   });
@@ -124,8 +124,8 @@ describe('StandaloneDownloadControl', () => {
       { useRedux: true },
     );
 
-    userEvent.click(screen.getByTestId('standalone-download-button'));
-    userEvent.click(await screen.findByText('Export to .JSON'));
+    await userEvent.click(screen.getByTestId('standalone-download-button'));
+    await userEvent.click(await screen.findByText('Export to .JSON'));
 
     expect(exportJson).toHaveBeenCalledTimes(1);
   });
@@ -139,8 +139,8 @@ describe('StandaloneDownloadControl', () => {
       { useRedux: true },
     );
 
-    userEvent.click(screen.getByTestId('standalone-download-button'));
-    userEvent.click(await screen.findByText('Export to Excel'));
+    await userEvent.click(screen.getByTestId('standalone-download-button'));
+    await userEvent.click(await screen.findByText('Export to Excel'));
 
     expect(exportExcel).toHaveBeenCalledTimes(1);
   });

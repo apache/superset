@@ -120,7 +120,7 @@ test('Should render "appliedCrossFilterIndicators"', async () => {
     { useRedux: true },
   );
 
-  userEvent.hover(screen.getByTestId('details-panel-content'));
+  await userEvent.hover(screen.getByTestId('details-panel-content'));
   expect(
     await screen.findByText('Applied cross-filters (1)'),
   ).toBeInTheDocument();
@@ -129,7 +129,7 @@ test('Should render "appliedCrossFilterIndicators"', async () => {
   ).toBeInTheDocument();
 
   expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(0);
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('button', { name: 'search Clinical Stage' }),
   );
   expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(1);
@@ -141,6 +141,25 @@ test('Should render "appliedCrossFilterIndicators"', async () => {
     'CHART-eirDduqb1A',
     'LABEL-clinical_stage',
   ]);
+});
+
+test('shows a rejected dashboard column under Incompatible', async () => {
+  const props = createProps();
+  props.appliedIndicators = [];
+  props.appliedCrossFilterIndicators = [];
+  render(
+    <DetailsPanel {...props}>
+      <button type="button">Filter status</button>
+    </DetailsPanel>,
+    { useRedux: true },
+  );
+  await userEvent.hover(screen.getByRole('button', { name: 'Filter status' }));
+  expect(
+    await screen.findByText('Incompatible filters (1)'),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'search Vaccine Approach Copy' }),
+  ).toBeInTheDocument();
 });
 
 test('Should render "appliedIndicators"', async () => {
@@ -156,14 +175,14 @@ test('Should render "appliedIndicators"', async () => {
     { useRedux: true },
   );
 
-  userEvent.hover(screen.getByTestId('details-panel-content'));
+  await userEvent.hover(screen.getByTestId('details-panel-content'));
   expect(await screen.findByText('Applied filters (1)')).toBeInTheDocument();
   expect(
     screen.getByRole('button', { name: 'search Country' }),
   ).toBeInTheDocument();
 
   expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'search Country' }));
+  await userEvent.click(screen.getByRole('button', { name: 'search Country' }));
   expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(1);
   expect(props.onHighlightFilterSource).toHaveBeenCalledWith([
     'ROOT_ID',
@@ -175,7 +194,7 @@ test('Should render "appliedIndicators"', async () => {
   ]);
 });
 
-test('Should render empty', () => {
+test('Should render empty', async () => {
   const props = createProps();
   props.appliedCrossFilterIndicators = [];
   props.appliedIndicators = [];
@@ -190,7 +209,7 @@ test('Should render empty', () => {
   );
 
   expect(screen.getByTestId('details-panel-content')).toBeInTheDocument();
-  userEvent.click(screen.getByTestId('details-panel-content'));
+  await userEvent.click(screen.getByTestId('details-panel-content'));
   expect(screen.queryByRole('button')).not.toBeInTheDocument();
 });
 

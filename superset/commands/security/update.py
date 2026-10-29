@@ -19,7 +19,9 @@
 import logging
 from typing import Any, Optional
 
+from flask_babel import gettext as _
 from marshmallow import ValidationError
+from sqlalchemy.exc import IntegrityError
 
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DatasourceNotFoundValidationError
@@ -47,12 +49,48 @@ class UpdateRLSRuleCommand(BaseCommand):
     def run(self) -> Any:
         self.validate()
         assert self._model
-        return RLSDAO.update(self._model, self._properties)
+        try:
+            updated_model = RLSDAO.update(self._model, self._properties)
+            db.session.flush()
+        except IntegrityError as ex:
+            # The preflight uniqueness check in ``validate`` isn't atomic with
+            # this update, so fall back to the database's unique constraint
+            # and translate it into the same descriptive validation error.
+            raise ValidationError(
+                {"name": [_("A rule with this name already exists.")]}
+            ) from ex
+        return updated_model
 
     def validate(self) -> None:
         self._model = RLSDAO.find_by_id(int(self._model_id))
         if not self._model:
             raise RLSRuleNotFoundError()
+
+        # Datasource access is validated before revealing whether the
+        # requested name is already in use, so an unauthorized caller can't
+        # use the duplicate-name response to enumerate rule names.
+        if "tables" in self._properties:
+            tables = (
+                db.session.query(SqlaTable)
+                .filter(SqlaTable.id.in_(self._tables))  # type: ignore[attr-defined]
+                .all()
+            )
+            if len(tables) != len(self._tables):
+                raise DatasourceNotFoundValidationError()
+            raise_for_datasource_access(tables)
+            self._properties["tables"] = tables
+        else:
+            # A partial update that omits ``tables`` still mutates the rule, so
+            # enforce datasource access against the rule's existing tables to
+            # avoid letting a caller edit a rule bound to datasources they
+            # cannot access.
+            raise_for_datasource_access(self._model.tables)
+
+        name = self._properties.get("name")
+        if name and not RLSDAO.validate_uniqueness(name, self._model.id):
+            raise ValidationError(
+                {"name": [_("A rule with this name already exists.")]}
+            )
 
         # Only resolve and overwrite the relationships that are actually present
         # in the request body. A partial update (e.g. changing only the name)
@@ -76,20 +114,3 @@ class UpdateRLSRuleCommand(BaseCommand):
             raise ValidationError(
                 {"subjects": ["Regular RLS filters require at least one subject."]}
             )
-
-        if "tables" in self._properties:
-            tables = (
-                db.session.query(SqlaTable)
-                .filter(SqlaTable.id.in_(self._tables))  # type: ignore[attr-defined]
-                .all()
-            )
-            if len(tables) != len(self._tables):
-                raise DatasourceNotFoundValidationError()
-            raise_for_datasource_access(tables)
-            self._properties["tables"] = tables
-        else:
-            # A partial update that omits ``tables`` still mutates the rule, so
-            # enforce datasource access against the rule's existing tables to
-            # avoid letting a caller edit a rule bound to datasources they
-            # cannot access.
-            raise_for_datasource_access(self._model.tables)

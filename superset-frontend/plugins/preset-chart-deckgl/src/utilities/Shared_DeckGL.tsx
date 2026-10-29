@@ -221,7 +221,10 @@ export const legendPosition = {
     clearable: false,
     default: 'tr',
     choices: [
-      [null, t('None')],
+      // A stable string sentinel rather than null: the Select control does not
+      // reliably round-trip a null-valued option back as null (it can surface
+      // as undefined/the default), which left "None" unable to hide the legend.
+      ['none', t('None')],
       ['tl', t('Top left')],
       ['tr', t('Top right')],
       ['bl', t('Bottom left')],
@@ -284,6 +287,7 @@ export const fillColorPicker: CustomControlItem = {
     default: PRIMARY_COLOR,
     renderTrigger: true,
     visibility: ({ controls }) =>
+      !controls.color_scheme_type ||
       isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.fixed_color),
   },
 };

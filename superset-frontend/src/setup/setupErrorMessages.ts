@@ -24,9 +24,11 @@ import {
   MarshmallowErrorMessage,
   ParameterErrorMessage,
   DatasetNotFoundErrorMessage,
+  DatasourceSecurityAccessErrorMessage,
   InvalidSQLErrorMessage,
   OAuth2RedirectMessage,
   FrontendNetworkErrorMessage,
+  CsrfErrorMessage,
 } from 'src/components';
 
 import setupErrorMessagesExtra from './setupErrorMessagesExtra';
@@ -41,6 +43,10 @@ export default function setupErrorMessages() {
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.FRONTEND_NETWORK_ERROR,
     FrontendNetworkErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.CSRF_ERROR,
+    CsrfErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.BACKEND_TIMEOUT_ERROR,
@@ -93,6 +99,14 @@ export default function setupErrorMessages() {
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.QUERY_SECURITY_ACCESS_ERROR,
     DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.DATASOURCE_SECURITY_ACCESS_ERROR,
+    DatasourceSecurityAccessErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.TABLE_SECURITY_ACCESS_ERROR,
+    DatasourceSecurityAccessErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.CONNECTION_INVALID_HOSTNAME_ERROR,

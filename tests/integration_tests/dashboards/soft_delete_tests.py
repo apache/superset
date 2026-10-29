@@ -353,9 +353,10 @@ class TestDashboardRestore(SupersetTestCase):
         functional key parts the partial index needs in 8.0.13 (8.0.0–8.0.12
         reject it).
         """
-        dialect = db.session.bind.dialect.name
-        is_mariadb = getattr(db.session.bind.dialect, "is_mariadb", False)
-        server_version = db.session.bind.dialect.server_version_info or ()
+        bind = db.session.get_bind()
+        dialect = bind.dialect.name
+        is_mariadb = getattr(bind.dialect, "is_mariadb", False)
+        server_version = bind.dialect.server_version_info or ()
         partial_index_supported = dialect == "postgresql" or (
             dialect == "mysql" and not is_mariadb and server_version >= (8, 0, 13)
         )
@@ -388,6 +389,9 @@ class TestDashboardRestore(SupersetTestCase):
         self.client.delete(f"/api/v1/dashboard/{dashboard_id}")
         rv = self.client.post(f"/api/v1/dashboard/{dashboard_uuid}/restore")
         assert rv.status_code == 200
+        # the UUID route still resolves to the archived row's integer id
+        log = self.get_latest_log("DashboardRestApi.restore")
+        assert log.dashboard_id == dashboard_id
 
         rv = self.client.get(f"/api/v1/dashboard/{dashboard_id}")
         assert rv.status_code == 200
@@ -874,6 +878,10 @@ class TestDashboardArchiveListing(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         rv = self.client.post(f"/api/v1/dashboard/{dashboard_uuid}/purge")
         assert rv.status_code == 200, rv.data
+
+        # the UUID resolves to the row's integer id before it's gone for good
+        log = self.get_latest_log("DashboardRestApi.purge")
+        assert log.dashboard_id == dashboard_id
 
         row = (
             db.session.query(Dashboard)

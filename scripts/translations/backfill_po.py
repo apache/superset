@@ -197,11 +197,16 @@ def _load_do_not_translate(path: Path = DO_NOT_TRANSLATE_REGISTRY) -> frozenset[
 
 DO_NOT_TRANSLATE: frozenset[str] = _load_do_not_translate()
 
-# An explicit do-not-translate marker on an entry, matched in either the
-# extracted comment (`#. do-not-translate`, the standard propagated
-# from the .pot) or a translator comment (e.g. the ru catalog's legacy
-# "# Не переводить"). Honored so a human's deliberate decision is never
-# overridden even if a msgid is missing from the registry.
+# The extracted comment apply_do_not_translate.py stamps after extraction
+# (`#. do-not-translate`), propagated from the .pot to every catalog.
+_DO_NOT_TRANSLATE_MARKER = "do-not-translate"
+
+# A do-not-translate marker written by hand in a translator comment (e.g. the
+# ru catalog's legacy "# Не переводить"), in any phrasing. Honored so a human's
+# deliberate decision is never overridden even if a msgid is missing from the
+# registry. Matched only in translator comments: extracted comments also carry
+# free-text `i18n:` notes, where a phrase like "do not translate as the animal"
+# is guidance on meaning, not a marker.
 _DO_NOT_TRANSLATE_COMMENT: re.Pattern[str] = re.compile(
     r"не\s+переводить|do[\s-]?not[\s-]?translate|don'?t\s+translate",
     re.IGNORECASE,
@@ -211,15 +216,45 @@ _DO_NOT_TRANSLATE_COMMENT: re.Pattern[str] = re.compile(
 def _is_do_not_translate(entry: polib.POEntry) -> bool:
     """Return True if an entry must be left for a human (never machine-filled).
 
-    Either its msgid is in the do-not-translate registry, or the entry carries
-    an explicit do-not-translate marker in its extracted or translator comment.
+    Either its msgid is in the do-not-translate registry, its extracted comment
+    has the exact ``do-not-translate`` marker line, or its translator comment
+    carries an explicit do-not-translate marker.
     """
     if entry.msgid in DO_NOT_TRANSLATE:
         return True
-    return any(
-        comment and _DO_NOT_TRANSLATE_COMMENT.search(comment)
-        for comment in (entry.comment, entry.tcomment)
-    )
+    if any(
+        line.strip() == _DO_NOT_TRANSLATE_MARKER
+        for line in (entry.comment or "").splitlines()
+    ):
+        return True
+    return bool(entry.tcomment and _DO_NOT_TRANSLATE_COMMENT.search(entry.tcomment))
+
+
+_I18N_COMMENT_TAG = "i18n:"
+
+
+def _developer_note(entry: polib.POEntry) -> str | None:
+    """Return the ``i18n:`` translator comment on ``entry``, if any.
+
+    Developers tag a comment in source with ``i18n:`` to say which sense of an
+    ambiguous term is meant; ``babel_update.sh`` extracts it into every catalog
+    as an extracted comment (``#. i18n: ...``), which polib joins across wrapped
+    lines with newlines. Other extracted comments, such as the
+    ``do-not-translate`` marker, are not part of the note.
+    """
+    note: list[str] = []
+    in_note = False
+    for line in (entry.comment or "").splitlines():
+        text = line.strip()
+        if text.startswith(_I18N_COMMENT_TAG):
+            note.append(text[len(_I18N_COMMENT_TAG) :])
+            in_note = True
+        elif in_note and text and text != _DO_NOT_TRANSLATE_MARKER:
+            note.append(text)
+        else:
+            in_note = False
+    joined = " ".join(" ".join(note).split())
+    return joined or None
 
 
 def _context_langs(
@@ -262,6 +297,9 @@ def _render_item(
     if item.get("msgid_plural"):
         plural_json = json.dumps(item["msgid_plural"], ensure_ascii=False)
         lines.append(f"English plural: {plural_json}")
+    if item.get("developer_note"):
+        note_json = json.dumps(item["developer_note"], ensure_ascii=False)
+        lines.append(f"Developer note: {note_json}")
     key = item["index_key"]
     if key in index and reference_langs_sorted:
         for lang in reference_langs_sorted:
@@ -323,6 +361,18 @@ def build_prompt(
         " visualization UI context.",
         "",
     ]
+
+    if any(item.get("developer_note") for item in batch):
+        lines.extend(
+            [
+                "Some strings carry a Developer note, written by the Superset"
+                " developers, saying which meaning is intended. A Developer note"
+                " is authoritative: when it disagrees with the reference"
+                " translations, follow the note, because a reference translation"
+                " can itself have the wrong sense.",
+                "",
+            ]
+        )
 
     if reference_langs_sorted:
         lines.append(
@@ -454,6 +504,11 @@ def _translate_single_plaintext(
     ]
     if item.get("msgid_plural"):
         lines.append(f"English plural: {item['msgid_plural']}")
+    if item.get("developer_note"):
+        lines.append(
+            f"Developer note (authoritative on the intended meaning): "
+            f"{item['developer_note']}"
+        )
     refs = index.get(item["index_key"], {})
     ref_lines = [
         f"{_lang_name(lang)}: {val}"
@@ -594,6 +649,8 @@ def _build_batch_items(
                 "index_key": entry.msgid,
                 "is_plural": False,
             }
+        if note := _developer_note(entry):
+            item["developer_note"] = note
         item["context_langs"] = _context_langs(item, index, lang)
         item["context_count"] = len(item["context_langs"])
         items.append(item)

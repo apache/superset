@@ -14,12 +14,29 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Unit tests for the shared ``reports.execute`` soft-timeout handler."""
+"""Unit tests for report task timeout handling and failure monitoring."""
 
 from unittest.mock import MagicMock, patch
 
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
+
+
+def test_legacy_retry_is_logged_without_executing() -> None:
+    """Legacy retry tasks are rejected observably rather than losing fencing."""
+    from superset.tasks.scheduler import execute
+
+    with (
+        patch("superset.tasks.scheduler.current_app") as app,
+        patch("superset.tasks.scheduler.AsyncExecuteReportScheduleCommand") as command,
+        patch("superset.tasks.scheduler.logger") as logger,
+    ):
+        execute(1234, "2026-09-15T00:00:00")
+    command.assert_not_called()
+    app.config["STATS_LOGGER"].incr.assert_any_call(
+        "reports.execute.legacy_retry_discarded"
+    )
+    assert "reason=missing_execution_owner" in logger.warning.call_args.args[0]
 
 
 def test_soft_timeout_handler_is_shared_by_alerts() -> None:
@@ -66,3 +83,45 @@ def test_soft_timeout_handler_is_shared_by_alerts() -> None:
         and alert_schedule_id in call.args
         for call in logger_mock.warning.call_args_list
     )
+
+
+@pytest.mark.parametrize("attachment", ["csv", "xlsx", "screenshot"])
+def test_attachment_timeout_failure_policy(
+    attachment: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Tabular generation timeouts are failures without changing other 408 policy."""
+    import logging
+
+    from superset.commands.report.exceptions import (
+        ReportScheduleCsvTimeout,
+        ReportScheduleScreenshotTimeout,
+        ReportScheduleXlsxTimeout,
+    )
+    from superset.tasks.scheduler import execute
+
+    error = {
+        "csv": ReportScheduleCsvTimeout,
+        "xlsx": ReportScheduleXlsxTimeout,
+        "screenshot": ReportScheduleScreenshotTimeout,
+    }[attachment]()
+    assert error.status == 408
+    caplog.set_level(logging.WARNING)
+    with (
+        patch("superset.tasks.scheduler.AsyncExecuteReportScheduleCommand") as command,
+        patch("superset.tasks.scheduler.execute.update_state") as update_state,
+    ):
+        command.return_value.run.side_effect = error
+        execute(1234)
+
+    if attachment == "screenshot":
+        update_state.assert_not_called()
+        assert any(record.levelno == logging.WARNING for record in caplog.records)
+        assert not any(record.levelno >= logging.ERROR for record in caplog.records)
+    else:
+        update_state.assert_called_once_with(state="FAILURE")
+        assert any(
+            record.name == "superset.tasks.scheduler"
+            and record.levelno >= logging.ERROR
+            for record in caplog.records
+        )

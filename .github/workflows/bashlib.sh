@@ -37,14 +37,12 @@ pip-upgrade() {
 npm-install() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
-  # cache-restore npm
   say "::group::Install npm packages"
   echo "npm: $(npm --version)"
   echo "node: $(node --version)"
   npm ci
   say "::endgroup::"
 
-  # cache-save npm
 }
 
 build-assets() {
@@ -68,19 +66,18 @@ build-instrumented-assets() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
   say "::group::Build static assets with JS instrumented for test coverage"
-  cache-restore instrumented-assets
+  # The E2E workflow restores superset/static/assets from the Actions cache
+  # (its "Restore instrumented assets" step) before this runs and saves it
+  # after the job on a miss, so a present manifest means a cache hit.
   if [[ -f "$ASSETS_MANIFEST" ]]; then
     echo 'Skip frontend build because instrumented static assets already exist.'
   else
     npm run build-instrumented
-    cache-save instrumented-assets
   fi
   say "::endgroup::"
 }
 
 setup-postgres() {
-  say "::group::Install dependency for unit tests"
-  sudo apt-get update && sudo apt-get install --yes libecpg-dev
   say "::group::Initialize database"
   psql "postgresql://superset:superset@127.0.0.1:15432/superset" <<-EOF
     DROP SCHEMA IF EXISTS sqllab_test_db CASCADE;
@@ -125,13 +122,50 @@ testdata() {
 playwright_testdata() {
   cd "$GITHUB_WORKSPACE"
   say "::group::Load all examples for Playwright tests"
-  # must specify PYTHONPATH to make `tests.superset_test_config` importable
+
   export PYTHONPATH="$GITHUB_WORKSPACE"
   uv pip install --system -e .
-  superset db upgrade
-  superset load_test_users
-  superset load_examples
-  superset init
+
+  # Loading the examples takes 5+ minutes per job and every Playwright job
+  # loads the same data, so the workflow keeps a pg_dump of the result in the
+  # Actions cache (the "Restore cached examples dump" step, actions/cache).
+  # That step restores the dump here on a hit and saves whatever is here
+  # after the job on a miss. pg_dump/pg_restore run inside the Postgres
+  # service container so the client always matches the server;
+  # POSTGRES_CONTAINER is `job.services.postgres.id`, set on the step.
+  local dump_dir="/tmp/superset-playwright-testdata"
+  local dump="$dump_dir/superset.dump"
+  mkdir -p "$dump_dir"
+
+  if [[ -f "$dump" && -n "${POSTGRES_CONTAINER:-}" ]]; then
+    say "Restoring the examples database from the cached dump"
+    # The target database already has its public schema, so skip that entry
+    # of the archive's table of contents; everything else restores cleanly
+    # into the fresh database.
+    docker exec -i "$POSTGRES_CONTAINER" sh -c '
+      cat > /tmp/superset.dump &&
+      pg_restore -l /tmp/superset.dump | grep -v " SCHEMA - public " > /tmp/superset.list &&
+      pg_restore -U superset -d superset --no-owner --no-privileges \
+        -L /tmp/superset.list /tmp/superset.dump
+    ' < "$dump"
+    # Both are no-ops on a dump built from the same migrations and views, and
+    # keep the restored database correct if the key ever lags the code.
+    superset db upgrade
+    superset init
+  else
+    superset db upgrade
+    superset load_test_users
+    superset load_examples
+    superset init
+    if [[ -n "${POSTGRES_CONTAINER:-}" ]]; then
+      say "Saving a dump of the examples database for later runs"
+      # The sqllab_test_db and admin_database schemas are created empty by
+      # setup-postgres before this runs, so leave them out of the dump.
+      docker exec "$POSTGRES_CONTAINER" \
+        pg_dump -U superset -Fc -N sqllab_test_db -N admin_database superset > "$dump"
+    fi
+  fi
+
   # Enable DML on the examples database so Playwright tests can create/drop
   # temporary tables via SQL Lab without depending on external data sources.
   superset shell <<'PYEOF'
@@ -163,103 +197,6 @@ celery-worker() {
   say "::endgroup::"
 }
 
-cypress-install() {
-  cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
-
-  cache-restore cypress
-
-  say "::group::Install Cypress"
-  npm ci
-  say "::endgroup::"
-
-  cache-save cypress
-}
-
-cypress-run-all() {
-  local USE_DASHBOARD=$1
-  local APP_ROOT=$2
-  cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
-
-  # Start the Superset backend via gunicorn (not `flask run`). The Flask
-  # development server is single-threaded and has no crash-recovery, so
-  # heavy tests (dashboard import/export, SQL Lab) can knock it offline
-  # for the rest of the run — surfacing as `ECONNREFUSED` / `socket hang up`
-  # / `Missing CSRF token` cascades. Gunicorn gives us multiple workers,
-  # a request timeout, and worker-recycling under load.
-  local serverlog="${HOME}/superset-cypress.log"
-  local port=8081
-  CYPRESS_BASE_URL="http://localhost:${port}"
-  if [ -n "$APP_ROOT" ]; then
-    export SUPERSET_APP_ROOT=$APP_ROOT
-    CYPRESS_BASE_URL=${CYPRESS_BASE_URL}${APP_ROOT}
-  fi
-  export CYPRESS_BASE_URL
-
-  # Mirrors the args in docker/entrypoints/run-server.sh (1 worker × 20
-  # gthread threads) to keep parity with production. Multi-worker
-  # configurations expose timing-sensitive races in the SQL Lab → Explore
-  # navigation flow under E2E. We diverge from the entrypoint on:
-  #   --timeout 120: heavy dashboard import/export specs exceed the 60s
-  #     default
-  #   --max-requests / --max-requests-jitter: recycle the worker under
-  #     test load to avoid leaks accumulating across the run
-  #   superset.app:create_app(): explicit factory so we don't depend on
-  #     FLASK_APP being exported
-  nohup gunicorn \
-    --bind "127.0.0.1:$port" \
-    --workers 1 \
-    --worker-class gthread \
-    --threads 20 \
-    --timeout 120 \
-    --max-requests 500 \
-    --max-requests-jitter 50 \
-    --access-logfile - \
-    --error-logfile - \
-    "superset.app:create_app()" \
-    >"$serverlog" 2>&1 </dev/null &
-  local serverPid=$!
-
-  # Ensure the backend is cleaned up and its log is emitted even when the
-  # test runner fails under `set -e`.
-  trap '
-    echo "::group::gunicorn log for Cypress run"
-    cat "'"$serverlog"'" || true
-    echo "::endgroup::"
-    kill '"$serverPid"' 2>/dev/null || true
-  ' EXIT
-
-  # Wait for the backend to be ready before launching Cypress; otherwise
-  # the first spec can race the server bind and see connection errors.
-  local timeout=60
-  say "Waiting for gunicorn server to start on port $port..."
-  while [ $timeout -gt 0 ]; do
-    if curl -f "http://localhost:${port}${APP_ROOT}/health" >/dev/null 2>&1; then
-      say "gunicorn server is ready"
-      break
-    fi
-    sleep 1
-    timeout=$((timeout - 1))
-  done
-  if [ $timeout -eq 0 ]; then
-    echo "::error::gunicorn server failed to start within 60 seconds"
-    echo "::group::Server startup log"
-    cat "$serverlog"
-    echo "::endgroup::"
-    return 1
-  fi
-
-  USE_DASHBOARD_FLAG=''
-  if [ "$USE_DASHBOARD" = "true" ]; then
-    USE_DASHBOARD_FLAG='--use-dashboard'
-  fi
-
-  # UNCOMMENT the next few commands to monitor memory usage
-  # monitor_memory &  # Start memory monitoring in the background
-  # memoryMonitorPid=$!
-  python ../../scripts/cypress_run.py --retries 5 $USE_DASHBOARD_FLAG
-  # kill $memoryMonitorPid
-}
-
 playwright-install() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
@@ -273,11 +210,20 @@ playwright-install() {
 
 playwright-run() {
   local APP_ROOT=$1
-  local TEST_PATH=$2
+  shift || true
+  # Remaining arguments are test paths, relative to playwright/tests. Passing
+  # more than one lets a caller run a suite that spans directories. With none,
+  # selection comes from PLAYWRIGHT_EXTRA_ARGS instead -- that is how
+  # playwright-run-gaq picks its suite, via --project.
+  local TEST_PATHS=("$@")
+  local TEST_PATH=${TEST_PATHS[0]:-}
 
-  # Start the Superset backend via gunicorn from the project root.
-  # See cypress-run-all() above for the rationale — the Flask dev server
-  # cannot survive the dashboard import/export tests under load.
+  # Start the Superset backend via gunicorn (not `flask run`). The Flask
+  # development server is single-threaded and has no crash-recovery, so
+  # heavy tests (dashboard import/export, SQL Lab) can knock it offline
+  # for the rest of the run — surfacing as `ECONNREFUSED` / `socket hang up`
+  # / `Missing CSRF token` cascades. Gunicorn gives us a request timeout
+  # and a multi-threaded worker.
   cd "$GITHUB_WORKSPACE"
   local serverlog="${HOME}/superset-playwright.log"
   local port=8081
@@ -293,17 +239,28 @@ playwright-run() {
   fi
   export PLAYWRIGHT_BASE_URL
 
-  # See cypress-run-all() above for the args rationale (1 worker × 20
-  # gthread threads matching docker/entrypoints/run-server.sh, plus a
-  # 120s timeout and request-recycling for heavy E2E load).
+  # Mirrors the args in docker/entrypoints/run-server.sh (1 worker × 20
+  # gthread threads) to keep parity with production. Multi-worker
+  # configurations expose timing-sensitive races in the SQL Lab → Explore
+  # navigation flow under E2E. We diverge from the entrypoint on:
+  #   --timeout 120: heavy dashboard import/export specs exceed the 60s
+  #     default
+  #   superset.app:create_app(): explicit factory so we don't depend on
+  #     FLASK_APP being exported
+  #
+  # No --max-requests, matching the entrypoint's default of 0 (recycling
+  # off). With a single worker a recycle takes the whole backend offline for
+  # the graceful-timeout drain — browser keep-alive connections hold it open
+  # for the full 30s — plus ~5s of app boot, which flakes whichever specs
+  # happen to navigate into the outage. Lowering --graceful-timeout is not
+  # enough: a dashboard load plus chart render needs 6-10s, which still
+  # lands inside the window.
   nohup gunicorn \
     --bind "127.0.0.1:$port" \
     --workers 1 \
     --worker-class gthread \
     --threads 20 \
     --timeout 120 \
-    --max-requests 500 \
-    --max-requests-jitter 50 \
     --access-logfile - \
     --error-logfile - \
     "superset.app:create_app()" \
@@ -344,25 +301,161 @@ playwright-run() {
   say "::group::Run Playwright tests"
   echo "Running Playwright with baseURL: ${PLAYWRIGHT_BASE_URL}"
   if [ -n "$TEST_PATH" ]; then
-    # Check if there are any test files in the specified path
-    if ! find "playwright/tests/${TEST_PATH}" -name "*.spec.ts" -type f 2>/dev/null | grep -q .; then
-      echo "No test files found in ${TEST_PATH} - skipping test run"
+    # Check if there are any test files in the specified paths
+    local found=0
+    local candidate
+    for candidate in "${TEST_PATHS[@]}"; do
+      if find "playwright/tests/${candidate}" -name "*.spec.ts" -type f 2>/dev/null | grep -q .; then
+        found=1
+      elif [ -f "playwright/tests/${candidate}" ]; then
+        found=1
+      fi
+    done
+    if [ "$found" -eq 0 ]; then
+      echo "No test files found in ${TEST_PATHS[*]} - skipping test run"
       say "::endgroup::"
       return 0
     fi
-    echo "Running tests: ${TEST_PATH}"
-    # Set INCLUDE_EXPERIMENTAL=true to allow experimental tests to run
-    export INCLUDE_EXPERIMENTAL=true
-    npx playwright test "${TEST_PATH}" --output=playwright-results
+    echo "Running tests: ${TEST_PATHS[*]}"
+    # shellcheck disable=SC2086
+    npx playwright test "${TEST_PATHS[@]}" --output=playwright-results ${PLAYWRIGHT_EXTRA_ARGS:-}
     local status=$?
-    # Unset to prevent leaking into subsequent commands
-    unset INCLUDE_EXPERIMENTAL
   else
-    echo "Running all required tests (experimental/ excluded via playwright.config.ts)"
-    npx playwright test --output=playwright-results
+    echo "Running with no explicit paths (project selection comes from PLAYWRIGHT_EXTRA_ARGS, if set)"
+    # shellcheck disable=SC2086
+    npx playwright test --output=playwright-results ${PLAYWRIGHT_EXTRA_ARGS:-}
     local status=$?
   fi
   say "::endgroup::"
+
+  return $status
+}
+
+playwright-run-semantic() {
+  local APP_ROOT=$1
+
+  cd "$GITHUB_WORKSPACE"
+
+  if [ "${SUPERSET_CONFIG:-}" != "tests.integration_tests.superset_test_config_semantic" ]; then
+    echo "::error::SUPERSET_CONFIG must be tests.integration_tests.superset_test_config_semantic for this step."
+    return 1
+  fi
+
+  playwright-run "$APP_ROOT" semantic-view/
+}
+
+playwright-run-gaq() {
+  # Global Async Queries needs more than a feature flag: submissions are handed
+  # to Celery, so without a worker consuming the queue the API returns 202 and
+  # no job ever runs -- the specs would time out rather than fail usefully.
+  # `playwright-run` boots gunicorn with this step's environment, so the flag
+  # set on the step reaches both the web server and the worker started here.
+  local APP_ROOT=$1
+
+  cd "$GITHUB_WORKSPACE"
+
+  if [ "${SUPERSET_FEATURE_GLOBAL_ASYNC_QUERIES:-}" != "true" ]; then
+    echo "::error::SUPERSET_FEATURE_GLOBAL_ASYNC_QUERIES must be \"true\" for this step; the specs would skip themselves and report nothing."
+    return 1
+  fi
+
+  local workerlog="${HOME}/superset-gaq-worker.log"
+  say "::group::Start Celery worker for GAQ"
+  # Mirrors docker/docker-bootstrap.sh's worker invocation.
+  nohup celery --app=superset.tasks.celery_app:app worker \
+    -O fair \
+    --loglevel=INFO \
+    --concurrency=2 \
+    >"$workerlog" 2>&1 </dev/null &
+  local workerPid=$!
+
+  # Fail fast on a worker that never comes up: a dead worker is
+  # indistinguishable from a slow one once the specs start timing out.
+  local timeout=60
+  while [ $timeout -gt 0 ]; do
+    if ! kill -0 "$workerPid" 2>/dev/null; then
+      echo "::error::Celery worker exited during startup"
+      cat "$workerlog" || true
+      say "::endgroup::"
+      return 1
+    fi
+    if grep -q "celery@.*ready" "$workerlog" 2>/dev/null; then
+      say "Celery worker is ready"
+      break
+    fi
+    sleep 1
+    timeout=$((timeout - 1))
+  done
+  if [ $timeout -eq 0 ]; then
+    echo "::error::Celery worker failed to become ready within 60 seconds"
+    cat "$workerlog" || true
+    kill "$workerPid" 2>/dev/null || true
+    say "::endgroup::"
+    return 1
+  fi
+  say "::endgroup::"
+
+  # The GAQ specs are excluded from every other project, so this is what makes
+  # them loadable at all -- see the chromium-gaq project in playwright.config.ts.
+  export INCLUDE_GAQ=true
+
+  local report="${GITHUB_WORKSPACE}/superset-frontend/playwright-gaq-report.json"
+  rm -f "$report"
+  export PLAYWRIGHT_JSON_OUTPUT_NAME="$report"
+  # --workers=1: the fixtures all create charts as the same admin user, and
+  # Superset's tag listener races on the shared `editor:<id>` tag (see the
+  # chromium-gaq project in playwright.config.ts). That project's
+  # `fullyParallel: false` only orders tests within one file -- Playwright
+  # still runs separate files concurrently -- and this suite spans three, so
+  # one worker is what actually serializes it.
+  #
+  # --project=chromium-gaq rather than a list of spec paths: that project's
+  # testMatch (`**/global-async-query*.spec.ts`) is the same glob the default
+  # and sqllab projects use to *exclude* these specs, so selecting by project
+  # keeps both sides reading from one definition. A new spec matching the glob
+  # is picked up here automatically; with a hand-maintained path list it would
+  # be excluded from the required run and never added here, so it would run
+  # nowhere and the zero-executed check below could not notice.
+  export PLAYWRIGHT_EXTRA_ARGS="--reporter=list,json --workers=1 --project=chromium-gaq"
+
+  # `set -e` is on: without the guard a failing run would exit before the
+  # worker log is emitted and before the did-it-actually-run check below.
+  local status=0
+  playwright-run "$APP_ROOT" || status=$?
+
+  unset PLAYWRIGHT_EXTRA_ARGS PLAYWRIGHT_JSON_OUTPUT_NAME INCLUDE_GAQ
+
+  say "::group::Celery worker log"
+  cat "$workerlog" || true
+  say "::endgroup::"
+  kill "$workerPid" 2>/dev/null || true
+
+  # A suite that skips itself still exits 0. That is the failure mode this step
+  # exists to prevent, so assert that tests actually ran.
+  if [ ! -f "$report" ]; then
+    echo "::error::No Playwright JSON report produced; cannot confirm the GAQ specs ran."
+    return 1
+  fi
+  # "Did the suite run?" must count every outcome that proves a test executed,
+  # not just first-attempt passes. A run where every GAQ test genuinely fails
+  # (say the worker loses Redis mid-run) reports expected=0 too, and blaming
+  # that on an inactive GLOBAL_ASYNC_QUERIES would point whoever is debugging
+  # at the wrong layer -- the job is already red from the real failure.
+  local expected unexpected flaky skipped executed
+  expected=$(jq '.stats.expected // 0' "$report")
+  unexpected=$(jq '.stats.unexpected // 0' "$report")
+  flaky=$(jq '.stats.flaky // 0' "$report")
+  skipped=$(jq '.stats.skipped // 0' "$report")
+  executed=$((expected + unexpected + flaky))
+  say "GAQ suite: ${expected} passed, ${unexpected} failed, ${flaky} flaky, ${skipped} skipped"
+  if [ "$executed" -eq 0 ]; then
+    echo "::error::The GAQ specs reported zero executed tests -- they skipped themselves, which means GLOBAL_ASYNC_QUERIES was not active on the server under test."
+    return 1
+  fi
+  if [ "$skipped" -ne 0 ]; then
+    echo "::error::${skipped} GAQ test(s) skipped; this step must run the whole suite."
+    return 1
+  fi
 
   return $status
 }

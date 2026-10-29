@@ -30,6 +30,7 @@ import { styled } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import { PreformattedErrorDescription } from 'src/components/ErrorMessage/PreformattedErrorDescription';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
 import { TableControls, ROW_LIMIT_OPTIONS } from './DataTableControls';
@@ -83,6 +84,17 @@ export const useResultsPane = ({
 
   // Never exceed the chart's own row_limit
   const effectiveRowLimit = Math.min(rowLimit, chartRowLimit);
+
+  // When this pane's own row-limit selector is stricter than the chart's
+  // row_limit, it - not the chart - is what caps the result, so
+  // RowCountLabel's default "chart" wording would be misleading (the chart's
+  // configured row_limit was never actually reached).
+  const limitReachedMessage =
+    rowLimit < chartRowLimit
+      ? t(
+          'The row limit selected for this pane was reached. There may be more matching rows.',
+        )
+      : undefined;
 
   const cappedFormData = useMemo(
     () => ({ ...queryFormData, row_limit: effectiveRowLimit }),
@@ -205,7 +217,11 @@ export const useResultsPane = ({
             type="error"
             showIcon
             message={t('Failed to load results')}
-            description={responseError}
+            description={
+              <PreformattedErrorDescription>
+                {responseError}
+              </PreformattedErrorDescription>
+            }
           />
         </ErrorAlertWrapper>
       </>
@@ -236,6 +252,8 @@ export const useResultsPane = ({
         columnDisplayNames={columnDisplayNames}
         rowLimit={rowLimit}
         rowLimitOptions={ROW_LIMIT_OPTIONS}
+        effectiveRowLimit={effectiveRowLimit}
+        limitReachedMessage={limitReachedMessage}
         onRowLimitChange={handleRowLimitChange}
       />
     </StyledDiv>

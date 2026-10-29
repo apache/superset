@@ -33,6 +33,7 @@ import {
 } from '@superset-ui/core/components';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { runAnnotationQuery } from 'src/components/Chart/chartAction';
+import { findPermission } from 'src/utils/findPermission';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { AnyAction } from 'redux';
@@ -64,6 +65,7 @@ export interface Props {
   annotationError: Record<string, string>;
   annotationQuery: Record<string, AbortController>;
   vizType: string;
+  canReadAnnotation: boolean;
   validationErrors: JsonObject[];
   name: string;
   actions: {
@@ -85,6 +87,7 @@ function AnnotationLayerControl({
   annotationError = {},
   annotationQuery = {},
   vizType = '',
+  canReadAnnotation,
   validationErrors,
   name,
   actions,
@@ -180,6 +183,7 @@ function AnnotationLayerControl({
             error={error}
             colorScheme={colorScheme}
             vizType={vizType}
+            canReadAnnotation={canReadAnnotation}
             addAnnotationLayer={(newAnnotation: Annotation) =>
               addAnnotationLayer(annotation, newAnnotation)
             }
@@ -195,6 +199,7 @@ function AnnotationLayerControl({
     [
       colorScheme,
       vizType,
+      canReadAnnotation,
       addAnnotationLayer,
       removeAnnotationLayer,
       handleVisibleChange,
@@ -283,10 +288,13 @@ function AnnotationLayerControl({
 
 // Tried to hook this up through stores/control.jsx instead of using redux
 // directly, could not figure out how to get access to the color_scheme
-function mapStateToProps({
+// Exported for tests: the permission wiring below is not covered by tsc
+// (a missing state prop silently falls through to untyped ownProps).
+export function mapStateToProps({
   charts,
   explore,
-}: Pick<ExplorePageState, 'charts' | 'explore'>) {
+  user,
+}: Pick<ExplorePageState, 'charts' | 'explore' | 'user'>) {
   const chartKey = getChartKey(explore);
 
   const defaultChartState: Partial<ChartState> = {
@@ -303,6 +311,9 @@ function mapStateToProps({
     annotationError: chart.annotationError ?? {},
     annotationQuery: chart.annotationQuery ?? {},
     vizType: explore.controls?.viz_type.value,
+    // Mirrors the backend gate on GET /api/v1/annotation_layer/
+    // (class_permission_name "Annotation", get_list -> can_read).
+    canReadAnnotation: findPermission('can_read', 'Annotation', user?.roles),
   };
 }
 

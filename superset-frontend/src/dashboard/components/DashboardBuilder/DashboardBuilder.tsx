@@ -20,7 +20,6 @@
 import cx from 'classnames';
 import {
   Suspense,
-  lazy,
   memo,
   useCallback,
   useEffect,
@@ -28,6 +27,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { lazyWithRetry } from 'src/utils/lazyWithRetry';
 import { t } from '@apache-superset/core/translation';
 import {
   addAlpha,
@@ -38,7 +38,7 @@ import {
 } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
-import { EmptyState, Loading } from '@superset-ui/core/components';
+import { Drawer, EmptyState, Loading } from '@superset-ui/core/components';
 import { ErrorBoundary, BasicErrorAlert } from 'src/components';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/components/Header';
@@ -74,6 +74,7 @@ import {
 } from 'src/dashboard/util/constants';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
 import { useUiConfig } from 'src/components/UiConfigContext';
+import { isMobileConsumptionEnabled, useIsMobile } from 'src/hooks/useIsMobile';
 import ResizableSidebar from 'src/components/ResizableSidebar';
 import {
   BUILDER_SIDEPANEL_WIDTH,
@@ -86,6 +87,8 @@ import {
 } from 'src/dashboard/constants';
 import { selectCanRestoreDashboard } from 'src/features/versionHistory/canRestoreDashboard';
 import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
+import { StickyTabsOffsetContext } from 'src/dashboard/components/gridComponents/TabsRenderer';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
@@ -93,10 +96,10 @@ import DashboardWrapper from './DashboardWrapper';
 
 // Lazy-loaded so deployments with the VersionHistory flag off never pay
 // the bundle cost of the feature's component graph.
-const DashboardVersionHistory = lazy(
+const DashboardVersionHistory = lazyWithRetry(
   () => import('src/features/versionHistory/DashboardVersionHistory'),
 );
-const PreviewBanner = lazy(
+const PreviewBanner = lazyWithRetry(
   () => import('src/features/versionHistory/PreviewBanner'),
 );
 
@@ -107,6 +110,12 @@ const FiltersPanel = styled.div<{ width: number; hidden: boolean }>`
   grid-row: 1 / span 2;
   z-index: 11;
   width: ${({ width }) => width}px;
+  /* In an embed the bar inside this column is bounded to its content so the
+     action buttons stay reachable, which leaves its own border ending partway
+     down. This column always spans the full grid, so the separator lives here
+     instead of on the bar. */
+  ${({ theme }) =>
+    isEmbedded() && `border-right: 1px solid ${theme.colorSplit};`}
   ${({ hidden }) => hidden && `display: none;`}
 `;
 
@@ -117,15 +126,54 @@ const StickyPanel = styled.div<{ width: number }>`
   flex: 0 0 ${({ width }) => width}px;
 `;
 
+// Gates the horizontal filter bar while a historical version is previewed.
+// The bar sits in the sticky header, which has no background of its own, so
+// fading the gate itself would let content scrolled beneath the header show
+// through the bar. The gate stays opaque and only the bar inside it fades.
+const HorizontalFilterBarGate = styled.div<{ gated: boolean }>`
+  ${({ theme, gated }) =>
+    gated &&
+    css`
+      pointer-events: none;
+      background-color: ${theme.colorBgBase};
+      & > * {
+        opacity: 0.5;
+      }
+    `}
+`;
+
+// The sticky header has no background of its own; this keeps content
+// scrolled beneath it from showing through the banner's rounded corners.
+const PreviewBannerSlot = styled.div`
+  background-color: ${({ theme }) => theme.colorBgBase};
+`;
+
 // @z-index-above-dashboard-popovers (99) + 1 = 100
-const StyledHeader = styled.div<{ filterBarWidth: number }>`
-  ${({ theme, filterBarWidth }) => css`
+const StyledHeader = styled.div`
+  ${({ theme }) => css`
     grid-column: 2;
     grid-row: 1;
     position: sticky;
     top: 0;
     z-index: 99;
-    max-width: calc(100vw - ${filterBarWidth}px);
+    /* The grid track already knows how wide this column is. Capping against
+       100vw measured the viewport including the scrollbar gutter, so the
+       header could run past the visible edge. */
+    min-width: 0;
+    max-width: 100%;
+
+    /* Mobile consumption mode: let the dashboard title scroll away and keep
+       only the tab bar sticky. A pinned title would sit underneath the
+       higher-z sticky tabs, leaving its bottom edge (kebab button) peeking
+       out below the tab bar. */
+    ${
+      isMobileConsumptionEnabled() &&
+      css`
+        @media (max-width: ${theme.screenSMMax}px) {
+          position: relative;
+        }
+      `
+    }
 
     .empty-droptarget {
       min-height: ${theme.sizeUnit * 4}px;
@@ -151,19 +199,66 @@ const StyledContent = styled.div<{
 }>`
   grid-column: 2;
   grid-row: 2;
-  /* @z-index-above-dashboard-header (100) + 1 = 101 */
-  ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 101;`}
+  /* @z-index-above-dashboard-header (100) + 2 = 102: a maximized chart
+     must also cover the version-history panel (98, the content-area
+     overlay). */
+  ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 102;`}
 `;
 
-// Sticks alongside the page scroll so the panel stays fully visible.
-const VersionHistoryColumn = styled.div`
-  grid-column: 3;
-  grid-row: 1 / span 2;
-  position: sticky;
-  top: 0;
-  align-self: start;
-  height: 100vh;
-  z-index: 99;
+// The version-history panel lives in the dashboard CONTENT area, below the
+// header, mirroring the chart panel's placement in Explore (sc-120489): the
+// page header, the global nav and the dashboard's Share / Edit / ⋯ controls
+// stay in the document flow above it and remain visible and clickable.
+//
+// It has one layout at every viewport width, so window width and browser
+// zoom never change where it opens. It cannot be an in-flow grid column:
+// the content column cannot shrink below the dashboard's min-content width,
+// so below roughly 1450px the panel would be pushed past the page's right
+// edge (sc-119737).
+//
+// The column is therefore an absolutely-positioned grid item placed in the
+// content cell (column 2, row 2) — an absolutely-positioned grid item uses
+// its grid AREA as containing block — so it overlays the content's right
+// edge, adds no width to the grid, and never covers the header row or the
+// nav. It stacks below the sticky header (99) and below a maximized chart
+// (102). Because the dashboard page owns the scroll and the content cell is
+// as tall as the dashboard, the panel itself (the ``aside``) is sticky at
+// the measured header height so it never slides under the header while
+// scrolled.
+const VersionHistoryColumn = styled.div<{
+  topOffset: number;
+  bottomOffset: number;
+}>`
+  ${({ theme, topOffset, bottomOffset }) => css`
+    /* Below the sticky header (99) and a maximized chart (102). */
+    grid-column: 2;
+    grid-row: 2;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    align-self: stretch;
+    z-index: 98;
+    box-shadow: ${theme.boxShadow};
+    /* Load-bearing contract with DashboardVersionHistory's closed state:
+       it must render nothing in place (its restore modal portals out), so
+       :empty hides the host and its shadow at the content's right edge.
+       Pinned by the closed-state test in DashboardVersionHistory.test.tsx
+       (sc-119737). */
+    &:empty {
+      display: none;
+    }
+    /* The column spans the whole (tall) content cell; keep the panel itself
+       in view below the sticky header while the page scrolls. The visible
+       header bottom includes any global navigation that has not scrolled
+       away, so re-measuring it keeps the panel at the viewport bottom. The
+       panel's root is VersionHistoryPanel's <aside>. */
+    & > aside {
+      position: sticky;
+      top: ${topOffset}px;
+      height: calc(100vh - ${bottomOffset}px);
+    }
+  `}
 `;
 
 const DashboardContentWrapper = styled.div`
@@ -440,6 +535,26 @@ const DashboardBuilder = () => {
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
   const theme = useTheme();
+  // Standalone/embedded consumers (standalone=1/2/3) render their own chrome
+  // and may hide DashboardHeader entirely (see hideDashboardHeader below),
+  // which is the only place the mobile filter drawer's trigger lives. Rather
+  // than leave native filters unreachable in that case, standalone views
+  // always get the desktop layout -- matching the pre-existing behavior the
+  // docs already promise for embedded dashboards.
+  const standaloneMode = getUrlParam(URL_PARAMS.standalone);
+  const isMobileViewport = useIsMobile();
+  const isNotMobile =
+    !isMobileViewport || standaloneMode !== DashboardStandaloneMode.None;
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  // Reset the drawer's open state when leaving mobile mode so it doesn't
+  // reopen unexpectedly if the viewport later shrinks back below the
+  // breakpoint (the drawer unmounts on desktop, but its state persists).
+  useEffect(() => {
+    if (isNotMobile) {
+      setMobileFiltersOpen(false);
+    }
+  }, [isNotMobile]);
 
   const dashboardId = useSelector<RootState, string>(
     ({ dashboardInfo }) => `${dashboardInfo.id}`,
@@ -506,7 +621,6 @@ const DashboardBuilder = () => {
     rootChildId !== DASHBOARD_GRID_ID
       ? dashboardLayout[rootChildId]
       : undefined;
-  const standaloneMode = getUrlParam(URL_PARAMS.standalone);
   const isReport = standaloneMode === DashboardStandaloneMode.Report;
   // Report mode (standalone=3) hides the filter bar by default, since it's used
   // for one-shot screenshot renders (email reports, thumbnails). Embedded SDK
@@ -522,12 +636,21 @@ const DashboardBuilder = () => {
     isReport;
 
   const [barTopOffset, setBarTopOffset] = useState(0);
-  const [currentFilterBarWidth, setCurrentFilterBarWidth] = useState(
-    CLOSED_FILTER_BAR_WIDTH,
-  );
+  // The visible bottom includes global navigation until it scrolls away.
+  const [barBottomOffset, setBarBottomOffset] = useState(0);
 
   useEffect(() => {
     setBarTopOffset(headerRef.current?.getBoundingClientRect()?.height || 0);
+    const measureHistory =
+      isFeatureEnabled(FeatureFlag.VersionHistory) && !isEmbedded();
+    const updateBottomOffset = () => {
+      if (!measureHistory) return;
+      const headerRect = headerRef.current?.getBoundingClientRect();
+      setBarBottomOffset(
+        Math.max(headerRect?.height || 0, headerRect?.bottom || 0),
+      );
+    };
+    updateBottomOffset();
 
     let observer: ResizeObserver;
     if (global.hasOwnProperty('ResizeObserver') && headerRef.current) {
@@ -535,13 +658,25 @@ const DashboardBuilder = () => {
         setBarTopOffset(
           current => entries?.[0]?.contentRect?.height || current,
         );
+        updateBottomOffset();
       });
 
       observer.observe(headerRef.current);
     }
 
+    // Capture also observes the content scrollport used by the chat shell.
+    if (measureHistory) {
+      window.addEventListener('scroll', updateBottomOffset, {
+        capture: true,
+        passive: true,
+      });
+      window.addEventListener('resize', updateBottomOffset);
+    }
+
     return () => {
       observer?.disconnect();
+      window.removeEventListener('scroll', updateBottomOffset, true);
+      window.removeEventListener('resize', updateBottomOffset);
     };
   }, []);
 
@@ -551,13 +686,14 @@ const DashboardBuilder = () => {
     dashboardFiltersOpen,
     toggleDashboardFiltersOpen,
     nativeFiltersEnabled,
+    hasFilters,
   } = useNativeFilters();
 
   const [containerRef, isSticky] = useElementOnScreen<HTMLDivElement>(
     ELEMENT_ON_SCREEN_OPTIONS,
   );
 
-  const showFilterBar = !editMode && nativeFiltersEnabled;
+  const showFilterBar = isNotMobile && !editMode && nativeFiltersEnabled;
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
@@ -569,6 +705,7 @@ const DashboardBuilder = () => {
   const draggableStyle = useMemo(
     () => ({
       marginLeft:
+        !isNotMobile ||
         dashboardFiltersOpen ||
         editMode ||
         !nativeFiltersEnabled ||
@@ -577,6 +714,7 @@ const DashboardBuilder = () => {
           : -32,
     }),
     [
+      isNotMobile,
       dashboardFiltersOpen,
       editMode,
       filterBarOrientation,
@@ -608,26 +746,25 @@ const DashboardBuilder = () => {
   const headerContent = useMemo(
     () => (
       <>
-        {!hideDashboardHeader && <DashboardHeader />}
+        {!hideDashboardHeader && (
+          <DashboardHeader
+            onOpenMobileFilters={
+              !isNotMobile && nativeFiltersEnabled && hasFilters
+                ? () => setMobileFiltersOpen(true)
+                : undefined
+            }
+          />
+        )}
         {/* Report mode is a one-shot screenshot render (reports, thumbnails),
             so it must never start a refresh timer that could re-fetch charts
             mid-capture. */}
         {hideDashboardHeader && !isReport && <HeadlessAutoRefresh />}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
-            <div
+            <HorizontalFilterBarGate
               data-test="dashboard-filter-bar-gate"
               aria-disabled={isVersionPreviewActive}
-              css={css`
-                ${
-                  isVersionPreviewActive
-                    ? `
-                    pointer-events: none;
-                    opacity: 0.5;
-                  `
-                    : ''
-                }
-              `}
+              gated={isVersionPreviewActive}
               // inert blocks keyboard focus too; React 18 needs the spread form
               {...(isVersionPreviewActive ? { inert: '' } : {})}
             >
@@ -635,16 +772,20 @@ const DashboardBuilder = () => {
                 orientation={FilterBarOrientation.Horizontal}
                 hidden={hideFilterBar}
               />
-            </div>
+            </HorizontalFilterBarGate>
           )}
       </>
     ),
     [
       hideDashboardHeader,
+      isNotMobile,
+      nativeFiltersEnabled,
+      hasFilters,
       showFilterBar,
       filterBarOrientation,
       hideFilterBar,
       isVersionPreviewActive,
+      isReport,
     ],
   );
 
@@ -689,6 +830,8 @@ const DashboardBuilder = () => {
       topLevelTabs,
       uiConfig.hideTab,
       uiConfig.hideNav,
+      isNotMobile,
+      theme,
     ],
   );
 
@@ -696,14 +839,22 @@ const DashboardBuilder = () => {
     ? theme.sizeUnit * 4
     : theme.sizeUnit * 8;
 
+  // Tab bars nested in the grid pin just below the sticky header while the
+  // page scrolls. Not in the mobile viewport, where the header scrolls away
+  // and the mobile styling pins tab bars on its own; not in report mode,
+  // whose tiled screenshots scroll the page and would capture a pinned bar
+  // in every tile; and not while a chart is maximized, which sits inside its
+  // own stacking context and must not be covered by a pinned bar.
+  // (TabsRenderer itself opts out while editing, since drop targets rely on
+  // document flow.)
+  const stickyTabsOffset =
+    isMobileViewport || isReport || fullSizeChartId ? undefined : barTopOffset;
+
   const renderChild = useCallback(
     (adjustedWidth: number) => {
       const filterBarWidth = dashboardFiltersOpen
         ? adjustedWidth
         : CLOSED_FILTER_BAR_WIDTH;
-      if (filterBarWidth !== currentFilterBarWidth) {
-        setCurrentFilterBarWidth(filterBarWidth);
-      }
       return (
         <FiltersPanel
           width={filterBarWidth}
@@ -757,10 +908,6 @@ const DashboardBuilder = () => {
 
   const isVerticalFilterBarVisible =
     showFilterBar && filterBarOrientation === FilterBarOrientation.Vertical;
-  const headerFilterBarWidth = isVerticalFilterBarVisible
-    ? currentFilterBarWidth
-    : 0;
-
   return (
     <DashboardWrapper>
       {isVerticalFilterBarVisible && (
@@ -774,11 +921,7 @@ const DashboardBuilder = () => {
           {renderChild}
         </ResizableSidebar>
       )}
-      <StyledHeader
-        data-test="dashboard-header-wrapper"
-        ref={headerRef}
-        filterBarWidth={headerFilterBarWidth}
-      >
+      <StyledHeader data-test="dashboard-header-wrapper" ref={headerRef}>
         {headerContent}
         <Droppable
           data-test="top-level-tabs"
@@ -796,40 +939,46 @@ const DashboardBuilder = () => {
         >
           {renderDraggableContent}
         </Droppable>
+        {/* Part of the sticky header, below the horizontal filter bar and the
+            tabs: the preview's controls stay reachable while scrolling, and
+            the measured header height (the offset for the history panel and
+            nested tab bars) includes the banner. */}
+        {isFeatureEnabled(FeatureFlag.VersionHistory) && (
+          <PreviewBannerSlot data-test="dashboard-preview-banner-slot">
+            <Suspense fallback={null}>
+              <PreviewBanner
+                entityType="dashboard"
+                canRestore={canRestoreVersion}
+              />
+            </Suspense>
+          </PreviewBannerSlot>
+        )}
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
-        {isFeatureEnabled(FeatureFlag.VersionHistory) && (
-          <Suspense fallback={null}>
-            <PreviewBanner
-              entityType="dashboard"
-              canRestore={canRestoreVersion}
-            />
-          </Suspense>
-        )}
-        {!editMode &&
-          !topLevelTabs &&
-          dashboardLayout[DASHBOARD_GRID_ID]?.children?.length === 0 && (
-            <EmptyState
-              title={t('There are no charts added to this dashboard')}
-              size="large"
-              description={
-                canEnterEditMode &&
-                t(
-                  'Go to the edit mode to configure the dashboard and add charts',
-                )
-              }
-              buttonText={canEnterEditMode && t('Edit the dashboard')}
-              buttonAction={() => {
-                dispatch(setEditMode(true));
-                dispatch(clearDashboardHistory());
-              }}
-              image="dashboard.svg"
-            />
-          )}
         <DashboardContentWrapper
           data-test="dashboard-content-wrapper"
           className={cx('dashboard', editMode && 'dashboard--editing')}
         >
+          {!editMode &&
+            !topLevelTabs &&
+            dashboardLayout[DASHBOARD_GRID_ID]?.children?.length === 0 && (
+              <EmptyState
+                title={t('There are no charts added to this dashboard')}
+                size="large"
+                description={
+                  canEnterEditMode &&
+                  t(
+                    'Go to the edit mode to configure the dashboard and add charts',
+                  )
+                }
+                buttonText={canEnterEditMode && t('Edit the dashboard')}
+                buttonAction={() => {
+                  dispatch(setEditMode(true));
+                  dispatch(clearDashboardHistory());
+                }}
+                image="dashboard.svg"
+              />
+            )}
           <StyledDashboardContent
             className="dashboard-content"
             editMode={editMode}
@@ -898,7 +1047,9 @@ const DashboardBuilder = () => {
                   />
                 </div>
               ) : (
-                <DashboardContainer topLevelTabs={topLevelTabs} />
+                <StickyTabsOffsetContext.Provider value={stickyTabsOffset}>
+                  <DashboardContainer topLevelTabs={topLevelTabs} />
+                </StickyTabsOffsetContext.Provider>
               )
             ) : (
               <Loading />
@@ -907,8 +1058,14 @@ const DashboardBuilder = () => {
           </StyledDashboardContent>
         </DashboardContentWrapper>
       </StyledContent>
-      {isFeatureEnabled(FeatureFlag.VersionHistory) && (
-        <VersionHistoryColumn>
+      {/* Guests have no version history to show; keep its viewport-sized host
+          out of embedded documents so it cannot affect iframe sizing. */}
+      {isFeatureEnabled(FeatureFlag.VersionHistory) && !isEmbedded() && (
+        <VersionHistoryColumn
+          data-test="dashboard-version-history-column"
+          topOffset={barTopOffset}
+          bottomOffset={barBottomOffset}
+        >
           <Suspense fallback={null}>
             <DashboardVersionHistory />
           </Suspense>
@@ -922,6 +1079,36 @@ const DashboardBuilder = () => {
             }
           `}
         />
+      )}
+      {/* Mobile filters drawer */}
+      {!isNotMobile && nativeFiltersEnabled && hasFilters && (
+        <Drawer
+          title={t('Filters')}
+          placement="left"
+          onClose={() => setMobileFiltersOpen(false)}
+          open={mobileFiltersOpen}
+          width="85vw"
+          styles={{
+            body: {
+              padding: 0,
+              display: 'flex',
+              flexDirection: 'column',
+            },
+          }}
+        >
+          <FilterBar
+            orientation={FilterBarOrientation.Vertical}
+            verticalConfig={{
+              filtersOpen: true,
+              toggleFiltersBar: () => {},
+              width: 300,
+              height: '100%',
+              offset: 0,
+              mobileMode: true,
+            }}
+            hidden={false}
+          />
+        </Drawer>
       )}
     </DashboardWrapper>
   );

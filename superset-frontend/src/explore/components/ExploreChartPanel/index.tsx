@@ -21,19 +21,18 @@ import { useDispatch, useSelector } from 'react-redux';
 import Split from 'react-split';
 import { t } from '@apache-superset/core/translation';
 import {
-  DatasourceType,
   ensureIsArray,
   isFeatureEnabled,
   FeatureFlag,
-  getChartMetadataRegistry,
   SupersetClient,
   QueryFormData,
   JsonObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { Alert } from '@apache-superset/core/components';
+import { logging } from '@apache-superset/core/utils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { ExploreStandaloneMode } from 'src/explore/constants';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import { updateExploreChartState } from 'src/explore/actions/exploreActions';
@@ -46,8 +45,6 @@ import {
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
-import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
 import { getChartRequiredFieldsMissingMessage } from 'src/utils/getChartRequiredFieldsMissingMessage';
 import type { ChartState, Datasource } from 'src/explore/types';
@@ -57,6 +54,7 @@ import LastQueriedLabel from 'src/components/LastQueriedLabel';
 import { DataTablesPane } from '../DataTablesPane';
 import { ChartPills } from '../ChartPills';
 import { ExploreAlert } from '../ExploreAlert';
+import { LegacyAggregationAlert } from '../LegacyAggregationAlert';
 import useResizeDetectorByObserver from './useResizeDetectorByObserver';
 import StandaloneDownloadControl from './StandaloneDownloadControl';
 
@@ -93,7 +91,7 @@ export interface ExploreChartPanelProps {
   vizType: string;
   form_data: QueryFormData;
   ownState?: JsonObject;
-  standalone?: boolean;
+  standalone?: number;
   force?: boolean;
   timeout?: number;
   chartIsStale?: boolean;
@@ -227,17 +225,10 @@ const ExploreChartPanel = ({
       : getItem(LocalStorageKeys.IsDatapanelOpen, false),
   );
 
-  const [showDatasetModal, setShowDatasetModal] = useState(false);
-
-  const metaDataRegistry = getChartMetadataRegistry();
-  const { useLegacyApi } = metaDataRegistry.get(vizType) ?? {};
-  const vizTypeNeedsDataset =
-    useLegacyApi && datasource.type !== DatasourceType.Table;
   // added boolean column to below show boolean so that the errors aren't overlapping
   const showAlertBanner =
     !chartAlert &&
     chartIsStale &&
-    !vizTypeNeedsDataset &&
     chart.chartStatus !== 'failed' &&
     ensureIsArray(chart.queriesResponse).length > 0;
 
@@ -267,7 +258,16 @@ const ExploreChartPanel = ({
   );
 
   useEffect(() => {
-    updateQueryContext();
+    updateQueryContext().catch(error => {
+      // Best-effort backfill; the chart renders either way. A 403 is expected
+      // (no write access, or a managed chart), so it stays at debug.
+      const message = 'Skipped background query context backfill';
+      if (error?.status === 403) {
+        logging.debug(message, error);
+      } else {
+        logging.warn(message, error);
+      }
+    });
   }, [updateQueryContext]);
 
   useEffect(() => {
@@ -384,38 +384,8 @@ const ExploreChartPanel = ({
           padding-top: ${theme.sizeUnit * 2}px;
         `}
       >
-        {vizTypeNeedsDataset && (
-          <Alert
-            message={t('Chart type requires a dataset')}
-            type="error"
-            css={theme => css`
-              margin: 0 0 ${theme.sizeUnit * 4}px 0;
-            `}
-            description={
-              <>
-                {t(
-                  'This chart type is not supported when using an unsaved query as a chart source. ',
-                )}
-                <button
-                  type="button"
-                  onClick={() => setShowDatasetModal(true)}
-                  css={css`
-                    appearance: none;
-                    border: none;
-                    background: none;
-                    padding: 0;
-                    font: inherit;
-                    color: inherit;
-                    text-decoration: underline;
-                    cursor: pointer;
-                  `}
-                >
-                  {t('Create a dataset')}
-                </button>
-                {t(' to visualize your data.')}
-              </>
-            }
-          />
+        {vizType === 'pivot_table_v2' && (
+          <LegacyAggregationAlert sliceId={slice?.slice_id} />
         )}
         {showAlertBanner && (
           <ExploreAlert
@@ -505,6 +475,8 @@ const ExploreChartPanel = ({
       </div>
     ),
     [
+      vizType,
+      slice?.slice_id,
       showAlertBanner,
       errorMessage,
       onQuery,
@@ -548,7 +520,7 @@ const ExploreChartPanel = ({
     [gutterMargin],
   );
 
-  if (standalone) {
+  if (standalone === ExploreStandaloneMode.HideNav) {
     // dom manipulation hack to get rid of the bootstrap theme's body background
     const standaloneClass = 'background-transparent';
     const bodyClasses = document.body.className.split(' ');
@@ -603,17 +575,6 @@ const ExploreChartPanel = ({
           queriesResponse={chart.queriesResponse}
         />
       </Split>
-      {showDatasetModal && (
-        <SaveDatasetModal
-          visible={showDatasetModal}
-          onHide={() => setShowDatasetModal(false)}
-          buttonTextOnSave={t('Save')}
-          buttonTextOnOverwrite={t('Overwrite')}
-          datasource={getDatasourceAsSaveableDataset(datasource)}
-          openWindow={false}
-          formData={formData}
-        />
-      )}
     </Styles>
   );
 };
