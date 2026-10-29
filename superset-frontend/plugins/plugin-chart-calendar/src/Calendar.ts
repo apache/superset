@@ -100,8 +100,10 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
   container.selectAll('*').remove();
   const div = container.append('div');
 
+  // Days without data carry a null value; their label stays empty.
   const subDomainTextFormat = showValues
-    ? (_date: Date, value: number) => valueFormatter(value)
+    ? (_date: Date, value: number | null) =>
+        value == null ? '' : valueFormatter(value)
     : null;
   const dateFormatter = (date: Date, format: string) =>
     getFormattedUTCTime(date.getTime(), format);
