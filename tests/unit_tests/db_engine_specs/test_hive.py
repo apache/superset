@@ -398,9 +398,15 @@ def test_handle_cursor_propagates_time_limits(timeout: Exception) -> None:
     ``fetch_logs`` call: it fires only once, so swallowing it leaves the query
     running until the hard limit.
     """
-    from pyhive import hive
-
     from superset.db_engine_specs.hive import HiveEngineSpec
+
+    # The pyhive driver needs thrift, which is not always installed.
+    states = Mock(
+        INITIALIZED_STATE="INITIALIZED_STATE",
+        RUNNING_STATE="RUNNING_STATE",
+        FINISHED_STATE="FINISHED_STATE",
+    )
+    hive = Mock(ttypes=Mock(TOperationState=states))
 
     app: Flask = Flask(__name__)
     app.config["DB_POLL_INTERVAL_SECONDS"] = {"hive": 0}
@@ -409,15 +415,16 @@ def test_handle_cursor_propagates_time_limits(timeout: Exception) -> None:
     # Finite, so a swallowed time limit shows up as a failed assertion rather than
     # a loop that never ends.
     cursor.poll.side_effect = [
-        Mock(operationState=hive.ttypes.TOperationState.RUNNING_STATE),
-        Mock(operationState=hive.ttypes.TOperationState.RUNNING_STATE),
-        Mock(operationState=hive.ttypes.TOperationState.FINISHED_STATE),
+        Mock(operationState=states.RUNNING_STATE),
+        Mock(operationState=states.RUNNING_STATE),
+        Mock(operationState=states.FINISHED_STATE),
     ]
     cursor.fetch_logs.side_effect = timeout
     with (
         app.app_context(),
         patch("superset.db_engine_specs.hive.db") as db,
         patch("superset.db_engine_specs.hive.time.sleep"),
+        patch.dict("sys.modules", {"pyhive": Mock(hive=hive), "pyhive.hive": hive}),
     ):
         db.session.query.return_value.filter_by.return_value.one.return_value = query
         query.status = "running"
