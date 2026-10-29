@@ -188,6 +188,39 @@ class SqlLabRestApi(BaseSupersetApi):
                             items:
                               type: object
                           - type: object
+                            required:
+                              - action
+                            properties:
+                              action:
+                                type: string
+                                enum: [proceed]
+                          - type: object
+                            required:
+                              - action
+                              - reason
+                              - message
+                            properties:
+                              action:
+                                type: string
+                                enum: [confirm]
+                              reason:
+                                type: string
+                                enum: [warning, unavailable]
+                              message:
+                                type: string
+                                minLength: 1
+                              details:
+                                type: array
+                                items:
+                                  type: object
+                                  required:
+                                    - label
+                                    - value
+                                  properties:
+                                    label:
+                                      type: string
+                                    value:
+                                      type: string
             400:
               $ref: '#/components/responses/400'
             401:

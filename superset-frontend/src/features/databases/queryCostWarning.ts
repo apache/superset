@@ -29,7 +29,6 @@ const plannerCostExplanation = () =>
 export const queryCostWarningMetrics = {
   bytes_processed: {
     thresholdLabel: () => t('Warning threshold (bytes processed)'),
-    explanation: () => t('Estimated usage, not a guaranteed bill.'),
     settingsExplanation: () =>
       t(
         'Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = 1,000,000,000 bytes.',
@@ -38,7 +37,6 @@ export const queryCostWarningMetrics = {
   },
   total_cost: {
     thresholdLabel: () => t('Warning threshold (planner cost)'),
-    explanation: plannerCostExplanation,
     settingsExplanation: plannerCostExplanation,
     usesByteUnits: false,
   },

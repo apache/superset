@@ -36121,6 +36121,62 @@
                           "type": "array"
                         },
                         {
+                          "properties": {
+                            "action": {
+                              "enum": [
+                                "proceed"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "action"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "properties": {
+                            "action": {
+                              "enum": [
+                                "confirm"
+                              ],
+                              "type": "string"
+                            },
+                            "details": {
+                              "items": {
+                                "properties": {
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "label",
+                                  "value"
+                                ],
+                                "type": "object"
+                              },
+                              "type": "array"
+                            },
+                            "message": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "reason": {
+                              "enum": [
+                                "warning",
+                                "unavailable"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "action",
+                            "reason",
+                            "message"
+                          ],
                           "type": "object"
                         }
                       ]
