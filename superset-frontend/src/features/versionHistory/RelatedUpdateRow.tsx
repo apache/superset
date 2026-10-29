@@ -106,6 +106,8 @@ const tooltipNameList = (items: { key: number | string; name: string }[]) =>
 
 export interface RelatedUpdateRowProps {
   record: ActivityRecord;
+  /** Every record rolled into this row; drives the neutral headline. */
+  records?: ActivityRecord[];
   /** Entity names when several same-kind entities rolled into this row. */
   rollupEntityNames?: string[];
   onOpen?: (record: ActivityRecord) => void;
@@ -113,6 +115,7 @@ export interface RelatedUpdateRowProps {
 
 export default function RelatedUpdateRow({
   record,
+  records,
   rollupEntityNames,
   onOpen,
 }: RelatedUpdateRowProps) {
@@ -155,7 +158,7 @@ export default function RelatedUpdateRow({
     );
   }
 
-  const headline = relatedHeadline(record);
+  const headline = relatedHeadline(record, records);
   const entityName = entityDisplayName(record);
   // The "Dataset used by N charts updated" phrasing summarizes siblings the
   // row cannot name inline; the impact payload carries them for the hover

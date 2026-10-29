@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one or more
+ contributor license agreements.  See the NOTICE file distributed with this
+ work for additional information regarding copyright ownership.  The ASF
+ licenses this file to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+-->
+<head>
+  <meta charset="utf-8" />
+  <title>embedded-sdk test rig — host app</title>
+  <style>
+    body { margin: 0; font: 14px/1.5 system-ui, sans-serif; display: grid;
+           grid-template-columns: 1fr 420px; height: 100vh; }
+    main { padding: 16px; overflow: auto; }
+    aside { border-left: 1px solid #ddd; padding: 16px; overflow: auto; background: #fafafa; }
+    h1 { font-size: 16px; margin: 0 0 12px; }
+    #mount { border: 1px solid #ccc; border-radius: 8px; height: 320px; }
+    #mount iframe { width: 100%; height: 100%; border: 0; border-radius: 8px; }
+    button { font: inherit; margin: 0 6px 6px 0; padding: 4px 10px; }
+    #log { font: 12px/1.45 ui-monospace, monospace; white-space: pre-wrap; }
+    .t { color: #888; }
+    .err { color: #b00; }
+    .ok { color: #070; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Host app</h1>
+    <div>
+      <button id="embed">embed</button>
+      <button id="theme">setThemeMode(dark) + setThemeConfig</button>
+      <button id="tabs">getActiveTabs()</button>
+      <button id="unmount">unmount</button>
+      <button id="clear">clear log</button>
+    </div>
+    <div id="mount"></div>
+    <p class="t">Tokens minted by this host's endpoint: <b id="minted">0</b></p>
+  </main>
+  <aside><div id="log"></div></aside>
+
+<script src="/sdk.js"></script>
+<script>
+  const SUPERSET_ORIGIN = "__SUPERSET_ORIGIN__";
+
+  // Everything the driver reads.
+  const rig = (window.rig = {
+    events: [],       // what the embedded page reported over its side channel
+    log: [],          // what the host app saw
+    errors: [],       // rejections the SDK handed back
+    tokenFetches: 0,  // calls the SDK made to fetchGuestToken
+    dashboard: null,
+    embedState: "idle", // pending | resolved | rejected
+    embedError: null,
+    heldFirstFetch: null,
+  });
+
+  function log(kind, ...parts) {
+    const line = `${new Date().toISOString().slice(11, 23)} ${kind} ${parts
+      .map((p) => (typeof p === "string" ? p : JSON.stringify(p)))
+      .join(" ")}`;
+    rig.log.push(line);
+    const el = document.createElement("div");
+    el.className = kind === "error" ? "err" : kind === "ok" ? "ok" : "";
+    el.textContent = line;
+    document.getElementById("log").prepend(el);
+  }
+
+  // The embedded page's side channel (not the SDK's MessageChannel).
+  window.addEventListener("message", (event) => {
+    if (!event.data?.__rig) return;
+    rig.events.push({ ...event.data, at: Date.now() });
+    log("guest", `page ${event.data.page}`, event.data.event, event.data.detail ?? "");
+  });
+
+  async function refreshStats() {
+    const stats = await fetch("/stats").then((r) => r.json());
+    document.getElementById("minted").textContent = stats.tokensMinted;
+    rig.tokensMinted = stats.tokensMinted;
+    return stats;
+  }
+  window.rigRefreshStats = refreshStats;
+
+  // TTL is a query param so a run can exercise the refresh timer in seconds
+  // rather than minutes.
+  const search = new URLSearchParams(location.search);
+  const ttl = search.get("ttl") || "300";
+  // `?slowfirst=1` holds the very first fetchGuestToken() until the driver
+  // settles it by hand, which is the only way to have a navigation happen
+  // while the initial token is still in flight. `?failnth=N` makes call N
+  // reject, standing in for a host endpoint that is down.
+  const slowFirst = search.get("slowfirst");
+  const failNth = Number(search.get("failnth") || 0);
+
+  async function mintToken() {
+    const { token } = await fetch(`/guest-token?ttl=${ttl}`).then((r) => r.json());
+    refreshStats();
+    return token;
+  }
+
+  async function fetchGuestToken() {
+    rig.tokenFetches += 1;
+    const call = rig.tokenFetches;
+    log("host", `fetchGuestToken() #${call}`);
+    if (call === failNth) {
+      log("error", `fetchGuestToken() #${call} rejects (rig)`);
+      throw new Error(`rig: host token endpoint is down (call #${call})`);
+    }
+    if (slowFirst && call === 1) {
+      log("host", "fetchGuestToken() #1 held by the rig");
+      return new Promise((resolve, reject) => {
+        rig.heldFirstFetch = { resolve, reject };
+      });
+    }
+    return mintToken();
+  }
+
+  // The held first fetch, handed out once so it cannot be settled twice.
+  function takeHeldFirstFetch(action) {
+    const held = rig.heldFirstFetch;
+    if (!held) {
+      log("error", `${action}: no fetchGuestToken() is being held (needs ?slowfirst=1)`);
+      return null;
+    }
+    rig.heldFirstFetch = null;
+    return held;
+  }
+
+  // Settle the held first fetch, long after the SDK asked for it.
+  window.rigReleaseFirstToken = async () => {
+    const held = takeHeldFirstFetch("rigReleaseFirstToken");
+    if (!held) return;
+    try {
+      held.resolve(await mintToken());
+      log("host", "released the held fetchGuestToken() #1");
+    } catch (err) {
+      // Never leave the SDK waiting on a fetch nobody will settle.
+      held.reject(err);
+      log("error", `could not mint the held token, failed fetchGuestToken() #1: ${err.message}`);
+    }
+  };
+  window.rigFailFirstToken = () => {
+    const held = takeHeldFirstFetch("rigFailFirstToken");
+    if (!held) return;
+    held.reject(new Error("rig: host token endpoint is down"));
+    log("error", "failed the held fetchGuestToken() #1");
+  };
+
+  document.getElementById("embed").onclick = () => {
+    // Deliberately not awaited: a run needs to watch what happens while
+    // `embedDashboard` is still pending, and to see how it ends up settling.
+    rig.embedState = "pending";
+    supersetEmbeddedSdk
+      .embedDashboard({
+        id: "rig-dashboard",
+        supersetDomain: SUPERSET_ORIGIN,
+        mountPoint: document.getElementById("mount"),
+        fetchGuestToken,
+        debug: true,
+        dashboardUiConfig: search.get("hang")
+          ? { urlParams: { hang: "1" } }
+          : undefined,
+      })
+      .then(
+        (dashboard) => {
+          rig.dashboard = dashboard;
+          rig.embedState = "resolved";
+          log("ok", "embedDashboard resolved");
+        },
+        (err) => {
+          rig.embedState = "rejected";
+          rig.embedError = { name: err.name, message: err.message };
+          log("error", `embedDashboard rejected: ${err.message}`);
+        },
+      );
+  };
+
+  // The buttons are live before `embedDashboard` resolves, and stay live if it
+  // rejects, so each one checks there is a dashboard to act on.
+  function hasDashboard(action) {
+    if (rig.dashboard) return true;
+    log("error", `${action}: no dashboard yet (embedDashboard is ${rig.embedState})`);
+    return false;
+  }
+
+  document.getElementById("theme").onclick = () => {
+    if (!hasDashboard("theme")) return;
+    rig.dashboard.setThemeConfig({ token: { colorPrimary: "#ff0066" } });
+    rig.dashboard.setThemeMode("dark");
+    log("host", "theme pushed");
+  };
+
+  document.getElementById("tabs").onclick = () => {
+    if (!hasDashboard("getActiveTabs()")) return;
+    log("host", "getActiveTabs() called");
+    rig.dashboard.getActiveTabs().then(
+      (tabs) => log("ok", "getActiveTabs ->", tabs),
+      (err) => {
+        rig.errors.push({ name: err.name, message: err.message, at: Date.now() });
+        log("error", `getActiveTabs rejected: ${err.name}: ${err.message}`);
+      },
+    );
+  };
+
+  document.getElementById("unmount").onclick = () => {
+    if (!hasDashboard("unmount()")) return;
+    rig.dashboard.unmount();
+    log("host", "unmount()");
+  };
+
+  document.getElementById("clear").onclick = () => {
+    document.getElementById("log").textContent = "";
+  };
+
+  // Same call as the button, but handing the outcome back to the driver, so a
+  // run can tell "the port answered" from "there was nothing to ask".
+  window.rigGetActiveTabs = () => {
+    if (!rig.dashboard) return Promise.resolve({ ok: false, name: "NoDashboard" });
+    return rig.dashboard.getActiveTabs().then(
+      (tabs) => ({ ok: true, tabs }),
+      (err) => ({ ok: false, name: err.name, message: err.message }),
+    );
+  };
+
+  // Ask the embedded page to navigate itself, which is what a tab, a
+  // drill-down or a link in a Markdown chart does.
+  window.rigNavigateGuest = (to) => {
+    document
+      .querySelector("#mount iframe")
+      .contentWindow.postMessage({ __rigCommand: "navigate", to }, SUPERSET_ORIGIN);
+    log("host", "asked the dashboard to navigate to", to);
+  };
+
+  refreshStats();
+</script>
+</body>
+</html>

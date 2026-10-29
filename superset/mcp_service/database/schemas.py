@@ -32,6 +32,7 @@ from pydantic import (
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+from superset.mcp_service.chart.schemas import UnknownFieldCheckMixin
 from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
     MetadataCacheControl,
@@ -153,9 +154,14 @@ class DatabaseList(PaginatedResponse[DatabaseFilter]):
 
 
 class ListDatabasesRequest(
-    CreatedByMeMixin, MetadataCacheControl, PaginatedListRequest[DatabaseFilter]
+    UnknownFieldCheckMixin,
+    CreatedByMeMixin,
+    MetadataCacheControl,
+    PaginatedListRequest[DatabaseFilter],
 ):
     """Request schema for list_databases with clear, unambiguous types."""
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class DatabaseError(BaseModel):

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
+import { render, fireEvent, screen } from 'spec/helpers/testing-library';
 import {
   ChartMetadata,
   getChartMetadataRegistry,
@@ -24,6 +24,7 @@ import {
   JsonObject,
   FeatureFlag,
   FeatureFlagMap,
+  DataMask,
 } from '@superset-ui/core';
 import ChartRenderer, {
   ChartRendererProps,
@@ -47,6 +48,7 @@ jest.mock('@superset-ui/core', () => ({
     <div
       data-test="mock-super-chart"
       data-is-refreshing={isRefreshing ? 'true' : 'false'}
+      data-queries-data={JSON.stringify(props.queriesData ?? null)}
       data-enable-no-results={props.enableNoResults ? 'true' : 'false'}
       data-async-mode={String(
         (props.hooks as { resolveAsyncMode?: () => boolean } | undefined)?.[
@@ -54,6 +56,22 @@ jest.mock('@superset-ui/core', () => ({
         ]?.(),
       )}
     >
+      <button
+        type="button"
+        onClick={() =>
+          (
+            props.hooks as { setDataMask: (mask: DataMask) => void }
+          ).setDataMask({
+            extraFormData: {
+              semantic_selection_sources: [
+                { datasource: 'foreign__semantic_view', version: null },
+              ],
+            },
+          })
+        }
+      >
+        Emit semantic mask
+      </button>
       {JSON.stringify(postTransformProps(props).formData)}
     </div>
   ),
@@ -401,6 +419,7 @@ test('renders chart during loading when suppressLoadingSpinner has valid data', 
     chartAlert: undefined,
     suppressLoadingSpinner: true,
     queriesResponse: [{ data: [{ value: 1 }] }],
+    responseFormData: requiredProps.formData,
   };
 
   const { getByTestId } = render(<ChartRenderer {...props} />);
@@ -409,6 +428,81 @@ test('renders chart during loading when suppressLoadingSpinner has valid data', 
     'data-is-refreshing',
     'true',
   );
+  // Without the previous data SuperChart falls back to the no-results state.
+  expect(getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-queries-data',
+    JSON.stringify(props.queriesResponse),
+  );
+});
+
+test('renders a dashboard chart during loading when the spinner is not suppressed', () => {
+  const props = {
+    ...requiredProps,
+    chartStatus: 'loading' as const,
+    chartAlert: undefined,
+    suppressLoadingSpinner: false,
+    queriesResponse: [{ data: [{ value: 1 }] }],
+    responseFormData: requiredProps.formData,
+  };
+
+  const { getByTestId } = render(<ChartRenderer {...props} />);
+  expect(getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-queries-data',
+    JSON.stringify(props.queriesResponse),
+  );
+  // The plugin is not told about a refresh that shows the spinner: it would
+  // redraw the chart it already shows.
+  expect(getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-is-refreshing',
+    'false',
+  );
+});
+
+test('does not render a previous response whose form data is unknown', () => {
+  // Chart withholds the form data when the response failed to render or the
+  // chart mounted while its query was already in flight.
+  const props = {
+    ...requiredProps,
+    chartStatus: 'loading' as const,
+    chartAlert: undefined,
+    queriesResponse: [{ data: [{ value: 1 }] }],
+  };
+
+  const { queryByTestId } = render(<ChartRenderer {...props} />);
+  expect(queryByTestId('mock-super-chart')).not.toBeInTheDocument();
+});
+
+test('does not keep a Matrixify chart on screen while it refreshes', () => {
+  const formData = {
+    ...requiredProps.formData,
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics',
+    matrixify_rows: [{ label: 'count' }],
+  } as unknown as ChartRendererProps['formData'];
+  const props = {
+    ...requiredProps,
+    formData,
+    chartStatus: 'loading' as const,
+    chartAlert: undefined,
+    queriesResponse: [{ data: [{ value: 1 }] }],
+    responseFormData: formData,
+  };
+
+  const { queryByTestId } = render(<ChartRenderer {...props} />);
+  expect(queryByTestId('mock-super-chart')).not.toBeInTheDocument();
+});
+
+test('does not render an Explore chart during loading', () => {
+  const props = {
+    ...requiredProps,
+    source: ChartSource.Explore,
+    chartStatus: 'loading' as const,
+    chartAlert: undefined,
+    queriesResponse: [{ data: [{ value: 1 }] }],
+  };
+
+  const { queryByTestId } = render(<ChartRenderer {...props} />);
+  expect(queryByTestId('mock-super-chart')).not.toBeInTheDocument();
 });
 
 test('does not mark chart as refreshing when loading is not in progress', () => {
@@ -472,14 +566,93 @@ test('threads the per-dashboard async_mode override into resolveAsyncMode for se
 });
 
 test('does not render chart during loading when last data has errors', () => {
+  // CHART_UPDATE_STARTED clears chartAlert but leaves the errored response in
+  // the store, with the form data it was queried with.
   const props = {
     ...requiredProps,
     chartStatus: 'loading' as const,
     chartAlert: undefined,
     suppressLoadingSpinner: true,
     queriesResponse: [{ error: 'bad' }],
+    responseFormData: requiredProps.formData,
   };
 
   const { queryByTestId } = render(<ChartRenderer {...props} />);
   expect(queryByTestId('mock-super-chart')).not.toBeInTheDocument();
+});
+
+test('chart mask updates carry the selection sources of the latest query', () => {
+  // A cross-filter emitted after a filter change belongs to the query that
+  // produced the rows on screen, not to the chart's first query.
+  const updateDataMask = jest.fn();
+  const queryFormData = (source: string) => ({
+    datasource: '7__semantic_view',
+    viz_type: 'table',
+    semantic_selection_version: 'cube-member-id-v1',
+    semantic_selection_sources: [{ datasource: source, version: null }],
+  });
+  const actions = {
+    ...mockActions,
+    updateDataMask,
+  } as ChartRendererProps['actions'];
+  const { rerender } = render(
+    <ChartRenderer
+      {...requiredProps}
+      latestQueryFormData={queryFormData('first__semantic_view')}
+      actions={actions}
+    />,
+  );
+  rerender(
+    <ChartRenderer
+      {...requiredProps}
+      latestQueryFormData={queryFormData('second__semantic_view')}
+      actions={actions}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Emit semantic mask' }));
+  expect(updateDataMask).toHaveBeenCalledWith(
+    1,
+    expect.objectContaining({
+      extraFormData: expect.objectContaining({
+        semantic_selection_sources: [
+          { datasource: 'foreign__semantic_view', version: null },
+          { datasource: 'second__semantic_view', version: null },
+          { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
+        ],
+      }),
+    }),
+  );
+});
+
+test('chart mask updates preserve incoming and query selection provenance', () => {
+  const updateDataMask = jest.fn();
+  render(
+    <ChartRenderer
+      {...requiredProps}
+      latestQueryFormData={{
+        datasource: '7__semantic_view',
+        viz_type: 'table',
+        semantic_selection_version: 'cube-member-id-v1',
+        semantic_selection_sources: [
+          { datasource: 'query__semantic_view', version: null },
+        ],
+      }}
+      actions={
+        { ...mockActions, updateDataMask } as ChartRendererProps['actions']
+      }
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Emit semantic mask' }));
+  expect(updateDataMask).toHaveBeenCalledWith(
+    1,
+    expect.objectContaining({
+      extraFormData: expect.objectContaining({
+        semantic_selection_sources: [
+          { datasource: 'foreign__semantic_view', version: null },
+          { datasource: 'query__semantic_view', version: null },
+          { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
+        ],
+      }),
+    }),
+  );
 });

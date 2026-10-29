@@ -159,3 +159,95 @@ def test_run_sql_json_exec_from_scratch_revalidates_rendered_sql(
     sql_json_executor.execute.assert_called_once_with(
         execution_context, "SELECT * FROM sales", None
     )
+
+
+# ---------------------------------------------------------------------------
+# Regression: the recomputed row limit must be committed before the async
+# executor can race it (apache/superset#40070)
+# ---------------------------------------------------------------------------
+
+
+class _FakeQuery:
+    """
+    A minimal stand-in whose ``.limit`` behaves like the real ORM attribute,
+    so a commit's side effect can observe its *live* value. A plain
+    ``MagicMock`` attribute can't distinguish "assigned in memory" from
+    "actually committed" the way this test needs to.
+    """
+
+    def __init__(self, limit: int) -> None:
+        self.id = 1
+        self.limit = limit
+        self.select_as_cta = False
+        self.executed_sql: str | None = None
+
+
+@patch("superset.commands.sql_lab.execute.db")
+def test_run_sql_json_exec_from_scratch_commits_recomputed_limit_before_dispatch(
+    mock_db: MagicMock,
+) -> None:
+    """
+    Regression for apache/superset#40070 (same mechanism, confirmed by a
+    community member there, never fixed).
+
+    ``_set_query_limit`` recomputes ``query.limit`` as ``min(sql_limit,
+    dropdown_limit)`` and the DAO ``update`` call assigns it in place, but
+    neither commits. For an async (Celery) query, ``sql_json_executor.execute``
+    below is ``ASynchronousSqlJsonExecutor.execute`` -- it hands the query off
+    via ``.delay()`` to a worker that re-fetches the row on its own
+    connection (``get_query`` in ``superset/sql_lab.py``). Under READ
+    COMMITTED, that worker only sees the recomputed limit once it is
+    actually committed; otherwise it reads the row as it was at creation
+    time -- the raw dropdown value written by ``create_query()``, which is
+    always >= the correct minimum. That is exactly "the dropdown wins" even
+    though the query's own LIMIT was smaller.
+
+    A real Celery worker isn't needed to pin this: it is enough to prove the
+    commit boundary is in the right place -- that by the time the executor
+    is invoked, a commit has already been observed with the *corrected*
+    limit, not just the row's original creation-time value.
+    """
+    query = _FakeQuery(limit=1000)  # raw dropdown value, as written by create_query()
+
+    observed_limits_at_commit: list[int] = []
+    mock_db.session.commit.side_effect = lambda: observed_limits_at_commit.append(
+        query.limit
+    )
+
+    execution_context = MagicMock()
+    execution_context.template_params = {}
+    execution_context.select_as_cta = False
+    execution_context.limit = 1000  # the dropdown value the user chose
+    execution_context.create_query.return_value = query
+    execution_context.query = query
+    execution_context.database.db_engine_spec.get_limit_from_sql.return_value = 200
+
+    database_dao = MagicMock()
+    database_dao.find_by_id.return_value = MagicMock()
+
+    sql_query_render = MagicMock()
+    sql_query_render.render.return_value = "SELECT * FROM sales LIMIT 200"
+
+    def _fake_execute(*_args: object, **_kwargs: object) -> SqlJsonExecutionStatus:
+        assert 200 in observed_limits_at_commit, (
+            "the recomputed row limit (min of the query's own LIMIT and the "
+            "dropdown) must be committed before the async executor dispatches "
+            "to a Celery worker, or a worker racing the dispatch can read "
+            "back the stale pre-recompute (dropdown) value instead"
+        )
+        return SqlJsonExecutionStatus.QUERY_IS_RUNNING
+
+    sql_json_executor = MagicMock()
+    sql_json_executor.execute.side_effect = _fake_execute
+
+    command = _make_command(
+        execution_context=execution_context,
+        database_dao=database_dao,
+        sql_query_render=sql_query_render,
+        sql_json_executor=sql_json_executor,
+    )
+
+    command._run_sql_json_exec_from_scratch()
+
+    assert query.limit == 200
+    sql_json_executor.execute.assert_called_once()
