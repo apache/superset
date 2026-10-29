@@ -74,7 +74,7 @@ const normalizeColorToHex = (color: string): string => {
     // Expand 3/4-digit shorthand so it compares equal to the six/eight-digit
     // hex the picker emits.
     if (/^#[0-9a-f]{3,4}$/.test(lower)) {
-      return `#${lower.slice(1).map(c => c + c).join('')}`;
+      return `#${Array.from(lower.slice(1), c => c + c).join('')}`;
     }
     return lower;
   }
