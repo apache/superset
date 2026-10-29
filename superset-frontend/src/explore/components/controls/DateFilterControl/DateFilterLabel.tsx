@@ -48,12 +48,14 @@ import { DateFilterControlProps, FrameType } from './types';
 import {
   DateFilterTestKey,
   FRAME_OPTIONS,
+  formatCalendarRangeLabel,
   guessFrame,
   useDefaultTimeFilter,
 } from './utils';
 import {
   CommonFrame,
   CalendarFrame,
+  DateRangeFrame,
   CustomFrame,
   AdvancedFrame,
   DateLabel,
@@ -202,13 +204,13 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           /*
             HRT == human readable text
             ADR == actual datetime range
-            +--------------+------+----------+--------+----------+-----------+
-            |              | Last | Previous | Custom | Advanced | No Filter |
-            +--------------+------+----------+--------+----------+-----------+
-            | control pill | HRT  | HRT      | ADR    | ADR      |   HRT     |
-            +--------------+------+----------+--------+----------+-----------+
-            | tooltip      | ADR  | ADR      | HRT    | HRT      |   ADR     |
-            +--------------+------+----------+--------+----------+-----------+
+            +--------------+------+----------+----------+--------+----------+-----------+
+            |              | Last | Previous | Calendar | Custom | Advanced | No Filter |
+            +--------------+------+----------+----------+--------+----------+-----------+
+            | control pill | HRT  | HRT      | ADR      | ADR    | ADR      |   HRT     |
+            +--------------+------+----------+----------+--------+----------+-----------+
+            | tooltip      | ADR  | ADR      | HRT      | HRT    | HRT      |   ADR     |
+            +--------------+------+----------+----------+--------+----------+-----------+
           */
           if (
             guessedFrame === 'Common' ||
@@ -219,6 +221,16 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
             setActualTimeRange(value);
             setTooltipTitle(
               getTooltipTitle(labelIsTruncated, value, actualRange),
+            );
+          } else if (
+            guessedFrame === 'DateRange' &&
+            formatCalendarRangeLabel(value)
+          ) {
+            // The backend range is "start ≤ col < day after end"; show the days the user picked.
+            const pickedDays = formatCalendarRangeLabel(value);
+            setActualTimeRange(pickedDays || '');
+            setTooltipTitle(
+              getTooltipTitle(labelIsTruncated, pickedDays, actualRange),
             );
           } else {
             setActualTimeRange(actualRange || '');
@@ -320,6 +332,9 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           value={timeRangeValue}
           onChange={setTimeRangeValue}
         />
+      )}
+      {frame === 'DateRange' && (
+        <DateRangeFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
       {frame === 'Advanced' && (
         <AdvancedFrame value={timeRangeValue} onChange={setTimeRangeValue} />

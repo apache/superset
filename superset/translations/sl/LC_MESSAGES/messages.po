@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-29 11:28+0530\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -3521,8 +3521,14 @@ msgstr "Izračunani stolpci"
 msgid "Calculation type"
 msgstr "Tip izračuna"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "Koledarska barvna lestvica"
+
+msgid "Calendar date picker"
+msgstr ""
 
 msgid "Can not move top level tab into nested tabs"
 msgstr "Najvišjega zavihka ni mogoče premakniti v gnezdene zavihke"
@@ -4768,6 +4774,9 @@ msgstr "Konfigurirajte %s"
 
 msgid "Configure Advanced Time Range "
 msgstr "Nastavi napredno časovno obdobje "
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 msgid "Configure Time Range: Current..."
 msgstr "Nastavi časovno obdobje: Tekoči ..."
@@ -15156,6 +15165,12 @@ msgid "Show a draggable slider to control the visible range of the Y-axis."
 msgstr "Prikaže drsnik za nastavitev vidnega obsega osi Y."
 
 msgid ""
+"Show a plain date range picker that selects whole days, with the end date"
+" included, instead of all time range options. The default value is still "
+"set with all options."
+msgstr ""
+
+msgid ""
 "Show a summary row of total aggregations: the selected metrics in "
 "aggregate mode, or an aggregation of numeric columns in raw records mode."
 " Note that row limit does not apply to the result."
@@ -15771,6 +15786,9 @@ msgstr "Začetna Dolž. in Širina"
 
 msgid "Start Time"
 msgstr "Začetni čas"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 msgid "Start angle"
 msgstr "Začetni kot"
@@ -18553,6 +18571,11 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+msgid ""
+"This range includes a time of day, so it is not made of whole days. Pick "
+"dates to use whole days."
 msgstr ""
 
 msgid ""

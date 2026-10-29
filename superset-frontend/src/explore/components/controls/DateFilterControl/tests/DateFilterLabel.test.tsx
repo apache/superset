@@ -231,6 +231,19 @@ test('applies a configured displayFormat to the evaluated range but leaves the h
   );
 });
 
+test('a Calendar range shows the picked days with the end day included, not the exclusive backend range', async () => {
+  mockedFetchTimeRange.mockResolvedValue({
+    value: '2024-01-01 ≤ col < 2024-02-01',
+  });
+
+  render(setup({ ...defaultProps, value: '2024-01-01 : 2024-02-01' }));
+
+  expect(
+    await screen.findByText('2024-01-01 – 2024-01-31'),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(/≤ col </)).not.toBeInTheDocument();
+});
+
 test('regression: Apply during a pending debounced draft fetch must still update the pill', async () => {
   // Reproduces the maintainer-identified race: the user edits the draft
   // range (scheduling a 500ms debounced preview fetch), then clicks Apply
@@ -383,6 +396,7 @@ const FRAME_MARKERS = {
   Common: () => screen.queryByTestId(DateFilterTestKey.CommonFrame),
   Calendar: () => screen.queryByText('Configure Time Range: Previous...'),
   Current: () => screen.queryByText('Configure Time Range: Current...'),
+  DateRange: () => screen.queryByText('Configure Time Range: Calendar...'),
   Custom: () => screen.queryByText('Configure custom time range'),
   Advanced: () => screen.queryByText('Configure Advanced Time Range'),
   'No filter': () => screen.queryByTestId(DateFilterTestKey.NoFilter),
@@ -406,6 +420,7 @@ test.each<[string, FrameName, string]>([
   ['Last week', 'Common', 'Last'],
   ['previous calendar month', 'Calendar', 'Previous'],
   ['Current quarter', 'Current', 'Current'],
+  ['2021-03-16 : 2021-03-18', 'DateRange', 'Calendar'],
   ['2021-03-16T00:00:00 : 2021-03-17T00:00:00', 'Custom', 'Custom'],
   ['Last week : tomorrow', 'Advanced', 'Advanced'],
 ])(
@@ -423,6 +438,7 @@ test.each<[string, FrameName, string]>([
 test.each<[string, FrameName]>([
   ['Previous', 'Calendar'],
   ['Current', 'Current'],
+  ['Calendar', 'DateRange'],
   ['Custom', 'Custom'],
   ['Advanced', 'Advanced'],
   ['No filter', 'No filter'],

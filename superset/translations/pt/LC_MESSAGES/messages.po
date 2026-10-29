@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-29 11:28+0530\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -4353,8 +4353,14 @@ msgstr "Colunas calculadas"
 msgid "Calculation type"
 msgstr "Tipo de cálculo"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "Mapa de calor do calendário"
+
+msgid "Calendar date picker"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -5939,6 +5945,9 @@ msgstr "Configurar%s"
 # zh_TW]
 msgid "Configure Advanced Time Range "
 msgstr "Configurar intervalo de tempo avançado"
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, nl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -19189,6 +19198,12 @@ msgstr ""
 "visível do eixo Y."
 
 msgid ""
+"Show a plain date range picker that selects whole days, with the end date"
+" included, instead of all time range options. The default value is still "
+"set with all options."
+msgstr ""
+
+msgid ""
 "Show a summary row of total aggregations: the selected metrics in "
 "aggregate mode, or an aggregation of numeric columns in raw records mode."
 " Note that row limit does not apply to the result."
@@ -19991,6 +20006,9 @@ msgstr "Longitude e latitude iniciais"
 
 msgid "Start Time"
 msgstr "Hora de início"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 msgid "Start angle"
 msgstr "Ângulo inicial"
@@ -23452,6 +23470,11 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+msgid ""
+"This range includes a time of day, so it is not made of whole days. Pick "
+"dates to use whole days."
 msgstr ""
 
 msgid ""

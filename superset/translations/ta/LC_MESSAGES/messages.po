@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-29 11:28+0530\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -3422,8 +3422,14 @@ msgstr "கணக்கிடப்பட்ட நெடுவரிசைக�
 msgid "Calculation type"
 msgstr "கணக்கீட்டு வகை"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "காலண்டர் ஹீட்மேப் (Calendar Heatmap)"
+
+msgid "Calendar date picker"
+msgstr ""
 
 msgid "Can not move top level tab into nested tabs"
 msgstr ""
@@ -4666,6 +4672,9 @@ msgstr ""
 
 msgid "Configure Advanced Time Range "
 msgstr "மேம்பட்ட நேர வரம்பை உள்ளமைக்கவும் "
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 msgid "Configure Time Range: Current..."
 msgstr "நேர வரம்பை உள்ளமைக்கவும்: தற்போதைய..."
@@ -14682,6 +14691,12 @@ msgid "Show a draggable slider to control the visible range of the Y-axis."
 msgstr ""
 
 msgid ""
+"Show a plain date range picker that selects whole days, with the end date"
+" included, instead of all time range options. The default value is still "
+"set with all options."
+msgstr ""
+
+msgid ""
 "Show a summary row of total aggregations: the selected metrics in "
 "aggregate mode, or an aggregation of numeric columns in raw records mode."
 " Note that row limit does not apply to the result."
@@ -15281,6 +15296,9 @@ msgstr "தொடக்க நெட்டாய்வு மற்றும் 
 
 msgid "Start Time"
 msgstr "தொடக்க நேரம்"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 msgid "Start angle"
 msgstr "தொடக்கக் கோணம்"
@@ -17860,6 +17878,11 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+msgid ""
+"This range includes a time of day, so it is not made of whole days. Pick "
+"dates to use whole days."
 msgstr ""
 
 msgid ""

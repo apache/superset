@@ -16,10 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NO_TIME_RANGE, getExtensionsRegistry } from '@superset-ui/core';
+import {
+  AppSection,
+  NO_TIME_RANGE,
+  getExtensionsRegistry,
+} from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { useCallback, useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
+import { CalendarRangePicker } from 'src/explore/components/controls/DateFilterControl/components';
 import { PluginFilterTimeProps } from './types';
 import { FilterPluginStyle } from '../common';
 
@@ -80,7 +85,13 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
     filterState,
     inputRef,
     isOverflowingFilterBar = false,
+    appSection,
   } = props;
+  // The default value is always set with the full control, so any time range
+  // (e.g. "Last week") can be chosen; only the dashboard filter bar uses the calendar.
+  const useCalendarPicker =
+    !!props.formData.calendarPicker &&
+    appSection !== AppSection.FilterConfigModal;
   const extensionsRegistry = getExtensionsRegistry();
 
   const DateFilterControlExtension = extensionsRegistry.get(
@@ -120,19 +131,36 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
         onMouseLeave={unsetHoveredFilter}
         tabIndex={-1}
       >
-        <DateFilterComponent
-          value={filterState.value || NO_TIME_RANGE}
-          name={props.formData.nativeFilterId || 'time_range'}
-          onChange={handleTimeRangeChange}
-          onOpenPopover={() => setFilterActive(true)}
-          onClosePopover={() => {
-            setFilterActive(false);
-            unsetHoveredFilter();
-            unsetFocusedFilter();
-          }}
-          isOverflowingFilterBar={isOverflowingFilterBar}
-          displayFormat={props.formData.displayFormat}
-        />
+        {useCalendarPicker ? (
+          <CalendarRangePicker
+            value={filterState.value || NO_TIME_RANGE}
+            onChange={handleTimeRangeChange}
+            onOpenChange={open => {
+              setFilterActive(open);
+              if (!open) {
+                unsetHoveredFilter();
+                unsetFocusedFilter();
+              }
+            }}
+            status={
+              filterState.validateStatus === 'error' ? 'error' : undefined
+            }
+          />
+        ) : (
+          <DateFilterComponent
+            value={filterState.value || NO_TIME_RANGE}
+            name={props.formData.nativeFilterId || 'time_range'}
+            onChange={handleTimeRangeChange}
+            onOpenPopover={() => setFilterActive(true)}
+            onClosePopover={() => {
+              setFilterActive(false);
+              unsetHoveredFilter();
+              unsetFocusedFilter();
+            }}
+            isOverflowingFilterBar={isOverflowingFilterBar}
+            displayFormat={props.formData.displayFormat}
+          />
+        )}
       </ControlContainer>
     </TimeFilterStyles>
   ) : null;

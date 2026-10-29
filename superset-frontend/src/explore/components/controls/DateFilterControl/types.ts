@@ -28,6 +28,7 @@ export type FrameType =
   | 'Common'
   | 'Calendar'
   | 'Current'
+  | 'DateRange'
   | 'Custom'
   | 'Advanced'
   | 'No filter';

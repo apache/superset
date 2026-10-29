@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-29 11:28+0530\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -3185,8 +3185,14 @@ msgstr "計算列"
 msgid "Calculation type"
 msgstr "計算種類"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "カレンダーヒートマップ"
+
+msgid "Calendar date picker"
+msgstr ""
 
 msgid "Can not move top level tab into nested tabs"
 msgstr "トップレベルのタブを入れ子になったタブの中に移動することはできません"
@@ -4341,6 +4347,9 @@ msgstr "%s を設定"
 
 msgid "Configure Advanced Time Range "
 msgstr "高度な時間範囲設定 "
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 msgid "Configure Time Range: Current..."
 msgstr "時間範囲設定: 現在..."
@@ -13955,6 +13964,12 @@ msgid "Show a draggable slider to control the visible range of the Y-axis."
 msgstr "Y軸の表示範囲を制御するための、ドラッグ可能なスライダーを表示します。"
 
 msgid ""
+"Show a plain date range picker that selects whole days, with the end date"
+" included, instead of all time range options. The default value is still "
+"set with all options."
+msgstr ""
+
+msgid ""
 "Show a summary row of total aggregations: the selected metrics in "
 "aggregate mode, or an aggregation of numeric columns in raw records mode."
 " Note that row limit does not apply to the result."
@@ -14525,6 +14540,9 @@ msgstr "開始経度と緯度"
 
 msgid "Start Time"
 msgstr "開始時刻"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 msgid "Start angle"
 msgstr "開始角度"
@@ -16989,6 +17007,11 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+msgid ""
+"This range includes a time of day, so it is not made of whole days. Pick "
+"dates to use whole days."
 msgstr ""
 
 msgid ""
