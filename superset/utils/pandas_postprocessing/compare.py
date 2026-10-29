@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from decimal import DivisionByZero, InvalidOperation, localcontext
 from typing import Optional
 
 import pandas as pd
@@ -66,11 +67,16 @@ def compare(  # pylint: disable=too-many-arguments
         c_df.rename(columns={c_col: "__intermediate"}, inplace=True)
         if compare_type == PandasPostprocessingCompare.DIFF:
             diff_df = s_df - c_df
-        elif compare_type == PandasPostprocessingCompare.PCT:
-            diff_df = ((s_df - c_df) / c_df).astype(float).round(precision)
         else:
-            # compare_type == "ratio"
-            diff_df = (s_df / c_df).astype(float).round(precision)
+            # Match float zero-division results while preserving Decimal arithmetic.
+            with localcontext() as context:
+                context.traps[DivisionByZero] = False
+                context.traps[InvalidOperation] = False
+                if compare_type == PandasPostprocessingCompare.PCT:
+                    diff_df = ((s_df - c_df) / c_df).astype(float).round(precision)
+                else:
+                    # compare_type == "ratio"
+                    diff_df = (s_df / c_df).astype(float).round(precision)
 
         diff_df.rename(
             columns={

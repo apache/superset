@@ -31,16 +31,25 @@ from typing import Any, Dict
 
 from superset.mcp_service.dashboard.constants import generate_id
 
+# Astral-plane emoji blocks (above the Basic Multilingual Plane). Built via
+# chr() rather than literal \U escapes in the character class: some regex
+# linters misparse an 8-hex-digit \U escape inside a string literal as its
+# individual characters rather than the single code point it resolves to,
+# which makes an intentional block range look like an overly broad one.
+_EMOJI_ASTRAL_RANGES = (
+    (0x1F300, 0x1F5FF),  # Misc Symbols and Pictographs
+    (0x1F600, 0x1F64F),  # Emoticons
+    (0x1F680, 0x1F6FF),  # Transport and Map Symbols
+    (0x1F900, 0x1F9FF),  # Supplemental Symbols and Pictographs
+    (0x1FA70, 0x1FAFF),  # Symbols and Pictographs Extended-A
+)
+
 # Compiled regex for stripping common emoji Unicode ranges from tab text.
 # Uses specific Unicode blocks to avoid overly permissive ranges.
 _EMOJI_RE = re.compile(
     "["
-    "\U0001f300-\U0001f5ff"  # Misc Symbols and Pictographs
-    "\U0001f600-\U0001f64f"  # Emoticons
-    "\U0001f680-\U0001f6ff"  # Transport and Map Symbols
-    "\U0001f900-\U0001f9ff"  # Supplemental Symbols and Pictographs
-    "\U0001fa70-\U0001faff"  # Symbols and Pictographs Extended-A
-    "☀-⛿"  # Misc Symbols
+    + "".join(f"{chr(lo)}-{chr(hi)}" for lo, hi in _EMOJI_ASTRAL_RANGES)
+    + "☀-⛿"  # Misc Symbols
     "✀-➿"  # Dingbats
     "︀-️"  # Variation Selectors
     "‍"  # Zero-width joiner
