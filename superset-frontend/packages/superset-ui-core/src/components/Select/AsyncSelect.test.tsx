@@ -211,6 +211,96 @@ test('adds a new option if the value is not in the options, when options have va
   );
 });
 
+test('keeps the extra props of a selected value that is not in the options', async () => {
+  // A React-element label gives the virtualized list no accessible name, so
+  // the option rebuilt from the selected value must keep its aria-label.
+  const loadOptions = jest.fn(async () => ({
+    data: [OPTIONS[1]],
+    totalCount: 100,
+  }));
+  const value = {
+    value: 42,
+    label: <span>Amy</span>,
+    title: 'Amy',
+    'aria-label': 'Amy',
+  };
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      mode="multiple"
+      options={loadOptions}
+      value={[value]}
+    />,
+  );
+  await open();
+  expect(
+    await screen.findByRole('option', { name: 'Amy' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('option', { name: '42' })).not.toBeInTheDocument();
+});
+
+test('keeps the extra props of an option picked from search results after the search clears', async () => {
+  // Selecting stores only { label, value }. Once the search clears and the
+  // base page (which lacks the pick) is restored, the option rebuilt from the
+  // selection must still carry the picked option's aria-label, and its title
+  // and filter props so a later search can still match it client-side.
+  const amy = {
+    value: 42,
+    label: <span>Amy</span>,
+    title: 'Amy Adams',
+    'aria-label': 'Amy',
+    email: 'aadams@example.com',
+  };
+  const loadOptions = jest.fn(async (search: string) =>
+    search === 'Amy'
+      ? { data: [amy], totalCount: 1 }
+      : { data: [OPTIONS[1]], totalCount: 100 },
+  );
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      mode="multiple"
+      options={loadOptions}
+      optionFilterProps={['title', 'email']}
+    />,
+  );
+  await open();
+  await type('Amy');
+  await userEvent.click(await findSelectOption('Amy'));
+
+  await waitFor(() =>
+    expect(
+      screen.getByRole('option', { name: OPTIONS[1].label }),
+    ).toBeInTheDocument(),
+  );
+  expect(screen.getByRole('option', { name: 'Amy' })).toBeInTheDocument();
+  expect(screen.queryByRole('option', { name: '42' })).not.toBeInTheDocument();
+
+  // Neither search returns Amy, so she can only match on the remembered
+  // title or email.
+  await type('Adams');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith('Adams', 0, expect.any(Number)),
+  );
+  expect(
+    await screen.findByRole('option', { name: 'Amy' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('option', { name: OPTIONS[1].label }),
+  ).not.toBeInTheDocument();
+
+  await type('aadams@');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith('aadams@', 0, expect.any(Number)),
+  );
+  expect(
+    await screen.findByRole('option', { name: 'Amy' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('option', { name: OPTIONS[1].label }),
+  ).not.toBeInTheDocument();
+});
+
 test('does not add a new option if the value is already in the options', async () => {
   const loadOptions = jest.fn(async () => ({
     data: [OPTIONS[0]],
@@ -1676,6 +1766,135 @@ test('onChange is called with the value property when pasting an option that was
   await waitFor(() =>
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({ value: lastOption.value }),
+      expect.anything(),
+    ),
+  );
+});
+
+test('pasting matches the title of options with a React label', async () => {
+  const onChange = jest.fn();
+  const options = jest.fn(async () => ({
+    data: [
+      { label: <span>Jane Smith</span>, title: 'Jane Smith', value: 1 },
+      { label: <span>Bob Jones</span>, title: 'Bob Jones', value: 2 },
+    ],
+    totalCount: 2,
+  }));
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      options={options}
+      mode="multiple"
+      onChange={onChange}
+    />,
+  );
+  await open();
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'Jane Smith,Bob Jones',
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({ value: 1 }),
+        expect.objectContaining({ value: 2 }),
+      ],
+      expect.anything(),
+    ),
+  );
+});
+
+test('pasting matches the title of a React-label option that was not loaded yet', async () => {
+  const onChange = jest.fn();
+  const jane = {
+    label: <span>Jane Smith</span>,
+    title: 'Jane Smith',
+    value: 1,
+  };
+  const bob = { label: <span>Bob Jones</span>, title: 'Bob Jones', value: 2 };
+  const options = jest.fn(async (search: string) => ({
+    data: search === 'Bob Jones' ? [bob] : [jane],
+    totalCount: 2,
+  }));
+  render(
+    <AsyncSelect {...defaultProps} options={options} onChange={onChange} />,
+  );
+  await open();
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'Bob Jones',
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ value: 2 }),
+      expect.anything(),
+    ),
+  );
+  expect(options).toHaveBeenCalledWith('Bob Jones', 0, expect.any(Number));
+});
+
+test('keeps the extra props of a pasted option that is not on the loaded page', async () => {
+  // A paste resolved by its own fetch never lands in the options, so the
+  // option rebuilt from the selection must still carry its aria-label.
+  const amy = {
+    value: 42,
+    label: <span>Amy</span>,
+    title: 'Amy',
+    'aria-label': 'Amy',
+  };
+  const loadOptions = jest.fn(async (search: string) =>
+    search === ''
+      ? { data: [OPTIONS[1]], totalCount: 100 }
+      : { data: [amy], totalCount: 1 },
+  );
+  render(
+    <AsyncSelect {...defaultProps} mode="multiple" options={loadOptions} />,
+  );
+  await open();
+  await findSelectOption(OPTIONS[1].label);
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'Amy',
+    },
+  });
+  fireEvent(input, paste);
+
+  expect(
+    await screen.findByRole('option', { name: 'Amy' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('option', { name: '42' })).not.toBeInTheDocument();
+});
+
+test('typing the title of a React-label option and a comma selects it', async () => {
+  const onChange = jest.fn();
+  const options = jest.fn(async () => ({
+    data: [
+      { label: <span>Jane Smith</span>, title: 'Jane Smith', value: 1 },
+      { label: <span>Bob Jones</span>, title: 'Bob Jones', value: 2 },
+    ],
+    totalCount: 2,
+  }));
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      options={options}
+      mode="multiple"
+      onChange={onChange}
+    />,
+  );
+  await open();
+  await findSelectOption('Bob Jones');
+  await type('Jane Smith,');
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(
+      [expect.objectContaining({ value: 1 })],
       expect.anything(),
     ),
   );
