@@ -103,7 +103,10 @@ from superset.commands.importers.exceptions import (
     IncorrectFormatError,
     NoValidFilesFoundError,
 )
-from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.importers.v1.utils import (
+    get_contents_from_bundle,
+    open_import_bundle,
+)
 from superset.commands.purge import SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
@@ -115,6 +118,10 @@ from superset.models.slice import Slice
 from superset.security.manager import (
     attach_extra_editors,
     attach_extra_editors_to_rows,
+)
+from superset.semantic_layers.access import (
+    is_semantic_image_unavailable,
+    SemanticLayersDisabledError,
 )
 from superset.semantic_layers.import_export import SemanticReferenceError
 from superset.subjects.filters import (
@@ -143,6 +150,7 @@ from superset.versioning.etag import set_version_etag
 from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    parse_json_form_field,
     RelatedFieldFilter,
     requires_form_data,
     requires_json,
@@ -1182,6 +1190,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         chart = cast(Slice, self.datamodel.get(pk, self._base_filters))
         if not chart:
             return self.response_404()
+        if is_semantic_image_unavailable(chart):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         chart_url = get_url_path("Superset.slice", slice_id=chart.id)
         screenshot_obj = ChartScreenshot(chart_url, chart.digest)
@@ -1263,6 +1273,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
         if not chart:
             return self.response_404()
+        if is_semantic_image_unavailable(chart):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         if cache_payload := ChartScreenshot.get_from_cache_key(digest):
             # The digest is caller-supplied and cache entries are shared
@@ -1334,6 +1346,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         chart = cast(Slice, self.datamodel.get(pk, self._base_filters))
         if not chart:
             return self.response_404()
+        if is_semantic_image_unavailable(chart):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         current_user = get_current_user()
         if chart.digest != digest:
@@ -1640,7 +1654,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 body.get("extra_filters"),
             ).run()
             return self.response(200, result=[result])
-        except CommandException as ex:
+        except (CommandException, SemanticLayersDisabledError) as ex:
             return self.response(ex.status, message=ex.message)
 
     @expose("/import/", methods=("POST",))
@@ -1735,32 +1749,18 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             return self.response_400()
         if not is_zipfile(upload):
             raise IncorrectFormatError("Not a ZIP file")
-        with ZipFile(upload) as bundle:
+        with open_import_bundle(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
         if not contents:
             raise NoValidFilesFoundError()
 
-        passwords = (
-            json.loads(request.form["passwords"])
-            if "passwords" in request.form
-            else None
-        )
+        passwords = parse_json_form_field("passwords")
         overwrite = request.form.get("overwrite") == "true"
-        ssh_tunnel_passwords = (
-            json.loads(request.form["ssh_tunnel_passwords"])
-            if "ssh_tunnel_passwords" in request.form
-            else None
-        )
-        ssh_tunnel_private_keys = (
-            json.loads(request.form["ssh_tunnel_private_keys"])
-            if "ssh_tunnel_private_keys" in request.form
-            else None
-        )
-        ssh_tunnel_priv_key_passwords = (
-            json.loads(request.form["ssh_tunnel_private_key_passwords"])
-            if "ssh_tunnel_private_key_passwords" in request.form
-            else None
+        ssh_tunnel_passwords = parse_json_form_field("ssh_tunnel_passwords")
+        ssh_tunnel_private_keys = parse_json_form_field("ssh_tunnel_private_keys")
+        ssh_tunnel_priv_key_passwords = parse_json_form_field(
+            "ssh_tunnel_private_key_passwords"
         )
 
         command = ImportChartsCommand(

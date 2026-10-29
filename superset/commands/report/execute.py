@@ -21,7 +21,7 @@ import urllib.request
 from collections.abc import Sequence
 from contextlib import closing
 from dataclasses import replace
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any, Optional, TYPE_CHECKING, Union
 from urllib.error import URLError
 from uuid import UUID
@@ -51,6 +51,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleExecutorNotFoundError,
     ReportScheduleNotFoundError,
     ReportSchedulePreviousWorkingError,
+    ReportScheduleRecipientsNotAllowedError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
     ReportScheduleStateNotFoundError,
@@ -72,6 +73,7 @@ from superset.commands.report.slack_upgrade import SlackV1UpgradeCoordinator
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.daos.report import (
     REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+    ReportConfigDAO,
     ReportScheduleDAO,
 )
 from superset.dashboards.permalink.types import DashboardPermalinkState
@@ -79,6 +81,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorsException, SupersetException
 from superset.extensions import feature_flag_manager, machine_auth_provider_factory
 from superset.reports.models import (
+    ReportConfigKey,
     ReportDataFormat,
     ReportExecutionLog,
     ReportRecipients,
@@ -98,11 +101,18 @@ from superset.reports.notifications.slack import SlackNotification
 from superset.reports.notifications.slack_transport import (
     get_slack_send_retry_deadline,
 )
+from superset.reports.utils import get_dynamic_executor, get_email_addresses
 from superset.subjects.types import SubjectType
+from superset.tasks.exceptions import ExecutorNotFoundError
 from superset.tasks.utils import get_executor
 from superset.utils import json
-from superset.utils.core import HeaderDataType, override_user
-from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
+from superset.utils.core import apply_max_row_limit, HeaderDataType, override_user
+from superset.utils.csv import (
+    chart_data_to_dataframe,
+    get_chart_csv_data,
+    get_chart_dataframe,
+)
+from superset.utils.dates import naive_utcnow
 from superset.utils.decorators import (
     logs_context,
     transaction,
@@ -127,28 +137,75 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def get_executor_user(model: ReportSchedule) -> tuple["User | None", str | None]:
+    """
+    Resolve the executor user for a report schedule, tolerating a missing user.
+
+    The per-schedule "Run As" choice (SIP-209) takes precedence when the
+    ``ALERT_REPORT_DYNAMIC_EXECUTOR`` feature flag is enabled and the schedule
+    has one; an unset choice uses ``ALERT_REPORTS_EXECUTORS``. An
+    inactive "Run As" user, or a deleted/disabled legacy executor, yields
+    ``None`` so callers decide how to surface it.
+
+    :returns: the ``(user, username)`` pair.
+    """
+    try:
+        user = get_dynamic_executor(model)
+    except ReportScheduleExecutorNotFoundError:
+        # Keep missing-user failures inside the state machine's error envelope.
+        return None, None
+    if user is not None:
+        return (user if user.is_active else None), user.username
+    try:
+        _, username = get_executor(
+            executors=app.config["ALERT_REPORTS_EXECUTORS"],
+            model=model,
+        )
+    except ExecutorNotFoundError:
+        return None, None
+    user = security_manager.find_user(username)
+    return (user if user is not None and user.is_active else None), username
+
+
 def resolve_executor_user(model: ReportSchedule) -> tuple["User", str]:
     """
     Resolve the executor user for a report schedule.
 
-    Determines the configured executor username via ``get_executor`` and looks up
-    the corresponding user. A deleted/disabled user or a misconfigured
-    ``ALERT_REPORTS_EXECUTORS`` makes ``security_manager.find_user`` return
-    ``None``; rather than passing ``None`` into the webdriver/auth flow (which
-    fails with an opaque NoneType error), raise a dedicated, actionable error.
+    Determines the executor via ``get_executor_user``. A deleted/disabled
+    user or a misconfigured ``ALERT_REPORTS_EXECUTORS`` yields ``None``; rather
+    than passing ``None`` into the webdriver/auth flow (which fails with an
+    opaque NoneType error), raise a dedicated, actionable error.
 
     :returns: the ``(user, username)`` pair — the username is returned alongside
         the user because several call sites log it after resolution.
     :raises ReportScheduleExecutorNotFoundError: if the executor user is missing.
     """
-    _, username = get_executor(
-        executors=app.config["ALERT_REPORTS_EXECUTORS"],
-        model=model,
-    )
-    user = security_manager.find_user(username)
+    user, username = get_executor_user(model)
     if user is None:
-        raise ReportScheduleExecutorNotFoundError(username)
-    return user, username
+        raise ReportScheduleExecutorNotFoundError(username or "")
+    return user, username or user.username
+
+
+def _get_embedded_row_limit(row_limit: int | str) -> int:
+    """Parse a saved numeric limit and cap it for an embedded report table."""
+    try:
+        parsed_limit: int = max(int(float(row_limit)), 0)
+    except (TypeError, ValueError, OverflowError):
+        parsed_limit = 0
+    return apply_max_row_limit(parsed_limit)
+
+
+def alerts_attach_reports_enabled() -> bool:
+    """
+    Whether alerts deliver their attachment (screenshot/PDF/CSV/XLSX).
+
+    Reads the "Enable attachments for alerts" setting from the Alerts & Reports
+    configuration, falling back to the ``ALERTS_ATTACH_REPORTS`` feature flag
+    when it was never saved.
+    """
+    return bool(
+        ReportConfigDAO.get_effective_value(ReportConfigKey.ALERTS_ATTACH_REPORTS)
+    )
 
 
 def _should_build_execution_context(model: ReportSchedule) -> bool:
@@ -160,7 +217,7 @@ def _uses_report_capture_contract(model: ReportSchedule) -> bool:
     """Keep ownership separate from the existing rendered-alert capture policy."""
     return model.type == ReportScheduleType.REPORT or (
         model.report_format in (ReportDataFormat.PNG, ReportDataFormat.PDF)
-        and feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
+        and alerts_attach_reports_enabled()
     )
 
 
@@ -266,9 +323,7 @@ def persist_owned_report_execution_terminal_error(
                 .update(
                     {
                         ReportSchedule.last_state: ReportState.ERROR,
-                        ReportSchedule.last_eval_dttm: datetime.now(
-                            timezone.utc
-                        ).replace(tzinfo=None),
+                        ReportSchedule.last_eval_dttm: naive_utcnow(),
                     },
                     synchronize_session="fetch",
                 )
@@ -344,7 +399,7 @@ def persist_owned_report_execution_terminal_error(
                 or report_schedule.execution_owner == str(execution_id)
             )
         )
-        ended_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        ended_at = naive_utcnow()
         working_log.state = ReportState.ERROR
         working_log.error_message = error_message
         working_log.end_dttm = ended_at
@@ -426,7 +481,7 @@ class BaseReportState:
     ) -> None:
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
-        self._start_dttm: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
+        self._start_dttm: datetime = naive_utcnow()
         self._execution_id = execution_id
         self._report_execution_context = report_execution_context
         self._delivery_started = False
@@ -437,13 +492,18 @@ class BaseReportState:
             self._execution_warnings,
         )
 
+    def _attachments_enabled(self) -> bool:
+        """Return whether this schedule should generate attachment content."""
+        return self._report_schedule.type == ReportScheduleType.REPORT or (
+            self._report_schedule.report_format != ReportDataFormat.NONE
+            and alerts_attach_reports_enabled()
+        )
+
     def _get_slack_retry_deadline(self) -> float:
         """Return the monotonic deadline for Slack delivery in this execution."""
         report_deadline = None
         if self._report_schedule.working_timeout is not None:
-            elapsed = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - self._start_dttm
-            ).total_seconds()
+            elapsed = (naive_utcnow() - self._start_dttm).total_seconds()
             remaining = max(
                 float(self._report_schedule.working_timeout) - elapsed,
                 0,
@@ -538,9 +598,7 @@ class BaseReportState:
                     .update(
                         {
                             ReportSchedule.last_state: state,
-                            ReportSchedule.last_eval_dttm: datetime.now(
-                                timezone.utc
-                            ).replace(tzinfo=None),
+                            ReportSchedule.last_eval_dttm: naive_utcnow(),
                         },
                         synchronize_session=False,
                     )
@@ -554,9 +612,7 @@ class BaseReportState:
             self._report_schedule.last_value_row_json = None
 
         self._report_schedule.last_state = state
-        self._report_schedule.last_eval_dttm = datetime.now(timezone.utc).replace(
-            tzinfo=None
-        )
+        self._report_schedule.last_eval_dttm = naive_utcnow()
 
     def update_report_schedule_slack_v2(self) -> None:
         """Update every Slack v1 recipient atomically to Slack v2."""
@@ -620,7 +676,7 @@ class BaseReportState:
                     uuid=self._execution_id,
                 )
                 db.session.add(log)
-            log.end_dttm = datetime.now(timezone.utc).replace(tzinfo=None)
+            log.end_dttm = naive_utcnow()
             log.value = self._report_schedule.last_value
             log.value_row_json = self._report_schedule.last_value_row_json
             log.state = effective_state
@@ -657,6 +713,10 @@ class BaseReportState:
         """
         Get the url for this report schedule: chart or dashboard
         """
+        attachment_free_alert = (
+            self._report_schedule.type == ReportScheduleType.ALERT
+            and not self._attachments_enabled()
+        )
         chart = self._report_schedule.chart
         dashboard = self._report_schedule.dashboard
 
@@ -672,6 +732,8 @@ class BaseReportState:
         # _get_embedded_data, _get_notification_content) funnels through this
         # method, so this is the single choke point.
         if chart is None and dashboard is None:
+            if user_friendly and attachment_free_alert:
+                return ""
             if self._report_schedule.chart_id is not None:
                 raise ReportScheduleTargetChartDeletedError()
             # Symmetric guard for dashboard targets. Dashboard soft delete lands
@@ -716,8 +778,10 @@ class BaseReportState:
             )
         # If we need to render dashboard in a specific state, use stateful permalink
         if (
-            dashboard_state := self._report_schedule.extra.get("dashboard")
-        ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
+            not (user_friendly and attachment_free_alert)
+            and (dashboard_state := self._report_schedule.extra.get("dashboard"))
+            and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS")
+        ):
             return self._get_tab_url(dashboard_state, user_friendly=user_friendly)
 
         dashboard_id_or_slug = (
@@ -953,7 +1017,7 @@ class BaseReportState:
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
         """
-        start_time: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
+        start_time: datetime = naive_utcnow()
 
         user, _ = resolve_executor_user(self._report_schedule)
 
@@ -1017,9 +1081,7 @@ class BaseReportState:
                 if for_delivery:
                     self._validate_screenshot(imge)
                 imges.append(imge)
-            elapsed_seconds: float = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            elapsed_seconds: float = (naive_utcnow() - start_time).total_seconds()
             logger.info(
                 "report_capture_complete %s elapsed_seconds=%.2f "
                 "remaining_seconds=%s screenshot_count=%s",
@@ -1034,9 +1096,7 @@ class BaseReportState:
             )
         except SoftTimeLimitExceeded as ex:
             self._reject_capture("capture_interrupted")
-            elapsed_seconds = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            elapsed_seconds = (naive_utcnow() - start_time).total_seconds()
             logger.warning(
                 "report_capture_terminal %s elapsed_seconds=%.2f "
                 "remaining_seconds=%s terminal_reason=celery_soft_timeout",
@@ -1059,9 +1119,7 @@ class BaseReportState:
             raise
         except Exception as ex:
             self._reject_capture("capture_failed")
-            elapsed_seconds = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            elapsed_seconds = (naive_utcnow() - start_time).total_seconds()
             logger.error(
                 "report_capture_terminal %s elapsed_seconds=%.2f "
                 "remaining_seconds=%s terminal_reason=%s",
@@ -1130,11 +1188,14 @@ class BaseReportState:
     def _get_chart_data_request_payload(
         self,
         result_format: ChartDataResultFormat,
+        *,
+        form_data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Build the POST payload used for chart data exports.
 
         :param result_format: Desired table-like chart data format.
+        :param form_data: Optional current chart settings for embedded-table parity.
         :return: Query context updated with export result format/type and pagination.
         :raises ReportScheduleExecuteUnexpectedError: If the chart query context is
             missing or invalid.
@@ -1151,6 +1212,9 @@ class BaseReportState:
                 "Chart has no valid query context saved."
             )
 
+        if form_data is not None:
+            query_context["form_data"] = dict(form_data)
+
         result_type = ChartDataResultType.POST_PROCESSED.value
         force = bool(self._report_schedule.force_screenshot)
         query_context["result_format"] = result_format.value
@@ -1164,7 +1228,12 @@ class BaseReportState:
             form_data["force"] = force
 
             if form_data.get("server_pagination"):
-                row_limit = form_data.get("row_limit") or 0
+                row_limit: int | str = form_data.get("row_limit") or 0
+                row_limit = (
+                    _get_embedded_row_limit(row_limit)
+                    if result_format == ChartDataResultFormat.JSON
+                    else row_limit
+                )
                 queries = query_context.get("queries")
                 if isinstance(queries, list):
                     data_query_updated = False
@@ -1258,7 +1327,7 @@ class BaseReportState:
                 ReportScheduleCsvFailedError,
             )
 
-        start_time: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
+        start_time: datetime = naive_utcnow()
         user, username = resolve_executor_user(self._report_schedule)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
@@ -1310,9 +1379,7 @@ class BaseReportState:
                 endpoint=endpoint,
                 log_context=self._log_context,
             )
-            elapsed_seconds: float = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            elapsed_seconds: float = (naive_utcnow() - start_time).total_seconds()
             logger.info(
                 "%s data generation from %s as user %s took %.2fs - execution_id: %s",
                 label,
@@ -1322,9 +1389,7 @@ class BaseReportState:
                 self._execution_id,
             )
         except SoftTimeLimitExceeded as ex:
-            elapsed_seconds = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            elapsed_seconds = (naive_utcnow() - start_time).total_seconds()
             logger.warning(
                 "%s generation timeout after %.2fs - execution_id: %s",
                 label,
@@ -1341,9 +1406,7 @@ class BaseReportState:
         except ReportExecutionBudgetExceededError:
             raise
         except Exception as ex:
-            elapsed_seconds = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            elapsed_seconds = (naive_utcnow() - start_time).total_seconds()
             logger.exception(
                 "%s generation failed after %.2fs - execution_id: %s",
                 label,
@@ -1359,33 +1422,53 @@ class BaseReportState:
         """
         Return data as a Pandas dataframe, to embed in notifications as a table.
         """
-        start_time: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
+        start_time: datetime = naive_utcnow()
 
-        url = self._get_url(result_format=ChartDataResultFormat.JSON)
+        url: str
         user, username = resolve_executor_user(self._report_schedule)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
             logger.warning("No query context found, taking a screenshot to generate it")
             self._update_query_context()
+            db.session.refresh(self._report_schedule.chart)
 
         try:
-            dataframe = get_chart_dataframe(
-                url,
-                auth_cookies,
-                timeout=self._phase_timeout(
-                    "dataframe_generation",
-                    requested_seconds=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
-                    reserve_seconds=(
-                        self._report_execution_context.post_capture_reserve_seconds
-                        if self._report_execution_context
-                        else 0.0
-                    ),
+            timeout: float | None = self._phase_timeout(
+                "dataframe_generation",
+                requested_seconds=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+                reserve_seconds=(
+                    self._report_execution_context.post_capture_reserve_seconds
+                    if self._report_execution_context
+                    else 0.0
                 ),
             )
-            elapsed_seconds: float = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            dataframe: pd.DataFrame | None
+            if self._report_schedule.chart.query_context is None:
+                url = self._get_url(result_format=ChartDataResultFormat.JSON)
+                dataframe = get_chart_dataframe(url, auth_cookies, timeout=timeout)
+            else:
+                # Match the GET endpoint's current chart settings for client processing.
+                form_data: dict[str, Any]
+                try:
+                    form_data = json.loads(self._report_schedule.chart.params)
+                except (TypeError, json.JSONDecodeError):
+                    form_data = {}
+                if not isinstance(form_data, dict):
+                    form_data = {}
+                request_payload: dict[str, Any] = self._get_chart_data_request_payload(
+                    ChartDataResultFormat.JSON, form_data=form_data or None
+                )
+                url = get_url_path("ChartDataRestApi.data")
+                dataframe = chart_data_to_dataframe(
+                    self._post_chart_data(
+                        chart_url=url,
+                        auth_cookies=auth_cookies,
+                        request_payload=request_payload,
+                        timeout=timeout,
+                    )
+                )
+            elapsed_seconds: float = (naive_utcnow() - start_time).total_seconds()
             logger.info(
                 "DataFrame generation from %s as user %s took %.2fs - execution_id: %s",
                 url,
@@ -1394,9 +1477,7 @@ class BaseReportState:
                 self._execution_id,
             )
         except SoftTimeLimitExceeded as ex:
-            elapsed_seconds = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            elapsed_seconds = (naive_utcnow() - start_time).total_seconds()
             logger.warning(
                 "DataFrame generation timeout after %.2fs - execution_id: %s",
                 elapsed_seconds,
@@ -1408,9 +1489,7 @@ class BaseReportState:
         except ReportExecutionBudgetExceededError:
             raise
         except Exception as ex:
-            elapsed_seconds = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            elapsed_seconds = (naive_utcnow() - start_time).total_seconds()
             logger.error(
                 "DataFrame generation failed after %.2fs - execution_id: %s",
                 elapsed_seconds,
@@ -1501,12 +1580,9 @@ class BaseReportState:
         header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
         # NULL (rows predating the include_cta column) is treated as True
-        include_cta = self._report_schedule.include_cta is not False
+        include_cta = self._report_schedule.include_cta is not False and bool(url)
 
-        if (
-            feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
-            or self._report_schedule.type == ReportScheduleType.REPORT
-        ):
+        if self._attachments_enabled():
             if self._report_schedule.report_format == ReportDataFormat.PNG:
                 screenshot_data = self._get_screenshots()
                 if not screenshot_data:
@@ -1542,7 +1618,8 @@ class BaseReportState:
                 )
 
         if (
-            self._report_schedule.chart
+            self._attachments_enabled()
+            and self._report_schedule.chart
             and self._report_schedule.report_format == ReportDataFormat.TEXT
         ):
             embedded_data = self._get_embedded_data()
@@ -1555,11 +1632,13 @@ class BaseReportState:
                     f"{self._report_schedule.name}: "
                     f"{self._report_schedule.chart.slice_name}"
                 )
-            else:
+            elif self._report_schedule.dashboard:
                 name = sanitize_title(
                     f"{self._report_schedule.name}: "
                     f"{self._report_schedule.dashboard.dashboard_title}"
                 )
+            else:
+                name = sanitize_title(self._report_schedule.name)
 
         return NotificationContent(
             name=name,
@@ -1725,12 +1804,41 @@ class BaseReportState:
             if any(error.level == ErrorLevel.WARNING for error in notification_errors):
                 raise ReportScheduleClientErrorsException(errors=notification_errors)
 
+    def _validate_recipients_policy(
+        self, recipients: list[ReportRecipients] | None = None
+    ) -> None:
+        """
+        Refuse to deliver when the recipients no longer comply with the global
+        recipient policy (allowed domains / existing users only). Checked before
+        any content is generated so no data is rendered for a blocked delivery.
+
+        :raises ReportScheduleRecipientsNotAllowedError: on a policy violation
+        """
+        allowed_domains = ReportConfigDAO.get_effective_value(
+            ReportConfigKey.ALLOWED_EMAIL_DOMAINS
+        )
+        limit_to_users = ReportConfigDAO.get_effective_value(
+            ReportConfigKey.LIMIT_RECIPIENTS_TO_USERS
+        )
+        if not allowed_domains and not limit_to_users:
+            return
+        disallowed = ReportConfigDAO.find_disallowed_addresses(
+            get_email_addresses(
+                self._report_schedule.recipients if recipients is None else recipients
+            ),
+            allowed_domains=allowed_domains,
+            limit_to_users=limit_to_users,
+        )
+        if disallowed:
+            raise ReportScheduleRecipientsNotAllowedError(disallowed)
+
     def send(self) -> None:
         """
         Creates the notification content and sends them to all recipients
 
         :raises: CommandException
         """
+        self._validate_recipients_policy()
         notification_content = self._get_notification_content()
         self._send(notification_content, self._report_schedule.recipients)
 
@@ -1754,7 +1862,7 @@ class BaseReportState:
             header_data=header_data,
             url=url,
             # NULL (rows predating the include_cta column) is treated as True
-            include_cta=self._report_schedule.include_cta is not False,
+            include_cta=self._report_schedule.include_cta is not False and bool(url),
         )
 
         # filter recipients to recipients who are also editors
@@ -1777,8 +1885,7 @@ class BaseReportState:
         return (
             last_success is not None
             and self._report_schedule.grace_period
-            and datetime.now(timezone.utc).replace(tzinfo=None)
-            - timedelta(seconds=self._report_schedule.grace_period)
+            and naive_utcnow() - timedelta(seconds=self._report_schedule.grace_period)
             < last_success.end_dttm
         )
 
@@ -1794,8 +1901,7 @@ class BaseReportState:
         return (
             last_success is not None
             and self._report_schedule.grace_period
-            and datetime.now(timezone.utc).replace(tzinfo=None)
-            - timedelta(seconds=self._report_schedule.grace_period)
+            and naive_utcnow() - timedelta(seconds=self._report_schedule.grace_period)
             < last_success.end_dttm
         )
 
@@ -1885,7 +1991,18 @@ class BaseReportState:
             )
 
         if self._report_schedule.retry_notify_recipients:
-            recipients.extend(self._report_schedule.recipients)
+            try:
+                self._validate_recipients_policy()
+            except Exception:  # pylint: disable=broad-except
+                # Policy lookup failure must not turn into unrestricted delivery.
+                # Editor operational notifications remain independent of this policy.
+                logger.warning(
+                    "Skipping retry recipients: recipient policy unavailable "
+                    "or violated",
+                    exc_info=True,
+                )
+            else:
+                recipients.extend(self._report_schedule.recipients)
 
         if not recipients:
             return
@@ -1899,14 +2016,16 @@ class BaseReportState:
             url=url,
             retry_attempt=attempt,
             retry_max_attempts=max_attempts,
+            include_cta=self._report_schedule.include_cta is not False and bool(url),
         )
         self._send(notification_content, recipients)
 
     def send_final_failure_report(self, error_message: str) -> None:
         """
-        Send the failed report notification to all configured recipients after
+        Send the failed report notification to allowed configured recipients after
         all retry attempts have been exhausted and send_failed_reports is enabled.
         """
+        self._validate_recipients_policy()
         header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
         max_attempts: int = self._report_schedule.retry_max_attempts
@@ -1919,6 +2038,7 @@ class BaseReportState:
             header_data=header_data,
             url=url,
             retry_max_attempts=max_attempts,
+            include_cta=self._report_schedule.include_cta is not False and bool(url),
         )
         self._send(notification_content, self._report_schedule.recipients)
 
@@ -1930,6 +2050,16 @@ class BaseReportState:
         (caller should ``return`` without re-raising), or False if the caller
         should fall through to its own error handling path.
         """
+        if isinstance(
+            original_exception,
+            (
+                ReportScheduleExecutorNotFoundError,
+                ReportScheduleRecipientsNotAllowedError,
+            ),
+        ):
+            self._reset_retry_counter()
+            return False
+
         if not feature_flag_manager.is_feature_enabled("ALERT_REPORTS_RETRY"):
             return False
 
@@ -2033,9 +2163,7 @@ class BaseReportState:
         return (
             working_timeout is not None
             and entered_at is not None
-            and datetime.now(timezone.utc).replace(tzinfo=None)
-            - timedelta(seconds=working_timeout)
-            > entered_at
+            and naive_utcnow() - timedelta(seconds=working_timeout) > entered_at
         )
 
     def next(self) -> None:
@@ -2069,7 +2197,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
                 "ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS", 3600
             )
             last_touched = self._report_schedule.last_eval_dttm
-            now = datetime.now(timezone.utc).replace(tzinfo=None)
+            now = naive_utcnow()
             if last_touched and (now - last_touched).total_seconds() < max_delay:
                 logger.info(
                     "Skipping crontab execution for report %s — retries "
@@ -2218,10 +2346,7 @@ class ReportWorkingState(BaseReportState):
                 self._report_schedule
             )
             elapsed_seconds = (
-                (
-                    datetime.now(timezone.utc).replace(tzinfo=None)
-                    - last_working.end_dttm
-                ).total_seconds()
+                (naive_utcnow() - last_working.end_dttm).total_seconds()
                 if last_working
                 else None
             )
@@ -2571,24 +2696,12 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                     deadline.remaining_seconds,
                 )
 
-            # Resolve the executor at the run() boundary, tolerating a missing
-            # user (find_user -> None) so the state machine still runs and its
-            # error envelope writes the ERROR execution-log row and sends the
-            # editor notification. The dedicated ReportScheduleExecutorNotFoundError
-            # guard lives at the content sites (_get_screenshots / _get_data /
-            # _get_embedded_data), which raise inside that envelope. Guarding here
-            # instead would surface the executor error above the state machine,
-            # suppressing both the log row and the editor notification. The
-            # alert-query path (AlertCommand) is intentionally left unchanged — a
-            # missing executor there surfaces as a query error, not the dedicated
-            # executor error; tightening it is out of scope here.
-            _, username = get_executor(
-                executors=app.config["ALERT_REPORTS_EXECUTORS"],
-                model=self._model,
-            )
-            user = security_manager.find_user(username)
+            # Resolve content identity without rejecting an attachment-free alert.
+            # Content fetches and AlertCommand validate their respective identities
+            # inside the state machine, where failures are logged and terminalized.
+            user, username = get_executor_user(self._model)
 
-            start_time: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
+            start_time: datetime = naive_utcnow()
             with override_user(user):
                 # Pre-commit any permalink rows before the state machine's
                 # @transaction() opens. When called inside a transaction,
@@ -2599,13 +2712,15 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 # machine's inner call to get_dashboard_urls() hits get_entry()
                 # for the same deterministic UUID and returns the
                 # already-committed row without a second INSERT.
-                if self._model.dashboard_id:
-                    BaseReportState(
+                if self._model.dashboard_id and user is not None:
+                    state = BaseReportState(
                         self._model,
                         self._scheduled_dttm,
                         self._execution_id,
                         report_execution_context,
-                    ).get_dashboard_urls()
+                    )
+                    if state._attachments_enabled():
+                        state.get_dashboard_urls()
                 execution_claim = None
                 if self._model.last_state != ReportState.WORKING:
                     execution_claim = claim_execution(
@@ -2641,9 +2756,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                     execution_claim,
                 ).run()
 
-            elapsed_seconds: float = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            elapsed_seconds: float = (naive_utcnow() - start_time).total_seconds()
             logger.info(
                 "Report execution as user %s completed in %.2fs - execution_id: %s",
                 username,

@@ -66,6 +66,7 @@ from superset.mcp_service.dashboard.schemas import (
 from superset.mcp_service.dashboard.tool.governance_utils import (
     dashboard_url,
     find_and_authorize_dashboard,
+    managed_dashboard_refusal,
 )
 from superset.utils import json
 
@@ -316,6 +317,9 @@ def manage_dashboard_markdown(  # noqa: C901
     """
     Add, update, and remove markdown/header/divider layout components.
 
+    Externally managed dashboards refuse mutations with
+    ``managed_externally=True``; do not retry or request more permissions.
+
     Companion to ``manage_native_filters``, but for the ``position_json``
     layout tree instead of ``json_metadata``: no need to hand-craft the full
     raw layout to add a text tile or section header. Markdown tiles are
@@ -348,17 +352,12 @@ def manage_dashboard_markdown(  # noqa: C901
         return auth_error
     assert dashboard is not None  # narrows for mypy
 
-    # Writing position_json directly bypasses UpdateDashboardCommand, so
-    # mirror its raise_if_managed_externally guard explicitly.
-    if dashboard.is_managed_externally:
+    refusal: str | None = managed_dashboard_refusal(dashboard)
+    if refusal is not None:
         return ManageDashboardMarkdownResponse(
             dashboard_id=request.dashboard_id,
             managed_externally=True,
-            error=(
-                f"Dashboard {request.dashboard_id} is managed externally; its "
-                "layout is owned by the external system and cannot be "
-                "changed here."
-            ),
+            error=refusal,
         )
 
     try:
