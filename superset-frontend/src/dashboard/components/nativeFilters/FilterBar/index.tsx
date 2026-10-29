@@ -66,6 +66,7 @@ import { isChartCustomization } from '../FiltersConfigModal/utils';
 import {
   checkIsApplyDisabled,
   clearedCustomizationTarget,
+  getAppliedFilterLogPayload,
   getFiltersToApply,
 } from './utils';
 import { extractLabel } from '../selectors';
@@ -433,12 +434,21 @@ const FilterBar: FC<FiltersBarProps> = ({
   );
 
   const handleApply = useCallback(() => {
-    dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
     setUpdateKey(1);
 
     const filtersToApply = getFiltersToApply(
       dataMaskSelected,
       inScopeFilterIds,
+    );
+
+    dispatch(
+      logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
+        filters: getAppliedFilterLogPayload(
+          filtersToApply,
+          filters,
+          dataMaskSelected,
+        ),
+      }),
     );
 
     filtersToApply.forEach(filterId => {
@@ -506,6 +516,7 @@ const FilterBar: FC<FiltersBarProps> = ({
   }, [
     dataMaskSelected,
     dispatch,
+    filters,
     inScopeFilterIds,
     pendingChartCustomizations,
     pendingCustomizationDataMasks,
