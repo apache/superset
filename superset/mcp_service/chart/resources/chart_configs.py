@@ -67,7 +67,7 @@ def get_chart_configs_resource() -> str:
                 "x": {"name": "category", "label": "Category"},
                 "y": [{"name": "sales", "aggregate": "SUM", "label": "Total Sales"}],
                 "x_axis": {"title": "Product Categories"},
-                "y_axis": {"title": "Revenue ($)", "format": "$,.0f"},
+                "y_axis": {"title": "Revenue", "format": ",.0f"},
             },
             "use_cases": ["Category comparison", "Rankings"],
         },
@@ -124,7 +124,7 @@ def get_chart_configs_resource() -> str:
                     }
                 ],
                 "group_by": [{"name": "campaign_type", "label": "Campaign"}],
-                "x_axis": {"format": "$,.0f"},
+                "x_axis": {"format": ",.0f"},
                 "y_axis": {"format": ".2%"},
             },
             "use_cases": ["Correlation analysis", "Outlier detection"],
@@ -185,7 +185,7 @@ def get_chart_configs_resource() -> str:
                 "markers": [300000],
                 "marker_labels": ["Plan"],
                 "show_labels": True,
-                "y_axis_format": "$,.0f",
+                "y_axis_format": ",.0f",
             },
             "use_cases": ["Goal attainment", "KPI target comparison"],
         },
@@ -303,7 +303,7 @@ def get_chart_configs_resource() -> str:
                 "metric": {"name": "sales", "aggregate": "SUM"},
                 "secondary_metric": {"name": "profit", "aggregate": "SUM"},
                 "linear_color_scheme": "superset_seq_1",
-                "number_format": "$,.0f",
+                "number_format": ",.0f",
                 "show_total": True,
             },
             "use_cases": [
@@ -386,7 +386,11 @@ def get_chart_configs_resource() -> str:
             "Limit Y-axis metrics to 3-5 maximum for readability",
             "Use group_by to split data into series for comparison",
             "Use stacked=true for bar/area charts showing composition",
-            "Configure axis format for readability ($,.0f for currency, .2% for pct)",
+            (
+                "Use readable axis formats (,.0f for numbers, .2% for pct). "
+                "Use currency formatting only when user instructions or source "
+                "metadata establish the currency."
+            ),
             "Use orientation='horizontal' for bar charts with long category names",
         ],
         "table_charts": [
