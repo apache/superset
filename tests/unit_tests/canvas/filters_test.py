@@ -100,3 +100,37 @@ def test_embedded_guests_see_none(
     as_user(mocker, guest=True)
 
     assert visible(session) == []
+
+
+def test_extra_access_query_filter_can_grant_a_canvas(
+    session: Session, shared: dict[str, Any], mocker: MockerFixture
+) -> None:
+    """
+    ``EXTRA_ACCESS_QUERY_FILTERS["canvases"]`` grants visibility the editor and
+    viewer lists don't, the way it already does for charts and dashboards.
+    """
+    as_user(mocker)
+    mocker.patch("superset.canvas.filters.get_user_id", return_value=7)
+    granted = mocker.MagicMock(return_value=[shared["hidden"].id])
+    mocker.patch.dict(
+        "superset.canvas.filters.current_app.config",
+        {"EXTRA_ACCESS_QUERY_FILTERS": {"canvases": granted}},
+    )
+
+    assert visible(session) == ["edited", "hidden", "viewed"]
+    granted.assert_called_once_with(7)
+
+
+def test_extra_access_query_filter_is_skipped_without_a_user(
+    session: Session, shared: dict[str, Any], mocker: MockerFixture
+) -> None:
+    as_user(mocker)
+    mocker.patch("superset.canvas.filters.get_user_id", return_value=None)
+    granted = mocker.MagicMock(return_value=[shared["hidden"].id])
+    mocker.patch.dict(
+        "superset.canvas.filters.current_app.config",
+        {"EXTRA_ACCESS_QUERY_FILTERS": {"canvases": granted}},
+    )
+
+    assert visible(session) == ["edited", "viewed"]
+    granted.assert_not_called()

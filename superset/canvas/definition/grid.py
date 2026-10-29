@@ -26,8 +26,13 @@ Children are resolved in reading order (their order in ``children``):
   fits its span, scanning row by row from a cursor that only moves forward.
   Its layout keeps ``col``/``row`` omitted.
 
-Clients don't re-implement these rules: the definition response carries every
-node's resolved placement (see ``render``).
+Reading order is also what decides who yields, so dropping a widget moves it
+within that order: see ``insert_index``.
+
+Clients don't re-implement these rules, with one exception: a drag has to show
+where the neighbours will end up *before* the write, so the client mirrors them
+in ``resolveGrid.ts``. The two are kept in step by ``gridCases.json``, which
+both test suites read.
 """
 
 from __future__ import annotations
@@ -102,3 +107,32 @@ def resolve_grid(
         rects.append(rect)
 
     return rects, stored
+
+
+def insert_index(rects: list[Rect], target: Rect) -> int:
+    """
+    Where a node dropped at ``target`` belongs in reading order.
+
+    ``rects`` is the siblings it is being dropped among, already resolved and
+    without the dropped node, in reading order.
+
+    An overlap pushes the *later* child down, so a widget dropped onto earlier
+    siblings would be pushed back under them and nothing could be dropped
+    between two others. It goes before the first sibling it overlaps, or that
+    starts after it by row and then column, and last if there is no such
+    sibling.
+
+    Landing on a sibling is above it or below it depending on where: past the
+    sibling's middle is below it. Without that, aiming at the bottom of a tall
+    neighbour -- a ten-row group, say -- still counts as landing on it, so the
+    widget is inserted ahead and the whole group is pushed down underneath
+    something dropped at its feet.
+    """
+    for i, rect in enumerate(rects):
+        if rect.cells() & target.cells():
+            if target.row < rect.row + rect.row_span / 2:
+                return i
+            continue
+        if (rect.row, rect.col) >= (target.row, target.col):
+            return i
+    return len(rects)

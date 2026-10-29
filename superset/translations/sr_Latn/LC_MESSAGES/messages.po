@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 18:57+0300\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -7649,6 +7649,9 @@ msgstr "Onemogućava funkciju prelaska na detalje za ovu bazu podataka."
 msgid "Discard"
 msgstr "Odbaci"
 
+msgid "Discard and leave"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Display Name"
 msgstr "Naziv za prikaz"
@@ -7871,6 +7874,9 @@ msgid "Draft"
 msgstr "Nacrt"
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -11524,6 +11530,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -12718,6 +12727,9 @@ msgstr "Ikona za pomeranje"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Move only"
 msgstr "Samo pomeranje"
+
+msgid "Move widget"
+msgstr ""
 
 #, python-format
 msgid "Moved %s '%s'"
@@ -14885,6 +14897,9 @@ msgstr "Samo javno deljeni listovi"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Published"
 msgstr "Objavljeno"
@@ -15138,6 +15153,9 @@ msgstr "Pravougaonik"
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ru, sk, sl, uk]
 msgid "Recurring (every)"
 msgstr "Ponavljajuće (svakih)"
+
+msgid "Redo"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Redo the action"
@@ -15692,6 +15710,10 @@ msgstr ""
 # ru, uk]
 msgid "Resize"
 msgstr "Promeni veličinu"
+
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Resource already has an attached report."
@@ -16404,6 +16426,9 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
@@ -18803,6 +18828,9 @@ msgstr ""
 "linijskih, tačkastih i trakastih grafikona. Ovaj tip vizualizacije takođe"
 " ima mnogo opcija za prilagođavanje."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 # fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Switch to the next tab"
 msgstr "Pređi na sledeću karticu"
@@ -18810,6 +18838,9 @@ msgstr "Pređi na sledeću karticu"
 # fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Switch to the previous tab"
 msgstr "Pređi na prethodnu karticu"
+
+msgid "Switch to view mode"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk, zh, zh_TW]
 msgid "Symbol"
@@ -19179,6 +19210,15 @@ msgstr "Ravnanje teksta"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Text embedded in email"
 msgstr "Tekst ugrađen u e-poštu"
+
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
 
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -21036,6 +21076,9 @@ msgstr ""
 "Ovo može biti ili IP adresa (npr. 127.0.0.1) ili ime domena (npr. "
 "mydatabase.com)."
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
 msgid "This canvas does not exist, or you do not have access to it"
 msgstr ""
 
@@ -21273,6 +21316,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"
@@ -24379,6 +24427,9 @@ msgstr ""
 msgid "You do not have permission to access this datasource"
 msgstr ""
 
+msgid "You do not have permission to change this layout."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, python-format
 msgid "You do not have permission to edit this %s"
@@ -24992,6 +25043,12 @@ msgstr "ikona logičkog tipa"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "bottom"
 msgstr "dole"
+
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "button (cmd + z) until you save your changes."
@@ -25971,6 +26028,12 @@ msgstr "do"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "top"
 msgstr "gore"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "undo"

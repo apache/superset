@@ -92,6 +92,44 @@ def test_create_and_read_a_canvas(
     assert definition["definition"]["nodes"] == {}
 
 
+def test_create_fires_the_post_create_asset_hook(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    mocker: MockerFixture,
+) -> None:
+    """
+    A canvas create fires ``AFTER_ASSET_CREATE`` the way a chart or dashboard
+    create does, so a deployment that registers new assets externally (folder
+    permissions, say) is not silently skipped by canvases.
+    """
+    mocker.patch("superset.commands.canvas.create.populate_subjects")
+    after_create = MagicMock()
+    mocker.patch.dict(
+        "superset.commands.canvas.create.current_app.config",
+        {"AFTER_ASSET_CREATE": after_create},
+    )
+
+    response = client.post(BASE + "/", json={"title": "Ops breakdown"})
+
+    assert response.status_code == 201
+    after_create.assert_called_once()
+    created, asset_type = after_create.call_args.args
+    assert asset_type == "canvas"
+    assert created.title == "Ops breakdown"
+
+
+def test_create_without_the_hook_configured_still_succeeds(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch("superset.commands.canvas.create.populate_subjects")
+
+    assert client.post(BASE + "/", json={"title": "No hook"}).status_code == 201
+
+
 def test_metadata_and_slug(
     client: Any,
     full_api_access: None,
@@ -154,6 +192,49 @@ def test_get_definition(client: Any, full_api_access: None, canvas: Any) -> None
     assert response.json["result"]["placements"] == {}
     assert response.json["result"]["widgetTypes"] == {}
     assert response.json["result"]["gridColumns"] == {}
+    assert response.json["result"]["layoutConstraints"] == {}
+    assert response.json["result"]["canEdit"] is True
+
+
+def test_definition_reports_a_view_only_user_cannot_edit(
+    client: Any, full_api_access: None, canvas: Any, mocker: MockerFixture
+) -> None:
+    """
+    ``canEdit`` answers the same question the write path enforces, so a user
+    who may only read is told not to offer drag and resize.
+    """
+    mocker.patch(
+        "superset.canvas.api.security_manager.raise_for_editorship",
+        side_effect=SupersetSecurityException(MagicMock()),
+    )
+
+    response = client.get(URL)
+
+    assert response.status_code == 200
+    assert response.json["result"]["canEdit"] is False
+
+
+def test_definition_reports_no_edit_without_route_write_permission(
+    client: Any, full_api_access: None, canvas: Any, mocker: MockerFixture
+) -> None:
+    """
+    The write route needs ``can_write`` on Canvas as well as editorship, so an
+    object editor whose role lacks the route permission is told not to offer
+    editing -- otherwise its saves would 403.
+    """
+    # Denies only `can_write`, so this still fails if production is changed to
+    # check a different permission on Canvas.
+    mocker.patch(
+        "superset.canvas.api.security_manager.can_access",
+        side_effect=lambda permission, view: not (
+            permission == "can_write" and view == "Canvas"
+        ),
+    )
+
+    response = client.get(URL)
+
+    assert response.status_code == 200
+    assert response.json["result"]["canEdit"] is False
 
 
 def test_apply_operations_bumps_revision_logs_and_publishes(
@@ -417,3 +498,24 @@ def test_schema_is_published(
     assert by_id["filterbar"]["boundsFilterScope"] is False
     assert by_id["chart"]["filterable"] is True
     assert by_id["chart"]["schemaVersion"] == 1
+
+
+def test_every_exposed_route_is_served(
+    client: Any, full_api_access: None, widget_types: FakeResolver
+) -> None:
+    """
+    An `@expose`d method that Flask-AppBuilder was never told to register is
+    simply not routed, and the endpoint answers 404 with nothing to say why.
+    One left out of the permission map is routed but asks for a permission no
+    role was granted, so it answers 403 instead.
+    """
+    from superset.canvas.api import CanvasRestApi
+
+    exposed = {
+        name
+        for name, member in vars(CanvasRestApi).items()
+        if getattr(member, "_urls", None)
+    }
+
+    assert exposed - set(CanvasRestApi.include_route_methods) == set()
+    assert exposed - set(CanvasRestApi.method_permission_name) == set()

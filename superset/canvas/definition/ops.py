@@ -36,7 +36,7 @@ from uuid import uuid4
 from superset_core.canvas import StoredWidget, WidgetResolver
 from superset_core.widgets import PropsVersionError, Widget
 
-from superset.canvas.definition.grid import Rect, resolve_grid
+from superset.canvas.definition.grid import insert_index, Rect, resolve_grid
 from superset.canvas.definition.pending import PendingWidgetResolver
 from superset.canvas.definition.placements import new_placement_id, placement_types
 from superset.canvas.definition.registry import (
@@ -318,9 +318,8 @@ class _Applier:
         """
         Reorder ``node_id`` so a widget dropped onto others wins the spot.
 
-        Overlaps push the later child down, so without this a widget dropped
-        onto earlier siblings would be pushed under them. It goes before the
-        first sibling it overlaps or that starts after it in reading order.
+        Auto-placed nodes keep their order: they have no ``col`` to drop at.
+        See ``insert_index`` for the rule, which the client mirrors.
         """
         parent_id = self.parent_of(node_id)
         columns = self.grid_columns(parent_id)
@@ -335,16 +334,7 @@ class _Applier:
         target = Rect(
             layout["col"], layout["row"], col_span, layout.get("rowSpan") or 1
         )
-        index = next(
-            (
-                i
-                for i, rect in enumerate(rects)
-                if rect.cells() & target.cells()
-                or (rect.row, rect.col) >= (target.row, target.col)
-            ),
-            len(others),
-        )
-        others.insert(index, node_id)
+        others.insert(insert_index(rects, target), node_id)
         siblings[:] = others
 
     def grid_columns(self, parent_id: str) -> int | None:

@@ -23,9 +23,22 @@ without re-implementing auto-placement and collision push-down.
 ``widgetTypes`` maps placements to their widget so clients pick a renderer;
 placements that don't resolve are left out and render as placeholders.
 ``gridColumns`` gives the column count of each grid container, whose
-children's placements are in its own grid units. ``widgets`` holds the content
-of the widget entities placements hold, keyed by UUID: whoever can read the
-canvas can read the widgets it places.
+children's placements are in its own grid units. ``layoutConstraints`` gives
+the span limits a widget declares, so a client that lets the user drag and
+resize clamps to the same bounds the server validates against. For a container
+it also carries the row minimum its own content imposes, which validation
+enforces by growing the container to fit (see ``_fit``) and which no declared
+limit describes. ``widgets``
+holds the content of the widget entities placements hold, keyed by UUID:
+whoever can read the canvas can read the widgets it places.
+
+``layouts`` gives each node's *stored* layout, which is what placement is
+resolved from and is not recoverable from ``placements``: an auto-placed node
+has no stored ``col``/``row`` at all, and validation writes a collided node's
+pushed-down ``row`` back to its layout. ``childOrder`` gives each grid's
+children in reading order, which the ``place`` operation rewrites when a drop
+lands on an earlier sibling. A client previewing a drag needs both to reach the
+same answer the server will.
 """
 
 from __future__ import annotations
@@ -34,6 +47,7 @@ from typing import Any
 
 from pydantic import ValidationError
 from superset_core.canvas import GridPlacement, WidgetResolver
+from superset_core.widgets import Widget, WidgetUi
 
 from superset.canvas.definition.grid import resolve_grid
 from superset.canvas.definition.pending import widget_payload
@@ -43,6 +57,7 @@ from superset.canvas.definition.registry import (
     get_widget_types,
     WidgetTypes,
 )
+from superset.canvas.definition.schemas import ROOT_ID
 
 
 def render_context(
@@ -62,33 +77,127 @@ def render_context(
     )
     type_ids = {node_id: w.widget_type for node_id, w in node_types.items()}
 
-    grids: list[tuple[list[str], int]] = [
-        (definition["root"]["children"], definition["root"]["layout"]["columns"])
+    grids: list[tuple[str, list[str], int]] = [
+        (
+            ROOT_ID,
+            definition["root"]["children"],
+            definition["root"]["layout"]["columns"],
+        )
     ]
     grid_columns: dict[str, int] = {}
     for node_id, widget in node_types.items():
         columns = widget.behavior.grid_columns
         if widget.behavior.container and columns is not None:
-            grids.append((nodes[node_id].get("children") or [], columns))
+            grids.append((node_id, nodes[node_id].get("children") or [], columns))
             grid_columns[node_id] = columns
 
     placements: dict[str, dict[str, int]] = {}
-    for children, columns in grids:
+    stored_layouts: dict[str, dict[str, Any]] = {}
+    grid_extents: dict[str, int] = {}
+    for parent, children, columns in grids:
         layouts = [_grid_layout(nodes[c]["layout"]) for c in children]
         rects, _ = resolve_grid(layouts, columns)
-        for child, rect in zip(children, rects, strict=True):
+        for child, rect, layout in zip(children, rects, layouts, strict=True):
             placements[child] = {
                 "col": rect.col,
                 "row": rect.row,
                 "colSpan": rect.col_span,
                 "rowSpan": rect.row_span,
             }
+            stored_layouts[child] = layout
+        grid_extents[parent] = max((r.row + r.row_span - 1 for r in rects), default=0)
+
+    content_rows = _content_rows(nodes, node_types, grid_extents)
     return {
         "widgetTypes": type_ids,
         "placements": placements,
+        "layouts": stored_layouts,
+        "childOrder": {parent: list(children) for parent, children, _ in grids},
         "gridColumns": grid_columns,
+        "layoutConstraints": {
+            node_id: constraints
+            for node_id, widget in node_types.items()
+            if node_id in placements
+            and (
+                constraints := _span_constraints(
+                    widget.ui, content_rows.get(node_id, 0)
+                )
+            )
+        },
         "widgets": widget_payload(widgets),
     }
+
+
+def _content_rows(
+    nodes: dict[str, Any],
+    node_types: dict[str, type[Widget]],
+    grid_extents: dict[str, int],
+) -> dict[str, int]:
+    """
+    Rows each container's content needs, which validation grows it to fit.
+
+    Mirrors ``_resolve_layouts``: a grid container takes the extent of its own
+    children, a container that is not a grid takes the tallest of its
+    children's, and either way its chrome is added on top. Deepest first, so a
+    container holding a container sees the inner one's height already resolved
+    -- which is the case that makes a non-grid container's own minimum
+    anything other than zero.
+    """
+    parents = {
+        child: node_id
+        for node_id, node in nodes.items()
+        for child in (node.get("children") or [])
+    }
+
+    def depth(node_id: str) -> int:
+        levels = 0
+        while (node_id := parents.get(node_id, ROOT_ID)) != ROOT_ID:
+            levels += 1
+        return levels
+
+    containers = sorted(
+        (i for i, w in node_types.items() if w.behavior.container),
+        key=depth,
+        reverse=True,
+    )
+    content_rows: dict[str, int] = {}
+    for node_id in containers:
+        widget = node_types[node_id]
+        if widget.behavior.grid_columns is not None:
+            rows = grid_extents.get(node_id, 0)
+        else:
+            rows = max(
+                (
+                    content_rows.get(child, 0)
+                    for child in (nodes[node_id].get("children") or [])
+                ),
+                default=0,
+            )
+        content_rows[node_id] = rows + widget.ui.chrome_rows if rows else 0
+    return content_rows
+
+
+def _span_constraints(ui: WidgetUi, content_rows: int = 0) -> dict[str, int]:
+    """
+    A widget's span limits, omitting the ones it leaves open.
+
+    ``content_rows`` is the rows a container's children occupy. Validation
+    grows a container to fit them and never shrinks it, so that is a real
+    minimum even though the widget declares none: without it a client dragging
+    a container's top edge down would compute the shrink against 1, send a
+    span the server replaces, and move the container's bottom edge down into
+    whatever sits below instead of shrinking it.
+    """
+    # A minimum of one row is what every widget already gets, so it is left
+    # out rather than sent as a constraint that constrains nothing.
+    rows = max(ui.min_row_span or 0, content_rows)
+    limits = {
+        "minColSpan": ui.min_col_span,
+        "maxColSpan": ui.max_col_span,
+        "minRowSpan": rows if rows > 1 else None,
+        "maxRowSpan": ui.max_row_span,
+    }
+    return {name: limit for name, limit in limits.items() if limit is not None}
 
 
 def _grid_layout(layout: dict[str, Any]) -> dict[str, Any]:

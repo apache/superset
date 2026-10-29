@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 18:57+0300\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -6629,6 +6629,9 @@ msgstr "این ویژگی جستجوی جزئیات برای این پایگاه
 msgid "Discard"
 msgstr "رد کنید"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Display Name"
 msgstr "نام نمایشی"
 
@@ -6838,6 +6841,9 @@ msgid "Draft"
 msgstr "پیش‌نویس"
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -10090,6 +10096,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -11171,6 +11180,9 @@ msgstr "تنها جابجا کنید"
 
 msgid "Move only"
 msgstr "تنها جابجا کنید"
+
+msgid "Move widget"
+msgstr ""
 
 #, python-format
 msgid "Moved %s '%s'"
@@ -13035,6 +13047,9 @@ msgstr "فقط برگه‌های به اشتراک گذاشته شده عموم�
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "منتشر شده"
 
@@ -13235,6 +13250,9 @@ msgstr "مستطیل"
 
 msgid "Recurring (every)"
 msgstr "تکراری (هر)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "عملیات را دوباره انجام دهید"
@@ -13722,6 +13740,10 @@ msgstr ""
 #, fuzzy
 msgid "Resize"
 msgstr "بازنشانی"
+
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
 
 msgid "Resource already has an attached report."
 msgstr "منبع قبلاً یک گزارش ضمایم شده دارد."
@@ -14317,6 +14339,9 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 #, fuzzy
@@ -16483,6 +16508,9 @@ msgstr ""
 "پراکنده و ستونی انتخاب کنید. این نوع بصری‌سازی دارای گزینه‌های "
 "سفارشی‌سازی زیادی نیز هست."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -16494,6 +16522,9 @@ msgstr "رفتن به برگه بعدی"
 #, fuzzy
 msgid "Switch to the previous tab"
 msgstr "رفتن به برگه قبلی"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "نماد"
@@ -16830,6 +16861,15 @@ msgstr "چیدمان متن"
 
 msgid "Text embedded in email"
 msgstr "متن گنجانده شده در ایمیل"
+
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
 
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -18535,6 +18575,9 @@ msgstr ""
 "این می‌تواند یک آدرس آی‌پی (مانند ۱۲۷.۰.۰.۱) یا یک نام دامنه (مانند "
 "mydatabase.com) باشد."
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
 msgid "This canvas does not exist, or you do not have access to it"
 msgstr ""
 
@@ -18754,6 +18797,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"
@@ -21529,6 +21577,9 @@ msgstr ""
 msgid "You do not have permission to access this datasource"
 msgstr ""
 
+msgid "You do not have permission to change this layout."
+msgstr ""
+
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "شما اجازه ویرایش این %s را ندارید."
@@ -22081,6 +22132,12 @@ msgstr "آیکون نوع بولیانی"
 
 msgid "bottom"
 msgstr "پایین"
+
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
 
 msgid "button (cmd + z) until you save your changes."
 msgstr "دکمه (cmd + ز) را بزنید تا زمانی که تغییرات خود را ذخیره کنید."
@@ -22947,6 +23004,12 @@ msgstr "بالا"
 
 msgid "top"
 msgstr "بالا"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 msgid "undo"
 msgstr "بازگردانی"

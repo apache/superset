@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 18:57+0300\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -6723,6 +6723,9 @@ msgstr "Dezactivează funcția drill to detail pentru această bază de date."
 msgid "Discard"
 msgstr "Renunță"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Nume Afișat"
 
@@ -6935,6 +6938,9 @@ msgid "Draft"
 msgstr "Ciornă"
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -10161,6 +10167,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -11230,6 +11239,9 @@ msgstr "Pictogramă de mutare"
 
 msgid "Move only"
 msgstr "Mută doar"
+
+msgid "Move widget"
+msgstr ""
 
 #, python-format
 msgid "Moved %s '%s'"
@@ -13092,6 +13104,9 @@ msgstr "Doar foi partajate public"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "Publicat"
 
@@ -13294,6 +13309,9 @@ msgstr "Dreptunghi"
 
 msgid "Recurring (every)"
 msgstr "Recurent (fiecare)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "Refă acțiunea"
@@ -13772,6 +13790,10 @@ msgstr ""
 #, fuzzy
 msgid "Resize"
 msgstr "Redimensionare"
+
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
 
 msgid "Resource already has an attached report."
 msgstr "Resursa are deja un raport atașat."
@@ -14382,6 +14404,9 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 msgid "Saving..."
@@ -16574,11 +16599,17 @@ msgstr ""
 "linie, dispersie și bare. Acest tip de vizualizare are și multe opțiuni "
 "de personalizare."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 msgid "Switch to the next tab"
 msgstr "Trece la următorul tab"
 
 msgid "Switch to the previous tab"
 msgstr "Trece la tab-ul anterior"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "Simbol"
@@ -16911,6 +16942,15 @@ msgstr "Aliniere text"
 
 msgid "Text embedded in email"
 msgstr "Text încorporat în email"
+
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
 
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -18637,6 +18677,9 @@ msgstr ""
 "Acesta poate fi fie o adresă IP (de ex. 127.0.0.1), fie un nume de "
 "domeniu (de ex. mydatabase.com)."
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
 msgid "This canvas does not exist, or you do not have access to it"
 msgstr ""
 
@@ -18857,6 +18900,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"
@@ -21637,6 +21685,9 @@ msgstr ""
 msgid "You do not have permission to access this datasource"
 msgstr ""
 
+msgid "You do not have permission to change this layout."
+msgstr ""
+
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "Nu aveți permisiunea de a edita acest %s"
@@ -22202,6 +22253,12 @@ msgstr "iconiță tip boolean"
 
 msgid "bottom"
 msgstr "jos"
+
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
 
 msgid "button (cmd + z) until you save your changes."
 msgstr "buton (cmd + z) până salvați modificările."
@@ -23081,6 +23138,12 @@ msgstr "la"
 
 msgid "top"
 msgstr "sus"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 msgid "undo"
 msgstr "anulează"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 18:57+0300\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -6267,6 +6267,9 @@ msgstr "இந்தத் தரவுத்தளத்திற்கான �
 msgid "Discard"
 msgstr "கைவிடு (Discard)"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Display Name"
 msgstr "காட்சிப் பெயர்"
 
@@ -6442,6 +6445,9 @@ msgid "Draft"
 msgstr "வரைவு (Draft)"
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -9417,6 +9423,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -10383,6 +10392,9 @@ msgstr "நகர்த்த மட்டும்"
 
 msgid "Move only"
 msgstr "நகர்த்த மட்டும்"
+
+msgid "Move widget"
+msgstr ""
 
 #, python-format
 msgid "Moved %s '%s'"
@@ -12094,6 +12106,9 @@ msgstr ""
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "வெளியிடப்பட்டது"
 
@@ -12288,6 +12303,9 @@ msgstr "செவ்வகம்"
 
 msgid "Recurring (every)"
 msgstr "மீண்டும் நிகழும் (ஒவ்வொரு)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "செயலை மீண்டும் செய் (Redo)"
@@ -12746,6 +12764,10 @@ msgstr ""
 
 msgid "Resize"
 msgstr "அளவை மாற்று (Resize)"
+
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
 
 msgid "Resource already has an attached report."
 msgstr "வளத்தில் ஏற்கனவே ஒரு அறிக்கை இணைக்கப்பட்டுள்ளது."
@@ -13291,6 +13313,9 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 msgid "Saving..."
@@ -15254,11 +15279,17 @@ msgstr ""
 "தரவைக் காட்சிப்படுத்துவதற்கான பல்துறை கருவி. ஸ்டெப், லைன், ஸ்கேட்டர் "
 "மற்றும் பார் சார்ட்டுகளுக்கு இடையே தேர்வு செய்யவும்."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 msgid "Switch to the next tab"
 msgstr "அடுத்த தாவலுக்கு மாறவும்"
 
 msgid "Switch to the previous tab"
 msgstr "முந்தைய தாவலுக்கு மாறவும்"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "சின்னம்"
@@ -15549,6 +15580,15 @@ msgstr "உரை சீரமைப்பு"
 
 msgid "Text embedded in email"
 msgstr "மின்னஞ்சலில் உட்பொதிக்கப்பட்ட உரை"
+
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
 
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -17045,6 +17085,9 @@ msgid ""
 "mydatabase.com)."
 msgstr "இது IP முகவரி (உதாரணமாக 127.0.0.1) அல்லது டொமைன் பெயராக இருக்கலாம்."
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
 msgid "This canvas does not exist, or you do not have access to it"
 msgstr ""
 
@@ -17252,6 +17295,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"
@@ -19776,6 +19824,9 @@ msgstr ""
 msgid "You do not have permission to access this datasource"
 msgstr ""
 
+msgid "You do not have permission to change this layout."
+msgstr ""
+
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "இந்த %s ஐ எடிட் செய்ய உங்களுக்கு அனுமதி இல்லை"
@@ -20285,6 +20336,12 @@ msgstr "பூலியன் வகை ஐகான்"
 
 msgid "bottom"
 msgstr "கீழ்"
+
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
 
 msgid "button (cmd + z) until you save your changes."
 msgstr "மாற்றங்களைச் சேமிக்கும் வரை (cmd + z) பொத்தான்."
@@ -21074,6 +21131,12 @@ msgstr "வரை / க்கு"
 
 msgid "top"
 msgstr "மேல்"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 msgid "undo"
 msgstr "மாற்றியமை (undo)"

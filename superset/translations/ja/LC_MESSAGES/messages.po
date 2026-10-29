@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 18:57+0300\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -5831,6 +5831,9 @@ msgstr "このデータベースの詳細表示(ドリルスルー)機能を無�
 msgid "Discard"
 msgstr "破棄"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Display Name"
 msgstr "表示名"
 
@@ -5999,6 +6002,9 @@ msgid "Draft"
 msgstr "下書き"
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -8842,6 +8848,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -9784,6 +9793,9 @@ msgstr "移動アイコン"
 
 msgid "Move only"
 msgstr "移動のみ"
+
+msgid "Move widget"
+msgstr ""
 
 #, python-format
 msgid "Moved %s '%s'"
@@ -11450,6 +11462,9 @@ msgstr "公開共有シートのみ"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "公開済み"
 
@@ -11643,6 +11658,9 @@ msgstr "長方形"
 
 msgid "Recurring (every)"
 msgstr "繰り返し (毎)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "操作をやり直す"
@@ -12090,6 +12108,10 @@ msgstr ""
 
 msgid "Resize"
 msgstr "サイズ変更"
+
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
 
 msgid "Resource already has an attached report."
 msgstr "リソースには既にレポートが添付されています。"
@@ -12641,6 +12663,9 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 msgid "Saving..."
@@ -14486,11 +14511,17 @@ msgid ""
 "well."
 msgstr "データ視覚化のための万能ツール。階段、折れ線、散布図、棒グラフから選択でき、豊富なカスタマイズオプションを備えています。"
 
+msgid "Switch to draft mode"
+msgstr ""
+
 msgid "Switch to the next tab"
 msgstr "次のタブに切り替え"
 
 msgid "Switch to the previous tab"
 msgstr "前のタブに切り替え"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "シンボル"
@@ -14775,6 +14806,15 @@ msgstr "テキストの配置"
 
 msgid "Text embedded in email"
 msgstr "メールに埋め込まれるテキスト"
+
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
 
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -16213,6 +16253,9 @@ msgid ""
 "mydatabase.com)."
 msgstr "これは IP アドレス (例: 127.0.0.1) またはドメイン名 (例: mydatabase.com) です。"
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
 msgid "This canvas does not exist, or you do not have access to it"
 msgstr ""
 
@@ -16394,6 +16437,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"
@@ -18750,6 +18798,9 @@ msgstr ""
 msgid "You do not have permission to access this datasource"
 msgstr ""
 
+msgid "You do not have permission to change this layout."
+msgstr ""
+
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "この %s を編集する権限がありません"
@@ -19240,6 +19291,12 @@ msgstr "真偽値型アイコン"
 
 msgid "bottom"
 msgstr "下"
+
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
 
 msgid "button (cmd + z) until you save your changes."
 msgstr "変更を保存するまでは、ボタン (Cmd + Z) で操作可能です。"
@@ -20018,6 +20075,12 @@ msgstr "まで"
 
 msgid "top"
 msgstr "上"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 msgid "undo"
 msgstr "元に戻す"

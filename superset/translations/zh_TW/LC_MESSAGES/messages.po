@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-10-26 18:57+0300\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -6813,6 +6813,9 @@ msgstr "這個數據集没有返回預覽數據"
 msgid "Discard"
 msgstr "取消"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Display Name"
 msgstr "顯示名稱"
 
@@ -7020,6 +7023,9 @@ msgid "Draft"
 msgstr "草稿"
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -10428,6 +10434,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -11561,6 +11570,9 @@ msgstr "僅移動"
 
 msgid "Move only"
 msgstr "僅移動"
+
+msgid "Move widget"
+msgstr ""
 
 #, python-format
 msgid "Moved %s '%s'"
@@ -13530,6 +13542,9 @@ msgstr "僅公開共享的工作表"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "已發布"
 
@@ -13745,6 +13760,9 @@ msgstr "長方形"
 #, fuzzy
 msgid "Recurring (every)"
 msgstr "週期性重複（每）"
+
+msgid "Redo"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -14254,6 +14272,10 @@ msgstr ""
 #, fuzzy
 msgid "Resize"
 msgstr "重置"
+
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -14872,6 +14894,9 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 #, fuzzy
@@ -17086,6 +17111,9 @@ msgid ""
 "well."
 msgstr "用於可視化時間序列數據。在步進圖、折線圖、散點圖和條形圖之間進行選擇,也有許多自定義選項"
 
+msgid "Switch to draft mode"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -17097,6 +17125,9 @@ msgstr "切換至下一個分頁"
 #, fuzzy
 msgid "Switch to the previous tab"
 msgstr "切換至上一個分頁"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "符號"
@@ -17439,6 +17470,15 @@ msgstr "文本對齊"
 
 msgid "Text embedded in email"
 msgstr "郵件中嵌入的文本"
+
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
 
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -19102,6 +19142,9 @@ msgid ""
 "mydatabase.com)."
 msgstr "這可以是一個 IP 地址(例如 127.0.0.1)或一個域名(例如 mydatabase.com)。"
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
 msgid "This canvas does not exist, or you do not have access to it"
 msgstr ""
 
@@ -19326,6 +19369,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"
@@ -22126,6 +22174,9 @@ msgstr ""
 msgid "You do not have permission to access this datasource"
 msgstr ""
 
+msgid "You do not have permission to change this layout."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "您没有編輯此 %s 的權限"
@@ -22703,6 +22754,12 @@ msgstr "布林值類型圖示"
 
 msgid "bottom"
 msgstr "底部"
+
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
 
 msgid "button (cmd + z) until you save your changes."
 msgstr "按钮（cmd + z）直到你保存它。"
@@ -23668,6 +23725,12 @@ msgstr "頂部"
 #, fuzzy
 msgid "top"
 msgstr "頂部"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 #, fuzzy
 msgid "undo"

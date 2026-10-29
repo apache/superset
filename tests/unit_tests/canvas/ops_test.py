@@ -703,3 +703,83 @@ def test_removing_a_node_drops_its_refresh_exemption() -> None:
 
     assert result["settings"]["refresh"]["exempt"] == ["n1"]
     assert Touch(SETTINGS_ID, FieldGroup.REFRESH) in applied[0].touched
+
+
+def test_replaying_a_draft_resolves_where_the_draft_resolved() -> None:
+    """
+    Where layout is resolved decides the result, so the replay has to resolve
+    at the same boundaries the draft did: once per request.
+
+    Two cases pull in opposite directions, which is why neither "one resolve
+    for the log" nor "one resolve per operation" is right.
+    """
+    from superset.canvas.definition.render import render_context
+    from superset.commands.canvas.apply_ops import apply_batches
+
+    rules, resolver = canvas_widget_types(), FakeResolver()
+
+    def row(node: str, at: int) -> dict[str, Any]:
+        return {
+            "op": "place",
+            "id": node,
+            "layout": {"col": 1, "row": at, "colSpan": 24, "rowSpan": 1},
+        }
+
+    def stack(count: int, span: int = 1) -> dict[str, Any]:
+        return build(
+            *(
+                add(
+                    f"chart-{i + 1}",
+                    layout={
+                        "col": 1,
+                        "row": i * span + 1,
+                        "colSpan": 24,
+                        "rowSpan": span,
+                    },
+                )
+                for i in range(count)
+            )
+        )
+
+    def rows(definition: dict[str, Any]) -> dict[str, int]:
+        placements = render_context(definition, rules, resolver)["placements"]
+        return {node: rect["row"] for node, rect in sorted(placements.items())}
+
+    def draft_of(base: dict[str, Any], requests: list[list[dict[str, Any]]]):
+        """The draft: each request applied as one batch, resolved once."""
+        definition = base
+        for request in requests:
+            definition = apply(definition, *request)[0]
+        return definition
+
+    # One widget dragged over another and back, in two requests. Two rows tall
+    # each, so the drop really collides. Resolving the whole log at once lets
+    # the pushed widget return to where it started.
+    base = stack(2, span=2)
+    requests = [
+        [{**row("n0", 3), "layout": {**row("n0", 3)["layout"], "rowSpan": 2}}],
+        [{**row("n0", 1), "layout": {**row("n0", 1)["layout"], "rowSpan": 2}}],
+    ]
+    draft = draft_of(base, requests)
+    assert rows(draft) == {"n0": 1, "n1": 5}
+    assert rows(apply(base, *[op for r in requests for op in r])[0]) == {
+        "n0": 1,
+        "n1": 3,
+    }
+
+    replayed, applied = apply_batches(base, [ops(*r) for r in requests])
+    assert rows(replayed) == rows(draft)
+    assert [entry.op["id"] for entry in applied] == ["n0", "n0"]
+
+    # Two widgets swapped inside a single request. Resolving per operation
+    # pushes a third widget the request never touched.
+    base, requests = stack(3), [[row("n0", 2), row("n1", 1)]]
+    draft = draft_of(base, requests)
+    assert rows(draft) == {"n0": 2, "n1": 1, "n2": 3}
+    stepwise = base
+    for op in (op for request in requests for op in request):
+        stepwise = apply(stepwise, op)[0]
+    assert rows(stepwise) == {"n0": 2, "n1": 1, "n2": 4}
+
+    replayed, _ = apply_batches(base, [ops(*r) for r in requests])
+    assert rows(replayed) == rows(draft)

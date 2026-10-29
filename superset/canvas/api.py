@@ -68,6 +68,7 @@ from superset.commands.canvas.draft import (
     DeleteCanvasDraftCommand,
     draft_payload,
     load_draft,
+    RewindCanvasDraftCommand,
 )
 from superset.commands.canvas.exceptions import (
     CanvasCreateFailedError,
@@ -191,6 +192,24 @@ def describe_widget(widget: type[Widget]) -> dict[str, Any]:
     }
 
 
+def _can_edit(canvas: Canvas) -> bool:
+    """
+    Whether the current user may change ``canvas``.
+
+    Both gates the write route applies: the route-level ``can_write`` on
+    Canvas that ``@protect()`` enforces, and the object-level editorship
+    ``ApplyCanvasOperationsCommand.validate`` enforces. Checking only
+    editorship would advertise editing to a role the route itself refuses.
+    """
+    if not security_manager.can_access("can_write", "Canvas"):
+        return False
+    try:
+        security_manager.raise_for_editorship(canvas)
+    except SupersetSecurityException:
+        return False
+    return True
+
+
 def _get_canvas(id_or_uuid: str) -> Canvas:
     canvas = CanvasDAO.find_by_id_or_uuid(id_or_uuid)
     if canvas is None:
@@ -217,6 +236,8 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         "create_draft",
         "get_draft",
         "apply_draft_operations",
+        "undo_draft",
+        "redo_draft",
         "commit_draft",
         "delete_draft",
         "get_placement_data",
@@ -233,6 +254,8 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         "create_draft": "write",
         "get_draft": "write",
         "apply_draft_operations": "write",
+        "undo_draft": "write",
+        "redo_draft": "write",
         "commit_draft": "write",
         "delete_draft": "write",
         "get_placement_data": "read",
@@ -558,17 +581,41 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                             description: >-
                               Resolved grid position of every node on a grid,
                               auto-placed nodes included
+                          layouts:
+                            type: object
+                            description: >-
+                              The stored layout of every node on a grid, which
+                              placement is resolved from, for a client that
+                              previews a drag before writing it
+                          childOrder:
+                            type: object
+                            description: >-
+                              The children of each grid in reading order, keyed
+                              by the container node id, with the root grid
+                              under the key root. Reading order decides which
+                              widget yields to which, and placing a widget
+                              rewrites it
                           widgetTypes:
                             type: object
                             description: The widget type of each resolvable node
                           gridColumns:
                             type: object
                             description: The column count of each grid container
+                          layoutConstraints:
+                            type: object
+                            description: >-
+                              The span limits each node's widget declares, for
+                              a client that lets the user resize
                           widgets:
                             type: object
                             description: >-
                               The widgets placements hold by UUID, with their
                               widgetType, schemaVersion, name and props
+                          canEdit:
+                            type: boolean
+                            description: >-
+                              Whether the current user may apply operations to
+                              this canvas
             401:
               $ref: '#/components/responses/401'
             404:
@@ -582,6 +629,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                 "version": canvas.definition_version,
                 "revision": canvas.revision,
                 "definition": definition,
+                "canEdit": _can_edit(canvas),
                 **resolve_scopes(definition),
                 **render_context(definition),
             },
@@ -831,6 +879,99 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             _draft_token(), body.revision, body.ops
         ).run()
         return self.response(200, result={**draft_payload(draft), "ops": ops})
+
+    @expose("/draft/undo", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.undo_draft",
+        log_to_statsd=False,
+    )
+    @_handle_canvas_errors
+    def undo_draft(self) -> Response:
+        """Step the draft named by the `X-Canvas-Draft` header back one request.
+        ---
+        post:
+          summary: Undo the last change to a canvas draft
+          description: >-
+            Takes the operations of the most recent request off the draft and
+            rebuilds it from the rest, one request at a time. A request that
+            changed only a widget's props is a step like any other. Does
+            nothing when there is nothing to undo. Rejected with 409 if the
+            draft moved on, or if the canvas has changed since the draft
+            started, which a rebuild cannot replay against.
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  required: [revision]
+                  properties:
+                    revision:
+                      type: integer
+          responses:
+            200:
+              description: The draft after the step, as the definition response
+            400:
+              $ref: '#/components/responses/400'
+            404:
+              $ref: '#/components/responses/404'
+            409:
+              description: The draft or the canvas changed
+        """
+        return self._rewind_draft(forward=False)
+
+    @expose("/draft/redo", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.redo_draft",
+        log_to_statsd=False,
+    )
+    @_handle_canvas_errors
+    def redo_draft(self) -> Response:
+        """Put back the request the draft last stepped off.
+        ---
+        post:
+          summary: Redo the last undone change to a canvas draft
+          description: >-
+            Reapplies the request undo last removed. Any new change to the
+            draft discards what was undone, so this does nothing once the
+            draft has moved on in another direction.
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  required: [revision]
+                  properties:
+                    revision:
+                      type: integer
+          responses:
+            200:
+              description: The draft after the step, as the definition response
+            400:
+              $ref: '#/components/responses/400'
+            404:
+              $ref: '#/components/responses/404'
+            409:
+              description: The draft or the canvas changed
+        """
+        return self._rewind_draft(forward=True)
+
+    def _rewind_draft(self, forward: bool) -> Response:
+        try:
+            body = CommitDraftRequest.model_validate(request.get_json(silent=True))
+        except PydanticValidationError as ex:
+            return self.response(400, message=_pydantic_errors(ex))
+        draft = RewindCanvasDraftCommand(
+            _draft_token(), body.revision, forward=forward
+        ).run()
+        return self.response(200, result=draft_payload(draft))
 
     @expose("/draft/commit", methods=("POST",))
     @protect()

@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 18:57+0300\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -5444,6 +5444,9 @@ msgstr ""
 msgid "Discard"
 msgstr ""
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Display Name"
 msgstr ""
 
@@ -5592,6 +5595,9 @@ msgid "Draft"
 msgstr ""
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -8295,6 +8301,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid "Leave empty, or keep every column selected, to let viewers group by any groupable column, including columns added to the dataset later."
 msgstr ""
 
@@ -9177,6 +9186,9 @@ msgid "Move icon"
 msgstr ""
 
 msgid "Move only"
+msgstr ""
+
+msgid "Move widget"
 msgstr ""
 
 #, python-format
@@ -10737,6 +10749,9 @@ msgstr ""
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr ""
 
@@ -10926,6 +10941,9 @@ msgid "Rectangle"
 msgstr ""
 
 msgid "Recurring (every)"
+msgstr ""
+
+msgid "Redo"
 msgstr ""
 
 msgid "Redo the action"
@@ -11356,6 +11374,10 @@ msgid "Reset your %(app_name)s password"
 msgstr ""
 
 msgid "Resize"
+msgstr ""
+
+#, python-format
+msgid "Resize widget from the %s corner"
 msgstr ""
 
 msgid "Resource already has an attached report."
@@ -11872,6 +11894,9 @@ msgid "Saved query parameters are invalid."
 msgstr ""
 
 msgid "Saved semantic selections use an older identity format. Reset and explicitly reselect the metrics and dimensions, then save the chart. Display titles cannot be recovered automatically. For API requests, select current member IDs and supply semantic_selection_version from datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 msgid "Saving..."
@@ -13576,10 +13601,16 @@ msgstr ""
 msgid "Swiss army knife for visualizing data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well."
 msgstr ""
 
+msgid "Switch to draft mode"
+msgstr ""
+
 msgid "Switch to the next tab"
 msgstr ""
 
 msgid "Switch to the previous tab"
+msgstr ""
+
+msgid "Switch to view mode"
 msgstr ""
 
 msgid "Symbol"
@@ -13839,6 +13870,15 @@ msgid "Text align"
 msgstr ""
 
 msgid "Text embedded in email"
+msgstr ""
+
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
 msgstr ""
 
 #, python-format
@@ -15001,6 +15041,9 @@ msgstr ""
 msgid "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com)."
 msgstr ""
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
 msgid "This canvas does not exist, or you do not have access to it"
 msgstr ""
 
@@ -15135,6 +15178,9 @@ msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
 msgstr ""
 
 msgid "This dimension is not compatible with the current selections. Select a compatible dimension."
+msgstr ""
+
+msgid "This draft has changes that nobody else can see yet. Publish them, or discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"
@@ -17177,6 +17223,9 @@ msgstr ""
 msgid "You do not have permission to access this datasource"
 msgstr ""
 
+msgid "You do not have permission to change this layout."
+msgstr ""
+
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr ""
@@ -17606,6 +17655,12 @@ msgid "boolean type icon"
 msgstr ""
 
 msgid "bottom"
+msgstr ""
+
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
 msgstr ""
 
 msgid "button (cmd + z) until you save your changes."
@@ -18355,6 +18410,12 @@ msgid "to"
 msgstr ""
 
 msgid "top"
+msgstr ""
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
 msgstr ""
 
 msgid "undo"

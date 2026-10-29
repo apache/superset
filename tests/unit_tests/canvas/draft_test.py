@@ -192,7 +192,12 @@ def test_commit_replays_the_ops_strictly_and_deletes_the_draft(
     canvas_id, base_revision, replayed = command.call_args.args
     assert (canvas_id, base_revision) == (7, 3)
     assert [op.id for op in replayed] == ["chart"]
-    assert command.call_args.kwargs == {"strict": True, "widgets": {}}
+    assert command.call_args.kwargs["strict"] is True
+    assert command.call_args.kwargs["widgets"] == {}
+    # Grouped by the request that carried them, so the replay resolves layout
+    # where the draft resolved it.
+    batches = command.call_args.kwargs["batches"]
+    assert [[op.id for op in batch] for batch in batches] == [["chart"]]
     assert result is not None
     assert result.revision == 4
     assert store.entries == {}
@@ -235,6 +240,35 @@ def test_drafts_are_stored_as_json_strings(store: Store) -> None:
     assert isinstance(value, str)
 
 
+def test_draft_payload_reports_whether_the_caller_may_edit(
+    store: Store, mocker: MockerFixture
+) -> None:
+    """
+    A client gates drag and resize on ``canEdit`` on either surface, so the
+    draft payload carries it too. Object editorship is already settled by
+    ``load_draft``; what's left to report is the route-level permission.
+    """
+    from superset.commands.canvas.draft import CreateCanvasDraftCommand, draft_payload
+
+    draft = CreateCanvasDraftCommand(7).run()
+
+    # Granting every permission would pass whichever one production checks, so
+    # each case allows exactly one.
+    allowed = mocker.patch(f"{DRAFT}.security_manager.can_access")
+    allowed.side_effect = lambda permission, view: (
+        permission == "can_write" and view == "Canvas"
+    )
+    assert draft_payload(draft)["canEdit"] is True
+    # Also present on the unresolved payload the create response returns.
+    assert draft_payload(draft, resolved=False)["canEdit"] is True
+
+    # Read-only on Canvas: enough to open the draft, not to change it.
+    allowed.side_effect = lambda permission, view: (
+        permission == "can_read" and view == "Canvas"
+    )
+    assert draft_payload(draft)["canEdit"] is False
+
+
 def test_a_draft_holds_the_widgets_it_creates_and_commits_them(
     store: Store, mocker: MockerFixture
 ) -> None:
@@ -266,7 +300,12 @@ def test_a_draft_holds_the_widgets_it_creates_and_commits_them(
     assert reloaded.widgets == {
         widget_id: StoredWidget("chart", 1, "Sales", {"metric": "avg"})
     }
-    assert [op["op"] for op in reloaded.ops] == ["add"]
+    # One group per request. The first carried the `add`; the second changed
+    # only the widget's props, which applies to the widget entity rather than
+    # the canvas, so its group is empty -- it still marks a step, and the
+    # widgets recorded beside it are what undo would put back.
+    assert [[op["op"] for op in group] for group in reloaded.ops] == [["add"], []]
+    assert len(reloaded.widget_history) == 2
 
     CommitCanvasDraftCommand(draft.token, 2).run()
 
@@ -294,3 +333,253 @@ def test_a_draft_that_only_changes_widgets_still_commits(
 
     assert command.call_args.args[2] == []
     assert set(command.call_args.kwargs["widgets"]) == {"chart-1"}
+
+
+def test_publishing_a_multi_op_request_lays_out_as_the_draft_showed(
+    store: Store, mocker: MockerFixture
+) -> None:
+    """
+    End to end through the commands: what the commit sends has to reproduce
+    the layout the draft showed.
+
+    The UI batches gestures into one request while a save is in flight, so a
+    request carrying several moves is the ordinary case rather than an edge
+    one. ``ApplyCanvasOperationsCommand`` needs a database, so it is replaced
+    here and the batches it was handed are replayed against the same starting
+    definition instead.
+    """
+    from superset.canvas.definition.render import render_context
+    from superset.commands.canvas import draft as drafts
+    from superset.commands.canvas.apply_ops import apply_batches
+
+    def base() -> dict[str, Any]:
+        definition = empty_definition()
+        definition["root"]["children"] = ["a", "b", "c"]
+        for index, node_id in enumerate(("a", "b", "c")):
+            definition["nodes"][node_id] = {
+                "widgetType": "markdown",
+                "schemaVersion": 1,
+                "props": {},
+                "layout": {
+                    "col": 1,
+                    "row": index + 1,
+                    "colSpan": 24,
+                    "rowSpan": 1,
+                },
+            }
+        return definition
+
+    def rows(definition: dict[str, Any]) -> dict[str, int]:
+        placements = render_context(definition)["placements"]
+        return {node: rect["row"] for node, rect in sorted(placements.items())}
+
+    def place(node_id: str, row: int) -> dict[str, Any]:
+        return {
+            "op": "place",
+            "id": node_id,
+            "layout": {"col": 1, "row": row, "colSpan": 24, "rowSpan": 1},
+        }
+
+    dao: Any = drafts.CanvasDAO
+    dao.load.return_value = base()
+    command = mocker.patch(f"{DRAFT}.ApplyCanvasOperationsCommand")
+    command.return_value.run.return_value = MagicMock(revision=4)
+
+    draft = drafts.CreateCanvasDraftCommand(7).run()
+    # One request, two moves: 'a' down onto 'b' and 'b' up into its place.
+    draft, _ = drafts.ApplyCanvasDraftOperationsCommand(
+        draft.token, 0, ops(place("a", 2), place("b", 1))
+    ).run()
+
+    # What the draft shows: the two swapped, and 'c' left alone.
+    assert rows(draft.definition) == {"a": 2, "b": 1, "c": 3}
+
+    drafts.CommitCanvasDraftCommand(draft.token, 1).run()
+
+    batches = command.call_args.kwargs["batches"]
+    # One request in, one batch out.
+    assert len(batches) == 1
+    published, _ = apply_batches(base(), batches)
+
+    assert rows(published) == rows(draft.definition)
+
+
+def test_a_draft_written_before_grouping_is_still_readable(store: Store) -> None:
+    """
+    Drafts are cache entries, so some are open across a deploy. One written as
+    a flat log reads as a single group, which is how it would have been
+    replayed when it was written.
+    """
+    from superset.commands.canvas.draft import _op_groups
+
+    flat = [{"op": "place", "id": "a"}, {"op": "place", "id": "b"}]
+    assert _op_groups({"ops": flat}) == [flat]
+    assert _op_groups({"ops": []}) == []
+
+    grouped = [[{"op": "place", "id": "a"}], [{"op": "place", "id": "b"}]]
+    assert _op_groups({"ops": grouped, "opsGrouped": True}) == grouped
+    assert _op_groups({"ops": [], "opsGrouped": True}) == []
+
+
+def test_undo_steps_the_draft_back_a_request_at_a_time(
+    store: Store, mocker: MockerFixture
+) -> None:
+    """
+    One request is one step, rebuilt rather than reversed: the last group of
+    operations comes off and the rest are replayed.
+    """
+    from superset.canvas.definition.render import render_context
+    from superset.commands.canvas import draft as drafts
+
+    def base() -> dict[str, Any]:
+        definition = empty_definition()
+        definition["root"]["children"] = ["a", "b"]
+        for index, node_id in enumerate(("a", "b")):
+            definition["nodes"][node_id] = {
+                "widgetType": "markdown",
+                "schemaVersion": 1,
+                "props": {},
+                "layout": {"col": 1, "row": index * 2 + 1, "colSpan": 24, "rowSpan": 2},
+            }
+        return definition
+
+    def rows(definition: dict[str, Any]) -> dict[str, int]:
+        placements = render_context(definition)["placements"]
+        return {node: rect["row"] for node, rect in sorted(placements.items())}
+
+    def place(node_id: str, row: int) -> dict[str, Any]:
+        return {
+            "op": "place",
+            "id": node_id,
+            "layout": {"col": 1, "row": row, "colSpan": 24, "rowSpan": 2},
+        }
+
+    dao: Any = drafts.CanvasDAO
+    dao.load.return_value = base()
+
+    draft = drafts.CreateCanvasDraftCommand(7).run()
+    assert drafts.draft_payload(draft, resolved=False)["canUndo"] is False
+
+    draft, _ = drafts.ApplyCanvasDraftOperationsCommand(
+        draft.token, 0, ops(place("a", 5))
+    ).run()
+    assert rows(draft.definition) == {"a": 5, "b": 3}
+
+    draft, _ = drafts.ApplyCanvasDraftOperationsCommand(
+        draft.token, 1, ops(place("b", 9))
+    ).run()
+    assert rows(draft.definition) == {"a": 5, "b": 9}
+
+    # Back one step: the second request is gone, the first still stands.
+    draft = drafts.RewindCanvasDraftCommand(draft.token, 2).run()
+    assert rows(draft.definition) == {"a": 5, "b": 3}
+    payload = drafts.draft_payload(draft, resolved=False)
+    assert (payload["canUndo"], payload["canRedo"]) == (True, True)
+
+    # And back again: the canvas as it started.
+    draft = drafts.RewindCanvasDraftCommand(draft.token, draft.revision).run()
+    assert rows(draft.definition) == {"a": 1, "b": 3}
+    assert drafts.draft_payload(draft, resolved=False)["canUndo"] is False
+
+    # Forward twice returns to where the draft was.
+    draft = drafts.RewindCanvasDraftCommand(
+        draft.token, draft.revision, forward=True
+    ).run()
+    draft = drafts.RewindCanvasDraftCommand(
+        draft.token, draft.revision, forward=True
+    ).run()
+    assert rows(draft.definition) == {"a": 5, "b": 9}
+    assert drafts.draft_payload(draft, resolved=False)["canRedo"] is False
+
+
+def test_a_new_change_discards_what_was_undone(
+    store: Store, mocker: MockerFixture
+) -> None:
+    from superset.commands.canvas import draft as drafts
+
+    placed = empty_definition()
+    placed["root"]["children"] = ["a"]
+    placed["nodes"]["a"] = {
+        "widgetType": "markdown",
+        "schemaVersion": 1,
+        "props": {},
+        "layout": {"col": 1, "row": 1, "colSpan": 24, "rowSpan": 2},
+    }
+    dao: Any = drafts.CanvasDAO
+    dao.load.return_value = placed
+
+    def place(row: int) -> dict[str, Any]:
+        return {
+            "op": "place",
+            "id": "a",
+            "layout": {"col": 1, "row": row, "colSpan": 24, "rowSpan": 2},
+        }
+
+    draft = drafts.CreateCanvasDraftCommand(7).run()
+    draft, _ = drafts.ApplyCanvasDraftOperationsCommand(
+        draft.token, 0, ops(place(5))
+    ).run()
+    draft = drafts.RewindCanvasDraftCommand(draft.token, draft.revision).run()
+    assert draft.can_redo is True
+
+    draft, _ = drafts.ApplyCanvasDraftOperationsCommand(
+        draft.token, draft.revision, ops(place(9))
+    ).run()
+
+    # The branch that was undone is gone, as a redo stack does.
+    assert draft.can_redo is False
+
+
+def test_undo_restores_a_widget_prop_edit(store: Store, mocker: MockerFixture) -> None:
+    """
+    The case the widget history exists for.
+
+    A prop edit applies to the widget entity rather than to the canvas, so it
+    is not in the replayable log at all. Replaying the operations could never
+    put it back; the widgets recorded beside each step are what does.
+    """
+    from superset.commands.canvas import draft as drafts
+
+    mocker.patch(f"{DRAFT}.ApplyCanvasOperationsCommand")
+    draft = drafts.CreateCanvasDraftCommand(7).run()
+    draft, logged = drafts.ApplyCanvasDraftOperationsCommand(
+        draft.token,
+        0,
+        ops({"op": "add", "id": "sales", "widgetType": "chart", "name": "Sales"}),
+    ).run()
+    widget_id = logged[0]["widgetId"]
+
+    draft, _ = drafts.ApplyCanvasDraftOperationsCommand(
+        draft.token,
+        draft.revision,
+        ops({"op": "set_props", "id": "sales", "props": {"metric": "avg"}}),
+    ).run()
+    assert draft.widgets[widget_id].props == {"metric": "avg"}
+
+    draft = drafts.RewindCanvasDraftCommand(draft.token, draft.revision).run()
+
+    # The props are back, and the widget the `add` minted is still there.
+    assert draft.widgets[widget_id].props == {}
+    assert "sales" in draft.definition["nodes"]
+
+
+def test_a_draft_written_before_history_cannot_undo(store: Store) -> None:
+    """
+    Drafts are cache entries, so some are open across a deploy. One with
+    operations but no recorded widgets reports that undo is unavailable rather
+    than rebuilding to a state it cannot know.
+    """
+    from superset.commands.canvas.draft import CanvasDraft, draft_payload
+
+    draft = CanvasDraft(
+        token="tok",  # noqa: S106
+        owner_id=1,
+        canvas_id=7,
+        base_revision=3,
+        revision=2,
+        definition=empty_definition(),
+        ops=[[{"op": "place", "id": "a", "layout": {}}]],
+    )
+
+    assert draft.can_undo is False
+    assert draft_payload(draft, resolved=False)["canUndo"] is False

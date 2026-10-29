@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-10-26 18:57+0300\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -6416,6 +6416,9 @@ msgstr "Za to podatkovno bazo onemogočite vrtanje v podrobnosti."
 msgid "Discard"
 msgstr "Zavrzi"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Ime za prikaz"
 
@@ -6611,6 +6614,9 @@ msgid "Draft"
 msgstr "Osnutek"
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -9654,6 +9660,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -10681,6 +10690,9 @@ msgstr "Premakni ikono"
 
 msgid "Move only"
 msgstr "Samo premikanje"
+
+msgid "Move widget"
+msgstr ""
 
 #, python-format
 msgid "Moved %s '%s'"
@@ -12464,6 +12476,9 @@ msgstr "Samo javno deljeni listi"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "Objavljeno"
 
@@ -12657,6 +12672,9 @@ msgstr "Pravokotnik"
 
 msgid "Recurring (every)"
 msgstr "Ponavljajoče (vsak)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "Ponovno uveljavi dejanje"
@@ -13135,6 +13153,10 @@ msgstr ""
 
 msgid "Resize"
 msgstr "Spremeni velikost"
+
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
 
 msgid "Resource already has an attached report."
 msgstr "Vir že ima povezano poročilo."
@@ -13710,6 +13732,9 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 msgid "Saving..."
@@ -15734,11 +15759,17 @@ msgstr ""
 "stopničastimi, črtnimi, raztresenimi in stolpčnimi grafikoni. Grafikon "
 "ima širok nabor prilagoditev."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 msgid "Switch to the next tab"
 msgstr "Preklopite na naslednji zavihek"
 
 msgid "Switch to the previous tab"
 msgstr "Preklopite na prejšnji zavihek"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "Simbol"
@@ -16057,6 +16088,15 @@ msgstr "Poravnava besedila"
 
 msgid "Text embedded in email"
 msgstr "Besedilo vključeno v e-pošto"
+
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
 
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -17695,6 +17735,9 @@ msgstr ""
 "To je lahko bodisi IP naslov (npr. 127.0.0.1) bodisi ime domene (npr. "
 "mydatabase.com)."
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
 msgid "This canvas does not exist, or you do not have access to it"
 msgstr ""
 
@@ -17905,6 +17948,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"
@@ -20573,6 +20621,9 @@ msgstr ""
 msgid "You do not have permission to access this datasource"
 msgstr ""
 
+msgid "You do not have permission to change this layout."
+msgstr ""
+
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "Nimate dovoljenja za urejanje %s"
@@ -21113,6 +21164,12 @@ msgstr "ikona binarnega tipa"
 
 msgid "bottom"
 msgstr "spodaj"
+
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
 
 msgid "button (cmd + z) until you save your changes."
 msgstr "gumb (cmd + z) dokler ne shranite sprememb."
@@ -21934,6 +21991,12 @@ msgstr "do"
 
 msgid "top"
 msgstr "zgoraj"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 msgid "undo"
 msgstr "razveljavitev"

@@ -24,6 +24,29 @@ export interface GridPlacement {
   rowSpan: number;
 }
 
+/**
+ * A child's *stored* layout, as opposed to the rectangle it resolved to. Any
+ * field may be absent: an auto-placed child has no `col`/`row` at all.
+ */
+export interface GridLayout {
+  col?: number;
+  row?: number;
+  colSpan?: number;
+  rowSpan?: number;
+}
+
+/**
+ * The span limits a widget declares. Absent limits are open; the client
+ * clamps to these so a drag or resize can't produce a layout the server
+ * would reject.
+ */
+export interface SpanConstraints {
+  minColSpan?: number;
+  maxColSpan?: number;
+  minRowSpan?: number;
+  maxRowSpan?: number;
+}
+
 interface CanvasNodeBase {
   layout: Record<string, unknown>;
   children?: string[];
@@ -82,12 +105,38 @@ export interface CanvasDefinitionResult {
   customizationScopes: Record<string, string[]>;
   /** Resolved grid placement of every node on a grid. */
   placements: Record<string, GridPlacement>;
+  /**
+   * The stored layout of every node on a grid, which the server resolves
+   * placement from. Not derivable from `placements`: an auto-placed node has
+   * no stored `col`/`row`, and a collided node's stored `row` is the
+   * pushed-down one. A drag preview has to resolve from these to agree with
+   * the write that follows.
+   */
+  layouts: Record<string, GridLayout>;
+  /**
+   * Each grid's children in reading order, keyed by the container's node id
+   * (the root grid under `"root"`). Reading order decides which widget yields
+   * to which, and a `place` rewrites it when a drop lands on an earlier
+   * sibling, so a drag preview has to resolve against the server's order
+   * rather than the one the definition was fetched with.
+   */
+  childOrder: Record<string, string[]>;
   /** Node id -> widget type, for nodes whose widget resolves. */
   widgetTypes: Record<string, string>;
   /** Grid container node id -> its column count. */
   gridColumns: Record<string, number>;
+  /** Node id -> its widget's span limits, for nodes that declare any. */
+  layoutConstraints: Record<string, SpanConstraints>;
   /** Widget UUID -> the content of each widget entity placements hold. */
   widgets?: Record<string, StoredWidget>;
+  /** Whether the current user may apply operations to this canvas. */
+  canEdit: boolean;
+  /**
+   * Whether the draft has a step to go back to, or one to put back. Only a
+   * draft has history, so these are absent on the published canvas.
+   */
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 /** A widget entity's content, as a canvas renders it. */
@@ -96,6 +145,41 @@ export interface StoredWidget {
   schemaVersion: number;
   name: string;
   props: Record<string, unknown>;
+}
+
+/**
+ * `PATCH /api/v1/canvas/<id>/definition` — the revision the write produced
+ * and the placements resolved from it, so a client that just moved a widget
+ * renders the server's collision push-down without refetching.
+ */
+export interface ApplyOperationsResult {
+  revision: number;
+  ops: Record<string, unknown>[];
+  placements: Record<string, GridPlacement>;
+  /**
+   * The stored layouts the write produced. A write can change a node's stored
+   * layout without being asked to: a collided sibling is pushed down and its
+   * new `row` is written back. Without these the next drag's preview would
+   * resolve from a layout the server has already moved on from.
+   */
+  layouts: Record<string, GridLayout>;
+  /**
+   * The reading order the write produced. A `place` reorders the parent's
+   * children so the dropped widget wins the spot it landed on, so this
+   * changes without being asked to, exactly as `layouts` does.
+   */
+  childOrder: Record<string, string[]>;
+  widgetTypes: Record<string, string>;
+  gridColumns: Record<string, number>;
+  layoutConstraints: Record<string, SpanConstraints>;
+  /**
+   * The scopes the write resolved, as the definition route returns them. A
+   * scope follows the tree, so a `move` changes them without being asked to,
+   * exactly as `childOrder` does.
+   */
+  filterScopes: Record<string, string[]>;
+  crossFilterScopes: Record<string, string[]>;
+  customizationScopes: Record<string, string[]>;
 }
 
 /** A row of `GET /api/v1/canvas/`. */

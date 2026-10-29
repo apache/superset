@@ -45,15 +45,33 @@ const TabsRenderer = ({ childNodes }: Props) => (
   />
 );
 
-const GridRenderer = ({ renderGrid }: Props) => <>{renderGrid()}</>;
+/**
+ * A container's box, with its grid filling whatever its own chrome leaves.
+ *
+ * A container is as tall as it was placed. A grid left at its content height
+ * would end at the last row its children fill, so the space below them --
+ * plainly inside the container -- would belong to the grid outside it, and
+ * the rows the container really has room for could not be measured. Anything
+ * the container draws for itself, such as a title, comes off the top.
+ */
+const Container = styled.section`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+`;
+
+const GridRenderer = ({ renderGrid }: Props) => (
+  <Container>{renderGrid()}</Container>
+);
 
 const GroupRenderer = ({ props, renderGrid }: Props) => (
-  <section>
+  <Container>
     {text(props?.title) && (
       <Typography.Title level={5}>{text(props?.title)}</Typography.Title>
     )}
     {renderGrid()}
-  </section>
+  </Container>
 );
 
 const Markdown = styled.div`

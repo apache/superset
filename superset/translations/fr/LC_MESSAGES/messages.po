@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 18:57+0300\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -6400,6 +6400,9 @@ msgstr ""
 msgid "Discard"
 msgstr "Rejeter"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Nom d'affichage"
 
@@ -6587,6 +6590,9 @@ msgid "Draft"
 msgstr "Brouillon"
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -9621,6 +9627,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -10631,6 +10640,9 @@ msgstr "Déplacer l'icône"
 
 msgid "Move only"
 msgstr "Déplacer seulement"
+
+msgid "Move widget"
+msgstr ""
 
 #, python-format
 msgid "Moved %s '%s'"
@@ -12440,6 +12452,9 @@ msgstr "Uniquement les feuilles partagées publiquement"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "Publié"
 
@@ -12633,6 +12648,9 @@ msgstr "Rectangle"
 
 msgid "Recurring (every)"
 msgstr "Récurrent (tous les)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "Refaire l'action"
@@ -13113,6 +13131,10 @@ msgstr ""
 
 msgid "Resize"
 msgstr "Redimensionner"
+
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
 
 msgid "Resource already has an attached report."
 msgstr "La ressource a déjà un rapport joint."
@@ -13685,6 +13707,9 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 msgid "Saving..."
@@ -15740,11 +15765,17 @@ msgstr ""
 "diagrammes de dispersion et des diagrammes à barres. Ce type d'affichage "
 "dispose également de nombreuses options de personnalisation."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 msgid "Switch to the next tab"
 msgstr "Basculer sur l'onglet suivant"
 
 msgid "Switch to the previous tab"
 msgstr "Basculer sur l'onglet précédent"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "Symbole"
@@ -16050,6 +16081,15 @@ msgstr "Alignement du texte"
 
 msgid "Text embedded in email"
 msgstr "Texte encapsulé dans le courriel"
+
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
 
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -17791,6 +17831,9 @@ msgstr ""
 "Cela peut être soit une adresse IP (ex 127.0.0.1) ou un nom de domaine "
 "(ex mydatabase.com)."
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
 msgid "This canvas does not exist, or you do not have access to it"
 msgstr ""
 
@@ -18002,6 +18045,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"
@@ -20701,6 +20749,9 @@ msgstr ""
 msgid "You do not have permission to access this datasource"
 msgstr ""
 
+msgid "You do not have permission to change this layout."
+msgstr ""
+
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "Vous n'avez pas les permission pour modifier ce %s"
@@ -21253,6 +21304,12 @@ msgstr "icône de type booléen"
 
 msgid "bottom"
 msgstr "bas"
+
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
 
 msgid "button (cmd + z) until you save your changes."
 msgstr "(cmd + z) jusqu'à ce que vous sauvegardiez vos modifications."
@@ -22068,6 +22125,12 @@ msgstr "à"
 
 msgid "top"
 msgstr "haut"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 msgid "undo"
 msgstr "annuler"

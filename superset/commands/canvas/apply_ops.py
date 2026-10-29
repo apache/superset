@@ -112,25 +112,61 @@ def apply_or_raise(
     definition: dict[str, Any],
     ops: list[Operation],
     pending: dict[str, StoredWidget] | None = None,
+    first_index: int = 0,
 ) -> tuple[dict[str, Any], list[AppliedOperation]]:
     """
     Apply ``ops`` to a copy of ``definition``, as one atomic batch; widgets
     they create or change are added to ``pending``.
+
+    ``first_index`` is where these operations start in the caller's own list,
+    so an error reported against a slice still names the operation the caller
+    sent.
     """
     try:
         return apply_operations(definition, ops, pending=pending)
     except OperationError as ex:
         raise DefinitionInvalidError(
             str(ex),
-            issues=[Issue(pointer("ops", ex.index), ex.message)],
-            operation_index=ex.index,
+            issues=[Issue(pointer("ops", first_index + ex.index), ex.message)],
+            operation_index=first_index + ex.index,
         ) from ex
     except DefinitionValidationError as ex:
         raise DefinitionInvalidError(
             "The operations produce an invalid definition",
             issues=ex.issues,
-            operation_index=ex.operation,
+            operation_index=(
+                None if ex.operation is None else first_index + ex.operation
+            ),
         ) from ex
+
+
+def apply_batches(
+    definition: dict[str, Any],
+    batches: list[list[Operation]],
+    pending: dict[str, StoredWidget] | None = None,
+) -> tuple[dict[str, Any], list[AppliedOperation]]:
+    """
+    Apply each batch in turn, resolving layout once per batch.
+
+    For replaying a draft, whose batches are the requests that built it. Where
+    layout is resolved decides the result: operations in one batch are applied
+    before anything is resolved, so none of them sees where another pushed the
+    widgets, while a later batch sees all of it. Resolving at any other
+    boundary lays the canvas out differently from the plan that was approved --
+    once for the whole log, and a widget dragged over another and back stops
+    pushing it aside; once per operation, and a widget moved by a later
+    operation in the same request pushes a third one it never touched.
+
+    One resolve per batch rather than one for the log, which is why this is
+    kept to the commit path.
+    """
+    applied: list[AppliedOperation] = []
+    first_index = 0
+    for batch in batches:
+        definition, step = apply_or_raise(definition, batch, pending, first_index)
+        applied.extend(step)
+        first_index += len(batch)
+    return definition, applied
 
 
 class ApplyCanvasOperationsCommand(BaseCommand):
@@ -147,6 +183,7 @@ class ApplyCanvasOperationsCommand(BaseCommand):
         ops: list[Operation],
         strict: bool = False,
         widgets: dict[str, StoredWidget] | None = None,
+        batches: list[list[Operation]] | None = None,
     ) -> None:
         self._canvas_ref = str(canvas_id_or_uuid)
         self._canvas_id = 0
@@ -156,6 +193,10 @@ class ApplyCanvasOperationsCommand(BaseCommand):
         self._strict = strict
         # Widgets a draft created or changed, saved with the canvas.
         self._widgets = dict(widgets or {})
+        # Replaying a draft: ``ops`` grouped into the requests that built it,
+        # so layout is resolved where the draft resolved it. ``ops`` stays the
+        # flat list, which is what conflict detection reads.
+        self._batches = batches
 
     def run(self) -> ApplyResult:
         canvas = CanvasDAO.find_by_id_or_uuid(self._canvas_ref)
@@ -177,7 +218,11 @@ class ApplyCanvasOperationsCommand(BaseCommand):
             self._check_overlap(current, named_touches(self._ops))
 
         pending = dict(self._widgets)
-        definition, applied = apply_or_raise(CanvasDAO.load(canvas), self._ops, pending)
+        definition, applied = (
+            apply_batches(CanvasDAO.load(canvas), self._batches, pending)
+            if self._batches is not None
+            else apply_or_raise(CanvasDAO.load(canvas), self._ops, pending)
+        )
 
         if self._base_revision != current:
             self._check_overlap(current, applied_touches(applied))

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-26 18:57+0300\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -6357,6 +6357,9 @@ msgstr "Вимикає функцію деталізації для цієї б�
 msgid "Discard"
 msgstr "Відкинути"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Імʼя на загал"
 
@@ -6535,6 +6538,9 @@ msgid "Draft"
 msgstr "Чорновик"
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -9518,6 +9524,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -10529,6 +10538,9 @@ msgstr "Тільки переміщення"
 
 msgid "Move only"
 msgstr "Тільки переміщення"
+
+msgid "Move widget"
+msgstr ""
 
 #, python-format
 msgid "Moved %s '%s'"
@@ -12308,6 +12320,9 @@ msgstr "Лише публічно поширені аркуші"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "Оприлюднений"
 
@@ -12502,6 +12517,9 @@ msgstr "Прямокутник"
 
 msgid "Recurring (every)"
 msgstr "Повторювати (кожні)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "Скасувати дію"
@@ -12961,6 +12979,10 @@ msgstr ""
 
 msgid "Resize"
 msgstr "Змінити розмір"
+
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
 
 msgid "Resource already has an attached report."
 msgstr "Ресурс уже долучено до доповіді."
@@ -13539,6 +13561,9 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 msgid "Saving..."
@@ -15582,11 +15607,17 @@ msgstr ""
 "ступінчастим, лінійним, розсіювальними і стовпчиковим діаграмами. Також "
 "має багато варіантів для підлаштування під себе."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 msgid "Switch to the next tab"
 msgstr "Перейти на наступну вкладку"
 
 msgid "Switch to the previous tab"
 msgstr "Перейти на попередню вкладку"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "Символ"
@@ -15897,6 +15928,15 @@ msgstr "Вирівнювання тексту"
 
 msgid "Text embedded in email"
 msgstr "Текст, долучений до листа"
+
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
 
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -17522,6 +17562,9 @@ msgstr ""
 "Це може бути або адреса IP (наприклад, 127.0.0.1), або домен (наприклад, "
 "mydatabase.com)."
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
 msgid "This canvas does not exist, or you do not have access to it"
 msgstr ""
 
@@ -17727,6 +17770,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"
@@ -20357,6 +20405,9 @@ msgstr ""
 msgid "You do not have permission to access this datasource"
 msgstr ""
 
+msgid "You do not have permission to change this layout."
+msgstr ""
+
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "Ви не маєте прав для редагування: %s"
@@ -20887,6 +20938,12 @@ msgstr "піктограма для логічного типу"
 
 msgid "bottom"
 msgstr "знизу"
+
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
 
 msgid "button (cmd + z) until you save your changes."
 msgstr "натискайте кнопку (cmd + z), доки не збережете зміни."
@@ -21723,6 +21780,12 @@ msgstr "до"
 
 msgid "top"
 msgstr "зверху"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 msgid "undo"
 msgstr "скасувати"

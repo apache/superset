@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 18:57+0300\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -6568,6 +6568,9 @@ msgstr ""
 msgid "Discard"
 msgstr "Whakarerea"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Ingoa Whakaatu"
 
@@ -6772,6 +6775,9 @@ msgid "Draft"
 msgstr "Tuhinga"
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -9968,6 +9974,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -11018,6 +11027,9 @@ msgstr "Neke anake"
 
 msgid "Move only"
 msgstr "Neke anake"
+
+msgid "Move widget"
+msgstr ""
 
 #, python-format
 msgid "Moved %s '%s'"
@@ -12865,6 +12877,9 @@ msgstr "Ngā rau i tohatohatia tūmatanui anake"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "Kua Whakaputaina"
 
@@ -13065,6 +13080,9 @@ msgstr "Tapawhā Rite"
 
 msgid "Recurring (every)"
 msgstr "Auau tonu (ia)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "Mahia anō te mahi"
@@ -13550,6 +13568,10 @@ msgstr ""
 #, fuzzy
 msgid "Resize"
 msgstr "Tautuhi anō"
+
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
 
 msgid "Resource already has an attached report."
 msgstr "Kua tāpiritia kētia he pūrongo ki te rauemi."
@@ -14144,6 +14166,9 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 msgid "Saving..."
@@ -16304,11 +16329,17 @@ msgstr ""
 "ngā kauwhata takahanga, rārangi, marara me te pae. He maha ngā kōwhiringa"
 " whakaritenga o tēnei momo viz."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 msgid "Switch to the next tab"
 msgstr "Huri ki te ripa panuku"
 
 msgid "Switch to the previous tab"
 msgstr "Huri ki te ripa tōmua"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "Tohu"
@@ -16639,6 +16670,15 @@ msgstr "Whakarite kupu"
 
 msgid "Text embedded in email"
 msgstr "Kupu tāmautia i te īmēra"
+
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
 
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -18335,6 +18375,9 @@ msgstr ""
 "Ka taea e tēnei te noho hei wāhitau IP (hei tauira 127.0.0.1), hei ingoa "
 "rohe rānei (hei tauira mydatabase.com)."
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
 msgid "This canvas does not exist, or you do not have access to it"
 msgstr ""
 
@@ -18556,6 +18599,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"
@@ -21322,6 +21370,9 @@ msgstr ""
 msgid "You do not have permission to access this datasource"
 msgstr ""
 
+msgid "You do not have permission to change this layout."
+msgstr ""
+
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "Karekau ō mōtika ki te whakatika i tēnei %s"
@@ -21870,6 +21921,12 @@ msgstr "tohu momo pūruhi"
 
 msgid "bottom"
 msgstr "raro"
+
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
 
 msgid "button (cmd + z) until you save your changes."
 msgstr "pātene (cmd + z) tae noa koe ka tiaki i ō huringa."
@@ -22732,6 +22789,12 @@ msgstr "runga"
 
 msgid "top"
 msgstr "runga"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 msgid "undo"
 msgstr "wete"

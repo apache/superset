@@ -386,4 +386,7 @@ class Tab(Widget):
 class Group(Widget):
     controls_class = GroupControls
     behavior = WidgetBehavior(container=True, grid_columns=12, structural=True)
-    ui = WidgetUi(default_size=(24, 6))
+    # A row for the title drawn above the grid: without it the group is grown
+    # to exactly its children's rows, the title pushes them down by its own
+    # height, and the last row is drawn outside the group's box.
+    ui = WidgetUi(default_size=(24, 6), chrome_rows=1)
