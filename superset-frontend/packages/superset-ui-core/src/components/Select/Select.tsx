@@ -22,6 +22,7 @@ import {
   RefObject,
   useEffect,
   useMemo,
+  useContext,
   useState,
   useCallback,
   useRef,
@@ -31,6 +32,7 @@ import {
 } from 'react';
 
 import { t } from '@apache-superset/core/translation';
+import { ConfigProvider } from 'antd';
 import { ensureIsArray, formatNumber, usePrevious } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
 import {
@@ -150,6 +152,11 @@ const Select = forwardRef(
     ref: Ref<RefSelectProps>,
   ) => {
     const isSingleMode = mode === 'single';
+    // AntdThemeProvider can supply a context-aware container (e.g. chart
+    // fullscreen); an explicit callback below would otherwise shadow it.
+    const { getPopupContainer: configGetPopupContainer } = useContext(
+      ConfigProvider.ConfigContext,
+    );
     // antd v6 widened `showSearch` to `boolean | SearchConfig`; coerce to a
     // plain boolean for Superset's internal toggles and helpers.
     const shouldShowSearch = allowNewOptions ? true : Boolean(showSearch);
@@ -1003,7 +1010,8 @@ const Select = forwardRef(
             getPopupContainer ||
             ((triggerNode: HTMLElement) =>
               (triggerNode?.closest('.ant-modal-container') as HTMLElement) ||
-              (triggerNode.parentNode as HTMLElement))
+              configGetPopupContainer?.(triggerNode) ||
+              document.body)
           }
           headerPosition={headerPosition}
           labelInValue={labelInValue}

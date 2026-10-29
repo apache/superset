@@ -39,6 +39,7 @@
   },
   "peerDependencies": {
     "@apache-superset/core": "*",
+    "@emotion/react": "^11.4.1",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "@types/lodash": "^4.17.25",
