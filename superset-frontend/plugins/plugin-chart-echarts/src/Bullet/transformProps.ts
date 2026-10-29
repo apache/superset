@@ -159,6 +159,13 @@ export default function transformProps(
       ? BAND_LABEL_COLORS.light
       : BAND_LABEL_COLORS.dark;
   };
+  // Bands are drawn outermost first, so a band without its own color sits on
+  // top of the nearest outer custom fill; its label must contrast with that.
+  let outerCustomFill: string | undefined;
+  const bandLabelFills = sortedRanges.map(({ color }) => {
+    if (color) outerCustomFill = color;
+    return color ?? outerCustomFill;
+  });
   const bands = sortedRanges.map(({ value, label, color }, i) => ({
     name: label,
     itemStyle: {
@@ -173,7 +180,7 @@ export default function transformProps(
       distance: theme.sizeUnit,
       // Labels sit inside the band, so a custom fill needs a foreground that
       // contrasts with it; theme-ramp fills keep the default label color.
-      color: getBandLabelColor(color),
+      color: getBandLabelColor(bandLabelFills[i]),
       formatter: () => label ?? '',
     },
     // markArea item: [{start}, {end}]
