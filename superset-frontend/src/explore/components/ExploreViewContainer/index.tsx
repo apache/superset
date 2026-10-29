@@ -459,9 +459,6 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
 
   const theme = useTheme();
 
-  // Capture original title before any effects run
-  const originalTitle = useMemo(() => document.title, []);
-
   // Update document title when slice name changes
   useEffect(() => {
     if (props.sliceName) {
@@ -469,16 +466,13 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     }
   }, [props.sliceName]);
 
-  // Restore original title on unmount
+  // Restore the app title on unmount. The title at mount is not a usable
+  // fallback: a direct page load already has the server-rendered name in it.
   useEffect(
     () => () => {
-      document.title =
-        originalTitle ||
-        theme?.brandAppName ||
-        theme?.brandLogoAlt ||
-        'Superset';
+      document.title = theme?.brandAppName || theme?.brandLogoAlt || 'Superset';
     },
-    [originalTitle, theme?.brandAppName, theme?.brandLogoAlt],
+    [theme?.brandAppName, theme?.brandLogoAlt],
   );
 
   // M3 + M4: fire compatibility check on mount and whenever the metric /
