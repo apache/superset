@@ -359,7 +359,6 @@ msgstr "%(object)s neeksistē šajā datubāzē."
 msgid "%(prefix)s %(title)s"
 msgstr "%(prefix)s %(title)s"
 
-# sr_Latn]
 #, python-format
 msgid ""
 "%(prefix)sResults truncated to %(row_count)s rows due to memory "
@@ -465,7 +464,6 @@ msgstr "Atlasīts: %s (fiziskās)"
 msgid "%s Selected (Virtual)"
 msgstr "Atlasīts: %s (virtuālās)"
 
-# sr_Latn]
 #, python-format
 msgid "%s Semantic View"
 msgstr "Semantiskie skati: %s"
@@ -700,17 +698,14 @@ msgstr[0] "%s sekundes"
 msgstr[1] "%s sekundēm"
 msgstr[2] "%s sekundēm"
 
-# sr_Latn]
 #, python-format
 msgid "%s semantic view(s) added"
 msgstr "Pievienoti semantiskie skati: %s"
 
-# sr_Latn]
 #, python-format
 msgid "%s semantic view(s) failed to add"
 msgstr "Neizdevās pievienot semantiskos skatus: %s"
 
-# sr_Latn]
 #, python-format
 msgid "%s semantic view(s) failed to add: %s"
 msgstr "Neizdevās pievienot %s semantiskos skatus: %s"
@@ -1152,7 +1147,6 @@ msgstr ""
 msgid "A Big Number"
 msgstr "Lielais skaitlis"
 
-# sr_Latn]
 #, python-brace-format
 msgid ""
 "A JavaScript object that adheres to the ECharts options specification, "
@@ -1556,11 +1550,9 @@ msgstr "API atslēga ir veiksmīgi izveidota"
 msgid "API key name is required"
 msgstr "API atslēgas nosaukums ir obligāts"
 
-# sr_Latn]
 msgid "API key revoked successfully"
 msgstr "API atslēga veiksmīgi atsaukta"
 
-# sr_Latn]
 msgid "API keys allow scoped programmatic access to Superset."
 msgstr "API atslēgas nodrošina ierobežotu programmatisko piekļuvi Superset."
 
@@ -2811,7 +2803,6 @@ msgstr "Lietotie filtri (%s)"
 msgid "Applied filters: %s"
 msgstr "Lietotie filtri: %s"
 
-# sr_Latn]
 msgid ""
 "Applies only when \"Cell bars\" formatting is selected: the background of"
 " the histogram columns is displayed if the \"Show cell bars\" flag is "
@@ -3057,12 +3048,10 @@ msgstr "Automātiski"
 msgid "Auto Zoom"
 msgstr "Automātiskā tālummaiņa"
 
-# sr_Latn]
 #, python-format
 msgid "Auto refresh paused (set to %s seconds)"
 msgstr "Automātiskā atsvaidzināšana apturēta (iestatīta uz %s sekundēm)"
 
-# sr_Latn]
 #, python-format
 msgid "Auto refresh paused - tab inactive (set to %s seconds)"
 msgstr ""
@@ -3198,7 +3187,6 @@ msgstr "Bāzes augstums"
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Pamatslāņa kartes stils. Pieņem ar MapLibre saderīgu stila URL."
 
-# sr_Latn]
 msgid "Base layer map style. Accepts a Mapbox style URL (mapbox://styles/...)."
 msgstr "Pamatslāņa kartes stils. Pieņem Mapbox stila URL (mapbox://styles/...)."
 
@@ -3463,7 +3451,6 @@ msgstr "CSS veidnes"
 msgid "CSS applied to the chart"
 msgstr "CSS, kas piemērots diagrammai"
 
-# sr_Latn]
 msgid ""
 "CSS styles may be removed by server-side HTML sanitization. If styles are"
 " not applying, ask your Superset administrator to adjust the HTML "
@@ -3593,7 +3580,6 @@ msgstr "Atcelt uzdevumu"
 msgid "Cancel query on window unload event"
 msgstr "Atcelt vaicājumu, aizverot logu"
 
-# sr_Latn]
 msgid "Cancellation not available due to missing abort handler"
 msgstr "Atcelšana nav pieejama, jo trūkst pārtraukšanas apstrādātāja"
 
@@ -3898,7 +3884,6 @@ msgstr "Diagramma"
 msgid "Chart \"%(chart)s\" is used by alerts or reports: %(names)s."
 msgstr "Diagrammu \"%(chart)s\" izmanto brīdinājumi vai atskaites: %(names)s."
 
-# sr_Latn]
 #, python-format
 msgid "Chart %(chart_id)s is not on dashboard %(dashboard_id)s"
 msgstr "Diagramma %(chart_id)s neatrodas infopanelī %(dashboard_id)s"
@@ -4465,11 +4450,9 @@ msgstr "Krāsu shēmas tips"
 msgid "Color Steps"
 msgstr "Krāsu soļi"
 
-# sr_Latn]
 msgid "Color bars by x-axis"
 msgstr "Krāsot joslas pēc X ass"
 
-# sr_Latn]
 msgid "Color bars by y-axis"
 msgstr "Krāsot joslas pēc Y ass"
 
@@ -4485,7 +4468,6 @@ msgstr "Krāsot pēc"
 msgid "Color by direction"
 msgstr "Krāsot pēc virziena"
 
-# sr_Latn]
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Krāsas laukam jābūt heksadecimālai krāsai (#rrggbb) vai 'rgb(r, g, b)'"
 
@@ -4652,7 +4634,6 @@ msgstr "Kolonnu mapē var būt tikai kolonnu vienumi"
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "Datu kopā trūkst kolonnu: %(invalid_columns)s"
 
-# sr_Latn]
 msgid "Columns should be inside folders"
 msgstr "Kolonnām jāatrodas mapēs"
 
@@ -4929,7 +4910,6 @@ msgstr "Satur visus"
 msgid "Contains any"
 msgstr "Satur jebkuru"
 
-# sr_Latn]
 #, python-format
 msgid "Contains text (ILIKE %x%)"
 msgstr "Satur tekstu (ILIKE %x%)"
@@ -5370,7 +5350,6 @@ msgstr "Pielāgots SQL"
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "Pielāgotas SQL ad-hoc metrikas nav iespējotas šai datu kopai"
 
-# sr_Latn]
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "Pielāgotos SQL laukus nevar parsēt kā vienu SQL priekšrakstu."
 
@@ -6142,7 +6121,6 @@ msgstr ""
 msgid "Definition"
 msgstr "Definīcija"
 
-# sr_Latn]
 #, python-format
 msgid "Delayed (missed %s refresh)"
 msgid_plural "Delayed (missed %s refreshes)"
@@ -6534,7 +6512,6 @@ msgstr "Sertifikācijas detaļas"
 msgid "Details of the dataset certification"
 msgstr "Datu kopas sertifikācijas detaļas"
 
-# sr_Latn]
 msgid ""
 "Determines how the filter matches values. \"Exact match\" uses the IN "
 "operator (default). ILIKE options enable partial text matching with a "
@@ -6569,7 +6546,6 @@ msgstr "Tumši pelēks"
 msgid "Dimension"
 msgstr "Dimensija"
 
-# sr_Latn]
 msgid ""
 "Dimension column emitted as a cross-filter when a feature is clicked. "
 "Other charts on the dashboard match against this column. If unset, falls "
@@ -7051,7 +7027,6 @@ msgstr "Dinamiski izvēlēties grupēšanas kolonnas no datu kopas"
 msgid "ECharts"
 msgstr "ECharts"
 
-# sr_Latn]
 msgid "ECharts Options (JS object literals)"
 msgstr "ECharts opcijas (JS objektu literāļi)"
 
@@ -7543,7 +7518,6 @@ msgstr "Kļūdu apstrāde"
 msgid "Error deleting %s"
 msgstr "Kļūda, dzēšot %s"
 
-# sr_Latn]
 #, python-format
 msgid "Error disabling fullscreen: %s"
 msgstr "Kļūda, atspējojot pilnekrāna režīmu: %s"
@@ -7679,7 +7653,6 @@ msgstr "Evolūcija"
 msgid "Exact"
 msgstr "Precīza vērtība"
 
-# sr_Latn]
 msgid "Exact match (IN)"
 msgstr "Precīza atbilstība (IN)"
 
@@ -7950,7 +7923,6 @@ msgstr "Šajā serverī paplašinājumi nav iespējoti"
 msgid "Extent"
 msgstr "Aptvērums"
 
-# sr_Latn]
 msgid "External link warning"
 msgstr "Brīdinājums par ārēju saiti"
 
@@ -8555,7 +8527,6 @@ msgstr "Spēku virzīts"
 msgid "Force Time Grain as Max Interval"
 msgstr "Iestatīt laika granularitāti kā maksimālo intervālu"
 
-# sr_Latn]
 msgid "Force abort (stops task for all subscribers)"
 msgstr "Piespiedu pārtraukšana (aptur uzdevumu visiem abonentiem)"
 
@@ -9691,7 +9662,6 @@ msgstr "Atslēgas prefikss"
 msgid "Keyboard shortcuts"
 msgstr "Tastatūras saīsnes"
 
-# sr_Latn]
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
 "Atslēgas tiek rādītas tikai vienu reizi izveides laikā. Glabājiet tās "
@@ -9998,7 +9968,6 @@ msgstr "Mazāks vai vienāds (<=)"
 msgid "Less than (<)"
 msgstr "Mazāks par (<)"
 
-# sr_Latn]
 msgid "Liberty (OpenFreeMap)"
 msgstr "Liberty (OpenFreeMap)"
 
@@ -10350,7 +10319,6 @@ msgstr "Pārvaldīt infopaneļa redaktorus un piekļuves atļaujas"
 msgid "Manage email report"
 msgstr "Pārvaldīt e-pasta atskaiti"
 
-# sr_Latn]
 msgid ""
 "Manage filters and customizations to set scoping, descriptions, and "
 "limitations. Create new elements for better dashboard insights."
@@ -10390,11 +10358,9 @@ msgstr ""
 "Piešķiriet krāsas konkrētiem apzīmējumiem. Tas automātiski atjaunina "
 "tālāk redzamo JSON."
 
-# sr_Latn]
 msgid "MapLibre (open-source)"
 msgstr "MapLibre (atvērtā pirmkoda)"
 
-# sr_Latn]
 msgid ""
 "MapLibre is open-source and requires no API key. Mapbox requires "
 "MAPBOX_API_KEY to be configured on the server."
@@ -10405,7 +10371,6 @@ msgstr ""
 msgid "Mapbox (API key required)"
 msgstr "Mapbox (nepieciešama API atslēga)"
 
-# sr_Latn]
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox prasa, lai serverī būtu konfigurēts MAPBOX_API_KEY."
 
@@ -10709,14 +10674,12 @@ msgstr "Metrikas"
 msgid "Metrics (%s)"
 msgstr "Metrikas (%s)"
 
-# sr_Latn]
 msgid "Metrics can't be used for both rows and columns at the same time"
 msgstr "Metrikas nevar vienlaikus izmantot gan rindām, gan kolonnām"
 
 msgid "Metrics folder can only contain metric items"
 msgstr "Metriku mape var saturēt tikai metriku vienumus"
 
-# sr_Latn]
 msgid "Metrics should be inside folders"
 msgstr "Metrikām jāatrodas mapēs"
 
@@ -10995,7 +10958,6 @@ msgstr ""
 msgid "Multiplier"
 msgstr "Reizinātājs"
 
-# sr_Latn]
 msgid ""
 "Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
@@ -11286,7 +11248,6 @@ msgstr "Nav piemērotu filtru"
 msgid "No filters are currently added to this dashboard."
 msgstr "Šim infopanelim pašlaik nav pievienotu filtru."
 
-# sr_Latn]
 msgid "No filters or customizations created yet"
 msgstr "Vēl nav izveidoti filtri vai pielāgojumi"
 
@@ -11805,11 +11766,9 @@ msgstr ""
 msgid "Only e-mail addresses of existing active users can be used as recipients."
 msgstr "Kā saņēmējus var izmantot tikai esošu aktīvu lietotāju e-pasta adreses."
 
-# sr_Latn]
 msgid "Only exact match is available for non-string columns."
 msgstr "Kolonnām, kas nav teksta tipa, ir pieejama tikai precīza atbilstība."
 
-# sr_Latn]
 msgid "Only proceed if you trust the destination or its source."
 msgstr "Turpiniet tikai tad, ja uzticaties galamērķim vai tā avotam."
 
@@ -12260,7 +12219,6 @@ msgstr "Ceļa izmērs"
 msgid "Pattern"
 msgstr "Likumsakarības"
 
-# sr_Latn]
 msgid "Pause auto refresh if tab is inactive"
 msgstr "Apturēt automātisko atsvaidzināšanu, ja cilne ir neaktīva"
 
@@ -12790,11 +12748,9 @@ msgstr "Īpašības atjauninātas"
 msgid "Proportional"
 msgstr "Proporcionāls"
 
-# sr_Latn]
 msgid "Public and privately shared sheets"
 msgstr "Publiski un privāti kopīgotas izklājlapas"
 
-# sr_Latn]
 msgid "Publicly shared sheets only"
 msgstr "Tikai publiski kopīgotās izklājlapas"
 
@@ -13570,7 +13526,6 @@ msgstr "Atsaukt"
 msgid "Revoke API Key"
 msgstr "Atsaukt API atslēgu"
 
-# sr_Latn]
 msgid "Revoke this API key"
 msgstr "Atsaukt šo API atslēgu"
 
@@ -13809,7 +13764,6 @@ msgstr ""
 "nekvalificētu tabulu nosaukumu atrisināšanai (piem., USE vai search_path "
 "izmaiņas). Tā vietā norādiet tabulas ar pilniem nosaukumiem."
 
-# sr_Latn]
 msgid ""
 "SQL Lab cannot authorise a statement that could not be fully parsed. "
 "Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
@@ -14021,7 +13975,6 @@ msgstr ""
 "tiek palaists pret saglabātajām kolonnām, bet šis kartējums izmanto "
 "kolonnu, kas vēl nav saglabāta."
 
-# sr_Latn]
 msgid "Save this API key securely"
 msgstr "Droši saglabājiet šo API atslēgu"
 
@@ -14074,7 +14027,6 @@ msgstr "Saglabā..."
 msgid "Scale and Move"
 msgstr "Mērogot un pārvietot"
 
-# sr_Latn]
 msgid "Scale factor applied to metric-driven line widths"
 msgstr "Mēroga faktors, kas piemērots metriku noteiktajiem līniju platumiem"
 
@@ -14692,7 +14644,6 @@ msgstr "Izvēlieties fiksētu krāsu"
 msgid "Select the geojson column"
 msgstr "Atlasīt GeoJSON kolonnu"
 
-# sr_Latn]
 msgid ""
 "Select the map tile provider. MapLibre is open-source and requires no API"
 " key. Mapbox requires MAPBOX_API_KEY to be configured in Superset."
@@ -14701,7 +14652,6 @@ msgstr ""
 "neprasa API atslēgu. Mapbox prasa, lai Superset būtu konfigurēts "
 "MAPBOX_API_KEY."
 
-# sr_Latn]
 msgid ""
 "Select the metric used to determine which color breakpoint range each "
 "path falls into."
@@ -14730,7 +14680,6 @@ msgstr ""
 "Atlasiet vērtības iezīmētajos laukos vadības panelī. Pēc tam izpildiet "
 "vaicājumu, noklikšķinot uz pogas %s."
 
-# sr_Latn]
 msgid ""
 "Select which time grains are available in the filter control. This is a "
 "UI allow list only and does not add extra conditions to the underlying "
@@ -14755,11 +14704,9 @@ msgstr "Semantisks"
 msgid "Semantic Layer"
 msgstr "Semantiskais slānis"
 
-# sr_Latn]
 msgid "Semantic View"
 msgstr "Semantiskais skats"
 
-# sr_Latn]
 msgid "Semantic Views"
 msgstr "Semantiskie skati"
 
@@ -14834,7 +14781,6 @@ msgstr "Semantiskais skats neeksistē"
 msgid "Semantic view parameters are invalid."
 msgstr "Semantiskā skata parametri ir nederīgi."
 
-# sr_Latn]
 msgid "Semantic view updated"
 msgstr "Semantiskais skats atjaunināts"
 
@@ -14845,7 +14791,6 @@ msgstr ""
 "Semantiskā skata validācijai iestājās noildze, pirms šis skats tika "
 "pārbaudīts. Mēģiniet to vēlreiz atsevišķā pieprasījumā."
 
-# sr_Latn]
 msgid "Semantic views"
 msgstr "Semantiskie skati"
 
@@ -15513,18 +15458,15 @@ msgstr ""
 "Daži filtri ir mantoti no fiziskajām tabulām, uz kurām atsaucas šī "
 "virtuālā datu kopa."
 
-# sr_Latn]
 msgid "Some groups could not be resolved and are shown as IDs."
 msgstr "Dažas grupas nevarēja noteikt, un tās tiek rādītas kā ID."
 
 msgid "Some layers could not be loaded"
 msgstr "Dažus slāņus nevarēja ielādēt"
 
-# sr_Latn]
 msgid "Some permissions could not be resolved and are shown as IDs."
 msgstr "Dažas atļaujas nevarēja noteikt, un tās tiek rādītas kā ID."
 
-# sr_Latn]
 msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr ""
 "Dažiem obligātajiem filtriem citās cilnēs ir vērtības, un tie netiks "
@@ -15681,7 +15623,6 @@ msgstr "Kārtošanas metrika"
 msgid "Sort query by"
 msgstr "Kārtot vaicājumu pēc"
 
-# sr_Latn]
 msgid ""
 "Sort results by series name in ascending order. When combined with \"Sort"
 " by metric\", this acts as a tiebreaker for equal metric values. Adding "
@@ -15946,7 +15887,6 @@ msgstr "Ar kontūru"
 msgid "Structural"
 msgstr "Strukturāls"
 
-# sr_Latn]
 msgid "Structure is managed by the upstream semantic layer and is read-only."
 msgstr "Struktūru pārvalda augšupējais semantiskais slānis, un tā ir tikai lasāma."
 
@@ -16311,7 +16251,6 @@ msgstr "Uzdevumu nevarēja atjaunināt."
 msgid "Task dependencies would introduce a cycle."
 msgstr "Uzdevumu atkarības radītu ciklu."
 
-# sr_Latn]
 msgid ""
 "Task is not abortable. The task is in progress but has not registered an "
 "abort handler."
@@ -16325,7 +16264,6 @@ msgstr "Uzdevuma parametri nav derīgi."
 msgid "Tasks"
 msgstr "Uzdevumi"
 
-# sr_Latn]
 msgid "Tasks will appear here as background operations are executed."
 msgstr "Uzdevumi parādīsies šeit, kad tiks izpildītas fona operācijas."
 
@@ -16474,7 +16412,6 @@ msgstr ""
 "GeoJsonLayer pieņem GeoJSON formāta datus un attēlo tos kā interaktīvus "
 "poligonus, līnijas un punktus (apļus, ikonas un/vai tekstus)."
 
-# sr_Latn]
 msgid ""
 "The Global Task Framework is not enabled. Please contact your "
 "administrator to enable the GLOBAL_TASK_FRAMEWORK feature flag."
@@ -16482,7 +16419,6 @@ msgstr ""
 "Global Task Framework nav iespējots. Lūdzu, sazinieties ar "
 "administratoru, lai iespējotu funkcijas karogu GLOBAL_TASK_FRAMEWORK."
 
-# sr_Latn]
 msgid ""
 "The Global Task Framework is not enabled. Set GLOBAL_TASK_FRAMEWORK=True "
 "in your feature flags to use @task. See "
@@ -16578,7 +16514,6 @@ msgstr ""
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr "Diagramma vēl tiek ielādēta. Lūdzu, uzgaidiet brīdi un mēģiniet vēlreiz."
 
-# sr_Latn]
 msgid ""
 "The chart this report targets was deleted. Restore the chart, or update "
 "the report to point at an active chart."
@@ -16883,7 +16818,6 @@ msgid ""
 "%(columns)s. "
 msgstr "Šādu `series_columns` ierakstu trūkst sarakstā `columns`: %(columns)s. "
 
-# sr_Latn]
 msgid ""
 "The following fields contain sensitive information that was masked during"
 " export. Please provide the values to import this database."
@@ -17176,7 +17110,6 @@ msgstr ""
 "sadaļas \"Papildu drošības iestatījumi\" un \"Sertifikāts\" nav iekļautas"
 " eksporta failos un pēc importa tās jāpievieno manuāli, ja nepieciešams."
 
-# sr_Latn]
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "Lai importētu tālāk norādītās datubāzes, ir nepieciešamas to paroles."
 
@@ -17787,7 +17720,6 @@ msgstr "Elementu apmales platums"
 msgid "The width of the lines"
 msgstr "Līniju platums"
 
-# sr_Latn]
 msgid ""
 "The width of the lines as either a fixed value or variable width based on"
 " a metric."
@@ -17865,7 +17797,6 @@ msgstr ""
 "Šim komponentam nav pietiekami daudz vietas. Mēģiniet samazināt tā "
 "platumu vai palielināt mērķa platumu."
 
-# sr_Latn]
 #, python-format
 msgid ""
 "There was a problem refreshing your dashboard. We'll try again in %s, as "
@@ -18438,7 +18369,6 @@ msgid ""
 "table."
 msgstr "Šī datubāzes tabula nesatur datus. Lūdzu, atlasiet citu tabulu."
 
-# sr_Latn]
 msgid ""
 "This database uses OAuth2 for authentication. Please click the link above"
 " to grant Apache Superset permission to access the data. Your personal "
@@ -18577,7 +18507,6 @@ msgstr "Šī ir noklusējuma mape"
 msgid "This is the default light theme"
 msgstr "Šis ir noklusējuma gaišais motīvs"
 
-# sr_Latn]
 msgid "This is the only time you will see this key. Store it securely."
 msgstr "Šo atslēgu redzēsiet tikai vienu reizi. Uzglabājiet to drošā vietā."
 
@@ -18603,7 +18532,6 @@ msgstr "Šai saitei nevar sekot, jo tās adrese nav droša."
 msgid "This link expires in %(duration)s (%(when)s UTC)."
 msgstr "Šī saite beigs darboties pēc %(duration)s (%(when)s UTC)."
 
-# sr_Latn]
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
@@ -18828,7 +18756,6 @@ msgstr[0] "To izraisīja:"
 msgstr[1] "To var izraisīt:"
 msgstr[2] "To var izraisīt:"
 
-# sr_Latn]
 #, python-format
 msgid "This will abort (stop) the task for all %s subscriber(s)."
 msgstr "Tas pārtrauks (apturēs) uzdevumu visiem %s abonentiem."
@@ -18860,7 +18787,6 @@ msgstr ""
 "nosacījumu formatēšanu var pārrakstīt ar zemāk esošo nosacījumu "
 "formatēšanu."
 
-# sr_Latn]
 msgid "This will cancel the task."
 msgstr "Tas atcels uzdevumu."
 
@@ -19039,7 +18965,6 @@ msgstr "Noildze"
 msgid "Timeline"
 msgstr "Laika skala"
 
-# sr_Latn]
 #, python-format
 msgid ""
 "Timeout configured (%s seconds) but no abort handler defined. Task will "
@@ -19307,7 +19232,6 @@ msgstr ""
 msgid "Truncates the specified date to the accuracy specified by the date unit."
 msgstr "Saīsina norādīto datumu līdz datuma vienības noteiktajai precizitātei."
 
-# sr_Latn]
 msgid "Trust this URL and don't ask again"
 msgstr "Uzticēties šim URL un vairs nejautāt"
 
@@ -19353,7 +19277,6 @@ msgstr "Ierakstiet vērtību..."
 msgid "Type is required"
 msgstr "Veids ir obligāts"
 
-# sr_Latn]
 msgid "Type of Google Sheets allowed"
 msgstr "Atļautais Google Sheets veids"
 
@@ -19366,11 +19289,9 @@ msgstr "Salīdzinājuma veids, vērtību starpība vai procenti"
 msgid "Type to search (contains)..."
 msgstr "Rakstiet, lai meklētu (satur)..."
 
-# sr_Latn]
 msgid "Type to search (ends with)..."
 msgstr "Rakstiet, lai meklētu (beidzas ar)..."
 
-# sr_Latn]
 msgid "Type to search (starts with)..."
 msgstr "Rakstiet, lai meklētu (sākas ar)..."
 
@@ -19488,7 +19409,6 @@ msgstr "Neizdevās iegūt semantiskā slāņa izpildlaika shēmu."
 msgid "Unable to fetch semantic view structure."
 msgstr "Nevar iegūt semantiskā skata struktūru."
 
-# sr_Latn]
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Nevar ielādēt semantiskos skatus. Pārbaudiet slāņa konfigurāciju."
 
@@ -19646,7 +19566,6 @@ msgstr "Nezināma kļūda"
 msgid "Unknown input format"
 msgstr "Nezināms ievades formāts"
 
-# sr_Latn]
 msgid "Unknown tokens will be highlighted as warnings."
 msgstr "Nezināmie tokeni tiks iezīmēti kā brīdinājumi."
 
@@ -19665,7 +19584,6 @@ msgstr "Atspraust"
 msgid "Unpin from the result panel"
 msgstr "Atspraust no rezultātu paneļa"
 
-# sr_Latn]
 msgid "Unpin from top"
 msgstr "Atspraust no augšas"
 
@@ -20016,7 +19934,6 @@ msgstr ""
 "saprastu, kādus posmus vērtība izgāja. Noderīgs daudzpakāpju, daudz grupu"
 " piltuves un konveijeru vizualizācijai."
 
-# sr_Latn]
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Izmanto pirmās 25 vērtības, ja dimensijai ir vairāk."
 
@@ -20362,7 +20279,6 @@ msgstr "WFS"
 msgid "WMS"
 msgstr "WMS"
 
-# sr_Latn]
 msgid "Waiting for first refresh"
 msgstr "Gaida pirmo atsvaidzināšanu"
 
@@ -20394,7 +20310,6 @@ msgid ""
 "not exist."
 msgstr "Brīdinājums! Datu kopas maiņa var sabojāt diagrammu, ja metadati nepastāv."
 
-# sr_Latn]
 msgid ""
 "Warning: ILIKE queries may be slow on large datasets as they cannot use "
 "indexes effectively."
@@ -21405,7 +21320,6 @@ msgstr ""
 "atjaunināta automātiski. Izpildiet vaicājumu, noklikšķinot uz pogas "
 "\"Atjaunināt diagrammu\" vai"
 
-# sr_Latn]
 #, python-format
 msgid ""
 "You'll be removed from this task. It will continue running for %s other "
@@ -21951,7 +21865,6 @@ msgstr "piem. world_population"
 msgid "e.g. xy12345.us-east-2.aws"
 msgstr "piem. xy12345.us-east-2.aws"
 
-# sr_Latn]
 msgid "e.g., CI/CD Pipeline, Analytics Script"
 msgstr "piem., CI/CD Pipeline, Analytics Script"
 
@@ -22001,7 +21914,6 @@ msgstr "example.com, *.example.org"
 msgid "expand"
 msgstr "izvērst"
 
-# sr_Latn]
 msgid "extra.dashboard must be an object"
 msgstr "extra.dashboard jābūt objektam"
 
@@ -22016,7 +21928,6 @@ msgstr "extra.nativeFilters nevarēja validēt: infopaneļa metadati nav derīgs
 msgid "failed"
 msgstr "neizdevās"
 
-# sr_Latn]
 msgid "farewell"
 msgstr "atvadas"
 
@@ -22059,7 +21970,6 @@ msgstr "siltumkarte"
 msgid "heatmap: values are normalized across the entire heatmap"
 msgstr "siltumkarte: vērtības ir normalizētas visā siltumkartē"
 
-# sr_Latn]
 msgid "hello"
 msgstr "sveiki"
 
@@ -22072,7 +21982,6 @@ msgstr "stunda"
 msgid "in"
 msgstr "mēnešos"
 
-# sr_Latn]
 msgid "in order to run this operation."
 msgstr "lai izpildītu šo operāciju."
 
@@ -22210,33 +22119,27 @@ msgstr "jānorāda vērtība"
 msgid "name"
 msgstr "nosaukums"
 
-# sr_Latn]
 msgid "nativeFilters must be a list"
 msgstr "nativeFilters jābūt sarakstam"
 
-# sr_Latn]
 #, python-format
 msgid "nativeFilters[%(idx)s] missing required keys: %(keys)s"
 msgstr "nativeFilters[%(idx)s] trūkst obligāto atslēgu: %(keys)s"
 
-# sr_Latn]
 #, python-format
 msgid "nativeFilters[%(idx)s] must be an object"
 msgstr "nativeFilters[%(idx)s] jābūt objektam"
 
-# sr_Latn]
 #, python-format
 msgid "nativeFilters[%(idx)s].filterValues must be a list"
 msgstr "nativeFilters[%(idx)s].filterValues jābūt sarakstam"
 
-# sr_Latn]
 #, python-format
 msgid ""
 "nativeFilters[%(idx)s].nativeFilterId '%(filter_id)s' does not exist on "
 "the dashboard"
 msgstr "nativeFilters[%(idx)s].nativeFilterId '%(filter_id)s' neeksistē infopanelī"
 
-# sr_Latn]
 #, python-format
 msgid "nativeFilters[%(idx)s].nativeFilterId must be a non-empty string"
 msgstr "nativeFilters[%(idx)s].nativeFilterId jābūt netukšai virknei"
@@ -22503,7 +22406,6 @@ msgstr "teksta krāsa"
 msgid "textarea"
 msgstr "teksta lauks"
 
-# sr_Latn]
 msgid "the Handlebars chart documentation"
 msgstr "Handlebars diagrammas dokumentāciju"
 
@@ -22614,6 +22516,5 @@ msgstr[0] "…un vēl %s diagramma"
 msgstr[1] "…un vēl %s diagrammas"
 msgstr[2] "…un vēl %s diagrammu"
 
-# sr_Latn]
 msgid "№"
 msgstr "№"
