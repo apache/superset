@@ -2888,6 +2888,381 @@ def test_table_applies_si_number_format() -> None:
     assert formatted["amount"].tolist() == ["1.23k"]
 
 
+def test_table_applies_small_number_format() -> None:
+    """
+    A cell below one in absolute value takes the column's small-number format.
+
+    ``formatColumnValue`` in the Table plugin picks the formatter per value, so
+    the report has to switch per cell rather than per column.
+
+    The switch point itself is covered on both sides and in both signs. The
+    browser's test is ``Math.abs(value) < 1``, so exactly one is a large cell
+    and a large negative stays large: widening the comparison to ``<= 1`` or
+    comparing the signed value would render one of these as a percentage.
+    """
+    df = pd.DataFrame.from_dict(
+        {
+            "ratio": {
+                0: 0.0523,
+                1: 12.5,
+                2: -0.5,
+                3: 0.0,
+                4: 1.0,
+                5: -1.0,
+                6: -12.5,
+            }
+        }
+    )
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["ratio"],
+        "column_config": {
+            "ratio": {"d3NumberFormat": ",.2f", "d3SmallNumberFormat": ".1%"}
+        },
+    }
+    formatted = table(df, form_data)
+    assert formatted["ratio"].tolist() == [
+        "5.2%",
+        "12.50",
+        "-50.0%",
+        "0.0%",
+        "1.00",
+        "-1.00",
+        "-12.50",
+    ]
+
+
+def test_table_ignores_blank_small_number_format() -> None:
+    """
+    A cleared Select leaves an empty string behind, which
+    ``getSmallNumberFormatter`` treats as unset.
+    """
+    df = pd.DataFrame.from_dict({"ratio": {0: 0.0523, 1: 12.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["ratio"],
+        "column_config": {
+            "ratio": {"d3NumberFormat": ",.2f", "d3SmallNumberFormat": "  "}
+        },
+    }
+    formatted = table(df, form_data)
+    assert formatted["ratio"].tolist() == ["0.05", "12.50"]
+
+
+def test_table_small_number_format_without_a_normal_format() -> None:
+    """
+    A small-number format on its own is enough to format the small cells.
+
+    The other cells follow the browser: a metric falls back to SMART_NUMBER,
+    while a numeric dimension gets no formatter at all and is printed as is.
+    """
+    df = pd.DataFrame.from_dict({"ratio": {0: 0.0523, 1: 1200.0}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["ratio"],
+        "column_config": {"ratio": {"d3SmallNumberFormat": ".1%"}},
+    }
+    assert table(df, form_data)["ratio"].tolist() == ["5.2%", "1.2k"]
+
+    # 1200.0 separates the two: SMART_NUMBER renders it ``1.2k`` while an
+    # unformatted cell prints ``1200``. A value such as 12.5 reads the same
+    # either way and would not show the difference.
+    df = pd.DataFrame.from_dict({"ratio": {0: 0.0523, 1: 1200.0}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": [],
+        "column_config": {"ratio": {"d3SmallNumberFormat": ".1%"}},
+    }
+    assert table(df, form_data)["ratio"].tolist() == ["5.2%", "1200"]
+
+
+def test_table_small_number_format_uses_the_column_config_currency() -> None:
+    """
+    ``getSmallNumberFormatter`` pairs the small format with the column config's
+    own currency, and the currency formatter drops percent signs.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 0.5, 1: 12.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["amount"],
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": ".1%",
+                "currencyFormat": {"symbol": "USD", "symbolPosition": "prefix"},
+            }
+        },
+    }
+    formatted = table(df, form_data)
+    assert formatted["amount"].tolist() == ["$ 50.0", "$ 12.50"]
+
+
+def test_table_small_number_format_drops_a_dollar_for_a_cleared_currency() -> None:
+    """
+    ``getSmallNumberFormatter`` builds a ``CurrencyFormatter`` from any
+    ``currencyFormat`` object, and that constructor strips ``$`` from the format
+    before it checks the symbol, so a cleared currency still drops the ``$``.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 0.5, 1: 12.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["amount"],
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": "$,.2f",
+                "currencyFormat": {"symbolPosition": "prefix"},
+            }
+        },
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["amount"].tolist() == ["0.50", "12.50"]
+
+
+def test_table_small_number_format_of_only_a_dollar_falls_back() -> None:
+    """
+    A small-number format that is nothing but ``$`` lands on the default.
+
+    ``CurrencyFormatter.format`` calls ``getNumberFormatter`` with
+    ``getNormalizedD3Format()``, which strips every ``$``, and the registry
+    answers an empty id with its ``defaultKey``, SMART_NUMBER. Leaving the
+    format empty instead would skip the small-number branch and give the cell
+    the column's normal format.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 0.5, 1: 12.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["amount"],
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": "$",
+                "currencyFormat": {"symbol": "", "symbolPosition": "prefix"},
+            }
+        },
+    }
+
+    # SMART_NUMBER gives ``0.5``; the column's own ``,.2f`` would give ``0.50``.
+    assert table(df, form_data)["amount"].tolist() == ["0.5", "12.50"]
+
+
+def test_table_small_number_format_keeps_a_dollar_without_a_currency_config() -> None:
+    """
+    With no ``currencyFormat`` object the browser builds a plain number
+    formatter instead, and d3 renders the ``$`` in the format itself.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 0.5, 1: 12.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["amount"],
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": "$,.2f",
+            }
+        },
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["amount"].tolist() == ["$0.50", "12.50"]
+
+
+def test_table_small_number_format_drops_a_dollar_with_a_currency_context() -> None:
+    """
+    The per-row branch builds the same formatter, so a cleared currency drops
+    the ``$`` there too, and no row's currency reaches a symbol-less config.
+    """
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    df = pd.DataFrame(
+        {
+            "amount": [0.5, 12.5],
+            "currency": ["USD", "USD"],
+        }
+    )
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["amount"],
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": "$,.2f",
+                "currencyFormat": {"symbolPosition": "prefix"},
+            }
+        },
+    }
+
+    formatted = table(df, form_data, datasource, detected_currency="USD")
+
+    assert formatted["amount"].tolist() == ["0.50", "12.50"]
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        pytest.param(None, "", id="null"),
+        pytest.param("n/a", "n/a", id="text"),
+        pytest.param(float("nan"), "", id="nan"),
+    ],
+)
+def test_table_small_number_format_on_a_non_numeric_percent_metric(
+    value: Any, expected: str
+) -> None:
+    """
+    A percent metric cell that is not a number is carried through.
+
+    The percent metric branch is the one that does not test
+    ``is_numeric_dtype`` first, so these values reach the small-number
+    predicate. Handing them to ``float`` raises ``TypeError`` for a null and
+    ``ValueError`` for text, which would be a failed report rather than a
+    misformatted cell.
+    """
+    # Built as object dtype on purpose: ``from_dict`` would turn the null into
+    # a ``nan`` in a float column, and the value has to arrive as it is for the
+    # type check to be the thing under test.
+    df = pd.DataFrame({"%share": pd.Series([value, 0.5], dtype=object)})
+    form_data = {
+        "viz_type": "table",
+        "percent_metrics": ["share"],
+        "column_config": {"%share": {"d3SmallNumberFormat": ".1%"}},
+    }
+
+    assert table(df, form_data)["%share"].tolist() == [expected, "50.0%"]
+
+
+def test_table_small_number_format_on_a_percent_metric() -> None:
+    """
+    Percent metric columns are numeric too, so they switch formatter the same
+    way; their other cells keep the PERCENT_3_POINT default.
+    """
+    df = pd.DataFrame.from_dict({"%cnt": {0: 0.004, 1: 2.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": [],
+        "percent_metrics": ["cnt"],
+        "column_config": {"%cnt": {"d3SmallNumberFormat": ".2%"}},
+    }
+    formatted = table(df, form_data)
+    assert formatted["%cnt"].tolist() == ["0.40%", "250.000%"]
+
+
+def test_table_small_number_format_on_a_percent_metric_keeps_the_row_currency() -> None:
+    """
+    A percent metric's own formatter carries no currency, but the small-number
+    one is built from the column config, so its cells resolve AUTO per row.
+    """
+    form_data = {
+        "viz_type": "table",
+        "metrics": [],
+        "percent_metrics": ["cnt"],
+        "column_config": {
+            "%cnt": {
+                "d3SmallNumberFormat": ",.3f",
+                "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+            }
+        },
+    }
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    df = pd.DataFrame(
+        {
+            "%cnt": [0.5, 0.25, 2.5],
+            "currency": ["USD", None, "EUR"],
+        }
+    )
+
+    formatted = table(df, form_data, datasource, detected_currency="GBP")
+
+    assert formatted["%cnt"].tolist() == ["$ 0.500", "0.250", "250.000%"]
+
+
+def test_table_small_number_format_ignores_a_saved_currency() -> None:
+    """
+    The small format is paired with the column config's own currency, so a
+    currency the dataset saved for the metric reaches only the normal format.
+    """
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "metrics": [
+            {
+                "metric_name": "amount",
+                "currency": {"symbol": "USD", "symbolPosition": "prefix"},
+            }
+        ],
+    }
+    df = pd.DataFrame.from_dict({"amount": {0: 0.5, 1: 12.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["amount"],
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": ".1%",
+            }
+        },
+    }
+
+    formatted = table(df, form_data, datasource)
+
+    assert formatted["amount"].tolist() == ["50.0%", "$ 12.50"]
+
+
+def test_ag_grid_table_ignores_a_small_number_format() -> None:
+    """
+    The AG Grid table paints its cells through ``valueFormatter``, which never
+    builds the small-number formatter, so a report on one keeps the column's
+    normal format for every cell.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 0.5, 1: 12.5}})
+    column_config = {
+        "amount": {"d3NumberFormat": ",.2f", "d3SmallNumberFormat": ".1%"},
+    }
+
+    ag_grid = table(
+        df.copy(),
+        {
+            "viz_type": "ag-grid-table",
+            "metrics": ["amount"],
+            "column_config": column_config,
+        },
+    )
+    plain = table(
+        df.copy(),
+        {"viz_type": "table", "metrics": ["amount"], "column_config": column_config},
+    )
+
+    assert ag_grid["amount"].tolist() == ["0.50", "12.50"]
+    assert plain["amount"].tolist() == ["50.0%", "12.50"]
+
+
+def test_table_small_number_format_leaves_non_numeric_columns_alone() -> None:
+    """
+    The plugin only switches formatter for a numeric column, so a string column
+    configured with a small-number format is untouched.
+    """
+    df = pd.DataFrame.from_dict({"name": {0: "a", 1: "b"}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": [],
+        "column_config": {"name": {"d3SmallNumberFormat": ".1%"}},
+    }
+    formatted = table(df, form_data)
+    assert formatted["name"].tolist() == ["a", "b"]
+
+
 def test_table_applies_smart_number_default_to_unconfigured_metric() -> None:
     """
     A metric with no saved d3 format still renders like Explore. The Table
@@ -3120,6 +3495,44 @@ def test_table_auto_currency_uses_per_row_currency_context() -> None:
         "€ 200.00",
         "300.00",
         "400.00",
+    ]
+
+
+def test_table_small_number_format_resolves_auto_currency_per_row() -> None:
+    """
+    The browser hands the row's data to the small-number formatter as well, so a
+    value below one keeps the row's own currency symbol.
+    """
+    form_data = {
+        "viz_type": "table",
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": ",.3f",
+                "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+            }
+        },
+    }
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    df = pd.DataFrame(
+        {
+            "amount": [100.0, 0.5, 0.25, 0.75],
+            "currency": ["USD", " eur ", None, "invalid"],
+        }
+    )
+
+    formatted = table(df, form_data, datasource, detected_currency="GBP")
+
+    assert formatted["amount"].tolist() == [
+        "$ 100.00",
+        "€ 0.500",
+        "0.250",
+        "0.750",
     ]
 
 
@@ -4750,6 +5163,194 @@ def test_apply_client_processing_xlsx_format_pivot_table_groupby_columns() -> No
     assert "value Corporate" in output_df.columns
 
 
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.XLSX, ChartDataResultFormat.CSV]
+)
+@pytest.mark.parametrize("selection", ["columns", "all_columns", "groupby"])
+@pytest.mark.parametrize("verbose", [False, True])
+@pytest.mark.parametrize("values", [["Books", "Games"], [0, 1]])
+def test_table_export_preserves_selected_dimension(
+    result_format: ChartDataResultFormat,
+    selection: str,
+    verbose: bool,
+    values: list[str] | list[int],
+) -> None:
+    """Selected dimensions remain columns even with labels or index-like values."""
+    labels: dict[str, str] = (
+        {"category": "Category", "total_amount": "Total amount"} if verbose else {}
+    )
+    source_df: pd.DataFrame = pd.DataFrame(
+        {"category": values, "total_amount": [15, 20]}
+    ).rename(columns=labels)
+    datasource: MagicMock = MagicMock()
+    datasource.data = {"verbose_map": labels}
+    form_data: dict[str, Any] = {
+        "viz_type": "table",
+        selection: ["category"],
+        "metrics": ["total_amount"],
+    }
+    result: dict[str, Any] = {
+        "queries": [
+            {
+                "result_format": result_format,
+                "data": excel.df_to_excel(source_df, index=False)
+                if result_format == ChartDataResultFormat.XLSX
+                else source_df.to_csv(index=False),
+            }
+        ]
+    }
+    query: dict[str, Any] = apply_client_processing(result, form_data, datasource)[
+        "queries"
+    ][0]
+    output_df: pd.DataFrame = (
+        pd.read_excel(BytesIO(query["data"]))
+        if result_format == ChartDataResultFormat.XLSX
+        else pd.read_csv(StringIO(query["data"]))
+    )
+    pd.testing.assert_frame_equal(output_df, source_df)
+    assert query["colnames"] == source_df.columns.tolist()
+
+
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.XLSX, ChartDataResultFormat.CSV]
+)
+def test_serialized_export_does_not_rename_display_label_twice(
+    result_format: ChartDataResultFormat,
+) -> None:
+    """A display label can equal another column's raw name without remapping."""
+    # Avoid app-init regression: QueryContextProcessor imports SQL dataset models.
+    from superset.common.query_context_processor import QueryContextProcessor
+
+    labels: dict[str, str] = {
+        "category": "total_amount",
+        "total_amount": "Total amount",
+    }
+    source: pd.DataFrame = pd.DataFrame(
+        {"category": ["Books", "Games"], "total_amount": [15, 20]}
+    )
+    expected: pd.DataFrame = source.rename(columns=labels)
+    datasource: MagicMock = MagicMock(data={"verbose_map": labels})
+    processor: QueryContextProcessor = QueryContextProcessor(
+        MagicMock(datasource=datasource, result_format=result_format)
+    )
+    result: dict[str, Any] = {
+        "queries": [
+            {
+                "result_format": result_format,
+                "data": processor.get_data(
+                    source, [GenericDataType.STRING, GenericDataType.NUMERIC]
+                ),
+            }
+        ]
+    }
+    query: dict[str, Any] = apply_client_processing(
+        result,
+        {"viz_type": "table", "groupby": ["category"], "metrics": ["total_amount"]},
+        datasource,
+    )["queries"][0]
+    actual: pd.DataFrame = (
+        pd.read_excel(BytesIO(query["data"]))
+        if result_format == ChartDataResultFormat.XLSX
+        else pd.read_csv(StringIO(query["data"]))
+    )
+    pd.testing.assert_frame_equal(actual, expected)
+    assert query["colnames"] == ["total_amount", "Total amount"]
+
+
+@pytest.mark.parametrize(
+    ("column", "values", "columns"),
+    [("Category", ["Books", "Games"], []), (2024, [0, 1], ["2024"])],
+)
+def test_table_xlsx_preserves_unlisted_and_numeric_headers(
+    column: str | int, values: list[str] | list[int], columns: list[str]
+) -> None:
+    """Retain fallback index names and recognize numeric-looking selections."""
+    source: pd.DataFrame = pd.DataFrame({column: values, "Total": [15, 20]})
+    result: dict[str, Any] = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source, index=False),
+            }
+        ]
+    }
+    query: dict[str, Any] = apply_client_processing(
+        result, {"viz_type": "table", "groupby": columns, "metrics": ["Total"]}
+    )["queries"][0]
+    actual: pd.DataFrame = pd.read_excel(BytesIO(query["data"]))
+    pd.testing.assert_frame_equal(actual, source)
+
+
+def test_table_xlsx_preserves_percent_metric_header() -> None:
+    """A percent-only selection is a data column, not an unnamed row index."""
+    source_df: pd.DataFrame = pd.DataFrame({"%count": [0, 1]})
+    result: dict[str, Any] = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source_df, index=False),
+            }
+        ]
+    }
+    query: dict[str, Any] = apply_client_processing(
+        result, {"viz_type": "table", "percent_metrics": ["count"]}
+    )["queries"][0]
+    output_df: pd.DataFrame = pd.read_excel(BytesIO(query["data"]))
+    pd.testing.assert_frame_equal(output_df, source_df)
+
+
+@pytest.mark.parametrize("viz_type", ["table", "pivot_table_v2"])
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.XLSX, ChartDataResultFormat.CSV]
+)
+def test_sql_dataset_export_headers(
+    session: Session, viz_type: str, result_format: ChartDataResultFormat
+) -> None:
+    """SQL Table and multi-row Pivot exports preserve their header contract."""
+    # avoid app-init regression: SQL dataset models require initialized field factories.
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.models.core import Database
+
+    datasource: SqlaTable = SqlaTable(
+        table_name="orders",
+        columns=[
+            TableColumn(column_name="category", type="VARCHAR"),
+            TableColumn(column_name="region", type="VARCHAR"),
+        ],
+        metrics=[SqlMetric(metric_name="total_amount", expression="SUM(amount)")],
+        database=Database(database_name="export_test", sqlalchemy_uri="sqlite://"),
+    )
+    source_df: pd.DataFrame = pd.DataFrame(
+        {"category": ["Books"], "region": ["West"], "total_amount": [15]}
+    )
+    form_data: dict[str, Any] = {
+        "viz_type": viz_type,
+        "columns": ["category", "region"],
+        "groupbyRows": ["category", "region"],
+        "groupbyColumns": [],
+        "metrics": ["total_amount"],
+    }
+    result: dict[str, Any] = {
+        "queries": [
+            {
+                "result_format": result_format,
+                "data": excel.df_to_excel(source_df, index=False)
+                if result_format == ChartDataResultFormat.XLSX
+                else source_df.to_csv(index=False),
+            }
+        ]
+    }
+    query: dict[str, Any] = apply_client_processing(result, form_data, datasource)[
+        "queries"
+    ][0]
+    output_df: pd.DataFrame = (
+        pd.read_excel(BytesIO(query["data"]))
+        if result_format == ChartDataResultFormat.XLSX
+        else pd.read_csv(StringIO(query["data"]))
+    )
+    pd.testing.assert_frame_equal(output_df, source_df)
+
+
 @with_config({"CSV_EXPORT": {"sep": ";", "decimal": ","}})
 def test_apply_client_processing_csv_format_custom_delimiter():
     """
@@ -5150,3 +5751,44 @@ def test_pivot_mixed_totals_preserve_integer_xlsx(combine: bool, transpose: bool
     assert any(cell.value == str(large) and cell.data_type == "s" for cell in cells)
     assert any(cell.value == 3 and cell.data_type == "n" for cell in cells)
     assert not any(str(cell.value).startswith(str(large - 1)) for cell in cells)
+
+
+@pytest.mark.parametrize("apply_number_format", [False, True])
+def test_pivot_mixed_str_int_big_integer_dimension(apply_number_format: bool) -> None:
+    """A dimension that mixes exact big-integer strings, numbers and nulls (the
+    shape the chart-data API uses for integers beyond 2**53 - 1) pivots without
+    error and keeps every label exact."""
+    wire = [
+        {"big": "4611686018427387905", "metric": 1},
+        {"big": None, "metric": 2},
+        {"big": 7, "metric": 3},
+        {"big": "4611686018427387905", "metric": 4},
+        {"big": "-4611686018427387905", "metric": 5},
+    ]
+    df = pd.DataFrame.from_dict(wire)
+    form_data = {
+        "groupbyRows": ["big"],
+        "groupbyColumns": [],
+        "metrics": ["metric"],
+        "aggregateFunction": "Sum",
+        "rowTotals": True,
+        "colTotals": True,
+    }
+
+    pivoted = pivot_table_v2(
+        df.copy(), form_data, apply_number_format=apply_number_format
+    )
+    unformatted = table(df.copy(), {"all_columns": ["big", "metric"]}, None, True)
+
+    sums = {
+        label: str(value)
+        for label, value, *_ in pivoted.reset_index().itertuples(index=False)
+        if isinstance(label, str)
+    }
+    assert sums == {
+        "7": "3",
+        "-4611686018427387905": "5",
+        "4611686018427387905": "5",
+        "Total (Sum)": "15",
+    }
+    assert unformatted["big"].tolist() == df["big"].tolist()

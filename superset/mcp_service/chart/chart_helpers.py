@@ -27,6 +27,8 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
+from copy import deepcopy
+from enum import Enum
 from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
@@ -36,6 +38,7 @@ from superset.utils.core import ExtraFiltersReasonType
 
 if TYPE_CHECKING:
     from superset.mcp_service.chart.schemas import AppliedDashboardFilter
+    from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
 
 logger = logging.getLogger(__name__)
@@ -1148,6 +1151,20 @@ def build_single_query_dict(
     return qd
 
 
+def coerce_enum_values(value: Any) -> Any:
+    """Replace enum members with their values, in place for dicts and lists."""
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, dict):
+        for key, item in value.items():
+            value[key] = coerce_enum_values(item)
+    elif isinstance(value, list):
+        value[:] = [coerce_enum_values(item) for item in value]
+    elif isinstance(value, tuple):
+        return tuple(coerce_enum_values(item) for item in value)
+    return value
+
+
 def build_query_dicts_from_form_data(
     form_data: dict[str, Any],
     datasource_id: Any,
@@ -1163,12 +1180,19 @@ def build_query_dicts_from_form_data(
     ``superset.common.form_data_query_context``. This production entry point
     only performs server filter normalization and the legacy Deck.gl spatial
     augmentation before delegating to that shared frontend-equivalent contract.
+    Normalization uses deep copies to preserve caller-owned form data.
     """
     from superset.common.form_data_query_context import (
         build_query_objects_from_form_data,
     )
     from superset.mcp_service.chart.registry import plugin_for_viz_type
 
+    # Typed chart configs carry enums such as TimeGrain. Every MCP query is
+    # built here, so unwrap them once: template rendering rejects non-primitive
+    # context values.
+    form_data = coerce_enum_values(deepcopy(form_data))
+    if extra_form_data is not None:
+        extra_form_data = coerce_enum_values(deepcopy(extra_form_data))
     viz_type: str = (
         form_data.get("viz_type")
         or (getattr(chart, "viz_type", "") if chart else "")
@@ -1372,15 +1396,66 @@ def _resolve_filter_operator_and_value(
     return None, None
 
 
+def _safe_json_loads_dict(
+    raw: str | None, field_name: str, dashboard_id: int
+) -> dict[str, Any] | None:
+    """Parse a JSON string expected to be an object.
+
+    Returns *None* and logs a warning when the value is not valid JSON or does
+    not decode to an object.
+    """
+    from superset.utils import json
+
+    try:
+        value = json.loads(raw or "{}")
+    except (TypeError, ValueError):
+        value = None
+    if isinstance(value, dict):
+        return value
+    logger.warning("Ignoring malformed %s for dashboard %s.", field_name, dashboard_id)
+    return None
+
+
+def _load_native_filters_and_layout(
+    dashboard: Dashboard, dashboard_id: int
+) -> tuple[list[Any], dict[str, Any]] | None:
+    """Parse a dashboard's native filter configuration and layout.
+
+    Returns *None* and logs a warning when either cannot be read.
+    """
+    metadata = _safe_json_loads_dict(
+        dashboard.json_metadata, "json_metadata", dashboard_id
+    )
+    if metadata is None:
+        return None
+    native_filter_config = metadata.get("native_filter_configuration")
+    if native_filter_config is None:
+        native_filter_config = []
+    if not isinstance(native_filter_config, list):
+        logger.warning(
+            "Ignoring malformed native_filter_configuration for dashboard %s.",
+            dashboard_id,
+        )
+        return None
+    position_json = _safe_json_loads_dict(
+        dashboard.position_json, "position_json", dashboard_id
+    )
+    if position_json is None:
+        return None
+    return native_filter_config, position_json
+
+
 def build_applied_dashboard_filters(
     dashboard_id: int, chart_id: int
-) -> list[AppliedDashboardFilter]:
+) -> list[AppliedDashboardFilter] | None:
     """Resolve dashboard-level native filters in scope for a chart.
 
     Validates that the dashboard exists, the caller has access, and the chart
     is on the dashboard. Returns one AppliedDashboardFilter per non-DIVIDER
     native filter whose scope includes the chart, populated with the filter's
-    default operator and value.
+    default operator and value. Returns None when the dashboard's native filter
+    configuration or layout cannot be read, so callers can distinguish that
+    from a dashboard with no filters in scope.
 
     Raises DashboardNotFoundError if the dashboard is missing,
     ChartNotOnDashboardError if the chart is not on it, and
@@ -1396,7 +1471,6 @@ def build_applied_dashboard_filters(
     from superset.commands.dashboard.exceptions import DashboardNotFoundError
     from superset.mcp_service.chart.schemas import AppliedDashboardFilter
     from superset.models.dashboard import Dashboard
-    from superset.utils import json
 
     dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
     if not dashboard:
@@ -1410,13 +1484,10 @@ def build_applied_dashboard_filters(
             f"Chart {chart_id} is not on dashboard {dashboard_id}"
         )
 
-    metadata = json.loads(dashboard.json_metadata or "{}")
-    native_filter_config = metadata.get("native_filter_configuration", [])
-    if not isinstance(native_filter_config, list):
-        return []
-    position_json = json.loads(dashboard.position_json or "{}")
-    if not isinstance(position_json, dict):
-        position_json = {}
+    parsed = _load_native_filters_and_layout(dashboard, dashboard_id)
+    if parsed is None:
+        return None
+    native_filter_config, position_json = parsed
 
     applied: list[AppliedDashboardFilter] = []
     for flt in native_filter_config:
@@ -1424,11 +1495,19 @@ def build_applied_dashboard_filters(
             continue
         if flt.get("type", "") == "DIVIDER":
             continue
-        if not _is_filter_in_scope_for_chart(flt, chart_id, position_json):
-            continue
-
-        extra_form_data, status = _extract_filter_extra_form_data(flt)
-        column = _get_filter_target_column(flt)
+        try:
+            if not _is_filter_in_scope_for_chart(flt, chart_id, position_json):
+                continue
+            extra_form_data, status = _extract_filter_extra_form_data(flt)
+            column = _get_filter_target_column(flt)
+        except (AttributeError, TypeError):
+            logger.warning(
+                "Ignoring malformed native filter %s for dashboard %s.",
+                flt.get("id"),
+                dashboard_id,
+                exc_info=True,
+            )
+            return None
         operator, value = _resolve_filter_operator_and_value(extra_form_data, column)
 
         applied.append(

@@ -674,21 +674,22 @@ def test_runtime_schema_unknown_type(
 
 @SEMANTIC_LAYERS_APP
 def test_runtime_schema_exception(
-    client: Any,
+    client: FlaskClient,
     full_api_access: None,
     mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Test POST /<uuid>/schema/runtime returns 400 when schema raises."""
-    test_uuid = str(uuid_lib.uuid4())
-    mock_layer = MagicMock()
+    """Keep provider details in server logs, not the runtime-schema response."""
+    test_uuid: str = str(uuid_lib.uuid4())
+    mock_layer: MagicMock = MagicMock()
     mock_layer.type = "snowflake"
     mock_layer.implementation.configuration = {"account": "test"}
 
-    mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
+    mock_dao: MagicMock = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
     mock_dao.find_by_uuid.return_value = mock_layer
 
-    mock_cls = MagicMock()
-    mock_cls.get_runtime_schema.side_effect = ValueError("Bad config")
+    mock_cls: MagicMock = MagicMock()
+    mock_cls.get_runtime_schema.side_effect = ValueError("provider-private-detail")
 
     mocker.patch.dict(
         "superset.semantic_layers.api.registry",
@@ -696,12 +697,14 @@ def test_runtime_schema_exception(
         clear=True,
     )
 
-    response = client.post(
+    response: TestResponse = client.post(
         f"/api/v1/semantic_layer/{test_uuid}/schema/runtime",
     )
 
     assert response.status_code == 400
-    assert "Bad config" in response.json["message"]
+    assert response.json["message"] == "Unable to fetch semantic layer runtime schema."
+    assert "provider-private-detail" not in response.get_data(as_text=True)
+    assert "ValueError: provider-private-detail" in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -1036,7 +1039,7 @@ def test_semantic_delete_reports_dependents_as_conflict(
     }
     mock_command: MagicMock = mocker.patch(f"superset.semantic_layers.api.{command}")
     mock_command.return_value.run.side_effect = SemanticDeleteDependentsError(
-        25, [dependent], 24
+        25, [dependent], 24, 3
     )
 
     request_path: str = (
@@ -1047,11 +1050,16 @@ def test_semantic_delete_reports_dependents_as_conflict(
     response: TestResponse = client.delete(request_path)
 
     assert response.status_code == 409
+    assert response.json["archived_count"] == 3
     assert response.json["total"] == 25
     assert response.json["dependents"] == [dependent]
     assert response.json["inaccessible_count"] == 24
     assert response.json["message"] == (
-        "Semantic source is used by 25 dependent assets and cannot be deleted."
+        "Semantic source is used by 25 dependent assets and cannot be deleted. "
+        "Remove or repoint these assets before deleting the semantic source. "
+        "3 dependent assets are archived. "
+        "Go to Recently Archived to restore and repoint archived assets, "
+        "or delete them permanently, or ask an admin for help."
     )
 
 
@@ -1083,6 +1091,7 @@ def test_semantic_delete_openapi_conflict_schema(
         "total",
         "dependents",
         "inaccessible_count",
+        "archived_count",
     }
     assert schema["properties"]["dependents"]["maxItems"] == 20
     assert schema["properties"]["dependents"]["items"]["properties"]["type"][
@@ -1675,6 +1684,7 @@ def test_connections_list(
     mock_db.uuid = uuid_lib.uuid4()
     mock_db.database_name = "PostgreSQL"
     mock_db.backend = "postgresql"
+    mock_db.engine_information = {"oauth2_enabled": False}
     mock_db.allow_run_async = False
     mock_db.allow_dml = False
     mock_db.allow_file_upload = False
@@ -1720,6 +1730,10 @@ def test_connections_list(
     response = client.get("/api/v1/semantic_layer/connections/")
 
     assert response.status_code == 200
+    database_rows = [
+        row for row in response.json["result"] if row["source_type"] == "database"
+    ]
+    assert database_rows[0]["engine_information"] == {"oauth2_enabled": False}
     assert response.json["count"] == 2
     result = response.json["result"]
     assert len(result) == 2
@@ -1885,6 +1899,7 @@ def test_connections_sort_by_name(
     mock_db.uuid = uuid_lib.uuid4()
     mock_db.database_name = "Zebra DB"
     mock_db.backend = "postgresql"
+    mock_db.engine_information = {"oauth2_enabled": False}
     mock_db.allow_run_async = False
     mock_db.allow_dml = False
     mock_db.allow_file_upload = False
@@ -1931,6 +1946,10 @@ def test_connections_sort_by_name(
     response = client.get(f"/api/v1/semantic_layer/connections/?q={q}")
 
     assert response.status_code == 200
+    database_rows = [
+        row for row in response.json["result"] if row["source_type"] == "database"
+    ]
+    assert database_rows[0]["engine_information"] == {"oauth2_enabled": False}
     result = response.json["result"]
     assert result[0]["database_name"] == "Alpha Layer"
     assert result[1]["database_name"] == "Zebra DB"
@@ -1950,6 +1969,7 @@ def test_connections_source_type_filter(
     mock_db.uuid = uuid_lib.uuid4()
     mock_db.database_name = "PostgreSQL"
     mock_db.backend = "postgresql"
+    mock_db.engine_information = {"oauth2_enabled": False}
     mock_db.allow_run_async = False
     mock_db.allow_dml = False
     mock_db.allow_file_upload = False
@@ -1977,6 +1997,10 @@ def test_connections_source_type_filter(
     response = client.get(f"/api/v1/semantic_layer/connections/?q={q}")
 
     assert response.status_code == 200
+    database_rows = [
+        row for row in response.json["result"] if row["source_type"] == "database"
+    ]
+    assert database_rows[0]["engine_information"] == {"oauth2_enabled": False}
     assert response.json["count"] == 1
     # Only one query call (for Database), not two
     mock_db_session.query.assert_called_once()
@@ -2373,6 +2397,259 @@ def test_delete_semantic_view_forbidden(
     response = client.delete("/api/v1/semantic_view/1")
 
     assert response.status_code == 403
+
+
+def _bulk_views(count: int) -> dict[str, list[dict[str, Any]]]:
+    layer_uuid = str(uuid_lib.uuid4())
+    return {
+        "views": [
+            {"name": f"view_{i}", "semantic_layer_uuid": layer_uuid}
+            for i in range(count)
+        ]
+    }
+
+
+@pytest.mark.parametrize(
+    "app",
+    [
+        {
+            "FEATURE_FLAGS": {"SEMANTIC_LAYERS": True},
+            "SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS": 2,
+        }
+    ],
+    indirect=True,
+)
+def test_post_semantic_view_refuses_oversized_batch(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """A batch over the configured cap is refused before any provider lookup."""
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.CreateSemanticViewCommand",
+    )
+
+    response: TestResponse = client.post("/api/v1/semantic_view/", json=_bulk_views(3))
+
+    assert response.status_code == 400
+    assert response.json is not None
+    assert response.json["message"] == (
+        "Too many views in one request: 3 provided, at most 2 allowed."
+    )
+    mock_command.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "app",
+    [
+        {
+            "FEATURE_FLAGS": {"SEMANTIC_LAYERS": True},
+            "SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS": 2,
+        }
+    ],
+    indirect=True,
+)
+def test_post_semantic_view_accepts_batch_at_cap(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """A batch exactly at the cap is processed."""
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.CreateSemanticViewCommand",
+    )
+    new_model = MagicMock()
+    new_model.uuid = uuid_lib.uuid4()
+    new_model.name = "view"
+    mock_command.return_value.run.return_value = new_model
+
+    response: TestResponse = client.post("/api/v1/semantic_view/", json=_bulk_views(2))
+
+    assert response.status_code == 201
+    assert mock_command.call_count == 2
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"views": {"name": "orders"}},
+        {"views": ["orders"]},
+        {"views": [{"name": "orders"}, 1]},
+    ],
+)
+def test_post_semantic_view_refuses_malformed_views(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    payload: Any,
+) -> None:
+    """``views`` must be a list of objects; anything else is refused unlooked-up."""
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.CreateSemanticViewCommand",
+    )
+
+    response: TestResponse = client.post("/api/v1/semantic_view/", json=payload)
+
+    assert response.status_code == 400
+    assert response.json is not None
+    assert response.json["message"] == "Views must be a list of objects"
+    mock_command.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "app",
+    [
+        {
+            "FEATURE_FLAGS": {"SEMANTIC_LAYERS": True},
+            "SEMANTIC_VIEW_BULK_CREATE_TIMEOUT": 10,
+        }
+    ],
+    indirect=True,
+)
+def test_post_semantic_view_fails_remaining_views_after_deadline(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Views not started before the deadline fail with a typed timeout error."""
+    clock = {"now": 0.0}
+    mock_time = mocker.patch("superset.semantic_layers.api.time")
+    mock_time.monotonic.side_effect = lambda: clock["now"]
+    new_model = MagicMock()
+    new_model.uuid = uuid_lib.uuid4()
+    new_model.name = "view_0"
+
+    def slow_lookup() -> MagicMock:
+        # Land exactly on the deadline: a view starting then is not looked up.
+        clock["now"] += 10.0
+        return new_model
+
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.CreateSemanticViewCommand",
+    )
+    mock_command.return_value.run.side_effect = slow_lookup
+    log_warning = mocker.patch("superset.semantic_layers.api.logger.warning")
+
+    response: TestResponse = client.post("/api/v1/semantic_view/", json=_bulk_views(3))
+
+    assert response.status_code == 201
+    assert response.json is not None
+    result = response.json["result"]
+    assert result["created"] == [{"uuid": str(new_model.uuid), "name": "view_0"}]
+    timeout_message = (
+        "Semantic view validation timed out before this view was checked. "
+        "Retry it in a separate request."
+    )
+    assert result["errors"] == [
+        {"name": "view_1", "error": timeout_message, "error_type": "TIMEOUT"},
+        {"name": "view_2", "error": timeout_message, "error_type": "TIMEOUT"},
+    ]
+    assert mock_command.call_count == 1
+    log_warning.assert_called_once()
+    assert log_warning.call_args.args[1:] == (10, 2, 3)
+
+
+@pytest.mark.parametrize(
+    "app",
+    [
+        {
+            "FEATURE_FLAGS": {"SEMANTIC_LAYERS": True},
+            "SEMANTIC_VIEW_BULK_CREATE_TIMEOUT": 0,
+        }
+    ],
+    indirect=True,
+)
+def test_post_semantic_view_all_views_timed_out(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """With no budget left, no lookup runs and the batch is unprocessable."""
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.CreateSemanticViewCommand",
+    )
+
+    response: TestResponse = client.post("/api/v1/semantic_view/", json=_bulk_views(2))
+
+    assert response.status_code == 422
+    assert response.json is not None
+    errors = response.json["result"]["errors"]
+    assert [error["error_type"] for error in errors] == ["TIMEOUT", "TIMEOUT"]
+    mock_command.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "app",
+    [
+        {
+            "FEATURE_FLAGS": {"SEMANTIC_LAYERS": True},
+            "SEMANTIC_VIEW_BULK_CREATE_TIMEOUT": 10,
+        }
+    ],
+    indirect=True,
+)
+def test_post_semantic_view_retry_after_timeout_adds_remaining_views(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Resending a timed-out batch spends the budget only on views not yet added."""
+    clock = {"now": 0.0}
+    mock_time = mocker.patch("superset.semantic_layers.api.time")
+    mock_time.monotonic.side_effect = lambda: clock["now"]
+
+    def slow_lookup(name: str, configuration: dict[str, Any]) -> MagicMock:
+        clock["now"] += 6.0
+        return MagicMock()
+
+    layer: MagicMock = MagicMock()
+    layer.implementation.get_semantic_view.side_effect = slow_lookup
+    mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO.find_by_uuid",
+        return_value=layer,
+    )
+    mocker.patch(
+        "superset.commands.semantic_layer.create.current_user_can_modify_object",
+        return_value=True,
+    )
+    existing: set[str] = set()
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO"
+    )
+    dao.validate_uniqueness.side_effect = lambda name, *_: name not in existing
+
+    def create(attributes: dict[str, Any]) -> MagicMock:
+        existing.add(attributes["name"])
+        model = MagicMock()
+        model.uuid = uuid_lib.uuid4()
+        model.name = attributes["name"]
+        return model
+
+    dao.create.side_effect = create
+    batch = _bulk_views(3)
+
+    first: TestResponse = client.post("/api/v1/semantic_view/", json=batch)
+
+    assert first.status_code == 201
+    assert first.json is not None
+    assert [view["name"] for view in first.json["result"]["created"]] == [
+        "view_0",
+        "view_1",
+    ]
+    assert [error["name"] for error in first.json["result"]["errors"]] == ["view_2"]
+
+    retry: TestResponse = client.post("/api/v1/semantic_view/", json=batch)
+
+    assert retry.status_code == 201
+    assert retry.json is not None
+    assert [view["name"] for view in retry.json["result"]["created"]] == ["view_2"]
+    assert retry.json["result"]["errors"] == [
+        {"name": name, "error": "Semantic view could not be created."}
+        for name in ("view_0", "view_1")
+    ]
+    assert existing == {"view_0", "view_1", "view_2"}
+    assert layer.implementation.get_semantic_view.call_count == 3
 
 
 # =============================================================================
@@ -2798,26 +3075,31 @@ def test_get_semantic_view_structure_feature_flag_off(
 
 
 @SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("method", ["get_dimensions", "get_metrics"])
 def test_get_semantic_view_structure_implementation_error(
-    client: Any,
+    client: FlaskClient,
     full_api_access: None,
     mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    method: str,
 ) -> None:
-    """Test GET /<pk>/structure returns 422 when implementation raises."""
-    mock_view = MagicMock()
-    mock_view.implementation.get_dimensions.side_effect = RuntimeError(
-        "Connection failed"
+    """Keep provider details in server logs, not the structure response."""
+    mock_view: MagicMock = MagicMock()
+    getattr(mock_view.implementation, method).side_effect = RuntimeError(
+        "provider-private-detail"
     )
 
-    mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
+    mock_db_session: MagicMock = mocker.patch("superset.semantic_layers.api.db.session")
     mock_db_session.query.return_value.filter_by.return_value.first.return_value = (
         mock_view
     )
 
-    response = client.get("/api/v1/semantic_view/1/structure")
+    response: TestResponse = client.get("/api/v1/semantic_view/1/structure")
 
     assert response.status_code == 422
-    assert "Connection failed" in response.json["message"]
+    assert response.json["message"] == "Unable to fetch semantic view structure."
+    assert "provider-private-detail" not in response.get_data(as_text=True)
+    assert "RuntimeError: provider-private-detail" in caplog.text
 
 
 @SEMANTIC_LAYERS_APP
@@ -3370,6 +3652,9 @@ def test_post_semantic_view_provider_validation(
     assert "secret" not in response.get_data(as_text=True)
     assert "secret" not in caplog.text
     dao.create.assert_not_called()
-    layer.implementation.get_semantic_view.assert_called_once_with(
-        "orders", {"db": "prod"}
-    )
+    if unique:
+        layer.implementation.get_semantic_view.assert_called_once_with(
+            "orders", {"db": "prod"}
+        )
+    else:
+        layer.implementation.get_semantic_view.assert_not_called()
