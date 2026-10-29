@@ -37,6 +37,23 @@ def test_resample_should_not_side_effect():
     assert _timeseries_df.equals(timeseries_df)
 
 
+@pytest.mark.parametrize("timezone", [None, "UTC"])
+def test_linear_resample_preserves_datetime_interpolation(timezone):
+    frame = pd.DataFrame(
+        {
+            "date": pd.date_range("2024-02-01", periods=2, freq="2D", tz=timezone),
+            "value": [1.0, 3.0],
+            "label": ["first", "last"],
+        },
+        index=pd.to_datetime(["2024-01-01", "2024-01-03"]),
+    )
+    result = pp.resample(df=frame, rule="D", method="linear")
+    assert result["date"].iloc[1] == pd.Timestamp("2024-02-02", tz=timezone)
+    assert result["date"].dtype == frame["date"].dtype
+    assert result["value"].iloc[1] == 2.0
+    assert pd.isna(result["label"].iloc[1])
+
+
 def test_resample():
     post_df = pp.resample(df=timeseries_df, rule="1D", method="ffill")
     """

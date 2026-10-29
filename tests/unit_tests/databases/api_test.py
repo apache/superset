@@ -282,9 +282,15 @@ def test_database_connection(
     """
     Test that connection info is only returned in ``api/v1/database/${id}/connection``.
     """
+    from apispec import APISpec
+    from apispec.ext.marshmallow import MarshmallowPlugin
+    from marshmallow import fields, Schema
+
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database
 
+    plugin = MarshmallowPlugin()
+    APISpec(title="test", version="1", openapi_version="3.0.2", plugins=[plugin])
     DatabaseRestApi.datamodel._session = session
 
     # create table for databases
@@ -383,9 +389,9 @@ def test_database_connection(
                 }
             },
             "parameters_schema": {
-                "additionalProperties": False,
+                **plugin.converter.schema2jsonschema(Schema()),
                 "properties": {
-                    "catalog": {"type": "object", "additionalProperties": {}},
+                    "catalog": plugin.converter.field2property(fields.Dict()),
                     "oauth2_client_info": {
                         "default": {
                             "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",

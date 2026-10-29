@@ -14,6 +14,23 @@ on:
     - superset/utils/pandas_postprocessing/**
     - tests/unit_tests/pandas_postprocessing/**
     - tests/unit_tests/result_set_test.py
+    - superset/commands/importers/v1/utils.py
+    - superset/commands/dataset/importers/v1/utils.py
+    - tests/unit_tests/commands/importers/v1/utils_test.py
+    - superset/models/helpers.py
+    - tests/unit_tests/models/helpers_test.py
+    - superset/superset_typing.py
+    - tests/unit_tests/db_engine_specs/test_base.py
+    - superset/extensions/metadb.py
+    - tests/unit_tests/extensions/test_sqlalchemy.py
+    - tests/unit_tests/conftest.py
+    - Dockerfile
+    - docker/**
+    - docker-compose-image-tag.yml
+    - scripts/docker_release_target.py
+    - tests/unit_tests/docker_app_dependencies_test.py
+    - tests/unit_tests/docker_compose_image_tag_test.py
+    - tests/unit_tests/scripts/docker_release_target_test.py
     - superset-core/**
   workflow_dispatch: {}
 
@@ -83,10 +100,20 @@ jobs:
         assert app.test_client().get('/health').status_code == 200
         with app.app_context():
             raise SystemExit(pytest.main([
-                '--noconftest', '-o', 'addopts=',
+                '--confcutdir=tests/unit_tests', '-p', 'pytest_mock',
+                '-o', 'addopts=',
                 'tests/unit_tests/db_engine_specs/test_lint_metadata.py',
                 'tests/unit_tests/pandas_postprocessing',
                 'tests/unit_tests/result_set_test.py',
+                'tests/unit_tests/commands/importers/v1/utils_test.py',
+                'tests/unit_tests/models/helpers_test.py',
+                'tests/unit_tests/db_engine_specs/test_base.py::test_resolve_column_type_prefers_cursor_type',
+                'tests/unit_tests/db_engine_specs/test_base.py::test_fetch_data_no_result_set',
+                'tests/unit_tests/db_engine_specs/test_base.py::test_fetch_data_with_result_set',
+                'tests/unit_tests/extensions/test_sqlalchemy.py::test_superset_joins_with_limit_drops_fanout_matches',
+                'tests/unit_tests/docker_app_dependencies_test.py',
+                'tests/unit_tests/docker_compose_image_tag_test.py',
+                'tests/unit_tests/scripts/docker_release_target_test.py',
                 'superset-core/tests', '-q',
                 '-W', 'default::DeprecationWarning',
             ]))

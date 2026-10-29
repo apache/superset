@@ -251,8 +251,10 @@ def resample(  # pylint: disable=too-many-arguments
         _df = _df.fillna(fill_value)
     elif method == "linear":
         _df = df.resample(rule).asfreq()
-        numeric_columns = _df.select_dtypes(include="number").columns
-        _df[numeric_columns] = _df[numeric_columns].interpolate()
+        interpolated_columns = _df.select_dtypes(
+            include=["number", "datetime", "datetimetz"]
+        ).columns
+        _df[interpolated_columns] = _df[interpolated_columns].interpolate()
     else:
         _df = getattr(df.resample(rule), method)()
         if method in ("ffill", "bfill"):

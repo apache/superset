@@ -1,9 +1,64 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+import re
 import shlex
 import subprocess
 import tomllib
 from pathlib import Path
 
 import pytest
+
+
+@pytest.mark.parametrize("metadata", [False, True])
+def test_docker_dependency_layers_preserve_legacy_cache(metadata: bool) -> None:
+    repository = Path(__file__).resolve().parents[2]
+    dockerfile = (repository / "Dockerfile").read_text()
+    layers = [
+        layer.replace("\\\n", " ")
+        for layer in re.findall(r"^RUN (?:.*\\\n)*.*", dockerfile, re.MULTILINE)
+        if "/app/docker/install-app-dependencies.sh" in layer
+    ]
+    assert len(layers) == 2
+    assert "type=bind" not in layers[0]
+    assert "type=bind,source=.,target=/src" in layers[1]
+    outputs = []
+    for layer in layers:
+        script = layer[layer.index("if python") :]
+        script = (
+            script.replace(
+                "python -c 'import sys; raise SystemExit(sys.version_info >= (3, 15))'",
+                "false" if metadata else "true",
+            )
+            .replace(
+                "python -c 'import sys; raise SystemExit(sys.version_info < (3, 15))'",
+                "true" if metadata else "false",
+            )
+            .replace("/app/docker/install-app-dependencies.sh", "printf '%s\\n'")
+        )
+        outputs.append(
+            subprocess.run(
+                ["/bin/bash", "-s"],
+                input=script,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout
+        )
+    assert outputs == (["", "/src\n"] if metadata else ["/app\n", ""])
 
 
 @pytest.mark.parametrize("metadata", [False, True])
@@ -27,7 +82,6 @@ def test_dependency_installation_selects_interpreter_contract(metadata: bool) ->
     if metadata:
         assert arguments[1:] == [
             "--no-sources",
-            "--no-editable",
             "/source/superset-core",
             "/source",
         ]
