@@ -39,6 +39,7 @@ from flask import Flask
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.sql.elements import TextClause
 
+from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import ExploreMixin
 from superset.sql.parse import RLSMethod, SQLStatement, Table
@@ -53,7 +54,10 @@ def virtual_datasource() -> MagicMock:
     """
     Create a mock datasource that behaves like a virtual dataset.
     """
-    datasource = MagicMock(spec=ExploreMixin)
+    # Spec'd as a dataset: get_from_clause only skips the RLS of the datasource
+    # itself when it is one.
+    datasource = MagicMock(spec=SqlaTable)
+    datasource.id = 1
 
     # Wire up real methods from ExploreMixin
     datasource.get_from_clause = ExploreMixin.get_from_clause.__get__(datasource)
