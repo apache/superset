@@ -1257,6 +1257,36 @@ class TestDatasetApi(SupersetTestCase):
 
         self.items_to_delete = [dataset]
 
+    def test_update_dataset_item_w_override_columns_keeps_column_flags(self):
+        """
+        Dataset API: a column sync keeps Is dimension / Is filterable unset
+        """
+        dataset = self.insert_default_dataset()
+        self.items_to_delete = [dataset]
+        hidden = dataset.columns[0].column_name
+        cols = [
+            {
+                "id": c.id,
+                "column_name": c.column_name,
+                "type": c.type,
+                "groupby": c.column_name != hidden,
+                "filterable": c.column_name != hidden,
+            }
+            for c in dataset.columns
+        ]
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dataset/{dataset.id}?override_columns=true"
+        rv = self.put_assert_metric(uri, {"columns": cols}, "put")
+        assert rv.status_code == 200
+
+        rv = self.client.get(f"api/v1/dataset/{dataset.id}")
+        columns = {
+            c["column_name"]: c for c in json.loads(rv.data)["result"]["columns"]
+        }
+        assert columns[hidden]["groupby"] is False
+        assert columns[hidden]["filterable"] is False
+
     def test_update_dataset_item_w_override_columns_same_columns(self):
         """
         Dataset API: Test update dataset with override columns

@@ -26,6 +26,13 @@ assists people when migrating to a new version.
 
 ## 7.0.0
 
+- Refreshing a dataset's columns from its source (the "Sync columns from
+  source" button, `PUT /api/v1/dataset/<id>?override_columns=true`, or
+  `PUT /api/v1/dataset/<id>/refresh`) no longer resets **Is dimension** and
+  **Is filterable** on existing columns. Newly discovered columns still arrive
+  with both enabled; a deployment that relied on a resync to restore those
+  defaults must set them explicitly.
+
 - The extension storage write routes (`PUT`/`DELETE` under
   `/api/v1/extensions/<publisher>/<name>/storage/`) are no longer exempt from
   CSRF protection. They inherited the exemption from Flask-AppBuilder's

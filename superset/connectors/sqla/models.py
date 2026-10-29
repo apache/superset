@@ -153,6 +153,19 @@ class MetadataResult:
     modified: list[str] = field(default_factory=list)
 
 
+def _default_unset_column_flags(column: TableColumn) -> None:
+    """Default *column*'s ``groupby`` and ``filterable`` flags when unset.
+
+    A column sync runs this on every column the source reports. A newly
+    discovered column, or a legacy row whose flags were never written,
+    gets both enabled; a flag the dataset owner turned off stays off.
+    """
+    if column.groupby is None:
+        column.groupby = True
+    if column.filterable is None:
+        column.filterable = True
+
+
 def _is_calculated_column(column: TableColumn) -> bool:
     """Return whether *column* is a user-defined virtual column.
 
@@ -2440,8 +2453,7 @@ class SqlaTable(
                 # Set description from comment field if available
                 if col.get("comment"):
                     new_column.description = col["comment"]
-            new_column.groupby = True
-            new_column.filterable = True
+            _default_unset_column_flags(new_column)
             columns.append(new_column)
             if not any_date_col and new_column.is_temporal:
                 any_date_col = col["column_name"]
