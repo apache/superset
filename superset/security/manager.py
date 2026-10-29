@@ -589,7 +589,8 @@ class SupersetUserApi(UserApi):
         here (to obtain its id) and syncing its ``Subject`` row alongside it
         means both writes ride the same transaction and commit together,
         instead of the subject sync needing a second, separate commit after
-        the fact.
+        the fact. The forced-password-change flag is raised the same way: the
+        new account starts on a password the administrator chose.
         """
         super().pre_add(item)
         from superset.daos.user import UserDAO
@@ -597,6 +598,7 @@ class SupersetUserApi(UserApi):
         self.datamodel.session.add(item)
         self.datamodel.session.flush()
         UserDAO._sync_subject(item)
+        self._require_password_change(item.id)
 
     def pre_update(self, item: Model, data: dict[str, Any]) -> None:
         """Same reasoning as ``pre_add``: ``UserApi.put`` calls ``pre_update``
@@ -612,14 +614,46 @@ class SupersetUserApi(UserApi):
             # An admin-initiated password change via this endpoint (the
             # Users list edit modal) must invalidate the target account's
             # other outstanding sessions, the same as the self-service
-            # ``/me/`` path. The forced-change flag is deliberately left
-            # alone: a temporary password set by an admin still has to be
-            # replaced by the user at next login.
+            # ``/me/`` path. The password is a temporary one the admin chose,
+            # so the target also has to replace it at next login -- unless the
+            # admin is editing their own account.
             from superset.security.session_invalidation import (
                 invalidate_sessions_for_user,
             )
 
             invalidate_sessions_for_user(item.id)
+            acting_user = getattr(self.appbuilder.sm, "current_user", None)
+            if getattr(acting_user, "id", None) != item.id:
+                self._require_password_change(item.id)
+            else:
+                # An admin replacing their own password has chosen it, the
+                # same as the self-service ``/me/`` path.
+                from superset.security.password_change import (
+                    clear_password_must_change,
+                )
+
+                clear_password_must_change(item.id)
+
+    @staticmethod
+    def _require_password_change(user_id: int) -> None:
+        """Flag ``user_id`` to change their password at next login.
+
+        Only when ``ENABLE_FORCE_PASSWORD_CHANGE`` is on, so turning the
+        setting on later does not retroactively lock out every account an
+        administrator ever set a password for, and only under ``AUTH_DB``:
+        with any other auth type the password set here is not the one users
+        sign in with. Writes without committing: FAB commits the user change
+        right after ``pre_add``/``pre_update``.
+        """
+        config = current_app.config
+        if (
+            not config.get("ENABLE_FORCE_PASSWORD_CHANGE")
+            or config.get("AUTH_TYPE", AUTH_DB) != AUTH_DB
+        ):
+            return
+        from superset.security.password_change import write_password_must_change
+
+        write_password_must_change(user_id)
 
     @expose("/", methods=["POST"])
     @protect()
