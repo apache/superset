@@ -197,6 +197,29 @@ guest credentials** section on the **Basic** tab of the connection dialog. The s
 is editable only when the connection has an OAuth2 client and **Impersonate logged in
 user** is on; otherwise it is disabled and states what is missing.
 
+#### Before turning the flag on
+
+Turning the flag on stops embedded dashboards on some existing connections from
+loading for embedded viewers. A Snowflake connection with **Impersonate logged in
+user** on but no OAuth2 client (none in its **OAuth2 client information** and no
+`DATABASE_OAUTH2_CLIENTS` entry for Snowflake) served embedded viewers under its base
+account, because impersonation without OAuth2 never changed the Snowflake login. With
+the flag on, Superset refuses those viewers rather than serve them under an identity
+nobody chose for them. The viewer sees *This chart can't be shown here because its
+database connection isn't set up for embedded dashboards*, and the server log has a
+`Refused an embedded viewer's query on database connection ...` warning naming the
+connection and the fix. Logged-in users are not affected.
+
+Update each such connection before turning the flag on, in one of two ways:
+
+- **Keep serving embedded viewers under the base account:** on the **Advanced** tab,
+  under **Security**, turn off **Impersonate logged in user**. On a connection with no
+  OAuth2 client this changes nothing for logged-in users, who were already on the
+  base account.
+- **Serve embedded viewers under a dedicated account:** configure an OAuth2 client and
+  **Embedded guest credentials** as described below. Logged-in users then sign in to
+  Snowflake individually through OAuth2.
+
 #### Setting up the credential
 
 1. Enable `EMBEDDED_SUPERSET` and `EMBEDDED_CREDENTIAL_FALLBACK` (above).
@@ -252,8 +275,31 @@ is otherwise disabled.
   password, or a key pair (PEM private key with an optional passphrase).
 - Alerts, reports, connection tests, and logged-in users never use the credential; they
   keep using the connection's own credential or their per-user OAuth2 token.
-- With `GLOBAL_ASYNC_QUERIES` enabled, guest queries use the same fallback as
-  synchronous guest queries, but logged-in users' async queries are not covered by it.
+- **Async queries run logged-in users as the base account.** With
+  `GLOBAL_ASYNC_QUERIES` on, guest queries use the same fallback credential as
+  synchronous guest queries. Logged-in users' chart queries on a Snowflake OAuth2
+  connection, however, run in the async worker under the connection's own base
+  credential instead of the user's OAuth2 token, so Snowflake grants and row access
+  policies keyed to the user do not apply and the queries are attributed to the base
+  account. This predates `EMBEDDED_CREDENTIAL_FALLBACK`, and the flag does not change
+  it. Leave `GLOBAL_ASYNC_QUERIES` off on deployments that depend on per-user OAuth2.
+- **Turn on Per user caching on OAuth2 connections.** Guest results always get their
+  own cache partition (below), but logged-in users do not unless **Per user caching**
+  (**Advanced** → **Security**) is on, or the `CACHE_IMPERSONATION` or
+  `CACHE_QUERY_BY_USER` feature flag is enabled. Without one of them, logged-in users
+  share one cache entry per query, so a user can be shown a result fetched under
+  another user's OAuth2 identity, including rows their own Snowflake policies would
+  hide, until the entry expires.
+- **Connections created in SQLAlchemy URI mode** show neither the **OAuth2 client
+  information** nor the **Embedded guest credentials** section, and an existing
+  connection cannot be switched to the dynamic form while editing. For such a
+  connection, set `oauth2_client_info` and `embedded_credentials` directly in
+  **Secure extra** (**Advanced** → **Security**), or configure a deployment-wide
+  client in `DATABASE_OAUTH2_CLIENTS`.
+- **Turning off Impersonate logged in user moves embedded viewers onto the base
+  account.** The credential applies only while impersonation is on. With it off,
+  embedded viewers query under the connection's own credential, and so do logged-in
+  users, who also stop signing in through OAuth2.
 
 Understand what this grants before enabling it:
 
@@ -268,11 +314,12 @@ Understand what this grants before enabling it:
   token controls that claim, so it is deliberately kept out of the connection identity.
   Connection-mutator hooks receive the selected fallback connection username.
 - **An embedded viewer never silently falls back to the connection's base credential.**
-  With this flag on, a guest on a per-user OAuth2 connection with impersonation enabled
-  that has no applicable credential —
-  none configured, or one that is incomplete — is refused with an error rather than
-  connected as whichever account the connection URL carries. Deployments that leave the
-  flag off keep their existing behaviour.
+  With this flag on, a guest on a connection with impersonation enabled that has no
+  OAuth2 client, or no applicable credential — none configured, or one that is
+  incomplete — is refused with an error rather than connected as whichever account the
+  connection URL carries. The viewer is told only that the chart's connection isn't
+  set up for embedded dashboards; the server log names the connection and the fix.
+  Deployments that leave the flag off keep their existing behaviour.
 - **Guest results are cached separately.** Queries run under the fallback credential get
   their own cache partition, distinct from every logged-in username, so an embedded
   viewer and a logged-in user never share a cached result (or, with
@@ -323,7 +370,7 @@ One caveat when the host page lives on a different site than Superset: the defau
 - **Row-level security** — pass `rls` rules in the guest token request to restrict which rows are visible to the embedded user. Semantic views cannot enforce guest-token SQL clauses, so queries and cached-result reads are rejected when a global rule or a rule scoped to the semantic view applies. For hosts, a global guest rule deliberately refuses every semantic view, and a dataset-scoped rule can also refuse a semantic view even when the rule was intended for a SQL dataset. Read permissions do not override these restrictions. Semantic views remain accessible when no guest rule applies; SQL datasets continue to enforce their applicable rules.
 - **Allowed domains** — restrict which host origins can embed a dashboard by setting **Allowed Domains** per-dashboard in the _Embed_ settings modal. Superset checks the request's `Referer` header against this list before serving the embedded view; an empty list allows any origin, so configure this explicitly for production.
 - **Redacted errors** — API responses to a guest token report a generic `An error occurred while fetching the data.` instead of the underlying error, since engine errors quote catalog, schema, table and column names. Errors Superset raises itself — access denials, timeouts, payload validation — keep their message, and the full error is always available in the server logs.
-- **OAuth2 connections and guests** — a guest cannot complete an OAuth2 authorization, so Superset does not start one for them, and an embedded viewer on an OAuth2 connection with no applicable credential is never sent into a login flow they cannot finish. With `EMBEDDED_CREDENTIAL_FALLBACK` off, the connection attempt fails with the database driver's authentication error. With it on, Superset refuses the query before connecting. Either way the viewer sees the generic `An error occurred while fetching the data.` message, and the reason is in the server logs. To serve embedded dashboards from such a connection, see [`EMBEDDED_CREDENTIAL_FALLBACK`](#embedded_credential_fallback).
+- **OAuth2 connections and guests** — a guest cannot complete an OAuth2 authorization, so Superset does not start one for them, and an embedded viewer on an OAuth2 connection with no applicable credential is never sent into a login flow they cannot finish. With `EMBEDDED_CREDENTIAL_FALLBACK` off, the connection attempt fails with the database driver's authentication error, and the viewer sees the generic `An error occurred while fetching the data.` message. With it on, Superset refuses the query before connecting, and the viewer sees a message saying the chart's database connection isn't set up for embedded dashboards, without naming the connection. Either way the reason is in the server logs. To serve embedded dashboards from such a connection, see [`EMBEDDED_CREDENTIAL_FALLBACK`](#embedded_credential_fallback).
 
 
 ## Guest-token request-header size diagnostics

@@ -108,9 +108,20 @@ as the connection's base account. Neither the viewer nor the dashboard author ca
 that identity change. Connections with impersonation disabled retain their ordinary
 service-account behavior and do not use the fallback.
 
-With `EMBEDDED_CREDENTIAL_FALLBACK` on, that case raises a
-`CONNECTION_ACCESS_DENIED_ERROR` instead. The refusal is scoped to the flag so that a
-deployment which has not opted in keeps its existing behaviour.
+With `EMBEDDED_CREDENTIAL_FALLBACK` on, that case is refused instead. So is a guest on
+a connection with impersonation enabled but no OAuth2 client at all: on Snowflake,
+impersonation without OAuth2 never changed the login, so such a connection served
+guests under its base account, and with the flag on it stops serving them until an
+administrator either turns impersonation off or configures an OAuth2 client and an
+embedded credential. The refusal is scoped to the flag so that a deployment which has
+not opted in keeps its existing behaviour.
+
+The refusal reaches only guests, whose error responses are redacted to a generic
+message unless Superset authored the error type. It is therefore raised as a
+`DATABASE_SECURITY_ACCESS_ERROR` with a fixed message that names nothing about the
+connection, so the viewer learns the chart's connection isn't set up for embedded
+dashboards. The administrator's explanation, naming the connection and the fix, goes
+to the server log.
 
 The connection dialog removes the ways to reach that state in the first place: the
 section is offered only when both flags are on *and* the connection uses OAuth2, a
