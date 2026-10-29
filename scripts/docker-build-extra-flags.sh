@@ -94,6 +94,12 @@ case "$PLATFORM" in
 esac
 
 EXTRA_FLAGS="--cache-from=type=registry,ref=$CACHE_REF $EXTRA_FLAGS"
+# The release build compiles linux/arm64 and linux/amd64 in one job without a
+# platform, but the unsuffixed ref is now written only by the native amd64
+# publish; read the arm64 ref too so the arm64 half is not a cold build.
+if [ "$BUILD_MODE" = "release" ] && [ -z "$PLATFORM" ]; then
+  EXTRA_FLAGS="--cache-from=type=registry,ref=${CACHE_REF}-arm64 $EXTRA_FLAGS"
+fi
 if [ "${PUBLISH_DOCKER_CACHE:-}" = "true" ] && [ -n "${DOCKERHUB_TOKEN:-}" ]; then
   EXTRA_FLAGS="--cache-to=type=registry,mode=max,ref=$CACHE_REF $EXTRA_FLAGS"
 fi

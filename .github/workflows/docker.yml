@@ -212,6 +212,27 @@ jobs:
               exit 1
             fi
           }
+          # The manifest merge sources the full-sha tag of the amd64 build and
+          # its `-arm` twin from the arm64 build, so assert both exist for
+          # every preset, not just the mutable master tags.
+          assert_platform_sha_tags() {
+            local preset="$1" extra_flags amd_cmd arm_cmd sha_tag="" tag
+            load_build_plan push refs/heads/master master
+            extra_flags="$(scripts/docker-build-extra-flags.sh "$preset" dummy-tag ci)"
+            amd_cmd="$(docker_command_for_platform "$preset" "$extra_flags" linux/amd64 --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
+            arm_cmd="$(docker_command_for_platform "$preset" "$extra_flags" linux/arm64 --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
+            for tag in $(grep -oE -- '-t apache/superset:[^[:space:]\\]+' <<<"$amd_cmd" | cut -d' ' -f2); do
+              case "$tag" in "apache/superset:${GITHUB_SHA}"|"apache/superset:${GITHUB_SHA}-"*) sha_tag="$tag"; break ;; esac
+            done
+            if [ -z "$sha_tag" ]; then
+              echo "::error::preset '$preset' on linux/amd64 has no full-sha tag (full command: $amd_cmd)"
+              exit 1
+            fi
+            if ! grep -Eq -- "-t ${sha_tag}-arm([[:space:]]|$)" <<<"$arm_cmd"; then
+              echo "::error::preset '$preset' on linux/arm64 expected tag ${sha_tag}-arm (full command: $arm_cmd)"
+              exit 1
+            fi
+          }
           assert_effective_py_ver() {
             local preset="$1" expected="$2" extra_flags command actual
             extra_flags="$(scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
@@ -386,6 +407,11 @@ jobs:
           assert_platform_master_tag dev linux/amd64 master-dev
           assert_platform_master_tag dev linux/arm64 master-dev-arm
           assert_platform_master_tag py311 linux/arm64 master-py311-arm
+          assert_platform_sha_tags superset
+          assert_platform_sha_tags dev
+          assert_platform_sha_tags lean
+          assert_platform_sha_tags py311
+          assert_platform_sha_tags py312
           assert_release_tag superset "6.1.0"
           assert_release_tag dev "6.1.0-dev"
           assert_release_tag lean "6.1.0-lean"
