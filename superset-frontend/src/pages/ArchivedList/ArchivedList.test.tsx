@@ -29,7 +29,8 @@ import {
   selectOption,
 } from 'spec/helpers/testing-library';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import { MemoryRouter } from 'react-router-dom';
+import { rememberArchivedType } from 'src/utils/softDeleteCopy';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import ArchivedList from 'src/pages/ArchivedList';
@@ -157,21 +158,32 @@ const mockRoutes = (
   restoreStatus = 200,
   purgeResponse: Parameters<typeof fetchMock.post>[1] = {},
   impactResponse: Parameters<typeof fetchMock.get>[1] = buildPositiveImpact(),
+  infoResponses: Partial<
+    Record<
+      'chart' | 'dashboard' | 'dataset',
+      Parameters<typeof fetchMock.get>[1]
+    >
+  > = {},
 ) => {
-  fetchMock.get(infoEndpoint, { permissions: ['can_read', 'can_write'] });
+  fetchMock.get(
+    infoEndpoint,
+    infoResponses.chart ?? { permissions: ['can_read', 'can_write'] },
+  );
   fetchMock.get(listEndpoint, { result: mockCharts, count: mockCharts.length });
   fetchMock.post(restoreEndpoint, restoreStatus === 200 ? {} : restoreStatus);
   fetchMock.post(purgeEndpoint, purgeResponse);
-  fetchMock.get(dashboardInfoEndpoint, {
-    permissions: ['can_read', 'can_write'],
-  });
+  fetchMock.get(
+    dashboardInfoEndpoint,
+    infoResponses.dashboard ?? { permissions: ['can_read', 'can_write'] },
+  );
   fetchMock.get(dashboardListEndpoint, {
     result: mockDashboards,
     count: mockDashboards.length,
   });
-  fetchMock.get(datasetInfoEndpoint, {
-    permissions: ['can_read', 'can_write'],
-  });
+  fetchMock.get(
+    datasetInfoEndpoint,
+    infoResponses.dataset ?? { permissions: ['can_read', 'can_write'] },
+  );
   fetchMock.get(datasetListEndpoint, {
     result: mockDatasets,
     count: mockDatasets.length,
@@ -180,17 +192,23 @@ const mockRoutes = (
   fetchMock.post(datasetPurgeEndpoint, purgeResponse);
 };
 
-const renderArchivedList = (withStore = store) =>
+const LocationProbe = () => (
+  <output data-test="archive-location">{useLocation().search}</output>
+);
+
+const renderArchivedList = (withStore = store, entry = '/archived/') =>
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[entry]}>
       <QueryParamProvider adapter={ReactRouter5Adapter}>
         <ArchivedList />
+        <LocationProbe />
       </QueryParamProvider>
     </MemoryRouter>,
     { useRedux: true, store: withStore },
   );
 
 beforeEach(() => {
+  localStorage.clear();
   fetchMock.removeRoutes();
   fetchMock.clearHistory();
   mockAddDangerToast.mockClear();
@@ -209,6 +227,7 @@ test('renders archived rows with Name and Type columns', async () => {
   renderArchivedList();
 
   expect(await screen.findByTestId('archived-list-view')).toBeInTheDocument();
+  expect(screen.getByText('Recently Archived')).toBeInTheDocument();
   expect(await screen.findByText('Deleted Chart One')).toBeInTheDocument();
   expect(screen.getByText('Deleted Chart Two')).toBeInTheDocument();
   // Name + Type column headers render.
@@ -225,6 +244,127 @@ test('issues the deleted-only baseline filter on the list request', async () => 
     expect(calls.length).toBeGreaterThanOrEqual(1);
     expect(calls[0].url).toContain('col:id,opr:chart_deleted_state,value:only');
   });
+});
+
+test.each([
+  { resource: 'chart', label: 'Chart', name: 'Deleted Chart One' },
+  { resource: 'dashboard', label: 'Dashboard', name: 'Deleted Dashboard One' },
+  { resource: 'dataset', label: 'Dataset', name: 'deleted_table_one' },
+])(
+  'read-only $label rows do not offer recovery or purge',
+  async ({ resource, label, name }) => {
+    mockRoutes(200, {}, buildPositiveImpact(), {
+      [resource]: { permissions: ['can_read', 'can_export'] },
+    });
+    renderArchivedList(storeWithReadAccess(label));
+
+    const rowName = await screen.findByText(name);
+    expect(
+      screen.queryByRole('columnheader', { name: 'Actions' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryAllByTestId('archived-row-restore')).toHaveLength(0);
+    expect(screen.queryAllByTestId('archived-row-purge')).toHaveLength(0);
+    // findBy waits out antd's tooltip mouseEnterDelay, so the read-only copy
+    // appearing is the timing anchor — only then is asserting the absence of
+    // the editor copy meaningful (a query fired before the delay elapses
+    // passes vacuously for either string).
+    await userEvent.hover(rowName);
+    expect(
+      await screen.findByText(
+        'Archived items must be recovered before they can be opened.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Recover this item to open it'),
+    ).not.toBeInTheDocument();
+    expect(
+      fetchMock.callHistory.calls(/\/(restore|purge|purge-impact)$/),
+    ).toHaveLength(0);
+  },
+);
+
+test.each([
+  { label: 'Chart', name: 'Deleted Chart One' },
+  { label: 'Dashboard', name: 'Deleted Dashboard One' },
+  { label: 'Dataset', name: 'deleted_table_one' },
+])(
+  '$label write permission retains archived row actions',
+  async ({ label, name }) => {
+    mockRoutes();
+    renderArchivedList(storeWithReadAccess(label));
+
+    expect(
+      (await screen.findAllByTestId('archived-row-restore'))[0],
+    ).toBeEnabled();
+    expect(screen.getAllByTestId('archived-row-purge')[0]).toBeEnabled();
+
+    // Positive tooltip control: the editor DOES get the recover prompt —
+    // proving the hover-and-wait mechanism can surface a tooltip at all,
+    // which is what makes the read-only test's absence assertion credible.
+    await userEvent.hover(screen.getByText(name));
+    expect(
+      await screen.findByText('Recover this item to open it'),
+    ).toBeInTheDocument();
+  },
+);
+
+test('delete permission alone does not authorize archived dashboard actions', async () => {
+  mockRoutes(200, {}, buildPositiveImpact(), {
+    dashboard: { permissions: ['can_read', 'can_delete'] },
+  });
+  renderArchivedList(storeWithReadAccess('Dashboard'));
+
+  await screen.findByText('Deleted Dashboard One');
+  expect(screen.queryAllByTestId('archived-row-restore')).toHaveLength(0);
+  expect(screen.queryAllByTestId('archived-row-purge')).toHaveLength(0);
+});
+
+test('switching to a read-only type does not retain write actions', async () => {
+  mockRoutes(200, {}, buildPositiveImpact(), {
+    dashboard: { permissions: ['can_read'] },
+  });
+  renderArchivedList();
+  await screen.findAllByTestId('archived-row-restore');
+
+  await selectOption('Dashboard', 'Type');
+  await screen.findByText('Deleted Dashboard One');
+  expect(screen.queryAllByTestId('archived-row-restore')).toHaveLength(0);
+  expect(screen.queryAllByTestId('archived-row-purge')).toHaveLength(0);
+
+  await selectOption('Chart', 'Type');
+  expect(
+    (await screen.findAllByTestId('archived-row-restore'))[0],
+  ).toBeEnabled();
+});
+
+test('archived actions remain hidden until write permissions load', async () => {
+  let resolveInfo!: (response: { permissions: string[] }) => void;
+  const infoResponse = new Promise<{ permissions: string[] }>(resolve => {
+    resolveInfo = resolve;
+  });
+  mockRoutes(200, {}, buildPositiveImpact(), {
+    dashboard: () => infoResponse,
+  });
+  renderArchivedList(storeWithReadAccess('Dashboard'));
+
+  await screen.findByText('Deleted Dashboard One');
+  expect(screen.queryAllByTestId('archived-row-restore')).toHaveLength(0);
+  expect(screen.queryAllByTestId('archived-row-purge')).toHaveLength(0);
+
+  resolveInfo({ permissions: ['can_read', 'can_write'] });
+  expect(
+    (await screen.findAllByTestId('archived-row-restore'))[0],
+  ).toBeEnabled();
+});
+
+test('archived actions remain hidden when permissions cannot be loaded', async () => {
+  mockRoutes(200, {}, buildPositiveImpact(), { dashboard: 500 });
+  renderArchivedList(storeWithReadAccess('Dashboard'));
+
+  await screen.findByText('Deleted Dashboard One');
+  await waitFor(() => expect(mockAddDangerToast).toHaveBeenCalled());
+  expect(screen.queryAllByTestId('archived-row-restore')).toHaveLength(0);
+  expect(screen.queryAllByTestId('archived-row-purge')).toHaveLength(0);
 });
 
 test('restore posts to the per-type endpoint and refetches on success', async () => {
@@ -854,4 +994,70 @@ test('a 409 replaces impact and re-arms DELETE confirmation', async () => {
   expect(screen.getByText('1 Chart')).toBeInTheDocument();
   expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
   expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+});
+
+test.each([
+  ['dashboard', 'Deleted Dashboard One'],
+  ['dataset', 'deleted_table_one'],
+  ['chart', 'Deleted Chart One'],
+  ['unknown', 'Deleted Chart One'],
+])(
+  'archive deep link type %s selects the permitted collection',
+  async (type, name) => {
+    mockRoutes();
+    renderArchivedList(store, `/archived/?type=${type}`);
+    expect(await screen.findByText(name)).toBeInTheDocument();
+  },
+);
+
+test('archive deep link cannot select a type the user cannot read', async () => {
+  mockRoutes();
+  renderArchivedList(storeWithReadAccess('Dashboard'), '/archived/?type=chart');
+  expect(await screen.findByText('Deleted Dashboard One')).toBeInTheDocument();
+  expect(fetchMock.callHistory.calls(listEndpoint)).toHaveLength(0);
+});
+
+test.each([
+  ['dashboard', 'Deleted Dashboard One'],
+  ['dataset', 'deleted_table_one'],
+] as const)(
+  'menu navigation remembers a successful %s archive',
+  async (type, name) => {
+    mockRoutes();
+    (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+    rememberArchivedType(type);
+    renderArchivedList();
+    expect(await screen.findByText(name)).toBeInTheDocument();
+  },
+);
+
+test.each(['foo', 'DASHBOARD'])(
+  'normalizes invalid type %s to the default',
+  async value => {
+    mockRoutes();
+    renderArchivedList(store, `/archived/?type=${value}`);
+    expect(await screen.findByText('Deleted Chart One')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByTestId('archive-location')).toHaveTextContent(
+        'type=chart',
+      ),
+    );
+  },
+);
+
+test('a remembered archive type cannot bypass collection permissions', async () => {
+  mockRoutes();
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+  rememberArchivedType('dataset');
+  renderArchivedList(storeWithReadAccess('Dashboard'));
+  expect(await screen.findByText('Deleted Dashboard One')).toBeInTheDocument();
+  expect(fetchMock.callHistory.calls(datasetListEndpoint)).toHaveLength(0);
+});
+
+test('explicit archive links override the remembered collection', async () => {
+  mockRoutes();
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+  rememberArchivedType('dataset');
+  renderArchivedList(store, '/archived/?type=dashboard');
+  expect(await screen.findByText('Deleted Dashboard One')).toBeInTheDocument();
 });

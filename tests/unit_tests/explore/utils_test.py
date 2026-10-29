@@ -14,6 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from unittest.mock import Mock, PropertyMock
+
+import pytest
 from flask_appbuilder.security.sqla.models import User
 from jinja2.exceptions import TemplateSyntaxError
 from pytest import raises  # noqa: PT013
@@ -35,6 +38,70 @@ from superset.common.db_query_status import QueryStatus
 from superset.exceptions import SupersetSecurityException, SupersetTemplateException
 from superset.extensions import appbuilder
 from superset.utils.core import DatasourceType, override_user
+
+pytestmark: pytest.MarkDecorator = pytest.mark.usefixtures("semantic_layers_enabled")
+
+
+@pytest.mark.parametrize("outcome", ["allowed", "denied", "missing"])
+def test_explore_semantic_view_access(mocker: MockerFixture, outcome: str) -> None:
+    """Explore must use the semantic grant, not a same-ID physical dataset."""
+    from superset.explore.utils import check_datasource_access
+    from superset.semantic_layers.models import SemanticView
+
+    view: SemanticView = SemanticView(name="semantic", perm="view-grant")
+    # Error rendering needs metadata, but this fixture has no provider connection.
+    mocker.patch.object(
+        SemanticView, "data", new_callable=PropertyMock, return_value={"id": 42}
+    )
+    lookup: Mock = mocker.patch(
+        "superset.daos.semantic_layer.SemanticViewDAO.find_by_id",
+        return_value=None if outcome == "missing" else view,
+    )
+    mocker.patch(
+        "superset.security.manager.SupersetSecurityManager.can_access_all_datasources",
+        return_value=False,
+    )
+    mocker.patch(
+        "superset.security.manager.SupersetSecurityManager.is_admin", return_value=False
+    )
+    mocker.patch(
+        "superset.security.manager.SupersetSecurityManager.is_editor",
+        return_value=False,
+    )
+    mocker.patch(
+        "superset.security.manager.SupersetSecurityManager.can_access",
+        side_effect=lambda permission, resource: outcome == "allowed"
+        and (permission, resource) == ("datasource_access", "view-grant"),
+    )
+    if outcome == "missing":
+        with pytest.raises(DatasetNotFoundError):
+            check_datasource_access(42, DatasourceType.SEMANTIC_VIEW)
+    elif outcome == "denied":
+        with pytest.raises(DatasetAccessDeniedError):
+            check_datasource_access(42, DatasourceType.SEMANTIC_VIEW)
+    else:
+        assert check_datasource_access(42, DatasourceType.SEMANTIC_VIEW)
+    lookup.assert_called_once_with(42, skip_base_filter=True)
+
+
+def test_explore_semantic_view_uses_manager_policy(mocker: MockerFixture) -> None:
+    """A manager-only grant must also admit the form-data/permalink access path."""
+    from superset.explore.utils import check_semantic_view_access
+    from superset.semantic_layers.models import SemanticView
+
+    view: SemanticView = SemanticView(name="semantic", perm="view-grant")
+    mocker.patch(
+        "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+    )
+    model_policy: Mock = mocker.patch.object(view, "raise_for_access")
+    manager_policy: Mock = mocker.patch(
+        "superset.explore.utils.security_manager.can_access_datasource",
+        return_value=True,
+    )
+    assert check_semantic_view_access(42)
+    manager_policy.assert_called_once_with(view)
+    model_policy.assert_not_called()
+
 
 dataset_find_by_id = "superset.daos.dataset.DatasetDAO.find_by_id"
 query_find_by_id = "superset.daos.query.QueryDAO.find_by_id"
@@ -387,6 +454,45 @@ def test_query_no_access(mocker: MockerFixture, client) -> None:
             datasource_id=1,
             datasource_type=DatasourceType.QUERY,
         )
+
+
+def test_query_access_ignores_editorship_of_same_named_dataset(
+    mocker: MockerFixture, client
+) -> None:
+    """
+    Editorship of a dataset named after a table the stored query reads must
+    not authorize the query for a user who is not its author. Any principal
+    able to create datasets can make a ``SELECT 1`` decoy under that name,
+    so accepting editorship would let them open another user's query (and
+    its SQL) in Explore.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.explore.utils import check_datasource_access
+    from superset.models.sql_lab import Query
+
+    database = mocker.MagicMock()
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = "public"
+    mocker.patch(
+        query_find_by_id,
+        return_value=Query(
+            database=database,
+            sql="select * from customer_pii",
+            user_id=2,
+            status=QueryStatus.SUCCESS,
+        ),
+    )
+    mocker.patch(query_datasources_by_name, return_value=[SqlaTable()])
+    mocker.patch(is_admin, return_value=False)
+    mocker.patch(is_editor, return_value=True)
+    mocker.patch(can_access, return_value=False)
+
+    with override_user(User(id=1)):
+        with raises(SupersetSecurityException):
+            check_datasource_access(
+                datasource_id=1,
+                datasource_type=DatasourceType.QUERY,
+            )
 
 
 def test_unsaved_query_explore_allows_the_query_author(

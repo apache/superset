@@ -21,9 +21,8 @@ import { noop } from 'lodash-es';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import { css, styled } from '@apache-superset/core/theme';
 import { useComponentDidUpdate } from '@superset-ui/core';
-import { Grid } from '@superset-ui/core/components';
+import { Grid, Splitter } from '@superset-ui/core/components';
 import { useViews } from 'src/core';
-import { Splitter } from 'src/components/Splitter';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import {

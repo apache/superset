@@ -36,6 +36,7 @@ def test_delete_database_blocked_by_soft_deleted_dataset(
     from superset import db
     from superset.commands.database.delete import DeleteDatabaseCommand
     from superset.commands.database.exceptions import (
+        DatabaseDeleteDatasetsExistFailedError,
         DatabaseDeleteSoftDeletedDatasetsExistFailedError,
     )
     from superset.connectors.sqla.models import SqlaTable
@@ -45,8 +46,8 @@ def test_delete_database_blocked_by_soft_deleted_dataset(
 
     SqlaTable.metadata.create_all(session.get_bind())
 
-    database = Database(database_name="del_db", sqlalchemy_uri="sqlite://")
-    soft_deleted = SqlaTable(
+    database: Database = Database(database_name="del_db", sqlalchemy_uri="sqlite://")
+    soft_deleted: SqlaTable = SqlaTable(
         table_name="gone",
         database=database,
         deleted_at=datetime(2026, 1, 1, 12, 0, 0),
@@ -59,11 +60,23 @@ def test_delete_database_blocked_by_soft_deleted_dataset(
     mocker.patch.object(DatabaseDAO, "find_by_id", return_value=database)
     mocker.patch.object(ReportScheduleDAO, "find_by_database_id", return_value=[])
 
-    command = DeleteDatabaseCommand(database.id)
+    command: DeleteDatabaseCommand = DeleteDatabaseCommand(database.id)
     # The soft-deleted-only branch raises the *specific* subclass so the
     # message tells the operator the blockers are hidden rows.
-    with pytest.raises(DatabaseDeleteSoftDeletedDatasetsExistFailedError):
+    exc_info: pytest.ExceptionInfo[DatabaseDeleteSoftDeletedDatasetsExistFailedError]
+    with pytest.raises(DatabaseDeleteSoftDeletedDatasetsExistFailedError) as exc_info:
         command.validate()
+    assert "database still cannot be deleted" in str(exc_info.value.message)
+
+    # Restore preserves the reference: it changes the refusal, not eligibility.
+    soft_deleted.restore()
+    db.session.flush()
+    live_error: pytest.ExceptionInfo[DatabaseDeleteDatasetsExistFailedError]
+    with pytest.raises(DatabaseDeleteDatasetsExistFailedError) as live_error:
+        command.validate()
+    assert not isinstance(
+        live_error.value, DatabaseDeleteSoftDeletedDatasetsExistFailedError
+    )
 
 
 def test_delete_database_blocked_by_live_dataset(

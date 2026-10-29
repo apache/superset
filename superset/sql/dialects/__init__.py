@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from .databend import Databend
 from .db2 import DB2
 from .dremio import Dremio
 from .firebolt import Firebolt, FireboltOld
@@ -26,6 +27,7 @@ from .vertica import Vertica
 
 __all__ = [
     "DB2",
+    "Databend",
     "Dremio",
     "Firebolt",
     "FireboltOld",

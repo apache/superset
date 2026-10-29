@@ -27,6 +27,7 @@ export enum VizType {
   Bullet = 'bullet',
   Butterfly = 'butterfly',
   Calendar = 'cal_heatmap',
+  Candlestick = 'candlestick',
   Cartodiagram = 'cartodiagram',
   Chord = 'chord',
   Compare = 'compare',
