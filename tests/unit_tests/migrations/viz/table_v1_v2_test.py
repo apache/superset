@@ -44,6 +44,9 @@ SOURCE_FORM_DATA: dict[str, Any] = {
 }
 
 TARGET_FORM_DATA: dict[str, Any] = {
+    # zebra_striping is intentionally absent from SOURCE_FORM_DATA: v1 has
+    # no control for it (always striped), so the migration materializes it
+    # unconditionally rather than carrying over a source key.
     "datasource": "1__table",
     "any_other_key": "untouched",
     "viz_type": "ag-grid-table",
@@ -62,6 +65,7 @@ TARGET_FORM_DATA: dict[str, Any] = {
     "color_pn": True,
     "allow_rearrange_columns": True,
     "allow_render_html": True,
+    "zebra_striping": True,
     "form_data_bak": SOURCE_FORM_DATA,
 }
 
@@ -202,6 +206,48 @@ def test_migration_entire_row_conditional_formatting_carries_over() -> None:
     target: dict[str, Any] = {
         **TARGET_FORM_DATA,
         "conditional_formatting": conditional_formatting,
+        "form_data_bak": source,
+    }
+    migrate_and_assert(MigrateTableChart, source, target)
+
+
+def test_migration_header_groups_carries_over() -> None:
+    """Multi-level column header groups use the same HeaderGroupConfig shape
+    on v1 and v2 (control panel + nestColDefsInHeaderGroups), including
+    nested subgroups and time-comparison auto-groups, so they carry over
+    unchanged."""
+    header_groups: list[dict[str, Any]] = [
+        {
+            "id": "sales",
+            "label": "Sales",
+            "columns": ["sum__sales"],
+            "labelAlign": "center",
+            "placement": "right",
+            "children": [
+                {
+                    "id": "online",
+                    "label": "Online",
+                    "columns": ["sum__online"],
+                    "placement": "left",
+                }
+            ],
+        },
+        {
+            "id": "time-compare-count",
+            "label": "count",
+            "columns": ["Main count", "# count", "△ count", "% count"],
+            "labelAlign": "left",
+            "placement": "right",
+            "source": "time_compare",
+        },
+    ]
+    source: dict[str, Any] = {
+        **SOURCE_FORM_DATA,
+        "header_groups": header_groups,
+    }
+    target: dict[str, Any] = {
+        **TARGET_FORM_DATA,
+        "header_groups": header_groups,
         "form_data_bak": source,
     }
     migrate_and_assert(MigrateTableChart, source, target)

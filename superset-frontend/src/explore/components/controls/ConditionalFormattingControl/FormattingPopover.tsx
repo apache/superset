@@ -29,6 +29,7 @@ export const FormattingPopover = ({
   children,
   extraColorChoices,
   allColumns,
+  metricOnly,
   serverPagination,
   ...props
 }: FormattingPopoverProps) => {
@@ -52,6 +53,7 @@ export const FormattingPopover = ({
           columns={columns}
           extraColorChoices={extraColorChoices}
           allColumns={allColumns}
+          metricOnly={metricOnly}
           serverPagination={serverPagination}
         />
       }

@@ -28,10 +28,13 @@ from superset.commands.base import BaseCommand
 from superset.daos.database import DatabaseDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    OAuth2RedirectError,
+    SupersetDisallowedClientFileTransferException,
     SupersetDisallowedSQLFunctionException,
     SupersetDisallowedSQLTableException,
     SupersetDMLNotAllowedException,
     SupersetErrorException,
+    SupersetGenericDBErrorException,
     SupersetTimeoutException,
 )
 from superset.jinja_context import get_template_processor
@@ -92,8 +95,9 @@ class QueryEstimationCommand(BaseCommand):
         )
 
     def _apply_sql_security(self, sql: str) -> str:
-        """Run the disallowed-function/table, DML and RLS controls against the
-        SQL to be estimated, mirroring ``sql_lab.execute_sql_statements``.
+        """Run the disallowed-function/table, file-transfer, DML and RLS controls
+        against the SQL to be estimated, mirroring
+        ``sql_lab.execute_sql_statements``.
 
         Returns the SQL with RLS predicates injected (when ``RLS_IN_SQLLAB`` is
         enabled), so the cost estimate reflects the same constrained query the
@@ -145,6 +149,10 @@ class QueryEstimationCommand(BaseCommand):
             )
             if found_tables:
                 raise SupersetDisallowedSQLTableException(found_tables)
+
+        # Rejected regardless of `allow_dml`: these do host file I/O, not DML.
+        if file_transfer_commands := parsed_script.get_client_file_transfer_commands():
+            raise SupersetDisallowedClientFileTransferException(file_transfer_commands)
 
         if parsed_script.has_mutation() and not self._database.allow_dml:
             raise SupersetDMLNotAllowedException()
@@ -220,6 +228,14 @@ class QueryEstimationCommand(BaseCommand):
                     level=ErrorLevel.ERROR,
                 ),
                 status=500,
+            ) from ex
+        except OAuth2RedirectError:
+            # user needs to authenticate with OAuth2 in order to run query
+            raise
+        except Exception as ex:
+            logger.exception("Query cost estimation failed unexpectedly")
+            raise SupersetGenericDBErrorException(
+                utils.error_msg_from_exception(ex)
             ) from ex
 
         spec = self._database.db_engine_spec

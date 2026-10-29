@@ -23,6 +23,7 @@ import { useMemo, memo } from 'react';
 import { HandlebarsRenderer } from './HandlebarsRenderer';
 import TooltipRow from '../TooltipRow';
 import { createDefaultTemplateWithLimits } from './multiValueUtils';
+import { NULL_CATEGORY_KEY, formatNullCategory } from '../utils';
 
 const MemoizedHandlebarsRenderer = memo(HandlebarsRenderer);
 
@@ -58,7 +59,7 @@ export const CommonTooltipRows = {
     o.object?.cat_color ? (
       <TooltipRow
         label={`${t('Category')}: `}
-        value={`${o.object.cat_color}`}
+        value={formatNullCategory(`${o.object.cat_color}`)}
       />
     ) : null,
 
@@ -165,7 +166,10 @@ function buildFieldBasedTooltipItems(
     }
 
     if (value !== '') {
-      const formattedValue = formatValue(value);
+      const formattedValue =
+        value === NULL_CATEGORY_KEY
+          ? formatNullCategory(value)
+          : formatValue(value);
       tooltipItems.push(
         <TooltipRow
           key={`tooltip-${index}`}
@@ -346,6 +350,12 @@ export function createHandlebarsTooltipData(
     );
 
     data = { ...data, ...tooltipData };
+  }
+
+  // Applied after the tooltip-contents merge so a configured `cat_color` item
+  // cannot reintroduce the raw null sentinel.
+  if (data.cat_color === NULL_CATEGORY_KEY) {
+    data = { ...data, cat_color: formatNullCategory(data.cat_color) };
   }
 
   return data;

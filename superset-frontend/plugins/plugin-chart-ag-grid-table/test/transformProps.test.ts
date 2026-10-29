@@ -19,7 +19,7 @@
 import transformProps from '../src/transformProps';
 import { TableChartProps } from '../src/types';
 import { GenericDataType } from '@apache-superset/core/common';
-import { QueryMode } from '@superset-ui/core';
+import { ComparisonType, QueryMode } from '@superset-ui/core';
 import { BoundUnit } from '@superset-ui/chart-controls';
 
 function createMockChartProps(
@@ -329,6 +329,51 @@ test('does not mistake the all_records percent-metric query for the totals query
   expect(result.totals).toEqual({ sum__num: 42 });
 });
 
+test('resolves AUTO currency on comparison columns from detected_currency', () => {
+  const autoCurrency = { symbol: 'AUTO', symbolPosition: 'prefix' };
+  const comparisonKeys = ['Main metric_1', '# metric_1', '△ metric_1'];
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      slice_id: 1,
+      query_mode: QueryMode.Aggregate,
+      metrics: ['metric_1'],
+      percent_metrics: [],
+      column_config: Object.fromEntries(
+        comparisonKeys.map(key => [key, { currencyFormat: autoCurrency }]),
+      ),
+      table_timestamp_format: '',
+      time_compare: ['1 year ago'],
+      comparison_type: 'values',
+    },
+    datasource: {
+      columns: [],
+      metrics: [],
+      columnFormats: {},
+      currencyFormats: {},
+      verboseMap: {},
+      currencyCodeColumn: 'currency_code',
+    },
+    queriesData: [
+      {
+        data: [{ metric_1: 100, 'metric_1__1 year ago': 80 }],
+        colnames: ['metric_1', 'metric_1__1 year ago'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        rowcount: 1,
+        detected_currency: 'GBP',
+      },
+      { data: [{ rowcount: 1 }] },
+    ] as unknown as TableChartProps['queriesData'],
+  } as unknown as Partial<TableChartProps>);
+
+  const { columns } = transformProps(props);
+  comparisonKeys.forEach(key => {
+    const formatted = columns.find(col => col.key === key)?.formatter?.(100);
+    expect(formatted).toContain('£');
+  });
+});
+
 test('excludes Green/Red color-scheme rules from columnColorFormatters', () => {
   // Green/Red rules are rendered via the increase/decrease path, so they must
   // not reach getColorFormatters, which would treat the scheme name as a hex
@@ -432,6 +477,56 @@ test('allowRenderHtml is false when allow_render_html is explicitly false', () =
   expect(result.allowRenderHtml).toBe(false);
 });
 
+test('jsonInCell defaults to false', () => {
+  const props = createMockChartProps();
+  const result = transformProps(props);
+  expect(result.jsonInCell).toBe(false);
+});
+
+test('jsonInCell is true when json_in_cell is set', () => {
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: [],
+      percent_metrics: [],
+      column_config: {},
+      table_timestamp_format: '',
+      granularity_sqla: 'day',
+      time_range: 'No filter',
+      json_in_cell: true,
+    } as unknown as TableChartProps['rawFormData'],
+  });
+  const result = transformProps(props);
+  expect(result.jsonInCell).toBe(true);
+});
+
+test('zebraStriping defaults to false when zebra_striping is unset', () => {
+  const props = createMockChartProps();
+  const result = transformProps(props);
+  expect(result.zebraStriping).toBe(false);
+});
+
+test('zebraStriping is true when zebra_striping is explicitly true', () => {
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: [],
+      percent_metrics: [],
+      column_config: {},
+      table_timestamp_format: '',
+      granularity_sqla: 'day',
+      time_range: 'No filter',
+      zebra_striping: true,
+    } as unknown as TableChartProps['rawFormData'],
+  });
+  const result = transformProps(props);
+  expect(result.zebraStriping).toBe(true);
+});
+
 test('retains saved percentage rules with automatic bounds when server pagination is enabled', () => {
   const props = createMockChartProps({
     rawFormData: {
@@ -486,4 +581,359 @@ test('retains saved percentage rules with automatic bounds when server paginatio
   expect(
     result.columnColorFormatters.map(formatter => formatter.column),
   ).toEqual(['metric_a', 'metric_b']);
+});
+
+test('reads comparison column config from a Main key', () => {
+  const result = transformProps(
+    createMockChartProps({
+      rawFormData: {
+        viz_type: 'table',
+        datasource: '1__table',
+        query_mode: QueryMode.Aggregate,
+        metrics: ['revenue'],
+        percent_metrics: [],
+        column_config: {
+          'Main revenue': { horizontalAlign: 'right' },
+        },
+        table_timestamp_format: '',
+        time_compare: ['1 year ago'],
+        comparison_type: ComparisonType.Values,
+      },
+      queriesData: [
+        {
+          data: [{ revenue: 100 }],
+          colnames: ['revenue'],
+          coltypes: [GenericDataType.Numeric],
+          rowcount: 1,
+          applied_filters: [],
+          rejected_filters: [],
+        },
+      ] as unknown as TableChartProps['queriesData'],
+    }),
+  );
+
+  const mainColumn = result.columns.find(column => column.label === 'Main');
+  expect(mainColumn?.config).toEqual(
+    expect.objectContaining({ horizontalAlign: 'right' }),
+  );
+});
+
+test('derives header groups from time comparison when header_groups is empty', () => {
+  const result = transformProps(
+    createMockChartProps({
+      rawFormData: {
+        viz_type: 'table',
+        datasource: '1__table',
+        query_mode: QueryMode.Aggregate,
+        metrics: ['revenue'],
+        percent_metrics: [],
+        column_config: {},
+        table_timestamp_format: '',
+        time_compare: ['1 year ago'],
+        comparison_type: ComparisonType.Values,
+      },
+      datasource: {
+        columns: [],
+        metrics: [],
+        columnFormats: {},
+        currencyFormats: {},
+        verboseMap: { revenue: 'Revenue' },
+      } as unknown as TableChartProps['datasource'],
+      queriesData: [
+        {
+          data: [{ revenue: 100 }],
+          colnames: ['revenue'],
+          coltypes: [GenericDataType.Numeric],
+          rowcount: 1,
+          applied_filters: [],
+          rejected_filters: [],
+        },
+      ] as unknown as TableChartProps['queriesData'],
+    }),
+  );
+
+  expect(result.headerGroups).toEqual([
+    expect.objectContaining({
+      id: 'time-compare-revenue',
+      label: 'Revenue',
+      source: 'time_compare',
+    }),
+  ]);
+});
+
+test('refreshes time comparison header group labels from verboseMap', () => {
+  const result = transformProps(
+    createMockChartProps({
+      rawFormData: {
+        viz_type: 'table',
+        datasource: '1__table',
+        query_mode: QueryMode.Aggregate,
+        metrics: ['revenue'],
+        percent_metrics: [],
+        column_config: {},
+        table_timestamp_format: '',
+        time_compare: ['1 year ago'],
+        comparison_type: ComparisonType.Values,
+        header_groups: [
+          {
+            id: 'time-compare-revenue',
+            label: 'Renamed',
+            columns: ['Main revenue', '# revenue', '△ revenue', '% revenue'],
+            source: 'time_compare',
+          },
+        ],
+      },
+      datasource: {
+        columns: [],
+        metrics: [],
+        columnFormats: {},
+        currencyFormats: {},
+        verboseMap: { revenue: 'Net revenue' },
+      } as unknown as TableChartProps['datasource'],
+      queriesData: [
+        {
+          data: [{ revenue: 100 }],
+          colnames: ['revenue'],
+          coltypes: [GenericDataType.Numeric],
+          rowcount: 1,
+          applied_filters: [],
+          rejected_filters: [],
+        },
+      ] as unknown as TableChartProps['queriesData'],
+    }),
+  );
+
+  expect(result.headerGroups?.[0].label).toBe('Net revenue');
+});
+
+test('does not create time comparison header groups for non-numeric metrics', () => {
+  const result = transformProps(
+    createMockChartProps({
+      rawFormData: {
+        viz_type: 'table',
+        datasource: '1__table',
+        query_mode: QueryMode.Aggregate,
+        metrics: ['revenue', 'name_metric'],
+        percent_metrics: [],
+        column_config: {},
+        table_timestamp_format: '',
+        time_compare: ['1 year ago'],
+        comparison_type: ComparisonType.Values,
+        header_groups: [
+          {
+            id: 'time-compare-name_metric',
+            label: 'name_metric',
+            columns: [
+              'Main name_metric',
+              '# name_metric',
+              '△ name_metric',
+              '% name_metric',
+            ],
+            source: 'time_compare',
+          },
+        ],
+      },
+      queriesData: [
+        {
+          data: [{ revenue: 100, name_metric: 'alpha' }],
+          colnames: ['revenue', 'name_metric'],
+          coltypes: [GenericDataType.Numeric, GenericDataType.String],
+          rowcount: 1,
+          applied_filters: [],
+          rejected_filters: [],
+        },
+      ] as unknown as TableChartProps['queriesData'],
+    }),
+  );
+
+  expect(result.headerGroups?.map(group => group.id)).toEqual([
+    'time-compare-revenue',
+  ]);
+});
+
+test('drops time comparison header groups when time_compare is empty', () => {
+  const result = transformProps(
+    createMockChartProps({
+      rawFormData: {
+        viz_type: 'table',
+        datasource: '1__table',
+        query_mode: QueryMode.Aggregate,
+        metrics: ['revenue'],
+        percent_metrics: [],
+        column_config: {},
+        table_timestamp_format: '',
+        time_compare: [],
+        comparison_type: ComparisonType.Values,
+        header_groups: [
+          {
+            id: 'time-compare-revenue',
+            label: 'Revenue',
+            columns: ['Main revenue'],
+            source: 'time_compare',
+          },
+        ],
+      },
+    }),
+  );
+
+  expect(result.headerGroups).toEqual([]);
+});
+
+test('does not remap a real Previous revenue column onto Main revenue', () => {
+  const result = transformProps(
+    createMockChartProps({
+      rawFormData: {
+        viz_type: 'table',
+        datasource: '1__table',
+        query_mode: QueryMode.Raw,
+        metrics: [],
+        percent_metrics: [],
+        column_config: {
+          'Previous revenue': { customColumnName: 'Prior' },
+        },
+        table_timestamp_format: '',
+      },
+      queriesData: [
+        {
+          data: [
+            {
+              'Main revenue': 10,
+              'Previous revenue': 8,
+              '# revenue': 2,
+            },
+          ],
+          colnames: ['Main revenue', 'Previous revenue', '# revenue'],
+          coltypes: [
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+          ],
+          rowcount: 1,
+          applied_filters: [],
+          rejected_filters: [],
+        },
+      ] as unknown as TableChartProps['queriesData'],
+    }),
+  );
+
+  expect(
+    result.columns.find(col => col.key === 'Previous revenue')?.config,
+  ).toEqual(expect.objectContaining({ customColumnName: 'Prior' }));
+  expect(
+    result.columns.find(col => col.key === 'Main revenue')?.config,
+  ).toEqual({});
+});
+
+test('does not apply a dropped Previous revenue dataset column config to Main revenue', () => {
+  const result = transformProps(
+    createMockChartProps({
+      rawFormData: {
+        viz_type: 'table',
+        datasource: '1__table',
+        query_mode: QueryMode.Aggregate,
+        metrics: [],
+        percent_metrics: [],
+        column_config: {
+          'Previous revenue': { visible: false },
+        },
+        table_timestamp_format: '',
+      },
+      datasource: {
+        columns: [{ column_name: 'Previous revenue' }],
+        metrics: [],
+        columnFormats: {},
+        currencyFormats: {},
+        verboseMap: {},
+      } as unknown as TableChartProps['datasource'],
+      queriesData: [
+        {
+          data: [{ 'Main revenue': 10, '# revenue': 2 }],
+          colnames: ['Main revenue', '# revenue'],
+          coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+          rowcount: 1,
+          applied_filters: [],
+          rejected_filters: [],
+        },
+      ] as unknown as TableChartProps['queriesData'],
+    }),
+  );
+
+  expect(
+    result.columns.find(col => col.key === 'Main revenue')?.config,
+  ).toEqual({});
+});
+
+test('applies legacy Time column_config to the __timestamp column', () => {
+  const result = transformProps(
+    createMockChartProps({
+      rawFormData: {
+        viz_type: 'table',
+        datasource: '1__table',
+        query_mode: QueryMode.Aggregate,
+        metrics: [],
+        percent_metrics: [],
+        column_config: {
+          Time: { customColumnName: 'Date', d3TimeFormat: '%Y' },
+        },
+        table_timestamp_format: '',
+      },
+      queriesData: [
+        {
+          data: [{ __timestamp: '2020-01-01T12:34:56' }],
+          colnames: ['__timestamp'],
+          coltypes: [GenericDataType.Temporal],
+          rowcount: 1,
+          applied_filters: [],
+          rejected_filters: [],
+        },
+      ] as unknown as TableChartProps['queriesData'],
+    }),
+  );
+
+  const timestampColumn = result.columns.find(col => col.key === '__timestamp');
+  expect(timestampColumn?.config).toEqual(
+    expect.objectContaining({
+      customColumnName: 'Date',
+      d3TimeFormat: '%Y',
+    }),
+  );
+});
+
+test('does not apply a dropped Time dataset column config to __timestamp', () => {
+  const result = transformProps(
+    createMockChartProps({
+      rawFormData: {
+        viz_type: 'table',
+        datasource: '1__table',
+        query_mode: QueryMode.Aggregate,
+        metrics: [],
+        percent_metrics: [],
+        column_config: {
+          Time: { customColumnName: 'Date', d3TimeFormat: '%Y' },
+        },
+        table_timestamp_format: '',
+      },
+      datasource: {
+        columns: [{ column_name: 'Time' }],
+        metrics: [],
+        columnFormats: {},
+        currencyFormats: {},
+        verboseMap: {},
+      } as unknown as TableChartProps['datasource'],
+      queriesData: [
+        {
+          data: [{ __timestamp: '2020-01-01T12:34:56' }],
+          colnames: ['__timestamp'],
+          coltypes: [GenericDataType.Temporal],
+          rowcount: 1,
+          applied_filters: [],
+          rejected_filters: [],
+        },
+      ] as unknown as TableChartProps['queriesData'],
+    }),
+  );
+
+  expect(result.columns.find(col => col.key === '__timestamp')?.config).toEqual(
+    {},
+  );
 });

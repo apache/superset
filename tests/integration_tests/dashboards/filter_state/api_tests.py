@@ -317,6 +317,81 @@ def test_get_dashboard_filter_state(test_client, login_as_admin, dashboard_id: i
     assert INITIAL_VALUE == data.get("value")
 
 
+def test_get_dashboard_filter_state_includes_names(
+    test_client, login_as_admin, dashboard_id: int, admin_id: int
+):
+    """
+    The cached filter state is a DataMaskStateWithId, i.e. a map keyed by
+    filter id, not a flat object with a top-level "name" (#36053). The
+    human-readable label for each filter id lives in the dashboard's
+    native_filter_configuration, so the GET response should cross-reference
+    it and return a `names` map of filter id -> label alongside `value`.
+    """
+    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one()
+    original_json_metadata = dashboard.json_metadata
+    filter_id = "NATIVE_FILTER-abc123"
+    try:
+        metadata = json.loads(dashboard.json_metadata or "{}")
+        metadata["native_filter_configuration"] = [
+            {"id": filter_id, "name": "My Filter Label"}
+        ]
+        dashboard.json_metadata = json.dumps(metadata)
+        db.session.commit()
+
+        filter_state_value = json.dumps(
+            {filter_id: {"id": filter_id, "extraFormData": {}}}
+        )
+        cache_manager.filter_state_cache.set(
+            cache_key(dashboard_id, KEY),
+            {"owner": admin_id, "value": filter_state_value},
+        )
+
+        resp = test_client.get(f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}")
+        assert resp.status_code == 200
+        data = json.loads(resp.data.decode("utf-8"))
+        assert data.get("value") == filter_state_value
+        assert data.get("names") == {filter_id: "My Filter Label"}
+    finally:
+        dashboard.json_metadata = original_json_metadata
+        db.session.commit()
+
+
+def test_get_dashboard_filter_state_null_native_filter_configuration(
+    test_client, login_as_admin, dashboard_id: int, admin_id: int
+):
+    """
+    A dashboard's json_metadata can persist an explicit
+    ``"native_filter_configuration": null`` rather than omitting the key or
+    storing an empty list. The GET response should still succeed, returning
+    an empty `names` map instead of raising.
+    """
+    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one()
+    original_json_metadata = dashboard.json_metadata
+    filter_id = "NATIVE_FILTER-abc123"
+    try:
+        metadata = json.loads(dashboard.json_metadata or "{}")
+        metadata["native_filter_configuration"] = None
+        dashboard.json_metadata = json.dumps(metadata)
+        db.session.commit()
+
+        filter_state_value = json.dumps(
+            {filter_id: {"id": filter_id, "extraFormData": {}}}
+        )
+        cache_manager.filter_state_cache.set(
+            cache_key(dashboard_id, KEY),
+            {"owner": admin_id, "value": filter_state_value},
+        )
+
+        resp = test_client.get(f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}")
+        assert resp.status_code == 200
+        data = json.loads(resp.data.decode("utf-8"))
+        assert data.get("value") == filter_state_value
+        assert data.get("names") == {}
+    finally:
+        dashboard.json_metadata = original_json_metadata
+        db.session.commit()
+
+
 def test_get_access_denied(test_client, login_as, dashboard_id):
     login_as("gamma")
     resp = test_client.get(f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}")

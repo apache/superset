@@ -18,7 +18,6 @@
  */
 import { HTMLAttributes, memo, useMemo, useCallback } from 'react';
 import {
-  ColumnInstance,
   HeaderGroup,
   Row,
   SortingRule,
@@ -33,7 +32,9 @@ import {
   SorterResult,
 } from 'antd/es/table/interface';
 import type { TableProps } from 'antd/es/table';
-import { mapColumns, mapRows } from './utils';
+import { mapColumns, mapRows, type ListViewColumn } from './utils';
+
+export type { ListViewColumn };
 
 export interface TableCollectionProps<T extends object> {
   getTableProps: TablePropGetter<T>;
@@ -41,7 +42,7 @@ export interface TableCollectionProps<T extends object> {
   prepareRow: (row: Row<T>) => void;
   headerGroups: HeaderGroup<T>[];
   rows: Row<T>[];
-  columns: ColumnInstance<T>[];
+  columns: ListViewColumn<T>[];
   loading: boolean;
   highlightRowId?: number;
   // Optional predicate to highlight arbitrary rows (in addition to
@@ -367,4 +368,7 @@ function TableCollection<T extends object>({
   );
 }
 
-export default memo(TableCollection);
+// React.memo erases the wrapped component's generic type parameter; cast
+// back to the original generic signature so callers can still instantiate
+// TableCollection<T> explicitly.
+export default memo(TableCollection) as typeof TableCollection;
