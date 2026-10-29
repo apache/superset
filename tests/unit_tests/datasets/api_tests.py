@@ -132,6 +132,81 @@ def test_get_dataset_include_rendered_sql_passes_table_to_template_processor(
     mock_get_processor.assert_called_once_with(database=database, table=dataset)
 
 
+def test_get_dataset_serializes_the_partition_mapping_summary(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    app: Any,
+) -> None:
+    """
+    Saving a dataset from Explore reloads this endpoint and replaces the
+    chart's datasource with the response -- a replacement, not a merge -- so a
+    summary the payload omits is lost on an unrelated save and the pruning
+    glyphs vanish until the page is reloaded.
+
+    Asserted through the endpoint rather than against `show_columns`, because
+    the summary is a `dict` where every other property in that list is a
+    scalar, and the question is whether the schema renders it as one.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(db.session.get_bind())
+
+    database = Database(database_name="pfm_db", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(
+        table_name="pfm_events",
+        schema="main",
+        database=database,
+        main_dttm_col="event_time",
+        columns=[
+            TableColumn(column_name="event_time", is_dttm=True, type="TIMESTAMP"),
+            TableColumn(column_name="dt_epoch", type="BIGINT"),
+        ],
+    )
+    dataset.partition_column = "dt_epoch"
+    dataset.columns[0].partition_value_transform = "unix_timestamp(:value)"
+    dataset.columns[0].partition_transform_is_monotonic = True
+    db.session.add(dataset)
+    db.session.flush()
+
+    app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = True
+    try:
+        response = client.get(f"/api/v1/dataset/{dataset.id}")
+    finally:
+        del app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"]
+
+    assert response.status_code == 200
+    summary = response.json["result"]["partition_filter_mapping"]
+    assert summary["partition_column"] == "dt_epoch"
+    assert summary["mapped_column"] == "event_time"
+    assert summary["active"] is True
+    assert summary["is_monotonic"] is True
+    assert "TEMPORAL_RANGE" in summary["mirrorable_operators"]
+
+
+def test_get_dataset_reports_no_partition_mapping_when_there_is_none(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """The entire installed base: the key is present and null."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(db.session.get_bind())
+
+    database = Database(database_name="plain_db", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(table_name="plain_events", schema="main", database=database)
+    db.session.add(dataset)
+    db.session.flush()
+
+    response = client.get(f"/api/v1/dataset/{dataset.id}")
+
+    assert response.status_code == 200
+    assert response.json["result"]["partition_filter_mapping"] is None
+
+
 def test_get_dataset_include_rendered_sql_handles_undefined_error(
     session: Session,
     client: Any,
