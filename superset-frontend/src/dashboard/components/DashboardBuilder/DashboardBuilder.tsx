@@ -86,7 +86,10 @@ import {
   EMPTY_CONTAINER_Z_INDEX,
 } from 'src/dashboard/constants';
 import { selectCanRestoreDashboard } from 'src/features/versionHistory/canRestoreDashboard';
-import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
+import {
+  closeVersionHistoryPanel,
+  selectIsDashboardVersionPreviewActive,
+} from 'src/features/versionHistory/reducer';
 import { StickyTabsOffsetContext } from 'src/dashboard/components/gridComponents/TabsRenderer';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
@@ -565,6 +568,11 @@ const DashboardBuilder = () => {
   const editMode = useSelector<RootState, boolean>(
     state => state.dashboardState.editMode,
   );
+  useEffect(() => {
+    if (editMode) {
+      dispatch(closeVersionHistoryPanel());
+    }
+  }, [dispatch, editMode]);
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -1060,19 +1068,18 @@ const DashboardBuilder = () => {
       </StyledContent>
       {/* Guests have no version history to show; keep its viewport-sized host
           out of embedded documents so it cannot affect iframe sizing. */}
-      {isFeatureEnabled(FeatureFlag.VersionHistory) &&
-        !isEmbedded() &&
-        !editMode && (
-          <VersionHistoryColumn
-            data-test="dashboard-version-history-column"
-            topOffset={barTopOffset}
-            bottomOffset={barBottomOffset}
-          >
-            <Suspense fallback={null}>
-              <DashboardVersionHistory />
-            </Suspense>
-          </VersionHistoryColumn>
-        )}
+      {isFeatureEnabled(FeatureFlag.VersionHistory) && !isEmbedded() && (
+        <VersionHistoryColumn
+          data-test="dashboard-version-history-column"
+          hidden={editMode}
+          topOffset={barTopOffset}
+          bottomOffset={barBottomOffset}
+        >
+          <Suspense fallback={null}>
+            <DashboardVersionHistory />
+          </Suspense>
+        </VersionHistoryColumn>
+      )}
       {dashboardIsSaving && (
         <Loading
           css={css`
