@@ -17,10 +17,17 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
 import { Modal } from '@superset-ui/core/components';
 import { styled } from '@apache-superset/core/theme';
 import { changeCount, totalChangeCount } from './display';
 import type { ChangeRequest } from './types';
+
+const Warning = styled(Alert)`
+  ${({ theme }) => `
+    margin-bottom: ${theme.sizeUnit * 3}px;
+  `}
+`;
 
 const Hint = styled.div`
   ${({ theme }) => `
@@ -52,6 +59,14 @@ export default function ApprovePublishModal({
   onConfirm,
 }: ApprovePublishModalProps) {
   const deleting = changeRequest.operation === 'delete';
+  const dependency = changeRequest.pending_dependency;
+  // The author's name where we have it: the approver's next move is to ask
+  // them whether the dataset change should go first.
+  const heldBy = dependency?.author
+    ? [dependency.author.first_name, dependency.author.last_name]
+        .filter(Boolean)
+        .join(' ') || dependency.author.username
+    : null;
 
   return (
     <Modal
@@ -64,6 +79,24 @@ export default function ApprovePublishModal({
       }
       data-test="approve-publish-modal"
     >
+      {dependency && (
+        <Warning
+          type="warning"
+          showIcon
+          data-test="pending-dependency-warning"
+          message={t('The dataset this chart uses has a change waiting')}
+          description={
+            heldBy
+              ? t(
+                  'Approving this chart first publishes it against the dataset as it is now. If it relies on the change %s has waiting, viewers will see it break. Decide the dataset change first, or check with them.',
+                  heldBy,
+                )
+              : t(
+                  'Approving this chart first publishes it against the dataset as it is now. If it relies on the dataset change still waiting, viewers will see it break. Decide the dataset change first.',
+                )
+          }
+        />
+      )}
       {deleting
         ? t(
             'This removes the %s. It cannot be undone.',

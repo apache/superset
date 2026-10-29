@@ -40,6 +40,7 @@ from asset_approval.eligibility import (
     is_strict_editor,
 )
 from asset_approval.exceptions import (
+    AuthorNoLongerEditorError,
     ApprovalForbiddenError,
     ChangeManagementException,
     ChangeRequestNotFoundError,
@@ -52,6 +53,7 @@ from asset_approval.exceptions import (
 )
 from asset_approval.gate import (
     COMMAND_KEY,
+    find_open_request,
     is_enabled,
     RESTORE_VERSION_COMMAND,
 )
@@ -315,6 +317,12 @@ def serialize(change_request: ChangeRequest, asset: Any = None) -> dict[str, Any
         "command": change_request.command_args.get(COMMAND_KEY),
         "changes": describe_changes(change_request, asset),
         "dataset_detail": dataset_detail(change_request, asset)
+        if asset is not None
+        else None,
+        # The dataset this chart is built on, when it has a change waiting
+        # of its own. Approving this one first can publish a chart against
+        # columns that do not exist yet (QA-09).
+        "pending_dependency": pending_dependency(change_request, asset)
         if asset is not None
         else None,
     }
@@ -699,6 +707,7 @@ class ChangeRequestRestApi(BaseSupersetApi):
         except (ReviewNoteRequiredError, NoEligibleApproverError) as ex:
             return self.response(422, message=str(ex))
         except (
+            AuthorNoLongerEditorError,
             InvalidTransitionError,
             ReviewedVersionStaleError,
             StaleBaselineError,
@@ -813,6 +822,49 @@ def dataset_impact(asset: Any) -> dict[str, int]:
     )
     dashboard_ids = {d.id for chart in charts for d in (chart.dashboards or [])}
     return {"charts": len(charts), "dashboards": len(dashboard_ids)}
+
+
+def pending_dependency(
+    change_request: ChangeRequest, asset: Any
+) -> dict[str, Any] | None:
+    """The chart's dataset, when it has a change of its own still open.
+
+    Approving replays the author's body over whatever is live, so a chart
+    approved before the dataset change it was written against publishes a
+    chart referencing columns or metrics that do not exist yet. Viewers get
+    a broken chart and nothing warned the approver (QA-09).
+
+    A warning, not a refusal. The one-open-change-per-asset rule means two
+    editors can hold the chart and the dataset separately, so enforcing an
+    order would deadlock the pair; and SOW 5.3 scopes that rule to a single
+    asset, so a cross-asset ordering is a wider change than this is. The
+    approver is told and decides.
+
+    ``None`` when there is nothing to say, which is the common case.
+    """
+    if AssetType(change_request.asset_type) is not AssetType.CHART:
+        return None
+    if asset is None:
+        return None
+    # Charts can also sit on a semantic view, which has no change requests
+    # of its own; ``dataset_impact`` guards the same way.
+    if getattr(asset, "datasource_type", None) != "table":
+        return None
+    datasource_id = getattr(asset, "datasource_id", None)
+    if datasource_id is None:
+        return None
+
+    open_request = find_open_request(AssetType.DATASET, datasource_id)
+    if open_request is None:
+        return None
+    return {
+        "asset_type": AssetType.DATASET.value,
+        "asset_id": datasource_id,
+        "change_request_id": open_request.id,
+        "status": open_request.status,
+        "author": _user_brief(open_request.author),
+        "title": _asset_title(getattr(asset, "datasource", None)),
+    }
 
 
 def dataset_detail(

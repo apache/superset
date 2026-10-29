@@ -107,10 +107,31 @@ export interface ChangeRequest {
   proposed: Record<string, unknown>;
   /** Present only for datasets. */
   dataset_detail?: DatasetDetail | null;
+  /**
+   * Set on a chart change when the dataset it is built on has a change of
+   * its own still open. Approving the chart first publishes it against
+   * columns that do not exist yet, and viewers see it break (QA-09).
+   */
+  pending_dependency?: PendingDependency | null;
   /** Present on the detail and per-asset endpoints, not in list rows. */
   can_approve?: boolean;
   is_author?: boolean;
   eligible_approvers?: UserBrief[];
+}
+
+/**
+ * A change on another asset that this one is built on, still waiting for a
+ * decision. A warning rather than a block: the chart and the dataset can be
+ * held by different editors, so refusing until the dataset is decided would
+ * leave neither able to proceed.
+ */
+export interface PendingDependency {
+  asset_type: string;
+  asset_id: number;
+  change_request_id: number;
+  status: string;
+  author?: UserBrief | null;
+  title?: string | null;
 }
 
 /**

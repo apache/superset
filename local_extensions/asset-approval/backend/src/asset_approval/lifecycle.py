@@ -31,8 +31,13 @@ from typing import Any
 from flask_appbuilder.models.sqla import Model
 
 from superset import db
-from asset_approval.eligibility import can_approve, eligible_approvers
+from asset_approval.eligibility import (
+    can_approve,
+    eligible_approvers,
+    is_strict_editor,
+)
 from asset_approval.exceptions import (
+    AuthorNoLongerEditorError,
     ApprovalForbiddenError,
     ChangeRequestNotFoundError,
     InvalidTransitionError,
@@ -145,6 +150,17 @@ def submit(
 
 
 @transaction()
+def _author_name(change_request: ChangeRequest) -> str | None:
+    """The author's display name, for the refusal message."""
+    author = getattr(change_request, "author", None)
+    if author is None:
+        return None
+    first = getattr(author, "first_name", "") or ""
+    last = getattr(author, "last_name", "") or ""
+    full = f"{first} {last}".strip()
+    return full or getattr(author, "username", None)
+
+
 def approve(
     change_request_id: int,
     note: str | None = None,
@@ -187,6 +203,14 @@ def approve(
         change_request.base_dict,
     ):
         raise StaleBaselineError(moved)
+
+    # The approver's editorship is re-checked above; the author's never was.
+    # The replay runs as the author, so the host re-checks them anyway -- but
+    # it answers with the command's own permission error, addressed to the
+    # approver, and it waves administrators through. Asking here, on the
+    # merits, names the real reason and closes the admin-author path (QA-07).
+    if not is_strict_editor(asset, change_request.author_fk):
+        raise AuthorNoLongerEditorError(_author_name(change_request))
 
     applied = apply_change(change_request)
 
@@ -261,10 +285,6 @@ def discard(change_request_id: int) -> ChangeRequest:
 
     # Authorize first; see ``approve``.
     asset = _asset_for(change_request)
-    from asset_approval.eligibility import (  # pylint: disable=import-outside-toplevel
-        is_strict_editor,
-    )
-
     if change_request.author_fk != user_id and not (
         user_id is not None and is_strict_editor(asset, user_id)
     ):
