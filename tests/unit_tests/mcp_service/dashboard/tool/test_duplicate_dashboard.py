@@ -25,7 +25,7 @@ Follows the same pattern used in test_add_chart_to_existing_dashboard.py:
 - auth is mocked via the autouse mock_auth fixture
 
 Covers:
-- Duplicate referencing the same charts (duplicate_slices=False, default)
+- Duplicate referencing the same charts (duplicate_slices=False, explicit opt-in)
 - Duplicate with deep-copied charts (duplicate_slices=True)
 - Source dashboard not found
 - Source dashboard access denied / copy forbidden
@@ -207,7 +207,7 @@ async def test_duplicate_referencing_same_charts(
     mock_find_by_id: Mock,
     mcp_server: object,
 ) -> None:
-    """Happy path: the copy references the same charts (default)."""
+    """Happy path: the copy references the same charts only by explicit opt-in."""
     chart = _mock_chart(id=10)
     source = _mock_dashboard(
         id=1,
@@ -223,7 +223,13 @@ async def test_duplicate_referencing_same_charts(
     async with Client(mcp_server) as client:
         result = await client.call_tool(
             "duplicate_dashboard",
-            {"request": {"dashboard_id": 1, "dashboard_title": "Staging Copy"}},
+            {
+                "request": {
+                    "dashboard_id": 1,
+                    "dashboard_title": "Staging Copy",
+                    "duplicate_slices": False,
+                }
+            },
         )
 
     content = result.structured_content
@@ -251,6 +257,7 @@ async def test_duplicate_referencing_same_charts(
 @patch("superset.commands.dashboard.copy.CopyDashboardCommand")
 @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
 @pytest.mark.parametrize("legacy_id", [10, "10", 10.0])
+@pytest.mark.parametrize("explicit_copy", [False, True])
 @pytest.mark.asyncio
 async def test_duplicate_with_duplicate_slices(
     mock_get_by_id_or_slug: Mock,
@@ -258,8 +265,9 @@ async def test_duplicate_with_duplicate_slices(
     mock_find_by_id: Mock,
     mcp_server: object,
     legacy_id: int | str | float,
+    explicit_copy: bool,
 ) -> None:
-    """duplicate_slices=True is forwarded to the command and reported back."""
+    """Default and explicit copying forward isolation and return independent IDs."""
     positions: dict[str, Any] = json.loads(json.dumps(SOURCE_POSITIONS))
     positions["CHART-10"]["meta"]["chartId"] = legacy_id
     source: Mock = _mock_dashboard(
@@ -279,7 +287,7 @@ async def test_duplicate_with_duplicate_slices(
                 "request": {
                     "dashboard_id": 1,
                     "dashboard_title": "Regional Variant",
-                    "duplicate_slices": True,
+                    **({"duplicate_slices": True} if explicit_copy else {}),
                 }
             },
         )
@@ -288,6 +296,8 @@ async def test_duplicate_with_duplicate_slices(
     assert content["error"] is None
     assert content["duplicated_slices"] is True
     assert content["dashboard"]["id"] == 3
+    assert content["dashboard"]["charts"][0]["id"] == 20
+    assert content["dashboard"]["charts"][0]["id"] != source.slices[0].id
     assert "/dashboard/3/" in content["dashboard_url"]
 
     _, cmd_data = mock_copy_cmd_cls.call_args.args
@@ -768,3 +778,69 @@ async def test_tool_input_schemas_omit_sanitization_warnings(
         "duplicate_dashboard",
     ):
         assert "sanitization_warnings" not in str(tools[name].inputSchema)
+
+
+def test_duplicate_defaults_to_isolated_charts() -> None:
+    from superset.mcp_service.dashboard.schemas import DuplicateDashboardRequest
+
+    request = DuplicateDashboardRequest(dashboard_id=1, dashboard_title="New copy")
+    assert request.duplicate_slices is True
+    source = _mock_dashboard(id=1, slices=[_mock_chart(id=10)])
+    from superset.mcp_service.dashboard.tool.duplicate_dashboard import (
+        _build_copy_payload,
+    )
+
+    payload, _ = _build_copy_payload(
+        source, request.dashboard_title, request.duplicate_slices
+    )
+    assert payload["duplicate_slices"] is True
+
+
+@pytest.mark.asyncio
+async def test_duplicate_description_explains_isolated_default() -> None:
+    """Published guidance must not introduce the default as an opt-in."""
+    tools = await mcp.list_tools()
+    tool = next(tool for tool in tools if tool.name == "duplicate_dashboard")
+    from importlib import import_module
+
+    from superset.mcp_service.app import get_default_instructions
+
+    module = import_module("superset.mcp_service.dashboard.tool.duplicate_dashboard")
+    assert "deep-copies charts by default" in (module.__doc__ or "")
+    assert "Set duplicate_slices=false only" in (module.__doc__ or "")
+
+    instructions = get_default_instructions()
+    entry = next(
+        line
+        for line in instructions.splitlines()
+        if line.startswith("- duplicate_dashboard:")
+    )
+    assert "By default the copy deep-copies charts" in entry
+    assert "edits are isolated" in entry
+    assert "Set duplicate_slices=false only" in entry
+    assert "optionally deep-copying" not in entry
+
+    description = " ".join((tool.description or "").split())
+    assert "By default the copy deep-copies charts" in description
+    from superset.mcp_service.server import _truncate_description
+
+    compact = " ".join(_truncate_description(tool.description or "", 300).split())
+    assert "deep-copied by default" in compact
+    assert "duplicate_slices=false" in compact
+    assert "With duplicate_slices=true" not in description
+    assert "Set duplicate_slices=false only" in description
+    from superset.mcp_service.dashboard.schemas import DuplicateDashboardRequest
+
+    assert DuplicateDashboardRequest.model_fields["duplicate_slices"].default is True
+
+
+@pytest.mark.asyncio
+async def test_compact_duplicate_description_keeps_default() -> None:
+    """Tool-search agents must learn the isolated default in compact mode."""
+    from superset.mcp_service.server import _truncate_description
+
+    tools = await mcp.list_tools()
+    tool = next(tool for tool in tools if tool.name == "duplicate_dashboard")
+    compact = _truncate_description(tool.description or "", 300)
+    assert "deep-copied by default" in " ".join(compact.split())
+    assert "duplicate_slices=false" in compact

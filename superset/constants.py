@@ -62,6 +62,7 @@ QUERY_EARLY_CANCEL_KEY = "early_cancel_query"
 # fabricate a stop) apart from "this engine just has no cancel support"
 # (must fail honestly) when no cancel ID is on record.
 QUERY_DISPATCHED_KEY = "query_dispatched"
+QUERY_TARGET_COMMITTED_KEY = "target_committed"
 
 LRU_CACHE_MAX_SIZE = 256
 
