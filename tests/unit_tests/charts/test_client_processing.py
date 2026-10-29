@@ -5349,6 +5349,44 @@ def test_ag_grid_table_export_is_left_unchanged(
     assert list(output_df.columns) == ["code", "label", "total_amount"]
 
 
+@with_config({"CSV_EXPORT": {"quotechar": "'"}})
+def test_ag_grid_table_csv_export_survives_a_custom_quotechar() -> None:
+    """
+    An AG Grid CSV attachment is not parsed, so a custom quote character cannot
+    break the report.
+
+    ``QueryContextProcessor.get_data`` writes the attachment with every
+    ``CSV_EXPORT`` key, while the reader here is handed only ``sep`` and
+    ``decimal``. Under a configured ``quotechar`` the two disagree: the writer
+    quotes ``Doe, Jane`` with ``'`` and the reader, still on ``"``, sees three
+    fields against a two column header and raises ``ParserError``, failing the
+    whole report where the attachment itself was fine. A comma in the first data
+    row instead makes ``read_csv`` infer an index and mis-parse in silence, so
+    the raise needs a clean first row.
+    """
+    source_df: pd.DataFrame = pd.DataFrame(
+        {"name": ["Smith", "Doe, Jane"], "total_amount": [15, 20]}
+    )
+    datasource: MagicMock = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = []
+    form_data: dict[str, Any] = {
+        "viz_type": "ag-grid-table",
+        "groupby": ["name"],
+        "metrics": ["total_amount"],
+    }
+    attachment: str = source_df.to_csv(index=False, quotechar="'")
+    result: dict[str, Any] = {
+        "queries": [{"result_format": ChartDataResultFormat.CSV, "data": attachment}]
+    }
+
+    query: dict[str, Any] = apply_client_processing(result, form_data, datasource)[
+        "queries"
+    ][0]
+
+    assert query["data"] == attachment
+
+
 @pytest.mark.parametrize(
     "result_format", [ChartDataResultFormat.XLSX, ChartDataResultFormat.CSV]
 )

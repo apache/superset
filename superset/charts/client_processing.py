@@ -1598,6 +1598,30 @@ def apply_client_processing(  # noqa: C901
                 f"Result format {query['result_format']} not supported"
             )
 
+        if (
+            viz_type == AG_GRID_TABLE
+            and query["result_format"] != ChartDataResultFormat.JSON
+        ):
+            # Only a JSON result is rewritten for this viz type, so for CSV and
+            # XLSX everything below is work whose output nothing reads.
+            # ``query["data"]`` goes back out as it came in, and the
+            # ``colnames``/``coltypes``/``rowcount`` the parse would set have no
+            # reader for these formats: ``apply_column_types`` is in the XLSX
+            # branch this viz type never reaches, and the notification table
+            # fetches its own JSON result rather than reading them off an
+            # attachment.
+            #
+            # Parsing anyway can only lose. ``read_csv`` below is handed ``sep``
+            # and ``decimal`` but not the ``quotechar``, ``quoting``,
+            # ``escapechar`` or ``lineterminator`` the writer took from
+            # ``CSV_EXPORT``, so under a custom quote a cell holding the
+            # separator splits: it raises ``ParserError`` and fails the report
+            # where the row is not the first, and where it is, the extra field
+            # is read as an index and the value lands in the wrong column. A
+            # large workbook also spends seconds in ``read_excel`` for a frame
+            # that is thrown away.
+            continue
+
         data = query["data"]
 
         csv_export_config = current_app.config.get("CSV_EXPORT", {})
@@ -1717,23 +1741,6 @@ def apply_client_processing(  # noqa: C901
 
         if query["result_format"] == ChartDataResultFormat.JSON:
             query["data"] = processed_df.to_dict()
-        elif viz_type == AG_GRID_TABLE:
-            # ``table`` only formats numbers, and ``apply_number_format`` is
-            # false for every format but JSON, so the frame handed back here is
-            # the frame that went in. Writing it out again would be a round trip
-            # that gains nothing and loses data: ``pd.read_csv`` reads ``01234``
-            # as ``1234`` and, under the default ``REPORTS_CSV_NA_NAMES``, ``NA``
-            # as an empty cell. Before this viz type was registered its
-            # attachments returned unchanged, so they are left alone rather than
-            # rewritten. The column and row metadata above still comes from the
-            # parsed frame, as it does for every other viz type.
-            #
-            # The classic ``table`` viz type keeps its rewrite. It loses the same
-            # values, but it has always done so, and the rewrite is also what
-            # applies the formula escaping, the configured separator and decimal
-            # and the default-index suppression that its own tests pin. Changing
-            # that belongs in its own fix rather than here.
-            pass
         elif query["result_format"] == ChartDataResultFormat.CSV:
             # Route through the formula-escaping CSV writer, consistent with the
             # other CSV export paths (viz, query context, SQL Lab export), while
