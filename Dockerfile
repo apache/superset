@@ -18,7 +18,12 @@
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-ARG PY_VER=3.11-slim-trixie
+# Base images are pinned by digest so builds are reproducible and cached
+# stages don't silently outlive base image updates. Renovate
+# (.github/renovate.json) refreshes the digests weekly; when changing a tag
+# by hand, bump its digest too. PY_VER carries its digest, so overriding it
+# (e.g. the py311/py312 presets) replaces both.
+ARG PY_VER=3.11-slim-trixie@sha256:b7a9e5f6a93d6d4a31f129bbd4bdee69efccb6ded0fb230d78aafaf37af98377
 
 # If BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
@@ -27,9 +32,31 @@ ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
 ARG BUILD_TRANSLATIONS="false"
 
 ######################################################################
+# system-ca exposes the system CA bundle of the pinned python image. The
+# node base images ship no CA store, so the Node stages copy this one in
+# and verify TLS against the same store as the Python stages, rather than
+# Node's built-in CA list.
+######################################################################
+FROM python:${PY_VER} AS system-ca
+
+######################################################################
+# superset-node-manifests holds only the npm manifests of the frontend
+# tree (the root package.json + lockfile, .npmrc, and every workspace package.json),
+# so the `npm ci` layer in superset-node-ci can see the workspaces and is
+# cached on dependency declarations alone, not on every source change.
+# Docker cannot COPY a glob while keeping the directory structure, hence
+# the copy-then-prune stage.
+######################################################################
+FROM --platform=${BUILDPLATFORM} node:24-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea AS superset-node-manifests
+WORKDIR /app/superset-frontend
+COPY superset-frontend /app/superset-frontend
+RUN find . -type f ! -name package.json ! -name package-lock.json ! -name .npmrc -delete \
+    && find . -depth -type d -empty -delete
+
+######################################################################
 # superset-node-ci used as a base for building frontend assets and CI
 ######################################################################
-FROM --platform=${BUILDPLATFORM} node:24-trixie-slim AS superset-node-ci
+FROM --platform=${BUILDPLATFORM} node:24-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea AS superset-node-ci
 ARG BUILD_TRANSLATIONS
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
@@ -62,14 +89,17 @@ ENV npm_config_fetch_retries=5 \
     npm_config_fetch_retry_maxtimeout=120000 \
     npm_config_fetch_timeout=600000
 
-# Mount package files and install dependencies if not in dev mode
-# NOTE: we mount packages and plugins as they are referenced in package.json as workspaces
-# ideally we'd COPY only their package.json. Here npm ci will be cached as long
-# as the full content of these folders don't change, yielding a decent cache reuse rate.
-# Note that it's not possible to selectively COPY or mount using blobs.
-RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.json \
-    --mount=type=bind,source=./superset-frontend/package-lock.json,target=./package-lock.json \
-    --mount=type=cache,target=/root/.cache \
+# Verify TLS against the system CA store (see system-ca)
+COPY --from=system-ca /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+ENV NODE_OPTIONS=--use-openssl-ca \
+    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+
+# Install dependencies from the manifests alone (root + workspaces) if not in
+# dev mode. With the workspace package.json files present, npm ci links the
+# workspaces and installs their dependencies too, so the CI jobs that run
+# in this image do not need an `npm i` of their own.
+COPY --from=superset-node-manifests /app/superset-frontend /app/superset-frontend
+RUN --mount=type=cache,target=/root/.cache \
     --mount=type=cache,target=/root/.npm \
     if [ "${DEV_MODE}" = "false" ]; then \
         npm ci; \
@@ -114,13 +144,18 @@ RUN if [ "${BUILD_TRANSLATIONS}" = "true" ]; then \
 # superset-websocket builds the realtime WebSocket (Node) server that
 # ships in the official image, launched via docker/entrypoints/run-websocket.sh
 ######################################################################
-FROM node:24-trixie-slim AS superset-websocket
+FROM node:24-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea AS superset-websocket
 
 # Harden `npm ci` against transient npm-registry network blips (e.g. ECONNRESET).
 ENV npm_config_fetch_retries=5 \
     npm_config_fetch_retry_mintimeout=20000 \
     npm_config_fetch_retry_maxtimeout=120000 \
     npm_config_fetch_timeout=600000
+
+# Verify TLS against the system CA store (see system-ca)
+COPY --from=system-ca /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+ENV NODE_OPTIONS=--use-openssl-ca \
+    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
 WORKDIR /app/superset-websocket
 
@@ -150,7 +185,12 @@ RUN useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash 
 # Some bash scripts needed throughout the layers
 COPY --chmod=755 docker/*.sh /app/docker/
 
-RUN pip install --no-cache-dir --upgrade uv
+# Use the system CA store for every download in the Python stages, rather than
+# the CA lists pip and uv bundle. UV_SYSTEM_CERTS needs uv>=0.11.0.
+ENV PIP_CERT=/etc/ssl/certs/ca-certificates.crt \
+    UV_SYSTEM_CERTS=true
+
+RUN pip install --no-cache-dir --upgrade "uv>=0.11.0"
 
 # Using uv as it's faster/simpler than pip
 RUN uv venv /app/.venv
@@ -201,17 +241,18 @@ RUN mkdir -p \
       requirements \
     && touch superset/static/version_info.json
 
-# Install Playwright and optionally setup headless browsers
+# Optionally install Playwright and the headless Chromium used for screenshots.
+# `playwright install` runs on Playwright's bundled Node; --use-openssl-ca makes
+# it use the system CA store, consistent with the rest of the build.
 ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright-browsers
 
 ARG INCLUDE_CHROMIUM="false"
-ARG INCLUDE_FIREFOX="false"
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
-    if [ "${INCLUDE_CHROMIUM}" = "true" ] || [ "${INCLUDE_FIREFOX}" = "true" ]; then \
+    if [ "${INCLUDE_CHROMIUM}" = "true" ]; then \
         uv pip install playwright && \
         playwright install-deps && \
-        if [ "${INCLUDE_CHROMIUM}" = "true" ]; then playwright install chromium; fi && \
-        if [ "${INCLUDE_FIREFOX}" = "true" ]; then playwright install firefox; fi; \
+        NODE_OPTIONS=--use-openssl-ca SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+            playwright install chromium; \
     else \
         echo "Skipping browser installation"; \
     fi
@@ -324,10 +365,12 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
 # INCLUDE_CHROMIUM build arg on python-common) because this stage builds
 # FROM lean, which is already past that arg. Chromium ships for both
 # linux/amd64 and linux/arm64, so this works on multi-platform builds.
+# See the INCLUDE_CHROMIUM step in python-common for --use-openssl-ca.
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     uv pip install playwright \
     && playwright install-deps \
-    && playwright install chromium
+    && NODE_OPTIONS=--use-openssl-ca SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+        playwright install chromium
 
 USER superset
 

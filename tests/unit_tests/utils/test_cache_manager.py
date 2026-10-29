@@ -20,18 +20,50 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from superset.utils.cache_manager import (
+    CacheManager,
     configurable_hash_method,
     ConfigurableHashMethod,
     SupersetCache,
 )
 
 
+class _OwnerTokenBackend:
+    def acquire_owner_token(
+        self,
+        key: str,
+        owner_token: str,
+        lease_seconds: int,
+    ) -> bool:
+        return True
+
+    def release_owner_token(self, key: str, owner_token: str) -> bool:
+        return True
+
+    def refresh_owner_token(
+        self,
+        key: str,
+        owner_token: str,
+        lease_seconds: int,
+    ) -> bool:
+        return True
+
+
+def test_semantic_coordination_exposes_only_typed_capability() -> None:
+    manager: CacheManager = CacheManager()
+    supported: _OwnerTokenBackend = _OwnerTokenBackend()
+    manager._distributed_coordination = supported  # type: ignore[assignment]
+
+    assert manager.semantic_cache_coordination is supported
+
+    manager._distributed_coordination = MagicMock(spec=["publish"])
+    assert manager.semantic_cache_coordination is None
+
+
 def test_configurable_hash_method_uses_sha256():
     """Test ConfigurableHashMethod uses sha256 when configured."""
-    mock_app = MagicMock()
-    mock_app.config = {"HASH_ALGORITHM": "sha256"}
-
-    with patch("superset.utils.cache_manager.current_app", mock_app):
+    with patch(
+        "superset.utils.cache_manager.get_hash_algorithm", return_value="sha256"
+    ):
         hash_obj = configurable_hash_method(b"test")
         # Verify it returns a sha256 hash object
         assert hash_obj.hexdigest() == hashlib.sha256(b"test").hexdigest()
@@ -39,10 +71,7 @@ def test_configurable_hash_method_uses_sha256():
 
 def test_configurable_hash_method_uses_md5():
     """Test ConfigurableHashMethod uses md5 when configured."""
-    mock_app = MagicMock()
-    mock_app.config = {"HASH_ALGORITHM": "md5"}
-
-    with patch("superset.utils.cache_manager.current_app", mock_app):
+    with patch("superset.utils.cache_manager.get_hash_algorithm", return_value="md5"):
         hash_obj = configurable_hash_method(b"test")
         # Verify it returns a md5 hash object
         assert hash_obj.hexdigest() == hashlib.md5(b"test").hexdigest()  # noqa: S324
@@ -50,10 +79,9 @@ def test_configurable_hash_method_uses_md5():
 
 def test_configurable_hash_method_empty_data():
     """Test ConfigurableHashMethod with empty data."""
-    mock_app = MagicMock()
-    mock_app.config = {"HASH_ALGORITHM": "sha256"}
-
-    with patch("superset.utils.cache_manager.current_app", mock_app):
+    with patch(
+        "superset.utils.cache_manager.get_hash_algorithm", return_value="sha256"
+    ):
         hash_obj = configurable_hash_method()
         assert hash_obj.hexdigest() == hashlib.sha256(b"").hexdigest()
 
@@ -161,9 +189,8 @@ def test_superset_cache_memoize_make_cache_key_allows_explicit_hash():
 )
 def test_configurable_hash_method_parametrized(algorithm, expected_digest):
     """Parametrized test for ConfigurableHashMethod with different algorithms."""
-    mock_app = MagicMock()
-    mock_app.config = {"HASH_ALGORITHM": algorithm}
-
-    with patch("superset.utils.cache_manager.current_app", mock_app):
+    with patch(
+        "superset.utils.cache_manager.get_hash_algorithm", return_value=algorithm
+    ):
         hash_obj = configurable_hash_method(b"test_data")
         assert hash_obj.hexdigest() == expected_digest

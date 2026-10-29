@@ -43,8 +43,10 @@ export function DeleteModal({
   primaryButtonName,
   primaryButtonStyle,
   disablePrimaryButton = false,
+  disableConfirmationInput = false,
   loading = false,
   confirmationResetKey,
+  preserveConfirmationOnConfirm = false,
 }: DeleteModalProps) {
   // Recoverable (archive) deletes drop the "type DELETE to confirm" step;
   // a permanent delete keeps it.
@@ -52,12 +54,14 @@ export function DeleteModal({
   const [disableChange, setDisableChange] = useState(true);
   const [confirmation, setConfirmation] = useState<string>('');
   const inputRef = useRef<InputRef>(null);
+  const confirmationBlocked =
+    disablePrimaryButton || disableConfirmationInput || loading;
 
   useEffect(() => {
-    if (open && inputRef.current) {
+    if (open && !disableConfirmationInput && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [open]);
+  }, [disableConfirmationInput, open]);
 
   useEffect(() => {
     setConfirmation('');
@@ -74,8 +78,10 @@ export function DeleteModal({
   };
 
   const confirm = () => {
-    setConfirmation('');
-    setDisableChange(true);
+    if (!preserveConfirmationOnConfirm) {
+      setConfirmation('');
+      setDisableChange(true);
+    }
     onConfirm();
   };
 
@@ -86,7 +92,7 @@ export function DeleteModal({
   };
 
   const onPressEnter = () => {
-    if (!disableChange && !disablePrimaryButton && !loading) {
+    if (!disableChange && !confirmationBlocked) {
       confirm();
     }
   };
@@ -94,9 +100,7 @@ export function DeleteModal({
   return (
     <Modal
       disablePrimaryButton={
-        disablePrimaryButton ||
-        loading ||
-        (showConfirmationInput ? disableChange : false)
+        confirmationBlocked || (showConfirmationInput ? disableChange : false)
       }
       primaryButtonLoading={loading}
       onHide={hide}
@@ -127,6 +131,7 @@ export function DeleteModal({
             type="text"
             id="delete"
             autoComplete="off"
+            disabled={disableConfirmationInput}
             value={confirmation}
             onChange={onChange}
             onPressEnter={onPressEnter}

@@ -14,10 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from sqlalchemy import types
-from sqlalchemy.engine.interfaces import Dialect
-from sqlalchemy.types import TypeEngine
-
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 
@@ -46,8 +42,10 @@ class PinotEngineSpec(BaseEngineSpec):
         ],
         "pypi_packages": ["pinotdb"],
         "version_requirements": (
-            "The Pinot extra requires pinotdb[sqlalchemy]>=8.0.0,<10.0.0."
-            " Earlier releases declare SQLAlchemy below 2 in their SQLAlchemy extra."
+            "The Pinot extra requires pinotdb[sqlalchemy]>=9.2.2,<10.0.0."
+            " Releases below 8.0.0 declare SQLAlchemy below 2 in their SQLAlchemy"
+            " extra; releases below 9.2.1 compile TIMESTAMP columns as NUMERIC"
+            " (startreedata/pinot-dbapi#224)."
         ),
         "connection_string": (
             "pinot+http://{broker_host}:{broker_port}/query"
@@ -112,15 +110,8 @@ class PinotEngineSpec(BaseEngineSpec):
         )
 
     @classmethod
-    def column_datatype_to_string(
-        cls, sqla_column_type: TypeEngine, dialect: Dialect
-    ) -> str:
-        # Pinot driver infers TIMESTAMP column as LONG, so make the quick fix.
-        # When the Pinot driver fix this bug, current method could be removed.
-        #
-        # TODO: remove this override once startreedata/pinot-dbapi#224 is
-        # merged and released, and pinotdb is bumped past that version.
-        if isinstance(sqla_column_type, types.TIMESTAMP):
-            return sqla_column_type.compile().upper()
-
-        return super().column_datatype_to_string(sqla_column_type, dialect)
+    def epoch_us_to_dttm(cls) -> str:
+        return (
+            "DATETIMECONVERT({col}, '1:MICROSECONDS:EPOCH', "
+            + "'1:MICROSECONDS:EPOCH', '1:MICROSECONDS')"
+        )
