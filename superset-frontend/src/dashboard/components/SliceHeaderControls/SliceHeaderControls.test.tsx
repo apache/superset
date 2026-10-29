@@ -1233,3 +1233,17 @@ test('Should handle three or more queries with different cache states', async ()
   expect(await screen.findByText(/Query 2:/)).toBeInTheDocument();
   expect(await screen.findByText(/Query 3:/)).toBeInTheDocument();
 });
+
+test('A Big Number chart offers image exports only, without CSV, Excel or PDF', async () => {
+  const props = createProps(VizType.BigNumberTotal);
+  renderWrapper(props);
+  await openMenu();
+  await userEvent.hover(screen.getByText('Download'));
+  expect(
+    await screen.findByText('Export screenshot (jpeg)'),
+  ).toBeInTheDocument();
+  expect(screen.getByText('Export screenshot (png)')).toBeInTheDocument();
+  expect(screen.queryByText('Export to .CSV')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export to Excel')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export as PDF')).not.toBeInTheDocument();
+});
