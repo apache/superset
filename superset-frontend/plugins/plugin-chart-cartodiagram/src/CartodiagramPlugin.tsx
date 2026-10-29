@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createRef, useState } from 'react';
+import { createRef, useRef } from 'react';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import OlMap from 'ol/Map';
 import {
@@ -46,14 +46,14 @@ export default function CartodiagramPlugin(props: CartodiagramPluginProps) {
 
   const rootElem = createRef<HTMLDivElement>();
 
-  const [mapId] = useState(
-    `cartodiagram-plugin-${Math.floor(Math.random() * 1000000)}`,
-  );
-  const [olMap] = useState(new OlMap({}));
+  const olMapRef = useRef<OlMap | null>(null);
+  if (!olMapRef.current) {
+    olMapRef.current = new OlMap({});
+  }
 
   return (
     <Styles ref={rootElem} height={height} width={width} theme={theme}>
-      <OlChartMap mapId={mapId} olMap={olMap} {...props} />
+      <OlChartMap olMap={olMapRef.current} {...props} />
     </Styles>
   );
 }
