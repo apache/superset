@@ -98,7 +98,6 @@ export type CartodiagramPluginProps = CartodiagramPluginStylesProps &
   };
 
 export interface OlChartMapProps extends CartodiagramPluginProps {
-  mapId: string;
   olMap: Map;
 }
 

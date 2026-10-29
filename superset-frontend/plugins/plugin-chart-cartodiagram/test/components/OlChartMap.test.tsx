@@ -22,6 +22,7 @@ import View from 'ol/View.js';
 import { toLonLat } from 'ol/proj';
 import { supersetTheme } from '@apache-superset/core/theme';
 import OlChartMap from '../../src/components/OlChartMap';
+import { ChartLayer } from '../../src/components/ChartLayer';
 import { ChartConfig, MapViewConfigs, OlChartMapProps } from '../../src/types';
 
 jest.mock('react-redux', () => ({
@@ -50,7 +51,6 @@ const LONDON = chartConfigsAt([
 const renderMap = (mapView: Partial<MapViewConfigs>) => {
   const olMap = new Map({ view: new View({ center: [0, 0], zoom: 2 }) });
   const props = {
-    mapId: 'ol-map',
     olMap,
     width: 400,
     height: 300,
@@ -94,7 +94,7 @@ const renderMap = (mapView: Partial<MapViewConfigs>) => {
   const centerLatitude = () => toLonLat(olMap.getView().getCenter()!)[1];
   const refresh = (chartConfigs: ChartConfig) =>
     result.rerender(<OlChartMap {...props} chartConfigs={chartConfigs} />);
-  return { centerLatitude, refresh };
+  return { olMap, unmount: result.unmount, centerLatitude, refresh };
 };
 
 test('refits to the charts of a refreshed response in FIT_DATA mode', () => {
@@ -118,4 +118,19 @@ test('keeps the fixed view of a CUSTOM map view when the data changes', () => {
   refresh(LONDON);
 
   expect(centerLatitude()).toBeCloseTo(10);
+});
+
+test('detaches the map and unmounts the charts when the component unmounts', () => {
+  const { olMap, unmount } = renderMap({ mode: 'FIT_DATA' });
+  const chartLayer = olMap
+    .getLayers()
+    .getArray()
+    .find(layer => layer instanceof ChartLayer) as ChartLayer;
+  const removeCharts = jest.spyOn(chartLayer, 'removeAllChartElements');
+  expect(olMap.getTarget()).toBeDefined();
+
+  unmount();
+
+  expect(olMap.getTarget()).toBeUndefined();
+  expect(removeCharts).toHaveBeenCalled();
 });

@@ -89,7 +89,6 @@ export const OlChartMap = (props: OlChartMapProps) => {
   const {
     height,
     width,
-    mapId,
     olMap,
     chartConfigs,
     chartSize,
@@ -115,12 +114,25 @@ export const OlChartMap = (props: OlChartMapProps) => {
   const [currentMapMaxExtent, setCurrentMapMaxExtent] =
     useState<MapMaxExtentConfigs>(mapMaxExtent);
 
+  const mapElementRef = useRef<HTMLDivElement>(null);
+
   /**
    * Add map to correct DOM element.
    */
   useEffect(() => {
-    olMap.setTarget(mapId);
-  }, [olMap, mapId]);
+    olMap.setTarget(mapElementRef.current ?? undefined);
+    return () => {
+      olMap
+        .getLayers()
+        .getArray()
+        .forEach(layer => {
+          if (layer instanceof ChartLayer) {
+            layer.removeAllChartElements();
+          }
+        });
+      olMap.setTarget(undefined);
+    };
+  }, [olMap]);
 
   /**
    * Update map size if size of parent container changes.
@@ -614,7 +626,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
 
   return (
     <div
-      id={mapId}
+      ref={mapElementRef}
       style={{
         height: `${height}px`,
         width: `${width}px`,
