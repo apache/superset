@@ -803,7 +803,7 @@ class TestXAxisRouting:
             )
 
     def test_mistyped_column_key_reported_against_the_column(self) -> None:
-        with pytest.raises(ValidationError, match="Unknown field 'aggregat'"):
+        with pytest.raises(ValidationError, match="did you mean 'aggregate'"):
             XYChartConfig.model_validate(
                 {**self.XY_BASE, "x_axis": {"name": "category", "aggregat": "SUM"}}
             )
