@@ -403,6 +403,55 @@ test('should merge both filters and customization extraFormData', () => {
   expect(result.extra_form_data).toBeDefined();
 });
 
+test('cross-filter time_range takes precedence over a native time range filter', () => {
+  const nativeTimeFilterId = 'NATIVE_FILTER-time';
+  const crossFilterId = '42';
+  const nativeRange = 'Last week';
+  const clickedRange = '2021-01-01T00:00:00 : 2021-01-02T00:00:00';
+  const result = getFormDataWithExtraFilters({
+    ...mockArgs,
+    nativeFilters: {
+      [nativeTimeFilterId]: {
+        id: nativeTimeFilterId,
+        chartsInScope: [chartId],
+      },
+    } as unknown as GetFormDataWithExtraFiltersArguments['nativeFilters'],
+    activeFilters: {
+      [nativeTimeFilterId]: {
+        targets: [],
+        scope: [chartId],
+        values: { time_range: nativeRange },
+      },
+      [crossFilterId]: {
+        targets: [],
+        scope: [chartId],
+        values: { time_range: clickedRange },
+      },
+    },
+    dataMask: {
+      [nativeTimeFilterId]: {
+        id: nativeTimeFilterId,
+        extraFormData: { time_range: nativeRange },
+        filterState: { value: nativeRange },
+        ownState: {},
+      },
+      [crossFilterId]: {
+        id: crossFilterId,
+        extraFormData: {
+          filters: [{ col: 'ds', op: 'TEMPORAL_RANGE', val: clickedRange }],
+          time_range: clickedRange,
+        },
+        filterState: { value: [clickedRange] },
+        ownState: {},
+      },
+    },
+  });
+
+  expect(result.extra_form_data).toEqual(
+    expect.objectContaining({ time_range: clickedRange }),
+  );
+});
+
 const makeGroupByArgs = (
   selectedValue: string | string[],
   baseGroupby: string[] = [],

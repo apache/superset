@@ -19,6 +19,7 @@
 
 import { createMemoryHistory, type Update } from 'history';
 import { MemoryRouter, Router } from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
 import { isFeatureEnabled } from '@superset-ui/core';
 
 import {
@@ -28,6 +29,7 @@ import {
   within,
 } from 'spec/helpers/testing-library';
 import { SubjectType } from 'src/types/Subject';
+import type { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
 import DashboardCard from './DashboardCard';
 
@@ -53,6 +55,17 @@ const mockOpenDashboardEditModal = jest.fn();
 const mockSaveFavoriteStatus = jest.fn();
 const mockHandleBulkDashboardExport = jest.fn();
 const mockOnDelete = jest.fn();
+const nonEditorUser: UserWithPermissionsAndRoles = {
+  userId: 9,
+  firstName: 'Other',
+  lastName: 'User',
+  username: 'other',
+  isActive: true,
+  isAnonymous: false,
+  permissions: {},
+  roles: { Alpha: [] },
+  groups: [],
+};
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -61,7 +74,7 @@ jest.mock('@superset-ui/core', () => ({
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
-beforeAll(() => {
+beforeEach(() => {
   mockedIsFeatureEnabled.mockReturnValue(true);
 });
 
@@ -95,6 +108,55 @@ test('Renders the dashboard title', () => {
   const titleElement = screen.getByText('Sample Dashboard');
   expect(titleElement).toBeInTheDocument();
 });
+
+test.each([
+  [true, 'archive'],
+  [false, 'delete'],
+])(
+  'soft delete %s uses the dashboard card permission hint for %s',
+  async (enabled, verb) => {
+    mockedIsFeatureEnabled.mockReturnValue(enabled);
+    const { container } = render(
+      <MemoryRouter>
+        <DashboardCard
+          dashboard={mockDashboard}
+          hasPerm={mockHasPerm}
+          bulkSelectEnabled={false}
+          loading={false}
+          saveFavoriteStatus={mockSaveFavoriteStatus}
+          favoriteStatus={false}
+          handleBulkDashboardExport={mockHandleBulkDashboardExport}
+          onDelete={mockOnDelete}
+          openDashboardEditModal={mockOpenDashboardEditModal}
+          user={nonEditorUser}
+        />
+      </MemoryRouter>,
+    );
+    fireEvent.click(within(container).getByTestId('dashboard-card-menu'));
+    await userEvent.hover(
+      screen.getByTestId('dashboard-card-option-delete-button'),
+    );
+    const archiveButton = screen.getByTestId(
+      'dashboard-card-option-delete-button',
+    );
+    expect(archiveButton).toBeDisabled();
+    const editButton = screen.getByTestId('dashboard-card-option-edit-button');
+    expect(editButton).toBeDisabled();
+    expect(editButton).toHaveStyleRule('cursor', 'not-allowed', {
+      target: ':disabled',
+    });
+    expect(archiveButton).toHaveAttribute('aria-disabled', 'true');
+    expect(archiveButton).toHaveStyleRule('color', 'inherit');
+    expect(archiveButton).toHaveStyleRule('cursor', 'not-allowed', {
+      target: ':disabled',
+    });
+    fireEvent.click(archiveButton);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      `You must be a dashboard editor in order to ${verb}.`,
+    );
+  },
+);
 
 test('Renders the certification details', () => {
   const certificationDetailsElement = screen.getByLabelText(/certified/i);

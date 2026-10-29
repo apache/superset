@@ -260,7 +260,7 @@ test('should export a dataset as a zip file', async ({
 
   // Wait for export API response and validate zip contents
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidExportZip(exportResponse, {
+  await expectValidExportZip(page, exportResponse, {
     resourceDir: 'datasets',
     contentDispositionPattern: /filename=.*dataset_export.*\.zip/,
   });
@@ -318,7 +318,7 @@ test('should export multiple datasets via bulk select action', async ({
 
   // Wait for export API response and validate zip contains multiple datasets
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidExportZip(exportResponse, {
+  await expectValidExportZip(page, exportResponse, {
     resourceDir: 'datasets',
     minCount: 2,
   });
