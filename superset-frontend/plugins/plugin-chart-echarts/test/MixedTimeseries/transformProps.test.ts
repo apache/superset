@@ -2168,4 +2168,46 @@ describe('truncateMetric / truncateMetricB', () => {
     expect(seriesNames).toContain('girl (Query B)');
     expect(seriesNames).not.toContain('m1, boy (Query B)');
   });
+
+  test('skips truncation for Query A only when time_compare is set', () => {
+    const seriesNames = getSeriesNames({
+      truncateMetric: true,
+      truncateMetricB: true,
+      showQueryIdentifiers: true,
+      time_compare: ['1 week ago'],
+    });
+
+    // Query A has a comparison, so it keeps the metric part.
+    expect(seriesNames).toContain('sum__num (Query A), boy');
+    expect(seriesNames).not.toContain('boy (Query A)');
+    // Query B has no comparison, so it is still truncated.
+    expect(seriesNames).toContain('boy (Query B)');
+    expect(seriesNames).not.toContain('sum__num (Query B), boy');
+  });
+
+  test('skips truncation for Query B only when time_compare_b is set', () => {
+    const seriesNames = getSeriesNames({
+      truncateMetric: true,
+      truncateMetricB: true,
+      showQueryIdentifiers: true,
+      time_compare_b: ['1 week ago'],
+    });
+
+    expect(seriesNames).toContain('boy (Query A)');
+    expect(seriesNames).not.toContain('sum__num (Query A), boy');
+    expect(seriesNames).toContain('sum__num (Query B), boy');
+    expect(seriesNames).not.toContain('boy (Query B)');
+  });
+
+  test('leaves series names unchanged when truncating with an empty groupby', () => {
+    const base = getSeriesNames({ groupby: [], groupbyB: [] });
+    const truncated = getSeriesNames({
+      groupby: [],
+      groupbyB: [],
+      truncateMetric: true,
+      truncateMetricB: true,
+    });
+
+    expect(truncated).toEqual(base);
+  });
 });
