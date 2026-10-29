@@ -2119,4 +2119,53 @@ describe('truncateMetric / truncateMetricB', () => {
     );
     expect(seriesNames).not.toContain('m1, boy (Query A)');
   });
+
+  test('applies the metric count per query: one metric for A, two for B', () => {
+    const rowsA = [
+      { boy: 1, ds: 599616000000 },
+      { boy: 3, ds: 599916000000 },
+    ];
+    const rowsB = [
+      { 'm1, boy': 1, 'm2, girl': 2, ds: 599616000000 },
+      { 'm1, boy': 3, 'm2, girl': 4, ds: 599916000000 },
+    ];
+    const queries = [
+      createTestQueryData(rowsA, {
+        label_map: { ds: ['ds'], boy: ['boy'] },
+      }),
+      createTestQueryData(rowsB, {
+        label_map: {
+          ds: ['ds'],
+          'm1, boy': ['m1', 'boy'],
+          'm2, girl': ['m2', 'girl'],
+        },
+      }),
+    ];
+    const chartProps = createEchartsTimeseriesTestChartProps<
+      EchartsMixedTimeseriesFormData,
+      EchartsMixedTimeseriesProps
+    >({
+      ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+      defaultQueriesData: queries,
+      formData: {
+        ...formData,
+        metrics: ['m1'],
+        metricsB: ['m1', 'm2'],
+        truncateMetric: true,
+        truncateMetricB: true,
+        showQueryIdentifiers: true,
+      },
+      queriesData: queries,
+    });
+    const seriesNames = (
+      transformProps(chartProps).echartOptions.series as SeriesOption[]
+    ).map(s => s.name);
+
+    // Query A has a single metric, so its only label value is the dimension.
+    expect(seriesNames).toContain('boy (Query A)');
+    // Query B has two metrics, so the leading metric value is dropped.
+    expect(seriesNames).toContain('boy (Query B)');
+    expect(seriesNames).toContain('girl (Query B)');
+    expect(seriesNames).not.toContain('m1, boy (Query B)');
+  });
 });
