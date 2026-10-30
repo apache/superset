@@ -390,7 +390,14 @@ function TableCollection<T extends object>({
   // focused element into view does, and respects the padding.
   const handleFocus = useCallback(
     (event: FocusEvent<HTMLDivElement>) => {
-      if (frozenWidth > 0 && event.target.closest('td')) {
+      // Frozen cells are always visible; scrolling to them would jump the
+      // table back to the start.
+      const cell = event.target.closest('td');
+      if (
+        frozenWidth > 0 &&
+        cell &&
+        !cell.classList.contains('ant-table-cell-fix-start')
+      ) {
         event.target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
       }
     },

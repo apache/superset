@@ -183,7 +183,7 @@ function AnnotationList({
         Header: t('Start'),
         accessor: 'start_dttm',
         id: 'start_dttm',
-        layout: 'timestamp',
+        layout: 'dateRelative',
       },
       {
         Cell: ({
@@ -196,7 +196,7 @@ function AnnotationList({
         Header: t('End'),
         accessor: 'end_dttm',
         id: 'end_dttm',
-        layout: 'timestamp',
+        layout: 'dateRelative',
       },
       {
         Cell: ({

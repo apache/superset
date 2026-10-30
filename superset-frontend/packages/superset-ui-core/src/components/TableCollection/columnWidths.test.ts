@@ -271,3 +271,19 @@ test('does not freeze when the container width is unknown', () => {
     }),
   ).toBe(0);
 });
+
+test('the rounding remainder never pushes a capped column past its max', () => {
+  // The title caps at 640; three text columns share 380px as 126.67 each.
+  const specs = [
+    getColumnSpec('title'),
+    getColumnSpec('text'),
+    getColumnSpec('text'),
+    getColumnSpec('text'),
+  ];
+  const { widths } = resolveColumnWidths(specs, 1440);
+  expect(widths.reduce((total, width) => total + width, 0)).toBe(1440);
+  widths.forEach((width, index) => {
+    expect(width).toBeGreaterThanOrEqual(specs[index].min);
+    expect(width).toBeLessThanOrEqual(specs[index].max);
+  });
+});

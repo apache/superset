@@ -93,13 +93,17 @@ export const COLUMN_LAYOUT_PRESETS: Record<
   /** A short row of icons (notification recipients). */
   iconList: { fixed: 120 },
   /**
-   * "3 months ago" style relative date; German strings such as
+   * "3 months ago" style relative date, or a short date without a time
+   * ("Oct 29, 2026", "29. Okt. 2026"); German strings such as
    * "vor ein paar Sekunden" need 176.
    */
   dateRelative: { fixed: 176 },
   /** A date over a time on two lines. */
   dateTwoLine: { fixed: 136 },
-  /** An absolute timestamp such as "2026-10-29 14:03:12+00:00". */
+  /**
+   * An absolute date and time such as "2026-10-29 14:03:12+00:00" (action
+   * log, alert runs, execution log, user dates).
+   */
   timestamp: { fixed: 240 },
   /** Hover action icons, up to four (24px per icon + 24px). */
   actions: { fixed: 120 },
@@ -252,10 +256,15 @@ export function resolveColumnWidths(
   const floored = widths.map(Math.floor);
   const remainder =
     containerWidth - floored.reduce((total, width) => total + width, 0);
-  const heaviest = flexIndexes.reduce((best, index) =>
-    specs[index].weight > specs[best].weight ? index : best,
+  // The rounding remainder goes to the heaviest column with room below its
+  // max (any heaviest column once all are capped and overflowing anyway).
+  const byWeight = [...flexIndexes].sort(
+    (a, b) => specs[b].weight - specs[a].weight,
   );
-  floored[heaviest] += remainder;
+  const target =
+    byWeight.find(index => floored[index] + remainder <= specs[index].max) ??
+    byWeight[0];
+  floored[target] += remainder;
   return { widths: floored, totalWidth: containerWidth, scrolls: false };
 }
 

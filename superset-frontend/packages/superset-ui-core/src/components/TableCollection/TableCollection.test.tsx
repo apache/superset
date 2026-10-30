@@ -479,8 +479,18 @@ function renderLayoutTable(
   return { ...utils, table, widths };
 }
 
+// jsdom has no scrollIntoView; tests that stub it restore the original.
+const originalScrollIntoView = Element.prototype.scrollIntoView;
+
+function mockScrollIntoView() {
+  const scrollIntoView = jest.fn();
+  Element.prototype.scrollIntoView = scrollIntoView;
+  return scrollIntoView;
+}
+
 afterEach(() => {
   jest.restoreAllMocks();
+  Element.prototype.scrollIntoView = originalScrollIntoView;
 });
 
 test('managed column widths size every visible column to fill the container', () => {
@@ -620,8 +630,7 @@ test('does not freeze columns in unmanaged tables', () => {
 });
 
 test('scrolls a focused cell out from under the frozen columns', () => {
-  const scrollIntoView = jest.fn();
-  Element.prototype.scrollIntoView = scrollIntoView;
+  const scrollIntoView = mockScrollIntoView();
   const columns: ListViewColumn[] = scrollingColumns.map(column =>
     column.id === 'c'
       ? { ...column, Cell: () => <a href="#c">Column C details</a> }
@@ -635,9 +644,22 @@ test('scrolls a focused cell out from under the frozen columns', () => {
   });
 });
 
+test('does not scroll when focus lands in the frozen columns', () => {
+  const scrollIntoView = mockScrollIntoView();
+  const columns: ListViewColumn[] = scrollingColumns.map(column =>
+    column.id === 'name'
+      ? { ...column, Cell: () => <a href="#name">Row name</a> }
+      : column,
+  );
+  renderLayoutTable(800, { managedColumnWidths: true }, columns);
+  const link = screen.getByRole('link', { name: 'Row name' });
+  expect(link.closest('td')).toHaveClass('ant-table-cell-fix-start');
+  link.focus();
+  expect(scrollIntoView).not.toHaveBeenCalled();
+});
+
 test('leaves focus scrolling to the browser when nothing is frozen', () => {
-  const scrollIntoView = jest.fn();
-  Element.prototype.scrollIntoView = scrollIntoView;
+  const scrollIntoView = mockScrollIntoView();
   const columns: ListViewColumn[] = scrollingColumns.map(column =>
     column.id === 'c'
       ? { ...column, Cell: () => <a href="#c">Column C details</a> }
