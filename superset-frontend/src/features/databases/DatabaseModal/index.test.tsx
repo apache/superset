@@ -1879,6 +1879,63 @@ describe('DatabaseModal', () => {
     expect(screen.getByTestId('sqlalchemy-uri-input')).toBeInTheDocument();
   });
 
+  test('keeps dynamic form values when toggling to the URI form and back', async () => {
+    setup();
+    await selectPostgres();
+
+    const values: Record<string, string> = {
+      host: 'db.example.com',
+      port: '5432',
+      database: 'example_db',
+      username: 'example_user',
+      password: 'example_password',
+    };
+    Object.entries(values).forEach(([name, value]) => {
+      fireEvent.change(fieldByName(name), { target: { value } });
+      expect(fieldByName(name)).toHaveDisplayValue(value);
+    });
+
+    await userEvent.click(screen.getByTestId('sqla-connect-btn'));
+    expect(
+      await screen.findByTestId('sqlalchemy-uri-input'),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: /connect this database using the dynamic form instead/i,
+      }),
+    );
+
+    expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+    Object.entries(values).forEach(([name, value]) => {
+      expect(fieldByName(name)).toHaveDisplayValue(value);
+    });
+    expect(fieldByName('database_name')).toHaveDisplayValue('PostgreSQL');
+  });
+
+  test('keeps a typed SQLAlchemy URI when toggling to the dynamic form and back', async () => {
+    setup();
+    await selectPostgres();
+
+    await userEvent.click(screen.getByTestId('sqla-connect-btn'));
+    const typedUri =
+      'postgresql://example_user:example_password@db.example.com:5432/example_db';
+    const uriInput = await screen.findByTestId('sqlalchemy-uri-input');
+    await userEvent.type(uriInput, typedUri);
+    expect(uriInput).toHaveValue(typedUri);
+
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: /connect this database using the dynamic form instead/i,
+      }),
+    );
+    expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId('sqla-connect-btn'));
+
+    expect(await screen.findByTestId('sqlalchemy-uri-input')).toHaveValue(
+      typedUri,
+    );
+  });
+
   test.each([
     {
       field: 'host',
