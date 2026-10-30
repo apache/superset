@@ -4226,7 +4226,7 @@ def test_global_guest_rls_on_subquery_tables_is_keyed(
         "superset.connectors.sqla.models.security_manager.get_rls_filters",
         return_value=[],
     )
-    guest = {"rules": [{"clause": "col1 = 1"}]}
+    guest: dict[str, list[dict[str, Any]]] = {"rules": [{"clause": "col1 = 1"}]}
     mocker.patch(
         "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
         side_effect=lambda dataset: [
