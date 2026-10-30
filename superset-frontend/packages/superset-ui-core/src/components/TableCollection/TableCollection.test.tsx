@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, fireEvent } from '@superset-ui/core/spec';
+import { render, screen, fireEvent, within } from '@superset-ui/core/spec';
 import { renderHook } from '@testing-library/react';
 import { TableInstance, useTable } from 'react-table';
 import TableCollection from '.';
@@ -452,6 +452,7 @@ const layoutColumns: ListViewColumn[] = [
 function renderLayoutTable(
   containerWidth: number,
   props: Record<string, unknown> = {},
+  columns: ListViewColumn[] = layoutColumns,
 ) {
   jest
     .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
@@ -459,12 +460,12 @@ function renderLayoutTable(
   const data = [{ favorite: 'x', name: 'n', database: 'd', legacy: 'l' }];
   const { result } = renderHook(() =>
     // @ts-expect-error -- raw column configs, as ListView passes them
-    useTable({ columns: layoutColumns, data }),
+    useTable({ columns, data }),
   );
   const utils = render(
     <TableCollection
       {...defaultProps}
-      columns={layoutColumns}
+      columns={columns}
       headerGroups={result.current.headerGroups}
       rows={result.current.rows}
       prepareRow={result.current.prepareRow}
@@ -496,13 +497,13 @@ test('managed column widths size every visible column to fill the container', ()
   // icon, legacy `size` and inferred actions columns stay fixed.
   expect([px[0], px[3], px[4]]).toEqual([48, 100, 120]);
   // The title flexes but never beyond its max while the text column can grow.
-  expect(px[1]).toBeLessThanOrEqual(480);
+  expect(px[1]).toBeLessThanOrEqual(640);
   expect(px[1]).toBeGreaterThan(px[2]);
 });
 
 test('managed column widths fall back to minimums and scroll when narrow', () => {
   const { widths } = renderLayoutTable(300, { managedColumnWidths: true });
-  expect(widths).toEqual(['48px', '240px', '140px', '100px', '120px']);
+  expect(widths).toEqual(['48px', '320px', '140px', '100px', '120px']);
 });
 
 test('managed column widths include the row selection column', () => {
@@ -523,4 +524,134 @@ test('unmanaged tables keep the auto layout', () => {
   // Only the legacy `size` column carries a width (rc-table omits trailing
   // width-less <col>s).
   expect(widths.filter(Boolean)).toEqual(['100px']);
+});
+
+// Minimums: 48 + 320 + 3 * 140 + 120 = 908px.
+const scrollingColumns: ListViewColumn[] = [
+  { id: 'favorite', Header: 'Fav', accessor: 'favorite', layout: 'icon' },
+  { id: 'name', Header: 'Name', accessor: 'name', layout: 'title' },
+  { id: 'a', Header: 'A', accessor: 'a', layout: 'text' },
+  { id: 'b', Header: 'B', accessor: 'b', layout: 'text' },
+  { id: 'c', Header: 'C', accessor: 'c', layout: 'text' },
+  { id: 'actions', Header: 'Actions' },
+];
+
+const frozenHeaders = (table: HTMLElement) =>
+  Array.from(table.querySelectorAll('thead th.ant-table-cell-fix-start')).map(
+    th => th.textContent,
+  );
+
+test('freezes the favorite and title columns when the table scrolls', () => {
+  const { table, container } = renderLayoutTable(
+    800,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  expect(frozenHeaders(table)).toEqual(['Fav', 'Name']);
+  expect(
+    table.querySelectorAll(
+      'tbody tr.ant-table-row td.ant-table-cell-fix-start',
+    ),
+  ).toHaveLength(2);
+  expect(
+    (container.firstChild as HTMLElement).style.getPropertyValue(
+      '--list-view-frozen-width',
+    ),
+  ).toBe('368px');
+});
+
+test('freezes the selection column with the leading block', () => {
+  const { table } = renderLayoutTable(
+    900,
+    {
+      managedColumnWidths: true,
+      bulkSelectEnabled: true,
+      selectedFlatRows: [],
+    },
+    scrollingColumns,
+  );
+  // 48 + 48 + 320 = 416px frozen, under half of 900.
+  expect(
+    table.querySelectorAll('thead th.ant-table-cell-fix-start'),
+  ).toHaveLength(3);
+});
+
+test('does not freeze columns when the table fits', () => {
+  const { table, container } = renderLayoutTable(
+    1200,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  expect(frozenHeaders(table)).toEqual([]);
+  expect(
+    (container.firstChild as HTMLElement).style.getPropertyValue(
+      '--list-view-frozen-width',
+    ),
+  ).toBe('');
+});
+
+test('does not freeze a leading block wider than half the container', () => {
+  // 368px frozen in a 700px container.
+  const narrow = renderLayoutTable(
+    700,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  expect(frozenHeaders(narrow.table)).toEqual([]);
+  narrow.unmount();
+  // With bulk select the block is 416px, over half of 800.
+  const bulk = renderLayoutTable(
+    800,
+    {
+      managedColumnWidths: true,
+      bulkSelectEnabled: true,
+      selectedFlatRows: [],
+    },
+    scrollingColumns,
+  );
+  expect(
+    bulk.table.querySelectorAll('thead th.ant-table-cell-fix-start'),
+  ).toHaveLength(0);
+});
+
+test('does not freeze columns in unmanaged tables', () => {
+  const { table } = renderLayoutTable(800, {}, scrollingColumns);
+  expect(frozenHeaders(table)).toEqual([]);
+});
+
+test('scrolls a focused cell out from under the frozen columns', () => {
+  const scrollIntoView = jest.fn();
+  Element.prototype.scrollIntoView = scrollIntoView;
+  const columns: ListViewColumn[] = scrollingColumns.map(column =>
+    column.id === 'c'
+      ? { ...column, Cell: () => <a href="#c">Column C details</a> }
+      : column,
+  );
+  renderLayoutTable(800, { managedColumnWidths: true }, columns);
+  screen.getByRole('link', { name: 'Column C details' }).focus();
+  expect(scrollIntoView).toHaveBeenCalledWith({
+    block: 'nearest',
+    inline: 'nearest',
+  });
+});
+
+test('leaves focus scrolling to the browser when nothing is frozen', () => {
+  const scrollIntoView = jest.fn();
+  Element.prototype.scrollIntoView = scrollIntoView;
+  const columns: ListViewColumn[] = scrollingColumns.map(column =>
+    column.id === 'c'
+      ? { ...column, Cell: () => <a href="#c">Column C details</a> }
+      : column,
+  );
+  renderLayoutTable(1200, { managedColumnWidths: true }, columns);
+  screen.getByRole('link', { name: 'Column C details' }).focus();
+  expect(scrollIntoView).not.toHaveBeenCalled();
+});
+
+test('managed text headers carry their full text as a tooltip', () => {
+  const { table } = renderLayoutTable(1000, { managedColumnWidths: true });
+  const header = within(table.querySelector('thead')!)
+    .getByText('Database')
+    .closest('th');
+  expect(header).toHaveAttribute('title', 'Database');
 });

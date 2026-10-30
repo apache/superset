@@ -63,3 +63,10 @@ export function expectColumnWidthsWithinLayouts(
     containerWidth,
   );
 }
+
+/** Header texts of the columns frozen at the start of a list view `table`. */
+export function getFrozenHeaders(table: HTMLElement) {
+  return Array.from(
+    table.querySelectorAll('thead th.ant-table-cell-fix-start'),
+  ).map(th => th.textContent?.trim() ?? '');
+}

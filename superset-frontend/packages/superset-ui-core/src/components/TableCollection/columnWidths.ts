@@ -27,15 +27,22 @@
 
 export type ColumnLayoutPreset =
   | 'icon'
+  | 'statusIcon'
+  | 'statusIcons'
   | 'status'
-  | 'statusWide'
+  | 'flag'
   | 'count'
+  | 'timer'
   | 'people'
+  | 'iconList'
+  | 'dateRelative'
+  | 'dateTwoLine'
+  | 'timestamp'
   | 'actions'
   | 'actionsWide'
-  | 'date'
   | 'title'
   | 'text'
+  | 'identifier'
   | 'longtext'
   | 'tags';
 
@@ -48,44 +55,84 @@ export type ColumnLayout =
   | FlexColumnLayout;
 
 /**
- * Single source of truth for list view column widths, in pixels.
+ * Single source of truth for list view column widths, in pixels, including
+ * the 24px of cell padding.
  *
- * Fixed presets are for content that always fits a known width; flexible
- * presets start at `min`, share spare width by `weight` and stop growing at
- * `max` until every flexible column has reached its max.
- *
- * - icon: favorite star, kind icon
- * - status: status/state badges, active and boolean flags, small enums
- * - statusWide: status-like content under a header too long for `status`
- *   (e.g. "Expose in SQL Lab", "Notification method")
- * - count: rows, durations, ids and counts (sized for headers such as
- *   "Dashboard Id" and the query duration timer label)
- * - people: owner/editor/viewer avatar groups
- * - actions: hover action icons (up to four)
- * - actionsWide: hover action icons (five or six)
- * - date: "Last modified" style relative times, optionally with an avatar
- * - title: the primary identifier of a row (name/title)
- * - text: database, schema, dataset, backend, user names and similar
- * - longtext: description, SQL, clause, error message, JSON payload
- * - tags: tag chips and other chip lists
+ * Fixed presets are for content whose width is known up front; they never
+ * change with the viewport. Flexible presets start at `min`, share spare width
+ * by `weight` and stop growing at `max` until every flexible column has
+ * reached its max. Widths were measured on rendered cells with English and
+ * German strings (the longest common UI translation).
  */
 export const COLUMN_LAYOUT_PRESETS: Record<
   ColumnLayoutPreset,
   FixedColumnLayout | Required<FlexColumnLayout>
 > = {
+  /** Favorite star or a single icon: 20px icon + padding. */
   icon: { fixed: 48 },
-  status: { fixed: 128 },
-  statusWide: { fixed: 168 },
-  count: { fixed: 136 },
-  people: { fixed: 140 },
+  /** One state icon (query, alert or task state). */
+  statusIcon: { fixed: 48 },
+  /** Two or three small icons side by side (e.g. task details). */
+  statusIcons: { fixed: 64 },
+  /**
+   * A badge: Published/Draft, Physical/Virtual/Semantic View, task scope.
+   * German badges ("Veröffentlicht", "Semantische Ansicht") need 144.
+   */
+  status: { fixed: 144 },
+  /**
+   * A boolean flag (check mark, switch, Yes/No). The content is tiny, so the
+   * width is set by the header; longer headers ellipsize with a tooltip.
+   */
+  flag: { fixed: 176 },
+  /** A plain number: rows, ids, counts and durations as text. */
+  count: { fixed: 104 },
+  /** A monospace duration timer badge (needs 132). */
+  timer: { fixed: 136 },
+  /** Owner/editor/viewer avatar group (up to four avatars + "+N"). */
+  people: { fixed: 120 },
+  /** A short row of icons (notification recipients). */
+  iconList: { fixed: 120 },
+  /**
+   * "3 months ago" style relative date; German strings such as
+   * "vor ein paar Sekunden" need 176.
+   */
+  dateRelative: { fixed: 176 },
+  /** A date over a time on two lines. */
+  dateTwoLine: { fixed: 136 },
+  /** An absolute timestamp such as "2026-10-29 14:03:12+00:00". */
+  timestamp: { fixed: 240 },
+  /** Hover action icons, up to four (24px per icon + 24px). */
   actions: { fixed: 120 },
+  /** Hover action icons, five or six. */
   actionsWide: { fixed: 168 },
-  date: { min: 150, max: 220, weight: 1 },
-  title: { min: 240, max: 480, weight: 2 },
+  /**
+   * The primary name of a row. The one main flexible column: wide enough for
+   * nearly all real titles at its min, and the largest share of spare width.
+   * Titles that carry trailing tags (themes) need at least 280.
+   */
+  title: { min: 320, max: 640, weight: 3 },
+  /** Short free text: user names, labels, chart types, keys. */
   text: { min: 140, max: 280, weight: 1 },
+  /**
+   * Names of databases, schemas, tables and datasets, which are often long
+   * unbroken identifiers (p95 ~335px).
+   */
+  identifier: { min: 180, max: 360, weight: 1 },
+  /** Descriptions, SQL, clauses, error messages, JSON. */
   longtext: { min: 200, max: 560, weight: 1.5 },
-  tags: { min: 160, max: 320, weight: 1 },
+  /** Tag chips (at most three + "+N") and other chip or name lists. */
+  tags: { min: 200, max: 320, weight: 1 },
 };
+
+/**
+ * The leading block (selection checkbox, favorite star and title) is frozen
+ * while the table scrolls horizontally only if it takes at most this share of
+ * the container...
+ */
+export const FREEZE_MAX_CONTAINER_SHARE = 0.5;
+
+/** ...and leaves at least this many pixels for the scrolling columns. */
+export const FREEZE_MIN_SCROLL_PX = 240;
 
 /** Width of antd's row-selection and row-expand columns in managed tables. */
 export const UTILITY_COLUMN_WIDTH = 48;
@@ -148,20 +195,24 @@ export function getColumnLayout(column: {
  * flexible columns, each clamped to its max; once every flexible column is at
  * its max the remainder is shared by weight beyond max so the table still
  * fills the container. When the container is narrower than the sum of minimums
- * (or unknown) the minimums are used and the table scrolls horizontally.
+ * (or unknown) the minimums are used and `scrolls` is true: the table scrolls
+ * horizontally.
  */
 export function resolveColumnWidths(
   specs: ColumnSpec[],
   containerWidth: number,
-): { widths: number[]; totalWidth: number } {
+): { widths: number[]; totalWidth: number; scrolls: boolean } {
   const widths = specs.map(spec => spec.min);
   const minTotal = widths.reduce((total, width) => total + width, 0);
   const flexIndexes = specs
     .map((spec, index) => (spec.weight > 0 ? index : -1))
     .filter(index => index >= 0);
   let spare = containerWidth - minTotal;
-  if (spare <= 0 || flexIndexes.length === 0) {
-    return { widths, totalWidth: minTotal };
+  if (spare < 0 || containerWidth <= 0) {
+    return { widths, totalWidth: minTotal, scrolls: true };
+  }
+  if (spare === 0 || flexIndexes.length === 0) {
+    return { widths, totalWidth: minTotal, scrolls: false };
   }
 
   let growing = flexIndexes.filter(index => specs[index].max > widths[index]);
@@ -202,5 +253,51 @@ export function resolveColumnWidths(
     specs[index].weight > specs[best].weight ? index : best,
   );
   floored[heaviest] += remainder;
-  return { widths: floored, totalWidth: containerWidth };
+  return { widths: floored, totalWidth: containerWidth, scrolls: false };
+}
+
+const LEADING_ICON_PRESETS: ColumnLayout[] = ['icon', 'statusIcon'];
+
+/**
+ * Number of leading columns that form the block to freeze: the `title`
+ * column plus any icon columns before it (e.g. the favorite star). 0 when the
+ * title is preceded by anything else, since antd can only freeze a
+ * contiguous run of columns from the start and freezing those would hide
+ * more than the row's name.
+ */
+export function getLeadingBlockLength(layouts: ColumnLayout[]): number {
+  const titleIndex = layouts.indexOf('title');
+  if (titleIndex < 0) return 0;
+  const ledByIcons = layouts
+    .slice(0, titleIndex)
+    .every(layout => LEADING_ICON_PRESETS.includes(layout));
+  return ledByIcons ? titleIndex + 1 : 0;
+}
+
+/**
+ * Number of leading columns to freeze: all `leadingCount` columns when the
+ * table scrolls horizontally and the frozen block takes at most
+ * FREEZE_MAX_CONTAINER_SHARE of the container while leaving at least
+ * FREEZE_MIN_SCROLL_PX for the rest; otherwise 0 and the table scrolls as a
+ * whole.
+ */
+export function getFrozenColumnCount({
+  widths,
+  leadingCount,
+  containerWidth,
+  scrolls,
+}: {
+  widths: number[];
+  leadingCount: number;
+  containerWidth: number;
+  scrolls: boolean;
+}): number {
+  if (!scrolls || leadingCount <= 0 || containerWidth <= 0) return 0;
+  const frozenWidth = widths
+    .slice(0, leadingCount)
+    .reduce((total, width) => total + width, 0);
+  const fits =
+    frozenWidth <= containerWidth * FREEZE_MAX_CONTAINER_SHARE &&
+    containerWidth - frozenWidth >= FREEZE_MIN_SCROLL_PX;
+  return fits ? leadingCount : 0;
 }

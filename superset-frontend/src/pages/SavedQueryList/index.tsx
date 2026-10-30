@@ -363,7 +363,7 @@ function SavedQueryList({
       {
         accessor: 'database.database_name',
         Header: t('Database'),
-        layout: 'text',
+        layout: 'identifier',
         id: 'database.database_name',
       },
       {
@@ -375,7 +375,7 @@ function SavedQueryList({
       {
         accessor: 'schema',
         Header: t('Schema'),
-        layout: 'text',
+        layout: 'identifier',
         id: 'schema',
       },
       {
@@ -413,7 +413,7 @@ function SavedQueryList({
         },
         accessor: 'sql_tables',
         Header: t('Tables'),
-        layout: 'tags',
+        layout: 'identifier',
         disableSortBy: true,
         id: 'sql_tables',
       },
@@ -450,7 +450,7 @@ function SavedQueryList({
         ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        layout: 'date',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {

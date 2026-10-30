@@ -326,7 +326,7 @@ function AlertList({
           />
         ),
         accessor: 'last_state',
-        layout: 'icon',
+        layout: 'statusIcon',
         disableSortBy: true,
         id: 'last_state',
       },
@@ -344,7 +344,7 @@ function AlertList({
             : '',
         accessor: 'last_eval_dttm',
         Header: t('Last run'),
-        layout: 'date',
+        layout: 'timestamp',
         id: 'last_eval_dttm',
       },
       {
@@ -383,7 +383,7 @@ function AlertList({
         accessor: 'recipients',
         Header: t('Notification method'),
         disableSortBy: true,
-        layout: 'statusWide',
+        layout: 'iconList',
         id: 'recipients',
       },
       {
@@ -408,7 +408,7 @@ function AlertList({
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        layout: 'date',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -431,7 +431,7 @@ function AlertList({
         Header: t('Active'),
         accessor: 'active',
         id: 'active',
-        layout: 'status',
+        layout: 'flag',
       },
       {
         Cell: ({ row: { original } }: any) => {

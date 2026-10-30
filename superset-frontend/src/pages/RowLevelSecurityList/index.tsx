@@ -160,7 +160,7 @@ function RowLevelSecurityList(props: RLSProps) {
         }) => <SubjectPile subjects={subjectsList || []} />,
         Header: t('Subjects'),
         accessor: 'subjects',
-        layout: 'tags',
+        layout: 'people',
         id: 'subjects',
         disableSortBy: true,
       },
@@ -187,7 +187,7 @@ function RowLevelSecurityList(props: RLSProps) {
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        layout: 'date',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {

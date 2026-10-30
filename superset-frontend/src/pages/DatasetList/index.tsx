@@ -970,7 +970,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         }: CellProps<Dataset>) => database?.database_name || '-',
         Header: databaseLabel(),
         accessor: 'database.database_name',
-        layout: 'text',
+        layout: 'identifier',
         id: 'database.database_name',
       },
       {
@@ -981,7 +981,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         }: CellProps<Dataset>) => schema || '-',
         Header: t('Schema'),
         accessor: 'schema',
-        layout: 'text',
+        layout: 'identifier',
         id: 'schema',
       },
       {
@@ -1014,7 +1014,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        layout: 'date',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {

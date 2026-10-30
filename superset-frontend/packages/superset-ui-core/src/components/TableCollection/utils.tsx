@@ -115,12 +115,14 @@ export function mapColumns<T extends object>(
   headerGroups: HeaderGroup<T>[],
   columnsForWrapText?: string[],
   resolvedWidths?: Record<string, number>,
+  frozenColumnIds?: string[],
 ) {
   return columns.map(column => {
     const id = getColumnId(column);
     const { isSorted, isSortedDesc } = getSortingInfo(headerGroups, id);
     return {
       title: column.Header as ReactNode,
+      fixed: frozenColumnIds?.includes(id) ? ('left' as const) : undefined,
       dataIndex: id.includes('.') ? id.split('.') : id,
       hidden: column.hidden,
       key: id,

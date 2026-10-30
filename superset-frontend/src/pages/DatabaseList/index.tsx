@@ -851,7 +851,7 @@ function DatabaseList({
         // i18n: the kind of system behind a connection: a database engine
         // (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
         Header: t('Backend'),
-        layout: 'text',
+        layout: 'identifier',
         disableSortBy: true,
         id: 'backend',
       },
@@ -872,7 +872,7 @@ function DatabaseList({
           ) : (
             <BooleanDisplay value={Boolean(original.allow_run_async)} />
           ),
-        layout: 'status',
+        layout: 'flag',
         id: 'allow_run_async',
       },
       {
@@ -892,7 +892,7 @@ function DatabaseList({
           ) : (
             <BooleanDisplay value={Boolean(original.allow_dml)} />
           ),
-        layout: 'status',
+        layout: 'flag',
         id: 'allow_dml',
       },
       {
@@ -904,7 +904,7 @@ function DatabaseList({
           ) : (
             <BooleanDisplay value={Boolean(original.allow_file_upload)} />
           ),
-        layout: 'status',
+        layout: 'flag',
         id: 'allow_file_upload',
       },
       {
@@ -916,7 +916,7 @@ function DatabaseList({
           ) : (
             <BooleanDisplay value={Boolean(original.expose_in_sqllab)} />
           ),
-        layout: 'statusWide',
+        layout: 'flag',
         id: 'expose_in_sqllab',
       },
       {
@@ -932,7 +932,7 @@ function DatabaseList({
         ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        layout: 'date',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {

@@ -305,7 +305,7 @@ function ActionLogList() {
       {
         accessor: 'dttm',
         Header: t('Dttm'),
-        layout: 'date',
+        layout: 'timestamp',
         Cell: ({
           row: {
             original: { dttm },

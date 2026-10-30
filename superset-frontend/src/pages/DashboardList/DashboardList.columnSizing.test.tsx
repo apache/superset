@@ -82,7 +82,7 @@ test('every visible column resolves to a width within its layout', async () => {
       Tags: 'tags',
       Editors: 'people',
       Viewers: 'people',
-      'Last modified': 'date',
+      'Last modified': 'dateRelative',
       Actions: 'actions',
     },
     CONTAINER_WIDTH,

@@ -235,7 +235,7 @@ function UsersList({ user }: UsersListProps) {
         accessor: 'active',
         id: 'active',
         Header: t('Is active?'),
-        layout: 'status',
+        layout: 'flag',
         Cell: ({
           row: {
             original: { active },
@@ -304,7 +304,7 @@ function UsersList({ user }: UsersListProps) {
         id: 'created_on',
         Header: t('Created on'),
         hidden: true,
-        layout: 'date',
+        layout: 'timestamp',
         Cell: ({
           row: {
             original: { created_on },
@@ -316,7 +316,7 @@ function UsersList({ user }: UsersListProps) {
         id: 'changed_on',
         Header: t('Changed on'),
         hidden: true,
-        layout: 'date',
+        layout: 'timestamp',
         Cell: ({
           row: {
             original: { changed_on },
@@ -328,7 +328,7 @@ function UsersList({ user }: UsersListProps) {
         id: 'last_login',
         Header: t('Last login'),
         hidden: true,
-        layout: 'date',
+        layout: 'timestamp',
         Cell: ({
           row: {
             original: { last_login },

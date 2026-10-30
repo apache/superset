@@ -475,7 +475,7 @@ function ArchivedListBody({
           String(original.deleted_at_delta_humanized ?? ''),
         Header: t('Archived'),
         id: 'deleted_at',
-        layout: 'date',
+        layout: 'dateRelative',
       },
       {
         // Archiving user, from changed_by. Non-sortable — there is no backend

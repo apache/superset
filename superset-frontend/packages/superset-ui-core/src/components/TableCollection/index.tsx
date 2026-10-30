@@ -17,6 +17,8 @@
  * under the License.
  */
 import {
+  CSSProperties,
+  FocusEvent,
   HTMLAttributes,
   memo,
   useMemo,
@@ -45,6 +47,8 @@ import {
   UTILITY_COLUMN_WIDTH,
   getColumnLayout,
   getColumnSpec,
+  getFrozenColumnCount,
+  getLeadingBlockLength,
   resolveColumnWidths,
 } from './columnWidths';
 
@@ -52,7 +56,11 @@ export type { ListViewColumn };
 export type { ColumnLayout, ColumnLayoutPreset } from './columnWidths';
 export {
   COLUMN_LAYOUT_PRESETS,
+  FREEZE_MAX_CONTAINER_SHARE,
+  FREEZE_MIN_SCROLL_PX,
   getColumnSpec,
+  getFrozenColumnCount,
+  getLeadingBlockLength,
   resolveColumnWidths,
 } from './columnWidths';
 
@@ -86,8 +94,10 @@ export interface TableCollectionProps<T extends object> {
   expandable?: Record<string, unknown>;
   /**
    * Resolve every visible column's width from its `layout` against the
-   * measured container width, with a fixed table layout. Off by default so
-   * generic tables keep the browser's auto layout.
+   * measured container width, with a fixed table layout, and freeze the
+   * leading block (selection, favorite star, title) while the table scrolls
+   * horizontally. Off by default so generic tables keep the browser's auto
+   * layout.
    */
   managedColumnWidths?: boolean;
 }
@@ -139,6 +149,21 @@ const StyledTable = styled(Table)<{
 
     .ant-table-column-title {
       line-height: initial;
+    }
+
+    // Headers longer than a fixed column ellipsize; antd puts the full text
+    // in the header cell's title.
+    .ant-table-column-title {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    // Keyboard focus never lands under the frozen leading columns.
+    .ant-table-content,
+    .ant-table-body {
+      scroll-padding-inline-start: var(--list-view-frozen-width, 0);
     }
 
     .ant-table-row:hover {
@@ -242,13 +267,24 @@ function TableCollection<T extends object>({
     if (!managedColumnWidths) return undefined;
     const visibleColumns = columns.filter(column => !column.hidden);
     const utilityColumns = (bulkSelectEnabled ? 1 : 0) + (expandable ? 1 : 0);
+    const layouts = visibleColumns.map(column => getColumnLayout(column));
     const specs = [
       ...Array(utilityColumns).fill(
         getColumnSpec({ fixed: UTILITY_COLUMN_WIDTH }),
       ),
-      ...visibleColumns.map(column => getColumnSpec(getColumnLayout(column))),
+      ...layouts.map(getColumnSpec),
     ];
-    const { widths, totalWidth } = resolveColumnWidths(specs, containerWidth);
+    const { widths, totalWidth, scrolls } = resolveColumnWidths(
+      specs,
+      containerWidth,
+    );
+    const leadingBlock = getLeadingBlockLength(layouts);
+    const frozenCount = getFrozenColumnCount({
+      widths,
+      leadingCount: leadingBlock ? utilityColumns + leadingBlock : 0,
+      containerWidth,
+      scrolls,
+    });
     const columnWidths = widths.slice(utilityColumns);
     return {
       totalWidth,
@@ -258,6 +294,12 @@ function TableCollection<T extends object>({
           columnWidths[index],
         ]),
       ),
+      frozenColumnIds: visibleColumns
+        .slice(0, Math.max(0, frozenCount - utilityColumns))
+        .map(getColumnId),
+      frozenWidth: widths
+        .slice(0, frozenCount)
+        .reduce((total, width) => total + width, 0),
     };
   }, [
     managedColumnWidths,
@@ -267,6 +309,8 @@ function TableCollection<T extends object>({
     containerWidth,
   ]);
 
+  const frozenWidth = columnLayout?.frozenWidth ?? 0;
+
   const mappedColumns = useMemo(
     () =>
       mapColumns<T>(
@@ -274,6 +318,7 @@ function TableCollection<T extends object>({
         headerGroups,
         columnsForWrapText,
         columnLayout?.widths,
+        columnLayout?.frozenColumnIds,
       ),
     [columns, headerGroups, columnsForWrapText, columnLayout],
   );
@@ -302,6 +347,7 @@ function TableCollection<T extends object>({
     return {
       selectedRowKeys,
       ...(managedColumnWidths && { columnWidth: UTILITY_COLUMN_WIDTH }),
+      ...(frozenWidth > 0 && { fixed: 'left' as const }),
       onSelect: (record, selected) => {
         toggleRowSelected?.(record.rowId, selected);
       },
@@ -318,14 +364,30 @@ function TableCollection<T extends object>({
     toggleRowSelected,
     toggleAllRowsSelected,
     managedColumnWidths,
+    frozenWidth,
   ]);
 
   const tableExpandable = useMemo(
     () =>
       expandable && managedColumnWidths
-        ? { columnWidth: UTILITY_COLUMN_WIDTH, ...expandable }
+        ? {
+            columnWidth: UTILITY_COLUMN_WIDTH,
+            ...(frozenWidth > 0 && { fixed: 'left' as const }),
+            ...expandable,
+          }
         : expandable,
-    [expandable, managedColumnWidths],
+    [expandable, managedColumnWidths, frozenWidth],
+  );
+
+  // scroll-padding alone doesn't move a partly visible cell; scrolling the
+  // focused element into view does, and respects the padding.
+  const handleFocus = useCallback(
+    (event: FocusEvent<HTMLDivElement>) => {
+      if (frozenWidth > 0 && event.target.closest('td')) {
+        event.target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      }
+    },
+    [frozenWidth],
   );
 
   const handlePaginationChange = useCallback(
@@ -466,7 +528,21 @@ function TableCollection<T extends object>({
   );
 
   if (!managedColumnWidths) return table;
-  return <div ref={containerRef}>{table}</div>;
+  return (
+    <div
+      ref={containerRef}
+      onFocus={handleFocus}
+      style={
+        frozenWidth > 0
+          ? ({
+              '--list-view-frozen-width': `${frozenWidth}px`,
+            } as CSSProperties)
+          : undefined
+      }
+    >
+      {table}
+    </div>
+  );
 }
 
 // React.memo erases the wrapped component's generic type parameter; cast

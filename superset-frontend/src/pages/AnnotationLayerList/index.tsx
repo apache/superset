@@ -182,7 +182,7 @@ function AnnotationLayersList({
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on',
-        layout: 'date',
+        layout: 'dateRelative',
         id: 'changed_on',
       },
       {

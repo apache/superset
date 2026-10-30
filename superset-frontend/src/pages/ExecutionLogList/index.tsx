@@ -103,7 +103,7 @@ function ExecutionLog({
         ),
         accessor: 'state',
         Header: t('State'),
-        layout: 'status',
+        layout: 'statusIcon',
         disableSortBy: true,
         id: 'state',
       },
@@ -129,7 +129,7 @@ function ExecutionLog({
         accessor: 'scheduled_dttm',
         Header: t('Scheduled at (UTC)'),
         id: 'scheduled_dttm',
-        layout: 'date',
+        layout: 'timestamp',
       },
       {
         Cell: ({
@@ -142,7 +142,7 @@ function ExecutionLog({
         Header: t('Start at (UTC)'),
         accessor: 'start_dttm',
         id: 'start_dttm',
-        layout: 'date',
+        layout: 'timestamp',
       },
       {
         Cell: ({
@@ -162,7 +162,7 @@ function ExecutionLog({
         Header: t('Duration'),
         disableSortBy: true,
         id: 'duration',
-        layout: 'count',
+        layout: 'timer',
       },
       {
         accessor: 'value',

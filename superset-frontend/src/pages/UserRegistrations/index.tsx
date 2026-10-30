@@ -118,7 +118,7 @@ export default function UserRegistrations() {
         accessor: 'registration_date',
         id: 'registration_date',
         Header: t('Registration date'),
-        layout: 'date',
+        layout: 'timestamp',
         Cell: ({ row: { original } }: any) => original.registration_date,
       },
       {

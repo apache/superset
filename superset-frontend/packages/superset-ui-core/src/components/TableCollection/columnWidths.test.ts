@@ -18,7 +18,11 @@
  */
 import {
   COLUMN_LAYOUT_PRESETS,
+  FREEZE_MAX_CONTAINER_SHARE,
+  FREEZE_MIN_SCROLL_PX,
   getColumnSpec,
+  getFrozenColumnCount,
+  getLeadingBlockLength,
   resolveColumnWidths,
   type ColumnSpec,
 } from './columnWidths';
@@ -38,9 +42,10 @@ const sum = (values: number[]) => values.reduce((a, b) => a + b, 0);
 
 test('uses minimum widths and overflows when the container is too narrow', () => {
   const specs = [fixed(48), flex(240, 480, 3), flex(140, 280, 1), fixed(120)];
-  const { widths, totalWidth } = resolveColumnWidths(specs, 400);
+  const { widths, totalWidth, scrolls } = resolveColumnWidths(specs, 400);
   expect(widths).toEqual([48, 240, 140, 120]);
   expect(totalWidth).toBe(548);
+  expect(scrolls).toBe(true);
 });
 
 test('uses minimum widths when the container width is unknown', () => {
@@ -48,6 +53,7 @@ test('uses minimum widths when the container width is unknown', () => {
   expect(resolveColumnWidths(specs, 0)).toEqual({
     widths: [240, 120],
     totalWidth: 360,
+    scrolls: true,
   });
 });
 
@@ -56,6 +62,7 @@ test('fits exactly when the container equals the sum of minimums', () => {
   expect(resolveColumnWidths(specs, 500)).toEqual({
     widths: [240, 140, 120],
     totalWidth: 500,
+    scrolls: false,
   });
 });
 
@@ -147,4 +154,120 @@ test('getColumnSpec resolves presets, explicit layouts and legacy sizes', () => 
     expect(spec.min).toBeGreaterThan(0);
     expect(spec.max).toBeGreaterThanOrEqual(spec.min);
   });
+});
+
+test('the preset table holds the measured widths', () => {
+  expect(COLUMN_LAYOUT_PRESETS).toEqual({
+    icon: { fixed: 48 },
+    statusIcon: { fixed: 48 },
+    statusIcons: { fixed: 64 },
+    status: { fixed: 144 },
+    flag: { fixed: 176 },
+    count: { fixed: 104 },
+    timer: { fixed: 136 },
+    people: { fixed: 120 },
+    iconList: { fixed: 120 },
+    dateRelative: { fixed: 176 },
+    dateTwoLine: { fixed: 136 },
+    timestamp: { fixed: 240 },
+    actions: { fixed: 120 },
+    actionsWide: { fixed: 168 },
+    title: { min: 320, max: 640, weight: 3 },
+    text: { min: 140, max: 280, weight: 1 },
+    identifier: { min: 180, max: 360, weight: 1 },
+    longtext: { min: 200, max: 560, weight: 1.5 },
+    tags: { min: 200, max: 320, weight: 1 },
+  });
+});
+
+test('reports no scroll whenever the minimums fit', () => {
+  const specs = [flex(320, 640, 3), fixed(120)];
+  [440, 800, 2560].forEach(width =>
+    expect(resolveColumnWidths(specs, width).scrolls).toBe(false),
+  );
+  expect(resolveColumnWidths(specs, 439).scrolls).toBe(true);
+});
+
+test('the leading block is the title plus the icon columns before it', () => {
+  expect(getLeadingBlockLength(['icon', 'title', 'text', 'actions'])).toBe(2);
+  expect(getLeadingBlockLength(['title', 'dateRelative'])).toBe(1);
+  expect(getLeadingBlockLength(['statusIcon', 'title'])).toBe(2);
+  expect(getLeadingBlockLength([{ fixed: 48 }, 'title'])).toBe(0);
+});
+
+test('there is no leading block when the title is not led by icons only', () => {
+  // Alerts: state icon and "Last run" precede the name.
+  expect(getLeadingBlockLength(['statusIcon', 'timestamp', 'title'])).toBe(0);
+  // Users: first and last name precede the username.
+  expect(getLeadingBlockLength(['text', 'text', 'title'])).toBe(0);
+  // Query history has no title column.
+  expect(getLeadingBlockLength(['statusIcon', 'dateTwoLine', 'text'])).toBe(0);
+});
+
+test('freezes the leading block only when the table scrolls', () => {
+  const widths = [48, 320, 400, 400];
+  expect(
+    getFrozenColumnCount({
+      widths,
+      leadingCount: 2,
+      containerWidth: 1000,
+      scrolls: true,
+    }),
+  ).toBe(2);
+  expect(
+    getFrozenColumnCount({
+      widths,
+      leadingCount: 2,
+      containerWidth: 1168,
+      scrolls: false,
+    }),
+  ).toBe(0);
+  expect(
+    getFrozenColumnCount({
+      widths,
+      leadingCount: 0,
+      containerWidth: 1000,
+      scrolls: true,
+    }),
+  ).toBe(0);
+});
+
+test('does not freeze a leading block wider than half the container', () => {
+  const widths = [48, 48, 320, 400, 400];
+  // 416px frozen: fits in 832 (exactly half) but not in 831.
+  const frozenAt = (containerWidth: number) =>
+    getFrozenColumnCount({
+      widths,
+      leadingCount: 3,
+      containerWidth,
+      scrolls: true,
+    });
+  expect(FREEZE_MAX_CONTAINER_SHARE).toBe(0.5);
+  expect(frozenAt(832)).toBe(3);
+  expect(frozenAt(831)).toBe(0);
+});
+
+test('does not freeze unless enough of the container is left to scroll', () => {
+  expect(FREEZE_MIN_SCROLL_PX).toBe(240);
+  // 200px frozen is under half of 439 but leaves only 239px to scroll.
+  const frozenAt = (containerWidth: number) =>
+    getFrozenColumnCount({
+      widths: [200, 400],
+      leadingCount: 1,
+      containerWidth,
+      scrolls: true,
+    });
+  expect(frozenAt(439)).toBe(0);
+  expect(frozenAt(440)).toBe(1);
+});
+
+test('does not freeze when the container width is unknown', () => {
+  expect(
+    getFrozenColumnCount({
+      widths: [48, 320, 400],
+      leadingCount: 2,
+      containerWidth: 0,
+      scrolls: true,
+    }),
+  ).toBe(0);
 });

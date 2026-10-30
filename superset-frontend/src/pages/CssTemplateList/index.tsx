@@ -148,7 +148,7 @@ function CssTemplatesList({
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        layout: 'date',
+        layout: 'dateRelative',
         disableSortBy: true,
         id: 'changed_on_delta_humanized',
       },

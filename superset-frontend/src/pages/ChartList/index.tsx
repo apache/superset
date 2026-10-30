@@ -593,7 +593,7 @@ function ChartList(props: ChartListProps) {
         Header: datasetLabel(),
         accessor: 'datasource_id',
         disableSortBy: true,
-        layout: 'text',
+        layout: 'identifier',
         id: 'datasource_id',
       },
       {
@@ -605,7 +605,7 @@ function ChartList(props: ChartListProps) {
         Header: t('On dashboards'),
         accessor: 'dashboards',
         disableSortBy: true,
-        layout: 'tags',
+        layout: 'text',
         id: 'dashboards',
       },
       {
@@ -671,7 +671,7 @@ function ChartList(props: ChartListProps) {
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        layout: 'date',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {

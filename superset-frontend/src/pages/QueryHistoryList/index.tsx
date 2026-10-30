@@ -222,14 +222,14 @@ function QueryList({ addDangerToast }: QueryListProps) {
           );
         },
         accessor: QueryObjectColumns.Status,
-        layout: 'icon',
+        layout: 'statusIcon',
         disableSortBy: true,
         id: QueryObjectColumns.Status,
       },
       {
         accessor: QueryObjectColumns.StartTime,
         Header: t('Time'),
-        layout: 'date',
+        layout: 'dateTwoLine',
         Cell: ({
           row: {
             original: { start_time },
@@ -252,7 +252,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       },
       {
         Header: t('Duration'),
-        layout: 'count',
+        layout: 'timer',
         Cell: ({
           row: {
             original: { status, start_time, start_running_time, end_time },
@@ -284,7 +284,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.DatabaseName,
         Header: t('Database'),
-        layout: 'text',
+        layout: 'identifier',
         id: QueryObjectColumns.DatabaseName,
       },
       {
@@ -295,7 +295,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.Schema,
         Header: t('Schema'),
-        layout: 'text',
+        layout: 'identifier',
         id: QueryObjectColumns.Schema,
       },
       {
@@ -333,7 +333,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         },
         accessor: QueryObjectColumns.SqlTables,
         Header: t('Tables'),
-        layout: 'tags',
+        layout: 'identifier',
         disableSortBy: true,
         id: QueryObjectColumns.SqlTables,
       },

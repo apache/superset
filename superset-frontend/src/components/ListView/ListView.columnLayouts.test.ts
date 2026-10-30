@@ -59,5 +59,21 @@ test.each(listViewPages.map(({ path, source }) => [path, source]))(
     presets.forEach(preset =>
       expect(Object.keys(COLUMN_LAYOUT_PRESETS)).toContain(preset),
     );
+    // The title is the one primary flexible column of a list.
+    expect(presets.filter(preset => preset === 'title').length).toBeLessThan(2);
   },
 );
+
+test('every layout preset is used by a list view page', () => {
+  const used = new Set(
+    listViewPages.flatMap(({ source }) =>
+      Array.from(
+        source.matchAll(/^\s*layout: '(\w+)'(?: as const)?,$/gm),
+        match => match[1],
+      ),
+    ),
+  );
+  expect(Object.keys(COLUMN_LAYOUT_PRESETS).filter(p => !used.has(p))).toEqual(
+    [],
+  );
+});

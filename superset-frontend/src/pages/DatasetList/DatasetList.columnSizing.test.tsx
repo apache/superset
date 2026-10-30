@@ -25,6 +25,7 @@ import {
 } from './DatasetList.testHelpers';
 import {
   expectColumnWidthsWithinLayouts,
+  getFrozenHeaders,
   mockListViewContainerWidth,
 } from 'spec/helpers/listViewColumnWidths';
 import { expectTruncatingTitle } from 'spec/helpers/listViewTitleCell';
@@ -65,14 +66,29 @@ test('every visible column resolves to a width within its layout', async () => {
     {
       Name: 'title',
       Type: 'status',
-      Database: 'text',
-      Schema: 'text',
+      Database: 'identifier',
+      Schema: 'identifier',
       Editors: 'people',
-      'Last modified': 'date',
+      'Last modified': 'dateRelative',
       Actions: 'actions',
     },
     CONTAINER_WIDTH,
   );
+});
+
+test('freezes the name when the columns do not fit', async () => {
+  // The minimums add up to 1240px.
+  mockListViewContainerWidth(1024);
+  renderDatasetList(mockAdminUser);
+
+  const table = await screen.findByTestId('listview-table');
+  await waitFor(() =>
+    expect(
+      table.querySelectorAll('tbody tr[data-test="table-row"]').length,
+    ).toBeGreaterThan(0),
+  );
+
+  expect(getFrozenHeaders(table)).toEqual(['Name']);
 });
 
 test('dataset names truncate with an ellipsis beside their badges', async () => {

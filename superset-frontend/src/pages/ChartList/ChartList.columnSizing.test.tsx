@@ -23,11 +23,12 @@ import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { setupMocks, renderChartList } from './ChartList.testHelpers';
 import {
   expectColumnWidthsWithinLayouts,
+  getFrozenHeaders,
   mockListViewContainerWidth,
 } from 'spec/helpers/listViewColumnWidths';
 import { expectTruncatingTitle } from 'spec/helpers/listViewTitleCell';
 
-const CONTAINER_WIDTH = 1440;
+const CONTAINER_WIDTH = 1920;
 
 jest.setTimeout(30000);
 
@@ -94,16 +95,31 @@ test('every visible column resolves to a width within its layout', async () => {
       '': 'icon',
       Name: 'title',
       Type: 'text',
-      Dataset: 'text',
-      'On dashboards': 'tags',
+      Dataset: 'identifier',
+      'On dashboards': 'text',
       Tags: 'tags',
       Editors: 'people',
       Viewers: 'people',
-      'Last modified': 'date',
+      'Last modified': 'dateRelative',
       Actions: 'actions',
     },
     CONTAINER_WIDTH,
   );
+});
+
+test('freezes the favorite star and name when the columns do not fit', async () => {
+  // With Tags and Viewers on the minimums add up to 1564px.
+  mockListViewContainerWidth(1440);
+  renderChartList(mockUser);
+
+  const table = await screen.findByTestId('listview-table');
+  await waitFor(() =>
+    expect(
+      table.querySelectorAll('tbody tr[data-test="table-row"]').length,
+    ).toBeGreaterThan(0),
+  );
+
+  expect(getFrozenHeaders(table)).toEqual(['', 'Name']);
 });
 
 test('chart names truncate with an ellipsis beside their badges', async () => {
@@ -115,3 +131,4 @@ test('chart names truncate with an ellipsis beside their badges', async () => {
     expectTruncatingTitle(link);
   }
 });
+

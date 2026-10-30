@@ -329,7 +329,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         ),
         accessor: 'status',
         Header: t('Status'),
-        layout: 'status',
+        layout: 'statusIcon',
         id: 'status',
       },
       {
@@ -416,7 +416,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         ),
         Header: t('Created'),
         accessor: 'created_on',
-        layout: 'date',
+        layout: 'dateRelative',
         id: 'created_on',
       },
       {
@@ -568,7 +568,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         },
         accessor: 'payload',
         Header: t('Details'),
-        layout: 'status',
+        layout: 'statusIcons',
         id: 'payload',
         disableSortBy: true,
       },
