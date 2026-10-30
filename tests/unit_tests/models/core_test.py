@@ -4009,3 +4009,63 @@ def test_a_credential_kept_while_the_fallback_was_off_applies_when_it_returns(
         "username": "embedded_svc",
         "password": "embedded_pw",
     }
+
+
+@pytest.mark.parametrize(
+    "blank",
+    [
+        pytest.param({"id": "", "secret": ""}, id="blank-id-and-secret"),
+        pytest.param({"secret": "   "}, id="whitespace-secret"),
+        pytest.param({"id": ""}, id="blank-id"),
+    ],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_blank_oauth2_client_does_not_open_the_embedded_gate(
+    mocker: MockerFixture, blank: dict[str, str]
+) -> None:
+    """
+    sc-127897: an OAuth2 client block with a blank id or secret is no client. The
+    fallback credential must not apply, and the guest gets the "no OAuth2 client
+    information" refusal rather than the one that points the administrator at a
+    missing embedded credential.
+    """
+    from superset.exceptions import SupersetErrorException
+
+    create_engine_mock = mocker.patch("superset.models.core.create_engine")
+    mocker.patch.dict(current_app.config, {"DATABASE_OAUTH2_CLIENTS": {}})
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+    database = _embedded_snowflake_database()
+    extra = database.get_encrypted_extra()
+    extra["oauth2_client_info"].update(blank)
+    database.encrypted_extra = json.dumps(extra)
+
+    assert not database.embedded_fallback_applies()
+    assert database.get_embedded_fallback_credentials() is None
+    assert database.embedded_guest_missing_oauth2_client()
+    with pytest.raises(SupersetErrorException) as excinfo:
+        database._get_sqla_engine(nullpool=False)
+
+    assert "OAuth2 client information" in excinfo.value.error.message
+    assert "no credential configured" not in excinfo.value.error.message
+    create_engine_mock.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "client_info, configured",
+    [
+        ({"id": "client", "secret": "secret"}, True),
+        ({"id": "client", "secret": "XXXXXXXXXX"}, True),
+        ({"id": "client", "secret": ""}, False),
+        ({"id": " ", "secret": "secret"}, False),
+        ({"id": "client"}, False),
+        ({"id": "client", "secret": None}, False),
+        ({}, False),
+        (None, False),
+        ("client", False),
+    ],
+)
+def test_oauth2_client_info_configured(client_info: Any, configured: bool) -> None:
+    from superset.utils.oauth2 import oauth2_client_info_configured
+
+    assert oauth2_client_info_configured(client_info) is configured

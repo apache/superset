@@ -65,6 +65,7 @@ from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils import json
 from superset.utils.core import markdown, parse_ssl_cert
 from superset.utils.json import get_masked_fields
+from superset.utils.oauth2 import oauth2_client_info_configured
 
 database_schemas_query_schema = {
     "type": "object",
@@ -606,7 +607,7 @@ def _embedded_credentials_stranded(
         return False
 
     client_info = encrypted_extra.get("oauth2_client_info")
-    has_oauth2_client = bool(isinstance(client_info, dict) and client_info) or (
+    has_oauth2_client = oauth2_client_info_configured(client_info) or (
         engine_spec.supports_oauth2
         and engine_spec.engine_name in current_app.config["DATABASE_OAUTH2_CLIENTS"]
     )

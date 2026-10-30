@@ -108,6 +108,7 @@ from superset.utils.oauth2 import (
     execute_with_oauth2_retry,
     get_oauth2_access_token,
     is_oauth2_retry_active,
+    oauth2_client_info_configured,
     OAuth2ClientConfigSchema,
 )
 
@@ -1833,7 +1834,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             return True
 
         client_info = self.get_encrypted_extra().get("oauth2_client_info")
-        if not isinstance(client_info, dict) or not client_info:
+        # A blank client id or secret is a form default, not a client.
+        if not oauth2_client_info_configured(client_info):
             return False
 
         # Validate the stored client without resolving the unused redirect URL.

@@ -3258,3 +3258,44 @@ def test_a_stored_credential_round_trips_while_the_fallback_is_off(
     stored = session.get(Database, database_id)
     assert stored is not None
     assert json.loads(stored.encrypted_extra) == stored_extra
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_credential_is_refused_on_a_blank_oauth2_client(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    sc-127897 step 6: a client block with an empty id and secret used to pass the
+    save check, and guests were then served through the fallback account.
+    """
+    from flask import current_app
+
+    from superset.models.core import Database
+
+    mocker.patch.dict(current_app.config, {"DATABASE_OAUTH2_CLIENTS": {}})
+    blank_client = {**_EMBEDDED_CLIENT, "id": "", "secret": ""}
+    database_id = _stored_embedded_connection(
+        mocker, session, {"oauth2_client_info": blank_client}
+    )
+
+    response = client.put(
+        f"/api/v1/database/{database_id}",
+        json={
+            "masked_encrypted_extra": json.dumps(
+                {
+                    "oauth2_client_info": blank_client,
+                    "embedded_credentials": _EMBEDDED_CREDENTIALS,
+                }
+            )
+        },
+    )
+
+    assert response.status_code == 400
+    assert "Configure OAuth2 client information" in str(response.json)
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert json.loads(stored.encrypted_extra) == {"oauth2_client_info": blank_client}

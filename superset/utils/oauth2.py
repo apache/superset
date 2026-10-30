@@ -24,7 +24,7 @@ import secrets
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Iterator, TYPE_CHECKING, TypeVar
+from typing import Any, Callable, Iterator, TYPE_CHECKING, TypeGuard, TypeVar
 
 import backoff
 import jwt
@@ -582,6 +582,24 @@ class OAuth2ClientConfigSchema(Schema):
         required=False,
         load_default=lambda: "json",
         validate=validate.OneOf(["json", "data"]),
+    )
+
+
+def oauth2_client_info_configured(client_info: Any) -> TypeGuard[dict[str, Any]]:
+    """
+    Does a stored ``oauth2_client_info`` actually configure a client?
+
+    A non-empty block is not enough: some forms save one with a blank client id
+    and secret (plus filled-in endpoints) when OAuth2 isn't used, and
+    ``OAuth2ClientConfigSchema`` accepts empty strings. Both the id and the
+    secret must be non-blank. A masked secret counts as set, since masking skips
+    empty values.
+    """
+    if not isinstance(client_info, dict):
+        return False
+    return all(
+        isinstance(client_info.get(key), str) and client_info[key].strip()
+        for key in ("id", "secret")
     )
 
 
