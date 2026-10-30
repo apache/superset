@@ -174,8 +174,22 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: "superset-frontend/.nvmrc"
-          cache: "npm"
-          cache-dependency-path: "superset-frontend/package-lock.json"
+
+      # Not setup-node's built-in `cache: npm`: that keys on the exact
+      # package-lock.json hash with no fallback, so any lockfile change (every
+      # dependency bump) starts npm ci from an empty cache and re-downloads
+      # every tarball, including xlsx from cdn.sheetjs.com rather than the npm
+      # registry. A CDN or network stall there has failed or timed out this
+      # job. The restore-keys prefix starts from the most recent cache
+      # instead, so only the changed packages are fetched.
+      - name: Cache npm (frontend)
+        if: steps.changed_files.outputs.needs_frontend == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.npm
+          key: npm-v1-${{ runner.os }}-${{ hashFiles('superset-frontend/package-lock.json') }}
+          restore-keys: |
+            npm-v1-${{ runner.os }}-
 
       - name: Install Frontend Dependencies
         if: steps.changed_files.outputs.needs_frontend == 'true'
