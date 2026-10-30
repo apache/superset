@@ -46,6 +46,7 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelMissingCredentials,
 )
 from superset.commands.database.uploaders.base import UploadFileType
+from superset.commands.database.utils import import_connection_identity_changed
 from superset.constants import EMBEDDED_CREDENTIALS_KEY, PASSWORD_MASK
 from superset.databases.types import (  # pylint:disable=unused-import
     encrypted_field_properties,  # noqa: F401
@@ -1245,11 +1246,13 @@ class ImportV1DatabaseSchema(Schema):
             # encrypted_extra in import_database(). Any the stored payload has no
             # value for -- e.g. a connection promoted without its OAuth2 client or
             # embedded credential -- would otherwise be stored as the mask itself,
-            # so ask for those like a new DB.
+            # so ask for those like a new DB. Nothing is revealed onto a
+            # connection the import moves, so then ask for every masked value.
             db_engine_spec = existing.db_engine_spec
             masked_fields = json.unrevealable_masked_fields(
                 json.loads(existing.encrypted_extra)
                 if existing.encrypted_extra
+                and not import_connection_identity_changed(existing, data)
                 else None,
                 masked_encrypted_extra,
                 db_engine_spec.encrypted_extra_sensitive_field_paths(),
