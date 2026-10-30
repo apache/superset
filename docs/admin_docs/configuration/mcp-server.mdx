@@ -2403,6 +2403,30 @@ supported time grains; missing or empty lists use the dataset's supported grains
 Pass `[]` to clear an optional time-grain filter; required filters cannot be
 cleared.
 
+## Reselecting fields on an existing semantic chart
+
+`update_chart` can certify complete field reselection for table and interactive
+table charts whose semantic selection marker is missing or outdated. Supply all
+columns using the target view's member IDs and explicitly supply `filters`
+(`[]` clears them). Supply sorting explicitly if the chart retains sorting.
+Certification applies only when the final merged query contains no unverified
+retained selections; sending `config` alone is not enough.
+
+If native controls, temporal bindings, external filters, secondary queries or
+unsupported plugin state cannot be verified, the update refuses without changing
+the saved chart. The error names the incomplete category and directs you to
+reselect it in Explore and save there. Omitted state is not silently reset.
+For example: “Cannot verify temporal selections; reselect them in Explore and
+save the chart.”
+
+Renaming a chart or using `add_columns` does not upgrade its selection marker.
+Ordinary partial updates on the same source with a current marker keep their
+existing behavior. Changing the source requires fresh target selections even if
+the two sources use the same marker string. A preview is a snapshot, not a lease:
+a concurrent saved-chart change can cause a direct update to refuse and require
+a reload. Providers without a selection-version contract and physical datasets
+do not receive an invented marker.
+
 ## Missing chart columns
 
 `generate_chart`, `update_chart`, `update_chart_preview` and
