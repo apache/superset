@@ -42,7 +42,7 @@ export interface PartitionMappingDatasource {
    * re-seeds the two column collections instead -- so this stays the set the
    * modal opened with, which is what the preview endpoint resolves against.
    */
-  columns?: { column_name?: string }[];
+  columns?: { column_name?: string; type?: string | null }[];
   /**
    * The backend's own read of the stored mapping. Only `evaluable` is read
    * here, and only to stop the banner claiming a mirror the last probe of the
@@ -125,13 +125,15 @@ export interface PartitionMappingIssue {
 }
 
 export interface PartitionDataValidationResult {
-  status: 'not_checked' | 'matched' | 'mismatch' | 'inconclusive';
+  status: 'not_checked' | 'matched' | 'mismatch' | 'inconclusive' | 'refused';
   checked_rows?: number;
   skipped_rows?: number;
   mismatch_count?: number;
   partitions_checked?: number;
   partitions_requested?: number;
   message?: string;
+  /** The keys with no checkable rows, or whose query or transform failed. */
+  inconclusive_keys?: string[];
   examples?: {
     source_value: string;
     stored_key: string;

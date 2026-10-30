@@ -206,6 +206,10 @@ def test_data_validation_checks_corresponding_rows(
         assert probe.call_args.kwargs["fresh"] is True
         if status == "mismatch":
             assert result["examples"][0]["stored_key"] == "3600"
+        if status == "inconclusive":
+            # The key at fault is named, not left to a generic message.
+            assert result["inconclusive_keys"] == ["3600"]
+            assert "3600" in str(result["message"])
 
 
 def test_validation_authorizes_before_reading_rows(app: Flask) -> None:
@@ -350,3 +354,40 @@ def test_real_sampling_query_preserves_partition_filter_and_rls(app: Flask) -> N
     # A raw read stops at the limit; GROUP BY would aggregate the whole partition.
     assert all("GROUP BY" not in sql.upper() for sql in reads)
     connection.close()
+
+
+def test_a_raw_instant_transform_is_refused_before_any_sample(app: Flask) -> None:
+    """
+    Rows on the hour boundary match a raw-instant transform exactly, so sampled
+    rows alone could report as matched a transform the mirror declines.
+    """
+    table = _table(transform="unix_timestamp(:value) * 1")
+    table.id = 1
+    with (
+        app.app_context(),
+        patch.object(
+            Database,
+            "db_engine_spec",
+            new_callable=PropertyMock,
+            return_value=HiveEngineSpec,
+        ),
+        patch(
+            "superset.connectors.sqla.partition_mapping._canary_answers",
+            return_value=[978343200, 978343200 + 2843],
+        ),
+        patch(
+            "superset.connectors.sqla.partition_validation.QueryContextFactory"
+        ) as factory,
+        patch.object(table, "query") as query,
+    ):
+        result = validate_partition_data(
+            table,
+            mapped_column="event_time",
+            partition_column="dt_epoch",
+            value_transform="unix_timestamp(:value) * 1",
+            partition_values=["3600"],
+        )
+    assert result["status"] == "refused"
+    assert "Filters will not be mirrored" in str(result["message"])
+    factory.assert_not_called()
+    query.assert_not_called()

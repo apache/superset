@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 14:01+0000\n"
+"POT-Creation-Date: 2026-10-29 23:46+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1032,6 +1032,9 @@ msgid "A new chart will be created."
 msgstr ""
 
 msgid "A new dashboard will be created."
+msgstr ""
+
+msgid "A partition key must be a whole number within the 64-bit range."
 msgstr ""
 
 #, python-format
@@ -4241,6 +4244,9 @@ msgstr ""
 msgid "Correct the mapping expression before validating data."
 msgstr ""
 
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr ""
 
@@ -6246,6 +6252,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr ""
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr ""
 
@@ -6259,6 +6268,9 @@ msgid "Enter group name"
 msgstr ""
 
 msgid "Enter minimum and maximum values for the range filter"
+msgstr ""
+
+msgid "Enter one to three existing partition keys."
 msgstr ""
 
 msgid "Enter report name"
@@ -7142,6 +7154,12 @@ msgid "Filters on %(mapped)s will automatically apply an equivalent filter to %(
 msgstr ""
 
 msgid "Filters on the mapped column are mirrored onto this column so the engine can prune partitions."
+msgstr ""
+
+msgid "Filters on this column are mapped onto the partition column, but are not mirrored."
+msgstr ""
+
+msgid "Filters on this column are mapped onto the partition field, but this transform is refused, so they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -8947,8 +8965,10 @@ msgid "Match type"
 msgstr ""
 
 #, python-format
-msgid "Matched %(rows)s sampled rows across %(partitions)s partitions"
-msgstr ""
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Matrixify"
 msgstr ""
@@ -9624,6 +9644,10 @@ msgstr ""
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+#, python-format
+msgid "No checkable rows, or the query or transform failed, for partition keys: %(keys)s."
 msgstr ""
 
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
@@ -10448,6 +10472,9 @@ msgid "Partition field:"
 msgstr ""
 
 msgid "Partition filter mapping"
+msgstr ""
+
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
 msgstr ""
 
 msgid "Partition mismatch found"
@@ -12090,6 +12117,9 @@ msgstr ""
 msgid "Save query"
 msgstr ""
 
+msgid "Save the dataset before validating against data."
+msgstr ""
+
 msgid "Save the dataset to preview this mapping. The preview runs against the saved columns, and this mapping uses one that has not been saved yet."
 msgstr ""
 
@@ -13335,9 +13365,6 @@ msgid "Some groups could not be resolved and are shown as IDs."
 msgstr ""
 
 msgid "Some layers could not be loaded"
-msgstr ""
-
-msgid "Some partitions had no checkable rows, or the query or transform failed."
 msgstr ""
 
 msgid "Some permissions could not be resolved and are shown as IDs."

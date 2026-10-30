@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 14:01+0000\n"
+"POT-Creation-Date: 2026-10-29 23:46+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -1249,6 +1249,9 @@ msgstr "Bude vytvořen nový graf."
 
 msgid "A new dashboard will be created."
 msgstr "Bude vytvořena nová nástěnka."
+
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
 
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
@@ -5016,6 +5019,9 @@ msgstr "Poloměr rohu"
 msgid "Correct the mapping expression before validating data."
 msgstr ""
 
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "Korelace"
 
@@ -7438,6 +7444,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Zadejte část názvu objektu"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Zadejte název upozornění"
 
@@ -7452,6 +7461,9 @@ msgstr "Zadejte název skupiny"
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Zadejte minimální a maximální hodnoty pro filtr rozsahu"
+
+msgid "Enter one to three existing partition keys."
+msgstr ""
 
 msgid "Enter report name"
 msgstr "Zadejte název reportu"
@@ -8429,6 +8441,16 @@ msgstr ""
 msgid ""
 "Filters on the mapped column are mirrored onto this column so the engine "
 "can prune partitions."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but this "
+"transform is refused, so they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -10514,8 +10536,11 @@ msgid "Match type"
 msgstr "Datový typ"
 
 #, python-format
-msgid "Matched %(rows)s sampled rows across %(partitions)s partitions"
-msgstr ""
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 msgid "Matrixify"
 msgstr "Matrixify"
@@ -11278,6 +11303,12 @@ msgstr "Nejsou k dispozici žádné filtry."
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
 msgstr ""
 
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
@@ -12262,6 +12293,9 @@ msgid "Partition field:"
 msgstr ""
 
 msgid "Partition filter mapping"
+msgstr ""
+
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
 msgstr ""
 
 msgid "Partition mismatch found"
@@ -14095,6 +14129,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Uložit dotaz"
 
+msgid "Save the dataset before validating against data."
+msgstr ""
+
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
 "saved columns, and this mapping uses one that has not been saved yet."
@@ -15660,9 +15697,6 @@ msgid "Some groups could not be resolved and are shown as IDs."
 msgstr "Některé skupiny nebylo možné rozlišit a zobrazují se jako ID."
 
 msgid "Some layers could not be loaded"
-msgstr ""
-
-msgid "Some partitions had no checkable rows, or the query or transform failed."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -17458,6 +17492,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr "Report byl vytvořen"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 msgid "The report will be sent to your email at"
 msgstr "Report bude odeslán na váš e-mail na adresu"
 
@@ -17785,6 +17825,13 @@ msgstr "Uživatel byl úspěšně aktualizován."
 
 msgid "The user has been updated successfully."
 msgstr "Uživatel byl úspěšně aktualizován."
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 msgid "The user was updated successfully"
 msgstr "Uživatel byl úspěšně aktualizován"
@@ -18733,6 +18780,13 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
 msgstr ""
 
 msgid ""

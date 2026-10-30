@@ -19,7 +19,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { Button, Flex, Input, Typography } from '@superset-ui/core/components';
 import type {
@@ -35,7 +35,20 @@ interface Props {
   isMonotonic: boolean;
   sampleValues: string[];
   operator: string;
-  disabled: boolean;
+  /** Why the mapping cannot be validated yet, if it cannot. */
+  disabledReason?: string;
+}
+
+const INT64_MIN = -(BigInt(2) ** BigInt(63));
+const INT64_MAX = BigInt(2) ** BigInt(63) - BigInt(1);
+
+/** A 64-bit integer written as plain digits, as the API accepts it. */
+function isPartitionKey(key: string): boolean {
+  return (
+    /^-?[0-9]{1,19}$/.test(key) &&
+    BigInt(key) >= INT64_MIN &&
+    BigInt(key) <= INT64_MAX
+  );
 }
 
 /** Explicitly check actual row pairs; never scan a table while typing a transform. */
@@ -57,8 +70,18 @@ export default function PartitionDataValidation(props: Props) {
     };
   }, [identity]);
   const values = keys.split(',').map(key => key.trim());
-  const keysValid =
-    values.length <= 3 && values.every(key => /^-?[0-9]{1,20}$/.test(key));
+  const keysValid = values.length <= 3 && values.every(isPartitionKey);
+  const disabledReason =
+    props.disabledReason ??
+    (!props.datasetId
+      ? t('Save the dataset before validating against data.')
+      : !keys.trim()
+        ? t('Enter one to three existing partition keys.')
+        : !keysValid
+          ? t(
+              'Partition keys must be whole numbers within the 64-bit range, up to three.',
+            )
+          : undefined);
 
   const validate = async () => {
     requestId.current += 1;
@@ -119,18 +142,28 @@ export default function PartitionDataValidation(props: Props) {
       <Button
         onClick={validate}
         loading={loading}
-        disabled={props.disabled || !props.datasetId || !keysValid}
+        disabled={Boolean(disabledReason)}
       >
         {t('Validate against data')}
       </Button>
+      {disabledReason && (
+        <Typography.Text
+          type="secondary"
+          data-test="partition-validation-disabled"
+        >
+          {disabledReason}
+        </Typography.Text>
+      )}
       {visible && (
         <Alert
           type={visible.status === 'matched' ? 'success' : 'warning'}
           showIcon
           message={
             visible.status === 'matched'
-              ? t(
+              ? tn(
+                  'Matched %(rows)s sampled rows across %(partitions)s partition',
                   'Matched %(rows)s sampled rows across %(partitions)s partitions',
+                  visible.partitions_checked ?? 0,
                   {
                     rows: visible.checked_rows ?? 0,
                     partitions: visible.partitions_checked ?? 0,
@@ -138,7 +171,9 @@ export default function PartitionDataValidation(props: Props) {
                 )
               : visible.status === 'mismatch'
                 ? t('Partition mismatch found')
-                : t('Validation inconclusive')
+                : visible.status === 'refused'
+                  ? t('Filters will not be mirrored')
+                  : t('Validation inconclusive')
           }
           description={
             <Flex vertical>

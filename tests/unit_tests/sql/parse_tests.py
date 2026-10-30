@@ -53,6 +53,7 @@ from superset.sql.parse import (
     SQLGLOT_DIALECTS,
     SQLScript,
     SQLStatement,
+    strip_comments,
     Table,
     tokenize_kql,
     transpile_to_dialect,
@@ -8053,3 +8054,28 @@ def test_get_select_literal_value(sql: str, engine: str, expected: str | None) -
 def test_has_comment(sql: str, engine: str, expected: bool) -> None:
     """Check the `has_comment` method."""
     assert SQLStatement(sql, engine).has_comment() is expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        (
+            "floor(:value / 3600) * 3600 -- hourly",
+            "hive",
+            "floor(:value / 3600) * 3600",
+        ),
+        ("a/* joined? */+b", "hive", "a +b"),
+        (
+            "concat('a--b', '/* c */', :value)",
+            "hive",
+            "concat('a--b', '/* c */', :value)",
+        ),
+        ("lower(:value) # trailing", "mysql", "lower(:value)"),
+        ("-- leading\nlower(:value)", "postgresql", "lower(:value)"),
+        ("lower(:value)", "base", "lower(:value)"),
+        ("lower(:value) /* unterminated", "hive", None),
+    ],
+)
+def test_strip_comments(sql: str, engine: str, expected: str | None) -> None:
+    """Comments go, literals and the placeholder stay exactly as written."""
+    assert strip_comments(sql, engine) == expected

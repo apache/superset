@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 14:01+0000\n"
+"POT-Creation-Date: 2026-10-29 23:46+0000\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -1563,6 +1563,9 @@ msgstr "차트를 생성할 수 없습니다."
 #, fuzzy
 msgid "A new dashboard will be created."
 msgstr "대시보드를 생성할 수 없습니다."
+
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
 
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
@@ -7081,6 +7084,9 @@ msgstr "모서리 반경"
 msgid "Correct the mapping expression before validating data."
 msgstr ""
 
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
 # zh, zh_TW]
@@ -10471,6 +10477,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "차트 유형"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 #, fuzzy
 msgid "Enter alert name"
 msgstr "테이블 명"
@@ -10494,6 +10503,9 @@ msgstr "그룹 이름 입력"
 #, fuzzy
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "범위 필터의 최솟값과 최댓값을 입력하세요"
+
+msgid "Enter one to three existing partition keys."
+msgstr ""
 
 #, fuzzy
 msgid "Enter report name"
@@ -11904,6 +11916,16 @@ msgstr ""
 msgid ""
 "Filters on the mapped column are mirrored onto this column so the engine "
 "can prune partitions."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but this "
+"transform is refused, so they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -15099,8 +15121,9 @@ msgid "Match type"
 msgstr "차트 유형"
 
 #, python-format
-msgid "Matched %(rows)s sampled rows across %(partitions)s partitions"
-msgstr ""
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -16255,6 +16278,12 @@ msgstr "필터"
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
 msgstr ""
 
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
@@ -17742,6 +17771,9 @@ msgid "Partition field:"
 msgstr ""
 
 msgid "Partition filter mapping"
+msgstr ""
+
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
 msgstr ""
 
 msgid "Partition mismatch found"
@@ -20534,6 +20566,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Query 저장"
 
+msgid "Save the dataset before validating against data."
+msgstr ""
+
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
 "saved columns, and this mapping uses one that has not been saved yet."
@@ -22669,9 +22704,6 @@ msgid "Some groups could not be resolved and are shown as IDs."
 msgstr "일부 그룹을 확인할 수 없어 ID로 표시됩니다."
 
 msgid "Some layers could not be loaded"
-msgstr ""
-
-msgid "Some partitions had no checkable rows, or the query or transform failed."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -25236,6 +25268,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr "보고서가 생성되었습니다"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -25673,6 +25711,13 @@ msgstr "주석 레이어"
 #, fuzzy
 msgid "The user has been updated successfully."
 msgstr "주석 레이어"
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, uk]
@@ -26906,6 +26951,13 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
 msgstr ""
 
 msgid ""

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 14:01+0000\n"
+"POT-Creation-Date: 2026-10-29 23:46+0000\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -1205,6 +1205,9 @@ msgstr "ஒரு புதிய சார்ட் உருவாக்கப
 
 msgid "A new dashboard will be created."
 msgstr "ஒரு புதிய டேஷ்போர்டு உருவாக்கப்படும்."
+
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
 
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
@@ -4926,6 +4929,9 @@ msgstr "மூலை ஆரம் (Corner Radius)"
 msgid "Correct the mapping expression before validating data."
 msgstr ""
 
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "ஒட்டுறவு (Correlation)"
 
@@ -7245,6 +7251,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "பொருளின் பெயரின் ஒரு பகுதியை உள்ளிடவும்"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "எச்சரிக்கை பெயரை உள்ளிடவும்"
 
@@ -7261,6 +7270,9 @@ msgid "Enter minimum and maximum values for the range filter"
 msgstr ""
 "வரம்பு வடிகட்டிக்கான (range filter) குறைந்தபட்ச மற்றும் அதிகபட்ச "
 "மதிப்புகளை உள்ளிடவும்"
+
+msgid "Enter one to three existing partition keys."
+msgstr ""
 
 msgid "Enter report name"
 msgstr "அறிக்கை பெயரை உள்ளிடவும்"
@@ -8211,6 +8223,16 @@ msgstr ""
 msgid ""
 "Filters on the mapped column are mirrored onto this column so the engine "
 "can prune partitions."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but this "
+"transform is refused, so they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -10203,8 +10225,10 @@ msgid "Match type"
 msgstr "தரவு வகை"
 
 #, python-format
-msgid "Matched %(rows)s sampled rows across %(partitions)s partitions"
-msgstr ""
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Matrixify"
 msgstr "மேட்ரிசிஃபை (Matrixify)"
@@ -10928,6 +10952,12 @@ msgstr "கிடைக்கக்கூடிய வடிகட்டிக�
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
 msgstr ""
 
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
@@ -11846,6 +11876,9 @@ msgid "Partition field:"
 msgstr ""
 
 msgid "Partition filter mapping"
+msgstr ""
+
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
 msgstr ""
 
 msgid "Partition mismatch found"
@@ -13602,6 +13635,9 @@ msgstr ""
 msgid "Save query"
 msgstr "வினவலைச் சேமி"
 
+msgid "Save the dataset before validating against data."
+msgstr ""
+
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
 "saved columns, and this mapping uses one that has not been saved yet."
@@ -15051,9 +15087,6 @@ msgid "Some groups could not be resolved and are shown as IDs."
 msgstr ""
 
 msgid "Some layers could not be loaded"
-msgstr ""
-
-msgid "Some partitions had no checkable rows, or the query or transform failed."
 msgstr ""
 
 msgid "Some permissions could not be resolved and are shown as IDs."
@@ -16712,6 +16745,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr "அறிக்கை உருவாக்கப்பட்டது"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 msgid "The report will be sent to your email at"
 msgstr "அறிக்கை உங்கள் மின்னஞ்சலுக்கு அனுப்பப்படும் நேரம்"
 
@@ -17018,6 +17057,13 @@ msgstr "பயனர் வெற்றிகரமாக புதுப்ப�
 
 msgid "The user has been updated successfully."
 msgstr "பயனர் வெற்றிகரமாக புதுப்பிக்கப்பட்டார்."
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 msgid "The user was updated successfully"
 msgstr "பயனர் வெற்றிகரமாக புதுப்பிக்கப்பட்டார்"
@@ -17912,6 +17958,13 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
 msgstr ""
 
 msgid ""

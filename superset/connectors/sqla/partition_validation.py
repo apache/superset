@@ -18,7 +18,7 @@
 
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 
 import pandas as pd
 from flask_babel import gettext as _
@@ -28,8 +28,10 @@ from superset.connectors.sqla.partition_mapping import (
     _declined_for_reading_by_type,
     _native_generic_type,
     _to_python_scalar,
+    epoch_mapping_refusal,
     evaluate_transform,
     has_active_advanced_data_type,
+    raw_instant_refusal,
     stored_expression_error,
     validate_partition_mapping,
 )
@@ -63,38 +65,13 @@ def validate_partition_data(
         "examples": [],
     }
     target_name = partition_column or datasource.partition_column
-    columns = {col.column_name: col for col in datasource.columns}
-    source = columns.get(mapped_column)
-    target = columns.get(target_name)
-    if (
-        datasource.sql
-        or source is None
-        or target is None
-        or source.expression
-        or target.expression
-        or has_active_advanced_data_type(source)
-        or _native_generic_type(target) != GenericDataType.NUMERIC
+    if declined := _declined_before_sampling(
+        datasource, mapped_column, target_name, value_transform
     ):
-        result["message"] = _(
-            "Data validation requires physical columns and a numeric partition key."
-        )
+        result["status"], result["message"] = declined
         return result
-    issues = validate_partition_mapping(
-        column_names=set(columns),
-        partition_column=target_name,
-        partition_mapped_column=mapped_column,
-        main_dttm_col=datasource.main_dttm_col,
-        transform=value_transform,
-        engine=datasource.database.backend,
-    )
-    if issues or not value_transform:
-        result["message"] = _("Correct the mapping expression before validating data.")
-        return result
-    if error := stored_expression_error(
-        datasource.database, datasource.catalog, datasource.schema, value_transform
-    ):
-        result["message"] = str(error)
-        return result
+    # Declined above when empty.
+    transform = cast(str, value_transform)
 
     keys = remove_duplicates(int(value) for value in partition_values)
     result["partitions_requested"] = len(keys)
@@ -114,15 +91,15 @@ def validate_partition_data(
     )
     # Editorship alone does not authorize reading the underlying data.
     context.raise_for_access()
-    failed = False
-    for query in context.queries:
+    failed_keys: list[int] = []
+    for key, query in zip(keys, context.queries, strict=True):
         try:
             # The raw datasource result retains exact integers and stored
             # timestamps, before display offsets/JSON datetime normalization.
             # Query assembly retains RLS; no chart cache or COUNT(*) is used.
             sample = datasource.query(query.to_dict())
             if sample.status != QueryStatus.SUCCESS:
-                failed = True
+                failed_keys.append(key)
                 continue
             pairs = [
                 (_to_python_scalar(value), _to_python_scalar(key))
@@ -130,26 +107,78 @@ def validate_partition_data(
                 .head(50)
                 .itertuples(index=False, name=None)
             ]
-            if _check_row_pairs(datasource, value_transform, pairs, result):
+            if _check_row_pairs(datasource, transform, pairs, result):
                 result["partitions_checked"] += 1
             else:
-                failed = True
+                failed_keys.append(key)
         except Exception:  # pylint: disable=broad-except
             # Never turn an engine failure or incomplete sample into success.
-            failed = True
+            failed_keys.append(key)
     if result["mismatch_count"]:
         result["status"] = "mismatch"
         result["message"] = _("The transform does not match the stored partition keys.")
-    elif not failed and result["partitions_checked"] == len(keys):
+    elif not failed_keys and result["partitions_checked"] == len(keys):
         result["status"] = "matched"
         result["message"] = _(
             "The transform matched the sampled rows, not the entire dataset."
         )
     else:
+        result["inconclusive_keys"] = [str(key) for key in failed_keys]
         result["message"] = _(
-            "Some partitions had no checkable rows, or the query or transform failed."
+            "No checkable rows, or the query or transform failed, for partition "
+            "keys: %(keys)s.",
+            keys=", ".join(result["inconclusive_keys"]),
         )
     return result
+
+
+def _declined_before_sampling(
+    datasource: SqlaTable,
+    mapped_column: str,
+    target_name: str | None,
+    value_transform: str | None,
+) -> tuple[str, str] | None:
+    """The status and message when no rows should be read, else ``None``."""
+    columns = {col.column_name: col for col in datasource.columns}
+    source = columns.get(mapped_column)
+    target = columns.get(target_name) if target_name else None
+    if (
+        datasource.sql
+        or source is None
+        or target is None
+        or source.expression
+        or target.expression
+        or has_active_advanced_data_type(source)
+        or _native_generic_type(target) != GenericDataType.NUMERIC
+    ):
+        return "inconclusive", _(
+            "Data validation requires physical columns and a numeric partition key."
+        )
+    issues = validate_partition_mapping(
+        column_names=set(columns),
+        partition_column=target_name,
+        partition_mapped_column=mapped_column,
+        main_dttm_col=datasource.main_dttm_col,
+        transform=value_transform,
+        engine=datasource.database.backend,
+    )
+    if issues or not value_transform:
+        return "inconclusive", _(
+            "Correct the mapping expression before validating data."
+        )
+    if error := stored_expression_error(
+        datasource.database, datasource.catalog, datasource.schema, value_transform
+    ):
+        return "inconclusive", str(error)
+    # Rows on the hour boundary match a raw-instant transform exactly, so a
+    # sample could report as matched a transform the mirror refuses.
+    if refusal := epoch_mapping_refusal(
+        datasource, mapped_column, target_name, value_transform
+    ) or raw_instant_refusal(
+        datasource, mapped_column, target_name, value_transform, probe=True
+    ):
+        return "refused", refusal["message"]
+    return None
 
 
 def _check_row_pairs(

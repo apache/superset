@@ -114,7 +114,8 @@ The automatic preview reports **Expression evaluated — data not checked**. Thi
 Superset could evaluate the expression and build a predicate, not that it matches your data.
 
 For a physical dataset with a numeric epoch key, enter one to three **existing partition
-keys**, then choose **Validate against data**. Superset reads at most 50 rows from each
+keys** (whole numbers within the 64-bit range), then choose **Validate against data**. The
+section is not shown for a text partition key, and a disabled button says what is missing. Superset reads at most 50 rows from each
 selected partition and compares each transformed business value with that same row's
 stored key. It applies your data-access permissions and row-level security. It does not
 run a total-count query or infer sample partitions from the candidate expression.
@@ -123,8 +124,11 @@ run a total-count query or infer sample partitions from the candidate expression
   evidence about that sample, not proof for all rows, backfills, or future ingestion.
 - **Partition mismatch found** shows the business value, stored key, and transform output.
   An output found in another partition still fails the same-row comparison.
-- **Validation inconclusive** means a selected partition had no checkable rows or an
+- **Validation inconclusive** names each selected key that had no checkable rows or whose
   evaluation/query failed. NULL business values cannot establish a match.
+- **Filters will not be mirrored** means the mapping itself refuses the transform, for
+  example one that answers raw epoch instants. No rows are sampled: rows on the hour
+  boundary would match it exactly and report a transform the mirror declines as matching.
 
 Choose partitions containing off-boundary business timestamps, such as 10:47:23, and repeat
 across relevant dates and timezone transitions. The read is restricted to the selected keys;
@@ -373,6 +377,10 @@ refused when you save:
 - Anything that changes data — `nextval(:value)`, a call to a stored procedure, a
   PostgreSQL large-object writer. The transform is evaluated against the engine to check
   that it mirrors, and that evaluation is cached and repeated, so it has to be a read.
+
+An ordinary comment that does not swallow `:value`, such as
+`floor(unix_timestamp(:value) / 3600) * 3600 -- hourly`, is allowed. Superset removes it
+before evaluating the transform.
 
 Only the mapped column may carry a transform. Setting one on any other column through the
 API, or in an import bundle, has no effect: Superset drops it on write, because a value parked on a column the

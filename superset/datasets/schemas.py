@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -94,6 +95,23 @@ def validate_d3format(value: str | None) -> None:
                 "Invalid number format: must be a d3-format specifier or a "
                 "supported named format"
             )
+        )
+
+
+_PARTITION_KEY_RE = re.compile(r"-?[0-9]{1,19}")
+
+
+def validate_partition_key(value: str) -> None:
+    """
+    A 64-bit integer partition key, written as plain digits.
+
+    `re.fullmatch` rather than a ``$`` anchor, which also matches before a
+    trailing newline; and bounded to the 64-bit range, so a key no partition
+    column can hold is refused here rather than sent to the engine.
+    """
+    if not _PARTITION_KEY_RE.fullmatch(value) or not (-(2**63) <= int(value) < 2**63):
+        raise ValidationError(
+            _("A partition key must be a whole number within the 64-bit range.")
         )
 
 
@@ -637,7 +655,11 @@ class PartitionMappingPreviewSchema(Schema):
         },
     )
     validation_partition_values = fields.List(
-        fields.String(validate=[Length(1, 21), Regexp(r"^-?[0-9]+$")]),
+        fields.String(
+            # The pattern documents the shape in the spec; the validator
+            # enforces it, without the trailing newline `$` lets through.
+            validate=[Regexp(r"^-?[0-9]{1,19}$"), validate_partition_key]
+        ),
         load_default=None,
         validate=Length(1, 3),
         metadata={

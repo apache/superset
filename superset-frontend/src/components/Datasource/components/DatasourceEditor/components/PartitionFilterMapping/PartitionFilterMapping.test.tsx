@@ -449,6 +449,94 @@ test('a failed preview shows the error instead of a predicate', async () => {
   ).not.toBeInTheDocument();
 });
 
+test('a refused transform is not described as mirrored', async () => {
+  fetchMock.post(PREVIEW_URL, {
+    result: {
+      valid: false,
+      reason: 'unbucketed_epoch',
+      error: 'Raw epoch conversion does not specify the partition bucket.',
+    },
+  });
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'event_time', is_dttm: true }}
+      value="unix_timestamp(:value)"
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  expect(
+    await screen.findByText('Filters will not be mirrored'),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText(
+      'Filters on this column are mirrored onto the partition field.',
+    ),
+  ).not.toBeInTheDocument();
+  expect(screen.getByText(/this transform is refused/)).toBeInTheDocument();
+});
+
+test('the column banner does not call a refused mapping mirrored', () => {
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      columns={MAPPED_COLUMNS}
+      allColumns={MAPPED_COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+      previewMirrors={false}
+    />,
+  );
+
+  expect(
+    screen.queryByText(
+      'Filters on this column are mirrored onto the partition column.',
+    ),
+  ).not.toBeInTheDocument();
+});
+
+test('data validation is offered only for a numeric partition key', () => {
+  const renderWith = (type: string) =>
+    render(
+      <PartitionMappingSection
+        item={{ column_name: 'event_time', is_dttm: true }}
+        value=""
+        datasource={{
+          main_dttm_col: 'event_time',
+          partition_column: 'dt_key',
+          columns: [
+            { column_name: 'event_time', type: 'TIMESTAMP' },
+            { column_name: 'dt_key', type },
+          ],
+        }}
+        onMoveMappingHere={jest.fn()}
+        onRemoveMapping={jest.fn()}
+        onMonotonicChange={jest.fn()}
+      />,
+    );
+
+  const { unmount } = renderWith('VARCHAR');
+  expect(
+    screen.queryByRole('button', { name: 'Validate against data' }),
+  ).not.toBeInTheDocument();
+  unmount();
+  renderWith('BIGINT');
+  expect(
+    screen.getByRole('button', { name: 'Validate against data' }),
+  ).toBeInTheDocument();
+});
+
 test('only the mapped row publishes a preview verdict', async () => {
   // Every expanded column renders this component and they all report to the
   // same `onPreviewVerdict`, but only the mapped one previews anything

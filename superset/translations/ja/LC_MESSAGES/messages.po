@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 14:01+0000\n"
+"POT-Creation-Date: 2026-10-29 23:46+0000\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -1125,6 +1125,9 @@ msgstr "新しいチャートが作成されます。"
 
 msgid "A new dashboard will be created."
 msgstr "新しいダッシュボードが作成されます。"
+
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
 
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
@@ -4586,6 +4589,9 @@ msgstr "角の丸み"
 msgid "Correct the mapping expression before validating data."
 msgstr ""
 
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "相関"
 
@@ -6746,6 +6752,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "オブジェクト名の一部を入力"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "アラート名を入力"
 
@@ -6760,6 +6769,9 @@ msgstr "グループ名を入力"
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "範囲フィルターの最小値と最大値を入力してください"
+
+msgid "Enter one to three existing partition keys."
+msgstr ""
 
 msgid "Enter report name"
 msgstr "レポート名を入力"
@@ -7682,6 +7694,16 @@ msgstr ""
 msgid ""
 "Filters on the mapped column are mirrored onto this column so the engine "
 "can prune partitions."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but this "
+"transform is refused, so they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -9611,8 +9633,9 @@ msgid "Match type"
 msgstr "一致種類"
 
 #, python-format
-msgid "Matched %(rows)s sampled rows across %(partitions)s partitions"
-msgstr ""
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
 
 msgid "Matrixify"
 msgstr "マトリックス化"
@@ -10322,6 +10345,12 @@ msgstr "利用可能なフィルターはありません。"
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
 msgstr ""
 
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
@@ -11225,6 +11254,9 @@ msgid "Partition field:"
 msgstr ""
 
 msgid "Partition filter mapping"
+msgstr ""
+
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
 msgstr ""
 
 msgid "Partition mismatch found"
@@ -12949,6 +12981,9 @@ msgstr ""
 msgid "Save query"
 msgstr "クエリを保存"
 
+msgid "Save the dataset before validating against data."
+msgstr ""
+
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
 "saved columns, and this mapping uses one that has not been saved yet."
@@ -14311,9 +14346,6 @@ msgid "Some groups could not be resolved and are shown as IDs."
 msgstr "一部のグループを解決できなかったため、IDとして表示されています。"
 
 msgid "Some layers could not be loaded"
-msgstr ""
-
-msgid "Some partitions had no checkable rows, or the query or transform failed."
 msgstr ""
 
 msgid "Some permissions could not be resolved and are shown as IDs."
@@ -15907,6 +15939,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr "レポートを作成しました"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 msgid "The report will be sent to your email at"
 msgstr "レポートは指定されたメールアドレスに送信されます"
 
@@ -16195,6 +16233,13 @@ msgstr "ユーザーを正常に作成しました。"
 
 msgid "The user has been updated successfully."
 msgstr "ユーザーを正常に更新しました。"
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 msgid "The user was updated successfully"
 msgstr "ユーザーを正常に更新しました"
@@ -17041,6 +17086,13 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
 msgstr ""
 
 msgid ""

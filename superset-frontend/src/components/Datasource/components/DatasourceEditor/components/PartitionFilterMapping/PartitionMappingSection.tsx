@@ -35,6 +35,7 @@ import { useDebouncedCommit } from './useDebouncedCommit';
 import { usePartitionMappingPreview } from './usePartitionMappingPreview';
 import {
   defaultTransformFor,
+  isNumericType,
   partitionRowState,
   previewOperatorFor,
   sampleValuesFor,
@@ -182,6 +183,17 @@ export default function PartitionMappingSection({
   // message appears as it is typed. The same check gates Save from
   // `DatasourceEditor.validate`, reading the committed record instead.
   const transformErrors = valueTransformIssues(item, transform);
+  // A refusal the preview reported, so the copy above it stops promising the
+  // mirror the alert below withdraws.
+  const refused = Boolean(
+    !loading && preview && !preview.valid && preview.reason !== 'unsaved',
+  );
+  // Data validation compares integer keys. On a text key it can never be
+  // enabled, so it is not offered; an unknown type keeps it, as before.
+  const partitionType = datasource.columns?.find(
+    col => col.column_name === datasource.partition_column,
+  )?.type;
+  const validatesData = !partitionType || isNumericType(partitionType);
 
   return (
     <Flex
@@ -220,11 +232,15 @@ export default function PartitionMappingSection({
         </Typography.Text>
       </Flex>
       <Typography.Text type="secondary">
-        {isTemporal
-          ? t('Filters on this column are mirrored onto the partition field.')
-          : t(
-              'This column holds the mapping instead of the default datetime column.',
-            )}
+        {refused
+          ? t(
+              'Filters on this column are mapped onto the partition field, but this transform is refused, so they are not mirrored.',
+            )
+          : isTemporal
+            ? t('Filters on this column are mirrored onto the partition field.')
+            : t(
+                'This column holds the mapping instead of the default datetime column.',
+              )}
       </Typography.Text>
 
       <Flex align="center" gap={theme.sizeUnit}>
@@ -353,20 +369,28 @@ export default function PartitionMappingSection({
         </Flex>
       )}
 
-      <PartitionDataValidation
-        datasetId={datasource.id}
-        mappedColumn={columnName}
-        partitionColumn={datasource.partition_column ?? ''}
-        valueTransform={transform}
-        isMonotonic={isMonotonic}
-        sampleValues={sampleValuesFor(item)}
-        operator={previewOperatorFor(item)}
-        disabled={
-          !transform ||
-          transformErrors.length > 0 ||
-          preview?.reason === 'unsaved'
-        }
-      />
+      {validatesData && (
+        <PartitionDataValidation
+          datasetId={datasource.id}
+          mappedColumn={columnName}
+          partitionColumn={datasource.partition_column ?? ''}
+          valueTransform={transform}
+          isMonotonic={isMonotonic}
+          sampleValues={sampleValuesFor(item)}
+          operator={previewOperatorFor(item)}
+          disabledReason={
+            !transform
+              ? t('Enter a value transform before validating against data.')
+              : transformErrors.length > 0
+                ? t(
+                    'Correct the value transform before validating against data.',
+                  )
+                : preview?.reason === 'unsaved'
+                  ? t('Save the dataset before validating against data.')
+                  : undefined
+          }
+        />
+      )}
       {/* Only one of preview and error is ever visible. */}
       {!loading && preview && !preview.valid && (
         <Alert

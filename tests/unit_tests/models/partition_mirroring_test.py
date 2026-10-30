@@ -3282,10 +3282,13 @@ def test_an_array_partition_column_gets_no_mirror(app: Flask) -> None:
     assert "dt_epoch = 5" in sql
 
 
+# A comment the owner wrote is inert: it is removed before the probe compiles,
+# so it costs neither rows nor pruning.
+@pytest.mark.parametrize("comment", ["", " -- floor to the bucket"])
 @pytest.mark.parametrize("bucket", [3600, 86400])
 @pytest.mark.parametrize("operator", ["==", "IN", ">", ">=", "<", "<=", "range"])
 def test_epoch_bucket_queries_preserve_actual_rows(
-    app: Flask, bucket: int, operator: str
+    app: Flask, bucket: int, operator: str, comment: str
 ) -> None:
     """Execute generated SQL and compare rows against independently built keys."""
     import math
@@ -3323,6 +3326,7 @@ def test_epoch_bucket_queries_preserve_actual_rows(
     table = _table(
         transform=(
             f"CAST(floor(unix_timestamp(:value) / {bucket}.0) * {bucket} AS BIGINT)"
+            f"{comment}"
         )
     )
     if operator == "range":

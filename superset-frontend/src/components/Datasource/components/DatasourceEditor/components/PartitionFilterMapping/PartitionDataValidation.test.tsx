@@ -36,7 +36,6 @@ const props = {
   isMonotonic: true,
   sampleValues: ['2026-01-15 10:47:23'],
   operator: '>=',
-  disabled: false,
 };
 afterEach(() => fetchMock.clearHistory().removeRoutes());
 
@@ -97,7 +96,7 @@ test('changing a candidate clears sampled success', async () => {
     screen.getByRole('button', { name: 'Validate against data' }),
   );
   expect(
-    await screen.findByText('Matched 50 sampled rows across 1 partitions'),
+    await screen.findByText('Matched 50 sampled rows across 1 partition'),
   ).toBeInTheDocument();
   rerender(
     <PartitionDataValidation
@@ -145,10 +144,71 @@ test('late validation cannot describe a changed candidate', async () => {
 
 test('empty, invalid, and excessive partition selections cannot run', () => {
   render(<PartitionDataValidation {...props} />);
-  for (const value of ['', 'abc', '1,2,3,4']) {
+  for (const value of [
+    '',
+    'abc',
+    '1,2,3,4',
+    '12345678901234567890',
+    '9223372036854775808',
+  ]) {
     fireEvent.change(screen.getByRole('textbox'), { target: { value } });
     expect(
       screen.getByRole('button', { name: 'Validate against data' }),
     ).toBeDisabled();
+    expect(
+      screen.getByTestId('partition-validation-disabled'),
+    ).toBeInTheDocument();
   }
+  fireEvent.change(screen.getByRole('textbox'), {
+    target: { value: '-9223372036854775808, 9223372036854775807' },
+  });
+  expect(
+    screen.getByRole('button', { name: 'Validate against data' }),
+  ).toBeEnabled();
+  expect(
+    screen.queryByTestId('partition-validation-disabled'),
+  ).not.toBeInTheDocument();
+});
+
+test('a disabled button says why', () => {
+  render(
+    <PartitionDataValidation
+      {...props}
+      disabledReason="Correct the value transform before validating against data."
+    />,
+  );
+  fireEvent.change(screen.getByRole('textbox'), {
+    target: { value: '1768471200' },
+  });
+  expect(
+    screen.getByRole('button', { name: 'Validate against data' }),
+  ).toBeDisabled();
+  expect(
+    screen.getByText(
+      'Correct the value transform before validating against data.',
+    ),
+  ).toBeInTheDocument();
+});
+
+test('a refused transform is never reported as matched', async () => {
+  fetchMock.post(endpoint, {
+    result: {
+      valid: false,
+      data_validation: {
+        status: 'refused',
+        message: 'Filters will not be mirrored.',
+      },
+    },
+  });
+  render(<PartitionDataValidation {...props} />);
+  fireEvent.change(screen.getByRole('textbox'), {
+    target: { value: '1768471200' },
+  });
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Validate against data' }),
+  );
+  expect(
+    await screen.findByText('Filters will not be mirrored'),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(/Matched/)).not.toBeInTheDocument();
 });

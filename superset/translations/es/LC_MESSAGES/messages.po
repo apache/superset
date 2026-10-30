@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 14:01+0000\n"
+"POT-Creation-Date: 2026-10-29 23:46+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -1226,6 +1226,9 @@ msgstr "Se creará un nuevo gráfico."
 
 msgid "A new dashboard will be created."
 msgstr "Se creará un nuevo panel de control."
+
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
 
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
@@ -5114,6 +5117,9 @@ msgstr "Radio de la esquina"
 msgid "Correct the mapping expression before validating data."
 msgstr ""
 
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "Correlación"
 
@@ -7582,6 +7588,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Si se deben rellenar los objetos"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Introduce el nombre de la alerta"
 
@@ -7598,6 +7607,9 @@ msgstr "Introducir el nombre del grupo"
 #, fuzzy
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Ingrese los valores mínimo y máximo para el filtro de rango"
+
+msgid "Enter one to three existing partition keys."
+msgstr ""
 
 msgid "Enter report name"
 msgstr "Introduce el nombre del informe"
@@ -8600,6 +8612,16 @@ msgstr ""
 msgid ""
 "Filters on the mapped column are mirrored onto this column so the engine "
 "can prune partitions."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but this "
+"transform is refused, so they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -10760,8 +10782,10 @@ msgid "Match type"
 msgstr "Tipo de datos"
 
 #, python-format
-msgid "Matched %(rows)s sampled rows across %(partitions)s partitions"
-msgstr ""
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
@@ -11541,6 +11565,12 @@ msgstr "No hay filtros disponibles."
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
 msgstr ""
 
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
@@ -12544,6 +12574,9 @@ msgid "Partition field:"
 msgstr ""
 
 msgid "Partition filter mapping"
+msgstr ""
+
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
 msgstr ""
 
 msgid "Partition mismatch found"
@@ -14419,6 +14452,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Guardar consulta"
 
+msgid "Save the dataset before validating against data."
+msgstr ""
+
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
 "saved columns, and this mapping uses one that has not been saved yet."
@@ -16011,9 +16047,6 @@ msgid "Some groups could not be resolved and are shown as IDs."
 msgstr "Algunos grupos no pudieron resolverse y se muestran como IDs."
 
 msgid "Some layers could not be loaded"
-msgstr ""
-
-msgid "Some partitions had no checkable rows, or the query or transform failed."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -17912,6 +17945,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr "El informe se ha creado"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 msgid "The report will be sent to your email at"
 msgstr "El informe se enviará a tu dirección de correo electrónico"
 
@@ -18257,6 +18296,13 @@ msgstr "Este panel de control se ha guardado correctamente."
 #, fuzzy
 msgid "The user has been updated successfully."
 msgstr "Este panel de control se ha guardado correctamente."
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 #, fuzzy
 msgid "The user was updated successfully"
@@ -19259,6 +19305,13 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
 msgstr ""
 
 msgid ""

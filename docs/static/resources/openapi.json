@@ -8541,9 +8541,7 @@
             "default": null,
             "description": "One to three existing integer partition keys for explicit data validation",
             "items": {
-              "maxLength": 21,
-              "minLength": 1,
-              "pattern": "^-?[0-9]+$",
+              "pattern": "^-?[0-9]{1,19}$",
               "type": "string"
             },
             "maxItems": 3,

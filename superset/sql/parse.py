@@ -268,6 +268,47 @@ def has_aggregate(
     )
 
 
+def strip_comments(sql: str, engine: str = "base") -> str | None:
+    """
+    ``sql`` with its comments removed and every other character as written.
+
+    Read off the engine's own lexer, so a comment marker inside a string literal
+    is data and stays. A comment between two tokens becomes one space, so it
+    cannot join them; one before the first token or after the last is dropped.
+    Returns ``None`` when the text does not tokenize, or when what is left does
+    not lex to the same tokens with no comment -- the text is never guessed at.
+    """
+    dialect = SQLGLOT_DIALECTS.get(engine)
+    try:
+        lexer = Dialect.get_or_raise(dialect)
+        tokens = lexer.tokenize(sql)
+    except Exception:  # pylint: disable=broad-except
+        return None
+    if not tokens:
+        return sql
+    pieces = []
+    previous_end = -1
+    for token in tokens:
+        gap = sql[previous_end + 1 : token.start]
+        if gap.strip():
+            gap = " " if previous_end >= 0 else ""
+        pieces.append(gap)
+        pieces.append(sql[token.start : token.end + 1])
+        previous_end = token.end
+    tail = sql[previous_end + 1 :]
+    pieces.append("" if tail.strip() else tail)
+    stripped = "".join(pieces)
+    try:
+        relexed = lexer.tokenize(stripped)
+    except Exception:  # pylint: disable=broad-except
+        return None
+    if any(token.comments for token in relexed) or [
+        (token.token_type, token.text) for token in relexed
+    ] != [(token.token_type, token.text) for token in tokens]:
+        return None
+    return stripped
+
+
 def is_constant_expression(expression: str, engine: str = "base") -> bool:
     """
     Return True if the SQL expression is a bare constant: a string or numeric

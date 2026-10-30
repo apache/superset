@@ -205,7 +205,7 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, feature_flag_manager
-from superset.sql.parse import SQLScript, SQLStatement
+from superset.sql.parse import SQLScript, SQLStatement, strip_comments
 from superset.superset_typing import FilterValues
 from superset.utils import core as utils, json
 from superset.utils.core import FilterOperator, get_username
@@ -1241,7 +1241,7 @@ def _canary_answers(
     datasource: SqlaTable,
     mapped_column: str,
     partition_column: TableColumn,
-    mapping: PartitionMapping,
+    transform: str,
 ) -> list[Any] | None:
     """
     The transform's answers at the canaries, or ``None`` when not applicable.
@@ -1260,12 +1260,12 @@ def _canary_answers(
         database,
         datasource.catalog,
         datasource.schema,
-        mapping.value_transform,
+        transform,
         canaries,
     )
     answers = _cache_get(key)
     if answers is None:
-        answers = _probe_canaries(datasource, mapping.value_transform, canaries)
+        answers = _probe_canaries(datasource, transform, canaries)
         # A failure is not cached: a transient blip must not switch the check
         # off for the whole cache timeout.
         if answers is not None:
@@ -1273,18 +1273,22 @@ def _canary_answers(
     return answers
 
 
-def cached_raw_instant_refusal(
+def raw_instant_refusal(
     datasource: SqlaTable,
     mapped_column: str | None,
     partition_column: str | None,
     transform: str | None,
+    *,
+    probe: bool,
 ) -> dict[str, str] | None:
     """
-    The raw-instant refusal, as far as an earlier probe already answered it.
+    The refusal of a transform that answers raw epoch instants, if it does.
 
-    Reads the canary cache and never probes, so the dataset API can report a
-    transform the engine was seen to refuse without a round trip per request;
-    ``None`` on a cold cache, as ``evaluable`` is.
+    With ``probe`` false only the canary cache is read, so the dataset API can
+    report a transform the engine was seen to refuse without a round trip per
+    request -- ``None`` on a cold cache, as ``evaluable`` is. Data validation
+    probes, so a sample of rows on the hour boundary cannot report a transform
+    the mirror declines as matching.
     """
     target = next(
         (col for col in datasource.columns if col.column_name == partition_column),
@@ -1292,17 +1296,24 @@ def cached_raw_instant_refusal(
     )
     if not transform or not mapped_column or target is None:
         return None
-    canaries = _epoch_canaries(datasource, mapped_column, target)
-    if not canaries:
-        return None
-    key = _probe_cache_key(
-        datasource.database,
-        datasource.catalog,
-        datasource.schema,
-        transform,
-        canaries,
-    )
-    if not _answers_raw_instants(_cache_get(key)):
+    if probe:
+        answers = _canary_answers(datasource, mapped_column, target, transform)
+    else:
+        canaries = _epoch_canaries(datasource, mapped_column, target)
+        answers = (
+            _cache_get(
+                _probe_cache_key(
+                    datasource.database,
+                    datasource.catalog,
+                    datasource.schema,
+                    transform,
+                    canaries,
+                )
+            )
+            if canaries
+            else None
+        )
+    if not _answers_raw_instants(answers):
         return None
     return {
         "reason": "unbucketed_epoch",
@@ -1354,7 +1365,12 @@ def _declined_as_raw_instants(
 ) -> bool:
     """Whether to decline because the transform answers raw epoch instants."""
     if not _answers_raw_instants(
-        _canary_answers(datasource, mapping.mapped_column, partition_column, mapping)
+        _canary_answers(
+            datasource,
+            mapping.mapped_column,
+            partition_column,
+            mapping.value_transform,
+        )
     ):
         return False
     logger.warning(
@@ -2343,10 +2359,24 @@ def _probe(
         )
         return None
 
+    # After the gate above, which reads the transform as stored -- a `:value`
+    # inside a comment is refused there, not silently dropped here. A comment
+    # the owner wrote is inert, but `probe_sql_is_evaluable` refuses any comment
+    # in the compiled probe, since that is how a bound value hides what
+    # follows it; so it is removed before compiling, and a comment the gate
+    # still finds can only have come from a value.
+    stripped = strip_comments(transform, database.backend)
+    if stripped is None:
+        logger.warning(
+            "Partition transform could not be read with its comments removed; "
+            "queries will not prune"
+        )
+        return None
+
     try:
         from_suffix = database.db_engine_spec.select_without_from_suffix
         sql = build_probe_sql(
-            transform,
+            stripped,
             distinct,
             _dialect_for(database),
             from_suffix,
