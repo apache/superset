@@ -69,18 +69,19 @@ def layer(
 @pytest.mark.parametrize(
     "properties,expected",
     [
-        ({"configuration": {}}, 1),
+        ({"configuration": {}}, 0),
+        ({"configuration": {"value": "new"}}, 1),
         ({"description": "changed"}, 0),
     ],
 )
-def test_save_rotates_only_submitted_configuration(
+def test_save_rotates_only_changed_configuration(
     app: Flask,
     session: Session,
     layer: SemanticLayer,
     properties: dict[str, Any],
     expected: int,
 ) -> None:
-    """Save writes its generation in the same transaction, even for unchanged config."""
+    """Save rotates generation only when the effective configuration changes."""
     command: UpdateSemanticLayerCommand = UpdateSemanticLayerCommand(
         str(layer.uuid), properties
     )
@@ -89,6 +90,61 @@ def test_save_rotates_only_submitted_configuration(
         command.run()
     session.expire_all()
     assert session.get(SemanticLayer, layer.uuid).cache_version == expected
+
+
+@pytest.mark.parametrize(
+    "stored,submitted,expected",
+    [
+        ('{ "b": 2, "a": {"x": 1} }', {"a": {"x": 1}, "b": 2}, 0),
+        ('{"value": true}', {"value": 1}, 1),
+        ("invalid JSON", {"value": "repaired"}, 1),
+        ('{"items": [1, 2]}', {"items": [2, 1]}, 1),
+    ],
+)
+def test_save_compares_configuration_content(
+    app: Flask,
+    session: Session,
+    layer: SemanticLayer,
+    stored: str,
+    submitted: dict[str, Any],
+    expected: int,
+) -> None:
+    """Ignore JSON formatting/key order, but preserve scalar types and list order."""
+    layer.configuration = stored
+    session.commit()
+    command: UpdateSemanticLayerCommand = UpdateSemanticLayerCommand(
+        str(layer.uuid), {"configuration": submitted}
+    )
+    command._model = layer
+    with app.app_context(), patch.object(command, "validate"):
+        command.run()
+    session.expire_all()
+    assert session.get(SemanticLayer, layer.uuid).cache_version == expected
+
+
+def test_noop_save_preserves_a_concurrent_configuration_change(
+    app: Flask,
+    session: Session,
+    layer: SemanticLayer,
+) -> None:
+    """A stale no-op reader must not overwrite a newer configuration/generation."""
+    layer.configuration = '{ "a": 1, "b": 2 }'
+    session.commit()
+    assert layer.configuration == '{ "a": 1, "b": 2 }'
+    session.execute(
+        SemanticLayer.__table__.update()
+        .where(SemanticLayer.uuid == layer.uuid)
+        .values(configuration='{"new": true}', cache_version=1)
+    )
+    command: UpdateSemanticLayerCommand = UpdateSemanticLayerCommand(
+        str(layer.uuid), {"configuration": {"b": 2, "a": 1}}
+    )
+    command._model = layer
+    with app.app_context(), patch.object(command, "validate"):
+        command.run()
+    session.expire_all()
+    assert layer.configuration == '{"new": true}'
+    assert layer.cache_version == 1
 
 
 def test_failed_save_rolls_back_configuration_and_version(
