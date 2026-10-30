@@ -472,10 +472,13 @@ To enable warnings:
 
 The shipped cost checks use one rule per connection in `extra.query_cost_warning`,
 containing `enabled`, `metric`, and `threshold`. BigQuery uses `bytes_processed`,
-a positive whole number of bytes no greater than 9,007,199,254,740,991. PostgreSQL uses `total_cost`, a
-positive number that can include decimals. PostgreSQL planner units are not
-runtime, money, or memory. BigQuery estimates describe usage, not a guaranteed
-bill. These metrics are not converted into a common unit.
+a positive whole number of bytes. PostgreSQL uses `total_cost`, a positive number
+that can include decimals. Both numeric thresholds must be no greater than
+9,007,199,254,740,991 so integer settings can be edited safely in the browser.
+Planner-cost decimals use ordinary floating-point precision. This settings bound
+does not limit database estimates, which are compared on the server. PostgreSQL
+planner units are not runtime, money, or memory. BigQuery estimates describe usage,
+not a guaranteed bill. These metrics are not converted into a common unit.
 
 BigQuery thresholds can be entered in Bytes, MB, or GB (decimal units: 1 MB =
 1,000,000 bytes and 1 GB = 1,000,000,000 bytes). Changing the unit changes the

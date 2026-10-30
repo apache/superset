@@ -90,6 +90,24 @@ def test_query_cost_warning_rejects_invalid_thresholds(
     assert "threshold" in exc_info.value.messages
 
 
+@pytest.mark.parametrize("enabled", [False, True])
+@pytest.mark.parametrize("threshold", [2**53, 2**53 + 1, 1e20])
+def test_query_cost_warning_rejects_thresholds_beyond_browser_range(
+    enabled: bool,
+    threshold: int | float,
+) -> None:
+    """API/import thresholds must remain editable without integer rounding."""
+    from superset.db_engine_specs.query_warning import QueryCostWarningSchema
+
+    with pytest.raises(
+        ValidationError, match="no greater than 9007199254740991"
+    ) as exc_info:
+        QueryCostWarningSchema().load(
+            {"enabled": enabled, "metric": "total_cost", "threshold": threshold}
+        )
+    assert "threshold" in exc_info.value.messages
+
+
 @pytest.mark.parametrize("threshold", [0.5, 1.5, 2**53, 2**53 + 1])
 def test_query_cost_warning_requires_safe_whole_bytes(
     threshold: int | float,
@@ -984,6 +1002,8 @@ def test_validate_parameters_schema_accepts_server_host_key() -> None:
     [
         ("bigquery", "bytes_processed", 1, True),
         ("postgresql", "total_cost", 0.125, True),
+        ("postgresql", "total_cost", 2**53 - 1, True),
+        ("postgresql", "total_cost", 2**53 + 1, False),
         ("postgresql", "bytes_processed", 100, False),
         ("bigquery", "total_cost", 100, False),
         ("sqlite", "total_cost", 100, False),

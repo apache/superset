@@ -116,58 +116,85 @@ test.each([
   },
 );
 
-test('the modal blocks an invalid byte amount and allows correcting it', async () => {
-  fetchMock.get(connectionEndpoint, {
-    result: {
-      id: 10,
-      database_name: 'Byte validation',
-      backend: 'bigquery',
-      expose_in_sqllab: true,
-      configuration_method: 'sqlalchemy_form',
-      engine_information: { query_cost_warning_metric: 'bytes_processed' },
-      extra: JSON.stringify({
-        cost_estimate_enabled: true,
-        query_cost_warning: {
-          enabled: true,
-          metric: 'bytes_processed',
-          threshold: 1000000,
-        },
-      }),
-    },
-  });
-  fetchMock.put(
-    databaseEndpoint,
-    { id: 10, result: {} },
-    { name: 'database-update' },
-  );
-  render(<DatabaseModal show databaseId={10} onHide={jest.fn()} />, {
-    useRedux: true,
-  });
-  await userEvent.click(await screen.findByRole('tab', { name: 'Advanced' }));
-  await userEvent.click(await screen.findByText('SQL Lab'));
-  const amount = await screen.findByLabelText(
-    'Warning threshold (bytes processed)',
-  );
-  fireEvent.change(amount, { target: { value: '0.0000001' } });
-  expect(screen.getByRole('button', { name: 'Finish' })).toBeDisabled();
-  expect(
-    screen.getByText(/amount that equals positive whole bytes/),
-  ).toBeInTheDocument();
-  fireEvent.change(amount, { target: { value: '1.000001' } });
-  expect(screen.getByRole('button', { name: 'Finish' })).toBeEnabled();
-  await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
-  await waitFor(() =>
-    expect(fetchMock.callHistory.calls('database-update')).toHaveLength(1),
-  );
-  const request = JSON.parse(
-    fetchMock.callHistory.calls('database-update')[0].options.body as string,
-  ) as DatabaseObject;
-  expect(JSON.parse(request.extra || '{}').query_cost_warning).toEqual({
-    enabled: true,
+test.each([
+  {
+    engine: 'bigquery',
     metric: 'bytes_processed',
-    threshold: 1000001,
-  });
-});
+    threshold: '1000000',
+    label: 'Warning threshold (bytes processed)',
+    invalid: '0.0000001',
+    valid: '1.000001',
+    saved: 1000001,
+    error: /amount that equals positive whole bytes/,
+  },
+  {
+    engine: 'postgresql',
+    metric: 'total_cost',
+    threshold: '9007199254740993',
+    label: 'Warning threshold (planner cost)',
+    invalid: '9007199254740993',
+    valid: '14.125',
+    saved: 14.125,
+    error: /no greater than 9,007,199,254,740,991/,
+  },
+])(
+  'the modal blocks an invalid $engine threshold and allows correcting it',
+  async ({
+    engine,
+    metric,
+    threshold,
+    label,
+    invalid,
+    valid,
+    saved,
+    error,
+  }) => {
+    fetchMock.get(connectionEndpoint, {
+      result: {
+        id: 10,
+        database_name: 'Threshold validation',
+        backend: engine,
+        expose_in_sqllab: true,
+        configuration_method: 'sqlalchemy_form',
+        engine_information: { query_cost_warning_metric: metric },
+        // Keep the server's integer text: JSON.stringify would already round it.
+        extra: `{"cost_estimate_enabled":true,"query_cost_warning":{"enabled":true,"metric":"${metric}","threshold":${threshold}}}`,
+      },
+    });
+    fetchMock.put(
+      databaseEndpoint,
+      { id: 10, result: {} },
+      { name: 'database-update' },
+    );
+    render(<DatabaseModal show databaseId={10} onHide={jest.fn()} />, {
+      useRedux: true,
+    });
+    await userEvent.click(await screen.findByRole('tab', { name: 'Advanced' }));
+    await userEvent.click(await screen.findByText('SQL Lab'));
+    const amount = await screen.findByLabelText(label);
+    if (engine === 'postgresql') {
+      expect(screen.getByRole('button', { name: 'Finish' })).toBeDisabled();
+      expect(screen.getByText(error)).toBeInTheDocument();
+    }
+    fireEvent.change(amount, { target: { value: invalid } });
+    expect(screen.getByRole('button', { name: 'Finish' })).toBeDisabled();
+    expect(screen.getByText(error)).toBeInTheDocument();
+    fireEvent.change(amount, { target: { value: valid } });
+    expect(screen.getByRole('button', { name: 'Finish' })).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls('database-update')).toHaveLength(1),
+    );
+    const request = JSON.parse(
+      fetchMock.callHistory.calls('database-update')[0].options.body as string,
+    ) as DatabaseObject;
+    expect(JSON.parse(request.extra || '{}').query_cost_warning).toEqual({
+      enabled: true,
+      metric,
+      threshold: saved,
+    });
+  },
+);
 
 test('saving untouched settings leaves an absent warning rule absent', async () => {
   const extra = {

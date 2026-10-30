@@ -38,6 +38,7 @@ from marshmallow import (
 )
 
 from superset import is_feature_enabled
+from superset.utils.core import JS_MAX_INTEGER
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -150,7 +151,7 @@ def query_cost_warning_enabled_validator(value: object) -> None:
 
 
 def query_cost_warning_threshold_validator(value: object) -> None:
-    """Accept only positive, finite numeric thresholds, including decimals."""
+    """Accept positive numeric settings within the browser's safe integer range."""
     if (
         isinstance(value, bool)
         or not isinstance(value, (int, float))
@@ -159,6 +160,15 @@ def query_cost_warning_threshold_validator(value: object) -> None:
     ):
         raise ValidationError(
             [_("The query cost warning threshold must be a positive finite number.")]
+        )
+    if value > JS_MAX_INTEGER:
+        raise ValidationError(
+            [
+                _(
+                    "The query cost warning threshold must be no greater than "
+                    "9007199254740991."
+                )
+            ]
         )
 
 
@@ -184,7 +194,12 @@ class QueryCostWarningSchema(QueryWarningRuleSchema):
     metric = fields.String()
     threshold = fields.Raw(
         validate=query_cost_warning_threshold_validator,
-        metadata={"type": "number", "minimum": 0, "exclusiveMinimum": True},
+        metadata={
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMinimum": True,
+            "maximum": JS_MAX_INTEGER,
+        },
     )
 
     @validates_schema
@@ -216,7 +231,7 @@ class QueryCostWarningSchema(QueryWarningRuleSchema):
             and metric_definition.requires_whole_bytes
             and threshold is not None
         ):
-            if threshold > 2**53 - 1 or threshold != int(threshold):
+            if threshold != int(threshold):
                 raise ValidationError(
                     {
                         "threshold": [

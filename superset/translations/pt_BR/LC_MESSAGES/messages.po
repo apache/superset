@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 13:53-0400\n"
+"POT-Creation-Date: 2026-10-30 17:56-0400\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -7869,6 +7869,9 @@ msgstr "Insira uma parte do nome do objeto"
 msgid "Enter a positive, finite warning threshold."
 msgstr ""
 
+msgid "Enter a warning threshold no greater than 9,007,199,254,740,991."
+msgstr ""
+
 msgid "Enter a warning threshold."
 msgstr ""
 
@@ -8031,6 +8034,10 @@ msgstr "Erro na expressão jinja em filtros RLS: %(msg)s"
 #, python-format
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Erro na expressão jinja na cláusula WHERE: %(msg)s"
+
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
@@ -18648,6 +18655,9 @@ msgstr ""
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
+msgid "The query cost warning threshold must be no greater than 9007199254740991."
+msgstr ""
+
 msgid ""
 "The query cost warning threshold must be whole bytes no greater than "
 "9007199254740991."
@@ -18716,6 +18726,12 @@ msgstr ""
 
 msgid "The report has been created"
 msgstr "O relatório foi criado"
+
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
 
 #, fuzzy
 msgid "The report will be sent to your email at"
@@ -19071,6 +19087,13 @@ msgstr "O usuário foi criado com sucesso."
 #, fuzzy
 msgid "The user has been updated successfully."
 msgstr "O usuário foi atualizado com sucesso."
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 #, fuzzy
 msgid "The user was updated successfully"
@@ -20091,6 +20114,13 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
 msgstr ""
 
 msgid ""

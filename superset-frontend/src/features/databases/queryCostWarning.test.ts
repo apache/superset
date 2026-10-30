@@ -162,7 +162,10 @@ test.each([
   ['bytes_processed', BigInt('9007199254740993123'), false],
   ['total_cost', 0, false],
   ['total_cost', 0.125, true],
-  ['total_cost', BigInt('9007199254740993123'), true],
+  ['total_cost', BigInt('9007199254740993123'), false],
+  ['total_cost', Number.MAX_SAFE_INTEGER, true],
+  ['total_cost', Number.MAX_SAFE_INTEGER + 1, false],
+  ['total_cost', Number.MAX_VALUE, false],
   ['total_cost', Infinity, false],
   ['total_cost', NaN, false],
   ['total_cost', true, false],
@@ -172,5 +175,20 @@ test.each([
   '%s threshold %s validates without coercion or precision loss',
   (metric, value, thresholdValid) => {
     expect(isQueryCostWarningThreshold(value, metric)).toBe(thresholdValid);
+  },
+);
+
+test.each(['total_cost', 'unknown', undefined])(
+  'rejects and drops an oversized saved threshold for %s',
+  metric => {
+    const rule = {
+      enabled: false,
+      ...(metric && { metric }),
+      threshold: Number.MAX_SAFE_INTEGER + 1,
+    };
+    expect(getQueryCostWarningError(rule, 'total_cost')).toBe(
+      'Enter a warning threshold no greater than 9,007,199,254,740,991.',
+    );
+    expect(disableQueryCostWarning(rule)).not.toHaveProperty('threshold');
   },
 );

@@ -90,20 +90,22 @@ export default function QueryCostWarningSettings({
       : metricDefinition?.usesByteUnits
         ? formatWarningBytes(matchingThreshold, unit)
         : String(matchingThreshold));
-  const isThresholdDraftInvalid =
-    thresholdDraft !== undefined &&
-    (metricDefinition?.usesByteUnits
-      ? parseWarningBytes(thresholdDraft, unit) === undefined
-      : thresholdDraft.trim() === '' ||
-        !Number.isFinite(Number(thresholdDraft)) ||
-        Number(thresholdDraft) <= 0);
-  const error = isThresholdDraftInvalid
-    ? metricDefinition?.usesByteUnits
-      ? t(
+  let error = getQueryCostWarningError(rule, metric, supported);
+  if (thresholdDraft !== undefined) {
+    if (metricDefinition?.usesByteUnits) {
+      if (parseWarningBytes(thresholdDraft, unit) === undefined) {
+        error = t(
           'Enter an amount that equals positive whole bytes, no greater than 9,007,199,254,740,991.',
-        )
-      : t('Enter a positive, finite warning threshold.')
-    : getQueryCostWarningError(rule, metric, supported);
+        );
+      }
+    } else {
+      error = getQueryCostWarningError(
+        { ...rule, threshold: Number(thresholdDraft) },
+        metric,
+        supported,
+      );
+    }
+  }
   const setEnabled = (event: CheckboxChangeEvent) => {
     setThresholdDraft(undefined);
     if (supported && !metricDefinition) {

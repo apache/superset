@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 13:53-0400\n"
+"POT-Creation-Date: 2026-10-30 17:56-0400\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -8905,6 +8905,9 @@ msgstr "Inserire una parte del nome oggetto"
 msgid "Enter a positive, finite warning threshold."
 msgstr ""
 
+msgid "Enter a warning threshold no greater than 9,007,199,254,740,991."
+msgstr ""
+
 msgid "Enter a warning threshold."
 msgstr ""
 
@@ -9069,6 +9072,10 @@ msgstr "Errore nell'espressione jinja nei filtri RLS: %(msg)s"
 #, python-format
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Errore nell'espressione jinja nella clausola WHERE: %(msg)s"
+
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -21227,6 +21234,9 @@ msgstr ""
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
+msgid "The query cost warning threshold must be no greater than 9007199254740991."
+msgstr ""
+
 msgid ""
 "The query cost warning threshold must be whole bytes no greater than "
 "9007199254740991."
@@ -21309,6 +21319,12 @@ msgstr "I rimanenti %s verranno spostati in Archiviati di recente."
 # uk, zh, zh_TW]
 msgid "The report has been created"
 msgstr "Il rapporto è stato creato"
+
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -21701,6 +21717,13 @@ msgstr "L'utente è stato creato."
 
 msgid "The user has been updated successfully."
 msgstr "L'utente è stato aggiornato."
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 msgid "The user was updated successfully"
 msgstr "L'utente è stato aggiornato."
@@ -22856,6 +22879,13 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
 msgstr ""
 
 msgid ""

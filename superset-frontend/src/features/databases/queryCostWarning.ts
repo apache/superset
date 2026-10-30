@@ -23,9 +23,6 @@ import type {
   QueryCostWarningMetric,
 } from './types';
 
-const plannerCostExplanation = () =>
-  t('Planner cost is relative, not dollars or memory.');
-
 export const queryCostWarningMetrics = {
   bytes_processed: {
     thresholdLabel: () => t('Warning threshold (bytes processed)'),
@@ -37,7 +34,8 @@ export const queryCostWarningMetrics = {
   },
   total_cost: {
     thresholdLabel: () => t('Warning threshold (planner cost)'),
-    settingsExplanation: plannerCostExplanation,
+    settingsExplanation: () =>
+      t('Planner cost is relative, not dollars or memory.'),
     usesByteUnits: false,
   },
 };
@@ -52,15 +50,18 @@ export function isQueryCostWarningMetric(
   );
 }
 
-/** Require positive thresholds and safe whole bytes, unlike potentially large estimates. */
+/** Bound numeric settings for browser editing; database estimates have no such cap. */
 export function isQueryCostWarningThreshold(
   value: unknown,
   metric: QueryCostWarningMetric,
-): value is number | bigint {
-  return queryCostWarningMetrics[metric].usesByteUnits
-    ? typeof value === 'number' && Number.isSafeInteger(value) && value > 0
-    : (typeof value === 'bigint' && value > BigInt(0)) ||
-        (typeof value === 'number' && Number.isFinite(value) && value > 0);
+): value is number {
+  return (
+    typeof value === 'number' &&
+    Number.isFinite(value) &&
+    value > 0 &&
+    value <= Number.MAX_SAFE_INTEGER &&
+    (!queryCostWarningMetrics[metric].usesByteUnits || Number.isInteger(value))
+  );
 }
 
 export const costWarningUnits = { Bytes: 1, MB: 1000000, GB: 1000000000 };
@@ -144,6 +145,14 @@ export function getQueryCostWarningError(
     return t('Enter a positive, finite warning threshold.');
   }
   if (
+    typeof rule.threshold === 'number' &&
+    rule.threshold > Number.MAX_SAFE_INTEGER
+  ) {
+    return t(
+      'Enter a warning threshold no greater than 9,007,199,254,740,991.',
+    );
+  }
+  if (
     isQueryCostWarningMetric(rule.metric) &&
     queryCostWarningMetrics[rule.metric].usesByteUnits &&
     'threshold' in rule &&
@@ -188,6 +197,7 @@ export function disableQueryCostWarning(
     typeof rule.threshold === 'number' &&
     Number.isFinite(rule.threshold) &&
     rule.threshold > 0 &&
+    rule.threshold <= Number.MAX_SAFE_INTEGER &&
     (!metric || isQueryCostWarningThreshold(rule.threshold, metric))
       ? rule.threshold
       : undefined;

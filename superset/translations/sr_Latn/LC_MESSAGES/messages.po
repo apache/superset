@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 13:53-0400\n"
+"POT-Creation-Date: 2026-10-30 17:56-0400\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -8830,6 +8830,9 @@ msgstr "Unesite deo naziva objekta"
 msgid "Enter a positive, finite warning threshold."
 msgstr ""
 
+msgid "Enter a warning threshold no greater than 9,007,199,254,740,991."
+msgstr ""
+
 msgid "Enter a warning threshold."
 msgstr ""
 
@@ -9002,6 +9005,10 @@ msgstr "Greška u jinja izrazu u RLS filterima: %(msg)s"
 #, python-format
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Greška u jinja izrazu u WHERE klauzi: %(msg)s"
+
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
 
 #, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
@@ -20528,6 +20535,9 @@ msgstr ""
 msgid "The query cost warning threshold must be a positive finite number."
 msgstr ""
 
+msgid "The query cost warning threshold must be no greater than 9007199254740991."
+msgstr ""
+
 msgid ""
 "The query cost warning threshold must be whole bytes no greater than "
 "9007199254740991."
@@ -20603,6 +20613,12 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The report has been created"
 msgstr "Izveštaj je kreiran"
+
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
 
 # es, fa, ja, lv, mi, ru, sk, sl, uk]
 msgid "The report will be sent to your email at"
@@ -20973,6 +20989,13 @@ msgstr "Korisnik je uspešno kreiran."
 # ru, sk, uk]
 msgid "The user has been updated successfully."
 msgstr "Korisnik je uspešno ažuriran."
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 # ru, sk, uk]
 msgid "The user was updated successfully"
@@ -22040,6 +22063,13 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
 msgstr ""
 
 msgid ""
