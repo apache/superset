@@ -31,6 +31,7 @@ from superset_core.semantic_layers.errors import (
     SemanticResultCompletenessReason,
 )
 from superset_core.semantic_layers.types import (
+    AdhocExpression,
     Dimension,
     Filter,
     FilterExpression,
@@ -152,6 +153,7 @@ class QueryView(ExampleView):
             sql += " ORDER BY " + ", ".join(
                 f'"{member.name}" {direction.value}'
                 for member, direction in query.order
+                if not isinstance(member, AdhocExpression)
             )
         if query.limit is not None:
             sql += " LIMIT ? OFFSET ?"
