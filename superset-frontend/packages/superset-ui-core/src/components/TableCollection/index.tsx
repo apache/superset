@@ -380,12 +380,13 @@ function TableCollection<T extends object>({
   );
 
   // Keyboard focus never lands under the frozen leading columns: a focused
-  // cell is scrolled into view with the frozen width as scroll padding. The
-  // padding is only set for that scroll, since a permanent one makes the
-  // browser scroll back to the start whenever a frozen cell takes focus.
+  // body cell, or a sortable header cell (antd makes those focusable), is
+  // scrolled into view with the frozen width as scroll padding. The padding
+  // is only set for that scroll, since a permanent one makes the browser
+  // scroll back to the start whenever a frozen cell takes focus.
   const handleFocus = useCallback(
     (event: FocusEvent<HTMLDivElement>) => {
-      const cell = event.target.closest('td');
+      const cell = event.target.closest('td, th');
       const scroller = cell?.closest<HTMLElement>(
         '.ant-table-content, .ant-table-body',
       );

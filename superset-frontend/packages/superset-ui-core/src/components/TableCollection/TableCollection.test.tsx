@@ -664,6 +664,63 @@ test('does not scroll when focus lands in the frozen columns', () => {
   expect(scrollIntoView).not.toHaveBeenCalled();
 });
 
+const headerCell = (table: HTMLElement, text: string) =>
+  Array.from(table.querySelectorAll<HTMLElement>('thead th')).find(
+    th => th.textContent === text,
+  )!;
+
+test('scrolls a focused sortable header out from under the frozen columns', () => {
+  // Without a sticky header the headers scroll with the body, so a focused
+  // header can be hidden under the frozen header cells as well.
+  const paddings: string[] = [];
+  const scrollIntoView = mockScrollIntoView();
+  scrollIntoView.mockImplementation(function (this: Element) {
+    const scroller = this.closest<HTMLElement>(
+      '.ant-table-content, .ant-table-body',
+    )!;
+    paddings.push(scroller.style.scrollPaddingInlineStart);
+  });
+  const { table } = renderLayoutTable(
+    800,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  const header = headerCell(table, 'C');
+  expect(header.tabIndex).toBe(0);
+  header.focus();
+  expect(scrollIntoView).toHaveBeenCalledWith({
+    block: 'nearest',
+    inline: 'nearest',
+  });
+  expect(paddings).toEqual(['368px']);
+  expect(
+    header.closest<HTMLElement>('.ant-table-content, .ant-table-body')!.style
+      .scrollPaddingInlineStart,
+  ).toBe('');
+});
+
+test('does not scroll when focus lands in a frozen header', () => {
+  const scrollIntoView = mockScrollIntoView();
+  const { table } = renderLayoutTable(
+    900,
+    {
+      managedColumnWidths: true,
+      bulkSelectEnabled: true,
+      selectedFlatRows: [],
+    },
+    scrollingColumns,
+  );
+  const header = headerCell(table, 'Name');
+  expect(header).toHaveClass('ant-table-cell-fix-start');
+  header.focus();
+  const selectAll = table.querySelector<HTMLElement>(
+    'thead th.ant-table-selection-column input',
+  )!;
+  expect(selectAll.closest('th')).toHaveClass('ant-table-cell-fix-start');
+  selectAll.focus();
+  expect(scrollIntoView).not.toHaveBeenCalled();
+});
+
 test('leaves focus scrolling to the browser when nothing is frozen', () => {
   const scrollIntoView = mockScrollIntoView();
   const columns: ListViewColumn[] = scrollingColumns.map(column =>
