@@ -1167,7 +1167,7 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
         (
             42,
             ["url1"],
-            ["dashboard/p/url1/"],
+            ["dashboard/p/url1/?force=false"],
         ),
     ],
 )
