@@ -35,6 +35,7 @@ Tier 3 - Persistent State (Database):
     - persistent: Durable KV storage backed by database table
     - Survives server restarts, supports encryption and resource linking
     - Use for user preferences, extension config, per-resource settings
+    - secrets: Python-only, encrypted user credentials unavailable to browsers
 
 All tiers follow the same API pattern:
     - User-scoped by default (private to current user)
@@ -76,4 +77,5 @@ from superset_core.extensions.storage import (
     ephemeral,  # noqa: F401
     models,  # noqa: F401
     persistent,  # noqa: F401
+    secrets,  # noqa: F401
 )

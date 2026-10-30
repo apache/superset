@@ -28,8 +28,12 @@ import {
   makeApi,
   LabelsColorMapSource,
   getClientErrorObject,
+  ErrorTypeEnum,
+  SupersetError,
+  SupersetApiError,
 } from '@superset-ui/core';
 import { Loading } from '@superset-ui/core/components';
+import { OAuth2RedirectMessage } from 'src/components/ErrorMessage';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
@@ -144,6 +148,8 @@ const getDashboardContextFormData = (search: string) => {
 
 export default function ExplorePage() {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [authenticationError, setAuthenticationError] =
+    useState<SupersetError<{ url: string; tab_id: string }>>();
   const fetchGeneration = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
   const dispatch = useDispatch();
@@ -155,6 +161,7 @@ export default function ExplorePage() {
       loc: { search: string; pathname: string },
       saveAction?: SaveActionType | null,
     ) => {
+      setAuthenticationError(undefined);
       // Abort any in-flight request before starting a new one
       abortControllerRef.current?.abort();
       const controller = new AbortController();
@@ -229,6 +236,33 @@ export default function ExplorePage() {
 
           const [clientError, err] = resolved || [];
           if (!err) {
+            return Promise.resolve();
+          }
+          const oauthError: SupersetError | undefined =
+            clientError?.errors?.find(
+              error => error.error_type === ErrorTypeEnum.OAUTH2_REDIRECT,
+            ) ??
+            (err instanceof SupersetApiError &&
+            String(err.errorType) === ErrorTypeEnum.OAUTH2_REDIRECT
+              ? {
+                  error_type: ErrorTypeEnum.OAUTH2_REDIRECT,
+                  level: 'warning',
+                  message: err.message,
+                  extra: err.extra,
+                }
+              : undefined);
+          if (
+            oauthError &&
+            typeof oauthError.extra?.url === 'string' &&
+            typeof oauthError.extra?.tab_id === 'string'
+          ) {
+            setAuthenticationError({
+              ...oauthError,
+              extra: {
+                url: oauthError.extra.url,
+                tab_id: oauthError.extra.tab_id,
+              },
+            });
             return Promise.resolve();
           }
           const errorMesage =
@@ -378,6 +412,18 @@ export default function ExplorePage() {
 
   if (!isLoaded) {
     return <Loading />;
+  }
+  if (authenticationError) {
+    return (
+      <OAuth2RedirectMessage
+        error={authenticationError}
+        source="explore"
+        errorMitigationFunction={() => {
+          setIsLoaded(false);
+          loadExploreData(history.location);
+        }}
+      />
+    );
   }
   return <ExploreViewContainer />;
 }

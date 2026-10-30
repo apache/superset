@@ -30,6 +30,8 @@ import backoff
 from flask import current_app
 from flask_babel import gettext as _
 from sqlalchemy import and_, desc, func, LargeBinary
+from sqlalchemy.engine import Dialect
+from superset_core.extensions.storage.models import StorageAccess
 
 from superset import db
 from superset.daos.base import BaseDAO
@@ -76,6 +78,8 @@ class EncryptedBytesType(EncryptedType):
             value = value.decode()
         self._update_key()
         plaintext = self.engine.decrypt(value)
+        if plaintext.startswith(ENCRYPTED_VALUE_PREFIX):
+            plaintext = plaintext.removeprefix(ENCRYPTED_VALUE_PREFIX)
         try:
             return base64.b64decode(plaintext, validate=True)
         except binascii.Error:
@@ -163,6 +167,8 @@ MAX_KEY_LENGTH = 255
 #: a crashed holder doesn't block the same key for long.
 SET_LOCK_TTL_SECONDS = 5
 
+ENCRYPTED_VALUE_PREFIX = "superset-extension-storage:v1:"
+
 
 def _validate_key_length(key: str) -> None:
     """Validate key length against MAX_KEY_LENGTH. Raises if over."""
@@ -170,7 +176,7 @@ def _validate_key_length(key: str) -> None:
         raise ExtensionStorageKeyTooLong(MAX_KEY_LENGTH)
 
 
-def _derive_key(secret: str, user_fk: int) -> str:
+def derive_user_key(secret: str, user_fk: int) -> str:
     """Derive a per-user encryption key from the master secret and user ID.
 
     Uses HMAC-SHA256 so the derived key is cryptographically bound to both.
@@ -191,7 +197,7 @@ def _enc_type(user_fk: int | None) -> EncryptedBytesType:
     Shared rows (user_fk=None) use SECRET_KEY directly.
     """
     secret = current_app.config["SECRET_KEY"]
-    key = _derive_key(secret, user_fk) if user_fk is not None else secret
+    key = derive_user_key(secret, user_fk) if user_fk is not None else secret
     engine_name = current_app.config.get(
         "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE", DEFAULT_ENCRYPTION_ENGINE_NAME
     )
@@ -200,6 +206,22 @@ def _enc_type(user_fk: int | None) -> EncryptedBytesType:
         key=key,
         engine=resolve_encryption_engine(engine_name),
     )
+
+
+def _encrypt_value(value: bytes, user_fk: int | None, dialect: Dialect) -> bytes:
+    """Encrypt arbitrary bytes using the shared storage encoding."""
+    encrypted = _enc_type(user_fk).process_bind_param(value, dialect)
+    if not isinstance(encrypted, bytes):
+        raise TypeError("Encrypted extension storage values must be bytes")
+    return encrypted
+
+
+def _decrypt_value(value: bytes, user_fk: int | None, dialect: Dialect) -> bytes:
+    """Decrypt bytes written by ``_encrypt_value`` or the legacy implementation."""
+    plaintext = _enc_type(user_fk).process_result_value(value, dialect)
+    if not isinstance(plaintext, bytes):
+        raise TypeError("Decrypted extension storage values must be bytes")
+    return plaintext
 
 
 def _get_quota() -> int | None:
@@ -273,9 +295,7 @@ def _decrypt_if_needed(
     if not entry.is_encrypted:
         return entry.value
     try:
-        return _enc_type(entry.user_fk).process_result_value(
-            entry.value, db.engine.dialect
-        )
+        return _decrypt_value(entry.value, entry.user_fk, db.engine.dialect)
     except Exception:  # noqa: BLE001
         logger.error(
             "Failed to decrypt extension storage value for "
@@ -292,11 +312,13 @@ def _scope_filter(
     user_fk: int | None = None,
     resource_type: str | None = None,
     resource_uuid: str | None = None,
+    access: StorageAccess = StorageAccess.FRONTEND,
 ) -> list[object]:
     """Build the SQLAlchemy filter list for a scoped lookup."""
     filters: list[object] = [
         ExtensionStorage.extension_id == extension_id,
         ExtensionStorage.key == key,
+        ExtensionStorage.access == access.value,
     ]
     if user_fk is None:
         filters.append(ExtensionStorage.user_fk.is_(None))
@@ -318,13 +340,17 @@ def _list_scope_filter(
     user_fk: int | None = None,
     resource_type: str | None = None,
     resource_uuid: str | None = None,
+    access: StorageAccess = StorageAccess.FRONTEND,
 ) -> list[object]:
     """Build the SQLAlchemy filter list for a `list()` call.
 
     Same scope semantics as `_scope_filter` (an explicit None means "match
     the global/unset scope"), minus the `key` filter.
     """
-    filters: list[object] = [ExtensionStorage.extension_id == extension_id]
+    filters: list[object] = [
+        ExtensionStorage.extension_id == extension_id,
+        ExtensionStorage.access == access.value,
+    ]
     if user_fk is None:
         filters.append(ExtensionStorage.user_fk.is_(None))
     else:
@@ -396,6 +422,7 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         user_fk: int | None = None,
         resource_type: str | None = None,
         resource_uuid: str | None = None,
+        access: StorageAccess = StorageAccess.FRONTEND,
     ) -> ExtensionStorage | None:
         """Return the raw storage entry. The value field may be encrypted."""
         entry = (
@@ -403,7 +430,12 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
             .filter(
                 and_(
                     *_scope_filter(
-                        extension_id, key, user_fk, resource_type, resource_uuid
+                        extension_id,
+                        key,
+                        user_fk,
+                        resource_type,
+                        resource_uuid,
+                        access,
                     )
                 )
             )
@@ -418,10 +450,11 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         user_fk: int | None = None,
         resource_type: str | None = None,
         resource_uuid: str | None = None,
+        access: StorageAccess = StorageAccess.FRONTEND,
     ) -> bytes | None:
         """Return the raw (decrypted) value bytes, or None if not found."""
         entry = ExtensionStorageDAO.get(
-            extension_id, key, user_fk, resource_type, resource_uuid
+            extension_id, key, user_fk, resource_type, resource_uuid, access
         )
         if entry is None:
             return None
@@ -434,13 +467,14 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         user_fk: int | None = None,
         resource_type: str | None = None,
         resource_uuid: str | None = None,
+        access: StorageAccess = StorageAccess.FRONTEND,
     ) -> Any:
         """Return the value decoded with the codec it was written with.
 
         :returns: The decoded value, or None if not found.
         """
         entry = ExtensionStorageDAO.get(
-            extension_id, key, user_fk, resource_type, resource_uuid
+            extension_id, key, user_fk, resource_type, resource_uuid, access
         )
         if entry is None:
             return None
@@ -471,6 +505,7 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         resource_uuid: str | None = None,
         page: int = 0,
         page_size: int = 10,
+        access: StorageAccess = StorageAccess.FRONTEND,
     ) -> tuple[list[ExtensionStorageListEntry], int]:
         """List entries in the given scope, most recently changed first.
 
@@ -493,7 +528,7 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
             combined value size exceeds MAX_LIST_PAYLOAD_SIZE.
         """
         filters = _list_scope_filter(
-            extension_id, user_fk, resource_type, resource_uuid
+            extension_id, user_fk, resource_type, resource_uuid, access
         )
         base_query = db.session.query(ExtensionStorage).filter(and_(*filters))
         total_count = base_query.count()
@@ -549,8 +584,12 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         resource_type: str | None = None,
         resource_uuid: str | None = None,
         encrypt: bool = False,
+        access: StorageAccess = StorageAccess.FRONTEND,
     ) -> ExtensionStorage:
-        """Upsert a storage entry.  Encrypts value when encrypt=True.
+        """Upsert a storage entry.
+
+        Values are encrypted when ``encrypt`` is true. Backend-only values
+        are always encrypted regardless of the caller-supplied flag.
 
         The select-then-insert/update below is guarded by a distributed lock
         scoped to the whole extension, for two independent reasons:
@@ -582,10 +621,9 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         """
         _validate_key_length(key)
         _validate_value_size(value)
+        encrypt = encrypt or access is StorageAccess.BACKEND
         stored_value = (
-            _enc_type(user_fk).process_bind_param(value, db.engine.dialect)
-            if encrypt
-            else value
+            _encrypt_value(value, user_fk, db.engine.dialect) if encrypt else value
         )
 
         with DistributedLock(
@@ -598,7 +636,12 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
                 .filter(
                     and_(
                         *_scope_filter(
-                            extension_id, key, user_fk, resource_type, resource_uuid
+                            extension_id,
+                            key,
+                            user_fk,
+                            resource_type,
+                            resource_uuid,
+                            access,
                         )
                     )
                 )
@@ -612,6 +655,7 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
                 entry.value_size = new_size
                 entry.codec = codec
                 entry.is_encrypted = encrypt
+                entry.access = access.value
             else:
                 entry = ExtensionStorage(
                     extension_id=extension_id,
@@ -623,6 +667,7 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
                     resource_type=resource_type,
                     resource_uuid=resource_uuid,
                     is_encrypted=encrypt,
+                    access=access.value,
                 )
                 db.session.add(entry)
             db.session.flush()
@@ -668,6 +713,7 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         user_fk: int | None = None,
         resource_type: str | None = None,
         resource_uuid: str | None = None,
+        access: StorageAccess = StorageAccess.FRONTEND,
     ) -> bool:
         """Delete a single entry by key. Returns True if a row was removed.
 
@@ -681,7 +727,12 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
             .filter(
                 and_(
                     *_scope_filter(
-                        extension_id, key, user_fk, resource_type, resource_uuid
+                        extension_id,
+                        key,
+                        user_fk,
+                        resource_type,
+                        resource_uuid,
+                        access,
                     )
                 )
             )

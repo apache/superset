@@ -18,9 +18,20 @@ from __future__ import annotations
 
 import logging
 import time
+from dataclasses import asdict
 from typing import Any
+from uuid import UUID, uuid4
 
-from flask import Blueprint, current_app, make_response, request, Response
+from flask import (
+    Blueprint,
+    current_app,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    Response,
+    url_for,
+)
 from flask_appbuilder import AppBuilder
 from flask_appbuilder.api import BaseApi, expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
@@ -57,6 +68,7 @@ from superset.commands.semantic_layer.exceptions import (
 )
 from superset.commands.semantic_layer.update import (
     ClearSemanticLayerCacheCommand,
+    unmask_stored_configuration,
     UpdateSemanticLayerCommand,
     UpdateSemanticViewCommand,
 )
@@ -64,12 +76,12 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.semantic_layer import SemanticLayerDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.schemas import get_delete_ids_schema
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import OAuth2RedirectError, SupersetSecurityException
 from superset.models.core import Database
 from superset.semantic_layers.access import is_semantic_layers_enabled
 from superset.semantic_layers.masking import mask_configuration
 from superset.semantic_layers.models import SemanticLayer, SemanticView
-from superset.semantic_layers.registry import registry
+from superset.semantic_layers.registry import registry, semantic_layer_context
 from superset.semantic_layers.schemas import (
     SemanticLayerPostSchema,
     SemanticLayerPutSchema,
@@ -78,6 +90,7 @@ from superset.semantic_layers.schemas import (
 )
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
+from superset.utils.core import get_user_id
 from superset.views.base_api import (
     BaseSupersetApi,
     BaseSupersetModelRestApi,
@@ -85,6 +98,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
+from superset.views.error_handling import handle_api_exception
 
 logger = logging.getLogger(__name__)
 
@@ -269,6 +283,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
     @expose("/<int:pk>/structure", methods=("GET",))
     @protect()
     @safe
+    @handle_api_exception
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.structure",
@@ -336,6 +351,8 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                     view.implementation.get_metrics(), key=lambda m: m.name
                 )
             ]
+        except OAuth2RedirectError:
+            raise
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
         except Exception:  # pylint: disable=broad-except
@@ -760,6 +777,11 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
         "types": "read",
         "clear_cache": "write",
         "configuration_schema": "read",
+        "configuration_action": "write",
+        "configuration_actions": "read",
+        "semantic_layer_action": "read",
+        "oauth2_start": "read",
+        "oauth2_complete": "read",
         "runtime_schema": "read",
         # ``read`` (not the default ``can_views`` / ``can_connections``) so
         # these stay broadly accessible: ``SemanticLayer`` is in
@@ -830,46 +852,490 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
         if not cls:
             return self.response_400(message=f"Unknown type: {sl_type}")
 
-        # Enriching the schema hands the submitted configuration to the
-        # provider, which may contact the hosts it names. That is part of
-        # configuring a layer, so it requires write access; read-only callers
-        # get the static schema.
-        parsed_config = None
-        if (config := body.get("configuration")) and security_manager.can_access(
-            "can_write", "SemanticLayer"
-        ):
-            parsed_config = _parse_partial_config(cls, config)
+        with semantic_layer_context(sl_type):  # type: ignore[arg-type]
+            # Enriching the schema hands the submitted configuration to the
+            # provider, which may contact the hosts it names. That is part of
+            # configuring a layer, so it requires write access; read-only callers
+            # get the static schema.
+            parsed_config = None
+            if (config := body.get("configuration")) and security_manager.can_access(
+                "can_write", "SemanticLayer"
+            ):
+                parsed_config = _parse_partial_config(cls, config)
 
-        warning: str | None = None
-        try:
-            schema = cls.get_configuration_schema(parsed_config)
-        except Exception:  # pylint: disable=broad-except
-            # Show a stable, user-friendly message in the UI; the exception
-            # detail goes to the server log below.
-            warning = str(
-                t(
-                    "Could not load metadata for this configuration; "
-                    "showing the default form. See the server logs for details."
+            warning: str | None = None
+            try:
+                schema = cls.get_configuration_schema(parsed_config)
+            except Exception:  # pylint: disable=broad-except
+                # Show a stable, user-friendly message in the UI; the exception
+                # detail goes to the server log below.
+                warning = str(
+                    t(
+                        "Could not load metadata for this configuration; "
+                        "showing the default form. See the server logs for details."
+                    )
                 )
-            )
-            logger.exception(
-                "Error enriching semantic layer configuration schema for type %s",
-                sl_type,
-            )
-            # Connection or query failures during schema enrichment should not
-            # prevent the form from rendering — return the base schema instead.
-            schema = cls.get_configuration_schema(None)
+                logger.exception(
+                    "Error enriching semantic layer configuration schema for type %s",
+                    sl_type,
+                )
+                # Connection or query failures during schema enrichment should not
+                # prevent the form from rendering — return the base schema instead.
+                schema = cls.get_configuration_schema(None)
 
-        payload: dict[str, Any] = {"result": schema}
+            actions = [
+                asdict(action)
+                for action in cls.get_configuration_actions(parsed_config)
+            ]
+
+        payload: dict[str, Any] = {"result": schema, "actions": actions}
         if warning:
             payload["warning"] = warning
         resp = make_response(json.dumps(payload, sort_keys=False), 200)
         resp.headers["Content-Type"] = "application/json; charset=utf-8"
         return resp
 
+    @expose(
+        "/type/<sl_type>/actions/<action_id>",
+        methods=("POST",),
+    )
+    @protect()
+    @safe
+    @handle_api_exception
+    @statsd_metrics
+    @requires_json
+    def configuration_action(
+        self,
+        sl_type: str,
+        action_id: str,
+    ) -> FlaskResponse:
+        """Start a configuration action before a semantic layer exists.
+        ---
+        post:
+          summary: Start a semantic layer configuration action
+          parameters:
+          - in: path
+            name: sl_type
+            required: true
+            schema:
+              type: string
+          - in: path
+            name: action_id
+            required: true
+            schema:
+              type: string
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    configuration:
+                      type: object
+                    semantic_layer_uuid:
+                      type: string
+                      format: uuid
+                      description: Existing layer whose masked configuration to resolve
+          responses:
+            200:
+              description: Authorization URL and connection correlation ID
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          redirect_url:
+                            type: string
+                            format: uri
+                          tab_id:
+                            type: string
+                            format: uuid
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        cls = registry.get(sl_type)
+        if not cls:
+            return self.response_400(message=f"Unknown type: {sl_type}")
+
+        body = request.json or {}
+        configuration = body.get("configuration") or {}
+        if not isinstance(configuration, dict):
+            return self.response_400(message="Configuration must be an object")
+
+        if semantic_layer_uuid := body.get("semantic_layer_uuid"):
+            layer = SemanticLayerDAO.find_by_uuid(semantic_layer_uuid)
+            if not layer:
+                return self.response_404()
+            try:
+                layer.raise_for_access()
+            except SupersetSecurityException as ex:
+                return self.response(403, message=ex.message)
+            if layer.type != sl_type:
+                return self.response_400(
+                    message="Semantic layer type does not match the requested type"
+                )
+            try:
+                configuration = unmask_stored_configuration(
+                    layer.configuration,
+                    configuration,
+                    layer.type,
+                )
+            except SemanticLayerInvalidError as ex:
+                return self.response_400(message=str(ex))
+
+        tab_id = str(uuid4())
+        completion_url = self._oauth2_completion_url(tab_id)
+        with semantic_layer_context(sl_type):
+            parsed_config = _parse_partial_config(cls, configuration)
+            try:
+                result = cls.execute_configuration_action(
+                    action_id,
+                    parsed_config,
+                    completion_url,
+                )
+            except ValueError as ex:
+                return self.response_400(message=str(ex))
+
+        return self.response(200, result={**asdict(result), "tab_id": tab_id})
+
+    @expose("/<uuid>/actions", methods=("GET",))
+    @protect_read("SemanticLayer", "SemanticView")
+    @safe
+    @handle_api_exception
+    @statsd_metrics
+    def configuration_actions(self, uuid: str) -> FlaskResponse:
+        """Return configuration actions for an existing semantic layer.
+        ---
+        get:
+          summary: List personal configuration actions for a semantic layer
+          parameters:
+          - in: path
+            name: uuid
+            required: true
+            schema:
+              type: string
+              format: uuid
+          - in: query
+            name: view_uuid
+            description: Semantic view through which the user accesses the layer
+            schema:
+              type: string
+              format: uuid
+          responses:
+            200:
+              description: Available configuration actions and their connection status
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            label:
+                              type: string
+                            status:
+                              type: string
+                              enum: [required, connected, expired, error]
+                            required:
+                              type: boolean
+                            message:
+                              type: string
+                              nullable: true
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        layer, error = self._action_layer(uuid, request.args.get("view_uuid"))
+        if error is not None:
+            return error
+        assert layer is not None
+
+        cls = registry.get(layer.type)
+        if not cls:
+            return self.response_400(message=f"Unknown type: {layer.type}")
+        configuration = layer.configuration
+        if isinstance(configuration, str):
+            configuration = json.loads(configuration)
+
+        with semantic_layer_context(layer.type):
+            parsed_config = _parse_partial_config(cls, configuration or {})
+            actions = [
+                asdict(action)
+                for action in cls.get_configuration_actions(parsed_config)
+            ]
+        return self.response(200, result=actions)
+
+    @expose("/<uuid>/actions/<action_id>", methods=("POST",))
+    @protect_read("SemanticLayer", "SemanticView")
+    @safe
+    @handle_api_exception
+    @statsd_metrics
+    def semantic_layer_action(
+        self,
+        uuid: str,
+        action_id: str,
+    ) -> FlaskResponse:
+        """Start a personal configuration action for an existing layer.
+        ---
+        post:
+          summary: Start a personal configuration action for a semantic layer
+          parameters:
+          - in: path
+            name: uuid
+            required: true
+            schema:
+              type: string
+              format: uuid
+          - in: path
+            name: action_id
+            required: true
+            schema:
+              type: string
+          - in: query
+            name: view_uuid
+            description: Semantic view through which the user accesses the layer
+            schema:
+              type: string
+              format: uuid
+          responses:
+            200:
+              description: Authorization URL and connection correlation ID
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          redirect_url:
+                            type: string
+                            format: uri
+                          tab_id:
+                            type: string
+                            format: uuid
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        layer, error = self._action_layer(uuid, request.args.get("view_uuid"))
+        if error is not None:
+            return error
+        assert layer is not None
+
+        cls = registry.get(layer.type)
+        if not cls:
+            return self.response_400(message=f"Unknown type: {layer.type}")
+        configuration = layer.configuration
+        if isinstance(configuration, str):
+            configuration = json.loads(configuration)
+
+        tab_id = str(uuid4())
+        completion_url = self._oauth2_completion_url(tab_id)
+        with semantic_layer_context(layer.type):
+            parsed_config = _parse_partial_config(cls, configuration or {})
+            try:
+                result = cls.execute_configuration_action(
+                    action_id,
+                    parsed_config,
+                    completion_url,
+                )
+            except ValueError as ex:
+                return self.response_400(message=str(ex))
+        return self.response(200, result={**asdict(result), "tab_id": tab_id})
+
+    @staticmethod
+    def _oauth2_completion_url(tab_id: str) -> str:
+        """Return the same-origin page that signals a completed connection."""
+        return url_for(
+            "SemanticLayerRestApi.oauth2_complete", tab_id=tab_id, _external=True
+        )
+
+    def _action_layer(
+        self, uuid: str, view_uuid: str | None = None
+    ) -> tuple[SemanticLayer | None, FlaskResponse | None]:
+        """Authorize a personal action using its originating data resource."""
+        if not is_feature_enabled("SEMANTIC_LAYERS"):
+            return None, self.response_404()
+        if get_user_id() is None:
+            return None, self.response_401()
+        layer = SemanticLayerDAO.find_by_uuid(uuid)
+        if layer is None:
+            return None, self.response_404()
+        try:
+            if view_uuid is None:
+                layer.raise_for_access()
+            else:
+                try:
+                    parsed_uuid = UUID(view_uuid)
+                except ValueError:
+                    return None, self.response_400(message="Invalid semantic view UUID")
+                view = (
+                    db.session.query(SemanticView)
+                    .filter(
+                        SemanticView.uuid == parsed_uuid,
+                        SemanticView.semantic_layer_uuid == layer.uuid,
+                    )
+                    .one_or_none()
+                )
+                if view is None:
+                    return None, self.response_404()
+                view.raise_for_access()
+        except SupersetSecurityException as ex:
+            return None, self.response(403, message=ex.message)
+        return layer, None
+
+    @expose("/<uuid>/oauth2/<action_id>", methods=("GET",))
+    @protect_read("SemanticLayer", "SemanticView")
+    @safe
+    @handle_api_exception
+    @statsd_metrics
+    def oauth2_start(self, uuid: str, action_id: str) -> FlaskResponse:
+        """Start a personal connection after an OAuth2 error link is clicked.
+        ---
+        get:
+          summary: Redirect to the semantic layer's authorization provider
+          parameters:
+          - in: path
+            name: uuid
+            required: true
+            schema:
+              type: string
+              format: uuid
+          - in: path
+            name: action_id
+            required: true
+            schema:
+              type: string
+          - in: query
+            name: tab_id
+            required: true
+            description: Correlation ID for the initiating browser tab
+            schema:
+              type: string
+              format: uuid
+          - in: query
+            name: view_uuid
+            description: Semantic view through which the user accesses the layer
+            schema:
+              type: string
+              format: uuid
+          responses:
+            302:
+              description: Redirect to the authorization provider
+              headers:
+                Location:
+                  description: Provider authorization URL
+                  schema:
+                    type: string
+                    format: uri
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        layer, error = self._action_layer(uuid, request.args.get("view_uuid"))
+        if error is not None:
+            return error
+        assert layer is not None
+        try:
+            tab_id = str(UUID(request.args.get("tab_id", "")))
+        except ValueError:
+            return self.response_400(message="Invalid OAuth2 tab ID")
+        cls = registry.get(layer.type)
+        if cls is None:
+            return self.response_400(message=f"Unknown type: {layer.type}")
+        configuration = json.loads(layer.configuration or "{}")
+        with semantic_layer_context(layer.type):
+            parsed_config = _parse_partial_config(cls, configuration)
+            try:
+                result = cls.execute_configuration_action(
+                    action_id, parsed_config, self._oauth2_completion_url(tab_id)
+                )
+            except ValueError:
+                return self.response_400(message="Unable to start the connection")
+        return redirect(result.redirect_url)
+
+    @expose("/oauth2/complete/<uuid:tab_id>", methods=("GET",))
+    @protect_read("SemanticLayer", "SemanticView")
+    @safe
+    def oauth2_complete(self, tab_id: UUID) -> FlaskResponse:
+        """Notify the initiating tab without exposing credentials to the browser.
+        ---
+        get:
+          summary: Notify the initiating tab that OAuth authorization completed
+          parameters:
+          - in: path
+            name: tab_id
+            required: true
+            schema:
+              type: string
+              format: uuid
+          responses:
+            200:
+              description: HTML page that signals completion without exposing tokens
+              content:
+                text/html:
+                  schema:
+                    type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not is_feature_enabled("SEMANTIC_LAYERS"):
+            return self.response_404()
+        if get_user_id() is None:
+            return self.response_401()
+        return make_response(
+            render_template("superset/oauth2.html", tab_id=str(tab_id))
+        )
+
     @expose("/<uuid>/schema/runtime", methods=("POST",))
     @protect()
     @safe
+    @handle_api_exception
     @statsd_metrics
     def runtime_schema(self, uuid: str) -> FlaskResponse:
         """Get runtime schema for a stored semantic layer.
@@ -919,10 +1385,13 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
             return self.response_400(message=f"Unknown type: {layer.type}")
 
         try:
-            schema = cls.get_runtime_schema(
-                layer.implementation.configuration,  # type: ignore[attr-defined]
-                runtime_data,
-            )
+            with semantic_layer_context(layer.type, str(layer.uuid)):
+                schema = cls.get_runtime_schema(
+                    layer.implementation.configuration,
+                    runtime_data,
+                )
+        except OAuth2RedirectError:
+            raise
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
         except Exception:  # pylint: disable=broad-except
@@ -938,6 +1407,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
     @expose("/<uuid>/views", methods=("POST",))
     @protect()
     @safe
+    @handle_api_exception
     @statsd_metrics
     def views(self, uuid: str) -> FlaskResponse:
         """List available views from a semantic layer.
@@ -984,6 +1454,8 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
         try:
             views = layer.implementation.get_semantic_views(runtime_data)
+        except OAuth2RedirectError:
+            raise
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
         except Exception as ex:  # pylint: disable=broad-except

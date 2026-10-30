@@ -17,12 +17,13 @@
 import base64
 import logging
 from abc import ABC, abstractmethod
+from copy import copy
 from dataclasses import dataclass
 from typing import Any, Optional
 
 from flask import current_app, Flask
 from flask_babel import lazy_gettext as _
-from sqlalchemy import Table, text, TypeDecorator
+from sqlalchemy import String, Table, text, TypeDecorator
 from sqlalchemy.engine import Connection, Dialect, Row
 from sqlalchemy_utils import EncryptedType as SqlaEncryptedType
 from sqlalchemy_utils.types.encrypted.encrypted_type import (
@@ -631,20 +632,39 @@ class SecretsMigrator:
             "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE", DEFAULT_ENCRYPTION_ENGINE_NAME
         )
         current_engine = resolve_encryption_engine(engine_name)
-        enc_type = EncryptedType(
-            table.columns[value_col].type,
-            key=self._secret_key,
-            engine=current_engine,
-        )
-
-        cols = ", ".join(pk_columns + [value_col])
+        extra_columns = ["user_fk"] if table_name == "extension_storage" else []
+        cols = ", ".join(pk_columns + [value_col] + extra_columns)
         rows = conn.execute(
             text(
                 f"SELECT {cols} FROM {table_name} WHERE {flag_col} = true"  # noqa: S608
             )
         )
         for row in rows:
-            self._re_encrypt_row(
+            migrator = self
+            value_type = table.columns[value_col].type
+            if table_name == "extension_storage":
+                # Storage encrypts a text envelope with a per-user key. Keep
+                # that envelope intact and use the same derivation for both keys.
+                from superset.extensions.storage.persistent_dao import (  # pylint: disable=import-outside-toplevel
+                    derive_user_key,
+                )
+
+                value_type = String()
+                user_fk = row._mapping["user_fk"]
+                if user_fk is not None:
+                    migrator = copy(self)
+                    migrator._secret_key = derive_user_key(self._secret_key, user_fk)
+                    migrator._previous_secret_key = (
+                        derive_user_key(self._previous_secret_key, user_fk)
+                        if self._previous_secret_key
+                        else None
+                    )
+            enc_type = EncryptedType(
+                value_type,
+                key=migrator._secret_key,
+                engine=current_engine,
+            )
+            migrator._re_encrypt_row(
                 conn,
                 row,
                 table_name,

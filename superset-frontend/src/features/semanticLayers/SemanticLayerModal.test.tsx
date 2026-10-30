@@ -745,3 +745,129 @@ test('A pending clear prevents edits and a closed editor ignores its late respon
   await act(async () => finish({ json: {} }));
   expect(props.addSuccessToast).not.toHaveBeenCalled();
 });
+
+test('starts a required semantic layer configuration action', async () => {
+  mockedPost
+    .mockResolvedValueOnce({
+      json: {
+        result: schemaWithExternalDeps,
+        actions: [
+          {
+            id: 'oauth2',
+            label: 'Connect to Quiver',
+            status: 'required',
+            required: true,
+          },
+        ],
+      },
+    })
+    .mockResolvedValueOnce({
+      json: {
+        result: {
+          redirect_url: 'https://auth.example.test/authorize',
+          tab_id: 'oauth-tab',
+        },
+      },
+    });
+  const popup = {
+    close: jest.fn(),
+    location: { replace: jest.fn() },
+  } as unknown as Window;
+  const open = jest.spyOn(window, 'open').mockReturnValue(popup);
+
+  render(<SemanticLayerModal {...props} />);
+
+  const connect = await screen.findByRole('button', {
+    name: 'Connect to Quiver',
+  });
+  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  fireEvent.click(connect);
+
+  await waitFor(() => {
+    expect(mockedPost).toHaveBeenNthCalledWith(2, {
+      endpoint: '/api/v1/semantic_layer/type/example/actions/oauth2',
+      jsonPayload: {
+        configuration: expect.any(Object),
+        semantic_layer_uuid: props.semanticLayerUuid,
+      },
+    });
+    expect(open).toHaveBeenCalledWith('', '_blank');
+    expect(popup.opener).toBeNull();
+    expect(popup.location.replace).toHaveBeenCalledWith(
+      'https://auth.example.test/authorize',
+    );
+    expect(open).toHaveBeenCalledTimes(1);
+  });
+
+  const callsBeforeCompletion = mockedPost.mock.calls.length;
+  fireEvent.focus(window);
+  expect(mockedPost).toHaveBeenCalledTimes(callsBeforeCompletion);
+  fireEvent(
+    window,
+    new StorageEvent('storage', {
+      key: 'oauth2_auth_complete',
+      newValue: JSON.stringify({ tabId: 'unrelated-flow' }),
+    }),
+  );
+  expect(mockedPost).toHaveBeenCalledTimes(callsBeforeCompletion);
+  fireEvent(
+    window,
+    new StorageEvent('storage', {
+      key: 'oauth2_auth_complete',
+      newValue: JSON.stringify({ tabId: 'oauth-tab' }),
+    }),
+  );
+  await waitFor(() =>
+    expect(mockedPost).toHaveBeenCalledTimes(callsBeforeCompletion + 1),
+  );
+  open.mockRestore();
+});
+
+test('allows another connection attempt after the popup is cancelled', async () => {
+  mockedPost
+    .mockResolvedValueOnce({
+      json: {
+        result: schemaWithExternalDeps,
+        actions: [
+          {
+            id: 'oauth2',
+            label: 'Connect',
+            status: 'required',
+            required: true,
+          },
+        ],
+      },
+    })
+    .mockResolvedValueOnce({
+      json: {
+        result: {
+          redirect_url: 'https://auth.example.test/authorize',
+          tab_id: 'cancelled-flow',
+        },
+      },
+    });
+  const popup = {
+    close: jest.fn(),
+    closed: false,
+    location: { replace: jest.fn() },
+  };
+  const open = jest
+    .spyOn(window, 'open')
+    .mockReturnValue(popup as unknown as Window);
+  render(<SemanticLayerModal {...props} />);
+  const connect = await screen.findByRole('button', { name: 'Connect' });
+  fireEvent.click(connect);
+  await waitFor(() =>
+    expect(popup.location.replace).toHaveBeenCalledWith(
+      'https://auth.example.test/authorize',
+    ),
+  );
+  expect(connect).toBeDisabled();
+  popup.closed = true;
+  await act(async () => {
+    jest.advanceTimersByTime(500);
+  });
+  expect(connect).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  open.mockRestore();
+});

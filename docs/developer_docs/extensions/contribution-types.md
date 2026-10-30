@@ -266,3 +266,60 @@ class MySemanticLayer(SemanticLayer[MyConfig, MySemanticView]):
 ```
 
 See [Semantic Layers Extension Point](./extension-points/semantic-layers.md) for implementation details.
+
+#### Personal OAuth2 connections
+
+Providers can expose a personal connection action by implementing
+`get_configuration_actions(configuration)` and
+`execute_configuration_action(action_id, configuration, return_url)`. The first
+hook returns `SemanticLayerAction` entries describing whether the authenticated
+user is connected. The second returns a `SemanticLayerActionResult` containing
+the provider's authorization URL. Providers without connection actions can keep
+the default implementations.
+
+Store access and refresh tokens using the Python-only
+[`get_context().storage.secrets` accessor](./storage.md#backend-only-secrets).
+Never put personal credentials in the shared layer configuration, action results,
+query results, logs, or exceptions. The host executes provider methods under the
+owning extension and requesting user's context, including background chart work.
+Semantic View query results, cached dimension values, and shared async query tasks
+are partitioned by user,
+including providers without connection actions. This reduces cache sharing for
+providers with identical results for all users, but declaring no actions does not
+establish that a provider returns user-independent data.
+
+When any provider operation requires authentication, raise the core exception:
+
+```python
+from superset_core.semantic_layers.layer import SemanticLayerAuthenticationRequiredError
+
+raise SemanticLayerAuthenticationRequiredError("oauth2")
+```
+
+Superset translates this into the existing `OAUTH2_REDIRECT` error contract for
+view discovery, metadata, filter values, and chart queries. The authorization
+link opens a protected start route, which checks access to the originating layer
+or specific view before invoking the provider's action. A grant on one view is
+sufficient to connect a personal account; it does not grant access to sibling
+views or permission to edit the layer.
+
+The host supplies a completion URL as `return_url`. The provider must preserve
+that URL in its server-side OAuth state and redirect there **after** validating
+the callback and durably saving the authenticated user's tokens. OAuth state,
+PKCE validation, token exchange, refresh, and revocation remain the provider's
+responsibility. The host completion page sends a correlation ID through
+`BroadcastChannel` and the storage-event fallback; it never sends credentials.
+The original tab then refreshes the configuration form or retries the failed
+operation. Returning browser focus before authorization completes does not
+consume the completion notification. Closing an unfinished connection window
+allows the user to start another attempt.
+
+The completion URL uses the request's externally visible host and scheme. Operators
+must configure their reverse proxy, forwarded headers, and allowed hosts so
+Superset sees its trusted public HTTPS origin. See the
+[reverse proxy configuration](/admin-docs/configuration/configuring-superset#configuration-behind-a-load-balancer).
+
+Action POST responses contain `result.redirect_url` and a host-generated
+`result.tab_id`. Both the configuration modal and the generic OAuth error UI
+use the same completion listener. No access or refresh token is returned in
+these responses.

@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-30 18:46+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1769,6 +1769,9 @@ msgstr ""
 msgid "Allow node selections"
 msgstr ""
 
+msgid "Allow popups to connect this semantic layer"
+msgstr ""
+
 msgid "Allow the execution of DDL (Data Definition Language: CREATE, DROP, TRUNCATE, etc.) and DML (Data Modification Language: INSERT, UPDATE, DELETE, etc)"
 msgstr ""
 
@@ -2069,6 +2072,9 @@ msgid "An error occurred while saving the semantic view"
 msgstr ""
 
 msgid "An error occurred while starring this chart"
+msgstr ""
+
+msgid "An error occurred while starting the connection"
 msgstr ""
 
 msgid "An error occurred while storing your query in the backend. To avoid losing your changes, please save your query using the \"Save Query\" button."
@@ -4083,6 +4089,9 @@ msgid "Connect this database with a SQLAlchemy URI string instead"
 msgstr ""
 
 msgid "Connect to engine"
+msgstr ""
+
+msgid "Connected"
 msgstr ""
 
 msgid "Connection"
@@ -6359,11 +6368,11 @@ msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr ""
 
 #, python-format
-msgid "Error in jinja expression in adhoc column: %(msg)s"
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
 msgstr ""
 
 #, python-format
-msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr ""
 
 #, python-format
@@ -14241,6 +14250,12 @@ msgstr ""
 msgid "The configuration for the map layers"
 msgstr ""
 
+msgid "The connection action did not return a URL"
+msgstr ""
+
+msgid "The connection action did not return a tab ID"
+msgstr ""
+
 msgid "The corner radius of the chart background"
 msgstr ""
 
@@ -15404,6 +15419,9 @@ msgstr ""
 msgid "This dashboard will be restored to the following version:"
 msgstr ""
 
+msgid "This data source uses OAuth2 for authentication. Please click the link above to grant Apache Superset permission to access the data. Your personal access token will be stored encrypted and used only for queries run by you."
+msgstr ""
+
 msgid "This database does not allow creating tables from queries (CTAS). Please contact your administrator for more assistance."
 msgstr ""
 
@@ -15417,9 +15435,6 @@ msgid "This database is managed externally, and can't be edited in Superset"
 msgstr ""
 
 msgid "This database table does not contain any data. Please select a different table."
-msgstr ""
-
-msgid "This database uses OAuth2 for authentication. Please click the link above to grant Apache Superset permission to access the data. Your personal access token will be stored encrypted and used only for queries run by you."
 msgstr ""
 
 msgid "This dataset is managed externally, and can't be edited in Superset"

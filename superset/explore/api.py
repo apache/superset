@@ -36,6 +36,7 @@ from superset.semantic_layers.access import (
     SemanticLayersDisabledError,
 )
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
+from superset.views.error_handling import handle_api_exception
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,7 @@ class ExploreRestApi(BaseSupersetApi):
     @expose("/", methods=("GET",))
     @protect()
     @safe
+    @handle_api_exception
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",

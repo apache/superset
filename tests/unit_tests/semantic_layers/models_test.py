@@ -63,6 +63,7 @@ from superset.semantic_layers.models import (
     SemanticLayer,
     SemanticView,
 )
+from superset.semantic_layers.registry import ContextualSemanticLayer
 from superset.superset_typing import ExplorableData
 from superset.utils.core import GenericDataType
 
@@ -361,14 +362,23 @@ def test_semantic_layer_implementation_is_scoped_to_owning_session(
         assert first_layer is not None
         assert second_layer is not None
         assert first_layer is not second_layer
-        first: LegacyLayer = cast(LegacyLayer, first_layer.implementation)
-        assert first_layer.implementation is first
-        second: LegacyLayer = cast(LegacyLayer, second_layer.implementation)
-        assert second_layer.implementation is second
-        assert first_layer.implementation is first
+        first: Any = first_layer.implementation
+        assert (
+            cast(ContextualSemanticLayer, first_layer.implementation)._implementation
+            is first._implementation
+        )
+        second: Any = second_layer.implementation
+        assert (
+            cast(ContextualSemanticLayer, second_layer.implementation)._implementation
+            is second._implementation
+        )
+        assert (
+            cast(ContextualSemanticLayer, first_layer.implementation)._implementation
+            is first._implementation
+        )
         assert first.context == second.context
         assert first.context.principal_id == "7"
-        assert first is not second
+        assert first._implementation is not second._implementation
         assert factory.call_count == 2
 
 
@@ -391,8 +401,14 @@ def test_semantic_layer_implementation(
     with patch.dict(
         "superset.semantic_layers.models.registry", {"test_type": mock_class}
     ):
-        assert layer.implementation is mock_impl
-        assert layer.implementation is mock_impl
+        assert (
+            cast(ContextualSemanticLayer, layer.implementation)._implementation
+            is mock_impl
+        )
+        assert (
+            cast(ContextualSemanticLayer, layer.implementation)._implementation
+            is mock_impl
+        )
     mock_class.from_configuration.assert_called_once_with(
         {"key": "value"},
         cache_token=layer.metadata_generation,
@@ -646,6 +662,7 @@ def test_semantic_view_get_extra_cache_keys(
         ]
         if version is not None:
             expected.append(("semantic-result-version", "fixture", version))
+        expected.append(("semantic_layer_user", None))
         assert view.get_extra_cache_keys({}) == expected
         assert composed_key != query.cache_key(extra_cache_keys=expected[1:])
         assert composed_key != query.cache_key(
@@ -1491,14 +1508,14 @@ def test_semantic_view_implementation(
     memo: SemanticBindingMemo = SemanticBindingMemo()
     mocker.patch.object(SemanticBindingMemo, "for_layer", return_value=memo)
     mocker.patch.object(memo, "bind", return_value=(provider, {}))
-    assert view.implementation is first
-    assert view.implementation is first
-    assert equivalent.implementation is first
+    assert view.implementation._implementation is first
+    assert view.implementation._implementation is first
+    assert equivalent.implementation._implementation is first
     provider.get_semantic_view.assert_called_once_with(
         "Test View", {"tenant": "A", "key": "value"}
     )
-    assert different.implementation is second
-    assert different.implementation is not first
+    assert different.implementation._implementation is second
+    assert different.implementation._implementation is not first
     assert provider.get_semantic_view.call_count == 2
     provider.get_semantic_view.assert_called_with(
         "Test View", {"tenant": "B", "key": "value"}
@@ -2917,6 +2934,7 @@ def test_result_generation_reads_class_without_provider_construction(
         ]
         if version is not None:
             expected.append(("semantic-result-version", "fixture", version))
+        expected.append(("semantic_layer_user", None))
         assert view.get_extra_cache_keys({}) == expected
     provider.assert_not_called()
 
@@ -3352,3 +3370,25 @@ def test_values_rejection_logs_view_and_dimension(
     assert "INVALID_FILTER" in caplog.text
     assert "private-search" not in caplog.text
     mock_implementation.get_values.assert_called_once()
+
+
+def test_personal_results_have_distinct_query_cache_keys(
+    mocker: MockerFixture, explicit_model_namespace: None
+) -> None:
+    """Two users cannot reuse each other's provider data or shared query task."""
+    from superset.common.query_object import QueryObject
+
+    provider = MagicMock()
+    provider.result_cache_version = None
+    mocker.patch.dict(
+        "superset.semantic_layers.models.registry", {"personal": provider}
+    )
+    view = SemanticView(id=1, semantic_layer=SemanticLayer(type="personal"))
+    query = QueryObject(columns=["country"])
+    with patch("superset.semantic_layers.models.get_user_id", return_value=42):
+        first = query.cache_key(extra_cache_keys=view.get_extra_cache_keys({}))
+        repeated = query.cache_key(extra_cache_keys=view.get_extra_cache_keys({}))
+    with patch("superset.semantic_layers.models.get_user_id", return_value=43):
+        second = query.cache_key(extra_cache_keys=view.get_extra_cache_keys({}))
+    assert first == repeated
+    assert first != second

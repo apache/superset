@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
-from typing import Any
+from typing import Any, cast
 from unittest.mock import ANY, call, Mock, patch, PropertyMock
 from uuid import uuid4
 
@@ -32,6 +32,10 @@ from superset_core.semantic_layers.context import ExecutionMethod
 from superset.commands.semantic_layer.exceptions import SemanticLayerUpdateFailedError
 from superset.commands.semantic_layer.update import UpdateSemanticLayerCommand
 from superset.semantic_layers.models import SemanticLayer, SemanticView
+from superset.semantic_layers.registry import (
+    ContextualSemanticLayer,
+    ContextualSemanticView,
+)
 
 pytestmark: pytest.MarkDecorator = pytest.mark.parametrize(
     "app", [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": True}}], indirect=True
@@ -151,7 +155,10 @@ def test_generation_binding_precedes_provider_construction(
         app.app_context(),
         patch.dict("superset.semantic_layers.models.registry", {"test": factory}),
     ):
-        assert layer.implementation is factory.from_configuration.return_value
+        assert (
+            cast(ContextualSemanticLayer, layer.implementation)._implementation
+            is factory.from_configuration.return_value
+        )
         factory.from_configuration.assert_called_once_with(
             {},
             cache_token=layer.metadata_generation,
@@ -163,6 +170,7 @@ def test_generation_binding_precedes_provider_construction(
         assert view.get_extra_cache_keys({}) == [
             layer.metadata_generation,
             "semantic-null-filters-v1",
+            ("semantic_layer_user", None),
         ]
 
 
@@ -180,6 +188,7 @@ def test_host_generation_is_named_apart_from_provider_token(
         assert view.get_extra_cache_keys({}) == [
             layer.metadata_generation,
             "semantic-null-filters-v1",
+            ("semantic_layer_user", None),
         ]
 
 
@@ -623,10 +632,15 @@ def test_clear_preserves_loaded_views_of_other_layers(
     from tests.unit_tests.semantic_layers.conftest import LegacyLayer
 
     with patch.dict("superset.semantic_layers.models.registry", {"test": LegacyLayer}):
-        implementation: Any = view.implementation
+        implementation = cast(
+            ContextualSemanticView, view.implementation
+        )._implementation
         before: str = view.metadata_generation
         layer.clear_metadata_cache()
-        assert view.implementation is implementation
+        assert (
+            cast(ContextualSemanticView, view.implementation)._implementation
+            is implementation
+        )
     assert view.metadata_generation == before
 
 
@@ -669,6 +683,7 @@ def test_cache_keys_compose_metadata_and_producer_versions(
             first_generation,
             "semantic-null-filters-v1",
             ("semantic-result-version", "test", "v1"),
+            ("semantic_layer_user", None),
         ]
         assert first_annotation["source_versions"] == {"7": first_generation}
         assert first_annotation["semantic_result_versions"] == {"7": ("test", "v1")}

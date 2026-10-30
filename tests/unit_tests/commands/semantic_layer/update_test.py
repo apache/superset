@@ -29,7 +29,7 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticViewNotFoundError,
 )
 from superset.commands.semantic_layer.update import (
-    _unmask_configuration,
+    unmask_stored_configuration,
     UpdateSemanticLayerCommand,
     UpdateSemanticViewCommand,
 )
@@ -484,14 +484,14 @@ def test_update_uniqueness_same_config_same_name_fails(
 
 
 # =============================================================================
-# _unmask_configuration tests
+# unmask_stored_configuration tests
 # =============================================================================
 
 
 def test_unmask_configuration_restores_masked_secret() -> None:
     """A masked write-only field in the payload is replaced by the stored
     value rather than overwriting the real credential with the mask."""
-    result: dict[str, Any] = _unmask_configuration(
+    result: dict[str, Any] = unmask_stored_configuration(
         '{"account": "test", "password": "hunter2"}',
         {"account": "test", "password": PASSWORD_MASK},
         "test_provider",
@@ -503,7 +503,7 @@ def test_unmask_configuration_restores_masked_secret() -> None:
 def test_unmask_configuration_keeps_fresh_secret() -> None:
     """A genuinely new secret value (not the mask sentinel) passes through
     unchanged."""
-    result: dict[str, Any] = _unmask_configuration(
+    result: dict[str, Any] = unmask_stored_configuration(
         '{"account": "test", "password": "old-secret"}',
         {"account": "test", "password": "new-secret"},
         "test_provider",
@@ -518,7 +518,7 @@ def test_unmask_configuration_restores_fail_closed_masked_fields() -> None:
     round-trip, not just write-only ones -- otherwise a name-only save
     persists the literal mask into non-secret fields like ``account`` once
     the schema becomes available again."""
-    result: dict[str, Any] = _unmask_configuration(
+    result: dict[str, Any] = unmask_stored_configuration(
         '{"account": "test", "database": "prod", "password": "hunter2"}',
         {
             "account": PASSWORD_MASK,
@@ -538,7 +538,7 @@ def test_unmask_configuration_restores_fail_closed_masked_fields() -> None:
 def test_unmask_configuration_missing_existing_key() -> None:
     """A masked field with no corresponding stored value passes through
     unchanged rather than raising."""
-    result: dict[str, Any] = _unmask_configuration(
+    result: dict[str, Any] = unmask_stored_configuration(
         '{"account": "test"}',
         {"account": "test", "password": PASSWORD_MASK},
         "test_provider",
@@ -558,7 +558,7 @@ def test_unmask_configuration_rejects_secret_reveal_with_changed_field() -> None
     config, silently leaking it on the next legitimate use of this layer.
     """
     with pytest.raises(SemanticLayerInvalidError):
-        _unmask_configuration(
+        unmask_stored_configuration(
             '{"account": "prod-account", "password": "hunter2"}',
             {"account": "attacker-account", "password": PASSWORD_MASK},
             "test_provider",
@@ -575,7 +575,7 @@ def test_unmask_configuration_rejects_secret_reveal_with_new_none_valued_key() -
     it.
     """
     with pytest.raises(SemanticLayerInvalidError):
-        _unmask_configuration(
+        unmask_stored_configuration(
             '{"account": "prod-account", "password": "hunter2"}',
             {
                 "account": "prod-account",
@@ -594,7 +594,7 @@ def test_unmask_configuration_rejects_secret_reveal_with_removed_key() -> None:
     Comparing only the submitted keys would let that through.
     """
     with pytest.raises(SemanticLayerInvalidError):
-        _unmask_configuration(
+        unmask_stored_configuration(
             '{"account": "prod-account", "region": "eu-west-1", "password": "hunter2"}',
             {"account": "prod-account", "password": PASSWORD_MASK},
             "test_provider",
@@ -606,7 +606,7 @@ def test_unmask_configuration_allows_removed_key_with_fresh_secret() -> None:
     Dropping a stored key is still allowed when a genuinely fresh secret is
     supplied alongside it -- only the masked round-trip is restricted.
     """
-    result = _unmask_configuration(
+    result = unmask_stored_configuration(
         '{"account": "prod-account", "region": "eu-west-1", "password": "hunter2"}',
         {"account": "prod-account", "password": "fresh-secret"},
         "test_provider",
@@ -620,7 +620,7 @@ def test_unmask_configuration_allows_fresh_secret_with_changed_field() -> None:
     A deliberate configuration change is still possible when a genuinely
     fresh (non-masked) secret is supplied alongside it.
     """
-    result = _unmask_configuration(
+    result = unmask_stored_configuration(
         '{"account": "prod-account", "password": "hunter2"}',
         {"account": "new-account", "password": "fresh-secret"},
         "test_provider",
@@ -634,7 +634,7 @@ def test_unmask_configuration_allows_unrelated_field_addition_with_no_mask() -> 
     Adding/changing fields with no masked value present at all is
     unaffected -- there's no secret being reused, so nothing to protect.
     """
-    result = _unmask_configuration(
+    result = unmask_stored_configuration(
         '{"account": "prod-account"}',
         {"account": "new-account", "extra_option": "value"},
         "test_provider",

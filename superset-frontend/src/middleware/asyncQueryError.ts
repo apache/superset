@@ -16,16 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/core';
+import {
+  ErrorTypeEnum,
+  SupersetClient,
+  SupersetError,
+} from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 
 const ERROR_DETAIL_TIMEOUT_MS = 5000;
 type CompletenessReason = 'incomplete' | 'unverified';
+type TaskFailureDetail = {
+  reason: CompletenessReason | null;
+  errors: SupersetError<Record<string, unknown>>[];
+};
 
-const fetchCompletenessReason = async (
+const fetchFailureDetail = async (
   taskId: string,
   signal: AbortSignal,
-): Promise<CompletenessReason | null> => {
+): Promise<TaskFailureDetail | null> => {
   try {
     // Use the protected detail route; status notifications carry no error data.
     const { json } = await SupersetClient.get({
@@ -39,19 +47,34 @@ const fetchCompletenessReason = async (
       !('status' in task) ||
       task.status !== 'failure' ||
       !('task_type' in task) ||
-      task.task_type !== 'superset.query_object_v1' ||
-      !('payload' in task)
+      task.task_type !== 'superset.query_object_v1'
     )
       return null;
-    const { payload } = task;
-    if (
-      !payload ||
-      typeof payload !== 'object' ||
-      !('semantic_result_error' in payload)
-    )
-      return null;
-    const reason = payload.semantic_result_error;
-    return reason === 'incomplete' || reason === 'unverified' ? reason : null;
+    const payload = 'payload' in task ? task.payload : null;
+    const reason =
+      payload &&
+      typeof payload === 'object' &&
+      'semantic_result_error' in payload
+        ? payload.semantic_result_error
+        : null;
+    const properties = 'properties' in task ? task.properties : null;
+    const errors: SupersetError<Record<string, unknown>>[] =
+      properties &&
+      typeof properties === 'object' &&
+      'errors' in properties &&
+      Array.isArray(properties.errors)
+        ? properties.errors.filter(
+            error =>
+              error?.error_type === ErrorTypeEnum.OAUTH2_REDIRECT &&
+              typeof error.extra?.url === 'string' &&
+              typeof error.extra?.tab_id === 'string',
+          )
+        : [];
+    return {
+      reason:
+        reason === 'incomplete' || reason === 'unverified' ? reason : null,
+      errors,
+    };
   } catch {
     // Access revocation, unavailable details and malformed responses all fall back.
     return null;
@@ -62,7 +85,7 @@ export const getAsyncQueryError = async (
   taskIds: string[],
   signal?: AbortSignal,
   failureMessage?: string,
-): Promise<Error> => {
+): Promise<Error & { errors?: SupersetError<Record<string, unknown>>[] }> => {
   const controller = new AbortController();
   let abort!: () => void;
   const cancelled = new Promise<null>(resolve => {
@@ -75,14 +98,17 @@ export const getAsyncQueryError = async (
   if (signal?.aborted) abort();
   const timeout = window.setTimeout(abort, ERROR_DETAIL_TIMEOUT_MS);
   try {
-    const reasons = await Promise.race([
+    const details = await Promise.race([
       Promise.all(
-        taskIds.map(taskId =>
-          fetchCompletenessReason(taskId, controller.signal),
-        ),
+        taskIds.map(taskId => fetchFailureDetail(taskId, controller.signal)),
       ),
       cancelled,
     ]);
+    const errors = details?.flatMap(detail => detail?.errors ?? []) ?? [];
+    if (errors.length) {
+      return Object.assign(new Error(t('Authorization needed')), { errors });
+    }
+    const reasons = details?.map(detail => detail?.reason ?? null);
     // Keep this fixed guidance aligned with SemanticResultCompletenessError
     // in superset/exceptions.py; never substitute text from task details.
     // A mixed failure must not imply that this guidance fixes every failed query.

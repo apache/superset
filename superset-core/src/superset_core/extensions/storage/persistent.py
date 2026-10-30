@@ -46,7 +46,7 @@ Usage (via extension context - preferred):
 
     # Encrypted at rest
     ctx.storage.persistent.set(
-        'api_token', 'sk-...', PersistentSetOptions(encrypt=True)
+        'private_note', 'draft', PersistentSetOptions(encrypt=True)
     )
 
     # Listing entries (page and page_size are required)

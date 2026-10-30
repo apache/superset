@@ -741,6 +741,16 @@ floats), and non-finite Decimals in those columns become null. Other chart
 result serialization and chart number formatting are unchanged. Re-run queries
 whose cached JSON results were produced before upgrading all workers.
 
+
+### Downgrading backend-only extension secrets
+
+Migration `4c8f2a1d9b73` adds backend-only extension storage for personal secrets,
+including OAuth tokens. Downgrading past this migration permanently deletes all
+storage rows marked `access=backend` before removing the access classification.
+This prevents secrets from becoming readable through the older browser storage
+API. Back up the metadata database before downgrading. Users must reconnect their
+personal accounts if they upgrade again after the downgrade.
+
 ### Version history retention setting
 
 Use `VERSION_HISTORY_RETENTION_DAYS` for both the application setting and

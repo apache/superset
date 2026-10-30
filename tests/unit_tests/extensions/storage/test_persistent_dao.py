@@ -26,13 +26,17 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from flask import Flask
 from flask_babel import Babel
+from sqlalchemy.dialects.sqlite import dialect
 from sqlalchemy.orm.session import Session
+from superset_core.extensions.storage.models import StorageAccess
 
 from superset.extensions.storage.codecs import get_codec
 from superset.extensions.storage.filters import ExtensionStorageFilter
 from superset.extensions.storage.persistent_dao import (
-    _derive_key,
+    _decrypt_value,
     _enc_type,
+    _encrypt_value,
+    derive_user_key,
     ExtensionStorageDAO,
     ExtensionStorageKeyTooLong,
     ExtensionStorageListPayloadTooLarge,
@@ -126,6 +130,7 @@ def _create_entry(
     resource_type: str | None = None,
     resource_uuid: str | None = None,
     is_encrypted: bool = False,
+    access: StorageAccess = StorageAccess.FRONTEND,
 ) -> ExtensionStorage:
     """Insert an ExtensionStorage row directly, bypassing DAO.set() (whose
     own validation isn't what these `list()` tests are exercising)."""
@@ -139,6 +144,7 @@ def _create_entry(
         resource_type=resource_type,
         resource_uuid=resource_uuid,
         is_encrypted=is_encrypted,
+        access=access.value,
     )
     session.add(entry)
     session.flush()
@@ -383,6 +389,34 @@ def test_dao_set_encrypts_value_when_requested(
     assert added_entry.value == b"ciphertext"
     assert added_entry.value_size == len(b"ciphertext")
     assert added_entry.is_encrypted is True
+
+
+@patch("superset.extensions.storage.persistent_dao._enc_type")
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_set_forces_encryption_for_backend_access(
+    mock_db: MagicMock,
+    mock_enc_type: MagicMock,
+    app: Flask,
+) -> None:
+    """Backend-only values are encrypted even when encrypt is omitted."""
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+    mock_enc_type.return_value.process_bind_param.return_value = b"ciphertext"
+
+    with app.app_context():
+        ExtensionStorageDAO.set(
+            "my-ext",
+            "token",
+            b"plaintext",
+            user_fk=1,
+            access=StorageAccess.BACKEND,
+        )
+
+    added_entry = mock_db.session.add.call_args[0][0]
+    assert added_entry.is_encrypted is True
+    assert added_entry.access == StorageAccess.BACKEND.value
+    mock_enc_type.return_value.process_bind_param.assert_called_once_with(
+        b"plaintext", mock_db.engine.dialect
+    )
 
 
 # ── value size ────────────────────────────────────────────────────────────────
@@ -683,7 +717,7 @@ def test_enc_type_user_scoped_uses_derived_key(app: Flask) -> None:
     with app.app_context():
         secret = app.config["SECRET_KEY"]
         enc = _enc_type(user_fk=42)
-        expected_key = _derive_key(secret, 42)
+        expected_key = derive_user_key(secret, 42)
         # The key lambda on the EncryptedType resolves to the derived key.
         assert enc.key == expected_key
 
@@ -793,6 +827,33 @@ def test_enc_type_rejects_plaintext_that_is_neither_base64_nor_bytes(
             enc.process_result_value(ciphertext, None)
 
 
+@pytest.mark.parametrize("engine", ["aes", "aes-gcm"])
+def test_encrypted_value_round_trip_preserves_arbitrary_bytes(
+    app: Flask, engine: str
+) -> None:
+    """The real encryption types round-trip binary codec output."""
+    value = b"\x00\x80binary\xff"
+    app.config["SQLALCHEMY_ENCRYPTED_FIELD_ENGINE"] = engine
+
+    with app.app_context():
+        encrypted = _encrypt_value(value, user_fk=42, dialect=dialect())
+        assert _decrypt_value(encrypted, user_fk=42, dialect=dialect()) == value
+
+
+def test_decrypt_value_reads_legacy_bytes_representation(app: Flask) -> None:
+    """Secrets written by the initial byte-based implementation remain readable."""
+    with app.app_context():
+        enc = _enc_type(user_fk=42)
+        enc._update_key()
+        encrypted = enc.engine.encrypt(
+            "superset-extension-storage:v1:eyJhY2Nlc3NfdG9rZW4iOiJ0b2tlbiJ9"
+        ).encode()
+
+        assert _decrypt_value(encrypted, user_fk=42, dialect=dialect()) == (
+            b'{"access_token":"token"}'
+        )
+
+
 # ── list ──────────────────────────────────────────────────────────────────────
 
 
@@ -839,6 +900,28 @@ def test_list_scopes_by_user_fk(app: Flask, list_session: Session) -> None:
 
     assert total_count == 1
     assert entries[0].key == "mine"
+
+
+def test_list_scopes_by_access(app: Flask, list_session: Session) -> None:
+    """Frontend listing cannot count or return backend-only entries."""
+    _create_entry(list_session, "my-ext", "preference", user_fk=1)
+    _create_entry(
+        list_session,
+        "my-ext",
+        "oauth2",
+        user_fk=1,
+        access=StorageAccess.BACKEND,
+    )
+
+    with app.app_context():
+        entries, total_count = ExtensionStorageDAO.list_entries(
+            "my-ext",
+            user_fk=1,
+            access=StorageAccess.FRONTEND,
+        )
+
+    assert total_count == 1
+    assert entries[0].key == "preference"
 
 
 def test_list_scopes_by_resource(app: Flask, list_session: Session) -> None:

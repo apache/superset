@@ -51,7 +51,7 @@ from superset.key_value.types import (
     SEMANTIC_INSTALL_ID_KEY,
 )
 from superset.semantic_layers.exceptions import provider_code
-from superset.semantic_layers.registry import registry
+from superset.semantic_layers.registry import registry, semantic_layer_context
 from superset.utils import json
 
 if TYPE_CHECKING:
@@ -317,7 +317,7 @@ class SemanticBindingMemo:
                 del self.bindings[key]
 
     def bind(
-        self, layer: SemanticLayer
+        self, layer: SemanticLayer, view_uuid: str | None = None
     ) -> tuple[ProviderLayer[Any, Any], dict[tuple[str, str], ProviderView]]:
         """Construct once after policy validation, including on a warm memo hit."""
         context: SemanticExecutionContext = current_host_execution_context()
@@ -331,7 +331,10 @@ class SemanticBindingMemo:
             provider: type[ProviderLayer[Any, Any]] = registry[layer.type]
             configuration: dict[str, Any] = json.loads(layer.configuration)
             cache_token: str = layer.metadata_generation
-            with provider_code():
+            with (
+                provider_code(),
+                semantic_layer_context(layer.type, str(layer.uuid), view_uuid),
+            ):
                 bound: ProviderLayer[Any, Any] = provider.from_configuration(
                     configuration,
                     cache_token=cache_token,

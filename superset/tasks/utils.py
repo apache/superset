@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import traceback
+from dataclasses import asdict
 from datetime import datetime
 from http.client import HTTPResponse
 from typing import Any, cast, Final, TYPE_CHECKING
@@ -29,6 +30,7 @@ from celery.utils.log import get_task_logger
 from flask import current_app, g
 from superset_core.tasks.types import TaskProperties, TaskScope
 
+from superset.semantic_layers.oauth2 import SemanticLayerOAuth2RedirectError
 from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
 from superset.tasks.types import (
     ChosenExecutor,
@@ -344,6 +346,11 @@ def error_update(exception: BaseException) -> TaskProperties:
         TaskProperties,
         {
             "error_message": str(exception),
+            **(
+                {"errors": [asdict(exception.error)]}
+                if isinstance(exception, SemanticLayerOAuth2RedirectError)
+                else {}
+            ),
             "private": {
                 "framework": {
                     "exception_type": type(exception).__name__,

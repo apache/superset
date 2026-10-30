@@ -23,6 +23,7 @@ from uuid import uuid4
 
 import pandas as pd
 import pytest
+from flask import Flask, g, has_request_context
 from pytest_mock import MockerFixture
 from superset_core.tasks.types import TaskStatus
 
@@ -730,3 +731,87 @@ def test_completeness_failure_does_not_publish_task_success(
         task_context.update_task.assert_called_once_with(
             payload={"semantic_result_error": reason}, immediate=True
         )
+
+
+@pytest.mark.parametrize("user_id", [42, 43])
+def test_semantic_query_worker_installs_requesting_principal(
+    app: Flask, mocker: MockerFixture, user_id: int
+) -> None:
+    """Celery execution scopes provider secrets and result cache keys to its user."""
+    from superset.extensions.context import get_context as get_extension_context
+    from superset.extensions.storage.secrets import SecretsState
+    from superset.semantic_layers.models import SemanticView
+    from superset.semantic_layers.registry import (
+        contextualize_semantic_layer,
+        register_semantic_layer,
+        unregister_semantic_layer,
+    )
+    from superset.tasks.async_queries import execute_chart_query
+    from tests.unit_tests.extensions.storage.conftest import create_manifest
+
+    manifest = create_manifest("acme", "semantic")
+    provider_id = "extensions.acme.semantic.worker"
+    user = mocker.MagicMock(id=user_id)
+    mocker.patch(
+        "superset.tasks.async_queries.security_manager.get_user_by_id",
+        return_value=user,
+    )
+    get_secret = mocker.patch(
+        "superset.extensions.storage.secrets.ExtensionStorageDAO.get_decoded_value",
+        return_value="personal-token",
+    )
+    provider = mocker.MagicMock()
+
+    def provider_operation() -> str:
+        assert get_extension_context().user_id == user_id
+        assert SecretsState.get("token") == "personal-token"
+        return "orders"
+
+    provider.get_semantic_view.return_value.uid.side_effect = provider_operation
+    register_semantic_layer(provider_id, mocker.MagicMock(), manifest)
+    proxy = contextualize_semantic_layer(provider_id, provider)
+    query_context = _fake_query_context(num_queries=1)
+    query_context.datasource = SemanticView(id=1)
+    mocker.patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=mock.PropertyMock,
+        return_value=proxy.get_semantic_view("orders", {}),
+    )
+    mocker.patch.object(
+        SemanticView,
+        "result_cache_discriminator",
+        new_callable=mock.PropertyMock,
+        return_value=None,
+    )
+    mocker.patch.object(
+        SemanticView,
+        "metadata_generation",
+        new_callable=mock.PropertyMock,
+        return_value="generation",
+    )
+
+    def execute_query(query: object) -> mock.MagicMock:
+        assert not has_request_context()
+        assert query_context.datasource.implementation.uid() == "orders"
+        assert ("semantic_layer_user", user_id) in (
+            query_context.datasource.get_extra_cache_keys({})
+        )
+        return mocker.MagicMock(payload={})
+
+    query_context.get_df_payload_result.side_effect = execute_query
+    mocker.patch(
+        "superset.tasks.async_queries.load_serialized_query", return_value=query_context
+    )
+    mocker.patch(
+        "superset.tasks.async_queries.get_context", return_value=mocker.MagicMock()
+    )
+    try:
+        with app.app_context():
+            g.user = None
+            execute_chart_query.func(_serialized_query(), user_id=user_id)
+            assert g.user is None
+        query_context.get_df_payload_result.assert_called_once()
+        assert get_secret.call_args.kwargs["user_fk"] == user_id
+    finally:
+        unregister_semantic_layer(provider_id)
