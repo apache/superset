@@ -110,8 +110,10 @@ def validate_partition_key(value: str) -> None:
     column can hold is refused here rather than sent to the engine.
     """
     if not _PARTITION_KEY_RE.fullmatch(value) or not (-(2**63) <= int(value) < 2**63):
+        # `str`, because marshmallow reads a lazy string as a list of messages
+        # and reports it one character at a time.
         raise ValidationError(
-            _("A partition key must be a whole number within the 64-bit range.")
+            str(_("A partition key must be a whole number within the 64-bit range."))
         )
 
 

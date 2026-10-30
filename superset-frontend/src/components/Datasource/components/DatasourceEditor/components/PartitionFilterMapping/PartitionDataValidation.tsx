@@ -39,8 +39,10 @@ interface Props {
   disabledReason?: string;
 }
 
-const INT64_MIN = -(BigInt(2) ** BigInt(63));
-const INT64_MAX = BigInt(2) ** BigInt(63) - BigInt(1);
+// Spelled out: the build lowers `**` to `Math.pow`, which throws on a BigInt
+// as the module loads.
+const INT64_MIN = BigInt('-9223372036854775808');
+const INT64_MAX = BigInt('9223372036854775807');
 
 /** A 64-bit integer written as plain digits, as the API accepts it. */
 function isPartitionKey(key: string): boolean {

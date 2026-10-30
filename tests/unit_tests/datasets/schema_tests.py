@@ -477,5 +477,9 @@ def test_validate_partition_key_accepts_64_bit_integers(key: str) -> None:
 )
 def test_validate_partition_key_refuses_anything_else(key: str) -> None:
     """A trailing newline passed a `$` anchor; out-of-range keys reached the engine."""
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as excinfo:
         validate_partition_key(key)
+    # One message, not one per character of a lazy string.
+    assert excinfo.value.messages == [
+        "A partition key must be a whole number within the 64-bit range."
+    ]
