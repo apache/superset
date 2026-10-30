@@ -347,6 +347,43 @@ def test_catalog_cache() -> None:
 
     assert database.catalog_cache_enabled
     assert database.catalog_cache_timeout == 10
+    assert not database.schema_cache_enabled
+    assert database.schema_cache_timeout is None
+
+
+@pytest.mark.parametrize("level", ["catalog", "schema", "table"])
+@pytest.mark.parametrize(
+    "stored, expected",
+    [
+        (3600, 3600),
+        (0, 0),
+        ("3600", 3600),
+        ("0", 0),
+        ("", None),
+        ("1h", None),
+        ("-5", None),
+        (" 60", None),
+        ("\u0663", None),
+        (True, None),
+        (None, None),
+    ],
+)
+def test_metadata_cache_timeout_legacy_values(
+    level: str, stored: object, expected: int | None
+) -> None:
+    """
+    Legacy string timeouts are read as integers, and other non-integer values fall
+    back to the default timeout instead of reaching the cache backend.
+    """
+    key = f"{level}_cache_timeout"
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+        extra=json.dumps({"metadata_cache_timeout": {key: stored}}),
+    )
+
+    assert getattr(database, f"{level}_cache_enabled")
+    assert getattr(database, key) == expected
 
 
 def test_get_default_catalog() -> None:

@@ -462,13 +462,34 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
     def metadata_cache_timeout(self) -> dict[str, Any]:
         return self.get_extra().get("metadata_cache_timeout", {})
 
+    def _metadata_cache_timeout_value(self, key: str) -> int | None:
+        """
+        Return a metadata cache timeout as an integer number of seconds.
+
+        Older database forms stored these timeouts as strings, which cache backends
+        reject. A string of ASCII digits is read as its integer value; any other
+        non-integer value falls back to the default timeout (``None``).
+        """
+        value = self.metadata_cache_timeout.get(key)
+        if isinstance(value, int) and not isinstance(value, bool):
+            return value
+        if isinstance(value, str) and value.isascii() and value.isdigit():
+            return int(value)
+        if value is not None:
+            logger.warning(
+                "Ignoring invalid %s on database %s; using the default timeout",
+                key,
+                self.id,
+            )
+        return None
+
     @property
     def catalog_cache_enabled(self) -> bool:
         return "catalog_cache_timeout" in self.metadata_cache_timeout
 
     @property
     def catalog_cache_timeout(self) -> int | None:
-        return self.metadata_cache_timeout.get("catalog_cache_timeout")
+        return self._metadata_cache_timeout_value("catalog_cache_timeout")
 
     @property
     def schema_cache_enabled(self) -> bool:
@@ -476,7 +497,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     @property
     def schema_cache_timeout(self) -> int | None:
-        return self.metadata_cache_timeout.get("schema_cache_timeout")
+        return self._metadata_cache_timeout_value("schema_cache_timeout")
 
     @property
     def table_cache_enabled(self) -> bool:
@@ -484,7 +505,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     @property
     def table_cache_timeout(self) -> int | None:
-        return self.metadata_cache_timeout.get("table_cache_timeout")
+        return self._metadata_cache_timeout_value("table_cache_timeout")
 
     @property
     def default_schemas(self) -> list[str]:
