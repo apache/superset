@@ -3479,6 +3479,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         TimeRangeAmbiguousError,
                         ValidationError,
                         ValueError,
+                        TypeError,
                     ) as ex:
                         raise QueryObjectValidationError(str(ex)) from ex
 
@@ -3616,6 +3617,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                                 TimeRangeAmbiguousError,
                                 ValidationError,
                                 ValueError,
+                                TypeError,
                             ) as ex:
                                 col_name = flt.get("col") or "unknown"
                                 raise QueryObjectValidationError(
@@ -7959,6 +7961,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             TimeRangeAmbiguousError,
                             ValidationError,
                             ValueError,
+                            TypeError,
                         ) as ex:
                             col_name = (
                                 col_obj.column_name
@@ -7966,8 +7969,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                                 else str(col_obj)
                             )
                             raise QueryObjectValidationError(
-                                f"Cannot parse time range for filter "
-                                f"'{col_name}': {ex}"
+                                f"Cannot parse time range for filter '{col_name}': {ex}"
                             ) from ex
                         _temporal_filter = self.get_time_filter(
                             time_col=col_obj,
