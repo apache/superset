@@ -60,10 +60,14 @@ def _carried_secure_extra(masked_encrypted_extra: str | None) -> str | None:
         return None
     if not isinstance(secure_extra, dict):
         return None
+    # An engine masking with ``$.*`` (Databricks, the base spec) replaces a whole
+    # block with a mask string. Carrying it would have the import ask for the
+    # block and store the answer as a string no query can use as an OAuth2
+    # client, so only blocks masked field by field travel.
     carried = {
         key: secure_extra[key]
         for key in _CARRIED_SECURE_EXTRA_KEYS
-        if secure_extra.get(key)
+        if isinstance(secure_extra.get(key), dict) and secure_extra[key]
     }
     return json.dumps(carried) if carried else None
 

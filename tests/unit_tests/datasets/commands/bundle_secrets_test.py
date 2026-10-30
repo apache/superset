@@ -233,3 +233,33 @@ def test_bundle_export_carries_no_secure_extra_without_the_blocks(
     assert "masked_encrypted_extra" not in config
     for content in bundle.values():
         assert "PRIVATE KEY" not in content
+
+
+def test_bundle_export_skips_blocks_masked_whole(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An engine that masks Secure Extra with ``$.*`` (Databricks, the base spec)
+    turns each block into a bare mask string. The bundle carries no such block:
+    an import would ask for ``$.oauth2_client_info`` and store the answer as a
+    string, which every query then fails to read as an OAuth2 client.
+    """
+    from superset import security_manager
+    from superset.commands.dataset.importers.v1 import ImportDatasetsCommand
+    from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    bundle = _export_bundle()
+
+    config = yaml.safe_load(bundle[_database_file(bundle)])
+
+    assert "masked_encrypted_extra" not in config
+    for content in bundle.values():
+        assert PASSWORD_MASK not in content
+
+    ImportDatasetsCommand(bundle).run()
+
+    imported = db.session.query(Database).filter_by(database_name="promoted").one()
+    assert imported.encrypted_extra is None
+
