@@ -34,6 +34,7 @@ import {
 } from 'src/components/Modal';
 import { styled } from '@apache-superset/core/theme';
 import useOAuth2Completion from 'src/hooks/useOAuth2Completion';
+import { navigateOpenedTab, openBlankTab } from 'src/utils/navigationUtils';
 import {
   renderers,
   sanitizeSchema,
@@ -406,11 +407,7 @@ export default function SemanticLayerModal({
 
   const handleConfigurationAction = async (action: SemanticLayerAction) => {
     if (!selectedType) return;
-    const popup = window.open(
-      '',
-      `semantic-layer-action-${action.id}`,
-      'popup,width=720,height=800',
-    );
+    const popup = openBlankTab();
     if (!popup) {
       addDangerToast(t('Allow popups to connect this semantic layer'));
       return;
@@ -439,7 +436,7 @@ export default function SemanticLayerModal({
       }
       oauthPopupRef.current = popup;
       setOauthTabId(tabId);
-      popup.location.href = redirectUrl;
+      navigateOpenedTab(popup, redirectUrl);
     } catch (error) {
       popup.close();
       const clientError = await getClientErrorObject(error);

@@ -771,7 +771,7 @@ test('starts a required semantic layer configuration action', async () => {
     });
   const popup = {
     close: jest.fn(),
-    location: { href: '' },
+    location: { replace: jest.fn() },
   } as unknown as Window;
   const open = jest.spyOn(window, 'open').mockReturnValue(popup);
 
@@ -791,12 +791,12 @@ test('starts a required semantic layer configuration action', async () => {
         semantic_layer_uuid: props.semanticLayerUuid,
       },
     });
-    expect(open).toHaveBeenCalledWith(
-      '',
-      'semantic-layer-action-oauth2',
-      'popup,width=720,height=800',
+    expect(open).toHaveBeenCalledWith('', '_blank');
+    expect(popup.opener).toBeNull();
+    expect(popup.location.replace).toHaveBeenCalledWith(
+      'https://auth.example.test/authorize',
     );
-    expect(popup.location.href).toBe('https://auth.example.test/authorize');
+    expect(open).toHaveBeenCalledTimes(1);
   });
 
   const callsBeforeCompletion = mockedPost.mock.calls.length;
@@ -846,14 +846,22 @@ test('allows another connection attempt after the popup is cancelled', async () 
         },
       },
     });
-  const popup = { close: jest.fn(), closed: false, location: { href: '' } };
+  const popup = {
+    close: jest.fn(),
+    closed: false,
+    location: { replace: jest.fn() },
+  };
   const open = jest
     .spyOn(window, 'open')
     .mockReturnValue(popup as unknown as Window);
   render(<SemanticLayerModal {...props} />);
   const connect = await screen.findByRole('button', { name: 'Connect' });
   fireEvent.click(connect);
-  await waitFor(() => expect(popup.location.href).toContain('/authorize'));
+  await waitFor(() =>
+    expect(popup.location.replace).toHaveBeenCalledWith(
+      'https://auth.example.test/authorize',
+    ),
+  );
   expect(connect).toBeDisabled();
   popup.closed = true;
   await act(async () => {
