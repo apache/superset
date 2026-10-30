@@ -154,8 +154,8 @@ class SemanticProviderConformance:
         result: SemanticResult = semantic_view.get_table(query)
         _assert_result_equal(result.results, expected)
         assert set(result.results.column_names) == {
-            member.name for member in [*query.dimensions, *query.metrics]
-        }
+            d.name for d in query.dimensions
+        } | {m.name for m in query.metrics}
 
     @pytest.mark.parametrize("method", ["get_table", "get_values", "get_row_count"])
     @pytest.mark.parametrize("kind", ["refusal", "fault", "incomplete", "unverified"])
