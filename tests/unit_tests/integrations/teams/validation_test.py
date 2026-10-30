@@ -160,6 +160,7 @@ def command_dependencies(monkeypatch: pytest.MonkeyPatch) -> None:
         "validate_report_frequency",
         "_validate_report_extra",
         "validate_recipients_policy",
+        "validate_executor_target_access",
     ):
         monkeypatch.setattr(BaseReportScheduleCommand, method, MagicMock())
     monkeypatch.setattr(

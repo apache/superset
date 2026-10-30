@@ -39,7 +39,7 @@ from superset.integrations.teams.models import TeamsInstallation
 from superset.integrations.teams.store import TeamsInstallationStore
 
 migration = import_module(
-    "superset.migrations.versions.2026-10-19_00-00_7b9d2f8a6c31_add_teams_installations"
+    "superset.migrations.versions.2026-10-28_00-00_7b9d2f8a6c31_add_teams_installations"
 )
 TENANT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 APPLICATION = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"

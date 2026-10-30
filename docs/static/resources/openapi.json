@@ -9448,7 +9448,8 @@
               "Email",
               "Slack",
               "SlackV2",
-              "Webhook"
+              "Webhook",
+              "Teams"
             ],
             "type": "string"
           }
@@ -29201,6 +29202,59 @@
           }
         ],
         "summary": "Subscribe to a chart or dashboard report",
+        "tags": [
+          "Report Schedules"
+        ]
+      }
+    },
+    "/api/v1/report/teams_destinations/": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "items": {
+                        "properties": {
+                          "available": {
+                            "type": "boolean"
+                          },
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Approved destinations and installation availability"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List approved Teams alert destinations",
         "tags": [
           "Report Schedules"
         ]

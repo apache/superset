@@ -84,7 +84,7 @@ test('creates and edits an inactive Teams alert and preserves unavailable destin
   try {
     await page.goto('alert/list/');
     await page
-      .getByRole('button', { name: 'Alert', exact: true })
+      .getByRole('button', { name: 'plus Alert', exact: true })
       .first()
       .click();
     const modal = page.getByTestId('alert-report-modal');
@@ -94,13 +94,16 @@ test('creates and edits an inactive Teams alert and preserves unavailable destin
     await modal
       .getByRole('combobox', { name: 'Database', exact: true })
       .click();
-    await page.getByRole('option').first().click();
+    await page
+      .locator('.ant-select-dropdown:visible .ant-select-item-option')
+      .first()
+      .click();
     await modal.locator('.ace_editor').click();
     await page.keyboard.insertText('SELECT 1');
     await modal
       .getByRole('combobox', { name: 'Condition', exact: true })
       .click();
-    await page.getByRole('option', { name: 'Not null', exact: true }).click();
+    await page.getByText('Not null', { exact: true }).click();
     await modal.getByTestId('contents-panel').click();
     const attachments = modal.getByRole('switch', {
       name: 'Include attachment',
@@ -112,15 +115,17 @@ test('creates and edits an inactive Teams alert and preserves unavailable destin
     ).toBeVisible();
     await modal.getByTestId('notification-method-panel').click();
     await modal.getByRole('combobox', { name: /^Delivery method/ }).click();
-    await page.getByRole('option', { name: 'Teams', exact: true }).click();
+    await page.getByText('Teams', { exact: true }).click();
     await modal.getByRole('combobox', { name: 'Teams destination' }).click();
     await page
-      .getByRole('option', {
-        name: `${destination.label} (Bot installation required)`,
+      .getByText(`${destination.label} (Bot installation required)`, {
         exact: true,
       })
       .click();
     await expect(modal.getByText(/Install the notification bot/)).toBeVisible();
+    await expect(
+      modal.getByRole('button', { name: 'Add', exact: true }),
+    ).toBeEnabled();
     const created = page.waitForResponse(
       response =>
         response.request().method() === 'POST' &&
@@ -138,7 +143,7 @@ test('creates and edits an inactive Teams alert and preserves unavailable destin
       const row = page
         .getByRole('row')
         .filter({ has: page.getByText(name, { exact: true }) });
-      await row.getByLabel('edit-action', { exact: true }).click();
+      await row.getByRole('button', { name: 'Edit', exact: true }).click();
       await modal.getByTestId('notification-method-panel').click();
     };
     await edit();

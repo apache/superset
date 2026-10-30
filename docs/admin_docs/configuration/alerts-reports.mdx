@@ -899,39 +899,7 @@ attachment-free alerts in standard channels. Each deployment supports one
 Microsoft tenant and bot identity. Scheduled reports, private/shared channels,
 direct messages, and file attachments are not supported.
 
-Each alert creates a separate channel post containing its name, optional
-description, and an **Open in Superset** link when link inclusion is enabled.
-Execution errors show a generic failure message rather than SQL diagnostics.
-
-Administrators configure approved destinations on the server. In the alert
-editor, disable attachments and select a destination by label. Add another Teams
-notification method to notify another channel. Credentials are managed only in
-deployment configuration. The protected destination API returns keys, labels,
-and installation availability, without credentials or routing details.
-
-For API clients, use recipient type `Teams`, `recipient_config_json` containing
-only `{"target": "ops"}`, and `report_format="NONE"`. Create, update, and delivery
-validation enforce the same restrictions, including partial updates to saved
-alerts. Alerts can be saved before bot installation, but delivery requires an
-active installation. Unavailable saved destinations remain visible when editing.
-
-Authenticated installation events persist routing information for approved teams.
-Removal disables delivery, and reinstallation refreshes the same record. Events
-are applied in processing order and never create selectable destinations.
-
-Delivery allows up to four attempts within a cooperative 60-second retry budget,
-limited by the remaining report execution deadline. Requests have socket timeouts
-of at most 10 seconds. Throttling honors Microsoft's retry delay, and expired
-authentication can refresh once. A lost response can cause duplicate posts.
-
-Socket timeouts do not bound DNS resolution or an entire streaming response. For
-an outer time limit, use a Celery prefork worker with
-[time-limit support](https://docs.celeryq.dev/en/stable/userguide/workers.html#time-limits),
-keep `ALERT_REPORTS_WORKING_TIME_OUT_KILL=True`, and set a finite schedule
-`working_timeout`. These limits cover the entire alert task, including query
-execution and delivery. Hard task termination cannot guarantee resource cleanup.
-
-### Deploy the optional integration
+### Install and configure
 
 Install the extra in both the web-server and Celery worker images using the same
 Superset release as the deployment:
@@ -1073,6 +1041,34 @@ URL. Use the public Microsoft cloud endpoints supported by this adapter. Changin
 the bot identity requires matching configuration on both web and worker processes
 and a new verified installation for that identity.
 
+### Create a Teams alert
+
+1. Install the app in each approved team once the callback is reachable.
+2. In **Alerts & reports**, create an alert and disable attachments.
+3. Choose **Teams** as the notification method and select an approved destination
+   by its display label. Add another Teams notification method to notify another
+   channel.
+4. Save the alert and check its execution logs after delivery.
+
+Each alert creates a separate channel post containing its name, optional
+description, and an **Open in Superset** link when link inclusion is enabled.
+Execution errors show a generic failure message rather than SQL diagnostics.
+
+You can save an alert before installing the bot, but delivery requires an active
+installation. Saved destinations that are no longer configured remain visible
+as unavailable. Restore the destination's stable key or select a replacement.
+Credentials are managed in deployment configuration, not in the alert editor.
+
+### Configure a recipient through the API
+
+Use recipient type `Teams`, `recipient_config_json` containing only
+`{"target": "ops"}`, and `report_format="NONE"`. Replace `ops` with a configured
+destination key. Create, update, and delivery validation enforce the same
+restrictions, including partial updates to saved alerts.
+
+The protected destination API returns keys, labels, and installation availability,
+without credentials or routing details.
+
 ### Troubleshooting
 
 | Symptom | Check |
@@ -1093,26 +1089,19 @@ access tokens, credentials, raw SDK responses, or SQL diagnostics into channel
 messages or issue reports. Rotate credentials through deployment configuration;
 there is no browser credential-management page.
 
-### Test without sending messages
+### Delivery timeouts and retries
 
-Backend tests under `tests/unit_tests/integrations/teams/` exercise the real SDK
-with fake HTTP transports. Install the `teams` extra to run authentication and
-transport tests rather than skipping them. Notification contract tests at
-`tests/unit_tests/reports/notifications/teams_tests.py` run without the SDK.
+Delivery allows up to four attempts within a cooperative 60-second retry budget,
+limited by the remaining report execution deadline. Requests have socket timeouts
+of at most 10 seconds. Throttling honors Microsoft's retry delay, and expired
+authentication can refresh once. A lost response can cause duplicate posts.
 
-The browser regression at `playwright/tests/reports/teams-alerts.spec.ts` requires a
-running Superset instance, an admin test user, Reports and Teams enabled, at least
-one configured destination, and a selectable test database. An unconfigured
-integration skips this optional browser test. Use an isolated test deployment
-with placeholder UUIDs and a dummy secret; no Microsoft app or installation is
-needed for this test. It mocks destination availability, creates only inactive
-alerts, blocks execution requests, verifies saved recipient keys, and deletes its
-schedule afterward. It never clicks **Trigger now**. Run it from
-`superset-frontend`:
-
-```bash
-npx playwright test playwright/tests/reports/teams-alerts.spec.ts --project=chromium
-```
+Socket timeouts do not bound DNS resolution or an entire streaming response. For
+an outer time limit, use a Celery prefork worker with
+[time-limit support](https://docs.celeryq.dev/en/stable/userguide/workers.html#time-limits),
+keep `ALERT_REPORTS_WORKING_TIME_OUT_KILL=True`, and set a finite schedule
+`working_timeout`. These limits cover the entire alert task, including query
+execution and delivery. Hard task termination cannot guarantee resource cleanup.
 
 :::resources
 

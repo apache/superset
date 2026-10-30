@@ -494,7 +494,7 @@ def sdk_network(
                 if state.oauth_error:
                     response.status_code = 400
                     data = {
-                        "error": "invalid_client",
+                        "error": state.oauth_error,
                         "error_description": "secret SQL diagnostic",
                     }
             response._content = json.dumps(data).encode()
@@ -597,14 +597,17 @@ def test_real_sdk_refreshes_token_once_after_401(
         ([503, 503, 503, 503], None, "transient", 4),
         ([400], None, "parameter", 1),
         ([299], None, "parameter", 1),
-        ([], True, "authorization", 0),
+        ([], "invalid_client", "authorization", 0),
+        ([], "temporarily_unavailable", "transient", 0),
+        ([], "server_error", "transient", 0),
     ],
 )
 def test_real_sdk_failures_close_resources_and_sanitize_errors(
     sdk_network: SimpleNamespace,
     configured: TeamsConfig,
     statuses: list[int],
-    oauth_error: bool | None,
+    oauth_error: str | None,
+    retry_clock: list[float],
     category: str,
     posts: int,
 ) -> None:
@@ -618,6 +621,8 @@ def test_real_sdk_failures_close_resources_and_sanitize_errors(
     assert "secret SQL diagnostic" not in str(exc.value)
     assert "deployment-secret" not in str(exc.value)
     assert len(sdk_network.posts) == posts
+    if oauth_error in {"temporarily_unavailable", "server_error"}:
+        assert len(retry_clock) == 3
     assert_resources_closed(sdk_network)
 
 

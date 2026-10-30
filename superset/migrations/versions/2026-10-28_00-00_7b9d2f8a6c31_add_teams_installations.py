@@ -17,7 +17,7 @@
 """Add Teams bot installation persistence.
 
 Revision ID: 7b9d2f8a6c31
-Revises: c179af013f48
+Revises: f72b6e9c104a
 """
 
 import sqlalchemy as sa
@@ -25,13 +25,15 @@ from alembic import op
 from sqlalchemy.dialects import mysql
 from sqlalchemy_utils import UUIDType
 
+from superset.migrations.shared.utils import create_table
+
 revision: str = "7b9d2f8a6c31"
-down_revision: str = "c179af013f48"
+down_revision: str = "f72b6e9c104a"
 
 
 def upgrade() -> None:
     """Add installation metadata without changing alerts or destinations."""
-    op.create_table(
+    create_table(
         "teams_installations",
         sa.Column("id", UUIDType(binary=True), nullable=False),
         sa.Column("tenant_id", UUIDType(binary=True), nullable=False),

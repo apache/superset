@@ -18753,3 +18753,41 @@ msgstr[1] ""
 
 msgid "№"
 msgstr ""
+
+#, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
+msgstr ""
+
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
+msgid "Select an approved Teams channel"
+msgstr ""
+
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
