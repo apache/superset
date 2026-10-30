@@ -28,6 +28,7 @@ from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from superset.commands.semantic_layer.exceptions import (
+    SemanticDeleteBlockerDetails,
     SemanticDeleteDependentsError,
     SemanticLayerCreateFailedError,
     SemanticLayerDeleteFailedError,
@@ -1038,9 +1039,21 @@ def test_semantic_delete_reports_dependents_as_conflict(
         "name": "Revenue",
     }
     mock_command: MagicMock = mocker.patch(f"superset.semantic_layers.api.{command}")
+    bulk: bool = command == "BulkDeleteSemanticViewCommand"
     mock_command.return_value.run.side_effect = SemanticDeleteDependentsError(
-        25, [dependent], 24, 3
+        25, [dependent], 24, 3, [2] if bulk else None
     )
+
+    blocked_views: list[SemanticDeleteBlockerDetails] = [
+        {
+            "id": 2,
+            "total": 25,
+            "dependents": [dependent],
+            "inaccessible_count": 24,
+            "archived_count": 3,
+        }
+    ]
+    mock_command.return_value.run.side_effect.blocked_views = blocked_views
 
     request_path: str = (
         f"/api/v1/semantic_view/?q={rison_lib.dumps([1, 2])}"
@@ -1054,6 +1067,9 @@ def test_semantic_delete_reports_dependents_as_conflict(
     assert response.json["total"] == 25
     assert response.json["dependents"] == [dependent]
     assert response.json["inaccessible_count"] == 24
+    # Only bulk deletes name which selected views are blocked.
+    assert response.json.get("blocked_view_ids") == ([2] if bulk else None)
+    assert response.json.get("blocked_views") == (blocked_views if bulk else None)
     assert response.json["message"] == (
         "Semantic source is used by 25 dependent assets and cannot be deleted. "
         "Remove or repoint these assets before deleting the semantic source. "

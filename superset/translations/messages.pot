@@ -428,6 +428,12 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "%s field"
 msgid_plural "%s fields"
 msgstr[0] ""
@@ -2369,10 +2375,6 @@ msgid "Are you sure you want to delete %s?"
 msgstr ""
 
 #, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-
-#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr ""
 
@@ -2955,6 +2957,9 @@ msgstr ""
 
 #, python-brace-format
 msgid "Cannot delete a database whose only remaining datasets are soft-deleted. Purge each one first — GET /api/v1/dataset/<uuid>/purge-impact for its impact token, then POST /api/v1/dataset/<uuid>/purge with {\"confirmed_impact_token\": <token>} — before deleting the database. Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, but the database still cannot be deleted."
+msgstr ""
+
+msgid "Cannot delete semantic views"
 msgstr ""
 
 msgid "Cannot delete system themes"
@@ -4258,10 +4263,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr ""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr ""
 
@@ -5248,7 +5249,7 @@ msgstr ""
 msgid "Delete item"
 msgstr ""
 
-msgid "Delete or move active datasets. To remove archived datasets, open Recently archived and select Delete permanently."
+msgid "Delete or move active datasets. To remove archived datasets, open Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -5268,6 +5269,15 @@ msgid "Delete selected"
 msgstr ""
 
 msgid "Delete template"
+msgstr ""
+
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
 msgstr ""
 
 msgid "Delete theme"
@@ -5361,6 +5371,12 @@ msgstr ""
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -9749,6 +9765,10 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -15306,6 +15326,9 @@ msgstr ""
 msgid "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com)."
 msgstr ""
 
+msgid "This cannot be undone."
+msgstr ""
+
 msgid "This chart applies cross-filters to charts whose datasets contain columns with the same name."
 msgstr ""
 
@@ -17849,6 +17872,9 @@ msgstr ""
 msgid "aggregate"
 msgstr ""
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr ""
 
@@ -17864,6 +17890,10 @@ msgstr ""
 msgid "ancestor"
 msgstr ""
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr ""
 
@@ -17871,6 +17901,10 @@ msgid "annotation_layer"
 msgstr ""
 
 msgid "apple"
+msgstr ""
+
+#, python-format
+msgid "archived %s"
 msgstr ""
 
 msgid "asfreq"

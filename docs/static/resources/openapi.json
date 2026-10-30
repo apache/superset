@@ -35269,12 +35269,15 @@
                 "schema": {
                   "properties": {
                     "archived_count": {
-                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "description": "Archived dependents are named only to users who could restore them from Recently Archived; the others are included in inaccessible_count. The counts overlap and must not be added together.",
                       "type": "integer"
                     },
                     "dependents": {
                       "items": {
                         "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
                           "id": {
                             "type": "integer"
                           },
@@ -35294,7 +35297,8 @@
                         "required": [
                           "type",
                           "id",
-                          "name"
+                          "name",
+                          "archived"
                         ],
                         "type": "object"
                       },
@@ -35659,12 +35663,83 @@
                 "schema": {
                   "properties": {
                     "archived_count": {
-                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "description": "Archived dependents are named only to users who could restore them from Recently Archived; the others are included in inaccessible_count. The counts overlap and must not be added together.",
                       "type": "integer"
+                    },
+                    "blocked_view_ids": {
+                      "description": "The selected views that have dependents. Nothing is deleted; the others can be deleted in a new request.",
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": "array"
+                    },
+                    "blocked_views": {
+                      "description": "Caller-visible dependency details for each blocked view.",
+                      "items": {
+                        "properties": {
+                          "archived_count": {
+                            "type": "integer"
+                          },
+                          "dependents": {
+                            "items": {
+                              "properties": {
+                                "archived": {
+                                  "type": "boolean"
+                                },
+                                "id": {
+                                  "type": "integer"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "enum": [
+                                    "chart",
+                                    "dashboard",
+                                    "alert",
+                                    "report"
+                                  ],
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "id",
+                                "name",
+                                "archived"
+                              ],
+                              "type": "object"
+                            },
+                            "maxItems": 20,
+                            "type": "array"
+                          },
+                          "id": {
+                            "type": "integer"
+                          },
+                          "inaccessible_count": {
+                            "type": "integer"
+                          },
+                          "total": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "total",
+                          "dependents",
+                          "inaccessible_count",
+                          "archived_count"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
                     },
                     "dependents": {
                       "items": {
                         "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
                           "id": {
                             "type": "integer"
                           },
@@ -35684,7 +35759,8 @@
                         "required": [
                           "type",
                           "id",
-                          "name"
+                          "name",
+                          "archived"
                         ],
                         "type": "object"
                       },
@@ -35827,12 +35903,15 @@
                 "schema": {
                   "properties": {
                     "archived_count": {
-                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "description": "Archived dependents are named only to users who could restore them from Recently Archived; the others are included in inaccessible_count. The counts overlap and must not be added together.",
                       "type": "integer"
                     },
                     "dependents": {
                       "items": {
                         "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
                           "id": {
                             "type": "integer"
                           },
@@ -35852,7 +35931,8 @@
                         "required": [
                           "type",
                           "id",
-                          "name"
+                          "name",
+                          "archived"
                         ],
                         "type": "object"
                       },
