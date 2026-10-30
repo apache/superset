@@ -25,6 +25,7 @@ from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 from sqlalchemy import Table
 from sqlalchemy.engine import CursorResult
+from sqlalchemy.orm import lazyload
 
 from superset import security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
@@ -187,6 +188,9 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             # Keep a strong reference until the command's normal ORM mutation.
             self._model = (
                 db.session.query(Slice)
+                # Lock only the chart: subquery eager loads can propagate FOR
+                # UPDATE into DISTINCT queries that PostgreSQL rejects.
+                .options(lazyload("*"))
                 .populate_existing()
                 .filter(Slice.id == self._model_id)
                 .with_for_update()

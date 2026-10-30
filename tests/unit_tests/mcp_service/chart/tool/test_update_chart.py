@@ -28,6 +28,7 @@ from fastmcp import Client
 from pydantic import ValidationError
 from pytest_mock import MockerFixture
 
+from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.chart_helpers import (
     build_query_dicts_from_form_data,
@@ -35,7 +36,10 @@ from superset.mcp_service.chart.chart_helpers import (
 )
 from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 from superset.mcp_service.chart.compile import CompileResult
-from superset.mcp_service.chart.datasource_resolver import ChartDatasource
+from superset.mcp_service.chart.datasource_resolver import (
+    ChartDatasource,
+    resolve_semantic_view,
+)
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
     ColumnRef,
@@ -67,6 +71,7 @@ update_chart_module = importlib.import_module(
 @pytest.mark.parametrize("preview_mode", [False, True])
 @pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
 @pytest.mark.parametrize("row_filter", [False, True])
+@pytest.mark.parametrize("explicit_source", [False, True])
 @pytest.mark.parametrize(
     "saved_version,source_rebind",
     [(None, False), ("older-format", False), ("target-v1", True), (None, True)],
@@ -78,6 +83,7 @@ async def test_complete_semantic_table_reselection(
     saved_version: str | None,
     source_rebind: bool,
     row_filter: bool,
+    explicit_source: bool,
 ) -> None:
     """Fresh complete selections get the target marker before compilation."""
     existing: dict[str, Any] = {
@@ -148,7 +154,7 @@ async def test_complete_semantic_table_reselection(
     response: GenerateChartResponse = await update_chart_module.update_chart(
         UpdateChartRequest(
             identifier=12,
-            view_id=9 if source_rebind else None,
+            view_id=9 if source_rebind else (7 if explicit_source else None),
             config=TableChartConfig.model_validate(
                 {
                     "columns": [{"name": "member_id"}],
@@ -195,6 +201,9 @@ async def test_complete_semantic_table_reselection(
         "target_changed",
         "candidate_changed",
         "invalid_saved_json",
+        "target_missing",
+        "metadata_failure",
+        "target_denied",
     ],
 )
 async def test_semantic_reselection_refuses_before_publication(
@@ -241,7 +250,7 @@ async def test_semantic_reselection_refuses_before_publication(
     mocker.patch.object(
         update_chart_module, "find_chart_by_identifier", return_value=chart
     )
-    mocker.patch.object(
+    resolve: MagicMock = mocker.patch.object(
         update_chart_module, "resolve_semantic_view", return_value=target
     )
     mocker.patch("superset.utils.log.DBEventLogger.log")
@@ -253,6 +262,21 @@ async def test_semantic_reselection_refuses_before_publication(
             implementation.selection_identity_version = "target-v2"
         if case == "candidate_changed":
             args[0]["all_columns"] = ["legacy_label"]
+        if case == "target_missing":
+            resolve.return_value = None
+        if case == "metadata_failure":
+            resolve.side_effect = ValueError("Target metadata unavailable")
+        if case == "target_denied":
+            mocker.patch(
+                "superset.mcp_service.chart.datasource_resolver.DatasourceDAO.get_datasource",
+                return_value=target.explorable,
+            )
+            mocker.patch.object(
+                target.explorable,
+                "raise_for_access",
+                side_effect=SupersetSecurityException(Mock()),
+            )
+            resolve.side_effect = resolve_semantic_view
         return CompileResult(success=True)
 
     compile_query: MagicMock = mocker.patch.object(
@@ -283,12 +307,22 @@ async def test_semantic_reselection_refuses_before_publication(
             report_progress=AsyncMock(),
         ),
     )
-    assert not response.success
-    assert response.error is not None
-    assert "Explore" in response.error.details
     preview.assert_not_called()
     write.assert_not_called()
-    assert compile_query.called is (case in {"target_changed", "candidate_changed"})
+    assert not response.success
+    assert response.error is not None
+    if case != "metadata_failure":
+        assert "Explore" in response.error.details
+    assert compile_query.called is (
+        case
+        in {
+            "target_changed",
+            "candidate_changed",
+            "target_missing",
+            "metadata_failure",
+            "target_denied",
+        }
+    )
     assert chart.params == (
         "[" if case == "invalid_saved_json" else json.dumps(existing)
     )

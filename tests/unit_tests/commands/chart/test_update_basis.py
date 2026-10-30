@@ -95,6 +95,43 @@ def test_stale_certified_update_does_not_overwrite(
         engine.dispose()
 
 
+def test_wal_stale_snapshot_refuses(
+    app: Any, tmp_path: Path, mocker: MockerFixture
+) -> None:
+    """A real SQLite read snapshot cannot be promoted past a competing write."""
+    engine: sa.engine.Engine = sa.create_engine(
+        f"sqlite:///{tmp_path / 'snapshot.db'}", connect_args={"timeout": 0.05}
+    )
+    with engine.connect() as connection:
+        connection.exec_driver_sql("PRAGMA journal_mode=WAL")
+    Slice.metadata.create_all(engine)
+    with Session(engine) as first, Session(engine) as second:
+        first.execute(
+            Slice.__table__.insert().values(
+                id=123,
+                slice_name="Original",
+                params=None,
+                datasource_type="table",
+                viz_type="table",
+            )
+        )
+        first.commit()
+        first.connection().exec_driver_sql("BEGIN")
+        chart: Slice = first.get(Slice, 123)
+        basis: ChartUpdateBasis = ChartUpdateBasis.from_chart(chart)
+        second.execute(
+            sa.update(Slice.__table__).where(Slice.id == 123).values(slice_name="Other")
+        )
+        second.commit()
+        mocker.patch("superset.commands.chart.update.db", Mock(session=first))
+        mocker.patch("superset.db", Mock(session=first))
+        with app.app_context(), pytest.raises(ChartUpdateFailedError):
+            UpdateChartCommand(123, {"slice_name": "Stale"}, expected_basis=basis).run()
+        assert not first.in_transaction()
+        assert first.get(Slice, 123).slice_name == "Other"
+    engine.dispose()
+
+
 @pytest.mark.parametrize("params", [None, '{"all_columns":["old"]}'])
 def test_basis_fence_is_a_noop(
     app: Any, tmp_path: Path, mocker: MockerFixture, params: str | None
