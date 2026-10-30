@@ -82,14 +82,6 @@ jest.mock('src/components/DatabaseSelector', () => ({
   ),
 }));
 
-fetchMock.get('glob:*/api/v1/database/*/function_names/', {
-  function_names: [],
-});
-fetchMock.get('glob:*/api/v1/database/*', { result: [] });
-fetchMock.get('glob:*/api/v1/database/*/tables/*', { options: [] });
-fetchMock.get('glob:*/tabstateview/*', defaultQueryEditor);
-fetchMock.post('glob:*/sqllab/execute/*', { result: [] });
-
 let store: Store;
 let actions: Action[];
 const latestQuery = {
@@ -163,6 +155,7 @@ describe('SqlEditor', () => {
   afterEach(async () => {
     cleanup();
     await new Promise(resolve => setTimeout(resolve, 0));
+    fetchMock.clearHistory().removeRoutes();
   });
 
   const mockedProps = {
@@ -179,6 +172,14 @@ describe('SqlEditor', () => {
   };
 
   beforeEach(() => {
+    mockIsFeatureEnabled.mockReset();
+    fetchMock.get('glob:*/api/v1/database/*/function_names/', {
+      function_names: [],
+    });
+    fetchMock.get('glob:*/api/v1/database/*', { result: [] });
+    fetchMock.get('glob:*/api/v1/database/*/tables/*', { options: [] });
+    fetchMock.get('glob:*/tabstateview/*', defaultQueryEditor);
+    fetchMock.post('glob:*/sqllab/execute/*', { result: [] });
     store = createStore(mockInitialState);
     actions = [];
 

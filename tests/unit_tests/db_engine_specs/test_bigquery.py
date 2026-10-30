@@ -1832,7 +1832,13 @@ def test_warning_dry_run_unverified_bigquery_subclass_is_unsupported(
         {},
         {"query": []},
         {"query": {"totalBytesProcessed": "1"}},
-        {"rowLevelSecurityStatistics": "masked"},
+        {
+            "query": {
+                "totalBytesProcessed": "1",
+                "totalBytesProcessedAccuracy": "PRECISE",
+            },
+            "rowLevelSecurityStatistics": "masked",
+        },
         {
             "query": {
                 "totalBytesProcessed": "1",
