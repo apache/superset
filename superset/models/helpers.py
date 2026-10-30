@@ -249,7 +249,13 @@ def build_like_predicate(
 
     ``lower(expr) LIKE lower('%term%')`` is used rather than ``ILIKE`` because
     the latter is not portable across engines.
+
+    ``lower()`` is only defined for string types on strict engines (e.g.
+    PostgreSQL), so non-string expressions (numeric, boolean, date, or
+    untyped) are cast to a string first. String columns are left untouched.
     """
+    if not isinstance(expr.type, sa.String):
+        expr = sa.cast(expr, sa.String)
     return sa.func.lower(expr).contains(search.lower(), autoescape=True)
 
 
