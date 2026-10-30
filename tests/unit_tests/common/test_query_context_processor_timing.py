@@ -18,7 +18,6 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
-
 from flask_caching.backends import NullCache, SimpleCache
 
 from superset.common.chart_data_timing import QueryDataResult, QueryTiming
