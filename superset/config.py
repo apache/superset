@@ -49,6 +49,7 @@ from pandas._libs.parsers import STR_NA_VALUES
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
+from sqlalchemy.sql.expression import Select, Subquery
 
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
@@ -430,6 +431,17 @@ SCHEDULED_QUERIES: dict[str, Any] = {}
 # parameters here: https://flask-limiter.readthedocs.io/en/stable/configuration.html
 RATELIMIT_ENABLED = os.environ.get("SUPERSET_ENV") == "production"
 RATELIMIT_APPLICATION = "50 per second"
+# How long an evaluated partition value transform stays cached. The probe is a
+# synchronous round trip on the chart-query path, so the hit rate is what keeps
+# it off the hot path: day-aligned ranges ("Last month") hit constantly,
+# second-granularity relative ranges ("Last 24 hours") essentially never.
+PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
+
+# Per-user, per-dataset budget for the partition mapping preview endpoint, which
+# fires a real warehouse query from a text input in the dataset editor. Counted
+# in a fixed 60-second window; set to 0 to disable.
+PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT = 30
+
 AUTH_RATE_LIMITED = True
 AUTH_RATE_LIMIT = "5 per second"
 
@@ -452,6 +464,27 @@ FAB_PASSWORD_COMPLEXITY_ENABLED = True
 FAB_PASSWORD_COMPLEXITY_VALIDATOR = _validate_password_complexity
 AUTH_PASSWORD_MIN_LENGTH = 8
 AUTH_PASSWORD_COMMON_BLOCKLIST: list[str] = []
+
+# Self-service "Forgot password?" recovery for AUTH_TYPE = AUTH_DB. Users request
+# a reset link by email from the login page; the link carries a single-use token
+# that expires after ``token_ttl_minutes``. Off by default: it needs working SMTP
+# settings, and links are built from ``base_url`` (falling back to
+# WEBDRIVER_BASEURL_USER_FRIENDLY), never from the request, so set it to the
+# public HTTPS address users reach Superset at before enabling.
+# - token_ttl_minutes: capped at 24 hours (1440); a value that is not a
+#   positive whole number falls back to the default.
+# - rate_limit: Flask-Limiter limit for both endpoints, per client address
+#   (enforced only when RATELIMIT_ENABLED is on).
+# - resend_cooldown_seconds: minimum time between two emails to one address.
+# Keys left out of an override fall back to these defaults; a value that is not
+# a dict at all is logged and treated as unset.
+AUTH_PASSWORD_RECOVERY: dict[str, Any] = {
+    "enabled": False,
+    "token_ttl_minutes": 30,
+    "rate_limit": "5 per 15 minutes",
+    "resend_cooldown_seconds": 120,
+    "base_url": None,
+}
 
 # A storage location conforming to the scheme in storage-scheme. See the limits
 # library for allowed values: https://limits.readthedocs.io/en/stable/storage.html
@@ -741,6 +774,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable semantic layers and show semantic views alongside datasets
     # @lifecycle: development
     "SEMANTIC_LAYERS": False,
+    # Enable Superset-owned containment caching for opted-in semantic providers.
+    # Requires shared DATA_CACHE_CONFIG and Redis-backed
+    # DISTRIBUTED_COORDINATION_CONFIG.
+    # @docs: https://superset.apache.org/admin-docs/configuration/cache/#semantic-containment-cache
+    # @lifecycle: development
+    "SEMANTIC_LAYER_CONTAINMENT_CACHE": False,
     # Enables advanced data type support
     # @lifecycle: development
     "ENABLE_ADVANCED_DATA_TYPES": False,
@@ -758,6 +797,13 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Try to optimize SQL queries — for now only predicate pushdown is supported
     # @lifecycle: development
     "OPTIMIZE_SQL": False,
+    # Map a dataset's business column onto its physical partition column, so
+    # engines that require an explicit partition predicate can prune. Filters on
+    # the mapped column are mirrored onto the partition column at query time, so
+    # enabling this changes the SQL charts emit rather than only storing
+    # configuration.
+    # @lifecycle: development
+    "PARTITION_FILTER_MAPPING": False,
     # Expand nested types in Presto into extra columns/arrays. Experimental,
     # doesn't work with all nested types.
     # @lifecycle: development
@@ -1251,6 +1297,15 @@ _THEME_DEFAULT_BASE: Theme = {
         "fontWeightBold": "700",
         # Editor selection color (for SQL Lab text highlighting)
         "colorEditorSelection": "#fff5cf",
+    },
+    # Per-component token overrides. Tooltip text renders at the small font
+    # size rather than Ant Design's global ``fontSize`` so tooltips stay
+    # visually subordinate to the content they annotate.
+    "components": {
+        "Tooltip": {
+            "fontSize": 12,
+            "lineHeight": 1.6,
+        },
     },
     "algorithm": "default",
 }
@@ -2496,18 +2551,48 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "lo_truncate",
         "lo_truncate64",
         "lo_unlink",
-        # XML functions that can execute SQL
+        # XML functions that can execute SQL. These read tables with no FROM
+        # clause and no sub-query of their own, so a gate that reasons about
+        # table references alone cannot see them -- the whole family has to be
+        # named here. All four shapes, for each of database / schema / table /
+        # query.
         "database_to_xml",
         "database_to_xmlschema",
+        "database_to_xml_and_xmlschema",
+        "schema_to_xml",
+        "schema_to_xmlschema",
+        "schema_to_xml_and_xmlschema",
         "query_to_xml",
         "query_to_xmlschema",
-        "table_to_xml",
-        "table_to_xml_and_xmlschema",
         "query_to_xml_and_xmlschema",
+        "table_to_xml",
         "table_to_xmlschema",
+        "table_to_xml_and_xmlschema",
+        # Full-text search functions that run their text argument as a query.
+        # Same blind spot as the XML family above: the query they execute is a
+        # string, so it has no FROM clause and no sub-query of its own for a
+        # table-reference gate to see.
+        "ts_rewrite",
+        "ts_stat",
         # Other potentially dangerous functions
         "pg_sleep",
         "pg_terminate_backend",
+        # dblink functions can open separate connections and auto-commit
+        # writes, bypassing the read-only gate entirely
+        "dblink",
+        "dblink_exec",
+        "dblink_connect",
+        "dblink_connect_u",
+        "dblink_send_query",
+        # State-mutating functions callable via SELECT
+        "pg_cancel_backend",
+        "pg_reload_conf",
+        "pg_rotate_logfile",
+        "pg_stat_reset",
+        "pg_switch_wal",
+        "pg_logical_emit_message",
+        "pg_create_restore_point",
+        "pg_drop_replication_slot",
     },
     # MySQL functions and variables that could reveal sensitive information
     "mysql": {
@@ -2568,6 +2653,33 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "getOSInformation",
         "getMacro",
         "getSetting",
+    },
+    # Oracle functions that run a query handed to them as text. Same blind spot
+    # as PostgreSQL's XML and full-text families above: the statement they
+    # execute is a string, so the expression has no FROM clause and no
+    # sub-query of its own for a table-reference gate to see, and the rows come
+    # back without the dataset grants or row-level security the caller is
+    # subject to.
+    #
+    # Named bare rather than package-qualified: `DBMS_XMLGEN.GETXML(...)`
+    # parses as an anonymous function called `GETXML`, so the package prefix
+    # never reaches the matcher. `getclobval` and `extract` are deliberately
+    # absent -- they read an XMLType the caller already has rather than
+    # building one from a query.
+    "oracle": {
+        "getxml",
+        "getxmltype",
+        "newcontext",
+        "newcontextfromhierarchy",
+        # Reads a table by path string, e.g.
+        # ``DBURITYPE('/HR/EMPLOYEES/ROW[ID=1]/SALARY').getclob()``, which is
+        # the same blind spot as the above with no function argument to
+        # inspect -- and ``PUBLIC`` holds execute on it by default.
+        "dburitype",
+        # The same reader through its factory, and its sibling URI types.
+        "geturi",
+        "xdburitype",
+        "httpuritype",
     },
 }
 
@@ -3472,9 +3584,44 @@ class ExtraAccessQueryFilters(TypedDict, total=False):
     dashboards: Callable[[int], Query]
 
 
+# Extra access query exclusions inject an AND NOT condition into ChartFilter
+# and DashboardAccessFilter, letting a deployment *withhold* asset visibility.
+# ``EXTRA_ACCESS_QUERY_FILTERS`` can only widen a result set, because its
+# conditions are OR'd with the role paths -- so a deployment that needs to keep
+# an asset out of the list, an export or a related-field lookup has no way to
+# express that through it.
+#
+# Exclusions are applied before the ``is_admin`` / ``can_access_all_datasources``
+# short-circuits, so they hold for every principal except embedded guests,
+# whose scope is set by their token alone.
+#
+# The callable receives the current user ID and returns a subquery of the asset
+# IDs to withhold.
+# Receives the current user id, or ``None`` for an anonymous request -- a
+# withholding rule is consulted even then, since skipping it would reveal
+# rather than hide. May return an ORM ``Query``, a Core ``select()`` or an
+# explicit ``.subquery()``; all three are accepted and normalised, matching
+# what the sibling ``EXTRA_ACCESS_QUERY_FILTERS`` hooks may hand to ``.in_()``.
+ExclusionEntry = Callable[[int | None], Query | Select | Subquery]
+
+
+class ExtraAccessQueryExclusions(TypedDict, total=False):
+    charts: ExclusionEntry
+    dashboards: ExclusionEntry
+    # Narrower than the two above: assets selectable as the target of a
+    # scheduled report, which renders as the configured executor rather than
+    # as the user who created it. A deployment may hold assets a user can read
+    # but cannot schedule a report on.
+    report_target_charts: ExclusionEntry
+    report_target_dashboards: ExclusionEntry
+
+
 # Extension hooks for deployments to plug in custom access logic.
 # Additional query filters for chart/dashboard list views.
 EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
+# Asset IDs to withhold from chart/dashboard list views, exports and
+# related-field lookups. See ``ExtraAccessQueryExclusions`` above.
+EXTRA_ACCESS_QUERY_EXCLUSIONS: ExtraAccessQueryExclusions = {}
 # Bypass raise_for_access for specific assets. Return True to skip checks.
 # The hook receives the complete query context, so setting it turns off the
 # semantic-view chart-data check that otherwise denies before provider metadata
@@ -3625,6 +3772,25 @@ DISTRIBUTED_COORDINATION_CONFIG: CacheConfig | None = None
 # streams for tasks that never get awaited cannot accumulate in Redis/Valkey
 # indefinitely. Defaults to 24 hours.
 DISTRIBUTED_COORDINATION_SIGNAL_TTL = int(timedelta(hours=24).total_seconds())
+
+# Maximum time to wait for a semantic-cache descriptor lease.
+SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS: float = 1.0
+
+# Expiry for owner-token semantic-cache descriptor leases.
+SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS: int = 30
+
+# Maximum number of views accepted by one bulk semantic view creation request.
+# Each view costs one semantic layer lookup; larger batches are refused with a 400
+# before any lookup runs.
+SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS: int = 100
+
+# Time budget, in seconds, for validating the views of one bulk creation request.
+# The budget is checked before each view's lookup: views not started in time fail
+# with a "TIMEOUT" error and can be retried. A lookup already in progress is bounded
+# only by the semantic layer's own timeouts, so keep this well below
+# SUPERSET_WEBSERVER_TIMEOUT and any proxy timeout, leaving room for that lookup;
+# otherwise the client receives a gateway timeout instead of the per-view results.
+SEMANTIC_VIEW_BULK_CREATE_TIMEOUT: float = 30
 
 # Default lock TTL (time-to-live) in seconds for distributed locks.
 # Can be overridden per-call via the `ttl_seconds` parameter.

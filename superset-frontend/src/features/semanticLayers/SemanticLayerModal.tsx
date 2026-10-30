@@ -20,7 +20,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import isEqual from 'lodash/isEqual';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
-import { Input, Select, Button } from '@superset-ui/core/components';
+import { Form, Input, Select, Button } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { JsonForms } from '@jsonforms/react';
 import type { JsonSchema, UISchemaElement } from '@jsonforms/core';
@@ -45,10 +45,33 @@ import {
 
 const ModalContent = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 4}px;
+
+  .ant-form-item {
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
+  }
+  .ant-form-item-label {
+    padding-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
+  }
+  .ant-form-item-extra {
+    color: ${({ theme }) => theme.colorTextSecondary};
+    font-size: ${({ theme }) => theme.fontSizeSM}px;
+  }
+  .ant-form-item-required::before {
+    order: 1;
+    margin-inline: ${({ theme }) => theme.sizeUnit / 2}px 0;
+  }
+  .ant-divider {
+    display: none;
+  }
 `;
 
 type Step = 'type' | 'config';
 type ValidationMode = 'ValidateAndHide' | 'ValidateAndShow';
+
+const configurationErrorMessage = () =>
+  t(
+    'Could not refresh metadata. Check the connection details and your permissions.',
+  );
 
 interface SemanticLayerType {
   id: string;
@@ -111,6 +134,7 @@ export default function SemanticLayerModal({
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastDepSnapshotRef = useRef<string>('');
   const dynamicDepsRef = useRef<Record<string, string[]>>({});
+  const schemaRequestRef = useRef(0);
   // Tracks the most recent value we auto-populated into the Name field so we
   // can overwrite it when the user switches type — but leave alone anything
   // the user has hand-edited.
@@ -143,6 +167,8 @@ export default function SemanticLayerModal({
 
   const fetchConfigSchema = useCallback(
     async (type: string, configuration?: Record<string, unknown>) => {
+      schemaRequestRef.current += 1;
+      const request = schemaRequestRef.current;
       const isInitialFetch = !configuration;
       if (isInitialFetch) setLoading(true);
       else setRefreshingSchema(true);
@@ -151,27 +177,24 @@ export default function SemanticLayerModal({
           endpoint: '/api/v1/semantic_layer/schema/configuration',
           jsonPayload: { type, configuration },
         });
+        if (request !== schemaRequestRef.current) return;
         applySchema(json.result);
         if (json.warning) {
-          addDangerToast(String(json.warning));
+          addDangerToast(configurationErrorMessage());
         }
         if (isInitialFetch) setStep('config');
-      } catch (error) {
-        const clientError = await getClientErrorObject(error);
-        if (isInitialFetch) {
-          addDangerToast(
-            clientError.error ||
-              t('An error occurred while fetching the configuration schema'),
-          );
-        } else {
-          addDangerToast(
-            clientError.error ||
-              t('An error occurred while refreshing the configuration schema'),
-          );
-        }
+      } catch {
+        if (request !== schemaRequestRef.current) return;
+        addDangerToast(
+          isInitialFetch
+            ? t('An error occurred while fetching the configuration schema')
+            : configurationErrorMessage(),
+        );
       } finally {
-        if (isInitialFetch) setLoading(false);
-        else setRefreshingSchema(false);
+        if (request === schemaRequestRef.current) {
+          if (isInitialFetch) setLoading(false);
+          else setRefreshingSchema(false);
+        }
       }
     },
     [addDangerToast, applySchema],
@@ -179,11 +202,14 @@ export default function SemanticLayerModal({
 
   const fetchExistingLayer = useCallback(
     async (uuid: string) => {
+      schemaRequestRef.current += 1;
+      const request = schemaRequestRef.current;
       setLoading(true);
       try {
         const { json } = await SupersetClient.get({
           endpoint: `/api/v1/semantic_layer/${uuid}`,
         });
+        if (request !== schemaRequestRef.current) return;
         const layer = json.result;
         setName(layer.name ?? '');
         setSelectedType(layer.type);
@@ -193,24 +219,22 @@ export default function SemanticLayerModal({
           configuration: layer.configuration ?? {},
         });
         setHasErrors(false);
-        // In edit mode, fetch the enriched schema using the full saved
-        // configuration so that dynamic dropdowns (account, project,
-        // environment) show their human-readable labels immediately rather
-        // than flashing raw IDs while the background refresh completes.
+        // Providers decide whether the saved configuration can enrich the schema.
         const { json: schemaJson } = await SupersetClient.post({
           endpoint: '/api/v1/semantic_layer/schema/configuration',
           jsonPayload: { type: layer.type, configuration: layer.configuration },
         });
+        if (request !== schemaRequestRef.current) return;
         applySchema(schemaJson.result);
+        if (schemaJson.warning) addDangerToast(configurationErrorMessage());
         setStep('config');
-      } catch (error) {
-        const clientError = await getClientErrorObject(error);
+      } catch {
+        if (request !== schemaRequestRef.current) return;
         addDangerToast(
-          clientError.error ||
-            t('An error occurred while fetching the semantic layer'),
+          t('An error occurred while fetching the semantic layer'),
         );
       } finally {
-        setLoading(false);
+        if (request === schemaRequestRef.current) setLoading(false);
       }
     },
     [addDangerToast, applySchema],
@@ -248,6 +272,8 @@ export default function SemanticLayerModal({
   useEffect(
     () => () => {
       clearRequestRef.current += 1;
+      schemaRequestRef.current += 1;
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     },
     [show, semanticLayerUuid],
   );
@@ -293,6 +319,8 @@ export default function SemanticLayerModal({
   };
 
   const handleBack = () => {
+    schemaRequestRef.current += 1;
+    setRefreshingSchema(false);
     setStep('type');
     setConfigSchema(null);
     setUiSchema(undefined);
@@ -363,6 +391,7 @@ export default function SemanticLayerModal({
         areDependenciesSatisfied(deps, data, configSchema ?? undefined),
       );
       if (!hasSatisfiedDeps) {
+        schemaRequestRef.current += 1;
         if (debounceTimerRef.current) {
           clearTimeout(debounceTimerRef.current);
           debounceTimerRef.current = null;
@@ -376,10 +405,11 @@ export default function SemanticLayerModal({
       const snapshot = serializeDependencyValues(dynamicDeps, data);
       if (snapshot === lastDepSnapshotRef.current) return;
       lastDepSnapshotRef.current = snapshot;
+      // Invalidate in-flight results before the next debounced request starts.
+      schemaRequestRef.current += 1;
 
-      // Flip the loading state immediately so dependent fields are disabled
-      // through the debounce window — otherwise the user keeps seeing the
-      // stale options for ~500ms before the request even fires.
+      // Indicate pending discovery through the debounce window without
+      // preventing manual entry while suggestions are unavailable.
       setRefreshingSchema(true);
 
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
@@ -502,12 +532,7 @@ export default function SemanticLayerModal({
             {configSchema && (
               // Wrap in a form with autocomplete="off" so browsers do not
               // autofill credential fields (service token, account, etc.).
-              // eslint-disable-next-line jsx-a11y/no-redundant-roles
-              <form
-                role="presentation"
-                autoComplete="off"
-                onSubmit={e => e.preventDefault()}
-              >
+              <Form layout="vertical" autoComplete="off">
                 <JsonForms
                   readonly={clearing}
                   schema={configSchema}
@@ -519,7 +544,7 @@ export default function SemanticLayerModal({
                   validationMode={validationMode}
                   onChange={handleFormChange}
                 />
-              </form>
+              </Form>
             )}
           </>
         )}

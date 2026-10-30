@@ -22,7 +22,6 @@ from typing import Optional
 from unittest.mock import ANY, call, Mock, patch
 from uuid import UUID, uuid4
 
-import pandas as pd
 import pytest
 from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
@@ -56,6 +55,7 @@ from superset.commands.report.exceptions import (
     AlertQueryMultipleRowsError,
     ReportScheduleClientErrorsException,
     ReportScheduleCsvFailedError,
+    ReportScheduleExecutorAccessDeniedError,
     ReportScheduleNotFoundError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
@@ -1513,6 +1513,100 @@ def test_email_dashboard_report_schedule_with_tab_anchor(
             reset_key_values()
 
 
+@pytest.mark.parametrize(
+    "dashboard_state",
+    [
+        # Builds a tab permalink before the execution is claimed.
+        {
+            "anchor": "TAB-L2AB",
+            "activeTabs": None,
+            "dataMask": None,
+            "urlParams": [["native_filters", "()"]],
+        },
+        # Plain dashboard URL, which the executor would load as a 404 page.
+        None,
+    ],
+)
+@pytest.mark.usefixtures("tabbed_dashboard")
+@patch("superset.utils.screenshots.DashboardScreenshot.get_screenshot")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    ALERT_REPORT_TABS=True,
+    ALERT_REPORT_DYNAMIC_EXECUTOR=False,
+)
+def test_dashboard_report_executor_without_access_is_logged(
+    email_mock,
+    screenshot_mock,
+    dashboard_state,
+):
+    """
+    ExecuteReport Command: an executor that cannot access the dashboard must
+    be logged, move the schedule to ERROR and notify its editors, carrying the
+    executor and the security manager's specific reason, whether or not the
+    report renders a stateful permalink.
+    """
+    from flask import g
+
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+    from superset.tasks.types import FixedExecutor
+
+    specific_reason = "Dashboard is in a folder the executor cannot read."
+    original_raise_for_access = security_manager.raise_for_access
+
+    def raise_for_access(**kwargs: object) -> None:
+        user = getattr(g, "user", None)
+        if (
+            kwargs.get("dashboard") is not None
+            and getattr(user, "username", None) == "gamma"
+        ):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
+                    message=specific_reason,
+                    level=ErrorLevel.WARNING,
+                )
+            )
+        return original_raise_for_access(**kwargs)
+
+    dashboard = db.session.query(Dashboard).all()[1]
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        dashboard=dashboard,
+        extra={"dashboard": dashboard_state} if dashboard_state else None,
+    )
+    try:
+        with (
+            freeze_time("2020-01-01T00:00:00Z"),
+            patch.dict(
+                app.config, {"ALERT_REPORTS_EXECUTORS": [FixedExecutor("gamma")]}
+            ),
+            patch.object(security_manager, "raise_for_access", raise_for_access),
+        ):
+            with pytest.raises(ReportScheduleExecutorAccessDeniedError):
+                AsyncExecuteReportScheduleCommand(
+                    TEST_ID, report_schedule.id, datetime.utcnow()
+                ).run()
+
+        screenshot_mock.assert_not_called()
+        db.session.refresh(report_schedule)
+        assert report_schedule.last_state == ReportState.ERROR
+        error_log = next(
+            log
+            for log in get_error_logs_query(report_schedule)
+            if log.error_message != REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
+        )
+        assert '"gamma"' in error_log.error_message
+        assert specific_reason in error_log.error_message
+        # The editors' failure notification is still delivered.
+        email_mock.assert_called_once()
+        assert specific_reason in email_mock.call_args[0][2]
+    finally:
+        cleanup_report_schedule(report_schedule)
+        reset_key_values()
+
+
 @pytest.mark.usefixtures("tabbed_dashboard")
 @patch("superset.utils.screenshots.DashboardScreenshot.get_screenshot")
 @patch("superset.reports.notifications.email.send_email_smtp")
@@ -2043,16 +2137,28 @@ def test_slack_chart_report_schedule_with_text(
 )
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slack.get_slack_client")
-@patch("superset.commands.report.execute.get_chart_dataframe")
+@patch("superset.commands.report.execute.urllib.request.OpenerDirector.open")
 def test_slack_text_fallback_persists_success_for_multiple_recipient_rows(
-    dataframe_mock,
-    slack_client_mock,
-    slack_should_use_v2_api_mock,
-    get_channels_with_search_mock,
-    create_report_slack_chart_with_text,
-):
+    chart_data_request_mock: Mock,
+    slack_client_mock: Mock,
+    slack_should_use_v2_api_mock: Mock,
+    get_channels_with_search_mock: Mock,
+    create_report_slack_chart_with_text: ReportSchedule,
+) -> None:
     """Failed migration sends every text recipient and persists v1 success."""
-    dataframe_mock.return_value = pd.DataFrame({"value": [1]})
+    chart_data_request_mock.return_value.getcode.return_value = 200
+    chart_data_request_mock.return_value.read.return_value = json.dumps(
+        {
+            "result": [
+                {
+                    "data": [{"value": 1}],
+                    "colnames": ["value"],
+                    "coltypes": [0],
+                    "indexnames": [0],
+                }
+            ]
+        }
+    ).encode("utf-8")
     original_configs = [
         json.dumps({"target": "private-a"}),
         json.dumps({"target": "private-b"}),
@@ -2125,7 +2231,7 @@ def test_slack_text_fallback_persists_success_for_multiple_recipient_rows(
 )
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slack.get_slack_client")
-@patch("superset.commands.report.execute.get_chart_dataframe")
+@patch("superset.commands.report.execute.urllib.request.OpenerDirector.open")
 @patch("superset.reports.notifications.email.send_email_smtp")
 @pytest.mark.parametrize(
     "error_notification_fails",
@@ -2133,16 +2239,28 @@ def test_slack_text_fallback_persists_success_for_multiple_recipient_rows(
     ids=["notification-succeeds", "notification-fails"],
 )
 def test_slack_text_fallback_persists_later_recipient_ambiguous_failure(
-    email_mock,
-    dataframe_mock,
-    slack_client_mock,
-    slack_should_use_v2_api_mock,
-    get_channels_with_search_mock,
-    create_report_slack_chart_with_text,
-    error_notification_fails,
-):
+    email_mock: Mock,
+    chart_data_request_mock: Mock,
+    slack_client_mock: Mock,
+    slack_should_use_v2_api_mock: Mock,
+    get_channels_with_search_mock: Mock,
+    create_report_slack_chart_with_text: ReportSchedule,
+    error_notification_fails: bool,
+) -> None:
     """Mixed-outcome errors persist the fallback warning exactly once."""
-    dataframe_mock.return_value = pd.DataFrame({"value": [1]})
+    chart_data_request_mock.return_value.getcode.return_value = 200
+    chart_data_request_mock.return_value.read.return_value = json.dumps(
+        {
+            "result": [
+                {
+                    "data": [{"value": 1}],
+                    "colnames": ["value"],
+                    "coltypes": [0],
+                    "indexnames": [0],
+                }
+            ]
+        }
+    ).encode("utf-8")
     original_configs = [
         json.dumps({"target": "private-a"}),
         json.dumps({"target": "private-b"}),
