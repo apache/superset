@@ -163,13 +163,18 @@ function isBelowLabelLegibilityFloor(
 }
 
 /** Keep fitting labels inside, move oversized labels outside the bar, and
- * suppress labels for segments too small to legibly fit one either way. */
+ * (for stacked segments) suppress labels for segments too small to legibly
+ * fit one either way. */
 export function getAutoBarLabelLayout(
   params: LabelLayoutOptionCallbackParams,
   isHorizontal: boolean,
   isNegative = false,
+  applyLegibilityFloor = true,
 ): LabelLayoutOption {
-  if (isBelowLabelLegibilityFloor(params, isHorizontal)) {
+  if (
+    applyLegibilityFloor &&
+    isBelowLabelLegibilityFloor(params, isHorizontal)
+  ) {
     return HIDDEN_LABEL_LAYOUT;
   }
   const fitsWidth =
@@ -309,6 +314,7 @@ function isNegativeBarDataItem(
 function createAutoBarLabelLayout(
   data: unknown,
   isHorizontal: boolean,
+  applyLegibilityFloor: boolean,
 ): LabelLayoutOptionCallback {
   return params => {
     const dataItem =
@@ -319,6 +325,7 @@ function createAutoBarLabelLayout(
       params,
       isHorizontal,
       isNegativeBarDataItem(dataItem, isHorizontal),
+      applyLegibilityFloor,
     );
   };
 }
@@ -564,6 +571,18 @@ export function transformSeries(
     symbol = opts.lineSymbol || (isDarkMode ? 'circle' : 'emptyCircle');
   }
 
+  // A stack total is drawn as the topmost segment's label but sums the whole
+  // stack, so it always sits just past the end of the stack rather than being
+  // fitted to (or hidden by the size of) that one segment.
+  const isStackTotalLabel = plotType === 'bar' && !!stack && !!onlyTotal;
+  const barValueLabelPosition = isStackTotalLabel
+    ? BarValueLabelPosition.OutsideEnd
+    : valueLabelPosition;
+  // The legibility floor only prevents collisions between labels of
+  // neighboring stacked segments; a non-stacked bar or a stack total has no
+  // such neighbor.
+  const applyLegibilityFloor = !!stack && !onlyTotal;
+
   let transformedData = data;
   if (Array.isArray(data) && colorByPrimaryAxis) {
     transformedData = applyColorByPrimaryAxis(
@@ -581,7 +600,7 @@ export function transformSeries(
     const negativeLabelPosition: NegativeBarLabelPosition =
       labelPosition && labelPosition !== 'auto'
         ? (labelPosition as NegativeBarLabelPosition)
-        : getBarLabelPosition(valueLabelPosition, isHorizontal, true);
+        : getBarLabelPosition(barValueLabelPosition, isHorizontal, true);
     transformedData = transformNegativeLabelsPosition(
       { ...series, data: transformedData },
       isHorizontal,
@@ -590,10 +609,10 @@ export function transformSeries(
   }
 
   const isAutoBarLabel =
-    plotType === 'bar' && valueLabelPosition === BarValueLabelPosition.Auto;
+    plotType === 'bar' && barValueLabelPosition === BarValueLabelPosition.Auto;
   const isInsideBarLabel =
     plotType === 'bar' &&
-    valueLabelPosition !== BarValueLabelPosition.OutsideEnd;
+    barValueLabelPosition !== BarValueLabelPosition.OutsideEnd;
 
   return {
     ...series,
@@ -636,9 +655,13 @@ export function transformSeries(
     symbolSize: symbolSizeFn ?? markerSize,
     ...(isAutoBarLabel
       ? {
-          labelLayout: createAutoBarLabelLayout(transformedData, isHorizontal),
+          labelLayout: createAutoBarLabelLayout(
+            transformedData,
+            isHorizontal,
+            applyLegibilityFloor,
+          ),
         }
-      : plotType === 'bar' && showValue
+      : plotType === 'bar' && showValue && applyLegibilityFloor
         ? {
             labelLayout: createBarLabelLegibilityFloorLayout(isHorizontal),
           }
@@ -655,7 +678,7 @@ export function transformSeries(
         labelPosition && labelPosition !== 'auto'
           ? (labelPosition as LabelPositionEnum)
           : plotType === 'bar'
-            ? getBarLabelPosition(valueLabelPosition, isHorizontal)
+            ? getBarLabelPosition(barValueLabelPosition, isHorizontal)
             : isHorizontal
               ? LabelPositionEnum.Right
               : LabelPositionEnum.Top,

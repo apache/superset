@@ -746,6 +746,153 @@ test('bar series without shown values get no layout callback', () => {
   expect(result.labelLayout).toBeUndefined();
 });
 
+test.each([
+  [
+    'vertical',
+    1,
+    false,
+    { x: 10, y: 20, width: 40, height: 0.5 },
+    { x: 30, y: 15, align: 'center', verticalAlign: 'bottom' },
+  ],
+  [
+    'vertical',
+    0,
+    false,
+    { x: 10, y: 20, width: 40, height: 0 },
+    { x: 30, y: 15, align: 'center', verticalAlign: 'bottom' },
+  ],
+  [
+    'horizontal',
+    1,
+    true,
+    { x: 10, y: 20, width: 0.5, height: 40 },
+    { x: 15.5, y: 40, align: 'left', verticalAlign: 'middle' },
+  ],
+  [
+    'horizontal',
+    0,
+    true,
+    { x: 10, y: 20, width: 0, height: 40 },
+    { x: 15, y: 40, align: 'left', verticalAlign: 'middle' },
+  ],
+] as const)(
+  'Auto moves the label of a tiny non-stacked %s bar of value %s outside instead of hiding it',
+  (_orientation, value, isHorizontal, rect, expected) => {
+    const result = transformSeries(
+      {
+        name: 'test-series',
+        type: 'bar',
+        data: [isHorizontal ? [value, 'L1-1'] : ['L1-1', value]],
+      },
+      mockColorScale,
+      'test-key',
+      {
+        seriesType: EchartsTimeseriesSeriesType.Bar,
+        showValue: true,
+        isHorizontal,
+      },
+    ) as BarSeriesOption;
+    const { labelLayout } = result;
+
+    expect(typeof labelLayout).toBe('function');
+    if (typeof labelLayout !== 'function') return;
+
+    expect(
+      labelLayout({
+        dataIndex: 0,
+        seriesIndex: 0,
+        text: String(value),
+        align: 'center',
+        verticalAlign: 'middle',
+        rect,
+        labelRect: { x: 12, y: 22, width: 8, height: 14 },
+      }),
+    ).toEqual(expected);
+  },
+);
+
+test.each([
+  [false, 'top'],
+  [true, 'right'],
+] as const)(
+  'manual Outside End keeps the label of a tiny non-stacked bar (horizontal: %s)',
+  (isHorizontal, expected) => {
+    const result = transformSeries(
+      {
+        name: 'test-series',
+        type: 'bar',
+        data: [isHorizontal ? [1, 'L1-1'] : ['L1-1', 1]],
+      },
+      mockColorScale,
+      'test-key',
+      {
+        seriesType: EchartsTimeseriesSeriesType.Bar,
+        valueLabelPosition: BarValueLabelPosition.OutsideEnd,
+        showValue: true,
+        isHorizontal,
+      },
+    ) as BarSeriesOption;
+
+    // Without a layout callback nothing can hide the label of a bar whose
+    // outside label has no neighboring segment to collide with.
+    expect(result.labelLayout).toBeUndefined();
+    expect(result.label).toMatchObject({ show: true, position: expected });
+  },
+);
+
+test.each([
+  [BarValueLabelPosition.Auto, false, 'top'],
+  [BarValueLabelPosition.Auto, true, 'right'],
+  [BarValueLabelPosition.OutsideEnd, false, 'top'],
+  [BarValueLabelPosition.OutsideEnd, true, 'right'],
+  [BarValueLabelPosition.InsideCenter, false, 'top'],
+] as const)(
+  '%s stack totals stay past the end of the stack when the top segment is thin (horizontal: %s)',
+  (position, isHorizontal, expected) => {
+    const result = transformSeries(
+      {
+        name: 'test-series',
+        type: 'bar',
+        data: [isHorizontal ? [20, 2026] : [2026, 20]],
+      },
+      mockColorScale,
+      'test-key',
+      {
+        seriesType: EchartsTimeseriesSeriesType.Bar,
+        stack: StackControlsValue.Stack,
+        onlyTotal: true,
+        showValue: true,
+        valueLabelPosition: position,
+        isHorizontal,
+        theme: supersetTheme,
+        totalStackedValues: [720],
+        showValueIndexes: { __default__: [0] },
+        formatter: getNumberFormatter('d'),
+      },
+    ) as BarSeriesOption;
+
+    // The total sums the whole stack, so the size of the top segment that
+    // carries it must not hide or reposition it.
+    expect(result.labelLayout).toBeUndefined();
+    expect(result.label).toMatchObject({
+      show: true,
+      position: expected,
+      color: supersetTheme.colorText,
+    });
+    const { formatter: labelFormatter } = result.label as {
+      formatter: (params: unknown) => string;
+    };
+    expect(
+      labelFormatter({
+        value: isHorizontal ? [20, 2026] : [2026, 20],
+        dataIndex: 0,
+        seriesIndex: 0,
+        seriesName: 'test-series',
+      }),
+    ).toBe('720');
+  },
+);
+
 describe('transformNegativeLabelsPosition', () => {
   test('label position bottom of negative value no Horizontal', () => {
     const isHorizontal = false;
