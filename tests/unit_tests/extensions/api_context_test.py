@@ -62,9 +62,41 @@ def test_extension_api_methods_run_in_extension_context() -> None:
     assert TestApi.callback._urls == [("/callback", ("GET",))]
 
 
+def test_inherited_api_routes_use_each_extensions_context() -> None:
+    """Wrapping subclasses must leave shared handlers and overrides untouched."""
+
+    class SharedApi:
+        @expose("/callback", methods=("GET",))
+        def callback(self) -> str:
+            return get_context().extension.name
+
+    class FirstApi(SharedApi):
+        pass
+
+    class SecondApi(SharedApi):
+        pass
+
+    class OverriddenApi(SharedApi):
+        def callback(self) -> str:
+            return "not exposed"
+
+    original_callback = SharedApi.callback
+    original_override = OverriddenApi.callback
+    _contextualize_extension_api(FirstApi, create_manifest("acme", "first"))
+    _contextualize_extension_api(SecondApi, create_manifest("acme", "second"))
+    _contextualize_extension_api(OverriddenApi, create_manifest("acme", "third"))
+
+    assert FirstApi().callback() == "first"
+    assert SecondApi().callback() == "second"
+    assert SharedApi.callback is original_callback
+    assert OverriddenApi.callback is original_override
+    assert get_current_extension_context() is None
+
+
 @pytest.mark.parametrize("authentication", ["jwt", "api_key", "unauthenticated"])
+@pytest.mark.parametrize("inherited", [False, True])
 def test_extension_api_resolves_principal_after_protect(
-    mocker: MockerFixture, authentication: str
+    mocker: MockerFixture, authentication: str, inherited: bool
 ) -> None:
     """FAB authentication must finish before context and secrets resolve the user."""
     app = Flask(__name__)
@@ -106,8 +138,12 @@ def test_extension_api_resolves_principal_after_protect(
             assert get_context().storage.secrets.get("token") == "personal-token"
             return {"user_id": get_context().user_id}
 
-    _contextualize_extension_api(TestApi, manifest)
-    app.add_url_rule("/callback", view_func=TestApi().callback)
+    api_class = type("InheritedApi", (TestApi,), {}) if inherited else TestApi
+    original_callback = TestApi.callback
+    _contextualize_extension_api(api_class, manifest)
+    if inherited:
+        assert TestApi.callback is original_callback
+    app.add_url_rule("/callback", view_func=api_class().callback)
     headers = {}
     if authentication == "jwt":
         with app.app_context():
