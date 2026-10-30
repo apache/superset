@@ -43,6 +43,7 @@ from superset.commands.tasks.prune import TaskPruneCommand
 from superset.commands.tasks.reap import ReapOrphanedTasksCommand
 from superset.daos.report import ReportScheduleDAO
 from superset.daos.tasks import TaskDAO
+from superset.exceptions import SupersetException
 from superset.extensions import celery_app, db
 from superset.key_value.commands.prune import KeyValuePruneCommand
 from superset.reports.models import ReportScheduleType
@@ -650,11 +651,16 @@ def _execute_task_body(  # noqa: C901
                 set_ended_at=True,
             ).run()
 
-            # Client-class errors (e.g. QueryObjectValidationError, status 400) are
-            # user-fixable and already surfaced to the user via the task's error
-            # properties; they are not server faults, so avoid ERROR + traceback.
+            # Client-class SupersetExceptions (e.g. QueryObjectValidationError,
+            # status 400) are user-fixable and already surfaced to the user via the
+            # task's error properties; they are not server faults, so avoid ERROR +
+            # traceback. Other exceptions keep ERROR regardless of any ``status``.
             status = getattr(ex, "status", None)
-            if isinstance(status, int) and 400 <= status < 500:
+            if (
+                isinstance(ex, SupersetException)
+                and isinstance(status, int)
+                and 400 <= status < 500
+            ):
                 logger.warning(
                     "Task %s (uuid=%s) failed with client error: %s",
                     task_type,

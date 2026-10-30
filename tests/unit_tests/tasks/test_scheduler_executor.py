@@ -198,11 +198,16 @@ class _ServerSupersetException(SupersetException):
     status = 500
 
 
+class _NonSupersetClientStatusError(Exception):
+    status = 400
+
+
 @pytest.mark.parametrize(
     "exception",
     [
         QueryObjectValidationError("Empty query?"),
         SemanticResultCompletenessError("incomplete"),
+        SemanticResultCompletenessError("unverified"),
     ],
 )
 def test_client_class_failure_logs_warning_not_error(
@@ -226,7 +231,11 @@ def test_client_class_failure_logs_warning_not_error(
 
 @pytest.mark.parametrize(
     "exception",
-    [RuntimeError("boom"), _ServerSupersetException("server fault")],
+    [
+        RuntimeError("boom"),
+        _ServerSupersetException("server fault"),
+        _NonSupersetClientStatusError("not a Superset exception"),
+    ],
 )
 def test_server_class_failure_still_logs_error(
     exception: Exception, caplog: pytest.LogCaptureFixture
