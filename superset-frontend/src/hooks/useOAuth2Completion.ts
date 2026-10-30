@@ -28,23 +28,31 @@ export default function useOAuth2Completion(
 ) {
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
-  const lastHandledTabIdRef = useRef<string>();
+  const retryCompletionRef = useRef<() => void>();
 
   useEffect(() => {
     if (!tabId) return undefined;
+    let pending = false;
+    let handled = false;
+    const retryCompletion = () => {
+      if (pending && !handled && onCompleteRef.current() !== false) {
+        handled = true;
+        pending = false;
+      }
+    };
+    retryCompletionRef.current = retryCompletion;
     const handleCompletion = (message: unknown) => {
       if (
         typeof message !== 'object' ||
         message === null ||
         !('tabId' in message) ||
         message.tabId !== tabId ||
-        lastHandledTabIdRef.current === tabId
+        handled
       ) {
         return;
       }
-      if (onCompleteRef.current() !== false) {
-        lastHandledTabIdRef.current = tabId;
-      }
+      pending = true;
+      retryCompletion();
     };
     const channel =
       typeof BroadcastChannel !== 'undefined'
@@ -63,8 +71,14 @@ export default function useOAuth2Completion(
     };
     window.addEventListener('storage', handleStorage);
     return () => {
+      retryCompletionRef.current = undefined;
       window.removeEventListener('storage', handleStorage);
       channel?.close();
     };
   }, [tabId]);
+
+  // A query can finish loading after its OAuth notification arrives.
+  useEffect(() => {
+    retryCompletionRef.current?.();
+  });
 }
