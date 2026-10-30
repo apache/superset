@@ -20,13 +20,13 @@ import { useMemo, useState } from 'react';
 import {
   CategoricalColorNamespace,
   getNumberFormatter,
-  sanitizeHtml,
 } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
 import type { EChartsCoreOption } from 'echarts/core';
 import Echart from '../components/Echart';
 import { allEventHandlers } from '../utils/eventHandlers';
+import { sanitizeHtml as escapeHtml } from '../utils/series';
 import { RoseChartTransformedProps } from './types';
 
 /**
@@ -78,9 +78,7 @@ export default function EchartsRose(props: RoseChartTransformedProps) {
       tooltip: {
         confine: true,
         formatter: (params: { name: string; value: number; percent: number }) =>
-          `<div><b>${period.label}</b></div>${sanitizeHtml(params.name)}: ${format(
-            params.value,
-          )} (${params.percent}%)`,
+          `<div><b>${escapeHtml(period.label)}</b></div>${escapeHtml(params.name)}: ${escapeHtml(format(params.value))} (${params.percent}%)`,
       },
       series: [
         {
