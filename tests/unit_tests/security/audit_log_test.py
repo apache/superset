@@ -269,22 +269,3 @@ def test_on_user_logout_logs_event(mock_log: MagicMock) -> None:
     mock_log.assert_called_once_with(
         "UserLoggedOut", {"username": "testuser", "user_id": 7}
     )
-
-
-@patch("superset.tasks.cache.schedule_login_cache_warmup")
-@patch("superset.security.session_invalidation.stamp_login_time")
-@patch("superset.security.manager._log_audit_event")
-def test_on_user_login_schedules_cache_warmup(
-    mock_log: MagicMock,
-    mock_stamp_login_time: MagicMock,
-    mock_schedule: MagicMock,
-) -> None:
-    """on_user_login hands the user to the login cache warm-up scheduler."""
-    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
-    user = MagicMock(spec=User)
-    user.username = "testuser"
-    user.id = 7
-
-    sm.on_user_login(user)
-
-    mock_schedule.assert_called_once_with(user)

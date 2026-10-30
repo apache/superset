@@ -439,54 +439,49 @@ def test_native_filter_options_strategy_registered() -> None:
     assert strategy_registry["native_filter_options"] is NativeFilterOptionsStrategy
 
 
-def test_schedule_login_warmup_flag_off(app_context: None) -> None:
-    """With the setting disabled nothing is enqueued."""
-    from superset.tasks.cache import schedule_login_cache_warmup
+def test_favorites_strategy_registered() -> None:
+    from superset.tasks.cache import FavoritesStrategy, strategy_registry
+
+    assert strategy_registry["favorites"] is FavoritesStrategy
+    assert FavoritesStrategy.per_user is True
+
+
+def test_favorites_dispatch_disabled(app_context: None) -> None:
+    """With the gate off, the strategy enqueues nothing and needs no warmup user."""
+    from superset.tasks.cache import cache_warmup
 
     with (
         mock.patch(
             "superset.tasks.cache.current_app",
-            _fake_app({"CACHE_WARMUP_ON_LOGIN": False}),
+            _fake_app({"CACHE_WARMUP_FAVORITES": False}),
         ),
         mock.patch("superset.tasks.cache.cache_warmup_user_favorites") as task,
+        mock.patch("superset.tasks.cache.FavoritesStrategy.get_user_ids") as users,
     ):
-        schedule_login_cache_warmup(mock.MagicMock(id=1))
+        result = cache_warmup("favorites")
 
-    task.delay.assert_not_called()
+    assert isinstance(result, str)
+    assert "CACHE_WARMUP_FAVORITES is disabled" in result
+    task.apply_async.assert_not_called()
+    users.assert_not_called()
 
 
-def test_schedule_login_warmup_enqueues_once_per_cooldown(app_context: None) -> None:
-    """The first login enqueues; a login inside the cooldown does not."""
-    from superset.tasks.cache import schedule_login_cache_warmup
+def test_favorites_dispatch_enqueues_one_task_per_user(app_context: None) -> None:
+    from superset.tasks.cache import cache_warmup
 
-    config = {"CACHE_WARMUP_ON_LOGIN": True, "CACHE_WARMUP_ON_LOGIN_COOLDOWN": 60}
+    config = {"CACHE_WARMUP_FAVORITES": True, "CACHE_WARMUP_FAVORITES_QUEUE": "warm"}
     with (
         mock.patch("superset.tasks.cache.current_app", _fake_app(config)),
-        mock.patch("superset.tasks.cache.cache_manager") as cm,
         mock.patch("superset.tasks.cache.cache_warmup_user_favorites") as task,
+        mock.patch(
+            "superset.tasks.cache.FavoritesStrategy.get_user_ids", return_value=[3, 4]
+        ),
     ):
-        cm.cache.add.return_value = True
-        schedule_login_cache_warmup(mock.MagicMock(id=7))
-        cm.cache.add.return_value = False
-        schedule_login_cache_warmup(mock.MagicMock(id=7))
+        task.apply_async.side_effect = [None, RuntimeError("broker")]
+        result = cache_warmup("favorites", max_users=2)
 
-    task.apply_async.assert_called_once_with(args=(7,), queue=None)
-
-
-def test_schedule_login_warmup_swallows_errors(app_context: None) -> None:
-    """A broker failure must not propagate into the login flow."""
-    from superset.tasks.cache import schedule_login_cache_warmup
-
-    config = {"CACHE_WARMUP_ON_LOGIN": True, "CACHE_WARMUP_ON_LOGIN_COOLDOWN": 60}
-    with (
-        mock.patch("superset.tasks.cache.current_app", _fake_app(config)),
-        mock.patch("superset.tasks.cache.cache_manager") as cm,
-        mock.patch("superset.tasks.cache.cache_warmup_user_favorites") as task,
-    ):
-        task.apply_async.side_effect = RuntimeError("broker down")
-        cm.cache.add.return_value = True
-        schedule_login_cache_warmup(mock.MagicMock(id=7))
-        cm.cache.delete.assert_called_once_with("cache-warmup-login:7")
+    assert result == {"success": ["user:3"], "errors": ["user:4"]}
+    task.apply_async.assert_any_call(args=(3,), queue="warm")
 
 
 def test_user_favorites_task_warms_stale_charts_only(app_context: None) -> None:
@@ -495,7 +490,7 @@ def test_user_favorites_task_warms_stale_charts_only(app_context: None) -> None:
 
     chart_a, chart_b = mock.MagicMock(id=1), mock.MagicMock(id=2)
     dashboard = mock.MagicMock(id=10, slices=[chart_a, chart_b])
-    config = {"CACHE_WARMUP_ON_LOGIN_MAX_DASHBOARDS": 3}
+    config = {"CACHE_WARMUP_FAVORITES_MAX_DASHBOARDS": 3}
     with (
         mock.patch("superset.tasks.cache.current_app", _fake_app(config)),
         mock.patch(
@@ -562,3 +557,26 @@ def test_get_favorite_dashboards_order_cap_and_access(app_context: None) -> None
         result = _get_favorite_dashboards(5, 2)
 
     assert [d.id for d in result] == [3, 1]
+
+
+def test_favorites_strategy_user_selection(app_context: None) -> None:
+    """Users come back newest login first, limited by max_users, from one query."""
+    from superset.tasks.cache import FavoritesStrategy
+
+    with (
+        mock.patch("superset.tasks.cache.db") as db,
+        mock.patch(
+            "superset.tasks.cache.security_manager", new_callable=mock.MagicMock
+        ) as sm,
+    ):
+        sm.user_model.last_login.__ge__.return_value = True
+        query = db.session.query.return_value.join.return_value.filter.return_value
+        chain = query.filter.return_value.group_by.return_value.order_by.return_value
+        chain.limit.return_value.all.return_value = [
+            mock.MagicMock(user_id=9),
+            mock.MagicMock(user_id=4),
+        ]
+        strategy = FavoritesStrategy(since="7 days ago", max_users=2)
+        assert strategy.get_user_ids() == [9, 4]
+
+    chain.limit.assert_called_once_with(2)

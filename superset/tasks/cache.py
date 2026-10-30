@@ -30,7 +30,7 @@ from superset import db, security_manager
 from superset.common.query_context import QueryContext
 from superset.daos.dashboard import DashboardDAO
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import cache_manager, celery_app
+from superset.extensions import celery_app
 from superset.models.core import FavStar, FavStarClassName, Log
 from superset.models.dashboard import Dashboard
 from superset.tags.models import Tag, TaggedObject
@@ -94,6 +94,8 @@ class Strategy:  # pylint: disable=too-few-public-methods
 
     name: str = ""
     uses_webdriver: bool = True
+    # Per-user strategies fan out one task per user from ``get_user_ids``.
+    per_user: bool = False
 
     def __init__(self) -> None:
         pass
@@ -102,6 +104,9 @@ class Strategy:  # pylint: disable=too-few-public-methods
         raise NotImplementedError("Subclasses must implement get_urls!")
 
     def get_tasks(self) -> list[CacheWarmupTask]:
+        return []
+
+    def get_user_ids(self) -> list[int]:
         return []
 
 
@@ -318,11 +323,72 @@ class NativeFilterOptionsStrategy(Strategy):  # pylint: disable=too-few-public-m
         return tasks
 
 
+class FavoritesStrategy(Strategy):  # pylint: disable=too-few-public-methods
+    """
+    Warm up charts on each user's favorited dashboards.
+
+    Cache keys depend on the requesting user (row level security, impersonation),
+    so each user's dashboards are warmed by a separate task that runs as that user.
+    Only results that are missing or expired are computed. Users are selected by
+    recent login, most recent first, up to ``max_users`` per run. Requires
+    ``CACHE_WARMUP_FAVORITES = True``.
+
+        beat_schedule = {
+            'cache-warmup-favorites': {
+                'task': 'cache-warmup',
+                'schedule': crontab(minute=0, hour='*/6'),
+                'kwargs': {
+                    'strategy_name': 'favorites',
+                    'since': '7 days ago',
+                    'max_users': 100,
+                },
+            },
+        }
+
+    """
+
+    name: str = "favorites"
+    uses_webdriver: bool = False
+    per_user: bool = True
+
+    def __init__(self, since: str = "7 days ago", max_users: int = 100) -> None:
+        super().__init__()
+        self.since: Any = parse_human_datetime(since) if since else None
+        self.max_users: int = max_users
+
+    def get_urls(self) -> list[str]:
+        return []
+
+    def get_user_ids(self) -> list[int]:
+        """Return ids of active users with favorited dashboards, newest login first."""
+        query = (
+            db.session.query(FavStar.user_id)
+            .join(
+                security_manager.user_model,
+                security_manager.user_model.id == FavStar.user_id,
+            )
+            .filter(
+                FavStar.class_name == FavStarClassName.DASHBOARD,
+                security_manager.user_model.active.is_(True),
+            )
+        )
+        if self.since:
+            query = query.filter(security_manager.user_model.last_login >= self.since)
+        rows = (
+            query.group_by(FavStar.user_id, security_manager.user_model.last_login)
+            .order_by(security_manager.user_model.last_login.desc())
+            .limit(self.max_users)
+            .all()
+        )
+        return [row.user_id for row in rows]
+
+
 strategies: list[type[Strategy]] = [
     DummyStrategy,
     TopNDashboardsStrategy,
     DashboardTagsStrategy,
     NativeFilterOptionsStrategy,
+    FavoritesStrategy,
 ]
 strategy_registry: dict[str, type[Strategy]] = {
     strategy.name: strategy for strategy in strategies
@@ -349,6 +415,25 @@ def _warmup_urls(
                 results["errors"].append(url)
     finally:
         _browser_manager._cleanup()  # noqa: SLF001
+
+
+def _dispatch_per_user(
+    strategy: Strategy, results: dict[str, list[str]]
+) -> Union[dict[str, list[str]], str]:
+    """Enqueue one warm-up task per user selected by a per-user strategy."""
+    if not current_app.config.get("CACHE_WARMUP_FAVORITES"):
+        message = "CACHE_WARMUP_FAVORITES is disabled; nothing was warmed up."
+        logger.warning(message)
+        return message
+    queue: str | None = current_app.config.get("CACHE_WARMUP_FAVORITES_QUEUE")
+    for user_id in strategy.get_user_ids():
+        try:
+            cache_warmup_user_favorites.apply_async(args=(user_id,), queue=queue)
+            results["success"].append(f"user:{user_id}")
+        except Exception:  # noqa: BLE001
+            logger.exception("Error enqueueing cache warm-up for user %s", user_id)
+            results["errors"].append(f"user:{user_id}")
+    return results
 
 
 @celery_app.task(name="cache-warmup")
@@ -378,6 +463,9 @@ def cache_warmup(
         return message
 
     results: dict[str, list[str]] = {"success": [], "errors": []}
+
+    if strategy.per_user:
+        return _dispatch_per_user(strategy, results)
 
     warmup_username: str | None = current_app.config.get("SUPERSET_CACHE_WARMUP_USER")
     if not warmup_username:
@@ -483,10 +571,10 @@ def cache_warmup_user_favorites(user_id: int) -> dict[str, list[int]]:
     results: dict[str, list[int]] = {"success": [], "errors": []}
     user: Any = security_manager.get_user_by_id(user_id)
     if not user:
-        logger.warning("Login cache warm-up: user %s not found", user_id)
+        logger.warning("Favorites cache warm-up: user %s not found", user_id)
         return results
 
-    limit: int = current_app.config["CACHE_WARMUP_ON_LOGIN_MAX_DASHBOARDS"]
+    limit: int = current_app.config["CACHE_WARMUP_FAVORITES_MAX_DASHBOARDS"]
     with override_user(user, force=True):
         for dashboard in _get_favorite_dashboards(user_id, limit):
             for chart in dashboard.slices:
@@ -495,7 +583,9 @@ def cache_warmup_user_favorites(user_id: int) -> dict[str, list[int]]:
                         chart, dashboard.id, None, only_if_stale=True
                     ).run(skip_disabled=True)
                 except SoftTimeLimitExceeded:
-                    logger.warning("Login cache warm-up for user %s timed out", user_id)
+                    logger.warning(
+                        "Favorites cache warm-up for user %s timed out", user_id
+                    )
                     return results
                 except Exception:  # noqa: BLE001
                     logger.exception(
@@ -508,34 +598,3 @@ def cache_warmup_user_favorites(user_id: int) -> dict[str, list[int]]:
                 key: str = "errors" if outcome.get("viz_error") else "success"
                 results[key].append(chart.id)
     return results
-
-
-def schedule_login_cache_warmup(user: Any) -> None:
-    """
-    Enqueue a cache warm-up of the user's favorited dashboards after login.
-
-    A no-op unless ``CACHE_WARMUP_ON_LOGIN`` is enabled. A per-user cooldown
-    (``CACHE_WARMUP_ON_LOGIN_COOLDOWN``) bounds how often logins can enqueue work.
-    Never raises, so a warm-up problem cannot affect the login.
-    """
-    if not current_app.config.get("CACHE_WARMUP_ON_LOGIN"):
-        return
-    try:
-        cooldown: int = current_app.config["CACHE_WARMUP_ON_LOGIN_COOLDOWN"]
-        cooldown_key: str = f"cache-warmup-login:{user.id}"
-        if cooldown > 0 and not cache_manager.cache.add(
-            cooldown_key, 1, timeout=cooldown
-        ):
-            return
-        try:
-            cache_warmup_user_favorites.apply_async(
-                args=(user.id,),
-                queue=current_app.config.get("CACHE_WARMUP_ON_LOGIN_QUEUE"),
-            )
-        except Exception:
-            # Release the cooldown so the next login can retry.
-            if cooldown > 0:
-                cache_manager.cache.delete(cooldown_key)
-            raise
-    except Exception:  # noqa: BLE001
-        logger.exception("Could not schedule login cache warm-up")

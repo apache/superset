@@ -282,36 +282,44 @@ Requirements and limitations:
 - Cascading/dependent native filters and search-term variants of filter option queries are not
   warmed by this strategy.
 
-### Warming Up Favorited Dashboards on Login
+### Warming Up Favorited Dashboards
 
-Superset can warm the cache for a user's favorited dashboards when they log in. It is off by
-default:
+The `favorites` strategy warms the cache for each user's favorited dashboards. It is off by
+default; enable it and schedule it with Celery beat:
 
 ```python
-CACHE_WARMUP_ON_LOGIN = True
-CACHE_WARMUP_ON_LOGIN_MAX_DASHBOARDS = 5  # most recently favorited dashboards per login
-CACHE_WARMUP_ON_LOGIN_COOLDOWN = 3600  # seconds between warm-ups for the same user; 0 disables
-CACHE_WARMUP_ON_LOGIN_QUEUE = "cache_warmup"  # optional dedicated Celery queue
+CACHE_WARMUP_FAVORITES = True
+CACHE_WARMUP_FAVORITES_MAX_DASHBOARDS = 5  # most recently favorited dashboards per user
+CACHE_WARMUP_FAVORITES_QUEUE = "cache_warmup"  # optional dedicated Celery queue
+
+class CeleryConfig(CeleryConfig):
+    beat_schedule = {
+        "cache-warmup-favorites": {
+            "task": "cache-warmup",
+            "schedule": crontab(minute=0, hour="*/6"),
+            "kwargs": {
+                "strategy_name": "favorites",
+                "since": "7 days ago",  # only users who logged in since then
+                "max_users": 100,  # users handled per run, most recent login first
+            },
+        },
+    }
 ```
 
-After a successful login, a Celery task runs as that user and checks every chart on their
-favorited dashboards. Only charts whose query results are missing or expired are computed;
-charts that are already cached are skipped. Login itself is never delayed by this work.
+Each run enqueues one task per selected user. The task runs as that user, so the cache entries
+match what that user's dashboards request, and only charts whose query results are missing or
+expired are computed. It does not use `SUPERSET_CACHE_WARMUP_USER`.
 
-Requirements:
+Notes:
 
-- A Celery worker, and a real `DATA_CACHE_CONFIG` backend (with `NullCache` nothing can be
-  found in the cache, so every login would recompute).
-- The cooldown and a per-result lock (so concurrent warm-ups do not compute the same result
-  twice) are tracked in `CACHE_CONFIG`; use a shared backend such as Redis for them to work
-  across processes.
-- Set `CACHE_WARMUP_ON_LOGIN_QUEUE` and run a worker for that queue to keep warm-up from
-  competing with reports, alerts and thumbnails. The task has a time limit of 15 minutes.
-- The hook runs on logins handled by Flask-AppBuilder (database, LDAP, OAuth, remote user).
-  Sessions authenticated by other means, such as JWT or guest tokens, do not trigger it.
-- The task runs with the logging-in user's permissions, so the cache entries match what that
-  user's dashboards request. Dashboard default filters are not applied, so charts whose
-  dashboard load uses different filters may still miss the cache.
+- A Celery worker and a real `DATA_CACHE_CONFIG` backend are required (with `NullCache` every
+  run would recompute).
+- A per-result lock, kept in `CACHE_CONFIG`, stops concurrent runs from computing the same
+  result twice; use a shared backend such as Redis for it to work across processes.
+- Set `CACHE_WARMUP_FAVORITES_QUEUE` and run a worker for that queue to keep warm-up from
+  competing with reports, alerts and thumbnails. Each per-user task has a 15 minute time limit.
+- Dashboard default filters are not applied, so charts whose dashboard load uses different
+  filters may still miss the cache.
 
 ## Caching Thumbnails
 

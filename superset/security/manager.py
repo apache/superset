@@ -2418,7 +2418,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def on_user_login(self, user: Any) -> None:
         # pylint: disable=import-outside-toplevel
         from superset.security.session_invalidation import stamp_login_time
-        from superset.tasks.cache import schedule_login_cache_warmup
 
         # Record the authentication time so outstanding sessions can be
         # invalidated when the account is later disabled.
@@ -2427,7 +2426,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             "UserLoggedIn",
             {"username": user.username, "user_id": user.id},
         )
-        schedule_login_cache_warmup(user)
 
     def on_user_login_failed(self, user: Any) -> None:
         _log_audit_event(
