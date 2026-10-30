@@ -144,16 +144,25 @@ def find_open_request(asset_type: AssetType, asset_id: int) -> ChangeRequest | N
 
 
 def has_ever_been_published(asset_type: AssetType, asset_id: int) -> bool:
-    """Whether this instance has ever seen the asset published."""
-    return (
-        db.session.query(PublishedAsset.id)
-        .filter(
-            PublishedAsset.asset_type == asset_type.value,
-            PublishedAsset.asset_id == asset_id,
+    """Whether this instance has ever seen the asset published.
+
+    Read on its own connection, like the write below. By the time the gate
+    runs, the caller's session is already inside a transaction that loaded
+    the asset, so a mark another worker committed since then is invisible
+    to it -- and invisible reads as "never published", which is the
+    permissive answer of the two.
+    """
+    table = PublishedAsset.__table__
+    with db.engine.connect() as connection:
+        return (
+            connection.execute(
+                select(table.c.id).where(
+                    table.c.asset_type == asset_type.value,
+                    table.c.asset_id == asset_id,
+                )
+            ).first()
+            is not None
         )
-        .first()
-        is not None
-    )
 
 
 def mark_published(asset_type: AssetType, asset_id: int) -> None:
@@ -164,17 +173,23 @@ def mark_published(asset_type: AssetType, asset_id: int) -> None:
     when the extension was installed, and the unpublish itself -- an asset
     cannot be unpublished without having been published.
 
-    Written in its own nested transaction so a concurrent writer racing to
-    the same row cannot fail the caller's write: two workers both deciding
-    to mark is the expected case, and the unique constraint is what makes
-    the second one a no-op rather than a duplicate.
+    Written on its own connection for the same reason ``_insert_request``
+    is, and it is the same mistake either way: every path that reaches here
+    goes on to raise :class:`ChangeRequestCreated`, so a mark riding the
+    caller's session is rolled back with it and the table stays empty. An
+    empty table answers "never published" for everything, which is exactly
+    the behaviour the mark exists to replace (QA-18).
+
+    A concurrent writer racing to the same row cannot fail the caller's
+    write: two workers both deciding to mark is the expected case, and the
+    unique constraint is what makes the second one a no-op.
     """
     if has_ever_been_published(asset_type, asset_id):
         return
     try:
-        with db.session.begin_nested():
-            db.session.add(
-                PublishedAsset(
+        with db.engine.begin() as connection:
+            connection.execute(
+                insert(PublishedAsset.__table__).values(
                     asset_type=asset_type.value,
                     asset_id=asset_id,
                     first_seen_at=datetime.now(timezone.utc),

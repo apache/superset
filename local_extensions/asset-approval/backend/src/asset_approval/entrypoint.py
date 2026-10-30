@@ -21,6 +21,7 @@ the entire remaining ask.
 """
 
 import logging
+from typing import Any
 
 from flask import current_app, jsonify
 
@@ -30,8 +31,6 @@ EXTENSION_ID = "preset.asset-approval"
 
 
 def _create_schema() -> None:
-    from sqlalchemy import inspect
-
     from superset import db
 
     from asset_approval.models import ChangeRequest, PublishedAsset
@@ -39,28 +38,42 @@ def _create_schema() -> None:
     ChangeRequest.__table__.create(bind=db.engine, checkfirst=True)
 
     # `published_assets` answers "has a viewer ever been able to see this",
-    # which the Draft flag cannot (see PublishedAsset). On the boot that
-    # creates it there is a history to recover: every dashboard published
-    # right now has, by definition, been published, and recording that here
-    # keeps the exemption from re-opening for all of them at once.
-    first_time = not inspect(db.engine).has_table(PublishedAsset.__tablename__)
+    # which the Draft flag cannot (see PublishedAsset).
     PublishedAsset.__table__.create(bind=db.engine, checkfirst=True)
-    if first_time:
+    try:
         _backfill_published_dashboards()
+    except Exception:  # noqa: BLE001
+        # install_bindings has core refuse every governed write until a gate
+        # registers, so an exception escaping init() is an authoring outage
+        # rather than a weaker exemption. Degrade, do not fail.
+        logger.warning(
+            "Could not record already-published dashboards", exc_info=True
+        )
 
 
 def _backfill_published_dashboards() -> None:
-    """Record every dashboard that is published at the moment of install.
+    """Record the dashboards this instance can still prove were published.
 
-    Without this, the first boot after upgrading would treat every existing
-    published dashboard as never-published the moment someone unpublished
-    it, which is the hole this table exists to close.
+    Runs on every boot, not only the one that creates the table. A publish
+    that happened out of band -- an import, a script, a direct write --
+    leaves no gated write behind to record it, so the exemption would
+    re-open for that dashboard the moment someone unpublished it. A sweep
+    at boot closes that by itself instead of waiting for a release.
 
-    Only dashboards published *now* can be recovered. One that was
-    published and then unpublished before this ran leaves no trace to read,
-    and stays exempt until it is published again.
+    Two sources, because the live flag only answers for dashboards that are
+    published *now*. The versioned shadow table also holds the ones
+    published and later unpublished, for as long as the host keeps them,
+    which is the only way a dashboard unpublished before this extension was
+    installed can be recovered at all. Outside that window there is no
+    evidence anywhere, and it stays exempt until it is published again.
+
+    Idempotent: it inserts the difference, so two workers booting together
+    race only on the unique constraint.
     """
     from datetime import datetime, timezone
+
+    from sqlalchemy import insert, select
+    from sqlalchemy.exc import IntegrityError
 
     from superset import db
     from superset.models.dashboard import Dashboard
@@ -68,19 +81,78 @@ def _backfill_published_dashboards() -> None:
     from asset_approval.models import PublishedAsset
     from asset_approval.types import AssetType
 
-    now = datetime.now(timezone.utc)
-    published = db.session.query(Dashboard.id).filter(Dashboard.published.is_(True))
-    marks = [
-        PublishedAsset(
-            asset_type=AssetType.DASHBOARD.value, asset_id=row.id, first_seen_at=now
-        )
-        for row in published
-    ]
-    if not marks:
+    marks = PublishedAsset.__table__
+    dashboards = Dashboard.__table__
+    with db.engine.connect() as connection:
+        known = {
+            row.asset_id
+            for row in connection.execute(
+                select(marks.c.asset_id).where(
+                    marks.c.asset_type == AssetType.DASHBOARD.value
+                )
+            )
+        }
+        candidates = {
+            row.id
+            for row in connection.execute(
+                select(dashboards.c.id).where(dashboards.c.published.is_(True))
+            )
+        }
+        candidates |= _published_in_version_history(connection)
+
+    missing = sorted(candidates - known)
+    if not missing:
         return
-    db.session.add_all(marks)
-    db.session.commit()
-    logger.info("Recorded %d dashboards as already published", len(marks))
+
+    now = datetime.now(timezone.utc)
+    try:
+        with db.engine.begin() as connection:
+            connection.execute(
+                insert(marks),
+                [
+                    {
+                        "asset_type": AssetType.DASHBOARD.value,
+                        "asset_id": asset_id,
+                        "first_seen_at": now,
+                    }
+                    for asset_id in missing
+                ],
+            )
+    except IntegrityError:
+        # Another worker booted alongside this one and got there first.
+        logger.debug("Publish marks already written by another worker")
+        return
+    logger.info("Recorded %d dashboards as already published", len(missing))
+
+
+def _published_in_version_history(connection: Any) -> set[int]:
+    """Dashboard ids the version history still remembers as published.
+
+    Best effort, deliberately: versioning can be switched off, its tables
+    can be absent, and it prunes on a retention window. A miss costs one
+    dashboard staying exempt until it is next published, so a failure here
+    is logged and swallowed rather than allowed to stop the install.
+    """
+    try:
+        from sqlalchemy import select
+        from sqlalchemy_continuum import version_class
+
+        from superset.models.dashboard import Dashboard
+
+        shadow = version_class(Dashboard).__table__
+        return {
+            row.id
+            for row in connection.execute(
+                select(shadow.c.id).where(shadow.c.published.is_(True)).distinct()
+            )
+        }
+    except Exception:  # noqa: BLE001
+        logger.warning(
+            "Could not read dashboard version history for publish marks; "
+            "a dashboard unpublished before install may stay exempt",
+            exc_info=True,
+        )
+        return set()
 
 
 def install_http() -> None:

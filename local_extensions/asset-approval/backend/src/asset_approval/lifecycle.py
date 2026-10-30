@@ -47,6 +47,7 @@ from asset_approval.exceptions import (
     StaleBaselineError,
 )
 from asset_approval.changes import moved_since
+from asset_approval.gate import mark_published
 from asset_approval.models import ChangeRequest
 from asset_approval.replay import apply_change, load_asset
 from asset_approval.types import AssetType, ChangeStatus
@@ -213,6 +214,24 @@ def approve(
         raise AuthorNoLongerEditorError(_author_name(change_request))
 
     applied = apply_change(change_request)
+
+    if AssetType(change_request.asset_type) is AssetType.DASHBOARD:
+        # The gate's own hook is suspended while a replay runs, so the
+        # approval that publishes a dashboard is the one write that would
+        # otherwise never be recorded -- and it is the write that matters
+        # most, because it is the moment a viewer can first reach it
+        # (QA-18). Read the live asset rather than the payload: any
+        # approved change that leaves the dashboard published counts, not
+        # only one that names the flag.
+        #
+        # The mark commits on its own connection, so a later rollback
+        # leaves it behind without the publish. That errs towards gated,
+        # which is the safe direction for a mark that can never be removed.
+        published_now = load_asset(
+            AssetType.DASHBOARD, change_request.asset_id
+        )
+        if bool(getattr(published_now, "published", False)):
+            mark_published(AssetType.DASHBOARD, change_request.asset_id)
 
     change_request.set_status(ChangeStatus.APPROVED)
     change_request.reviewer_fk = user_id
