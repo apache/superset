@@ -19,7 +19,11 @@
 import { applyMiddleware, createStore } from 'redux';
 import thunk from 'redux-thunk';
 import { renderHook, act } from '@testing-library/react';
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  getClientErrorObject,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import { createWrapper, waitFor } from 'spec/helpers/testing-library';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
@@ -32,6 +36,9 @@ import useQueryCostWarning, { parseWarningResult } from './useQueryCostWarning';
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn(),
+  getClientErrorObject: jest.fn(
+    jest.requireActual('@superset-ui/core').getClientErrorObject,
+  ),
 }));
 const featureEnabled = jest.mocked(isFeatureEnabled);
 const endpoint = 'glob:*/api/v1/sqllab/estimate/';
@@ -315,6 +322,37 @@ test('a cancelled response cannot replace a newer attempt', async () => {
   await waitFor(() => expect(h.executions()).toHaveLength(1));
 });
 
+test('a late error cannot dismiss a newer confirmation or show a stale toast', async () => {
+  const h = setup();
+  let resolveError: (error: { error: string }) => void;
+  const parseError = jest.mocked(getClientErrorObject).mockClear();
+  parseError.mockReturnValueOnce(
+    new Promise(resolve => {
+      resolveError = resolve;
+    }),
+  );
+  fetchMock.modifyRoute('warning-check', {
+    response: { status: 400, body: { message: 'Old check failed' } },
+  });
+  h.start();
+  await waitFor(() => expect(parseError).toHaveBeenCalledTimes(1));
+  act(() => h.result.current.cancel());
+  fetchMock.modifyRoute('warning-check', {
+    response: { body: { result: warning } },
+  });
+  h.start();
+  await waitFor(() => expect(h.result.current.confirmation).toEqual(warning));
+  await act(async () => resolveError({ error: 'Old check failed' }));
+  expect(h.result.current.confirmation).toEqual(warning);
+  expect(h.reducer).not.toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({ type: ADD_TOAST }),
+  );
+  expect(h.executions()).toHaveLength(0);
+  act(() => h.result.current.continueRun());
+  await waitFor(() => expect(h.executions()).toHaveLength(1));
+});
+
 test.each([
   ['sql', 'SELECT 3'],
   ['selectedText', 'SELECT 4'],
@@ -510,7 +548,7 @@ test.each(['warning flag', 'disabled', 'unsupported', 'ctas', 'automatic'])(
     }
     act(() => {
       h.result.current.start(
-        '',
+        reason === 'ctas' ? 'warning_output' : '',
         reason === 'ctas',
         'TABLE',
         reason === 'automatic',
@@ -518,6 +556,13 @@ test.each(['warning flag', 'disabled', 'unsupported', 'ctas', 'automatic'])(
     });
     await waitFor(() => expect(h.executions()).toHaveLength(1));
     expect(fetchMock.callHistory.calls('warning-check')).toHaveLength(0);
+    if (reason === 'ctas') {
+      expect(JSON.parse(String(h.executions()[0].options.body))).toMatchObject({
+        select_as_cta: true,
+        tmp_table_name: 'warning_output',
+        ctas_method: 'TABLE',
+      });
+    }
   },
 );
 
