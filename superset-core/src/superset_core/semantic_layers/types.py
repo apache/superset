@@ -359,13 +359,16 @@ class SemanticResult:
     This includes any requests (SQL queries, HTTP requests) that were performed in order
     to obtain the results, in order to help troubleshooting.
 
-    **Count results.** A row count is one row with one integer column, named
-    ``COUNT`` by provider convention, holding the size of the requested result
-    window (see :class:`SemanticQuery`). An empty window is the cell ``0``: not
-    an empty table, not ``None`` and not a missing column. A count that cannot
-    be established exactly is an error (``SemanticResultCompletenessError``, as
-    incomplete or unverified), never an estimate, the length of a fetched page
-    or a zero standing in for "unknown".
+    **Count results.** A row count is one row with one integer column holding
+    the size of the requested result window (see :class:`SemanticQuery`). The
+    column's name is not part of the contract (providers conventionally use
+    ``COUNT``): a consumer reads the count from that single cell and does not
+    look it up by name. An empty window is the cell ``0``: not an empty table,
+    not ``None`` and not a missing column. A count that cannot be established
+    exactly is an error
+    (``superset_core.semantic_layers.errors.SemanticResultCompletenessError``,
+    as incomplete or unverified), never an estimate, the length of a fetched
+    page or a zero standing in for "unknown".
 
     **Value lists.** A distinct-value result has one column, named after the
     dimension. What such a list proves is its *completeness evidence*, one of
@@ -380,20 +383,23 @@ class SemanticResult:
     - *unknown*: neither is proven. Unknown is a valid suggestion result, not a
       defect.
 
-    Which state a result proves is fixed by the entry point that produced it or
-    carried on the result explicitly: ``SemanticView.get_values`` promises
-    *complete* or raises. Where evidence is carried explicitly and is absent,
-    the reading is unknown; absence is never read as complete. Whether the
-    values are an *ordered prefix*, the first values under the documented
-    provider order, is a separate claim with its own proof: the order must have
-    been applied before every cut, and sorting an already-cut subset afterwards
-    cannot make it a prefix. No evidence may be inferred from the list itself. A
-    list exactly as long as a cap proves nothing; a list shorter than the cap
-    proves completeness only with evidence that nothing was cut; an empty list
-    of unknown completeness is not proof that no value matches. A consumer that
-    applies its own ceiling afterwards turns a complete list into known more,
-    and may call the result an ordered prefix only under an order it applied to
-    the complete list before cutting.
+    This type carries no evidence field. The provider's obligation comes from
+    the entry point: ``SemanticView.get_values`` must return the whole domain
+    or raise. A consumer, though, may treat a list as complete only on explicit
+    evidence, never because of the entry point it came from; where evidence is
+    carried explicitly and is absent, the reading is unknown, and absence is
+    never read as complete. Whether the values are an *ordered prefix*, the
+    first values under a deterministic documented provider order whose NULL
+    placement and tie handling are stated, is a separate claim with its own
+    proof: the order must have been applied before every cut, and sorting an
+    already-cut subset afterwards cannot make it a prefix. No evidence may be
+    inferred from the list itself. A list exactly as long as a cap proves
+    nothing; a list shorter than the cap proves completeness only with evidence
+    that nothing was cut; an empty list of unknown completeness is not proof
+    that no value matches. A consumer whose own ceiling removes a value from a
+    proven-complete list turns it into known more, and may call the result an
+    ordered prefix only under an order it applied to the complete list before
+    cutting; a ceiling that removes nothing changes nothing.
 
     Evidence belongs to one observation. A count and a page fetched separately
     may see different source states; nothing here promises a snapshot across
@@ -436,13 +442,16 @@ class SemanticQuery:
     kept. A row count is the number of rows in the requested result window. For
     a matching result of 123 rows: no limit and no offset counts 123;
     ``limit=50`` counts 50; ``limit=50, offset=100`` counts 23; ``limit=50,
-    offset=150`` counts 0. The unrestricted total is the count only of a query
-    with neither limit nor offset. Rows are rows of the result, never
-    underlying facts or metric values: 10,000 facts that aggregate to 12 groups
-    count 12. A count validates the same shape ``get_table`` would, so a query
-    the table would reject, such as an offset on a view without
-    ``ROW_OFFSET``, is rejected by the count as well; a count never widens
-    what may be asked.
+    offset=150`` counts 0. ``limit=None`` means no limit and an absent or ``0``
+    ``offset`` means no offset, so a query with neither counts its whole
+    matching result; that unrestricted total is the count of no other query.
+    Rows are rows of the result, never underlying facts or metric values:
+    10,000 facts that aggregate to 12 groups count 12. A count validates the
+    same shape ``get_table`` would, the shape being members, ``filters``,
+    ``group_limit``, ``limit`` and ``offset`` but not ``order``, so a query the
+    table would reject, such as an offset on a view without ``ROW_OFFSET``, is
+    rejected by the count as well, and a count is accepted whenever the table
+    query would be; a count never widens what may be asked.
 
     ``group_limit`` is a separate ranking, with its own metric, direction and
     optional filters.

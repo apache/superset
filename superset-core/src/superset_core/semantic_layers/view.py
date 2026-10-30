@@ -175,7 +175,8 @@ class SemanticView(ABC):
         values than exist together with explicit evidence of what the list
         proves, is not expressible here and must not be improvised by
         truncating silently. The values come in no promised order unless the
-        provider documents an order applied before any cut.
+        provider documents a deterministic order, NULL placement and ties
+        included, applied before any cut.
 
         Raise SemanticQueryRejectedError for deliberate input rejection, such as a
         search filter the dimension cannot apply; the host returns it to the user
@@ -209,12 +210,12 @@ class SemanticView(ABC):
         Count the requested result window: the rows of the filtered, grouped
         result that remain after ``query.offset`` and ``query.limit``, as
         :class:`~superset_core.semantic_layers.types.SemanticQuery` defines it,
-        under the same validation of the query's shape that ``get_table``
-        applies. Return one row with one integer column (see
+        under the same validation of the query's shape, ``order`` aside, that
+        ``get_table`` applies. Return one row with one integer column (see
         :class:`~superset_core.semantic_layers.types.SemanticResult`); an empty
         window is ``0``. The unrestricted total is the count only of a query with
-        neither limit nor offset; for any other query it is a different number
-        and must not be returned as the count. A total may be turned into the
+        neither limit nor offset; for any other query it may be a different
+        number and must not be returned as the count. A total may be turned into the
         window count arithmetically only when it describes exactly this query's
         matching result, with every filter, grouping and group limit applied.
 
