@@ -1665,3 +1665,26 @@ def test_get_data_response_streaming_up_front_maps_setup_errors(
     assert response.json["message"] == str(exc)
     mock_stream.assert_called_once()
     command.execute.assert_not_called()
+
+
+def test_get_data_response_handles_dbapi_error_on_connect(app: SupersetApp) -> None:
+    """
+    A raw DBAPIError raised outside query execution (e.g. while computing the cache
+    key) returns a generic 422 instead of escaping as a 500.
+    """
+    from sqlalchemy.exc import ProgrammingError
+
+    command = MagicMock()
+    command.execute.side_effect = ProgrammingError(
+        "show standard_conforming_strings", {}, Exception("secret driver detail")
+    )
+    api = ChartDataRestApi()
+
+    with app.test_request_context("/api/v1/chart/data"):
+        response = api._get_data_response(command)
+
+    assert response.status_code == 422
+    body = response.get_data(as_text=True)
+    assert "There was an error connecting to the database" in body
+    assert "secret driver detail" not in body
+    assert "standard_conforming_strings" not in body
