@@ -829,14 +829,34 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             # password on the URL, a PEM key in connect_args. Both the URL and the
             # engine kwargs participate in the cache key below, keeping guest and
             # OAuth engines separate even when they use the same database username.
-            sqlalchemy_url, engine_kwargs = (
-                self.db_engine_spec.apply_embedded_credentials(
-                    self,
-                    embedded_credentials,
-                    sqlalchemy_url,
-                    engine_kwargs,
+            try:
+                sqlalchemy_url, engine_kwargs = (
+                    self.db_engine_spec.apply_embedded_credentials(
+                        self,
+                        embedded_credentials,
+                        sqlalchemy_url,
+                        engine_kwargs,
+                    )
                 )
-            )
+            except Exception as ex:
+                # Applying it can itself reject the credential -- a key pair is
+                # decoded here, before any engine (and its `handle_error`
+                # listener) exists. Log it and refuse it as a sign-in the database
+                # rejected would be, rather than letting the decoding error
+                # surface as a server fault (sc-130269).
+                _log_embedded_rejection(self.id, self.database_name, ex)
+                raise SupersetErrorException(
+                    SupersetError(
+                        message=__(
+                            "The credential configured for embedded viewers of this "
+                            "connection could not be used. An administrator needs "
+                            "to update it."
+                        ),
+                        error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+                        level=ErrorLevel.ERROR,
+                    ),
+                    status=400,
+                ) from ex
             # Hooks must receive the selected connection identity, not the
             # username claim supplied by the guest token.
             effective_username = sqlalchemy_url.username
