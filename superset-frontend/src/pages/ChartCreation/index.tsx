@@ -18,7 +18,12 @@
  */
 import { ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { FeatureFlag, isDefined, isFeatureEnabled } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  getClientErrorObject,
+  isDefined,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
@@ -35,6 +40,7 @@ import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { findPermission } from 'src/utils/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
@@ -248,6 +254,7 @@ export const ChartCreation = ({ user }: ChartCreationProps) => {
   >();
   const [vizType, setVizType] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(hasDatasetId);
+  const { addDangerToast } = useToasts();
 
   const exploreUrl = useCallback(() => {
     const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
@@ -309,12 +316,30 @@ export const ChartCreation = ({ user }: ChartCreationProps) => {
     }
     // Resolve against datasets only: an ID is unambiguous, whereas a semantic
     // view can share the same numeric ID. A missing or inaccessible dataset
-    // simply leaves the picker empty.
+    // (404) silently leaves the picker empty; any other failure is surfaced.
     fetchDatasetById(datasetId)
-      .then(dataset => setDatasource(toDatasourceOption(dataset)))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [toDatasourceOption]);
+      .then(dataset => {
+        setDatasource(toDatasourceOption(dataset));
+        setLoading(false);
+      })
+      .catch(async error => {
+        // Clear loading before parsing: getClientErrorObject may never settle
+        // for errors that carry no response.
+        setLoading(false);
+        const clientError = await getClientErrorObject(error);
+        if (clientError.status === 404) {
+          return;
+        }
+        addDangerToast(
+          clientError.error || clientError.message
+            ? t(
+                'An error occurred while loading the dataset: %s',
+                clientError.error || clientError.message,
+              )
+            : t('Unable to load the selected dataset'),
+        );
+      });
+  }, [toDatasourceOption, addDangerToast]);
 
   const isButtonDisabled = isBtnDisabled();
   const VIEW_INSTRUCTIONS_TEXT = t('view instructions');

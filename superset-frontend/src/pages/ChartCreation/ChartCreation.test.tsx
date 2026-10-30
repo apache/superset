@@ -742,18 +742,16 @@ test('builds the Explore URL from the dataset_id selection', async () => {
   locationSpy.mockRestore();
 });
 
-test.each([
-  ['a missing dataset', 404],
-  ['a server error', 500],
-])('leaves the selection empty without a toast on %s', async (_, status) => {
-  fetchMock.get(/\/api\/v1\/dataset\/999\?q=.*/, {
-    status,
-    body: { message: 'nope' },
-  });
+type ToastState = { toastType: string; text: string }[];
+const getToasts = (store: ReturnType<typeof createStore>) =>
+  (store.getState() as unknown as { messageToasts: ToastState }).messageToasts;
+
+const renderWithFailedDatasetLookup = async (
+  response: Parameters<typeof fetchMock.get>[1],
+) => {
+  fetchMock.get(/\/api\/v1\/dataset\/999\?q=.*/, response);
   mockHistoryPush.mockClear();
   const store = createStore({}, reducerIndex);
-  const locationSpy = mockSearchLocation('?dataset_id=999');
-
   render(<ChartCreation user={mockUser} />, {
     store,
     useRouter: true,
@@ -761,13 +759,50 @@ test.each([
   await waitFor(() =>
     expect(screen.queryByRole('status')).not.toBeInTheDocument(),
   );
-
   await userEvent.click(screen.getByRole('tab', { name: /All charts/i }));
   await userEvent.dblClick(await screen.findByText('Table'));
   expect(mockHistoryPush).not.toHaveBeenCalled();
-  expect(
-    (store.getState() as unknown as { messageToasts: unknown }).messageToasts,
-  ).toEqual([]);
+  return store;
+};
+
+test('leaves the selection empty without a toast when the dataset is missing', async () => {
+  const locationSpy = mockSearchLocation('?dataset_id=999');
+
+  const store = await renderWithFailedDatasetLookup({
+    status: 404,
+    body: { message: 'nope' },
+  });
+
+  expect(getToasts(store)).toEqual([]);
+
+  locationSpy.mockRestore();
+});
+
+test('shows a danger toast and leaves the selection empty on a server error', async () => {
+  const locationSpy = mockSearchLocation('?dataset_id=999');
+
+  const store = await renderWithFailedDatasetLookup({
+    status: 500,
+    body: { message: 'database exploded' },
+  });
+
+  await waitFor(() => expect(getToasts(store)).toHaveLength(1));
+  expect(getToasts(store)[0].toastType).toBe('DANGER_TOAST');
+  expect(getToasts(store)[0].text).toContain('database exploded');
+
+  locationSpy.mockRestore();
+});
+
+test('shows a danger toast and leaves the selection empty on a forbidden response', async () => {
+  const locationSpy = mockSearchLocation('?dataset_id=999');
+
+  const store = await renderWithFailedDatasetLookup({
+    status: 403,
+    body: { message: 'Forbidden' },
+  });
+
+  await waitFor(() => expect(getToasts(store)).toHaveLength(1));
+  expect(getToasts(store)[0].toastType).toBe('DANGER_TOAST');
 
   locationSpy.mockRestore();
 });

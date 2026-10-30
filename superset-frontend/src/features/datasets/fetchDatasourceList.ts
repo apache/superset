@@ -87,7 +87,7 @@ export const fetchDatasourceList = (
  */
 export const fetchDatasetById = (
   id: number | string,
-  { get = SupersetClient.get }: FetchDatasourceListOptions = {},
+  { get = SupersetClient.get }: { get?: typeof SupersetClient.get } = {},
 ): Promise<Dataset> => {
   const query = rison.encode({ columns: DATASET_LIST_COLUMNS });
   return get({
