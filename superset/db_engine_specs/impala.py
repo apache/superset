@@ -147,7 +147,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
                 try:
                     while cursor.is_executing():
                         if time.monotonic() >= deadline:
-                            cursor.cancel_operation()
+                            cls._cancel_operation(cursor)
                             raise TimeoutError(
                                 "Timed out waiting for the Impala operation"
                             )
@@ -171,7 +171,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
             raise
 
     @classmethod
-    def _cancel_operation(cls, cursor: Any, query_id: int) -> None:
+    def _cancel_operation(cls, cursor: Any, query_id: int | None = None) -> None:
         """Cancel the live operation and release its handles."""
         try:
             cursor.cancel_operation()

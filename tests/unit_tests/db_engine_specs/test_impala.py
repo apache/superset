@@ -257,6 +257,29 @@ def test_fetch_data_timeout(
     assert monotonic_mock.call_count == 3
 
 
+@patch("superset.db_engine_specs.impala.time.monotonic", side_effect=[0, 31])
+def test_fetch_data_deadline_releases_operation_when_cancel_fails(
+    monotonic_mock: Mock, app_context: None, impala_errors: None
+) -> None:
+    """A failed cancel RPC must not mask the deadline or retain operation handles."""
+    from flask import current_app
+    from impala.error import Error
+
+    cursor = Mock()
+    cursor.is_executing.return_value = True
+    cursor.cancel_operation.side_effect = Error("cancel RPC failed")
+
+    with patch.dict(current_app.config, SQLLAB_TIMEOUT=30):
+        with pytest.raises(TimeoutError, match="Timed out waiting"):
+            spec.fetch_data(cursor)
+
+    cursor.cancel_operation.assert_called_once_with()
+    cursor.close_operation.assert_called_once_with()
+    cursor.close.assert_called_once_with()
+    cursor.fetchall.assert_not_called()
+    assert monotonic_mock.call_count == 2
+
+
 @pytest.mark.parametrize("error", [TypeError("bug"), AttributeError("bug")])
 @patch.object(spec, "get_dbapi_mapped_exception")
 def test_fetch_data_preserves_programming_errors(
