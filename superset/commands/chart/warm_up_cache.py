@@ -84,6 +84,27 @@ class ChartWarmUpCacheCommand(BaseCommand):
                 missing.append(cache_key or "")
         return missing
 
+    def _acquire_warmup_lock(self, query_context: Any) -> tuple[bool, str | None]:
+        """
+        Decide whether this worker should compute the chart's missing results.
+
+        Returns ``(should_run, lock_key)``. ``should_run`` is False when everything is
+        cached or another worker holds the lock; otherwise the returned lock key must
+        be released after the computation.
+        """
+        missing = self._missing_cache_keys(query_context)
+        if not missing:
+            return False, None
+        # Only one worker warms a given result at a time.
+        lock_key = f"cache-warmup-lock:{missing[0]}"
+        if not cache_manager.cache.add(lock_key, 1, timeout=WARMUP_LOCK_TTL):
+            return False, None
+        if not self._missing_cache_keys(query_context):
+            # Another worker stored the result while this one waited.
+            cache_manager.cache.delete(lock_key)
+            return False, None
+        return True, lock_key
+
     def _warm_up_non_legacy_cache(self, chart: Slice) -> tuple[Any, Any]:
         """Warm up cache for non-legacy visualizations."""
         query_context = chart.get_query_context()
@@ -104,16 +125,8 @@ class ChartWarmUpCacheCommand(BaseCommand):
 
         lock_key: str | None = None
         if self._only_if_stale:
-            missing = self._missing_cache_keys(query_context)
-            if not missing:
-                return None, QueryStatus.SUCCESS
-            # Only one worker warms a given result at a time.
-            lock_key = f"cache-warmup-lock:{missing[0]}"
-            if not cache_manager.cache.add(lock_key, 1, timeout=WARMUP_LOCK_TTL):
-                return None, QueryStatus.SUCCESS
-            if not self._missing_cache_keys(query_context):
-                # Another worker stored the result while this one waited.
-                cache_manager.cache.delete(lock_key)
+            should_run, lock_key = self._acquire_warmup_lock(query_context)
+            if not should_run:
                 return None, QueryStatus.SUCCESS
         else:
             query_context.force = True

@@ -318,8 +318,11 @@ Notes:
   result twice; use a shared backend such as Redis for it to work across processes.
 - Set `CACHE_WARMUP_FAVORITES_QUEUE` and run a worker for that queue to keep warm-up from
   competing with reports, alerts and thumbnails. Each per-user task has a 15 minute time limit.
-- Dashboard default filters are not applied, so charts whose dashboard load uses different
-  filters may still miss the cache.
+- Dashboard default column filters (native filter defaults and legacy defaults) are applied.
+  Other dashboard filter settings, such as time range, time column and grain, extras and ad hoc
+  filters, are not, so charts whose dashboard load uses them may still miss the cache.
+- `CACHE_WARMUP_FAVORITES` is an ordinary configuration setting, not a feature flag.
+- Queued per-user tasks expire after two hours if no worker picks them up.
 
 ## Caching Thumbnails
 

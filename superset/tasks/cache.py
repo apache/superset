@@ -429,7 +429,9 @@ def _dispatch_per_user(
     queue: str | None = current_app.config.get("CACHE_WARMUP_FAVORITES_QUEUE")
     for user_id in strategy.get_user_ids():
         try:
-            cache_warmup_user_favorites.apply_async(args=(user_id,), queue=queue)
+            cache_warmup_user_favorites.apply_async(
+                args=(user_id,), queue=queue, expires=FAVORITES_TASK_EXPIRES
+            )
             results["success"].append(f"user:{user_id}")
         except Exception:  # noqa: BLE001
             logger.exception("Error enqueueing cache warm-up for user %s", user_id)
@@ -519,6 +521,12 @@ def cache_warmup(
     return results
 
 
+# Seconds after which an unstarted per-user task is discarded.
+FAVORITES_TASK_EXPIRES = 7200
+# Favorites read per wanted dashboard, leaving room for inaccessible ones.
+FAVORITES_FETCH_FACTOR = 4
+
+
 def _get_favorite_dashboards(user_id: int, limit: int) -> list[Dashboard]:
     """Return the user's most recently favorited dashboards, newest first."""
     dashboard_ids: list[int] = [
@@ -529,6 +537,8 @@ def _get_favorite_dashboards(user_id: int, limit: int) -> list[Dashboard]:
             FavStar.class_name == FavStarClassName.DASHBOARD,
         )
         .order_by(FavStar.dttm.desc())
+        # Some favorites may be inaccessible or deleted, so read a bounded surplus.
+        .limit(limit * FAVORITES_FETCH_FACTOR)
         .all()
     ]
     dashboards: list[Dashboard] = []
@@ -571,6 +581,9 @@ def cache_warmup_user_favorites(user_id: int) -> dict[str, list[int]]:
     from superset.utils.core import override_user
 
     results: dict[str, list[int]] = {"success": [], "errors": []}
+    if not current_app.config.get("CACHE_WARMUP_FAVORITES"):
+        logger.warning("CACHE_WARMUP_FAVORITES is disabled; skipping user %s", user_id)
+        return results
     user: Any = security_manager.get_user_by_id(user_id)
     if not user:
         logger.warning("Favorites cache warm-up: user %s not found", user_id)

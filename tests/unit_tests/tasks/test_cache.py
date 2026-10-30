@@ -481,7 +481,7 @@ def test_favorites_dispatch_enqueues_one_task_per_user(app_context: None) -> Non
         result = cache_warmup("favorites", max_users=2)
 
     assert result == {"success": ["user:3"], "errors": ["user:4"]}
-    task.apply_async.assert_any_call(args=(3,), queue="warm")
+    task.apply_async.assert_any_call(args=(3,), queue="warm", expires=7200)
 
 
 def test_user_favorites_task_warms_stale_charts_only(app_context: None) -> None:
@@ -490,7 +490,10 @@ def test_user_favorites_task_warms_stale_charts_only(app_context: None) -> None:
 
     chart_a, chart_b = mock.MagicMock(id=1), mock.MagicMock(id=2)
     dashboard = mock.MagicMock(id=10, slices=[chart_a, chart_b])
-    config = {"CACHE_WARMUP_FAVORITES_MAX_DASHBOARDS": 3}
+    config = {
+        "CACHE_WARMUP_FAVORITES": True,
+        "CACHE_WARMUP_FAVORITES_MAX_DASHBOARDS": 3,
+    }
     with (
         mock.patch("superset.tasks.cache.current_app", _fake_app(config)),
         mock.patch(
@@ -514,10 +517,28 @@ def test_user_favorites_task_warms_stale_charts_only(app_context: None) -> None:
     assert result == {"success": [1], "errors": [2]}
 
 
+def test_user_favorites_task_disabled(app_context: None) -> None:
+    from superset.tasks.cache import cache_warmup_user_favorites
+
+    with (
+        mock.patch(
+            "superset.tasks.cache.current_app",
+            _fake_app({"CACHE_WARMUP_FAVORITES": False}),
+        ),
+        mock.patch("superset.tasks.cache._get_favorite_dashboards") as favs,
+    ):
+        assert cache_warmup_user_favorites(5) == {"success": [], "errors": []}
+    favs.assert_not_called()
+
+
 def test_user_favorites_task_unknown_user(app_context: None) -> None:
     from superset.tasks.cache import cache_warmup_user_favorites
 
     with (
+        mock.patch(
+            "superset.tasks.cache.current_app",
+            _fake_app({"CACHE_WARMUP_FAVORITES": True}),
+        ),
         mock.patch(
             "superset.tasks.cache.security_manager", new_callable=mock.MagicMock
         ) as sm,
@@ -548,13 +569,16 @@ def test_get_favorite_dashboards_order_cap_and_access(app_context: None) -> None
         sm.raise_for_access.side_effect = raise_for_access
         query = db.session.query.return_value
         # Favorites query (newest first), then dashboards lookup.
-        query.filter.return_value.order_by.return_value.all.return_value = [
+        favs = query.filter.return_value.order_by.return_value.limit
+        favs.return_value.all.return_value = [
             mock.MagicMock(obj_id=i) for i in (3, 2, 1, 4)
         ]
         query.options.return_value.filter.return_value.all.return_value = list(
             dashboards.values()
         )
         result = _get_favorite_dashboards(5, 2)
+
+    favs.assert_called_once_with(8)
 
     assert [d.id for d in result] == [3, 1]
 
@@ -589,7 +613,10 @@ def test_user_favorites_task_skips_inaccessible_chart(app_context: None) -> None
 
     chart = mock.MagicMock(id=1)
     dashboard = mock.MagicMock(id=10, slices=[chart])
-    config = {"CACHE_WARMUP_FAVORITES_MAX_DASHBOARDS": 3}
+    config = {
+        "CACHE_WARMUP_FAVORITES": True,
+        "CACHE_WARMUP_FAVORITES_MAX_DASHBOARDS": 3,
+    }
     with (
         mock.patch("superset.tasks.cache.current_app", _fake_app(config)),
         mock.patch(
