@@ -426,7 +426,10 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         "logo": "clickhouse.svg",
         "logo_dark": "clickhouse-dark.svg",
         "homepage_url": "https://clickhouse.com/",
-        "sqlalchemy_docs_url": "https://clickhouse.com/docs/en/integrations/sql-clients/superset",
+        "sqlalchemy_docs_url": (
+            "https://clickhouse.com/docs/integrations/connectors/"
+            "data-visualization/superset-and-clickhouse"
+        ),
         "categories": [
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.OPEN_SOURCE,
@@ -496,7 +499,10 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             'echo "clickhouse-connect>=1.8.0,<2.0" >> ./docker/requirements-local.txt\n'
             "# Restart the containers after adding the driver."
         ),
-        "docs_url": "https://clickhouse.com/docs/integrations/superset",
+        "docs_url": (
+            "https://clickhouse.com/docs/integrations/connectors/"
+            "data-visualization/superset-and-clickhouse"
+        ),
         "notes": (
             "The SQL playground at sql.clickhouse.com uses the database endpoint "
             "sql-clickhouse.clickhouse.com; the example connects to its uk sample "

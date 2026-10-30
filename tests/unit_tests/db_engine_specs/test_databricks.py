@@ -182,6 +182,24 @@ def test_databricks_native_adjust_engine_params() -> None:
     assert args_no_cat["catalog"] == "main"
     assert args_no_cat["schema"] == "finance"
 
+    # Test switching away from default catalog on a connection with no configured
+    # catalog: switching to "other" resolves the catalog's default schema ("default")
+    url_no_cat_switch, args_no_cat_switch = (
+        DatabricksNativeEngineSpec.adjust_engine_params(
+            make_url(
+                "databricks+connector://token:test-token@localhost:443/finance"
+                "?http_path=/sql/1.0/warehouses/test"
+            ),
+            connect_args={},
+            catalog="other",
+            schema=None,
+        )
+    )
+    assert url_no_cat_switch.query["catalog"] == "other"
+    assert url_no_cat_switch.query["schema"] == "default"
+    assert args_no_cat_switch["catalog"] == "other"
+    assert args_no_cat_switch["schema"] == "default"
+
     # Test catalog override when URI already contains ?catalog=main&schema=finance
     # Switching to a different catalog resolves the catalog's default schema
     url_query_cat_override, args_query_cat_override = (
@@ -280,6 +298,78 @@ def test_databricks_native_adjust_engine_params() -> None:
     )
     assert adj_url_saved.query["schema"] == "finance"
     assert adj_args_saved["schema"] == "finance"
+
+    # Test that uri.query schema fallback applies when connect_args schema is empty
+    url_query_schema, args_query_schema = (
+        DatabricksNativeEngineSpec.adjust_engine_params(
+            make_url(
+                "databricks+connector://token:abc@my_hostname:1234/legacy"
+                "?catalog=main&schema=finance"
+            ),
+            connect_args={},
+        )
+    )
+    assert url_query_schema.query["schema"] == "finance"
+    assert args_query_schema["schema"] == "finance"
+
+
+def test_databricks_native_get_default_catalog_no_catalog_path() -> None:
+    """
+    Test get_default_catalog on a connection with no configured catalog.
+    Verifies that it resolves the server's default catalog via SHOW CATALOGS
+    without forcing one onto the connection handshake.
+    """
+    from unittest.mock import MagicMock
+
+    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
+
+    database = MagicMock()
+    database.url_object = make_url(
+        "databricks+connector://token:test-token@localhost:443/default"
+        "?http_path=/sql/1.0/warehouses/test"
+    )
+    database.extra = "{}"
+
+    mock_engine = MagicMock()
+    mock_conn = MagicMock()
+    mock_engine.connect.return_value.__enter__.return_value = mock_conn
+    mock_conn.execute.return_value = [("spark_catalog",)]
+    database.get_sqla_engine.return_value.__enter__.return_value = mock_engine
+
+    default_cat = DatabricksNativeEngineSpec.get_default_catalog(database)
+    assert default_cat == "spark_catalog"
+    database.get_sqla_engine.assert_called_once_with()
+
+
+def test_databricks_native_get_columns_resolves_no_catalog_reflection() -> None:
+    """
+    Test get_columns on a connection with no configured catalog.
+    Verifies that it dynamically resolves the server's default catalog
+    onto the dialect, preventing `DESCRIBE TABLE EXTENDED `None`...` reflection.
+    """
+    from unittest.mock import MagicMock
+
+    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
+    from superset.sql.parse import Table
+
+    mock_inspector = MagicMock()
+    mock_dialect = MagicMock()
+    mock_dialect.catalog = None
+    mock_engine = MagicMock()
+    mock_conn = MagicMock()
+    mock_engine.connect.return_value.__enter__.return_value = mock_conn
+    mock_engine.dialect = mock_dialect
+    mock_inspector.bind = mock_engine
+    mock_inspector.engine = mock_engine
+    mock_conn.execute.return_value = [("spark_catalog",)]
+
+    mock_inspector.get_columns.return_value = [{"name": "id", "type": MagicMock()}]
+
+    table = Table("orders", "default")
+    cols = DatabricksNativeEngineSpec.get_columns(mock_inspector, table)
+    assert mock_dialect.catalog == "spark_catalog"
+    assert len(cols) == 1
+    assert cols[0]["column_name"] == "id"
 
 
 def test_databricks_connector_dialect_registration() -> None:

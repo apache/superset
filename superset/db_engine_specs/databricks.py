@@ -52,10 +52,12 @@ from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+    from superset.sql.parse import Table
     from superset.superset_typing import (
         OAuth2ClientConfig,
         OAuth2State,
         OAuth2TokenResponse,
+        ResultSetColumnType,
     )
 
 
@@ -1047,15 +1049,25 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         original_catalog = adjusted_connect_args.get("catalog") or uri.query.get(
             "catalog"
         )
-        # Only a switch away from an explicitly configured catalog invalidates
-        # the saved schema. When the connection has no catalog configured, the
-        # caller's catalog is the server default (see `get_default_catalog`), so
-        # the schema from the URI still applies.
-        is_catalog_changing = (
-            catalog is not None
-            and original_catalog is not None
-            and catalog != original_catalog
+        server_default_catalog = (
+            adjusted_connect_args.get("default_catalog")
+            or uri.query.get("default_catalog")
+            or getattr(cls, "default_catalog", None)
+            or "main"
         )
+
+        # Distinguish the workspace default catalog from a genuine catalog switch:
+        # If an explicit catalog is configured on the connection, any change from it
+        # invalidates the saved schema. If no catalog is configured on the connection,
+        # caller's catalog matches the server default when it equals
+        # `server_default_catalog` (retaining the saved schema), whereas any other
+        # catalog is a genuine switch to a different catalog (resetting schema).
+        if original_catalog is not None:
+            is_catalog_changing = catalog is not None and catalog != original_catalog
+        else:
+            is_catalog_changing = (
+                catalog is not None and catalog != server_default_catalog
+            )
 
         if schema:
             effective_schema = schema
@@ -1151,7 +1163,9 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         single catalog is returned.
         """
         connect_args = cls.get_extra_params(database)["engine_params"]["connect_args"]
-        if default_catalog := connect_args.get("catalog"):
+        if default_catalog := (
+            connect_args.get("catalog") or database.url_object.query.get("catalog")
+        ):
             return default_catalog
 
         with database.get_sqla_engine() as engine:
@@ -1163,6 +1177,85 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
                     return catalogs.pop()
 
                 return conn.execute(text("SELECT current_catalog()")).scalar()
+
+    @classmethod
+    def get_columns(
+        cls,
+        inspector: Inspector,
+        table: Table,
+        options: dict[str, Any] | None = None,
+    ) -> list[ResultSetColumnType]:
+        """
+        Get all columns from a given schema and table.
+
+        Resolves the server's actual default catalog dynamically if no catalog
+        is set on the connection/dialect, preventing reflection from generating
+        invalid queries like `DESCRIBE TABLE EXTENDED `None`.`default`.`orders``
+        while leaving the connection handshake unforced.
+        """
+        dialect = getattr(inspector, "bind", None) and inspector.bind.dialect
+        if dialect is None and hasattr(inspector, "engine"):
+            dialect = inspector.engine.dialect
+
+        if dialect is not None and getattr(dialect, "catalog", None) is None:
+            engine = getattr(inspector, "bind", None) or getattr(
+                inspector, "engine", None
+            )
+            if engine is not None:
+                try:
+                    with engine.connect() as conn:
+                        catalogs = {
+                            cat for (cat,) in conn.execute(text("SHOW CATALOGS"))
+                        }
+                        if len(catalogs) == 1:
+                            dialect.catalog = catalogs.pop()
+                        else:
+                            dialect.catalog = conn.execute(
+                                text("SELECT current_catalog()")
+                            ).scalar()
+                except Exception:  # pylint: disable=broad-except
+                    logger.warning(
+                        "Unable to resolve default catalog from server "
+                        "during reflection",
+                        exc_info=True,
+                    )
+
+        return super().get_columns(inspector, table, options)
+
+    @classmethod
+    def get_table_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: str | None,
+    ) -> set[str]:
+        dialect = getattr(inspector, "bind", None) and inspector.bind.dialect
+        if dialect is None and hasattr(inspector, "engine"):
+            dialect = inspector.engine.dialect
+
+        if dialect is not None and getattr(dialect, "catalog", None) is None:
+            engine = getattr(inspector, "bind", None) or getattr(
+                inspector, "engine", None
+            )
+            if engine is not None:
+                try:
+                    with engine.connect() as conn:
+                        catalogs = {
+                            cat for (cat,) in conn.execute(text("SHOW CATALOGS"))
+                        }
+                        if len(catalogs) == 1:
+                            dialect.catalog = catalogs.pop()
+                        else:
+                            dialect.catalog = conn.execute(
+                                text("SELECT current_catalog()")
+                            ).scalar()
+                except Exception:  # pylint: disable=broad-except
+                    logger.warning(
+                        "Unable to resolve default catalog from server for table names",
+                        exc_info=True,
+                    )
+
+        return super().get_table_names(database, inspector, schema)
 
     @classmethod
     def get_prequeries(

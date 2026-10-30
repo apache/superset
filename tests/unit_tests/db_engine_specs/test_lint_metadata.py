@@ -124,8 +124,8 @@ def test_get_all_engine_specs_ast_set_and_unary_minus(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """
-    Regression: ast.Set and unary-minus in metadata values are correctly
-    evaluated and preserved in the AST scan.
+    Regression: ast.Set, ast.Tuple, and unary-minus in metadata values are
+    correctly evaluated and preserved in the AST scan.
     """
     _write_spec(
         tmp_path,
@@ -139,6 +139,7 @@ def test_get_all_engine_specs_ast_set_and_unary_minus(
             engine_name: str = "Complex Engine"
             metadata: dict[str, Any] = {
                 "tags": {"analytics", "warehouse"},
+                "pair": ("value", -1),
                 "default_port": -1,
                 "negative_float": -3.14,
             }
@@ -157,6 +158,7 @@ def test_get_all_engine_specs_ast_set_and_unary_minus(
     assert spec["engine_name"] == "Complex Engine"
     assert spec["metadata"] == {
         "tags": {"analytics", "warehouse"},
+        "pair": ("value", -1),
         "default_port": -1,
         "negative_float": -3.14,
     }
