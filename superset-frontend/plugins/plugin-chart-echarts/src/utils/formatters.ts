@@ -203,6 +203,55 @@ export function getTooltipTimeFormatter(
   return getTimeFormatter(format);
 }
 
+/** Formats a forced boundary with standalone context, preserving explicit formats. */
+export function getBoundaryTimeFormatter(
+  format?: string,
+  timeGrain?: TimeGranularity,
+): TimeFormatter | StringConstructor {
+  if (!format || format === SMART_DATE_ID) {
+    if (
+      [
+        TimeGranularity.DAY,
+        TimeGranularity.DATE,
+        TimeGranularity.WEEK,
+        TimeGranularity.WEEK_STARTING_SUNDAY,
+        TimeGranularity.WEEK_STARTING_MONDAY,
+        TimeGranularity.WEEK_ENDING_SATURDAY,
+        TimeGranularity.WEEK_ENDING_SUNDAY,
+      ].some(grain => grain === timeGrain)
+    ) {
+      return getTimeFormatter('%a %-d %b %Y');
+    }
+    if (timeGrain === TimeGranularity.HOUR) {
+      return getTimeFormatter('%Y-%m-%d %H:%M');
+    }
+  }
+  return getTooltipTimeFormatter(format, timeGrain);
+}
+
+/** Keeps slider handle dates inside the canvas, hiding details only when they cannot fit. */
+export function getZoomLabelOptions(
+  width: number,
+  domain: [number | undefined, number | undefined],
+  formatter: TimeFormatter | StringConstructor,
+) {
+  const labelFormatter = (value: number) => formatter(value);
+  const gutter =
+    Math.max(
+      ...domain.map(value =>
+        value === undefined ? 0 : labelFormatter(value).length,
+      ),
+    ) *
+      TIMESERIES_CONSTANTS.xAxisLabelCharWidthPx +
+    16;
+  const showDetail = width >= gutter * 2 + 80;
+  return {
+    labelFormatter,
+    showDetail,
+    ...(showDetail ? { left: gutter, right: gutter } : {}),
+  };
+}
+
 export function getXAxisFormatter(
   format?: string,
   timeGrain?: string,
@@ -268,6 +317,18 @@ export function createDedupXAxisFormatter(
   return wrapper;
 }
 
+export type SpacedXAxisFormatter = ((value: number | string) => string) & {
+  getAxisLayout?: () =>
+    | {
+        domainMin: number;
+        domainMax: number;
+        plotWidthPx: number;
+        minLabelValue?: number;
+        maxLabelValue?: number;
+      }
+    | undefined;
+};
+
 /**
  * Wraps an x-axis time formatter so that:
  * - consecutive ticks that format to identical text are blanked (e.g. the
@@ -278,9 +339,9 @@ export function createDedupXAxisFormatter(
  *   #39899) also disables its native overlap suppression for every other
  *   label on the axis.
  *
- * The forced axis boundary labels (domainMin/domainMax) are never blanked by
- * the spacing check so they stay visible regardless of density. Reserve space
- * for their left/right-aligned text before accepting a centered regular tick.
+ * The visible axis boundary labels are never blanked by the spacing check.
+ * Reserve space for their left/right-aligned text before accepting a centered
+ * regular tick, using the renderer's live extent when available.
  *
  * `showAllLabels` (the "All" X Axis Label Interval option) skips the spacing
  * check so every tick renders, even ones that would visually collide. The
@@ -294,11 +355,7 @@ export function createSpacedXAxisFormatter(
   plotWidthPx: number,
   showAllLabels: boolean = false,
   boundaryFormatter: XAxisFormatterFn | undefined = xAxisFormatter,
-): (value: number | string) => string {
-  const pixelsPerMs =
-    domainMin !== undefined && domainMax !== undefined && domainMax > domainMin
-      ? plotWidthPx / (domainMax - domainMin)
-      : undefined;
+): SpacedXAxisFormatter {
   const formatLabel = (value: number | string, isBoundary: boolean) => {
     const formatter = isBoundary ? boundaryFormatter : xAxisFormatter;
     return typeof formatter === 'function'
@@ -306,36 +363,71 @@ export function createSpacedXAxisFormatter(
       : String(value);
   };
   const { xAxisLabelCharWidthPx, xAxisLabelMinGapPx } = TIMESERIES_CONSTANTS;
-  const minLabelWidth =
-    domainMin === undefined
-      ? 0
-      : formatLabel(domainMin, true).length * xAxisLabelCharWidthPx;
-  const maxLabelWidth =
-    domainMax === undefined
-      ? 0
-      : formatLabel(domainMax, true).length * xAxisLabelCharWidthPx;
   let lastLabel: string | undefined;
   let lastValue: number | undefined;
   let lastShownValue: number | undefined;
-  const wrapper = (value: number | string) => {
+  let lastVisibleMin: number | undefined;
+  let lastVisibleMax: number | undefined;
+  let lastPlotWidth: number | undefined;
+  const wrapper: SpacedXAxisFormatter = (value: number | string) => {
+    const layout = wrapper.getAxisLayout?.();
+    const visibleMin = layout?.domainMin ?? domainMin;
+    const visibleMax = layout?.domainMax ?? domainMax;
+    const visibleWidth = layout?.plotWidthPx ?? plotWidthPx;
+    const minLabelValue = layout?.minLabelValue ?? visibleMin;
+    const maxLabelValue = layout?.maxLabelValue ?? visibleMax;
+    const minLabelWidth =
+      minLabelValue === undefined
+        ? 0
+        : formatLabel(minLabelValue, true).length * xAxisLabelCharWidthPx;
+    const maxLabelWidth =
+      maxLabelValue === undefined
+        ? 0
+        : formatLabel(maxLabelValue, true).length * xAxisLabelCharWidthPx;
+    const pixelsPerMs =
+      visibleMin !== undefined &&
+      visibleMax !== undefined &&
+      visibleMax > visibleMin
+        ? visibleWidth / (visibleMax - visibleMin)
+        : undefined;
     // ECharts formats the labels in repeated ascending passes. Reset the
     // dedup/spacing state when the sequence restarts so a forced boundary
     // label (e.g. the min date) isn't blanked by the previous pass's state
     // when both format identically (e.g. a May-to-May range).
     if (
-      typeof value === 'number' &&
-      lastValue !== undefined &&
-      value <= lastValue
+      visibleMin !== lastVisibleMin ||
+      visibleMax !== lastVisibleMax ||
+      visibleWidth !== lastPlotWidth ||
+      (typeof value === 'number' &&
+        lastValue !== undefined &&
+        value <= lastValue)
     ) {
       lastLabel = undefined;
       lastShownValue = undefined;
     }
+    lastVisibleMin = visibleMin;
+    lastVisibleMax = visibleMax;
+    lastPlotWidth = visibleWidth;
     if (typeof value === 'number') {
       lastValue = value;
     }
     const isBoundary =
-      typeof value === 'number' && (value === domainMin || value === domainMax);
-    const label = formatLabel(value, isBoundary);
+      typeof value === 'number' &&
+      (value === minLabelValue || value === maxLabelValue);
+    let label = formatLabel(value, isBoundary);
+    // Put the last boundary on a second row when both full dates cannot fit.
+    if (
+      !showAllLabels &&
+      isBoundary &&
+      value === maxLabelValue &&
+      minLabelValue !== maxLabelValue &&
+      minLabelValue !== undefined &&
+      formatLabel(minLabelValue, true) !== label &&
+      visibleWidth > 0 &&
+      minLabelWidth + maxLabelWidth + xAxisLabelMinGapPx > visibleWidth
+    ) {
+      label = `\n${label}`;
+    }
     if (label === lastLabel) {
       return '';
     }
@@ -344,15 +436,15 @@ export function createSpacedXAxisFormatter(
       !isBoundary &&
       typeof value === 'number' &&
       pixelsPerMs !== undefined &&
-      ((domainMin !== undefined &&
-        domainMax !== undefined &&
-        value >= domainMin &&
-        value <= domainMax &&
-        ((value - domainMin) * pixelsPerMs <
+      ((minLabelValue !== undefined &&
+        maxLabelValue !== undefined &&
+        value >= minLabelValue &&
+        value <= maxLabelValue &&
+        ((value - minLabelValue) * pixelsPerMs <
           minLabelWidth +
             (label.length * xAxisLabelCharWidthPx) / 2 +
             xAxisLabelMinGapPx ||
-          (domainMax - value) * pixelsPerMs <
+          (maxLabelValue - value) * pixelsPerMs <
             maxLabelWidth +
               (label.length * xAxisLabelCharWidthPx) / 2 +
               xAxisLabelMinGapPx)) ||
@@ -368,6 +460,8 @@ export function createSpacedXAxisFormatter(
     }
     return label;
   };
+  // The renderer supplies live axis geometry so zoom and pan share the same spacing.
+  wrapper.getAxisLayout = undefined;
   if (typeof xAxisFormatter === 'function' && 'id' in xAxisFormatter) {
     (wrapper as { id?: unknown }).id = (xAxisFormatter as { id?: unknown }).id;
   }

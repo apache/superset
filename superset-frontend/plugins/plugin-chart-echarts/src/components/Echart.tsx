@@ -28,6 +28,9 @@ import {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
+import { ensureIsArray } from '@superset-ui/core';
+import type GlobalModel from 'echarts/types/src/model/Global';
+import type CartesianAxisModel from 'echarts/types/src/coord/cartesian/AxisModel';
 
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
@@ -74,6 +77,7 @@ import {
 import { DEFAULT_LOCALE } from '../constants';
 import { mergeEchartsThemeOverrides } from '../utils/themeOverrides';
 import { loadLocale } from './echartsLocale';
+import type { SpacedXAxisFormatter } from '../utils/formatters';
 
 // Define this interface here to avoid creating a dependency back to superset-frontend,
 // TODO: to move the type to @superset-ui/core
@@ -328,6 +332,40 @@ function Echart(
       );
 
       const notMerge = !isDashboardRefreshing;
+      const xAxes = ensureIsArray(themedEchartOptions.xAxis) as {
+        axisLabel?: { formatter?: unknown };
+      }[];
+      xAxes.forEach((axis, index) => {
+        const formatter = axis?.axisLabel?.formatter;
+        if (typeof formatter === 'function' && 'getAxisLayout' in formatter) {
+          (formatter as SpacedXAxisFormatter).getAxisLayout = () => {
+            const chart = chartRef.current as unknown as
+              | {
+                  getModel: () => GlobalModel | undefined;
+                }
+              | undefined;
+            const model = chart?.getModel()?.getComponent('xAxis', index) as
+              | CartesianAxisModel
+              | undefined;
+            if (!model?.axis) return undefined;
+            const [domainMin, domainMax] = model.axis.scale.getExtent();
+            const [start, end] = model.axis.getExtent();
+            const customValues = model.axis.getLabelModel().get('customValues');
+            const ticks = customValues
+              ? customValues
+                  .map(value => model.axis.scale.parse(value))
+                  .filter(value => value >= domainMin && value <= domainMax)
+              : model.axis.scale.getTicks().map(tick => tick.value);
+            return {
+              domainMin,
+              domainMax,
+              plotWidthPx: Math.abs(end - start),
+              minLabelValue: ticks[0],
+              maxLabelValue: ticks.at(-1),
+            };
+          };
+        }
+      });
       chartRef.current?.dispatchAction({ type: 'hideTip' });
       // setOption(notMerge:true) replaces the dataZoom config, dropping any
       // range the user has engaged. Preserve it across the call.

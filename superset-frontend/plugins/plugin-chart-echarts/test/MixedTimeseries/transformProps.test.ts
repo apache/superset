@@ -28,6 +28,7 @@ import {
   VizType,
   ChartDataResponseResult,
   TimeGranularity,
+  SMART_DATE_ID,
   TooltipTruncationMode,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -1966,3 +1967,48 @@ test('converts xAxisLabelInterval string "0" to number 0', () => {
   // "All" must also disable hideOverlap so ECharts never drops a label.
   expect(xAxis.axisLabel.hideOverlap).toBe(false);
 });
+
+test.each([SMART_DATE_ID, '%d/%m/%Y'])(
+  '#45489 Mixed Timeseries gives boundaries standalone dates (%s)',
+  xAxisTimeFormat => {
+    const min = Date.UTC(2014, 2, 5);
+    const max = Date.UTC(2026, 7, 17);
+    const query = createTestQueryData(
+      [min, max].map(ds => ({ ds, metric: 1 })),
+      {
+        colnames: ['ds', 'metric'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        label_map: { ds: ['ds'], metric: ['metric'] },
+      },
+    );
+    const { echartOptions } = transformProps(
+      createEchartsTimeseriesTestChartProps<
+        EchartsMixedTimeseriesFormData,
+        EchartsMixedTimeseriesProps
+      >({
+        ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+        width: 1200,
+        defaultQueriesData: [query, query],
+        queriesData: [query, query],
+        formData: {
+          ...formData,
+          metrics: ['metric'],
+          metricsB: ['metric'],
+          groupby: [],
+          groupbyB: [],
+          timeGrainSqla: TimeGranularity.DAY,
+          xAxisTimeFormat,
+        },
+      }),
+    );
+    const axis = echartOptions.xAxis as {
+      axisLabel: { formatter: (value: number) => string };
+    };
+    expect(axis.axisLabel.formatter(min)).toBe(
+      xAxisTimeFormat === SMART_DATE_ID ? 'Wed 5 Mar 2014' : '05/03/2014',
+    );
+    expect(axis.axisLabel.formatter(max)).toBe(
+      xAxisTimeFormat === SMART_DATE_ID ? 'Mon 17 Aug 2026' : '17/08/2026',
+    );
+  },
+);

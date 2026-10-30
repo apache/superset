@@ -4848,6 +4848,7 @@ test.each<[string | undefined, TimeGranularity]>([
   [undefined, TimeGranularity.DAY],
   [SMART_DATE_ID, TimeGranularity.DAY],
   [SMART_DATE_ID, TimeGranularity.DATE],
+  [SMART_DATE_ID, TimeGranularity.WEEK],
   ['%d/%m/%Y', TimeGranularity.DAY],
 ])(
   '#45489 gives boundaries standalone dates and hides colliding ticks (%s, %s)',
@@ -4943,35 +4944,41 @@ test.each([0, 500])(
   },
 );
 
-test('#45489 retains hour precision in standalone boundary dates', () => {
-  const timestamps = [Date.UTC(2026, 7, 17, 9), Date.UTC(2026, 7, 17, 15)];
-  const { echartOptions } = transformProps(
-    createTestChartProps({
-      width: 1200,
-      formData: {
-        granularity_sqla: 'ds',
-        timeGrainSqla: TimeGranularity.HOUR,
-        xAxisTimeFormat: SMART_DATE_ID,
-      },
-      queriesData: [
-        createTestQueryData(
-          timestamps.map(__timestamp => ({ __timestamp, sales: 1 })),
-          {
-            colnames: ['__timestamp', 'sales'],
-            coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
-          },
-        ),
-      ],
-    }),
-  );
-  const { formatter } = (
-    echartOptions.xAxis as {
-      axisLabel: { formatter: (value: number) => string };
-    }
-  ).axisLabel;
+test.each([0, 30])(
+  '#45489 retains hour precision at a boundary offset of %s minutes',
+  minute => {
+    const timestamps = [
+      Date.UTC(2026, 7, 17, 9, minute),
+      Date.UTC(2026, 7, 17, 15, minute),
+    ];
+    const { echartOptions } = transformProps(
+      createTestChartProps({
+        width: 1200,
+        formData: {
+          granularity_sqla: 'ds',
+          timeGrainSqla: TimeGranularity.HOUR,
+          xAxisTimeFormat: SMART_DATE_ID,
+        },
+        queriesData: [
+          createTestQueryData(
+            timestamps.map(__timestamp => ({ __timestamp, sales: 1 })),
+            {
+              colnames: ['__timestamp', 'sales'],
+              coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+            },
+          ),
+        ],
+      }),
+    );
+    const { formatter } = (
+      echartOptions.xAxis as {
+        axisLabel: { formatter: (value: number) => string };
+      }
+    ).axisLabel;
 
-  expect(timestamps.map(formatter)).toEqual([
-    '2026-08-17 09:00',
-    '2026-08-17 15:00',
-  ]);
-});
+    expect(timestamps.map(formatter)).toEqual([
+      `2026-08-17 09:${minute === 0 ? '00' : '30'}`,
+      `2026-08-17 15:${minute === 0 ? '00' : '30'}`,
+    ]);
+  },
+);

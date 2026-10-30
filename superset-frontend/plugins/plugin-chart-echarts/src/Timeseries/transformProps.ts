@@ -48,8 +48,6 @@ import {
   TimeseriesChartDataResponseResult,
   TimeseriesDataRecord,
   NumberFormats,
-  SMART_DATE_ID,
-  TimeGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { isThemeDark } from '@apache-superset/core/theme';
@@ -138,6 +136,8 @@ import { getDefaultTooltip } from '../utils/tooltip';
 import {
   createDedupXAxisFormatter,
   createSpacedXAxisFormatter,
+  getBoundaryTimeFormatter,
+  getZoomLabelOptions,
   getPercentFormatter,
   getTooltipTimeFormatter,
   getXAxisDomain,
@@ -1467,24 +1467,23 @@ export default function transformProps(
   // spacing check below (which blanks labels that would otherwise visually
   // collide) has to be bypassed too, not just ECharts' own hideOverlap.
   const showAllLabels = xAxisLabelInterval === '0';
-  const boundaryTimeFormat =
-    (!xAxisTimeFormat || xAxisTimeFormat === SMART_DATE_ID) &&
-    (resolvedTimeGrain === TimeGranularity.DAY ||
-      resolvedTimeGrain === TimeGranularity.DATE)
-      ? '%a %-d %b %Y'
-      : xAxisTimeFormat;
+  const xAxisDomain = getXAxisDomain(
+    [rebasedData as Record<string, unknown>[]],
+    xAxisLabel,
+  );
+  const boundaryFormatter = getBoundaryTimeFormatter(
+    xAxisTimeFormat,
+    resolvedTimeGrain,
+  );
   const deduplicatedFormatter = showMaxLabel
     ? isHorizontal
       ? createDedupXAxisFormatter(xAxisFormatter)
       : createSpacedXAxisFormatter(
           xAxisFormatter,
-          ...getXAxisDomain(
-            [rebasedData as Record<string, unknown>[]],
-            xAxisLabel,
-          ),
+          ...xAxisDomain,
           Math.max(width - padding.left - padding.right, 0),
           showAllLabels,
-          getTooltipTimeFormatter(boundaryTimeFormat, resolvedTimeGrain),
+          boundaryFormatter,
         )
     : xAxisFormatter;
 
@@ -1865,6 +1864,9 @@ export default function transformProps(
             start: TIMESERIES_CONSTANTS.dataZoomStart,
             end: TIMESERIES_CONSTANTS.dataZoomEnd,
             bottom: TIMESERIES_CONSTANTS.zoomBottom,
+            ...(!isHorizontal && xAxisType === AxisType.Time
+              ? getZoomLabelOptions(width, xAxisDomain, boundaryFormatter)
+              : {}),
             yAxisIndex: isHorizontal ? 0 : undefined,
           },
           {
