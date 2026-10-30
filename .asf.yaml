@@ -24,6 +24,8 @@ notifications:
   discussions: notifications@superset.apache.org
 
 github:
+  collaborators:
+    - Agor-Bot
   pull_requests:
     del_branch_on_merge: true
     allow_update_branch: true
