@@ -1303,6 +1303,15 @@ _THEME_DEFAULT_BASE: Theme = {
         # Editor selection color (for SQL Lab text highlighting)
         "colorEditorSelection": "#fff5cf",
     },
+    # Per-component token overrides. Tooltip text renders at the small font
+    # size rather than Ant Design's global ``fontSize`` so tooltips stay
+    # visually subordinate to the content they annotate.
+    "components": {
+        "Tooltip": {
+            "fontSize": 12,
+            "lineHeight": 1.6,
+        },
+    },
     "algorithm": "default",
 }
 

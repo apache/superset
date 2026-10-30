@@ -6400,6 +6400,10 @@ msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr ""
 
 #, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
+#, python-format
 msgid "Error in jinja expression in column expression: %(msg)s"
 msgstr ""
 
@@ -14733,6 +14737,10 @@ msgstr ""
 msgid "The report has been created"
 msgstr ""
 
+#, python-format
+msgid "The report runs as %(username)s, who cannot access its %(kind)s: %(reason)s"
+msgstr ""
+
 msgid "The report will be sent to your email at"
 msgstr ""
 
@@ -14941,6 +14949,10 @@ msgid "The user has been created successfully."
 msgstr ""
 
 msgid "The user has been updated successfully."
+msgstr ""
+
+#, python-format
+msgid "The user this report runs as cannot access this %(kind)s. Choose a %(kind)s that user can access, or ask an admin to change who the report runs as."
 msgstr ""
 
 msgid "The user was updated successfully"
@@ -15640,6 +15652,10 @@ msgid "This password reset link is invalid or has expired."
 msgstr ""
 
 msgid "This pivot table used a legacy per-table aggregation setting that could be stale or incorrect, depending on which version you upgraded from. It now computes correctly, so totals and subtotals may look different than before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+#, python-format
+msgid "This report runs as %(username)s, who cannot access this %(kind)s. Choose a %(kind)s that user can access, or a different user to run the report as."
 msgstr ""
 
 msgid "This saved filter state predates the member-ID format. Reset it and explicitly choose its values again."
