@@ -34,6 +34,12 @@ assists people when migrating to a new version.
   `SEMANTIC_LAYER_ALLOW_INTERNAL_HOSTS = True` setting also allows HTTP and internal
   destinations. Both policies ignore environment proxies and preserve budgets and
   TLS hostname verification. See the [provider transport guide](docs/developer_docs/extensions/semantic-provider-transport.md).
+- Refreshing a dataset's columns from its source (the "Sync columns from
+  source" button, `PUT /api/v1/dataset/<id>?override_columns=true`, or
+  `PUT /api/v1/dataset/<id>/refresh`) no longer resets **Is dimension** and
+  **Is filterable** on existing columns. Newly discovered columns still arrive
+  with both enabled; a deployment that relied on a resync to restore those
+  defaults must set them explicitly.
 
 - Webhook alerts/reports and the Impala `cancel_query` call now share
   `get_ssrf_safe_requester`, whose session sets `trust_env=False`. Unless
