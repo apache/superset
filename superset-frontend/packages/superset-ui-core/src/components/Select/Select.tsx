@@ -50,6 +50,7 @@ import {
   handleFilterOptionHelper,
   hasOption,
   isLabeledValue,
+  isNewOption,
   isObject,
   makeQuoteAwareTokenizer,
   mapOptions,
@@ -66,6 +67,7 @@ import {
   StyledCheckOutlined,
   StyledContainer,
   StyledHeader,
+  StyledNewOptionBadge,
   StyledSelect,
   StyledStopOutlined,
 } from './styles';
@@ -519,9 +521,10 @@ const Select = forwardRef(
         setSelectValue(array);
 
         // removes new option
-        if (option.isNewOption) {
+        if (isNewOption(option)) {
+          const targetVal = getValue(value);
           const updatedOptions = fullSelectOptions.filter(
-            option => getValue(option.value) !== getValue(value),
+            opt => getValue(opt.value) !== targetVal && opt.label !== targetVal,
           );
           setSelectOptions(updatedOptions);
           setVisibleOptions(updatedOptions);
@@ -586,7 +589,7 @@ const Select = forwardRef(
               isNewOption: true,
             };
             const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
-              opt => !opt.isNewOption || hasOption(opt.value, selectValue),
+              opt => !isNewOption(opt) || hasOption(opt.value, selectValue),
             );
             updatedOptions = newOption
               ? [newOption, ...cleanSelectOptions]
@@ -1062,7 +1065,18 @@ const Select = forwardRef(
             )
           }
           options={visibleOptions}
-          optionRender={option => option.label || option.value}
+          optionRender={option =>
+            isNewOption(option.data) || isNewOption(option) ? (
+              <>
+                {option.label || option.value}
+                <StyledNewOptionBadge data-test="new-option-badge">
+                  {t('New')}
+                </StyledNewOptionBadge>
+              </>
+            ) : (
+              option.label || option.value
+            )
+          }
           oneLine={oneLine}
           popupMatchSelectWidth={oneLine ? dropdownWidth : true}
           builtinPlacements={DROPDOWN_BUILTIN_PLACEMENTS}
