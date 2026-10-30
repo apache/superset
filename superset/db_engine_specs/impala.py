@@ -161,13 +161,17 @@ class ImpalaEngineSpec(BaseEngineSpec):
             return super().fetch_data(cursor, limit)
         except TIME_LIMIT_EXCEPTIONS:
             # The operation is released before the time limit propagates so
-            # it does not keep running on the coordinator.
+            # it does not keep running on the coordinator. The limit can land
+            # part way through a FetchResults response, so the transport is
+            # reopened first: reading the cancel's reply from the remainder of
+            # that response would hang or request a garbage-sized read.
             try:
-                cursor.cancel_operation()
+                cursor.session.service.reconnect()
             except TIME_LIMIT_EXCEPTIONS:
                 raise
             except Exception:  # pylint: disable=broad-except
-                logger.warning("cancel_operation() failed after a time limit")
+                logger.warning("reconnect() failed after a time limit")
+            cls._cancel_operation(cursor)
             raise
 
     @classmethod

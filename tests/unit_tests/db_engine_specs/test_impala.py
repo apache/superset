@@ -17,7 +17,7 @@
 
 from datetime import datetime
 from typing import Optional
-from unittest.mock import Mock, patch
+from unittest.mock import call, MagicMock, Mock, patch
 
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
@@ -427,3 +427,30 @@ def test_fetch_data_cancels_on_time_limit_during_row_fetch(
     assert raised.value is timeout
     fetch.assert_called_once_with(cursor, 10)
     cursor.cancel_operation.assert_called_once_with()
+
+
+@pytest.mark.parametrize("cancel_fails", [False, True])
+def test_fetch_data_reconnects_before_cancelling_an_interrupted_fetch(
+    cancel_fails: bool, app_context: None, impala_errors: None
+) -> None:
+    """Discard an interrupted response before cancellation and release handles."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    cursor = Mock()
+    cursor.is_executing.return_value = False
+    cursor.execution_failed.return_value = False
+    calls = MagicMock()
+    calls.attach_mock(cursor.session.service.reconnect, "reconnect")
+    calls.attach_mock(cursor.cancel_operation, "cancel_operation")
+    if cancel_fails:
+        cursor.cancel_operation.side_effect = RuntimeError("cancel RPC failed")
+    timeout = SoftTimeLimitExceeded()
+
+    with patch.object(BaseEngineSpec, "fetch_data", side_effect=timeout):
+        with pytest.raises(SoftTimeLimitExceeded) as raised:
+            spec.fetch_data(cursor)
+
+    assert raised.value is timeout
+    assert calls.mock_calls[:2] == [call.reconnect(), call.cancel_operation()]
+    cursor.close_operation.assert_called_once_with()
+    cursor.close.assert_called_once_with()

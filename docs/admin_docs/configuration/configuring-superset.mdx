@@ -835,7 +835,9 @@ pending when result fetching begins, the additional polling wait is bounded by
 a timeout. Configure the driver's network timeout separately to bound individual
 RPC calls. SQL Lab time limits that fire while Impala rows are being fetched also
 request cancellation before the timeout propagates, including after execution has
-finished. A failed cancellation RPC is logged without hiding the original timeout.
+finished. Before cancellation, Superset reopens the driver transport to discard any
+partially read result response, then releases the operation and cursor handles.
+A failed cancellation RPC is logged without hiding the original timeout.
 
 ## SQL Lab Query History Pruning
 
