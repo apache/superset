@@ -75,7 +75,7 @@ from superset.mcp_service.chart.validation.dataset_validator import (
 from superset.mcp_service.common.error_schemas import DatasetContext
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
-from superset.utils.core import DatasourceType, FilterOperator
+from superset.utils.core import DatasourceType, FilterOperator, remove_duplicates
 
 logger = logging.getLogger(__name__)
 
@@ -3094,7 +3094,7 @@ def _resolve_big_number_temporal_column(
     candidates.extend(
         column.column_name for column in dataset.columns if column.column_name
     )
-    for temporal_column in dict.fromkeys(candidates):
+    for temporal_column in remove_duplicates(candidates):
         if is_column_truly_temporal(temporal_column, dataset_id, dataset=dataset):
             return temporal_column
     return None
@@ -4363,7 +4363,7 @@ def analyze_chart_capabilities(  # noqa: C901
         supports_export=True,  # All charts can be exported
         optimal_formats=optimal_formats,
         data_types=(
-            list(dict.fromkeys(data_types))
+            remove_duplicates(data_types)
             if viz_type == "bullet"
             else list(set(data_types))
         ),
