@@ -1780,13 +1780,12 @@ test.each<Axis>(['x', 'y'])(
       // Clear any calls from initial render
       setControlValueSpy.mockClear();
 
-      // TextControl now reports edits via useDeferredValue instead of a fixed
-      // debounce, so a quick clear-and-retype (deleting a title and
-      // immediately typing a replacement) can briefly pass an empty value
-      // through here before the retyped value settles. The margin effect
-      // must react to the settled value only, not this transient one, or it
-      // would zero out a custom margin and then bump it back to 30, losing
-      // the original 75.
+      // A transient axis title -- e.g. one cleared and then replaced, or one
+      // flushed on blur mid-edit -- can briefly pass an empty value through
+      // here before the retyped value settles. The margin effect must react
+      // to the settled value only, not this transient one, or it would zero
+      // out a custom margin and then bump it back to 30, losing the original
+      // 75.
       // Commit the clear on its own so the margin effect actually sees the
       // empty value, then retype inside the debounce window.
       act(() => {
