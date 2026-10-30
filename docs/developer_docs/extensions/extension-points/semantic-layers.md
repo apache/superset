@@ -508,16 +508,32 @@ rollback because disabled processes do not read or write it.
 
 ## Choosing a default time dimension
 
-A semantic view may set `preferred_temporal_dimension` to the name of a temporal
-dimension it exposes. Superset publishes that name as `main_dttm_col`, which
-Explore uses for the default time filter on new charts. The declaration is
-ignored if the name is absent or does not identify a temporal dimension.
+A semantic view may set `preferred_temporal_dimension: str | None = None` to an
+exact exposed temporal `Dimension.name`, including its qualification and case.
+Use the selection name, not a provider-private ID or display label. Superset
+publishes the validated name as `main_dttm_col`; `granularity_sqla` continues to
+list the available temporal choices. Explore uses the default when initializing
+a missing time filter. Unknown, non-temporal, or malformed declarations are
+ignored with an operator warning. `None` preserves fallback without a warning.
 
 ```python
 class MySemanticView(SemanticView):
-    preferred_temporal_dimension = "metric_time"
+    preferred_temporal_dimension: str | None = "metric_time"
 ```
 
+The provider owns the selection policy; the host does not infer business meaning
+from dimension names or grain suffixes. Grain variants sharing one name are not
+competing defaults. The conformance kit checks that a non-None declaration names
+an exposed Arrow date, timestamp, or time dimension and remains unchanged when
+the same catalog is reloaded. It uses the existing `semantic_view` and
+`semantic_reloaded_view` fixtures; providers need no new method or fixture.
+
 Providers that omit the declaration retain Explore's existing first temporal
-column fallback. This preference does not change the time dimension already
-selected on a saved chart.
+column fallback. Explicit saved time bindings remain authoritative. However,
+saved charts with an omitted binding may adopt a provider's new default and
+change results **without saving the chart**. This includes a query with an
+explicit temporal filter but omitted granularity: the filter stays explicit,
+while an independently supplied time range can add bounds on the preferred date.
+There is no chart migration or compatibility shim. A deliberately different axis
+or an existing axis/filter mismatch still requires the author's decision; the
+default does not silently repair it.

@@ -968,13 +968,15 @@ def test_semantic_view_abc_preferred_temporal_dimension_is_optional() -> None:
         ("metric_time", "metric_time"),
         (None, None),
         ("missing_time", None),
+        ("", None),
+        (42, None),
         ("entity_name", None),
     ],
 )
 def test_semantic_view_data_honors_exposed_temporal_preference(
     mock_implementation: MagicMock,
     semantic_view: SemanticView,
-    preferred: str | None,
+    preferred: object,
     expected: str | None,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -3352,3 +3354,29 @@ def test_values_rejection_logs_view_and_dimension(
     assert "INVALID_FILTER" in caplog.text
     assert "private-search" not in caplog.text
     mock_implementation.get_values.assert_called_once()
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_temporal_preference_survives_grain_variant_order(
+    mock_implementation: MagicMock,
+    semantic_view: SemanticView,
+    reverse: bool,
+) -> None:
+    """The exposed default and choices do not depend on catalog variant order."""
+    dimensions: list[Dimension] = [
+        Dimension(id="week", name="order_date", type=pa.date32(), grain=Grains.WEEK),
+        Dimension(id="ship", name="ship_date", type=pa.date32()),
+        Dimension(id="order", name="order_date", type=pa.date32()),
+    ]
+    mock_implementation.get_dimensions.return_value = (
+        list(reversed(dimensions)) if reverse else dimensions
+    )
+    mock_implementation.preferred_temporal_dimension = "order_date"
+
+    data: ExplorableData = semantic_view.data
+
+    assert data["main_dttm_col"] == "order_date"
+    assert sorted(data["granularity_sqla"]) == [
+        ("order_date", "order_date"),
+        ("ship_date", "ship_date"),
+    ]

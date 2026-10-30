@@ -274,7 +274,12 @@ assists people when migrating to a new version.
 - Semantic-view providers may declare `SemanticView.preferred_temporal_dimension`
   to choose the default exposed temporal dimension for new charts. The declaration
   is optional; absent, unknown or non-temporal names retain the existing fallback.
-  Saved chart selections are preserved.
+  Explicit saved time bindings are preserved. Saved charts with omitted bindings
+  may adopt a newly declared default and change results without saving. An
+  explicit temporal filter does not prevent an omitted granularity from adopting
+  the default for independently supplied time-range bounds. No chart migration
+  or compatibility shim is applied. The provider conformance kit validates the
+  optional declaration and its stability across equivalent catalog reloads.
 
 ### Dashboard layout chart access
 

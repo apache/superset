@@ -646,3 +646,76 @@ def test_or_lane_rejects_non_host_fixture_shapes(
         SemanticProviderConformance().test_query_outputs(
             "or", semantic_view, {"or": (query, expected)}
         )
+
+
+@pytest.mark.parametrize("preferred", [None, "occurred"])
+def test_temporal_preference_accepts_optional_name_and_shared_variants(
+    semantic_view: "QueryView",
+    semantic_reloaded_view: "QueryView",
+    preferred: str | None,
+) -> None:
+    """Legacy providers and temporal names shared by grains remain conforming."""
+    semantic_view.preferred_temporal_dimension = preferred
+    semantic_reloaded_view.preferred_temporal_dimension = preferred
+    SemanticProviderConformance().test_catalog_identity(
+        semantic_view, semantic_reloaded_view
+    )
+
+
+@pytest.mark.parametrize("preferred", ["missing", "category", "private-day", "", 42])
+@pytest.mark.parametrize("on_reload", [False, True])
+def test_temporal_preference_rejects_invalid_declarations(
+    semantic_view: "QueryView",
+    semantic_reloaded_view: "QueryView",
+    monkeypatch: pytest.MonkeyPatch,
+    preferred: object,
+    on_reload: bool,
+) -> None:
+    """Both catalog snapshots must declare an exposed temporal selection name."""
+    monkeypatch.setattr(
+        semantic_reloaded_view, "preferred_temporal_dimension", preferred
+    )
+    if not on_reload:
+        monkeypatch.setattr(semantic_view, "preferred_temporal_dimension", preferred)
+    with pytest.raises(AssertionError, match="preferred_temporal_dimension"):
+        SemanticProviderConformance().test_catalog_identity(
+            semantic_view, semantic_reloaded_view
+        )
+
+
+def test_temporal_preference_rejects_changed_default_on_equivalent_reload(
+    semantic_view: "QueryView", semantic_reloaded_view: "QueryView"
+) -> None:
+    """Reloading an unchanged catalog must not change its default selection."""
+    semantic_view.preferred_temporal_dimension = "occurred"
+    with pytest.raises(AssertionError, match="preferred_temporal_dimension"):
+        SemanticProviderConformance().test_catalog_identity(
+            semantic_view, semantic_reloaded_view
+        )
+
+
+@pytest.mark.parametrize(
+    "temporal_type",
+    [
+        pa.date32(),
+        pa.date64(),
+        pa.timestamp("us", tz="UTC"),
+        pa.time32("s"),
+        pa.time64("us"),
+    ],
+)
+def test_temporal_preference_accepts_portable_temporal_types(
+    semantic_view: "QueryView",
+    semantic_reloaded_view: "QueryView",
+    monkeypatch: pytest.MonkeyPatch,
+    temporal_type: pa.DataType,
+) -> None:
+    """Portable temporal eligibility matches the host, not a vendor's base-date rule."""
+    dimensions: set[Dimension] = {Dimension("private", "T.DATE", temporal_type)}
+    view: SemanticView
+    for view in (semantic_view, semantic_reloaded_view):
+        view.preferred_temporal_dimension = "T.DATE"
+        monkeypatch.setattr(view, "get_dimensions", lambda: dimensions)
+    SemanticProviderConformance().test_catalog_identity(
+        semantic_view, semantic_reloaded_view
+    )
