@@ -1128,6 +1128,13 @@ _CREDENTIALS = {"username": "embedded_svc", "password": "embedded_pw"}
         (True, None, True, _CREDENTIALS, False),
         # A cleared credential is "no credential", wherever it is saved.
         (False, None, False, {"username": "", "password": ""}, False),
+        # sc-127897: a blank client is no client, so impersonation alone can't
+        # make the credential apply.
+        (True, {**_CLIENT, "id": "", "secret": ""}, False, _CREDENTIALS, True),
+        (True, {**_CLIENT, "secret": "  "}, False, _CREDENTIALS, True),
+        (True, {**_CLIENT, "id": ""}, False, _CREDENTIALS, True),
+        # A stored secret comes back masked on edit and still counts.
+        (True, {**_CLIENT, "secret": "XXXXXXXXXX"}, False, _CREDENTIALS, False),
     ],
 )
 @with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)

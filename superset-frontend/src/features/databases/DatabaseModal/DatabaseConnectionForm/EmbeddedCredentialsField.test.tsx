@@ -19,7 +19,10 @@
 
 import { render, fireEvent } from 'spec/helpers/testing-library';
 import { DatabaseObject } from 'src/features/databases/types';
-import { EmbeddedCredentialsField } from './EmbeddedCredentialsField';
+import {
+  EmbeddedCredentialsField,
+  oauth2ClientInfoConfigured,
+} from './EmbeddedCredentialsField';
 
 const mockChangeMethods = {
   onEncryptedExtraInputChange: jest.fn(),
@@ -564,4 +567,63 @@ test('opens the panel and shows the error when validation rejects the pair', () 
   expect(getByTestId('embedded-credentials-error')).toHaveTextContent(
     'Embedded guest credentials are incomplete.',
   );
+});
+
+test.each([
+  ['a blank client id and secret', { id: '', secret: '' }],
+  ['a blank client secret', { id: 'client-id', secret: '   ' }],
+  ['a blank client id', { id: '', secret: 'XXXXXXXXXX' }],
+])('is inactive when the stored OAuth2 client has %s', (_, client) => {
+  // sc-127897: a blank client is no client, matching the server's save check.
+  const props = {
+    ...defaultProps,
+    db: {
+      ...defaultProps.db,
+      masked_encrypted_extra: JSON.stringify({
+        oauth2_client_info: {
+          ...client,
+          scope: 'refresh_token',
+          authorization_request_uri:
+            'https://x.snowflakecomputing.com/oauth/authorize',
+        },
+      }),
+    } as DatabaseObject,
+  };
+
+  const { getByTestId } = render(<EmbeddedCredentialsField {...props} />);
+
+  expect(
+    getByTestId('embedded-credentials-inactive-reason'),
+  ).toBeInTheDocument();
+});
+
+test('is inactive when a blank OAuth2 client is typed into the form', () => {
+  const props = {
+    ...defaultProps,
+    db: {
+      ...defaultProps.db,
+      masked_encrypted_extra: '{}',
+      parameters: { oauth2_client_info: { id: '', secret: '' } },
+    } as unknown as DatabaseObject,
+  };
+
+  const { getByTestId } = render(<EmbeddedCredentialsField {...props} />);
+
+  expect(
+    getByTestId('embedded-credentials-inactive-reason'),
+  ).toBeInTheDocument();
+});
+
+test.each([
+  [{ id: 'client', secret: 'secret' }, true],
+  [{ id: 'client', secret: 'XXXXXXXXXX' }, true],
+  [{ id: 'client', secret: '' }, false],
+  [{ id: ' ', secret: 'secret' }, false],
+  [{ id: 'client' }, false],
+  [{ id: 'client', secret: null }, false],
+  [{}, false],
+  [null, false],
+  ['client', false],
+])('oauth2ClientInfoConfigured(%j) is %s', (clientInfo, configured) => {
+  expect(oauth2ClientInfoConfigured(clientInfo)).toBe(configured);
 });
