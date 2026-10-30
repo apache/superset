@@ -18,6 +18,8 @@
 
 from typing import Any, cast, Optional, Union
 
+from celery.exceptions import SoftTimeLimitExceeded
+
 from superset.commands.base import BaseCommand
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.exceptions import (
@@ -109,6 +111,10 @@ class ChartWarmUpCacheCommand(BaseCommand):
             lock_key = f"cache-warmup-lock:{missing[0]}"
             if not cache_manager.cache.add(lock_key, 1, timeout=WARMUP_LOCK_TTL):
                 return None, QueryStatus.SUCCESS
+            if not self._missing_cache_keys(query_context):
+                # Another worker stored the result while this one waited.
+                cache_manager.cache.delete(lock_key)
+                return None, QueryStatus.SUCCESS
         else:
             query_context.force = True
         try:
@@ -145,6 +151,8 @@ class ChartWarmUpCacheCommand(BaseCommand):
 
         try:
             error, status = self._warm_up_non_legacy_cache(chart)
+        except SoftTimeLimitExceeded:
+            raise
         except Exception as ex:  # pylint: disable=broad-except
             error = error_msg_from_exception(ex)
             status = None

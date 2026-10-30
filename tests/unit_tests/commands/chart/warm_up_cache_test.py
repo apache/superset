@@ -390,3 +390,19 @@ def test_missing_cache_keys_empty_when_caching_disabled() -> None:
     query_context = _ctx(["k1"])
     query_context.get_cache_timeout.return_value = -1
     assert ChartWarmUpCacheCommand._missing_cache_keys(query_context) == []
+
+
+def test_run_propagates_soft_time_limit() -> None:
+    """A Celery soft time limit must reach the task instead of becoming a viz error."""
+    from celery.exceptions import SoftTimeLimitExceeded
+
+    chart = Mock(spec=Slice)
+    command = ChartWarmUpCacheCommand(chart, None, None)
+    with (
+        patch.object(command, "validate"),
+        patch.object(
+            command, "_warm_up_non_legacy_cache", side_effect=SoftTimeLimitExceeded()
+        ),
+        pytest.raises(SoftTimeLimitExceeded),
+    ):
+        command.run()

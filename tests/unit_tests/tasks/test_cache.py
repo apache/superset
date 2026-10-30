@@ -580,3 +580,27 @@ def test_favorites_strategy_user_selection(app_context: None) -> None:
         assert strategy.get_user_ids() == [9, 4]
 
     chain.limit.assert_called_once_with(2)
+
+
+def test_user_favorites_task_skips_inaccessible_chart(app_context: None) -> None:
+    """A chart the user cannot access is skipped without counting as an error."""
+    from superset.commands.chart.exceptions import ChartAccessDeniedError
+    from superset.tasks.cache import cache_warmup_user_favorites
+
+    chart = mock.MagicMock(id=1)
+    dashboard = mock.MagicMock(id=10, slices=[chart])
+    config = {"CACHE_WARMUP_FAVORITES_MAX_DASHBOARDS": 3}
+    with (
+        mock.patch("superset.tasks.cache.current_app", _fake_app(config)),
+        mock.patch(
+            "superset.tasks.cache.security_manager", new_callable=mock.MagicMock
+        ),
+        mock.patch(
+            "superset.tasks.cache._get_favorite_dashboards", return_value=[dashboard]
+        ),
+        mock.patch(
+            "superset.commands.chart.warm_up_cache.ChartWarmUpCacheCommand"
+        ) as command,
+    ):
+        command.return_value.run.side_effect = ChartAccessDeniedError()
+        assert cache_warmup_user_favorites(5) == {"success": [], "errors": []}

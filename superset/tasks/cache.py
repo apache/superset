@@ -354,7 +354,7 @@ class FavoritesStrategy(Strategy):  # pylint: disable=too-few-public-methods
     def __init__(self, since: str = "7 days ago", max_users: int = 100) -> None:
         super().__init__()
         self.since: Any = parse_human_datetime(since) if since else None
-        self.max_users: int = max_users
+        self.max_users: int = max(1, int(max_users))
 
     def get_urls(self) -> list[str]:
         return []
@@ -370,6 +370,7 @@ class FavoritesStrategy(Strategy):  # pylint: disable=too-few-public-methods
             .filter(
                 FavStar.class_name == FavStarClassName.DASHBOARD,
                 security_manager.user_model.active.is_(True),
+                security_manager.user_model.last_login.isnot(None),
             )
         )
         if self.since:
@@ -565,6 +566,7 @@ def cache_warmup_user_favorites(user_id: int) -> dict[str, list[int]]:
     are skipped; only missing or expired results are computed.
     """
     # pylint: disable=import-outside-toplevel
+    from superset.commands.chart.exceptions import ChartAccessDeniedError
     from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
     from superset.utils.core import override_user
 
@@ -582,6 +584,13 @@ def cache_warmup_user_favorites(user_id: int) -> dict[str, list[int]]:
                     outcome: dict[str, Any] = ChartWarmUpCacheCommand(
                         chart, dashboard.id, None, only_if_stale=True
                     ).run(skip_disabled=True)
+                except ChartAccessDeniedError:
+                    logger.info(
+                        "Skipping chart %s on dashboard %s: no access",
+                        chart.id,
+                        dashboard.id,
+                    )
+                    continue
                 except SoftTimeLimitExceeded:
                     logger.warning(
                         "Favorites cache warm-up for user %s timed out", user_id
