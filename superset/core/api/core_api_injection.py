@@ -45,7 +45,8 @@ def _contextualize_extension_api(
     manifest: "Manifest",
 ) -> None:
     """Execute exposed extension API methods with extension and user context."""
-    for attribute_name, attribute in vars(api_class).items():
+    for attribute_name in dir(api_class):
+        attribute = getattr(api_class, attribute_name)
         if not callable(attribute) or not getattr(attribute, "_urls", None):
             continue
         setattr(
