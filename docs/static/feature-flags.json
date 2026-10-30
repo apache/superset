@@ -250,7 +250,7 @@
         "name": "SQLLAB_QUERY_COST_WARNINGS",
         "default": false,
         "lifecycle": "testing",
-        "description": "Optional advisory warnings before deliberately running SQL in SQL Lab. Requires ESTIMATE_QUERY_COST and explicit connection-level opt-in."
+        "description": "Optional advisory warnings before deliberately running SQL in SQL Lab. Requires explicit connection-level opt-in. Numeric checks also require ESTIMATE_QUERY_COST and connection cost estimation."
       },
       {
         "name": "SSH_TUNNELING",
