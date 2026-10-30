@@ -239,6 +239,12 @@ def test_disabled_integration_registers_and_bootstraps_without_sdk() -> None:
                 assert destinations.configured_teams() is None
                 assert destinations.list_teams_destinations() == []
                 assert ReportRecipientType.TEAMS not in base._notification_methods()
+            assert any(
+                rule.rule == "/api/v1/teams/events/"
+                and rule.endpoint == "teams.teams_events"
+                and "POST" in rule.methods
+                for rule in app.url_map.iter_rules()
+            )
             assert app.test_client().post(
                 "/api/v1/teams/events/", json={}
             ).status_code == 404
