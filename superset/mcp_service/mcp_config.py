@@ -194,10 +194,10 @@ MCP_JWT_DEBUG_ERRORS = False
 MCP_API_KEY_ENABLED: bool | None = None
 
 # URL surfaced to users when an API key is rejected, pointing them at the
-# place to create or rotate a key. Defaults to the FAB user profile page;
-# deployments that manage keys elsewhere can override this to point at their
-# own key-management UI without forking the auth code.
-MCP_API_KEY_CREATE_URL = "/profile/"
+# place to create or rotate a key. Defaults to the user info page, where API
+# keys are managed; deployments that manage keys elsewhere can override this to
+# point at their own key-management UI without forking the auth code.
+MCP_API_KEY_CREATE_URL = "/user_info/"
 
 # Accept Superset embedded guest tokens on the MCP transport (opt-in, default
 # False). Requires the EMBEDDED_SUPERSET flag and the shared core

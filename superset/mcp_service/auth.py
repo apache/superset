@@ -728,7 +728,7 @@ def _validate_api_key_fallback(app: Any, api_key_string: str | None) -> User:
 
     user = sm.validate_api_key(api_key_string)
     if not user:
-        create_url = app.config.get("MCP_API_KEY_CREATE_URL", "/profile/")
+        create_url = app.config.get("MCP_API_KEY_CREATE_URL", "/user_info/")
         raise PermissionError(
             f"Invalid or expired API key. Create a new key at {create_url}."
         )
