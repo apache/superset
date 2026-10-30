@@ -22,6 +22,7 @@ import {
   getSankeyCrossFilterDataMask,
   getSankeyDrillFilters,
   getSankeyHighlight,
+  getSelectedSankeyKeys,
   sankeyEndpointKey,
   sankeyLinkKey,
   sankeyNodeKey,
@@ -57,12 +58,29 @@ test('node names keep null and an empty string distinct', () => {
 });
 
 test('value ids do not collapse labels that look the same', () => {
+  const date = new Date('2021-01-01T00:00:00.000Z');
+
   expect(sankeyValueId(null)).not.toBe(sankeyValueId(NULL_STRING));
   expect(sankeyValueId('')).not.toBe(sankeyValueId(EMPTY_STRING));
   expect(sankeyValueId(42)).not.toBe(sankeyValueId(42n));
   expect(sankeyValueId(42n)).not.toBe(sankeyValueId('42'));
+  expect(sankeyValueId(date)).toBe(
+    JSON.stringify({ date: '2021-01-01T00:00:00.000Z' }),
+  );
+  expect(sankeyValueId(date)).not.toBe(sankeyValueId(date.toISOString()));
   expect(sankeyNodeKey('source', 42)).not.toBe(sankeyNodeKey('source', 42n));
   expect(sankeyLinkKey(42, '42')).not.toBe(sankeyLinkKey(42, 42));
+});
+
+test('selected values stored as an object are read as keys', () => {
+  const key = sankeyNodeKey('source', 'A');
+
+  expect(getSelectedSankeyKeys({ first: key, second: key })).toEqual([
+    key,
+    key,
+  ]);
+  expect(getSelectedSankeyKeys(1)).toEqual([]);
+  expect(getSelectedSankeyKeys(null)).toEqual([]);
 });
 
 test('a node click filters the column that introduced the label', () => {
@@ -206,6 +224,36 @@ test('a selected node keeps its matching flows and their other ends', () => {
   expect(highlight?.linkKeys.has(sankeyEndpointKey(a, b))).toBe(true);
   expect(highlight?.linkKeys.has(sankeyEndpointKey(b, c))).toBe(false);
   expect(highlight?.linkKeys.has(sankeyEndpointKey(d, e))).toBe(false);
+});
+
+test('several flows through one node stay indexed', () => {
+  const a = sankeyValueId('A');
+  const b = sankeyValueId('B');
+  const c = sankeyValueId('C');
+  const links = [
+    { source: a, target: b },
+    { source: a, target: c },
+    { source: b, target: c },
+  ];
+  const highlight = getSankeyHighlight([sankeyNodeKey('source', 'A')], links);
+
+  expect(highlight?.linkKeys.has(sankeyEndpointKey(a, b))).toBe(true);
+  expect(highlight?.linkKeys.has(sankeyEndpointKey(a, c))).toBe(true);
+  expect(highlight?.linkKeys.has(sankeyEndpointKey(b, c))).toBe(false);
+  expect(highlight?.nodeIds.has(b)).toBe(true);
+  expect(highlight?.nodeIds.has(c)).toBe(true);
+});
+
+test('a broken selection key highlights nothing', () => {
+  const a = sankeyValueId('A');
+  const b = sankeyValueId('B');
+  const highlight = getSankeyHighlight(
+    ['not-json', JSON.stringify({ bad: true }), JSON.stringify(['nope'])],
+    [{ source: a, target: b }],
+  );
+
+  expect(highlight?.nodeIds.size).toBe(0);
+  expect(highlight?.linkKeys.size).toBe(0);
 });
 
 test('a selected link keeps only that link and its endpoints', () => {

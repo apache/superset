@@ -46,6 +46,8 @@ function setup(
   overrides: {
     emitCrossFilters?: boolean;
     selectedValues?: string[];
+    contextMenu?: boolean;
+    dataMask?: boolean;
   } = {},
 ) {
   const onContextMenu = jest.fn();
@@ -62,7 +64,10 @@ function setup(
     height: 600,
     queriesData: [{ data }],
     theme: supersetTheme,
-    hooks: { onContextMenu, setDataMask },
+    hooks: {
+      ...(overrides.dataMask === false ? {} : { setDataMask }),
+      ...(overrides.contextMenu === false ? {} : { onContextMenu }),
+    },
     emitCrossFilters: overrides.emitCrossFilters ?? true,
     filterState: { selectedValues: overrides.selectedValues },
   });
@@ -156,6 +161,22 @@ test('click does nothing when the chart does not emit cross filters', () => {
   expect(setDataMask).not.toHaveBeenCalled();
 });
 
+test('a click without a data mask handler does nothing', () => {
+  const { eventHandlers, setDataMask, nodeB } = setup({ dataMask: false });
+
+  eventHandlers.click({ data: nodeB });
+
+  expect(setDataMask).not.toHaveBeenCalled();
+});
+
+test('click ignores a point that is not a node or a link', () => {
+  const { eventHandlers, setDataMask } = setup();
+
+  eventHandlers.click({ data: { value: 1 } });
+
+  expect(setDataMask).not.toHaveBeenCalled();
+});
+
 test('the context menu drills a node by the column that owns it', () => {
   const { eventHandlers, onContextMenu, nodeB } = setup();
 
@@ -184,4 +205,34 @@ test('the context menu drills a link to both columns', () => {
     { col: 'target', op: '==', val: 'C', formattedVal: 'C' },
   ]);
   expect(payload.drillBy).toBeUndefined();
+});
+
+test('the context menu ignores a point that is not a flow', () => {
+  const { eventHandlers, onContextMenu } = setup();
+
+  eventHandlers.contextmenu({ data: { value: 1 }, event: pointerEvent });
+
+  expect(onContextMenu).not.toHaveBeenCalled();
+});
+
+test('the context menu ignores a click without a pointer', () => {
+  const { eventHandlers, onContextMenu, nodeB } = setup();
+
+  eventHandlers.contextmenu({ data: nodeB });
+  eventHandlers.contextmenu({
+    data: nodeB,
+    event: { stop: jest.fn() },
+  });
+
+  expect(onContextMenu).not.toHaveBeenCalled();
+});
+
+test('the context menu does nothing without a handler', () => {
+  const { eventHandlers, onContextMenu, nodeB } = setup({
+    contextMenu: false,
+  });
+
+  eventHandlers.contextmenu({ data: nodeB, event: pointerEvent });
+
+  expect(onContextMenu).not.toHaveBeenCalled();
 });

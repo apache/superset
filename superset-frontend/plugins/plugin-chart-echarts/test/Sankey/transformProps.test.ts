@@ -52,6 +52,13 @@ type NodeOption = {
   filterColumn: 'source' | 'target';
   rawValue: unknown;
   itemStyle: { opacity?: number };
+  label?: { formatter?: () => string };
+};
+
+type TooltipParams = {
+  name?: string;
+  value?: number;
+  data?: { source?: string; target?: string };
 };
 
 type LinkOption = {
@@ -67,6 +74,9 @@ type SankeyTestOptions = {
     cursor?: string;
     data?: NodeOption[];
     links?: LinkOption[];
+  };
+  tooltip?: {
+    formatter?: (params: TooltipParams) => string;
   };
 };
 
@@ -168,5 +178,32 @@ test('links keep the default opacity when nothing is selected', () => {
 test('the pointer cursor is used when the chart emits cross filters', () => {
   expect(renderChart({ emitCrossFilters: true }).series?.cursor).toBe(
     'pointer',
+  );
+});
+
+test('labels and tooltips use the display name', () => {
+  const chart = renderChart();
+  const nodes = chart.series?.data ?? [];
+  const links = chart.series?.links ?? [];
+  const nodeA = nodes.find(node => node.rawValue === 'A');
+  const link = links.find(link => link.sourceValue === 'A');
+  const formatter = chart.tooltip?.formatter;
+  const linkTip = formatter?.({
+    value: 10,
+    data: { source: link?.source, target: link?.target },
+  });
+
+  expect(nodes.find(node => node.rawValue === null)?.label?.formatter?.()).toBe(
+    NULL_STRING,
+  );
+  expect(linkTip).toContain('A → B');
+  expect(linkTip).toContain('% (A)');
+  expect(linkTip).toContain('% (B)');
+  expect(linkTip).not.toContain(sankeyValueId('A'));
+  expect(formatter?.({ name: nodeA?.name, value: 10, data: {} })).toContain(
+    'A',
+  );
+  expect(formatter?.({ name: 'missing', value: 1, data: {} })).toContain(
+    'missing',
   );
 });
