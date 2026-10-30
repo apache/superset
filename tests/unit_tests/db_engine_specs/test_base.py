@@ -2074,7 +2074,12 @@ def test_query_cost_warning_rejects_unusable_values(
     estimate = QueryCostEstimate.from_value(value)
     assert estimate.value is None
     database = mocker.MagicMock()
-    database.db_engine_spec.estimate_query_cost_for_warning.return_value = estimate
+    database.db_engine_spec.estimate_query_cost_for_warning.return_value = mocker.Mock(
+        spec=QueryCostEstimate,
+        value=value,
+        accuracy="PRECISE",
+        unavailable_reason=None,
+    )
     result = QueryCostThresholdCheck("total_cost").assess(
         database,
         None,

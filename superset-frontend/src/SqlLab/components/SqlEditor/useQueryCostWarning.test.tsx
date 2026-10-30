@@ -467,14 +467,27 @@ test.each([
   { ...warning, details: [null] },
   { ...warning, details: [{ label: 'Estimate', value: 12 }] },
   { ...warning, details: [{ label: 1, value: '12' }] },
-])('malformed response %j never executes', async result => {
-  const h = setup();
-  h.start();
-  await h.finish(result);
-  expect(h.executions()).toHaveLength(0);
-  expect(h.result.current.checking).toBe(false);
-  expect(h.result.current.confirmation).toBeUndefined();
-});
+])(
+  'malformed response %j reports an error and never executes',
+  async result => {
+    const h = setup();
+    h.start();
+    await h.finish(result);
+    expect(h.executions()).toHaveLength(0);
+    expect(h.result.current.checking).toBe(false);
+    expect(h.result.current.confirmation).toBeUndefined();
+    expect(h.reducer).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        type: ADD_TOAST,
+        payload: expect.objectContaining({
+          toastType: ToastType.Danger,
+          text: 'The query warning response was invalid.',
+        }),
+      }),
+    );
+  },
+);
 
 test.each([403, 400, 500])(
   'HTTP %s remains an error and never executes',

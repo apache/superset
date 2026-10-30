@@ -755,9 +755,14 @@ def test_warning_uses_configured_timeout(
 ) -> None:
     """Enter the configured timeout and turn its expiration into confirmation."""
     command = _make_command(mocker)
+    command.validate()
     mocker.patch.dict(app.config, {"SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 13})
     timeout = mocker.patch("superset.commands.sql_lab.estimate.utils.timeout")
     context = timeout.return_value
+    calls = mocker.Mock()
+    calls.attach_mock(context.__enter__, "enter")
+    calls.attach_mock(_estimator(command), "estimate")
+    calls.attach_mock(context.__exit__, "exit")
     if timed_out:
         context.__enter__.side_effect = SupersetTimeoutException(
             SupersetErrorType.SQLLAB_TIMEOUT_ERROR, "timed out", ErrorLevel.ERROR
@@ -774,6 +779,7 @@ def test_warning_uses_configured_timeout(
         assert result == {"action": "proceed"}
         _estimator(command).assert_called_once()
         context.__exit__.assert_called_once()
+        assert [call[0] for call in calls.mock_calls] == ["enter", "estimate", "exit"]
 
 
 @pytest.mark.parametrize(
