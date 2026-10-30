@@ -322,4 +322,3 @@ Action POST responses contain `result.redirect_url` and a host-generated
 `result.tab_id`. Both the configuration modal and the generic OAuth error UI
 use the same completion listener. No access or refresh token is returned in
 these responses.
-

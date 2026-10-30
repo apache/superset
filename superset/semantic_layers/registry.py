@@ -264,3 +264,17 @@ def contextualize_semantic_layer(
     return ContextualSemanticLayer(
         semantic_layer_id, implementation, layer_uuid, view_uuid
     )
+
+
+def contextualize_semantic_view(
+    semantic_layer_id: str,
+    implementation: Any,
+    layer_uuid: str | None = None,
+    view_uuid: str | None = None,
+) -> Any:
+    """Attach the requesting resource to a session-memoized provider view."""
+    if semantic_layer_id not in _extension_manifests and layer_uuid is None:
+        return implementation
+    return ContextualSemanticView(
+        semantic_layer_id, implementation, layer_uuid, view_uuid
+    )

@@ -378,7 +378,6 @@ export default function SemanticLayerModal({
     }
   };
 
-
   useOAuth2Completion(oauthTabId, () => {
     setOauthTabId(undefined);
     setRunningActionId(null);

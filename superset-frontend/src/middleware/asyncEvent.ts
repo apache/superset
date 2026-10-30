@@ -37,8 +37,6 @@ import {
   FeatureFlag,
   makeApi,
   SupersetClient,
-  ErrorTypeEnum,
-  SupersetError,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
@@ -655,6 +653,7 @@ export const waitForAsyncData = async <T = unknown[]>(
     if (signal?.aborted || generation !== pollingGeneration) {
       throw new DOMException('Aborted', 'AbortError');
     }
+    if (queryError.errors?.length) throw { errors: queryError.errors };
     throw Object.assign(queryError, { error: queryError.message });
   });
 

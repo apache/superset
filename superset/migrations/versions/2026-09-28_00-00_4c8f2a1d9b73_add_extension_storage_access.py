@@ -17,7 +17,7 @@
 """Add browser access classification to extension storage.
 
 Revision ID: 4c8f2a1d9b73
-Revises: 95d8a99c822e
+Revises: f72b6e9c104a
 Create Date: 2026-09-28 00:00:00.000000
 """
 
@@ -25,7 +25,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "4c8f2a1d9b73"
-down_revision = "95d8a99c822e"
+down_revision = "f72b6e9c104a"
 
 _LOOKUP_COLUMNS = [
     "extension_id",

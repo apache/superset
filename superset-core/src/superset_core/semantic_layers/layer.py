@@ -76,6 +76,7 @@ class SemanticCacheIdentityMaterial:
 
     values: Mapping[str, object]
 
+
 @dataclass(frozen=True)
 class SemanticLayerAction:
     """A user action required to configure or authenticate a provider."""

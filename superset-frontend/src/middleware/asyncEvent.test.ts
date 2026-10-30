@@ -1204,7 +1204,13 @@ test('preserves an OAuth authorization prompt from a failed query task', async (
   };
   fetchMock.get('glob:*/api/v1/task/oauth-task', {
     status: 200,
-    body: { result: { properties: { errors: [oauthError] } } },
+    body: {
+      result: {
+        status: 'failure',
+        task_type: 'superset.query_object_v1',
+        properties: { errors: [oauthError] },
+      },
+    },
   });
   queueStatuses({ 'oauth-task': { status: 'failure' } });
   asyncEvent.init(config);
