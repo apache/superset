@@ -89,12 +89,12 @@ test('binds spaced labels to live axis geometry without resetting user zoom', as
     .formatter as typeof formatter;
   expect(renderedFormatter.getAxisLayout?.()).toBeUndefined();
   const getExtent = jest.fn().mockReturnValue([10, 100]);
-  const getCustomValues = jest.fn();
+  const labelOptions: { customValues?: (number | string)[] } = {};
   getModel.mockReturnValue({
     getComponent: () => ({
       axis: {
         scale: { getExtent, getTicks: () => [], parse: Number },
-        getLabelModel: () => ({ get: getCustomValues }),
+        getLabelModel: () => ({ option: labelOptions }),
         getExtent: () => [400, 0],
       },
     }),
@@ -112,7 +112,7 @@ test('binds spaced labels to live axis geometry without resetting user zoom', as
   getExtent.mockReturnValue([0, 1000]);
   expect(renderedFormatter(0)).toBe('0');
   getExtent.mockReturnValue([10, 100]);
-  getCustomValues.mockReturnValue([0, '20', 40, 200]);
+  labelOptions.customValues = [0, '20', 40, 200];
   expect(renderedFormatter.getAxisLayout?.()).toEqual({
     domainMin: 10,
     domainMax: 100,

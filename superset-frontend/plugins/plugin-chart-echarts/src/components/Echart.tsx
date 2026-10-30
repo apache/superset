@@ -350,7 +350,8 @@ function Echart(
             if (!model?.axis) return undefined;
             const [domainMin, domainMax] = model.axis.scale.getExtent();
             const [start, end] = model.axis.getExtent();
-            const customValues = model.axis.getLabelModel().get('customValues');
+            const customValues =
+              model.axis.getLabelModel().option?.customValues;
             const ticks = customValues
               ? customValues
                   .map(value => model.axis.scale.parse(value))
