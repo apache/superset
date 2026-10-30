@@ -672,3 +672,67 @@ test('a layer created after Cancel refreshes the Connections list', async () => 
     ).toBeGreaterThan(loadsBeforeCreate),
   );
 });
+
+test('a layer updated after Cancel refreshes the Connections list again', async () => {
+  setupMocks({ dependents: [] });
+  fetchMock.get('glob:*/api/v1/semantic_layer/types', {
+    result: [{ id: 'demo', name: 'Demo provider' }],
+  });
+  fetchMock.get(`glob:*/api/v1/semantic_layer/${SL_UUID}`, {
+    result: {
+      name: semanticLayerRow.database_name,
+      type: 'demo',
+      configuration: {},
+    },
+  });
+  fetchMock.post('glob:*/api/v1/semantic_layer/schema/configuration', {
+    result: { type: 'object', properties: {} },
+  });
+  let finishUpdate!: (value: { result: object }) => void;
+  const updateRoute = `glob:*/api/v1/semantic_layer/${SL_UUID}`;
+  fetchMock.put(
+    updateRoute,
+    () =>
+      new Promise(resolve => {
+        finishUpdate = resolve;
+      }),
+  );
+
+  renderDatabaseList();
+  await screen.findByText(semanticLayerRow.database_name);
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length,
+    ).toBeGreaterThan(0),
+  );
+  await userEvent.click(await screen.findByTestId('Edit'));
+  const name = await screen.findByPlaceholderText('Name of the semantic layer');
+  await userEvent.clear(name);
+  await userEvent.type(name, 'Updated Semantic Layer');
+  const save = screen.getByRole('button', { name: 'Save' });
+  await waitFor(() => expect(save).toBeEnabled());
+  await userEvent.click(save);
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(updateRoute, { method: 'PUT' }),
+    ).toHaveLength(1),
+  );
+
+  const loadsBeforeCancel =
+    fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length;
+  await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length,
+    ).toBeGreaterThan(loadsBeforeCancel),
+  );
+  const loadsAfterCancel =
+    fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length;
+
+  await act(async () => finishUpdate({ result: {} }));
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length,
+    ).toBeGreaterThan(loadsAfterCancel),
+  );
+});
