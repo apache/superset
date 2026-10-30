@@ -875,3 +875,51 @@ async def test_list_metrics_partial_failure_keeps_only_safe_warning(
         )
         assert "provider-private-detail" not in str(result)
         assert f"{error_class.__name__}: provider-private-detail" in caplog.text
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+@pytest.mark.parametrize("scoped", [False, True])
+@pytest.mark.parametrize("failure_site", ["metrics", "columns", "compatibility"])
+async def test_list_metrics_refusal_over_http(
+    mcp_server: FastMCP, scoped: bool, failure_site: str
+) -> None:
+    """Discovery refusals must not become empty or partial successful catalogs."""
+    from tests.unit_tests.mcp_service.test_mcp_e2e_smoke import _asgi_client
+
+    message: str = "This data source can't be queried in the current context."
+    refusal: SupersetSecurityException = SupersetSecurityException(
+        SupersetError(
+            message=message,
+            error_type=SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={"reason": "method_not_supported"},
+        )
+    )
+    view: MagicMock = _make_view(5)
+    if failure_site == "compatibility":
+        view.get_compatible_dimensions.side_effect = refusal
+    else:
+        setattr(type(view), failure_site, PropertyMock(side_effect=refusal))
+    request: dict[str, object] = {"include_compatible_dimensions": True, "page_size": 4}
+    if scoped:
+        request["view_id"] = 5
+    daos: tuple[MagicMock, MagicMock, MagicMock]
+    client: Client
+    with _patched_dataset_search([_make_dataset()]) as daos:
+        daos[1].find_accessible.return_value = [_make_view(6), view]
+        daos[1].find_by_id.return_value = view
+        async with _asgi_client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "list_metrics", {"request": request}
+            )
+    data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is False
+    assert data["error_type"] == "AccessDenied"
+    assert data["error"] == message
+    assert "metrics" not in data
+    assert "total_count" not in data
+    if scoped:
+        view.raise_for_access.assert_called_once()
+    else:
+        view.raise_for_access.assert_not_called()

@@ -173,6 +173,13 @@ Chart configuration examples use plain number formats. Currency formatting shoul
 come from user instructions or verified source metadata, not a field name such
 as sales, revenue or CPC.
 
+## Metric discovery refusals
+
+`list_metrics` returns an `AccessDenied` error when a semantic view refuses
+metric discovery, including compatible-dimension discovery. It does not report
+an empty or partial successful catalog for that refusal. Unexpected failures
+in individual providers retain the existing warning and partial-result behavior.
+
 ## Bounding dashboard dataset metadata
 
 `get_dashboard_datasets` lists a dashboard's datasets and semantic views with
