@@ -276,10 +276,21 @@ assists people when migrating to a new version.
   is optional; absent, unknown or non-temporal names retain the existing fallback.
   Saved chart selections are preserved.
 
+### Dashboard layout chart access
+
+Saving a dashboard layout no longer adds a chart the user cannot read:
+`PUT /api/v1/dashboard/<pk>`, `POST /api/v1/dashboard/` and
+`POST /api/v1/dashboard/<id_or_slug>/copy/`. The save succeeds, the chart is not
+attached, and its tile is saved as the same "This chart no longer exists."
+placeholder a deleted chart gets. Charts already on the dashboard, archived ones
+included, are not checked, nor are a copy's source charts. To keep the chart,
+get access to it and add it again.
+
 ### Dashboard copy layout validation
 
 Copying a dashboard with its charts returns HTTP 422 if a layout slot references
-an existing chart outside the source dashboard's membership. No partial copy is
+an existing chart outside the source dashboard's membership that the user can
+read; a slot for one they cannot read becomes a placeholder. No partial copy is
 saved. Open and re-save the source dashboard to rebuild its chart membership
 before retrying. Non-null malformed chart references also return HTTP 422.
 Empty slots left by older copies (null or missing chart IDs in object metadata)
