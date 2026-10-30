@@ -20,11 +20,14 @@ from __future__ import annotations
 
 import asyncio
 import math
+import os
 from collections.abc import AsyncIterator, Callable
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
+from functools import lru_cache
+from threading import Lock
 from time import monotonic
 from typing import Any, Literal, Protocol
 from uuid import UUID
@@ -76,9 +79,9 @@ class TeamsEventResult:
 class _FlaskServerAdapter(HttpServerAdapter):
     """Capture the SDK route for one invocation of Flask's existing POST route.
 
-    Flask registers its route once at startup. Each request creates a fresh SDK
-    authentication server; its handler runs to completion in an operation-scoped
-    event loop. No SDK App, outbound clients, tasks, or separate server are created.
+    Flask owns the listening server. SDK authentication is reused, while each
+    callback runs to completion in an operation-scoped event loop. No SDK App,
+    outbound clients, tasks, or separate listening server are created.
     """
 
     def __init__(self) -> None:
@@ -196,20 +199,34 @@ def _installation_event(
     )
 
 
+@lru_cache(maxsize=8)
+def _callback_server(
+    process_id: int, application_id: str, tenant_id: str
+) -> tuple[HttpServer, Lock]:
+    """Retain SDK signing-key caches per process and configured identity.
+
+    The process ID avoids inheriting a locked server when a worker forks.
+    The lock serializes use of the SDK's mutable on_request callback.
+    """
+    return HttpServer(_FlaskServerAdapter(), messaging_endpoint=EVENTS_PATH), Lock()
+
+
 def process_teams_event(
     config: TeamsConfig, body: dict[str, Any], headers: dict[str, str]
 ) -> TeamsEventResult:
     """Authenticate through the SDK's server adapter without starting a server.
 
-    The SDK's HttpServer uses PyJWKClient, whose network responses close within
-    its scoped fetch. It creates no persistent HTTP clients. Keep construction,
-    authentication, and adapter cleanup within the same event loop; asyncio.run
-    closes that loop on success and failure. SDK response bodies are never exposed.
+    Only the SDK server and its signing-key cache survive requests. Request
+    handlers and event loops are released after every callback, and no outbound
+    SDK client is created. Credentials and event bodies are not cache keys.
     """
+    server, lock = _callback_server(
+        os.getpid(), config.application_id, config.tenant_id
+    )
 
     async def process() -> TeamsEventResult:
         """Run one SDK invocation, returning only sanitized application data."""
-        adapter = _FlaskServerAdapter()
+        adapter = server.adapter
         result = TeamsEventResult(500)
 
         async def on_request(event: ActivityEvent) -> InvokeResponse[None]:
@@ -219,7 +236,6 @@ def process_teams_event(
             return InvokeResponse(status=result.status)
 
         try:
-            server = HttpServer(adapter, messaging_endpoint=EVENTS_PATH)
             server.on_request = on_request
             server.initialize(
                 credentials=ClientCredentials(
@@ -229,18 +245,18 @@ def process_teams_event(
                 ),
                 dangerously_allow_unauthenticated_requests=False,
             )
-            if adapter.handler is None:
-                return TeamsEventResult(500)
-            response: HttpResponse = await adapter.handler(
+            response: HttpResponse = await server.handle_request(
                 HttpRequest(body=body, headers=headers)
             )
             if response["status"] != 200:
                 return TeamsEventResult(response["status"])
             return result
         finally:
+            server.on_request = None
             await adapter.stop()
 
-    return asyncio.run(process())
+    with lock:
+        return asyncio.run(process())
 
 
 # Count every send, including the single 401 replay, against the same retry bound.

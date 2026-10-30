@@ -21,7 +21,9 @@ from __future__ import annotations
 import asyncio
 import importlib
 import importlib.util
+import urllib.request
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
@@ -51,6 +53,7 @@ teams_adapter = importlib.import_module("superset.integrations.teams.adapter")
 PATH = "/api/v1/teams/events/"
 TENANT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 APPLICATION = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+_REAL_KEY_LOOKUP = jwt.PyJWKClient.get_signing_key_from_jwt
 OTHER = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
 SERVICE_URL = "https://smba.trafficmanager.net/amer/"
 
@@ -66,6 +69,7 @@ def trusted_signing_key(
     monkeypatch: pytest.MonkeyPatch, signing_key: rsa.RSAPrivateKey
 ) -> None:
     """Replace only key discovery; the SDK verifies signature and claims itself."""
+    teams_adapter._callback_server.cache_clear()
     monkeypatch.setattr(
         jwt.PyJWKClient,
         "get_signing_key_from_jwt",
@@ -841,3 +845,82 @@ def test_terminated_stream_reads_are_bounded_before_parsing(
     parse.assert_not_called()
     sdk.assert_not_called()
     session.assert_not_called()
+
+
+def test_callback_reuses_jwks_and_unknown_key_cooldown(
+    teams_config: dict[str, Any],
+    installation: dict[str, Any],
+    signing_key: rsa.RSAPrivateKey,
+    auth_headers: Callable[..., dict[str, str]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Separate callbacks share real signature verification and the SDK key cache."""
+    monkeypatch.setattr(jwt.PyJWKClient, "get_signing_key_from_jwt", _REAL_KEY_LOOKUP)
+    key = json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(signing_key.public_key()))
+    key.update(kid="trusted", use="sig")
+    opens = []
+    clock = [0.0]
+    monkeypatch.setattr(
+        jwt.jwks_client, "time", SimpleNamespace(monotonic=lambda: clock[0])
+    )
+
+    def open_keys(*args: Any, **kwargs: Any) -> BytesIO:
+        opens.append(args)
+        return BytesIO(json.dumps({"keys": [key]}).encode())
+
+    monkeypatch.setattr(urllib.request.OpenerDirector, "open", open_keys)
+    config = parse_teams_config(teams_config)
+    assert config is not None
+    claims = jwt.decode(
+        auth_headers()["Authorization"][7:], options={"verify_signature": False}
+    )
+    for kid, status in [
+        ("trusted", 200),
+        ("unknown-1", 401),
+        ("unknown-2", 401),
+        ("trusted", 200),
+    ]:
+        token = jwt.encode(claims, signing_key, algorithm="RS256", headers={"kid": kid})
+        result = teams_adapter.process_teams_event(
+            config, installation, {"Authorization": "Bearer " + token}
+        )
+        assert result.status == status
+    assert len(opens) == 1
+
+    clock[0] = 31.0
+    key["kid"] = "rotated"
+    token = jwt.encode(
+        claims, signing_key, algorithm="RS256", headers={"kid": "rotated"}
+    )
+    result = teams_adapter.process_teams_event(
+        config, installation, {"Authorization": "Bearer " + token}
+    )
+    assert result.status == 200
+    assert len(opens) == 2
+
+
+def test_cached_callback_keeps_concurrent_request_state_separate(
+    teams_config: dict[str, Any],
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+) -> None:
+    """A cached SDK handler cannot leak event state into another callback."""
+    config = parse_teams_config(teams_config)
+    assert config is not None
+    headers = auth_headers()
+    bodies = [dict(installation, action=action) for action in ["add", "remove"] * 4]
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(
+            pool.map(
+                lambda body: teams_adapter.process_teams_event(config, body, headers),
+                bodies,
+            )
+        )
+    for body, result in zip(bodies, results, strict=True):
+        assert result.status == 200
+        assert result.event is not None
+        assert result.event.active == (body["action"] == "add")
+    server, _ = teams_adapter._callback_server(
+        teams_adapter.os.getpid(), config.application_id, config.tenant_id
+    )
+    assert server.on_request is None

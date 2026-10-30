@@ -16,8 +16,11 @@
 # under the License.
 """Browser discovery only projects approved keys and active-installation status."""
 
+import subprocess
+import sys
 from collections.abc import Iterator
 from datetime import datetime, timezone
+from textwrap import dedent
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -201,35 +204,52 @@ def test_optional_sdk_controls_both_discovery_and_notification_methods(
         session.assert_not_called()
 
 
-def test_disabled_integration_registers_and_bootstraps_without_sdk(
-    configured_app: Flask,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The Teams startup paths require neither SDK imports nor a dependency lookup."""
-    import sys
+def test_disabled_integration_registers_and_bootstraps_without_sdk() -> None:
+    """Block optional imports before loading the startup paths in a fresh process."""
+    result = subprocess.run(  # noqa: S603 -- fixed interpreter and inline test script
+        [
+            sys.executable,
+            "-c",
+            dedent("""
+            import importlib.abc
+            import sys
 
-    from superset.integrations.teams.api import register_teams_api
-    from superset.reports.models import ReportRecipientType
-    from superset.views import base
+            class NoTeamsSDK(importlib.abc.MetaPathFinder):
+                def find_spec(self, fullname, path=None, target=None):
+                    if (fullname == "microsoft_teams"
+                        or fullname.startswith("microsoft_teams.")
+                        or fullname == "superset.integrations.teams.adapter"):
+                        raise AssertionError("Unexpected optional import: " + fullname)
 
-    monkeypatch.setattr(
-        destinations.feature_flag_manager, "is_feature_enabled", lambda _: False
+            sys.meta_path.insert(0, NoTeamsSDK())
+            from superset.app import create_app
+            app = create_app()
+            from superset.integrations.teams import destinations
+            from superset.reports.models import ReportRecipientType
+            from superset.views import base
+
+            def unexpected_lookup():
+                raise AssertionError("must not check SDK")
+
+            app.config["SLACK_API_TOKEN"] = None
+            destinations.feature_flag_manager.is_feature_enabled = lambda _: False
+            destinations.is_teams_sdk_installed = unexpected_lookup
+            base.app = app
+            with app.app_context():
+                assert destinations.configured_teams() is None
+                assert destinations.list_teams_destinations() == []
+                assert ReportRecipientType.TEAMS not in base._notification_methods()
+            assert app.test_client().post(
+                "/api/v1/teams/events/", json={}
+            ).status_code == 404
+        """),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
     )
-    missing_sdk = MagicMock(side_effect=AssertionError("must not check SDK"))
-    monkeypatch.setattr(destinations, "is_teams_sdk_installed", missing_sdk)
-    monkeypatch.setitem(sys.modules, "superset.integrations.teams.adapter", None)
-    monkeypatch.setitem(sys.modules, "microsoft_teams", None)
-    monkeypatch.setitem(sys.modules, "microsoft_teams.apps", None)
-    monkeypatch.setattr(base, "app", configured_app)
-    register_teams_api(configured_app)
-    assert destinations.configured_teams() is None
-    assert destinations.list_teams_destinations() == []
-    assert ReportRecipientType.TEAMS not in base._notification_methods()
-    assert (
-        configured_app.test_client().post("/api/v1/teams/events/", json={}).status_code
-        == 404
-    )
-    missing_sdk.assert_not_called()
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_destination_availability_uses_one_query(configured_app: Flask) -> None:

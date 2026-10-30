@@ -18791,3 +18791,30 @@ msgstr ""
 
 msgid "Unable to load Teams destinations. Try reopening this dialog."
 msgstr ""
+
+msgid "A configured Teams destination key is required"
+msgstr ""
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
+
+msgid "Teams alert delivery is disabled"
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""

@@ -27,6 +27,7 @@ from uuid import uuid4
 
 import pytest
 from flask import current_app, Flask
+from flask_babel import Babel
 
 from superset.commands.report import create, execute, update
 from superset.commands.report.base import BaseReportScheduleCommand
@@ -52,6 +53,7 @@ def configured_app(
 ) -> Iterator[Flask]:
     """Enable a single approved destination without requiring any installation."""
     app = Flask(__name__)
+    Babel(app)
     app.config.update(
         FEATURE_FLAGS={"ALERT_REPORT_TEAMS": True},
         ALERT_REPORTS_TEAMS=teams_config,
@@ -676,3 +678,15 @@ def test_empty_email_fields_on_teams_are_delivery_changes(
     assert "A configured Teams destination key is required" in str(
         exc.value.normalized_messages()["recipients"]
     )
+
+
+def test_destination_validation_uses_translated_message(
+    configured_app: Flask, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The editor receives translated validation text for a removed destination."""
+    monkeypatch.setattr(validation, "_", lambda message: "translated: " + message)
+    with pytest.raises(
+        validation.TeamsRecipientValidationError,
+        match="translated: Teams destination is not approved",
+    ):
+        validation.validate_teams_recipient({"target": "removed"}, "Alert", "NONE")

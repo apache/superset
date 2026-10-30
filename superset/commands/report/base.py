@@ -579,12 +579,12 @@ class BaseReportScheduleCommand(BaseCommand):
             if recipient_type != ReportRecipientType.TEAMS:
                 continue
             try:
-                _, destination = validate_teams_recipient(
+                _config, destination = validate_teams_recipient(
                     recipient_config, report_type, report_format
                 )
                 if destination.key in destination_keys:
                     raise TeamsRecipientValidationError(
-                        "Teams destination keys must be unique within a schedule"
+                        _("Teams destination keys must be unique within a schedule")
                     )
                 destination_keys.add(destination.key)
             except TeamsRecipientValidationError as ex:

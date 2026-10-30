@@ -17,6 +17,7 @@
 """Shared Teams recipient rules for schedule saves and notification delivery."""
 
 from flask import current_app
+from flask_babel import gettext as _
 
 from superset.extensions import feature_flag_manager
 from superset.integrations.teams.config import (
@@ -49,22 +50,22 @@ def validate_teams_recipient(
     saved before a bot is installed. No SDK dependency or database access is needed.
     """
     if not feature_flag_manager.is_feature_enabled("ALERT_REPORT_TEAMS"):
-        raise TeamsRecipientValidationError("Teams alert delivery is disabled")
+        raise TeamsRecipientValidationError(_("Teams alert delivery is disabled"))
     try:
         config = parse_teams_config(current_app.config.get("ALERT_REPORTS_TEAMS", {}))
     except ValueError:
         raise TeamsRecipientValidationError(
-            "Invalid Teams deployment configuration"
+            _("Invalid Teams deployment configuration")
         ) from None
     if config is None:
-        raise TeamsRecipientValidationError("Teams deployment is not configured")
+        raise TeamsRecipientValidationError(_("Teams deployment is not configured"))
     if schedule_type != ReportScheduleType.ALERT:
         raise TeamsRecipientValidationError(
-            "Teams recipients require an alert schedule", "type"
+            _("Teams recipients require an alert schedule"), "type"
         )
     if report_format != ReportDataFormat.NONE:
         raise TeamsRecipientValidationError(
-            "Teams recipients require disabled attachments (NONE format)",
+            _("Teams recipients require disabled attachments (NONE format)"),
             "report_format",
         )
     try:
@@ -75,7 +76,7 @@ def validate_teams_recipient(
         )
     except (ValueError, TypeError):
         raise TeamsRecipientValidationError(
-            "Invalid Teams recipient configuration"
+            _("Invalid Teams recipient configuration")
         ) from None
     if (
         not isinstance(recipient, dict)
@@ -84,12 +85,12 @@ def validate_teams_recipient(
         or not recipient["target"]
     ):
         raise TeamsRecipientValidationError(
-            "A configured Teams destination key is required"
+            _("A configured Teams destination key is required")
         )
     try:
         destination = config.get_destination(recipient["target"])
     except ValueError:
         raise TeamsRecipientValidationError(
-            "Teams destination is not approved"
+            _("Teams destination is not approved")
         ) from None
     return config, destination
