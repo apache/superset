@@ -317,7 +317,7 @@ allows the user to start another attempt.
 The completion URL uses the request's externally visible host and scheme. Operators
 must configure their reverse proxy, forwarded headers, and allowed hosts so
 Superset sees its trusted public HTTPS origin. See the
-[reverse proxy configuration](../../admin_docs/configuration/configuring-superset.mdx#configuration-behind-a-load-balancer).
+[reverse proxy configuration](/admin-docs/configuration/configuring-superset#configuration-behind-a-load-balancer).
 
 Action POST responses contain `result.redirect_url` and a host-generated
 `result.tab_id`. Both the configuration modal and the generic OAuth error UI
