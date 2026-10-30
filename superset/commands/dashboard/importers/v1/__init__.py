@@ -79,7 +79,8 @@ class ImportDashboardsCommand(ImportModelsCommand):
         "charts/": ImportV1ChartSchema(),
         "dashboards/": ImportV1DashboardSchema(),
         "datasets/": ImportV1DatasetSchema(),
-        # Related databases are reused rather than overwritten.
+        # Related databases are reused rather than overwritten, unless
+        # `overwrite_all` is set (see `__init__`).
         "databases/": ImportV1DatabaseSchema(overwrites_existing=False),
         "themes/": ImportV1ThemeSchema(),
     }
@@ -88,6 +89,14 @@ class ImportDashboardsCommand(ImportModelsCommand):
     def __init__(self, contents: dict[str, str], *args: Any, **kwargs: Any) -> None:
         self.overwrite_all = kwargs.pop("overwrite_all", False)
         super().__init__(contents, *args, **kwargs)
+        # With both flags set, `_import` overwrites related databases, so their
+        # schema must ask for any secret the stored connection cannot reveal.
+        self.schemas = {
+            **self.schemas,
+            "databases/": ImportV1DatabaseSchema(
+                overwrites_existing=self.overwrite and self.overwrite_all
+            ),
+        }
 
     # not sure if overriding run is the best approach here
     # it works fine and is better than a global variable imo
