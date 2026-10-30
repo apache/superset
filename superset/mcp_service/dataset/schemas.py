@@ -668,6 +668,18 @@ class CreateVirtualDatasetResponse(BaseModel):
         None,
         description="Error message if creation failed, otherwise null.",
     )
+    review_required: bool = Field(
+        False,
+        description="True when the metrics or calculated columns were "
+        "captured for review instead of applied. The dataset itself exists "
+        "and is usable; the rest appears once a reviewer approves it. Do not "
+        "retry the call.",
+    )
+    review_message: str | None = Field(
+        None,
+        description="What was captured for review, including the change "
+        "request id, when review_required is true.",
+    )
 
 
 UPDATABLE_METRIC_FIELDS: frozenset[str] = frozenset(
