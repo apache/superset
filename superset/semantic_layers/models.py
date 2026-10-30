@@ -905,6 +905,25 @@ class SemanticView(AuditMixinNullable, Model):
         keys: list[Hashable] = [self.metadata_generation, "semantic-null-filters-v1"]
         if discriminator is not None:
             keys.append(("semantic-result-version", *discriminator))
+
+        from superset import is_feature_enabled
+
+        if is_feature_enabled("CACHE_QUERY_BY_USER"):
+            try:
+                from superset.semantic_layers.execution import (
+                    current_host_execution_context,
+                )
+
+                exec_context = current_host_execution_context()
+                if not exec_context.is_guest and exec_context.identity_digest:
+                    keys.append(("semantic-user", exec_context.identity_digest))
+            except Exception as ex:
+                logger.warning(
+                    "Could not resolve semantic execution context for cache: %s",
+                    ex,
+                )
+                keys.append(("semantic-user-unresolved", uuid.uuid4().hex))
+
         return keys
 
     @property
