@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-10-16 07:53-0700\n"
+"POT-Creation-Date: 2026-10-29 17:24-0700\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -3546,6 +3546,12 @@ msgstr "Spreminjanje te semantične plasti ni dovoljeno"
 msgid "Changing this semantic view is forbidden"
 msgstr "Spreminjanje tega semantičnega pogleda ni dovoljeno"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 msgid "Changing this task is forbidden"
 msgstr "Spreminjanje te naloge je prepovedano"
 
@@ -7023,6 +7029,10 @@ msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Napaka v jinja izrazu WHERE stavka: %(msg)s"
 
 #, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
+#, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr "Napaka v izrazu jinja v adhoc stolpcu: %(msg)s"
 
@@ -7349,6 +7359,9 @@ msgstr ""
 
 msgid "Extensions"
 msgstr "Razširitve"
+
+msgid "Extensions are not enabled on this server"
+msgstr ""
 
 msgid "Extent"
 msgstr "Obseg"
@@ -13029,6 +13042,14 @@ msgstr "Pomaknite se do dna, da omogočite prepis sprememb. "
 msgid "Search"
 msgstr "Išči"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
 msgid "Search / Filter"
 msgstr "Iskanje / Filter"
 
@@ -13082,9 +13103,6 @@ msgstr "Iskanje v filtrih"
 
 msgid "Search metrics by key or label"
 msgstr "Išči mere po ključu ali oznaki"
-
-msgid "Search records"
-msgstr "Išči zapise"
 
 msgid "Search tags"
 msgstr "Išči oznake"
@@ -15186,6 +15204,11 @@ msgid ""
 "The Custom SQL metric \"%(metric)s\" is not an aggregate and can't be "
 "combined with a GROUP BY. Wrap it in an aggregate function, e.g. "
 "%(example)s."
+msgstr ""
+
+msgid ""
+"The ENABLE_EXTENSIONS feature flag must be on when the server starts. "
+"Enable it in the server configuration and restart."
 msgstr ""
 
 msgid ""

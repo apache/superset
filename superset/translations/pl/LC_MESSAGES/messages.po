@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-16 07:53-0700\n"
+"POT-Creation-Date: 2026-10-29 17:24-0700\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -3737,6 +3737,12 @@ msgstr "Zmiana tego wykresu jest zabroniona"
 #, fuzzy
 msgid "Changing this semantic view is forbidden"
 msgstr "Zmiana tego zestawu danych jest zabroniona"
+
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
 
 #, fuzzy
 msgid "Changing this task is forbidden"
@@ -7598,6 +7604,10 @@ msgstr "Błąd w wyrażeniu jinja w filtrach RLS: %(msg)s"
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Błąd w wyrażeniu jinja w klauzuli WHERE: %(msg)s"
 
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr "Błąd w wyrażeniu jinja w klauzuli WHERE: %(msg)s"
@@ -7960,6 +7970,9 @@ msgstr ""
 #, fuzzy
 msgid "Extensions"
 msgstr "Wymiary"
+
+msgid "Extensions are not enabled on this server"
+msgstr ""
 
 #, fuzzy
 msgid "Extent"
@@ -14188,6 +14201,12 @@ msgstr "Przewiń na dół, aby umożliwić nadpisywanie zmian."
 msgid "Search"
 msgstr "Szukaj"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Search / Filter"
 msgstr "Szukaj / Filtruj"
 
@@ -14250,9 +14269,6 @@ msgstr "Szukaj w filtrach"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Szukaj metryk i kolumn"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"
@@ -16654,6 +16670,11 @@ msgid ""
 "The Custom SQL metric \"%(metric)s\" is not an aggregate and can't be "
 "combined with a GROUP BY. Wrap it in an aggregate function, e.g. "
 "%(example)s."
+msgstr ""
+
+msgid ""
+"The ENABLE_EXTENSIONS feature flag must be on when the server starts. "
+"Enable it in the server configuration and restart."
 msgstr ""
 
 msgid ""

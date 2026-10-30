@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-16 07:53-0700\n"
+"POT-Creation-Date: 2026-10-29 17:24-0700\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -4508,6 +4508,12 @@ msgstr "É proibido alterar esta camada semântica"
 msgid "Changing this semantic view is forbidden"
 msgstr "É proibido alterar esta vista semântica"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 msgid "Changing this task is forbidden"
 msgstr "É proibido alterar esta tarefa"
 
@@ -8902,6 +8908,10 @@ msgstr "Erro na expressão jinja nos filtros RLS: %(msg)s"
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Erro na expressão jinja na cláusula WHERE: %(msg)s"
 
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, python-format
@@ -9322,6 +9332,9 @@ msgstr ""
 
 msgid "Extensions"
 msgstr "Extensões"
+
+msgid "Extensions are not enabled on this server"
+msgstr ""
 
 msgid "Extent"
 msgstr "Extensão"
@@ -16906,6 +16919,12 @@ msgstr "Role para baixo até ao fim para ativar a substituição de alterações
 msgid "Search"
 msgstr "Pesquisa"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Search / Filter"
 msgstr "Pesquisa / Filtro"
 
@@ -16968,9 +16987,6 @@ msgstr "Pesquisa / Filtro"
 
 msgid "Search metrics by key or label"
 msgstr "Pesquisar métricas por chave ou etiqueta"
-
-msgid "Search records"
-msgstr "Pesquisar registos"
 
 msgid "Search tags"
 msgstr "Pesquisar etiquetas"
@@ -19647,6 +19663,11 @@ msgid ""
 "The Custom SQL metric \"%(metric)s\" is not an aggregate and can't be "
 "combined with a GROUP BY. Wrap it in an aggregate function, e.g. "
 "%(example)s."
+msgstr ""
+
+msgid ""
+"The ENABLE_EXTENSIONS feature flag must be on when the server starts. "
+"Enable it in the server configuration and restart."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,

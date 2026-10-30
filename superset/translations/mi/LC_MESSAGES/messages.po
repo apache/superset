@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-16 07:53-0700\n"
+"POT-Creation-Date: 2026-10-29 17:24-0700\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -3599,6 +3599,12 @@ msgstr "He tapu te whakarereke i tēnei kauwhata"
 #, fuzzy
 msgid "Changing this semantic view is forbidden"
 msgstr "He tapu te whakarereke i tēnei rārangi raraunga"
+
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
 
 #, fuzzy
 msgid "Changing this task is forbidden"
@@ -7208,6 +7214,10 @@ msgstr "Hapa i te kīanga jinja i ngā tātari RLS: %(msg)s"
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Hapa i te kīanga jinja i te rerenga WHERE: %(msg)s"
 
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr "Hapa i te kīanga jinja i te rerenga WHERE: %(msg)s"
@@ -7547,6 +7557,9 @@ msgstr ""
 #, fuzzy
 msgid "Extensions"
 msgstr "Āhuahanga"
+
+msgid "Extensions are not enabled on this server"
+msgstr ""
 
 msgid "Extent"
 msgstr "Whānuitanga"
@@ -13458,6 +13471,12 @@ msgstr ""
 msgid "Search"
 msgstr "Rapu"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Search / Filter"
 msgstr "Rapu / Tātari"
 
@@ -13517,9 +13536,6 @@ msgstr "Rapu i ngā tātari"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Rapu Ine me ngā Tīwae"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"
@@ -15765,6 +15781,11 @@ msgid ""
 "The Custom SQL metric \"%(metric)s\" is not an aggregate and can't be "
 "combined with a GROUP BY. Wrap it in an aggregate function, e.g. "
 "%(example)s."
+msgstr ""
+
+msgid ""
+"The ENABLE_EXTENSIONS feature flag must be on when the server starts. "
+"Enable it in the server configuration and restart."
 msgstr ""
 
 msgid ""

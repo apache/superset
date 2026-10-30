@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-16 07:53-0700\n"
+"POT-Creation-Date: 2026-10-29 17:24-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -3538,6 +3538,12 @@ msgstr "禁止更改此语义层"
 msgid "Changing this semantic view is forbidden"
 msgstr "禁止更改此语义视图"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 msgid "Changing this task is forbidden"
 msgstr "禁止更改此任务"
 
@@ -7056,6 +7062,10 @@ msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "WHERE 子句中的 jinja 表达式出错：%(msg)s"
 
 #, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
+#, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr "临时列中 Jinja 表达式错误：%(msg)s"
 
@@ -7396,6 +7406,9 @@ msgstr "扩展 '%(extension_id)s' 已超出其持久存储配额 %(quota)d 字�
 
 msgid "Extensions"
 msgstr "扩展"
+
+msgid "Extensions are not enabled on this server"
+msgstr ""
 
 msgid "Extent"
 msgstr "范围"
@@ -13335,6 +13348,11 @@ msgstr "向下滚动到底部以启用覆盖更改。 "
 msgid "Search"
 msgstr "搜索"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+
 msgid "Search / Filter"
 msgstr "搜索 / 过滤"
 
@@ -13395,9 +13413,6 @@ msgstr "在筛选器中搜索"
 
 msgid "Search metrics by key or label"
 msgstr "按键或标签搜索指标"
-
-msgid "Search records"
-msgstr "搜索记录"
 
 msgid "Search tags"
 msgstr "搜索标签"
@@ -15527,6 +15542,11 @@ msgid ""
 "combined with a GROUP BY. Wrap it in an aggregate function, e.g. "
 "%(example)s."
 msgstr "自定义 SQL 指标“%(metric)s”不是聚合函数，无法与 GROUP BY 结合使用。请将其包装在聚合函数中，例如 %(example)s。"
+
+msgid ""
+"The ENABLE_EXTENSIONS feature flag must be on when the server starts. "
+"Enable it in the server configuration and restart."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-16 07:53-0700\n"
+"POT-Creation-Date: 2026-10-29 17:24-0700\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -4284,6 +4284,12 @@ msgstr "La modifica di questo livello semantico è vietata"
 msgid "Changing this semantic view is forbidden"
 msgstr "La modifica di questa vista semantica è vietata"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 msgid "Changing this task is forbidden"
@@ -8521,6 +8527,10 @@ msgstr "Errore nell'espressione jinja nei filtri RLS: %(msg)s"
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Errore nell'espressione jinja nella clausola WHERE: %(msg)s"
 
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, python-format
@@ -8940,6 +8950,9 @@ msgstr ""
 
 msgid "Extensions"
 msgstr "Estensioni"
+
+msgid "Extensions are not enabled on this server"
+msgstr ""
 
 msgid "Extent"
 msgstr "Misura"
@@ -16286,6 +16299,12 @@ msgstr "Scorri fino in fondo per abilitare la sovrascrittura delle modifiche. "
 msgid "Search"
 msgstr "Cerca"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Search / Filter"
 msgstr "Cerca / Filtra"
 
@@ -16339,9 +16358,6 @@ msgstr "Cerca nei filtri"
 
 msgid "Search metrics by key or label"
 msgstr "Cerca metriche per chiave o etichetta"
-
-msgid "Search records"
-msgstr "Cerca record"
 
 msgid "Search tags"
 msgstr "Cerca tag"
@@ -18910,6 +18926,11 @@ msgstr ""
 "La metrica SQL personalizzata \"%(metric)s\" non è un'aggregazione e non "
 "può essere combinata con un GROUP BY. Racchiudila in una funzione di "
 "aggregazione, es. %(example)s."
+
+msgid ""
+"The ENABLE_EXTENSIONS feature flag must be on when the server starts. "
+"Enable it in the server configuration and restart."
+msgstr ""
 
 msgid ""
 "The GeoJsonLayer takes in GeoJSON formatted data and renders it as "

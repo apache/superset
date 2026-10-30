@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-16 07:53-0700\n"
+"POT-Creation-Date: 2026-10-29 17:24-0700\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -4203,6 +4203,12 @@ msgstr "Promena ovog semantičkog sloja je zabranjena"
 
 msgid "Changing this semantic view is forbidden"
 msgstr "Promena ovog semantičkog prikaza je zabranjena"
+
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
 
 msgid "Changing this task is forbidden"
 msgstr "Promena ovog zadatka je zabranjena"
@@ -8449,6 +8455,10 @@ msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Greška u jinja izrazu u WHERE klauzi: %(msg)s"
 
 #, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
+#, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr "Greška u jinja izrazu u ad hoc koloni: %(msg)s"
 
@@ -8853,6 +8863,9 @@ msgstr ""
 # uk]
 msgid "Extensions"
 msgstr "Ekstenzije"
+
+msgid "Extensions are not enabled on this server"
+msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Extent"
@@ -15751,6 +15764,13 @@ msgstr "Skrolujte do dna da biste omogućili prepisivanje izmena. "
 msgid "Search"
 msgstr "Pretraga"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Search / Filter"
@@ -15814,9 +15834,6 @@ msgstr "Pretraga u filterima"
 
 msgid "Search metrics by key or label"
 msgstr "Pretraži metrike po ključu ili oznaci"
-
-msgid "Search records"
-msgstr ""
 
 # uk]
 msgid "Search tags"
@@ -18321,6 +18338,11 @@ msgid ""
 "The Custom SQL metric \"%(metric)s\" is not an aggregate and can't be "
 "combined with a GROUP BY. Wrap it in an aggregate function, e.g. "
 "%(example)s."
+msgstr ""
+
+msgid ""
+"The ENABLE_EXTENSIONS feature flag must be on when the server starts. "
+"Enable it in the server configuration and restart."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]

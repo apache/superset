@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-16 07:53-0700\n"
+"POT-Creation-Date: 2026-10-29 17:24-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3164,9 +3164,9 @@ msgid "Changing this semantic view is forbidden"
 msgstr ""
 
 msgid ""
-"Changing this setting may change the casing for all columns in this dataset, "
-"which may break any existing charts and dashboard filters that reference the "
-"current column names."
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
 msgstr ""
 
 msgid "Changing this task is forbidden"
@@ -6335,11 +6335,11 @@ msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr ""
 
 #, python-format
-msgid "Error in jinja expression in adhoc column: %(msg)s"
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
 msgstr ""
 
 #, python-format
-msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr ""
 
 #, python-format
@@ -6650,6 +6650,9 @@ msgid ""
 msgstr ""
 
 msgid "Extensions"
+msgstr ""
+
+msgid "Extensions are not enabled on this server"
 msgstr ""
 
 msgid "Extent"
@@ -11922,6 +11925,12 @@ msgstr ""
 msgid "Search"
 msgstr ""
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Search / Filter"
 msgstr ""
 
@@ -11974,9 +11983,6 @@ msgid "Search in filters"
 msgstr ""
 
 msgid "Search metrics by key or label"
-msgstr ""
-
-msgid "Search records"
 msgstr ""
 
 msgid "Search tags"
@@ -13861,6 +13867,11 @@ msgid ""
 "The Custom SQL metric \"%(metric)s\" is not an aggregate and can't be "
 "combined with a GROUP BY. Wrap it in an aggregate function, e.g. "
 "%(example)s."
+msgstr ""
+
+msgid ""
+"The ENABLE_EXTENSIONS feature flag must be on when the server starts. "
+"Enable it in the server configuration and restart."
 msgstr ""
 
 msgid ""

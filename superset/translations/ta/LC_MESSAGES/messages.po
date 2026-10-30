@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-16 07:53-0700\n"
+"POT-Creation-Date: 2026-10-29 17:24-0700\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -3450,6 +3450,12 @@ msgstr "இந்தத் தரவுத்தொகுப்பை மாற�
 msgid "Changing this semantic view is forbidden"
 msgstr "இந்தத் தரவுத்தொகுப்பை மாற்றுவதற்குத் தடை விதிக்கப்பட்டுள்ளது"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 #, fuzzy
 msgid "Changing this task is forbidden"
 msgstr "இந்தத் தரவுத்தொகுப்பை மாற்றுவதற்குத் தடை விதிக்கப்பட்டுள்ளது"
@@ -6853,6 +6859,10 @@ msgstr "RLS வடிகட்டிகளின் jinja கோவையில�
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "WHERE பிரிவின் jinja கோவையில் பிழை: %(msg)s"
 
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr "தேதி-நேர நெடுவரிசையின் jinja கோவையில் பிழை: %(msg)s"
@@ -7177,6 +7187,9 @@ msgstr ""
 
 msgid "Extensions"
 msgstr "நீட்டிப்புகள் (Extensions)"
+
+msgid "Extensions are not enabled on this server"
+msgstr ""
 
 msgid "Extent"
 msgstr "அளவு (Extent)"
@@ -12610,6 +12623,12 @@ msgstr "மாற்றங்களை மேலெழுத கீழே ஸ்
 msgid "Search"
 msgstr "தேடு"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Search / Filter"
 msgstr "தேடு / வடிகட்டு"
 
@@ -12669,9 +12688,6 @@ msgstr "வடிகட்டிகளில் தேடு"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "அளவீடுகள் & நெடுவரிசைகளைத் தேடு"
-
-msgid "Search records"
-msgstr ""
 
 msgid "Search tags"
 msgstr "குறிச்சொற்களைத் (tags) தேடு"
@@ -14685,6 +14701,11 @@ msgid ""
 "The Custom SQL metric \"%(metric)s\" is not an aggregate and can't be "
 "combined with a GROUP BY. Wrap it in an aggregate function, e.g. "
 "%(example)s."
+msgstr ""
+
+msgid ""
+"The ENABLE_EXTENSIONS feature flag must be on when the server starts. "
+"Enable it in the server configuration and restart."
 msgstr ""
 
 msgid ""

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-16 07:53-0700\n"
+"POT-Creation-Date: 2026-10-29 17:24-0700\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -3195,6 +3195,12 @@ msgstr "このセマンティックレイヤーの変更は禁止されていま
 msgid "Changing this semantic view is forbidden"
 msgstr "このセマンティックビューの変更は禁止されています"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 msgid "Changing this task is forbidden"
 msgstr "このタスクの変更は禁止されています"
 
@@ -6354,6 +6360,10 @@ msgstr "RLSフィルター内のJinja式エラー: %(msg)s"
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "WHERE句内のJinja式エラー: %(msg)s"
 
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr "日時列内のJinja式エラー: %(msg)s"
@@ -6669,6 +6679,9 @@ msgstr ""
 
 msgid "Extensions"
 msgstr "拡張機能"
+
+msgid "Extensions are not enabled on this server"
+msgstr ""
 
 msgid "Extent"
 msgstr "範囲"
@@ -11964,6 +11977,11 @@ msgstr "変更の上書きを有効にするには、一番下までスクロー
 msgid "Search"
 msgstr "検索"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+
 msgid "Search / Filter"
 msgstr "検索 / フィルター"
 
@@ -12017,9 +12035,6 @@ msgstr "フィルター内を検索"
 
 msgid "Search metrics by key or label"
 msgstr "メトリックをキーまたはラベルで検索"
-
-msgid "Search records"
-msgstr "記録を検索"
 
 msgid "Search tags"
 msgstr "タグを検索"
@@ -13917,6 +13932,11 @@ msgid ""
 "The Custom SQL metric \"%(metric)s\" is not an aggregate and can't be "
 "combined with a GROUP BY. Wrap it in an aggregate function, e.g. "
 "%(example)s."
+msgstr ""
+
+msgid ""
+"The ENABLE_EXTENSIONS feature flag must be on when the server starts. "
+"Enable it in the server configuration and restart."
 msgstr ""
 
 msgid ""
