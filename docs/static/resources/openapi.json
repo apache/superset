@@ -35241,6 +35241,13 @@
         ]
       }
     },
+    "/api/v1/semantic_layer/oauth2/complete/{tab_id}": {
+      "get": {
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
     "/api/v1/semantic_layer/schema/configuration": {
       "post": {
         "requestBody": {
@@ -35281,6 +35288,13 @@
           }
         ],
         "summary": "Get configuration schema for a semantic layer type",
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
+    "/api/v1/semantic_layer/type/{sl_type}/actions/{action_id}": {
+      "post": {
         "tags": [
           "Semantic Layers"
         ]
@@ -35524,6 +35538,20 @@
         ]
       }
     },
+    "/api/v1/semantic_layer/{uuid}/actions": {
+      "get": {
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
+    "/api/v1/semantic_layer/{uuid}/actions/{action_id}": {
+      "post": {
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
     "/api/v1/semantic_layer/{uuid}/clear_cache": {
       "post": {
         "parameters": [
@@ -35576,6 +35604,13 @@
           }
         ],
         "summary": "Clear a semantic layer's cache",
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
+    "/api/v1/semantic_layer/{uuid}/oauth2/{action_id}": {
+      "get": {
         "tags": [
           "Semantic Layers"
         ]
