@@ -21,11 +21,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
+from sqlalchemy import inspect
 from sqlalchemy.orm.session import Session
 
 from superset import db, security_manager
 
 if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
+
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
 
@@ -78,9 +81,21 @@ def test_rename_database_with_missing_permission(
     ``'NoneType' object has no attribute 'id'``.
     """
     from superset.connectors.sqla.models import SqlaTable
+    from superset.models.slice import Slice
 
     database, dataset = _create_database_with_dataset()
     dataset_id = dataset.id
+    assert dataset.schema is None
+    chart = Slice(
+        slice_name="rename_chart",
+        datasource_id=dataset_id,
+        datasource_type="table",
+        viz_type="table",
+    )
+    db.session.add(chart)
+    db.session.flush()
+    chart_id = chart.id
+    assert chart.perm == f"[examples].[my_table](id:{dataset_id})"
     if "database" in missing:
         _delete_view_menu(f"[examples].(id:{database.id})")
     if "dataset" in missing:
@@ -103,3 +118,31 @@ def test_rename_database_with_missing_permission(
     )
     db.session.expire_all()
     assert db.session.get(SqlaTable, dataset_id).perm == new_dataset_perm
+    assert db.session.get(Slice, chart_id).perm == new_dataset_perm
+
+
+def test_database_permission_update_skips_hook_when_view_menu_missing(
+    session: Session, mocker: MockerFixture
+) -> None:
+    """Do not invoke the update hook with a missing database view-menu readback."""
+    from superset.models.core import Database
+
+    database, _ = _create_database_with_dataset()
+    target = Database(id=database.id, database_name="examples_renamed")
+    connection = session.connection()
+    # A successful UPDATE is visible on the same connection; inject a missing
+    # readback to exercise the defensive guard independently of database behavior.
+    find_view_menu = mocker.patch.object(
+        security_manager, "_find_view_menu_on_sqla_event", return_value=None
+    )
+    update_hook = mocker.patch.object(security_manager, "on_view_menu_after_update")
+
+    result = security_manager._update_vm_database_access(
+        inspect(Database), connection, "examples", target
+    )
+
+    assert result is None
+    find_view_menu.assert_called_once_with(
+        connection, f"[examples_renamed].(id:{database.id})"
+    )
+    update_hook.assert_not_called()
