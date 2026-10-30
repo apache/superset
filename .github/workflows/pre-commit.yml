@@ -175,15 +175,15 @@ jobs:
         with:
           node-version-file: "superset-frontend/.nvmrc"
 
-      # Not setup-node's built-in `cache: npm`: that keys on the exact
-      # package-lock.json hash with no fallback, so any lockfile change (every
-      # dependency bump) starts npm ci from an empty cache and re-downloads
-      # every tarball, including xlsx from cdn.sheetjs.com rather than the npm
-      # registry. A CDN or network stall there has failed or timed out this
-      # job. The restore-keys prefix starts from the most recent cache
-      # instead, so only the changed packages are fetched.
-      - name: Cache npm (frontend)
-        if: steps.changed_files.outputs.needs_frontend == 'true'
+      # Not setup-node's built-in `cache: npm`: it keys on the exact
+      # package-lock.json hash with no fallback, so every lockfile change
+      # makes npm ci re-download every tarball (including xlsx from
+      # cdn.sheetjs.com), exposing the install to any registry/CDN outage
+      # at that moment, which is how runs 40649064300 and 40679638770
+      # failed. Restoring from the prefix instead cuts the downloads to the
+      # changed packages.
+      - name: Cache npm
+        if: steps.changed_files.outputs.needs_node == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.npm
