@@ -279,7 +279,25 @@ class QueryContextProcessor:
     ) -> QueryAcquisitionResult:
         """Acquire a dataframe and return timing as a typed sidecar."""
         metrics_start_ns = now_ns()
+        phases: dict[str, int] = {}
+        try:
+            result = self._get_df_payload_result(query_obj, force_cached, phases)
+        finally:
+            self._emit_acquisition_metrics(phases, metrics_start_ns)
+        return result
+
+    def _get_df_payload_result(
+        self,
+        query_obj: QueryObject,
+        force_cached: bool | None,
+        phases: dict[str, int],
+    ) -> QueryAcquisitionResult:
+        """
+        Acquire a dataframe, recording phase starts and durations in ``phases``
+        so the caller can emit them even when a phase raises.
+        """
         query_planning_start_ns = time.perf_counter_ns()
+        phases["planning_start_ns"] = query_planning_start_ns
         if query_obj:
             # Always validate the query object before generating cache key
             # This ensures sanitize_clause() is called and extras are normalized
@@ -299,6 +317,7 @@ class QueryContextProcessor:
             query_obj.force_query = force_query
             query_obj.cache_timeout = timeout
         query_planning_ns = max(0, time.perf_counter_ns() - query_planning_start_ns)
+        phases["planning_ns"] = query_planning_ns
 
         cache_resolution_start_ns = time.perf_counter_ns()
         cache = QueryCacheManager.get(
@@ -323,7 +342,11 @@ class QueryContextProcessor:
 
         cache_resolution_ns = max(0, time.perf_counter_ns() - cache_resolution_start_ns)
         self._emit_cache_outcome(
-            bypassed=not cache_key or force_query,
+            bypassed=(
+                not cache_key
+                or force_query
+                or not QueryCacheManager.has_backend(CacheRegion.DATA)
+            ),
             hit=cache.is_loaded,
             cache_resolution_ns=cache_resolution_ns,
         )
@@ -331,6 +354,7 @@ class QueryContextProcessor:
         data_acquisition_ns: int | None = None
         if query_obj and cache_key and not cache.is_loaded:
             data_acquisition_start_ns = time.perf_counter_ns()
+            phases["data_acquisition_start_ns"] = data_acquisition_start_ns
             try:
                 if invalid_columns := [
                     col
@@ -361,6 +385,7 @@ class QueryContextProcessor:
                 data_acquisition_ns = max(
                     0, time.perf_counter_ns() - data_acquisition_start_ns
                 )
+                phases["data_acquisition_ns"] = data_acquisition_ns
 
             if cache.status != QueryStatus.FAILED:
                 cache.set_query_result(
@@ -378,6 +403,7 @@ class QueryContextProcessor:
                 self._mark_force_executed(query_obj, cache_key, cache.result_persisted)
 
         payload_assembly_start_ns = time.perf_counter_ns()
+        phases["payload_assembly_start_ns"] = payload_assembly_start_ns
         # the N-dimensional DataFrame has converted into flat DataFrame
         # by `flatten operator`, "comma" in the column is escaped by `escape_separator`
         # the result DataFrame columns should be unescaped
@@ -460,15 +486,14 @@ class QueryContextProcessor:
             "label_map": label_map,
             "warning": warning,
         }
+        payload_assembly_ns = max(0, time.perf_counter_ns() - payload_assembly_start_ns)
+        phases["payload_assembly_ns"] = payload_assembly_ns
         timing = QueryAcquisitionTiming(
             query_planning_ns=query_planning_ns,
             cache_resolution_ns=cache_resolution_ns,
             data_acquisition_ns=data_acquisition_ns,
-            payload_assembly_ns=max(
-                0, time.perf_counter_ns() - payload_assembly_start_ns
-            ),
+            payload_assembly_ns=payload_assembly_ns,
         )
-        self._emit_acquisition_metrics(timing, metrics_start_ns)
         return QueryAcquisitionResult(payload=payload, timing=timing)
 
     @staticmethod
@@ -491,30 +516,32 @@ class QueryContextProcessor:
         emit_incr("chart_data.cache.hit" if hit else "chart_data.cache.miss")
 
     @staticmethod
-    def _emit_acquisition_metrics(
-        timing: QueryAcquisitionTiming, started_ns: int
-    ) -> None:
+    def _emit_acquisition_metrics(phases: dict[str, int], started_ns: int) -> None:
         """
         Emit the per-query acquisition phases as StatsD timers.
 
         Runs in both the synchronous request and the async worker, so the
-        distributions cover every executed chart-data query.
-        ``chart_data.query.data_acquisition`` is only emitted when the
+        distributions cover every executed chart-data query. Runs on failure
+        too: a phase that started but did not finish is measured up to the
+        failure. ``chart_data.query.data_acquisition`` is only emitted when the
         datasource was actually queried (a cache miss or bypass).
         """
-        emit_timing(
-            "chart_data.query.planning",
-            timing.query_planning_ns / NANOSECONDS_PER_MILLISECOND,
-        )
-        if timing.data_acquisition_ns is not None:
-            emit_timing(
-                "chart_data.query.data_acquisition",
-                timing.data_acquisition_ns / NANOSECONDS_PER_MILLISECOND,
-            )
-        emit_timing(
-            "chart_data.query.payload_assembly",
-            timing.payload_assembly_ns / NANOSECONDS_PER_MILLISECOND,
-        )
+        now = now_ns()
+
+        def phase_ms(name: str) -> float | None:
+            if (duration := phases.get(f"{name}_ns")) is None:
+                if (start := phases.get(f"{name}_start_ns")) is None:
+                    return None
+                duration = max(0, now - start)
+            return duration / NANOSECONDS_PER_MILLISECOND
+
+        for name, key in (
+            ("planning", "chart_data.query.planning"),
+            ("data_acquisition", "chart_data.query.data_acquisition"),
+            ("payload_assembly", "chart_data.query.payload_assembly"),
+        ):
+            if (value := phase_ms(name)) is not None:
+                emit_timing(key, value)
         emit_timing("chart_data.query.total", elapsed_ms(started_ns))
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
