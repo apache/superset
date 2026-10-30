@@ -116,6 +116,31 @@ def test_redis_sentinel_cache_backend_pins_protocol_and_timeout_defaults(
     assert master_kwargs["protocol"] == 2
     assert master_kwargs["socket_timeout"] is None
     assert master_kwargs["socket_connect_timeout"] is None
+    assert master_kwargs["db"] == 0
+    assert "username" not in master_kwargs
+
+
+def test_redis_sentinel_cache_backend_from_config_reads_db_and_user(
+    mocker: MockerFixture,
+) -> None:
+    """The master connection that carries coordination commands must use the
+    configured DB and ACL username."""
+    from superset.coordination.cache_backend import RedisSentinelCacheBackend
+
+    sentinel_mock = mocker.patch("superset.coordination.cache_backend.Sentinel")
+
+    RedisSentinelCacheBackend.from_config(
+        {
+            "CACHE_REDIS_SENTINELS": [("localhost", 26379)],
+            "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
+            "CACHE_REDIS_DB": 7,
+            "CACHE_REDIS_USER": "u",
+        }
+    )
+
+    master_kwargs = sentinel_mock.return_value.master_for.call_args.kwargs
+    assert master_kwargs["db"] == 7
+    assert master_kwargs["username"] == "u"
 
 
 def test_redis_sentinel_cache_backend_from_config_reads_timeout_keys(
