@@ -1833,7 +1833,13 @@ def test_warning_dry_run_unverified_bigquery_subclass_is_unsupported(
         {"query": []},
         {"query": {"totalBytesProcessed": "1"}},
         {"rowLevelSecurityStatistics": "masked"},
-        {"rowLevelSecurityStatistics": {"rowLevelSecurityApplied": "false"}},
+        {
+            "query": {
+                "totalBytesProcessed": "1",
+                "totalBytesProcessedAccuracy": "PRECISE",
+            },
+            "rowLevelSecurityStatistics": {"rowLevelSecurityApplied": "false"},
+        },
     ],
 )
 def test_warning_dry_run_malformed_metadata_is_unavailable(statistics: object) -> None:

@@ -974,6 +974,8 @@ def test_warning_estimate_reads_only_root_plan_cost(
         and value in (0, 0.125, 100.01)
     )
     assert estimate.value == (value if valid else None)
+    if valid:
+        assert estimate.accuracy == "PRECISE"
     cursor.execute.assert_called_once()
     assert " ".join(cursor.execute.call_args.args[0].split()) == (
         "EXPLAIN (FORMAT JSON) SELECT * FROM test"

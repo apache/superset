@@ -364,16 +364,17 @@ def test_warning_compares_large_bytes_exactly(mocker: MockerFixture) -> None:
 
 
 @pytest.mark.parametrize(
-    "unavailable_reason", [None, "The planner supplied no estimate."]
+    "value,unavailable_reason",
+    [(None, None), (1, "The estimate does not cover all tables in the query.")],
 )
 def test_warning_unusable_estimate(
-    mocker: MockerFixture, unavailable_reason: str | None
+    mocker: MockerFixture, value: int | None, unavailable_reason: str | None
 ) -> None:
     """An unusable engine estimate is unavailable, not within threshold."""
     command = _make_command(mocker)
     command.validate()
     _estimator(command).return_value = QueryCostEstimate(
-        unavailable_reason=unavailable_reason
+        value=value, accuracy="PRECISE", unavailable_reason=unavailable_reason
     )
     result = _run_warning(command)
     assert result["action"] == "confirm"

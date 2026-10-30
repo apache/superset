@@ -18,7 +18,10 @@ from unittest import mock
 
 import pytest
 
-from superset.sqllab.utils import bootstrap_sqllab_data
+from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.models.sql_lab import Query
+from superset.sqllab.limiting_factor import LimitingFactor
+from superset.sqllab.utils import bootstrap_sqllab_data, set_query_limit
 
 
 @pytest.mark.parametrize(
@@ -84,3 +87,23 @@ def test_bootstrap_sqllab_data_includes_non_ansi_identifier_quote() -> None:
         "supports_offset": True,
         "identifier_quote": {"start": "`", "end": "`"},
     }
+
+
+@pytest.mark.parametrize(
+    "sql_limit,expected_limit,expected_factor",
+    [
+        (5, 5, LimitingFactor.QUERY),
+        (500, 100, LimitingFactor.DROPDOWN),
+        (100, 100, LimitingFactor.QUERY_AND_DROPDOWN),
+    ],
+)
+def test_set_query_limit_records_limiting_factor(
+    sql_limit: int, expected_limit: int, expected_factor: LimitingFactor
+) -> None:
+    """Truncation guidance identifies the SQL limit, dropdown, or both."""
+    query = Query()
+
+    set_query_limit(query, f"SELECT 1 LIMIT {sql_limit}", 100, PostgresEngineSpec)
+
+    assert query.limit == expected_limit
+    assert query.limiting_factor == expected_factor
