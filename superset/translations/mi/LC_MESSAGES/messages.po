@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-30 19:30+0000\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -2476,6 +2476,10 @@ msgstr "I puta he hapa i te utanga o ngā mōhiohio papatohu."
 
 msgid "An error occurred while loading the SQL"
 msgstr "I puta he hapa i te utanga o te SQL"
+
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
 
 #, fuzzy
 msgid "An error occurred while overwriting the dataset"
@@ -7735,6 +7739,10 @@ msgstr "Hapa i te kīanga jinja i ngā tātari RLS: %(msg)s"
 #, python-format
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Hapa i te kīanga jinja i te rerenga WHERE: %(msg)s"
+
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
@@ -17887,6 +17895,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr "Kua hangaia te pūrongo"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 msgid "The report will be sent to your email at"
 msgstr "Ka tukuna te pūrongo ki tō īmēra i"
 
@@ -18220,6 +18234,13 @@ msgstr "I tiakina pai tēnei papatohu."
 #, fuzzy
 msgid "The user has been updated successfully."
 msgstr "I tiakina pai tēnei papatohu."
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 #, fuzzy
 msgid "The user was updated successfully"
@@ -19222,6 +19243,13 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -20071,6 +20099,9 @@ msgid "Unable to load dashboard"
 msgstr "Kāore e taea te uta i te papatohu"
 
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 msgid ""

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-30 19:30+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -2220,6 +2220,10 @@ msgid "An error occurred while loading dashboard information."
 msgstr ""
 
 msgid "An error occurred while loading the SQL"
+msgstr ""
+
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
 msgstr ""
 
 msgid "An error occurred while overwriting the dataset"
@@ -6853,6 +6857,10 @@ msgstr ""
 
 #, python-format
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
+msgstr ""
+
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
 msgstr ""
 
 #, python-format
@@ -15801,6 +15809,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr ""
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 msgid "The report will be sent to your email at"
 msgstr ""
 
@@ -16076,6 +16090,13 @@ msgid "The user has been created successfully."
 msgstr ""
 
 msgid "The user has been updated successfully."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
 msgstr ""
 
 msgid "The user was updated successfully"
@@ -16913,6 +16934,13 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -17646,6 +17674,9 @@ msgid "Unable to load dashboard"
 msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 msgid ""

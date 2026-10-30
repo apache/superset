@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-30 19:30+0000\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -2467,6 +2467,10 @@ msgstr "Prišlo je do napake pri pridobivanju informacij o nadzorni plošči."
 
 msgid "An error occurred while loading the SQL"
 msgstr "Pri nalaganju SQL je prišlo do napake"
+
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
 
 msgid "An error occurred while overwriting the dataset"
 msgstr "Med prepisovanjem nabora podatkov je prišlo do napake"
@@ -7545,6 +7549,10 @@ msgstr "Napaka v jinja izrazu RLS filtrov: %(msg)s"
 #, python-format
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Napaka v jinja izrazu WHERE stavka: %(msg)s"
+
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
 
 #, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
@@ -17289,6 +17297,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr "Poročilo je bilo ustvarjeno"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 msgid "The report will be sent to your email at"
 msgstr "Poročilo bo poslano na vaš e-naslov ob"
 
@@ -17607,6 +17621,13 @@ msgstr "Uporabnik je bil uspešno ustvarjen."
 
 msgid "The user has been updated successfully."
 msgstr "Uporabnik je bil uspešno posodobljen."
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 msgid "The user was updated successfully"
 msgstr "Uporabnik je bil uspešno posodobljen"
@@ -18555,6 +18576,13 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -19386,6 +19414,9 @@ msgid "Unable to load dashboard"
 msgstr "Nadzorne plošče ni mogoče naložiti"
 
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 msgid ""

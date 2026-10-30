@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-30 19:30+0000\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -2547,6 +2547,10 @@ msgstr "獲取看板時出錯"
 
 msgid "An error occurred while loading the SQL"
 msgstr "創建數據源時發生錯誤"
+
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
 
 #, fuzzy
 msgid "An error occurred while overwriting the dataset"
@@ -8023,6 +8027,10 @@ msgstr "jinja 表達式中的 RLS filters 出錯：%(msg)s"
 #, python-format
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "jinja 表達式中的 WHERE 子句出錯：%(msg)s"
+
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
@@ -18660,6 +18668,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr "報告已創建"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 #, fuzzy
 msgid "The report will be sent to your email at"
 msgstr "計劃的報告將作為PNG發送到您的電子郵件"
@@ -18984,6 +18998,13 @@ msgstr "該看板已成功保存。"
 #, fuzzy
 msgid "The user has been updated successfully."
 msgstr "該看板已成功保存。"
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 #, fuzzy
 msgid "The user was updated successfully"
@@ -19982,6 +20003,13 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -20864,6 +20892,9 @@ msgid "Unable to load dashboard"
 msgstr "增加到看板"
 
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 msgid ""

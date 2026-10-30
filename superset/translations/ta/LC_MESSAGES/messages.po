@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-30 19:30+0000\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -2403,6 +2403,10 @@ msgstr "டேஷ்போர்டு தகவலை ஏற்றும்ப�
 
 msgid "An error occurred while loading the SQL"
 msgstr "SQL-ஐ ஏற்றும்போது ஒரு பிழை ஏற்பட்டது"
+
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
 
 msgid "An error occurred while overwriting the dataset"
 msgstr "தரவுத்தொகுப்பை மேலெழுதும்போது (overwriting) ஒரு பிழை ஏற்பட்டது"
@@ -7365,6 +7369,10 @@ msgstr "RLS வடிகட்டிகளின் jinja கோவையில�
 #, python-format
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "WHERE பிரிவின் jinja கோவையில் பிழை: %(msg)s"
+
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
@@ -16666,6 +16674,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr "அறிக்கை உருவாக்கப்பட்டது"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 msgid "The report will be sent to your email at"
 msgstr "அறிக்கை உங்கள் மின்னஞ்சலுக்கு அனுப்பப்படும் நேரம்"
 
@@ -16966,6 +16980,13 @@ msgstr "பயனர் வெற்றிகரமாக புதுப்ப�
 
 msgid "The user has been updated successfully."
 msgstr "பயனர் வெற்றிகரமாக புதுப்பிக்கப்பட்டார்."
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 msgid "The user was updated successfully"
 msgstr "பயனர் வெற்றிகரமாக புதுப்பிக்கப்பட்டார்"
@@ -17862,6 +17883,13 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -18629,6 +18657,9 @@ msgid "Unable to load dashboard"
 msgstr "டாஷ்போர்டை ஏற்ற முடியவில்லை"
 
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 msgid ""

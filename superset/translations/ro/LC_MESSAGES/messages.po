@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-30 19:30+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -2596,6 +2596,10 @@ msgstr "A apărut o eroare la încărcarea informațiilor panoului de control."
 
 msgid "An error occurred while loading the SQL"
 msgstr "A apărut o eroare la încărcarea SQL"
+
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
 
 msgid "An error occurred while overwriting the dataset"
 msgstr "A apărut o eroare la suprascrierea setului de date"
@@ -7911,6 +7915,10 @@ msgstr "Eroare în expresia jinja din filtrele RLS: %(msg)s"
 #, python-format
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Eroare în expresia jinja din clauza WHERE: %(msg)s"
+
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18180,6 +18188,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr "Raportul a fost creat"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 msgid "The report will be sent to your email at"
 msgstr "Raportul va fi trimis la adresa dvs. de email la"
 
@@ -18513,6 +18527,13 @@ msgstr "Utilizatorul a fost creat cu succes."
 
 msgid "The user has been updated successfully."
 msgstr "Utilizatorul a fost actualizat cu succes."
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 msgid "The user was updated successfully"
 msgstr "Utilizatorul a fost actualizat cu succes"
@@ -19525,6 +19546,13 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -20376,6 +20404,9 @@ msgid "Unable to load dashboard"
 msgstr "Nu se poate încărca panoul de control"
 
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 msgid ""

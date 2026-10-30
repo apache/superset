@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-30 19:30+0000\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -2487,6 +2487,10 @@ msgstr "هنگام بارگذاری اطلاعات داشبورد خطایی ر�
 
 msgid "An error occurred while loading the SQL"
 msgstr "یک خطا در حین بارگذاری SQL رخ داد."
+
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
 
 #, fuzzy
 msgid "An error occurred while overwriting the dataset"
@@ -7828,6 +7832,10 @@ msgstr "خطا در عبارت جینجا در فیلترهای RLS: %(msg)s"
 #, python-format
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "خطا در عبارت جینجا در cláusula WHERE: %(msg)s"
+
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
@@ -18078,6 +18086,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr "گزارش ایجاد شده است"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 msgid "The report will be sent to your email at"
 msgstr "گزارش به ایمیل شما در تاریخ ارسال خواهد شد"
 
@@ -18415,6 +18429,13 @@ msgstr "این داشبورد با موفقیت ذخیره شد."
 #, fuzzy
 msgid "The user has been updated successfully."
 msgstr "این داشبورد با موفقیت ذخیره شد."
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 #, fuzzy
 msgid "The user was updated successfully"
@@ -19420,6 +19441,13 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -20274,6 +20302,9 @@ msgid "Unable to load dashboard"
 msgstr "قادر به بارگذاری داشبورد نیستید"
 
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 msgid ""

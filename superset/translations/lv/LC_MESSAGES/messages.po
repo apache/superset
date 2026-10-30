@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-30 19:30+0000\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -2441,6 +2441,10 @@ msgstr "Radās kļūda, ielādējot infopaneļa informāciju."
 
 msgid "An error occurred while loading the SQL"
 msgstr "Radās kļūda, ielādējot SQL"
+
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
 
 msgid "An error occurred while overwriting the dataset"
 msgstr "Notika kļūda, pārrakstot datu kopu"
@@ -7437,6 +7441,10 @@ msgstr "Kļūda jinja izteiksmē RLS filtros: %(msg)s"
 #, python-format
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Kļūda jinja izteiksmē WHERE klauzulā: %(msg)s"
+
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
@@ -17105,6 +17113,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr "Atskaite ir izveidota"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 msgid "The report will be sent to your email at"
 msgstr "Atskaite tiks nosūtīta uz jūsu e-pastu"
 
@@ -17425,6 +17439,13 @@ msgstr "Lietotājs ir veiksmīgi atjaunināts."
 
 msgid "The user has been updated successfully."
 msgstr "Lietotājs ir veiksmīgi atjaunināts."
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 msgid "The user was updated successfully"
 msgstr "Lietotājs veiksmīgi atjaunināts"
@@ -18352,6 +18373,13 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -19167,6 +19195,9 @@ msgid "Unable to load dashboard"
 msgstr "Nevar ielādēt paneli"
 
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 msgid ""
