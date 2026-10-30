@@ -516,7 +516,9 @@ The result returns `action: proceed` when this check does not need confirmation.
 This is not a guarantee that the query is safe in every other way. Otherwise it
 returns `action: confirm`, a `warning` or `unavailable` reason, a nonempty message,
 and optional plain-text label/value details. For the cost checks, estimates and
-thresholds are compared before display formatting; equality does not warn.
+thresholds are compared before display formatting. Precise estimates and upper
+bounds equal to the threshold do not warn; lower bounds at equality still require
+confirmation because usage could exceed the threshold.
 BigQuery bounds are displayed as **At least** or **Up to**. Byte counts can exceed JavaScript's safe integer
 range, so clients should display the server-provided details without reconverting
 them to numbers.
