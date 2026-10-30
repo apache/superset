@@ -19,6 +19,7 @@
 from typing import Any
 from urllib.parse import urlsplit
 
+from flask_babel import gettext as __
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -59,7 +60,9 @@ def build_teams_card(content: NotificationContent) -> dict[str, Any]:
         body.append(
             {
                 "type": "TextBlock",
-                "text": "Alert execution failed. Contact the alert owner for details.",
+                "text": __(
+                    "Alert execution failed. Contact the alert owner for details."
+                ),
                 "wrap": True,
             }
         )
@@ -79,7 +82,7 @@ def build_teams_card(content: NotificationContent) -> dict[str, Any]:
             card["actions"] = [
                 {
                     "type": "Action.OpenUrl",
-                    "title": "Open in Superset",
+                    "title": __("Open in Superset"),
                     "url": content.url,
                 }
             ]

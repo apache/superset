@@ -22,6 +22,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask
+from flask_babel import Babel
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.integrations.teams import validation
@@ -41,6 +42,7 @@ from superset.utils import json
 def notification(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
     """Keep the transport replaceable while exercising real recipient validation."""
     app = Flask(__name__)
+    Babel(app)
     app.config["ALERT_REPORTS_TEAMS"] = {
         "tenant_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
         "application_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
@@ -235,6 +237,24 @@ def test_card_omits_empty_description_and_hides_execution_error(
     )
     assert "secret_table" not in json.dumps(card)
     assert "credential" not in json.dumps(card)
+
+
+def test_card_translates_failure_notice_and_link_title(
+    notification: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Translate static card text without translating user-provided content."""
+    translations = {
+        "Alert execution failed. Contact the alert owner for details.": "Échec.",
+        "Open in Superset": "Ouvrir dans Superset",
+    }
+    monkeypatch.setattr(teams, "__", translations.__getitem__)
+    notification.content.text = "internal diagnostic"
+    card = teams.build_teams_card(notification.content)
+    assert card["body"][0]["text"] == notification.content.name
+    assert card["body"][1]["text"] == notification.content.description
+    assert card["body"][2]["text"] == "Échec."
+    assert card["actions"][0]["title"] == "Ouvrir dans Superset"
 
 
 def test_delivery_still_reports_missing_sdk(

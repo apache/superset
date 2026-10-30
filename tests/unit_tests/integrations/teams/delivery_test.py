@@ -36,6 +36,7 @@ import pytest
 import requests
 from billiard.exceptions import SoftTimeLimitExceeded
 from flask import current_app, Flask
+from flask_babel import Babel
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
@@ -103,6 +104,7 @@ def notification_context(
 ) -> Iterator[SimpleNamespace]:
     """Use the real installation table and resolve through the notification class."""
     app = Flask(__name__)
+    Babel(app)
     app.config.update(
         ALERT_REPORTS_TEAMS=teams_config, FEATURE_FLAGS={"ALERT_REPORT_TEAMS": True}
     )

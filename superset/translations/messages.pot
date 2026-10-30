@@ -1603,6 +1603,9 @@ msgstr ""
 msgid "Alert ended grace period."
 msgstr ""
 
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
+
 msgid "Alert failed"
 msgstr ""
 
@@ -10184,6 +10187,9 @@ msgid "Open filters"
 msgstr ""
 
 msgid "Open in SQL Lab"
+msgstr ""
+
+msgid "Open in Superset"
 msgstr ""
 
 msgid "Open in SQL lab"
