@@ -78,8 +78,10 @@ function setup(
     eventHandlers,
     onContextMenu,
     setDataMask,
-    nodeB: series.data.find(node => node.name === 'B') as SankeyNodeDatum,
-    linkBC: series.links.find(link => link.target === 'C') as SankeyLinkDatum,
+    nodeB: series.data.find(node => node.rawValue === 'B') as SankeyNodeDatum,
+    linkBC: series.links.find(
+      link => link.targetValue === 'C',
+    ) as SankeyLinkDatum,
   };
 }
 

@@ -37,7 +37,9 @@ export type SankeyFilterColumn = 'source' | 'target';
 
 /** Fields ECharts keeps on a node and returns from a click. */
 export type SankeyNodeDatum = {
+  /** Typed value id. Link endpoints use the same id, not the display label. */
   name: string;
+  displayName: string;
   filterColumn: SankeyFilterColumn;
   rawValue: DataRecordValue;
 };
@@ -57,12 +59,17 @@ type NamedLink = {
 };
 
 type ParsedSelection =
-  | { kind: 'node'; column: SankeyFilterColumn; name: string }
+  | { kind: 'node'; column: SankeyFilterColumn; id: string }
   | { kind: 'link'; source: string; target: string };
 
+export type SankeyHighlight = {
+  nodeIds: ReadonlySet<string>;
+  linkKeys: ReadonlySet<string>;
+};
+
 /**
- * Label used as the ECharts node name. `null` and `''` stay distinct so a
- * click can emit `IS NULL` or `IN ['']`.
+ * Label shown on the chart and the filter chip. `null` and `''` stay readable
+ * and distinct. This text is not the graph id: several values share one label.
  */
 export function sankeyNodeName(value: DataRecordValue): string {
   if (value == null) {
@@ -75,15 +82,36 @@ export function sankeyNodeName(value: DataRecordValue): string {
   return text === '' ? EMPTY_STRING : text;
 }
 
-export function sankeyNodeKey(
-  column: SankeyFilterColumn,
-  name: string,
-): string {
-  return JSON.stringify(['node', column, name]);
+/**
+ * Identity of one source or target value. JSON keeps `null`, `''`, `42`,
+ * `"42"`, and `42n` apart, so they stay separate nodes and separate clicks.
+ */
+export function sankeyValueId(value: DataRecordValue): string {
+  if (value == null) {
+    return JSON.stringify(null);
+  }
+  if (typeof value === 'bigint') {
+    return JSON.stringify({ bigint: value.toString() });
+  }
+  if (value instanceof Date) {
+    return JSON.stringify({ date: value.toISOString() });
+  }
+  const encoded = JSON.stringify(value);
+  return encoded === undefined ? String(value) : encoded;
 }
 
-export function sankeyLinkKey(source: string, target: string): string {
-  return JSON.stringify(['link', source, target]);
+export function sankeyNodeKey(
+  column: SankeyFilterColumn,
+  value: DataRecordValue,
+): string {
+  return JSON.stringify(['node', column, sankeyValueId(value)]);
+}
+
+export function sankeyLinkKey(
+  source: DataRecordValue,
+  target: DataRecordValue,
+): string {
+  return JSON.stringify(['link', sankeyValueId(source), sankeyValueId(target)]);
 }
 
 export function isSankeyLinkDatum(data: unknown): data is SankeyLinkDatum {
@@ -131,7 +159,7 @@ function parseSelection(key: string): ParsedSelection | undefined {
       (parsed[1] === 'source' || parsed[1] === 'target') &&
       typeof parsed[2] === 'string'
     ) {
-      return { kind: 'node', column: parsed[1], name: parsed[2] };
+      return { kind: 'node', column: parsed[1], id: parsed[2] };
     }
     if (
       parsed[0] === 'link' &&
@@ -146,69 +174,74 @@ function parseSelection(key: string): ParsedSelection | undefined {
   }
 }
 
-function nodeStaysBright(
-  name: string,
-  selection: ParsedSelection,
-  links: NamedLink[],
-): boolean {
-  if (selection.kind === 'link') {
-    return name === selection.source || name === selection.target;
-  }
-  if (name === selection.name) {
-    return true;
-  }
-  // Keep the other end of each matching flow readable.
-  return links.some(link =>
-    selection.column === 'source'
-      ? link.source === selection.name && link.target === name
-      : link.target === selection.name && link.source === name,
-  );
+function endpointKey(source: string, target: string): string {
+  return JSON.stringify([source, target]);
 }
 
-function linkStaysBright(link: NamedLink, selection: ParsedSelection): boolean {
-  if (selection.kind === 'link') {
-    return link.source === selection.source && link.target === selection.target;
-  }
-  return selection.column === 'source'
-    ? link.source === selection.name
-    : link.target === selection.name;
-}
-
-function staysBright(
-  selectedKeys: string[],
-  matches: (selection: ParsedSelection) => boolean,
-): boolean {
-  return selectedKeys.some(key => {
-    const selection = parseSelection(key);
-    return selection ? matches(selection) : false;
+function linksByEndpoint(links: NamedLink[]): {
+  bySource: Map<string, NamedLink[]>;
+  byTarget: Map<string, NamedLink[]>;
+} {
+  const bySource = new Map<string, NamedLink[]>();
+  const byTarget = new Map<string, NamedLink[]>();
+  links.forEach(link => {
+    const sources = bySource.get(link.source);
+    if (sources) {
+      sources.push(link);
+    } else {
+      bySource.set(link.source, [link]);
+    }
+    const targets = byTarget.get(link.target);
+    if (targets) {
+      targets.push(link);
+    } else {
+      byTarget.set(link.target, [link]);
+    }
   });
+  return { bySource, byTarget };
 }
 
-/** Dim when a selection exists and this node is outside it. */
-export function isSankeyNodeDimmed(
-  name: string,
+/**
+ * Nodes and links that stay bright for the current selection. Endpoints are
+ * indexed once so a click does not scan every link for every node.
+ */
+export function getSankeyHighlight(
   selectedKeys: string[],
   links: NamedLink[],
-): boolean {
+): SankeyHighlight | undefined {
   if (selectedKeys.length === 0) {
-    return false;
+    return undefined;
   }
-  return !staysBright(selectedKeys, selection =>
-    nodeStaysBright(name, selection, links),
-  );
+  const { bySource, byTarget } = linksByEndpoint(links);
+  const nodeIds = new Set<string>();
+  const linkKeys = new Set<string>();
+  selectedKeys.forEach(key => {
+    const selection = parseSelection(key);
+    if (!selection) {
+      return;
+    }
+    if (selection.kind === 'link') {
+      linkKeys.add(endpointKey(selection.source, selection.target));
+      nodeIds.add(selection.source);
+      nodeIds.add(selection.target);
+      return;
+    }
+    nodeIds.add(selection.id);
+    const matched =
+      selection.column === 'source'
+        ? bySource.get(selection.id)
+        : byTarget.get(selection.id);
+    matched?.forEach(link => {
+      linkKeys.add(endpointKey(link.source, link.target));
+      nodeIds.add(link.source);
+      nodeIds.add(link.target);
+    });
+  });
+  return { nodeIds, linkKeys };
 }
 
-/** Dim when a selection exists and this link is outside it. */
-export function isSankeyLinkDimmed(
-  link: NamedLink,
-  selectedKeys: string[],
-): boolean {
-  if (selectedKeys.length === 0) {
-    return false;
-  }
-  return !staysBright(selectedKeys, selection =>
-    linkStaysBright(link, selection),
-  );
+export function sankeyEndpointKey(source: string, target: string): string {
+  return endpointKey(source, target);
 }
 
 /**
@@ -256,8 +289,8 @@ function formatPart(
 
 function selectionKey(datum: SankeyNodeDatum | SankeyLinkDatum): string {
   return isSankeyLinkDatum(datum)
-    ? sankeyLinkKey(datum.source, datum.target)
-    : sankeyNodeKey(datum.filterColumn, datum.name);
+    ? sankeyLinkKey(datum.sourceValue, datum.targetValue)
+    : sankeyNodeKey(datum.filterColumn, datum.rawValue);
 }
 
 function selectionFilters(

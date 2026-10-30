@@ -35,17 +35,26 @@ import { getDefaultTooltip } from '../utils/tooltip';
 import { getPercentFormatter } from '../utils/formatters';
 import { getColtypesMapping } from '../utils/series';
 import {
-  isSankeyLinkDimmed,
-  isSankeyNodeDimmed,
+  getSankeyHighlight,
+  getSelectedSankeyKeys,
+  sankeyEndpointKey,
   SankeyFilterColumn,
   SankeyLinkDatum,
   sankeyNodeName,
-  getSelectedSankeyKeys,
+  sankeyValueId,
 } from './crossFilter';
+
+/**
+ * ECharts draws an unselected Sankey link at opacity 0.2. A selection has to
+ * raise the matching links above that and drop the others below it.
+ */
+export const SELECTED_LINK_OPACITY = 0.8;
+export const DIMMED_LINK_OPACITY = 0.06;
 
 type NodeMeta = {
   filterColumn: SankeyFilterColumn;
   value: DataRecordValue;
+  displayName: string;
 };
 
 type EChartsOption = ComposeOption<SankeySeriesOption>;
@@ -77,13 +86,17 @@ export default function transformProps(
   const selectedKeys = getSelectedSankeyKeys(filterState?.selectedValues);
 
   const links: SankeyLinkDatum[] = [];
-  // One ECharts node per label. A label that appears in both columns keeps
-  // the column of the first row that introduced it.
+  // One ECharts node per value id. The same id in both columns keeps the
+  // column of the first row that introduced it.
   const nodes = new Map<string, NodeMeta>();
   const rememberNode = (column: SankeyFilterColumn, raw: DataRecordValue) => {
-    const name = sankeyNodeName(raw);
+    const name = sankeyValueId(raw);
     if (!nodes.has(name)) {
-      nodes.set(name, { filterColumn: column, value: raw });
+      nodes.set(name, {
+        filterColumn: column,
+        value: raw,
+        displayName: sankeyNodeName(raw),
+      });
     }
     return name;
   };
@@ -100,17 +113,21 @@ export default function transformProps(
     });
   });
 
+  const highlight = getSankeyHighlight(selectedKeys, links);
   const seriesData = Array.from(nodes.entries()).map(([name, meta]) => ({
     name,
+    displayName: meta.displayName,
     filterColumn: meta.filterColumn,
     rawValue: meta.value,
     itemStyle: {
-      color: colorFn(name, sliceId),
-      ...(isSankeyNodeDimmed(name, selectedKeys, links) && {
-        opacity: OpacityEnum.SemiTransparent,
-      }),
+      color: colorFn(meta.displayName, sliceId),
+      ...(highlight &&
+        !highlight.nodeIds.has(name) && {
+          opacity: OpacityEnum.SemiTransparent,
+        }),
     },
     label: {
+      formatter: () => meta.displayName,
       color: theme.colorText,
       textShadow: theme.colorBgBase,
     },
@@ -143,17 +160,20 @@ export default function transformProps(
     const rows = [[metricLabel, valueFormatter.format(value)]];
     const { source: linkSource, target: linkTarget } =
       tooltipData as SankeyLinkDatum;
-    if (linkSource && linkTarget) {
+    const sourceName = nodes.get(linkSource)?.displayName;
+    const targetName = nodes.get(linkTarget)?.displayName;
+    if (sourceName && targetName) {
       rows.push([
-        `% (${linkSource})`,
+        `% (${sourceName})`,
         percentFormatter.format(value / nodeValues.get(linkSource)!),
       ]);
       rows.push([
-        `% (${linkTarget})`,
+        `% (${targetName})`,
         percentFormatter.format(value / nodeValues.get(linkTarget)!),
       ]);
+      return tooltipHtml(rows, `${sourceName} → ${targetName}`);
     }
-    return tooltipHtml(rows, name);
+    return tooltipHtml(rows, nodes.get(name)?.displayName ?? name);
   };
 
   const echartOptions: EChartsOption = {
@@ -166,10 +186,14 @@ export default function transformProps(
       },
       links: links.map(link => ({
         ...link,
-        ...(isSankeyLinkDimmed(link, selectedKeys) && {
+        ...(highlight && {
           lineStyle: {
             color: 'source' as const,
-            opacity: OpacityEnum.SemiTransparent,
+            opacity: highlight.linkKeys.has(
+              sankeyEndpointKey(link.source, link.target),
+            )
+              ? SELECTED_LINK_OPACITY
+              : DIMMED_LINK_OPACITY,
           },
         }),
       })),

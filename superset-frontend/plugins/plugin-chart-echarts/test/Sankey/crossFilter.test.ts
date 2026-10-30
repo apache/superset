@@ -21,11 +21,12 @@ import {
   EMPTY_STRING,
   getSankeyCrossFilterDataMask,
   getSankeyDrillFilters,
-  isSankeyLinkDimmed,
-  isSankeyNodeDimmed,
+  getSankeyHighlight,
+  sankeyEndpointKey,
   sankeyLinkKey,
   sankeyNodeKey,
   sankeyNodeName,
+  sankeyValueId,
   SankeyLinkDatum,
   SankeyNodeDatum,
 } from '../../src/Sankey/crossFilter';
@@ -34,7 +35,8 @@ const source = 'source';
 const target = 'target';
 
 const nodeA: SankeyNodeDatum = {
-  name: 'A',
+  name: sankeyValueId('A'),
+  displayName: 'A',
   filterColumn: 'source',
   rawValue: 'A',
 };
@@ -52,6 +54,15 @@ test('node names keep null and an empty string distinct', () => {
   expect(sankeyNodeName('')).toBe(EMPTY_STRING);
   expect(sankeyNodeName(42n)).toBe('42');
   expect(sankeyNodeName(2024)).toBe('2024');
+});
+
+test('value ids do not collapse labels that look the same', () => {
+  expect(sankeyValueId(null)).not.toBe(sankeyValueId(NULL_STRING));
+  expect(sankeyValueId('')).not.toBe(sankeyValueId(EMPTY_STRING));
+  expect(sankeyValueId(42)).not.toBe(sankeyValueId(42n));
+  expect(sankeyValueId(42n)).not.toBe(sankeyValueId('42'));
+  expect(sankeyNodeKey('source', 42)).not.toBe(sankeyNodeKey('source', 42n));
+  expect(sankeyLinkKey(42, '42')).not.toBe(sankeyLinkKey(42, 42));
 });
 
 test('a node click filters the column that introduced the label', () => {
@@ -109,13 +120,14 @@ test('a link click filters source and target together', () => {
 
 test('null becomes IS NULL and an empty string stays an empty value', () => {
   const nullNode: SankeyNodeDatum = {
-    name: NULL_STRING,
+    name: sankeyValueId(null),
+    displayName: NULL_STRING,
     filterColumn: 'target',
     rawValue: null,
   };
   const emptyLink: SankeyLinkDatum = {
-    source: 'A',
-    target: EMPTY_STRING,
+    source: sankeyValueId('A'),
+    target: sankeyValueId(''),
     value: 1,
     sourceValue: 'A',
     targetValue: '',
@@ -144,7 +156,8 @@ test('null becomes IS NULL and an empty string stays an empty value', () => {
 
 test('a bigint filter value is serialized as a string', () => {
   const node: SankeyNodeDatum = {
-    name: '42',
+    name: sankeyValueId(42n),
+    displayName: '42',
     filterColumn: 'source',
     rawValue: 42n,
   };
@@ -166,7 +179,8 @@ test('drill filters use equality and keep null distinct', () => {
   ]);
   expect(
     getSankeyDrillFilters(source, target, {
-      name: NULL_STRING,
+      name: sankeyValueId(null),
+      displayName: NULL_STRING,
       filterColumn: 'source',
       rawValue: null,
     }),
@@ -174,31 +188,39 @@ test('drill filters use equality and keep null distinct', () => {
 });
 
 test('a selected node keeps its matching flows and their other ends', () => {
+  const a = sankeyValueId('A');
+  const b = sankeyValueId('B');
+  const c = sankeyValueId('C');
+  const d = sankeyValueId('D');
+  const e = sankeyValueId('E');
   const links = [
-    { source: 'A', target: 'B' },
-    { source: 'B', target: 'C' },
-    { source: 'D', target: 'E' },
+    { source: a, target: b },
+    { source: b, target: c },
+    { source: d, target: e },
   ];
-  const keys = [sankeyNodeKey('target', 'B')];
+  const highlight = getSankeyHighlight([sankeyNodeKey('target', 'B')], links);
 
-  expect(isSankeyNodeDimmed('B', keys, links)).toBe(false);
-  expect(isSankeyNodeDimmed('A', keys, links)).toBe(false);
-  expect(isSankeyNodeDimmed('C', keys, links)).toBe(true);
-  expect(isSankeyLinkDimmed(links[0], keys)).toBe(false);
-  expect(isSankeyLinkDimmed(links[1], keys)).toBe(true);
-  expect(isSankeyLinkDimmed(links[2], keys)).toBe(true);
+  expect(highlight?.nodeIds.has(b)).toBe(true);
+  expect(highlight?.nodeIds.has(a)).toBe(true);
+  expect(highlight?.nodeIds.has(c)).toBe(false);
+  expect(highlight?.linkKeys.has(sankeyEndpointKey(a, b))).toBe(true);
+  expect(highlight?.linkKeys.has(sankeyEndpointKey(b, c))).toBe(false);
+  expect(highlight?.linkKeys.has(sankeyEndpointKey(d, e))).toBe(false);
 });
 
 test('a selected link keeps only that link and its endpoints', () => {
+  const a = sankeyValueId('A');
+  const b = sankeyValueId('B');
+  const c = sankeyValueId('C');
   const links = [
-    { source: 'A', target: 'B' },
-    { source: 'B', target: 'C' },
+    { source: a, target: b },
+    { source: b, target: c },
   ];
-  const keys = [sankeyLinkKey('B', 'C')];
+  const highlight = getSankeyHighlight([sankeyLinkKey('B', 'C')], links);
 
-  expect(isSankeyLinkDimmed(links[1], keys)).toBe(false);
-  expect(isSankeyLinkDimmed(links[0], keys)).toBe(true);
-  expect(isSankeyNodeDimmed('B', keys, links)).toBe(false);
-  expect(isSankeyNodeDimmed('C', keys, links)).toBe(false);
-  expect(isSankeyNodeDimmed('A', keys, links)).toBe(true);
+  expect(highlight?.linkKeys.has(sankeyEndpointKey(b, c))).toBe(true);
+  expect(highlight?.linkKeys.has(sankeyEndpointKey(a, b))).toBe(false);
+  expect(highlight?.nodeIds.has(b)).toBe(true);
+  expect(highlight?.nodeIds.has(c)).toBe(true);
+  expect(highlight?.nodeIds.has(a)).toBe(false);
 });

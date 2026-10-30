@@ -21,7 +21,15 @@ import { supersetTheme } from '@apache-superset/core/theme';
 import { SankeyChartProps } from '../../src/Sankey/types';
 import transformProps from '../../src/Sankey/transformProps';
 import { NULL_STRING, OpacityEnum } from '../../src/constants';
-import { EMPTY_STRING, sankeyNodeKey } from '../../src/Sankey/crossFilter';
+import {
+  EMPTY_STRING,
+  sankeyNodeKey,
+  sankeyValueId,
+} from '../../src/Sankey/crossFilter';
+import {
+  DIMMED_LINK_OPACITY,
+  SELECTED_LINK_OPACITY,
+} from '../../src/Sankey/transformProps';
 
 const formData = {
   datasource: '1__table',
@@ -41,6 +49,7 @@ const data = [
 
 type NodeOption = {
   name: string;
+  displayName: string;
   filterColumn: 'source' | 'target';
   rawValue: unknown;
   itemStyle: { opacity?: number };
@@ -77,26 +86,54 @@ function renderChart(
     .echartOptions as SankeyTestOptions;
 }
 
-test('a repeated label keeps the column of the row that introduced it', () => {
+test('a repeated value keeps the column of the row that introduced it', () => {
   const nodes = renderChart().series?.data ?? [];
-  const nodeB = nodes.find(node => node.name === 'B');
+  const nodeB = nodes.find(node => node.rawValue === 'B');
 
   expect(nodeB).toEqual(
     expect.objectContaining({
+      name: sankeyValueId('B'),
+      displayName: 'B',
       filterColumn: 'target',
       rawValue: 'B',
     }),
   );
-  expect(nodes.find(node => node.name === 'A')?.filterColumn).toBe('source');
+  expect(nodes.find(node => node.rawValue === 'A')?.filterColumn).toBe(
+    'source',
+  );
 });
 
-test('null and an empty string get distinct node names', () => {
-  const links = renderChart().series?.links ?? [];
+test('null and an empty string stay separate nodes', () => {
+  const chart = renderChart();
+  const links = chart.series?.links ?? [];
+  const nodes = chart.series?.data ?? [];
   const missing = links.find(link => link.sourceValue === null);
 
-  expect(missing?.source).toBe(NULL_STRING);
-  expect(missing?.target).toBe(EMPTY_STRING);
-  expect(missing?.targetValue).toBe('');
+  expect(missing?.source).toBe(sankeyValueId(null));
+  expect(missing?.target).toBe(sankeyValueId(''));
+  expect(missing?.source).not.toBe(sankeyValueId(NULL_STRING));
+  expect(missing?.target).not.toBe(sankeyValueId(EMPTY_STRING));
+  expect(nodes.find(node => node.rawValue === null)?.displayName).toBe(
+    NULL_STRING,
+  );
+  expect(nodes.find(node => node.rawValue === '')?.displayName).toBe(
+    EMPTY_STRING,
+  );
+});
+
+test('a number and the same bigint are different endpoints', () => {
+  const chart = renderChart({
+    queriesData: [
+      {
+        data: [{ source: 42, target: 42n, value: 1 }],
+      },
+    ],
+  });
+  const link = chart.series?.links?.[0];
+
+  expect(link?.source).toBe(sankeyValueId(42));
+  expect(link?.target).toBe(sankeyValueId(42n));
+  expect(link?.source).not.toBe(link?.target);
 });
 
 test('selecting a node dims flows outside that column', () => {
@@ -106,18 +143,27 @@ test('selecting a node dims flows outside that column', () => {
   });
   const nodes = options.series?.data ?? [];
   const links = options.series?.links ?? [];
-  const opacityOf = (name: string) =>
-    nodes.find(node => node.name === name)?.itemStyle.opacity;
+  const opacityOf = (value: string) =>
+    nodes.find(node => node.rawValue === value)?.itemStyle.opacity;
 
   expect(opacityOf('B')).toBeUndefined();
   expect(opacityOf('A')).toBeUndefined();
   expect(opacityOf('C')).toBe(OpacityEnum.SemiTransparent);
   expect(opacityOf('D')).toBe(OpacityEnum.SemiTransparent);
-  expect(links.find(link => link.source === 'A')?.lineStyle).toBeUndefined();
-  expect(links.find(link => link.target === 'C')?.lineStyle?.opacity).toBe(
-    OpacityEnum.SemiTransparent,
+  expect(links.find(link => link.sourceValue === 'A')?.lineStyle?.opacity).toBe(
+    SELECTED_LINK_OPACITY,
   );
+  expect(links.find(link => link.targetValue === 'C')?.lineStyle?.opacity).toBe(
+    DIMMED_LINK_OPACITY,
+  );
+  expect(SELECTED_LINK_OPACITY).toBeGreaterThan(DIMMED_LINK_OPACITY);
   expect(options.series?.cursor).toBe('default');
+});
+
+test('links keep the default opacity when nothing is selected', () => {
+  const links = renderChart().series?.links ?? [];
+
+  expect(links.every(link => link.lineStyle === undefined)).toBe(true);
 });
 
 test('the pointer cursor is used when the chart emits cross filters', () => {
