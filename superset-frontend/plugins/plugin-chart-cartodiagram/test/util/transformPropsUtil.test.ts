@@ -34,6 +34,8 @@ import {
   groupedTimeseriesChartData,
   geom1,
   geom2,
+  wkbGeom1,
+  wkbGeom2,
   groupedTimeseriesLabelMap,
   nonTimeSeriesWkbChartData,
   nonTimeSeriesWktChartData,
@@ -186,6 +188,80 @@ describe('transformPropsUtil', () => {
     const allGeom1 = result[geom1].length === 2;
     const allGeom2 = result[geom2].length === 2;
     expect(allGeom1 && allGeom2).toBe(true);
+  });
+
+  const buildGenericXFixture = (loc1: string, loc2: string) => {
+    const key1 = `${loc1}, A`;
+    const key2 = `${loc2}, A`;
+    return {
+      data: [
+        { [key1]: 1, [key2]: 2, mydate: 100 },
+        { [key1]: 3, [key2]: 4, mydate: 200 },
+      ],
+      queryData: {
+        label_map: { [key1]: [loc1, 'A'], [key2]: [loc2, 'A'] },
+      },
+    };
+  };
+
+  test('groupByLocationGenericX assigns series values per location for SRID-prefixed WKT', () => {
+    const wkt1 = 'SRID=4326;POINT(8 53)';
+    const wkt2 = 'SRID=4326;POINT(7 52)';
+    const { data, queryData } = buildGenericXFixture(wkt1, wkt2);
+
+    const result = groupByLocationGenericX(
+      data,
+      groupedTimeseriesParams,
+      GeometryFormat.WKT,
+      queryData,
+    );
+
+    expect(Object.keys(result)).toEqual([wkt1, wkt2]);
+    expect(result[wkt1]).toEqual([
+      { mydate: 100, A: 1 },
+      { mydate: 200, A: 3 },
+    ]);
+    expect(result[wkt2]).toEqual([
+      { mydate: 100, A: 2 },
+      { mydate: 200, A: 4 },
+    ]);
+    Object.values(result)
+      .flat()
+      .forEach(entry => {
+        Object.keys(entry).forEach(key => {
+          expect(key).not.toContain('SRID');
+          expect(key).not.toContain('POINT');
+        });
+      });
+  });
+
+  test('groupByLocationGenericX assigns series values per location for WKB', () => {
+    const { data, queryData } = buildGenericXFixture(wkbGeom1, wkbGeom2);
+
+    const result = groupByLocationGenericX(
+      data,
+      groupedTimeseriesParams,
+      GeometryFormat.WKB,
+      queryData,
+    );
+
+    expect(Object.keys(result)).toEqual([wkbGeom1, wkbGeom2]);
+    expect(result[wkbGeom1]).toEqual([
+      { mydate: 100, A: 1 },
+      { mydate: 200, A: 3 },
+    ]);
+    expect(result[wkbGeom2]).toEqual([
+      { mydate: 100, A: 2 },
+      { mydate: 200, A: 4 },
+    ]);
+    Object.values(result)
+      .flat()
+      .forEach(entry => {
+        Object.keys(entry).forEach(key => {
+          expect(key).not.toContain(wkbGeom1);
+          expect(key).not.toContain(wkbGeom2);
+        });
+      });
   });
 
   test('groupByLocation groups in the correct count of geometries', () => {

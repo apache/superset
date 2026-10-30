@@ -33,6 +33,12 @@ import { EchartsPieChartProps } from '../../../plugin-chart-echarts/src/Pie/type
 import { getChartConfigs } from '../../src/util/transformPropsUtil';
 import { createChartComponent } from '../../src/util/chartUtil';
 import { GeometryFormat } from '../../src/constants';
+import { ChartTransformer } from '../../src/types';
+
+// Spread yields an anonymous type, which satisfies the Record<string, unknown> return type.
+const pieTransformer: ChartTransformer = child => ({
+  ...pieTransform(child as EchartsPieChartProps),
+});
 
 const palette = ['#112233', '#445566', '#778899', '#aabbcc'];
 const alternatePalette = ['#110000', '#220000', '#330000', '#440000'];
@@ -116,7 +122,7 @@ function transform(
       200,
       supersetTheme,
       'en',
-      child => pieTransform(child as EchartsPieChartProps),
+      pieTransformer,
     );
     const options = component?.props.chartConfig.properties.echartOptions as {
       series: { data: { name: string; itemStyle: { color: string } }[] }[];
@@ -164,8 +170,6 @@ test.each([
       geometry: { type: 'Point' as const, coordinates: [0, 0] },
       properties: { ...props },
     };
-    const transformer = (child: ChartProps) =>
-      pieTransform(child as EchartsPieChartProps);
     const initial = createChartComponent(
       'pie',
       feature,
@@ -173,7 +177,7 @@ test.each([
       200,
       supersetTheme,
       'en',
-      transformer,
+      pieTransformer,
     );
     const resized = createChartComponent(
       'pie',
@@ -182,7 +186,7 @@ test.each([
       300,
       supersetTheme,
       'en',
-      transformer,
+      pieTransformer,
     );
     expect(initial?.props.chartConfig.properties).toMatchObject({
       echartOptions: { series: [{ center: initialCenter }] },
