@@ -77,9 +77,10 @@ def _warn_skipped_registration(kind: str, base_id: str) -> None:
     _skipped_registrations.add(key)
     logger.warning(
         "Skipping MCP %s registration for %s: the MCP service app is not loaded "
-        "in this process (CORE_MCP_HOST_TOOLS_ENABLED is False). This is expected "
-        "in processes that do not serve MCP; if this process serves MCP, enable "
-        "CORE_MCP_HOST_TOOLS_ENABLED so the %s is registered.",
+        "in this process. This is expected in processes that do not serve MCP "
+        "(CORE_MCP_HOST_TOOLS_ENABLED = False). If this process serves MCP, check "
+        "that the setting is enabled and that initialize_core_mcp_host_tools() did "
+        "not fail to import the service app, so the %s is registered.",
         kind,
         registration_id,
         kind,
