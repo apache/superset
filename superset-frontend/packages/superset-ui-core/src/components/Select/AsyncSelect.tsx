@@ -406,10 +406,10 @@ const AsyncSelect = forwardRef(
         incomingData.some(item => {
           if (isObject(item) && Array.isArray((item as any).options)) {
             return (item as any).options.some((child: any) =>
-              isEqual(child, label, 'label'),
+              utilsIsEqual(child, label, 'label'),
             );
           }
-          return isEqual(item, label, 'label');
+          return utilsIsEqual(item, label, 'label');
         })
       );
     };

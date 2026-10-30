@@ -289,11 +289,9 @@ const Select = forwardRef(
         .filter(
           opt => !hasOption(getValue(opt), groupedOptions || selectOptions),
         )
-        .map(opt => {
-          const val = getValue(opt) as RawValue;
-          const label = isLabeledValue(opt) ? opt.label : String(val);
-          return { value: val, label };
-        });
+        .map(opt =>
+          isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
+        );
       const result =
         missingValues.length > 0
           ? missingValues.concat(selectOptions)

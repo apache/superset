@@ -73,7 +73,11 @@ export function isEqual(
   if (actualA == actualB) {
     return true;
   }
-  if (typeof actualA === 'string' && typeof actualB === 'string') {
+  if (
+    key === 'label' &&
+    typeof actualA === 'string' &&
+    typeof actualB === 'string'
+  ) {
     const trimmedA = actualA.trim();
     const trimmedB = actualB.trim();
     return trimmedA.length > 0 && trimmedA === trimmedB;

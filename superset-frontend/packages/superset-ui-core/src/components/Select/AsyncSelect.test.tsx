@@ -1356,9 +1356,9 @@ test('drops optimistic new option when paginated mergeData contains matching lab
   const nextPageData = [{ label: 'Created Later', value: 99 }];
   const loadOptions = jest.fn(async (_search: string, page: number) => {
     if (page === 0) {
-      return { data: initialData, totalCount: 2 };
+      return { data: initialData, totalCount: 20 };
     }
-    return { data: nextPageData, totalCount: 2 };
+    return { data: nextPageData, totalCount: 20 };
   });
 
   render(

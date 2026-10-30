@@ -194,7 +194,8 @@ test('isEqual handles matching numbers and strings', () => {
   expect(isEqual(1, '1', 'value')).toBe(true);
   expect(isEqual({ value: 1 }, 1, 'value')).toBe(true);
   expect(isEqual({ value: 1 }, '1', 'value')).toBe(true);
-  expect(isEqual(' test ', 'test', 'value')).toBe(true);
+  expect(isEqual(' test ', 'test', 'value')).toBe(false);
+  expect(isEqual(' test ', 'test', 'label')).toBe(true);
   expect(isEqual({ value: 'abc' }, { value: 'abc' }, 'value')).toBe(true);
   expect(isEqual({ value: 'abc' }, { value: 'def' }, 'value')).toBe(false);
 });
@@ -206,9 +207,12 @@ test('isEqual distinguishes empty strings and whitespace while preserving dedupl
   expect(isEqual(' ', '   ', 'value')).toBe(false);
   expect(isEqual('', '', 'value')).toBe(true);
   expect(isEqual(' ', ' ', 'value')).toBe(true);
-  expect(isEqual(' test ', 'test', 'value')).toBe(true);
-  expect(isEqual(' Sales ', 'Sales', 'value')).toBe(true);
-  expect(isEqual('Sales', ' Sales ', 'value')).toBe(true);
+  expect(isEqual(' test ', 'test', 'value')).toBe(false);
+  expect(isEqual(' test ', 'test', 'label')).toBe(true);
+  expect(isEqual(' Sales ', 'Sales', 'value')).toBe(false);
+  expect(isEqual(' Sales ', 'Sales', 'label')).toBe(true);
+  expect(isEqual('Sales', ' Sales ', 'value')).toBe(false);
+  expect(isEqual('Sales', ' Sales ', 'label')).toBe(true);
   expect(isEqual('Sales', 'sales', 'value')).toBe(false);
   expect(isEqual(0, '', 'value')).toBe(false);
   expect(isEqual(0, ' ', 'value')).toBe(false);
