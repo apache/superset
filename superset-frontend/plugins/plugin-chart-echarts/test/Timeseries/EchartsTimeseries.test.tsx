@@ -323,6 +323,8 @@ test('accounts for axis-title grid reservations when bounding the custom legend'
 test.each([
   [LegendOrientation.Top, 'column'],
   [LegendOrientation.Bottom, 'column-reverse'],
+  [LegendOrientation.Left, 'row'],
+  [LegendOrientation.Right, 'row-reverse'],
 ])('places a custom Plain legend at %s', (orientation, flexDirection) => {
   renderTimeseries({
     ...({

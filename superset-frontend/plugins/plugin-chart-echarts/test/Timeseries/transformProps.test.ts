@@ -55,6 +55,7 @@ import {
   LabelPositionEnum,
 } from '../../src/types';
 import { DEFAULT_FORM_DATA } from '../../src/Timeseries/constants';
+import { getTimeseriesLegendMaxWidth } from '../../src/Timeseries/EchartsTimeseries';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
 import { BASE_TIMESTAMP, createTestData } from './helpers';
 
@@ -175,7 +176,11 @@ type CustomLegendResult = {
       name: string;
       selected: boolean;
     }[];
-    orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+    orientation:
+      | LegendOrientation.Top
+      | LegendOrientation.Bottom
+      | LegendOrientation.Left
+      | LegendOrientation.Right;
     showSelectors: boolean;
   };
 };
@@ -1497,7 +1502,12 @@ test('hides legend selector buttons when showSelectorLegend is false', () => {
   ).toBe(false);
 });
 
-test.each([LegendOrientation.Top, LegendOrientation.Bottom])(
+test.each([
+  LegendOrientation.Top,
+  LegendOrientation.Bottom,
+  LegendOrientation.Left,
+  LegendOrientation.Right,
+])(
   'uses the custom HTML legend for a %s-oriented Plain legend',
   legendOrientation => {
     const transformed = transformProps(
@@ -1518,11 +1528,7 @@ test.each([LegendOrientation.Top, LegendOrientation.Bottom])(
   },
 );
 
-test.each([
-  [LegendType.Scroll, LegendOrientation.Top],
-  [LegendType.Plain, LegendOrientation.Left],
-  [LegendType.Plain, LegendOrientation.Right],
-] as const)(
+test.each([[LegendType.Scroll, LegendOrientation.Top]] as const)(
   'keeps %s/%s legends on the native ECharts path',
   (legendType, legendOrientation) => {
     const transformed = transformProps(
@@ -1540,6 +1546,53 @@ test.each([
     expect((transformed.echartOptions.legend as { show?: boolean }).show).toBe(
       true,
     );
+  },
+);
+
+test('builds interactive items for a Right-oriented custom legend', () => {
+  const transformed = transformProps(
+    createTestChartProps({
+      width: 800,
+      height: 400,
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Right,
+        legendType: LegendType.Plain,
+        showLegend: true,
+      },
+    }),
+  );
+
+  expect(getCustomLegend(transformed)).toEqual({
+    grid: expect.any(Object),
+    items: [
+      {
+        color: expect.any(String),
+        interactive: true,
+        name: 'San Francisco',
+        selected: true,
+      },
+      {
+        color: expect.any(String),
+        interactive: true,
+        name: 'New York',
+        selected: true,
+      },
+    ],
+    orientation: LegendOrientation.Right,
+    showSelectors: true,
+  });
+});
+
+test.each([
+  [0, 0],
+  [100, 40],
+  [500, 200],
+  [800, 320],
+] as const)(
+  'getTimeseriesLegendMaxWidth caps legend at 40%% of %ipx chart width',
+  (chartWidth, expectedMaxWidth) => {
+    expect(getTimeseriesLegendMaxWidth(chartWidth)).toBe(expectedMaxWidth);
   },
 );
 

@@ -19,18 +19,20 @@
 import { memo } from 'react';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
+import { LegendOrientation } from '../types';
 import type { TimeseriesCustomLegend } from './types';
 
-const LegendViewport = styled.div<{ maxHeight: number }>`
-  ${({ maxHeight, theme }) => `
+const LegendViewport = styled.div<{ maxHeight: number; maxWidth?: number }>`
+  ${({ maxHeight, maxWidth, theme }) => `
     box-sizing: border-box;
     color: ${theme.colorText};
     font-size: ${theme.fontSizeSM}px;
     max-height: ${maxHeight}px;
+    ${maxWidth !== undefined && maxWidth > 0 ? `max-width: ${maxWidth}px;` : ''}
     overflow-x: hidden;
     overflow-y: auto;
     padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
-    width: 100%;
+    width: ${maxWidth !== undefined && maxWidth > 0 ? 'auto' : '100%'};
   `}
 `;
 
@@ -64,11 +66,12 @@ const SelectorButton = styled.button`
   `}
 `;
 
-const ItemList = styled.ul`
-  ${({ theme }) => `
+const ItemList = styled.ul<{ isVertical?: boolean }>`
+  ${({ isVertical, theme }) => `
     align-items: flex-start;
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: ${isVertical ? 'column' : 'row'};
+    flex-wrap: ${isVertical ? 'nowrap' : 'wrap'};
     gap: ${theme.sizeUnit * 2}px;
     list-style: none;
     margin: 0;
@@ -113,9 +116,18 @@ const Swatch = styled.span<{ color: string; selected: boolean }>`
   `}
 `;
 
-const Label = styled.span`
-  overflow-wrap: anywhere;
-  white-space: pre-line;
+const Label = styled.span<{ truncate?: boolean }>`
+  ${({ truncate }) =>
+    truncate
+      ? `
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `
+      : `
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+  `}
 `;
 
 const RowBreak = styled.li`
@@ -125,6 +137,8 @@ const RowBreak = styled.li`
 
 export type TimeseriesLegendProps = TimeseriesCustomLegend & {
   maxHeight: number;
+  // Bounds vertical (Left/Right) legends, whose labels truncate to fit.
+  maxWidth?: number;
   onAll: () => void;
   onHover?: (name: string | null) => void;
   onInverse: () => void;
@@ -134,18 +148,30 @@ export type TimeseriesLegendProps = TimeseriesCustomLegend & {
 function TimeseriesLegend({
   items,
   maxHeight,
+  maxWidth,
   onAll,
   onHover,
   onInverse,
   onToggle,
+  orientation,
   showSelectors,
 }: TimeseriesLegendProps) {
-  if (items.length === 0 || maxHeight <= 0) {
+  const isVertical =
+    orientation === LegendOrientation.Left ||
+    orientation === LegendOrientation.Right;
+  const noSpace =
+    maxHeight <= 0 || (isVertical && maxWidth !== undefined && maxWidth <= 0);
+
+  if (items.length === 0 || noSpace) {
     return null;
   }
 
   return (
-    <LegendViewport data-test="timeseries-custom-legend" maxHeight={maxHeight}>
+    <LegendViewport
+      data-test="timeseries-custom-legend"
+      maxHeight={maxHeight}
+      maxWidth={isVertical ? maxWidth : undefined}
+    >
       {showSelectors && (
         <SelectorRow>
           <SelectorButton type="button" onClick={onAll}>
@@ -156,13 +182,14 @@ function TimeseriesLegend({
           </SelectorButton>
         </SelectorRow>
       )}
-      <ItemList>
+      <ItemList isVertical={isVertical}>
         {items.map((item, index) =>
+          // ECharts treats these exact values as row-break sentinels, which
+          // only mean anything to the wrapping horizontal layout.
           item.name === '' || item.name === '\n' ? (
-            <RowBreak
-              // ECharts treats these exact values as row-break sentinels.
-              key={`row-break-${item.name}-${index}`}
-            />
+            isVertical ? null : (
+              <RowBreak key={`row-break-${item.name}-${index}`} />
+            )
           ) : (
             <LegendItem key={item.name}>
               <ItemButton
@@ -183,7 +210,12 @@ function TimeseriesLegend({
                   color={item.color}
                   selected={item.selected}
                 />
-                <Label>{item.name}</Label>
+                <Label
+                  title={isVertical ? item.name : undefined}
+                  truncate={isVertical}
+                >
+                  {item.name}
+                </Label>
               </ItemButton>
             </LegendItem>
           ),
