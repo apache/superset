@@ -50,7 +50,7 @@ from asset_approval.exceptions import (
 from asset_approval.changes import moved_since
 from asset_approval.gate import mark_published
 from asset_approval.models import ChangeRequest
-from asset_approval.replay import apply_change, load_asset
+from asset_approval.replay import apply_change, is_restore, load_asset
 from asset_approval.types import AssetType, ChangeStatus
 from superset.utils.core import get_user, get_user_id
 from superset.utils.decorators import transaction
@@ -103,7 +103,12 @@ def find(change_request_id: int) -> ChangeRequest:
 
 def _asset_for(change_request: ChangeRequest) -> Any:
     asset = load_asset(
-        AssetType(change_request.asset_type), change_request.asset_id
+        AssetType(change_request.asset_type),
+        change_request.asset_id,
+        # A restore's asset is soft-deleted by definition, so the ordinary
+        # lookup cannot see it and every call here answered 404 -- the
+        # request could not even be discarded (R3-01).
+        include_deleted=is_restore(change_request),
     )
     if asset is None:
         # The asset was deleted out from under an open request. Nothing can
@@ -267,7 +272,9 @@ def approve(
     # it without a word (QA-24).
     if moved := moved_since(
         load_asset(
-            AssetType(change_request.asset_type), change_request.asset_id
+            AssetType(change_request.asset_type),
+            change_request.asset_id,
+            include_deleted=is_restore(change_request),
         ),
         change_request.base_dict,
     ):
@@ -296,7 +303,9 @@ def approve(
         # leaves it behind without the publish. That errs towards gated,
         # which is the safe direction for a mark that can never be removed.
         published_now = load_asset(
-            AssetType.DASHBOARD, change_request.asset_id
+            AssetType.DASHBOARD,
+            change_request.asset_id,
+            include_deleted=is_restore(change_request),
         )
         if bool(getattr(published_now, "published", False)):
             mark_published(AssetType.DASHBOARD, change_request.asset_id)

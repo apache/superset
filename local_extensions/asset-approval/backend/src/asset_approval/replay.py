@@ -55,20 +55,53 @@ from asset_approval.types import AssetType, Operation
 logger = logging.getLogger(__name__)
 
 
-def load_asset(asset_type: AssetType, asset_id: int) -> Any | None:
-    """The live asset a change request targets."""
+def is_restore(change_request: ChangeRequest) -> bool:
+    """Whether the request asks for a soft-deleted asset to come back.
+
+    Not an :class:`Operation` of its own: a restore is captured as an
+    ordinary update carrying the command to replay, so the operation
+    column cannot answer this.
+    """
+    return change_request.command_args.get(COMMAND_KEY) == RESTORE_COMMAND
+
+
+def load_asset(
+    asset_type: AssetType, asset_id: int, include_deleted: bool = False
+) -> Any | None:
+    """The live asset a change request targets.
+
+    ``include_deleted`` is for a restore, where the asset being
+    soft-deleted is the request's whole premise. The ordinary lookup
+    hides soft-deleted rows, so every lifecycle call against such a
+    request answered 404 -- it could not be submitted, approved,
+    withdrawn or even discarded, leaving a row nobody could act on or
+    clear away (R3-01).
+
+    The two bypasses are the ones ``BaseRestoreCommand`` uses to find the
+    row it restores, and for its reasons:
+    ``skip_visibility_filter`` is what makes a soft-deleted row visible
+    at all, and ``skip_base_filter`` keeps an editor's own trash
+    reachable when the entity's RBAC filter has no editorship leg. Who
+    may act is decided separately -- ``is_strict_editor`` and
+    ``can_approve`` -- so widening the lookup widens nothing else.
+    """
     # pylint: disable=import-outside-toplevel
+    deleted_too: dict[str, Any] = (
+        {"skip_base_filter": True, "skip_visibility_filter": True}
+        if include_deleted
+        else {}
+    )
     if asset_type == AssetType.DASHBOARD:
         from superset.daos.dashboard import DashboardDAO
 
-        return DashboardDAO.find_by_id(asset_id)
+        return DashboardDAO.find_by_id(asset_id, **deleted_too)
     if asset_type == AssetType.CHART:
         from superset.daos.chart import ChartDAO
 
-        return ChartDAO.find_by_id(asset_id)
+        return ChartDAO.find_by_id(asset_id, **deleted_too)
     from superset.daos.dataset import DatasetDAO
 
-    return DatasetDAO.find_by_id(asset_id)
+    return DatasetDAO.find_by_id(asset_id, **deleted_too)
 
 
 def build_delete_command(change_request: ChangeRequest) -> Any:

@@ -27,7 +27,7 @@ import fetchMock from 'fetch-mock';
 import { FeatureFlag } from '@superset-ui/core';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { announceChangeCaptured } from './events';
-import { useAssetReview } from './useAssetReview';
+import { useAssetReview, useOpenChange } from './useAssetReview';
 
 const ASSET_ENDPOINT = 'glob:*/api/v1/change_request/asset/dashboard/3';
 const originalFlags = window.featureFlags;
@@ -86,4 +86,40 @@ test('nothing is read while review is switched off', async () => {
     expect(screen.getByTestId('status')).toHaveTextContent('none'),
   );
   expect(fetchMock.callHistory.calls(ASSET_ENDPOINT)).toHaveLength(0);
+});
+
+function OpenChangeProbe() {
+  const changeRequest = useOpenChange('dashboard', 3);
+  return <span data-test="open">{changeRequest?.status ?? 'none'}</span>;
+}
+
+test('the Request review action re-reads when a save is captured', async () => {
+  // The banner refreshed and the action beside it did not, so after the
+  // author saved a fix for a review that had been sent back there was no
+  // way to send it on again without reloading the page (QA-14). The
+  // button is drawn from this hook, not from the banner's.
+  fetchMock.get(ASSET_ENDPOINT, {
+    result: {
+      id: 5,
+      asset_type: 'dashboard',
+      asset_id: 3,
+      status: 'changes_requested',
+    },
+  });
+
+  render(<OpenChangeProbe />, { useRedux: true, useRouter: true });
+
+  await waitFor(() =>
+    expect(screen.getByTestId('open')).toHaveTextContent('changes_requested'),
+  );
+
+  fetchMock.removeRoutes();
+  fetchMock.get(ASSET_ENDPOINT, {
+    result: { id: 5, asset_type: 'dashboard', asset_id: 3, status: 'draft' },
+  });
+  announceChangeCaptured();
+
+  await waitFor(() =>
+    expect(screen.getByTestId('open')).toHaveTextContent('draft'),
+  );
 });

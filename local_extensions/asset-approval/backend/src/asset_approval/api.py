@@ -59,7 +59,7 @@ from asset_approval.gate import (
 )
 from asset_approval.changes import changed_fields, changed_keys, layout_summary
 from asset_approval.models import ChangeRequest
-from asset_approval.replay import load_asset
+from asset_approval.replay import is_restore, load_asset
 from asset_approval.types import (
     AssetType,
     ChangeStatus,
@@ -760,7 +760,11 @@ def _by_key(items: Any, key: str) -> dict[str, Any]:
 def _asset_for_diff(change_request: Any) -> Any:
     """The live asset a change is measured against, or None if unreadable."""
     try:
-        return load_asset(AssetType(change_request.asset_type), change_request.asset_id)
+        return load_asset(
+            AssetType(change_request.asset_type),
+            change_request.asset_id,
+            include_deleted=is_restore(change_request),
+        )
     except Exception:  # noqa: BLE001 -- a diff must never break the listing
         logger.warning(
             "asset-approval: could not load %s %s to diff against",

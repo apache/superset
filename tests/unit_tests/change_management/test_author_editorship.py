@@ -56,6 +56,9 @@ def approval(mocker: MockerFixture) -> dict[str, Any]:
         asset_id=42,
         status=ChangeStatus.PENDING.value,
         base_dict={},
+        # Every real request carries these; a restore is identified by
+        # the command it stores rather than by its operation (R3-01).
+        command_args={},
         note=None,
         set_status=_ignore,
     )

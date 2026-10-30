@@ -97,6 +97,15 @@ export function useOpenChange(
   const [changeRequest, setChangeRequest] = useState<ChangeRequest | null>(
     null,
   );
+  // Re-read on a capture, for the same reason useAssetReview does and on
+  // the same signal. This answer decides whether Request review is
+  // offered at all, and a save is the moment it changes: after the author
+  // saved a fix for a review that had been sent back, the banner updated
+  // and the action beside it did not, so there was no way to send the fix
+  // on without reloading the page (QA-14).
+  const [captured, setCaptured] = useState(0);
+
+  useEffect(() => onChangeCaptured(() => setCaptured(count => count + 1)), []);
 
   useEffect(() => {
     let live = true;
@@ -116,7 +125,7 @@ export function useOpenChange(
     return () => {
       live = false;
     };
-  }, [assetType, assetId]);
+  }, [assetType, assetId, captured]);
 
   return changeRequest;
 }
