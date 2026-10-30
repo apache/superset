@@ -3763,6 +3763,11 @@ GTF_ORPHAN_TASK_TIMEOUT = 60  # seconds
 #     "CACHE_REDIS_SENTINEL_PASSWORD": None,
 #     "CACHE_REDIS_DB": 0,
 #     "CACHE_REDIS_PASSWORD": "",
+#     # TLS: ``CACHE_REDIS_SSL`` secures the connection to the master and
+#     # ``CACHE_REDIS_SENTINEL_SSL`` the connections to the sentinel nodes, both
+#     # using the CACHE_REDIS_SSL_* certificate/CA settings shown above.
+#     "CACHE_REDIS_SSL": False,
+#     "CACHE_REDIS_SENTINEL_SSL": False,
 # }
 DISTRIBUTED_COORDINATION_CONFIG: CacheConfig | None = None
 

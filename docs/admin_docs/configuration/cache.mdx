@@ -467,6 +467,29 @@ DISTRIBUTED_COORDINATION_CONFIG = {
 }
 ```
 
+When the master and the sentinel nodes require TLS, set `CACHE_REDIS_SSL` for the master and
+`CACHE_REDIS_SENTINEL_SSL` for the sentinel nodes. Both use the same `CACHE_REDIS_SSL_CERTFILE`,
+`CACHE_REDIS_SSL_KEYFILE`, `CACHE_REDIS_SSL_CERT_REQS` and `CACHE_REDIS_SSL_CA_CERTS` settings:
+
+```python
+DISTRIBUTED_COORDINATION_CONFIG = {
+    "CACHE_TYPE": "RedisSentinelCache",
+    "CACHE_REDIS_SENTINELS": [("sentinel1", 26379), ("sentinel2", 26379)],
+    "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
+    "CACHE_REDIS_SSL": True,  # TLS to the resolved master
+    "CACHE_REDIS_SENTINEL_SSL": True,  # TLS to the sentinel nodes (default: False)
+    "CACHE_REDIS_SSL_CA_CERTS": "/path/to/ca.crt",
+}
+```
+
+Other caches configured with `CACHE_TYPE: "RedisSentinelCache"` (such as `CACHE_CONFIG`) are
+built by Flask-Caching, which forwards options prefixed with `sentinel_` to the sentinel-node
+connections. Set them through `CACHE_OPTIONS`, for example `{"sentinel_ssl": True,
+"sentinel_ssl_ca_certs": "/path/to/ca.crt"}`.
+
+The WebSocket server connects to the same Redis/Valkey and takes the equivalent settings
+(`REDIS_SSL` and `REDIS_SENTINEL_SSL`); see the WebSocket server's README.
+
 For SSL/TLS connections:
 
 ```python

@@ -52,6 +52,8 @@ export interface RedisConfig {
   // Credentials for the sentinel nodes themselves (`password`/`username`
   // authenticate against the resolved master).
   sentinelPassword: string;
+  // TLS to the sentinel nodes, independent of `ssl` (which secures the master).
+  sentinelSsl: boolean;
 }
 
 type ConfigType = {
@@ -120,6 +122,7 @@ function defaultConfig(): ConfigType {
       sentinels: [],
       sentinelMaster: '',
       sentinelPassword: '',
+      sentinelSsl: false,
     },
   };
 }
@@ -261,6 +264,7 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
     REDIS_SENTINELS: val => (config.redis.sentinels = toSentinelNodes(val)),
     REDIS_SENTINEL_MASTER: val => (config.redis.sentinelMaster = val),
     REDIS_SENTINEL_PASSWORD: val => (config.redis.sentinelPassword = val),
+    REDIS_SENTINEL_SSL: val => (config.redis.sentinelSsl = toBoolean(val)),
     STATSD_HOST: val => (config.statsd.host = val),
     STATSD_PORT: val =>
       (config.statsd.port = toNonNegativeNumber(val, config.statsd.port)),
