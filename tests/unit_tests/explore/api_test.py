@@ -16,7 +16,7 @@
 # under the License.
 
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch, PropertyMock
 
 from superset.commands.temporary_cache.exceptions import (
     TemporaryCacheAccessDeniedError,
@@ -70,3 +70,48 @@ def test_temporary_cache_access_denied_omits_inert_access_flag(
         response = client.get("/api/v1/explore/?form_data_key=abc")
 
     assert "extra" not in response.json
+
+
+def test_explore_preserves_oauth_error_during_metadata_load(
+    client: Any, full_api_access: None
+) -> None:
+    """Initial chart loading must retain the authorization link and correlation ID."""
+    from superset.exceptions import OAuth2RedirectError
+
+    datasource = MagicMock()
+    error = OAuth2RedirectError("/oauth2/start", "flow-id", "/oauth2/complete")
+    with (
+        patch(
+            "superset.commands.explore.get.get_form_data",
+            return_value=(
+                {"datasource": "7__semantic_view", "viz_type": "table"},
+                None,
+            ),
+        ),
+        patch(
+            "superset.commands.explore.get.get_datasource_info",
+            return_value=(7, "semantic_view"),
+        ),
+        patch(
+            "superset.commands.explore.get.DatasourceDAO.get_datasource",
+            return_value=datasource,
+        ),
+        patch("superset.commands.explore.get._authorize_datasource") as authorize,
+        patch.object(
+            type(datasource),
+            "data",
+            new_callable=PropertyMock,
+            side_effect=error,
+            create=True,
+        ),
+    ):
+        response = client.get(
+            "/api/v1/explore/?datasource_id=7&datasource_type=semantic_view"
+        )
+
+    authorize.assert_called_once_with(datasource, None)
+    assert response.status_code == 403
+    assert response.json["errors"][0]["error_type"] == "OAUTH2_REDIRECT"
+    assert response.json["errors"][0]["extra"]["url"] == "/oauth2/start"
+    assert response.json["errors"][0]["extra"]["tab_id"] == "flow-id"
+    assert "result" not in response.json

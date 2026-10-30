@@ -788,4 +788,70 @@ describe('ChartPage', () => {
 
     addDangerToastSpy.mockRestore();
   });
+
+  test('authorizes before loading semantic datasource metadata and retries the chart', async () => {
+    const exploreApiRoute = 'glob:*/api/v1/explore/*';
+    const hydrateSpy = jest.spyOn(hydrateExploreActions, 'hydrateExplore');
+    const toastSpy = jest.spyOn(messageToastActions, 'addDangerToast');
+    (getParsedExploreURLParams as jest.Mock).mockReturnValue(
+      new Map([['slice_id', 106]]),
+    );
+    const formData = getExploreFormData({ viz_type: VizType.Table });
+    let requests = 0;
+    fetchMock.get(exploreApiRoute, () => {
+      requests += 1;
+      if (requests === 1) {
+        return {
+          status: 403,
+          body: {
+            errors: [
+              {
+                error_type: 'OAUTH2_REDIRECT',
+                level: 'warning',
+                message: "You don't have permission to access the data.",
+                extra: { url: '/oauth2/start', tab_id: 'metadata-flow' },
+              },
+            ],
+          },
+        };
+      }
+      return { result: { dataset: { id: 7 }, form_data: formData } };
+    });
+    render(<ChartPage />, { useRouter: true, useRedux: true, useDnd: true });
+    const link = await screen.findByRole('link', {
+      name: 'provide authorization',
+    });
+    expect(link).toHaveAttribute('href', '/oauth2/start');
+    expect(hydrateSpy).not.toHaveBeenCalled();
+    expect(toastSpy).not.toHaveBeenCalled();
+    expect(
+      screen.queryByTestId('mock-explore-chart-panel'),
+    ).not.toBeInTheDocument();
+
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'oauth2_auth_complete',
+          newValue: JSON.stringify({ tabId: 'other-flow' }),
+        }),
+      );
+    });
+    expect(requests).toBe(1);
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'oauth2_auth_complete',
+          newValue: JSON.stringify({ tabId: 'metadata-flow' }),
+        }),
+      );
+    });
+    await screen.findByTestId('mock-explore-chart-panel');
+    expect(requests).toBe(2);
+    expect(hydrateSpy).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByRole('link', { name: 'provide authorization' }),
+    ).not.toBeInTheDocument();
+    hydrateSpy.mockRestore();
+    toastSpy.mockRestore();
+  });
 });
