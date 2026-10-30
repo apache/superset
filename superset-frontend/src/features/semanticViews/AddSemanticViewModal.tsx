@@ -45,6 +45,7 @@ import {
   SCHEMA_REFRESH_DEBOUNCE_MS,
 } from 'src/features/semanticLayers/jsonFormsHelpers';
 import {
+  batchRefusalMessage,
   creationErrorMessage,
   isRecord,
   parseCreationResult,
@@ -641,13 +642,21 @@ export default function AddSemanticViewModal({
         body = json;
       } catch (error) {
         // SupersetClient rejects non-2xx responses before parsing their body.
-        if (
-          !isRecord(error) ||
-          error.status !== 422 ||
-          typeof error.json !== 'function'
-        ) {
+        if (!isRecord(error) || typeof error.json !== 'function') {
           throw error;
         }
+        if (error.status === 400) {
+          // The whole batch was refused before any lookup (for example, more
+          // views than the configured limit): explain why and keep the
+          // selection so the user can trim it and retry.
+          const refusal = batchRefusalMessage(await error.json());
+          if (!refusal) throw error;
+          if (gen !== fetchGenRef.current) return;
+          setCreationErrors([{ name: '', message: refusal }]);
+          addDangerToast(refusal);
+          return;
+        }
+        if (error.status !== 422) throw error;
         body = await error.json();
       }
       const { created, errors, failedCount } = parseCreationResult(body);

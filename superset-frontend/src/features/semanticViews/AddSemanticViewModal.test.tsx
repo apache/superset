@@ -527,6 +527,115 @@ test('shows toast when add semantic views fails', async () => {
   expect(props.onHide).not.toHaveBeenCalled();
 });
 
+test.each([
+  [
+    'the default cap',
+    {
+      message:
+        'Too many views in one request: 101 provided, at most 100 allowed.',
+    },
+    'Too many views in one request: 101 provided, at most 100 allowed.',
+  ],
+  [
+    'a non-default cap',
+    {
+      message:
+        'Too many views in one request: 26 provided, at most 25 allowed.',
+    },
+    'Too many views in one request: 26 provided, at most 25 allowed.',
+  ],
+  [
+    'a refusal without a message',
+    { message: { detail: 'private provider details' } },
+    'An error occurred while adding semantic views',
+  ],
+  [
+    'a refusal that is not an object',
+    'private provider details',
+    'An error occurred while adding semantic views',
+  ],
+])(
+  'a batch refused before any lookup explains %s and keeps the selection',
+  async (_label, body, expected) => {
+    mockedGet.mockResolvedValue({
+      json: { result: [{ uuid: 'layer-1', name: 'Test layer' }] },
+    });
+    mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+      if (endpoint.endsWith('/schema/runtime'))
+        return Promise.resolve({ json: { result: { properties: {} } } });
+      if (endpoint.endsWith('/views'))
+        return Promise.resolve({
+          json: {
+            result: [
+              { name: 'orders', already_added: false },
+              { name: 'customers', already_added: false },
+            ],
+          },
+        });
+      return Promise.reject({ status: 400, json: async () => body });
+    });
+    const props = createProps();
+    render(<AddSemanticViewModal {...props} />);
+    await selectOption('Semantic layer', 'Test layer');
+    await selectOption('Semantic views', 'orders');
+    await selectOption('Semantic views', 'customers');
+    await userEvent.click(
+      screen.getByRole('button', { name: /add 2 view\(s\)/i }),
+    );
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(expected);
+    expect(alert).not.toHaveTextContent('private provider details');
+    expect(props.addDangerToast).toHaveBeenCalledTimes(1);
+    expect(props.addDangerToast).toHaveBeenCalledWith(expected);
+    expect(props.addSuccessToast).not.toHaveBeenCalled();
+    expect(props.onSuccess).not.toHaveBeenCalled();
+    expect(props.onHide).not.toHaveBeenCalled();
+    // The refused batch stays selected so the user can trim it and retry.
+    expect(
+      screen.getByRole('button', { name: /add 2 view\(s\)/i }),
+    ).toBeEnabled();
+  },
+);
+
+test('a batch refusal cannot update a closed and reopened modal', async () => {
+  let refuseSave: (reason: unknown) => void = () => {};
+  const pendingSave = new Promise((_resolve, reject) => {
+    refuseSave = reject;
+  });
+  mockedGet.mockResolvedValue({
+    json: { result: [{ uuid: 'layer-1', name: 'Test layer' }] },
+  });
+  mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+    if (endpoint.endsWith('/schema/runtime'))
+      return Promise.resolve({ json: { result: { properties: {} } } });
+    if (endpoint.endsWith('/views'))
+      return Promise.resolve({
+        json: { result: [{ name: 'orders', already_added: false }] },
+      });
+    return pendingSave;
+  });
+  const props = createProps();
+  const { rerender } = render(<AddSemanticViewModal {...props} />);
+  await selectOption('Semantic layer', 'Test layer');
+  await selectOption('Semantic views', 'orders');
+  await userEvent.click(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  );
+  rerender(<AddSemanticViewModal {...props} show={false} />);
+  rerender(<AddSemanticViewModal {...props} />);
+  await act(async () => {
+    refuseSave({
+      status: 400,
+      json: async () => ({
+        message:
+          'Too many views in one request: 2 provided, at most 1 allowed.',
+      }),
+    });
+  });
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
 // ---------------------------------------------------------------------------
 // Large-catalog / refresh-stability regression tests (sc-107832)
 // ---------------------------------------------------------------------------
