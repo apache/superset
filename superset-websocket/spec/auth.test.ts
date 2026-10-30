@@ -60,6 +60,7 @@ const signTicket = (
 // are all real, only the transport is a pipe.
 let httpServer: http.Server;
 const clients: WebSocket[] = [];
+const serverStreams: Duplex[] = [];
 
 /** Give a stream the socket methods `http` and `ws` call on their transport. */
 const asSocket = (stream: Duplex): Duplex =>
@@ -75,6 +76,7 @@ const asSocket = (stream: Duplex): Duplex =>
 /** A client socket whose peer is the server under test. */
 const connectToServer = (): Duplex => {
   const [clientSide, serverSide] = duplexPair();
+  serverStreams.push(serverSide);
   httpServer.emit('connection', asSocket(serverSide));
   return asSocket(clientSide);
 };
@@ -95,9 +97,15 @@ beforeAll(() => {
   httpServer.on('upgrade', server.httpUpgrade);
 });
 
-beforeEach(() => {
-  server.resetState();
+beforeEach(async () => {
+  // Close the previous test's connections on both ends and let their
+  // server-side close handlers run before resetting, so a late release can't
+  // decrement the freshly reset pending-connection count. Terminating a client
+  // alone doesn't reach the server over the in-memory pipe.
   clients.splice(0).forEach(client => client.terminate());
+  serverStreams.splice(0).forEach(stream => stream.destroy());
+  await vi.waitFor(() => expect(server.pendingConnectionCount()).toBe(0));
+  server.resetState();
 });
 
 afterAll(() => {

@@ -51,6 +51,7 @@ def test_token_endpoint_returns_a_ticket_for_the_principal(
     response = client.get("/api/v1/realtime/token/")
 
     assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store, private"
     body = response.json
     assert body["expires_in"] == 120
     claims = jwt.decode(

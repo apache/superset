@@ -71,8 +71,12 @@ class RealtimeRestApi(BaseSupersetApi):
         principal = get_realtime_principal()
         if principal is None:
             return self.response_401()
-        return self.response(
+        response = self.response(
             200,
             token=mint_channel_token(principal),
             expires_in=current_app.config["WEBSOCKET_JWT_EXPIRATION_SECONDS"],
         )
+        # The ticket is a bearer credential; a guest authenticates by header, not
+        # cookie, so a shared cache must never store or replay it.
+        response.headers["Cache-Control"] = "no-store, private"
+        return response
