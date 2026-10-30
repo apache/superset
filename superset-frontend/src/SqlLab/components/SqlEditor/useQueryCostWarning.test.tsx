@@ -300,7 +300,7 @@ test.each(['checking', 'dialog'])(
     if (stage === 'dialog') await h.finish(warning);
     act(() => h.result.current.cancel());
     if (stage === 'checking') await h.finish({ action: 'proceed' });
-    act(() => h.result.current.continueRun());
+    await act(async () => h.result.current.continueRun());
     expect(h.executions()).toHaveLength(0);
     expect(h.result.current.checking).toBe(false);
     expect(h.result.current.confirmation).toBeUndefined();
@@ -376,7 +376,7 @@ test.each([
     }));
     h.replace(() => original);
     await h.finish(warning);
-    act(() => h.result.current.continueRun());
+    await act(async () => h.result.current.continueRun());
     expect(h.executions()).toHaveLength(0);
     expect(h.result.current.confirmation).toBeUndefined();
   },
@@ -437,7 +437,7 @@ test('tab changes close an existing confirmation and invalidate its action', asy
     ...state,
     sqlLab: { ...state.sqlLab, tabHistory: ['other'] },
   }));
-  act(() => continueRun());
+  await act(async () => continueRun());
   expect(h.result.current.confirmation).toBeUndefined();
   expect(h.executions()).toHaveLength(0);
 });

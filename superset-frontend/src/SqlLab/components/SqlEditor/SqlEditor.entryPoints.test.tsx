@@ -315,7 +315,9 @@ test('current-statement Run preserves an existing selection and cancel executes 
   expect(store.getState().sqlLab.unsavedQueryEditor.selectedText).toBe(
     'SELECT 1',
   );
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  });
   expect(executions()).toHaveLength(0);
   expect(mockSetSelection).not.toHaveBeenCalled();
 });
@@ -483,7 +485,9 @@ test('history action opens a tab, checks its effective inputs, and executes that
 test('cancelling history rerun confirmation keeps the new tab and never executes', async () => {
   const store = await rerunFromHistory();
   await screen.findByRole('dialog');
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  });
   expect(executions()).toHaveLength(0);
   expect(store.getState().sqlLab.tabHistory.slice(-1)[0]).not.toBe(
     defaultQueryEditor.id,
