@@ -909,7 +909,62 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
         sl_type: str,
         action_id: str,
     ) -> FlaskResponse:
-        """Start a configuration action before a semantic layer exists."""
+        """Start a configuration action before a semantic layer exists.
+        ---
+        post:
+          summary: Start a semantic layer configuration action
+          parameters:
+          - in: path
+            name: sl_type
+            required: true
+            schema:
+              type: string
+          - in: path
+            name: action_id
+            required: true
+            schema:
+              type: string
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    configuration:
+                      type: object
+                    semantic_layer_uuid:
+                      type: string
+                      format: uuid
+                      description: Existing layer whose masked configuration to resolve
+          responses:
+            200:
+              description: Authorization URL and connection correlation ID
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          redirect_url:
+                            type: string
+                            format: uri
+                          tab_id:
+                            type: string
+                            format: uuid
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
         cls = registry.get(sl_type)
         if not cls:
             return self.response_400(message=f"Unknown type: {sl_type}")
@@ -961,7 +1016,59 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
     @handle_api_exception
     @statsd_metrics
     def configuration_actions(self, uuid: str) -> FlaskResponse:
-        """Return configuration actions for an existing semantic layer."""
+        """Return configuration actions for an existing semantic layer.
+        ---
+        get:
+          summary: List personal configuration actions for a semantic layer
+          parameters:
+          - in: path
+            name: uuid
+            required: true
+            schema:
+              type: string
+              format: uuid
+          - in: query
+            name: view_uuid
+            description: Semantic view through which the user accesses the layer
+            schema:
+              type: string
+              format: uuid
+          responses:
+            200:
+              description: Available configuration actions and their connection status
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            label:
+                              type: string
+                            status:
+                              type: string
+                              enum: [required, connected, expired, error]
+                            required:
+                              type: boolean
+                            message:
+                              type: string
+                              nullable: true
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
         layer, error = self._action_layer(uuid, request.args.get("view_uuid"))
         if error is not None:
             return error
@@ -992,7 +1099,56 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
         uuid: str,
         action_id: str,
     ) -> FlaskResponse:
-        """Start a personal configuration action for an existing layer."""
+        """Start a personal configuration action for an existing layer.
+        ---
+        post:
+          summary: Start a personal configuration action for a semantic layer
+          parameters:
+          - in: path
+            name: uuid
+            required: true
+            schema:
+              type: string
+              format: uuid
+          - in: path
+            name: action_id
+            required: true
+            schema:
+              type: string
+          - in: query
+            name: view_uuid
+            description: Semantic view through which the user accesses the layer
+            schema:
+              type: string
+              format: uuid
+          responses:
+            200:
+              description: Authorization URL and connection correlation ID
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          redirect_url:
+                            type: string
+                            format: uri
+                          tab_id:
+                            type: string
+                            format: uuid
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
         layer, error = self._action_layer(uuid, request.args.get("view_uuid"))
         if error is not None:
             return error
@@ -1066,7 +1222,55 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
     @handle_api_exception
     @statsd_metrics
     def oauth2_start(self, uuid: str, action_id: str) -> FlaskResponse:
-        """Start a personal connection after an OAuth2 error link is clicked."""
+        """Start a personal connection after an OAuth2 error link is clicked.
+        ---
+        get:
+          summary: Redirect to the semantic layer's authorization provider
+          parameters:
+          - in: path
+            name: uuid
+            required: true
+            schema:
+              type: string
+              format: uuid
+          - in: path
+            name: action_id
+            required: true
+            schema:
+              type: string
+          - in: query
+            name: tab_id
+            required: true
+            description: Correlation ID for the initiating browser tab
+            schema:
+              type: string
+              format: uuid
+          - in: query
+            name: view_uuid
+            description: Semantic view through which the user accesses the layer
+            schema:
+              type: string
+              format: uuid
+          responses:
+            302:
+              description: Redirect to the authorization provider
+              headers:
+                Location:
+                  description: Provider authorization URL
+                  schema:
+                    type: string
+                    format: uri
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
         layer, error = self._action_layer(uuid, request.args.get("view_uuid"))
         if error is not None:
             return error
@@ -1093,7 +1297,33 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
     @protect_read("SemanticLayer", "SemanticView")
     @safe
     def oauth2_complete(self, tab_id: UUID) -> FlaskResponse:
-        """Notify the initiating tab without exposing credentials to the browser."""
+        """Notify the initiating tab without exposing credentials to the browser.
+        ---
+        get:
+          summary: Notify the initiating tab that OAuth authorization completed
+          parameters:
+          - in: path
+            name: tab_id
+            required: true
+            schema:
+              type: string
+              format: uuid
+          responses:
+            200:
+              description: HTML page that signals completion without exposing tokens
+              content:
+                text/html:
+                  schema:
+                    type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
         if not is_feature_enabled("SEMANTIC_LAYERS"):
             return self.response_404()
         if get_user_id() is None:
