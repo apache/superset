@@ -352,7 +352,9 @@ def test_catalog_cache() -> None:
 
 
 @pytest.mark.parametrize("level", ["catalog", "schema", "table"])
-@pytest.mark.parametrize("stored, expected", [(3600, 3600), ("3600", 3600), (None, None)])
+@pytest.mark.parametrize(
+    "stored, expected", [(3600, 3600), ("3600", 3600), (None, None)]
+)
 def test_metadata_cache_timeout_legacy_values(
     level: str, stored: object, expected: int | None
 ) -> None:
