@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
+  using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and
+  `CACHE_REDIS_USER`. Previously they always ran on DB 0 and without the ACL user.
+  If `CACHE_REDIS_DB` is not 0, coordination state (task state, locks and streams)
+  moves to that DB: avoid running old and new versions side by side, and drain
+  in-flight tasks before upgrading.
+
 - Refreshing a dataset's columns from its source (the "Sync columns from
   source" button, `PUT /api/v1/dataset/<id>?override_columns=true`, or
   `PUT /api/v1/dataset/<id>/refresh`) no longer resets **Is dimension** and
