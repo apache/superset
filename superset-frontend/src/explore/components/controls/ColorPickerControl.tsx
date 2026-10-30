@@ -66,6 +66,11 @@ export interface ColorPickerControlProps {
   disabled?: boolean;
 }
 
+// `rgbaToHex` omits the alpha byte for opaque colors, so drop a trailing `ff`
+// to keep eight-digit opaque hex comparable with the picker's output.
+const normalizeOpaqueAlpha = (hex: string): string =>
+  /^#[0-9a-f]{8}$/.test(hex) && hex.endsWith('ff') ? hex.slice(0, 7) : hex;
+
 const normalizeColorToHex = (color: string): string => {
   if (!color) return '';
 
@@ -74,9 +79,11 @@ const normalizeColorToHex = (color: string): string => {
     // Expand 3/4-digit shorthand so it compares equal to the six/eight-digit
     // hex the picker emits.
     if (/^#[0-9a-f]{3,4}$/.test(lower)) {
-      return `#${Array.from(lower.slice(1), c => c + c).join('')}`;
+      return normalizeOpaqueAlpha(
+        `#${Array.from(lower.slice(1), c => c + c).join('')}`,
+      );
     }
-    return lower;
+    return normalizeOpaqueAlpha(lower);
   }
 
   const div = document.createElement('div');

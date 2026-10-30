@@ -159,12 +159,13 @@ export default function transformProps(
       ? BAND_LABEL_COLORS.light
       : BAND_LABEL_COLORS.dark;
   };
-  // Bands are drawn outermost first, so a band without its own color sits on
-  // top of the nearest outer custom fill; its label must contrast with that.
+  // Bands are drawn outermost first, so a band without its own opaque color
+  // shows the nearest outer opaque custom fill; its label must contrast with
+  // that.
   let outerCustomFill: string | undefined;
   const bandLabelFills = sortedRanges.map(({ color }) => {
-    if (color) outerCustomFill = color;
-    return color ?? outerCustomFill;
+    if (color && getColorLuminance(color) !== null) outerCustomFill = color;
+    return outerCustomFill;
   });
   const bands = sortedRanges.map(({ value, label, color }, i) => ({
     name: label,
