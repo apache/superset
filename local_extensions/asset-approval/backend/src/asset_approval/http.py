@@ -26,13 +26,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from superset.change_management import review_signal_details
-
 from asset_approval.exceptions import (
     AssetLockedError,
     ChangeManagementException,
     ChangeRequestCreated,
 )
+from superset.change_management import review_signal_details
 
 #: A capture is not a failure and not a plain success: the request was
 #: accepted, and it takes a second person before it takes effect.

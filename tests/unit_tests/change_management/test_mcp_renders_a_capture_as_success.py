@@ -91,7 +91,8 @@ def test_a_bulk_capture_names_every_request() -> None:
     )
 
     text = result.content[0].text
-    assert "3" in text and "4" in text and "5" in text
+    for request_id in ("3", "4", "5"):
+        assert request_id in text
 
 
 def test_structured_content_stays_empty() -> None:

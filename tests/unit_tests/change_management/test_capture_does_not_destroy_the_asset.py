@@ -87,9 +87,11 @@ def test_a_real_failure_still_cleans_up(
     mocker: MockerFixture, cleanup: Any
 ) -> None:
     # The cleanup exists for a reason; only the capture is exempt from it.
+    from superset.commands.dataset.exceptions import DatasetUpdateFailedError
+
     _run_update_raising(mocker, RuntimeError("the database went away"))
 
-    with pytest.raises(Exception):
+    with pytest.raises(DatasetUpdateFailedError):
         tool._update_virtual_dataset(42, {"metrics": []})
 
     cleanup.assert_called_once_with(42)

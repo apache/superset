@@ -288,7 +288,7 @@ async def _resolve_source(
         openWorldHint=False,
     ),
 )
-async def duplicate_dashboard(
+async def duplicate_dashboard(  # noqa: C901
     request: DuplicateDashboardRequest, ctx: Context
 ) -> DuplicateDashboardResponse:
     """

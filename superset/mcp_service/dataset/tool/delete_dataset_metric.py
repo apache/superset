@@ -125,7 +125,7 @@ def _find_affected_charts(
         openWorldHint=False,
     ),
 )
-async def delete_dataset_metric(
+async def delete_dataset_metric(  # noqa: C901
     request: DeleteDatasetMetricRequest, ctx: Context
 ) -> DeleteDatasetMetricResponse:
     """Delete a saved metric by ID, UUID, or metric_name.

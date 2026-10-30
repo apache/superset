@@ -44,7 +44,7 @@ from superset.mcp_service.dataset.tool.update_dataset_metric import (
         openWorldHint=False,
     ),
 )
-async def create_dataset_metric(
+async def create_dataset_metric(  # noqa: C901
     request: CreateDatasetMetricRequest, ctx: Context
 ) -> CreateDatasetMetricResponse:
     """Add a saved metric to a dataset identified by ID or UUID.

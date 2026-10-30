@@ -640,7 +640,7 @@ async def test_duplicate_remove_ids_rejected(mcp_server: FastMCP) -> None:
 
     with (
         patch(DAO_GET, return_value=dashboard),
-        patch("superset.extensions.db.session") as session,
+        patch("superset.extensions.db.session"),
     ):
         data = await _call(
             mcp_server,
@@ -876,7 +876,7 @@ async def test_malformed_layout_is_not_replaced(
     dashboard.position_json = position_json
     with (
         patch(DAO_GET, return_value=dashboard),
-        patch("superset.extensions.db.session") as session,
+        patch("superset.extensions.db.session"),
     ):
         data = await _call(
             mcp_server, {"dashboard_id": 1, "add": [{"component_type": "divider"}]}
@@ -893,7 +893,7 @@ async def test_failed_batch_does_not_save_partial_updates(mcp_server: FastMCP) -
     before = dashboard.position_json
     with (
         patch(DAO_GET, return_value=dashboard),
-        patch("superset.extensions.db.session") as session,
+        patch("superset.extensions.db.session"),
     ):
         data = await _call(
             mcp_server,
@@ -927,7 +927,7 @@ async def test_reserved_title_and_charts_cannot_be_mutated(
     before = dashboard.position_json
     with (
         patch(DAO_GET, return_value=dashboard),
-        patch("superset.extensions.db.session") as session,
+        patch("superset.extensions.db.session"),
     ):
         for component_id in ("HEADER_ID", "CHART-1"):
             payload: list[dict[str, str]] | list[str]
@@ -993,7 +993,7 @@ async def test_batch_preserves_charts_metadata_and_markdown_source(
     source = "## Notes\n\n<div>**bold** & [link](https://example.com)</div>"
     with (
         patch(DAO_GET, return_value=dashboard),
-        patch("superset.extensions.db.session") as session,
+        patch("superset.extensions.db.session"),
     ):
         data = await _call(
             mcp_server,
@@ -1064,7 +1064,7 @@ async def test_markdown_resize_respects_row_capacity(
     original = dashboard.position_json
     with (
         patch(DAO_GET, return_value=dashboard),
-        patch("superset.extensions.db.session") as session,
+        patch("superset.extensions.db.session"),
     ):
         data = await _call(
             mcp_server,
@@ -1115,7 +1115,7 @@ async def test_markdown_resize_accounts_for_removals(
     original = dashboard.position_json
     with (
         patch(DAO_GET, return_value=dashboard),
-        patch("superset.extensions.db.session") as session,
+        patch("superset.extensions.db.session"),
     ):
         data = await _call(
             mcp_server,
@@ -1169,7 +1169,7 @@ async def test_add_to_nested_tab(mcp_server: FastMCP, target_tab: str | None) ->
     original = dashboard.position_json
     with (
         patch(DAO_GET, return_value=dashboard),
-        patch("superset.extensions.db.session") as session,
+        patch("superset.extensions.db.session"),
     ):
         data = await _call(
             mcp_server,
@@ -1219,7 +1219,7 @@ async def test_update_requires_non_null_field(
     """Empty updates fail validation before lookup or persistence."""
     with (
         patch(DAO_GET) as lookup,
-        patch("superset.extensions.db.session") as session,
+        patch("superset.extensions.db.session"),
     ):
         with pytest.raises(
             ToolError, match="At least one non-null update field besides id is required"
@@ -1262,7 +1262,7 @@ async def test_add_header_to_dashboard_with_chart_attached_from_explore(
 
     with (
         patch(DAO_GET, return_value=dashboard),
-        patch("superset.extensions.db.session") as session,
+        patch("superset.extensions.db.session"),
     ):
         data = await _call(
             mcp_server,
@@ -1284,7 +1284,7 @@ async def test_add_to_empty_layout_with_attached_chart(mcp_server: FastMCP) -> N
 
     with (
         patch(DAO_GET, return_value=dashboard),
-        patch("superset.extensions.db.session") as session,
+        patch("superset.extensions.db.session"),
     ):
         data = await _call(
             mcp_server, {"dashboard_id": 1, "add": [{"component_type": "divider"}]}
@@ -1303,7 +1303,7 @@ async def test_externally_managed_dashboard_is_refused(mcp_server: FastMCP) -> N
 
     with (
         patch(DAO_GET, return_value=dashboard),
-        patch("superset.extensions.db.session") as session,
+        patch("superset.extensions.db.session"),
     ):
         data = await _call(
             mcp_server, {"dashboard_id": 1, "add": [{"component_type": "divider"}]}
