@@ -17,6 +17,28 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-## Change Log
+# Changelog
 
-Changelogs will be added once we have the first stable release.
+This changelog tracks the `apache-superset-core` Python package. A version in this
+file is published only when it has a release date; the package version in
+`pyproject.toml` can be ahead of the latest published distribution.
+
+## 0.2.0 (unreleased)
+
+### Added
+
+- Semantic-layer provider contracts for configuration, execution context, cache
+  identity, query requests, results, and typed query rejection.
+- `SemanticResultCompletenessError` for providers that cannot guarantee a complete
+  result. See the [result-completeness guide](../docs/developer_docs/semantic-result-completeness.md).
+- A provider conformance test kit in `superset_core.semantic_layers.testing`.
+
+### Compatibility
+
+- This pre-1.0 minor release contains provider contract changes. Review the
+  [extension dependency policy](../docs/developer_docs/extensions/dependencies.md)
+  and test providers with the matching Superset host before deployment.
+
+## 0.1.0 (2026-05-11)
+
+- Initial published `apache-superset-core` distribution.
