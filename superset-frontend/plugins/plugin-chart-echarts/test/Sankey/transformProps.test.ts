@@ -19,17 +19,16 @@
 import { ChartProps, ChartPropsConfig } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import { SankeyChartProps } from '../../src/Sankey/types';
-import transformProps from '../../src/Sankey/transformProps';
+import transformProps, {
+  DIMMED_LINK_OPACITY,
+  SELECTED_LINK_OPACITY,
+} from '../../src/Sankey/transformProps';
 import { NULL_STRING, OpacityEnum } from '../../src/constants';
 import {
   EMPTY_STRING,
   sankeyNodeKey,
   sankeyValueId,
 } from '../../src/Sankey/crossFilter';
-import {
-  DIMMED_LINK_OPACITY,
-  SELECTED_LINK_OPACITY,
-} from '../../src/Sankey/transformProps';
 
 const formData = {
   datasource: '1__table',
