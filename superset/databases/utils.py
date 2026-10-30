@@ -294,3 +294,30 @@ def embedded_credentials_error(
     if validated is None or PASSWORD_MASK in validated.values():
         return None
     return engine_spec.get_embedded_credentials_error(validated)
+
+
+def embedded_credentials_missing_fields(credentials: Any) -> list[str]:
+    """
+    Name the fields of the canonical credential shape that ``credentials`` lacks.
+
+    Paths are JSONPath into Secure Extra (``$.embedded_credentials.<field>``), the
+    form the import already uses to name a secret it needs. Returns an empty list
+    when nothing canonical is missing, e.g. an unknown ``auth_method`` or a shape
+    only an engine-specific validator rejects.
+    """
+    if not isinstance(credentials, dict):
+        return []
+
+    missing: list[str] = []
+    if not _is_present(credentials.get("username")):
+        missing.append("username")
+
+    auth_method = credentials.get("auth_method", "password")
+    if auth_method == "keypair":
+        if not _is_present(credentials.get("privatekey_body")):
+            missing.append("privatekey_body")
+    elif auth_method == "password":
+        if not _is_present(credentials.get("password")):
+            missing.append("password")
+
+    return [f"$.{EMBEDDED_CREDENTIALS_KEY}.{field}" for field in missing]
