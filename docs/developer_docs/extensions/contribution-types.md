@@ -282,7 +282,8 @@ Store access and refresh tokens using the Python-only
 Never put personal credentials in the shared layer configuration, action results,
 query results, logs, or exceptions. The host executes provider methods under the
 owning extension and requesting user's context, including background chart work.
-Semantic View query results and shared async query tasks are partitioned by user,
+Semantic View query results, cached dimension values, and shared async query tasks
+are partitioned by user,
 including providers without connection actions. This reduces cache sharing for
 providers with identical results for all users, but declaring no actions does not
 establish that a provider returns user-independent data.

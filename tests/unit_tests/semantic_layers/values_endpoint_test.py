@@ -379,12 +379,12 @@ def test_unregistered_provider_values_return_safe_error_before_cache_lookup(
 
 
 @pytest.mark.parametrize("provider_type", ["sql", "cube", "snowflake", "metricflow"])
-def test_default_provider_value_cache_key_matches_legacy_bytes(
+def test_default_provider_value_cache_key_preserves_scope(
     semantic_view_datasource: SemanticView,
     mocker: MockerFixture,
     provider_type: str,
 ) -> None:
-    """An SDK-default provider adds no producer field to metadata-versioned keys."""
+    """Default providers retain RLS scope and add user scope for semantic views."""
     import hashlib
 
     from superset_core.semantic_layers.layer import SemanticLayer as ProviderLayer
@@ -392,6 +392,7 @@ def test_default_provider_value_cache_key_matches_legacy_bytes(
     from superset.datasource.api import _column_values_cache_key
     from superset.utils import json
 
+    mocker.patch("superset.datasource.api.get_user_id", return_value=42)
     datasource: Any = semantic_view_datasource
     if provider_type == "sql":
         datasource = MagicMock(uid="semantic_view_uid_123", changed_on=None)
@@ -419,12 +420,65 @@ def test_default_provider_value_cache_key_matches_legacy_bytes(
     }
     if isinstance(datasource, SemanticView):
         legacy["metadata_version"] = datasource.metadata_generation
+        legacy["semantic_layer_user"] = 42
     expected: str = (
         "col_values:"
         + hashlib.sha256(json.dumps(legacy, sort_keys=True).encode()).hexdigest()
     )
     assert _column_values_cache_key(datasource, query) == expected
     assert "semantic_result_version" not in query
+
+
+@pytest.mark.parametrize("authorized", [True, False])
+def test_column_values_cache_isolates_personal_grants(
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+    authorized: bool,
+) -> None:
+    """A warm cache cannot bypass another user's narrower or missing OAuth grant."""
+    from superset.datasource.api import get_cached_column_values
+    from superset.exceptions import OAuth2RedirectError
+
+    user = mocker.patch("superset.datasource.api.get_user_id", return_value=42)
+    mocker.patch(
+        "superset.datasource.api.security_manager.get_rls_cache_key", return_value=[]
+    )
+    cache = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    stored: dict[str, Any] = {}
+    cache.get.side_effect = stored.get
+    cache.set.side_effect = lambda key, value, **kwargs: stored.__setitem__(key, value)
+    implementation = cast(MagicMock, semantic_view_datasource.implementation)
+
+    def values() -> tuple[list[Any], bool]:
+        return get_cached_column_values(
+            semantic_view_datasource,
+            column_name="category",
+            limit=500,
+            denormalize_column=False,
+        )
+
+    assert values() == (["Books", "Clothing"], False)
+    assert values() == (["Books", "Clothing"], True)
+    implementation.get_values.assert_called_once()
+
+    user.return_value = 43
+    if authorized:
+        implementation.get_values.return_value = SemanticResult(
+            requests=[], results=pa.table({"category": ["Books"]})
+        )
+        assert values() == (["Books"], False)
+        assert values() == (["Books"], True)
+    else:
+        implementation.get_values.side_effect = OAuth2RedirectError(
+            "https://example.com/oauth", "tab-id", "https://example.com/complete"
+        )
+        with pytest.raises(OAuth2RedirectError):
+            values()
+        assert cache.set.call_count == 1
+
+    assert implementation.get_values.call_count == 2
+    user.return_value = 42
+    assert values() == (["Books", "Clothing"], True)
 
 
 def test_versioned_suggestions_are_unavailable_before_cache(
