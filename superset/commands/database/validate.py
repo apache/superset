@@ -33,7 +33,11 @@ from superset.commands.database.utils import (
 )
 from superset.constants import EMBEDDED_CREDENTIALS_KEY
 from superset.daos.database import DatabaseDAO
-from superset.databases.utils import embedded_credentials_incomplete, make_url_safe
+from superset.databases.utils import (
+    embedded_credentials_error,
+    embedded_credentials_incomplete,
+    make_url_safe,
+)
 from superset.db_engine_specs import get_engine_spec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.extensions import event_logger
@@ -282,6 +286,17 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         if not embedded_credentials_incomplete(
             credentials, engine_spec.validate_embedded_credentials
         ):
+            if message := embedded_credentials_error(
+                engine_spec,
+                credentials,
+                self._model.encrypted_extra if self._model else None,
+            ):
+                return SupersetError(
+                    message=message,
+                    error_type=SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"invalid": [EMBEDDED_CREDENTIALS_KEY]},
+                )
             return None
 
         return SupersetError(

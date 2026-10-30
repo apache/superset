@@ -52,7 +52,11 @@ from superset.databases.types import (  # pylint:disable=unused-import
     EncryptedDict,  # noqa: F401
     EncryptedString,  # noqa: F401
 )
-from superset.databases.utils import embedded_credentials_incomplete, make_url_safe
+from superset.databases.utils import (
+    embedded_credentials_error,
+    embedded_credentials_incomplete,
+    make_url_safe,
+)
 from superset.db_engine_specs import get_engine_spec
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import CertificateException, SupersetSecurityException
@@ -487,6 +491,10 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
                 ),
                 field_name="masked_encrypted_extra",
             )
+        if message := embedded_credentials_error(
+            engine_spec, credentials, stored.encrypted_extra if stored else None
+        ):
+            raise ValidationError(message, field_name="masked_encrypted_extra")
 
         # A credential only applies to a per-user OAuth2 connection with
         # impersonation on (`Database.embedded_fallback_applies`). Anywhere else
