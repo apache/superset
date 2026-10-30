@@ -234,8 +234,14 @@ class Operator(str, enum.Enum):
     ``NOT IN (NULL)`` are never true, so a provider that renders or binds
     ``None`` through one of them silently drops every row the user asked for,
     with no error. Nullness is expressed with :attr:`IS_NULL` and
-    :attr:`IS_NOT_NULL`, which take no operand. An empty collection for
-    :attr:`IN` or :attr:`NOT_IN` has no well-defined rendering either.
+    :attr:`IS_NOT_NULL`, which take no operand.
+
+    **Empty membership.** An empty collection follows SQL predicate semantics at
+    the filter's position: :attr:`IN` with no values is FALSE and :attr:`NOT_IN`
+    with no values is TRUE, for NULL values too. Filtering is applied before
+    aggregation, so an ungrouped aggregate over no matching rows still returns one
+    row (``COUNT`` is 0). Providers must not render an empty SQL list, which many
+    dialects reject; render a constant or an equivalent native predicate instead.
 
     Splitting a ``None`` operand out into those predicates is the host's
     responsibility, so that every provider sees the same already-normalized

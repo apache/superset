@@ -188,6 +188,103 @@ def test_filter_implication_matrix(
     assert cache_policy.implies(new_filter, cached_filter) is expected
 
 
+@pytest.mark.parametrize(
+    "new_filter,cached_filter,expected",
+    [
+        # Empty IN is FALSE, so it proves every cached predicate it is compared to.
+        (
+            where(COUNTRY, Operator.IN, frozenset()),
+            where(COUNTRY, Operator.IN, frozenset({"GB"})),
+            True,
+        ),
+        (
+            where(COUNTRY, Operator.IN, frozenset()),
+            where(COUNTRY, Operator.IS_NOT_NULL, None),
+            True,
+        ),
+        # Empty NOT IN is TRUE for NULL rows too, so it proves no narrower cache.
+        (
+            where(COUNTRY, Operator.NOT_IN, frozenset()),
+            where(COUNTRY, Operator.IS_NOT_NULL, None),
+            False,
+        ),
+        (
+            where(COUNTRY, Operator.NOT_IN, frozenset()),
+            where(COUNTRY, Operator.NOT_IN, frozenset()),
+            True,
+        ),
+    ],
+)
+def test_empty_membership_implication(
+    new_filter: Filter,
+    cached_filter: Filter,
+    expected: bool,
+) -> None:
+    assert cache_policy.implies(new_filter, cached_filter) is expected
+
+
+@pytest.mark.parametrize(
+    "operator,expected_countries,expected_revenue",
+    [
+        (Operator.IN, None, [None]),
+        (Operator.NOT_IN, ["GB", None], [2.0, 3.0]),
+    ],
+)
+def test_cached_empty_membership_matches_sql_aggregation(
+    operator: Operator,
+    expected_countries: list[str | None] | None,
+    expected_revenue: list[float | None],
+) -> None:
+    """Empty IN keeps one ungrouped aggregate row; empty NOT IN keeps NULLs."""
+    count: Metric = replace(
+        REVENUE_METRIC, id="count", name="Count", aggregation=AggregationType.COUNT
+    )
+    entry: CachedEntry = CachedEntry(
+        filters=frozenset(),
+        dimensions=frozenset({COUNTRY}),
+        metrics=frozenset({REVENUE_METRIC, count}),
+        limit=None,
+        offset=0,
+        order_key="",
+        group_limit_key="",
+        value_key="value",
+    )
+    cached: SemanticResult = _semantic_result(
+        pd.DataFrame(
+            {
+                "Country": ["GB", None],
+                "Revenue": [2.0, 3.0],
+                "Count": pd.array([1, 1], dtype="int64"),
+            }
+        )
+    )
+    empty: Filter = where(COUNTRY, operator, frozenset())
+    capabilities: ContainmentCapabilities = ContainmentCapabilities(membership=True)
+    grouped: bool = expected_countries is not None
+    query: SemanticQuery = SemanticQuery(
+        metrics=[REVENUE_METRIC, count],
+        dimensions=[COUNTRY] if grouped else [],
+        filters={empty},
+    )
+
+    decision: ReuseDecision | None = cache_policy.select_reuse(
+        query, entry, capabilities
+    )
+    assert decision is not None
+    assert decision.leftover_filters == frozenset({empty})
+    transformed: SemanticResult = cache_transform.transform_result(
+        cached, query, decision, capabilities
+    )
+
+    expected: dict[str, object] = {
+        "Revenue": expected_revenue,
+        "Count": [1, 1] if grouped else [0],
+    }
+    if grouped:
+        expected["Country"] = expected_countries
+    assert transformed.results.to_pydict() == expected
+
+
 def test_membership_implication_does_not_merge_bool_and_integer_values() -> None:
     assert (
         cache_policy.implies(
@@ -328,6 +425,8 @@ def test_defensive_implication_and_capability_branches_are_conservative() -> Non
         (Operator.NOT_EQUALS, 1, [False, True, False]),
         (Operator.IN, frozenset({1, None}), [True, False, False]),
         (Operator.NOT_IN, frozenset({1}), [False, True, False]),
+        (Operator.IN, frozenset(), [False, False, False]),
+        (Operator.NOT_IN, frozenset(), [True, True, True]),
     ],
 )
 def test_sql_null_semantics_for_scalar_and_membership_masks(

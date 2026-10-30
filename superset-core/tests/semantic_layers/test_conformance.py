@@ -646,3 +646,84 @@ def test_or_lane_rejects_non_host_fixture_shapes(
         SemanticProviderConformance().test_query_outputs(
             "or", semantic_view, {"or": (query, expected)}
         )
+
+
+@pytest.mark.parametrize(
+    "mutation,operator",
+    [
+        ("drop_nulls", Operator.NOT_IN),
+        ("swap", Operator.IN),
+        ("swap", Operator.NOT_IN),
+        ("ignore", Operator.IN),
+        ("zero_rows", Operator.IN),
+    ],
+)
+def test_empty_membership_rejects_provider_mutations(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+    operator: Operator,
+) -> None:
+    """Real SQLite results expose lost NULLs, inverted constants and no-row answers."""
+    import conformance_provider
+
+    predicate: Callable[[FilterExpression, list[object]], str] = (
+        conformance_provider._predicate
+    )
+    get_table: Callable[[SemanticQuery], SemanticResult] = semantic_view.get_table
+
+    def mutated_predicate(
+        expression: FilterExpression, parameters: list[object]
+    ) -> str:
+        if not (isinstance(expression, Filter) and expression.value == frozenset()):
+            return predicate(expression, parameters)
+        if mutation == "drop_nulls" and expression.operator == Operator.NOT_IN:
+            return "category IS NOT NULL"
+        if mutation == "swap":
+            return "(1 = 1)" if expression.operator == Operator.IN else "(1 = 0)"
+        if mutation == "ignore":
+            return "(1 = 1)"
+        return predicate(expression, parameters)
+
+    def mutated_table(query: SemanticQuery) -> SemanticResult:
+        result: SemanticResult = get_table(query)
+        if mutation == "zero_rows" and any(
+            isinstance(item, Filter) and item.value == frozenset()
+            for item in query.filters or set()
+        ):
+            return replace(result, results=result.results.slice(0, 0))
+        return result
+
+    monkeypatch.setattr(conformance_provider, "_predicate", mutated_predicate)
+    monkeypatch.setattr(semantic_view, "get_table", mutated_table)
+    with pytest.raises(AssertionError):
+        SemanticProviderConformance().test_empty_membership(
+            operator, semantic_view, semantic_query_cases
+        )
+
+
+@pytest.mark.parametrize("operator", [Operator.IN, Operator.NOT_IN])
+def test_or_group_witness_rejects_dropped_empty_leaf(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    monkeypatch: pytest.MonkeyPatch,
+    operator: Operator,
+) -> None:
+    """A provider that treats an empty leaf as the opposite constant must fail."""
+    import conformance_provider
+
+    predicate: Callable[[FilterExpression, list[object]], str] = (
+        conformance_provider._predicate
+    )
+
+    def inverted(expression: FilterExpression, parameters: list[object]) -> str:
+        if isinstance(expression, Filter) and expression.value == frozenset():
+            return "(1 = 1)" if expression.operator == Operator.IN else "(1 = 0)"
+        return predicate(expression, parameters)
+
+    monkeypatch.setattr(conformance_provider, "_predicate", inverted)
+    with pytest.raises(AssertionError):
+        SemanticProviderConformance().test_empty_membership_in_or_group(
+            operator, semantic_view, semantic_query_cases
+        )

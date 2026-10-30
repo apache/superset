@@ -100,6 +100,9 @@ def _membership_mask(
     operator: Operator,
     values: set[object] | frozenset[object] | tuple[object, ...],
 ) -> pd.Series:
+    if not values:
+        # SQL: x IN () is FALSE and x NOT IN () is TRUE, even when x is NULL.
+        return pd.Series(operator is Operator.NOT_IN, index=series.index, dtype=bool)
     not_null: pd.Series = series.notna()
     non_null_values: list[object] = [item for item in values if item is not None]
     membership: pd.Series = not_null & series.isin(non_null_values)
@@ -191,9 +194,18 @@ def _rollup(frame: pd.DataFrame, query: SemanticQuery) -> pd.DataFrame:
         ).agg(aggregations)
     # Transposing a mixed numeric Series can coerce exact integers to floats.
     # Build each column independently with its original Arrow-backed dtype.
+    # Call aggregation functions directly: ``Series.agg`` applies a callable
+    # element-wise to an empty series, but SQL still returns one aggregate row.
     return pd.DataFrame(
         {
-            name: pd.Series([frame[name].agg(aggregation)], dtype=frame[name].dtype)
+            name: pd.Series(
+                [
+                    aggregation(frame[name])
+                    if callable(aggregation)
+                    else frame[name].agg(aggregation)
+                ],
+                dtype=frame[name].dtype,
+            )
             for name, aggregation in aggregations.items()
         }
     )
