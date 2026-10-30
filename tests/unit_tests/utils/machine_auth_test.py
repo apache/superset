@@ -163,3 +163,14 @@ def test_session_stamped_before_epoch_is_rejected(
         flask_session[SESSION_LOGIN_AT_KEY] = epoch - 60
 
     assert client.get(AUTHENTICATED_ENDPOINT).status_code == 401
+
+
+def test_machine_auth_refuses_inactive_user(
+    admin_user: User,  # noqa: F811
+    after_each: None,  # noqa: F811
+) -> None:
+    """An inactive user gets no cookies, so callers can report missing auth."""
+    admin_user.active = False
+    db.session.flush()
+
+    assert MachineAuthProvider.get_auth_cookies(admin_user) == {}
