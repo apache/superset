@@ -6889,6 +6889,31 @@ def test_get_sqla_query_malformed_temporal_range_raises_validation_error(
         )
     assert isinstance(exc_info.value.__cause__, (TimeRangeParseFailError, ValueError))
 
+    with pytest.raises(QueryObjectValidationError, match="other_ds") as exc_info:
+        table.get_sqla_query(
+            columns=["ds"],
+            metrics=[],
+            extras={},
+            filter=[
+                {
+                    "col": "ds",
+                    "op": FilterOperator.TEMPORAL_RANGE,
+                    "val": "2024-01-01 : 2024-01-02",
+                },
+                {
+                    "col": "other_ds",
+                    "op": FilterOperator.TEMPORAL_RANGE,
+                    "val": "2024-01-01T00:00:00Z : 2024-01-02",
+                },
+            ],
+            granularity=None,
+            is_timeseries=False,
+        )
+    assert isinstance(
+        exc_info.value.__cause__,
+        (TimeRangeParseFailError, ValueError, TypeError),
+    )
+
 
 def test_processing_time_offsets_malformed_relative_filter_raises_validation_error(
     database: Database,
