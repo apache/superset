@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import binascii
 from collections.abc import Generator
 from unittest.mock import MagicMock, Mock, patch
 
@@ -41,6 +42,7 @@ from superset.extensions.storage.persistent_dao import (
     SET_LOCK_TTL_SECONDS,
 )
 from superset.extensions.storage.persistent_model import ExtensionStorage
+from superset.utils.encrypt import EncryptedType
 
 
 @pytest.fixture
@@ -708,6 +710,87 @@ def test_enc_type_user_key_differs_from_shared_key(app: Flask) -> None:
         secret = app.config["SECRET_KEY"]
         enc_user = _enc_type(user_fk=1)
         assert enc_user.key != secret
+
+
+# ── encryption round trip (real ciphers, no mocks) ────────────────────────────
+
+
+@pytest.mark.parametrize("engine", ["aes", "aes-gcm"])
+@pytest.mark.parametrize("user_fk", [None, 7])
+@pytest.mark.parametrize(
+    "value", [b'{"messages": ["hello"]}', b"\x80\x00\xff binary \xc3\xa9"]
+)
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_encrypted_value_round_trips(
+    mock_db: MagicMock, app: Flask, engine: str, user_fk: int | None, value: bytes
+) -> None:
+    """A value written with encrypt=True reads back as the same bytes."""
+    app.config["SQLALCHEMY_ENCRYPTED_FIELD_ENGINE"] = engine
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+
+    with app.app_context():
+        ExtensionStorageDAO.set("my-ext", "key", value, user_fk=user_fk, encrypt=True)
+        stored = mock_db.session.add.call_args[0][0]
+        assert stored.is_encrypted is True
+        assert value not in stored.value
+
+        mock_db.session.query.return_value.filter.return_value.first.return_value = (
+            stored
+        )
+        assert ExtensionStorageDAO.get_value("my-ext", "key", user_fk=user_fk) == value
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_encrypted_value_unreadable_with_other_users_key(
+    mock_db: MagicMock, app: Flask
+) -> None:
+    """Ciphertext written for one user does not decrypt under another's key."""
+    app.config["SQLALCHEMY_ENCRYPTED_FIELD_ENGINE"] = "aes-gcm"
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+
+    with app.app_context():
+        ExtensionStorageDAO.set("my-ext", "key", b"secret", user_fk=1, encrypt=True)
+        stored = mock_db.session.add.call_args[0][0]
+        stored.user_fk = 2
+        mock_db.session.query.return_value.filter.return_value.first.return_value = (
+            stored
+        )
+        assert ExtensionStorageDAO.get_value("my-ext", "key", user_fk=2) is None
+
+
+@pytest.mark.parametrize("engine", ["aes", "aes-gcm"])
+def test_enc_type_reads_values_written_before_base64_encoding(
+    app: Flask, engine: str
+) -> None:
+    """Values encrypted as `repr(bytes)` by earlier builds still read back."""
+    app.config["SQLALCHEMY_ENCRYPTED_FIELD_ENGINE"] = engine
+    with app.app_context():
+        enc = _enc_type(user_fk=3)
+        # The pre-fix write path: the plain EncryptedType bind on raw bytes.
+        legacy = EncryptedType.process_bind_param(enc, b'{"a": 1}', None)
+        assert enc.process_result_value(legacy, None) == b'{"a": 1}'
+        # The column may also hand back text rather than bytes.
+        assert enc.process_result_value(legacy.decode(), None) == b'{"a": 1}'
+
+
+def test_enc_type_passes_none_through(app: Flask) -> None:
+    """NULL stays NULL in both directions."""
+    with app.app_context():
+        enc = _enc_type(user_fk=None)
+        assert enc.process_bind_param(None, None) is None
+        assert enc.process_result_value(None, None) is None
+
+
+def test_enc_type_rejects_plaintext_that_is_neither_base64_nor_bytes(
+    app: Flask,
+) -> None:
+    """A decrypted value that is not one of the two known forms is an error."""
+    with app.app_context():
+        enc = _enc_type(user_fk=None)
+        enc._update_key()
+        ciphertext = enc.engine.encrypt("'not bytes'")
+        with pytest.raises(binascii.Error):
+            enc.process_result_value(ciphertext, None)
 
 
 # ── list ──────────────────────────────────────────────────────────────────────
