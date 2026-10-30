@@ -19,10 +19,13 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
+from flask_caching.backends import NullCache, SimpleCache
+
 from superset.common.chart_data_timing import QueryDataResult, QueryTiming
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.common.utils.query_cache_manager import QueryCacheManager
+from superset.constants import CacheRegion
 
 
 def _query_timing() -> QueryTiming:
@@ -413,8 +416,13 @@ def test_dataframe_payload_result_emits_cache_outcome(
 
 
 @pytest.mark.parametrize(
-    ("status", "expect_write"),
-    [(QueryStatus.SUCCESS, True), (QueryStatus.FAILED, False)],
+    ("status", "timeout", "backend", "expect_write"),
+    [
+        (QueryStatus.SUCCESS, 60, "simple", True),
+        (QueryStatus.FAILED, 60, "simple", False),
+        (QueryStatus.SUCCESS, 60, "null", False),
+        (QueryStatus.SUCCESS, -1, "simple", False),
+    ],
 )
 @patch("superset.utils.timing_metrics.stats_logger_manager")
 @patch.object(QueryCacheManager, "set", return_value=True)
@@ -422,16 +430,70 @@ def test_cache_set_timed_only_for_cache_writes(
     cache_set: MagicMock,
     stats_logger_manager: MagicMock,
     status: QueryStatus,
+    timeout: int,
+    backend: str,
     expect_write: bool,
     app_context: None,
 ) -> None:
-    """Failed results are never written, so they must not skew the timer."""
+    """Failed results and writes skipped by the cache layer are not timed."""
     query_result: MagicMock = MagicMock()
     query_result.status = status
     query_result.df = pd.DataFrame({"col1": [1]})
+    region_cache: MagicMock = MagicMock()
+    region_cache.cache = NullCache() if backend == "null" else SimpleCache()
 
-    QueryCacheManager().set_query_result(key="key", query_result=query_result)
+    with patch.dict(
+        "superset.common.utils.query_cache_manager._cache",
+        {CacheRegion.DEFAULT: region_cache},
+    ):
+        QueryCacheManager().set_query_result(
+            key="key", query_result=query_result, timeout=timeout
+        )
 
     timers, _ = _emitted(stats_logger_manager.instance)
-    assert cache_set.called is expect_write
     assert ("chart_data.cache.set" in timers) is expect_write
+
+
+@patch("superset.utils.timing_metrics.stats_logger_manager")
+@patch("superset.common.query_context_processor.QueryCacheManager")
+def test_cache_outcome_is_bypass_without_cache_backend(
+    cache_manager: MagicMock, stats_logger_manager: MagicMock
+) -> None:
+    cache_manager.has_backend.return_value = False
+    cache_manager.get.return_value = _cache(False)
+    processor: QueryContextProcessor = _processor()
+    with (
+        patch.object(processor, "query_cache_key", return_value="key"),
+        patch.object(processor, "get_cache_timeout", return_value=300),
+        patch.object(processor, "get_query_result", return_value=MagicMock()),
+        patch.object(processor, "get_annotation_data", return_value={}),
+    ):
+        processor.get_df_payload_result(_query_obj())
+
+    timers, counters = _emitted(stats_logger_manager.instance)
+    assert counters == {"chart_data.cache.bypass"}
+    assert "chart_data.cache.get" not in timers
+
+
+@patch("superset.utils.timing_metrics.stats_logger_manager")
+@patch("superset.common.query_context_processor.QueryCacheManager")
+def test_query_timers_emitted_when_acquisition_raises(
+    cache_manager: MagicMock, stats_logger_manager: MagicMock
+) -> None:
+    cache_manager.get.return_value = _cache(False)
+    processor: QueryContextProcessor = _processor()
+    with (
+        patch.object(processor, "query_cache_key", return_value="key"),
+        patch.object(processor, "get_cache_timeout", return_value=300),
+        patch.object(processor, "get_query_result", side_effect=RuntimeError("boom")),
+        pytest.raises(RuntimeError),
+    ):
+        processor.get_df_payload_result(_query_obj())
+
+    timers, _ = _emitted(stats_logger_manager.instance)
+    assert {
+        "chart_data.query.planning",
+        "chart_data.query.data_acquisition",
+        "chart_data.query.total",
+    } <= timers
+    assert "chart_data.query.payload_assembly" not in timers

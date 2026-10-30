@@ -114,6 +114,7 @@ levels.
 | `chart_data.query.annotations` | timer | Loading annotation layer data on a cache miss or bypass |
 | `chart_data.cache.set` | timer | Serializing and writing a fresh result to the results cache |
 | `chart_data.query.payload_assembly` | timer | Building the per-query response payload |
+| `chart_data.query.materialize` | timer | Converting the acquired result into the response payload (records, CSV/XLSX, dtypes, AUTO currency detection) |
 | `chart_data.response.serialize` | timer | JSON-encoding the response body |
 | `datasource.query.sql_generation` | timer | Building and rendering the SQL for a query |
 | `datasource.query.normalize` | timer | Normalizing temporal and metric columns of the result |

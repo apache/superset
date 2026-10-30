@@ -103,13 +103,7 @@ from superset.utils.oauth2 import (
     is_oauth2_retry_active,
     OAuth2ClientConfigSchema,
 )
-from superset.utils.timing_metrics import (
-    elapsed_ms,
-    emit_timing,
-    metric_suffix,
-    now_ns,
-    timed,
-)
+from superset.utils.timing_metrics import metric_suffix, timed
 
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
@@ -1005,6 +999,22 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             )
         return sql_
 
+    @contextmanager
+    def _timed_raw_connection(
+        self, engine_suffix: str, catalog: str | None, schema: str | None
+    ) -> Iterator[Any]:
+        """
+        Open a raw connection, timing the attempt even when it fails.
+
+        Only establishing the connection is timed, not the body that uses it.
+        """
+        with ExitStack() as stack:
+            with timed(f"database.connect.{engine_suffix}"):
+                conn = stack.enter_context(
+                    self.get_raw_connection(catalog=catalog, schema=schema)
+                )
+            yield conn
+
     def _execute_sql_with_mutation_and_logging(
         self,
         sql: str,
@@ -1040,11 +1050,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 )
 
         engine_suffix = metric_suffix(self.db_engine_spec.engine)
-        connect_start_ns = now_ns()
-        with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
-            emit_timing(
-                f"database.connect.{engine_suffix}", elapsed_ms(connect_start_ns)
-            )
+        with self._timed_raw_connection(
+            engine_suffix, catalog=catalog, schema=schema
+        ) as conn:
             cursor = conn.cursor()
             rows = None
             description = None
@@ -1135,15 +1143,17 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             sql, catalog, schema, fetch_last_result=True
         )
 
-        with timed(f"database.dataframe.{metric_suffix(self.db_engine_spec.engine)}"):
-            df = None
-            if rows is not None:
+        df = None
+        if rows is not None:
+            with timed(
+                f"database.dataframe.{metric_suffix(self.db_engine_spec.engine)}"
+            ):
                 df = self.load_into_dataframe(description, rows)
 
-            if mutator:
-                df = mutator(df)
+        if mutator:
+            df = mutator(df)
 
-            return self.post_process_df(df)
+        return self.post_process_df(df)
 
     @event_logger.log_this
     def fetch_rows(self, cursor: Any, last: bool) -> list[tuple[Any, ...]] | None:

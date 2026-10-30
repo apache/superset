@@ -1163,9 +1163,9 @@ def test_prequeries_execute_on_real_connections(
     with database.get_raw_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT name FROM sqlite_master WHERE name = 'prequery_marker'")
-        assert cursor.fetchone() is not None, (
-            "prequery did not run on the new connection"
-        )
+        assert (
+            cursor.fetchone() is not None
+        ), "prequery did not run on the new connection"
     assert _ENGINE_CACHE == {}
 
 
@@ -2432,6 +2432,46 @@ def test_get_df_emits_warehouse_phase_timers(mocker: MockerFixture) -> None:
         "database.fetch.sqlite",
         "database.dataframe.sqlite",
     ]
+
+
+def test_get_df_emits_connect_timer_when_connection_fails(
+    mocker: MockerFixture,
+) -> None:
+    """A failed connection attempt is still timed."""
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(database, "get_raw_connection", side_effect=OSError("down"))
+    stats_logger_manager = mocker.patch(
+        "superset.utils.timing_metrics.stats_logger_manager"
+    )
+
+    with pytest.raises(OSError):
+        database.get_df("SELECT 1")
+
+    timers = [
+        call.args[0] for call in stats_logger_manager.instance.timing.call_args_list
+    ]
+    assert timers == ["database.connect.sqlite"]
+
+
+def test_get_df_dataframe_timer_excludes_mutator(mocker: MockerFixture) -> None:
+    """The dataframe timer covers DataFrame construction only."""
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(
+        database,
+        "_execute_sql_with_mutation_and_logging",
+        return_value=(mocker.MagicMock(), [(1,)], [("value",)]),
+    )
+    mocker.patch.object(database, "load_into_dataframe", return_value=pd.DataFrame())
+    timed = mocker.patch("superset.models.core.timed")
+    seen_during_mutator: list[bool] = []
+
+    def mutator(df: pd.DataFrame) -> pd.DataFrame:
+        seen_during_mutator.append(timed.return_value.__exit__.called)
+        return df
+
+    database.get_df("SELECT 1", mutator=mutator)
+
+    assert seen_during_mutator == [True]
 
 
 def test_post_process_df_non_zero_based_index() -> None:
