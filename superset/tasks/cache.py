@@ -28,8 +28,9 @@ from sqlalchemy.orm import selectinload
 from superset import db, security_manager
 from superset.common.query_context import QueryContext
 from superset.daos.dashboard import DashboardDAO
-from superset.extensions import celery_app
-from superset.models.core import Log
+from superset.exceptions import SupersetSecurityException
+from superset.extensions import cache_manager, celery_app
+from superset.models.core import FavStar, FavStarClassName, Log
 from superset.models.dashboard import Dashboard
 from superset.tags.models import Tag, TaggedObject
 from superset.tasks.native_filter_cache import (
@@ -426,3 +427,99 @@ def cache_warmup(
         results,
     )
     return results
+
+
+def _get_favorite_dashboards(user_id: int, limit: int) -> list[Dashboard]:
+    """Return the user's most recently favorited dashboards, newest first."""
+    dashboard_ids: list[int] = [
+        row.obj_id
+        for row in db.session.query(FavStar.obj_id)
+        .filter(
+            FavStar.user_id == user_id,
+            FavStar.class_name == FavStarClassName.DASHBOARD,
+        )
+        .order_by(FavStar.dttm.desc())
+        .all()
+    ]
+    dashboards: list[Dashboard] = []
+    if not dashboard_ids:
+        return dashboards
+    by_id: dict[int, Dashboard] = {
+        dashboard.id: dashboard
+        for dashboard in db.session.query(Dashboard)
+        .options(selectinload(Dashboard.slices))
+        .filter(Dashboard.id.in_(dashboard_ids))
+        .all()
+    }
+    for dashboard_id in dashboard_ids:
+        if (dashboard := by_id.get(dashboard_id)) is None:
+            continue
+        try:
+            security_manager.raise_for_access(dashboard=dashboard)
+        except SupersetSecurityException:
+            continue
+        dashboards.append(dashboard)
+        if len(dashboards) >= limit:
+            break
+    return dashboards
+
+
+@celery_app.task(name="cache-warmup-user-favorites")
+def cache_warmup_user_favorites(user_id: int) -> dict[str, list[int]]:
+    """
+    Warm the cache for charts on a user's favorited dashboards.
+
+    Runs as the given user, since cache keys depend on the requesting user (row
+    level security, impersonation). Charts whose cached results are all present
+    are skipped; only missing or expired results are computed.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
+    from superset.utils.core import override_user
+
+    results: dict[str, list[int]] = {"success": [], "errors": []}
+    user: Any = security_manager.get_user_by_id(user_id)
+    if not user:
+        logger.warning("Login cache warm-up: user %s not found", user_id)
+        return results
+
+    limit: int = current_app.config["CACHE_WARMUP_ON_LOGIN_MAX_DASHBOARDS"]
+    with override_user(user, force=True):
+        for dashboard in _get_favorite_dashboards(user_id, limit):
+            for chart in dashboard.slices:
+                try:
+                    outcome: dict[str, Any] = ChartWarmUpCacheCommand(
+                        chart, dashboard.id, None, only_if_stale=True
+                    ).run(skip_disabled=True)
+                except Exception:  # noqa: BLE001
+                    logger.exception(
+                        "Error warming up chart %s on dashboard %s",
+                        chart.id,
+                        dashboard.id,
+                    )
+                    results["errors"].append(chart.id)
+                    continue
+                key: str = "errors" if outcome.get("viz_error") else "success"
+                results[key].append(chart.id)
+    return results
+
+
+def schedule_login_cache_warmup(user: Any) -> None:
+    """
+    Enqueue a cache warm-up of the user's favorited dashboards after login.
+
+    A no-op unless ``CACHE_WARMUP_ON_LOGIN`` is enabled. A per-user cooldown
+    (``CACHE_WARMUP_ON_LOGIN_COOLDOWN``) bounds how often logins can enqueue work.
+    Never raises, so a warm-up problem cannot affect the login.
+    """
+    if not current_app.config.get("CACHE_WARMUP_ON_LOGIN"):
+        return
+    try:
+        cooldown: int = current_app.config["CACHE_WARMUP_ON_LOGIN_COOLDOWN"]
+        if cooldown > 0 and not cache_manager.cache.add(
+            f"cache-warmup-login:{user.id}", 1, timeout=cooldown
+        ):
+            return
+        cache_warmup_user_favorites.delay(user.id)
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not schedule login cache warm-up")

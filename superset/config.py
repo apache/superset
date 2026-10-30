@@ -1476,6 +1476,20 @@ SUPERSET_CACHE_WARMUP_USER: str | None = None
 # - Cascade/dependent filters and search-term variants are not warmed in this
 #   version; only base option queries are supported.
 
+# Warm the cache for a user's favorited dashboards right after they log in.
+# An asynchronous Celery task runs as the logging-in user and, for each chart on
+# their most recently favorited dashboards, computes only the query results that
+# are missing or expired in DATA_CACHE_CONFIG; charts that are already cached are
+# skipped. Login is never blocked. Requires a Celery worker and a real
+# DATA_CACHE_CONFIG backend (with NullCache every login would recompute).
+CACHE_WARMUP_ON_LOGIN = False
+# Maximum number of favorited dashboards (most recently favorited first) warmed
+# per login.
+CACHE_WARMUP_ON_LOGIN_MAX_DASHBOARDS = 5
+# Minimum seconds between login warm-ups for the same user, uses CACHE_CONFIG.
+# Set to 0 to disable the cooldown.
+CACHE_WARMUP_ON_LOGIN_COOLDOWN = int(timedelta(hours=1).total_seconds())
+
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.
 SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())

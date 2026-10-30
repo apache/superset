@@ -26,8 +26,9 @@ from superset.commands.chart.exceptions import (
     WarmUpCacheChartNotFoundError,
 )
 from superset.common.db_query_status import QueryStatus
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import db, security_manager
+from superset.extensions import cache_manager, db, security_manager
 from superset.models.slice import Slice
 from superset.semantic_layers.access import (
     is_semantic_layers_enabled,
@@ -44,10 +45,14 @@ class ChartWarmUpCacheCommand(BaseCommand):
         chart_or_id: Union[int, Slice],
         dashboard_id: Optional[int],
         extra_filters: Optional[str],
+        only_if_stale: bool = False,
     ):
         self._chart_or_id = chart_or_id
         self._dashboard_id = dashboard_id
         self._extra_filters = extra_filters
+        # When set, charts whose query results are all cached are left untouched
+        # and missing results are computed without bypassing the cache.
+        self._only_if_stale = only_if_stale
 
     def _get_dashboard_filters(self, chart_id: int) -> list[dict[str, Any]]:
         """Retrieve dashboard filters from extra_filters or dashboard metadata."""
@@ -58,6 +63,18 @@ class ChartWarmUpCacheCommand(BaseCommand):
             return json.loads(self._extra_filters)
 
         return get_dashboard_extra_filters(chart_id, self._dashboard_id)
+
+    @staticmethod
+    def _is_fully_cached(query_context: Any) -> bool:
+        """Return whether every query of the context has an unexpired cache entry."""
+        if query_context.get_cache_timeout() == CACHE_DISABLED_TIMEOUT:
+            # Results are never stored, so there is nothing to warm.
+            return True
+        for query in query_context.queries:
+            cache_key = query_context.query_cache_key(query)
+            if not cache_key or cache_manager.data_cache.get(cache_key) is None:
+                return False
+        return True
 
     def _warm_up_non_legacy_cache(self, chart: Slice) -> tuple[Any, Any]:
         """Warm up cache for non-legacy visualizations."""
@@ -77,7 +94,11 @@ class ChartWarmUpCacheCommand(BaseCommand):
                     + query.filter
                 )
 
-        query_context.force = True
+        if self._only_if_stale:
+            if self._is_fully_cached(query_context):
+                return None, QueryStatus.SUCCESS
+        else:
+            query_context.force = True
         command = ChartDataCommand(query_context)
         command.validate()
         payload = command.run()

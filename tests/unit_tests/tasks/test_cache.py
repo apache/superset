@@ -68,7 +68,9 @@ def test_cache_warmup_user_not_found(app_context: None) -> None:
             "superset.tasks.cache.current_app",
             _fake_app({"SUPERSET_CACHE_WARMUP_USER": "bot"}),
         ),
-        mock.patch("superset.tasks.cache.security_manager") as mock_sm,
+        mock.patch(
+            "superset.tasks.cache.security_manager", new_callable=mock.MagicMock
+        ) as mock_sm,
         mock.patch("superset.tasks.cache.WebDriverPlaywright") as mock_wd,
     ):
         mock_sm.find_user = mock.MagicMock(return_value=None)
@@ -92,7 +94,9 @@ def test_cache_warmup_happy_path(app_context: None) -> None:
             "superset.tasks.cache.current_app",
             _fake_app({"SUPERSET_CACHE_WARMUP_USER": "bot"}),
         ),
-        mock.patch("superset.tasks.cache.security_manager") as mock_sm,
+        mock.patch(
+            "superset.tasks.cache.security_manager", new_callable=mock.MagicMock
+        ) as mock_sm,
         mock.patch("superset.tasks.cache.WebDriverPlaywright") as mock_wd,
         mock.patch("superset.tasks.cache.DummyStrategy.get_urls", return_value=urls),
     ):
@@ -120,7 +124,9 @@ def test_cache_warmup_treats_none_screenshot_as_error(app_context: None) -> None
             "superset.tasks.cache.current_app",
             _fake_app({"SUPERSET_CACHE_WARMUP_USER": "bot"}),
         ),
-        mock.patch("superset.tasks.cache.security_manager") as mock_sm,
+        mock.patch(
+            "superset.tasks.cache.security_manager", new_callable=mock.MagicMock
+        ) as mock_sm,
         mock.patch("superset.tasks.cache.WebDriverPlaywright") as mock_wd,
         mock.patch("superset.tasks.cache.DummyStrategy.get_urls", return_value=urls),
     ):
@@ -152,7 +158,9 @@ def test_cache_warmup_collects_errors_and_destroys(app_context: None) -> None:
             "superset.tasks.cache.current_app",
             _fake_app({"SUPERSET_CACHE_WARMUP_USER": "bot"}),
         ),
-        mock.patch("superset.tasks.cache.security_manager") as mock_sm,
+        mock.patch(
+            "superset.tasks.cache.security_manager", new_callable=mock.MagicMock
+        ) as mock_sm,
         mock.patch("superset.tasks.cache.WebDriverPlaywright") as mock_wd,
         mock.patch("superset.tasks.cache.DummyStrategy.get_urls", return_value=urls),
     ):
@@ -429,3 +437,125 @@ def test_native_filter_options_strategy_registered() -> None:
     from superset.tasks.cache import NativeFilterOptionsStrategy, strategy_registry
 
     assert strategy_registry["native_filter_options"] is NativeFilterOptionsStrategy
+
+
+def test_schedule_login_warmup_flag_off(app_context: None) -> None:
+    """With the setting disabled nothing is enqueued."""
+    from superset.tasks.cache import schedule_login_cache_warmup
+
+    with (
+        mock.patch(
+            "superset.tasks.cache.current_app",
+            _fake_app({"CACHE_WARMUP_ON_LOGIN": False}),
+        ),
+        mock.patch("superset.tasks.cache.cache_warmup_user_favorites") as task,
+    ):
+        schedule_login_cache_warmup(mock.MagicMock(id=1))
+
+    task.delay.assert_not_called()
+
+
+def test_schedule_login_warmup_enqueues_once_per_cooldown(app_context: None) -> None:
+    """The first login enqueues; a login inside the cooldown does not."""
+    from superset.tasks.cache import schedule_login_cache_warmup
+
+    config = {"CACHE_WARMUP_ON_LOGIN": True, "CACHE_WARMUP_ON_LOGIN_COOLDOWN": 60}
+    with (
+        mock.patch("superset.tasks.cache.current_app", _fake_app(config)),
+        mock.patch("superset.tasks.cache.cache_manager") as cm,
+        mock.patch("superset.tasks.cache.cache_warmup_user_favorites") as task,
+    ):
+        cm.cache.add.return_value = True
+        schedule_login_cache_warmup(mock.MagicMock(id=7))
+        cm.cache.add.return_value = False
+        schedule_login_cache_warmup(mock.MagicMock(id=7))
+
+    task.delay.assert_called_once_with(7)
+
+
+def test_schedule_login_warmup_swallows_errors(app_context: None) -> None:
+    """A broker failure must not propagate into the login flow."""
+    from superset.tasks.cache import schedule_login_cache_warmup
+
+    config = {"CACHE_WARMUP_ON_LOGIN": True, "CACHE_WARMUP_ON_LOGIN_COOLDOWN": 0}
+    with (
+        mock.patch("superset.tasks.cache.current_app", _fake_app(config)),
+        mock.patch("superset.tasks.cache.cache_warmup_user_favorites") as task,
+    ):
+        task.delay.side_effect = RuntimeError("broker down")
+        schedule_login_cache_warmup(mock.MagicMock(id=7))
+
+
+def test_user_favorites_task_warms_stale_charts_only(app_context: None) -> None:
+    """Every favorited chart goes through the stale-only command, capped by config."""
+    from superset.tasks.cache import cache_warmup_user_favorites
+
+    chart_a, chart_b = mock.MagicMock(id=1), mock.MagicMock(id=2)
+    dashboard = mock.MagicMock(id=10, slices=[chart_a, chart_b])
+    config = {"CACHE_WARMUP_ON_LOGIN_MAX_DASHBOARDS": 3}
+    with (
+        mock.patch("superset.tasks.cache.current_app", _fake_app(config)),
+        mock.patch(
+            "superset.tasks.cache.security_manager", new_callable=mock.MagicMock
+        ),
+        mock.patch(
+            "superset.tasks.cache._get_favorite_dashboards", return_value=[dashboard]
+        ) as favs,
+        mock.patch(
+            "superset.commands.chart.warm_up_cache.ChartWarmUpCacheCommand"
+        ) as command,
+    ):
+        command.return_value.run.side_effect = [
+            {"chart_id": 1, "viz_error": None},
+            {"chart_id": 2, "viz_error": "boom"},
+        ]
+        result = cache_warmup_user_favorites(5)
+
+    favs.assert_called_once_with(5, 3)
+    command.assert_any_call(chart_a, 10, None, only_if_stale=True)
+    assert result == {"success": [1], "errors": [2]}
+
+
+def test_user_favorites_task_unknown_user(app_context: None) -> None:
+    from superset.tasks.cache import cache_warmup_user_favorites
+
+    with (
+        mock.patch(
+            "superset.tasks.cache.security_manager", new_callable=mock.MagicMock
+        ) as sm,
+        mock.patch("superset.tasks.cache._get_favorite_dashboards") as favs,
+    ):
+        sm.get_user_by_id.return_value = None
+        assert cache_warmup_user_favorites(99) == {"success": [], "errors": []}
+    favs.assert_not_called()
+
+
+def test_get_favorite_dashboards_order_cap_and_access(app_context: None) -> None:
+    """Newest favorites first, inaccessible dashboards skipped, capped at limit."""
+    from superset.exceptions import SupersetSecurityException
+    from superset.tasks.cache import _get_favorite_dashboards
+
+    dashboards = {i: mock.MagicMock(id=i) for i in (1, 2, 3, 4)}
+
+    def raise_for_access(dashboard: Any) -> None:
+        if dashboard.id == 2:
+            raise SupersetSecurityException(mock.MagicMock())
+
+    with (
+        mock.patch("superset.tasks.cache.db") as db,
+        mock.patch(
+            "superset.tasks.cache.security_manager", new_callable=mock.MagicMock
+        ) as sm,
+    ):
+        sm.raise_for_access.side_effect = raise_for_access
+        query = db.session.query.return_value
+        # Favorites query (newest first), then dashboards lookup.
+        query.filter.return_value.order_by.return_value.all.return_value = [
+            mock.MagicMock(obj_id=i) for i in (3, 2, 1, 4)
+        ]
+        query.options.return_value.filter.return_value.all.return_value = list(
+            dashboards.values()
+        )
+        result = _get_favorite_dashboards(5, 2)
+
+    assert [d.id for d in result] == [3, 1]

@@ -282,6 +282,30 @@ Requirements and limitations:
 - Cascading/dependent native filters and search-term variants of filter option queries are not
   warmed by this strategy.
 
+### Warming Up Favorited Dashboards on Login
+
+Superset can warm the cache for a user's favorited dashboards when they log in. It is off by
+default:
+
+```python
+CACHE_WARMUP_ON_LOGIN = True
+CACHE_WARMUP_ON_LOGIN_MAX_DASHBOARDS = 5  # most recently favorited dashboards per login
+CACHE_WARMUP_ON_LOGIN_COOLDOWN = 3600  # seconds between warm-ups for the same user; 0 disables
+```
+
+After a successful login, a Celery task runs as that user and checks every chart on their
+favorited dashboards. Only charts whose query results are missing or expired are computed;
+charts that are already cached are skipped. Login itself is never delayed by this work.
+
+Requirements:
+
+- A Celery worker, and a real `DATA_CACHE_CONFIG` backend (with `NullCache` nothing can be
+  found in the cache, so every login would recompute).
+- The cooldown is tracked in `CACHE_CONFIG`.
+- The task runs with the logging-in user's permissions, so the cache entries match what that
+  user's dashboards request. Dashboard default filters are not applied, so charts whose
+  dashboard load uses different filters may still miss the cache.
+
 ## Caching Thumbnails
 
 This is an optional feature that can be turned on by activating its [feature flag](/admin-docs/configuration/configuring-superset#feature-flags) on config:
