@@ -24,9 +24,8 @@ from superset import db, is_feature_enabled, security_manager
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.commands.database.utils import (
     add_permissions,
-    engine_params_changed,
+    import_connection_identity_changed,
     ssh_tunnel_rebind_unsafe,
-    uri_identity_changed,
 )
 from superset.commands.exceptions import ImportFailedError
 from superset.constants import EMBEDDED_CREDENTIALS_KEY, PASSWORD_MASK
@@ -49,23 +48,6 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-def _connection_identity_changed(existing: Database, config: dict[str, Any]) -> bool:
-    """Whether the import points the database at a different endpoint."""
-    if uri_identity_changed(existing.sqlalchemy_uri, config.get("sqlalchemy_uri")):
-        return True
-
-    # The URI's host/port aren't the whole story: `extra.engine_params`
-    # (e.g. `connect_args.host`/`port`) is merged into the actual DBAPI
-    # connect kwargs and can override them. An import that opens a live
-    # connection (`add_permissions` -> `get_all_catalog_names`) with a
-    # rehydrated stored password must not do so against a destination this
-    # field silently redirected.
-    submitted_extra = config.get("extra")
-    if isinstance(submitted_extra, dict):
-        submitted_extra = json.dumps(submitted_extra)
-    return engine_params_changed(existing.extra, submitted_extra)
-
-
 def _refuse_stored_secret_reuse(existing: Database, config: dict[str, Any]) -> None:
     """
     Refuse an overwrite that changes the connection endpoint without fresh
@@ -76,7 +58,7 @@ def _refuse_stored_secret_reuse(existing: Database, config: dict[str, Any]) -> N
     host while the stored password (or SSH tunnel key) is silently kept: the
     next connection would hand the real credential to the new endpoint.
     """
-    if _connection_identity_changed(existing, config):
+    if import_connection_identity_changed(existing, config):
         try:
             uri_password = make_url_safe(config["sqlalchemy_uri"]).password
         except DatabaseInvalidError:
@@ -219,7 +201,7 @@ def import_database(  # noqa: C901
         if (
             existing
             and existing.encrypted_extra
-            and not _connection_identity_changed(existing, config)
+            and not import_connection_identity_changed(existing, config)
         ):
             old_config = json.loads(existing.encrypted_extra)
             new_config = json.loads(masked_encrypted_extra)

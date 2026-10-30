@@ -378,7 +378,9 @@ def unrevealable_masked_fields(
     :func:`reveal_sensitive` swaps a mask back for the stored value at the same
     path. Where the stored payload has no value there, the mask would be kept and
     stored as if it were the secret, so callers that must not do that (imports
-    overwriting a connection) use this to ask for the real value instead.
+    overwriting a connection) use this to ask for the real value instead. A
+    stored mask counts as no value: earlier releases saved one when an import
+    had nothing to reveal, and revealing it only hands the mask back.
 
     :param old_payload: The stored payload, if any
     :param new_payload: The incoming payload, possibly containing masks
@@ -389,7 +391,10 @@ def unrevealable_masked_fields(
         field
         for field in get_masked_fields(new_payload, sensitive_fields)
         if old_payload is None
-        or not any(match.value for match in parse(field).find(old_payload))
+        or not any(
+            match.value and match.value != PASSWORD_MASK
+            for match in parse(field).find(old_payload)
+        )
     ]
 
 

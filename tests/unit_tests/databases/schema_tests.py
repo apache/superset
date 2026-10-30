@@ -23,6 +23,7 @@ import pytest
 from marshmallow import fields, Schema, ValidationError
 from pytest_mock import MockerFixture
 
+from superset.constants import PASSWORD_MASK
 from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 
@@ -812,6 +813,8 @@ def test_import_schema_allows_masked_fields_for_existing_db(
     mock_existing_db.encrypted_extra = json.dumps(
         {"credentials_info": {"private_key": "stored-key"}}
     )
+    mock_existing_db.sqlalchemy_uri = "bigquery://test/"
+    mock_existing_db.extra = "{}"
     mock_session = mocker.patch("superset.databases.schemas.db.session")
     mock_session.query.return_value.filter_by.return_value.first.return_value = (
         mock_existing_db
@@ -830,6 +833,74 @@ def test_import_schema_allows_masked_fields_for_existing_db(
     }
     # Should not raise - masked values are allowed for existing DBs
     schema.load(config)
+
+
+def _existing_bigquery_db(mocker: MockerFixture, private_key: str) -> None:
+    """Make the import schema find an existing BigQuery connection."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    existing = mocker.MagicMock()
+    existing.db_engine_spec = BigQueryEngineSpec
+    existing.encrypted_extra = json.dumps(
+        {"credentials_info": {"private_key": private_key}}
+    )
+    existing.sqlalchemy_uri = "bigquery://test/"
+    existing.extra = "{}"
+    mock_session = mocker.patch("superset.databases.schemas.db.session")
+    mock_session.query.return_value.filter_by.return_value.first.return_value = existing
+
+
+def _masked_bigquery_import(sqlalchemy_uri: str = "bigquery://test/") -> dict[str, Any]:
+    return {
+        "database_name": "test_db",
+        "sqlalchemy_uri": sqlalchemy_uri,
+        "uuid": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+        "masked_encrypted_extra": json.dumps(
+            {"credentials_info": {"private_key": PASSWORD_MASK}}
+        ),
+        "extra": {},
+        "version": "1.0.0",
+    }
+
+
+def test_import_schema_asks_for_a_secret_stored_as_the_mask(
+    mock_bq_engine: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    An overwrite import asks for a secret whose stored value is the mask itself.
+
+    Releases before this one saved the mask when an overwrite import had nothing
+    to reveal. Revealing it hands the mask back, so without asking here the
+    import reaches the ``import_database`` backstop and fails with a 500.
+    """
+    from superset.databases.schemas import ImportV1DatabaseSchema
+
+    _existing_bigquery_db(mocker, private_key=PASSWORD_MASK)
+
+    with pytest.raises(ValidationError) as excinfo:
+        ImportV1DatabaseSchema().load(_masked_bigquery_import())
+    assert "$.credentials_info.private_key" in str(excinfo.value)
+
+
+def test_import_schema_asks_for_secrets_when_the_connection_moves(
+    mock_bq_engine: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    An overwrite import that changes where the connection points asks for every
+    masked secret: ``import_database`` never reveals stored secrets onto a new
+    destination, so it would otherwise store the mask and fail with a 500.
+    """
+    from superset.databases.schemas import ImportV1DatabaseSchema
+
+    _existing_bigquery_db(mocker, private_key="stored-key")
+
+    with pytest.raises(ValidationError) as excinfo:
+        ImportV1DatabaseSchema().load(
+            _masked_bigquery_import(sqlalchemy_uri="bigquery://other-project/")
+        )
+    assert "$.credentials_info.private_key" in str(excinfo.value)
 
 
 def test_ssh_tunnel_server_address_rejects_non_hostnames() -> None:
