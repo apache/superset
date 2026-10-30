@@ -259,3 +259,19 @@ def test_rolls_back_session_whatever_the_error(
             schema="public",
         ) == ["rls-predicate-parse-failed-for-user-42"]
         mock_db.session.rollback.assert_called_once()
+
+
+def test_schema_resolution_failure_rolls_back_and_scopes_the_key(
+    mock_database: MagicMock,
+) -> None:
+    """A schema lookup outage uses the guarded, per-viewer fallback."""
+    mock_database.get_default_schema.side_effect = ConnectionError("unreachable")
+    with (
+        patch("superset.utils.rls.get_user_id", return_value=42),
+        patch("superset.utils.rls.db") as mock_db,
+    ):
+        assert collect_rls_predicates_for_sql(
+            "SELECT * FROM t", mock_database, catalog=None, schema=None
+        ) == ["rls-predicate-parse-failed-for-user-42"]
+        mock_database.get_default_schema.assert_called_once_with(None)
+        mock_db.session.rollback.assert_called_once()

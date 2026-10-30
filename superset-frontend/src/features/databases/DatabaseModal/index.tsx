@@ -199,7 +199,6 @@ export type DBReducerActionType =
       type:
         | ActionType.ExtraEditorChange
         | ActionType.ExtraInputChange
-        | ActionType.EncryptedExtraInputChange
         | ActionType.ClearEncryptedExtraKey
         | ActionType.TextChange
         | ActionType.QueryChange
@@ -208,6 +207,14 @@ export type DBReducerActionType =
         | ActionType.ParametersChange
         | ActionType.ParametersSSHTunnelChange;
       payload: DBReducerPayloadType;
+    }
+  | {
+      // Nested Secure Extra blocks (e.g. `embedded_credentials`) carry an
+      // object rather than a string.
+      type: ActionType.EncryptedExtraInputChange;
+      payload: Omit<DBReducerPayloadType, 'value'> & {
+        value?: string | Record<string, string>;
+      };
     }
   | {
       type: ActionType.Fetched;

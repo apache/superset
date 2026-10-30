@@ -36,7 +36,6 @@ from contextlib import (
     suppress,
 )
 from copy import deepcopy
-from datetime import datetime
 from functools import lru_cache
 from inspect import signature
 from typing import (
@@ -112,6 +111,7 @@ from superset.utils import cache as cache_util, core as utils, json
 from superset.utils.backports import StrEnum
 from superset.utils.core import get_query_source_from_request, get_username
 from superset.utils.database import find_user_for_impersonation
+from superset.utils.dates import naive_utcnow
 from superset.utils.oauth2 import (
     check_for_oauth2,
     execute_with_oauth2_retry,
@@ -551,7 +551,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         try:
             engine_information = self.db_engine_spec.get_public_information()
         except Exception:  # pylint: disable=broad-except
-            engine_information = {}
+            return {}
+        try:
+            engine_information["oauth2_enabled"] = self.is_oauth2_enabled()
+        except Exception:  # pylint: disable=broad-except
+            engine_information["oauth2_enabled"] = False
         return engine_information
 
     @classmethod
@@ -1353,13 +1357,14 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         """
         script = SQLScript(sql, self.db_engine_spec.engine)
         statement = script.statements[-1]
+        limit_method = self.db_engine_spec.get_limit_method(self)
         if force or (
             self.db_engine_spec.engine == "mssql"
             and statement.get_limit_value() is None
         ):
-            statement.set_limit_value(limit, self.db_engine_spec.limit_method)
+            statement.set_limit_value(limit, limit_method)
         else:
-            statement.cap_limit_value(limit, self.db_engine_spec.limit_method)
+            statement.cap_limit_value(limit, limit_method)
 
         return script.format()
 
@@ -1916,7 +1921,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         try:
             client_config = self.get_oauth2_config()
         except ValidationError:
-            logger.warning("Invalid OAuth2 client configuration for database %s", self)
+            logger.warning(
+                "Invalid OAuth2 client configuration for database %s",
+                self.database_name,
+            )
             client_config = None
 
         return client_config is not None or self.db_engine_spec.is_oauth2_enabled()
@@ -2053,6 +2061,7 @@ class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):
     __tablename__ = "database_user_oauth2_tokens"
     __table_args__ = (
         sqla.Index("idx_user_id_database_id", "user_id", "database_id", unique=True),
+        sqla.Index("idx_oauth2_tokens_database_id", "database_id"),
     )
 
     id = Column(Integer, primary_key=True)
@@ -2090,7 +2099,7 @@ class Log(Model):  # pylint: disable=too-few-public-methods
     user = relationship(
         security_manager.user_model, backref="logs", foreign_keys=[user_id]
     )
-    dttm = Column(DateTime, default=datetime.utcnow)
+    dttm = Column(DateTime, default=naive_utcnow)
     duration_ms = Column(Integer)
     referrer = Column(String(1024))
 
@@ -2107,4 +2116,4 @@ class FavStar(UUIDMixin, Model):
     user_id = Column(Integer, ForeignKey("ab_user.id"))
     class_name = Column(String(50))
     obj_id = Column(Integer)
-    dttm = Column(DateTime, default=datetime.utcnow)
+    dttm = Column(DateTime, default=naive_utcnow)

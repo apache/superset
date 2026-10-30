@@ -24,11 +24,12 @@ from superset.commands.base import BaseCommand
 from superset.commands.chart.exceptions import (
     ChartDataCacheLoadError,
     ChartDataQueryFailedError,
+    ChartDataQueryValidationError,
 )
 from superset.common.chart_data import ChartDataResultType
 from superset.common.chart_data_timing import ChartDataExecutionResult
 from superset.common.query_context import QueryContext
-from superset.exceptions import CacheLoadError
+from superset.exceptions import CacheLoadError, QueryObjectValidationMessage
 
 logger = logging.getLogger(__name__)
 
@@ -73,16 +74,8 @@ class ChartDataCommand(BaseCommand):
         except SQLAlchemyError as ex:
             raise self._query_failed(ex) from ex
 
-        # Skip error check for query-only requests - errors are returned in payload
-        # This allows View Query modal to display validation errors
         for query in payload["queries"]:
-            if (
-                query.get("error")
-                and self._query_context.result_type != ChartDataResultType.QUERY
-            ):
-                raise ChartDataQueryFailedError(
-                    _("Error: %(error)s", error=query["error"])
-                )
+            self._raise_for_query_error(query)
 
         return_value = {
             "query_context": self._query_context,
@@ -108,19 +101,29 @@ class ChartDataCommand(BaseCommand):
             raise self._query_failed(ex) from ex
 
         for query in result.queries:
-            if (
-                query.payload.get("error")
-                and self._query_context.result_type != ChartDataResultType.QUERY
-            ):
-                raise ChartDataQueryFailedError(
-                    _("Error: %(error)s", error=query.payload["error"])
-                )
+            self._raise_for_query_error(query.payload)
 
         return ChartDataExecutionResult(
             query_context=self._query_context,
             queries=result.queries,
             cache_key=result.cache_key,
         )
+
+    def _raise_for_query_error(self, query: dict[str, Any]) -> None:
+        """
+        Raise a failed query's error, keeping validation failures typed.
+
+        Query-only requests return errors in the payload instead, so the View
+        Query modal can display validation errors. A validation failure arrives
+        as a ``QueryObjectValidationMessage`` recorded by the query processor.
+        """
+        error = query.get("error")
+        if not error or self._query_context.result_type == ChartDataResultType.QUERY:
+            return
+        message = _("Error: %(error)s", error=error)
+        if isinstance(error, QueryObjectValidationMessage):
+            raise ChartDataQueryValidationError(message) from error.cause
+        raise ChartDataQueryFailedError(message)
 
     def validate(self) -> None:
         self._query_context.raise_for_access()
