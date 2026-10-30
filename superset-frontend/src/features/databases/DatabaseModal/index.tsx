@@ -1547,7 +1547,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       // because it shouldn't change when the form is updated
       setDbName(dbFetched.database_name);
     }
-  }, [dbFetched, isEditMode]);
+    // Apply each fetched resource once; mode changes must not restore a closed edit.
+  }, [dbFetched]);
 
   useEffect(() => {
     if (isLoading) {

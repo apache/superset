@@ -19,6 +19,7 @@
 
 // TODO: These tests should be made atomic in separate files
 
+import { useState } from 'react';
 import fetchMock from 'fetch-mock';
 import {
   render,
@@ -337,6 +338,100 @@ describe('DatabaseModal', () => {
     render(<DatabaseModal {...dbProps} {...propsOverwrite} />, {
       useRedux: true,
     });
+
+  test('closing edit then creating a database starts at the picker and never updates the old connection', async () => {
+    const resourceHook = jest.spyOn(hooks, 'useSingleViewResource');
+    const previousImplementation = resourceHook.getMockImplementation()!;
+    resourceHook.mockImplementation(realUseSingleViewResource);
+    fetchMock.get('glob:*/api/v1/database/10/connection', {
+      result: {
+        id: 10,
+        database_name: 'Existing connection',
+        backend: 'sqlite',
+        configuration_method: ConfigurationMethod.SqlalchemyUri,
+        sqlalchemy_uri: 'sqlite:///existing.db',
+      },
+    });
+    fetchMock.put(DATABASE_FETCH_ENDPOINT, { result: { id: 10 } });
+    fetchMock.post('glob:*/api/v1/database/test_connection/', {
+      message: 'OK',
+    });
+    const Harness = () => {
+      const [show, setShow] = useState(true);
+      const [databaseId, setDatabaseId] = useState<number | undefined>(10);
+      return (
+        <>
+          <button type="button" onClick={() => setShow(true)}>
+            + Database
+          </button>
+          <DatabaseModal
+            show={show}
+            databaseId={databaseId}
+            onHide={() => {
+              setShow(false);
+              setDatabaseId(undefined);
+            }}
+          />
+        </>
+      );
+    };
+    try {
+      render(<Harness />, { useRedux: true });
+      expect(
+        await screen.findByDisplayValue('Existing connection'),
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getAllByLabelText('Close')[0]);
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+      );
+      await userEvent.click(screen.getByRole('button', { name: '+ Database' }));
+      await screen.findByRole('dialog');
+      const picker = screen.queryByRole('heading', {
+        name: /select a database to connect/i,
+      });
+      // Exercise saving even if stale state incorrectly skips the picker.
+      if (picker) {
+        await userEvent.click(
+          await screen.findByRole('button', { name: /sqlite/i }),
+        );
+      }
+      fireEvent.change(await screen.findByTestId('database-name-input'), {
+        target: { value: 'My new sandbox' },
+      });
+      fireEvent.change(screen.getByTestId('sqlalchemy-uri-input'), {
+        target: { value: 'sqlite:///sandbox.db' },
+      });
+      await userEvent.click(
+        screen.getByRole('button', { name: /test connection/i }),
+      );
+      const connect = screen.getByRole('button', { name: 'Connect' });
+      await waitFor(() => expect(connect).toBeEnabled());
+      await userEvent.click(connect);
+      await waitFor(() =>
+        expect(
+          fetchMock.callHistory.calls(DATABASE_CONNECT_ENDPOINT).length +
+            fetchMock.callHistory.calls(DATABASE_FETCH_ENDPOINT, {
+              method: 'PUT',
+            }).length,
+        ).toBeGreaterThan(0),
+      );
+      expect(
+        fetchMock.callHistory.calls(DATABASE_FETCH_ENDPOINT, { method: 'PUT' }),
+      ).toHaveLength(0);
+      expect(picker).not.toBeNull();
+      expect(
+        fetchMock.callHistory.calls(DATABASE_CONNECT_ENDPOINT),
+      ).toHaveLength(1);
+      expect(
+        JSON.parse(
+          fetchMock.callHistory.lastCall(DATABASE_CONNECT_ENDPOINT)!.options
+            .body as string,
+        ),
+      ).not.toHaveProperty('id');
+    } finally {
+      resourceHook.mockImplementation(previousImplementation);
+    }
+  });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Visual: New database connection', () => {
