@@ -3922,10 +3922,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         if not (session := object_session(target)):
             return
+        loaded_ids = [
+            key[1][0]
+            for key in session.identity_map.keys()
+            if issubclass(key[0], SqlaTable)
+        ]
+        if not loaded_ids:
+            return
         sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
         rows = connection.execute(
             select(sqlatable_table.c.id, sqlatable_table.c.perm).where(
-                sqlatable_table.c.database_id == target.id
+                sqlatable_table.c.database_id == target.id,
+                sqlatable_table.c.id.in_(loaded_ids),
             )
         )
         for row in rows:

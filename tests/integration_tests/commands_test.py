@@ -26,7 +26,9 @@ from superset import db
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.assets import ImportAssetsCommand
 from superset.commands.importers.v1.utils import is_valid_config
+from superset.connectors.sqla.models import SqlaTable
 from superset.models.annotations import Annotation, AnnotationLayer
+from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json
@@ -142,20 +144,19 @@ class TestImportAssetsCommand(SupersetTestCase):
                 }
             ).run()
 
-        import_bundle(dataset_config)
-        import_bundle(
-            {
-                **dataset_config,
-                "table_name": "imported_dataset_renamed",
-                "schema": "renamed_schema",
-            }
-        )
-
-        db.session.expire_all()
-        chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
-        dataset = chart.table
-        database = dataset.database
         try:
+            import_bundle(dataset_config)
+            import_bundle(
+                {
+                    **dataset_config,
+                    "table_name": "imported_dataset_renamed",
+                    "schema": "renamed_schema",
+                }
+            )
+
+            db.session.expire_all()
+            chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
+            dataset = chart.table
             assert dataset.perm == (
                 f"[imported_database].[imported_dataset_renamed](id:{dataset.id})"
             )
@@ -165,9 +166,14 @@ class TestImportAssetsCommand(SupersetTestCase):
             assert chart.perm == dataset.perm
             assert chart.schema_perm == dataset.schema_perm
         finally:
-            db.session.delete(chart)
-            db.session.delete(dataset)
-            db.session.delete(database)
+            db.session.rollback()
+            for model, uuid in (
+                (Slice, chart_config["uuid"]),
+                (SqlaTable, dataset_config["uuid"]),
+                (Database, database_config["uuid"]),
+            ):
+                if obj := db.session.query(model).filter_by(uuid=uuid).one_or_none():
+                    db.session.delete(obj)
             db.session.commit()
 
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
