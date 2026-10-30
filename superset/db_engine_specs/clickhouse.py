@@ -26,9 +26,9 @@ from flask import current_app as app, has_app_context
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
-from sqlalchemy import func, types
+from sqlalchemy import column, func, types
 from sqlalchemy.engine.url import URL
-from sqlalchemy.sql.expression import ColumnElement
+from sqlalchemy.sql.expression import ColumnClause, ColumnElement, Label
 from urllib3.exceptions import NewConnectionError
 
 from superset.databases.utils import make_url_safe
@@ -42,6 +42,7 @@ from superset.db_engine_specs.base import (
 from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.extensions import cache_manager
+from superset.superset_typing import ResultSetColumnType
 from superset.utils.core import GenericDataType
 from superset.utils.network import is_hostname_valid, is_port_open
 
@@ -49,6 +50,22 @@ if TYPE_CHECKING:
     from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
+
+
+class AggregateFunctionState(types.UserDefinedType):
+    cache_ok = True
+
+    def get_col_spec(self, **kw: Any) -> str:
+        return "AggregateFunction"
+
+    def coerce_compared_value(self, op: Any, value: Any) -> types.TypeEngine[Any]:
+        return types.NullType().coerce_compared_value(op, value)
+
+    def column_expression(self, colexpr: ColumnElement) -> ColumnElement:
+        element = colexpr.element if isinstance(colexpr, Label) else colexpr
+        if isinstance(element, ColumnClause) and not element.is_literal:
+            return func.finalizeAggregation(colexpr)
+        return colexpr
 
 
 class ClickHouseBaseEngineSpec(BaseEngineSpec):
@@ -133,6 +150,11 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
     }
 
     column_type_mappings = (
+        (
+            re.compile(r"^AggregateFunction\b", re.IGNORECASE),
+            AggregateFunctionState(),
+            GenericDataType.NUMERIC,
+        ),
         (
             # Anchor to the start so only top-level arrays match. This must be
             # ordered before the ``Enum`` entry below: ``Array(Enum8(...))`` is a
@@ -235,6 +257,19 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
             inner = wrapper.group("inner").strip()
         spec = cls.get_column_spec(inner)
         return spec.generic_type if spec else None
+
+    @classmethod
+    def _get_fields(cls, cols: list[ResultSetColumnType]) -> list[Any]:
+        return [
+            column(col["column_name"], type_=AggregateFunctionState()).label(
+                col["column_name"]
+            )
+            if isinstance(
+                cls.get_sqla_column_type(str(col["type"])), AggregateFunctionState
+            )
+            else field
+            for col, field in zip(cols, super()._get_fields(cols), strict=True)
+        ]
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
