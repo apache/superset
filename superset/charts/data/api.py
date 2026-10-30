@@ -27,6 +27,7 @@ from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from flask_caching.backends import NullCache
 from marshmallow import ValidationError
+from sqlalchemy.exc import DBAPIError
 from werkzeug.utils import secure_filename
 
 from superset import is_feature_enabled, security_manager
@@ -699,6 +700,18 @@ class ChartDataRestApi(ChartRestApi):
             QueryObjectValidationError,
         ) as exc:
             return self.response_400(message=sanitize_error_message(exc.message))
+        except DBAPIError:
+            # Query execution failures are wrapped as ChartDataQueryFailedError, so a
+            # raw DBAPIError here comes from acquiring a connection outside query
+            # execution (e.g. dialect initialization while computing the cache key).
+            logger.warning(
+                "Database error while acquiring chart data payload", exc_info=True
+            )
+            return self.response_422(
+                message=sanitize_error_message(
+                    _("There was an error connecting to the database")
+                )
+            )
 
             # Log is_cached if extra payload callback is provided
         materialized_result = result.materialize()

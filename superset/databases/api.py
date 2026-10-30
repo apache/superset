@@ -36,7 +36,7 @@ from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
-from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
+from sqlalchemy.exc import DBAPIError, NoSuchTableError, SQLAlchemyError
 
 from superset import event_logger
 from superset.commands.database.create import CreateDatabaseCommand
@@ -782,7 +782,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 catalogs,
             )
             return self.response(200, result=list(catalogs))
-        except OperationalError:
+        except DBAPIError:
+            logger.warning(
+                "Error connecting to database %s to list catalogs", pk, exc_info=True
+            )
             return self.response(
                 500,
                 message="There was an error connecting to the database",
@@ -867,7 +870,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                         ],
                     )
             return self.response(200, result=list(schemas))
-        except OperationalError:
+        except DBAPIError:
+            logger.warning(
+                "Error connecting to database %s to list schemas", pk, exc_info=True
+            )
             return self.response(
                 500, message="There was an error connecting to the database"
             )
