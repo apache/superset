@@ -836,6 +836,7 @@ describe('openBlankTab / navigateOpenedTab / closeOpenedTab', () => {
       expect(tab.location.replace as jest.Mock).toHaveBeenCalledWith(
         '/dashboard/9/',
       );
+      expect(tab.opener).toBeNull();
       // The live-handle branch must NOT fall through to a second window.open,
       // which by the time it runs has lost user activation and is popup-blocked.
       expect(openSpy).not.toHaveBeenCalled();
@@ -887,37 +888,41 @@ describe('openBlankTab / navigateOpenedTab / closeOpenedTab', () => {
     });
   });
 
-  test('navigateOpenedTab does not expose the opener-connected tab to an external URL', async () => {
+  test('navigateOpenedTab detaches the opener before navigating to an external URL', async () => {
     await withApplicationRoot('', async () => {
       const tab = makeTab();
       const { navigateOpenedTab } = await import('src/utils/navigationUtils');
 
-      // A safe-but-absolute URL is permitted by assertSafeNavigationUrl, but
-      // must not be navigated on the noopener-less claimed tab: it is closed
-      // and reopened through the noopener fallback instead.
+      const replace = tab.location.replace as jest.Mock;
+      replace.mockImplementation(() => expect(tab.opener).toBeNull());
       navigateOpenedTab(tab, 'https://example.com/');
 
-      expect(tab.location.replace as jest.Mock).not.toHaveBeenCalled();
-      expect(tab.close as jest.Mock).toHaveBeenCalledTimes(1);
-      expect(openSpy).toHaveBeenCalledWith(
-        'https://example.com/',
-        '_blank',
-        'noopener noreferrer',
-      );
-    });
-  });
-
-  test('navigateOpenedTab validates the URL before touching a claimed tab', async () => {
-    await withApplicationRoot('', async () => {
-      const tab = makeTab();
-      const { navigateOpenedTab } = await import('src/utils/navigationUtils');
-
-      expect(() => navigateOpenedTab(tab, '//evil.com')).toThrow();
-      expect(tab.location.replace as jest.Mock).not.toHaveBeenCalled();
+      expect(replace).toHaveBeenCalledWith('https://example.com/');
       expect(tab.close as jest.Mock).not.toHaveBeenCalled();
       expect(openSpy).not.toHaveBeenCalled();
     });
   });
+
+  test.each([
+    '//evil.com',
+    'https://trusted.example@evil.com/',
+    '/\\evil.com',
+    '/bad\nurl',
+  ])(
+    'navigateOpenedTab rejects %j before touching a claimed tab',
+    async url => {
+      await withApplicationRoot('', async () => {
+        const tab = makeTab();
+        const { navigateOpenedTab } = await import('src/utils/navigationUtils');
+
+        expect(() => navigateOpenedTab(tab, url)).toThrow();
+        expect(tab.opener).toBeUndefined();
+        expect(tab.location.replace as jest.Mock).not.toHaveBeenCalled();
+        expect(tab.close as jest.Mock).not.toHaveBeenCalled();
+        expect(openSpy).not.toHaveBeenCalled();
+      });
+    },
+  );
 
   test('closeOpenedTab closes a live tab and no-ops on null or already-closed', async () => {
     const { closeOpenedTab } = await import('src/utils/navigationUtils');
