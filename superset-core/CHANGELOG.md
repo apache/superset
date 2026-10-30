@@ -19,9 +19,9 @@ under the License.
 
 # Changelog
 
-This changelog tracks the `apache-superset-core` Python package. A version in this
-file is published only when it has a release date; the package version in
-`pyproject.toml` can be ahead of the latest published distribution.
+This changelog tracks the `apache-superset-core` Python package. Unreleased entries
+describe the next release; the package version is bumped during the coordinated
+core-package release process.
 
 ## 0.2.0 (unreleased)
 
@@ -41,4 +41,5 @@ file is published only when it has a release date; the package version in
 
 ## 0.1.0 (2026-05-11)
 
-- Initial published `apache-superset-core` distribution.
+- First stable `apache-superset-core` release; earlier versions were pre-releases
+  (`0.0.1rc1`–`0.0.1rc4` and `0.1.0rc1`–`0.1.0rc3`).

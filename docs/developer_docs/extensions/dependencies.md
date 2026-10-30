@@ -55,7 +55,7 @@ The `apache-superset-core` provider contract is imported from these explicit mod
 
 Prefix each module with `superset_core.` in Python imports. The list covers provider-facing symbols; a type being supported does not imply every feature or enum value is supported by every host version. Check the [semantic-layer provider guide](./extension-points/semantic-layers.md) for usage and the [provider testing guide](../semantic-layer-provider-testing.md) for the test kit.
 
-`SemanticCredentials` is a reserved channel for future non-connection credentials; providers must not treat it as cache identity. `ExecutionOrigin.CONFIG` and `ExecutionOrigin.BACKGROUND` are reserved for host entry points and are not a promise that those invocation paths are available. Providers should handle only origins the host actually supplies and reject unknown ones.
+`SemanticCredentials` is a reserved channel for future non-connection credentials; providers must not treat it as cache identity. The host supplies `ExecutionOrigin.REQUEST` during a request and `ExecutionOrigin.BACKGROUND` outside one. `MCP`, `ASYNC_QUERY`, and `EXPORT` are defined but explicit binders are not yet installed; `CONFIG` is reserved. Providers should handle the origins the host supplies and reject unknown ones.
 
 Host extensions are a separate audience. `superset_core.semantic_layers.models.SemanticLayerModel` and `SemanticViewModel`, and `superset_core.semantic_layers.daos.AbstractSemanticLayerDAO` and `AbstractSemanticViewDAO`, are host-bound persistence interfaces. They depend on the Superset host and its Flask-AppBuilder/SQLAlchemy environment; a standalone semantic provider does not need to import them. Other host-extension APIs are supported where their extension-point documentation names the import path.
 
@@ -93,6 +93,8 @@ from superset.views.core import SomeInternalClass
 ## API Evolution
 
 The core packages are still evolving. For `apache-superset-core`, `0.x` minor releases may change documented contracts; patch releases should preserve them except for necessary correctness or security fixes. At `1.0` and later, incompatible documented API changes require a major release, compatible additions a minor release, and fixes a patch release. The package version is the contract version; there is no separate semantic-layer contract number.
+
+An unreleased changelog entry describes the next package release without changing the installed version. Version metadata for `apache-superset-core`, `apache-superset-extensions-cli`, and `@apache-superset/core` is bumped together as part of the release process.
 
 Before removing or changing a documented Python API, we normally mark it deprecated in documentation and the [package changelog](https://github.com/apache/superset/blob/master/superset-core/CHANGELOG.md), provide a migration path, and emit `DeprecationWarning` where a runtime warning is practical. Keep the deprecated path for at least one minor release when feasible. A security or correctness fix may require a shorter transition; its release note must describe the impact. The changelog records additions, deprecations, removals, and behavior changes starting with the next package release. An unreleased entry is not an installable version.
 
