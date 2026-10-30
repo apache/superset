@@ -319,7 +319,7 @@ AURORA_DATA_API_KNOWN_INCOMPATIBILITIES: list[KnownIncompatibility] = [
         "tracking_url": (
             "https://github.com/cloud-utils/sqlalchemy-aurora-data-api/issues/43"
         ),
-        "since": "2026-07-28",
+        "since": "2026-10-27",
     }
 ]
 
