@@ -21,54 +21,94 @@ import type { SankeySeriesOption } from 'echarts/charts';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
   CategoricalColorNamespace,
-  NumberFormats,
+  DataRecordValue,
   getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
+  NumberFormats,
   tooltipHtml,
 } from '@superset-ui/core';
 import { SankeyChartProps, SankeyTransformedProps } from './types';
 import { Refs } from '../types';
+import { OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { getPercentFormatter } from '../utils/formatters';
+import { getColtypesMapping } from '../utils/series';
+import {
+  isSankeyLinkDimmed,
+  isSankeyNodeDimmed,
+  SankeyFilterColumn,
+  SankeyLinkDatum,
+  sankeyNodeName,
+  getSelectedSankeyKeys,
+} from './crossFilter';
 
-type Link = { source: string; target: string; value: number };
+type NodeMeta = {
+  filterColumn: SankeyFilterColumn;
+  value: DataRecordValue;
+};
+
 type EChartsOption = ComposeOption<SankeySeriesOption>;
 
 export default function transformProps(
   chartProps: SankeyChartProps,
 ): SankeyTransformedProps {
   const refs: Refs = {};
-  const { formData, height, hooks, queriesData, width, theme } = chartProps;
-  const { onLegendStateChanged } = hooks;
+  const {
+    formData,
+    height,
+    hooks,
+    queriesData,
+    width,
+    theme,
+    filterState,
+    emitCrossFilters,
+  } = chartProps;
+  const { onContextMenu, onLegendStateChanged, setDataMask } = hooks;
   const { colorScheme, metric, source, target, sliceId } = formData;
   const { data } = queriesData[0];
+  const coltypeMapping = getColtypesMapping(queriesData[0]);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
   const metricLabel = getMetricLabel(metric);
+  const sourceLabel = getColumnLabel(source);
+  const targetLabel = getColumnLabel(target);
   const valueFormatter = getNumberFormatter(NumberFormats.FLOAT_2_POINT);
   const percentFormatter = getPercentFormatter(NumberFormats.PERCENT_2_POINT);
+  const selectedKeys = getSelectedSankeyKeys(filterState?.selectedValues);
 
-  const links: Link[] = [];
-  const set = new Set<string>();
+  const links: SankeyLinkDatum[] = [];
+  // One ECharts node per label. A label that appears in both columns keeps
+  // the column of the first row that introduced it.
+  const nodes = new Map<string, NodeMeta>();
+  const rememberNode = (column: SankeyFilterColumn, raw: DataRecordValue) => {
+    const name = sankeyNodeName(raw);
+    if (!nodes.has(name)) {
+      nodes.set(name, { filterColumn: column, value: raw });
+    }
+    return name;
+  };
+
   data.forEach(datum => {
-    const sourceName = String(datum[getColumnLabel(source)]);
-    const targetName = String(datum[getColumnLabel(target)]);
-    const value = datum[metricLabel] as number;
-    set.add(sourceName);
-    set.add(targetName);
+    const sourceName = rememberNode('source', datum[sourceLabel]);
+    const targetName = rememberNode('target', datum[targetLabel]);
     links.push({
       source: sourceName,
       target: targetName,
-      value,
+      value: datum[metricLabel] as number,
+      sourceValue: datum[sourceLabel],
+      targetValue: datum[targetLabel],
     });
   });
 
-  const seriesData: NonNullable<SankeySeriesOption['data']> = Array.from(
-    set,
-  ).map(name => ({
+  const seriesData = Array.from(nodes.entries()).map(([name, meta]) => ({
     name,
+    filterColumn: meta.filterColumn,
+    rawValue: meta.value,
     itemStyle: {
       color: colorFn(name, sliceId),
+      ...(isSankeyNodeDimmed(name, selectedKeys, links) && {
+        opacity: OpacityEnum.SemiTransparent,
+      }),
     },
     label: {
       color: theme.colorText,
@@ -76,17 +116,16 @@ export default function transformProps(
     },
   }));
 
-  // stores a map with the total values for each node considering the links
   const incomingFlows = new Map<string, number>();
   const outgoingFlows = new Map<string, number>();
   const allNodeNames = new Set<string>();
 
   links.forEach(link => {
-    const { source, target, value } = link;
-    allNodeNames.add(source);
-    allNodeNames.add(target);
-    incomingFlows.set(target, (incomingFlows.get(target) || 0) + value);
-    outgoingFlows.set(source, (outgoingFlows.get(source) || 0) + value);
+    const { source: linkSource, target: linkTarget, value } = link;
+    allNodeNames.add(linkSource);
+    allNodeNames.add(linkTarget);
+    incomingFlows.set(linkTarget, (incomingFlows.get(linkTarget) || 0) + value);
+    outgoingFlows.set(linkSource, (outgoingFlows.get(linkSource) || 0) + value);
   });
 
   const nodeValues = new Map<string, number>();
@@ -99,18 +138,19 @@ export default function transformProps(
   });
 
   const tooltipFormatter = (params: CallbackDataParams) => {
-    const { name, data } = params;
+    const { name, data: tooltipData } = params;
     const value = params.value as number;
     const rows = [[metricLabel, valueFormatter.format(value)]];
-    const { source, target } = data as Link;
-    if (source && target) {
+    const { source: linkSource, target: linkTarget } =
+      tooltipData as SankeyLinkDatum;
+    if (linkSource && linkTarget) {
       rows.push([
-        `% (${source})`,
-        percentFormatter.format(value / nodeValues.get(source)!),
+        `% (${linkSource})`,
+        percentFormatter.format(value / nodeValues.get(linkSource)!),
       ]);
       rows.push([
-        `% (${target})`,
-        percentFormatter.format(value / nodeValues.get(target)!),
+        `% (${linkTarget})`,
+        percentFormatter.format(value / nodeValues.get(linkTarget)!),
       ]);
     }
     return tooltipHtml(rows, name);
@@ -119,11 +159,20 @@ export default function transformProps(
   const echartOptions: EChartsOption = {
     series: {
       animation: false,
+      cursor: emitCrossFilters ? 'pointer' : 'default',
       data: seriesData,
       lineStyle: {
         color: 'source',
       },
-      links,
+      links: links.map(link => ({
+        ...link,
+        ...(isSankeyLinkDimmed(link, selectedKeys) && {
+          lineStyle: {
+            color: 'source' as const,
+            opacity: OpacityEnum.SemiTransparent,
+          },
+        }),
+      })),
       type: 'sankey',
     },
     tooltip: {
@@ -138,6 +187,11 @@ export default function transformProps(
     width,
     height,
     echartOptions,
+    onContextMenu,
     onLegendStateChanged,
+    setDataMask,
+    filterState,
+    emitCrossFilters,
+    coltypeMapping,
   };
 }
