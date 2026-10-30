@@ -405,3 +405,18 @@ test('should reset to first page when data reduces below current page', async ()
     expect(screen.getByText('1-5 of 5')).toBeInTheDocument();
   });
 });
+
+test('keeps the auto layout and content-width scroll of a generic table', () => {
+  render(<TableView {...mockedProps} />);
+  const table = screen.getByRole('table');
+  // List view column sizing is opt-in; TableView keeps the browser's auto
+  // layout, scrolls at its content width and sets no column widths.
+  expect(table.style.tableLayout).toBe('auto');
+  expect(table.style.width).toBe('max-content');
+  expect(
+    Array.from(table.querySelectorAll('colgroup col')).filter(
+      col => (col as HTMLElement).style.width,
+    ),
+  ).toHaveLength(0);
+  expect(table.querySelectorAll('.ant-table-cell-fix-start')).toHaveLength(0);
+});

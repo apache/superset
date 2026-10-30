@@ -103,7 +103,10 @@ export const COLUMN_LAYOUT_PRESETS: Record<
   timestamp: { fixed: 240 },
   /** Hover action icons, up to four (24px per icon + 24px). */
   actions: { fixed: 120 },
-  /** Hover action icons, five or six. */
+  /**
+   * Hover action icons, five or six (e.g. databases with OAuth2 tokens: five
+   * icons end flush with a 120px cell and need 144).
+   */
   actionsWide: { fixed: 168 },
   /**
    * The primary name of a row. The one main flexible column: wide enough for

@@ -1043,7 +1043,7 @@ function DatabaseList({
         },
         Header: t('Actions'),
         id: 'actions',
-        layout: 'actions',
+        layout: 'actionsWide',
         hidden:
           !canEdit &&
           !canDelete &&
