@@ -62,6 +62,7 @@ from superset.utils.core import (
     apply_max_row_limit,
     DatasourceType,
     FilterOperator,
+    get_user_id,
     parse_boolean_string,
     SqlExpressionType,
 )
@@ -95,6 +96,7 @@ def _column_values_cache_key(
     material: dict[str, Any] = dict(query)
     if isinstance(datasource, SemanticView):
         material["metadata_version"] = datasource.metadata_generation
+        material["semantic_layer_user"] = get_user_id()
         discriminator: tuple[str, str] | None = datasource.result_cache_discriminator
         if discriminator is not None:
             material["semantic_result_version"] = discriminator
@@ -138,8 +140,8 @@ def get_cached_column_values(
 
     Callers must have authorized the datasource (``raise_for_access``) first:
     the key partitions entries by effective RLS (the datasource's own rules and
-    those of the tables its SQL reads), not by user, so the cache itself is not
-    an access check. ``search`` must already be stripped, with
+    those of the tables its SQL reads) and, for semantic views, the requesting
+    user. The cache itself is not an access check. ``search`` must be stripped, with
     ``None`` for "no search", so equal queries produce equal keys.
 
     Returns ``(values, cache_hit)``. ``force`` skips the read and refreshes
@@ -382,7 +384,9 @@ class DatasourceRestApi(BaseSupersetApi):
         # - ``uid`` / ``col`` / ``limit`` / ``denorm`` — basic query-shape
         #   isolation so different inputs never collide.
         # - ``semantic_result_version`` — opt-in producer guarantee, omitted
-        #   for SDK-default providers to preserve their legacy key bytes.
+        #   for SDK-default providers.
+        # - ``semantic_layer_user`` — personal OAuth grants can return different
+        #   values for each user, even when they have the same Superset access.
         force: bool = parse_boolean_string(request.args.get("force"))
         try:
             payload, cache_hit = get_cached_column_values(
