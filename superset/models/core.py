@@ -464,8 +464,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     def _metadata_cache_timeout_value(self, key: str) -> int | None:
         """Older database forms stored these timeouts as strings."""
-        timeout = self.metadata_cache_timeout.get(key)
-        return int(timeout) if timeout is not None else None
+        try:
+            return int(self.metadata_cache_timeout[key])
+        except (KeyError, TypeError, ValueError):
+            return None
 
     @property
     def catalog_cache_enabled(self) -> bool:
