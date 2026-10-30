@@ -552,7 +552,7 @@ const frozenHeaders = (table: HTMLElement) =>
   );
 
 test('freezes the favorite and title columns when the table scrolls', () => {
-  const { table, container } = renderLayoutTable(
+  const { table } = renderLayoutTable(
     800,
     { managedColumnWidths: true },
     scrollingColumns,
@@ -563,11 +563,6 @@ test('freezes the favorite and title columns when the table scrolls', () => {
       'tbody tr.ant-table-row td.ant-table-cell-fix-start',
     ),
   ).toHaveLength(2);
-  expect(
-    (container.firstChild as HTMLElement).style.getPropertyValue(
-      '--list-view-frozen-width',
-    ),
-  ).toBe('368px');
 });
 
 test('freezes the selection column with the leading block', () => {
@@ -587,17 +582,12 @@ test('freezes the selection column with the leading block', () => {
 });
 
 test('does not freeze columns when the table fits', () => {
-  const { table, container } = renderLayoutTable(
+  const { table } = renderLayoutTable(
     1200,
     { managedColumnWidths: true },
     scrollingColumns,
   );
   expect(frozenHeaders(table)).toEqual([]);
-  expect(
-    (container.firstChild as HTMLElement).style.getPropertyValue(
-      '--list-view-frozen-width',
-    ),
-  ).toBe('');
 });
 
 test('does not freeze a leading block wider than half the container', () => {
@@ -630,18 +620,34 @@ test('does not freeze columns in unmanaged tables', () => {
 });
 
 test('scrolls a focused cell out from under the frozen columns', () => {
+  // The frozen width is the scroll padding only while the focused cell is
+  // scrolled into view; a permanent padding would make the browser scroll
+  // back to the start whenever a frozen cell takes focus.
+  const paddings: string[] = [];
   const scrollIntoView = mockScrollIntoView();
+  scrollIntoView.mockImplementation(function (this: Element) {
+    const scroller = this.closest<HTMLElement>(
+      '.ant-table-content, .ant-table-body',
+    )!;
+    paddings.push(scroller.style.scrollPaddingInlineStart);
+  });
   const columns: ListViewColumn[] = scrollingColumns.map(column =>
     column.id === 'c'
       ? { ...column, Cell: () => <a href="#c">Column C details</a> }
       : column,
   );
   renderLayoutTable(800, { managedColumnWidths: true }, columns);
-  screen.getByRole('link', { name: 'Column C details' }).focus();
+  const link = screen.getByRole('link', { name: 'Column C details' });
+  link.focus();
   expect(scrollIntoView).toHaveBeenCalledWith({
     block: 'nearest',
     inline: 'nearest',
   });
+  expect(paddings).toEqual(['368px']);
+  expect(
+    link.closest<HTMLElement>('.ant-table-content, .ant-table-body')!.style
+      .scrollPaddingInlineStart,
+  ).toBe('');
 });
 
 test('does not scroll when focus lands in the frozen columns', () => {

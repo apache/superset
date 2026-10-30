@@ -17,7 +17,6 @@
  * under the License.
  */
 import {
-  CSSProperties,
   FocusEvent,
   HTMLAttributes,
   memo,
@@ -162,12 +161,6 @@ const StyledTable = styled(Table)<{
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
-        }
-
-        // Keyboard focus never lands under the frozen leading columns.
-        .ant-table-content,
-        .ant-table-body {
-          scroll-padding-inline-start: var(--list-view-frozen-width, 0);
         }
       `
         : ''
@@ -386,19 +379,25 @@ function TableCollection<T extends object>({
     [expandable, managedColumnWidths, frozenWidth],
   );
 
-  // scroll-padding alone doesn't move a partly visible cell; scrolling the
-  // focused element into view does, and respects the padding.
+  // Keyboard focus never lands under the frozen leading columns: a focused
+  // cell is scrolled into view with the frozen width as scroll padding. The
+  // padding is only set for that scroll, since a permanent one makes the
+  // browser scroll back to the start whenever a frozen cell takes focus.
   const handleFocus = useCallback(
     (event: FocusEvent<HTMLDivElement>) => {
-      // Frozen cells are always visible; scrolling to them would jump the
-      // table back to the start.
       const cell = event.target.closest('td');
+      const scroller = cell?.closest<HTMLElement>(
+        '.ant-table-content, .ant-table-body',
+      );
       if (
         frozenWidth > 0 &&
         cell &&
+        scroller &&
         !cell.classList.contains('ant-table-cell-fix-start')
       ) {
+        scroller.style.scrollPaddingInlineStart = `${frozenWidth}px`;
         event.target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        scroller.style.scrollPaddingInlineStart = '';
       }
     },
     [frozenWidth],
@@ -544,17 +543,7 @@ function TableCollection<T extends object>({
 
   if (!managedColumnWidths) return table;
   return (
-    <div
-      ref={containerRef}
-      onFocus={handleFocus}
-      style={
-        frozenWidth > 0
-          ? ({
-              '--list-view-frozen-width': `${frozenWidth}px`,
-            } as CSSProperties)
-          : undefined
-      }
-    >
+    <div ref={containerRef} onFocus={handleFocus}>
       {table}
     </div>
   );
