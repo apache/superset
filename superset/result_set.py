@@ -288,15 +288,23 @@ class SupersetResultSet:
                                 series = pd.to_datetime(
                                     series, utc=True, errors="coerce"
                                 )
-                                series = series.where(
-                                    series.between(
-                                        pd.Timestamp.min.tz_localize("UTC"),
-                                        pd.Timestamp.max.tz_localize("UTC"),
-                                    )
-                                )
+                                # Match the just-converted series' own
+                                # resolution instead of hardcoding "ns": a
+                                # far-future timestamp valid only at a wider
+                                # resolution (e.g. "us") would otherwise raise
+                                # ArrowInvalid casting down to nanoseconds for
+                                # no reason. pandas itself already picked
+                                # whatever resolution represents this data
+                                # losslessly (narrower only when the value
+                                # actually needs it), so reusing it is always
+                                # safe -- unlike the original column's own
+                                # pre-conversion unit, which can be coarser
+                                # than this data's real precision (e.g. "us"
+                                # inferred from an empty/all-null sample) and
+                                # would lose precision being cast down to it.
                                 pa_data[i] = pa.Array.from_pandas(
                                     series,
-                                    type=pa.timestamp("ns", tz=tz),
+                                    type=pa.timestamp(series.dtype.unit, tz=tz),
                                 )
                         except Exception as ex:  # pylint: disable=broad-except
                             logger.exception(ex)

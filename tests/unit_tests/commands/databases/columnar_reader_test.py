@@ -97,7 +97,7 @@ COLUMNAR_WITH_FLOATS: dict[str, list[Any]] = {
             ["Name", "Age", "City", "Birth"],
             [
                 ["name1", np.nan, "city1", "1990-02-01"],
-                ["name2", 25, None, "1995-02-01"],
+                ["name2", 25, np.nan, "1995-02-01"],
                 ["name3", 20, "city3", "2000-02-01"],
             ],
         ),
@@ -143,10 +143,10 @@ def test_excel_reader_wrong_columns_to_read():
     assert (
         str(ex.value).replace(": large_string", ": string")
         == (
-            "Parsing error: No match for FieldRef.Name(xpto) in Name: string\n"
+            "Parsing error: No match for FieldRef.Name(xpto) in Name: large_string\n"
             "Age: int64\n"
-            "City: string\n"
-            "Birth: string\n"
+            "City: large_string\n"
+            "Birth: large_string\n"
             "__fragment_index: int32\n"
             "__batch_index: int32\n"
             "__last_in_fragment: bool\n"

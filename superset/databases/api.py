@@ -1275,6 +1275,16 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 application/json:
                   schema:
                     $ref: "#/components/schemas/SelectStarResponseSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
         """
         return self.select_star(pk=pk, table_name=table_name)
 

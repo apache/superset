@@ -69,6 +69,20 @@ def _select_arithmetic_columns(df: DataFrame) -> DataFrame:
     ]
 
 
+def _coerce_object_columns_numeric(df: DataFrame) -> DataFrame:
+    """Cast the "decimal"/"empty" object columns ``_select_arithmetic_columns``
+    lets through to a numeric dtype.
+
+    They don't get silently upcast to one by ``fillna()`` the way pandas <3
+    used to; left as object, a 0/0 cell divides as plain Python ints and
+    raises ``ZeroDivisionError`` instead of producing float ``nan``.
+    """
+    object_cols = df.select_dtypes(include="object").columns
+    if len(object_cols):
+        df[object_cols] = df[object_cols].astype(float)
+    return df
+
+
 def _align_total(total: Any, column: Series) -> Any:
     """
     Match a supplied contribution total to the column it divides.
@@ -117,8 +131,8 @@ def contribution(
     # Filled out of place: the selection is a slice of `contribution_df`, and
     # an in-place fill on a slice warns under pandas 2 and is dropped outright
     # under copy-on-write.
-    numeric_df = (
-        _select_arithmetic_columns(contribution_df).fillna(0).infer_objects(copy=False)
+    numeric_df = _coerce_object_columns_numeric(
+        _select_arithmetic_columns(contribution_df).fillna(0)
     )
     # verify column selections
     if columns:

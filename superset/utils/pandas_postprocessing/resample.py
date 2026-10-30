@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
 from datetime import datetime, tzinfo
 from typing import Any, Optional, Union
 
@@ -225,6 +226,11 @@ def resample(  # pylint: disable=too-many-arguments
             _("Resample method should be in ") + ", ".join(RESAMPLE_METHOD) + "."
         )
 
+    if legacy_rule := re.fullmatch(r"(\d*)(AS|A|T|H|M)(-[A-Z]+)?", rule):
+        count, alias, anchor = legacy_rule.groups()
+        aliases = {"T": "min", "H": "h", "M": "ME", "AS": "YS", "A": "YE"}
+        rule = f"{count}{aliases[alias]}{anchor or ''}"
+
     tz = df.index.tz
     df = _pad_to_time_range(
         df,
@@ -240,15 +246,9 @@ def resample(  # pylint: disable=too-many-arguments
     _validate_projected_rows(df.index.min(), df.index.max(), rule)
 
     if method == "asfreq" and fill_value is not None:
-        string_columns = [
-            column
-            for column in df.columns
-            if isinstance(df[column].dtype, pd.StringDtype)
-        ]
-        if len(string_columns):
-            df = df.astype(dict.fromkeys(string_columns, object))
-        _df = df.resample(rule).asfreq(fill_value=fill_value)
-        _df = _df.fillna(fill_value)
+        _df = df.resample(rule).asfreq()
+        numeric_columns = _df.select_dtypes(include="number").columns
+        _df[numeric_columns] = _df[numeric_columns].fillna(fill_value)
     elif method == "linear":
         _df = df.resample(rule).asfreq()
         interpolated_columns = _df.select_dtypes(

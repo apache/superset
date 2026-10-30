@@ -4291,6 +4291,7 @@ def test_normalize_df_replaces_infinity_without_downcasting_warning() -> None:
     assert result["metric"].dtype == np.float64
     assert result["metric"].isna().tolist() == [False, True, True, False]
     assert result["count"].dtype == np.float64
+    assert result["label"].dtype == "str"
     pd.testing.assert_series_equal(result["label"], df["label"])
 
 

@@ -31,6 +31,21 @@ from tests.unit_tests.fixtures.dataframes import (
 )
 
 
+@pytest.mark.parametrize(
+    "legacy, modern",
+    [("1T", "1min"), ("1H", "1h"), ("1M", "1ME"), ("1AS", "1YS"), ("1A", "1YE")],
+)
+def test_resample_legacy_aliases(legacy: str, modern: str) -> None:
+    frame = pd.DataFrame(
+        {"value": [1, 2, 3, 4]},
+        index=pd.date_range("2024-01-01", periods=4, freq="h"),
+    )
+    pd.testing.assert_frame_equal(
+        pp.resample(frame, rule=legacy, method="sum"),
+        pp.resample(frame, rule=modern, method="sum"),
+    )
+
+
 def test_resample_should_not_side_effect():
     _timeseries_df = timeseries_df.copy()
     pp.resample(df=_timeseries_df, rule="1D", method="ffill")
@@ -126,7 +141,7 @@ def test_resample_zero_fill():
                 ]
             ),
             data={
-                "label": ["x", "y", 0, 0, "z", 0, "q"],
+                "label": ["x", "y", None, None, "z", None, "q"],
                 "y": [1.0, 2.0, 0, 0, 3.0, 0, 4.0],
             },
         )
@@ -151,7 +166,7 @@ def test_resample_zero_fill_with_gaps():
                 ]
             ),
             data={
-                "label": ["x", "y", 0, 0, "z", 0, "q"],
+                "label": ["x", "y", None, None, "z", None, "q"],
                 "y": [1.0, 2.0, 0, 0, 0, 0, 4.0],
             },
         )

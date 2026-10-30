@@ -454,7 +454,9 @@ def test_csv_reader_object_type_auto_inferring():
     df = csv_reader.file_to_dataframe(create_csv_file(csv_data))
 
     assert df.shape == (5, 3)
-    assert pd.api.types.is_string_dtype(df["id"])
+    # pandas automatically infers the type if column_data_types is not informed
+    # if there's only one string in the column it converts the whole column to string
+    assert df["id"].dtype == "str"
     assert df["id"].tolist() == ["25.5", "15", "123456789086", "abc", "4.75"]
 
 
@@ -873,7 +875,7 @@ def test_csv_reader_successful_string_conversion_with_floats():
     df = csv_reader.file_to_dataframe(create_csv_file(csv_data))
 
     assert df.shape == (4, 1)
-    assert pd.api.types.is_string_dtype(df["id"])
+    assert df["id"].dtype == "str"
     assert df.iloc[0]["id"] == "1439403621518935563"
     assert df.iloc[1]["id"] == "42286989"
     assert df.iloc[2]["id"] == "1413660691875593351"

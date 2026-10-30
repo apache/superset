@@ -19,7 +19,7 @@ from typing import Any, Callable, Optional, Union
 import numpy as np
 from flask_babel import gettext as _
 from pandas import DataFrame, Series, to_numeric
-from pandas.api.types import is_object_dtype, is_string_dtype
+from pandas.api.types import is_numeric_dtype
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import PostProcessingBoxplotWhiskerType
@@ -133,9 +133,10 @@ def boxplot(  # noqa: C901
     }
 
     # nanpercentile needs numeric values, otherwise the isnan function
-    # that's used in the underlying function will fail
+    # that's used in the underlying function will fail. Non-numeric columns
+    # include both legacy object dtype and pandas 3.0's default StringDtype.
     for column in metrics:
-        if is_object_dtype(df[column]) or is_string_dtype(df[column]):
+        if not is_numeric_dtype(df[column]):
             try:
                 df[column] = to_numeric(df[column], errors="raise")
             except (TypeError, ValueError) as ex:

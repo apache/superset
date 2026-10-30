@@ -664,10 +664,9 @@ def test_timezone_cache_hit_dtype_matches_sync(
     mocker.patch.object(executor, "_generate_cache_key", return_value="tz-key")
     executor._store_in_cache(sync, sql, QueryOptions())
     cached = executor._get_from_cache(sql, QueryOptions())
-    if cached is None:
-        assert data_kind != "populated"
-        assert not isinstance(tz, ZoneInfo)
-        return
+    # A fixed-offset tz's dtype string round-trips through pandas' own
+    # "UTC+HH:MM" parsing even without a non-null value to infer it from, so
+    # every data_kind/tz combination here is a cache hit.
     assert cached is not None
     for result in (
         cached,
@@ -1040,6 +1039,7 @@ def test_async_unsupported_nested_types_use_arrow_strings(
     assert actual["value"][0] != sync.statements[0].data["value"][0]
     assert type(actual["value"][0]) is not type(sync.statements[0].data["value"][0])
     assert actual["value"][1] == '{"a": [3]}'
+    # StringDtype's missing-value sentinel is float nan, not None.
     assert pd.isna(actual["value"][2])
 
 
@@ -1106,6 +1106,26 @@ def test_legacy_record_column_inference(
     from superset.sql.execution.executor import _records_to_dataframe
 
     pd.testing.assert_frame_equal(_records_to_dataframe(records, []), expected)
+
+
+def test_records_to_dataframe_unparseable_dtype_falls_back_to_inference() -> None:
+    """A dtype string pandas cannot parse falls back to value inference."""
+    from superset.sql.execution.executor import _records_to_dataframe
+
+    result = _records_to_dataframe(
+        [{"value": "a"}, {"value": None}], ["value"], ["not-a-dtype"]
+    )
+
+    assert list(result["value"].iloc[:1]) == ["a"]
+    assert pd.isna(result["value"].iloc[1])
+
+
+def test_records_to_dataframe_unparseable_dtype_without_values_raises() -> None:
+    """Without a non-null value there is nothing to infer from, so it raises."""
+    from superset.sql.execution.executor import _records_to_dataframe
+
+    with pytest.raises(TypeError):
+        _records_to_dataframe([{"value": None}], ["value"], ["not-a-dtype"])
 
 
 @pytest.mark.parametrize("use_msgpack", [True, False])

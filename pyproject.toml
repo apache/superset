@@ -89,7 +89,7 @@ dependencies = [
     "packaging",
     # --------------------------
     # pandas and related (wanting pandas[performance] without numba as it's 100+MB and not needed)
-    "pandas[excel]>=2.3.3, <2.4; python_version < '3.15'",
+    "pandas[excel]>=3.0.6, <3.1; python_version < '3.15'",
     "pandas[excel]>=3.1.0, <3.2; python_version >= '3.15'",
     "bottleneck", # recommended performance dependency for pandas, see https://pandas.pydata.org/docs/getting_started/install.html#performance-dependencies-recommended
     # --------------------------
