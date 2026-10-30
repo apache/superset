@@ -346,23 +346,38 @@ def test_validate_with_nonexistent_chart_id(mock_db):
         command.validate()
 
 
-def test_only_if_stale_skips_fully_cached_chart() -> None:
-    from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
-
-    query_context = MagicMock(queries=[MagicMock(), MagicMock()])
+def _ctx(keys: list[str]) -> MagicMock:
+    query_context = MagicMock(queries=[MagicMock() for _ in keys])
     query_context.get_cache_timeout.return_value = 300
-    query_context.query_cache_key.side_effect = ["k1", "k2"]
+    query_context.query_cache_key.side_effect = keys
+    return query_context
+
+
+def test_missing_cache_keys_none_when_cached() -> None:
     with patch("superset.commands.chart.warm_up_cache.cache_manager") as cm:
         cm.data_cache.get.return_value = {"df": 1}
-        assert ChartWarmUpCacheCommand._is_fully_cached(query_context) is True
+        assert ChartWarmUpCacheCommand._missing_cache_keys(_ctx(["k1", "k2"])) == []
 
 
-def test_only_if_stale_detects_missing_entry() -> None:
-    from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
-
-    query_context = MagicMock(queries=[MagicMock(), MagicMock()])
-    query_context.get_cache_timeout.return_value = 300
-    query_context.query_cache_key.side_effect = ["k1", "k2"]
+def test_missing_cache_keys_reports_expired_entry() -> None:
     with patch("superset.commands.chart.warm_up_cache.cache_manager") as cm:
         cm.data_cache.get.side_effect = [{"df": 1}, None]
-        assert ChartWarmUpCacheCommand._is_fully_cached(query_context) is False
+        assert ChartWarmUpCacheCommand._missing_cache_keys(_ctx(["k1", "k2"])) == ["k2"]
+
+
+def test_missing_cache_keys_validates_before_keying() -> None:
+    """Keys are derived after query validation, as on the request path."""
+    query_context = _ctx(["k1"])
+    order: list[str] = []
+    query_context.queries[0].validate.side_effect = lambda: order.append("validate")
+    query_context.query_cache_key.side_effect = lambda q: order.append("key") or "k1"
+    with patch("superset.commands.chart.warm_up_cache.cache_manager") as cm:
+        cm.data_cache.get.return_value = {"df": 1}
+        ChartWarmUpCacheCommand._missing_cache_keys(query_context)
+    assert order == ["validate", "key"]
+
+
+def test_missing_cache_keys_empty_when_caching_disabled() -> None:
+    query_context = _ctx(["k1"])
+    query_context.get_cache_timeout.return_value = -1
+    assert ChartWarmUpCacheCommand._missing_cache_keys(query_context) == []

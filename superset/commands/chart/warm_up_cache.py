@@ -38,6 +38,9 @@ from superset.utils import json
 from superset.utils.core import error_msg_from_exception, QueryObjectFilterClause
 from superset.views.utils import get_dashboard_extra_filters
 
+# Seconds a per-result warm-up lock is held if the worker dies before releasing it.
+WARMUP_LOCK_TTL = 900
+
 
 class ChartWarmUpCacheCommand(BaseCommand):
     def __init__(
@@ -65,16 +68,19 @@ class ChartWarmUpCacheCommand(BaseCommand):
         return get_dashboard_extra_filters(chart_id, self._dashboard_id)
 
     @staticmethod
-    def _is_fully_cached(query_context: Any) -> bool:
-        """Return whether every query of the context has an unexpired cache entry."""
+    def _missing_cache_keys(query_context: Any) -> list[str]:
+        """Return cache keys of the context's queries lacking an unexpired entry."""
         if query_context.get_cache_timeout() == CACHE_DISABLED_TIMEOUT:
             # Results are never stored, so there is nothing to warm.
-            return True
+            return []
+        missing: list[str] = []
         for query in query_context.queries:
+            # Validation normalizes filters, matching the key used when querying.
+            query.validate()
             cache_key = query_context.query_cache_key(query)
             if not cache_key or cache_manager.data_cache.get(cache_key) is None:
-                return False
-        return True
+                missing.append(cache_key or "")
+        return missing
 
     def _warm_up_non_legacy_cache(self, chart: Slice) -> tuple[Any, Any]:
         """Warm up cache for non-legacy visualizations."""
@@ -94,14 +100,24 @@ class ChartWarmUpCacheCommand(BaseCommand):
                     + query.filter
                 )
 
+        lock_key: str | None = None
         if self._only_if_stale:
-            if self._is_fully_cached(query_context):
+            missing = self._missing_cache_keys(query_context)
+            if not missing:
+                return None, QueryStatus.SUCCESS
+            # Only one worker warms a given result at a time.
+            lock_key = f"cache-warmup-lock:{missing[0]}"
+            if not cache_manager.cache.add(lock_key, 1, timeout=WARMUP_LOCK_TTL):
                 return None, QueryStatus.SUCCESS
         else:
             query_context.force = True
-        command = ChartDataCommand(query_context)
-        command.validate()
-        payload = command.run()
+        try:
+            command = ChartDataCommand(query_context)
+            command.validate()
+            payload = command.run()
+        finally:
+            if lock_key:
+                cache_manager.cache.delete(lock_key)
 
         # Report the first error.
         for query_result in cast(list[dict[str, Any]], payload["queries"]):

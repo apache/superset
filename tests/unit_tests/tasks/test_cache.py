@@ -470,20 +470,23 @@ def test_schedule_login_warmup_enqueues_once_per_cooldown(app_context: None) -> 
         cm.cache.add.return_value = False
         schedule_login_cache_warmup(mock.MagicMock(id=7))
 
-    task.delay.assert_called_once_with(7)
+    task.apply_async.assert_called_once_with(args=(7,), queue=None)
 
 
 def test_schedule_login_warmup_swallows_errors(app_context: None) -> None:
     """A broker failure must not propagate into the login flow."""
     from superset.tasks.cache import schedule_login_cache_warmup
 
-    config = {"CACHE_WARMUP_ON_LOGIN": True, "CACHE_WARMUP_ON_LOGIN_COOLDOWN": 0}
+    config = {"CACHE_WARMUP_ON_LOGIN": True, "CACHE_WARMUP_ON_LOGIN_COOLDOWN": 60}
     with (
         mock.patch("superset.tasks.cache.current_app", _fake_app(config)),
+        mock.patch("superset.tasks.cache.cache_manager") as cm,
         mock.patch("superset.tasks.cache.cache_warmup_user_favorites") as task,
     ):
-        task.delay.side_effect = RuntimeError("broker down")
+        task.apply_async.side_effect = RuntimeError("broker down")
+        cm.cache.add.return_value = True
         schedule_login_cache_warmup(mock.MagicMock(id=7))
+        cm.cache.delete.assert_called_once_with("cache-warmup-login:7")
 
 
 def test_user_favorites_task_warms_stale_charts_only(app_context: None) -> None:

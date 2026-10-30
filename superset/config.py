@@ -1489,6 +1489,10 @@ CACHE_WARMUP_ON_LOGIN_MAX_DASHBOARDS = 5
 # Minimum seconds between login warm-ups for the same user, uses CACHE_CONFIG.
 # Set to 0 to disable the cooldown.
 CACHE_WARMUP_ON_LOGIN_COOLDOWN = int(timedelta(hours=1).total_seconds())
+# Celery queue for login warm-up tasks. Point it at a dedicated, low-priority queue
+# (served by its own worker) so a burst of logins cannot delay other tasks. None
+# uses the default queue.
+CACHE_WARMUP_ON_LOGIN_QUEUE: str | None = None
 
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.

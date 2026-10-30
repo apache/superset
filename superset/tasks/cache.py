@@ -20,6 +20,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Optional, Union
 
+from celery.exceptions import SoftTimeLimitExceeded
 from celery.utils.log import get_task_logger
 from flask import current_app
 from sqlalchemy import and_, func
@@ -464,7 +465,9 @@ def _get_favorite_dashboards(user_id: int, limit: int) -> list[Dashboard]:
     return dashboards
 
 
-@celery_app.task(name="cache-warmup-user-favorites")
+@celery_app.task(
+    name="cache-warmup-user-favorites", soft_time_limit=840, time_limit=900
+)
 def cache_warmup_user_favorites(user_id: int) -> dict[str, list[int]]:
     """
     Warm the cache for charts on a user's favorited dashboards.
@@ -491,6 +494,9 @@ def cache_warmup_user_favorites(user_id: int) -> dict[str, list[int]]:
                     outcome: dict[str, Any] = ChartWarmUpCacheCommand(
                         chart, dashboard.id, None, only_if_stale=True
                     ).run(skip_disabled=True)
+                except SoftTimeLimitExceeded:
+                    logger.warning("Login cache warm-up for user %s timed out", user_id)
+                    return results
                 except Exception:  # noqa: BLE001
                     logger.exception(
                         "Error warming up chart %s on dashboard %s",
@@ -516,10 +522,20 @@ def schedule_login_cache_warmup(user: Any) -> None:
         return
     try:
         cooldown: int = current_app.config["CACHE_WARMUP_ON_LOGIN_COOLDOWN"]
+        cooldown_key: str = f"cache-warmup-login:{user.id}"
         if cooldown > 0 and not cache_manager.cache.add(
-            f"cache-warmup-login:{user.id}", 1, timeout=cooldown
+            cooldown_key, 1, timeout=cooldown
         ):
             return
-        cache_warmup_user_favorites.delay(user.id)
+        try:
+            cache_warmup_user_favorites.apply_async(
+                args=(user.id,),
+                queue=current_app.config.get("CACHE_WARMUP_ON_LOGIN_QUEUE"),
+            )
+        except Exception:
+            # Release the cooldown so the next login can retry.
+            if cooldown > 0:
+                cache_manager.cache.delete(cooldown_key)
+            raise
     except Exception:  # noqa: BLE001
         logger.exception("Could not schedule login cache warm-up")
