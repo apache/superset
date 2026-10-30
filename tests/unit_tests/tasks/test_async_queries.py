@@ -772,16 +772,31 @@ def test_semantic_query_worker_installs_requesting_principal(
     proxy = contextualize_semantic_layer(provider_id, provider)
     query_context = _fake_query_context(num_queries=1)
     query_context.datasource = SemanticView(id=1)
-    query_context.datasource.__dict__["implementation"] = proxy.get_semantic_view(
-        "orders", {}
+    mocker.patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=mock.PropertyMock,
+        return_value=proxy.get_semantic_view("orders", {}),
+    )
+    mocker.patch.object(
+        SemanticView,
+        "result_cache_discriminator",
+        new_callable=mock.PropertyMock,
+        return_value=None,
+    )
+    mocker.patch.object(
+        SemanticView,
+        "metadata_generation",
+        new_callable=mock.PropertyMock,
+        return_value="generation",
     )
 
     def execute_query(query: object) -> mock.MagicMock:
         assert not has_request_context()
         assert query_context.datasource.implementation.uid() == "orders"
-        assert query_context.datasource.get_extra_cache_keys({}) == [
-            ("semantic_layer_user", user_id)
-        ]
+        assert ("semantic_layer_user", user_id) in (
+            query_context.datasource.get_extra_cache_keys({})
+        )
         return mocker.MagicMock(payload={})
 
     query_context.get_df_payload_result.side_effect = execute_query

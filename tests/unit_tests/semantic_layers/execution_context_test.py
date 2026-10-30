@@ -29,6 +29,7 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
 from superset.semantic_layers.models import SemanticLayer, SemanticView
+from superset.semantic_layers.registry import ContextualSemanticLayer
 from tests.unit_tests.semantic_layers.conftest import LegacyLayer
 
 
@@ -61,13 +62,13 @@ def execution_view(app: Any, mocker: MockerFixture) -> SemanticView:
     return view
 
 
-def test_connection_credentials_keys_unchanged(
+def test_connection_credentials_metadata_keys_unchanged(
     client: Any,
     full_api_access: None,
     execution_view: SemanticView,
     mocker: MockerFixture,
 ) -> None:
-    """Connection credentials preserve upstream result-cache identity."""
+    """Metadata keys stay stable while chart results gain user partitioning."""
     cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
     cache.get.return_value = ["cached"]
     keys: list[str] = []
@@ -102,9 +103,8 @@ def test_connection_credentials_keys_unchanged(
         "col_values:eb5d43a7322c2a03556fc53bc62d54fbbe0b3d26d561d18a0e385c7457abd822",
         # Compatibility identity includes changed_on="None" for this view.
         "compatible:a2e526c4cd1db4f68fd34cc7dffe06cc4fbd029975f2147b4b11bb55179795b8",
-        # Recorded on master ffee0a843f: #45133 adds semantic-null-filters-v1
-        # to chart keys; the execution-context contract adds no discriminator.
-        "80b906df8cf7f4837b95d21c32c6f71bd6c810fcf7c1896dbeca74a5023ea961",
+        # Chart keys also include the requesting user's OAuth cache partition.
+        "14ee069dbffd0f7ca50bb720f7d2b9b1d2d4ade37cf50661e33562913dba0e6a",
     ]
 
 
@@ -817,20 +817,33 @@ def test_one_session_two_principals_never_share_instances(
         assert first_layer.cache_token == "golden-generation"  # noqa: S105
         assert first_layer.credentials is None
         with override_user(bob):
-            assert other.implementation is not first_other
+            assert (
+                other.implementation._implementation is not first_other._implementation
+            )
             assert (
                 cast(
                     LegacyLayer, execution_view.semantic_layer.implementation
                 ).context.principal_id
                 == "2"
             )
-            assert execution_view.implementation is not first
-            assert execution_view.semantic_layer.implementation is not first_layer
-        assert execution_view.implementation is first
-        assert other.implementation is first_other
+            assert (
+                execution_view.implementation._implementation
+                is not first._implementation
+            )
+            assert (
+                cast(
+                    ContextualSemanticLayer,
+                    execution_view.semantic_layer.implementation,
+                )._implementation
+                is not first_layer._implementation
+            )
+        assert execution_view.implementation._implementation is first._implementation
+        assert other.implementation._implementation is first_other._implementation
         execution_view.forget_metadata()
-        assert other.implementation is not first_other
-        assert execution_view.implementation is not first
+        assert other.implementation._implementation is not first_other._implementation
+        assert (
+            execution_view.implementation._implementation is not first._implementation
+        )
 
 
 def test_policy_is_checked_on_warm_binding(
