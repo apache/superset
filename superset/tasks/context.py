@@ -422,7 +422,34 @@ class TaskContext(CoreTaskContext):
         persisted together with ``is_abortable`` in that one UPDATE — no extra
         write. The orphan reaper reads it to cancel the query out-of-band when
         this worker dies; the live abort path uses its in-memory closure instead.
+        A handle replaced or cleared later is written by ``persist_cancellation``.
         """
+        self._merge_cancellation(database_id, cancel_query_id)
+
+    def persist_cancellation(
+        self, database_id: int, cancel_query_id: str | None
+    ) -> None:
+        """Record the engine cancel handle and write it to the metastore at once.
+
+        For a task whose running operation changes (a new statement or cursor) or
+        ends after its abort handler is registered. Writing at once keeps the
+        orphan reaper from cancelling an operation the task is done with: ``None``
+        clears the handle, and the reaper skips a task without one. The write is
+        the one ``update_task(immediate=True)`` makes, so it also flushes pending
+        throttled updates, and like every executor write it keeps the row's
+        ``private.subscription``.
+        """
+        with self._throttle_lock:
+            self._merge_cancellation(database_id, cancel_query_id)
+            self._cancel_deferred_flush_timer()
+            self._write_to_db()
+            self._last_db_write_time = time.time()
+            self._has_pending_updates = False
+
+    def _merge_cancellation(
+        self, database_id: int, cancel_query_id: str | None
+    ) -> None:
+        """Merge the engine cancel handle into the cached ``private["task"]``."""
         from superset.tasks.utils import merge_private_subtree
 
         self._properties_cache["private"] = cast(
@@ -818,6 +845,10 @@ class TaskContext(CoreTaskContext):
                     self._task_uuid,
                 )
                 return
+
+            # Later executor writes rewrite the whole properties column from the
+            # cache, so the error message must be in it too, or they erase it.
+            self._properties_cache["error_message"] = error_message
 
             # Set status to ABORTING (same as user abort). The executor
             # determines the terminal state from which flag was set.

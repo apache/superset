@@ -153,6 +153,17 @@ def test_no_cancel_when_handle_absent() -> None:
     cancel.assert_not_called()
 
 
+def test_no_cancel_when_handle_cleared() -> None:
+    """A handle the task cleared once its query ended is never cancelled."""
+    properties = json.dumps(
+        {"private": {"task": {"cancel_query_id": None, "cancel_database_id": 7}}}
+    )
+    with _patched_with_handle(properties) as (cancel, _db):
+        assert ReapOrphanedTasksCommand().run() == 1
+
+    cancel.assert_not_called()
+
+
 def test_no_cancel_when_database_missing() -> None:
     """Handle present but the database is gone → skip cancel, still reap."""
     properties = json.dumps(

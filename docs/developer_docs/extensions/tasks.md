@@ -184,7 +184,9 @@ A task's state lives in three tiers:
    - `private.task` — freeform, task-type-specific internal handles (e.g. the
      chart-data query task's engine cancel handle,
      `cancel_query_id`/`cancel_database_id`). Written by task/execution code via
-     `task.update_task_private({...})`.
+     `task.update_task_private({...})`. The chart-data query task replaces its
+     handle when its query moves to another cursor (or, on Impala, another
+     statement) and clears it (`null`) when that cursor or statement is done.
    - `private.subscription` — a
      [subscription policy](#per-client-subscriptions-subscription-policies)'s
      per-client bookkeeping (e.g. chart-data's per-tab consumer list). Written
@@ -531,7 +533,7 @@ See `superset/config.py` for a complete example configuration.
 A task whose worker dies mid-execution (OOM kill, crash, lost broker message) would otherwise stay `IN_PROGRESS` forever. To prevent this, a worker writes a liveness heartbeat while it holds a task, and a dedicated `reap_orphaned_tasks` beat job reaps orphans:
 
 - **Heartbeat** — every `GTF_TASK_HEARTBEAT_INTERVAL` seconds (default 15) the executing worker refreshes `tasks.last_heartbeat`. This write is deliberately out-of-band and does not update `changed_on`.
-- **Reaping** — `reap_orphaned_tasks` marks any active task whose heartbeat is older than `GTF_ORPHAN_TASK_TIMEOUT` (default 60) as `FAILURE` so waiters and dependents unblock, revokes its Celery job so a redelivered copy (with `task_acks_late`) will not run, and — on engines that support query cancellation, when the dead worker had captured a cancel handle — cancels the abandoned warehouse query out-of-band. A task still being worked on keeps a fresh heartbeat and is never reaped, so this never interferes with a live worker's cooperative abort/cleanup.
+- **Reaping** — `reap_orphaned_tasks` marks any active task whose heartbeat is older than `GTF_ORPHAN_TASK_TIMEOUT` (default 60) as `FAILURE` so waiters and dependents unblock, revokes its Celery job so a redelivered copy (with `task_acks_late`) will not run, and — on engines that support query cancellation, when the dead worker had captured a cancel handle — cancels the abandoned warehouse query out-of-band. The handle names the operation the worker was running and is cleared when that operation ends, so the reaper never cancels an operation that is already over. A task still being worked on keeps a fresh heartbeat and is never reaped, so this never interferes with a live worker's cooperative abort/cleanup.
 - **Self-fencing** — the reaper handles a *dead* worker, but a worker that is alive yet cut off from the metastore (network partition, metastore outage) would keep running a query the reaper has already marked `FAILURE`. To avoid that wasted work, if a worker's heartbeat writes keep failing for longer than `GTF_ORPHAN_TASK_TIMEOUT` — the same window the reaper uses — the worker fails the task from the inside, cancelling any in-flight query. A single failed write is tolerated; only a sustained outage spanning the orphan window fences, so a transient blip never kills a healthy task. There is no handover to another worker: the task simply fails.
 
 Enable the `reap_orphaned_tasks` beat schedule on a short interval (e.g. every minute) so orphaned tasks — and their warehouse queries — do not linger; it is separate from `prune_tasks` (a heavier retention delete that runs infrequently). Keep `GTF_ORPHAN_TASK_TIMEOUT` comfortably larger than the heartbeat interval (≥ ~3×) so a brief pause or CPU-bound stretch is not mistaken for a dead worker.
@@ -547,7 +549,7 @@ CELERY_CONFIG.beat_schedule["reap_orphaned_tasks"] = {
 Unlike `prune_tasks`, the reaper takes no kwargs — it reads `GTF_ORPHAN_TASK_TIMEOUT` from config.
 
 :::note Cancelling the underlying query
-For long-running work backed by an external query, register an `on_abort` handler that cancels it (this is how async chart-data query tasks cancel the warehouse query on engines that support cancellation). Without such a handler an abort/timeout frees the task but cannot stop the external work.
+For long-running work backed by an external query, register an `on_abort` handler that cancels it (this is how async chart-data query tasks cancel the warehouse query on engines that support cancellation). Without such a handler an abort/timeout frees the task but cannot stop the external work. Abort handlers run once, so when the external work spans several operations, or an operation's handle only exists once it has started, have the handler record the abort and cancel the current operation if there is one; the task then cancels an operation it starts afterwards itself and stops before the next one. The chart-data query task does this for Impala, which only identifies a statement's operation once the statement has been submitted.
 :::
 
 :::tip Distributed Coordination for Faster Notifications
