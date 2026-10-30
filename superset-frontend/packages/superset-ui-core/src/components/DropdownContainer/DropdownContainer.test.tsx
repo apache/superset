@@ -17,8 +17,13 @@
  * under the License.
  */
 import type { CSSProperties } from 'react';
-import { screen, render } from '@superset-ui/core/spec';
+import { act, fireEvent, screen, render } from '@superset-ui/core/spec';
 import { Button, DropdownContainer, Icons } from '..';
+
+jest.mock('remark-gfm', () => () => jest.fn());
+jest.mock('react-ace', () => () => <div data-test="mock-ace-editor" />, {
+  virtual: true,
+});
 
 const generateItems = (n: number) =>
   Array.from({ length: n }).map((_, i) => ({
@@ -248,4 +253,65 @@ test('clips the item row while remeasuring, then restores it', () => {
    * the new overflow index is applied the consumer's value comes back. */
   expect(measured[0]).toBe('hidden');
   expect(measured.at(-1)).toBe('visible');
+});
+
+test('does not force render popover content when forceRender is not specified', () => {
+  const dropdownContent = jest.fn(() => <div>Custom dropdown content</div>);
+  render(
+    <DropdownContainer
+      items={generateItems(3)}
+      dropdownContent={dropdownContent}
+    />,
+  );
+  expect(screen.queryByText('Custom dropdown content')).not.toBeInTheDocument();
+});
+
+test('renders popover content when forceRender is true', () => {
+  const dropdownContent = () => <div>Forced dropdown content</div>;
+  render(
+    <DropdownContainer
+      items={generateItems(3)}
+      dropdownContent={dropdownContent}
+      forceRender
+    />,
+  );
+  expect(screen.getByText('Forced dropdown content')).toBeInTheDocument();
+});
+
+test('enables popover scrolling when its content grows while open', () => {
+  jest.useFakeTimers();
+  const resizeCallbacks: ResizeObserverCallback[] = [];
+  global.ResizeObserver = jest.fn().mockImplementation(callback => {
+    resizeCallbacks.push(callback);
+    return { observe: jest.fn(), unobserve: jest.fn(), disconnect: jest.fn() };
+  });
+  render(
+    <DropdownContainer
+      items={generateItems(3)}
+      dropdownContent={() => <div>Dropdown content</div>}
+    />,
+  );
+
+  fireEvent.click(screen.getByTestId('dropdown-container-btn'));
+  const content = screen.getByTestId('dropdown-content');
+  let scrollHeight = 300;
+  Object.defineProperty(content, 'scrollHeight', {
+    configurable: true,
+    get: () => scrollHeight,
+  });
+  act(() => {
+    jest.advanceTimersByTime(100);
+  });
+  const popoverContainer = content.closest('.ant-popover-container');
+  expect(popoverContainer).toHaveStyle({ overflow: 'visible' });
+
+  /* Expanding a section inside the open popover, such as the out-of-scope
+   * filters, grows its content past the max height. */
+  scrollHeight = 800;
+  act(() => {
+    resizeCallbacks.forEach(callback => callback([], {} as ResizeObserver));
+  });
+  expect(popoverContainer).toHaveStyle({ overflow: 'auto' });
+
+  jest.useRealTimers();
 });
