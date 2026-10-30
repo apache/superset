@@ -139,33 +139,36 @@ class ImpalaEngineSpec(BaseEngineSpec):
     @classmethod
     def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
         """Wait for asynchronous operations using the public cursor API."""
-        if callable(getattr(cursor, "execute_async", None)):
-            from impala.error import Error
+        try:
+            if callable(getattr(cursor, "execute_async", None)):
+                from impala.error import Error
 
-            deadline = time.monotonic() + app.config["SQLLAB_TIMEOUT"]
-            try:
-                while cursor.is_executing():
-                    if time.monotonic() >= deadline:
-                        cursor.cancel_operation()
-                        raise TimeoutError("Timed out waiting for the Impala operation")
-                    time.sleep(0.1)
-                if cursor.execution_failed():
-                    # Fetching surfaces the driver's detailed asynchronous error,
-                    # including errors on statements that produce no result set.
-                    cursor.fetchall()
-            except Error as ex:
-                raise cls.get_dbapi_mapped_exception(ex) from ex
-            except TIME_LIMIT_EXCEPTIONS:
-                # The operation is released before the time limit propagates so
-                # it does not keep running on the coordinator.
+                deadline = time.monotonic() + app.config["SQLLAB_TIMEOUT"]
                 try:
-                    cursor.cancel_operation()
-                except TIME_LIMIT_EXCEPTIONS:
-                    raise
-                except Exception:  # pylint: disable=broad-except
-                    logger.warning("cancel_operation() failed after a time limit")
+                    while cursor.is_executing():
+                        if time.monotonic() >= deadline:
+                            cursor.cancel_operation()
+                            raise TimeoutError(
+                                "Timed out waiting for the Impala operation"
+                            )
+                        time.sleep(0.1)
+                    if cursor.execution_failed():
+                        # Fetching surfaces the driver's detailed asynchronous error,
+                        # including errors on statements that produce no result set.
+                        cursor.fetchall()
+                except Error as ex:
+                    raise cls.get_dbapi_mapped_exception(ex) from ex
+            return super().fetch_data(cursor, limit)
+        except TIME_LIMIT_EXCEPTIONS:
+            # The operation is released before the time limit propagates so
+            # it does not keep running on the coordinator.
+            try:
+                cursor.cancel_operation()
+            except TIME_LIMIT_EXCEPTIONS:
                 raise
-        return super().fetch_data(cursor, limit)
+            except Exception:  # pylint: disable=broad-except
+                logger.warning("cancel_operation() failed after a time limit")
+            raise
 
     @classmethod
     def _cancel_operation(cls, cursor: Any, query_id: int) -> None:

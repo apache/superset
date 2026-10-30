@@ -367,3 +367,40 @@ def test_fetch_data_propagates_time_limit_during_cancel(
     assert raised.value is cancel_timeout
     cursor.cancel_operation.assert_called_once_with()
     cursor.fetchall.assert_not_called()
+
+
+@pytest.mark.parametrize("cancel_fails", [False, True])
+@pytest.mark.parametrize(
+    "timeout",
+    [
+        SoftTimeLimitExceeded(),
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="Timed out fetching rows",
+            level=ErrorLevel.ERROR,
+        ),
+    ],
+    ids=["async", "sync"],
+)
+def test_fetch_data_cancels_on_time_limit_during_row_fetch(
+    timeout: Exception,
+    cancel_fails: bool,
+    app_context: None,
+    impala_errors: None,
+) -> None:
+    """A time limit after polling ends cancels even when the cancel RPC fails."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    cursor = Mock()
+    cursor.is_executing.return_value = False
+    cursor.execution_failed.return_value = False
+    if cancel_fails:
+        cursor.cancel_operation.side_effect = RuntimeError("cancel RPC failed")
+
+    with patch.object(BaseEngineSpec, "fetch_data", side_effect=timeout) as fetch:
+        with pytest.raises(type(timeout)) as raised:
+            spec.fetch_data(cursor, 10)
+
+    assert raised.value is timeout
+    fetch.assert_called_once_with(cursor, 10)
+    cursor.cancel_operation.assert_called_once_with()

@@ -833,7 +833,9 @@ for results, and propagates asynchronous database errors. If an operation is sti
 pending when result fetching begins, the additional polling wait is bounded by
 `SQLLAB_TIMEOUT` (in seconds); on expiry, Superset requests cancellation and reports
 a timeout. Configure the driver's network timeout separately to bound individual
-RPC calls.
+RPC calls. SQL Lab time limits that fire while Impala rows are being fetched also
+request cancellation before the timeout propagates, including after execution has
+finished. A failed cancellation RPC is logged without hiding the original timeout.
 
 ## SQL Lab Query History Pruning
 
