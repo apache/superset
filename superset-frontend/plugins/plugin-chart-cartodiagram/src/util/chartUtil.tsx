@@ -18,7 +18,7 @@
  */
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { ChartProps } from '@superset-ui/core';
-import { isEqual } from 'lodash-es';
+import { isEqual, isObject, omit } from 'lodash-es';
 import { ChartConfig, ChartConfigFeature, ChartTransformer } from '../types';
 import ChartWrapper from '../components/ChartWrapper';
 
@@ -76,6 +76,9 @@ export const createChartComponent = (
   }
 };
 
+// Recreated on every Explore control change; not read by embedded chart transformers.
+const IGNORED_HOOKS = ['setControlValue', 'getTabId', 'resolveAsyncMode'];
+
 /**
  * Simplifies a chart configuration by removing render-time dimensions and refs.
  *
@@ -89,8 +92,17 @@ export const simplifyConfig = (config: ChartConfig) => {
       type: f.type,
       geometry: f.geometry,
       properties: Object.keys(f.properties)
-        .filter(k => !['refs', 'width', 'height'].includes(k))
-        .reduce((prev, cur) => ({ ...prev, [cur]: f.properties[cur] }), {}),
+        .filter(k => !['refs', 'width', 'height', 'colorScale'].includes(k))
+        .reduce((prev, cur) => {
+          const value = f.properties[cur];
+          return {
+            ...prev,
+            [cur]:
+              cur === 'hooks' && isObject(value)
+                ? omit(value, IGNORED_HOOKS)
+                : value,
+          };
+        }, {}),
     })),
   };
   return simplifiedConfig;
