@@ -2,7 +2,7 @@
   "compilerOptions": {
     "composite": false,
     "emitDeclarationOnly": false,
-    "rootDir": "."
+    "rootDir": "../../../"
   },
   "extends": "../../../tsconfig.json",
   "include": ["**/*", "../types/**/*", "../../../types/**/*"]

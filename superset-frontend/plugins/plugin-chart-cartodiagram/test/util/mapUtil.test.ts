@@ -22,7 +22,9 @@ import OSM from 'ol/source/OSM.js';
 import TileLayer from 'ol/layer/Tile.js';
 import View from 'ol/View.js';
 import { ChartConfig } from '../../src/types';
+import { GeometryFormat } from '../../src/constants';
 import {
+  dataRecordsToOlFeatures,
   fitMapToData,
   wkbToGeoJSON,
   wktToGeoJSON,
@@ -153,5 +155,28 @@ describe('mapUtil', () => {
       },
       properties: null,
     });
+  });
+
+  test('wkbToGeoJSON returns undefined for malformed WKB', () => {
+    expect(wkbToGeoJSON('not-a-wkb')).toBeUndefined();
+  });
+
+  test('wktToGeoJSON returns undefined for malformed WKT', () => {
+    expect(wktToGeoJSON('POINT(')).toBeUndefined();
+  });
+
+  test('dataRecordsToOlFeatures skips records with invalid geometries', () => {
+    const records = [
+      { id: 1, geom: 'POINT(8 53)' },
+      { id: 2, geom: 'POINT(' },
+      { id: 3, geom: null },
+    ];
+    const features = dataRecordsToOlFeatures(
+      records,
+      'geom',
+      GeometryFormat.WKT,
+    );
+    expect(features).toHaveLength(1);
+    expect(features[0].get('id')).toBe(1);
   });
 });

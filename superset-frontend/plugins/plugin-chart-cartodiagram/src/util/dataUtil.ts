@@ -18,7 +18,6 @@
  */
 import { DataRecord, QueryData } from '@superset-ui/core';
 import { Feature, FeatureCollection } from 'geojson';
-import { Feature as OlFeature } from 'ol';
 import GeoJSON from 'ol/format/GeoJSON';
 import { dataRecordsToOlFeatures } from './mapUtil';
 import { GeometryFormat } from '../constants';
@@ -64,11 +63,7 @@ export const dataToFeatureCollection = (
   const geojsonFormat = new GeoJSON({
     featureProjection: 'EPSG:3857',
   });
-  const olFeatures = dataRecordsToOlFeatures(
-    data,
-    geomColumn,
-    geomFormat,
-  ) as OlFeature[];
+  const olFeatures = dataRecordsToOlFeatures(data, geomColumn, geomFormat);
   const featureCollection = geojsonFormat.writeFeaturesObject(olFeatures);
 
   return featureCollection;

@@ -69,12 +69,29 @@ const extractSridFromWkt = (wkt: string) => {
   return extract;
 };
 
+// OL readFeature throws on malformed input and yields geometry-less features for empty input.
+const readFeatureWithGeometry = (
+  format: WKB | WKT,
+  geom: string,
+  readOptions: ReadOptions,
+): Feature | undefined => {
+  try {
+    const feature = format.readFeature(geom, readOptions);
+    return feature?.getGeometry() ? feature : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 const featureToGeoJSON = (
   format: WKB | WKT,
   geom: string,
   readOptions: ReadOptions,
 ) => {
-  const feature = format.readFeature(geom, readOptions);
+  const feature = readFeatureWithGeometry(format, geom, readOptions);
+  if (!feature) {
+    return undefined;
+  }
   return new GeoJSON().writeFeatureObject(feature, {
     featureProjection: 'EPSG:3857',
   });
@@ -127,12 +144,15 @@ export const dataRecordsToOlFeatures = (
           opts.dataProjection = extract.srid;
         }
       }
-      const feature = format.readFeature(cleanedGeom, opts);
+      const feature = readFeatureWithGeometry(format, cleanedGeom, opts);
+      if (!feature) {
+        return undefined;
+      }
       feature.setProperties({ ...item });
 
       return feature;
     })
-    .filter(f => f !== undefined);
+    .filter((f): f is Feature => f !== undefined);
   return features;
 };
 
@@ -169,11 +189,7 @@ export const fitMapToDataRecords = (
   geomFormat: GeometryFormat.WKB | GeometryFormat.WKT,
   padding?: FitOptions['padding'] | undefined,
 ) => {
-  const features = dataRecordsToOlFeatures(
-    dataRecords,
-    geomColumn,
-    geomFormat,
-  ) as Feature[];
+  const features = dataRecordsToOlFeatures(dataRecords, geomColumn, geomFormat);
   fitToData(olMap, features, padding);
 };
 

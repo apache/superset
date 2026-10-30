@@ -78,8 +78,7 @@ export const getWkbColumns = (columns: string[]) => {
     let isWkb;
 
     try {
-      wkb.readFeature(current);
-      isWkb = true;
+      isWkb = !!wkb.readFeature(current).getGeometry();
     } catch {
       isWkb = false;
     }
@@ -538,6 +537,10 @@ export const getChartConfigs = (
       geojsonFeature = wkbToGeoJSON(location);
     } else {
       geojsonFeature = wktToGeoJSON(location);
+    }
+
+    if (!geojsonFeature) {
+      return;
     }
 
     const feature: ChartConfigFeature = {
