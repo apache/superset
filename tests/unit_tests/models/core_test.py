@@ -4181,9 +4181,8 @@ def test_a_blank_oauth2_client_does_not_open_the_embedded_gate(
 ) -> None:
     """
     sc-127897: an OAuth2 client block with a blank id or secret is no client. The
-    fallback credential must not apply, and the guest gets the "no OAuth2 client
-    information" refusal rather than the one that points the administrator at a
-    missing embedded credential.
+    fallback credential must not apply, and the guest is refused as a connection
+    with no OAuth2 client rather than one missing an embedded credential.
     """
     from superset.exceptions import SupersetErrorException
 
@@ -4199,11 +4198,15 @@ def test_a_blank_oauth2_client_does_not_open_the_embedded_gate(
     assert not database.embedded_fallback_applies()
     assert database.get_embedded_fallback_credentials() is None
     assert database.embedded_guest_missing_oauth2_client()
+    log_warning = mocker.patch("superset.models.core.logger.warning")
     with pytest.raises(SupersetErrorException) as excinfo:
         database._get_sqla_engine(nullpool=False)
 
-    assert "OAuth2 client information" in excinfo.value.error.message
-    assert "no credential configured" not in excinfo.value.error.message
+    # The guest sees the generic refusal; the administrator's log line names the
+    # missing OAuth2 client.
+    assert "isn't set up for embedded dashboards" in excinfo.value.error.message
+    log_warning.assert_called_once()
+    assert "no usable OAuth2 client information" in log_warning.call_args[0][-1]
     create_engine_mock.assert_not_called()
 
 
