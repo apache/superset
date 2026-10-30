@@ -1212,6 +1212,8 @@ def test_bullet_compile_projects_dataframe_timestamp_before_validation() -> None
         datetime(2024, 3, 10, 2, 30, tzinfo=new_york),
         datetime(2040, 7, 1, 12, tzinfo=new_york),
     ]
+    # Preserve the instant selected by the producer timezone database.
+    dublin_epoch_ms: float = source_values[1].timestamp() * 1000
     form_data = map_bullet_config(
         BulletChartConfig(
             metric={"name": "Revenue", "aggregate": "SUM", "label": "Revenue"},
@@ -1268,7 +1270,7 @@ def test_bullet_compile_projects_dataframe_timestamp_before_validation() -> None
     assert result.success is True
     assert [row["Category"] for row in captured[0]] == [
         1704164645123.456,
-        1729989000000.0,
+        dublin_epoch_ms,
         1710052200000.0,
         2224774800000.0,
     ]
@@ -1816,13 +1818,16 @@ def test_bullet_timestamp_categories_match_chart_data_wire_and_all_previews() ->
         assert category[:20] in ascii_content
 
 
-def test_bullet_dateutil_categories_preserve_chart_data_selected_instants() -> None:
+@pytest.mark.parametrize("microsecond", [0, 123456])
+def test_bullet_dateutil_categories_preserve_chart_data_selected_instants(
+    microsecond: int,
+) -> None:
     dublin = dateutil_tz.gettz("Europe/Dublin")
     new_york = dateutil_tz.gettz("America/New_York")
     assert dublin is not None
     assert new_york is not None
     dateutil_values = [
-        datetime(2024, 10, 27, 1, 30, 0, 123456, tzinfo=dublin, fold=1),
+        datetime(2024, 10, 27, 1, 30, 0, microsecond, tzinfo=dublin, fold=1),
         datetime(2024, 3, 10, 2, 30, 0, 123456, tzinfo=new_york),
         datetime(2040, 7, 1, 12, 0, 0, 123456, tzinfo=new_york),
         datetime(
@@ -1856,8 +1861,11 @@ def test_bullet_dateutil_categories_preserve_chart_data_selected_instants() -> N
     pandas_values = [pd.Timestamp(value) for value in dateutil_values[:3]]
     values = [*dateutil_values, *equivalent_values, *pandas_values]
     expected_numbers = [json_int_dttm_ser(value) for value in values]
+    dublin_category: str = _javascript_number_string(
+        dateutil_values[0].timestamp() * 1000
+    )
     expected_categories = [
-        "1729989000123.456",
+        dublin_category,
         "1710052200123.456",
         "2224774800123.456",
         "1710052200123.456",
@@ -1865,7 +1873,7 @@ def test_bullet_dateutil_categories_preserve_chart_data_selected_instants() -> N
         "1710052200123.456",
         "1710052200123.456",
         "1710052200123.456",
-        "1729989000123.456",
+        dublin_category,
         "1710052200123.456",
         "2224774800123.456",
     ]

@@ -28,7 +28,10 @@ from flask_babel import ngettext
 from marshmallow import ValidationError
 from werkzeug.datastructures import FileStorage
 
-from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.importers.v1.utils import (
+    get_contents_from_bundle,
+    open_import_bundle,
+)
 from superset.commands.theme.create import CreateThemeCommand
 from superset.commands.theme.delete import DeleteThemeCommand
 from superset.commands.theme.exceptions import (
@@ -581,7 +584,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         if not isinstance(upload, FileStorage):
             return self.response_400()
 
-        with ZipFile(upload) as bundle:
+        with open_import_bundle(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
         if not contents:

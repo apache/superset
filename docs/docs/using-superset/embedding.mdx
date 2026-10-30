@@ -59,6 +59,53 @@ embedDashboard({
 
 `fetchGuestToken` must return a **guest token** obtained from your server by calling Superset's `/api/v1/security/guest_token/` endpoint with a service account. Do not call this endpoint from client-side code.
 
+## Guest data access
+
+Embedded guest tokens grant access to data sources reachable through their
+authorized dashboards, not to SQL Lab queries or ad hoc SQL execution. Charts
+cannot use a SQL Lab `query` datasource. Naming an authorized chart or dashboard
+in a request does not grant a guest access to a stored query, even when the
+guest role has permission to read its underlying tables. Requests to `/api/v1/explore/form_data`
+and to the Explore permalink POST and GET endpoints
+(`/api/v1/explore/permalink` and `/api/v1/explore/permalink/<key>`)
+for an unauthorized query datasource return HTTP 403, like unauthorized dataset requests.
+
+## Chart display names
+
+Dashboard charts and cross-filter chips use configured column and metric display
+names even when a viewer cannot access the underlying SQL dataset directly. This
+also applies to embedded guests. Set a column or saved metric's verbose name in
+the dataset editor, or supply a custom label in the chart editor. Fields without
+a configured display name keep their original names.
+
+For viewers without dataset access, the dashboard datasets API supplies these
+names in `chart_display_labels`, keyed by chart ID and then by field or metric
+identifier. Viewers with dataset access use the existing `verbose_map`; the API
+omits `chart_display_labels` and skips the per-chart checks needed to generate it.
+Each entry contains labels from recognized saved display controls on an accessible
+chart on that dashboard. Filter-only fields, sort-only fields, expression
+internals, and dataset fields absent from those controls are excluded. A background
+query-context refresh cannot add labels for other fields. Table, AG Grid, and
+Handlebars charts exclude controls hidden by their saved query mode; Handlebars
+does not use percentage metrics. Other visualizations use the shared list of
+recognized control names without checking whether their plugin renders each
+control. Legacy, API-created, or imported charts can therefore retain labels for
+unused saved controls, such as `all_columns` left over on a pie chart. Generated
+identifiers such as `__timestamp` keep their existing fallback labels.
+Guest tokens must authorize the dashboard and, when a `datasets`
+allowlist is present, the SQL dataset. Semantic views do not supply this map.
+
+Custom security managers can specialize
+`can_access_dashboard_chart_labels(dashboard, chart, *, guest_dashboard_access=None, datasource_access=None)`
+to restrict label access for callers without datasource access. The hook is skipped
+for callers with datasource access, who receive the existing `verbose_map`; an
+override of this hook cannot restrict that map. The default implementation also
+honors existing `can_access_chart` and `raise_for_access` overrides and the
+`EXTRA_RAISE_FOR_ACCESS_BYPASS` configuration. For the built-in security manager,
+guest checks reuse the dashboard grant. Non-guest checks reuse the request's denied
+datasource decision and prefetched chart editors and viewers without repeating
+datasource permission queries for every chart.
+
 ---
 
 ## Callbacks

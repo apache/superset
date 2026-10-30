@@ -46,7 +46,11 @@ import {
 } from 'src/views/CRUD/hooks';
 import handleResourceExport from 'src/utils/export';
 import {
-  archiveConfirmDescription,
+  archiveConfirmContent,
+  archiveToastContent,
+  rememberArchivedType,
+  ToastContent,
+  archiveTitle,
   deleteActionLabel,
 } from 'src/utils/softDeleteCopy';
 import {
@@ -143,7 +147,7 @@ function ChartArchiveDescription({
   return (
     <>
       {softDelete ? (
-        <p>{archiveConfirmDescription(t('chart'))}</p>
+        <p>{archiveConfirmContent('chart', t('chart'))}</p>
       ) : (
         <p>
           {t('Are you sure you want to delete')} <b>{chart.slice_name}</b>?
@@ -242,7 +246,7 @@ const createFetchDatasets = async (
 
 interface ChartListProps {
   addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
+  addSuccessToast: (msg: string, options?: ToastContent['options']) => void;
   user?: UserWithPermissionsAndRoles;
 }
 
@@ -437,11 +441,14 @@ function ChartList(props: ChartListProps) {
     }).then(
       ({ json = {} }) => {
         refreshData();
-        addSuccessToast(
-          softDelete
-            ? t('Archived %s item(s)', chartsToDelete.length)
-            : json.message,
-        );
+        rememberArchivedType('chart');
+        const toast: ToastContent = softDelete
+          ? archiveToastContent(
+              t('Archived %s item(s)', chartsToDelete.length),
+              'chart',
+            )
+          : { text: json.message };
+        addSuccessToast(toast.text, toast.options);
       },
       createErrorHandler(errMsg =>
         addDangerToast(
@@ -518,7 +525,7 @@ function ChartList(props: ChartListProps) {
         Header: '',
         id: 'id',
         disableSortBy: true,
-        size: 'xs',
+        size: 'sm',
         hidden: !userId,
       },
       {
@@ -534,7 +541,11 @@ function ChartList(props: ChartListProps) {
           },
         }: any) => (
           <FlexRowContainer>
-            <Link to={url} data-test={`${sliceName}-list-chart-title`}>
+            <Link
+              to={url}
+              title={sliceName}
+              data-test={`${sliceName}-list-chart-title`}
+            >
               {certifiedBy && (
                 <>
                   <CertifiedBadge
@@ -550,6 +561,7 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Name'),
         accessor: 'slice_name',
+        size: 'xxxl',
         id: 'slice_name',
       },
       {
@@ -730,9 +742,13 @@ function ChartList(props: ChartListProps) {
                   tooltip={
                     allowEdit
                       ? deleteActionLabel()
-                      : t(
-                          'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
-                        )
+                      : softDelete
+                        ? t(
+                            'You must be a chart editor in order to archive. Please reach out to a chart editor to request modifications or edit access.',
+                          )
+                        : t(
+                            'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
+                          )
                   }
                   placement="bottom"
                   icon={<Icons.DeleteOutlined iconSize="l" />}
@@ -1066,9 +1082,7 @@ function ChartList(props: ChartListProps) {
           recoverable={softDelete}
           title={
             softDelete
-              ? t('Archive %(name)s?', {
-                  name: chartCurrentlyDeleting.chart.slice_name,
-                })
+              ? archiveTitle(chartCurrentlyDeleting.chart.slice_name)
               : t('Please confirm')
           }
           name={chartCurrentlyDeleting.chart.slice_name}
@@ -1096,7 +1110,7 @@ function ChartList(props: ChartListProps) {
         title={softDelete ? t('Archive selected charts?') : t('Please confirm')}
         description={
           softDelete
-            ? archiveConfirmDescription(t('charts'), true)
+            ? archiveConfirmContent('chart', t('charts'), true)
             : t('Are you sure you want to delete the selected charts?')
         }
         onConfirm={handleBulkChartDelete}

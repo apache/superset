@@ -1257,6 +1257,36 @@ class TestDatasetApi(SupersetTestCase):
 
         self.items_to_delete = [dataset]
 
+    def test_update_dataset_item_w_override_columns_keeps_column_flags(self):
+        """
+        Dataset API: a column sync keeps Is dimension / Is filterable unset
+        """
+        dataset = self.insert_default_dataset()
+        self.items_to_delete = [dataset]
+        hidden = dataset.columns[0].column_name
+        cols = [
+            {
+                "id": c.id,
+                "column_name": c.column_name,
+                "type": c.type,
+                "groupby": c.column_name != hidden,
+                "filterable": c.column_name != hidden,
+            }
+            for c in dataset.columns
+        ]
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dataset/{dataset.id}?override_columns=true"
+        rv = self.put_assert_metric(uri, {"columns": cols}, "put")
+        assert rv.status_code == 200
+
+        rv = self.client.get(f"api/v1/dataset/{dataset.id}")
+        columns = {
+            c["column_name"]: c for c in json.loads(rv.data)["result"]["columns"]
+        }
+        assert columns[hidden]["groupby"] is False
+        assert columns[hidden]["filterable"] is False
+
     def test_update_dataset_item_w_override_columns_same_columns(self):
         """
         Dataset API: Test update dataset with override columns
@@ -1474,6 +1504,51 @@ class TestDatasetApi(SupersetTestCase):
         if get_example_database().backend != "presto":
             assert columns[0].groupby is False
             assert columns[0].filterable is False
+
+        self.items_to_delete = [dataset]
+
+    def test_update_dataset_metric_d3format_validation(self):
+        """
+        Dataset API: a metric d3format must be a valid number format
+        """
+        dataset = self.insert_default_dataset()
+        uri = f"api/v1/dataset/{dataset.id}"
+        self.login(ADMIN_USERNAME)
+        rv = self.get_assert_metric(uri, "get")
+        existing = json.loads(rv.data.decode("utf-8"))["result"]["metrics"]
+        strip_read_only_fields(existing)
+
+        base_metric = {
+            "description": None,
+            "expression": "COUNT(*)",
+            "metric_name": "fmt_metric",
+            "metric_type": None,
+            "verbose_name": None,
+            "warning_text": None,
+        }
+
+        # An invalid number format is rejected and nothing is stored.
+        # DatasetPutSchema reports schema errors as a SIP-40 422.
+        invalid = {**base_metric, "d3format": "<img src=x onerror=alert(1)>"}
+        rv = self.client.put(uri, json={"metrics": [*existing, invalid]})
+        assert rv.status_code == 422
+        assert (
+            db.session.query(SqlMetric)
+            .filter_by(table_id=dataset.id, metric_name="fmt_metric")
+            .one_or_none()
+            is None
+        )
+
+        # A valid specifier saves.
+        valid = {**base_metric, "d3format": ",.2f"}
+        rv = self.client.put(uri, json={"metrics": [*existing, valid]})
+        assert rv.status_code == 200
+        stored = (
+            db.session.query(SqlMetric)
+            .filter_by(table_id=dataset.id, metric_name="fmt_metric")
+            .one()
+        )
+        assert stored.d3format == ",.2f"
 
         self.items_to_delete = [dataset]
 

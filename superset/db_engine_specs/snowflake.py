@@ -575,6 +575,9 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         """
         Return the configured schema.
         """
+        if not sqlalchemy_uri.database:
+            return None
+
         database = sqlalchemy_uri.database.strip("/")
 
         if "/" not in database:

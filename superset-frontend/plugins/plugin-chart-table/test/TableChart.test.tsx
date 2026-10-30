@@ -390,6 +390,118 @@ describe('plugin-chart-table', () => {
       expect(String(parsedDate)).toBe('2020-01-01 12:34:56');
       expect(parsedDate.getTime()).toBe(1577882096000);
     });
+
+    test('does not remap a real Previous revenue column onto Main revenue', () => {
+      const { columns } = transformProps({
+        ...testData.basic,
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['Main revenue', 'Previous revenue', '# revenue'],
+            coltypes: [
+              GenericDataType.Numeric,
+              GenericDataType.Numeric,
+              GenericDataType.Numeric,
+            ],
+            data: [
+              {
+                'Main revenue': 10,
+                'Previous revenue': 8,
+                '# revenue': 2,
+              },
+            ],
+          },
+        ],
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          column_config: {
+            'Previous revenue': { customColumnName: 'Prior' },
+          },
+        },
+      });
+
+      expect(
+        columns.find(col => col.key === 'Previous revenue')?.config,
+      ).toEqual(expect.objectContaining({ customColumnName: 'Prior' }));
+      expect(columns.find(col => col.key === 'Main revenue')?.config).toEqual(
+        {},
+      );
+    });
+
+    test('does not apply a dropped Previous revenue dataset column config to Main revenue', () => {
+      const { columns } = transformProps({
+        ...testData.basic,
+        datasource: {
+          ...testData.basic.datasource,
+          columns: [{ column_name: 'Previous revenue' }],
+        },
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['Main revenue', '# revenue'],
+            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+            data: [{ 'Main revenue': 10, '# revenue': 2 }],
+          },
+        ],
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          column_config: {
+            'Previous revenue': { visible: false },
+          },
+        },
+      });
+
+      expect(columns.find(col => col.key === 'Main revenue')?.config).toEqual(
+        {},
+      );
+    });
+
+    test('applies legacy Time column_config to the __timestamp column', () => {
+      const { columns } = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          column_config: {
+            Time: { customColumnName: 'Date', d3TimeFormat: '%Y' },
+          },
+        },
+      });
+      const timestampColumn = columns.find(col => col.key === '__timestamp');
+
+      expect(timestampColumn?.config).toEqual(
+        expect.objectContaining({
+          customColumnName: 'Date',
+          d3TimeFormat: '%Y',
+        }),
+      );
+    });
+
+    test('does not apply a dropped Time dataset column config to __timestamp', () => {
+      const { columns } = transformProps({
+        ...testData.basic,
+        datasource: {
+          ...testData.basic.datasource,
+          columns: [
+            {
+              column_name: 'Time',
+              type: 'TIMESTAMP',
+              type_generic: GenericDataType.Temporal,
+            },
+          ],
+        },
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          column_config: {
+            Time: { customColumnName: 'Date', d3TimeFormat: '%Y' },
+          },
+        },
+      });
+
+      expect(columns.find(col => col.key === '__timestamp')?.config).toEqual(
+        {},
+      );
+    });
+
     test('should process comparison columns when time_compare and comparison_type are set', () => {
       const transformedProps = transformProps(testData.comparison);
       const comparisonColumns = transformedProps.columns.filter(
@@ -2620,7 +2732,7 @@ describe('plugin-chart-table', () => {
 
         await waitFor(() => {
           expect(screen.getByRole('textbox')).toHaveValue('Michael');
-          expect(screen.getByLabelText('Search records')).toHaveValue(
+          expect(screen.getByLabelText('Search 0 records')).toHaveValue(
             'Michael',
           );
         });
@@ -2855,6 +2967,79 @@ describe('plugin-chart-table', () => {
       expect(activePage).toHaveTextContent('2');
     });
 
+    // The pagination footer height is measured via `clientHeight` and
+    // subtracted from the scrollable body height, so the default `<ul>`
+    // margins must be reset or the body shrinks and leaves empty space.
+    test('resets the default list margins on the client-side pagination bar', () => {
+      const data30 = Array.from({ length: 30 }, (_, i) => ({
+        name: `User ${i + 1}`,
+        sum__num: (i + 1) * 100,
+      }));
+      const props = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          page_length: 10,
+          metrics: ['sum__num'],
+          groupby: ['name'],
+        },
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: data30,
+          },
+        ],
+      });
+
+      const { container } = render(
+        <ProviderWrapper>
+          <TableChart {...props} sticky={false} />
+        </ProviderWrapper>,
+      );
+
+      const paginationList = container.querySelector(
+        '.dt-pagination .pagination',
+      );
+      expect(paginationList).not.toBeNull();
+      const style = getComputedStyle(paginationList as HTMLElement);
+      expect(style.marginTop).toBe('0px');
+      expect(style.marginBottom).toBe('0px');
+    });
+
+    test('resets the default list margins on the server-side pagination bar', () => {
+      const props = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          server_pagination: true,
+          server_page_length: 10,
+        },
+        queriesData: [
+          testData.basic.queriesData[0],
+          {
+            ...testData.basic.queriesData[0],
+            data: [{ rowcount: 100 }],
+          },
+        ],
+      });
+
+      const { container } = render(
+        <ProviderWrapper>
+          <TableChart {...props} sticky={false} />
+        </ProviderWrapper>,
+      );
+
+      const paginationList = container.querySelector(
+        '.dt-pagination .pagination',
+      );
+      expect(paginationList).not.toBeNull();
+      const style = getComputedStyle(paginationList as HTMLElement);
+      expect(style.marginTop).toBe('0px');
+      expect(style.marginBottom).toBe('0px');
+    });
+
     test('should build columnLabelToNameMap for adhoc columns with custom labels', () => {
       const result = transformProps({
         ...testData.basic,
@@ -2994,6 +3179,60 @@ describe('plugin-chart-table', () => {
       expect(filters[0].col).toBe('name');
       expect(filters[0].val).toEqual(['Michael']);
     });
+  });
+
+  test('search box placeholder and label show the record count', () => {
+    const props = transformProps({
+      ...testData.basic,
+      formData: {
+        ...testData.basic.formData,
+        include_search: true,
+        server_pagination: false,
+      },
+    });
+    props.includeSearch = true;
+
+    render(
+      <ProviderWrapper>
+        <TableChart {...props} sticky={false} />
+      </ProviderWrapper>,
+    );
+
+    const recordCount = testData.basic.queriesData[0].data.length;
+    const searchInput = screen.getByRole('textbox');
+    expect(searchInput).toHaveAttribute(
+      'placeholder',
+      `${recordCount} records...`,
+    );
+    expect(searchInput).toHaveAccessibleName(`Search ${recordCount} records`);
+  });
+
+  test('search box label uses the singular form for one record', () => {
+    const props = transformProps({
+      ...testData.basic,
+      formData: {
+        ...testData.basic.formData,
+        include_search: true,
+        server_pagination: false,
+      },
+      queriesData: [
+        {
+          ...testData.basic.queriesData[0],
+          data: [testData.basic.queriesData[0].data[0]],
+        },
+      ],
+    });
+    props.includeSearch = true;
+
+    render(
+      <ProviderWrapper>
+        <TableChart {...props} sticky={false} />
+      </ProviderWrapper>,
+    );
+
+    const searchInput = screen.getByRole('textbox');
+    expect(searchInput).toHaveAttribute('placeholder', '1 record...');
+    expect(searchInput).toHaveAccessibleName('Search 1 record');
   });
 
   test('does not render "Search by" if there are no search options (server pagination enabled)', () => {
