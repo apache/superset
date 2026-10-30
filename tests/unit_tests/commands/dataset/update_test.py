@@ -2181,6 +2181,62 @@ def test_a_templated_partition_column_in_the_payload_blocks_the_save(
 
 
 @with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_partial_entry_keeps_the_stored_templated_expression(
+    mocker: MockerFixture,
+) -> None:
+    """
+    An entry with an `id` and no `expression` leaves the stored expression in
+    place, so the stored Jinja is what the save has to be refused over.
+    """
+    command = _mapping_command(
+        mocker,
+        "unix_timestamp(:value)",
+        partition_expression="{{ 'dt_' ~ 'epoch' }}",
+    )
+    mapped_column, partition_column = cast(Any, command._model).columns
+    mapped_column.id = 1
+    partition_column.id = 2
+    command._properties = {
+        "columns": [
+            {"id": 1, "column_name": "event_time"},
+            {"id": 2, "column_name": "dt_epoch", "description": "partition key"},
+        ]
+    }
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
+    assert "Jinja" in str(exceptions[0])
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_explicit_null_expression_clears_the_stored_template(
+    mocker: MockerFixture,
+) -> None:
+    """An explicit `None` is a clear, so the stored Jinja no longer counts."""
+    command = _mapping_command(
+        mocker,
+        "unix_timestamp(:value)",
+        partition_expression="{{ 'dt_' ~ 'epoch' }}",
+    )
+    mapped_column, partition_column = cast(Any, command._model).columns
+    mapped_column.id = 1
+    partition_column.id = 2
+    command._properties = {
+        "columns": [
+            {"id": 1, "column_name": "event_time"},
+            {"id": 2, "column_name": "dt_epoch", "expression": None},
+        ]
+    }
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
 def test_an_untemplated_calculated_partition_column_still_saves(
     mocker: MockerFixture,
 ) -> None:

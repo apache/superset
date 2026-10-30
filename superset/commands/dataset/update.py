@@ -626,15 +626,26 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         persisted model otherwise -- a PUT that changes only `partition_column`
         still has to be validated against the transform already stored, and
         against the expression of the column it now names.
+
+        A payload entry that carries an `id` but omits the attribute leaves the
+        stored value in place (`DatasetDAO._upsert_columns` only sets the keys
+        it is given), so that stored value is the one to validate. An explicit
+        `None` is a clear.
         """
         if not column_name:
             return None
+        model = cast(SqlaTable, self._model)
         if columns is not None:
             for column in columns:
-                if column.get("column_name") == column_name:
+                if column.get("column_name") != column_name:
+                    continue
+                if attribute in column or "id" not in column:
                     return column.get(attribute)
+                for existing in model.columns:
+                    if existing.id == column["id"]:
+                        return getattr(existing, attribute)
+                return None
             return None
-        model = cast(SqlaTable, self._model)
         for existing in model.columns:
             if existing.column_name == column_name:
                 return getattr(existing, attribute)
