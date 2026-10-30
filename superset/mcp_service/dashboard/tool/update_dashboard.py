@@ -30,7 +30,13 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.commands.dashboard.exceptions import DashboardNotFoundError
+from superset.commands.dashboard.exceptions import (
+    DashboardForbiddenError,
+    DashboardInvalidError,
+    DashboardNotFoundError,
+    DashboardSlugExistsValidationError,
+    DashboardUpdateFailedError,
+)
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, event_logger
 from superset.mcp_service.dashboard.layout_validation import (
@@ -171,33 +177,36 @@ def _collect_metadata_overrides(request: UpdateDashboardRequest) -> dict[str, An
     return overrides
 
 
-def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> list[str]:
-    """Apply each explicitly-passed field to the dashboard.
+def _build_update_payload(
+    dashboard: Any, request: UpdateDashboardRequest
+) -> dict[str, Any]:
+    """Collect each explicitly-passed field into a command body.
 
-    Returns the names of fields actually changed. Mutates ``dashboard``
-    in place. ``json_metadata_overrides`` (plus the typed metadata fields) is
-    merged shallowly with the existing ``json_metadata``; an empty string in
-    ``slug`` or ``css`` clears the underlying value; ``tags`` fully replaces the
-    dashboard's custom tags. Inputs are assumed pre-validated by
-    ``_validate_update_request``.
+    Built rather than assigned. Every field this tool writes is one
+    ``UpdateDashboardCommand`` already accepts, and the command is where
+    the review gate is bound -- assigning to the model here and committing
+    wrote straight past it, so an editor could retitle, restyle, relayout
+    and above all *publish* a dashboard with no change request (S-02).
+
+    ``json_metadata_overrides`` (plus the typed metadata fields) is merged
+    shallowly with the existing ``json_metadata``; an empty string in
+    ``slug`` or ``css`` clears the underlying value; ``tags`` fully
+    replaces the dashboard's custom tags. Inputs are assumed pre-validated
+    by ``_validate_update_request``.
     """
-    changed: list[str] = []
+    payload: dict[str, Any] = {}
 
     if request.dashboard_title is not None:
-        dashboard.dashboard_title = request.dashboard_title
-        changed.append("dashboard_title")
+        payload["dashboard_title"] = request.dashboard_title
 
     if request.description is not None:
-        dashboard.description = request.description
-        changed.append("description")
+        payload["description"] = request.description
 
     if request.slug is not None:
-        dashboard.slug = request.slug or None
-        changed.append("slug")
+        payload["slug"] = request.slug or None
 
     if request.published is not None:
-        dashboard.published = request.published
-        changed.append("published")
+        payload["published"] = request.published
 
     if request.position_json is not None:
         # A caller-supplied replacement layout may carry only an immediate
@@ -205,30 +214,24 @@ def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> lis
         # chains so filter-scope derivation sees the same tree the frontend
         # would after hydration. See
         # superset.dashboards.filter_scope.get_chart_ids_in_scope.
-        dashboard.position_json = json.dumps(
+        payload["position_json"] = json.dumps(
             rebuild_parent_chains(request.position_json)
         )
-        changed.append("position_json")
 
     metadata_overrides: dict[str, Any] = _collect_metadata_overrides(request)
     if metadata_overrides:
-        dashboard.json_metadata = _merge_json_metadata(dashboard, metadata_overrides)
-        changed.append("json_metadata")
+        payload["json_metadata"] = _merge_json_metadata(dashboard, metadata_overrides)
 
     if request.css is not None:
-        dashboard.css = request.css or None
-        changed.append("css")
+        payload["css"] = request.css or None
 
     if request.tags is not None:
-        # Reuse the same helper the REST UpdateDashboardCommand uses so tag
-        # association semantics (custom-tag full replacement) stay identical.
-        from superset.commands.utils import update_tags
-        from superset.tags.models import ObjectType
+        # The command applies these with ``update_tags``, the same helper
+        # this tool used to call itself, so custom-tag replacement
+        # semantics are unchanged.
+        payload["tags"] = request.tags
 
-        update_tags(ObjectType.dashboard, dashboard.id, dashboard.tags, request.tags)
-        changed.append("tags")
-
-    return changed
+    return payload
 
 
 def _validate_update_request(
@@ -365,7 +368,12 @@ async def update_dashboard(
 
     try:
         with event_logger.log_context(action="mcp.update_dashboard.apply"):
-            changed_fields = _apply_field_updates(dashboard, request)
+            from superset.commands.dashboard.update import UpdateDashboardCommand
+
+            payload = _build_update_payload(dashboard, request)
+            # Insertion order, which is the order the fields are collected
+            # in -- the same list the previous in-place version reported.
+            changed_fields = list(payload)
 
             if not changed_fields:
                 warnings.append("No fields provided; dashboard unchanged.")
@@ -377,20 +385,23 @@ async def update_dashboard(
                     warnings=warnings,
                 )
 
-            db.session.commit()  # pylint: disable=consider-using-transaction
-            try:
-                db.session.refresh(dashboard)
-            except SQLAlchemyError:
-                logger.warning(
-                    "Dashboard %s updated but refresh failed; "
-                    "continuing with current values",
-                    dashboard.id,
-                    exc_info=True,
-                )
-                warnings.append(
-                    "Dashboard updated but post-update refresh failed; "
-                    "returned values may not reflect database state."
-                )
+            # The command re-reads the dashboard by id, which inside this
+            # session is the identity-mapped instance already in hand, so
+            # ``dashboard`` carries the applied values afterwards and needs
+            # no refresh of its own.
+            UpdateDashboardCommand(dashboard.id, payload).run()
+
+    except (
+        DashboardForbiddenError,
+        DashboardInvalidError,
+        DashboardSlugExistsValidationError,
+        DashboardUpdateFailedError,
+    ) as ex:
+        # The command validates more than this tool does -- a slug
+        # collision above all -- so report its refusals as refusals
+        # instead of letting them read as a database fault.
+        logger.warning("Dashboard update refused: %s", ex)
+        return DashboardError(error=str(ex), error_type=type(ex).__name__)
 
     except SQLAlchemyError as db_err:
         try:

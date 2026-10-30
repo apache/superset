@@ -39,7 +39,7 @@ Covers:
 
 from collections.abc import Iterator
 from typing import Any
-from unittest.mock import Mock, patch, PropertyMock
+from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client, FastMCP
@@ -58,6 +58,54 @@ def mock_event_logging() -> Iterator[None]:
     """Isolate dashboard commits from the event logger's separate audit commits."""
     with patch("superset.extensions.event_logger.log_context"):
         yield
+
+
+
+#: Bodies handed to the command during one test, so a test can assert the
+#: write went through it. The tool must not write any other way (S-02).
+_WRITES: list[dict[str, Any]] = []
+
+
+@pytest.fixture(autouse=True)
+def update_command_applies_its_body() -> Any:
+    """Stand in for ``UpdateDashboardCommand``, which these tests do not run.
+
+    The tool used to assign to the dashboard and commit, which wrote past
+    the review gate (S-02); it now hands the same fields to the command
+    the REST API uses. These tests are about *which* fields the tool asks
+    for, so the command is replaced by something that applies the body it
+    was given -- including tags, which the real command applies with the
+    same helper.
+    """
+
+    _WRITES.clear()
+
+    def _construct(model_id: Any, properties: dict[str, Any]) -> Any:
+        from superset.daos.dashboard import DashboardDAO
+
+        _WRITES.append(properties)
+        instance = Mock()
+
+        def _run() -> Any:
+            model = DashboardDAO.get_by_id_or_slug(model_id)
+            for field, value in properties.items():
+                if field == "tags":
+                    from superset.commands.utils import update_tags
+                    from superset.tags.models import ObjectType
+
+                    update_tags(ObjectType.dashboard, model.id, model.tags, value)
+                    continue
+                setattr(model, field, value)
+            return model
+
+        instance.run.side_effect = _run
+        return instance
+
+    with patch(
+        "superset.commands.dashboard.update.UpdateDashboardCommand",
+        side_effect=_construct,
+    ) as command:
+        yield command
 
 
 def _empty_grid_layout() -> dict[str, Any]:
@@ -600,7 +648,7 @@ async def test_duplicate_remove_ids_rejected(mcp_server: FastMCP) -> None:
         )
 
     assert "duplicate component IDs" in data["error"]
-    session.commit.assert_not_called()
+    assert not _WRITES
     assert (
         json.loads(dashboard.position_json) == _grid_layout_with_existing_components()
     )
@@ -835,7 +883,7 @@ async def test_malformed_layout_is_not_replaced(
         )
     assert "malformed layout" in data["error"]
     assert dashboard.position_json == position_json
-    session.commit.assert_not_called()
+    assert not _WRITES
 
 
 @pytest.mark.asyncio
@@ -858,7 +906,7 @@ async def test_failed_batch_does_not_save_partial_updates(mcp_server: FastMCP) -
         )
     assert data["error"]
     assert dashboard.position_json == before
-    session.commit.assert_not_called()
+    assert not _WRITES
 
 
 @pytest.mark.asyncio
@@ -890,7 +938,7 @@ async def test_reserved_title_and_charts_cannot_be_mutated(
             data = await _call(mcp_server, {"dashboard_id": 1, operation: payload})
             assert data["error"]
     assert dashboard.position_json == before
-    session.commit.assert_not_called()
+    assert not _WRITES
 
 
 @pytest.mark.asyncio
@@ -963,33 +1011,26 @@ async def test_batch_preserves_charts_metadata_and_markdown_source(
     assert saved[data["added_component_ids"][0]]["meta"]["code"] == source
     assert dashboard.slices is before_slices
     assert dashboard.json_metadata == before_metadata
-    session.commit.assert_called_once()
+    assert len(_WRITES) == 1, "the write must go through the command"
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("failure", ["commit", "refresh"])
-async def test_database_failure_reports_commit_outcome(
-    mcp_server: FastMCP, failure: str
+async def test_a_database_failure_is_rolled_back_and_reported(
+    mcp_server: FastMCP,
 ) -> None:
-    """Rollback failed commits; a refresh failure must not invite duplicate adds."""
+    """A write that fails is reported, not half-applied.
+
+    There is no separate refresh step to fail any more: the command owns
+    the write and returns the model it wrote, so its own failure is the
+    only one left to report.
+    """
     dashboard = _mock_dashboard()
     with (
         patch(DAO_GET, return_value=dashboard),
         patch("superset.extensions.db.session") as session,
+        patch("superset.commands.dashboard.update.UpdateDashboardCommand") as command,
     ):
-
-        def expire_and_fail(*args: object) -> None:
-            """Simulate inaccessible ORM attributes after a failed refresh."""
-            if failure == "refresh":
-                type(dashboard).id = PropertyMock(
-                    side_effect=SQLAlchemyError("expired")
-                )
-                type(dashboard).slug = PropertyMock(
-                    side_effect=SQLAlchemyError("expired")
-                )
-            raise SQLAlchemyError("database error")
-
-        getattr(session, failure).side_effect = expire_and_fail
+        command.return_value.run.side_effect = SQLAlchemyError("database error")
         data = await _call(
             mcp_server,
             {
@@ -997,14 +1038,10 @@ async def test_database_failure_reports_commit_outcome(
                 "add": [{"component_type": "divider"}],
             },
         )
-    if failure == "commit":
-        assert data["error"]
-        assert not data["added_component_ids"]
-        session.rollback.assert_called_once()
-    else:
-        assert data["error"] is None
-        assert len(data["added_component_ids"]) == 1
-        session.rollback.assert_not_called()
+
+    assert data["error"]
+    assert not data["added_component_ids"]
+    session.rollback.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -1043,12 +1080,12 @@ async def test_markdown_resize_respects_row_capacity(
         assert "available width" in data["error"]
         assert "4 columns" in data["error"]
         assert dashboard.position_json == original
-        session.commit.assert_not_called()
+        assert not _WRITES
     else:
         assert data["error"] is None
         saved = json.loads(dashboard.position_json)
         assert saved["MARKDOWN-existing1"]["meta"]["width"] == width
-        session.commit.assert_called_once()
+        assert len(_WRITES) == 1, "the write must go through the command"
 
 
 @pytest.mark.asyncio
@@ -1095,7 +1132,7 @@ async def test_markdown_resize_accounts_for_removals(
         assert "available width" in data["error"]
         assert "10 columns" in data["error"]
         assert dashboard.position_json == original
-        session.commit.assert_not_called()
+        assert not _WRITES
     else:
         assert data["error"] is None
         assert data["removed_component_ids"] == ["MARKDOWN-sibling"]
@@ -1107,7 +1144,7 @@ async def test_markdown_resize_accounts_for_removals(
         assert saved["MARKDOWN-existing1"]["meta"]["width"] == 12
         assert saved["ROW-existing1"]["children"] == ["MARKDOWN-existing1"]
         assert "MARKDOWN-sibling" not in saved
-        session.commit.assert_called_once()
+        assert len(_WRITES) == 1, "the write must go through the command"
 
 
 @pytest.mark.asyncio
@@ -1150,7 +1187,7 @@ async def test_add_to_nested_tab(mcp_server: FastMCP, target_tab: str | None) ->
     if target_tab == "missing":
         assert "Nested (TAB-nested)" in data["error"]
         assert dashboard.position_json == original
-        session.commit.assert_not_called()
+        assert not _WRITES
     else:
         assert data["error"] is None
         saved = json.loads(dashboard.position_json)
@@ -1195,7 +1232,7 @@ async def test_update_requires_non_null_field(
                 },
             )
     lookup.assert_not_called()
-    session.commit.assert_not_called()
+    assert not _WRITES
 
 
 @pytest.mark.asyncio
@@ -1233,7 +1270,7 @@ async def test_add_header_to_dashboard_with_chart_attached_from_explore(
         )
 
     assert data["error"] is None
-    session.commit.assert_called_once()
+    assert len(_WRITES) == 1, "the write must go through the command"
     saved_layout = json.loads(dashboard.position_json)
     assert saved_layout["CHART-1"] == chart_node
     assert saved_layout["ROW-1"]["children"] == ["CHART-1"]
@@ -1254,7 +1291,7 @@ async def test_add_to_empty_layout_with_attached_chart(mcp_server: FastMCP) -> N
         )
 
     assert data["error"] is None
-    session.commit.assert_called_once()
+    assert len(_WRITES) == 1, "the write must go through the command"
 
 
 @pytest.mark.asyncio
@@ -1276,4 +1313,4 @@ async def test_externally_managed_dashboard_is_refused(mcp_server: FastMCP) -> N
     assert data["managed_externally"] is True
     assert data["permission_denied"] is False
     assert dashboard.position_json == before
-    session.commit.assert_not_called()
+    assert not _WRITES

@@ -187,15 +187,18 @@ async def test_native_filter_managed_editorship_database_error_is_structured() -
             {"identifier": 42, "certified_by": "QA"},
             "commit",
         ),
+        # Both of these used to write the model and commit, which is how
+        # they reached viewers with no change request (S-02). Their write
+        # path is now the command, like the two chart tools below.
         (
             "manage_dashboard_markdown",
             {"dashboard_id": 42, "add": [{"component_type": "header", "text": "X"}]},
-            "commit",
+            "update",
         ),
         (
             "update_dashboard",
             {"identifier": 42, "dashboard_title": "Changed"},
-            "commit",
+            "update",
         ),
         (
             "add_chart_to_existing_dashboard",

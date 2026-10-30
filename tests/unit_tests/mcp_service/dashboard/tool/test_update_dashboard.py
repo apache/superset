@@ -18,6 +18,7 @@
 """Tests for the update_dashboard MCP tool."""
 
 from datetime import datetime
+from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -43,6 +44,46 @@ def mock_auth():
             mock_user.username = "admin"
             mock_get_user.return_value = mock_user
             yield mock_get_user
+
+
+
+@pytest.fixture(autouse=True)
+def update_command_applies_its_body() -> Any:
+    """Stand in for ``UpdateDashboardCommand``, which these tests do not run.
+
+    The tool used to assign to the dashboard and commit, which wrote past
+    the review gate (S-02); it now hands the same fields to the command
+    the REST API uses. These tests are about *which* fields the tool asks
+    for, so the command is replaced by something that applies the body it
+    was given -- including tags, which the real command applies with the
+    same helper.
+    """
+
+    def _construct(model_id: Any, properties: dict[str, Any]) -> Any:
+        from superset.daos.dashboard import DashboardDAO
+
+        instance = Mock()
+
+        def _run() -> Any:
+            model = DashboardDAO.get_by_id_or_slug(model_id)
+            for field, value in properties.items():
+                if field == "tags":
+                    from superset.commands.utils import update_tags
+                    from superset.tags.models import ObjectType
+
+                    update_tags(ObjectType.dashboard, model.id, model.tags, value)
+                    continue
+                setattr(model, field, value)
+            return model
+
+        instance.run.side_effect = _run
+        return instance
+
+    with patch(
+        "superset.commands.dashboard.update.UpdateDashboardCommand",
+        side_effect=_construct,
+    ) as command:
+        yield command
 
 
 def _mock_dashboard(
