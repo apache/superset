@@ -445,12 +445,27 @@ class TestImportChartsCommand(SupersetTestCase):
         markup["params"]["viz_type"] = "markup"
         markup.pop("query_context", None)
 
+        # A derivable viz whose synthesis actually RAISES: ``adhoc_filters`` is a
+        # scalar rather than a list, so the form-data builder blows up mid-import.
+        # The per-chart ``except`` in ``_synthesize_query_context_if_absent`` must
+        # isolate it so the bundle still imports and only this chart stays NULL
+        # (bundle-isolation guarantee, FR-004 / #33615 review).
+        raising = copy.deepcopy(chart_config)
+        raising["uuid"] = "aaaaaaaa-0000-0000-0000-000000000012"
+        raising["slice_name"] = "Raising chart"
+        raising["viz_type"] = "big_number_total"
+        raising["params"]["viz_type"] = "big_number_total"
+        raising["params"]["metric"] = "count"
+        raising["params"]["adhoc_filters"] = 123  # not a list -> builder raises
+        raising.pop("query_context", None)
+
         contents = {
             "metadata.yaml": yaml.safe_dump(chart_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
             "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
             "charts/derivable_chart.yaml": yaml.safe_dump(derivable),
             "charts/markup_chart.yaml": yaml.safe_dump(markup),
+            "charts/raising_chart.yaml": yaml.safe_dump(raising),
         }
         # --- RED anchor: mixed bundle imports without raising (FR-004) ---
         ImportChartsCommand(contents, overwrite=True).run()
@@ -461,14 +476,20 @@ class TestImportChartsCommand(SupersetTestCase):
         markup_chart: Slice = (
             db.session.query(Slice).filter_by(uuid=markup["uuid"]).one()
         )
-        # --- RED anchor: derivable → context; non-derivable → NULL (FR-003) ---
+        raising_chart: Slice = (
+            db.session.query(Slice).filter_by(uuid=raising["uuid"]).one()
+        )
+        # --- RED anchor: derivable → context; non-derivable & raising → NULL,
+        # and the raising chart did not abort the bundle (FR-003 / FR-004) ---
         assert derivable_chart.query_context is not None
         assert markup_chart.query_context is None
+        assert raising_chart.query_context is None
 
         dataset = derivable_chart.datasource
         database = dataset.database if dataset else None
         db.session.delete(derivable_chart)
         db.session.delete(markup_chart)
+        db.session.delete(raising_chart)
         if dataset:
             db.session.delete(dataset)
         if database:

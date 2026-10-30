@@ -32,15 +32,17 @@ def charts() -> None:
     """Chart-related maintenance commands."""
 
 
-def _derive_query_context(chart: Any, generator: Any) -> Optional[dict[str, Any]]:
+def _derive_query_context(chart: Any) -> Optional[dict[str, Any]]:
     """
     Derive a ``query_context`` config for ``chart``, or ``None`` if non-derivable.
 
-    Prefers the authoritative frontend ``buildQuery`` (V8) and falls back to the
-    pure-Python generic derivation; the datasource is taken from the chart's own
-    resolved id/type, never from ``params`` (authz-preserving).
+    Delegates to the canonical form-data builder (shared with the import path so
+    the two cannot drift), then binds the chart's own id so the read path
+    resolves its cache timeout / guest access live. The datasource is taken from
+    the chart's resolved id/type, never from ``params`` (authz-preserving).
     """
     from superset.commands.chart.query_context_builder import (
+        bind_slice_id,
         build_query_context_config,
     )
     from superset.utils import json
@@ -48,20 +50,14 @@ def _derive_query_context(chart: Any, generator: Any) -> Optional[dict[str, Any]
     params = json.loads(chart.params) if chart.params else {}
     if not isinstance(params, dict):
         params = {}
-    datasource_id = chart.datasource_id
-    datasource_type = chart.datasource_type or "table"
-
-    context = None
-    if datasource_id:
-        js_params = {
-            **params,
-            "datasource": f"{datasource_id}__{datasource_type}",
-        }
-        context = generator.generate(chart.viz_type, js_params)
-    if context is None:
-        context = build_query_context_config(
-            params, chart.viz_type, datasource_id, datasource_type
-        )
+    context = build_query_context_config(
+        params,
+        chart.viz_type,
+        chart.datasource_id,
+        chart.datasource_type or "table",
+    )
+    if context is not None:
+        bind_slice_id(context, chart.id)
     return context
 
 
@@ -99,9 +95,6 @@ def backfill_query_context(
     Non-derivable charts are left untouched (never a fabricated context).
     """
     # Imported lazily so the module imports cleanly without an app context.
-    from superset.commands.chart.query_context_generator import (
-        get_query_context_generator,
-    )
     from superset.extensions import db
     from superset.models.slice import Slice
     from superset.utils import json
@@ -110,8 +103,6 @@ def backfill_query_context(
         raise click.BadParameter(
             "must be a positive integer", param_hint="'--batch-size'"
         )
-
-    generator = get_query_context_generator()
 
     # Snapshot the candidate primary keys up front (a light id-only query), then
     # process them in stable-id pages. We must NOT stream with ``yield_per`` and
@@ -140,7 +131,7 @@ def backfill_query_context(
                 skipped += 1
                 continue
             try:
-                context = _derive_query_context(chart, generator)
+                context = _derive_query_context(chart)
             except Exception as ex:  # pylint: disable=broad-except
                 errors += 1
                 logger.warning(

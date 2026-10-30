@@ -200,13 +200,17 @@ class ImportChartsCommand(ImportModelsCommand):
         ):
             if str(config["uuid"]) in reused_chart_uuids:
                 continue
-            # Count the query_context synthesis outcome from what this import did
-            # to the config. Keyed off the pre-import snapshot so a chart that
-            # already had a context is counted as preserved, not as newly
-            # synthesized (#33615 review).
+            # Count the query_context synthesis outcome from what was persisted.
+            # ``import_chart`` synthesizes onto a deep-copied config (via
+            # ``migrate_chart``) and ``import_charts`` yields the caller's
+            # ORIGINAL config, so ``config.get("query_context")`` is falsy for a
+            # freshly synthesized chart; read the persisted ``chart`` instead so
+            # synthesized charts count as queryable, not non-derivable (#33615
+            # review). Keyed off the pre-import snapshot so a chart that already
+            # had a context is counted as preserved, not as newly synthesized.
             if had_query_context.get(str(config["uuid"])):
                 n_preserved += 1
-            elif config.get("query_context"):
+            elif chart.query_context:
                 n_queryable += 1
             else:
                 n_non_derivable += 1

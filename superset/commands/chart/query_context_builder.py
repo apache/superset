@@ -25,118 +25,38 @@ payload from the chart's viz ``params`` + its importer-resolved datasource, so
 the imported row becomes queryable on first read — or classifies the chart
 non-derivable and returns ``None`` (honest-fail; never a fabricated context).
 
-The function is **pure** (no DB / network / analytical-DB access). Its output,
-when passed to ``QueryContextFactory.create(**payload)``, constructs a valid
-``QueryContext``. See ADR-013 (synthesize-at-import) and ADR-014
-(datasource authz/RLS preservation).
+The mapping itself is **not** reimplemented here. Instead this delegates to the
+canonical, server-side form-data → query-context builder
+``superset.common.form_data_query_context.build_query_context_from_form_data``
+— the same one the dashboard Excel export and the MCP chart service already use
+to rebuild a context for charts that predate persisted query contexts. Reusing
+it (rather than maintaining a second, partial form-data-to-query mapping) means
+the synthesized context matches what the chart's own ``buildQuery`` would emit
+at read time, so an imported chart returns exactly the rows it defines — no
+broadened result set, no dropped filter/ordering/role/post-processing, and no
+viz-specific semantics (time axis, pivot axes, server pagination, contribution,
+aggregation) silently lost (#33615 review).
+
+The datasource is taken from the importer-resolved id/type **only**, never from
+``params`` (ADR-014 authz/RLS): the synthesized context names the same real
+datasource the authz layer vets at read time.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from superset.utils.core import split_adhoc_filters_into_base_filters
+from superset.common.form_data_query_context import (
+    build_query_context_from_form_data,
+)
 
 # Datasource-less viz types render static/markdown content rather than a
 # datasource-backed query; a NULL query_context is the *correct* state for them
 # (FR-003), not a bug. Kept as a small, explicit, conservatively-expanded set.
 # NOTE: `handlebars` is deliberately NOT here — it renders a template over query
-# results and ships a real buildQuery (its generated registry entry and golden
-# fixture build a datasource-backed query), so it must stay on the derivable path.
-# Classifying it datasource-less left imported handlebars charts with a NULL
-# context that 400s on the data endpoint whenever the V8 bundle is unavailable.
+# results and issues a real datasource-backed query, so it must stay on the
+# derivable path.
 _NON_DATASOURCE_VIZ: frozenset[str] = frozenset({"markup", "divider"})
-
-
-def _is_mappable_adhoc_filter(adhoc_filter: dict[str, Any]) -> bool:
-    """
-    Whether ``split_adhoc_filters_into_base_filters`` will actually carry this
-    adhoc filter into the synthesized context.
-
-    The shared splitter preserves only SIMPLE ``WHERE`` clauses (a subject +
-    operator) and SQL ``WHERE`` / ``HAVING`` clauses (a non-empty expression).
-    Anything else — a SIMPLE ``HAVING``, an unknown ``expressionType``, or a
-    SIMPLE filter missing its subject/operator — is silently discarded, which
-    would broaden the imported chart's result set. Such filters are treated as
-    unmappable so the caller can fail closed instead of querying more rows than
-    the chart defines.
-    """
-    expression_type = adhoc_filter.get("expressionType")
-    clause = adhoc_filter.get("clause")
-    if expression_type == "SIMPLE":
-        return (
-            clause == "WHERE"
-            and bool(adhoc_filter.get("subject"))
-            and bool(adhoc_filter.get("operator"))
-        )
-    if expression_type == "SQL":
-        return clause in ("WHERE", "HAVING") and bool(adhoc_filter.get("sqlExpression"))
-    return False
-
-
-def _translate_adhoc_filters(
-    adhoc_filters: list[Any] | None,
-) -> tuple[list[dict[str, Any]], str, str] | None:
-    """
-    Translate viz ``adhoc_filters`` into base filters via the shared splitter.
-
-    Delegates to ``split_adhoc_filters_into_base_filters`` — the same helper the
-    read path uses — so SQL predicates are composed identically rather than by a
-    bare ``" AND ".join``: each clause is wrapped in parentheses (preserving
-    ``OR`` precedence) and a trailing ``--`` line comment is prevented from
-    swallowing predicates joined after it.
-
-    Fails closed (#33615 review): if any adhoc filter would be silently dropped
-    by the splitter, the synthesized context would query a broader row set than
-    the chart defines. Returning ``None`` here makes the caller classify the
-    chart non-derivable and leave the ``query_context`` NULL — an honest 400
-    until backfilled is safer than a wrong, broadened result. Non-dict junk is
-    still tolerated (dropped, never raised) so a stray serialization artifact
-    does not by itself void an otherwise sound chart (RISK-T05).
-
-    Returns ``(filters, where, having)`` where ``where``/``having`` are the
-    parenthesized, comment-safe SQL strings ready for ``extras``, or ``None``
-    when a real filter could not be preserved.
-    """
-    # Drop non-dict junk up front (RISK-T05): the shared splitter calls
-    # ``.get`` on each entry and would raise on a stray non-dict item.
-    sanitized = [f for f in (adhoc_filters or []) if isinstance(f, dict)]
-    if any(not _is_mappable_adhoc_filter(f) for f in sanitized):
-        return None
-    form_data: dict[str, Any] = {"adhoc_filters": sanitized}
-    split_adhoc_filters_into_base_filters(form_data)
-    return (
-        form_data.get("filters") or [],
-        form_data.get("where") or "",
-        form_data.get("having") or "",
-    )
-
-
-def _derive_orderby(params: dict[str, Any]) -> list[list[Any]]:
-    """
-    Best-effort ordering from ``params`` (FR-002).
-
-    Handles an explicit ``orderby`` list (either ``[[col, asc_bool], ...]`` or a
-    flat list of expressions) and a single sort metric
-    (``timeseries_limit_metric`` / ``sort_by_metric``). Falls back to no
-    ordering when nothing is derivable — the query builder supplies defaults.
-    """
-    order_asc = not params.get("order_desc", True)
-
-    orderby = params.get("orderby")
-    if isinstance(orderby, list) and orderby:
-        normalized: list[list[Any]] = []
-        for entry in orderby:
-            if isinstance(entry, (list, tuple)) and len(entry) == 2:
-                normalized.append([entry[0], bool(entry[1])])
-            else:
-                normalized.append([entry, order_asc])
-        return normalized
-
-    sort_metric = params.get("timeseries_limit_metric") or params.get("sort_by_metric")
-    if sort_metric:
-        return [[sort_metric, order_asc]]
-    return []
 
 
 def build_query_context_config(
@@ -149,76 +69,63 @@ def build_query_context_config(
     Map a chart's ``params`` + resolved datasource to a ``query_context`` payload.
 
     :param params: the chart's viz form-data (a dict at ``import_chart`` time).
-    :param viz_type: the chart's viz type (classification input).
+    :param viz_type: the chart's viz type (classification + builder input).
     :param datasource_id: the importer-resolved datasource id. **Datasource is
         taken from this argument only, never from ``params`` (ADR-014 / RISK-T02)**
         so the synthesized context names the same real datasource the authz layer
         vets at read time.
     :param datasource_type: the datasource type — ``"table"`` on import.
-    :returns: a ``query_context`` payload dict whose keys are the kwargs of
-        ``QueryContextFactory.create``, or ``None`` when the chart is
-        non-derivable (FR-003): no datasource, nothing to query, or a
-        datasource-less viz type. Never returns a fabricated/invalid context.
+    :returns: a ``query_context`` payload dict (the shape
+        ``ChartDataQueryContextSchema`` loads), or ``None`` when the chart is
+        non-derivable (FR-003): no datasource, a datasource-less viz type, or a
+        form-data shape the canonical builder produces no query for. Never
+        returns a fabricated/invalid context.
     """
     params = params or {}
 
     # FR-003 non-derivable classification — return None, importer leaves NULL.
     if not datasource_id or viz_type in _NON_DATASOURCE_VIZ:
         return None
-    metrics = params.get("metrics") or []
-    # Single-metric viz types (e.g. Big Number) persist the metric under the
-    # singular `metric` key; normalize it into `metrics` so those charts are not
-    # misclassified as non-derivable (#33615: Big Number left with a NULL context).
-    if not metrics and params.get("metric"):
-        metrics = [params["metric"]]
-    # `groupby` is the deprecated alias of `columns`.
-    columns = params.get("columns") or params.get("groupby") or []
-    # Raw (non-aggregated) tables carry no metrics/groupby and select row-level
-    # ``all_columns`` instead. Without this the bundled raw ``Table.yaml``
-    # (query_mode: raw, empty metrics/groupby, populated all_columns) is
-    # misclassified non-derivable and its data endpoint 400s (#33615 review).
-    if not columns and params.get("query_mode") == "raw":
-        columns = params.get("all_columns") or []
-    if not metrics and not columns:
+
+    # The datasource is the importer-resolved id/type only; overwrite any
+    # datasource carried in params and never trust it (ADR-014). The exported
+    # ``slice_id`` is dropped here so the synthesized context — which embeds the
+    # form data — cannot bind to an unrelated local chart that happens to share
+    # that id; the local slice is bound by the caller once the row's id is known.
+    form_data = {
+        **params,
+        "datasource": f"{datasource_id}__{datasource_type}",
+    }
+    form_data.pop("slice_id", None)
+
+    context = build_query_context_from_form_data(
+        form_data,
+        {"id": datasource_id, "type": datasource_type},
+        viz_type,
+    )
+
+    # Honest-fail: if the canonical builder produced nothing to query, leave the
+    # chart non-derivable rather than persist an empty/invalid context.
+    if not context or not context.get("queries"):
         return None
 
-    translated = _translate_adhoc_filters(params.get("adhoc_filters", []))
-    # Fail closed: an adhoc filter could not be preserved, so a synthesized
-    # context would silently query a broader row set than the chart defines.
-    if translated is None:
-        return None
-    filters, where, having = translated
+    return context
 
-    query_object = {
-        "time_range": params.get("time_range", " : "),
-        "granularity": params.get("granularity_sqla") or params.get("granularity"),
-        "filters": filters,
-        "extras": {
-            "time_grain_sqla": params.get("time_grain_sqla"),
-            "having": having,
-            "where": where,
-        },
-        "applied_time_extras": {},
-        "columns": columns,
-        "metrics": metrics,
-        "orderby": _derive_orderby(params),
-        "annotation_layers": [],
-        # Leave ``row_limit`` unset when the chart does not specify one so the
-        # read path applies the runtime-configured ``ROW_LIMIT`` (50,000 by
-        # default), rather than baking in a hard-coded cap that would silently
-        # truncate imported charts to fewer rows than the UI shows (#33615 review).
-        "row_limit": params.get("row_limit"),
-        "timeseries_limit": 0,
-        "order_desc": params.get("order_desc", True),
-        "url_params": {},
-        "custom_params": {},
-        "custom_form_data": {},
-    }
 
-    return {
-        "datasource": {"id": datasource_id, "type": datasource_type},
-        "force": False,
-        "queries": [query_object],
-        "result_format": "json",
-        "result_type": "full",
-    }
+def bind_slice_id(context: dict[str, Any], slice_id: int) -> dict[str, Any]:
+    """
+    Bind a synthesized context to a local chart's own id (in place).
+
+    Synthesis drops the exported ``slice_id`` so the context cannot bind to a
+    foreign chart. Once the destination row's id is known, inject it into the
+    context's embedded ``form_data`` so ``QueryContextFactory`` resolves THIS
+    chart at read time — its cache timeout and guest-token access then follow
+    the imported chart live (and later edits to its ``cache_timeout`` take
+    effect), instead of freezing an import-time value or silently reverting to
+    the datasource default (#33615 review). Shared by both the import and the
+    backfill paths so the two cannot drift.
+    """
+    form_data = context.get("form_data")
+    if isinstance(form_data, dict):
+        form_data["slice_id"] = slice_id
+    return context
