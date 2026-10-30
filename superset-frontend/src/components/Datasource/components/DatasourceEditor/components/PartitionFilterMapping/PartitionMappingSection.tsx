@@ -183,9 +183,10 @@ export default function PartitionMappingSection({
   // message appears as it is typed. The same check gates Save from
   // `DatasourceEditor.validate`, reading the committed record instead.
   const transformErrors = valueTransformIssues(item, transform);
-  // A refusal the preview reported, so the copy above it stops promising the
-  // mirror the alert below withdraws.
-  const refused = Boolean(
+  // Any verdict the preview reported against mirroring -- a safety refusal or
+  // a transform the engine, operator or type cannot mirror -- so the copy above
+  // it stops promising the mirror the alert below withdraws.
+  const notMirrored = Boolean(
     !loading && preview && !preview.valid && preview.reason !== 'unsaved',
   );
   // Data validation compares integer keys. On a text key it can never be
@@ -232,9 +233,9 @@ export default function PartitionMappingSection({
         </Typography.Text>
       </Flex>
       <Typography.Text type="secondary">
-        {refused
+        {notMirrored
           ? t(
-              'Filters on this column are mapped onto the partition field, but this transform is refused, so they are not mirrored.',
+              'Filters on this column are mapped onto the partition field, but with this transform they are not mirrored.',
             )
           : isTemporal
             ? t('Filters on this column are mirrored onto the partition field.')

@@ -2240,7 +2240,12 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                             properties:
                               status:
                                 type: string
-                                enum: [not_checked, matched, mismatch, inconclusive]
+                                enum:
+                                - not_checked
+                                - matched
+                                - mismatch
+                                - inconclusive
+                                - refused
                               checked_rows:
                                 type: integer
                               skipped_rows:
@@ -2251,6 +2256,13 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                                 type: integer
                               partitions_requested:
                                 type: integer
+                              inconclusive_keys:
+                                type: array
+                                description: >-
+                                  Partition keys whose rows could not be read,
+                                  present when the status is inconclusive.
+                                items:
+                                  type: string
                               message:
                                 type: string
                               examples:

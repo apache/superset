@@ -25851,6 +25851,13 @@
                               },
                               "type": "array"
                             },
+                            "inconclusive_keys": {
+                              "description": "Partition keys whose rows could not be read, present when the status is inconclusive.",
+                              "items": {
+                                "type": "string"
+                              },
+                              "type": "array"
+                            },
                             "message": {
                               "type": "string"
                             },
@@ -25871,7 +25878,8 @@
                                 "not_checked",
                                 "matched",
                                 "mismatch",
-                                "inconclusive"
+                                "inconclusive",
+                                "refused"
                               ],
                               "type": "string"
                             }

@@ -285,7 +285,8 @@ def strip_comments(sql: str, engine: str = "base") -> str | None:
     except Exception:  # pylint: disable=broad-except
         return None
     if not tokens:
-        return sql
+        # Nothing but whitespace and comments: nothing is left once they go.
+        return ""
     pieces = []
     previous_end = -1
     for token in tokens:

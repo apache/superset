@@ -1213,18 +1213,20 @@ def _epoch_canaries(
     if source_type == utils.GenericDataType.TEMPORAL:
         return list(_EPOCH_CANARIES)
     if source_type == utils.GenericDataType.STRING:
-        return _text_epoch_canaries(source)
+        return _text_epoch_canaries(source, datasource.database)
     return []
 
 
-def _text_epoch_canaries(source: TableColumn) -> list[str]:
+def _text_epoch_canaries(source: TableColumn, database: Database) -> list[str]:
     """
     The canaries as the text a timestamp column may hold, one pair per form.
 
     Whether or not the column is flagged temporal: ``is_dttm`` defaults to
     false, and a filter binds the text the author typed either way. A transform
     parsing one layout answers ``NULL`` for the others, so each common layout
-    gets a pair, plus the column's own `python_date_format`.
+    gets a pair, plus the column's own `python_date_format`. That format is the
+    dataset owner's text, so a pair is asked only when it round-trips as a
+    literal, the same gate every filter value passes before it reaches a probe.
     """
     formats = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%SZ"]
     date_format = source.python_date_format
@@ -1234,7 +1236,12 @@ def _text_epoch_canaries(source: TableColumn) -> list[str]:
         tuple(canary.strftime(layout) for canary in _EPOCH_CANARIES)
         for layout in formats
     )
-    return [text for pair in pairs for text in pair]
+    return [
+        text
+        for pair in pairs
+        if all(value_round_trips(database, text) for text in pair)
+        for text in pair
+    ]
 
 
 def _canary_answers(

@@ -3600,3 +3600,32 @@ def test_a_text_layout_the_engine_rejects_does_not_hide_the_others() -> None:
             partition_mapping._probe_canaries(MagicMock(), "t(:value)", canaries)
             is None
         )
+
+
+@pytest.mark.parametrize(
+    "date_format, asked",
+    [
+        ("%d/%m/%Y %H:%M:%S", True),
+        # Hive reads a backslash escape and ignores a doubled apostrophe, so
+        # the rendered literal would close early and the rest would run.
+        ("%Y\\' || reflect('java.lang.Thread', 'sleep', 1) || '", False),
+    ],
+)
+def test_a_date_format_reaches_the_probe_only_as_a_literal(
+    date_format: str, asked: bool
+) -> None:
+    """
+    The column's `python_date_format` is the dataset owner's text. Its canary
+    pair is asked only when it round-trips as a literal, as a filter value must.
+    """
+    from superset.connectors.sqla import partition_mapping
+
+    database = MagicMock()
+    database.backend = "hive"
+    source = MagicMock()
+    source.python_date_format = date_format
+
+    canaries = partition_mapping._text_epoch_canaries(source, database)
+
+    assert len(canaries) == (8 if asked else 6)
+    assert all(partition_mapping.value_round_trips(database, text) for text in canaries)

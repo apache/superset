@@ -449,40 +449,48 @@ test('a failed preview shows the error instead of a predicate', async () => {
   ).not.toBeInTheDocument();
 });
 
-test('a refused transform is not described as mirrored', async () => {
-  fetchMock.post(PREVIEW_URL, {
-    result: {
-      valid: false,
-      reason: 'unbucketed_epoch',
-      error: 'Raw epoch conversion does not specify the partition bucket.',
-    },
-  });
+// Not only a safety refusal: an operator or engine the mirror cannot use
+// withdraws it too, and the copy must not call either one a refusal.
+test.each(['unbucketed_epoch', 'operator'])(
+  'a transform the preview rejects for %s is not described as mirrored',
+  async reason => {
+    fetchMock.post(PREVIEW_URL, {
+      result: {
+        valid: false,
+        reason,
+        error: 'The preview rejected this transform.',
+      },
+    });
 
-  render(
-    <PartitionMappingSection
-      item={{ column_name: 'event_time', is_dttm: true }}
-      value="unix_timestamp(:value)"
-      datasource={{
-        id: 1,
-        main_dttm_col: 'event_time',
-        partition_column: 'dt_epoch',
-      }}
-      onMoveMappingHere={jest.fn()}
-      onRemoveMapping={jest.fn()}
-      onMonotonicChange={jest.fn()}
-    />,
-  );
+    render(
+      <PartitionMappingSection
+        item={{ column_name: 'event_time', is_dttm: true }}
+        value="unix_timestamp(:value)"
+        datasource={{
+          id: 1,
+          main_dttm_col: 'event_time',
+          partition_column: 'dt_epoch',
+        }}
+        onMoveMappingHere={jest.fn()}
+        onRemoveMapping={jest.fn()}
+        onMonotonicChange={jest.fn()}
+      />,
+    );
 
-  expect(
-    await screen.findByText('Filters will not be mirrored'),
-  ).toBeInTheDocument();
-  expect(
-    screen.queryByText(
-      'Filters on this column are mirrored onto the partition field.',
-    ),
-  ).not.toBeInTheDocument();
-  expect(screen.getByText(/this transform is refused/)).toBeInTheDocument();
-});
+    expect(
+      await screen.findByText('Filters will not be mirrored'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Filters on this column are mirrored onto the partition field.',
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/with this transform they are not mirrored/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/refused/)).not.toBeInTheDocument();
+  },
+);
 
 test('the column banner does not call a refused mapping mirrored', () => {
   render(

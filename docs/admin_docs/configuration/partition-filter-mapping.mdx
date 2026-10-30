@@ -96,7 +96,8 @@ On the same engines, a transform from a timestamp or text column onto a numeric 
 also evaluated at two instants 2,843 seconds apart within one hour. A text column is asked
 in each common layout (`2001-01-01 10:00:00`, `2001-01-01T10:00:00`,
 `2001-01-01T10:00:00Z`, and its own datetime format, if set), whether or not it is flagged
-as a datetime. If any answers are exactly that far apart in seconds, milliseconds,
+as a datetime. A datetime format whose output contains a quote or backslash the engine
+would read differently is skipped rather than sent. If any answers are exactly that far apart in seconds, milliseconds,
 microseconds or nanoseconds, the transform returns raw instants, however it is spelled:
 `CAST(unix_timestamp(:value) AS BIGINT)`, `unix_timestamp(:value) + 0`,
 `floor(unix_timestamp(:value))` and `utc_to_unix_micros(:value)` are all declined. A key

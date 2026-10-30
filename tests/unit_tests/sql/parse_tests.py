@@ -24,7 +24,7 @@ import sqlite3
 import pytest
 import sqlglot
 from pytest_mock import MockerFixture
-from sqlglot import Dialects, exp, parse_one
+from sqlglot import Dialect, Dialects, exp, parse_one
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
 from superset.jinja_context import JinjaTemplateProcessor
@@ -8074,8 +8074,27 @@ def test_has_comment(sql: str, engine: str, expected: bool) -> None:
         ("-- leading\nlower(:value)", "postgresql", "lower(:value)"),
         ("lower(:value)", "base", "lower(:value)"),
         ("lower(:value) /* unterminated", "hive", None),
+        ("-- only a comment", "hive", ""),
+        ("  ", "hive", ""),
     ],
 )
 def test_strip_comments(sql: str, engine: str, expected: str | None) -> None:
     """Comments go, literals and the placeholder stay exactly as written."""
     assert strip_comments(sql, engine) == expected
+
+
+@pytest.mark.parametrize("relexed", [ValueError("no"), []])
+def test_strip_comments_refuses_what_does_not_relex_the_same(
+    mocker: MockerFixture, relexed: Exception | list[object]
+) -> None:
+    """
+    The stripped text is lexed again and must give back the same tokens; a
+    lexer that fails on it, or reads it differently, yields ``None`` rather
+    than a guess.
+    """
+    tokens = Dialect.get_or_raise("hive").tokenize("lower(:value) -- c")
+    lexer = mocker.MagicMock()
+    lexer.tokenize.side_effect = [tokens, relexed]
+    mocker.patch("superset.sql.parse.Dialect.get_or_raise", return_value=lexer)
+
+    assert strip_comments("lower(:value) -- c", "hive") is None
