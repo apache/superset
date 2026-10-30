@@ -3925,7 +3925,9 @@ def test_discovery_authentication_error(
     mocker.patch(
         "superset.semantic_layers.api.SemanticLayerDAO.find_by_uuid", return_value=layer
     )
-    provider = MagicMock()
+    from superset_core.semantic_layers.context import ExecutionMethod
+
+    provider = MagicMock(supported_execution_methods={ExecutionMethod.CONNECTION})
     implementation = provider.from_configuration.return_value
     implementation.configuration = {}
     auth_error = SemanticLayerAuthenticationRequiredError("connect", "Connect first")

@@ -29,7 +29,7 @@ from typing import Any
 import backoff
 from flask import current_app
 from flask_babel import gettext as _
-from sqlalchemy import and_, desc, func, String
+from sqlalchemy import and_, desc, func, LargeBinary
 from sqlalchemy.engine import Dialect
 from superset_core.extensions.storage.models import StorageAccess
 
@@ -78,6 +78,8 @@ class EncryptedBytesType(EncryptedType):
             value = value.decode()
         self._update_key()
         plaintext = self.engine.decrypt(value)
+        if plaintext.startswith(ENCRYPTED_VALUE_PREFIX):
+            plaintext = plaintext.removeprefix(ENCRYPTED_VALUE_PREFIX)
         try:
             return base64.b64decode(plaintext, validate=True)
         except binascii.Error:
@@ -207,9 +209,8 @@ def _enc_type(user_fk: int | None) -> EncryptedBytesType:
 
 
 def _encrypt_value(value: bytes, user_fk: int | None, dialect: Dialect) -> bytes:
-    """Encrypt arbitrary bytes using a versioned, text-safe representation."""
-    plaintext = ENCRYPTED_VALUE_PREFIX + base64.b64encode(value).decode("ascii")
-    encrypted = _enc_type(user_fk).process_bind_param(plaintext, dialect)
+    """Encrypt arbitrary bytes using the shared storage encoding."""
+    encrypted = _enc_type(user_fk).process_bind_param(value, dialect)
     if not isinstance(encrypted, bytes):
         raise TypeError("Encrypted extension storage values must be bytes")
     return encrypted
@@ -218,22 +219,9 @@ def _encrypt_value(value: bytes, user_fk: int | None, dialect: Dialect) -> bytes
 def _decrypt_value(value: bytes, user_fk: int | None, dialect: Dialect) -> bytes:
     """Decrypt bytes written by ``_encrypt_value`` or the legacy implementation."""
     plaintext = _enc_type(user_fk).process_result_value(value, dialect)
-    if not isinstance(plaintext, str):
-        raise TypeError("Decrypted extension storage values must be strings")
-    if plaintext.startswith(ENCRYPTED_VALUE_PREFIX):
-        return base64.b64decode(
-            plaintext.removeprefix(ENCRYPTED_VALUE_PREFIX),
-            validate=True,
-        )
-
-    # The initial implementation passed bytes directly to EncryptedType. The
-    # resulting plaintext is the Python bytes representation (for example,
-    # ``b'{\"token\": \"...\"}'``). Recover those rows so deployments that
-    # wrote secrets before this encoding was introduced do not lose them.
-    legacy_value = ast.literal_eval(plaintext)
-    if not isinstance(legacy_value, bytes):
-        raise TypeError("Legacy encrypted extension storage value is not bytes")
-    return legacy_value
+    if not isinstance(plaintext, bytes):
+        raise TypeError("Decrypted extension storage values must be bytes")
+    return plaintext
 
 
 def _get_quota() -> int | None:

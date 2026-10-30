@@ -18,12 +18,20 @@ from __future__ import annotations
 
 import logging
 import time
-
 from dataclasses import asdict
 from typing import Any
 from uuid import UUID, uuid4
 
-from flask import Blueprint, current_app, make_response, redirect, render_template, request, Response, url_for
+from flask import (
+    Blueprint,
+    current_app,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    Response,
+    url_for,
+)
 from flask_appbuilder import AppBuilder
 from flask_appbuilder.api import BaseApi, expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
@@ -60,7 +68,6 @@ from superset.commands.semantic_layer.exceptions import (
 )
 from superset.commands.semantic_layer.update import (
     ClearSemanticLayerCacheCommand,
-
     unmask_stored_configuration,
     UpdateSemanticLayerCommand,
     UpdateSemanticViewCommand,

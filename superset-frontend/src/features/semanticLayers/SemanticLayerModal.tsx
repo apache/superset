@@ -326,7 +326,6 @@ export default function SemanticLayerModal({
     }
   };
 
-
   useOAuth2Completion(oauthTabId, () => {
     setOauthTabId(undefined);
     setRunningActionId(null);
@@ -575,7 +574,11 @@ export default function SemanticLayerModal({
       saveDisabled={
         isTypeStep
           ? !selectedType
-          : saving || clearing || !name.trim() || hasErrors || requiredActionPending
+          : saving ||
+            clearing ||
+            !name.trim() ||
+            hasErrors ||
+            requiredActionPending
       }
       saveText={isTypeStep ? undefined : isEditMode ? t('Save') : t('Create')}
       saveLoading={saving}

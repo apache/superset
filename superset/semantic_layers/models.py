@@ -57,7 +57,6 @@ from superset.common.query_object import QueryObject
 from superset.common.utils.dataframe_utils import df_columns_to_num
 from superset.exceptions import (
     InvalidPostProcessingError,
-    OAuth2RedirectError,
     QueryObjectValidationError,
 )
 from superset.explorables.base import TimeGrainDict
@@ -84,6 +83,7 @@ from superset.semantic_layers.execution import (
 from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.registry import (
     contextualize_semantic_layer,
+    contextualize_semantic_view,
     registry,
     semantic_layer_context,
 )
@@ -332,7 +332,9 @@ class SemanticLayer(AuditMixinNullable, Model):
     @property
     def implementation(self) -> SemanticLayerABC[Any, SemanticViewABC]:
         """Return the operation's guarded, identity-bound provider layer."""
-        return SemanticBindingMemo.for_layer(self).bind(self)[0]
+        return contextualize_semantic_layer(
+            self.type, SemanticBindingMemo.for_layer(self).bind(self)[0], str(self.uuid)
+        )
 
 
 class SemanticView(AuditMixinNullable, Model):
@@ -429,15 +431,27 @@ class SemanticView(AuditMixinNullable, Model):
         layer: SemanticLayerABC[Any, Any]
         views: dict[tuple[str, str], SemanticViewABC]
         layer, views = SemanticBindingMemo.for_layer(self.semantic_layer).bind(
-            self.semantic_layer
+            self.semantic_layer, str(self.uuid)
         )
         self._capture_metadata_generation()
         configuration: dict[str, Any] = json.loads(self.configuration)
         key: tuple[str, str] = (self.name, json.dumps(configuration, sort_keys=True))
         if key not in views:
-            with provider_code():
+            with (
+                provider_code(),
+                semantic_layer_context(
+                    self.semantic_layer.type,
+                    str(self.semantic_layer.uuid),
+                    str(self.uuid),
+                ),
+            ):
                 views[key] = layer.get_semantic_view(self.name, configuration)
-        return views[key]
+        return contextualize_semantic_view(
+            self.semantic_layer.type,
+            views[key],
+            str(self.semantic_layer.uuid),
+            str(self.uuid),
+        )
 
     # =========================================================================
     # Explorable protocol implementation

@@ -785,7 +785,7 @@ test('starts a required semantic layer configuration action', async () => {
 
   await waitFor(() => {
     expect(mockedPost).toHaveBeenNthCalledWith(2, {
-      endpoint: '/api/v1/semantic_layer/type/snowflake/actions/oauth2',
+      endpoint: '/api/v1/semantic_layer/type/example/actions/oauth2',
       jsonPayload: {
         configuration: expect.any(Object),
         semantic_layer_uuid: props.semanticLayerUuid,

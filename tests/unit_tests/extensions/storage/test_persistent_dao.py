@@ -239,7 +239,7 @@ def test_dao_get_value_decrypts_encrypted_entry(
     entry.value = b"encrypted-bytes"
     mock_db.session.query.return_value.filter.return_value.first.return_value = entry
     mock_enc_type.return_value.process_result_value.return_value = (
-        "superset-extension-storage:v1:eyJkZWNyeXB0ZWQiOiB0cnVlfQ=="
+        b'{"decrypted": true}'
     )
 
     with app.app_context():
@@ -383,7 +383,7 @@ def test_dao_set_encrypts_value_when_requested(
 
     mock_enc_type.assert_called_once_with(1)
     mock_enc_type.return_value.process_bind_param.assert_called_once_with(
-        "superset-extension-storage:v1:cGxhaW50ZXh0", mock_db.engine.dialect
+        b"plaintext", mock_db.engine.dialect
     )
     added_entry = mock_db.session.add.call_args[0][0]
     assert added_entry.value == b"ciphertext"
@@ -415,7 +415,7 @@ def test_dao_set_forces_encryption_for_backend_access(
     assert added_entry.is_encrypted is True
     assert added_entry.access == StorageAccess.BACKEND.value
     mock_enc_type.return_value.process_bind_param.assert_called_once_with(
-        "superset-extension-storage:v1:cGxhaW50ZXh0", mock_db.engine.dialect
+        b"plaintext", mock_db.engine.dialect
     )
 
 
@@ -826,6 +826,7 @@ def test_enc_type_rejects_plaintext_that_is_neither_base64_nor_bytes(
         with pytest.raises(binascii.Error):
             enc.process_result_value(ciphertext, None)
 
+
 @pytest.mark.parametrize("engine", ["aes", "aes-gcm"])
 def test_encrypted_value_round_trip_preserves_arbitrary_bytes(
     app: Flask, engine: str
@@ -842,10 +843,11 @@ def test_encrypted_value_round_trip_preserves_arbitrary_bytes(
 def test_decrypt_value_reads_legacy_bytes_representation(app: Flask) -> None:
     """Secrets written by the initial byte-based implementation remain readable."""
     with app.app_context():
-        encrypted = _enc_type(user_fk=42).process_bind_param(
-            b'{"access_token":"token"}',
-            dialect(),
-        )
+        enc = _enc_type(user_fk=42)
+        enc._update_key()
+        encrypted = enc.engine.encrypt(
+            "superset-extension-storage:v1:eyJhY2Nlc3NfdG9rZW4iOiJ0b2tlbiJ9"
+        ).encode()
 
         assert _decrypt_value(encrypted, user_fk=42, dialect=dialect()) == (
             b'{"access_token":"token"}'
@@ -1099,9 +1101,7 @@ def test_list_decrypts_encrypted_entries(
         mock_db.session.query.return_value.filter.return_value.order_by.return_value
     )
     page_query.offset.return_value.limit.return_value.all.return_value = [entry]
-    mock_enc_type.return_value.process_result_value.return_value = (
-        "superset-extension-storage:v1:cGxhaW50ZXh0"
-    )
+    mock_enc_type.return_value.process_result_value.return_value = b"plaintext"
 
     with app.app_context():
         entries, total_count = ExtensionStorageDAO.list_entries("my-ext", user_fk=1)
