@@ -2198,6 +2198,146 @@ def test_a_new_problem_is_still_refused_alongside_a_stored_one(
     assert [exc.field_name for exc in exceptions] == ["partition_column"]
 
 
+def _stored_source_command(mocker: MockerFixture) -> UpdateDatasetCommand:
+    """
+    `_mapping_command` with the stored transform's source pinned down: the
+    model's `database_id` matches its database, and the mapped column has an
+    id, so an unchanged transform really is the stored one.
+    """
+    command = _mapping_command(
+        mocker, "rand() + 0 * :value", partition_mapped_column="event_time"
+    )
+    model = cast(Any, command._model)
+    model.database.id = model.database_id = 1
+    mapped, partition = model.columns
+    mapped.id, partition.id = 10, 11
+    other = mocker.MagicMock()
+    other.id = 12
+    other.column_name = "other_time"
+    other.partition_value_transform = None
+    model.columns.append(other)
+    return command
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_the_unchanged_stored_transform_skips_the_expression_gate(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A transform stored before the gate existed would refuse every later save.
+    Unchanged, on the same column and source, it is not the request's doing.
+    """
+    gate = mocker.patch(
+        "superset.commands.dataset.update.stored_expression_error",
+        return_value="refused",
+    )
+    command = _stored_source_command(mocker)
+    command._properties["description"] = "x"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    gate.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "moved",
+    [{"database": "other"}, {"schema": "other"}, {"catalog": "other"}],
+    ids=["database", "schema", "catalog"],
+)
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_moving_the_source_re_asks_the_gate_for_an_unchanged_transform(
+    mocker: MockerFixture, moved: dict[str, str]
+) -> None:
+    """The gate depends on where the transform runs, not only on its text."""
+    gate = mocker.patch(
+        "superset.commands.dataset.update.stored_expression_error",
+        return_value="refused",
+    )
+    command = _stored_source_command(mocker)
+    if "database" in moved:
+        other_database = mocker.MagicMock()
+        other_database.id = 2
+        other_database.backend = "sqlite"
+        command._properties["database"] = other_database
+    else:
+        command._properties.update(moved)
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_value_transform"]
+    gate.assert_called_once()
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_the_stored_text_on_a_newly_mapped_column_goes_through_the_gate(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Re-pointing the mapping at another column and parking the stored text on it
+    introduces that transform, so it gets the gate a new one would.
+    """
+    gate = mocker.patch(
+        "superset.commands.dataset.update.stored_expression_error",
+        return_value="refused",
+    )
+    command = _stored_source_command(mocker)
+    command._properties.update(
+        {
+            "partition_mapped_column": "other_time",
+            "columns": [
+                {"id": 10, "column_name": "event_time"},
+                {"id": 11, "column_name": "dt_epoch"},
+                {
+                    "id": 12,
+                    "column_name": "other_time",
+                    "partition_value_transform": "rand() + 0 * :value",
+                },
+            ],
+        }
+    )
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert "partition_value_transform" in [exc.field_name for exc in exceptions]
+    gate.assert_called_once()
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_followed_rename_keeps_the_stored_transform_exempt(
+    mocker: MockerFixture,
+) -> None:
+    """Matched by id, so renaming the mapped column in place is the same column."""
+    gate = mocker.patch(
+        "superset.commands.dataset.update.stored_expression_error",
+        return_value="refused",
+    )
+    command = _stored_source_command(mocker)
+    command._properties.update(
+        {
+            "partition_mapped_column": "event_time",
+            "columns": [
+                {
+                    "id": 10,
+                    "column_name": "event_ts",
+                    "partition_value_transform": "rand() + 0 * :value",
+                },
+                {"id": 11, "column_name": "dt_epoch"},
+                {"id": 12, "column_name": "other_time"},
+            ],
+        }
+    )
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    gate.assert_not_called()
+
+
 @with_feature_flags(PARTITION_FILTER_MAPPING=True)
 def test_the_editor_echo_after_a_rename_validates_against_the_new_name(
     mocker: MockerFixture,

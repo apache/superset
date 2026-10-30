@@ -613,7 +613,14 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         # multi-statement transform fails that too, and has to reach this gate.
         if (
             transform
-            and not self._is_stored_transform(transform, database, catalog, schema)
+            and not self._is_stored_transform(
+                transform,
+                columns,
+                effective_mapped_column,
+                database,
+                catalog,
+                schema,
+            )
             and not is_unfinished(transform, database.backend)
         ):
             # `stored_expression_error` rather than `validate_stored_expression`
@@ -654,26 +661,46 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             if issue.blocking
         }
 
-    def _is_stored_transform(
+    def _is_stored_transform(  # pylint: disable=too-many-arguments
         self,
         transform: str,
+        columns: list[dict[str, Any]] | None,
+        mapped_column: str | None,
         database: Database,
         catalog: str | None,
         schema: str | None,
     ) -> bool:
         """
-        Whether `transform` is the stored one, against the same source.
+        Whether `transform` is the stored one, on the same column, against the
+        same source.
 
         The expression gate depends on where the transform runs as well as on
         its text, so moving the dataset re-asks it even for an unchanged
-        transform.
+        transform. So does moving the mapping: the same text parked on a
+        different column is a transform this request introduces. The column is
+        matched by id, so a rename the mapping followed is still the same one.
         """
         model = cast(SqlaTable, self._model)
-        stored = self._effective_transform(
-            None, model.partition_mapped_column or model.main_dttm_col
-        )
+        stored_name = model.partition_mapped_column or model.main_dttm_col
+        stored_ids = {
+            column.id for column in model.columns if column.column_name == stored_name
+        }
+        if columns is None:
+            requested_ids = {
+                column.id
+                for column in model.columns
+                if column.column_name == mapped_column
+            }
+        else:
+            requested_ids = {
+                column["id"]
+                for column in columns
+                if column.get("column_name") == mapped_column and "id" in column
+            }
         return (
-            transform == stored
+            bool(stored_ids)
+            and requested_ids == stored_ids
+            and transform == self._effective_transform(None, stored_name)
             and database.id == model.database_id
             and catalog == model.catalog
             and schema == model.schema
