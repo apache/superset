@@ -337,8 +337,14 @@ class OrderTerm(tuple[Metric | Dimension | AdhocExpression, OrderDirection]):
     plain pair, and such a term equals the plain pair. A term with a placement
     differs from the pair without one: the provider must sort NULL values of
     that key first or last, before ``offset`` and ``limit``.
+
+    ``dataclasses.asdict`` and ``astuple`` rebuild a term from its two
+    elements, so they keep the member and direction but not the placement;
+    serialize a term with :func:`null_placement` to keep it.
     """
 
+    # Lets ``dataclasses.asdict``/``astuple`` rebuild a term from its elements.
+    _fields: tuple[str, str] = ("member", "direction")
     nulls: NullPlacement | None
 
     def __new__(

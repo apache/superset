@@ -68,7 +68,9 @@ seed NULL and non-NULL values of that member so the limited page keeps different
 rows under the opposite placement. The SQLite example sorts `category` ascending
 with NULL values last and a limit of 2, keeping A and B where SQLite's own
 default would keep NULL and A. The suite also checks that the unlimited result
-puts every NULL value of that member at the requested end.
+puts every NULL value of that member at the requested end, and compares the
+limited page with the same rows of the unlimited result, so give the order key
+distinct values and a single NULL group: tied rows may come back in either order.
 For `grain`, use a grain-bearing dimension with data whose aggregation distinguishes the selected grain from raw values. Multiple grain variants for one name are allowed, not required. When the catalog declares no grain-bearing dimension, the case skips with an explicit reason before looking up its fixture entry; such providers may omit the `grain` entry. This reports unexercised grain coverage, not a passing grain check.
 NULL and grouped-OR fixtures must select NULL and non-NULL branches observably;
 the `or` case must use the host-normalized shape: one `OrFilter` containing

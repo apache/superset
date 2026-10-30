@@ -17,7 +17,7 @@
 
 import copy
 import pickle
-from dataclasses import replace
+from dataclasses import asdict, astuple, replace
 
 import pyarrow as pa
 import pytest
@@ -156,17 +156,29 @@ def test_order_term_placement_distinguishes_it_from_the_plain_pair(
 
 def test_order_term_survives_copy_and_pickle() -> None:
     term = OrderTerm(ORDER_DATE, OrderDirection.DESC, NullPlacement.FIRST)
-    query = replace(SemanticQuery([], [ORDER_DATE], order=[term]))
+    query = SemanticQuery([], [ORDER_DATE], order=[term])
 
     for restored in (
         copy.copy(term),
         copy.deepcopy(term),
         pickle.loads(pickle.dumps(term)),  # noqa: S301
-        *(query.order or []),
+        *(copy.deepcopy(query).order or []),
+        *(pickle.loads(pickle.dumps(query)).order or []),  # noqa: S301
+        *(replace(query, limit=1).order or []),
     ):
         assert type(restored) is OrderTerm
         assert restored == term
         assert null_placement(restored) is NullPlacement.FIRST
+
+
+def test_asdict_keeps_member_and_direction_of_an_order_term() -> None:
+    """``asdict`` cannot carry the placement; it must not fail on a term."""
+    term = OrderTerm(ORDER_DATE, OrderDirection.ASC, NullPlacement.LAST)
+
+    order = asdict(SemanticQuery([], [ORDER_DATE], order=[term]))["order"]
+
+    assert [tuple(item) for item in order] == [(asdict(ORDER_DATE), OrderDirection.ASC)]
+    assert astuple(SemanticQuery([], [ORDER_DATE], order=[term]))
 
 
 def test_order_term_is_immutable_and_validated() -> None:

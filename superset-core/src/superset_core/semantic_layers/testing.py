@@ -128,6 +128,10 @@ class SemanticProviderConformance:
             pytest.skip("grain: catalog declares no grain-bearing dimension")
         query: SemanticQuery
         expected: pa.Table
+        assert case in semantic_query_cases, (
+            f"semantic_query_cases has no {case!r} case; see the provider "
+            "testing guide for the required cases"
+        )
         query, expected = semantic_query_cases[case]
         assert expected.num_rows > 0, (
             f"{case} must distinguish a correct result from no data"
