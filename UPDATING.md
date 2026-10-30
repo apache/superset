@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
+  using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and
+  `CACHE_REDIS_USER`. Previously they always ran on DB 0 and without the ACL user.
+  If `CACHE_REDIS_DB` is not 0, coordination state (task state, locks and streams)
+  moves to that DB: avoid running old and new versions side by side, and drain
+  in-flight tasks before upgrading.
+
 - Refreshing a dataset's columns from its source (the "Sync columns from
   source" button, `PUT /api/v1/dataset/<id>?override_columns=true`, or
   `PUT /api/v1/dataset/<id>/refresh`) no longer resets **Is dimension** and
@@ -280,6 +287,15 @@ assists people when migrating to a new version.
   to choose the default exposed temporal dimension for new charts. The declaration
   is optional; absent, unknown or non-temporal names retain the existing fallback.
   Saved chart selections are preserved.
+
+### Dashboard layout chart access
+
+Saving a dashboard layout returns HTTP 422 if it adds a chart the user cannot
+read: `PUT /api/v1/dashboard/<pk>`, `POST /api/v1/dashboard/` and
+`POST /api/v1/dashboard/<id_or_slug>/copy/`. The error names the refused chart
+IDs and nothing is saved. Charts already on the dashboard, archived ones
+included, are not checked, nor are a copy's source charts. Remove the tile from
+the layout, or get access to the chart, and save again.
 
 ### Dashboard copy layout validation
 
