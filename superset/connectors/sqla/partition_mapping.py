@@ -2342,8 +2342,7 @@ def _cached_probe(
         _count("cache_hit")
         return cached
 
-    failure = _cache_get(_failure_cache_key(cache_key))
-    if failure is not None:
+    if (failure := _cache_get(_failure_cache_key(cache_key))) is not None:
         _count("failure_cache_hit")
         if errors is not None:
             errors.extend(failure)
