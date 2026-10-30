@@ -2444,7 +2444,7 @@ def test_get_df_emits_connect_timer_when_connection_fails(
         "superset.utils.timing_metrics.stats_logger_manager"
     )
 
-    with pytest.raises(OSError):
+    with pytest.raises(OSError, match="down"):
         database.get_df("SELECT 1")
 
     timers = [
