@@ -59,57 +59,7 @@ assists people when migrating to a new version.
   would bypass the connected-peer validation. Deployments that must reach webhooks
   through a proxy or custom CA bundle should set the matching allow-internal flag,
   which restores the plain `requests` behavior (and skips peer validation).
-he Apache Software Foundation (ASF) under one
-or more contributor license agreements.  See the NOTICE file
-distributed with this work for additional information
-regarding copyright ownership.  The ASF licenses this file
-to you under the Apache License, Version 2.0 (the
-"License"); you may not use this file except in compliance
-with the License.  You may obtain a copy of the License at
 
-  http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing,
-software distributed under the License is distributed on an
-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, either express or implied.  See the License for the
-specific language governing permissions and limitations
-under the License.
--->
-
-# Updating Superset
-
-This file documents any backwards-incompatible changes in Superset and
-assists people when migrating to a new version.
-
-## Next
-
-- [45186](https://github.com/apache/superset/pull/45186): Sets pyarrow>=23.0.1
-  in superset-core (without an upper ceiling) and explicitly bounds
-  msgpack>=1.2.3,<1.3.0 in requirements/base.in. The relaxed floor in core
-  resolves CVE-2026-25087 while preserving compatibility for downstream
-  extensions, whereas container images and application builds continue to
-  enforce the narrower window via requirements/base.in and
-  requirements/base.txt.
-<<<<<<< HEAD
-
-- Refreshing a dataset's columns from its source (the "Sync columns from
-  source" button, `PUT /api/v1/dataset/<id>?override_columns=true`, or
-  `PUT /api/v1/dataset/<id>/refresh`) no longer resets **Is dimension** and
-  **Is filterable** on existing columns. Newly discovered columns still arrive
-  with both enabled; a deployment that relied on a resync to restore those
-  defaults must set them explicitly.
-
-- Webhook alerts/reports and the Impala `cancel_query` call now share
-  `get_ssrf_safe_requester`, whose session sets `trust_env=False`. Unless
-  `ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS` / `IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS`
-  is `True`, these requests no longer honor `HTTP(S)_PROXY`/`NO_PROXY`,
-  `REQUESTS_CA_BUNDLE`/`CURL_CA_BUNDLE`, or `.netrc`, because proxied connections
-  would bypass the connected-peer validation. Deployments that must reach webhooks
-  through a proxy or custom CA bundle should set the matching allow-internal flag,
-  which restores the plain `requests` behavior (and skips peer validation).
-=======
->>>>>>> 92e76d97c7 (fix(security): normalize snowflake null auth_params, align superset-core pyarrow floor and cleanup upgrade notes)
 - MCP `update_dashboard` rejects blank or whitespace-only `dashboard_title`
   values with "Text must not be empty"; omit the field to keep the stored title.
   MCP chart names and theme names are capped at 250 characters, matching their
