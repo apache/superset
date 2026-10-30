@@ -2173,8 +2173,43 @@ def test_a_failed_probe_is_retried_once_its_failure_expires(
 ) -> None:
     """
     Remembering a failure for the full cache timeout would keep a transient
-    engine blip pruning-free for a day; zero turns the failure cache off.
+    engine blip pruning-free for a day. The failure is held for its own, much
+    shorter, timeout: still remembered just before it, retried just after.
     """
+    mocker.patch.dict(
+        app.config,
+        {
+            "PARTITION_TRANSFORM_PROBE_FAILURE_CACHE_TIMEOUT": 300,
+            "PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT": 24 * 60 * 60,
+        },
+    )
+    now = 1_800_000_000.0
+    clock = mocker.patch("cachelib.simple.time", return_value=now)
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=[
+            RuntimeError("connection reset"),
+            pd.DataFrame([[42]], columns=["v0"]),
+        ]
+    )
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) is None
+
+        clock.return_value = now + 299
+        assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) is None
+        _probe(database).assert_called_once()
+
+        clock.return_value = now + 301
+        assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) == [42]
+
+    assert _probe(database).call_count == 2
+
+
+def test_a_zero_failure_timeout_retries_every_failure(
+    app: Flask, mocker: MockerFixture
+) -> None:
+    """Zero turns the failure cache off rather than meaning "forever"."""
     mocker.patch.dict(
         app.config, {"PARTITION_TRANSFORM_PROBE_FAILURE_CACHE_TIMEOUT": 0}
     )

@@ -2383,9 +2383,10 @@ def _run_probe(
     all. A ``NULL`` among the results is not that -- it is this input's answer,
     and `NULLIF(:value, 0)` returning ``NULL`` for ``n = 0`` says nothing about
     the same transform on ``n = 2``. Counting it withdrew the promise for the
-    whole transform, and nothing restored it: a *failed* probe is deliberately
-    not cached, so the next chart re-probes and re-records, but a ``NULL`` is a
-    successful probe and *is* cached -- so the false verdict outlived every
+    whole transform, and nothing restored it: a *failed* probe is remembered
+    only for ``PARTITION_TRANSFORM_PROBE_FAILURE_CACHE_TIMEOUT``, after which
+    the next chart re-probes and re-records, but a ``NULL`` is a successful
+    probe and is cached for the full timeout -- so the false verdict outlived every
     later hit, and the editor reported a working mapping as not mirroring
     while the query went on pruning. The per-input skip still happens where it
     belongs, in the caller's own ``NULL`` guard.
