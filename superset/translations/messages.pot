@@ -3430,9 +3430,6 @@ msgstr ""
 msgid "Choose columns to read"
 msgstr ""
 
-msgid "Choose current semantic fields"
-msgstr ""
-
 msgid "Choose current semantic filter fields"
 msgstr ""
 
@@ -7575,6 +7572,9 @@ msgstr ""
 msgid "Guest"
 msgstr ""
 
+msgid "Guest user cannot access this query"
+msgstr ""
+
 msgid "Guest user cannot modify chart payload"
 msgstr ""
 
@@ -11160,6 +11160,12 @@ msgstr ""
 msgid "Raw records"
 msgstr ""
 
+msgid "Re-pick fields"
+msgstr ""
+
+msgid "Re-pick fields for this chart"
+msgstr ""
+
 msgid "Rearranged layout"
 msgstr ""
 
@@ -13631,9 +13637,6 @@ msgstr ""
 msgid "Start field selection using current member IDs. This clears any existing field selections, pre-filters, sorting, defaults and dependencies. Saved display titles cannot be recovered automatically."
 msgstr ""
 
-msgid "Start field selection using current member IDs. This clears any existing query and formatting settings. Saved display titles cannot be safely mapped to member IDs. The saved chart is unchanged until you save."
-msgstr ""
-
 msgid "Start with row groups collapsed when row subtotals are shown. Each group can still be expanded with its arrow."
 msgstr ""
 
@@ -15402,6 +15405,9 @@ msgid "This chart version can't be restored because the dataset it used has been
 msgstr ""
 
 msgid "This chart version can't be restored because the semantic view it used has been permanently deleted. Restore a version that uses an existing semantic view or dataset, or recreate the chart."
+msgstr ""
+
+msgid "This chart was saved with an older format of field names for this semantic view, so the fields it refers to can't be confirmed. Re-pick the metrics and dimensions to keep using it. The saved chart doesn't change until you save."
 msgstr ""
 
 msgid "This chart was updated to use the restored aggregation"
