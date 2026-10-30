@@ -23,18 +23,18 @@ import type { QueryWarningConfirmation } from './useQueryCostWarning';
 
 /** Display the server's plain-text assessment without interpreting its units. */
 export default function QueryCostWarningDialog({
-  estimate,
+  confirmation,
   onCancel,
   onContinue,
 }: {
-  estimate?: QueryWarningConfirmation;
+  confirmation?: QueryWarningConfirmation;
   onCancel: () => void;
   onContinue: () => void;
 }) {
   const theme = useTheme();
   return (
     <ConfirmModal
-      show={!!estimate}
+      show={!!confirmation}
       title={t('Query warning')}
       icon={
         <Icons.WarningOutlined
@@ -47,10 +47,10 @@ export default function QueryCostWarningDialog({
       cancelText={t('Cancel')}
       confirmText={t('Run anyway')}
       body={
-        estimate && (
+        confirmation && (
           <>
-            <p>{estimate.message}</p>
-            {estimate.details?.map((detail, index) => (
+            <p>{confirmation.message}</p>
+            {confirmation.details?.map((detail, index) => (
               <p key={index}>
                 {detail.label}: <strong>{detail.value}</strong>
               </p>

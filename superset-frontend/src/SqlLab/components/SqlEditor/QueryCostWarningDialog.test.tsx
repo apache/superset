@@ -20,7 +20,7 @@ import { fireEvent, render } from 'spec/helpers/testing-library';
 import QueryCostWarningDialog from './QueryCostWarningDialog';
 import type { QueryWarningConfirmation } from './useQueryCostWarning';
 
-const estimate: QueryWarningConfirmation = {
+const confirmation: QueryWarningConfirmation = {
   action: 'confirm',
   reason: 'warning',
   message: 'Above threshold',
@@ -38,7 +38,7 @@ test('displays server detail strings exactly with explicit actions', () => {
   const onContinue = jest.fn();
   const { getByText, getByRole } = render(
     <QueryCostWarningDialog
-      estimate={estimate}
+      confirmation={confirmation}
       onCancel={onCancel}
       onContinue={onContinue}
     />,
@@ -57,8 +57,8 @@ test('displays server detail strings exactly with explicit actions', () => {
 test('upper-bound detail strings retain the server accuracy wording', () => {
   const { getByText, queryByText } = render(
     <QueryCostWarningDialog
-      estimate={{
-        ...estimate,
+      confirmation={{
+        ...confirmation,
         details: [{ label: 'Estimated usage', value: 'Up to 1,001 bytes' }],
       }}
       onCancel={() => {}}
@@ -72,7 +72,7 @@ test('upper-bound detail strings retain the server accuracy wording', () => {
 test('unavailable assessments show their message without requiring numeric details', () => {
   const { getByText, getByRole } = render(
     <QueryCostWarningDialog
-      estimate={{
+      confirmation={{
         action: 'confirm',
         reason: 'unavailable',
         message: 'Templates cannot be assessed',
@@ -88,8 +88,8 @@ test('unavailable assessments show their message without requiring numeric detai
 test('message and detail rows are plain text, including markup', () => {
   const { getByText, container } = render(
     <QueryCostWarningDialog
-      estimate={{
-        ...estimate,
+      confirmation={{
+        ...confirmation,
         message: '<b>Review this query</b>',
         details: [{ label: '<i>Notice</i>', value: '<img src=x>' }],
       }}

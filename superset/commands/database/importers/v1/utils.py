@@ -142,7 +142,10 @@ def import_database(  # noqa: C901
     incoming_extra = config.get("extra", {})
     config["extra"] = incoming_extra
     if existing:
-        # Check the replacement settings before normalizing the warning rule.
+        # Stored secrets must not be rebound to a different endpoint: without
+        # fresh credentials, an overwrite that changes where the database (or
+        # its SSH tunnel) connects would exfiltrate the stored secret to the
+        # new endpoint on the next connection.
         _refuse_stored_secret_reuse(existing, config)
     config["extra"] = normalize_query_cost_warning(
         incoming_extra, config["sqlalchemy_uri"]

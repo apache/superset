@@ -133,8 +133,8 @@ const RunQueryActionButton = ({
     onClick(shouldShowStopBtn, runQuery, stopQuery, logAction),
   );
 
-  const showMenu = overlayCreateAsMenu && !awaitingConfirmation;
-  const ButtonComponent: FC<QueryButtonProps> = showMenu
+  const showCreateAsMenu = overlayCreateAsMenu && !awaitingConfirmation;
+  const ButtonComponent: FC<QueryButtonProps> = showCreateAsMenu
     ? (DropdownButton as FC)
     : Button;
 
@@ -180,7 +180,7 @@ const RunQueryActionButton = ({
               : t('Run query (Ctrl + Return)'))) as string
         }
         cta
-        {...(showMenu
+        {...(showCreateAsMenu
           ? {
               popupRender: () => overlayCreateAsMenu,
               icon: (
@@ -201,7 +201,7 @@ const RunQueryActionButton = ({
               icon,
             })}
       >
-        {showMenu && <>{icon}</>}
+        {showCreateAsMenu && <>{icon}</>}
         {text}
       </ButtonComponent>
     </StyledButton>

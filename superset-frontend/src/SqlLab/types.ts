@@ -57,7 +57,7 @@ export interface QueryEditor {
   catalog?: string | null;
   schema?: string;
   autorun: boolean;
-  /** Distinguish deliberate history reruns from ordinary automatic startup. */
+  /** "Run query in a new tab" uses autorun, but must still receive the warning check. */
   autorunSource?: 'history';
   sql: string;
   remoteId: number | null;

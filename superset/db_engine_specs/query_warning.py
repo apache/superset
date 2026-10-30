@@ -190,7 +190,7 @@ class QueryCostWarningSchema(QueryWarningRuleSchema):
     @validates_schema
     def validate_rule(self, data: dict[str, Any], **kwargs: Any) -> None:
         """Require enabled rules to be complete and byte thresholds to be exact."""
-        definition = QUERY_COST_WARNING_METRICS.get(data.get("metric", ""))
+        metric_definition = QUERY_COST_WARNING_METRICS.get(data.get("metric", ""))
         if data["enabled"]:
             missing = {
                 key: [_("An enabled query cost warning requires this field.")]
@@ -199,7 +199,7 @@ class QueryCostWarningSchema(QueryWarningRuleSchema):
             }
             if missing:
                 raise ValidationError(missing)
-            if definition is None:
+            if metric_definition is None:
                 raise ValidationError(
                     {
                         "metric": [
@@ -211,7 +211,11 @@ class QueryCostWarningSchema(QueryWarningRuleSchema):
                     }
                 )
         threshold = data.get("threshold")
-        if definition and definition.requires_whole_bytes and threshold is not None:
+        if (
+            metric_definition
+            and metric_definition.requires_whole_bytes
+            and threshold is not None
+        ):
             if threshold > 2**53 - 1 or threshold != int(threshold):
                 raise ValidationError(
                     {
@@ -283,11 +287,11 @@ class QueryCostThresholdCheck:
         rule: dict[str, Any],
     ) -> QueryWarningResult:
         """Compare a validated rule's raw values before formatting their bounds."""
-        definition = QUERY_COST_WARNING_METRICS[self.metric]
+        metric_definition = QUERY_COST_WARNING_METRICS[self.metric]
         details: list[QueryWarningDetail] = [
             {
                 "label": __("Warning threshold"),
-                "value": f"{rule['threshold']:,} {definition.unit}",
+                "value": f"{rule['threshold']:,} {metric_definition.unit}",
             }
         ]
         estimate = database.db_engine_spec.estimate_query_cost_for_warning(
@@ -311,18 +315,20 @@ class QueryCostThresholdCheck:
                 ),
                 "details": details,
             }
-        exceeds = estimate.value > rule["threshold"]
-        if not exceeds and estimate.accuracy != "LOWER_BOUND":
+        exceeds_threshold = estimate.value > rule["threshold"]
+        if not exceeds_threshold and estimate.accuracy != "LOWER_BOUND":
             return {"action": "proceed"}
-        value = f"{estimate.value:,} {definition.unit}"
+        formatted_estimate = f"{estimate.value:,} {metric_definition.unit}"
         if estimate.accuracy == "LOWER_BOUND":
-            value = __("At least %(value)s", value=value)
+            formatted_estimate = __("At least %(value)s", value=formatted_estimate)
         elif estimate.accuracy == "UPPER_BOUND":
-            value = __("Up to %(value)s", value=value)
-        details.insert(0, {"label": str(definition.label), "value": value})
+            formatted_estimate = __("Up to %(value)s", value=formatted_estimate)
+        details.insert(
+            0, {"label": str(metric_definition.label), "value": formatted_estimate}
+        )
         message = (
             __("The estimate exceeds this connection's warning threshold.")
-            if exceeds
+            if exceeds_threshold
             else __(
                 "This lower-bound estimate cannot establish whether usage "
                 "is within the warning threshold."
@@ -330,7 +336,7 @@ class QueryCostThresholdCheck:
         )
         return {
             "action": "confirm",
-            "reason": "warning" if exceeds else "unavailable",
-            "message": f"{message} {definition.explanation}",
+            "reason": "warning" if exceeds_threshold else "unavailable",
+            "message": f"{message} {metric_definition.explanation}",
             "details": details,
         }

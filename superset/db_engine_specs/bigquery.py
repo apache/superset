@@ -975,32 +975,38 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         statistics = resource.get("statistics", {})
         if not isinstance(statistics, dict):
             return QueryCostEstimate()
-        query = statistics.get("query", {})
-        security = statistics.get("rowLevelSecurityStatistics", {})
-        if not isinstance(query, dict) or not isinstance(security, dict):
+        query_statistics = statistics.get("query", {})
+        row_security_statistics = statistics.get("rowLevelSecurityStatistics", {})
+        if not isinstance(query_statistics, dict) or not isinstance(
+            row_security_statistics, dict
+        ):
             return QueryCostEstimate()
-        accuracy = query.get("totalBytesProcessedAccuracy")
-        row_security = security.get("rowLevelSecurityApplied")
-        if row_security is not None and not isinstance(row_security, bool):
+        accuracy = query_statistics.get("totalBytesProcessedAccuracy")
+        row_security_applied = row_security_statistics.get("rowLevelSecurityApplied")
+        if row_security_applied is not None and not isinstance(
+            row_security_applied, bool
+        ):
             return QueryCostEstimate()
-        if row_security is True:
+        if row_security_applied is True:
             return QueryCostEstimate(
                 unavailable_reason=__(
                     "BigQuery cannot provide an estimate when row-level "
                     "security hides usage."
                 )
             )
-        value = query.get("totalBytesProcessed")
+        bytes_processed = query_statistics.get("totalBytesProcessed")
         # The REST API represents int64 byte counts as decimal strings.
-        if isinstance(value, str) and re.fullmatch(r"[0-9]+", value):
+        if isinstance(bytes_processed, str) and re.fullmatch(
+            r"[0-9]+", bytes_processed
+        ):
             try:
-                value = int(value)
+                bytes_processed = int(bytes_processed)
             except ValueError:
-                value = None
-        if isinstance(value, bool) or not isinstance(value, int):
-            value = None
+                bytes_processed = None
+        if isinstance(bytes_processed, bool) or not isinstance(bytes_processed, int):
+            bytes_processed = None
         return QueryCostEstimate.from_value(
-            value,
+            bytes_processed,
             accuracy if isinstance(accuracy, str) else None,
         )
 

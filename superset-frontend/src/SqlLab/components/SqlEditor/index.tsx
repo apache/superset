@@ -300,27 +300,28 @@ const SqlEditor: FC<Props> = ({
   const successful = latestQuery?.state === QueryState.Success;
   const resultColumns = latestQuery?.results?.columns || [];
 
-  const costWarning = useQueryCostWarning(queryEditor, defaultQueryLimit);
+  const queryRun = useQueryCostWarning(queryEditor, defaultQueryLimit);
+  const isHistoryRerun = queryEditor.autorunSource === 'history';
   const startQuery = useCallback(
     (
       ctasArg = false,
       ctas_method: (typeof CtasEnum)[keyof typeof CtasEnum] = CtasEnum.Table,
-      automatic = false,
+      isAutomaticRun = false,
       sql?: string,
     ) => {
-      if (autorun && queryEditor.autorunSource === 'history') {
+      if (autorun && isHistoryRerun) {
         setAutorun(false);
         dispatch(queryEditorSetAutorun(queryEditor, false));
       }
-      return costWarning.start(
+      return queryRun.start(
         ctasArg ? ctas : '',
         ctasArg,
         ctas_method,
-        automatic,
+        isAutomaticRun,
         sql,
       );
     },
-    [autorun, costWarning.start, ctas, dispatch, queryEditor],
+    [autorun, queryRun.start, ctas, dispatch, isHistoryRerun, queryEditor],
   );
 
   const formatCurrentQuery = useCallback(
@@ -334,12 +335,12 @@ const SqlEditor: FC<Props> = ({
   );
 
   const stopQuery = useCallback(() => {
-    costWarning.cancel();
+    queryRun.cancel();
     if (latestQuery && ['running', 'pending'].indexOf(latestQuery.state) >= 0) {
       dispatch(postStopQuery(latestQuery));
     }
     return false;
-  }, [costWarning.cancel, dispatch, latestQuery]);
+  }, [queryRun.cancel, dispatch, latestQuery]);
 
   const runQuery = () => {
     if (database) {
@@ -350,7 +351,7 @@ const SqlEditor: FC<Props> = ({
   useEffect(() => {
     if (autorun) {
       if (
-        queryEditor.autorunSource === 'history' &&
+        isHistoryRerun &&
         isActive &&
         isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
         queryEditor.inLocalStorage
@@ -358,13 +359,10 @@ const SqlEditor: FC<Props> = ({
         return;
       setAutorun(false);
       dispatch(queryEditorSetAutorun(queryEditor, false));
-      startQuery(
-        false,
-        CtasEnum.Table,
-        queryEditor.autorunSource !== 'history',
-      );
+      // History reruns start on tab open, but still require the user-run warning check.
+      startQuery(false, CtasEnum.Table, !isHistoryRerun);
     }
-  }, [autorun, dispatch, isActive, queryEditor, startQuery]);
+  }, [autorun, dispatch, isActive, isHistoryRerun, queryEditor, startQuery]);
 
   const getHotkeyConfig = useCallback(() => {
     // Get the user's OS
@@ -847,12 +845,12 @@ const SqlEditor: FC<Props> = ({
       <>
         <RunQueryActionButton
           queryEditorId={queryEditor.id}
-          queryState={costWarning.checking ? 'pending' : latestQuery?.state}
-          awaitingConfirmation={!!costWarning.confirmation}
+          queryState={queryRun.checking ? 'pending' : latestQuery?.state}
+          awaitingConfirmation={!!queryRun.confirmation}
           runQuery={runQuery}
           stopQuery={stopQuery}
           overlayCreateAsMenu={
-            showMenu && !costWarning.checking ? runMenuBtn : null
+            showMenu && !queryRun.checking ? runMenuBtn : null
           }
         />
         <QueryLimitSelect
@@ -1106,9 +1104,9 @@ const SqlEditor: FC<Props> = ({
         <Input placeholder={createModalPlaceHolder} onChange={ctasChanged} />
       </Modal>
       <QueryCostWarningDialog
-        estimate={costWarning.confirmation}
-        onCancel={costWarning.cancel}
-        onContinue={costWarning.continueRun}
+        confirmation={queryRun.confirmation}
+        onCancel={queryRun.cancel}
+        onContinue={queryRun.continueRun}
       />
     </StyledSqlEditor>
   );

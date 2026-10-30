@@ -566,8 +566,8 @@ export function runQuery(
   };
 }
 
-/** Capture the execution inputs shared by deliberate Run and its advisory check. */
-export function getSqlEditorQuery(
+/** Build one request for both the warning check and execution after confirmation. */
+export function buildSqlEditorQuery(
   database: Database | null,
   queryEditor: QueryEditor,
   defaultQueryLimit: number,

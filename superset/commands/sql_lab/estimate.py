@@ -241,12 +241,12 @@ class QueryEstimationCommand(BaseCommand):
         rule = self._get_warning_rule(check)
         if check is None or not rule["enabled"] or not check.is_enabled(self._database):
             return {"action": "proceed"}
-        sql, reason = self._prepare_warning_sql()
-        if sql is None:
+        prepared_sql, unavailable_reason = self._prepare_warning_sql()
+        if prepared_sql is None:
             return {
                 "action": "confirm",
                 "reason": "unavailable",
-                "message": reason
+                "message": unavailable_reason
                 or __(
                     "The estimate is unavailable or cannot establish whether "
                     "usage is within the warning threshold."
@@ -259,7 +259,7 @@ class QueryEstimationCommand(BaseCommand):
                 error_message=f"The assessment exceeded the {timeout} seconds timeout.",
             ):
                 return check.assess(
-                    self._database, self._catalog, self._schema, sql, rule
+                    self._database, self._catalog, self._schema, prepared_sql, rule
                 )
         except SupersetTimeoutException:
             return {

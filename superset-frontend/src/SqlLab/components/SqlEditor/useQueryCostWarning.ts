@@ -35,7 +35,7 @@ import type { DatabaseObject } from 'src/features/databases/types';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import {
   CtasEnum,
-  getSqlEditorQuery,
+  buildSqlEditorQuery,
   getUpToDateQuery,
   Query,
   runQuery,
@@ -89,15 +89,15 @@ export default function useQueryCostWarning(
 ) {
   const store = useStore<SqlLabRootState>();
   const dispatch = useAppDispatch();
-  const current = useRef<Attempt>();
+  const activeAttemptRef = useRef<Attempt>();
   const mounted = useRef(false);
-  const inputs = useRef({ queryEditor, defaultQueryLimit });
-  const [pending, setPending] = useState<Attempt>();
+  const editorInputsRef = useRef({ queryEditor, defaultQueryLimit });
+  const [pendingAttempt, setPendingAttempt] = useState<Attempt>();
 
   const readInputs = useCallback(() => {
     const state = store.getState();
-    const props = inputs.current;
-    const editor = getUpToDateQuery(state, props.queryEditor);
+    const editorInputs = editorInputsRef.current;
+    const editor = getUpToDateQuery(state, editorInputs.queryEditor);
     const database: DatabaseObject | undefined =
       state.sqlLab.databases[editor.dbId || ''];
     const enabled = isFeatureEnabled(FeatureFlag.SqlLabQueryCostWarnings);
@@ -110,7 +110,7 @@ export default function useQueryCostWarning(
       catalog: editor.catalog,
       schema: editor.schema,
       templateParams: editor.templateParams,
-      limit: editor.queryLimit || props.defaultQueryLimit,
+      limit: editor.queryLimit || editorInputs.defaultQueryLimit,
       async: database?.allow_run_async,
       tab: editor.name,
       tabViewId: editor.tabViewId,
@@ -130,32 +130,34 @@ export default function useQueryCostWarning(
   }, [store]);
 
   const cancel = useCallback(() => {
-    current.current = undefined;
-    setPending(undefined);
+    activeAttemptRef.current = undefined;
+    setPendingAttempt(undefined);
   }, []);
   const isCurrent = useCallback(
     (attempt: Attempt) =>
       mounted.current &&
-      current.current === attempt &&
+      activeAttemptRef.current === attempt &&
       readInputs().key === attempt.key,
     [readInputs],
   );
   useLayoutEffect(() => {
-    inputs.current = { queryEditor, defaultQueryLimit };
+    editorInputsRef.current = { queryEditor, defaultQueryLimit };
   }, [queryEditor, defaultQueryLimit]);
   useEffect(() => {
     mounted.current = true;
     const unsubscribe = store.subscribe(() => {
-      if (current.current && !isCurrent(current.current)) cancel();
+      if (activeAttemptRef.current && !isCurrent(activeAttemptRef.current))
+        cancel();
     });
     return () => {
       mounted.current = false;
-      current.current = undefined;
+      activeAttemptRef.current = undefined;
       unsubscribe();
     };
   }, [cancel, isCurrent, store]);
   useEffect(() => {
-    if (current.current && !isCurrent(current.current)) cancel();
+    if (activeAttemptRef.current && !isCurrent(activeAttemptRef.current))
+      cancel();
   });
 
   const execute = useCallback(
@@ -166,7 +168,7 @@ export default function useQueryCostWarning(
     [dispatch],
   );
   const continueRun = useCallback(() => {
-    const attempt = current.current;
+    const attempt = activeAttemptRef.current;
     if (!attempt?.result || !isCurrent(attempt)) {
       cancel();
       return;
@@ -180,23 +182,23 @@ export default function useQueryCostWarning(
       tempTable = '',
       ctas = false,
       ctasMethod: string = CtasEnum.Table,
-      automatic = false,
+      isAutomaticRun = false,
       sql?: string,
     ) => {
-      if (current.current) return;
+      if (activeAttemptRef.current) return;
       const { editor, database, enabled, key, active } = readInputs();
-      if (!database || (!active && !automatic)) return;
-      const query = getSqlEditorQuery(
+      if (!database || (!active && !isAutomaticRun)) return;
+      const query = buildSqlEditorQuery(
         { id: database.id, allow_run_async: Boolean(database.allow_run_async) },
         sql === undefined ? editor : { ...editor, selectedText: sql },
-        inputs.current.defaultQueryLimit,
+        editorInputsRef.current.defaultQueryLimit,
         tempTable,
         ctas,
         ctasMethod,
       );
       if (
         ctas ||
-        automatic ||
+        isAutomaticRun ||
         !enabled ||
         database.query_warning_state === 'disabled' ||
         database.query_warning_state === 'unsupported'
@@ -205,8 +207,8 @@ export default function useQueryCostWarning(
         return;
       }
       const attempt: Attempt = { query, key };
-      current.current = attempt;
-      setPending(attempt);
+      activeAttemptRef.current = attempt;
+      setPendingAttempt(attempt);
       try {
         const { json } = await SupersetClient.post({
           endpoint: '/api/v1/sqllab/estimate/',
@@ -224,8 +226,8 @@ export default function useQueryCostWarning(
         const result = parseWarningResult(json.result);
         if (result.action === 'confirm') {
           const confirmation = { ...attempt, result };
-          current.current = confirmation;
-          setPending(confirmation);
+          activeAttemptRef.current = confirmation;
+          setPendingAttempt(confirmation);
         } else {
           cancel();
           execute(query);
@@ -251,7 +253,7 @@ export default function useQueryCostWarning(
     start,
     cancel,
     continueRun,
-    checking: !!pending && !pending.result,
-    confirmation: pending?.result,
+    checking: !!pendingAttempt && !pendingAttempt.result,
+    confirmation: pendingAttempt?.result,
   };
 }
