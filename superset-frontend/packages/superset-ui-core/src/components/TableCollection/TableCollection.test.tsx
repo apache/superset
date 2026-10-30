@@ -655,3 +655,22 @@ test('managed text headers carry their full text as a tooltip', () => {
     .closest('th');
   expect(header).toHaveAttribute('title', 'Database');
 });
+
+test('only managed tables clip wrapping header titles', () => {
+  // A wrap-text column's header keeps antd's default in unmanaged tables.
+  const headerStyle = (table: HTMLElement) =>
+    window.getComputedStyle(
+      within(table.querySelector('thead')!)
+        .getByText('Name')
+        .closest('.ant-table-column-title')!,
+    );
+  const wrapName = { columnsForWrapText: ['name'] };
+  const managed = renderLayoutTable(1000, {
+    ...wrapName,
+    managedColumnWidths: true,
+  });
+  expect(headerStyle(managed.table).textOverflow).toBe('ellipsis');
+  managed.unmount();
+  const unmanaged = renderLayoutTable(1000, wrapName);
+  expect(headerStyle(unmanaged.table).textOverflow).not.toBe('ellipsis');
+});

@@ -128,8 +128,9 @@ function useContainerWidth(
 const StyledTable = styled(Table)<{
   isPaginationSticky?: boolean;
   showRowCount?: boolean;
+  managedColumnWidths?: boolean;
 }>`
-  ${({ theme, isPaginationSticky, showRowCount }) => `
+  ${({ theme, isPaginationSticky, showRowCount, managedColumnWidths }) => `
     .actions {
       opacity: 0;
       font-size: ${theme.fontSizeXL}px;
@@ -151,19 +152,25 @@ const StyledTable = styled(Table)<{
       line-height: initial;
     }
 
-    // Headers longer than a fixed column ellipsize; antd puts the full text
-    // in the header cell's title.
-    .ant-table-column-title {
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+    ${
+      managedColumnWidths
+        ? `
+        // Headers longer than a fixed column ellipsize; antd puts the full
+        // text in the header cell's title.
+        .ant-table-column-title {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
 
-    // Keyboard focus never lands under the frozen leading columns.
-    .ant-table-content,
-    .ant-table-body {
-      scroll-padding-inline-start: var(--list-view-frozen-width, 0);
+        // Keyboard focus never lands under the frozen leading columns.
+        .ant-table-content,
+        .ant-table-body {
+          scroll-padding-inline-start: var(--list-view-frozen-width, 0);
+        }
+      `
+        : ''
     }
 
     .ant-table-row:hover {
@@ -518,6 +525,7 @@ function TableCollection<T extends object>({
       sortDirections={['ascend', 'descend', 'ascend']}
       isPaginationSticky={isPaginationSticky}
       showRowCount={showRowCount}
+      managedColumnWidths={managedColumnWidths}
       rowClassName={
         getRowClassName as unknown as TableProps<object>['rowClassName']
       }
