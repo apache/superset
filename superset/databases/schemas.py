@@ -54,6 +54,7 @@ from superset.databases.types import (  # pylint:disable=unused-import
     EncryptedString,  # noqa: F401
 )
 from superset.databases.utils import (
+    embedded_credentials_error,
     embedded_credentials_incomplete,
     embedded_credentials_present,
     make_url_safe,
@@ -498,18 +499,8 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
         credentials = encrypted_extra[EMBEDDED_CREDENTIALS_KEY]
         # A stored credential was validated when it was saved; only the edit that
         # would strand it is in question here.
-        if not from_stored and embedded_credentials_incomplete(
-            credentials,
-            engine_spec.validate_embedded_credentials,
-        ):
-            raise ValidationError(
-                _(
-                    "Embedded guest credentials are invalid or incomplete. Provide "
-                    "all required fields or clear them to leave embedded viewers "
-                    "unconfigured."
-                ),
-                field_name="masked_encrypted_extra",
-            )
+        if not from_stored:
+            self._refuse_unusable_embedded_credentials(engine_spec, credentials, stored)
 
         impersonate_user = data.get(
             "impersonate_user", stored.impersonate_user if stored else False
@@ -537,6 +528,30 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             ),
             field_name="masked_encrypted_extra",
         )
+
+    @staticmethod
+    def _refuse_unusable_embedded_credentials(
+        engine_spec: type[BaseEngineSpec],
+        credentials: Any,
+        stored: Database | None,
+    ) -> None:
+        """Refuse an authored credential that is incomplete or can't be used."""
+        if embedded_credentials_incomplete(
+            credentials,
+            engine_spec.validate_embedded_credentials,
+        ):
+            raise ValidationError(
+                _(
+                    "Embedded guest credentials are invalid or incomplete. Provide "
+                    "all required fields or clear them to leave embedded viewers "
+                    "unconfigured."
+                ),
+                field_name="masked_encrypted_extra",
+            )
+        if message := embedded_credentials_error(
+            engine_spec, credentials, stored.encrypted_extra if stored else None
+        ):
+            raise ValidationError(message, field_name="masked_encrypted_extra")
 
     def _stored_database(self) -> Database | None:
         """The connection an update applies to; ``None`` when creating one."""

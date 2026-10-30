@@ -24,6 +24,7 @@ from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.exc import NoSuchTableError
 
 from superset.commands.database.exceptions import DatabaseInvalidError
+from superset.constants import EMBEDDED_CREDENTIALS_KEY, PASSWORD_MASK
 from superset.sql.parse import Table
 from superset.utils import json
 
@@ -33,6 +34,7 @@ if TYPE_CHECKING:
         TableMetadataForeignKeysIndexesResponse,
         TableMetadataResponse,
     )
+    from superset.db_engine_specs.base import BaseEngineSpec
 
 
 def get_foreign_keys_metadata(
@@ -262,3 +264,33 @@ def embedded_credentials_incomplete(
         return False
 
     return validate_credentials(value) is None
+
+
+def embedded_credentials_error(
+    engine_spec: type[BaseEngineSpec],
+    credentials: Any,
+    stored_encrypted_extra: str | None,
+) -> str | None:
+    """
+    Why an authored embedded credential cannot be used, or ``None``.
+
+    Complements :func:`embedded_credentials_incomplete`, which only checks that the
+    fields are filled in, by asking the engine whether their values work (see
+    ``BaseEngineSpec.get_embedded_credentials_error``). An edit sends unchanged
+    secrets masked, so they are first restored from ``stored_encrypted_extra``; a
+    secret that is still masked has nothing to restore it from and is not checked.
+    """
+    if not isinstance(credentials, dict):
+        return None
+    unmasked = engine_spec.unmask_encrypted_extra(
+        stored_encrypted_extra,
+        json.dumps({EMBEDDED_CREDENTIALS_KEY: credentials}),
+    )
+    try:
+        credentials = json.loads(unmasked or "{}").get(EMBEDDED_CREDENTIALS_KEY)
+    except (AttributeError, json.JSONDecodeError):
+        return None
+    validated = engine_spec.validate_embedded_credentials(credentials)
+    if validated is None or PASSWORD_MASK in validated.values():
+        return None
+    return engine_spec.get_embedded_credentials_error(validated)
