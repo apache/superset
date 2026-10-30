@@ -290,3 +290,16 @@ def test_composite_action_changes_trigger_tests(group: str) -> None:
         [".github/actions/setup-backend/action.yml"],
         change_detector.PATTERNS[group],
     )
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "superset-core/src/superset_core/semantic_layers/layer.py",
+        "superset-core/tests/semantic_layers/test_registration.py",
+        "superset-core/pyproject.toml",
+    ],
+)
+def test_sdk_changes_trigger_python_unit_workflow(path: str) -> None:
+    """SDK-only changes must run the workflow that contains the SDK test step."""
+    assert change_detector.detect_changes([path], change_detector.PATTERNS["python"])

@@ -20,7 +20,6 @@
 import cx from 'classnames';
 import {
   Suspense,
-  lazy,
   memo,
   useCallback,
   useEffect,
@@ -28,6 +27,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { lazyWithRetry } from 'src/utils/lazyWithRetry';
 import { t } from '@apache-superset/core/translation';
 import {
   addAlpha,
@@ -86,7 +86,10 @@ import {
   EMPTY_CONTAINER_Z_INDEX,
 } from 'src/dashboard/constants';
 import { selectCanRestoreDashboard } from 'src/features/versionHistory/canRestoreDashboard';
-import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
+import {
+  closeVersionHistoryPanel,
+  selectIsDashboardVersionPreviewActive,
+} from 'src/features/versionHistory/reducer';
 import { StickyTabsOffsetContext } from 'src/dashboard/components/gridComponents/TabsRenderer';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
@@ -96,10 +99,10 @@ import DashboardWrapper from './DashboardWrapper';
 
 // Lazy-loaded so deployments with the VersionHistory flag off never pay
 // the bundle cost of the feature's component graph.
-const DashboardVersionHistory = lazy(
+const DashboardVersionHistory = lazyWithRetry(
   () => import('src/features/versionHistory/DashboardVersionHistory'),
 );
-const PreviewBanner = lazy(
+const PreviewBanner = lazyWithRetry(
   () => import('src/features/versionHistory/PreviewBanner'),
 );
 
@@ -124,6 +127,28 @@ const StickyPanel = styled.div<{ width: number }>`
   top: -1px;
   width: ${({ width }) => width}px;
   flex: 0 0 ${({ width }) => width}px;
+`;
+
+// Gates the horizontal filter bar while a historical version is previewed.
+// The bar sits in the sticky header, which has no background of its own, so
+// fading the gate itself would let content scrolled beneath the header show
+// through the bar. The gate stays opaque and only the bar inside it fades.
+const HorizontalFilterBarGate = styled.div<{ gated: boolean }>`
+  ${({ theme, gated }) =>
+    gated &&
+    css`
+      pointer-events: none;
+      background-color: ${theme.colorBgBase};
+      & > * {
+        opacity: 0.5;
+      }
+    `}
+`;
+
+// The sticky header has no background of its own; this keeps content
+// scrolled beneath it from showing through the banner's rounded corners.
+const PreviewBannerSlot = styled.div`
+  background-color: ${({ theme }) => theme.colorBgBase};
 `;
 
 // @z-index-above-dashboard-popovers (99) + 1 = 100
@@ -178,9 +203,8 @@ const StyledContent = styled.div<{
   grid-column: 2;
   grid-row: 2;
   /* @z-index-above-dashboard-header (100) + 2 = 102: a maximized chart
-     must also cover the version-history panel (99 in-flow, 98 as the
-     content-area overlay) so the two stack the same way on both sides of
-     the breakpoint. */
+     must also cover the version-history panel (98, the content-area
+     overlay). */
   ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 102;`}
 `;
 
@@ -189,68 +213,53 @@ const StyledContent = styled.div<{
 // page header, the global nav and the dashboard's Share / Edit / ⋯ controls
 // stay in the document flow above it and remain visible and clickable.
 //
-// At and above the XXL breakpoint it is an in-flow third grid column beside
-// the content (row 2 only — never the header row), sticking alongside the
-// page scroll so it stays fully visible.
+// It has one layout at every viewport width, so window width and browser
+// zoom never change where it opens. It cannot be an in-flow grid column:
+// the content column cannot shrink below the dashboard's min-content width,
+// so below roughly 1450px the panel would be pushed past the page's right
+// edge (sc-119737).
 //
-// Below the XXL breakpoint the dashboard grid's min-content width plus the
-// panel would exceed the viewport (the content column cannot shrink) and push
-// the panel past the page's right edge (sc-119737). Explore solves this by
-// anchoring its panel absolutely inside the relatively-positioned content
-// container; the grid equivalent is an absolutely-positioned grid item placed
-// in the content cell (column 2, row 2) — an absolutely-positioned grid item
-// uses its grid AREA as containing block — so it overlays the content only,
-// adds no width to the grid, and never covers the header row or the nav. It
-// stacks below the sticky header (99) and below a maximized chart (102).
-// Because the dashboard page owns the scroll and the content cell is as tall
-// as the dashboard, the panel itself (the ``aside``) is sticky at the
-// measured header height so it never slides under the header while scrolled.
+// The column is therefore an absolutely-positioned grid item placed in the
+// content cell (column 2, row 2) — an absolutely-positioned grid item uses
+// its grid AREA as containing block — so it overlays the content's right
+// edge, adds no width to the grid, and never covers the header row or the
+// nav. It stacks below the sticky header (99) and below a maximized chart
+// (102). Because the dashboard page owns the scroll and the content cell is
+// as tall as the dashboard, the panel itself (the ``aside``) is sticky at
+// the measured header height so it never slides under the header while
+// scrolled.
 const VersionHistoryColumn = styled.div<{
   topOffset: number;
   bottomOffset: number;
 }>`
   ${({ theme, topOffset, bottomOffset }) => css`
-    grid-column: 3;
+    /* Below the sticky header (99) and a maximized chart (102). */
+    grid-column: 2;
     grid-row: 2;
-    position: sticky;
-    /* The visible header bottom includes any global navigation that has not
-       scrolled away. Re-measuring it keeps the panel at the viewport bottom. */
-    top: ${topOffset}px;
-    align-self: start;
-    height: calc(100vh - ${bottomOffset}px);
-    z-index: 99;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    align-self: stretch;
+    z-index: 98;
+    box-shadow: ${theme.boxShadow};
     /* Load-bearing contract with DashboardVersionHistory's closed state:
        it must render nothing in place (its restore modal portals out), so
-       :empty collapses the host at every breakpoint, including its grid
-       row height. Pinned by the closed-state test in
-       DashboardVersionHistory.test.tsx (sc-119737). */
+       :empty hides the host and its shadow at the content's right edge.
+       Pinned by the closed-state test in DashboardVersionHistory.test.tsx
+       (sc-119737). */
     &:empty {
       display: none;
     }
-    @media (max-width: ${theme.screenXLMax}px) {
-      /* @z-index-above-dashboard-header (100) - 1 = 98 */
-      grid-column: 2;
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      height: auto;
-      align-self: stretch;
-      z-index: 98;
-      box-shadow: ${theme.boxShadow};
-      /* The same empty-in-place contract also suppresses the overlay's
-         shadow at the content's right edge. */
-      &:empty {
-        box-shadow: none;
-      }
-      /* The column spans the whole (tall) content cell; keep the panel
-         itself in view below the sticky header while the page scrolls. The
-         panel's root is VersionHistoryPanel's <aside>. */
-      & > aside {
-        position: sticky;
-        top: ${topOffset}px;
-        height: calc(100vh - ${bottomOffset}px);
-      }
+    /* The column spans the whole (tall) content cell; keep the panel itself
+       in view below the sticky header while the page scrolls. The visible
+       header bottom includes any global navigation that has not scrolled
+       away, so re-measuring it keeps the panel at the viewport bottom. The
+       panel's root is VersionHistoryPanel's <aside>. */
+    & > aside {
+      position: sticky;
+      top: ${topOffset}px;
+      height: calc(100vh - ${bottomOffset}px);
     }
   `}
 `;
@@ -559,6 +568,11 @@ const DashboardBuilder = () => {
   const editMode = useSelector<RootState, boolean>(
     state => state.dashboardState.editMode,
   );
+  useEffect(() => {
+    if (editMode) {
+      dispatch(closeVersionHistoryPanel());
+    }
+  }, [dispatch, editMode]);
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -755,19 +769,10 @@ const DashboardBuilder = () => {
         {hideDashboardHeader && !isReport && <HeadlessAutoRefresh />}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
-            <div
+            <HorizontalFilterBarGate
               data-test="dashboard-filter-bar-gate"
               aria-disabled={isVersionPreviewActive}
-              css={css`
-                ${
-                  isVersionPreviewActive
-                    ? `
-                    pointer-events: none;
-                    opacity: 0.5;
-                  `
-                    : ''
-                }
-              `}
+              gated={isVersionPreviewActive}
               // inert blocks keyboard focus too; React 18 needs the spread form
               {...(isVersionPreviewActive ? { inert: '' } : {})}
             >
@@ -775,7 +780,7 @@ const DashboardBuilder = () => {
                 orientation={FilterBarOrientation.Horizontal}
                 hidden={hideFilterBar}
               />
-            </div>
+            </HorizontalFilterBarGate>
           )}
       </>
     ),
@@ -942,16 +947,22 @@ const DashboardBuilder = () => {
         >
           {renderDraggableContent}
         </Droppable>
+        {/* Part of the sticky header, below the horizontal filter bar and the
+            tabs: the preview's controls stay reachable while scrolling, and
+            the measured header height (the offset for the history panel and
+            nested tab bars) includes the banner. */}
+        {isFeatureEnabled(FeatureFlag.VersionHistory) && (
+          <PreviewBannerSlot data-test="dashboard-preview-banner-slot">
+            <Suspense fallback={null}>
+              <PreviewBanner
+                entityType="dashboard"
+                canRestore={canRestoreVersion}
+              />
+            </Suspense>
+          </PreviewBannerSlot>
+        )}
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
-        {isFeatureEnabled(FeatureFlag.VersionHistory) && (
-          <Suspense fallback={null}>
-            <PreviewBanner
-              entityType="dashboard"
-              canRestore={canRestoreVersion}
-            />
-          </Suspense>
-        )}
         <DashboardContentWrapper
           data-test="dashboard-content-wrapper"
           className={cx('dashboard', editMode && 'dashboard--editing')}
@@ -1060,6 +1071,7 @@ const DashboardBuilder = () => {
       {isFeatureEnabled(FeatureFlag.VersionHistory) && !isEmbedded() && (
         <VersionHistoryColumn
           data-test="dashboard-version-history-column"
+          hidden={editMode}
           topOffset={barTopOffset}
           bottomOffset={barBottomOffset}
         >
