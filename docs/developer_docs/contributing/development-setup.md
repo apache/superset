@@ -105,9 +105,6 @@ Affecting the Docker build process:
   for more verbose logging
 - **SUPERSET_DEBUG_ENABLED (default=false)**: Enable Werkzeug debugger with interactive console.
   Set to `true` for debugging: `SUPERSET_DEBUG_ENABLED=true docker compose up`
-- **DISABLE_TS_CHECKER (default=true)**: whether the `superset-node` webpack dev server skips
-  TypeScript type-checking, which speeds up rebuilds and saves several GB of memory. Set to
-  `false` to have webpack surface type errors during development.
 
 For more env vars that affect your configuration, see this
 [superset_config.py](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py)
