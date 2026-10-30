@@ -72,18 +72,36 @@ describe('ImageLoader', () => {
     expect(global.URL.createObjectURL).toHaveBeenCalled();
   });
 
-  test('requests src through SupersetClient', async () => {
-    const getSpy = jest.spyOn(SupersetClient, 'get');
-    setup();
-    expect(getSpy).toHaveBeenCalledWith({
-      endpoint: '/thumbnail',
-      parseMethod: 'raw',
-    });
-    expect(await screen.findByTestId('image-loader')).toHaveAttribute(
-      'src',
-      '/local_url',
+  test('prefixes src with the configured app root', async () => {
+    const prefixedUrl = 'http://localhost/analytics/app-root-thumbnail';
+    fetchMock.get(
+      prefixedUrl,
+      { body: blob, headers: { 'Content-Type': 'image/png' } },
+      { name: 'app-root-thumbnail' },
     );
-    getSpy.mockRestore();
+    await SupersetClient.configure({
+      protocol: 'http:',
+      host: 'localhost',
+      appRoot: '/analytics',
+    }).init();
+
+    try {
+      setup({ src: '/app-root-thumbnail' });
+      expect(await screen.findByTestId('image-loader')).toHaveAttribute(
+        'src',
+        '/local_url',
+      );
+      expect(fetchMock.callHistory.called(prefixedUrl)).toBe(true);
+      expect(
+        fetchMock.callHistory.calls(/app-root-thumbnail/).map(({ url }) => url),
+      ).toEqual([prefixedUrl]);
+    } finally {
+      fetchMock.removeRoute('app-root-thumbnail');
+      await SupersetClient.configure({
+        protocol: 'http:',
+        host: 'localhost',
+      }).init();
+    }
   });
 
   test('displays fallback image when response is not an image', async () => {
