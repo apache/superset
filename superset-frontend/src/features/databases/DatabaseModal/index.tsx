@@ -634,8 +634,14 @@ export function dbReducer(
         expose_in_sqllab: true,
       };
     case ActionType.ConfigMethodChange:
+      // Switching connection mode keeps everything already entered so that
+      // toggling back and forth does not discard the user's input.
       return {
+        ...trimmedState,
         ...action.payload,
+        database_name:
+          action.payload.database_name ?? trimmedState.database_name,
+        engine: action.payload.engine ?? trimmedState.engine,
       };
 
     case ActionType.Reset:
