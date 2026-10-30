@@ -62,13 +62,13 @@ def execution_view(app: Any, mocker: MockerFixture) -> SemanticView:
     return view
 
 
-def test_connection_credentials_metadata_keys_unchanged(
+def test_connection_credentials_cache_keys(
     client: Any,
     full_api_access: None,
     execution_view: SemanticView,
     mocker: MockerFixture,
 ) -> None:
-    """Metadata keys stay stable while chart results gain user partitioning."""
+    """Dimension values and chart results include the requesting user's partition."""
     cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
     cache.get.return_value = ["cached"]
     keys: list[str] = []
@@ -100,7 +100,8 @@ def test_connection_credentials_metadata_keys_unchanged(
     assert chart_key is not None
     keys.append(chart_key)
     assert keys == [
-        "col_values:eb5d43a7322c2a03556fc53bc62d54fbbe0b3d26d561d18a0e385c7457abd822",
+        # Dimension values use the requesting user's OAuth cache partition.
+        "col_values:ef5f1012d43907f9aeed4b06bc9f847dfe2d6bf2117d7ecaf806d1a484df5bff",
         # Compatibility identity includes changed_on="None" for this view.
         "compatible:a2e526c4cd1db4f68fd34cc7dffe06cc4fbd029975f2147b4b11bb55179795b8",
         # Chart keys also include the requesting user's OAuth cache partition.
