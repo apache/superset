@@ -171,6 +171,28 @@ test('detects changed callbacks while ignoring outer chart dimensions', () => {
   ).toBe(false);
 });
 
+test('ignores hooks that change identity on every Explore control update', () => {
+  const onContextMenu = jest.fn();
+  const makeConfig = (): ChartConfig => ({
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [0, 0] },
+        properties: {
+          hooks: {
+            onContextMenu,
+            setControlValue: jest.fn(),
+            getTabId: jest.fn(),
+            resolveAsyncMode: jest.fn(),
+          },
+        },
+      },
+    ],
+  });
+  expect(isChartConfigEqual(makeConfig(), makeConfig())).toBe(true);
+});
+
 describe('chartUtil', () => {
   const configA: ChartConfig = {
     type: 'FeatureCollection',
