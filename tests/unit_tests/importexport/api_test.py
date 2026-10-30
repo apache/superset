@@ -20,10 +20,12 @@
 from io import BytesIO
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 from zipfile import is_zipfile, ZipFile
 
 import pytest
 from pytest_mock import MockerFixture
+from sqlalchemy.orm.session import Session
 
 from superset import security_manager
 from superset.utils import json
@@ -413,3 +415,148 @@ def test_bundle_imports_pass_encrypted_extra_secrets(
 
     assert response.status_code == 200, response.json
     assert import_command.call_args.kwargs["encrypted_extra_secrets"] == secrets
+
+
+EMBEDDED_KEYPAIR = {
+    "username": "EMBED_SVC",
+    "auth_method": "keypair",
+    "privatekey_body": "-----BEGIN PRIVATE KEY-----\nKEY\n-----END PRIVATE KEY-----\n",
+    "privatekey_pass": "passphrase",
+}
+
+
+@pytest.mark.parametrize(
+    "fallback_enabled,incoming,status,stored",
+    [
+        pytest.param(
+            True,
+            {"username": "EMBED_SVC", "auth_method": "keypair", "privatekey_pass": "X"},
+            500,
+            EMBEDDED_KEYPAIR,
+            id="private-key-missing",
+        ),
+        pytest.param(
+            True,
+            {**EMBEDDED_KEYPAIR, "privatekey_body": "X", "privatekey_pass": "X"},
+            200,
+            EMBEDDED_KEYPAIR,
+            id="complete",
+        ),
+        pytest.param(
+            False,
+            {"username": "EMBED_SVC", "auth_method": "keypair", "privatekey_pass": "X"},
+            200,
+            {
+                "username": "EMBED_SVC",
+                "auth_method": "keypair",
+                "privatekey_pass": "passphrase",
+            },
+            id="fallback-off",
+        ),
+    ],
+)
+def test_import_assets_overwrite_embedded_credential(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    fallback_enabled: bool,
+    incoming: dict[str, str],
+    status: int,
+    stored: dict[str, str],
+) -> None:
+    """
+    An overwrite import whose embedded guest credential leaves out a required
+    value is refused with a message naming it, and the stored credential stays
+    (sc-127530). A complete credential, or the fallback off, imports as before.
+
+    ``"X"`` in ``incoming`` stands for the export mask, which the import reveals
+    from the stored credential.
+    """
+    import yaml
+
+    from superset import db
+    from superset.constants import PASSWORD_MASK
+    from superset.extensions import feature_flag_manager
+    from superset.models.core import Database
+
+    flags = {
+        "EMBEDDED_SUPERSET": True,
+        "EMBEDDED_CREDENTIAL_FALLBACK": fallback_enabled,
+    }
+    mocker.patch.object(
+        feature_flag_manager,
+        "get_feature_flags",
+        return_value={**(feature_flag_manager._feature_flags or {}), **flags},
+    )
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    mocker.patch(
+        "superset.commands.importers.v1.assets.get_default_viewers_for_current_user",
+        return_value=[],
+    )
+
+    def mask(credentials: dict[str, str]) -> dict[str, str]:
+        return {k: PASSWORD_MASK if v == "X" else v for k, v in credentials.items()}
+
+    db_uuid = "6c1c5ee7-1d83-4f57-9a8e-1a2b3c4d5e6f"
+    Database.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+    db.session.add(
+        Database(
+            database_name="snowflake_embedded",
+            sqlalchemy_uri="snowflake://base_user@account/db",
+            uuid=UUID(db_uuid),
+            impersonate_user=True,
+            encrypted_extra=json.dumps(
+                {
+                    "oauth2_client_info": {"id": "client", "secret": "client-secret"},
+                    "embedded_credentials": EMBEDDED_KEYPAIR,
+                }
+            ),
+        )
+    )
+    db.session.commit()
+
+    contents = {
+        "metadata.yaml": yaml.safe_dump(
+            {"version": "1.0.0", "type": "assets", "timestamp": "2026-10-29T00:00:00"}
+        ),
+        "databases/snowflake_embedded.yaml": yaml.safe_dump(
+            {
+                "database_name": "snowflake_embedded",
+                "sqlalchemy_uri": "snowflake://base_user@account/db",
+                "uuid": db_uuid,
+                "version": "1.0.0",
+                "impersonate_user": True,
+                "extra": {},
+                "masked_encrypted_extra": json.dumps(
+                    {
+                        "oauth2_client_info": {"id": "client", "secret": PASSWORD_MASK},
+                        "embedded_credentials": mask(incoming),
+                    }
+                ),
+            }
+        ),
+    }
+    buf = BytesIO()
+    with ZipFile(buf, "w") as bundle:
+        for path, body in contents.items():
+            with bundle.open(f"assets_export/{path}", "w") as fp:
+                fp.write(body.encode())
+    buf.seek(0)
+
+    response = client.post(
+        "/api/v1/assets/import/",
+        data={"bundle": (buf, "assets_export.zip")},
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == status, response.json
+    if status != 200:
+        assert (
+            "$.embedded_credentials.privatekey_body"
+            in (response.json["errors"][0]["message"])
+        )
+    db.session.expire_all()
+    database = db.session.query(Database).filter_by(uuid=UUID(db_uuid)).one()
+    assert json.loads(database.encrypted_extra)["embedded_credentials"] == stored

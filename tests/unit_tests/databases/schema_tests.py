@@ -710,11 +710,12 @@ def test_masked_encrypted_extra_accepts_complete_or_absent_credentials(
 
 def test_import_accepts_a_half_filled_embedded_credential() -> None:
     """
-    Test that import is deliberately not tightened.
+    Test that the import schema is deliberately not tightened.
 
     The check lives on `DatabaseParametersSchemaMixin` rather than on
     `encrypted_extra_validator`, which also backs the import schemas: rejecting
-    this on import would refuse existing exports.
+    this in the schema would refuse existing exports whatever the feature flags.
+    `import_database` refuses it only while the embedded fallback is on.
     """
     from superset.databases.schemas import ImportV1DatabaseSchema
 
