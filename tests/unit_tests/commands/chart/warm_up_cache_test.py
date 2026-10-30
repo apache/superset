@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -369,8 +370,16 @@ def test_missing_cache_keys_validates_before_keying() -> None:
     """Keys are derived after query validation, as on the request path."""
     query_context = _ctx(["k1"])
     order: list[str] = []
-    query_context.queries[0].validate.side_effect = lambda: order.append("validate")
-    query_context.query_cache_key.side_effect = lambda q: order.append("key") or "k1"
+
+    def record_validate() -> None:
+        order.append("validate")
+
+    def record_key(_query: Any) -> str:
+        order.append("key")
+        return "k1"
+
+    query_context.queries[0].validate.side_effect = record_validate
+    query_context.query_cache_key.side_effect = record_key
     with patch("superset.commands.chart.warm_up_cache.cache_manager") as cm:
         cm.data_cache.get.return_value = {"df": 1}
         ChartWarmUpCacheCommand._missing_cache_keys(query_context)
