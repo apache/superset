@@ -3803,10 +3803,15 @@ def _temporal_literal_sql(partition_column: TableColumn, value: date) -> str | N
     rendered = spec.convert_dttm(column_type, instant, db_extra=db_extra)
     if rendered is None:
         return None
-    days_only = holds_days_only(partition_column)
-    if not days_only and rendered == spec.convert_dttm(
-        column_type, instant - timedelta(microseconds=1), db_extra=db_extra
-    ):
+    if holds_days_only(partition_column):
+        return rendered
+    try:
+        earlier = instant - timedelta(microseconds=1)
+    except OverflowError:
+        # `datetime.min` (psycopg2's '-infinity') has no earlier instant to
+        # compare against, so the literal's precision cannot be confirmed.
+        return None
+    if rendered == spec.convert_dttm(column_type, earlier, db_extra=db_extra):
         return None
     return rendered
 
