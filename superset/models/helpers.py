@@ -255,7 +255,16 @@ def build_like_predicate(
     untyped) are cast to a string first. String columns are left untouched.
     """
     if not isinstance(expr.type, sa.String):
-        expr = sa.cast(expr, sa.String)
+        # A bare VARCHAR is invalid where a length is required (Oracle renders
+        # VARCHAR2, Db2 VARCHAR(None)); MSSQL needs NVARCHAR to keep characters
+        # outside the database code page.
+        cast_type = (
+            sa.String()
+            .with_variant(sa.String(4000), "oracle")
+            .with_variant(sa.String(32672), "ibm_db_sa")
+            .with_variant(sa.Unicode(), "mssql")
+        )
+        expr = sa.cast(expr, cast_type)
     return sa.func.lower(expr).contains(search.lower(), autoescape=True)
 
 

@@ -171,6 +171,24 @@ def test_build_like_predicate_casts_non_text_columns() -> None:
     assert "lower(s)" in text_sql
     assert "CAST" not in text_sql
 
+    # Untyped expressions (e.g. calculated columns) are cast as well.
+    untyped_sql = compile_sql(
+        build_like_predicate(sa.literal_column("upper(s)"), "a"), postgres
+    )
+    assert "lower(CAST(upper(s) AS VARCHAR))" in untyped_sql
+
+    # Dialects that need a length or a unicode type get one.
+    oracle_sql = compile_sql(
+        build_like_predicate(sa.column("n", sa.Numeric()), "0"),
+        sa.dialects.registry.load("oracle")(),
+    )
+    assert "CAST(n AS VARCHAR2(4000 CHAR))" in oracle_sql
+    mssql_sql = compile_sql(
+        build_like_predicate(sa.column("n", sa.Numeric()), "0"),
+        sa.dialects.registry.load("mssql")(),
+    )
+    assert "CAST(n AS NVARCHAR(max))" in mssql_sql
+
     # BigQuery still has no ESCAPE clause for a non-text column.
     bigquery_sql = compile_sql(
         build_like_predicate(sa.column("n", sa.Numeric()), "0"), BigQueryDialect()
