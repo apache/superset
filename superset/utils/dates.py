@@ -14,11 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
 from datetime import datetime, timedelta, timezone, tzinfo
 
 import pytz
 
 EPOCH = datetime(1970, 1, 1)
+
+
+def is_date_only_format(fmt: str | None) -> bool:
+    """Recognize calendar-only strftime formats without time or epoch fields."""
+    directives = re.findall(
+        r"%[-_0^#:]*\d*[EO]?([a-zA-Z+])", (fmt or "").replace("%%", "")
+    )
+    return bool(directives) and all(
+        char in "aAbBdehjmuUwWxyYDCFgGV" for char in directives
+    )
 
 
 def normalize_time_bound(

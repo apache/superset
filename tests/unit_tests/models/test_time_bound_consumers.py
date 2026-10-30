@@ -244,15 +244,40 @@ def test_review_mcp_mixed_result_survives_reparse() -> None:
     )
 
 
-def test_review_fill_time_range_retains_date_column_calendar() -> None:
+@pytest.mark.parametrize("axis", ["granularity", "x_axis", "x_axis_alias"])
+@pytest.mark.parametrize("column_type", ["DATE", "VARCHAR"])
+def test_review_fill_time_range_retains_date_column_calendar(
+    app: Flask, axis: str, column_type: str
+) -> None:
     """DATE padding retains the same calendar boundaries as the SQL filter."""
-    table, _ = _dataset(column_type="DATE")
+    table, col = _dataset(
+        column_type=column_type,
+        uri="postgresql://" if column_type == "VARCHAR" else "sqlite://",
+    )
+    if column_type == "VARCHAR":
+        col.python_date_format = "%Y-%m-%d"
     start, end = get_since_until(
         "2024-05-01T00:00:00+08:00 : 2024-06-01T00:00:00+08:00"
     )
+    with app.app_context():
+        sql = str(table.get_time_filter(col, start, end))
+    assert "2024-05-01" in sql
+    assert "2024-06-01" in sql
+    assert "2024-04-30" not in sql
     query = QueryObject(
         datasource=table,
-        granularity="ts",
+        granularity="ts" if axis == "granularity" else None,
+        columns=(
+            [
+                {
+                    "label": "Day" if axis == "x_axis_alias" else "ts",
+                    "sqlExpression": "ts",
+                    "columnType": "BASE_AXIS",
+                }
+            ]
+            if axis != "granularity"
+            else []
+        ),
         row_limit=1,
         from_dttm=start,
         to_dttm=end,
@@ -286,10 +311,15 @@ def test_review_mcp_intersection_cannot_widen_offset_scope() -> None:
 
 
 @pytest.mark.parametrize(
-    "extra,offset", [(None, 8), ('{"timezone": "Europe/Berlin"}', 0)]
+    "extra,offset,expected_start",
+    [
+        (None, 8, datetime(2024, 4, 1, 5)),
+        ('{"timezone": "Europe/Berlin"}', 0, datetime(2024, 4, 1, 5)),
+        ('{"timezone": "America/Los_Angeles"}', 0, datetime(2024, 4, 1, 10)),
+    ],
 )
 def test_review_mcp_rewrite_uses_dataset_bound_semantics(
-    extra: str | None, offset: int
+    extra: str | None, offset: int, expected_start: datetime
 ) -> None:
     """The dataset request rewrite intersects using the same adjustments as SQL."""
     table, col = _dataset(extra, offset)
@@ -300,9 +330,111 @@ def test_review_mcp_rewrite_uses_dataset_bound_semantics(
         table,
         lambda value: value,
     )
-    scope_start = get_since_until(scope_range)[0]
     result_start, result_end = get_since_until(rewritten["time_range"])
-    assert (
-        table.adjust_time_bounds(result_start, result_end, col)[0]
-        == table.adjust_time_bounds(scope_start, None, col)[0]
+    assert table.adjust_time_bounds(result_start, result_end, col)[0] == expected_start
+
+
+@pytest.mark.parametrize(
+    "extra,offset", [('{"timezone": "Asia/Shanghai"}', 0), (None, 8)]
+)
+@pytest.mark.parametrize("aware_start", [False, True])
+def test_review_jinja_preserves_naive_wall_clock_bounds(
+    app: Flask, extra: str | None, offset: int, aware_start: bool
+) -> None:
+    """The macro adjusts explicit instants without changing its naive contract."""
+    table, _ = _dataset(extra, offset)
+    start = "2024-05-01T00:00:00+08:00" if aware_start else "2024-05-01"
+    time_range = f"{start} : 2024-06-01"
+    with app.test_request_context(json={"queries": [{"time_range": time_range}]}):
+        macro = ExtraCache(database=table.database, table=table).get_time_filter(
+            "ts", strftime="%Y-%m-%d"
+        )
+    assert macro.from_expr == ("2024-04-30" if aware_start else "2024-05-01")
+    assert macro.to_expr == "2024-06-01"
+
+
+@pytest.mark.parametrize("from_db_extra", [False, True])
+@pytest.mark.parametrize("fmt", ["%Y-%m-%d", "%Y%m%d", "%Y-%m-%d %H:%M:%S"])
+def test_review_string_date_bounds_match_literal_format(
+    app: Flask, from_db_extra: bool, fmt: str
+) -> None:
+    """Calendar strings retain dates; timestamp strings still identify instants."""
+    table, col = _dataset(column_type="VARCHAR", uri="postgresql://")
+    if from_db_extra:
+        table.database.extra = (
+            '{"python_date_format_by_column_name": {"ts": "' + fmt + '"}}'
+        )
+    else:
+        col.python_date_format = fmt
+    start, end = get_since_until(QUARTER_RANGE)
+    expected_start = datetime(2024, 3, 31, 16) if "%H" in fmt else datetime(2024, 4, 1)
+    expected_end = datetime(2024, 6, 30, 16) if "%H" in fmt else datetime(2024, 7, 1)
+    with app.app_context():
+        sql = str(table.get_time_filter(col, start, end))
+    assert f"'{expected_start.strftime(fmt)}'" in sql
+    assert f"'{expected_end.strftime(fmt)}'" in sql
+
+
+def test_review_native_timestamp_precedes_date_string_format(app: Flask) -> None:
+    """A format hint must not turn a native timestamp literal into a calendar date."""
+    table, col = _dataset(column_type="TIMESTAMP", uri="postgresql://")
+    col.python_date_format = "%Y-%m-%d"
+    with app.app_context():
+        sql = str(table.get_time_filter(col, *get_since_until(QUARTER_RANGE)))
+    assert "2024-03-31 16:00:00" in sql
+    assert "2024-06-30 16:00:00" in sql
+
+
+@pytest.mark.parametrize(
+    "time_range,expected_start,expected_end,expected_count",
+    [
+        (QUARTER_RANGE, "2024-03-31 16:00Z", "2024-06-30 15:00Z", 2184),
+        (
+            "2024-03-31T00:00:00+00:00 : 2024-04-02T00:00:00+00:00",
+            "2024-03-31 00:00Z",
+            "2024-04-01 23:00Z",
+            48,
+        ),
+    ],
+)
+@pytest.mark.parametrize("index_tz", ["UTC", "America/New_York", "Europe/Berlin"])
+@pytest.mark.parametrize("offset", [8, -5])
+def test_review_fill_aware_index_includes_display_hour_offset(
+    index_tz: str,
+    offset: int,
+    time_range: str,
+    expected_start: str,
+    expected_end: str,
+    expected_count: int,
+) -> None:
+    """Aware-index padding shifts along with normalize_dttm_col's display data."""
+    table, _ = _dataset(offset=offset, column_type="TIMESTAMPTZ", uri="postgresql://")
+    start, end = get_since_until(time_range)
+    query = QueryObject(
+        datasource=table,
+        granularity="ts",
+        row_limit=1,
+        from_dttm=start,
+        to_dttm=end,
+        post_processing=[
+            {
+                "operation": "resample",
+                "options": {
+                    "rule": "1h",
+                    "method": "asfreq",
+                    "fill_value": 0,
+                    "fill_time_range": True,
+                },
+            }
+        ],
     )
+    frame = pd.DataFrame(
+        {"ts": pd.DatetimeIndex(["2024-04-01"], tz=index_tz), "value": [1.0]}
+    )
+    normalize_dttm_col(frame, (DateColumn(col_label="ts", offset=offset),))
+    result = query.exec_post_processing(frame.set_index("ts"))
+    utc_index = result.index.tz_convert("UTC")
+    assert utc_index[0] == pd.Timestamp(expected_start) + pd.Timedelta(hours=offset)
+    assert utc_index[-1] == pd.Timestamp(expected_end) + pd.Timedelta(hours=offset)
+    assert len(result) == expected_count
+    assert result.loc[frame.ts.iloc[0], "value"] == 1.0

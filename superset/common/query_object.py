@@ -28,7 +28,6 @@ from flask import current_app
 from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas import DataFrame
-from sqlalchemy.types import Date, DateTime
 from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
 
 from superset import feature_flag_manager
@@ -47,8 +46,10 @@ from superset.utils.core import (
     DTTM_ALIAS,
     find_duplicates,
     format_list,
+    get_base_axis_columns,
     get_column_names,
     get_metric_names,
+    get_x_axis_label,
     is_adhoc_metric,
     QueryObjectFilterClause,
 )
@@ -788,32 +789,30 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 df = func(df, **options)
             return df
 
+    def _is_resample_calendar_column(self) -> bool:
+        """Resolve physical temporal metadata for legacy and base-axis charts."""
+        if self.datasource is None:
+            return False
+        names = [self.granularity or get_x_axis_label(self.columns)]
+        if not self.granularity:
+            names.extend(
+                col.get("sqlExpression")
+                for col in get_base_axis_columns(self.columns)[:1]
+                if isinstance(col, dict)
+            )
+        time_col = next(
+            (col for col in self.datasource.columns if col.column_name in names), None
+        )
+        is_calendar = getattr(self.datasource, "is_calendar_date_column", None)
+        return bool(callable(is_calendar) and is_calendar(time_col))
+
     def _resample_display_bound(
         self, bound: datetime | None, df: DataFrame
     ) -> datetime | None:
         """Align explicit instants with a datasource's normalized display frame."""
-        if (
-            bound is None
-            or bound.utcoffset() is None
-            or self.datasource is None
-            or getattr(df.index, "tz", None) is not None
-        ):
+        if bound is None or bound.utcoffset() is None or self.datasource is None:
             return bound
-        column_type = next(
-            (
-                col.type
-                for col in getattr(self.datasource, "columns", [])
-                if col.column_name == self.granularity
-            ),
-            None,
-        )
-        engine_spec = getattr(self.datasource, "db_engine_spec", None)
-        sql_type = (
-            engine_spec.get_sqla_column_type(column_type)
-            if engine_spec and column_type
-            else None
-        )
-        if isinstance(sql_type, Date) and not isinstance(sql_type, DateTime):
+        if self._is_resample_calendar_column():
             return bound.replace(tzinfo=None)
         get_timezone = getattr(self.datasource, "get_dataset_timezone", None)
         dataset_timezone = get_timezone() if callable(get_timezone) else None
@@ -825,6 +824,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         # normalize_dttm_col applies the legacy display offset after reading
         # UTC timestamps. Padding must use that same frame, exactly once.
         offset = getattr(self.datasource, "offset", 0) or 0
+        if index_timezone := getattr(df.index, "tz", None):
+            return (
+                bound.astimezone(timezone.utc) + timedelta(hours=offset)
+            ).astimezone(index_timezone)
         return bound.astimezone(timezone.utc).replace(tzinfo=None) + timedelta(
             hours=offset
         )

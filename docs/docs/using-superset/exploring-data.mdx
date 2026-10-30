@@ -494,8 +494,10 @@ truncating to a quarter. For example,
 `DATETRUNC(DATETIME('2024-05-31T12:34:56+08:00'), QUARTER)` evaluates to
 `2024-04-01T00:00:00+08:00`, so it can be paired with an offset-aware end date.
 For timestamp columns, explicit offsets are converted to UTC before generating
-SQL filters, even when the dataset has no configured timezone. DATE columns keep
-the explicit boundary's calendar date. Boundaries without an offset use the
+SQL filters, even when the dataset has no configured timezone. DATE columns and
+string columns stored with a date-only `python_date_format` (such as `%Y-%m-%d`)
+keep the explicit boundary's calendar date. Native timestamp types retain their
+instant semantics even if a date-only format is configured. Boundaries without an offset use the
 dataset timezone when one is configured, or the legacy Hour Offset otherwise;
 an explicit offset is never shifted by Hour Offset a second time. Ranges that
 mix boundaries with and without offsets (for example, a quarter expression and
@@ -505,10 +507,12 @@ Time-comparison periods preserve explicit offsets. Mixed-bound date arithmetic
 uses the same wall-clock compatibility rule as validation. MCP dashboard range
 intersections compare the instants used by the destination dataset's SQL filter,
 so an intersection cannot widen the dashboard range. Jinja time-filter macros
-use the same bound adjustments as chart filters. Resampling converts explicit
+use the chart filter's adjustments for explicit offsets; boundaries without
+offsets retain the macro's existing, unshifted wall-clock values. Resampling converts explicit
 bounds to the index timezone, or UTC for a naive index; datasource display
 timezone and Hour Offset settings are also reflected when filling a displayed
-time series.
+time series, including timezone-aware indexes. Calendar-date padding also
+applies to temporal x-axis charts that do not specify a legacy granularity.
 
 ### Sunburst cross-filtering
 

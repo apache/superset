@@ -191,7 +191,11 @@ from superset.utils.date_parser import (
     normalize_time_delta,
     TimeDeltaAmbiguousError,
 )
-from superset.utils.dates import datetime_to_epoch, normalize_time_bound
+from superset.utils.dates import (
+    datetime_to_epoch,
+    is_date_only_format,
+    normalize_time_bound,
+)
 from superset.utils.rls import apply_rls, get_predicates_for_table, get_rls_schema
 
 
@@ -5865,6 +5869,30 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
             return []
 
+    def is_calendar_date_column(
+        self, time_col: Optional["TableColumn"], *, target_type: str | None = None
+    ) -> bool:
+        """Match calendar semantics to the representation used by SQL literals."""
+        column_type = target_type or (time_col.type if time_col is not None else None)
+        if column_type:
+            sqla_type = self.db_engine_spec.get_sqla_column_type(column_type)
+            if isinstance(sqla_type, sa.Date) and not isinstance(
+                sqla_type, sa.DateTime
+            ):
+                return True
+            # Native datetime conversion takes precedence over a string format,
+            # just as it does in dttm_sql_literal.
+            if self.db_engine_spec.convert_dttm(
+                column_type, datetime(2000, 1, 1), db_extra=self.db_extra
+            ):
+                return False
+        if time_col is None:
+            return False
+        fmt = time_col.python_date_format or (self.db_extra or {}).get(
+            "python_date_format_by_column_name", {}
+        ).get(time_col.column_name)
+        return is_date_only_format(fmt)
+
     def adjust_time_bounds(
         self,
         start_dttm: Optional[sa.DateTime],
@@ -5905,14 +5933,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     dataset_timezone,
                 )
         column_type = target_type or (time_col.type if time_col is not None else None)
-        sqla_type = (
-            self.db_engine_spec.get_sqla_column_type(column_type)
-            if column_type
-            else None
-        )
-        is_date = isinstance(sqla_type, sa.Date) and not isinstance(
-            sqla_type, sa.DateTime
-        )
+        is_date = self.is_calendar_date_column(time_col, target_type=target_type)
         offset_hours = 0
         if tz is None and (offset_hours := getattr(self, "offset", 0) or 0):
             offset_hours = get_effective_hours_offset(

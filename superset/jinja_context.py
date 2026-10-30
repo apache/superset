@@ -735,7 +735,7 @@ class ExtraCache:
         column: str | None,
         target_type: str | None,
     ) -> tuple[datetime | None, datetime | None]:
-        """Use the same bound interpretation as the datasource's chart filter."""
+        """Normalize explicit offsets while retaining the macro's naive bounds."""
         if self.table:
             time_col = next(
                 (
@@ -745,8 +745,14 @@ class ExtraCache:
                 ),
                 None,
             )
-            return self.table.adjust_time_bounds(
+            adjusted = self.table.adjust_time_bounds(
                 start, end, time_col, target_type=target_type
+            )
+            return (
+                adjusted[0]
+                if start is not None and start.utcoffset() is not None
+                else start,
+                adjusted[1] if end is not None and end.utcoffset() is not None else end,
             )
         sql_type = (
             self.database.db_engine_spec.get_sqla_column_type(target_type)
