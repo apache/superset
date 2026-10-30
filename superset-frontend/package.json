@@ -256,7 +256,7 @@
     "@storybook/addon-links": "10.6.3",
     "@storybook/react-webpack5": "10.6.3",
     "@svgr/webpack": "^8.1.0",
-    "@swc/core": "^1.16.18",
+    "@swc/core": "^1.16.20",
     "@swc/plugin-emotion": "^19.0.0",
     "@swc/plugin-transform-imports": "^17.0.0",
     "@testing-library/dom": "^10.4.2",
