@@ -248,6 +248,12 @@ export type SelectOptionsPagePromise = (
 
 export interface AsyncSelectProps extends BaseSelectProps {
   /**
+   * Whether labels are matched exactly before creating a new option.
+   * Set to false when the backing resource treats labels case-insensitively.
+   * True by default.
+   */
+  caseSensitiveNewOptionMatching?: boolean;
+  /**
    * It fires a request against the server after
    * the first interaction and not on render.
    * Works in async mode only (See the options property).
