@@ -283,10 +283,6 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         }: TaskCellProps) => {
           // Display preference: task_name > task_key
           const displayText = task_name || task_key;
-          const truncated =
-            displayText.length > 30
-              ? `${displayText.slice(0, 30)}...`
-              : displayText;
 
           // Build tooltip with all identifiers
           const tooltipLines = [];
@@ -302,7 +298,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
               }
               placement="top"
             >
-              <span>{truncated}</span>
+              <span>{displayText}</span>
             </Tooltip>
           );
         },

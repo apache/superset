@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetTheme, css, styled } from '@apache-superset/core/theme';
+import { styled } from '@apache-superset/core/theme';
 import { t, tn } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
@@ -230,6 +230,33 @@ interface ChartListProps {
   addSuccessToast: (msg: string, options?: ToastContent['options']) => void;
   user?: UserWithPermissionsAndRoles;
 }
+
+// The chart type name ellipsizes first; the Matrixified pill is never cut
+// mid-pill.
+const VizTypeCell = styled.span`
+  display: flex;
+  align-items: center;
+
+  .viz-type-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .viz-type-tag {
+    flex-shrink: 0;
+    max-width: 100%;
+    margin-left: ${({ theme }) => theme.marginXS}px;
+  }
+
+  .viz-type-tag .ant-tag {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colorIcon};
@@ -548,20 +575,18 @@ function ChartList(props: ChartListProps) {
           row: {
             original: { viz_type: vizType, form_data: formData },
           },
-        }: any) => (
-          <>
-            {registry.get(vizType)?.name || vizType}
-            {formData && isMatrixifyEnabled(formData) && (
-              <span
-                css={(theme: SupersetTheme) => css`
-                  margin-left: ${theme.marginXS}px;
-                `}
-              >
+        }: any) => {
+          const vizName = registry.get(vizType)?.name || vizType;
+          if (!formData || !isMatrixifyEnabled(formData)) return vizName;
+          return (
+            <VizTypeCell>
+              <span className="viz-type-name">{vizName}</span>
+              <span className="viz-type-tag">
                 <Tag name="Matrixified" color="purple" />
               </span>
-            )}
-          </>
-        ),
+            </VizTypeCell>
+          );
+        },
         Header: t('Type'),
         accessor: 'viz_type',
         layout: 'text',

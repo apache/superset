@@ -18,6 +18,7 @@
  */
 import { useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   Actions,
@@ -50,6 +51,15 @@ import { QueryObjectColumns, Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 
 const PAGE_SIZE = 25;
+
+// A long tag name ellipsizes inside its pill instead of clipping the pill.
+const TitleTag = styled(AntdTag)`
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+`;
 
 interface TagListProps {
   addDangerToast: (msg: string) => void;
@@ -170,9 +180,9 @@ function TagList(props: TagListProps) {
             original: { id, name: tagName },
           },
         }: any) => (
-          <AntdTag>
+          <TitleTag>
             <Link to={`/all_entities/?id=${id}`}>{tagName}</Link>
-          </AntdTag>
+          </TitleTag>
         ),
         Header: t('Name'),
         accessor: 'name',

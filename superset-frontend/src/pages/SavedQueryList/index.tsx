@@ -101,8 +101,19 @@ type SavedQueryCellProps = {
   };
 };
 
+// The first table name ellipsizes; the "(+N)" count always stays visible.
 const StyledTableLabel = styled.div`
+  display: flex;
+
+  .table-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .count {
+    flex-shrink: 0;
     margin-left: 5px;
     color: ${({ theme }) => theme.colorPrimary};
     text-decoration: underline;
@@ -390,7 +401,7 @@ function SavedQueryList({
           if (names.length) {
             return (
               <StyledTableLabel>
-                <span>{main}</span>
+                <span className="table-name">{main}</span>
                 <Popover
                   placement="right"
                   title={t('TABLES')}
@@ -428,6 +439,7 @@ function SavedQueryList({
             tags={tags.filter(
               (tag: TagType) => tag.type === TagTypeEnum.Custom,
             )}
+            maxTags={3}
           />
         ),
         Header: t('Tags'),

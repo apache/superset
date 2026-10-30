@@ -18,7 +18,7 @@
  */
 import fetchMock from 'fetch-mock';
 import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
-import { screen, waitFor } from 'spec/helpers/testing-library';
+import { screen, waitFor, within } from 'spec/helpers/testing-library';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { setupMocks, renderChartList } from './ChartList.testHelpers';
 import {
@@ -132,3 +132,17 @@ test('chart names truncate with an ellipsis beside their badges', async () => {
   }
 });
 
+test('the Matrixified pill stays whole beside a truncating chart type', async () => {
+  renderChartList(mockUser);
+
+  const row = (await screen.findByText('Test Chart 0')).closest('tr')!;
+  const pill = within(row).getByText('Matrixified').closest('.ant-tag')!;
+  const pillStyle = getComputedStyle(pill);
+  expect(pillStyle.maxWidth).toBe('100%');
+  expect(pillStyle.overflow).toBe('hidden');
+  expect(pillStyle.textOverflow).toBe('ellipsis');
+  expect(getComputedStyle(pill.parentElement!).flexShrink).toBe('0');
+  // The chart type name shrinks first.
+  const typeName = pill.parentElement!.previousElementSibling as HTMLElement;
+  expectTruncatingTitle(typeName);
+});

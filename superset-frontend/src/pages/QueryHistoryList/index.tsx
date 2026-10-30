@@ -84,8 +84,19 @@ interface QueryListProps {
   addSuccessToast: (msg: string, config?: any) => any;
 }
 
+// The first table name ellipsizes; the "(+N)" count always stays visible.
 const StyledTableLabel = styled.div`
+  display: flex;
+
+  .table-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .count {
+    flex-shrink: 0;
     margin-left: 5px;
     color: ${({ theme }) => theme.colorPrimary};
     text-decoration: underline;
@@ -310,7 +321,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
           if (names.length) {
             return (
               <StyledTableLabel>
-                <span>{main}</span>
+                <span className="table-name">{main}</span>
                 <Popover
                   placement="right"
                   title={t('TABLES')}

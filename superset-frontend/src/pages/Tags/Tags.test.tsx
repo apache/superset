@@ -132,3 +132,20 @@ test('toggles the favorite star and updates the icon on click', async () => {
     { timeout: 5000 },
   );
 });
+
+test('a long tag name ellipsizes inside its pill instead of clipping it', async () => {
+  const longName = 'quarterly_revenue_by_region_and_product_line_reviewed';
+  fetchMock.get(ENDPOINTS.TAGS, {
+    result: [{ ...mockTags[0], name: longName }],
+    count: 1,
+  });
+  setupMocks();
+  renderTagList();
+
+  const pill = (await screen.findByText(longName)).closest('.ant-tag')!;
+  const style = getComputedStyle(pill);
+  expect(style.maxWidth).toBe('100%');
+  expect(style.overflow).toBe('hidden');
+  expect(style.textOverflow).toBe('ellipsis');
+  expect(style.whiteSpace).toBe('nowrap');
+});
