@@ -39,6 +39,8 @@ from superset_core.semantic_layers.types import (
     Grains,
     GroupLimit,
     Metric,
+    null_placement,
+    NullPlacement,
     Operator,
     OrderDirection,
     PredicateType,
@@ -3531,14 +3533,20 @@ def test_get_results_with_is_rowcount(
 
 @pytest.mark.parametrize(
     "is_rowcount, expected_order",
-    [(False, [("orders.order_date", OrderDirection.ASC)]), (True, None)],
+    [
+        (
+            False,
+            [("orders.order_date", OrderDirection.ASC, NullPlacement.LAST)],
+        ),
+        (True, None),
+    ],
     ids=["table", "row-count"],
 )
 def test_default_order_applies_to_table_dispatches_only(
     mock_datasource: MagicMock,
     mocker: MockerFixture,
     is_rowcount: bool,
-    expected_order: list[tuple[str, OrderDirection]] | None,
+    expected_order: list[tuple[str, OrderDirection, NullPlacement | None]] | None,
 ) -> None:
     """Order cannot change a row count, so a count query is sent unordered."""
     order_date: Dimension = Dimension(
@@ -3565,7 +3573,7 @@ def test_default_order_applies_to_table_dispatches_only(
 
     received: SemanticQuery = provider.call_args.args[0]
     assert (
-        [(element.id, direction) for element, direction in received.order]
+        [(term[0].id, term[1], null_placement(term)) for term in received.order]
         if received.order
         else None
     ) == expected_order

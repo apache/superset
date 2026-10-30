@@ -59,8 +59,16 @@ separate integration tests.
 | `semantic_change_catalog` | No-argument callable changing the controlled source catalog: add a visible member on every call, without clearing provider caches. |
 | `semantic_provider_class` | `(importable_module_name, class_name)` of the layer for an isolated import and static-schema check. Dependencies must already be installed. |
 
-Required query cases are `identity`, `grain`, `null`, `not_null`, `or`, and
-`order_limit`. Use member names distinct from private IDs and display labels.
+Required query cases are `identity`, `grain`, `null`, `not_null`, `or`,
+`order_limit` and `null_placement`. Use member names distinct from private IDs
+and display labels.
+For `null_placement`, order first by a selected dimension with an
+`OrderTerm(member, direction, NullPlacement.LAST)` (or `FIRST`) and a limit, and
+seed NULL and non-NULL values of that member so the limited page keeps different
+rows under the opposite placement. The SQLite example sorts `category` ascending
+with NULL values last and a limit of 2, keeping A and B where SQLite's own
+default would keep NULL and A. The suite also checks that the unlimited result
+puts every NULL value of that member at the requested end.
 For `grain`, use a grain-bearing dimension with data whose aggregation distinguishes the selected grain from raw values. Multiple grain variants for one name are allowed, not required. When the catalog declares no grain-bearing dimension, the case skips with an explicit reason before looking up its fixture entry; such providers may omit the `grain` entry. This reports unexercised grain coverage, not a passing grain check.
 NULL and grouped-OR fixtures must select NULL and non-NULL branches observably;
 the `or` case must use the host-normalized shape: one `OrFilter` containing
@@ -108,9 +116,10 @@ unverified release-gate coverage, not passing conformance; do not fabricate an
 SDK exception just to fill the matrix. The count lane only
 checks failure propagation; it does not settle pending count or value-shape
 rules. Construction fixtures avoid copying a factory signature or context type.
-The host supplies default chronological ordering before calling the provider.
-This suite checks the provider obligation to honor explicit ordering before limit
-and offset, including the ordered grain case.
+The host supplies default chronological ordering before calling the provider,
+as an ascending `OrderTerm` with NULL values last. This suite checks the provider
+obligation to honor explicit ordering and NULL placement before limit and offset,
+including the ordered grain case.
 
 The import/schema check starts a fresh Python interpreter with the test import
 path. It rejects imports of `superset`, `flask` and `flask_appbuilder`, including

@@ -32,8 +32,11 @@ from superset_core.semantic_layers.types import (
     Grain,
     GroupLimit,
     Metric,
+    NullPlacement,
     Operator,
     OrderDirection,
+    OrderTerm,
+    OrderTuple,
     PredicateType,
     SemanticQuery,
 )
@@ -58,7 +61,7 @@ def test_identity_is_stable_across_mapping_order() -> None:
     ).digest
 
     assert first == second
-    assert first.startswith("v5:")
+    assert first.startswith("v6:")
 
 
 def test_identity_changes_with_result_affecting_material() -> None:
@@ -228,6 +231,30 @@ def test_dimension_and_order_identity_cover_all_variants() -> None:
     assert SemanticCacheIdentityFactory.group_limit(_query().group_limit)
 
 
+def test_order_identity_includes_null_placement() -> None:
+    """A placement changes which rows a limit keeps, so it changes both keys."""
+    revenue: Metric = _query().metrics[0]
+    orders: list[list[OrderTuple]] = [
+        [(revenue, OrderDirection.DESC)],
+        [OrderTerm(revenue, OrderDirection.DESC, NullPlacement.LAST)],
+        [OrderTerm(revenue, OrderDirection.DESC, NullPlacement.FIRST)],
+    ]
+    bucket: str = "semantic-cache:bucket:v6:fixture"
+
+    order_keys: set[str] = {
+        SemanticCacheIdentityFactory.order(order) for order in orders
+    }
+    value_keys: set[str] = {
+        SemanticCacheIdentityFactory.value(bucket, replace(_query(), order=order))
+        for order in orders
+    }
+
+    assert len(order_keys) == len(value_keys) == len(orders)
+    assert SemanticCacheIdentityFactory.order(
+        [OrderTerm(revenue, OrderDirection.DESC)]
+    ) == SemanticCacheIdentityFactory.order([(revenue, OrderDirection.DESC)])
+
+
 def test_bucket_identity_includes_all_host_boundaries() -> None:
     view: SemanticViewIdentity = SemanticViewIdentity("orders")
     definition: SemanticDefinitionIdentity = SemanticCacheIdentityFactory.definition(
@@ -276,10 +303,10 @@ def test_bucket_identity_includes_all_host_boundaries() -> None:
 
 
 def test_value_identity_combines_bucket_and_query() -> None:
-    bucket: str = "semantic-cache:bucket:v5:fixture"
+    bucket: str = "semantic-cache:bucket:v6:fixture"
 
     first: str = SemanticCacheIdentityFactory.value(bucket, _query())
     second: str = SemanticCacheIdentityFactory.value(bucket, _query())
 
     assert first == second
-    assert first.startswith("semantic-cache:value:v5:")
+    assert first.startswith("semantic-cache:value:v6:")

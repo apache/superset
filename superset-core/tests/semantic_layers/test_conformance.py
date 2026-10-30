@@ -32,8 +32,10 @@ from superset_core.semantic_layers.types import (
     FilterExpression,
     Grains,
     Metric,
+    NullPlacement,
     Operator,
     OrderDirection,
+    OrderTerm,
     OrFilter,
     PredicateType,
     SemanticQuery,
@@ -150,6 +152,16 @@ def semantic_query_cases(
                 [total], [category], order=[(total, OrderDirection.DESC)], limit=1
             ),
             pa.table({"category": ["B"], "total": [8]}),
+        ),
+        # SQLite sorts NULL first for ASC: ignoring the placement keeps NULL, A.
+        "null_placement": (
+            SemanticQuery(
+                [total],
+                [category],
+                order=[OrderTerm(category, OrderDirection.ASC, NullPlacement.LAST)],
+                limit=2,
+            ),
+            pa.table({"category": ["A", "B"], "total": [7, 8]}),
         ),
     }
 
@@ -645,4 +657,66 @@ def test_or_lane_rejects_non_host_fixture_shapes(
     with pytest.raises(AssertionError, match=diagnostic):
         SemanticProviderConformance().test_query_outputs(
             "or", semantic_view, {"or": (query, expected)}
+        )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "diagnostic"),
+    [
+        ("plain_pair", "requires a NullPlacement"),
+        ("whole_result", "must keep different rows"),
+        ("no_nulls", "requires NULL values"),
+    ],
+)
+def test_null_placement_lane_rejects_weak_fixtures(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    mutation: str,
+    diagnostic: str,
+) -> None:
+    """A witness must request a placement and keep a page the other one would not."""
+    query: SemanticQuery
+    expected: pa.Table
+    query, expected = semantic_query_cases["null_placement"]
+    category: Dimension = query.dimensions[0]
+    if mutation == "plain_pair":
+        query = replace(query, order=[(category, OrderDirection.ASC)])
+    elif mutation == "whole_result":
+        # A limit covering every row keeps the same rows under either placement.
+        query = replace(query, limit=4)
+        expected = pa.table(
+            {
+                "category": pa.array(["A", "B", "C", None], type=pa.string()),
+                "total": [7, 8, 6, 4],
+            }
+        )
+    else:
+        query = replace(
+            query,
+            filters={Filter(PredicateType.WHERE, category, Operator.IS_NOT_NULL, None)},
+        )
+
+    with pytest.raises(AssertionError, match=diagnostic):
+        SemanticProviderConformance().test_query_outputs(
+            "null_placement", semantic_view, {"null_placement": (query, expected)}
+        )
+
+
+def test_null_placement_lane_rejects_a_provider_ignoring_the_placement(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A provider that drops the placement sorts NULL by its engine default."""
+    original: Callable[[SemanticQuery], SemanticResult] = semantic_view.get_table
+
+    def drop_placement(query: SemanticQuery) -> SemanticResult:
+        return original(
+            replace(query, order=[(term[0], term[1]) for term in query.order or []])
+        )
+
+    monkeypatch.setattr(semantic_view, "get_table", drop_placement)
+    with pytest.raises(AssertionError, match="NULL values must sort last"):
+        SemanticProviderConformance().test_query_outputs(
+            "null_placement", semantic_view, semantic_query_cases
         )

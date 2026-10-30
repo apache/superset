@@ -22,7 +22,9 @@ from dataclasses import replace
 import pyarrow as pa
 from superset_core.semantic_layers.types import (
     Dimension,
+    NullPlacement,
     OrderDirection,
+    OrderTerm,
     SemanticQuery,
 )
 
@@ -50,10 +52,16 @@ def default_order_dimension(query: SemanticQuery) -> Dimension | None:
 def with_default_order(query: SemanticQuery) -> SemanticQuery:
     """Return *query* with its default chronological order filled in.
 
-    The provider receives this order on dispatch, and the semantic cache uses
-    it to decide which cached rows a query may reuse.
+    The default sorts NULL values last. The term carries that placement, which
+    also tells it apart from an explicit ascending order on the same dimension,
+    whose NULL placement is the provider's. The provider receives this order on
+    dispatch, and the semantic cache uses it to decide which cached rows a query
+    may reuse.
     """
     dimension: Dimension | None = default_order_dimension(query)
     if dimension is None:
         return query
-    return replace(query, order=[(dimension, OrderDirection.ASC)])
+    return replace(
+        query,
+        order=[OrderTerm(dimension, OrderDirection.ASC, NullPlacement.LAST)],
+    )

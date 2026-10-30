@@ -29,7 +29,10 @@ from superset_core.semantic_layers.types import (
     AggregationType,
     Dimension,
     Metric,
+    null_placement,
+    NullPlacement,
     OrderDirection,
+    OrderTerm,
     OrderTuple,
     SemanticQuery,
     SemanticResult,
@@ -46,6 +49,7 @@ from superset.semantic_layers.cache_types import (
     ReuseMode,
     SemanticCacheLookupResult,
 )
+from superset.semantic_layers.ordering import with_default_order
 from tests.unit_tests.semantic_layers.conftest import build_view_meta
 
 SALES: Metric = Metric(
@@ -83,9 +87,15 @@ def _dispatch(mocker: MockerFixture, query: SemanticQuery) -> SemanticQuery:
 @pytest.mark.parametrize(
     "dimensions, expected",
     [
-        # The first selected temporal dimension, ascending.
-        ([REGION, SHIPPED_AT, ORDER_DATE], [(SHIPPED_AT, OrderDirection.ASC)]),
-        ([ORDER_DATE, SHIPPED_AT], [(ORDER_DATE, OrderDirection.ASC)]),
+        # The first selected temporal dimension, ascending, NULL values last.
+        (
+            [REGION, SHIPPED_AT, ORDER_DATE],
+            [OrderTerm(SHIPPED_AT, OrderDirection.ASC, NullPlacement.LAST)],
+        ),
+        (
+            [ORDER_DATE, SHIPPED_AT],
+            [OrderTerm(ORDER_DATE, OrderDirection.ASC, NullPlacement.LAST)],
+        ),
         # No temporal dimension: the query stays unordered.
         ([REGION], None),
         ([], None),
@@ -124,6 +134,32 @@ def test_explicit_order_reaches_the_provider_unchanged(
     assert _dispatch(mocker, query) is query
 
 
+def test_default_order_differs_from_an_explicit_ascending_order(
+    mocker: MockerFixture,
+) -> None:
+    """Only the generated default asks for NULL values last.
+
+    An explicit ascending order on the same dimension keeps the provider's NULL
+    placement, so the provider must be able to tell the two apart.
+    """
+    unordered: SemanticQuery = SemanticQuery(
+        metrics=[SALES], dimensions=[ORDER_DATE], limit=2
+    )
+    explicit: SemanticQuery = replace(
+        unordered, order=[(ORDER_DATE, OrderDirection.ASC)]
+    )
+
+    defaulted: SemanticQuery = _dispatch(mocker, unordered)
+
+    assert defaulted != explicit
+    assert defaulted == with_default_order(unordered)
+    assert [null_placement(term) for term in defaulted.order or []] == [
+        NullPlacement.LAST
+    ]
+    assert _dispatch(mocker, explicit) is explicit
+    assert [null_placement(term) for term in explicit.order or []] == [None]
+
+
 def test_default_order_leaves_the_cache_identity_unchanged(
     mocker: MockerFixture,
 ) -> None:
@@ -144,7 +180,9 @@ def test_default_order_leaves_the_cache_identity_unchanged(
     mapper._dispatch_semantic_query(mocker.Mock(), provider, query)
 
     assert service.execute.call_args.args[1] is query
-    assert provider.call_args.args[0].order == [(ORDER_DATE, OrderDirection.ASC)]
+    assert provider.call_args.args[0].order == [
+        OrderTerm(ORDER_DATE, OrderDirection.ASC, NullPlacement.LAST)
+    ]
 
 
 def test_row_count_dispatch_bypasses_the_cache(mocker: MockerFixture) -> None:
@@ -374,3 +412,59 @@ def test_store_replaces_a_descriptor_written_without_the_default_order() -> None
     assert [candidate.decision.mode for candidate in lookup.candidates] == [
         ReuseMode.EXACT
     ]
+
+
+@pytest.mark.parametrize("stored_explicit", [False, True], ids=["default", "explicit"])
+def test_limited_hit_is_not_shared_between_default_and_explicit_ascending(
+    stored_explicit: bool,
+) -> None:
+    """A page cut with NULL values last cannot answer one cut by provider default.
+
+    The provider may sort NULL values first for an explicit ascending order, so
+    the two limited pages can hold different rows.
+    """
+    unordered: SemanticQuery = SemanticQuery(
+        metrics=[SALES], dimensions=[ORDER_DATE], limit=2
+    )
+    explicit: SemanticQuery = replace(
+        unordered, order=[(ORDER_DATE, OrderDirection.ASC)]
+    )
+    rows: dict[str, list[object]] = {
+        "order_date": [date(2026, 1, 1), date(2026, 2, 1)],
+        "total_sales": [1.0, 2.0],
+    }
+    stored, requested = (
+        (explicit, unordered)
+        if stored_explicit
+        else (
+            unordered,
+            explicit,
+        )
+    )
+
+    assert _serve_from_cache(stored, rows, requested) is None
+    assert _serve_from_cache(stored, rows, stored) == rows
+
+
+def test_rollup_hit_sorts_null_dates_last_before_the_limit() -> None:
+    """A rolled-up page keeps the earliest dates and leaves NULL dates for last."""
+    stored_query: SemanticQuery = SemanticQuery(
+        metrics=[SUMMED_SALES], dimensions=[REGION, ORDER_DATE]
+    )
+    stored_rows: dict[str, list[object]] = {
+        "region": ["East", "West", "East", "West"],
+        "order_date": [None, date(2026, 2, 1), date(2026, 1, 1), None],
+        "total_sales": [7.0, 2.0, 1.0, 9.0],
+    }
+    query: SemanticQuery = SemanticQuery(
+        metrics=[SUMMED_SALES], dimensions=[ORDER_DATE], limit=2
+    )
+
+    assert _serve_from_cache(stored_query, stored_rows, query) == {
+        "order_date": [date(2026, 1, 1), date(2026, 2, 1)],
+        "total_sales": [1.0, 2.0],
+    }
+    assert _serve_from_cache(stored_query, stored_rows, replace(query, limit=None)) == {
+        "order_date": [date(2026, 1, 1), date(2026, 2, 1), None],
+        "total_sales": [1.0, 2.0, 16.0],
+    }

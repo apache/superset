@@ -42,6 +42,8 @@ from superset_core.semantic_layers.types import (
     Dimension,
     Filter,
     Metric,
+    null_placement,
+    NullPlacement,
     Operator,
     OrFilter,
     SemanticQuery,
@@ -87,7 +89,8 @@ class SemanticProviderConformance:
     """Subclass in a ``Test...`` class and supply the documented provider fixtures.
 
     Query fixtures seed discriminating data and provide independent expected
-    Arrow tables for identity, grain, NULL, grouped OR, and order-before-limit.
+    Arrow tables for identity, grain, NULL, grouped OR, order-before-limit and
+    NULL placement.
     Error fixtures call real provider methods against controlled backend outcomes.
     See the provider author guide for every fixture and the limits of this suite.
     """
@@ -101,7 +104,16 @@ class SemanticProviderConformance:
         assert _catalog(semantic_view) == _catalog(semantic_reloaded_view)
 
     @pytest.mark.parametrize(
-        "case", ["identity", "grain", "null", "not_null", "or", "order_limit"]
+        "case",
+        [
+            "identity",
+            "grain",
+            "null",
+            "not_null",
+            "or",
+            "order_limit",
+            "null_placement",
+        ],
     )
     def test_query_outputs(
         self,
@@ -148,6 +160,8 @@ class SemanticProviderConformance:
             _assert_result_equal(
                 full.results.slice(query.offset or 0, query.limit), expected
             )
+        elif case == "null_placement":
+            _assert_null_placement_witness(query, semantic_view, expected)
         result: SemanticResult = semantic_view.get_table(query)
         _assert_result_equal(result.results, expected)
         assert set(result.results.column_names) == {
@@ -270,6 +284,56 @@ class SemanticProviderConformance:
             check=False,
         )
         assert completed.returncode == 0, completed.stdout + completed.stderr
+
+
+def _assert_null_placement_witness(
+    query: SemanticQuery, view: SemanticView, expected: pa.Table
+) -> None:
+    """Require NULL values of the first order key where its placement puts them.
+
+    The host's default chronological order asks for NULL values last; a
+    provider must honor a placement on any order key, before offset and limit.
+    The page must keep different rows from the ones the opposite placement would.
+    """
+    assert query.order, "null_placement fixture requires an order"
+    first: tuple[object, ...] = query.order[0]
+    placement: NullPlacement | None = null_placement(first)
+    assert placement is not None, (
+        "null_placement fixture's first order key requires a NullPlacement"
+    )
+    member: object = first[0]
+    assert isinstance(member, Dimension), (
+        "null_placement fixture must order by a selected dimension"
+    )
+    assert member in query.dimensions, (
+        "null_placement fixture must order by a selected dimension"
+    )
+    assert query.limit is not None
+    assert query.limit > 0
+    full: pa.Table = view.get_table(replace(query, limit=None, offset=None)).results
+    values: list[object] = full.column(member.name).to_pylist()
+    nulls: list[object] = [value for value in values if value is None]
+    others: list[object] = [value for value in values if value is not None]
+    assert nulls, "null_placement fixture requires NULL values of the order key"
+    assert others, "null_placement fixture requires non-NULL values of the order key"
+    placed: list[object] = (
+        others + nulls if placement is NullPlacement.LAST else nulls + others
+    )
+    opposite: list[object] = (
+        nulls + others if placement is NullPlacement.LAST else others + nulls
+    )
+    assert values == placed, (
+        f"{member.name}: NULL values must sort {placement.value.lower()}, got {values}"
+    )
+    start: int = query.offset or 0
+    stop: int = start + query.limit
+    assert sorted(map(repr, placed[start:stop])) != sorted(
+        map(repr, opposite[start:stop])
+    ), (
+        "null_placement fixture's page must keep different rows "
+        "under the opposite placement"
+    )
+    _assert_result_equal(full.slice(start, query.limit), expected)
 
 
 def _assert_normalized_or_witness(query: SemanticQuery) -> None:
