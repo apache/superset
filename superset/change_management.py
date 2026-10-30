@@ -128,6 +128,27 @@ def is_review_signal(error: BaseException) -> bool:
     return isinstance(status, int) and 200 <= status < 300
 
 
+def review_signal_details(error: BaseException) -> dict[str, Any]:
+    """What a capture carries, read off the signal in one place.
+
+    The gate lives in an extension, so this duck-types it the same way
+    :func:`is_review_signal` does. The HTTP 202 body and the MCP tool
+    result are both built from this, so the two cannot end up describing
+    the same capture differently.
+    """
+    return {
+        "id": getattr(error, "change_request_id", None),
+        "ids": getattr(error, "change_request_ids", None),
+        "count": getattr(error, "count", 1),
+        "asset_type": getattr(error, "asset_type", None),
+        "asset_id": getattr(error, "asset_id", None),
+        "operation": getattr(error, "operation", None),
+        "updated_existing": getattr(error, "updated_existing", False),
+        "replaced_edit": getattr(error, "replaced_edit", False),
+        "review_required": True,
+    }
+
+
 def install_fail_closed_guard(app: Flask) -> None:
     """Refuse writes while review is promised and unenforced."""
 

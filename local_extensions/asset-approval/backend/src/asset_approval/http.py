@@ -26,6 +26,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from superset.change_management import review_signal_details
+
 from asset_approval.exceptions import (
     AssetLockedError,
     ChangeManagementException,
@@ -98,13 +100,17 @@ def signal_response(ex: ChangeManagementException) -> tuple[dict[str, Any], int]
     from here so the two paths cannot drift.
     """
     if isinstance(ex, ChangeRequestCreated):
+        # Read through core's reader, which the MCP middleware also uses,
+        # so the 202 body and the tool result cannot come to describe the
+        # same capture differently (QA-13).
+        details = review_signal_details(ex)
         return (
             {
-                "id": ex.change_request_id,
-                "ids": ex.change_request_ids,
-                "count": ex.count,
-                "asset_type": ex.asset_type,
-                "asset_id": ex.asset_id,
+                "id": details["id"],
+                "ids": details["ids"],
+                "count": details["count"],
+                "asset_type": details["asset_type"],
+                "asset_id": details["asset_id"],
                 "review_required": True,
                 "message": captured_message(ex),
             },

@@ -33,7 +33,7 @@ from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError, TimeoutError
 from starlette.exceptions import HTTPException
 
-from superset.change_management import is_review_signal
+from superset.change_management import is_review_signal, review_signal_details
 from superset.commands.exceptions import (
     CommandInvalidError,
     ForbiddenError,
@@ -1347,13 +1347,39 @@ class GlobalErrorHandlerMiddleware(Middleware):
             duration_ms = int((time.time() - start_time) * 1000)
             return await self._handle_error(e, context, tool_name, duration_ms)
 
+    @staticmethod
+    def _captured_result(error: BaseException, tool_name: str) -> ToolResult:
+        """A capture, rendered as the success it is.
+
+        ``structured_content`` stays None so
+        ``ToolResultCompatibilityMiddleware`` passes this straight
+        through: it re-wraps a result whose structured payload is set, and
+        the structured payload is what transport encoding failures track.
+
+        The text is written for an agent rather than for the review panel
+        -- what happened, which request to look for, and not to retry.
+        """
+        details = review_signal_details(error)
+        ids = details["ids"] or ([details["id"]] if details["id"] else [])
+        named = ", ".join(str(one) for one in ids) if ids else "unknown"
+        text = (
+            f"Held for review in {tool_name}: the change was accepted and "
+            f"saved as change request {named}. It is waiting on a reviewer "
+            "and reaches viewers once approved. Nothing failed; do not "
+            "retry this call."
+        )
+        return ToolResult(
+            content=[mt.TextContent(type="text", text=text)],
+            is_error=False,
+        )
+
     async def _handle_error(  # noqa: C901
         self,
         wrapped_error: Exception,
         context: MiddlewareContext,
         tool_name: str,
         duration_ms: int,
-    ) -> None:
+    ) -> Any:
         """Handle different types of errors with appropriate responses.
 
         ``wrapped_error`` is what reached the middleware; ``error`` is the
@@ -1515,6 +1541,15 @@ class GlobalErrorHandlerMiddleware(Middleware):
             # waiting on a reviewer. Saying "Internal error" (which a 500
             # status made this say) tells an agent to retry or escalate
             # something that in fact worked (QA-13).
+            #
+            # Returned rather than raised. A raise still reaches the caller
+            # as CallToolResult(isError=true), and an agent reads that as a
+            # failed call whatever the text says -- so it retries a write
+            # that was accepted, and the retry folds into the same draft or
+            # comes back 409. ``on_message`` returns this method's result,
+            # so a ToolResult here is the tool's answer.
+            if context.method == "tools/call":
+                return self._captured_result(error, tool_name)
             raise ToolError(
                 f"Held for review in {tool_name}: "
                 f"{_sanitize_error_for_logging(error)}"

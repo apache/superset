@@ -21,6 +21,7 @@ from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset import security_manager
+from superset.change_management import is_review_signal
 from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
     CreateDatasetMetricRequest,
@@ -165,6 +166,8 @@ async def create_dataset_metric(
             error=f"Failed to create metric: {exc}",
         )
     except Exception as exc:
+        if is_review_signal(exc):
+            raise
         await ctx.error(
             "Unexpected error creating dataset metric: %s: %s"
             % (type(exc).__name__, str(exc))

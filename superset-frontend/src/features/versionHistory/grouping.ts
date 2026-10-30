@@ -17,6 +17,7 @@
  * under the License.
  */
 import type {
+  ActivityChangedBy,
   ActivityRecord,
   RelatedEntry,
   SaveGroup,
@@ -210,9 +211,25 @@ export function buildTimeline(records: ActivityRecord[]): TimelineEntry[] {
       // annotation, not a user edit: keep it out of the change list. For a
       // restore it carries the target version number for the headline.
       if (record.kind === '__meta__' || record.operation === 'announce') {
-        const meta = record.to_value as { version_number?: number } | null;
+        const meta = record.to_value as {
+          version_number?: number;
+          approval?: {
+            change_request_id?: number | null;
+            by?: ActivityChangedBy | null;
+            note?: string | null;
+          } | null;
+        } | null;
         if (meta && typeof meta.version_number === 'number') {
           group.restoredToVersion = meta.version_number;
+        }
+        // An approved save rides the same headline, so a restore that was
+        // itself approved keeps both (QA-16).
+        if (meta?.approval) {
+          group.approval = {
+            changeRequestId: meta.approval.change_request_id ?? null,
+            by: meta.approval.by ?? null,
+            note: meta.approval.note ?? null,
+          };
         }
       } else if (isLayoutScaffolding(record)) {
         // Dropping a chart into empty space makes Superset spawn a new ROW;

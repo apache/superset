@@ -370,3 +370,45 @@ test.each([false, true])(
     }
   },
 );
+
+test('an approved save names its approver and the review note', () => {
+  // The panel credited the author and said nothing about the review, so
+  // an auditor could not tell an approved change from an unreviewed one
+  // (QA-16).
+  renderItem({
+    group: makeGroup({
+      approval: {
+        changeRequestId: 17,
+        by: { id: 3, first_name: 'Priya', last_name: 'Shah' },
+        note: 'looks right to me',
+      },
+    }),
+  });
+
+  const line = screen.getByTestId('save-group-approval');
+  expect(line).toHaveTextContent('Approved by');
+  expect(line).toHaveTextContent('Priya');
+  expect(line).toHaveTextContent('looks right to me');
+});
+
+test('an approval with no note renders without one', () => {
+  renderItem({
+    group: makeGroup({
+      approval: {
+        changeRequestId: 17,
+        by: { id: 3, first_name: 'Priya', last_name: 'Shah' },
+        note: null,
+      },
+    }),
+  });
+
+  expect(screen.getByTestId('save-group-approval')).toHaveTextContent(
+    'Approved by',
+  );
+});
+
+test('an ordinary save shows no approval line', () => {
+  renderItem();
+
+  expect(screen.queryByTestId('save-group-approval')).not.toBeInTheDocument();
+});

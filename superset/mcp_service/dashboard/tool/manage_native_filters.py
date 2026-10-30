@@ -31,6 +31,7 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.change_management import is_review_signal
 from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, NULL_STRING
 from superset.dashboards.filter_scope import _is_divider
 from superset.exceptions import SupersetSecurityException
@@ -890,6 +891,13 @@ def manage_native_filters(
             error=f"Failed to update native filters: {exc}",
         )
     except Exception as exc:
+        if is_review_signal(exc):
+            # A capture is the feature working: the write was accepted and
+            # is waiting on a person. Logging it as unexpected records a
+            # traceback at ERROR, and on the paths that notify the client
+            # the agent sees an error line whatever the result says
+            # (QA-13).
+            raise
         logger.exception(
             "Unexpected error managing native filters on dashboard %s: %s",
             request.dashboard_id,

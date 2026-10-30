@@ -343,6 +343,14 @@ export default function SaveGroupItem({
             )}
             {meta}
           </Meta>
+          {group.approval && (
+            <Meta data-test="save-group-approval">
+              {group.approval.by
+                ? t('Approved by %s', formatAuthor(group.approval.by))
+                : t('Approved')}
+              {group.approval.note ? ` · ${group.approval.note}` : ''}
+            </Meta>
+          )}
         </HeaderText>
         {showCreationPreview && (
           <Button

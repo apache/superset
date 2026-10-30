@@ -25,6 +25,7 @@ rather than closing it and opening another. Drafts never expire (Visa Q8).
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from datetime import datetime, timezone
 from typing import Any
 
@@ -51,7 +52,7 @@ from asset_approval.gate import mark_published
 from asset_approval.models import ChangeRequest
 from asset_approval.replay import apply_change, load_asset
 from asset_approval.types import AssetType, ChangeStatus
-from superset.utils.core import get_user_id
+from superset.utils.core import get_user, get_user_id
 from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
@@ -161,6 +162,73 @@ def _author_name(change_request: ChangeRequest) -> str | None:
     return full or getattr(author, "username", None)
 
 
+def _announce_approval(
+    change_request: ChangeRequest, note: str | None
+) -> None:
+    """Carry the approval into the asset's own version history.
+
+    The replay runs as the author, so the history entry is the author's
+    save, which is right -- they wrote it. What the entry cannot say by
+    itself is that somebody else approved it, because nothing on the
+    versioning side knows this request exists and there is no key joining
+    the two (QA-16).
+
+    The host already has a convention for a fact a field diff cannot
+    express: the ``__meta__`` headline record, which is how a restore
+    says which version it restored. The approval rides the same record
+    under its own key, so an approved restore keeps its headline and
+    gains the approval beside it rather than losing one of the two.
+
+    Written after the replay and before the commit: the listener pops the
+    key on ``before_commit``, and a replayed restore sets its own
+    headline on the way past.
+
+    Best effort on purpose. ``change_requests`` is the audit record and
+    it is already written by the caller; this is a convenience surface,
+    and version history prunes on a retention window while the request
+    row does not. A failure here must not fail an approval.
+    """
+    try:
+        from superset.versioning.changes import (
+            ACTION_META_KEY,
+            build_action_headline,
+        )
+
+        reviewer = get_user()
+        approval = {
+            "change_request_id": change_request.id,
+            "by": None
+            if reviewer is None
+            else {
+                "id": getattr(reviewer, "id", None),
+                "first_name": getattr(reviewer, "first_name", None),
+                "last_name": getattr(reviewer, "last_name", None),
+            },
+            "note": note,
+        }
+
+        existing = db.session.info.get(ACTION_META_KEY)
+        if existing is not None:
+            record = existing["record"]
+            existing["record"] = replace(
+                record, to_value={**(record.to_value or {}), "approval": approval}
+            )
+            return
+
+        db.session.info[ACTION_META_KEY] = build_action_headline(
+            AssetType(change_request.asset_type).value,
+            change_request.asset_id,
+            {"approval": approval},
+        )
+    except Exception:  # noqa: BLE001
+        logger.warning(
+            "Could not annotate version history with the approval of "
+            "change request %s",
+            getattr(change_request, "id", None),
+            exc_info=True,
+        )
+
+
 @transaction()
 def approve(
     change_request_id: int,
@@ -232,6 +300,8 @@ def approve(
         )
         if bool(getattr(published_now, "published", False)):
             mark_published(AssetType.DASHBOARD, change_request.asset_id)
+
+    _announce_approval(change_request, note)
 
     change_request.set_status(ChangeStatus.APPROVED)
     change_request.reviewer_fk = user_id

@@ -36,6 +36,12 @@ export type ActivityActionKind = 'restore' | 'import' | 'clone' | null;
 
 export type CreationKind = 'pre_tracking' | 'created' | 'imported' | 'unknown';
 
+export interface ApprovalAnnotation {
+  changeRequestId: number | null;
+  by: ActivityChangedBy | null;
+  note: string | null;
+}
+
 export interface ActivityChangedBy {
   id: number;
   first_name: string | null;
@@ -187,6 +193,15 @@ export interface SaveGroup {
    * to, read from the synthetic `__meta__` headline record's `to_value`.
    */
   restoredToVersion?: number | null;
+  /**
+   * The approval that let this save through, read from the same
+   * `__meta__` headline record.
+   *
+   * The save is credited to its author, because the change replays as
+   * them and they wrote it. This is the part the field diff cannot
+   * express: who allowed it out to viewers, and why (QA-16).
+   */
+  approval?: ApprovalAnnotation | null;
   /**
    * Set when the save touched dashboard layout containers (rows, columns,
    * the tab strip) that were dropped from the change list as scaffolding.

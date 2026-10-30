@@ -474,3 +474,59 @@ test('creationKind survives for pre_tracking and imported variants', () => {
     expect((entries[0] as SaveGroup).creationKind).toBe(kind);
   });
 });
+
+test('an approval on the headline is folded onto the group', () => {
+  // The save is the author's; the approval says who let it out to
+  // viewers, which no field diff can express (QA-16).
+  const entries = buildTimeline([
+    record({ transaction_id: 21 }),
+    record({
+      transaction_id: 21,
+      kind: '__meta__',
+      operation: 'announce',
+      path: ['__meta__'],
+      to_value: {
+        approval: {
+          change_request_id: 17,
+          by: { id: 3, first_name: 'Priya', last_name: 'Shah' },
+          note: 'looks right to me',
+        },
+      },
+    }),
+  ]);
+
+  const group = entries[0] as SaveGroup;
+  expect(group.approval).toEqual({
+    changeRequestId: 17,
+    by: { id: 3, first_name: 'Priya', last_name: 'Shah' },
+    note: 'looks right to me',
+  });
+  // Still an annotation, so it stays out of the change list.
+  expect(group.records).toHaveLength(1);
+});
+
+test('an approved restore keeps both the version and the approval', () => {
+  // One headline slot, two facts. Losing either is a regression.
+  const entries = buildTimeline([
+    record({
+      transaction_id: 22,
+      kind: '__meta__',
+      operation: 'announce',
+      path: ['__meta__'],
+      to_value: {
+        version_number: 4,
+        approval: { change_request_id: 17, by: null, note: null },
+      },
+    }),
+  ]);
+
+  const group = entries[0] as SaveGroup;
+  expect(group.restoredToVersion).toBe(4);
+  expect(group.approval?.changeRequestId).toBe(17);
+});
+
+test('a save with no approval carries none', () => {
+  const entries = buildTimeline([record({ transaction_id: 23 })]);
+
+  expect((entries[0] as SaveGroup).approval).toBeUndefined();
+});

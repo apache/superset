@@ -31,6 +31,7 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.change_management import is_review_signal
 from superset.daos.dashboard import _layout_chart_id
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.layout_validation import rebuild_parent_chains
@@ -433,6 +434,8 @@ async def duplicate_dashboard(
             ),
         )
     except Exception as exc:
+        if is_review_signal(exc):
+            raise
         await ctx.error(
             "Unexpected error duplicating dashboard: %s: %s"
             % (type(exc).__name__, str(exc))
