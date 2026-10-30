@@ -122,10 +122,15 @@ function TextControl<T extends InputValueType = InputValueType>({
   const latestTypedRef = useRef<string | null>(null);
   const debouncedEmitRef = useRef(
     debounce((inputValue: string) => {
-      // A newer keystroke (or an external reset) has superseded this value;
-      // emitting it would echo back through the prop-sync branch and wipe the
-      // newer text.
+      // A newer keystroke has superseded this value; emitting it would echo
+      // back through the prop-sync branch and wipe the newer text. Re-queue
+      // the newest one, since the deferred value may never move again (e.g.
+      // Backspace back to a value the deferred state already holds). An
+      // external reset clears the ref, so there is nothing to emit then.
       if (latestTypedRef.current !== inputValue) {
+        if (latestTypedRef.current !== null) {
+          debouncedEmitRef.current(latestTypedRef.current);
+        }
         return;
       }
       latestTypedRef.current = null;

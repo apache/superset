@@ -229,7 +229,9 @@ test('should not emit a superseded value when a newer keystroke lands before the
     act(() => {
       jest.advanceTimersByTime(Constants.FAST_DEBOUNCE * 2);
     });
-    expect(onChange).not.toHaveBeenCalled();
+    // the superseded '1' is never emitted; the newest value is re-queued
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith('12', []);
     expect(screen.getByDisplayValue('12')).toBeInTheDocument();
 
     mockDeferred.held = false;

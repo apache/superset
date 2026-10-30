@@ -429,11 +429,10 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   const restoringFromHistory = useRef(false);
   const restoreTarget = useSelector(selectRestoreTarget, shallowEqual);
   /**
-   * Axis title text no longer only settles on a debounce timer (TextControl
-   * now uses useDeferredValue), so a transient intermediate value -- e.g. a
-   * title cleared and immediately replaced -- can reach here mid-edit. These
-   * debounce the resulting margin adjustment so a fleeting empty/non-empty
-   * value doesn't clobber a margin the user already customized.
+   * A transient axis title -- e.g. one cleared and then replaced, or one
+   * flushed on blur mid-edit -- can reach here. These debounce the
+   * resulting margin adjustment so a fleeting empty/non-empty value
+   * doesn't clobber a margin the user already customized.
    */
   const xAxisTitleMarginTimeoutRef = useRef<ReturnType<
     typeof setTimeout
