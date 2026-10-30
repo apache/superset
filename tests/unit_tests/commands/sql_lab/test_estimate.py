@@ -131,53 +131,6 @@ def test_validate_raises_when_database_access_denied(
 
 
 # ---------------------------------------------------------------------------
-# New behaviour: authorised caller succeeds
-# ---------------------------------------------------------------------------
-
-
-@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
-@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
-def test_validate_succeeds_for_authorised_user(
-    mock_dao: MagicMock,
-    mock_security_manager: MagicMock,
-) -> None:
-    """validate() completes without error when access is granted."""
-    mock_database = MagicMock()
-    mock_dao.find_by_id.return_value = mock_database
-    mock_security_manager.raise_for_access.return_value = None
-
-    command = QueryEstimationCommand(_make_params())
-    command.validate()  # must not raise
-
-    call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
-    assert call_kwargs["database"] is mock_database
-
-
-# ---------------------------------------------------------------------------
-# Kwarg correctness
-# ---------------------------------------------------------------------------
-
-
-@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
-@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
-def test_raise_for_access_called_with_correct_database(
-    mock_dao: MagicMock,
-    mock_security_manager: MagicMock,
-) -> None:
-    """The database object fetched from the session is passed to raise_for_access."""
-    mock_database = MagicMock()
-    mock_database.id = 42
-    mock_dao.find_by_id.return_value = mock_database
-    mock_security_manager.raise_for_access.return_value = None
-
-    command = QueryEstimationCommand(_make_params(database_id=42))
-    command.validate()
-
-    call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
-    assert call_kwargs["database"] is mock_database
-
-
-# ---------------------------------------------------------------------------
 # Regression: the SQL to be estimated must be authorized, not just the handle
 # ---------------------------------------------------------------------------
 
@@ -195,17 +148,25 @@ def test_validate_authorizes_the_sql_to_be_estimated(
     mock_database = MagicMock()
     mock_dao.find_by_id.return_value = mock_database
 
+    sql = "SELECT * FROM secret_table WHERE region = '{{ region }}'"
     command = QueryEstimationCommand(
-        _make_params(sql="SELECT * FROM secret_table", schema="main")
+        _make_params(
+            database_id=42,
+            sql=sql,
+            catalog="analytics",
+            schema="main",
+            template_params={"region": "CA"},
+        )
     )
     command.validate()
 
+    mock_dao.find_by_id.assert_called_once_with(42)
     mock_security_manager.raise_for_access.assert_called_once_with(
         database=mock_database,
-        sql="SELECT * FROM secret_table",
-        catalog=None,
+        sql=sql,
+        catalog="analytics",
         schema="main",
-        template_params={},
+        template_params={"region": "CA"},
         force_dataset_match=True,
     )
 
