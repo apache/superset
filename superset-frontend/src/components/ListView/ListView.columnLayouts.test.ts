@@ -50,6 +50,9 @@ test.each(listViewPages.map(({ path, source }) => [path, source]))(
   (_path, source) => {
     // Legacy `size` tokens are fixed widths that bypass the shared presets.
     expect(source).not.toMatch(/^\s*size: '(xs|sm|md|lg|xl|xxl|xxxl)',$/m);
+    // Custom min/max objects bypass the presets, and a primary name column
+    // sized with one would not be frozen as the leading block.
+    expect(source).not.toMatch(/^\s*layout: \{/m);
 
     const presets = Array.from(
       source.matchAll(/^\s*layout: '(\w+)'(?: as const)?,$/gm),

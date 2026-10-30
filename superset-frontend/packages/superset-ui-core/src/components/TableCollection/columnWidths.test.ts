@@ -160,7 +160,7 @@ test('the preset table holds the measured widths', () => {
   expect(COLUMN_LAYOUT_PRESETS).toEqual({
     icon: { fixed: 48 },
     statusIcon: { fixed: 48 },
-    statusIcons: { fixed: 64 },
+    statusIcons: { fixed: 144 },
     status: { fixed: 144 },
     flag: { fixed: 176 },
     count: { fixed: 104 },
@@ -178,6 +178,12 @@ test('the preset table holds the measured widths', () => {
     longtext: { min: 200, max: 560, weight: 1.5 },
     tags: { min: 200, max: 320, weight: 1 },
   });
+});
+
+test('the task details column fits its widest indicator row', () => {
+  // Measured in Chrome: warning or bug, info, partition and "+999" reuse
+  // icons (16px each, 8px apart) take 118px, plus 24px of cell padding.
+  expect(getColumnSpec('statusIcons').min).toBeGreaterThanOrEqual(118 + 24);
 });
 
 test('reports no scroll whenever the minimums fit', () => {

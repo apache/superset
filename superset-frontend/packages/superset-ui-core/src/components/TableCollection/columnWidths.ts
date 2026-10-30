@@ -72,8 +72,11 @@ export const COLUMN_LAYOUT_PRESETS: Record<
   icon: { fixed: 48 },
   /** One state icon (query, alert or task state). */
   statusIcon: { fixed: 48 },
-  /** Two or three small icons side by side (e.g. task details). */
-  statusIcons: { fixed: 64 },
+  /**
+   * A row of indicator icons (task details): up to four 16px icons 8px apart,
+   * the last with a reuse count ("+999"), measured at 118 + padding.
+   */
+  statusIcons: { fixed: 144 },
   /**
    * A badge: Published/Draft, Physical/Virtual/Semantic View, task scope.
    * German badges ("Veröffentlicht", "Semantische Ansicht") need 144.
@@ -276,6 +279,10 @@ const LEADING_ICON_PRESETS: ColumnLayout[] = ['icon', 'statusIcon'];
  * title is preceded by anything else, since antd can only freeze a
  * contiguous run of columns from the start and freezing those would hide
  * more than the row's name.
+ *
+ * The primary name column is identified by the `title` preset only: a column
+ * with a custom `{ min, max }` or `{ fixed }` layout is never frozen, so a
+ * row's name column must use `layout: 'title'` to stay in view.
  */
 export function getLeadingBlockLength(layouts: ColumnLayout[]): number {
   const titleIndex = layouts.indexOf('title');
