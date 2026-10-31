@@ -85,7 +85,7 @@ def test_group_identity_is_order_independent_and_not_flattened() -> None:
     assert identity != SemanticCacheIdentityFactory.query(
         replace(query, filters={flattened})
     )
-    assert ":v5:" in identity
+    assert ":v6:" in identity
 
 
 @pytest.mark.parametrize("location", ["query", "group_limit", "both"])

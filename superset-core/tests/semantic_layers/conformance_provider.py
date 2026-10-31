@@ -37,6 +37,8 @@ from superset_core.semantic_layers.types import (
     FilterExpression,
     Grains,
     Metric,
+    null_placement,
+    NullPlacement,
     Operator,
     OrFilter,
     SemanticQuery,
@@ -151,9 +153,9 @@ class QueryView(ExampleView):
             if any(member not in columns for member, _ in query.order):
                 raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_QUERY)
             sql += " ORDER BY " + ", ".join(
-                f'"{member.name}" {direction.value}'
-                for member, direction in query.order
-                if not isinstance(member, AdhocExpression)
+                f'"{term[0].name}" {term[1].value}{_nulls(null_placement(term))}'
+                for term in query.order
+                if not isinstance(term[0], AdhocExpression)
             )
         if query.limit is not None:
             sql += " LIMIT ? OFFSET ?"
@@ -179,6 +181,11 @@ class QueryView(ExampleView):
         """Exercise failure propagation without defining a new count convention."""
         self.get_table(query)
         raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
+
+
+def _nulls(placement: NullPlacement | None) -> str:
+    """Render a requested NULL placement; without one, SQLite's default applies."""
+    return f" NULLS {placement.value}" if placement is not None else ""
 
 
 def _predicate(expression: FilterExpression, parameters: list[object]) -> str:

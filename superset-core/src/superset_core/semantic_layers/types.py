@@ -315,7 +315,89 @@ class OrderDirection(enum.Enum):
     DESC = "DESC"
 
 
+class NullPlacement(enum.Enum):
+    """Where NULL values of an order key sort, relative to all other values."""
+
+    FIRST = "FIRST"
+    LAST = "LAST"
+
+
 OrderTuple = tuple[Metric | Dimension | AdhocExpression, OrderDirection]
+
+
+class OrderTerm(tuple[Metric | Dimension | AdhocExpression, OrderDirection]):
+    """
+    An ``(member, direction)`` order pair with an optional NULL placement.
+
+    It unpacks, indexes and has the length of a two-element ``OrderTuple``, so a
+    provider reading ``member, direction`` keeps working. Read the placement with
+    :func:`null_placement`, which also accepts a plain pair.
+
+    ``nulls`` of ``None`` means the provider's default placement, the same as a
+    plain pair, and such a term equals the plain pair. A term with a placement
+    differs from the pair without one: the provider must sort NULL values of
+    that key first or last, before ``offset`` and ``limit``.
+
+    ``dataclasses.asdict`` and ``astuple`` rebuild a term from its two
+    elements, so they keep the member and direction but not the placement;
+    serialize a term with :func:`null_placement` to keep it.
+    """
+
+    # Lets ``dataclasses.asdict``/``astuple`` rebuild a term from its elements.
+    _fields: tuple[str, str] = ("member", "direction")
+    nulls: NullPlacement | None
+
+    def __new__(
+        cls,
+        member: Metric | Dimension | AdhocExpression,
+        direction: OrderDirection,
+        nulls: NullPlacement | None = None,
+    ) -> OrderTerm:
+        if not isinstance(direction, OrderDirection):
+            raise TypeError("OrderTerm direction must be an OrderDirection")
+        if nulls is not None and not isinstance(nulls, NullPlacement):
+            raise TypeError("OrderTerm nulls must be a NullPlacement or None")
+        term: OrderTerm = super().__new__(cls, (member, direction))
+        object.__setattr__(term, "nulls", nulls)
+        return term
+
+    def __setattr__(self, name: str, value: object) -> None:
+        raise AttributeError("OrderTerm is immutable")
+
+    def __delattr__(self, name: str) -> None:
+        raise AttributeError("OrderTerm is immutable")
+
+    def __getnewargs__(
+        self,
+    ) -> tuple[
+        Metric | Dimension | AdhocExpression, OrderDirection, NullPlacement | None
+    ]:
+        return (self[0], self[1], self.nulls)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, tuple):
+            return NotImplemented
+        return tuple.__eq__(self, other) is True and self.nulls == null_placement(other)
+
+    def __ne__(self, other: object) -> bool:
+        equal: bool = self.__eq__(other)
+        return equal if equal is NotImplemented else not equal
+
+    def __hash__(self) -> int:
+        if self.nulls is None:
+            return tuple.__hash__(self)
+        return hash((tuple(self), self.nulls))
+
+    def __repr__(self) -> str:
+        return f"OrderTerm({self[0]!r}, {self[1]!r}, nulls={self.nulls!r})"
+
+
+def null_placement(term: tuple[object, ...]) -> NullPlacement | None:
+    """Return an order term's NULL placement, or ``None`` for the provider default.
+
+    Accepts a plain ``(member, direction)`` pair, which has no placement.
+    """
+    return getattr(term, "nulls", None)
 
 
 @dataclass(frozen=True)
@@ -374,20 +456,25 @@ class SemanticQuery:
     Truncating first and sorting the truncated page returns a different, and
     wrong, answer. ``order`` entries are ``(member, direction)`` pairs whose
     member must be defined by the view; an adhoc expression is only a valid
-    order key for a view declaring ``ADHOC_EXPRESSIONS_IN_ORDERBY``.
+    order key for a view declaring ``ADHOC_EXPRESSIONS_IN_ORDERBY``. An entry
+    may be an :class:`OrderTerm` carrying a :class:`NullPlacement`; the
+    provider must then sort that key's NULL values first or last before
+    ``offset`` and ``limit``. A plain pair, or a term without a placement,
+    leaves NULL placement to the provider.
 
     **Default chronological order.** When ``order`` is empty (``None`` or
     ``[]``) and ``dimensions`` includes a date, timestamp or time dimension, the
     host sorts ascending by the first such dimension in ``dimensions`` (by list
-    position, not ``SemanticView.preferred_temporal_dimension``), before
-    ``offset`` and ``limit``. Rows that tie on it come back in no particular
-    order, and where its NULL values sort is not specified. The host applies
-    this both to the ``get_table`` query it sends the provider and to results it
-    serves from its cache. It is a default, never a prefix: a non-empty
-    ``order`` is used exactly as given. A ``get_table`` call therefore receives
-    an empty ``order`` only when no temporal dimension is selected, and may then
-    return rows in any order. ``get_row_count`` gets no default, since order
-    cannot change a count.
+    position, not ``SemanticView.preferred_temporal_dimension``), with its NULL
+    values last, before ``offset`` and ``limit``. Rows that tie on it come back
+    in no particular order. The host applies this both to the ``get_table``
+    query it sends the provider, as
+    ``OrderTerm(dimension, OrderDirection.ASC, NullPlacement.LAST)``, and to
+    results it serves from its cache. It is a default, never a prefix: a
+    non-empty ``order`` is used exactly as given. A ``get_table`` call therefore
+    receives an empty ``order`` only when no temporal dimension is selected, and
+    may then return rows in any order. ``get_row_count`` gets no default, since
+    order cannot change a count.
 
     ``group_limit`` is a separate ranking, with its own metric, direction and
     optional filters.

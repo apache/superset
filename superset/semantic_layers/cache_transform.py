@@ -202,14 +202,16 @@ def _rollup(frame: pd.DataFrame, query: SemanticQuery) -> pd.DataFrame:
 def _sort_by_default_order(frame: pd.DataFrame, query: SemanticQuery) -> pd.DataFrame:
     """Restore the default order a rollup's grouping replaced, before the limit.
 
-    NULL values of the default column sort last. The SDK leaves NULL placement
-    unspecified, so on an engine that sorts NULLs first a limited rollup and a
-    provider miss may keep different rows.
+    NULL values of the default column sort last, as the default order the
+    provider receives requires, so a limited rollup and a provider miss keep the
+    same rows.
     """
     dimension: Dimension | None = default_order_dimension(query)
     if dimension is None:
         return frame
-    return frame.sort_values(dimension.name, kind="stable", ignore_index=True)
+    return frame.sort_values(
+        dimension.name, kind="stable", na_position="last", ignore_index=True
+    )
 
 
 def _project(frame: pd.DataFrame, query: SemanticQuery) -> pd.DataFrame:

@@ -32,6 +32,8 @@ from superset_core.semantic_layers.types import (
     FilterExpression,
     GroupLimit,
     Metric,
+    null_placement,
+    NullPlacement,
     OrderTuple,
     OrFilter,
     SemanticQuery,
@@ -41,7 +43,7 @@ from superset.utils import json
 
 # Prefixes every bucket and value key. Bump it whenever the pickled shape of
 # ``cache_types.CachedEntry`` or the canonical query material changes.
-IDENTITY_FORMAT_VERSION: str = "v5"
+IDENTITY_FORMAT_VERSION: str = "v6"
 _SENSITIVE_KEY_PARTS: tuple[str, ...] = (
     "credential",
     "password",
@@ -161,15 +163,7 @@ class SemanticCacheIdentityFactory:
         """Serialize ordering for descriptor compatibility checks."""
         if not order:
             return ""
-        return _canonical_json(
-            [
-                {
-                    "element": _canonical_orderable(element),
-                    "direction": direction.value,
-                }
-                for element, direction in order
-            ]
-        )
+        return _canonical_json(_canonical_order(order))
 
     @staticmethod
     def filters(filters: set[FilterExpression] | None) -> str:
@@ -209,17 +203,27 @@ def _canonical_query(query: SemanticQuery) -> Mapping[str, object]:
             _canonical_dimension(dimension) for dimension in query.dimensions
         ],
         "filters": _canonical_filters(query.filters),
-        "order": [
-            {
-                "element": _canonical_orderable(element),
-                "direction": direction.value,
-            }
-            for element, direction in query.order or []
-        ],
+        "order": _canonical_order(query.order or []),
         "limit": query.limit,
         "offset": query.offset or 0,
         "group_limit": _canonical_group_limit(query.group_limit),
     }
+
+
+def _canonical_order(order: list[OrderTuple]) -> list[Mapping[str, object]]:
+    """Serialize order terms, including NULL placement when a term sets one."""
+    canonical: list[Mapping[str, object]] = []
+    for term in order:
+        element, direction = term
+        nulls: NullPlacement | None = null_placement(term)
+        canonical.append(
+            {
+                "element": _canonical_orderable(element),
+                "direction": direction.value,
+                "nulls": nulls.value if nulls is not None else None,
+            }
+        )
+    return canonical
 
 
 def _canonical_metric(metric: Metric) -> Mapping[str, object]:

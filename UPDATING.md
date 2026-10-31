@@ -87,6 +87,19 @@ assists people when migrating to a new version.
   up. Clients adding more views should split them across requests and retry
   timed-out views.
 
+- **Semantic-layer default order puts NULL dates last.** When a semantic query
+  has no explicit order, Superset sorts by its first date, timestamp or time
+  dimension ascending with NULL values last, and sends that order to the
+  provider as `OrderTerm(dimension, OrderDirection.ASC, NullPlacement.LAST)`.
+  `OrderTerm` still unpacks as a `(member, direction)` pair, so existing
+  providers keep running; to return the same rows as Superset's cache, a
+  provider must apply the placement (read it with `null_placement(term)`) before
+  `offset` and `limit`, and keep it when it rebuilds order terms. Explicit orders
+  are sent unchanged and keep the provider's own NULL placement. The provider
+  conformance kit adds a required `null_placement` query case. The semantic
+  result cache key format changes, so cached semantic results are recomputed
+  once after upgrading.
+
 - `superset-frontend` type-checks with TypeScript 7, whose native compiler no
   longer ships the JavaScript compiler API. The webpack dev server therefore
   no longer runs `fork-ts-checker-webpack-plugin`, and the `DISABLE_TS_CHECKER`

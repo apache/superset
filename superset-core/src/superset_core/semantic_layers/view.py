@@ -172,8 +172,9 @@ class SemanticView(ABC):
         Raise SemanticQueryRejectedError for deliberate input rejection.
         Leave operational and unexpected failures unclassified.
 
-        Sort by ``query.order`` before applying ``query.offset`` and
-        ``query.limit``; truncating before sorting returns the wrong rows. Name
+        Sort by ``query.order``, including any term's NULL placement, before
+        applying ``query.offset`` and ``query.limit``; truncating before sorting
+        returns the wrong rows. Name
         each result column after the member that produced it.
 
         Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
