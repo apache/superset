@@ -13280,6 +13280,9 @@ msgstr "Скинути пароль"
 msgid "Reset state"
 msgstr "Скинути стан"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 msgid "Reset to default folders?"
 msgstr "Скинути типові теки?"
 
@@ -16801,6 +16804,10 @@ msgstr ""
 
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Нижня межа діапазону для смуги рівня"
+
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
 
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
