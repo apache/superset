@@ -351,7 +351,7 @@ def test_spark_identifier_quote_uses_backticks() -> None:
     }
 
 
-def test_the_partition_transform_default_is_hive_syntax() -> None:
+def test_hive_does_not_guess_the_epoch_partition_bucket() -> None:
     """
     `unix_timestamp(:value)` only belongs on engines where it parses. The
     one-argument form takes the bound being mirrored; the zero-argument form
@@ -360,9 +360,9 @@ def test_the_partition_transform_default_is_hive_syntax() -> None:
     from superset.db_engine_specs.hive import HiveEngineSpec
     from superset.db_engine_specs.spark import SparkEngineSpec
 
-    assert HiveEngineSpec.partition_value_transform_default == "unix_timestamp(:value)"
+    assert HiveEngineSpec.partition_value_transform_default is None
     # Spark SQL inherits from Hive and shares the syntax.
-    assert SparkEngineSpec.partition_value_transform_default == "unix_timestamp(:value)"
+    assert SparkEngineSpec.partition_value_transform_default is None
 
 
 def test_the_partition_transform_default_is_not_inherited_by_presto() -> None:

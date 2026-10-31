@@ -133,7 +133,13 @@ export default function PartitionColumnFields({
   // mapped column's row already asks it. Deferring to that answer where there
   // is one is what keeps this banner and that panel from contradicting each
   // other.
+  const refusal = datasource.partition_filter_mapping?.safety_refusal;
+  const refusalApplies =
+    refusal?.mapped_column === mappedColumn &&
+    refusal?.partition_column === datasource.partition_column &&
+    refusal?.value_transform === liveTransform;
   const isActive =
+    !refusalApplies &&
     mappingIsActive(datasource, allColumns) &&
     previewMirrors !== false &&
     !(
@@ -254,9 +260,13 @@ export default function PartitionColumnFields({
                 </Typography.Text>
               )}
               <Typography.Text type="secondary">
-                {t(
-                  'Filters on this column are mirrored onto the partition column.',
-                )}
+                {isActive
+                  ? t(
+                      'Filters on this column are mirrored onto the partition column.',
+                    )
+                  : t(
+                      'Filters on this column are mapped onto the partition column, but are not mirrored.',
+                    )}
                 {differentColumnTarget && (
                   <>
                     {' '}
@@ -306,15 +316,17 @@ export default function PartitionColumnFields({
                   type="warning"
                   showIcon
                   message={
-                    liveTransform
-                      ? t(
-                          'The value transform on %(mapped)s is not mirroring filters, so queries will scan every partition.',
-                          { mapped: mappedColumn },
-                        )
-                      : t(
-                          'No value transform is set on %(mapped)s, so nothing is mirrored yet and queries will scan every partition.',
-                          { mapped: mappedColumn },
-                        )
+                    refusalApplies
+                      ? refusal?.message
+                      : liveTransform
+                        ? t(
+                            'The value transform on %(mapped)s is not mirroring filters, so queries will scan every partition.',
+                            { mapped: mappedColumn },
+                          )
+                        : t(
+                            'No value transform is set on %(mapped)s, so nothing is mirrored yet and queries will scan every partition.',
+                            { mapped: mappedColumn },
+                          )
                   }
                 />
               )}

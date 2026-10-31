@@ -1390,6 +1390,9 @@ msgstr "سيتم إنشاء مخطط جديد."
 msgid "A new dashboard will be created."
 msgstr "سيتم إنشاء لوحة معلومات جديدة."
 
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
+
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
 msgstr ""
@@ -4327,6 +4330,11 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
+msgstr ""
+
 msgid "Child label position"
 msgstr "موضع تسمية الطفل"
 
@@ -5377,6 +5385,12 @@ msgstr "مع عنوان فرعي"
 msgid "Corner Radius"
 msgstr "الشعاع الداخلي"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "الارتباط"
 
@@ -6091,6 +6105,12 @@ msgstr "تم تحديث البيانات"
 
 msgid "Data type"
 msgstr "نوع البيانات"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "يتضمن DataFrame سلسلة واحدة على الأقل"
@@ -7977,6 +7997,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "ما إذا كنت تريد ملء الكائنات"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 #, fuzzy
 msgid "Enter alert name"
 msgstr "اسم التنبيه"
@@ -7996,9 +8019,15 @@ msgstr "أدخل اسم المجموعة"
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "أدخل القيم الدنيا والقصوى لفلتر النطاق"
 
+msgid "Enter one to three existing partition keys."
+msgstr ""
+
 #, fuzzy
 msgid "Enter report name"
 msgstr "اسم التقرير"
+
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
 
 msgid ""
 "Enter the email address of your account and we will send you a link to "
@@ -8321,6 +8350,12 @@ msgstr "مجموعة البيانات الحالية"
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -8524,6 +8559,9 @@ msgstr "تعبير SQL"
 #, fuzzy
 msgid "Expression cannot be empty"
 msgstr "لا يمكن أن تكون فارغة"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9044,6 +9082,16 @@ msgstr ""
 msgid ""
 "Filters on the mapped column are mirrored onto this column so the engine "
 "can prune partitions."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but with this"
+" transform they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -11258,6 +11306,16 @@ msgstr "مطابقة لون إزاحة الوقت مع السلسلة الأصل
 msgid "Match type"
 msgstr "نوع البيانات"
 
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -12072,6 +12130,12 @@ msgstr "لا توجد فلاتر متاحة."
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
 msgstr ""
 
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
@@ -13080,6 +13144,12 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
+msgstr ""
+
+msgid "Partition mismatch found"
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -13889,6 +13959,12 @@ msgstr "الترتيب"
 
 msgid "Ratio"
 msgstr "نسبة"
+
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
 
 msgid "Raw records"
 msgstr "السجلات الخام"
@@ -15014,6 +15090,9 @@ msgstr ""
 
 msgid "Save query"
 msgstr "حفظ الاستعلام"
+
+msgid "Save the dataset before validating against data."
+msgstr ""
 
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
@@ -16866,6 +16945,10 @@ msgstr "فئة المصدر"
 #, fuzzy
 msgid "Source location"
 msgstr "فئة المصدر"
+
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
 
 msgid "Sparkline"
 msgstr "سباركلاين"
@@ -18841,6 +18924,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -18848,6 +18934,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -21333,12 +21422,12 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "يستخدم أول 25 قيمة إذا احتوى البُعد على قيم أكثر."
 
-msgid "Valid"
-msgstr ""
-
 #, fuzzy
 msgid "Valid SQL expression"
 msgstr "تعبير SQL"
+
+msgid "Validate against data"
+msgstr ""
 
 #, fuzzy
 msgid "Validate query"
@@ -21357,6 +21446,9 @@ msgstr "التحقق من الاتصال لـ %s"
 #, fuzzy
 msgid "Validating..."
 msgstr "جارٍ التحميل…"
+
+msgid "Validation inconclusive"
+msgstr ""
 
 msgid "Value"
 msgstr "القيمة "

@@ -1307,6 +1307,9 @@ msgstr "Es wird ein neues Diagramm erstellt."
 msgid "A new dashboard will be created."
 msgstr "Es wird ein neues Dashboard erstellt."
 
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
+
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
 msgstr ""
@@ -4172,6 +4175,11 @@ msgstr "Diagramme und Dashboards, die diesen Datensatz verwenden, werden geprüf
 msgid "Checking for affected charts and dashboards…"
 msgstr "Betroffene Diagramme und Dashboards werden geprüft…"
 
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
+msgstr ""
+
 msgid "Child label position"
 msgstr "Untergeordnete Beschriftungsposition"
 
@@ -5162,6 +5170,12 @@ msgstr "Mit Kopfzeilen kopieren"
 msgid "Corner Radius"
 msgstr "Eckenradius"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "Korrelation"
 
@@ -5849,6 +5863,12 @@ msgstr "Daten aktualisiert"
 
 msgid "Data type"
 msgstr "Datentyp"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "DataFrame mit mindestens eine Zeitreihe enhalten"
@@ -7575,6 +7595,9 @@ msgstr "Neues Passwort eingeben"
 msgid "Enter a part of the object name"
 msgstr "Geben Sie einen Teil des Objektnamens ein"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Name des Alarms eingeben"
 
@@ -7590,8 +7613,14 @@ msgstr "Gruppennamen eingeben"
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Mindest- und Höchstwert für den Bereichsfilter eingeben"
 
+msgid "Enter one to three existing partition keys."
+msgstr ""
+
 msgid "Enter report name"
 msgstr "Name des Berichts"
+
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
 
 msgid ""
 "Enter the email address of your account and we will send you a link to "
@@ -7880,6 +7909,12 @@ msgstr ""
 "Bisheriges Minimum: %s Sekunden. Beim Bearbeiten wird es durch ganze "
 "Minuten ersetzt."
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr "Bearbeitungsmodus beenden"
 
@@ -8085,6 +8120,9 @@ msgstr "Ausdrücke"
 
 msgid "Expression cannot be empty"
 msgstr "Ausdruck darf nicht leer sein"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8578,6 +8616,16 @@ msgid ""
 msgstr ""
 "Filter auf die zugeordnete Spalte werden auf diese Spalte gespiegelt, "
 "damit die Engine Partitionen ausschließen kann."
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but with this"
+" transform they are not mirrored."
+msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
 msgstr "Filter auf diese Spalte werden auf die Partitionsspalte gespiegelt."
@@ -10664,6 +10712,12 @@ msgstr "Farbe der Zeitverschiebung an die Originalserie anpassen"
 msgid "Match type"
 msgstr "Vergleichstyp"
 
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Matrixify"
 msgstr "Matrixify"
 
@@ -11423,6 +11477,12 @@ msgstr "Keine Filter verfügbar."
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
 msgstr "Keine Diagramme oder Dashboards hängen von den ausgewählten %s ab."
+
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
+msgstr ""
 
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
@@ -12452,6 +12512,12 @@ msgstr "Partitionsfeld:"
 msgid "Partition filter mapping"
 msgstr "Partitionsfilter-Zuordnung"
 
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
+msgstr ""
+
+msgid "Partition mismatch found"
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -13202,6 +13268,12 @@ msgstr "Rangliste"
 
 msgid "Ratio"
 msgstr "Verhältnis"
+
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
 
 msgid "Raw records"
 msgstr "Roheinträge"
@@ -14313,6 +14385,9 @@ msgstr ""
 
 msgid "Save query"
 msgstr "Abfrage speichern"
+
+msgid "Save the dataset before validating against data."
+msgstr ""
 
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
@@ -16060,6 +16135,10 @@ msgstr "Quellkategorie"
 
 msgid "Source location"
 msgstr "Quellort"
+
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
 
 msgid "Sparkline"
 msgstr "Sparkline"
@@ -18055,6 +18134,9 @@ msgstr ""
 "die Transformation so, dass sie :value sowohl als Zeitstempel als auch "
 "als Text liest."
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -18069,6 +18151,9 @@ msgstr ""
 " sie, daher kann sie nicht für beide korrekt sein; Filter für diese "
 "Zuordnung werden nicht gespiegelt. Schreiben Sie die Transformation so, "
 "dass sie :value in beiden Formen auf dieselbe Weise liest."
+
+msgid "The transform matched the sampled rows, not the entire dataset."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -20616,6 +20701,9 @@ msgstr "Gültig"
 msgid "Valid SQL expression"
 msgstr "Gültiger SQL-Ausdruck"
 
+msgid "Validate against data"
+msgstr ""
+
 msgid "Validate query"
 msgstr "Abfrage prüfen"
 
@@ -20628,6 +20716,9 @@ msgstr "Prüfe Verbindung für %s"
 
 msgid "Validating..."
 msgstr "Wird geprüft..."
+
+msgid "Validation inconclusive"
+msgstr ""
 
 msgid "Value"
 msgstr "Wert"

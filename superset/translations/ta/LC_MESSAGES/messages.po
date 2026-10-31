@@ -1206,6 +1206,9 @@ msgstr "ஒரு புதிய சார்ட் உருவாக்கப
 msgid "A new dashboard will be created."
 msgstr "ஒரு புதிய டேஷ்போர்டு உருவாக்கப்படும்."
 
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
+
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
 msgstr ""
@@ -3947,6 +3950,11 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
+msgstr ""
+
 msgid "Child label position"
 msgstr "துணைக் குறிச்சொல் (Child label) நிலை"
 
@@ -4919,6 +4927,12 @@ msgstr "தலைப்புகளுடன் நகலெடு"
 msgid "Corner Radius"
 msgstr "மூலை ஆரம் (Corner Radius)"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "ஒட்டுறவு (Correlation)"
 
@@ -5570,6 +5584,12 @@ msgstr "தரவு புதுப்பிக்கப்பட்டது"
 
 msgid "Data type"
 msgstr "தரவு வகை"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "டேட்டாஃபிரேமில் குறைந்தபட்சம் ஒரு வரிசை இருக்க வேண்டும்"
@@ -7232,6 +7252,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "பொருளின் பெயரின் ஒரு பகுதியை உள்ளிடவும்"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "எச்சரிக்கை பெயரை உள்ளிடவும்"
 
@@ -7249,8 +7272,14 @@ msgstr ""
 "வரம்பு வடிகட்டிக்கான (range filter) குறைந்தபட்ச மற்றும் அதிகபட்ச "
 "மதிப்புகளை உள்ளிடவும்"
 
+msgid "Enter one to three existing partition keys."
+msgstr ""
+
 msgid "Enter report name"
 msgstr "அறிக்கை பெயரை உள்ளிடவும்"
+
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
 
 msgid ""
 "Enter the email address of your account and we will send you a link to "
@@ -7530,6 +7559,12 @@ msgstr "ஏற்கனவே உள்ள தரவுத்தொகுப்�
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -7720,6 +7755,9 @@ msgstr "SQL கோவை (expression)"
 
 msgid "Expression cannot be empty"
 msgstr "கோவை (Expression) காலியாக இருக்கக்கூடாது"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8190,6 +8228,16 @@ msgstr ""
 msgid ""
 "Filters on the mapped column are mirrored onto this column so the engine "
 "can prune partitions."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but with this"
+" transform they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -10184,6 +10232,12 @@ msgstr "நேர மாற்ற நிறத்தை அசல் தொட�
 msgid "Match type"
 msgstr "தரவு வகை"
 
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Matrixify"
 msgstr "மேட்ரிசிஃபை (Matrixify)"
 
@@ -10906,6 +10960,12 @@ msgstr "கிடைக்கக்கூடிய வடிகட்டிக�
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
 msgstr ""
 
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
@@ -11826,6 +11886,12 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
+msgstr ""
+
+msgid "Partition mismatch found"
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -12549,6 +12615,12 @@ msgstr "தரவரிசை (Ranking)"
 
 msgid "Ratio"
 msgstr "விகிதம் (Ratio)"
+
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
 
 msgid "Raw records"
 msgstr "மூலப் பதிவுகள் (Raw records)"
@@ -13576,6 +13648,9 @@ msgstr ""
 
 msgid "Save query"
 msgstr "வினவலைச் சேமி"
+
+msgid "Save the dataset before validating against data."
+msgstr ""
 
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
@@ -15219,6 +15294,10 @@ msgstr "மூல வகை"
 #, fuzzy
 msgid "Source location"
 msgstr "மூல வகை"
+
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
 
 msgid "Sparkline"
 msgstr "ஸ்பார்க்லைன்"
@@ -16926,6 +17005,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -16933,6 +17015,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -19135,11 +19220,11 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr ""
 
-msgid "Valid"
-msgstr ""
-
 msgid "Valid SQL expression"
 msgstr "சரியான SQL வெளிப்பாடு"
+
+msgid "Validate against data"
+msgstr ""
 
 msgid "Validate query"
 msgstr "வினவலைச் சரிபார்க்கவும்"
@@ -19153,6 +19238,9 @@ msgstr "%s க்கான இணைப்பைச் சரிபார்க�
 
 msgid "Validating..."
 msgstr "சரிபார்க்கிறது..."
+
+msgid "Validation inconclusive"
+msgstr ""
 
 msgid "Value"
 msgstr "மதிப்பு"
