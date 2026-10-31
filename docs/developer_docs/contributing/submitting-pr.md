@@ -33,6 +33,7 @@ Learn how to create and submit high-quality pull requests to Apache Superset.
 - [ ] Development environment is set up
 - [ ] You've forked and cloned the repository
 - [ ] You've read the [contributing overview](./overview.md)
+- [ ] You've read the the project's [guideline for AI-assisted PRs](./ai-pr-guideline.md)
 - [ ] You've found or created an issue to work on
 
 ### PR Readiness Checklist
