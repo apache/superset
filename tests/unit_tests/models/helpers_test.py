@@ -2495,6 +2495,9 @@ def test_get_sqla_query_raises_for_nonaggregate_custom_sql_metric_with_timeserie
         )
 
 
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"ENABLE_TEMPLATE_PROCESSING": True}}], indirect=True
+)
 def test_get_sqla_query_allows_jinja_templated_custom_sql_metric_with_columns(
     database: Database,
 ) -> None:
@@ -2546,6 +2549,9 @@ def test_get_sqla_query_allows_jinja_templated_custom_sql_metric_with_columns(
     assert "{{" not in sql
 
 
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"ENABLE_TEMPLATE_PROCESSING": True}}], indirect=True
+)
 def test_get_sqla_query_virtual_dataset_filter_values_drill_to_detail(
     database: Database,
 ) -> None:
@@ -4286,6 +4292,37 @@ def test_normalize_df_replaces_infinity_without_downcasting_warning() -> None:
     assert result["metric"].isna().tolist() == [False, True, True, False]
     assert result["count"].dtype == np.float64
     assert result["label"].dtype == "str"
+    pd.testing.assert_series_equal(result["label"], df["label"])
+
+
+@pytest.mark.parametrize("datetime_format", [None, "%Y-%m-%dT%H:%M:%S%z"])
+def test_temporal_join_preserves_local_clocks_across_offsets(
+    datetime_format: str | None,
+) -> None:
+    import pandas as pd
+
+    from superset.models.helpers import _coerce_temporal_join_series
+
+    source = pd.Series(
+        ["2024-01-15T12:00:00-05:00", "2024-07-15T12:00:00-04:00"],
+        index=[10, 20],
+        name="ts",
+    )
+    comparison = pd.Series(
+        ["2024-01-15T12:00:00-05:00", "2024-07-15T12:00:00-05:00"],
+        index=source.index,
+        name="ts",
+    )
+    expected = [
+        pd.Timestamp("2024-01-15T12:00:00"),
+        pd.Timestamp("2024-07-15T12:00:00"),
+    ]
+
+    for values in (source, comparison):
+        converted = _coerce_temporal_join_series(values, "ts", datetime_format)
+        assert converted.tolist() == expected
+        assert converted.index.equals(values.index)
+        assert converted.name == values.name
 
 
 @pytest.mark.parametrize(

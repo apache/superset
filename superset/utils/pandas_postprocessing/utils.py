@@ -255,18 +255,8 @@ def _append_columns(
     if overwritten:
         # make sure to return a new DataFrame instead of changing the `base_df`.
         _base_df = base_df.copy()
-        # One column (list-wrapped, so a pivoted MultiIndex label's sub-columns
-        # resolve correctly) at a time rather than one bulk `.loc` set: pandas 3
-        # still lets `.loc` downcast a lossless float result (e.g. a rolling sum
-        # with no NaN) back to the base column's int64, but raises on a value
-        # that truly needs a wider dtype (e.g. NaN into int64) instead of
-        # silently upcasting the way pandas <3 did -- so that case falls back to
-        # plain column replacement, which allows the dtype to change.
         for key in overwritten:
-            try:
-                _base_df.loc[:, [key]] = append_df[[key]]
-            except TypeError:
-                _base_df[key] = append_df[key]
+            _base_df[key] = append_df[key]
     if not appended:
         return _base_df
     # Select before renaming: `append_df` may carry columns the mapping does not

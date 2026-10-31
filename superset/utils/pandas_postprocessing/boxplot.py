@@ -137,6 +137,11 @@ def boxplot(  # noqa: C901
     # include both legacy object dtype and pandas 3.0's default StringDtype.
     for column in metrics:
         if not is_numeric_dtype(df[column]):
-            df[column] = to_numeric(df[column], errors="coerce")
+            try:
+                df[column] = to_numeric(df[column], errors="raise")
+            except (TypeError, ValueError) as ex:
+                raise InvalidPostProcessingError(
+                    _("Boxplot metrics must contain numeric values")
+                ) from ex
 
     return aggregate(df, groupby=groupby, aggregates=aggregates)

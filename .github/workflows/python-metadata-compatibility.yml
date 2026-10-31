@@ -1,0 +1,127 @@
+name: Python-Metadata-Compatibility
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    paths:
+    - .github/workflows/python-metadata-compatibility.yml
+    - superset/db_engine_specs/**
+    - tests/unit_tests/db_engine_specs/test_lint_metadata.py
+    - pyproject.toml
+    - superset/result_set.py
+    - superset/common/utils/dataframe_utils.py
+    - tests/unit_tests/common/test_dataframe_utils.py
+    - superset/utils/core.py
+    - tests/unit_tests/utils/test_date_parsing.py
+    - superset/utils/pandas_postprocessing/**
+    - tests/unit_tests/pandas_postprocessing/**
+    - tests/unit_tests/result_set_test.py
+    - superset/commands/importers/v1/utils.py
+    - superset/commands/dataset/importers/v1/utils.py
+    - tests/unit_tests/commands/importers/v1/utils_test.py
+    - superset/models/helpers.py
+    - tests/unit_tests/models/helpers_test.py
+    - superset/superset_typing.py
+    - tests/unit_tests/db_engine_specs/test_base.py
+    - superset/extensions/metadb.py
+    - tests/unit_tests/extensions/test_sqlalchemy.py
+    - tests/unit_tests/conftest.py
+    - Dockerfile
+    - docker/**
+    - docker-compose-image-tag.yml
+    - scripts/docker_release_target.py
+    - tests/unit_tests/docker_app_dependencies_test.py
+    - tests/unit_tests/docker_compose_image_tag_test.py
+    - tests/unit_tests/scripts/docker_release_target_test.py
+    - superset-core/**
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  metadata-parser:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.11", "3.12", "3.13", "3.14", "3.15" ]
+    env:
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+    steps:
+    - name: Checkout
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - name: Setup Python
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      with:
+        python-version: ${{ matrix.python-version }}
+        allow-prereleases: true
+    - name: Install standalone test dependencies
+      run: python -m pip install pytest==7.4.4
+    - name: Test metadata parser without application dependencies
+      run: python -m pytest --noconftest -o addopts= tests/unit_tests/db_engine_specs/test_lint_metadata.py -q -W default::DeprecationWarning
+
+  runtime-compatibility:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.11", "3.12", "3.13", "3.14", "3.15" ]
+    env:
+      SUPERSET_SECRET_KEY: python-compatibility-ci-only-not-for-production
+      FLASK_APP: superset
+    steps:
+    - name: Checkout
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - name: Setup Python
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install application and focused test dependencies
+      run: >-
+        python -m pip install -e ./superset-core -e . pytest==7.4.4 pytest-mock freezegun parameterized responses rich prophet
+    - name: Check dependency consistency
+      run: python -m pip check
+    - name: Configure metadata directory
+      run: echo "SUPERSET_HOME=$RUNNER_TEMP/superset-python-compatibility" >> "$GITHUB_ENV"
+    - name: Migrate a fresh metadata database
+      run: python -m flask db upgrade
+    - name: Test application health and runtime compatibility
+      run: |
+        python - <<'PY'
+        import pytest
+        from superset.app import create_app
+
+        app = create_app()
+        assert app.test_client().get('/health').status_code == 200
+        with app.app_context():
+            raise SystemExit(pytest.main([
+                '--confcutdir=tests/unit_tests', '-p', 'pytest_mock',
+                '-o', 'addopts=',
+                'tests/unit_tests/db_engine_specs/test_lint_metadata.py',
+                'tests/unit_tests/pandas_postprocessing',
+                'tests/unit_tests/result_set_test.py',
+                'tests/unit_tests/common/test_dataframe_utils.py',
+                'tests/unit_tests/utils/test_date_parsing.py',
+                'tests/unit_tests/commands/importers/v1/utils_test.py',
+                'tests/unit_tests/models/helpers_test.py',
+                'tests/unit_tests/db_engine_specs/test_base.py::test_resolve_column_type_prefers_cursor_type',
+                'tests/unit_tests/db_engine_specs/test_base.py::test_fetch_data_no_result_set',
+                'tests/unit_tests/db_engine_specs/test_base.py::test_fetch_data_with_result_set',
+                'tests/unit_tests/extensions/test_sqlalchemy.py::test_superset_joins_with_limit_drops_fanout_matches',
+                'tests/unit_tests/docker_app_dependencies_test.py',
+                'tests/unit_tests/docker_compose_image_tag_test.py',
+                'tests/unit_tests/scripts/docker_release_target_test.py',
+                'superset-core/tests', '-q',
+                '-W', 'default::DeprecationWarning',
+            ]))
+        PY

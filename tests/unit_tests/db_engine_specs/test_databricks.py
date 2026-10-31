@@ -145,12 +145,18 @@ def test_parameters_json_schema() -> None:
     """
     test that the parameters schema can be converted to json
     """
+    from apispec import APISpec
+    from apispec.ext.marshmallow import MarshmallowPlugin
+    from marshmallow import Schema
+
     from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
 
+    plugin = MarshmallowPlugin()
+    APISpec(title="test", version="1", openapi_version="3.0.2", plugins=[plugin])
     json_schema = DatabricksNativeEngineSpec.parameters_json_schema()
 
     assert json_schema == {
-        "type": "object",
+        **plugin.converter.schema2jsonschema(Schema()),
         "properties": {
             "access_token": {"type": "string"},
             "database": {"type": "string"},

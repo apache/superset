@@ -34,6 +34,27 @@ from sqlalchemy.orm import Session
 
 
 class TestConvertTemporalColumns:
+    @pytest.mark.parametrize("out_of_bounds", [False, True])
+    def test_mixed_offsets_preserved(self, out_of_bounds: bool) -> None:
+        from sqlalchemy import DateTime
+
+        from superset.commands.dataset.importers.v1.utils import (
+            _convert_temporal_columns,
+        )
+
+        values = ["2024-10-27T02:30:00+02:00", "2024-10-27T02:30:00+01:00"]
+        if out_of_bounds:
+            values.append("3118-01-01T00:00:00+01:00")
+        frame = pd.DataFrame({"ts": values}, index=range(10, 10 + len(values)))
+        _convert_temporal_columns(frame, {"ts": DateTime()})
+
+        assert frame["ts"].iloc[0] == pd.Timestamp(values[0])
+        assert frame["ts"].iloc[1] == pd.Timestamp(values[1])
+        assert frame["ts"].iloc[0].utcoffset() != frame["ts"].iloc[1].utcoffset()
+        assert list(frame.index) == list(range(10, 10 + len(values)))
+        if out_of_bounds:
+            assert frame["ts"].iloc[2] == pd.Timestamp(values[2])
+
     def test_normal_dates_converted(self) -> None:
         """Valid in-range dates are converted to datetime64 normally."""
         from sqlalchemy import DateTime
@@ -679,14 +700,13 @@ def test_open_import_bundle_valid_zip() -> None:
 
 def test_open_import_bundle_corrupt_central_directory() -> None:
     """
-    A ZIP with a corrupt central directory passes ``is_zipfile`` but fails to
-    open; it must raise ``IncorrectFormatError`` instead of ``BadZipFile``.
+    A ZIP with a corrupt central directory must raise ``IncorrectFormatError``
+    instead of ``BadZipFile`` when opened.
     """
     from superset.commands.importers.exceptions import IncorrectFormatError
     from superset.commands.importers.v1.utils import open_import_bundle
 
     corrupt = io.BytesIO(_make_bundle().replace(b"PK\x01\x02", b"XXXX"))
-    assert zipfile.is_zipfile(corrupt)
 
     with pytest.raises(IncorrectFormatError) as excinfo:
         with open_import_bundle(corrupt):

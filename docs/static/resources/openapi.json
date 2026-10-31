@@ -23732,15 +23732,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "description": "Table schema",
-            "in": "path",
-            "name": "schema_name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -23778,7 +23769,7 @@
             "api_key": []
           }
         ],
-        "summary": "Get database select star for table",
+        "summary": "Get database select star for table in the default schema",
         "tags": [
           "Database"
         ]
@@ -27758,15 +27749,6 @@
     "/api/v1/log/recent_activity/": {
       "get": {
         "parameters": [
-          {
-            "description": "The id of the user",
-            "in": "path",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          },
           {
             "content": {
               "application/json": {

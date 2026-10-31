@@ -380,12 +380,16 @@ def table2_fanout_match(session: Session, database2: "Database") -> Iterator[Non
 
 
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)
+@pytest.mark.parametrize(
+    "cursor_mode", ["sqlalchemy", "iterate", "fetchone", "fetchmany", "fetchall"]
+)
 def test_superset_joins_with_limit_drops_fanout_matches(
     mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
     app_context: None,
     table1_large: None,
     table2_fanout_match: None,
+    cursor_mode: str,
 ) -> None:
     """
     Coverage note from review of #42598: the other join regression tests
@@ -415,17 +419,34 @@ def test_superset_joins_with_limit_drops_fanout_matches(
     except Exception as e:
         pytest.skip(f"Superset dialect not available: {e}")
 
-    with engine.connect() as conn:
-        results = conn.execute(
-            text("""
+    statement = """
             SELECT t1.b, t2.b
             FROM "database1.table1_large" AS t1
             JOIN "database2.table2_fanout_match" AS t2
             ON t1.a = t2.a
             ORDER BY t2.b
-            """)
-        )
-        assert list(results) == [(30, "thirty-x"), (30, "thirty-y")]
+            """
+    if cursor_mode != "sqlalchemy":
+        raw_connection = engine.raw_connection()
+        try:
+            cursor = raw_connection.cursor()
+            cursor.execute(statement)
+            if cursor_mode == "iterate":
+                rows = list(cursor)
+            elif cursor_mode == "fetchone":
+                rows = [cursor.fetchone(), cursor.fetchone()]
+                assert cursor.fetchone() is None
+            elif cursor_mode == "fetchmany":
+                rows = cursor.fetchmany(2)
+            else:
+                rows = cursor.fetchall()
+            assert rows == [(30, "thirty-x"), (30, "thirty-y")]
+        finally:
+            raw_connection.close()
+    else:
+        with engine.connect() as conn:
+            results = conn.execute(text(statement))
+            assert list(results) == [(30, "thirty-x"), (30, "thirty-y")]
 
 
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)

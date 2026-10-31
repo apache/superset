@@ -32,7 +32,13 @@ from flask import (
     request,
     Response,
 )
-from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
+from flask_appbuilder.api import (
+    expose,
+    permission_name,
+    protect,
+    rison as parse_rison,
+    safe,
+)
 from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
@@ -179,6 +185,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "table_extra_metadata",
         "table_extra_metadata_deprecated",
         "select_star",
+        "select_star_without_schema",
         "catalogs",
         "schemas",
         "test_connection",
@@ -198,7 +205,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     resource_name = "database"
     class_permission_name = "Database"
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+    method_permission_name = {
+        **MODEL_API_RW_METHOD_PERMISSION_MAP,
+        "select_star_without_schema": "read",
+    }
     allow_browser_login = True
     base_filters = [["id", DatabaseFilter, lambda: []]]
     show_columns = [
@@ -1240,6 +1250,44 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         return self.response(200, **payload)
 
     @expose("/<int:pk>/select_star/<path:table_name>/", methods=("GET",))
+    @protect()
+    @permission_name("read")
+    def select_star_without_schema(self, pk: int, table_name: str) -> FlaskResponse:
+        """Get a select star statement using the database's default schema.
+        ---
+        get:
+          summary: Get database select star for table in the default schema
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          - in: path
+            schema:
+              type: string
+            name: table_name
+            description: Table name
+          responses:
+            200:
+              description: SQL statement for a select star for table
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/SelectStarResponseSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        return self.select_star(pk=pk, table_name=table_name)
+
     @expose("/<int:pk>/select_star/<path:table_name>/<schema_name>/", methods=("GET",))
     @protect()
     @check_table_access
@@ -2255,9 +2303,9 @@ class DatabaseOAuth2TokensRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.delete_oauth2_tokens",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.delete_oauth2_tokens"
+        ),
         log_to_statsd=False,
     )
     @requires_json
@@ -2312,9 +2360,9 @@ class DatabaseOAuth2TokensRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.delete_all_oauth2_tokens",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.delete_all_oauth2_tokens"
+        ),
         log_to_statsd=False,
     )
     def delete_all_oauth2_tokens(self, pk: int) -> FlaskResponse:

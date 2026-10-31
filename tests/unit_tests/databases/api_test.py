@@ -24,7 +24,7 @@ from io import BytesIO
 from typing import Any
 from unittest.mock import ANY, Mock
 from uuid import UUID
-from zipfile import is_zipfile, ZipFile
+from zipfile import ZipFile
 
 import pytest
 import yaml
@@ -282,9 +282,15 @@ def test_database_connection(
     """
     Test that connection info is only returned in ``api/v1/database/${id}/connection``.
     """
+    from apispec import APISpec
+    from apispec.ext.marshmallow import MarshmallowPlugin
+    from marshmallow import fields, Schema
+
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database
 
+    plugin = MarshmallowPlugin()
+    APISpec(title="test", version="1", openapi_version="3.0.2", plugins=[plugin])
     DatabaseRestApi.datamodel._session = session
 
     # create table for databases
@@ -383,8 +389,9 @@ def test_database_connection(
                 }
             },
             "parameters_schema": {
+                **plugin.converter.schema2jsonschema(Schema()),
                 "properties": {
-                    "catalog": {"type": "object"},
+                    "catalog": plugin.converter.field2property(fields.Dict()),
                     "oauth2_client_info": {
                         "default": {
                             "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
@@ -788,7 +795,9 @@ def test_non_zip_import(client: Any, full_api_access: None) -> None:
     }
 
 
-def test_corrupt_zip_import(client: Any, full_api_access: None) -> None:
+def test_corrupt_zip_import(
+    client: Any, full_api_access: None, mocker: MockerFixture
+) -> None:
     """
     Test that a ZIP with a corrupt central directory returns a 422, not a 500.
     """
@@ -796,7 +805,7 @@ def test_corrupt_zip_import(client: Any, full_api_access: None) -> None:
     with ZipFile(buf, "w") as bundle:
         bundle.writestr("bundle/metadata.yaml", "version: 1.0.0\n")
     corrupt = BytesIO(buf.getvalue().replace(b"PK\x01\x02", b"XXXX"))
-    assert is_zipfile(corrupt)
+    mocker.patch("superset.databases.api.is_zipfile", return_value=True)
     form_data = {
         "formData": (corrupt, "corrupt.zip"),
     }

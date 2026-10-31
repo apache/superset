@@ -15,6 +15,75 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 
 This page describes how to install Superset using the `apache_superset` package [published on PyPI](https://pypi.org/project/apache_superset/).
 
+## Python Compatibility
+
+The minimum Python version is 3.11. The Python version classifiers in
+[pyproject.toml](https://github.com/apache/superset/blob/master/pyproject.toml)
+list the officially supported versions; the open-ended `requires-python` lower
+bound does not certify every newer interpreter.
+
+The source checkout includes experimental Python 3.15 compatibility. Its package
+requirements select NumPy `>=2.5.4,<2.6` and pandas `>=3.1.0,<3.2` on Python 3.15
+and newer. Python 3.11 through 3.14 retain NumPy `>=1.23.5,<2.5` and pandas
+`>=3.0.6,<3.1`; the minimum Python version has not changed. These source changes
+do not imply that an already published PyPI release supports Python 3.15.
+
+The focused
+[compatibility workflow](https://github.com/apache/superset/blob/master/.github/workflows/python-metadata-compatibility.yml)
+tests Python 3.11 through 3.15. It installs the application without dependency
+overrides, checks dependency consistency, migrates a fresh SQLite metadata
+database, checks `/health`, and runs engine metadata, pandas post-processing
+(including Prophet), result-set, importer utility, model helper, cursor, join,
+Docker configuration, and core SDK tests. This focused selection does not
+establish support for every optional database or feature.
+
+For Python 3.15 testing, install from the source checkout's package metadata,
+rather than applying the generated Python 3.11 requirement pins:
+
+```bash
+python -m pip install -e ./superset-core -e .
+```
+
+Run this command from the repository root in an isolated Python 3.15 environment.
+Some dependencies require source builds, so a working C/C++ toolchain may be
+needed. On Windows, install compatible C/C++ build tools. The
+generated requirement files remain tied to the existing Python 3.11 deployment
+baseline and are not Python 3.15 lock files.
+
+When building the repository's `lean` or `superset` Docker target with a Python
+3.15 base image, the application dependency stage installs both local packages
+from their metadata instead of applying the Python 3.11 pins. Older interpreters
+retain the requirements-based installation. This does not change the default
+image's Python version or establish Python 3.15 support for every Docker target;
+the development target still uses its generated development requirements.
+
+Container acceptance must include the complete image build, dependency consistency,
+fresh metadata migration, authentication, and the workloads needed by the deployment.
+A complete Python 3.15 image build has not been verified by this focused workflow;
+a dependency-only image build is not a substitute for that acceptance. The image's
+`/health` endpoint is a liveness check, not proof that PostgreSQL, Redis, or queued
+work is available; verify those workflows separately in readiness monitoring.
+
+For deployment-specific shutdown validation, send SIGTERM to the Gunicorn master
+and allow more than its configured graceful timeout before escalating. Validate
+worker exits as well as the master's exit code. Gunicorn gthread workers can
+encounter a keepalive-drain issue requiring deadline escalation after requests.
+An alternative to evaluate for the deployment is
+`SERVER_WORKER_CLASS=sync` with `SERVER_THREADS_AMOUNT=1`; setting only the worker
+class while retaining multiple threads can select gthread again. Synchronous
+workers have different concurrency characteristics, so capacity must be measured
+for that configuration.
+
+The focused workflow is not a full production certification. The full
+database-driver matrix, integration and browser workflows, live report delivery,
+and screenshot generation require deployment-specific validation. Production
+acceptance must also cover the target deployment's authentication, secrets,
+network/TLS configuration, workload, backup/restore, and availability requirements.
+Windows does not provide extended `longdouble` precision and has Unix-signal
+type-checking limitations.
+Use an officially supported Python version for production deployments until
+these broader compatibility checks have been completed.
+
 ## OS Dependencies
 
 Superset stores database connection information in its metadata database. For that purpose, we use

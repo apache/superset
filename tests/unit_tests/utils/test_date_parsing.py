@@ -28,6 +28,29 @@ from superset.utils.dates import datetime_to_epoch
 from superset.utils.pandas import detect_datetime_format
 
 
+@pytest.mark.parametrize("timestamp_format", [None, "%Y-%m-%dT%H:%M:%S%z"])
+@pytest.mark.parametrize("timezone", [None, "Europe/Berlin"])
+def test_normalize_mixed_offsets(
+    timestamp_format: str | None, timezone: str | None
+) -> None:
+    frame = pd.DataFrame(
+        {"date": ["2024-10-27T02:30:00+02:00", "2024-10-27T02:30:00+01:00"]}
+    )
+    normalize_dttm_col(
+        frame,
+        (DateColumn("date", timestamp_format=timestamp_format, timezone=timezone),),
+    )
+    expected = (
+        [pd.Timestamp("2024-10-27T02:30:00")] * 2
+        if timezone
+        else [
+            pd.Timestamp("2024-10-27T00:30:00Z"),
+            pd.Timestamp("2024-10-27T01:30:00Z"),
+        ]
+    )
+    assert frame["date"].tolist() == expected
+
+
 def capture_warnings(func, *args, **kwargs):
     """Execute function and return any format inference warnings."""
     with warnings.catch_warnings(record=True) as w:
@@ -138,7 +161,9 @@ def test_epoch_format_invalid_values(caplog):
 
     # The column should remain unchanged when conversion fails
     assert df["epoch"].dtype == "str"
-    assert df["epoch"].iloc[0] == "not_a_number"
+    pd.testing.assert_series_equal(
+        df["epoch"], pd.Series(["not_a_number", "invalid", "abc"], name="epoch")
+    )
 
 
 @pytest.mark.parametrize(

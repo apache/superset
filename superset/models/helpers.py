@@ -359,6 +359,12 @@ def _apply_temporal_join_format(
     """Apply a dataset column's declared datetime format to working values."""
     if not datetime_format:
         return series
+    if _has_multiple_utc_offsets(series):
+        return series.map(
+            lambda value: pd.to_datetime(
+                value, format=datetime_format, errors="coerce", exact=False
+            )
+        )
     working_df = pd.DataFrame({column_name: series.copy()})
     normalize_dttm_col(
         working_df,
@@ -376,6 +382,8 @@ def _parse_temporal_join_values(series: pd.Series, column_name: str) -> pd.Serie
     """Parse working temporal values and wrap pandas parser-policy errors."""
     if pd.api.types.is_datetime64_any_dtype(series):
         return series
+    if _has_multiple_utc_offsets(series):
+        return series.map(pd.Timestamp)
     try:
         return pd.to_datetime(series, errors="coerce", format="mixed")
     except ValueError as ex:

@@ -457,6 +457,7 @@ def test_csv_reader_object_type_auto_inferring():
     # pandas automatically infers the type if column_data_types is not informed
     # if there's only one string in the column it converts the whole column to string
     assert df["id"].dtype == "str"
+    assert df["id"].tolist() == ["25.5", "15", "123456789086", "abc", "4.75"]
 
 
 def test_csv_reader_float_type_auto_inferring():
