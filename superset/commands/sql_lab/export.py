@@ -135,7 +135,16 @@ class SqlResultExportCommand(BaseCommand):
                 sql = self._query.select_sql
                 limit = None
             else:
-                sql = self._query.executed_sql
+                # Use the full original SQL (self._query.sql) instead of
+                # self._query.executed_sql. The executed_sql field only holds
+                # the last statement executed (e.g. the SELECT), because
+                # sql_lab.py overwrites it on each loop iteration. When a
+                # multi-statement query uses session variables (SET @var = ...),
+                # those SET statements are lost from executed_sql, so re-running
+                # it on a fresh connection leaves the variables undefined (NULL)
+                # and the WHERE clause matches nothing, producing an empty CSV.
+                # Using query.sql preserves all statements including the SETs.
+                sql = self._query.sql
                 script = SQLScript(sql, self._query.database.db_engine_spec.engine)
                 # when a query has multiple statements only the last one returns data
                 limit = script.statements[-1].get_limit_value()
