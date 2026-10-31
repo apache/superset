@@ -99,6 +99,29 @@ class SemanticProviderConformance:
         assert semantic_view.uid()
         assert semantic_view.uid() == semantic_reloaded_view.uid()
         assert _catalog(semantic_view) == _catalog(semantic_reloaded_view)
+        view: SemanticView
+        for view in (semantic_view, semantic_reloaded_view):
+            preferred: str | None = view.preferred_temporal_dimension
+            if preferred is not None:
+                assert isinstance(preferred, str), (
+                    "preferred_temporal_dimension must be a string or None"
+                )
+                assert any(
+                    dimension.name == preferred
+                    and (
+                        pa.types.is_date(dimension.type)
+                        or pa.types.is_timestamp(dimension.type)
+                        or pa.types.is_time(dimension.type)
+                    )
+                    for dimension in view.get_dimensions()
+                ), (
+                    "preferred_temporal_dimension must name "
+                    "an exposed temporal dimension"
+                )
+        assert (
+            semantic_view.preferred_temporal_dimension
+            == semantic_reloaded_view.preferred_temporal_dimension
+        ), "preferred_temporal_dimension must remain stable on equivalent reload"
 
     @pytest.mark.parametrize(
         "case", ["identity", "grain", "null", "not_null", "or", "order_limit"]

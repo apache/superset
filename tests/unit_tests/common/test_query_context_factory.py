@@ -14,16 +14,26 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from copy import deepcopy
 from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+import pyarrow as pa
 import pytest
 from pytest_mock import MockerFixture
+from superset_core.semantic_layers.types import (
+    Dimension,
+    Filter,
+    Operator,
+    PredicateType,
+)
 
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
 from superset.models.slice import Slice
+from superset.semantic_layers.mapper import _get_time_filter, ValidatedQueryObject
+from superset.superset_typing import AdhocColumn
 from superset.utils.core import QueryObjectFilterClause
 
 
@@ -1052,3 +1062,82 @@ def test_time_override_stamps_only_unbounded_saved_predicates(
     assert bool(filter_.get("isExtra")) == (
         already_extra or (dashboard and saved in (None, "No filter", "Aucun filtre"))
     )
+
+
+@pytest.mark.parametrize("preferred", [None, "order_date"])
+@pytest.mark.parametrize("explicit", [False, True])
+@pytest.mark.parametrize("with_filter", [False, True])
+def test_saved_temporal_bindings_use_default_only_for_omitted_granularity(
+    preferred: str | None, explicit: bool, with_filter: bool
+) -> None:
+    """Explicit predicates stay fixed; implicit bounds may adopt a new default."""
+    axis: str | AdhocColumn = (
+        "ship_date"
+        if explicit
+        else AdhocColumn(sqlExpression="amount / 10", label="amount_bucket")
+    )
+    form_data: dict[str, object] = {"x_axis": axis}
+    original_form_data: dict[str, object] = deepcopy(form_data)
+    filters: list[QueryObjectFilterClause] = (
+        [
+            {
+                "col": "delivery_date",
+                "op": "TEMPORAL_RANGE",
+                "val": "2024-01-10 : 2024-01-20",
+            }
+        ]
+        if with_filter
+        else []
+    )
+    original_filters: list[QueryObjectFilterClause] = deepcopy(filters)
+    datasource: Mock = Mock()
+    datasource.main_dttm_col = preferred
+    datasource.columns = [
+        {"column_name": "order_date", "is_dttm": True},
+        {"column_name": "ship_date", "is_dttm": True},
+        {"column_name": "delivery_date", "is_dttm": True},
+    ]
+    start: datetime = datetime(2024, 1, 1)
+    end: datetime = datetime(2024, 2, 1)
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=[axis],
+        metrics=[],
+        granularity="ship_date" if explicit else None,
+        from_dttm=start,
+        to_dttm=end,
+        time_range="2024-01-01 : 2024-02-01",
+        filters=deepcopy(filters),
+    )
+    QueryContextFactory()._apply_granularity(query, form_data, datasource)
+    expected: str | None = "ship_date" if explicit else preferred
+    assert query.granularity == expected
+    assert query.filter == original_filters
+    assert form_data == original_form_data
+    dimensions: dict[str, Dimension] = {
+        name: Dimension(name, name, pa.date32())
+        for name in ("order_date", "ship_date", "delivery_date")
+    }
+    predicate_subject: str | None = expected or (
+        "delivery_date" if with_filter else None
+    )
+    predicates: set[Filter] = _get_time_filter(query, None, dimensions)
+    assert predicates == (
+        {
+            Filter(
+                PredicateType.WHERE,
+                dimensions[predicate_subject],
+                Operator.GREATER_THAN_OR_EQUAL,
+                start,
+            ),
+            Filter(
+                PredicateType.WHERE,
+                dimensions[predicate_subject],
+                Operator.LESS_THAN,
+                end,
+            ),
+        }
+        if predicate_subject is not None
+        else set()
+    )
+    datasource.save.assert_not_called()
