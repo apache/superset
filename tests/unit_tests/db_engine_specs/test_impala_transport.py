@@ -30,6 +30,7 @@ import socket
 import struct
 import threading
 from collections.abc import Iterator
+from contextlib import closing
 from dataclasses import dataclass, field
 from typing import Any
 from unittest.mock import Mock, patch
@@ -59,6 +60,8 @@ class FakeHiveServer2:
 
     state: int = ttypes.TOperationState.RUNNING_STATE
     calls: list[tuple[str, int, Any]] = field(default_factory=list)
+    # Every request received, including methods this stand-in does not serve.
+    requests: list[str] = field(default_factory=list)
     connection: int = 0
 
     def _record(self, method: str, req: Any) -> None:
@@ -151,6 +154,28 @@ class FakeHiveServer2:
         return ttypes.TCloseSessionResp(status=OK)
 
 
+def _recording_protocol(transport: Any, handler: FakeHiveServer2) -> Any:
+    """Server-side protocol that records the name of every request."""
+    protocol = TBinaryProtocol.TBinaryProtocol(transport)
+    read_message_begin = protocol.readMessageBegin
+
+    def recording_read_message_begin() -> Any:
+        header = read_message_begin()
+        handler.requests.append(header[0])
+        return header
+
+    protocol.readMessageBegin = recording_read_message_begin
+    return protocol
+
+
+class _RecordingProtocolFactory:
+    def __init__(self, handler: FakeHiveServer2) -> None:
+        self.handler = handler
+
+    def getProtocol(self, transport: Any) -> Any:  # noqa: N802
+        return _recording_protocol(transport, self.handler)
+
+
 def _read_exactly(conn: socket.socket, size: int) -> bytes:
     data = b""
     while len(data) < size:
@@ -189,7 +214,7 @@ def _serve_socket(
                 transport = TTransportModule.TFramedTransport(sock)
             else:
                 transport = TTransportModule.TBufferedTransport(sock)
-            protocol = TBinaryProtocol.TBinaryProtocol(transport)
+            protocol = _recording_protocol(transport, handler)
             while True:
                 processor.process(protocol, protocol)
         except Exception:  # noqa: S110  # pylint: disable=broad-except
@@ -211,7 +236,7 @@ def hs2_connection(
         server = THttpServer.THttpServer(
             TCLIService.Processor(handler),
             ("127.0.0.1", 0),
-            TBinaryProtocol.TBinaryProtocolFactory(),
+            _RecordingProtocolFactory(handler),
         )
         server.httpd.timeout = 2
         port = server.httpd.server_address[1]
@@ -379,6 +404,45 @@ def test_fetch_data_cancels_on_a_clean_transport_after_interrupted_reply(
 
     assert raised.value is timeout
     _assert_cancelled_cleanly(mode, handler, interrupted, caplog)
+
+
+@pytest.mark.parametrize(
+    "reset_failure",
+    [{"return_value": False}, {"side_effect": OSError("transport close failed")}],
+    ids=["unknown_transport", "reset_raises"],
+)
+@patch("superset.db_engine_specs.impala.time.sleep")
+def test_closing_the_cursor_sends_nothing_after_a_skipped_cancel(
+    sleep_mock: Mock,
+    reset_failure: dict[str, Any],
+    hs2_connection: tuple[str, FakeHiveServer2, Any],
+    app_context: None,
+) -> None:
+    """
+    Without a clean transport, cursor cleanup must not read leftover bytes.
+
+    Callers close the cursor through ``closing()``; impyla's ``close()`` and
+    finalizer would otherwise send CloseOperation and CloseSession on the
+    transport holding the interrupted reply.
+    """
+    _, handler, conn = hs2_connection
+    cursor = conn.cursor()
+    cursor.execute_async("SELECT 1")
+    _interrupt_after_header(cursor, "GetOperationStatus", SoftTimeLimitExceeded())
+    query = Mock(id=1, extra={}, status="running", progress=0)
+
+    with (
+        patch.object(spec, "_reset_transport", **reset_failure),
+        patch("superset.db_engine_specs.impala.db"),
+    ):
+        with pytest.raises(SoftTimeLimitExceeded):
+            with closing(cursor):
+                spec.handle_cursor(cursor, query)
+    cursor.__del__()
+
+    # The first status poll is the interrupted RPC.
+    interrupted = handler.requests.index("GetOperationStatus")
+    assert handler.requests[interrupted + 1 :] == []
 
 
 def test_reset_transport_refuses_an_unknown_transport() -> None:

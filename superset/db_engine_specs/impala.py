@@ -177,6 +177,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         try:
             reset = cls._reset_transport(cursor)
         except TIME_LIMIT_EXCEPTIONS:
+            cls._abandon_cursor(cursor)
             raise
         except Exception:  # pylint: disable=broad-except
             logger.warning("Query %s: resetting the transport failed", query_id)
@@ -186,8 +187,18 @@ class ImpalaEngineSpec(BaseEngineSpec):
                 "Query %s: not cancelling the operation on an unclean transport",
                 query_id,
             )
+            cls._abandon_cursor(cursor)
             return
         cls._cancel_operation(cursor, query_id)
+
+    @staticmethod
+    def _abandon_cursor(cursor: Any) -> None:
+        """Keep impyla from sending RPCs for a cursor whose transport is unclean."""
+        # ``HiveServer2Cursor.close()``, which callers reach through
+        # ``closing()``, and its finalizer send CloseOperation and CloseSession,
+        # reopening a closed transport with its buffers as they are. Both skip
+        # a cursor already marked closed.
+        cursor._closed = True  # pylint: disable=protected-access
 
     @staticmethod
     def _reset_transport(cursor: Any) -> bool:

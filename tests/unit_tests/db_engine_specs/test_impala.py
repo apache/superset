@@ -575,3 +575,43 @@ def test_time_limit_skips_cancel_rpcs_without_a_clean_transport(
     cursor.cancel_operation.assert_not_called()
     cursor.close_operation.assert_not_called()
     cursor.close.assert_not_called()
+    # impyla's close() and finalizer skip a cursor marked closed.
+    assert cursor._closed is True
+
+
+@pytest.mark.parametrize(
+    "second_timeout_type",
+    [SoftTimeLimitExceeded, SupersetTimeoutException],
+)
+def test_time_limit_during_transport_reset_propagates(
+    second_timeout_type: type[Exception],
+    clean_transport: Mock,
+    app_context: None,
+    impala_errors: None,
+) -> None:
+    """A second time limit while resetting propagates and sends no cancel RPC."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    second_timeout: Exception
+    if second_timeout_type is SoftTimeLimitExceeded:
+        second_timeout = SoftTimeLimitExceeded("resetting")
+    else:
+        second_timeout = SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="Timed out resetting the transport",
+            level=ErrorLevel.ERROR,
+        )
+    clean_transport.side_effect = second_timeout
+    cursor = Mock()
+    cursor.is_executing.return_value = False
+    cursor.execution_failed.return_value = False
+
+    with patch.object(
+        BaseEngineSpec, "fetch_data", side_effect=SoftTimeLimitExceeded("fetching")
+    ):
+        with pytest.raises(type(second_timeout)) as raised:
+            spec.fetch_data(cursor)
+
+    assert raised.value is second_timeout
+    cursor.cancel_operation.assert_not_called()
+    assert cursor._closed is True
