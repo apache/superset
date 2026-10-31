@@ -219,7 +219,19 @@ class UpdateSemanticLayerCommand(BaseCommand):
                 self._properties["configuration"]
             )
         if "configuration" in self._properties:
-            self._model.clear_metadata_cache()
+            try:
+                unchanged: bool = json.dumps(
+                    json.loads(self._model.configuration or "{}"), sort_keys=True
+                ) == json.dumps(
+                    json.loads(self._properties["configuration"]), sort_keys=True
+                )
+            except (TypeError, ValueError):
+                unchanged = False
+            if unchanged:
+                # Avoid overwriting a concurrent edit with this reader's old config.
+                self._properties.pop("configuration")
+            else:
+                self._model.clear_metadata_cache()
         return SemanticLayerDAO.update(self._model, attributes=self._properties)
 
     def validate(self) -> None:
