@@ -202,15 +202,39 @@ class HiveEngineSpec(PrestoEngineSpec):
         import pyhive
         from TCLIService import ttypes
 
-        state = cursor.poll()
-        if state.operationState == ttypes.TOperationState.ERROR_STATE:
-            raise Exception(  # pylint: disable=broad-exception-raised
-                "Query error", state.errorMessage
-            )
         try:
-            return super().fetch_data(cursor, limit)
-        except pyhive.exc.ProgrammingError:
-            return []
+            state = cursor.poll()
+            if state.operationState == ttypes.TOperationState.ERROR_STATE:
+                raise Exception(  # pylint: disable=broad-exception-raised
+                    "Query error", state.errorMessage
+                )
+            try:
+                return super().fetch_data(cursor, limit)
+            except pyhive.exc.ProgrammingError:
+                return []
+        except TIME_LIMIT_EXCEPTIONS:
+            cls._abandon_cursor(cursor)
+            raise
+
+    @staticmethod
+    def _abandon_cursor(cursor: Any) -> None:
+        """
+        Send no further RPC on a transport that may hold an unread reply.
+
+        A time limit raised by a signal can land partway through a reply, and
+        pyhive would read the next reply from the unread rest of it. The
+        cursor's ``close()`` sends CloseOperation only for a live handle.
+        PyHive's connection close unconditionally sends CloseSession, so replace
+        it with a local transport close before attempting to drop the socket.
+        This also prevents RPCs if dropping the socket is itself interrupted.
+        """
+        cursor._operationHandle = None  # pylint: disable=protected-access
+        connection = cursor._connection  # pylint: disable=protected-access
+        connection.close = connection._transport.close  # pylint: disable=protected-access
+        try:
+            connection.close()
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Closing the transport after a time limit failed")
 
     @classmethod
     def df_to_sql(
@@ -433,10 +457,19 @@ class HiveEngineSpec(PrestoEngineSpec):
         return None
 
     @classmethod
-    def handle_cursor(  # pylint: disable=too-many-locals  # noqa: C901
+    def handle_cursor(cls, cursor: Any, query: Query) -> None:
+        """Updates progress information"""
+        try:
+            cls._poll_cursor(cursor, query)
+        except TIME_LIMIT_EXCEPTIONS:
+            cls._abandon_cursor(cursor)
+            raise
+
+    @classmethod
+    def _poll_cursor(  # pylint: disable=too-many-locals  # noqa: C901
         cls, cursor: Any, query: Query
     ) -> None:
-        """Updates progress information"""
+        """Poll the operation until it finishes, recording its progress."""
         # pylint: disable=import-outside-toplevel
         from pyhive import hive
 

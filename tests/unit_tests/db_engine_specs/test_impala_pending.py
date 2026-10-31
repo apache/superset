@@ -42,6 +42,19 @@ from superset.sql_lab import (
 from superset.utils.core import QueryStatus
 
 
+class _RejectedReplyError(Exception):
+    """Represent impyla's error for an error status, read in full."""
+
+
+@pytest.fixture
+def rejected_reply(mocker: MockerFixture) -> type[Exception]:
+    """Provide impyla's error-status class without requiring impyla."""
+    mocker.patch.dict(
+        "sys.modules", {"impala.error": Mock(HiveServer2Error=_RejectedReplyError)}
+    )
+    return _RejectedReplyError
+
+
 @pytest.fixture(autouse=True)
 def clean_transport() -> Iterator[Mock]:
     """
@@ -244,12 +257,14 @@ def test_non_progress_logs_keep_polling(log: str) -> None:
     db.session.commit.assert_called_once_with()
 
 
-def test_failed_cancel_still_releases_the_operation() -> None:
-    """A cancel RPC that errors must not leave the operation and cursor open."""
+def test_failed_cancel_still_releases_the_operation(
+    rejected_reply: type[Exception],
+) -> None:
+    """A rejected cancel must not leave the operation and cursor open."""
     query: Mock = Mock(id=1, extra={QUERY_EARLY_CANCEL_KEY: True}, progress=0)
     cursor: Mock = Mock()
     cursor.status.return_value = "PENDING_STATE"
-    cursor.cancel_operation.side_effect = RuntimeError("rpc failed")
+    cursor.cancel_operation.side_effect = rejected_reply("rpc rejected")
     with patch("superset.db_engine_specs.impala.db"):
         ImpalaEngineSpec.handle_cursor(cursor, query)
     cursor.close_operation.assert_called_once_with()
@@ -384,21 +399,41 @@ def test_stop_cleanup_propagates_soft_time_limit(
     with patch("superset.db_engine_specs.impala.db"):
         with pytest.raises(SoftTimeLimitExceeded):
             ImpalaEngineSpec.handle_cursor(cursor, query)
-    if not repeat_timeout:
-        cursor.close.assert_called()
+    # The interrupted cleanup is not retried by the outer time-limit handler.
+    assert getattr(cursor, method).call_count == 1
+    assert cursor._closed is True
 
 
 @pytest.mark.parametrize("method", ["cancel_operation", "close_operation", "close"])
-def test_cancel_operation_tolerates_rpc_failures(method: str) -> None:
-    """Ordinary RPC failures must not prevent the remaining cleanup calls."""
+def test_cancel_operation_tolerates_rejected_rpcs(
+    method: str, rejected_reply: type[Exception]
+) -> None:
+    """A rejected cleanup RPC must not prevent the remaining cleanup calls."""
     cursor: Mock = Mock()
-    getattr(cursor, method).side_effect = RuntimeError("rpc failed")
+    getattr(cursor, method).side_effect = rejected_reply("rpc rejected")
 
     ImpalaEngineSpec._cancel_operation(cursor, 1)
 
     cursor.cancel_operation.assert_called_once_with()
     cursor.close_operation.assert_called_once_with()
     cursor.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize("method", ["cancel_operation", "close_operation", "close"])
+def test_cancel_operation_abandons_the_cursor_after_an_unread_reply(
+    method: str, clean_transport: Mock
+) -> None:
+    """A cleanup RPC that may have left its reply unread ends the cleanup."""
+    methods = ["cancel_operation", "close_operation", "close"]
+    cursor: Mock = Mock()
+    getattr(cursor, method).side_effect = RuntimeError("connection lost")
+
+    ImpalaEngineSpec._cancel_operation(cursor, 1)
+
+    for later in methods[methods.index(method) + 1 :]:
+        getattr(cursor, later).assert_not_called()
+    assert cursor._closed is True
+    clean_transport.assert_called_once_with(cursor, reconnect=False)
 
 
 def test_pending_refresh_observes_stop() -> None:

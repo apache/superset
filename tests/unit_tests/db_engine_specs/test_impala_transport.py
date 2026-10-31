@@ -38,9 +38,11 @@ from unittest.mock import Mock, patch
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 
+from superset.constants import QUERY_EARLY_CANCEL_KEY
 from superset.db_engine_specs.impala import ImpalaEngineSpec as spec  # noqa: N813
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import SupersetTimeoutException
+from superset.sql.execution.executor import _LimitedCursor
 
 hs2 = pytest.importorskip("impala.hiveserver2")
 ttypes = pytest.importorskip("impala._thrift_gen.TCLIService.ttypes")
@@ -48,6 +50,7 @@ TCLIService = pytest.importorskip("impala._thrift_gen.TCLIService.TCLIService")
 TSocketModule = pytest.importorskip("thrift.transport.TSocket")
 TTransportModule = pytest.importorskip("thrift.transport.TTransport")
 TBinaryProtocol = pytest.importorskip("thrift.protocol.TBinaryProtocol")
+TProtocol = pytest.importorskip("thrift.protocol.TProtocol")
 THttpServer = pytest.importorskip("thrift.server.THttpServer")
 
 OK = ttypes.TStatus(statusCode=ttypes.TStatusCode.SUCCESS_STATUS)
@@ -59,6 +62,8 @@ class FakeHiveServer2:
     """The HiveServer2 RPCs impyla issues for one SQL Lab query."""
 
     state: int = ttypes.TOperationState.RUNNING_STATE
+    has_more_rows: bool = False
+    cancel_status: Any = field(default_factory=lambda: OK)
     calls: list[tuple[str, int, Any]] = field(default_factory=list)
     # Every request received, including methods this stand-in does not serve.
     requests: list[str] = field(default_factory=list)
@@ -127,7 +132,7 @@ class FakeHiveServer2:
         values = [b"row value " * 5] * 500
         return ttypes.TFetchResultsResp(
             status=OK,
-            hasMoreRows=False,
+            hasMoreRows=self.has_more_rows,
             results=ttypes.TRowSet(
                 startRowOffset=0,
                 rows=[],
@@ -143,7 +148,7 @@ class FakeHiveServer2:
 
     def CancelOperation(self, req: Any) -> Any:  # noqa: N802
         self._record("CancelOperation", req)
-        return ttypes.TCancelOperationResp(status=OK)
+        return ttypes.TCancelOperationResp(status=self.cancel_status)
 
     def CloseOperation(self, req: Any) -> Any:  # noqa: N802
         self._record("CloseOperation", req)
@@ -276,23 +281,34 @@ def hs2_connection(
     try:
         yield mode, handler, conn
     finally:
+        conn.close()
+        listener.shutdown(socket.SHUT_RDWR)
         listener.close()
+        thread.join(timeout=2)
+
+
+def _interrupt_replies(protocol: Any, interrupts: list[tuple[str, Exception]]) -> None:
+    """
+    Raise each exception once the header of the next matching reply is read.
+
+    The interrupts fire in order, each on the first matching reply after the
+    previous one fired.
+    """
+    read_message_begin = protocol.readMessageBegin
+    pending = list(interrupts)
+
+    def interrupted_read_message_begin() -> Any:
+        header = read_message_begin()
+        if pending and header[0] == pending[0][0]:
+            raise pending.pop(0)[1]
+        return header
+
+    protocol.readMessageBegin = interrupted_read_message_begin
 
 
 def _interrupt_after_header(cursor: Any, reply: str, timeout: Exception) -> None:
     """Raise ``timeout`` once the header of the first ``reply`` has been read."""
-    protocol = cursor.session.service.client._iprot
-    read_message_begin = protocol.readMessageBegin
-    armed = [True]
-
-    def interrupted_read_message_begin() -> Any:
-        header = read_message_begin()
-        if armed[0] and header[0] == reply:
-            armed[0] = False
-            raise timeout
-        return header
-
-    protocol.readMessageBegin = interrupted_read_message_begin
+    _interrupt_replies(cursor.session.service.client._iprot, [(reply, timeout)])
 
 
 TIMEOUTS = [
@@ -443,6 +459,199 @@ def test_closing_the_cursor_sends_nothing_after_a_skipped_cancel(
     # The first status poll is the interrupted RPC.
     interrupted = handler.requests.index("GetOperationStatus")
     assert handler.requests[interrupted + 1 :] == []
+
+
+RESET_FAILURES = [
+    pytest.param({"return_value": False}, id="unknown_transport"),
+    pytest.param({"side_effect": OSError("transport close failed")}, id="reset_raises"),
+]
+
+
+@pytest.mark.parametrize("timeout", TIMEOUTS)
+@pytest.mark.parametrize("reset_failure", RESET_FAILURES)
+@pytest.mark.parametrize("read", ["rows", "truncation_probe"])
+def test_row_limited_fetch_sends_nothing_after_a_skipped_cancel(
+    read: str,
+    timeout: Exception,
+    reset_failure: dict[str, Any],
+    hs2_connection: tuple[str, FakeHiveServer2, Any],
+    app_context: None,
+) -> None:
+    """
+    SQL Lab's row-limit wrapper must mark the driver's cursor abandoned.
+
+    The executor closes the real cursor, not the wrapper, through
+    ``closing()``; a closed flag left on the wrapper would let impyla send
+    CloseOperation and CloseSession on the transport holding the interrupted
+    reply.
+    """
+    _, handler, conn = hs2_connection
+    handler.state = ttypes.TOperationState.FINISHED_STATE
+    handler.has_more_rows = True
+    cursor = conn.cursor()
+    cursor.execute_async("SELECT 1")
+    limited = _LimitedCursor(cursor, 500)
+
+    with patch.object(spec, "_reset_transport", **reset_failure):
+        with closing(cursor):
+            if read == "rows":
+                _interrupt_after_header(cursor, "FetchResults", timeout)
+                with pytest.raises(type(timeout)) as raised:
+                    spec.fetch_data(limited)
+                assert raised.value is timeout
+            else:
+                # The first batch fills the budget, so the probe fetches again.
+                assert len(spec.fetch_data(limited)) == 500
+                _interrupt_after_header(cursor, "FetchResults", timeout)
+                # The probe reports a failed read as a possibly partial result.
+                assert limited.check_truncated(spec) is True
+    cursor.__del__()
+
+    assert cursor._closed is True
+    assert cursor.description is None
+    with pytest.raises(hs2.ProgrammingError, match="Operation state is not available"):
+        cursor.get_log()
+    interrupted = (
+        len(handler.requests) - 1 - handler.requests[::-1].index("FetchResults")
+    )
+    assert handler.requests[interrupted + 1 :] == []
+
+
+SECOND_TIMEOUTS = [
+    pytest.param(SoftTimeLimitExceeded("cleanup"), id="async"),
+    pytest.param(
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="Timed out during cleanup",
+            level=ErrorLevel.ERROR,
+        ),
+        id="sync",
+    ),
+]
+
+
+@pytest.mark.parametrize("timeout", TIMEOUTS)
+@pytest.mark.parametrize("second_timeout", SECOND_TIMEOUTS)
+@pytest.mark.parametrize(
+    "cleanup_reply", ["CancelOperation", "CloseOperation", "CloseSession"]
+)
+@pytest.mark.parametrize(
+    "entry, interrupted",
+    [
+        ("handle_cursor", "GetOperationStatus"),
+        ("handle_cursor", "GetLog"),
+        ("fetch_data", "FetchResults"),
+    ],
+)
+@patch("superset.db_engine_specs.impala.time.sleep")
+def test_time_limit_during_cleanup_abandons_the_cursor(
+    sleep_mock: Mock,
+    entry: str,
+    interrupted: str,
+    timeout: Exception,
+    cleanup_reply: str,
+    second_timeout: Exception,
+    hs2_connection: tuple[str, FakeHiveServer2, Any],
+    app_context: None,
+) -> None:
+    """
+    A second limit inside a cleanup reply leaves that reply unread too.
+
+    Nothing may be sent after it: not by the cancellation helper, the
+    caller's ``closing()``, nor the cursor's finalizer.
+    """
+    _, handler, conn = hs2_connection
+    if entry == "fetch_data":
+        handler.state = ttypes.TOperationState.FINISHED_STATE
+    cursor = conn.cursor()
+    cursor.execute_async("SELECT 1")
+    _interrupt_replies(
+        cursor.session.service.client._iprot,
+        [
+            (interrupted, timeout),
+            (cleanup_reply, second_timeout),
+        ],
+    )
+    query = Mock(id=1, extra={}, status="running", progress=0)
+
+    def run() -> None:
+        if entry == "fetch_data":
+            spec.fetch_data(cursor)
+        else:
+            spec.handle_cursor(cursor, query)
+
+    with patch("superset.db_engine_specs.impala.db"):
+        with pytest.raises(type(timeout)) as raised, closing(cursor):
+            run()
+    cursor.__del__()
+
+    assert raised.value is timeout
+    assert cursor._closed is True
+    assert handler.requests[-1] == cleanup_reply, handler.requests
+
+
+@pytest.mark.parametrize(
+    "cleanup_reply", ["CancelOperation", "CloseOperation", "CloseSession"]
+)
+@patch("superset.db_engine_specs.impala.time.sleep")
+def test_failed_stop_cleanup_rpc_abandons_the_cursor(
+    sleep_mock: Mock,
+    cleanup_reply: str,
+    hs2_connection: tuple[str, FakeHiveServer2, Any],
+    app_context: None,
+) -> None:
+    """
+    A cleanup RPC that fails partway through its reply ends the cleanup.
+
+    Its unread rest must not be read as the next reply. Metadata reads after
+    a Stop and further polls must not send RPCs for the abandoned operation.
+    """
+    _, handler, conn = hs2_connection
+    cursor = conn.cursor()
+    cursor.execute_async("SELECT 1")
+    # A reply that cannot be parsed, as leftover bytes read as a header would
+    # be, fails without impyla retrying the call.
+    _interrupt_after_header(
+        cursor, cleanup_reply, TProtocol.TProtocolException(message="bad reply")
+    )
+    query = Mock(id=1, extra={QUERY_EARLY_CANCEL_KEY: True}, progress=0)
+
+    with patch("superset.db_engine_specs.impala.db"):
+        with closing(cursor):
+            spec.handle_cursor(cursor, query)
+    cursor.__del__()
+
+    assert cursor._closed is True
+    assert handler.requests[-1] == cleanup_reply, handler.requests
+    assert cursor.description is None
+    with pytest.raises(hs2.ProgrammingError, match="Operation state is not available"):
+        cursor.status()
+    assert handler.requests[-1] == cleanup_reply, handler.requests
+
+
+@patch("superset.db_engine_specs.impala.time.sleep")
+def test_rejected_cancel_still_releases_the_operation(
+    sleep_mock: Mock,
+    hs2_connection: tuple[str, FakeHiveServer2, Any],
+    app_context: None,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """An error status is a whole reply, so the handles are still released."""
+    _, handler, conn = hs2_connection
+    handler.cancel_status = ttypes.TStatus(
+        statusCode=ttypes.TStatusCode.ERROR_STATUS, errorMessage="already done"
+    )
+    cursor = conn.cursor()
+    cursor.execute_async("SELECT 1")
+    query = Mock(id=1, extra={QUERY_EARLY_CANCEL_KEY: True}, progress=0)
+
+    with patch("superset.db_engine_specs.impala.db"):
+        spec.handle_cursor(cursor, query)
+
+    methods = [method for method, _, _ in handler.calls]
+    assert methods[-3:] == ["CancelOperation", "CloseOperation", "CloseSession"]
+    assert cursor._closed is True
+    assert "cancel_operation() failed" in caplog.text
 
 
 def test_reset_transport_refuses_an_unknown_transport() -> None:

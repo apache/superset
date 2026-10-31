@@ -205,15 +205,17 @@ class _LimitedCursor:
         """Delegate metadata and driver-specific methods to the real cursor."""
         return getattr(self._cursor, name)
 
-    @property
-    def arraysize(self) -> int:
-        """Expose the driver's default fetch batch size."""
-        return self._cursor.arraysize
+    def __setattr__(self, name: str, value: Any) -> None:
+        """
+        Write driver state, such as a closed flag, to the real cursor.
 
-    @arraysize.setter
-    def arraysize(self, value: int) -> None:
-        """Preserve engine-specific cursor batch-size configuration."""
-        self._cursor.arraysize = value
+        A flag left on the wrapper would be invisible to the driver when the
+        caller closes the real cursor.
+        """
+        if name in {"_cursor", "_remaining"}:
+            object.__setattr__(self, name, value)
+        else:
+            setattr(self._cursor, name, value)
 
     def fetchmany(self, size: int | None = None) -> list[Any]:
         """Read no more than the remaining budget, including across batches."""

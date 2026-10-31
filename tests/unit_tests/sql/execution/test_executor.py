@@ -1965,6 +1965,28 @@ def test_execute_bounds_cursor_fetches(
         ]
 
 
+def test_limited_cursor_writes_driver_state_to_the_real_cursor() -> None:
+    """
+    State an engine spec sets, such as a closed flag, reaches the real cursor.
+
+    The executor closes the real cursor, so a flag left on the wrapper would
+    be invisible to the driver.
+    """
+    from superset.sql.execution.executor import _LimitedCursor
+
+    cursor = create_mock_cursor(["n"], [(n,) for n in range(3)])
+    cursor.fetchmany.return_value = [(0,)]
+    limited = _LimitedCursor(cursor, 3)
+    probe = _LimitedCursor(limited, 1)
+
+    probe._closed = True
+
+    assert cursor._closed is True
+    assert "_closed" not in vars(limited)
+    assert "_closed" not in vars(probe)
+    assert probe.fetchall() == [(0,)]
+
+
 @pytest.mark.parametrize("first_read", ["fetchmany", "fetchone", "iterate"])
 def test_limited_cursor_shares_read_budget(first_read: str) -> None:
     """All cursor read methods share a budget; metadata stays on the driver."""

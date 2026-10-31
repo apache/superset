@@ -840,10 +840,14 @@ partway through its response, so before cancelling, Superset closes the impyla
 Thrift connection, empties the read and write buffers of its transport layers
 (buffered, SASL and HTTP), and opens a new connection; the cancellation RPC then
 reads only its own response. Superset then releases the operation and cursor
-handles. If the transport cannot be reset, a warning is logged and no
-cancellation or cursor cleanup RPC is sent on it; the operation is then left to
-Impala's own query and session timeouts. A failed cancellation RPC is logged without hiding the original
-timeout.
+handles, also when Impala rejects the cancellation. If the transport cannot be
+reset, or a cleanup RPC fails before reading its whole response (for example on
+a dropped connection or a second time limit), a warning is logged and no
+further cancellation or cursor cleanup RPC is sent; when its transport layers
+are recognised, the connection is also closed with its buffers emptied. The
+operation is then left to Impala's own query and session timeouts. These failures do not hide the timeout. For Hive, a time
+limit while polling or fetching closes the PyHive connection without sending
+cleanup RPCs on it.
 
 ## SQL Lab Query History Pruning
 

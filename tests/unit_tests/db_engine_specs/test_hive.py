@@ -431,3 +431,52 @@ def test_handle_cursor_propagates_time_limits(timeout: Exception) -> None:
         with pytest.raises(type(timeout)):
             HiveEngineSpec.handle_cursor(cursor, query)
     cursor.fetch_logs.assert_called_once_with()
+    # The interrupted reply may be partly unread: the cursor's close() sends no
+    # CloseOperation, and the connection's CloseSession fails before writing.
+    assert cursor._operationHandle is None
+    cursor._connection._transport.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    "timeout",
+    [
+        SoftTimeLimitExceeded(),
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="The query exceeded the 30 seconds timeout.",
+            level=ErrorLevel.ERROR,
+        ),
+    ],
+    ids=["async", "sync"],
+)
+@pytest.mark.parametrize("interrupted", ["poll", "fetch"])
+def test_fetch_data_abandons_the_cursor_on_time_limits(
+    interrupted: str, timeout: Exception
+) -> None:
+    """A time limit while fetching sends no cleanup RPC on the transport."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    class ProgrammingError(Exception):
+        pass
+
+    # The pyhive driver needs thrift, which is not always installed.
+    ttypes = Mock()
+    pyhive = Mock(exc=Mock(ProgrammingError=ProgrammingError))
+    cursor: Mock = Mock()
+    if interrupted == "poll":
+        cursor.poll.side_effect = timeout
+    with (
+        patch.dict(
+            "sys.modules",
+            {"pyhive": pyhive, "TCLIService": Mock(ttypes=ttypes)},
+        ),
+        patch.object(BaseEngineSpec, "fetch_data", side_effect=timeout),
+    ):
+        with pytest.raises(type(timeout)) as raised:
+            HiveEngineSpec.fetch_data(cursor)
+
+    assert raised.value is timeout
+    assert cursor._operationHandle is None
+    cursor._connection._transport.close.assert_called_once_with()
+    cursor.close.assert_not_called()
