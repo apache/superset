@@ -53,7 +53,7 @@ class TestConvertTemporalColumns:
         assert frame["ts"].iloc[0].utcoffset() != frame["ts"].iloc[1].utcoffset()
         assert list(frame.index) == list(range(10, 10 + len(values)))
         if out_of_bounds:
-            assert pd.isna(frame["ts"].iloc[2])
+            assert frame["ts"].iloc[2] == pd.Timestamp(values[2])
 
     def test_normal_dates_converted(self) -> None:
         """Valid in-range dates are converted to datetime64 normally."""

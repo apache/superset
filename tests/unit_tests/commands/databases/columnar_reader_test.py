@@ -143,10 +143,10 @@ def test_excel_reader_wrong_columns_to_read():
     assert (
         str(ex.value).replace(": large_string", ": string")
         == (
-            "Parsing error: No match for FieldRef.Name(xpto) in Name: large_string\n"
+            "Parsing error: No match for FieldRef.Name(xpto) in Name: string\n"
             "Age: int64\n"
-            "City: large_string\n"
-            "Birth: large_string\n"
+            "City: string\n"
+            "Birth: string\n"
             "__fragment_index: int32\n"
             "__batch_index: int32\n"
             "__last_in_fragment: bool\n"

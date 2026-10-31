@@ -13,6 +13,8 @@ on:
     - superset/result_set.py
     - superset/common/utils/dataframe_utils.py
     - tests/unit_tests/common/test_dataframe_utils.py
+    - superset/utils/core.py
+    - tests/unit_tests/utils/test_date_parsing.py
     - superset/utils/pandas_postprocessing/**
     - tests/unit_tests/pandas_postprocessing/**
     - tests/unit_tests/result_set_test.py
@@ -109,6 +111,7 @@ jobs:
                 'tests/unit_tests/pandas_postprocessing',
                 'tests/unit_tests/result_set_test.py',
                 'tests/unit_tests/common/test_dataframe_utils.py',
+                'tests/unit_tests/utils/test_date_parsing.py',
                 'tests/unit_tests/commands/importers/v1/utils_test.py',
                 'tests/unit_tests/models/helpers_test.py',
                 'tests/unit_tests/db_engine_specs/test_base.py::test_resolve_column_type_prefers_cursor_type',

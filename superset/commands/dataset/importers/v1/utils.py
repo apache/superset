@@ -988,7 +988,7 @@ def _convert_temporal_columns(df: pd.DataFrame, dtype: dict[str, Any]) -> None:
             try:
                 converted = pd.to_datetime(df[column_name])
                 if pd.api.types.is_datetime64_any_dtype(converted):
-                    df[column_name] = converted.dt.as_unit("ns")
+                    df[column_name] = converted
                     continue
             except ValueError:
                 pass
@@ -999,7 +999,7 @@ def _convert_temporal_columns(df: pd.DataFrame, dtype: dict[str, Any]) -> None:
                     result.append(pd.NaT)
                     continue
                 try:
-                    result.append(pd.to_datetime(val).as_unit("ns"))
+                    result.append(pd.to_datetime(val))
                 except OutOfBoundsDatetime:
                     result.append(pd.NaT)
             converted = pd.Series(result, index=original.index)
