@@ -35,8 +35,10 @@ Extensions can register custom semantic layer implementations that allow Superse
 from typing import Any
 
 from superset_core.semantic_layers.context import SemanticCredentials, SemanticExecutionContext
+from superset_core.semantic_layers.config import SemanticCredentialReadiness
 from superset_core.semantic_layers.decorators import semantic_layer
 from superset_core.semantic_layers.layer import SemanticLayer
+from superset_core.semantic_layers.transport import ProviderTransport
 
 from my_extension.config import MyConfig
 from my_extension.view import MySemanticView
@@ -52,26 +54,34 @@ class MySemanticLayer(SemanticLayer[MyConfig, MySemanticView]):
 
     def __init__(
         self, configuration: MyConfig, *, cache_token: str,
-        context: SemanticExecutionContext,
+        context: SemanticExecutionContext, transport: ProviderTransport,
     ) -> None:
         self.configuration: MyConfig = configuration
         self.cache_token: str = cache_token
         self.context: SemanticExecutionContext = context
+        self.transport: ProviderTransport = transport
 
     @classmethod
     def from_configuration(
         cls, configuration: dict[str, Any], *, cache_token: str,
-        context: SemanticExecutionContext, credentials: SemanticCredentials | None = None,
+        context: SemanticExecutionContext, transport: ProviderTransport,
+        credentials: SemanticCredentials | None = None,
     ) -> "MySemanticLayer":
         config: MyConfig = MyConfig.model_validate(configuration)
-        return cls(config, cache_token=cache_token, context=context)
+        return cls(config, cache_token=cache_token, context=context, transport=transport)
 
     @classmethod
-    def get_configuration_schema(cls, configuration=None) -> dict:
+    def get_configuration_schema(
+        cls, configuration: MyConfig | None = None, *, transport: ProviderTransport,
+        readiness: SemanticCredentialReadiness,
+    ) -> dict[str, Any]:
         return MyConfig.model_json_schema()
 
     @classmethod
-    def get_runtime_schema(cls, configuration=None, runtime_data=None) -> dict:
+    def get_runtime_schema(
+        cls, configuration: MyConfig, runtime_data: dict[str, Any] | None = None,
+        *, transport: ProviderTransport, readiness: SemanticCredentialReadiness,
+    ) -> dict[str, Any]:
         return {"type": "object", "properties": {}}
 
     def get_semantic_views(self, runtime_configuration: dict) -> set[MySemanticView]:
@@ -96,9 +106,12 @@ Store the parsed configuration instance on the writable `self.configuration`
 attribute, using the provider's configuration type. Assigning a raw dictionary is
 a type error by design; a read-only `@property` is not supported.
 The host reads this attribute to request the runtime schema.
-`get_configuration_schema()` and `get_configuration_schema(None)` must
-return a static schema without I/O or a constructed provider: the host calls
-this form before credentials exist and when identifying secret fields.
+Both schema hooks require `transport` and `readiness` keyword arguments.
+`get_configuration_schema` with absent configuration or readiness other than
+`SemanticCredentialReadiness.RESOLVED` must return a static schema without I/O
+or a constructed provider. The host uses this form before credentials exist and
+when identifying secret fields. See [readiness and failures](../semantic-provider-boundary.md)
+for the schema contract and safe error signals.
 
 `get_values(dimension, filters)` returns its Arrow value column under
 `dimension.name` for nonempty results. The private `id` and display `verbose_name`
@@ -131,10 +144,20 @@ Import decorated provider modules **inside** a test or fixture that requests
 
 ```python
 def test_configuration(semantic_layer_registration: None) -> None:
+    from unittest.mock import create_autospec, MagicMock
+
+    from superset_core.semantic_layers.transport import ProviderTransport
+    from superset_core.semantic_layers.config import SemanticCredentialReadiness
+
     from my_extension.layer import MySemanticLayer
 
-    schema: dict[str, object] = MySemanticLayer.get_configuration_schema()
+    transport: MagicMock = create_autospec(ProviderTransport, instance=True)
+    schema: dict[str, object] = MySemanticLayer.get_configuration_schema(
+        transport=transport,
+        readiness=SemanticCredentialReadiness.UNRESOLVED,
+    )
     assert schema["type"] == "object"
+    transport.request.assert_not_called()
 ```
 
 The fixture substitutes only the SDK registration decorator and restores it after
@@ -149,6 +172,14 @@ explicitly refused, not claimed as a full provider implementation.
 
 See [Testing semantic providers](../../semantic-layer-provider-testing.md) for the
 reusable SDK conformance suite and its provider-owned fixtures.
+
+## HTTP transport
+
+Provider construction and both schema-discovery entry points also receive a required
+keyword-only `transport: ProviderTransport`. It is a separate host capability, not
+a field of the execution context or a component of binding identity. See the
+[provider transport guide](../semantic-provider-transport.md) for budgets, destination
+policy, errors, and a test fake.
 
 ## Execution context
 

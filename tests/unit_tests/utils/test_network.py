@@ -270,3 +270,194 @@ def test_public_embedded_address_does_not_allow_6to4() -> None:
     assert address.sixtofour == ipaddress.IPv4Address("8.8.8.8")
     assert is_safe_ip(ipaddress.IPv4Address("8.8.8.8"))
     assert not is_safe_ip(address)
+
+
+def test_public_resolution_deduplicates_and_rejects_any_unsafe_answer() -> None:
+    from superset.utils.network import NonPublicAddressError, resolve_public_addresses
+
+    answers: list[tuple[int, int, int, str, tuple[str, int]]] = [
+        (2, 1, 6, "", ("8.8.8.8", 443))
+    ] * 2
+    with patch("superset.utils.network.socket.getaddrinfo", return_value=answers):
+        assert resolve_public_addresses("fixture.test", 443, timeout=1) == ["8.8.8.8"]
+    answers.append((2, 1, 6, "", ("127.0.0.1", 443)))
+    with (
+        patch("superset.utils.network.socket.getaddrinfo", return_value=answers),
+        pytest.raises(NonPublicAddressError),
+    ):
+        resolve_public_addresses("fixture.test", 443, timeout=1)
+
+
+def test_pinned_connection_does_not_repeat_dns_lookup() -> None:
+    from contextvars import Token
+
+    from superset.utils.network import (
+        _PinnedHTTPSConnection,
+        ConnectionDeadline,
+        PROVIDER_DEADLINE,
+    )
+
+    bound: MagicMock = MagicMock()
+    bound.remaining.return_value = 1
+    connection: _PinnedHTTPSConnection = _PinnedHTTPSConnection("fixture.test", 443)
+    assert connection._dns_host == "fixture.test"
+    assert callable(connection._new_conn)
+    with (
+        patch(
+            "superset.utils.network.socket.getaddrinfo",
+            side_effect=[
+                [(2, 1, 6, "", ("8.8.8.8", 443))],
+                [(2, 1, 6, "", ("127.0.0.1", 443))],
+            ],
+        ) as resolve,
+        patch("superset.utils.network._connect_address") as connect,
+    ):
+        token: Token[ConnectionDeadline | None] = PROVIDER_DEADLINE.set(bound)
+        try:
+            assert connection._new_conn() is connect.return_value
+        finally:
+            PROVIDER_DEADLINE.reset(token)
+    resolve.assert_called_once()
+    connect.assert_called_once_with(("8.8.8.8", 443), 1, connection.socket_options)
+    bound.watch.assert_called_once_with(connect.return_value)
+    assert (
+        connection.host == "fixture.test"
+    )  # Original hostname remains available to TLS.
+
+
+def test_failed_socket_registration_closes_connected_socket() -> None:
+    from contextvars import Token
+
+    from urllib3.exceptions import NewConnectionError
+
+    from superset.utils.network import (
+        _PinnedHTTPSConnection,
+        ConnectionDeadline,
+        PROVIDER_DEADLINE,
+    )
+
+    bound: MagicMock = MagicMock()
+    bound.remaining.return_value = 1
+    bound.watch.side_effect = OSError("descriptor limit")
+    connection: _PinnedHTTPSConnection = _PinnedHTTPSConnection("fixture.test", 443)
+    with (
+        patch("superset.utils.network._resolve_addresses", return_value=["8.8.8.8"]),
+        patch("superset.utils.network._connect_address") as connect,
+    ):
+        token: Token[ConnectionDeadline | None] = PROVIDER_DEADLINE.set(bound)
+        try:
+            with pytest.raises(NewConnectionError):
+                connection._new_conn()
+        finally:
+            PROVIDER_DEADLINE.reset(token)
+        connect.return_value.close.assert_called_once()
+
+
+def test_empty_resolution_fails_without_connecting() -> None:
+    from superset.utils.network import resolve_public_addresses
+
+    with (
+        patch("superset.utils.network.socket.getaddrinfo", return_value=[]),
+        patch("superset.utils.network._connect_address") as connect,
+    ):
+        with pytest.raises(OSError, match="No destination address"):
+            resolve_public_addresses("fixture.test", 443, timeout=1)
+        connect.assert_not_called()
+
+
+@pytest.mark.parametrize("option_fails", [False, True])
+def test_pinned_connect_applies_socket_options_before_connect(
+    option_fails: bool,
+) -> None:
+    import socket
+
+    from superset.utils.network import _connect_address
+
+    with patch("superset.utils.network.socket.socket") as factory:
+        sock: MagicMock = factory.return_value
+        if option_fails:
+            sock.setsockopt.side_effect = OSError("option rejected")
+            with pytest.raises(OSError, match="option rejected"):
+                _connect_address(
+                    ("127.0.0.1", 443), 1, [(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)]
+                )
+            sock.connect.assert_not_called()
+            sock.close.assert_called_once()
+        else:
+            assert (
+                _connect_address(
+                    ("127.0.0.1", 443), 1, [(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)]
+                )
+                is sock
+            )
+            assert [call[0] for call in sock.mock_calls] == [
+                "settimeout",
+                "setsockopt",
+                "connect",
+            ]
+            sock.setsockopt.assert_called_once_with(
+                socket.IPPROTO_TCP, socket.TCP_NODELAY, 1
+            )
+
+
+def test_resolver_bounds_timed_out_queued_submissions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Timeouts retain their slots until workers drain the submitted lookups."""
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import BoundedSemaphore, Event
+
+    from superset.utils import network
+
+    release: Event = Event()
+    slots: BoundedSemaphore = BoundedSemaphore(2)
+    monkeypatch.setattr(network, "_RESOLVER_SLOTS", slots, raising=False)
+
+    def resolve(*args: object) -> list[tuple[None, None, None, None, tuple[str, int]]]:
+        assert release.wait(5)
+        return [(None, None, None, None, ("8.8.8.8", 443))]
+
+    monkeypatch.setattr(network.socket, "getaddrinfo", resolve)
+    executor: ThreadPoolExecutor
+    with ThreadPoolExecutor(1) as executor:
+        monkeypatch.setattr(network, "_RESOLVER", executor)
+        submit: MagicMock
+        with patch.object(executor, "submit", wraps=executor.submit) as submit:
+            try:
+                _attempt: int
+                for _attempt in range(10):
+                    with pytest.raises(TimeoutError):
+                        network.resolve_public_addresses(
+                            "fixture.test", 443, timeout=0.01
+                        )
+                assert submit.call_count == 2
+            finally:
+                release.set()
+        executor.shutdown(wait=True)
+    # Completion, not the caller timeout, returned both slots.
+    assert slots.acquire(blocking=False)
+    assert slots.acquire(blocking=False)
+    assert not slots.acquire(blocking=False)
+    slots.release()
+    slots.release()
+
+
+def test_resolver_submission_failure_returns_capacity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An executor refusing submission must not strand an admission slot."""
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import BoundedSemaphore
+
+    from superset.utils import network
+
+    slots: BoundedSemaphore = BoundedSemaphore(1)
+    executor: ThreadPoolExecutor
+    with ThreadPoolExecutor(1) as executor:
+        executor.shutdown(wait=True)
+    monkeypatch.setattr(network, "_RESOLVER", executor)
+    monkeypatch.setattr(network, "_RESOLVER_SLOTS", slots)
+    with pytest.raises(RuntimeError, match="cannot schedule"):
+        network.resolve_public_addresses("fixture.test", 443, timeout=1)
+    assert slots.acquire(blocking=False)
+    slots.release()

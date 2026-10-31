@@ -26,6 +26,7 @@ from superset_core.semantic_layers.types import (
     SemanticQuery,
 )
 
+from superset.semantic_layers.transport import build_provider_transport
 from tests.unit_tests.semantic_layers.conftest import (
     LegacyConfiguration,
     LegacyLayer,
@@ -39,6 +40,7 @@ def test_legacy_provider_needs_no_metadata_overrides() -> None:
         {},
         cache_token="test",  # noqa: S106
         context=make_execution_context(),
+        transport=build_provider_transport(),
     )
     view: LegacyView = layer.get_semantic_view("legacy", {})
     assert view.metadata_cache_token is None
@@ -108,6 +110,7 @@ def test_factory_accepts_required_host_identity() -> None:
             {},
             cache_token="host-generation",  # noqa: S106
             context=make_execution_context(),
+            transport=build_provider_transport(),
         )
     )
     assert isinstance(layer, LegacyLayer)

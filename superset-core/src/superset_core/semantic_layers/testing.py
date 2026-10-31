@@ -25,18 +25,21 @@ provider SDK itself does not require pytest.
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
 from typing import NoReturn, TypeVar
+from unittest.mock import create_autospec, MagicMock
 
 import pyarrow as pa
 import pytest
 from pydantic import BaseModel
 
 from superset_core.semantic_layers import decorators
+from superset_core.semantic_layers.config import SemanticCredentialReadiness
 from superset_core.semantic_layers.errors import (
     SemanticQueryErrorCode,
     SemanticQueryRejectedError,
     SemanticResultCompletenessError,
 )
 from superset_core.semantic_layers.layer import SemanticLayer
+from superset_core.semantic_layers.transport import ProviderTransport
 from superset_core.semantic_layers.types import (
     AdhocExpression,
     Dimension,
@@ -374,6 +377,8 @@ def _check_isolation(module_name: str, class_name: str) -> None:
         attempted.append("schema I/O")
         raise AssertionError("Configuration schema attempted I/O")
 
+    transport: MagicMock = create_autospec(ProviderTransport, instance=True)
+    transport.request.side_effect = no_io
     patch: pytest.MonkeyPatch
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(sys, "meta_path", [NoHost(), *sys.meta_path])
@@ -390,6 +395,19 @@ def _check_isolation(module_name: str, class_name: str) -> None:
         patch.setattr(socket, "getaddrinfo", no_io)
         patch.setattr(socket.socket, "connect", no_io)
         patch.setattr(socket.socket, "connect_ex", no_io)
-        assert isinstance(provider.get_configuration_schema(), dict)
-        assert isinstance(provider.get_configuration_schema(None), dict)
+        assert isinstance(
+            provider.get_configuration_schema(
+                transport=transport,
+                readiness=SemanticCredentialReadiness.UNRESOLVED,
+            ),
+            dict,
+        )
+        assert isinstance(
+            provider.get_configuration_schema(
+                None,
+                transport=transport,
+                readiness=SemanticCredentialReadiness.UNRESOLVED,
+            ),
+            dict,
+        )
     assert not attempted, attempted

@@ -52,6 +52,7 @@ from superset.key_value.types import (
 )
 from superset.semantic_layers.exceptions import provider_code
 from superset.semantic_layers.registry import registry
+from superset.semantic_layers.transport import build_provider_transport
 from superset.utils import json
 
 if TYPE_CHECKING:
@@ -337,6 +338,7 @@ class SemanticBindingMemo:
                     cache_token=cache_token,
                     context=context,
                     credentials=None,
+                    transport=build_provider_transport(),
                 )
             self.bindings[key] = (bound, {})
         return self.bindings[key]

@@ -115,8 +115,9 @@ and offset, including the ordered grain case.
 The import/schema check starts a fresh Python interpreter with the test import
 path. It rejects imports of `superset`, `flask` and `flask_appbuilder`, including
 transitive imports through SDK modules that depend on those frameworks, and calls
-both no-configuration schema forms with common file-opening, DNS and socket
-connection operations blocked. Caught attempts fail too. This is a regression
+both no-configuration schema forms with `readiness=UNRESOLVED` and an inert
+`ProviderTransport`. Transport requests and common file-opening, DNS and socket
+connection operations are blocked. Caught attempts fail too. This is a regression
 tripwire, not a sandbox or proof against every possible I/O mechanism (for example,
 a native driver). Provider lanes must also replace their own transport/credential
 entry points with failures to prove schema generation cannot call them.

@@ -87,6 +87,7 @@ from superset.semantic_layers.exceptions import (
     discover_metrics,
     DiscoveryTarget,
     execute_semantic_query,
+    normalize_provider_request_errors,
 )
 from superset.semantic_layers.members import members_by_key
 from superset.semantic_layers.ordering import with_default_order
@@ -252,6 +253,7 @@ class _ViewMetadata:
         )
 
 
+@normalize_provider_request_errors()
 def get_results(query_object: QueryObject) -> QueryResult:
     """
     Run 1+ queries based on `QueryObject` and return the results.

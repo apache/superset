@@ -251,6 +251,8 @@ class TestExampleConformance(SemanticProviderConformance):
         "import flask",
         "open('/conformance-schema-must-not-read')",
         "__import__('socket').create_connection(('localhost', 1))",
+        "transport.request('Test', 'GET', 'https://example.test', "
+        "budget=RequestBudget(deadline=1.0, max_bytes=1))",
     ],
 )
 def test_isolation_rejects_caught_attempts(
@@ -259,9 +261,15 @@ def test_isolation_rejects_caught_attempts(
     """A provider swallowing the tripwire exception must still fail its lane."""
     module: Path = tmp_path / "bad_schema_provider.py"
     module.write_text(
+        "from superset_core.semantic_layers.config import SemanticCredentialReadiness\n"
+        "from superset_core.semantic_layers.transport import "
+        "ProviderTransport, RequestBudget\n"
         "class Layer:\n"
         "    @classmethod\n"
-        "    def get_configuration_schema(cls, configuration=None):\n"
+        "    def get_configuration_schema(cls, configuration: object = None, *, "
+        "transport: ProviderTransport, readiness: SemanticCredentialReadiness) "
+        "-> dict[str, object]:\n"
+        "        assert readiness is SemanticCredentialReadiness.UNRESOLVED\n"
         "        try:\n"
         f"            {violation}\n"
         "        except (ImportError, AssertionError):\n"

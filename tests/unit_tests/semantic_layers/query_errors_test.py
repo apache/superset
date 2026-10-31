@@ -20,6 +20,7 @@ import traceback
 import uuid
 from collections.abc import Callable
 from datetime import date, datetime
+from functools import partial
 from typing import Any, cast
 from unittest.mock import MagicMock, PropertyMock
 
@@ -28,7 +29,14 @@ import pytest
 from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
 from superset_core.semantic_layers.context import ExecutionMethod
-from superset_core.semantic_layers.errors import SemanticQueryRejectedError
+from superset_core.semantic_layers.errors import (
+    SemanticBackendError,
+    SemanticQueryRejectedError,
+)
+from superset_core.semantic_layers.transport import (
+    ProviderRequestError,
+    ProviderRequestFailure,
+)
 from superset_core.semantic_layers.types import Dimension, Metric, SemanticResult
 from superset_core.semantic_layers.view import SemanticView as ProviderView
 from werkzeug.test import TestResponse
@@ -769,9 +777,12 @@ def test_provider_execution_error_http(
             and record.levelno == logging.ERROR
         ]
         assert len(records) == 1
-        assert records[0].getMessage() == "Semantic provider query execution failed"
-        assert records[0].exc_info is not None
-        assert records[0].exc_info[1] is date_view.get_table.side_effect
+        assert records[0].getMessage() == (
+            "Semantic provider query execution failed "
+            "view_id=None layer_uuid=None (builtins.ValueError)"
+        )
+        assert records[0].exc_info is None
+        assert "private-provider" not in caplog.text
     date_view.get_table.assert_called_once()
 
 
@@ -861,7 +872,10 @@ def test_required_secondary_query_rejection(
 
 
 @pytest.mark.parametrize("kind", ["oauth", "cancel", "worker_timeout", "security"])
-def test_provider_control_signal_is_preserved(app_context: None, kind: str) -> None:
+@pytest.mark.parametrize("preparation", [False, True])
+def test_provider_control_signal_is_preserved(
+    app_context: None, kind: str, preparation: bool
+) -> None:
     """Do not turn authentication, cancellation or worker control into faults."""
     from billiard.exceptions import SoftTimeLimitExceeded
     from superset_core.semantic_layers.types import SemanticQuery
@@ -872,7 +886,10 @@ def test_provider_control_signal_is_preserved(app_context: None, kind: str) -> N
         SupersetCancelQueryException,
         SupersetSecurityException,
     )
-    from superset.semantic_layers.exceptions import execute_semantic_query
+    from superset.semantic_layers.exceptions import (
+        execute_semantic_query,
+        normalize_provider_request_errors,
+    )
 
     control: Exception = {
         "security": SupersetSecurityException(
@@ -887,9 +904,16 @@ def test_provider_control_signal_is_preserved(app_context: None, kind: str) -> N
         "worker_timeout": SoftTimeLimitExceeded(),
     }[kind]
     dispatcher: MagicMock = MagicMock(side_effect=control)
+    operation: Callable[[], object] = (
+        normalize_provider_request_errors()(dispatcher)
+        if preparation
+        else partial(
+            execute_semantic_query, dispatcher, SemanticQuery(dimensions=[], metrics=[])
+        )
+    )
     captured: pytest.ExceptionInfo[Exception]
     with pytest.raises(type(control)) as captured:
-        execute_semantic_query(dispatcher, SemanticQuery(dimensions=[], metrics=[]))
+        operation()
     assert captured.value is control
     dispatcher.assert_called_once()
 
@@ -1297,3 +1321,151 @@ def test_async_provider_error_matches_sync_chart_error(
     assert "private" not in str(captured.value.to_dict())
     task_context.update_task.assert_not_called()
     date_view.get_table.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "kind,status", [("backend", 500), ("transport", 400), ("refusal", 400)]
+)
+def test_sdk_failure_chart_status_and_no_success_cache(
+    client: FlaskClient,
+    full_api_access: None,
+    date_view: MagicMock,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    kind: str,
+    status: int,
+) -> None:
+    """Real chart execution preserves SDK failure categories without cache writes."""
+    error: Exception = {
+        "backend": SemanticBackendError(),
+        "transport": ProviderRequestError(
+            ProviderRequestFailure.HTTP_STATUS, status=401, provider="MetricFlow"
+        ),
+        "refusal": SemanticQueryRejectedError("INVALID_QUERY"),
+    }[kind]
+    error.__cause__ = ValueError("private-provider-cause")
+    date_view.get_table.side_effect = error
+    cache_write: MagicMock = mocker.patch(
+        "superset.common.query_context_processor.QueryCacheManager.set_query_result"
+    )
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [{"columns": ["ORDER_DATE"], "metrics": ["ORDER_COUNT"]}],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        },
+    )
+    assert response.status_code == status
+    assert "private-provider" not in response.get_data(as_text=True)
+    assert "private-provider" not in caplog.text
+    if kind == "transport":
+        assert str(error) in response.get_data(as_text=True)
+    cache_write.assert_not_called()
+    date_view.get_table.assert_called_once()
+
+
+@pytest.mark.parametrize("transport", [False, True])
+def test_sdk_failure_values_lookup_keeps_category_and_never_retries(
+    date_view: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+    transport: bool,
+) -> None:
+    """Filter suggestions preserve the same safe SDK failure boundary as charts."""
+    from superset.exceptions import QueryObjectValidationError
+    from superset.semantic_layers.exceptions import SemanticLayerExecutionError
+
+    error: Exception = (
+        ProviderRequestError(
+            ProviderRequestFailure.HTTP_STATUS, status=403, provider="MetricFlow"
+        )
+        if transport
+        else SemanticBackendError()
+    )
+    error.__cause__ = ValueError("private-provider-cause")
+    date_view.get_values.side_effect = error
+    expected: type[Exception] = (
+        QueryObjectValidationError if transport else SemanticLayerExecutionError
+    )
+    view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
+    caught: pytest.ExceptionInfo[Exception]
+    with pytest.raises(expected) as caught:
+        view.values_for_column("ORDER_DATE")
+    assert caught.value.__suppress_context__
+    assert caught.value.__cause__ is None
+    assert "private-provider" not in str(caught.value)
+    assert "private-provider" not in caplog.text
+    if transport:
+        assert str(caught.value) == str(error)
+    date_view.get_values.assert_called_once()
+
+
+@pytest.mark.parametrize("operation", ["query", "values"])
+@pytest.mark.parametrize("stage", ["factory", "dimensions"])
+def test_transport_failure_during_query_preparation_is_normalized(
+    date_view: MagicMock,
+    mocker: MockerFixture,
+    operation: str,
+    stage: str,
+) -> None:
+    """Preparation gets the dispatch classification without executing or retrying."""
+    error: ProviderRequestError = ProviderRequestError(ProviderRequestFailure.TIMEOUT)
+    error.__cause__ = ValueError("private-preparation-cause")
+    if stage == "factory":
+        mocker.patch.object(
+            SemanticView, "implementation", new_callable=PropertyMock, side_effect=error
+        )
+    else:
+        date_view.get_dimensions.side_effect = error
+    view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
+    prepare: Callable[[], object]
+    if operation == "query":
+        prepare = partial(
+            get_results,
+            QueryObject(datasource=view, columns=["ORDER_DATE"], metrics=[]),
+        )
+    else:
+        prepare = partial(view.values_for_column, "ORDER_DATE")
+    caught: pytest.ExceptionInfo[QueryObjectValidationError]
+    with pytest.raises(QueryObjectValidationError) as caught:
+        prepare()
+    assert str(caught.value) == str(error)
+    assert caught.value.__cause__ is None
+    assert caught.value.__suppress_context__
+    date_view.get_table.assert_not_called()
+    date_view.get_values.assert_not_called()
+
+
+@pytest.mark.parametrize("stage", ["factory", "dimensions"])
+def test_transport_failure_during_chart_preparation_returns_400(
+    client: FlaskClient,
+    full_api_access: None,
+    date_view: MagicMock,
+    mocker: MockerFixture,
+    stage: str,
+) -> None:
+    """Chart preparation exposes only the same safe transport guidance as dispatch."""
+    error: ProviderRequestError = ProviderRequestError(ProviderRequestFailure.TIMEOUT)
+    error.__cause__ = ValueError("private-preparation-cause")
+    if stage == "factory":
+        mocker.patch.object(
+            SemanticView, "implementation", new_callable=PropertyMock, side_effect=error
+        )
+    else:
+        date_view.get_dimensions.side_effect = error
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [{"columns": ["ORDER_DATE"], "metrics": ["ORDER_COUNT"]}],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        },
+    )
+    assert response.status_code == 400
+    assert str(error) in response.get_data(as_text=True)
+    assert "private-preparation" not in response.get_data(as_text=True)
+    date_view.get_table.assert_not_called()
