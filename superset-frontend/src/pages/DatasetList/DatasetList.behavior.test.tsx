@@ -231,8 +231,12 @@ test('mixed bulk delete names refused semantic views and their conflict reason',
     ),
   );
   expect(addDangerToast).toHaveBeenCalledTimes(1);
+  // The list is fetched from the same /api/v1/dataset/?q= path the bulk delete
+  // uses, so count only the DELETE requests.
   expect(
-    fetchMock.callHistory.calls(API_ENDPOINTS.DATASET_BULK_DELETE),
+    fetchMock.callHistory.calls(API_ENDPOINTS.DATASET_BULK_DELETE, {
+      method: 'DELETE',
+    }),
   ).toHaveLength(1);
   expect(
     fetchMock.callHistory.calls('glob:*/api/v1/semantic_view/?q=*'),
@@ -270,7 +274,7 @@ test('typing in search triggers debounced API call with search filter', async ()
 
   // Record initial API calls
   const initialCallCount = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Type search query and submit with Enter to trigger the debounced fetch
@@ -279,16 +283,14 @@ test('typing in search triggers debounced API call with search filter', async ()
   // Wait for debounced API call
   await waitFor(
     () => {
-      const calls = fetchMock.callHistory.calls(
-        API_ENDPOINTS.DATASOURCE_COMBINED,
-      );
+      const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
       expect(calls.length).toBeGreaterThan(initialCallCount);
     },
     { timeout: 5000 },
   );
 
   // Verify the latest API call includes search filter in URL
-  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED);
+  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const latestCall = calls[calls.length - 1];
   const { url } = latestCall;
 
@@ -616,7 +618,7 @@ test('clicking duplicate opens modal and submits duplicate request', async () =>
 
   // Track initial dataset list API calls BEFORE duplicate action
   const initialDatasetCallCount = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   const row = screen.getByText(datasetToDuplicate.table_name).closest('tr');
@@ -657,9 +659,7 @@ test('clicking duplicate opens modal and submits duplicate request', async () =>
   // Verify refreshData() is called (observable via new dataset list API call)
   await waitFor(
     () => {
-      const datasetCalls = fetchMock.callHistory.calls(
-        API_ENDPOINTS.DATASOURCE_COMBINED,
-      );
+      const datasetCalls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
       expect(datasetCalls.length).toBeGreaterThan(initialDatasetCallCount);
     },
     { timeout: 3000 },
