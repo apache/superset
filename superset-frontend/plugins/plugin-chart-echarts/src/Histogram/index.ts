@@ -18,7 +18,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { Behavior, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
@@ -30,7 +30,6 @@ import example1Dark from './images/example1-dark.png';
 import example2Dark from './images/example2-dark.png';
 import { HistogramChartProps, HistogramFormData } from './types';
 
-// TODO: Implement cross filtering
 export default class EchartsHistogramChartPlugin extends ChartPlugin<
   HistogramFormData,
   HistogramChartProps
@@ -63,6 +62,7 @@ export default class EchartsHistogramChartPlugin extends ChartPlugin<
           { url: example1, urlDark: example1Dark },
           { url: example2, urlDark: example2Dark },
         ],
+        behaviors: [Behavior.InteractiveChart],
         name: t('Histogram'),
         tags: [t('Comparison'), t('ECharts'), t('Pattern'), t('Range')],
         thumbnail,
