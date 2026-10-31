@@ -77,7 +77,9 @@ export const getFilterValue = (
   })
     .then(({ json }) => JSON.parse(json.value))
     .catch(err => {
-      logging.error(err);
+      if (err?.name !== 'AbortError') {
+        logging.error(err);
+      }
       return null;
     });
 

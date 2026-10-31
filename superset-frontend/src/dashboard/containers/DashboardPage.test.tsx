@@ -47,7 +47,10 @@ import {
 } from 'src/dashboard/actions/dashboardLayout';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { getFilterValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
+import {
+  getFilterValue,
+  getPermalinkValue,
+} from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 import DashboardPage, { NATIVE_FILTER_STATE_TIMEOUT_MS } from './DashboardPage';
 
 const mockTheme = {
@@ -847,14 +850,19 @@ test('hydrates with an empty data mask when the saved filter state request stall
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     (getFilterValue as jest.Mock).mockReturnValue(new Promise(() => {}));
     renderWithFilterKey();
+    // The lazy-loaded dashboard body must resolve before the page effect (and
+    // its timeout) starts, so wait for the fetch before advancing the clock.
+    await waitFor(() => expect(getFilterValue).toHaveBeenCalled());
 
     await act(async () => {
-      await jest.advanceTimersByTimeAsync(NATIVE_FILTER_STATE_TIMEOUT_MS - 1);
+      await jest.advanceTimersByTimeAsync(
+        NATIVE_FILTER_STATE_TIMEOUT_MS - 1000,
+      );
     });
     expect(hydrateDashboard).not.toHaveBeenCalled();
 
     await act(async () => {
-      await jest.advanceTimersByTimeAsync(1);
+      await jest.advanceTimersByTimeAsync(1000);
     });
     expect(hydrateDashboard).toHaveBeenCalledWith(
       expect.objectContaining({ dataMask: {} }),
@@ -895,6 +903,102 @@ test('does not hydrate when unmounted while the saved filter state is loading', 
   expect(signal.aborted).toBe(true);
   await act(async () => {
     resolveValue({ 'NATIVE_FILTER-1': { id: 'NATIVE_FILTER-1' } });
+  });
+
+  expect(hydrateDashboard).not.toHaveBeenCalled();
+});
+
+test('hydrates with an empty data mask when the saved filter state is missing', async () => {
+  (getFilterValue as jest.Mock).mockResolvedValue(null);
+  renderWithFilterKey();
+
+  await waitFor(() => {
+    expect(hydrateDashboard).toHaveBeenCalledWith(
+      expect.objectContaining({ dataMask: {} }),
+    );
+  });
+});
+
+test('clears the timeout once the saved filter state resolves', async () => {
+  const clearSpy = jest.spyOn(global, 'clearTimeout');
+  (getFilterValue as jest.Mock).mockResolvedValue({});
+  renderWithFilterKey();
+
+  await waitFor(() => expect(hydrateDashboard).toHaveBeenCalled());
+  expect(clearSpy).toHaveBeenCalled();
+  const signal = (getFilterValue as jest.Mock).mock.calls[0][2];
+  expect(signal.aborted).toBe(false);
+});
+
+test('does not hydrate a previous dashboard when the dashboard changes mid-fetch', async () => {
+  let resolveValue: (value: unknown) => void = () => {};
+  (getFilterValue as jest.Mock).mockReturnValueOnce(
+    new Promise(resolve => {
+      resolveValue = resolve;
+    }),
+  );
+  const { rerender } = renderWithFilterKey();
+  await waitFor(() => expect(getFilterValue).toHaveBeenCalledTimes(1));
+
+  (getFilterValue as jest.Mock).mockResolvedValue({
+    'NATIVE_FILTER-B': { id: 'NATIVE_FILTER-B' },
+  });
+  mockUseDashboard.mockReturnValue({
+    result: { ...mockDashboard, id: 2 },
+    error: null,
+  });
+  rerender(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="2" />
+    </Suspense>,
+  );
+  const firstSignal = (getFilterValue as jest.Mock).mock.calls[0][2];
+  await waitFor(() => expect(firstSignal.aborted).toBe(true));
+
+  await act(async () => {
+    resolveValue({ 'NATIVE_FILTER-A': { id: 'NATIVE_FILTER-A' } });
+  });
+  await waitFor(() => expect(hydrateDashboard).toHaveBeenCalled());
+
+  const hydrated = (hydrateDashboard as jest.Mock).mock.calls.map(
+    ([arg]) => arg,
+  );
+  expect(hydrated.every(arg => arg.dashboard.id === 2)).toBe(true);
+  expect(hydrated.some(arg => 'NATIVE_FILTER-A' in (arg.dataMask ?? {}))).toBe(
+    false,
+  );
+});
+
+test('does not hydrate when unmounted while the permalink is loading', async () => {
+  let resolveValue: (value: unknown) => void = () => {};
+  (getPermalinkValue as jest.Mock).mockReturnValue(
+    new Promise(resolve => {
+      resolveValue = resolve;
+    }),
+  );
+  mockGetUrlParam.mockImplementation((param: { name: string }) =>
+    param.name === 'permalink_key' ? 'perma' : null,
+  );
+  const { unmount } = render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+  await waitFor(() => expect(getPermalinkValue).toHaveBeenCalled());
+
+  unmount();
+  await act(async () => {
+    resolveValue({ state: { dataMask: {} } });
   });
 
   expect(hydrateDashboard).not.toHaveBeenCalled();
