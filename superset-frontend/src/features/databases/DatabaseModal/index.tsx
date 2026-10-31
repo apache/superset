@@ -1537,7 +1537,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   }, [show, databaseId]);
 
   useEffect(() => {
-    if (dbFetched) {
+    if (show && dbFetched && (!databaseId || dbFetched.id === databaseId)) {
       setDB({
         type: ActionType.Fetched,
         isEditMode,
@@ -1547,7 +1547,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       // because it shouldn't change when the form is updated
       setDbName(dbFetched.database_name);
     }
-    // Apply each fetched resource once; mode changes must not restore a closed edit.
+    // Apply resource changes only while open, including multi-step creates.
+    // Opening the modal must not reapply a cached record after onClose resets it.
   }, [dbFetched]);
 
   useEffect(() => {
