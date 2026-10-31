@@ -1527,6 +1527,16 @@ def table(
 post_processors = {
     "pivot_table_v2": pivot_table_v2,
     "table": table,
+    # The AG Grid table plugin picks each column's formatter with the Table
+    # plugin's ``transformProps`` logic and the same ``column_config`` keys:
+    # ``d3NumberFormat``, then the saved format, then the currency, then
+    # PERCENT_3_POINT or SMART_NUMBER. That selection is what the two plugins
+    # share, so a report on one is formatted by the same post-processor. The
+    # cells themselves are painted by the AG Grid ``valueFormatter``, which
+    # calls the column's own formatter; ``formatColumnValue`` only labels
+    # drill-to-detail. The query-building side pairs the two viz types the same
+    # way.
+    AG_GRID_TABLE: table,
 }
 
 
@@ -1587,6 +1597,30 @@ def apply_client_processing(  # noqa: C901
             raise Exception(  # pylint: disable=broad-exception-raised
                 f"Result format {query['result_format']} not supported"
             )
+
+        if (
+            viz_type == AG_GRID_TABLE
+            and query["result_format"] != ChartDataResultFormat.JSON
+        ):
+            # Only a JSON result is rewritten for this viz type, so for CSV and
+            # XLSX everything below is work whose output nothing reads.
+            # ``query["data"]`` goes back out as it came in, and the
+            # ``colnames``/``coltypes``/``rowcount`` the parse would set have no
+            # reader for these formats: ``apply_column_types`` is in the XLSX
+            # branch this viz type never reaches, and the notification table
+            # fetches its own JSON result rather than reading them off an
+            # attachment.
+            #
+            # Parsing anyway can only lose. ``read_csv`` below is handed ``sep``
+            # and ``decimal`` but not the ``quotechar``, ``quoting``,
+            # ``escapechar`` or ``lineterminator`` the writer took from
+            # ``CSV_EXPORT``, so under a custom quote a cell holding the
+            # separator splits: it raises ``ParserError`` and fails the report
+            # where the row is not the first, and where it is, the extra field
+            # is read as an index and the value lands in the wrong column. A
+            # large workbook also spends seconds in ``read_excel`` for a frame
+            # that is thrown away.
+            continue
 
         data = query["data"]
 
