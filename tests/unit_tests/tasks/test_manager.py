@@ -497,6 +497,55 @@ class TestTaskManagerListenForAbort:
         callback.assert_called_once()
 
 
+class TestAbortCheckSessionCleanup:
+    """Every poll must release the scoped session, success or failure."""
+
+    @patch("superset.db")
+    @patch("superset.tasks.manager.TaskManager._check_abort_status")
+    @patch("superset.coordination.base.CoordinationService.listen_for_signal")
+    def test_failed_poll_rolls_back_and_removes_session(
+        self, mock_listen, mock_check, mock_db
+    ):
+        mock_check.side_effect = RuntimeError("db blip")
+        TaskManager.listen_for_abort("u", MagicMock(), 1.0, app=None)
+
+        with pytest.raises(RuntimeError, match="db blip"):
+            mock_listen.call_args.kwargs["check"]()
+
+        mock_db.session.rollback.assert_called_once()
+        mock_db.session.remove.assert_called_once()
+
+    @patch("superset.db")
+    @patch("superset.tasks.manager.TaskManager._check_abort_status")
+    @patch("superset.coordination.base.CoordinationService.listen_for_signal")
+    def test_rollback_failure_still_removes_session(
+        self, mock_listen, mock_check, mock_db
+    ):
+        mock_check.side_effect = RuntimeError("db blip")
+        mock_db.session.rollback.side_effect = RuntimeError("connection dropped")
+        TaskManager.listen_for_abort("u", MagicMock(), 1.0, app=None)
+
+        with pytest.raises(RuntimeError, match="db blip"):
+            mock_listen.call_args.kwargs["check"]()
+
+        mock_db.session.rollback.assert_called_once()
+        mock_db.session.remove.assert_called_once()
+
+    @patch("superset.db")
+    @patch("superset.tasks.manager.TaskManager._check_abort_status")
+    @patch("superset.coordination.base.CoordinationService.listen_for_signal")
+    def test_successful_poll_releases_session(
+        self, mock_listen, mock_check, mock_db
+    ):
+        mock_check.return_value = False
+        TaskManager.listen_for_abort("u", MagicMock(), 1.0, app=None)
+
+        assert mock_listen.call_args.kwargs["check"]() is False
+
+        mock_db.session.rollback.assert_called_once()
+        mock_db.session.remove.assert_called_once()
+
+
 class TestTaskManagerWaitForCompletion:
     """wait_for_completion delegates the wait to CoordinationService."""
 
