@@ -5961,7 +5961,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # A DATE column holds calendar days with no time of day, so its bounds
             # are kept as they are; the timezone still overrides Hour Offset.
             date_only = is_date_column_type(
-                self.db_engine_spec, time_col.type, db_extra=self.db_extra
+                self.db_engine_spec,
+                time_col.type if time_col is not None else None,
+                db_extra=self.db_extra,
             )
             try:
                 tz = ZoneInfo(dataset_timezone)
