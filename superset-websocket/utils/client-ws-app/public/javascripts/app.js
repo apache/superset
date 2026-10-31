@@ -24,16 +24,11 @@ function ts() {
   return new Date().getTime();
 }
 
-const cookieName = document.getElementById('cookie').innerHTML;
 const tokenData = document.getElementById('tokens').innerHTML;
 const tokens = JSON.parse(tokenData);
 
 function connect() {
   if (socketCount >= tokens.length) return;
-
-  // using https://github.com/js-cookie/js-cookie
-  // oxlint-disable-next-line no-undef
-  Cookies.set(cookieName, tokens[socketCount], { path: '' });
 
   // Create WebSocket connection.
   let url = `ws://127.0.0.1:8080?last_id=${ts()}`;
@@ -41,11 +36,11 @@ function connect() {
 
   // Connection opened
   socket.addEventListener('open', function () {
+    // The first frame authenticates the socket with its ticket.
+    socket.send(JSON.stringify({ type: 'auth', token: tokens[socketCount] }));
     socketCount++;
     document.getElementById('socket-count').innerHTML = socketCount;
     connect();
-
-    socket.send('Hello Server!');
   });
 
   // Listen for messages

@@ -44,6 +44,7 @@ import { getTabId } from 'src/hooks/useTabId';
 import { getAsyncQueryError } from './asyncQueryError';
 import {
   connectRealtime,
+  getRealtimeState,
   subscribeRealtime,
   subscribeRealtimeOpen,
   subscribeRealtimeState,
@@ -292,6 +293,11 @@ const abandonRealtimeWaiters = () => {
   );
 };
 
+const isRealtimeDown = (): boolean => {
+  const state = getRealtimeState();
+  return state === 'unhealthy' || state === 'unauthorized';
+};
+
 const finishStatus = (taskId: string, status: string, message?: string) => {
   const waiters = waitersByTaskId.get(taskId);
   if (!waiters) return;
@@ -507,7 +513,9 @@ subscribeRealtimeState(state => {
   if (!wsEnabled || !waitersByTaskId.size) return;
   if (state === 'reconnecting') {
     scheduleCatchUp();
-  } else if (state === 'unhealthy') {
+  } else if (state === 'unhealthy' || state === 'unauthorized') {
+    // `unauthorized` is terminal (the session lost the realtime permission or
+    // ended), so no socket will ever settle these waiters.
     abandonRealtimeWaiters();
   }
 });
@@ -607,6 +615,14 @@ export const waitForAsyncData = async <T = unknown[]>(
       }
       waiters.add(waiter);
     });
+    // The realtime connection state is the source of truth: a waiter registering
+    // while the transport is already terminally down (`unauthorized`) or
+    // `unhealthy` is settled at once, not left to wait on a transition that
+    // already happened.
+    if (wsEnabled && isRealtimeDown()) {
+      settle(waiter, new Error('Realtime connection unavailable'));
+      return;
+    }
     if (wsEnabled) {
       // WS is the transport (no polling). Bound a genuinely-lost completion (a
       // dropped socket message with no reconnect) so a chart can't spin forever;
