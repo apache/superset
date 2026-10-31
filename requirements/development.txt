@@ -435,7 +435,7 @@ greenlet==3.5.6
     #   sqlalchemy
 griffelib==2.0.2
     # via fastmcp-slim
-grpcio==1.84.0
+grpcio==1.85.1
     # via
     #   apache-superset
     #   google-api-core
