@@ -2131,3 +2131,70 @@ def test_extract_sql_rejects_unresolvable_lazy_validation_error() -> None:
 
     assert isinstance(output, ChartError)
     assert output.error_type == "MalformedQueryResult"
+
+
+class TestDetachedInstanceError:
+    """Tests that DetachedInstanceError is handled gracefully.
+
+    When the SQLAlchemy session commits mid-request (e.g. DBEventLogger.log),
+    ORM objects expire and become detached. Accessing lazy attributes on a
+    detached Slice raises DetachedInstanceError. The tool must:
+    Catch SQLAlchemyError (the base class) and return a ChartError instead
+    of propagating the exception.
+    """
+
+    @pytest.mark.asyncio
+    async def test_detached_instance_error_returns_chart_error(self):
+        """DetachedInstanceError during SQL retrieval returns ChartError."""
+        from contextlib import nullcontext
+        from unittest.mock import MagicMock, patch
+
+        from sqlalchemy.orm.exc import DetachedInstanceError
+
+        from superset.utils import json
+
+        mock_chart = MagicMock()
+        mock_chart.id = 42
+        mock_chart.slice_name = "Sales Chart"
+        mock_chart.viz_type = "table"
+        mock_chart.datasource_id = 1
+
+        with (
+            patch.object(
+                _get_chart_sql_mod,
+                "_find_chart_by_identifier",
+                return_value=mock_chart,
+            ),
+            patch.object(
+                _get_chart_sql_mod,
+                "validate_chart_dataset",
+                side_effect=DetachedInstanceError("Instance is not bound to a Session"),
+            ),
+            patch.object(
+                _get_chart_sql_mod.event_logger,
+                "log_context",
+                return_value=nullcontext(),
+            ),
+        ):
+            from fastmcp import Client
+
+            from superset.mcp_service.app import mcp
+
+            with patch("superset.mcp_service.auth.get_user_from_request") as mu:
+                mu.return_value = MagicMock(id=1, username="admin")
+                with patch(
+                    "superset.mcp_service.auth.check_tool_permission",
+                    return_value=True,
+                ):
+                    async with Client(mcp) as client:
+                        response = await client.call_tool(
+                            "get_chart_sql",
+                            {"request": GetChartSqlRequest(identifier=42).model_dump()},
+                        )
+
+        data = json.loads(response.content[0].text)
+        assert data["error_type"] == "DatabaseError"
+        assert data["error"] == (
+            "Chart SQL retrieval failed due to a database session error: "
+            "DetachedInstanceError"
+        )
