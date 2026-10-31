@@ -16,6 +16,7 @@
 # under the License.
 
 
+from decimal import Decimal
 from typing import Any
 from unittest import mock
 
@@ -489,3 +490,36 @@ def test_get_chart_csv_data_closes_response(
             == b"csv"
         )
     response.close.assert_called_once()
+
+
+@pytest.mark.parametrize("decimal_separator", [".", ","])
+@pytest.mark.parametrize("amount", ["12.3400", "-1.25", "0E-18"])
+def test_csv_export_honors_decimal_separator_for_exact_values(
+    decimal_separator: str, amount: str
+) -> None:
+    """Typed decimals keep their scale and match the float column's separator."""
+    frame = pd.DataFrame(
+        {"amount": [Decimal(amount)], "float": [1.25], "text": ["keep.this"]}
+    )
+    expected_amount = format(Decimal(amount), "f").replace(".", decimal_separator)
+    expected_float = "1.25".replace(".", decimal_separator)
+    result = df_to_escaped_csv(frame, index=False, sep=";", decimal=decimal_separator)
+    assert (
+        result == f"amount;float;text\n{expected_amount};{expected_float};keep.this\n"
+    )
+
+
+@pytest.mark.parametrize("decimal_separator", [".", ","])
+def test_csv_export_honors_decimal_separator_for_mixed_numbers(
+    decimal_separator: str,
+) -> None:
+    """Mixed numeric cells match streaming exports without localizing strings."""
+    frame = pd.DataFrame(
+        {"mixed": [Decimal("-12.3400"), 1.25, True, "1.25", "=formula", None]},
+        dtype=object,
+    )
+    amount = "-12.3400".replace(".", decimal_separator)
+    number = "1.25".replace(".", decimal_separator)
+    assert df_to_escaped_csv(
+        frame, index=False, decimal=decimal_separator, sep=";"
+    ) == (f'mixed\n{amount}\n{number}\nTrue\n1.25\n\'=formula\n""\n')

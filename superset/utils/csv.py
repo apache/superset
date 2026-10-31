@@ -18,6 +18,7 @@ import logging
 import urllib.request
 from contextlib import closing
 from decimal import Decimal
+from numbers import Real
 from typing import Any, Optional, Union
 from urllib.error import URLError
 
@@ -107,13 +108,27 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     # even when the DataFrame has a non-default index (e.g. the flattened
     # MultiIndex produced by pivot_table_v2 post-processing). Pairing positional
     # indices with the label-based ``.at`` accessor would otherwise create
-    # phantom rows and corrupt the output. Only string cells are reassigned, so
-    # the dtype of mixed object columns (e.g. nullable integers) is preserved.
+    # phantom rows and corrupt the output. Numeric dtypes are left for pandas;
+    # object columns need explicit formatting to match streaming CSV exports.
+    decimal_separator = kwargs.get("decimal", ".")
     for name, column in df.items():
         if pd.api.types.is_string_dtype(column.dtype):
             for label, value in column.items():
                 if isinstance(value, str):
                     df.at[label, name] = escape_value(value)
+                elif isinstance(value, Decimal) and value.is_finite():
+                    # Preserve precision and scale without passing numeric text
+                    # through the string formula-prefix escaping path.
+                    df.at[label, name] = format_decimal(value).replace(
+                        ".", decimal_separator
+                    )
+                elif (
+                    decimal_separator != "."
+                    and isinstance(value, Real)
+                    and not isinstance(value, (bool, int))
+                    and pd.notna(value)
+                ):
+                    df.at[label, name] = str(value).replace(".", decimal_separator)
 
     return df.to_csv(escapechar="\\", **kwargs)
 
