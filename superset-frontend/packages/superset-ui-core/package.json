@@ -102,7 +102,7 @@
     "@types/d3-time": "^3.0.4",
     "@types/d3-time-format": "^4.0.3",
     "@types/jquery": "^4.0.1",
-    "@types/lodash": "^4.17.26",
+    "@types/lodash": "^4.17.27",
     "@types/node": "^26.6.5",
     "@types/prop-types": "^15.7.15",
     "@types/react-syntax-highlighter": "^15.5.13",
