@@ -849,7 +849,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 # decoded here, before any engine (and its `handle_error`
                 # listener) exists. Log it and refuse it as a sign-in the database
                 # rejected would be, rather than letting the decoding error
-                # surface as a server fault (sc-130269).
+                # surface as a server fault (sc-130269). The decoding error is
+                # dropped from the chain: the line above already names its class,
+                # and the error handler would log its traceback with the refusal.
                 _log_embedded_rejection(self.id, self.database_name, ex)
                 raise SupersetErrorException(
                     SupersetError(
@@ -862,7 +864,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         level=ErrorLevel.ERROR,
                     ),
                     status=400,
-                ) from ex
+                ) from None
             # Hooks must receive the selected connection identity, not the
             # username claim supplied by the guest token.
             effective_username = sqlalchemy_url.username
