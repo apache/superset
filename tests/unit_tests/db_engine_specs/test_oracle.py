@@ -379,18 +379,54 @@ def test_get_limit_method_detected_version(
 
 def test_get_limit_method_unknown_version(server_versions: Any) -> None:
     """
-    If the version can't be read, keep `FETCH FIRST` and try again next time.
+    If the version can't be read, keep `FETCH FIRST` and cache the failure for
+    the current application context.
     """
     from superset.db_engine_specs.oracle import OracleEngineSpec
 
     unreachable = mock_oracle_database(error=Exception("ORA-12541: no listener"))
     assert OracleEngineSpec.get_limit_method(unreachable) == LimitMethod.FORCE_LIMIT
     assert OracleEngineSpec.get_limit_method(unreachable) == LimitMethod.FORCE_LIMIT
-    assert unreachable.get_sqla_engine.call_count == 2
+    assert unreachable.get_sqla_engine.call_count == 1
 
     unreported = mock_oracle_database(server_version_info=None)
+    unreported.id = 2
     assert OracleEngineSpec.get_limit_method(unreported) == LimitMethod.FORCE_LIMIT
+    assert OracleEngineSpec.get_limit_method(unreported) == LimitMethod.FORCE_LIMIT
+    assert unreported.get_sqla_engine.call_count == 1
     assert server_versions == {}
+
+
+def test_make_label_compatible_caches_failed_version_lookup(
+    server_versions: Any,
+) -> None:
+    """Repeated labels only attempt an unavailable Oracle version once per request."""
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    unreachable = mock_oracle_database(error=Exception("ORA-12541: no listener"))
+    for index in range(20):
+        OracleEngineSpec.make_label_compatible(f"column_{index}", unreachable)
+    assert unreachable.get_sqla_engine.call_count == 1
+
+    unreported = mock_oracle_database(server_version_info=None)
+    unreported.id = 2
+    for index in range(20):
+        OracleEngineSpec.make_label_compatible(f"column_{index}", unreported)
+    assert unreported.get_sqla_engine.call_count == 1
+
+
+def test_failed_version_lookup_retries_in_next_app_context(
+    app: Any, server_versions: Any
+) -> None:
+    """A failed version lookup is retried for a later request."""
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    unreachable = mock_oracle_database(error=Exception("ORA-12541: no listener"))
+    for _ in range(2):
+        with app.app_context():
+            OracleEngineSpec.make_label_compatible("column", unreachable)
+
+    assert unreachable.get_sqla_engine.call_count == 2
 
 
 def test_get_limit_method_reuses_connected_engine(server_versions: Any) -> None:

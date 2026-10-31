@@ -2826,7 +2826,7 @@ def test_cache_key_collects_series_metric_for_normalized_labels(
     mocker.patch.object(
         virtual.db_engine_spec,
         "make_label_compatible",
-        side_effect=lambda name: name.replace(" ", "_"),
+        side_effect=lambda name, database=None: name.replace(" ", "_"),
     )
     query: QueryObjectDict = {
         "columns": [{"sqlExpression": "col1", "label": "series label"}],

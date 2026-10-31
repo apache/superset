@@ -21,6 +21,7 @@ import re
 from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
 
+from flask import g, has_app_context
 from sqlalchemy import types
 from sqlalchemy.dialects.oracle.base import OracleDialect
 
@@ -126,6 +127,13 @@ class OracleEngineSpec(BaseEngineSpec):
 
         key = f"{database.id}:{database.sqlalchemy_uri}"
         if key not in _server_versions:
+            failed_lookups: set[str] = (
+                g.setdefault("oracle_version_lookup_failures", set())
+                if has_app_context()
+                else set()
+            )
+            if key in failed_lookups:
+                return None
             try:
                 with database.get_sqla_engine() as engine:
                     version_info = engine.dialect.server_version_info
@@ -138,8 +146,10 @@ class OracleEngineSpec(BaseEngineSpec):
                 logger.warning(
                     "Unable to read the Oracle server version", exc_info=True
                 )
+                failed_lookups.add(key)
                 return None
             if not version_info:
+                failed_lookups.add(key)
                 return None
             _server_versions[key] = tuple(int(part) for part in version_info)
 
