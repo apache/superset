@@ -1289,6 +1289,72 @@ SCOPE_NEUTRAL_TOOLS = frozenset(
 )
 
 
+def _gate_dashboard_filter_values(request: Any, scope: DashboardScope) -> Any:
+    """Authorize dropdown discovery on the active dashboard, even without filters.
+
+    Dropdowns reconstruct their own saved predicates and transitive selections.
+    Aggregate chart filters cannot be used to remove self/nonparent predicates.
+    The tool separately reports unavailable choices when snapshot state is absent.
+    """
+    from superset.commands.dashboard.exceptions import (
+        DashboardAccessDeniedError,
+        DashboardNotFoundError,
+    )
+    from superset.daos.dashboard import DashboardDAO
+    from superset.mcp_service.dashboard.permalink import lookup_dashboard_reference
+    from superset.mcp_service.dashboard.schemas import GetDashboardInfoRequest
+
+    parsed = (
+        request
+        if isinstance(request, GetDashboardInfoRequest)
+        else GetDashboardInfoRequest.model_validate(request)
+    )
+
+    def lookup(identifier: int | str) -> Any:
+        """Keep lookup failures opaque while supporting permalink identifiers."""
+        try:
+            return DashboardDAO.get_by_id_or_slug(identifier)
+        except (DashboardNotFoundError, DashboardAccessDeniedError):
+            return None
+
+    resolved = lookup_dashboard_reference(
+        identifier=parsed.identifier,
+        permalink_key=parsed.permalink_key,
+        lookup=lookup,
+        is_found=lambda value: value is not None,
+    )
+    if resolved.result is None or resolved.result.id != scope.dashboard_id:
+        raise MCPDashboardScopeError(
+            "filter_selection discovery requires the same accessible active dashboard.",
+            "Use the open dashboard's numeric identifier and its filter snapshot.",
+        )
+    return request
+
+
+def _is_dropdown_discovery(
+    tool_name: str,
+    signature: inspect.Signature,
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+    scope: DashboardScope,
+) -> bool:
+    """Classify and authorize explicit dropdown scope before analytical dispatch."""
+    if tool_name != "get_dashboard_info":
+        return False
+    try:
+        request = signature.bind_partial(*args, **kwargs).arguments.get("request")
+        if isinstance(request, str):
+            request = json.loads(request)
+    except (TypeError, ValueError) as ex:
+        raise MCPDashboardScopeError(
+            "dashboard discovery arguments are invalid."
+        ) from ex
+    if _field(request, "include_filter_values") is not True:
+        return False
+    _gate_dashboard_filter_values(request, scope)
+    return True
+
+
 def apply_call_dashboard_scope(
     tool_name: str,
     signature: inspect.Signature,
@@ -1302,7 +1368,14 @@ def apply_call_dashboard_scope(
     untouched, so the feature costs nothing when unused.
     """
     scope = get_request_dashboard_scope()
-    if scope is None or not scope.has_constraints:
+    if scope is None:
+        return args, kwargs
+
+    # Discovery runs before metadata's neutral branch and the empty-scope shortcut.
+    if _is_dropdown_discovery(tool_name, signature, args, kwargs, scope):
+        return args, kwargs
+
+    if not scope.has_constraints:
         return args, kwargs
 
     rewriter = SCOPE_REWRITERS.get(tool_name)

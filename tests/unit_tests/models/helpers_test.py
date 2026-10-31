@@ -145,6 +145,123 @@ def test_build_like_predicate_is_case_insensitive_and_escaped() -> None:
     assert "ESCAPE" not in bigquery_sql
 
 
+@pytest.mark.parametrize("engine_name", ["mssql", "sybase", "custom_mssql"])
+def test_native_like_predicate_escapes_sqlserver_subclass_brackets(
+    engine_name: str,
+) -> None:
+    """Bracket wildcard escaping follows engine inheritance, including Sybase."""
+    import sqlalchemy as sa
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.db_engine_specs.sybase import SybaseEngineSpec
+    from superset.models.helpers import build_native_like_predicate
+
+    class CustomMssqlEngineSpec(MssqlEngineSpec):
+        """Represent an operator-provided SQL Server derivative."""
+
+        engine = "custom_mssql"
+
+    spec = {
+        "mssql": MssqlEngineSpec,
+        "sybase": SybaseEngineSpec,
+        "custom_mssql": CustomMssqlEngineSpec,
+    }[engine_name]
+    predicate = build_native_like_predicate(sa.column("name"), "[a-c][", spec)
+    compiled = predicate.compile(dialect=sa.dialects.registry.load("mssql")())
+    assert "%/[a-c]/[%" in compiled.params.values()
+    assert "ESCAPE '/'" in str(compiled)
+
+
+@pytest.mark.parametrize(
+    ("operator", "value"),
+    [
+        ("IN", "Alice"),
+        ("IN", []),
+        ("IN", [["Alice"]]),
+        ("NOT IN", {"name": "Alice"}),
+        ("==", ["Alice"]),
+        ("==", {"name": "Alice"}),
+        ("ILIKE", ["Alice"]),
+        ("==", float("inf")),
+    ],
+)
+def test_malformed_internal_literal_predicates_raise_validation_error(
+    database: Database, operator: str, value: Any
+) -> None:
+    """Private malformed predicates fail validation before SQL compilation."""
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        table_name="t",
+        columns=[TableColumn(column_name="b", type="TEXT")],
+    )
+    with pytest.raises(QueryObjectValidationError, match="Literal"):
+        table.get_sqla_query(
+            columns=["b"],
+            metrics=[],
+            extras={},
+            filter=[{"col": "b", "op": operator, "val": value, "is_literal": True}],
+            granularity=None,
+            is_timeseries=False,
+            orderby=[],
+        )
+
+
+def test_schema_bypassing_query_context_keeps_ordinary_chart_sql(
+    database: Database, mocker: MockerFixture
+) -> None:
+    """The legacy query endpoint and stored contexts cannot activate private flags."""
+    from superset.common.query_context_factory import QueryContextFactory
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        id=7,
+        database=database,
+        table_name="t",
+        columns=[TableColumn(column_name="b", type="TEXT")],
+    )
+    factory = QueryContextFactory()
+    mocker.patch.object(factory, "_convert_to_model", return_value=table)
+    context = factory.create(
+        datasource={"id": 7, "type": "table"},
+        queries=[
+            {
+                "columns": ["b"],
+                "metrics": [],
+                "filters": [
+                    {"col": "b", "op": "IN", "val": "Alice", "is_literal": True}
+                ],
+                "extras": {"preserve_literal_values": True},
+            }
+        ],
+    )
+    query = context.queries[0]
+    assert "is_literal" not in query.filter[0]
+    assert "preserve_literal_values" not in query.extras
+    built = table.get_sqla_query(
+        columns=query.columns,
+        metrics=query.metrics,
+        filter=query.filter,
+        extras=query.extras,
+        granularity=None,
+        is_timeseries=False,
+        orderby=[],
+    )
+    ordinary = table.get_sqla_query(
+        columns=["b"],
+        metrics=[],
+        filter=[{"col": "b", "op": "IN", "val": "Alice"}],
+        extras={},
+        granularity=None,
+        is_timeseries=False,
+        orderby=[],
+    )
+    assert str(built.sqla_query) == str(ordinary.sqla_query)
+    assert built.sqla_query.compile().params == ordinary.sqla_query.compile().params
+
+
 def test_values_for_column_search(database: Database) -> None:
     """``search`` narrows the distinct-value query in the database."""
     import pandas as pd

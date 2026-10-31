@@ -33,12 +33,16 @@ from __future__ import annotations
 
 import logging
 import sys
+from copy import deepcopy
 from typing import Any, Dict, List, NamedTuple, Union
 
 from pydantic import BaseModel
 from typing_extensions import TypeAlias
 
-from superset.mcp_service.constants import DEFAULT_MAX_LIST_ITEMS
+from superset.mcp_service.constants import (
+    DEFAULT_MAX_LIST_ITEMS,
+    DEFAULT_MAX_RESPONSE_BYTES,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +54,10 @@ ToolResponse: TypeAlias = Union[BaseModel, Dict[str, Any], List[Any], str, bytes
 # unmeasurable response is always treated as oversized rather than allowed
 # through on a guess that happens to sit under the operator's limit.
 UNMEASURABLE_RESPONSE_BYTES = sys.maxsize
+
+# Includes the filter identities, mode/echo/status fields, and page/proposal
+# companion object, not just the option strings themselves.
+MAX_FILTER_VALUE_BYTES = 20 * 1024
 
 
 def get_response_size_bytes(response: ToolResponse) -> int:
@@ -958,6 +966,164 @@ def truncate_oversized_response(
     )
 
     return data, was_truncated, notes
+
+
+def _discovery_json_size(value: Any) -> int:
+    """Measure discovery's JSON bytes using the Unicode-preserving transport."""
+    from superset.utils import json
+
+    return len(json.dumps(value, ensure_ascii=False).encode("utf-8"))
+
+
+def _measure_filter_options(
+    protected: dict[str, Any],
+) -> tuple[int, list[tuple[dict[str, Any], list[int]]]]:
+    """Measure the skeleton and each scalar once for linear-time trimming."""
+    option_sizes: list[tuple[dict[str, Any], list[int]]] = []
+    option_lists: list[list[Any]] = []
+    for native_filter in protected["native_filters"]:
+        choices = native_filter.get("available_values")
+        if choices and choices.get("values"):
+            values = choices["values"]
+            option_lists.append(values)
+            option_sizes.append((choices, [_discovery_json_size(v) for v in values]))
+            choices["values"] = []
+    size = _discovery_json_size(protected)
+    for (choices, sizes), values in zip(option_sizes, option_lists, strict=True):
+        choices["values"] = values
+        size += sum(sizes) + 2 * (len(values) - 1)
+    return size, option_sizes
+
+
+def _trim_filter_options(
+    option_sizes: list[tuple[dict[str, Any], list[int]]],
+    size: int,
+    limit: int,
+) -> int:
+    """Drop whole options using premeasured bytes, including changed statuses."""
+    for choices, sizes in reversed(option_sizes):
+        if size <= limit:
+            break
+        values = choices["values"]
+        if not values:
+            continue
+        # A first removal changes the completeness claim. Measure its exact
+        # overhead once per filter without serializing the option list again.
+        previous_metadata = {**choices, "values": []}
+        choices.update(status="truncated", reason="response_limit")
+        size += _discovery_json_size({**choices, "values": []})
+        size -= _discovery_json_size(previous_metadata)
+        while values and size > limit:
+            # The serializer separates list items with a comma and a space.
+            size -= sizes.pop() + (2 if len(values) > 1 else 0)
+            values.pop()
+    return size
+
+
+def finalize_dashboard_filter_values_response(
+    response: dict[str, Any],
+    max_bytes: int | None = None,
+    max_list_items: int = DEFAULT_MAX_LIST_ITEMS,
+) -> dict[str, Any]:
+    """Enforce discovery's transport contract even when the general guard is off.
+
+    Tool code calls this inside its Flask context. Middleware may supply its
+    resolved limit explicitly. Both paths produce the same bounded payload.
+    """
+    from fastmcp.exceptions import ToolError
+    from flask import current_app
+
+    if max_bytes is None:
+        config = current_app.config.get("MCP_RESPONSE_SIZE_CONFIG", {})
+        try:
+            max_bytes = int(config.get("max_bytes", DEFAULT_MAX_RESPONSE_BYTES))
+        except (ValueError, TypeError):
+            max_bytes = DEFAULT_MAX_RESPONSE_BYTES
+    try:
+        bounded = truncate_dashboard_filter_values_response(
+            response, max_bytes, max_list_items
+        )
+    except UnicodeEncodeError as ex:
+        raise ToolError(
+            "Filter choice response contains invalid Unicode and cannot be "
+            "encoded as UTF-8."
+        ) from ex
+    except (TypeError, ValueError) as ex:
+        raise ToolError("Filter choice response could not be serialized.") from ex
+    if bounded is None:
+        raise ToolError(
+            "Response too large: filter choice metadata exceeds the "
+            "response size limit. Request fewer filter IDs or a "
+            "narrower select_columns projection."
+        )
+    return bounded
+
+
+def truncate_dashboard_filter_values_response(
+    response: dict[str, Any],
+    max_bytes: int,
+    max_list_items: int = DEFAULT_MAX_LIST_ITEMS,
+) -> dict[str, Any] | None:
+    """Bound discovery without ever changing an option or exact-probe scalar.
+
+    The complete filter/page envelope is detached before generic metadata
+    truncation. Options are removed from list ends in reverse filter order;
+    every affected list explicitly loses its completeness claim. Returning
+    ``None`` requires a size-limit error, never generic recursive clipping.
+    The input is not mutated, including its nested lists and status objects.
+    """
+    data = deepcopy(response)
+    protected = {
+        "native_filters": data.pop("native_filters"),
+        "filter_value_discovery": data.pop("filter_value_discovery"),
+    }
+
+    # Measure the skeleton once and each option once. Repeatedly serializing
+    # an oversized envelope would make trimming quadratic in its input size.
+    protected_size, option_sizes = _measure_filter_options(protected)
+    protected_size = _trim_filter_options(
+        option_sizes, protected_size, min(MAX_FILTER_VALUE_BYTES, max_bytes)
+    )
+    if protected_size > min(MAX_FILTER_VALUE_BYTES, max_bytes):
+        return None
+
+    combined = {**data, **protected}
+    if _discovery_json_size(combined) <= max_bytes:
+        return combined
+
+    markers: dict[str, Any] = {
+        "_response_truncated": True,
+        "_truncation_notes": [
+            "Ordinary dashboard metadata truncated to fit the response limit."
+        ],
+    }
+    # Reserve markers before reducing metadata so final serialization cannot
+    # overflow merely because a truncation warning was appended afterwards.
+    metadata_budget = max_bytes - protected_size - _discovery_json_size(markers)
+    metadata, _, _ = truncate_oversized_response(
+        data, max(0, metadata_budget), max_list_items=max_list_items
+    )
+    assert isinstance(metadata, dict)
+    combined = {**metadata, **markers, **protected}
+    combined_size = _trim_filter_options(
+        option_sizes, _discovery_json_size(combined), max_bytes
+    )
+    if combined_size <= max_bytes:
+        return combined
+
+    # Generic truncation can leave large scalar metadata even at its most
+    # aggressive setting. Keep the marker and whatever ordinary fields fit;
+    # the choice envelope itself remains indivisible after option removal.
+    combined = {**markers, **protected}
+    if _discovery_json_size(combined) > max_bytes:
+        return None
+    for key, value in metadata.items():
+        if key in markers:
+            continue
+        candidate = {key: value, **combined}
+        if _discovery_json_size(candidate) <= max_bytes:
+            combined = candidate
+    return combined
 
 
 def _bisect_row_limit(
