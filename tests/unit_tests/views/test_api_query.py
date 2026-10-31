@@ -27,6 +27,8 @@ from typing import Any
 import pytest
 from pytest_mock import MockerFixture
 
+from superset.utils import json
+
 QUERY_URL = "/api/v1/query/"
 
 
@@ -75,3 +77,40 @@ def test_query_valid_query_context_reaches_factory(
     assert response.status_code == 200
     create.assert_called_once_with(datasource={"id": 1}, queries=[])
     query_context.raise_for_access.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "query_context",
+    [
+        {},
+        {"datasource": {"id": 1, "type": "table"}},
+        {"queries": []},
+        {"datasource": {"id": 1, "type": "table"}, "queries": [], "bogus": 1},
+        {"datasource": "not-an-object", "queries": []},
+        {"datasource": [1], "queries": []},
+        {"datasource": {"id": 1, "type": "table"}, "queries": {"a": 1}},
+        {"datasource": {"id": 1, "type": "table"}, "queries": ["not-an-object"]},
+    ],
+    ids=[
+        "empty_object",
+        "missing_queries",
+        "missing_datasource",
+        "unknown_key",
+        "datasource_string",
+        "datasource_list",
+        "queries_object",
+        "queries_non_object_item",
+    ],
+)
+def test_query_returns_400_for_malformed_query_context_shape(
+    client: Any,
+    full_api_access: None,
+    query_context: dict[str, Any],
+) -> None:
+    """A JSON object that does not match the factory's signature, or whose
+    ``datasource``/``queries`` have the wrong type, is a user-fixable input error
+    and yields a 400 rather than a raw ``TypeError`` surfacing as a 500.
+    """
+    response = client.post(QUERY_URL, data={"query_context": json.dumps(query_context)})
+
+    assert response.status_code == 400, response.get_data(as_text=True)

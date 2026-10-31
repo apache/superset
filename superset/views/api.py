@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import inspect
 from typing import Any, TYPE_CHECKING
 
 from flask import request
@@ -78,7 +79,9 @@ class Api(BaseSupersetView):
             ) from ex
         if not isinstance(query_context_params, dict):
             raise QueryObjectValidationError(_("query_context must be a JSON object"))
-        query_context = self.get_query_context_factory().create(**query_context_params)
+        factory = self.get_query_context_factory()
+        self._validate_query_context_shape(factory, query_context_params)
+        query_context = factory.create(**query_context_params)
         query_context.raise_for_access()
         result = query_context.get_payload()
         payload_json = result["queries"]
@@ -144,6 +147,50 @@ class Api(BaseSupersetView):
         except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
             error_msg = {"message": _("Unexpected time range: %(error)s", error=error)}
             return self.json_response(error_msg, 400)
+
+    @staticmethod
+    def _validate_query_context_shape(
+        factory: QueryContextFactory, params: dict[str, Any]
+    ) -> None:
+        """
+        Reject a ``query_context`` that cannot be passed to ``factory.create``.
+
+        Binding the keys against the factory signature and checking the types of
+        the required members turns user-fixable input errors into a 400 without
+        guarding the ``create`` call itself, so internal errors still surface.
+        """
+        signature = inspect.signature(factory.create)
+        try:
+            signature.bind(**params)
+        except TypeError as ex:
+            unexpected = sorted(set(params) - set(signature.parameters))
+            missing = sorted(
+                name
+                for name, parameter in signature.parameters.items()
+                if parameter.default is inspect.Parameter.empty and name not in params
+            )
+            details = []
+            if unexpected:
+                details.append(
+                    _("unexpected keys: %(keys)s", keys=", ".join(unexpected))
+                )
+            if missing:
+                details.append(_("missing keys: %(keys)s", keys=", ".join(missing)))
+            message = _("query_context is invalid")
+            if details:
+                message = f"{message} ({'; '.join(str(d) for d in details)})"
+            raise QueryObjectValidationError(message) from ex
+        if not isinstance(params["datasource"], dict):
+            raise QueryObjectValidationError(
+                _("query_context datasource must be a JSON object")
+            )
+        queries = params["queries"]
+        if not isinstance(queries, list) or not all(
+            isinstance(query, dict) for query in queries
+        ):
+            raise QueryObjectValidationError(
+                _("query_context queries must be a list of JSON objects")
+            )
 
     def get_query_context_factory(self) -> QueryContextFactory:
         if self.query_context_factory is None:
