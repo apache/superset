@@ -38,7 +38,10 @@ from sqlalchemy.sql.expression import bindparam
 from sqlalchemy.types import String
 
 from superset import db, security_manager
-from superset.commands.dataset.exceptions import DatasetNotFoundError
+from superset.commands.dataset.exceptions import (
+    DatasetInvalidError,
+    DatasetNotFoundError,
+)
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.constants import LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -50,6 +53,7 @@ from superset.extensions import feature_flag_manager
 from superset.sql.parse import Table
 from superset.superset_typing import Column, QueryObjectDict
 from superset.utils import json
+from superset.utils.class_utils import _Unset
 from superset.utils.core import (
     AdhocFilterClause,
     convert_legacy_filters_into_adhoc,
@@ -1364,6 +1368,25 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
 
         self._context["metric"] = partial(safe_proxy, metric_with_context)
 
+        # The `get_dataset_id` macro needs the current database context to look up
+        # the dataset. Bind it through a closure so the template environment
+        # only needs to provide the dataset name and optional location qualifiers.
+        def get_dataset_id_with_context(
+            dataset_name: str,
+            schema: str | type[_Unset] | None = _Unset,
+            catalog: str | type[_Unset] | None = _Unset,
+        ) -> int:
+            return get_dataset_id_macro(
+                database=self._database,
+                dataset_name=dataset_name,
+                schema=schema,
+                catalog=catalog,
+            )
+
+        self._context["get_dataset_id"] = partial(
+            safe_proxy, get_dataset_id_with_context
+        )
+
 
 class NoOpTemplateProcessor(BaseTemplateProcessor):
     def process_template(self, sql: str, **kwargs: Any) -> str:
@@ -1508,12 +1531,16 @@ def dataset_macro(
     dataset_id: int,
     include_metrics: bool = False,
     columns: list[str] | None = None,
+    alias: str | None = None,
 ) -> str:
     """
     Given a dataset ID, return the SQL that represents it.
 
     The generated SQL includes all columns (including computed) by default. Optionally
     the user can also request metrics to be included, and columns to group by.
+
+    The ``alias`` parameter allows the user to specify an explicit alias for the
+    returned subquery.
     """
     # pylint: disable=import-outside-toplevel
     from superset.daos.dataset import DatasetDAO
@@ -1534,7 +1561,13 @@ def dataset_macro(
     }
     sqla_query = dataset.get_query_str_extended(query_obj, mutate=False)
     sql = sqla_query.sql
-    return f"(\n{sql}\n) AS dataset_{dataset_id}"
+
+    if alias:
+        safe_alias = dataset.database.quote_identifier(alias)
+    else:
+        safe_alias = f"dataset_{dataset.id}"
+
+    return f"(\n{sql}\n) AS {safe_alias}"
 
 
 def get_dataset_id_from_context(metric_key: str) -> int:
@@ -1663,3 +1696,54 @@ def metric_macro(
     definition = template.render(context)
 
     return definition
+
+
+def get_dataset_id_macro(
+    database: Database,
+    dataset_name: str,
+    schema: str | type[_Unset] | None = _Unset,
+    catalog: str | type[_Unset] | None = _Unset,
+) -> int:
+    """
+    Given a dataset name and context criteria, return its internal ID.
+
+    The dataset is looked up based on its name, the current database, and optional
+    qualifiers like schema and catalog. If multiple datasets match or if no dataset
+    is found, an explicit error is raised to help disambiguate the context.
+    """
+    # pylint: disable=import-outside-toplevel
+    from sqlalchemy.orm.exc import MultipleResultsFound
+
+    from superset.daos.dataset import DatasetDAO
+
+    criteria = {
+        key: value
+        for key, value in {
+            "database_id": database.id,
+            "catalog": catalog,
+            "schema": schema,
+        }.items()
+        if value is not _Unset
+    }
+
+    def dump_criteria() -> str:
+        return ", ".join(f"{key}={value!r}" for key, value in criteria.items())
+
+    try:
+        dataset = DatasetDAO.get_table_by_catalog_schema_and_name(
+            table_name=dataset_name,
+            **criteria,
+        )
+    except MultipleResultsFound as ex:
+        raise DatasetInvalidError(
+            f"Multiple datasets named '{dataset_name}' match the"
+            f" criteria ({dump_criteria()}). Please add more qualifiers"
+            " (schema or catalog) to disambiguate."
+        ) from ex
+
+    if dataset is None:
+        raise DatasetNotFoundError(
+            f"No dataset named '{dataset_name}' match the criteria ({dump_criteria()})."
+        )
+
+    return dataset.id

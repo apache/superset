@@ -569,7 +569,7 @@ WHERE
   AND dttm < {{ time_filter.to_expr }}
 ```
 
-### Datasets
+### Datasets {#datasets}
 
 It's possible to query physical and virtual datasets using the `dataset` macro. This is useful if you've defined computed columns and metrics on your datasets, and want to reuse the definition in adhoc SQL Lab queries.
 
@@ -593,7 +593,13 @@ Since metrics are aggregations, the resulting SQL expression will be grouped by 
 SELECT * FROM {{ dataset(42, include_metrics=True, columns=["ds", "category"]) }} LIMIT 10
 ```
 
-### Metrics
+You can also force an alias for the returned subquery:
+
+```sql
+SELECT a.* FROM {{ dataset(42, alias="a") }} LIMIT 10
+```
+
+### Metrics {#metrics}
 
 The `{{ metric('metric_key', dataset_id) }}` macro can be used to retrieve the metric SQL syntax from a dataset. This can be useful for different purposes:
 
@@ -606,6 +612,34 @@ This macro avoids copy/paste, allowing users to centralize the metric definition
 
 The `dataset_id` parameter is optional, and if not provided Superset will use the current dataset from context (for example, when using this macro in the Chart Builder, by default the `macro_key` will be searched in the dataset powering the chart).
 The parameter can be used in SQL Lab, or when fetching a metric from another dataset.
+
+### Get Dataset ID
+
+If you don't want to hardcode a dataset ID or look it up manually in the interface, you can resolve it dynamically by its name using the `get_dataset_id` macro.
+
+This macro queries the internal metadata to find the correct ID based on the current database context. To use it, simply pass the name of your dataset:
+
+```sql
+SELECT {{ get_dataset_id('my_dataset') }}
+```
+
+The macro uses the active database context. If multiple datasets share the same name across different schemas or catalogs, you can pass optional qualifiers to disambiguate the search:
+
+```sql
+SELECT {{ get_dataset_id('my_dataset', catalog=None, schema="my_schema") }}
+```
+
+This macro integrates seamlessly with other macros like [dataset](#datasets) or [metric](#metrics):
+
+```sql
+SELECT {{ dataset(get_dataset_id('my_dataset')) }}
+```
+
+```sql
+SELECT {{ metric('metric_key', get_dataset_id('my_dataset')) }}
+```
+
+Note: If the macro cannot find any dataset matching the criteria, or if it finds multiple matching datasets, a template execution error will be raised.
 
 ## Available Filters
 

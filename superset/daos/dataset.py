@@ -43,6 +43,7 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.sql.parse import SQLScript, Table
+from superset.utils.class_utils import _Unset
 from superset.utils.core import DatasourceType
 from superset.views.base import DatasourceFilter
 
@@ -931,23 +932,38 @@ class DatasetDAO(BaseDAO[SqlaTable]):
     @staticmethod
     def get_table_by_catalog_schema_and_name(
         database_id: int,
-        schema: str | None,
         table_name: str,
-        catalog: str | None = None,
+        schema: str | type[_Unset] | None = _Unset,
+        catalog: str | type[_Unset] | None = _Unset,
+        skip_base_filter: bool = False,
     ) -> SqlaTable | None:
-        # Filter by the full ``(database_id, catalog, schema, table_name)``
-        # uniqueness key so callers can disambiguate datasets that share a
-        # ``table_name`` across schemas or catalogs (#30377).
-        return (
-            db.session.query(SqlaTable)
-            .filter_by(
-                database_id=database_id,
-                catalog=catalog,
-                schema=schema,
-                table_name=table_name,
-            )
-            .one_or_none()
+        # Filter by ``database_id`` and ``table_name`` as well as any additional
+        # identification attributes provided (``catalog`` or ``schema``).
+        # The full identification tuple, using ``database_id`` with ``catalog``
+        # and ``schema``, can be used to disambiguate datasets sharing the same
+        # ``table_name`` (#30377), whilec partial criteria may match multiple
+        # datasets (#35662).
+        query = db.session.query(SqlaTable).filter(
+            SqlaTable.database_id == database_id,
+            SqlaTable.table_name == table_name,
         )
+        query = DatasetDAO._apply_base_filter(query, skip_base_filter)
+
+        if catalog is not _Unset:
+            query = query.filter(
+                SqlaTable.catalog.is_(None)
+                if catalog is None
+                else SqlaTable.catalog == catalog
+            )
+
+        if schema is not _Unset:
+            query = query.filter(
+                SqlaTable.schema.is_(None)
+                if schema is None
+                else SqlaTable.schema == schema
+            )
+
+        return query.one_or_none()
 
     @classmethod
     def get_filterable_columns_and_operators(cls) -> Dict[str, List[str]]:
