@@ -175,7 +175,7 @@ dremio = ["sqlalchemy-dremio>=3.0.5, <4"]
 # 1.1.10 already supports SQLAlchemy 2.0 (added `import_dbapi` in 1.1.7).
 drill = ["sqlalchemy-drill>=1.1.10, <3"]
 druid = ["pydruid>=0.6.5,<0.7"]
-duckdb = ["duckdb>=1.5.6,<2", "duckdb-engine>=0.17.0"]
+duckdb = ["duckdb>=1.5.6,<3", "duckdb-engine>=0.17.0"]
 dynamodb = ["pydynamodb>=0.8.2"]
 # Effectively unmaintained (only dependabot bumps since 2024); hard-pinned to
 # SQLAlchemy ~1.4.7 upstream, no SQLAlchemy 2.0 work. See
@@ -246,8 +246,10 @@ mariadb = ["apache-superset[mysql]"]
 monetdb = ["sqlalchemy-monetdb>=2.1.0, <3", "pymonetdb>=1.9.1, <2"]
 mongodb = ["pymongosql>=0.7.4, <1"]
 mssql = ["pymssql>=2.4.2, <3"]
-# motherduck is an alias for duckdb - MotherDuck works via the duckdb driver
-motherduck = ["apache-superset[duckdb]"]
+# motherduck is an alias for duckdb - MotherDuck works via the duckdb driver.
+# MotherDuck does not support DuckDB 2.x clients yet (max 1.5.6, see
+# https://motherduck.com/docs/duckdb-versions.json), so keep it on <2.
+motherduck = ["apache-superset[duckdb]", "duckdb<2"]
 mysql = ["mysqlclient>=2.3.0, <3"]
 ocient = [
     # Closed-source vendor package with no public changelog; permissive
