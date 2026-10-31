@@ -49,6 +49,65 @@ logger = logging.getLogger(__name__)
 #: ``withdraw`` and ``discard`` on ``can_write``.
 APPROVAL_PERMISSION = ("can_approve", "ChangeRequest")
 
+#: Config key naming the roles whose members are service accounts. Superset
+#: has no notion of a machine user, so the instance names one: whichever role
+#: it puts its service accounts in. Empty by default, which is the behaviour
+#: this had before (SOW 5.4, S-07).
+MACHINE_USER_ROLES_CONFIG = "ASSET_APPROVAL_MACHINE_USER_ROLES"
+
+
+def machine_user_roles() -> set[str]:
+    """Role names whose members may never approve anything."""
+    from flask import current_app  # pylint: disable=import-outside-toplevel
+
+    try:
+        configured = current_app.config.get(MACHINE_USER_ROLES_CONFIG) or []
+    except RuntimeError:
+        # No application context: a CLI or a worker that never reaches an
+        # approval anyway. Treat it as unconfigured rather than failing.
+        return set()
+    return {str(name).strip() for name in configured if str(name).strip()}
+
+
+def is_eligible_approver(user: Any) -> bool:
+    """Whether this account may ever be an approver, whatever the asset.
+
+    Two properties of the account itself: it has to be active, and it must
+    not be a service account.
+
+    Shared by the list the request dialog shows and the check the approve
+    route makes, which used to disagree. ``active`` was filtered out of the
+    list and not out of the check, so a deactivated editor never appeared as
+    an option yet could still approve through the API (S-07).
+    """
+    # A null column is not active; see ``only_eligible_accounts``.
+    if not getattr(user, "active", True):
+        return False
+    machine_roles = machine_user_roles()
+    if not machine_roles:
+        return True
+    return not any(
+        role.name in machine_roles for role in getattr(user, "roles", []) or []
+    )
+
+
+def load_user(user_id: int) -> Any | None:
+    """The user, from the request where that is who is asking.
+
+    ``can_approve`` is called for the current user on every path today, so
+    the common case costs nothing. It still takes a user id rather than a
+    user, because the question "could this person approve" is also asked
+    about other people.
+    """
+    from superset.extensions import (  # pylint: disable=import-outside-toplevel
+        security_manager,
+    )
+
+    user = security_manager.current_user
+    if user is not None and getattr(user, "id", None) == user_id:
+        return user
+    return security_manager.get_user_by_id(user_id)
+
 
 def holds_approval_permission(user_id: int) -> bool:
     """Whether this user's roles carry the approval right at all.
@@ -74,9 +133,7 @@ def holds_approval_permission(user_id: int) -> bool:
     role_ids = {role.id for role in pvm.role}
     if not role_ids:
         return False
-    user = security_manager.current_user
-    if user is None or getattr(user, "id", None) != user_id:
-        user = security_manager.get_user_by_id(user_id)
+    user = load_user(user_id)
     if user is None:
         return False
     return bool(role_ids & {role.id for role in user.roles})
@@ -123,8 +180,12 @@ def can_approve(
     # checked before anything else and is not overridable.
     if change_request.author_fk == user_id:
         return False
-    # Then the approval right, which is coarser than editorship and is the
-    # operator's to grant (S-05).
+    # Then what is true of the account itself, whatever the asset: active,
+    # not a service account (S-07), and holding the approval right the
+    # operator granted (S-05).
+    user = load_user(user_id)
+    if user is None or not is_eligible_approver(user):
+        return False
     if not holds_approval_permission(user_id):
         return False
     return is_strict_editor(model, user_id)
@@ -169,7 +230,25 @@ def eligible_approvers(model: Any, exclude_user_id: int | None = None) -> list[U
     query = db.session.query(User).filter(or_(*clauses))
     if exclude_user_id is not None:
         query = query.filter(User.id != exclude_user_id)
-    return [u for u in query.all() if getattr(u, "active", True)]
+    return only_eligible_accounts(query).all()
+
+
+def only_eligible_accounts(query: Any) -> Any:
+    """:func:`is_eligible_approver` as a filter on a ``User`` query.
+
+    The same two conditions, expressed in SQL so the work happens in the
+    database and so the list and the check cannot answer differently.
+
+    A ``NULL`` ``active`` is not active. FAB writes the column when it
+    creates an account, so a null is a row that came from somewhere else,
+    and an approval right is the wrong place to guess in the account's
+    favour. It is also what the Python predicate already said.
+    """
+    query = query.filter(User.active.is_(True))
+    machine_roles = machine_user_roles()
+    if machine_roles:
+        query = query.filter(~User.roles.any(Role.name.in_(machine_roles)))
+    return query
 
 
 def id_in_groups(group_ids: set[int]) -> Any:

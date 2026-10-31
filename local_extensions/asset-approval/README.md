@@ -22,6 +22,31 @@ Three conditions, all required. None of them can be bought back by another.
    approve a change to it.
 3. **The approval permission**, `can_approve` on `ChangeRequest`.
 
+The account itself also has to be one a person uses. It must be **active**,
+and it must not be a **service account**.
+
+### How a machine user is identified
+
+Superset has no notion of a machine user, so the instance names one:
+
+```python
+ASSET_APPROVAL_MACHINE_USER_ROLES = ["Service accounts"]
+```
+
+Members of those roles are never listed as possible approvers and are
+refused if they try. The setting is empty by default, which is the behaviour
+this had before (S-07).
+
+A `NULL` in `ab_user.active` counts as not active. FAB writes that column
+when it creates an account, so a null is a row that came from a direct write
+or an older schema, and an approval right is the wrong place to read a null
+in the account's favour.
+
+The list the request dialog shows and the check the approve route makes read
+one predicate. They used to disagree: `active` was filtered out of the list
+and not out of the check, so a deactivated editor never appeared as an option
+yet could still approve through the API.
+
 ### How the approval right is identified
 
 The right is a FAB permission like any other, created from the REST API's
