@@ -43,15 +43,6 @@ assists people when migrating to a new version.
   on another engine has to add a predicate on the partition column to the
   affected charts, or opt that engine spec in.
 
-- Refreshing a dataset's columns from its source -- the "Sync columns from
-  source" button, and a `PUT /api/v1/dataset/<id>?override_columns=true` --
-  no longer resets **Is dimension** and **Is filterable** on columns that
-  already exist. Those two flags were set unconditionally on every column the
-  source reported, so a save that synced columns reverted whatever the dataset
-  owner had chosen for them. A newly discovered column still arrives with both
-  enabled. A deployment that relied on a resync to restore those defaults has
-  to set them explicitly.
-
 - With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
   using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and
   `CACHE_REDIS_USER`. Previously they always ran on DB 0 and without the ACL user.
