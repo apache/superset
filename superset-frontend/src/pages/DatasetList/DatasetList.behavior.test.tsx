@@ -121,6 +121,57 @@ test('single semantic view delete displays the counted dependency conflict', asy
   ).toHaveValue('');
 });
 
+test('single semantic view delete names its blockers, including archived ones', async () => {
+  const view = {
+    ...mockDatasets[0],
+    id: 99,
+    table_name: 'orders_semantic',
+    kind: 'semantic_view',
+  };
+  mockDatasetListEndpoints({ result: [view], count: 1 });
+  fetchMock.delete('glob:*/api/v1/semantic_view/99', {
+    status: 409,
+    body: {
+      message: 'blocked',
+      total: 6,
+      archived_count: 1,
+      inaccessible_count: 2,
+      dependents: [
+        { type: 'chart', id: 7, name: 'Revenue chart', archived: false },
+        { type: 'dashboard', id: 8, name: 'Old board', archived: true },
+        { type: 'dashboard', id: 9, name: 'Live board', archived: false },
+      ],
+    },
+  });
+  renderDatasetList(mockAdminUser, {
+    addDangerToast: jest.fn(),
+    addSuccessToast: jest.fn(),
+  });
+  await screen.findByText(view.table_name);
+  await userEvent.click(screen.getByTestId('dataset-row-delete'));
+  const modal = await screen.findByRole('dialog');
+  await userEvent.type(
+    within(modal).getByTestId('delete-modal-input'),
+    'DELETE',
+  );
+  await userEvent.click(within(modal).getByRole('button', { name: 'Delete' }));
+  const alert = await within(modal).findByRole('alert');
+  expect(
+    within(alert).getByRole('link', { name: 'Revenue chart' }),
+  ).toHaveAttribute('href', '/explore/?slice_id=7');
+  expect(alert).toHaveTextContent('Old board (archived dashboard)');
+  expect(
+    within(alert).getByRole('link', { name: 'Live board' }),
+  ).toHaveAttribute('href', '/dashboard/9/');
+  expect(
+    within(alert).queryByRole('link', { name: 'Old board' }),
+  ).not.toBeInTheDocument();
+  expect(alert).toHaveTextContent('and 1 more');
+  expect(alert).toHaveTextContent(
+    "2 dependent assets are ones you can't see. Ask an admin for help.",
+  );
+});
+
 test('mixed bulk delete names refused semantic views and their conflict reason', async () => {
   const dataset = mockDatasets[0];
   const semanticView = {

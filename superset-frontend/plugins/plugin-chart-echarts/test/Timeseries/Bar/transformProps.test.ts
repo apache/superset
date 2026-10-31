@@ -99,7 +99,8 @@ test('manual Bar value label position flows through transformProps', () => {
   const [series] = echartOptions.series as BarSeriesOption[];
 
   expect(series.label).toMatchObject({ position: 'top' });
-  expect(typeof series.labelLayout).toBe('function');
+  // Non-stacked bars don't get the stacked-segment legibility floor.
+  expect(series.labelLayout).toBeUndefined();
   expect(echartOptions.darkMode).toBeUndefined();
 });
 
@@ -162,7 +163,7 @@ test('legacy Bar labels without a saved position keep their pre-existing Outside
   const [series] = echartOptions.series as BarSeriesOption[];
 
   expect(series.label).toMatchObject({ position: 'top' });
-  expect(typeof series.labelLayout).toBe('function');
+  expect(series.labelLayout).toBeUndefined();
 
   Reflect.set(chartProps.formData, 'valueLabelPosition', undefined);
   const undefinedPositionOptions = transformProps(chartProps).echartOptions;
@@ -170,7 +171,7 @@ test('legacy Bar labels without a saved position keep their pre-existing Outside
     undefinedPositionOptions.series as BarSeriesOption[];
 
   expect(undefinedPositionSeries.label).toMatchObject({ position: 'top' });
-  expect(typeof undefinedPositionSeries.labelLayout).toBe('function');
+  expect(undefinedPositionSeries.labelLayout).toBeUndefined();
 });
 
 describe('Bar Chart X-axis Time Formatting', () => {
