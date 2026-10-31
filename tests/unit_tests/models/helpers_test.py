@@ -3527,6 +3527,47 @@ def test_calculated_column_series_limit_join_on_is_parenthesized(
     )
 
 
+def test_series_limit_others_with_shortened_series_label(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    """
+    "Group remaining as Others" finds the series column of the limit subquery
+    when the engine shortens its label, as Oracle before 12.2 does past 30 bytes.
+    """
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    column_name = "c" * 29
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name=column_name, type="INTEGER")],
+        metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
+    )
+    mocker.patch.object(
+        table.db_engine_spec,
+        "make_label_compatible",
+        side_effect=lambda label, _database=None: (
+            f"short_{len(label)}" if len(label) > 30 else label
+        ),
+    )
+
+    sqla_query = table.get_sqla_query(
+        groupby=[column_name],
+        metrics=["count"],
+        series_columns=[column_name],
+        series_limit=10,
+        group_others_when_limit_reached=True,
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    assert "AS short_31" in sql
+    assert "series_limit.short_31 IS NOT NULL" in sql
+
+
 def test_calculated_column_top_groups_predicate_is_parenthesized(
     database: Database,
 ) -> None:

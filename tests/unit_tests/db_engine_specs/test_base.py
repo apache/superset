@@ -2057,3 +2057,30 @@ def test_expand_nested_columns_default_returns_input() -> None:
     ]
 
     assert BaseEngineSpec.expand_nested_columns(object(), columns) is columns
+
+
+def test_make_label_compatible_with_database(mocker: MockerFixture) -> None:
+    """
+    The database's maximum column name length decides when a label is hashed.
+    """
+
+    class ShortLabelsEngineSpec(BaseEngineSpec):
+        max_column_name_length = 10
+
+    database = mocker.MagicMock()
+    assert BaseEngineSpec.get_max_column_name_length(database) is None
+    assert ShortLabelsEngineSpec.get_max_column_name_length(database) == 10
+
+    assert ShortLabelsEngineSpec.make_label_compatible("short", database) == "short"
+    assert (
+        ShortLabelsEngineSpec.make_label_compatible("a longer label", database)
+        == "63a949e13b"
+    )
+
+    mocker.patch.object(
+        ShortLabelsEngineSpec, "get_max_column_name_length", return_value=None
+    )
+    assert (
+        ShortLabelsEngineSpec.make_label_compatible("a longer label", database)
+        == "a longer label"
+    )

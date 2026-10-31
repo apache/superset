@@ -1211,6 +1211,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return cls.limit_method
 
     @classmethod
+    def get_max_column_name_length(
+        cls,
+        database: Database,  # pylint: disable=unused-argument
+    ) -> int | None:
+        """
+        Method for dynamic `max_column_name_length`.
+
+        In Oracle the identifier length limit is version-dependent, so Superset needs
+        to inspect the database configuration in order to determine it. This method
+        allows engine-specs to define dynamic values for the attribute.
+        """
+        return cls.max_column_name_length
+
+    @classmethod
     def supports_url(cls, url: URL) -> bool:
         """
         Returns true if the DB engine spec supports a given SQLAlchemy URL.
@@ -2693,7 +2707,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return g and hasattr(g, "user") and isinstance(ex, cls.oauth2_exception)
 
     @classmethod
-    def make_label_compatible(cls, label: str) -> str | quoted_name:
+    def make_label_compatible(
+        cls,
+        label: str,
+        database: Database | None = None,
+    ) -> str | quoted_name:
         """
         Conditionally mutate and/or quote a sqlalchemy expression label. If
         force_column_alias_quotes is set to True, return the label as a
@@ -2703,14 +2721,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         generate a truncated label by calling truncate_label().
 
         :param label: expected expression label/alias
+        :param database: database the label is for, to read a version-dependent
+            maximum column name length
         :return: conditionally mutated label supported by the db engine
         """
         label_mutated = cls._mutate_label(label)
-        if (
+        max_length = (
             cls.max_column_name_length
-            and len(label_mutated) > cls.max_column_name_length
-        ):
-            label_mutated = cls._truncate_label(label)
+            if database is None
+            else cls.get_max_column_name_length(database)
+        )
+        if max_length and cls._label_length(label_mutated) > max_length:
+            label_mutated = cls._truncate_label(label)[:max_length]
         if cls.force_column_alias_quotes:
             label_mutated = quoted_name(label_mutated, True)
         return label_mutated
@@ -2742,6 +2764,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 return sqla_type(match), generic_type
             return sqla_type, generic_type
         return None
+
+    @staticmethod
+    def _label_length(label: str) -> int:
+        """
+        Return the length of a label in the unit `max_column_name_length` counts.
+
+        Most engines count characters. Engines that limit identifiers in bytes can
+        override this method.
+        """
+        return len(label)
 
     @staticmethod
     def _mutate_label(label: str) -> str:
