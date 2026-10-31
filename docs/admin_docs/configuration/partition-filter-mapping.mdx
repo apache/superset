@@ -295,8 +295,11 @@ Limits:
 - Removing the mirror cannot rescue a query that itself selects the missing column; the
   warehouse's error is shown. This includes Samples and Drill to detail, which select every
   column of the dataset, and any chart or table that uses the column.
-- The pruning indicator in the dataset editor and on filters stays on, because it reads the
-  stored column list rather than the warehouse.
+- The pruning indicator in the dataset editor and on filters, and **View query**, keep showing
+  the mirrored predicate after a fallback. The indicator reads the stored column list rather
+  than the warehouse. **View query** shows the statement Superset would send first, not the
+  unpruned one that ran; it does not execute the main chart statement, but building it can run
+  transform probes and ranking queries.
 
 Run **Sync columns from source** on the dataset to fix this properly. The sync clears the
 mapping when its partition column no longer exists, and the dataset editor says so.
