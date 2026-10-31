@@ -172,6 +172,9 @@ export const useChartsVerboseMaps = () =>
     chartsVerboseMapSelector,
   );
 
+const hasFilterValue = (value: unknown): boolean =>
+  value !== undefined && value !== null;
+
 /**
  * Determines which filters should be applied when the Apply button is clicked.
  */
@@ -184,14 +187,45 @@ export const getFiltersToApply = (
       if (!dataMask) return false;
 
       const isInScope = inScopeFilterIds.has(filterId);
-      const hasValue =
-        dataMask.filterState?.value !== undefined &&
-        dataMask.filterState?.value !== null;
+      const hasValue = hasFilterValue(dataMask.filterState?.value);
 
       // Apply if in-scope OR if out-of-scope with a value
       return isInScope || hasValue;
     })
     .map(([filterId]) => filterId);
+
+export type AppliedFilterLogEntry = {
+  id: string;
+  name?: string;
+  hasValue: boolean;
+};
+
+/**
+ * Build the `change_dashboard_filter` payload for filters about to be applied.
+ *
+ * Records the filter id, display name, and whether a value is selected. The
+ * selected value itself is omitted because filter values can contain personal
+ * data and this event is written to the logs table.
+ */
+export const getAppliedFilterLogPayload = (
+  filterIds: string[],
+  filtersById: Record<string, { name?: string } | undefined>,
+  dataMaskSelected: DataMaskStateWithId,
+): AppliedFilterLogEntry[] =>
+  filterIds.flatMap(filterId => {
+    const filter = filtersById[filterId];
+    if (!filter) {
+      return [];
+    }
+    const value = dataMaskSelected[filterId]?.filterState?.value;
+    return [
+      {
+        id: filterId,
+        name: filter.name,
+        hasValue: hasFilterValue(value),
+      },
+    ];
+  });
 
 export const FILTER_BAR_TEST_ID = 'filter-bar';
 export const getFilterBarTestId = testWithId(FILTER_BAR_TEST_ID);

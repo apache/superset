@@ -45,7 +45,7 @@ from superset.extensions import cache_manager
 from superset.extensions.metastore_cache import SupersetMetastoreCache
 from superset.reports.schemas import SlackChannelSchema
 from superset.utils.backports import StrEnum
-from superset.utils.core import recipients_string_to_list
+from superset.utils.core import recipients_string_to_list, remove_duplicates
 
 logger = logging.getLogger(__name__)
 
@@ -158,7 +158,7 @@ NO_SLACK_RECIPIENTS_MESSAGE = "No recipients saved in the report"
 
 def parse_slack_recipient_targets(target: str) -> list[str]:
     """Parse Slack targets, removing duplicates while preserving their order."""
-    return list(dict.fromkeys(recipients_string_to_list(target)))
+    return remove_duplicates(recipients_string_to_list(target))
 
 
 def get_slack_api_error_data(ex: SlackApiError) -> dict[str, Any]:
