@@ -833,21 +833,17 @@ for results, and propagates asynchronous database errors. If an operation is sti
 pending when result fetching begins, the additional polling wait is bounded by
 `SQLLAB_TIMEOUT` (in seconds); on expiry, Superset requests cancellation and reports
 a timeout. Configure the driver's network timeout separately to bound individual
-RPC calls. SQL Lab time limits that fire while polling Impala status or logs, or
-while fetching rows, also request cancellation before the timeout propagates,
-including after execution has finished. A time limit can interrupt an RPC
-partway through its response, so before cancelling, Superset closes the impyla
-Thrift connection, empties the read and write buffers of its transport layers
-(buffered, SASL and HTTP), and opens a new connection; the cancellation RPC then
-reads only its own response. Superset then releases the operation and cursor
-handles, also when Impala rejects the cancellation. If the transport cannot be
-reset, or a cleanup RPC fails before reading its whole response (for example on
-a dropped connection or a second time limit), a warning is logged and no
-further cancellation or cursor cleanup RPC is sent; when its transport layers
-are recognised, the connection is also closed with its buffers emptied. The
-operation is then left to Impala's own query and session timeouts. These failures do not hide the timeout. For Hive, a time
-limit while polling or fetching closes the PyHive connection without sending
-cleanup RPCs on it.
+RPC calls. A signal-based SQL Lab time limit can interrupt any HiveServer2
+response, including execution, lazy result metadata, status, logs, rows, or
+cleanup. Superset abandons the affected Impala or Hive cursor and connection
+before driver exception handlers run: subsequent cancellation, close, and
+finalizer calls send no RPCs on that transport. The socket is dropped locally;
+cleanup failures are logged without replacing the original time-limit exception.
+No reconnect or cancellation is attempted after a signal-based limit. Configure
+server-side query and session timeouts to release an abandoned operation.
+The local Impala polling deadline and an explicit Stop still request cancellation
+when the transport has not been interrupted; an incomplete cleanup reply also
+abandons the transport rather than attempting another cleanup RPC.
 
 ## SQL Lab Query History Pruning
 

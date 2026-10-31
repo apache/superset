@@ -21,6 +21,7 @@ import os
 import re
 import tempfile
 import time
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any, TYPE_CHECKING
 from urllib import parse
@@ -50,6 +51,12 @@ from superset.extensions import cache_manager
 from superset.models.sql_lab import Query
 from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType
+from superset.utils.hive import (
+    guard_cursor,
+    guard_cursor_factory,
+    real_cursor,
+    ThriftClientGuard,
+)
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -197,44 +204,61 @@ class HiveEngineSpec(PrestoEngineSpec):
         hive.ttypes = patched_ttypes
 
     @classmethod
+    @guard_cursor
     def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
         # pylint: disable=import-outside-toplevel
         import pyhive
         from TCLIService import ttypes
 
+        state = cursor.poll()
+        if state.operationState == ttypes.TOperationState.ERROR_STATE:
+            raise Exception(  # pylint: disable=broad-exception-raised
+                "Query error", state.errorMessage
+            )
         try:
-            state = cursor.poll()
-            if state.operationState == ttypes.TOperationState.ERROR_STATE:
-                raise Exception(  # pylint: disable=broad-exception-raised
-                    "Query error", state.errorMessage
-                )
-            try:
-                return super().fetch_data(cursor, limit)
-            except pyhive.exc.ProgrammingError:
-                return []
-        except TIME_LIMIT_EXCEPTIONS:
-            cls._abandon_cursor(cursor)
-            raise
+            return super().fetch_data(cursor, limit)
+        except pyhive.exc.ProgrammingError:
+            return []
+
+    @classmethod
+    def prepare_connection(cls, connection: Any) -> None:
+        """Guard every RPC on the PyHive connection's shared Thrift client."""
+        if not isinstance(connection._client, ThriftClientGuard):  # pylint: disable=protected-access
+            connection._client = ThriftClientGuard(connection._client)  # pylint: disable=protected-access
+        connection._client.register(connection, cls._abandon_connection)  # pylint: disable=protected-access
+        guard_cursor_factory(connection, cls.prepare_cursor)
+
+    @classmethod
+    def prepare_cursor(cls, cursor: Any) -> Callable[[BaseException], None] | None:
+        """Register real cursor cleanup before executing any driver call."""
+        cursor = real_cursor(cursor)
+        connection = cursor._connection  # pylint: disable=protected-access
+        cls.prepare_connection(connection)
+        connection._client.register(cursor, cls._abandon_cursor)  # pylint: disable=protected-access
+        return connection._client.abandon  # pylint: disable=protected-access
 
     @staticmethod
-    def _abandon_cursor(cursor: Any) -> None:
-        """
-        Send no further RPC on a transport that may hold an unread reply.
+    def _abandon_connection(connection: Any) -> None:
+        """Replace CloseSession with a best-effort local transport drop."""
+        if getattr(connection, "_superset_abandoned", False) is True:
+            return
+        connection._superset_abandoned = True  # pylint: disable=protected-access
 
-        A time limit raised by a signal can land partway through a reply, and
-        pyhive would read the next reply from the unread rest of it. The
-        cursor's ``close()`` sends CloseOperation only for a live handle.
-        PyHive's connection close unconditionally sends CloseSession, so replace
-        it with a local transport close before attempting to drop the socket.
-        This also prevents RPCs if dropping the socket is itself interrupted.
-        """
+        def close() -> None:
+            try:
+                connection._transport.close()  # pylint: disable=protected-access
+            except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
+                logger.warning("Closing the transport after a time limit failed")
+
+        connection.close = close
+        close()
+
+    @classmethod
+    def _abandon_cursor(cls, cursor: Any) -> None:
+        """Disable cursor and connection RPC cleanup before dropping the socket."""
+        cursor = real_cursor(cursor)
         cursor._operationHandle = None  # pylint: disable=protected-access
-        connection = cursor._connection  # pylint: disable=protected-access
-        connection.close = connection._transport.close  # pylint: disable=protected-access
-        try:
-            connection.close()
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Closing the transport after a time limit failed")
+        cls._abandon_connection(cursor._connection)  # pylint: disable=protected-access
 
     @classmethod
     def df_to_sql(
@@ -457,13 +481,10 @@ class HiveEngineSpec(PrestoEngineSpec):
         return None
 
     @classmethod
+    @guard_cursor
     def handle_cursor(cls, cursor: Any, query: Query) -> None:
         """Updates progress information"""
-        try:
-            cls._poll_cursor(cursor, query)
-        except TIME_LIMIT_EXCEPTIONS:
-            cls._abandon_cursor(cursor)
-            raise
+        cls._poll_cursor(cursor, query)
 
     @classmethod
     def _poll_cursor(  # pylint: disable=too-many-locals  # noqa: C901
@@ -497,7 +518,7 @@ class HiveEngineSpec(PrestoEngineSpec):
                 log = "\n".join(logs) if logs else ""
             except TIME_LIMIT_EXCEPTIONS:
                 raise
-            except Exception:  # pylint: disable=broad-except
+            except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
                 logger.warning("Call to GetLog() failed")
                 log = ""
 
@@ -567,7 +588,7 @@ class HiveEngineSpec(PrestoEngineSpec):
                 table,
                 show_first=True,
             )
-        except Exception:  # pylint: disable=broad-except
+        except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
             # table is not partitioned
             return None
         if values is not None and columns is not None:
@@ -668,14 +689,17 @@ class HiveEngineSpec(PrestoEngineSpec):
 
         return url, engine_kwargs
 
-    @staticmethod
-    def execute(  # type: ignore
-        cursor,
+    @classmethod
+    @guard_cursor
+    def execute(
+        cls,
+        cursor: Any,
         query: str,
         database: Database,
         async_: bool = False,
-    ):  # pylint: disable=arguments-differ
-        kwargs = {"async": async_}
+        **kwargs: Any,
+    ) -> None:
+        kwargs["async"] = async_
         cursor.execute(query, **kwargs)
 
     @classmethod

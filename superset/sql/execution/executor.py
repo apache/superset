@@ -72,6 +72,7 @@ from flask import current_app as app, g, has_app_context
 from flask_babel import gettext as __
 
 from superset import db
+from superset.db_engine_specs.base import TIME_LIMIT_EXCEPTIONS
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2Error,
@@ -239,6 +240,8 @@ class _LimitedCursor:
             return False
         try:
             return bool(db_engine_spec.fetch_data(_LimitedCursor(self._cursor, 1)))
+        except TIME_LIMIT_EXCEPTIONS:
+            raise
         except Exception:  # pylint: disable=broad-except
             logger.warning(
                 "Truncation probe failed; reporting the result as partial",
@@ -920,6 +923,7 @@ class SQLExecutor:
 
                 with (
                     contextlib.closing(conn.cursor()) as cursor,
+                    self.database.db_engine_spec.cursor_context(cursor),
                     cancellable_cursor(self.database, cursor, catalog, schema),
                 ):
                     return execute_sql_with_cursor(
@@ -1646,6 +1650,7 @@ class SQLExecutor:
             source=QuerySource.SQL_LAB,
         ) as engine:
             with contextlib.closing(engine.raw_connection()) as conn:
+                database.db_engine_spec.prepare_connection(conn.dbapi_connection)
                 with contextlib.closing(conn.cursor()) as cursor:
                     return database.db_engine_spec.cancel_query(
                         cursor, query, cancel_query_id

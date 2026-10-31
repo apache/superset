@@ -25,7 +25,6 @@ client's buffers.
 
 from __future__ import annotations
 
-import logging
 import socket
 import struct
 import threading
@@ -287,7 +286,9 @@ def hs2_connection(
         thread.join(timeout=2)
 
 
-def _interrupt_replies(protocol: Any, interrupts: list[tuple[str, Exception]]) -> None:
+def _interrupt_replies(
+    protocol: Any, interrupts: list[tuple[str, BaseException]]
+) -> None:
     """
     Raise each exception once the header of the next matching reply is read.
 
@@ -306,7 +307,7 @@ def _interrupt_replies(protocol: Any, interrupts: list[tuple[str, Exception]]) -
     protocol.readMessageBegin = interrupted_read_message_begin
 
 
-def _interrupt_after_header(cursor: Any, reply: str, timeout: Exception) -> None:
+def _interrupt_after_header(cursor: Any, reply: str, timeout: BaseException) -> None:
     """Raise ``timeout`` once the header of the first ``reply`` has been read."""
     _interrupt_replies(cursor.session.service.client._iprot, [(reply, timeout)])
 
@@ -324,36 +325,12 @@ TIMEOUTS = [
 ]
 
 
-def _assert_cancelled_cleanly(
-    mode: str,
+def _assert_abandoned(
     handler: FakeHiveServer2,
     interrupted: str,
-    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    methods = [method for method, _, _ in handler.calls]
-    # A cancel that read leftover bytes as its reply blocks until the socket
-    # timeout, after which impyla sends it again on a reopened transport.
-    assert methods.count("CancelOperation") == 1, methods
-    cancel_index = methods.index("CancelOperation")
-    _, cancel_connection, cancel = handler.calls[cancel_index]
-    assert cancel.operationHandle.operationId.guid == OPERATION_GUID
-    assert "CloseOperation" in methods[cancel_index:], methods
-    interrupted_connection = max(
-        connection
-        for method, connection, _ in handler.calls[:cancel_index]
-        if method == interrupted
-    )
-    if mode != "http":
-        # The interrupted reply's connection is dropped, not reused.
-        assert cancel_connection > interrupted_connection
-    # Every cancellation RPC read its own reply.
-    failures = [
-        record.getMessage()
-        for record in caplog.records
-        if record.name == "superset.db_engine_specs.impala"
-        and record.levelno >= logging.WARNING
-    ]
-    assert failures == []
+    """The interrupted reply must be the last RPC, without reconnection."""
+    assert handler.requests[-1] == interrupted, handler.requests
 
 
 @pytest.mark.parametrize("timeout", TIMEOUTS)
@@ -366,7 +343,7 @@ def _assert_cancelled_cleanly(
     ids=["status", "get_log"],
 )
 @patch("superset.db_engine_specs.impala.time.sleep")
-def test_handle_cursor_cancels_on_a_clean_transport_after_interrupted_reply(
+def test_handle_cursor_abandons_after_interrupted_reply(
     sleep_mock: Mock,
     interrupted: str,
     state: int,
@@ -388,7 +365,7 @@ def test_handle_cursor_cancels_on_a_clean_transport_after_interrupted_reply(
             spec.handle_cursor(cursor, query)
 
     assert raised.value is timeout
-    _assert_cancelled_cleanly(mode, handler, interrupted, caplog)
+    _assert_abandoned(handler, interrupted)
 
 
 @pytest.mark.parametrize("timeout", TIMEOUTS)
@@ -400,7 +377,7 @@ def test_handle_cursor_cancels_on_a_clean_transport_after_interrupted_reply(
     ],
     ids=["status", "rows"],
 )
-def test_fetch_data_cancels_on_a_clean_transport_after_interrupted_reply(
+def test_fetch_data_abandons_after_interrupted_reply(
     interrupted: str,
     state: int,
     timeout: Exception,
@@ -419,7 +396,7 @@ def test_fetch_data_cancels_on_a_clean_transport_after_interrupted_reply(
         spec.fetch_data(cursor)
 
     assert raised.value is timeout
-    _assert_cancelled_cleanly(mode, handler, interrupted, caplog)
+    _assert_abandoned(handler, interrupted)
 
 
 @pytest.mark.parametrize(
@@ -503,8 +480,10 @@ def test_row_limited_fetch_sends_nothing_after_a_skipped_cancel(
                 # The first batch fills the budget, so the probe fetches again.
                 assert len(spec.fetch_data(limited)) == 500
                 _interrupt_after_header(cursor, "FetchResults", timeout)
-                # The probe reports a failed read as a possibly partial result.
-                assert limited.check_truncated(spec) is True
+                # A time limit must propagate, not become a partial result.
+                with pytest.raises(type(timeout)) as raised:
+                    limited.check_truncated(spec)
+                assert raised.value is timeout
     cursor.__del__()
 
     assert cursor._closed is True
@@ -544,7 +523,7 @@ SECOND_TIMEOUTS = [
     ],
 )
 @patch("superset.db_engine_specs.impala.time.sleep")
-def test_time_limit_during_cleanup_abandons_the_cursor(
+def test_time_limit_prevents_cleanup_rpcs_and_second_reply_timeout(
     sleep_mock: Mock,
     entry: str,
     interrupted: str,
@@ -587,7 +566,7 @@ def test_time_limit_during_cleanup_abandons_the_cursor(
 
     assert raised.value is timeout
     assert cursor._closed is True
-    assert handler.requests[-1] == cleanup_reply, handler.requests
+    assert handler.requests[-1] == interrupted, handler.requests
 
 
 @pytest.mark.parametrize(
@@ -662,3 +641,173 @@ def test_reset_transport_refuses_an_unknown_transport() -> None:
     assert spec._reset_transport(cursor) is False
     transport.close.assert_not_called()
     transport.open.assert_not_called()
+
+
+@pytest.mark.parametrize("timeout", TIMEOUTS)
+@pytest.mark.parametrize("interrupted", ["ExecuteStatement", "GetResultSetMetadata"])
+def test_execute_and_metadata_abandon_before_driver_cleanup(
+    interrupted: str,
+    timeout: Exception,
+    hs2_connection: tuple[str, FakeHiveServer2, Any],
+    app_context: None,
+) -> None:
+    """Every RPC, including lazy metadata, disables all subsequent cleanup RPCs."""
+    _, handler, conn = hs2_connection
+    cursor = conn.cursor()
+    if interrupted != "ExecuteStatement":
+        spec.execute(cursor, "SELECT 1", None)  # type: ignore[arg-type]
+    _interrupt_after_header(cursor, interrupted, timeout)
+
+    def run() -> None:
+        """Issue the driver call that will be interrupted."""
+        if interrupted == "ExecuteStatement":
+            spec.execute(cursor, "SELECT 1", None)  # type: ignore[arg-type]
+        else:
+            assert cursor.description
+
+    with pytest.raises(type(timeout)) as raised, closing(cursor):
+        run()
+    cursor.__del__()
+    conn.close()
+    assert raised.value is timeout
+    assert handler.requests[-1] == interrupted, handler.requests
+
+
+@pytest.mark.parametrize("timeout", TIMEOUTS)
+@pytest.mark.parametrize(
+    "cleanup_reply", ["CancelOperation", "CloseOperation", "CloseSession"]
+)
+def test_cleanup_rpc_timeout_abandons_before_driver_handlers(
+    cleanup_reply: str,
+    timeout: Exception,
+    hs2_connection: tuple[str, FakeHiveServer2, Any],
+    app_context: None,
+) -> None:
+    """A limit inside any cleanup reply must precede driver-internal cleanup."""
+    _, handler, conn = hs2_connection
+    cursor = conn.cursor()
+    cursor.execute_async("SELECT 1")
+    _interrupt_after_header(cursor, cleanup_reply, timeout)
+    query = Mock(id=1, extra={QUERY_EARLY_CANCEL_KEY: True}, progress=0)
+    with patch("superset.db_engine_specs.impala.db"):
+        with pytest.raises(type(timeout)) as raised, closing(cursor):
+            spec.handle_cursor(cursor, query)
+    cursor.__del__()
+    conn.close()
+    assert raised.value is timeout
+    assert handler.requests[-1] == cleanup_reply, handler.requests
+
+
+@pytest.mark.parametrize("timeout", TIMEOUTS)
+@pytest.mark.parametrize(
+    "drop_failure", [OSError("drop failed"), SoftTimeLimitExceeded("drop")]
+)
+def test_second_limit_during_local_drop_preserves_execute_timeout(
+    drop_failure: Exception,
+    timeout: Exception,
+    hs2_connection: tuple[str, FakeHiveServer2, Any],
+    app_context: None,
+) -> None:
+    """Even a second limit during local cleanup must not replace the first."""
+    _, handler, conn = hs2_connection
+    cursor = conn.cursor()
+    _interrupt_after_header(cursor, "ExecuteStatement", timeout)
+    transport = cursor.session.service.client._iprot.trans
+    close = transport.close
+    attempts = 0
+
+    def interrupted_close() -> None:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise drop_failure
+        close()
+
+    with patch.object(transport, "close", side_effect=interrupted_close):
+        with pytest.raises(type(timeout)) as raised, closing(cursor):
+            spec.execute(cursor, "SELECT 1", None)  # type: ignore[arg-type]
+        cursor.__del__()
+        conn.close()
+    assert raised.value is timeout
+    assert attempts >= 2
+    assert handler.requests[-1] == "ExecuteStatement", handler.requests
+
+
+@pytest.mark.parametrize("timeout", TIMEOUTS)
+def test_connection_factory_guards_open_session_and_raw_cursor_calls(
+    timeout: Exception,
+    hs2_connection: tuple[str, FakeHiveServer2, Any],
+    app_context: None,
+) -> None:
+    """The connection scope covers OpenSession before a cursor can be returned."""
+    _, handler, conn = hs2_connection
+    spec.prepare_connection(conn)
+    _interrupt_replies(conn.service.client._iprot, [("OpenSession", timeout)])
+    with pytest.raises(type(timeout)) as raised:
+        conn.cursor()
+    conn.close()
+    assert raised.value is timeout
+    assert handler.requests[-1] == "OpenSession", handler.requests
+
+
+def test_sigalrm_timeout_is_preserved_during_execute(
+    hs2_connection: tuple[str, FakeHiveServer2, Any], app_context: None
+) -> None:
+    """Exercise utils.timeout's actual signal handler while a reply is unread."""
+    import signal
+
+    from superset.utils import core as utils
+
+    _, handler, conn = hs2_connection
+    cursor = conn.cursor()
+    protocol = cursor.session.service.client._iprot
+    read = protocol.readMessageBegin
+    original: list[BaseException] = []
+
+    def interrupted_read() -> Any:
+        """Deliver SIGALRM after consuming the ExecuteStatement reply header."""
+        header = read()
+        if header[0] == "ExecuteStatement":
+            try:
+                signal.raise_signal(signal.SIGALRM)
+            except SupersetTimeoutException as ex:
+                original.append(ex)
+                raise
+        return header
+
+    protocol.readMessageBegin = interrupted_read
+
+    def run() -> None:
+        """Close the real cursor after leaving the active timeout context."""
+        with closing(cursor), utils.timeout(seconds=30):
+            spec.execute(cursor, "SELECT 1", None)  # type: ignore[arg-type]
+
+    with pytest.raises(SupersetTimeoutException) as raised:
+        run()
+    conn.close()
+    cursor.__del__()
+    assert raised.value is original[0]
+    assert handler.requests[-1] == "ExecuteStatement", handler.requests
+
+
+def test_timer_timeout_abandons_before_keyboard_interrupt_conversion(
+    hs2_connection: tuple[str, FakeHiveServer2, Any], app_context: None
+) -> None:
+    """Windows converts KeyboardInterrupt only after inner cursor cleanup."""
+    from superset.utils import core as utils
+
+    _, handler, conn = hs2_connection
+    cursor = conn.cursor()
+    interrupt = KeyboardInterrupt()
+    _interrupt_after_header(cursor, "ExecuteStatement", interrupt)
+
+    def run() -> None:
+        """Use the timer context without waiting for its background thread."""
+        with utils.TimerTimeout(seconds=30), closing(cursor):
+            spec.execute(cursor, "SELECT 1", None)  # type: ignore[arg-type]
+
+    with pytest.raises(SupersetTimeoutException, match="Timeout"):
+        run()
+    conn.close()
+    cursor.__del__()
+    assert handler.requests[-1] == "ExecuteStatement", handler.requests

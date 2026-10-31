@@ -201,3 +201,22 @@ def test_connection_close_sends_no_rpc_after_an_interrupted_reply(
 
     assert raised.value is timeout
     assert handler.requests[-1] == "GetOperationStatus", handler.requests
+
+
+@pytest.mark.parametrize("timeout", TIMEOUTS)
+def test_execute_abandons_before_cursor_and_connection_cleanup(
+    timeout: Exception,
+    hive_connection: tuple[Any, Any],
+    app_context: None,
+) -> None:
+    """An interrupted ExecuteStatement must not be followed by CloseSession."""
+    handler, conn = hive_connection
+    cursor = conn.cursor()
+    transport_tests._interrupt_replies(
+        conn._client._iprot, [("ExecuteStatement", timeout)]
+    )
+    with pytest.raises(type(timeout)) as raised, closing(cursor):
+        HiveEngineSpec.execute(cursor, "SELECT 1", None, async_=True)  # type: ignore[arg-type]
+    conn.close()
+    assert raised.value is timeout
+    assert handler.requests[-1] == "ExecuteStatement", handler.requests

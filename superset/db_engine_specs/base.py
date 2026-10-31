@@ -21,6 +21,8 @@ from __future__ import annotations
 import logging
 import re
 import warnings
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from inspect import signature
 from re import Match, Pattern
@@ -141,7 +143,13 @@ GenericDBException = Exception
 # The alarm is main-thread only: threaded synchronous requests are not covered
 # by this change. Each limit fires once, so swallowing it leaves the query running
 # with nothing left to stop it.
-TIME_LIMIT_EXCEPTIONS = (SoftTimeLimitExceeded, SupersetTimeoutException)
+# TimerTimeout raises KeyboardInterrupt inside its block on Windows and converts
+# it to SupersetTimeoutException on exit, after inner cursor cleanup has run.
+TIME_LIMIT_EXCEPTIONS = (
+    SoftTimeLimitExceeded,
+    SupersetTimeoutException,
+    KeyboardInterrupt,
+)
 
 
 def convert_inspector_columns(cols: list[SQLAColumnType]) -> list[ResultSetColumnType]:
@@ -2070,6 +2078,37 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         The flow works without this method doing anything, but it allows
         for handling the cursor and updating progress information in the
         query object"""
+
+    @classmethod
+    def prepare_connection(cls, connection: Any) -> None:
+        """Install driver-specific safeguards before creating a cursor."""
+
+    @classmethod
+    def prepare_cursor(cls, cursor: Any) -> Callable[[BaseException], None] | None:
+        """Install safeguards and return the driver's timeout-abandon callback."""
+        return None
+
+    @classmethod
+    def _abandon_cursor(cls, cursor: Any) -> None:
+        """Disable driver cleanup when an interrupted reply cannot be reused."""
+
+    @classmethod
+    @contextmanager
+    def cursor_context(cls, cursor: Any) -> Iterator[None]:
+        """Preserve time limits before callers or drivers start cursor cleanup."""
+        on_timeout = None
+        try:
+            on_timeout = cls.prepare_cursor(cursor)
+            yield
+        except TIME_LIMIT_EXCEPTIONS as ex:
+            try:
+                if on_timeout is not None:
+                    on_timeout(ex)
+                else:
+                    cls._abandon_cursor(cursor)
+            except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
+                logger.warning("Abandoning an interrupted cursor failed")
+            raise
 
     @classmethod
     # pylint: disable=consider-using-transaction

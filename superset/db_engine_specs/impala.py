@@ -20,6 +20,7 @@ from __future__ import annotations
 import logging
 import re
 import time
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
 
@@ -36,6 +37,12 @@ from superset.db_engine_specs.base import (
 )
 from superset.models.sql_lab import Query
 from superset.utils.core import QueryStatus
+from superset.utils.hive import (
+    guard_cursor,
+    guard_cursor_factory,
+    real_cursor,
+    ThriftClientGuard,
+)
 from superset.utils.network import get_ssrf_safe_requester, is_safe_host
 
 if TYPE_CHECKING:
@@ -124,6 +131,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         return False
 
     @classmethod
+    @guard_cursor
     def execute(
         cls,
         cursor: Any,
@@ -133,75 +141,84 @@ class ImpalaEngineSpec(BaseEngineSpec):
     ) -> None:
         try:
             cursor.execute_async(query)
+        except TIME_LIMIT_EXCEPTIONS:
+            raise
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
+    @guard_cursor
     def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
         """Wait for asynchronous operations using the public cursor API."""
-        try:
-            if callable(getattr(cursor, "execute_async", None)):
-                from impala.error import Error
+        if callable(getattr(cursor, "execute_async", None)):
+            from impala.error import Error
 
-                deadline = time.monotonic() + app.config["SQLLAB_TIMEOUT"]
-                try:
-                    while cursor.is_executing():
-                        if time.monotonic() >= deadline:
-                            cls._cancel_operation(cursor)
-                            raise TimeoutError(
-                                "Timed out waiting for the Impala operation"
-                            )
-                        time.sleep(0.1)
-                    if cursor.execution_failed():
-                        # Fetching surfaces the driver's detailed asynchronous error,
-                        # including errors on statements that produce no result set.
-                        cursor.fetchall()
-                except Error as ex:
-                    raise cls.get_dbapi_mapped_exception(ex) from ex
-            return super().fetch_data(cursor, limit)
-        except TIME_LIMIT_EXCEPTIONS:
-            cls._cancel_operation_after_time_limit(cursor)
-            raise
+            deadline = time.monotonic() + app.config["SQLLAB_TIMEOUT"]
+            try:
+                while cursor.is_executing():
+                    if time.monotonic() >= deadline:
+                        cls._cancel_operation(cursor)
+                        raise TimeoutError("Timed out waiting for the Impala operation")
+                    time.sleep(0.1)
+                if cursor.execution_failed():
+                    # Fetching surfaces the driver's detailed asynchronous error,
+                    # including errors on statements that produce no result set.
+                    cursor.fetchall()
+            except Error as ex:
+                raise cls.get_dbapi_mapped_exception(ex) from ex
+        return super().fetch_data(cursor, limit)
 
     @classmethod
-    def _cancel_operation_after_time_limit(
-        cls, cursor: Any, query_id: int | None = None
-    ) -> None:
-        """Cancel and release the operation on a transport with no stale bytes."""
-        # A closed cursor has no operation left to cancel, and an abandoned one
-        # must send nothing more.
-        if getattr(cursor, "_closed", False) is True:
-            return
-        # A signal can interrupt any RPC reply, including status, logs, or rows.
-        # The unread rest of that reply stays in the socket and in the
-        # transport's read buffer, which survives a plain close and reopen, so
-        # the cancel reply would be parsed from it and could hang or request a
-        # garbage-sized read. Without a transport known to be clean, no RPC is
-        # sent and Impala's own timeouts close the operation.
-        try:
-            reset = cls._reset_transport(cursor)
-        except Exception:  # pylint: disable=broad-except
-            # Cleanup must not replace the original time-limit exception,
-            # including when a second signal interrupts the reset itself.
-            logger.warning("Query %s: resetting the transport failed", query_id)
-            reset = False
-        if not reset:
-            logger.warning(
-                "Query %s: not cancelling the operation on an unclean transport",
-                query_id,
-            )
-            cls._abandon_cursor(cursor, query_id)
-            return
-        try:
-            cls._cancel_operation(cursor, query_id)
-        except TIME_LIMIT_EXCEPTIONS:
-            # Another limit landed inside a cleanup reply, so the transport
-            # holds unread bytes again.
-            logger.warning("Query %s: time limit during cancellation cleanup", query_id)
+    def prepare_connection(cls, connection: Any) -> None:
+        """Guard OpenSession and all cursors sharing this connection's client."""
+        service = connection.service
+        if not isinstance(service.client, ThriftClientGuard):
+            service.client = ThriftClientGuard(service.client)
+        service.client.register(service, cls._abandon_service)
+        guard_cursor_factory(connection, cls.prepare_cursor)
+
+    @staticmethod
+    def _abandon_service(service: Any) -> None:
+        """Make connection close local-only and non-fatal after interruption."""
+        transport = service.client._iprot.trans
+
+        def close() -> None:
+            try:
+                transport.close()
+            except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
+                logger.warning("Dropping the interrupted Impala transport failed")
+
+        service.close = close
+        close()
+
+    @classmethod
+    def prepare_cursor(cls, cursor: Any) -> Callable[[BaseException], None] | None:
+        """Cover lazy metadata and cleanup inside the driver, as well as rows."""
+        cursor = real_cursor(cursor)
+        session = getattr(cursor, "session", None)
+        if session is None:
+            return None
+        service = session.service
+        if not isinstance(service.client, ThriftClientGuard):
+            service.client = ThriftClientGuard(service.client)
+        guard = service.client
+        session.client = guard
+        if cursor._last_operation is not None:  # pylint: disable=protected-access
+            cursor._last_operation.client = guard  # pylint: disable=protected-access
+        guard.register(service, cls._abandon_service)
+        guard.register(cursor, cls._abandon_cursor)
+        return guard.abandon
 
     @classmethod
     def _abandon_cursor(cls, cursor: Any, query_id: int | None = None) -> None:
         """Send no further RPC on a transport that may hold an unread reply."""
+        cursor = real_cursor(cursor)
+        if (
+            getattr(cursor, "_superset_abandoned", False) is True
+            or getattr(cursor, "_closed", False) is True
+        ):
+            return
+        cursor._superset_abandoned = True  # pylint: disable=protected-access
         # ``HiveServer2Cursor.close()``, which callers reach through
         # ``closing()``, and its finalizer send CloseOperation and CloseSession.
         # Both skip a cursor already marked closed. Wrappers such as SQL Lab's
@@ -215,7 +232,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         # Discard any buffered reply before releasing the connection locally.
         try:
             cls._reset_transport(cursor, reconnect=False)
-        except Exception:  # pylint: disable=broad-except
+        except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
             # The closed flag is set before this best-effort, local cleanup.
             logger.warning("Query %s: dropping the transport failed", query_id)
 
@@ -250,7 +267,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
             transport.close()
         except TIME_LIMIT_EXCEPTIONS:
             raise
-        except Exception:  # pylint: disable=broad-except
+        except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
             # An HTTP client that was already closed raises on a second close.
             if transport.isOpen():
                 raise
@@ -367,6 +384,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
                     return
 
     @classmethod
+    @guard_cursor
     def handle_cursor(cls, cursor: Any, query: Query) -> None:
         """Stop query and updates progress information"""
 
@@ -408,7 +426,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
                         log = cursor.get_log() or ""
                     except TIME_LIMIT_EXCEPTIONS:
                         raise
-                    except Exception:  # pylint: disable=broad-except
+                    except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
                         logger.warning("Call to GetLog() failed")
                         log = ""
 
@@ -424,12 +442,8 @@ class ImpalaEngineSpec(BaseEngineSpec):
                 time.sleep(sleep_interval)
                 status = cursor.status()
         except TIME_LIMIT_EXCEPTIONS:
-            # SQL Lab ends the query as timed out once this propagates; the
-            # operation is cancelled first so it does not keep running on the
-            # coordinator while fetch_data() waits on it.
-            cls._cancel_operation_after_time_limit(cursor, query_id)
             raise
-        except Exception:  # pylint: disable=broad-except
+        except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
             logger.debug("Call to status() failed ")
             return
 
@@ -527,7 +541,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
                 ]
             )
             response = requester.post(url, timeout=3, allow_redirects=False)
-        except Exception:  # pylint: disable=broad-except
+        except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
             return False
 
         return bool(response and response.status_code == 200)

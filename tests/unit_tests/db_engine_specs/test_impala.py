@@ -194,7 +194,7 @@ class _RejectedReplyError(_DriverError):
 @pytest.fixture(autouse=True)
 def clean_transport() -> Iterator[Mock]:
     """
-    Report the transport reset as successful for mock cursors.
+    Stub local transport drops for mock cursors.
 
     Mock cursors have no Thrift transport; resets over real impyla transports
     are covered in ``test_impala_transport.py``.
@@ -394,16 +394,16 @@ def test_engines_without_a_sensible_default_offer_none() -> None:
     ids=["async", "sync"],
 )
 @patch("superset.db_engine_specs.impala.time.sleep")
-def test_fetch_data_cancels_the_operation_on_time_limit(
+def test_fetch_data_abandons_the_operation_on_time_limit(
     sleep_mock: Mock, timeout: Exception, app_context: None, impala_errors: None
 ) -> None:
-    """A SQL Lab time limit hitting the wait must not leave the operation running."""
+    """A SQL Lab time limit disables RPC cleanup before propagating."""
     sleep_mock.side_effect = timeout
     cursor = Mock()
     cursor.is_executing.return_value = True
     with pytest.raises(type(timeout)):
         spec.fetch_data(cursor)
-    cursor.cancel_operation.assert_called_once_with()
+    cursor.cancel_operation.assert_not_called()
     cursor.fetchall.assert_not_called()
 
 
@@ -417,7 +417,7 @@ def test_fetch_data_propagates_time_limit_during_cancel(
     app_context: None,
     impala_errors: None,
 ) -> None:
-    """A second time limit in cancellation must preserve the original time limit."""
+    """An expired wait never enters RPC cancellation, even if it would time out."""
     original_timeout = SoftTimeLimitExceeded("waiting")
     cancel_timeout: Exception
     if cancel_timeout_type is SupersetTimeoutException:
@@ -437,7 +437,7 @@ def test_fetch_data_propagates_time_limit_during_cancel(
         spec.fetch_data(cursor)
 
     assert raised.value is original_timeout
-    cursor.cancel_operation.assert_called_once_with()
+    cursor.cancel_operation.assert_not_called()
     cursor.fetchall.assert_not_called()
 
 
@@ -454,7 +454,7 @@ def test_fetch_data_propagates_time_limit_during_cancel(
     ],
     ids=["async", "sync"],
 )
-def test_fetch_data_cancels_on_time_limit_during_row_fetch(
+def test_fetch_data_abandons_on_time_limit_during_row_fetch(
     timeout: Exception,
     cancel_fails: bool,
     app_context: None,
@@ -475,17 +475,17 @@ def test_fetch_data_cancels_on_time_limit_during_row_fetch(
 
     assert raised.value is timeout
     fetch.assert_called_once_with(cursor, 10)
-    cursor.cancel_operation.assert_called_once_with()
+    cursor.cancel_operation.assert_not_called()
 
 
 @pytest.mark.parametrize("cancel_fails", [False, True])
-def test_fetch_data_resets_transport_before_cancelling_an_interrupted_fetch(
+def test_fetch_data_drops_transport_without_cancelling_an_interrupted_fetch(
     cancel_fails: bool,
     clean_transport: Mock,
     app_context: None,
     impala_errors: None,
 ) -> None:
-    """Discard an interrupted response before cancellation and release handles."""
+    """Abandon an interrupted response without issuing any cleanup RPC."""
     from superset.db_engine_specs.base import BaseEngineSpec
 
     cursor = Mock()
@@ -503,12 +503,9 @@ def test_fetch_data_resets_transport_before_cancelling_an_interrupted_fetch(
             spec.fetch_data(cursor)
 
     assert raised.value is timeout
-    assert calls.mock_calls[:2] == [
-        call.reset_transport(cursor),
-        call.cancel_operation(),
-    ]
-    cursor.close_operation.assert_called_once_with()
-    cursor.close.assert_called_once_with()
+    assert calls.mock_calls == [call.reset_transport(cursor, reconnect=False)]
+    cursor.close_operation.assert_not_called()
+    cursor.close.assert_not_called()
 
 
 @pytest.mark.parametrize("interrupted_rpc", ["status", "get_log"])
@@ -525,7 +522,7 @@ def test_fetch_data_resets_transport_before_cancelling_an_interrupted_fetch(
     ],
     ids=["async", "sync"],
 )
-def test_handle_cursor_resets_transport_before_cancelling_an_interrupted_poll(
+def test_handle_cursor_drops_transport_without_cancelling_an_interrupted_poll(
     interrupted_rpc: str,
     cancel_fails: bool,
     timeout: Exception,
@@ -552,10 +549,7 @@ def test_handle_cursor_resets_transport_before_cancelling_an_interrupted_poll(
 
     assert raised.value is timeout
     assert calls.mock_calls == [
-        call.reset_transport(cursor),
-        call.cancel_operation(),
-        call.close_operation(),
-        call.close(),
+        call.reset_transport(cursor, reconnect=False),
     ]
 
 
@@ -608,8 +602,8 @@ def test_time_limit_skips_cancel_rpcs_without_a_clean_transport(
                 spec.handle_cursor(cursor, query)
 
     assert raised.value is timeout
-    # The reset is tried once and the transport then dropped.
-    assert clean_transport.mock_calls == [call(cursor), call(cursor, reconnect=False)]
+    # The transport is dropped once without reconnecting.
+    assert clean_transport.mock_calls == [call(cursor, reconnect=False)]
     cursor.cancel_operation.assert_not_called()
     cursor.close_operation.assert_not_called()
     cursor.close.assert_not_called()
@@ -676,7 +670,7 @@ def test_time_limit_during_cleanup_abandons_the_cursor(
     app_context: None,
     impala_errors: None,
 ) -> None:
-    """A second limit inside a cleanup reply leaves the cursor abandoned."""
+    """An expired fetch never enters RPC cleanup, even if it would time out."""
     from superset.db_engine_specs.base import BaseEngineSpec
 
     cursor = Mock()
@@ -691,7 +685,7 @@ def test_time_limit_during_cleanup_abandons_the_cursor(
 
     assert raised.value is original_timeout
     assert cursor._closed is True
-    assert clean_transport.mock_calls == [call(cursor), call(cursor, reconnect=False)]
+    assert clean_transport.mock_calls == [call(cursor, reconnect=False)]
 
 
 @pytest.mark.parametrize(
@@ -730,7 +724,7 @@ def test_closed_cursor_is_not_cancelled_again(
     """An abandoned or closed cursor sends nothing after a later time limit."""
     cursor = Mock(_closed=True)
 
-    spec._cancel_operation_after_time_limit(cursor, 1)
+    spec._abandon_cursor(cursor, 1)
 
     clean_transport.assert_not_called()
     cursor.cancel_operation.assert_not_called()
