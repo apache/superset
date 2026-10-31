@@ -373,9 +373,7 @@ def test_build_like_predicate_executes_correctly_on_sqlite() -> None:
             conn.execute(sa.text("INSERT INTO t VALUES (:v)"), {"v": value})
 
         def search(term: str) -> list[str]:
-            query = sa.select(table.c.c).where(
-                build_like_predicate(table.c.c, term)
-            )
+            query = sa.select(table.c.c).where(build_like_predicate(table.c.c, term))
             return sorted(row[0] for row in conn.execute(query))
 
         assert search("a_") == ["A_b"]
