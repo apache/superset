@@ -167,17 +167,99 @@ class ImpalaEngineSpec(BaseEngineSpec):
     def _cancel_operation_after_time_limit(
         cls, cursor: Any, query_id: int | None = None
     ) -> None:
-        """Discard interrupted RPC replies before cancelling and releasing handles."""
+        """Cancel and release the operation on a transport with no stale bytes."""
         # A signal can interrupt any RPC reply, including status, logs, or rows.
-        # Reading the cancel reply on that transport could consume leftover bytes
-        # and hang or request a garbage-sized read, so reopen the transport first.
+        # The unread rest of that reply stays in the socket and in the
+        # transport's read buffer, which survives a plain close and reopen, so
+        # the cancel reply would be parsed from it and could hang or request a
+        # garbage-sized read. Without a transport known to be clean, no RPC is
+        # sent and Impala's own timeouts close the operation.
         try:
-            cursor.session.service.reconnect()
+            reset = cls._reset_transport(cursor)
         except TIME_LIMIT_EXCEPTIONS:
             raise
         except Exception:  # pylint: disable=broad-except
-            logger.warning("reconnect() failed after a time limit")
+            logger.warning("Query %s: resetting the transport failed", query_id)
+            reset = False
+        if not reset:
+            logger.warning(
+                "Query %s: not cancelling the operation on an unclean transport",
+                query_id,
+            )
+            return
         cls._cancel_operation(cursor, query_id)
+
+    @staticmethod
+    def _reset_transport(cursor: Any) -> bool:
+        """
+        Reopen the cursor's Thrift transport with every buffer emptied.
+
+        impyla's ``reconnect()`` only closes and reopens the socket or HTTP
+        connection, while the buffering layers above it keep their read and
+        write buffers. Returns whether every layer was recognised and reset.
+        """
+        # pylint: disable=import-outside-toplevel
+        from io import BytesIO
+
+        from impala._thrift_api import ImpalaHttpClient
+        from thrift.transport.TSocket import TSocket
+        from thrift.transport.TTransport import TBufferedTransport
+
+        # (layer type, its buffer attributes, the attribute of the layer below).
+        # The buffers are private to thrift, thrift_sasl and impyla, so the
+        # whole stack is checked before anything is changed.
+        layouts: list[tuple[type, tuple[str, ...], str | None]] = [
+            (
+                TBufferedTransport,
+                ("_TBufferedTransport__rbuf", "_TBufferedTransport__wbuf"),
+                "_TBufferedTransport__trans",
+            ),
+            # Each HTTP request opens a new connection; only the pending
+            # request body is kept on the client.
+            (ImpalaHttpClient, ("_ImpalaHttpClient__wbuf",), None),
+        ]
+        try:
+            from thrift_sasl import TSaslClientTransport
+
+            layouts.append(
+                (
+                    TSaslClientTransport,
+                    ("_TSaslClientTransport__rbuf", "_TSaslClientTransport__wbuf"),
+                    "_trans",
+                )
+            )
+        except ImportError:
+            pass
+
+        # The same transport object impyla's own ``reconnect()`` reopens.
+        transport = cursor.session.service.client._iprot.trans
+        buffers: list[tuple[Any, str]] = []
+        layer = transport
+        while not isinstance(layer, TSocket):
+            layout = next((lay for lay in layouts if isinstance(layer, lay[0])), None)
+            if layout is None:
+                return False
+            _, attributes, inner = layout
+            if not all(hasattr(layer, attribute) for attribute in attributes):
+                return False
+            buffers.extend((layer, attribute) for attribute in attributes)
+            if inner is None:
+                break
+            layer = getattr(layer, inner, None)
+
+        # Closing drops the socket together with any reply bytes still in it.
+        try:
+            transport.close()
+        except TIME_LIMIT_EXCEPTIONS:
+            raise
+        except Exception:  # pylint: disable=broad-except
+            # An HTTP client that was already closed raises on a second close.
+            if transport.isOpen():
+                raise
+        for buffered_layer, attribute in buffers:
+            setattr(buffered_layer, attribute, BytesIO())
+        transport.open()
+        return True
 
     @classmethod
     def _cancel_operation(cls, cursor: Any, query_id: int | None = None) -> None:

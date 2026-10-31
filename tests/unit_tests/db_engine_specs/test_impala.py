@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Iterator
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 from unittest.mock import call, MagicMock, Mock, patch
 
 import pytest
@@ -183,6 +184,18 @@ def test_cancel_query_allows_internal_host_with_opt_out(
 
 class _DriverError(Exception):
     """Represent impyla's optional DB-API error base in unit tests."""
+
+
+@pytest.fixture(autouse=True)
+def clean_transport() -> Iterator[Mock]:
+    """
+    Report the transport reset as successful for mock cursors.
+
+    Mock cursors have no Thrift transport; resets over real impyla transports
+    are covered in ``test_impala_transport.py``.
+    """
+    with patch.object(spec, "_reset_transport", return_value=True) as reset_transport:
+        yield reset_transport
 
 
 @pytest.fixture
@@ -430,8 +443,11 @@ def test_fetch_data_cancels_on_time_limit_during_row_fetch(
 
 
 @pytest.mark.parametrize("cancel_fails", [False, True])
-def test_fetch_data_reconnects_before_cancelling_an_interrupted_fetch(
-    cancel_fails: bool, app_context: None, impala_errors: None
+def test_fetch_data_resets_transport_before_cancelling_an_interrupted_fetch(
+    cancel_fails: bool,
+    clean_transport: Mock,
+    app_context: None,
+    impala_errors: None,
 ) -> None:
     """Discard an interrupted response before cancellation and release handles."""
     from superset.db_engine_specs.base import BaseEngineSpec
@@ -440,7 +456,7 @@ def test_fetch_data_reconnects_before_cancelling_an_interrupted_fetch(
     cursor.is_executing.return_value = False
     cursor.execution_failed.return_value = False
     calls = MagicMock()
-    calls.attach_mock(cursor.session.service.reconnect, "reconnect")
+    calls.attach_mock(clean_transport, "reset_transport")
     calls.attach_mock(cursor.cancel_operation, "cancel_operation")
     if cancel_fails:
         cursor.cancel_operation.side_effect = RuntimeError("cancel RPC failed")
@@ -451,7 +467,10 @@ def test_fetch_data_reconnects_before_cancelling_an_interrupted_fetch(
             spec.fetch_data(cursor)
 
     assert raised.value is timeout
-    assert calls.mock_calls[:2] == [call.reconnect(), call.cancel_operation()]
+    assert calls.mock_calls[:2] == [
+        call.reset_transport(cursor),
+        call.cancel_operation(),
+    ]
     cursor.close_operation.assert_called_once_with()
     cursor.close.assert_called_once_with()
 
@@ -470,10 +489,11 @@ def test_fetch_data_reconnects_before_cancelling_an_interrupted_fetch(
     ],
     ids=["async", "sync"],
 )
-def test_handle_cursor_reconnects_before_cancelling_an_interrupted_poll(
+def test_handle_cursor_resets_transport_before_cancelling_an_interrupted_poll(
     interrupted_rpc: str,
     cancel_fails: bool,
     timeout: Exception,
+    clean_transport: Mock,
     app_context: None,
 ) -> None:
     """Discard interrupted status/log replies before cancelling and releasing."""
@@ -484,7 +504,7 @@ def test_handle_cursor_reconnects_before_cancelling_an_interrupted_poll(
         cursor.cancel_operation.side_effect = RuntimeError("cancel RPC failed")
     query = Mock(id=1, extra={}, status="running", progress=0)
     calls = MagicMock()
-    calls.attach_mock(cursor.session.service.reconnect, "reconnect")
+    calls.attach_mock(clean_transport, "reset_transport")
     calls.attach_mock(cursor.cancel_operation, "cancel_operation")
     calls.attach_mock(cursor.close_operation, "close_operation")
     calls.attach_mock(cursor.close, "close")
@@ -495,8 +515,63 @@ def test_handle_cursor_reconnects_before_cancelling_an_interrupted_poll(
 
     assert raised.value is timeout
     assert calls.mock_calls == [
-        call.reconnect(),
+        call.reset_transport(cursor),
         call.cancel_operation(),
         call.close_operation(),
         call.close(),
     ]
+
+
+@pytest.mark.parametrize(
+    "reset_outcome",
+    [{"return_value": False}, {"side_effect": OSError("connection refused")}],
+    ids=["unknown_transport", "reopen_fails"],
+)
+@pytest.mark.parametrize("interrupted_rpc", ["status", "get_log", "fetch"])
+@pytest.mark.parametrize(
+    "timeout",
+    [
+        SoftTimeLimitExceeded(),
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="Timed out polling the operation",
+            level=ErrorLevel.ERROR,
+        ),
+    ],
+    ids=["async", "sync"],
+)
+def test_time_limit_skips_cancel_rpcs_without_a_clean_transport(
+    reset_outcome: dict[str, Any],
+    interrupted_rpc: str,
+    timeout: Exception,
+    clean_transport: Mock,
+    app_context: None,
+    impala_errors: None,
+) -> None:
+    """No RPC is sent on a transport that may hold an interrupted reply."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    clean_transport.configure_mock(**reset_outcome)
+    cursor = Mock()
+    cursor.status.return_value = "RUNNING_STATE"
+    cursor.is_executing.return_value = False
+    cursor.execution_failed.return_value = False
+    query = Mock(id=1, extra={}, status="running", progress=0)
+
+    with (
+        patch("superset.db_engine_specs.impala.db"),
+        patch.object(BaseEngineSpec, "fetch_data", side_effect=timeout),
+    ):
+        if interrupted_rpc == "fetch":
+            with pytest.raises(type(timeout)) as raised:
+                spec.fetch_data(cursor)
+        else:
+            getattr(cursor, interrupted_rpc).side_effect = timeout
+            with pytest.raises(type(timeout)) as raised:
+                spec.handle_cursor(cursor, query)
+
+    assert raised.value is timeout
+    clean_transport.assert_called_once_with(cursor)
+    cursor.cancel_operation.assert_not_called()
+    cursor.close_operation.assert_not_called()
+    cursor.close.assert_not_called()

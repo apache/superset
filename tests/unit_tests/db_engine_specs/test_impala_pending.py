@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Iterator
 from contextlib import nullcontext
 from unittest.mock import MagicMock, Mock, patch
 
@@ -39,6 +40,20 @@ from superset.sql_lab import (
     SqlLabQueryStoppedException,
 )
 from superset.utils.core import QueryStatus
+
+
+@pytest.fixture(autouse=True)
+def clean_transport() -> Iterator[Mock]:
+    """
+    Report the transport reset as successful for mock cursors.
+
+    Mock cursors have no Thrift transport; resets over real impyla transports
+    are covered in ``test_impala_transport.py``.
+    """
+    with patch.object(
+        ImpalaEngineSpec, "_reset_transport", return_value=True
+    ) as reset_transport:
+        yield reset_transport
 
 
 @pytest.mark.parametrize("use_executor", [False, True])

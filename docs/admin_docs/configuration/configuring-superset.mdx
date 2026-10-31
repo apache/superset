@@ -835,10 +835,15 @@ pending when result fetching begins, the additional polling wait is bounded by
 a timeout. Configure the driver's network timeout separately to bound individual
 RPC calls. SQL Lab time limits that fire while polling Impala status or logs, or
 while fetching rows, also request cancellation before the timeout propagates,
-including after execution has finished. Before cancellation, Superset reopens the
-driver transport to discard any partially read RPC response, then releases the
-operation and cursor handles.
-A failed cancellation RPC is logged without hiding the original timeout.
+including after execution has finished. A time limit can interrupt an RPC
+partway through its response, so before cancelling, Superset closes the impyla
+Thrift connection, empties the read and write buffers of its transport layers
+(buffered, SASL and HTTP), and opens a new connection; the cancellation RPC then
+reads only its own response. Superset then releases the operation and cursor
+handles. If the transport cannot be reset, no cancellation RPC is sent and a
+warning is logged; the operation is then left to Impala's own query and session
+timeouts. A failed cancellation RPC is logged without hiding the original
+timeout.
 
 ## SQL Lab Query History Pruning
 
