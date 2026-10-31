@@ -570,7 +570,7 @@ EMBEDDED_KEYPAIR = {
         pytest.param(
             True,
             {"username": "EMBED_SVC", "auth_method": "keypair", "privatekey_pass": "X"},
-            500,
+            400,
             EMBEDDED_KEYPAIR,
             id="private-key-missing",
         ),

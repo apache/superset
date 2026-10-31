@@ -27,7 +27,7 @@ from superset.commands.database.utils import (
     import_connection_identity_changed,
     ssh_tunnel_rebind_unsafe,
 )
-from superset.commands.exceptions import ImportFailedError
+from superset.commands.exceptions import ImportFailedError, ImportRefusedError
 from superset.constants import EMBEDDED_CREDENTIALS_KEY, PASSWORD_MASK
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import (
@@ -114,7 +114,7 @@ def _refuse_incomplete_embedded_credentials(
         field + (f" ({labels[field]})" if field in labels else "")
         for field in embedded_credentials_missing_fields(credentials)
     ]
-    raise ImportFailedError(
+    raise ImportRefusedError(
         f"Embedded guest credentials of database '{database_name}' are invalid "
         "or incomplete."
         + (f" Missing: {', '.join(missing)}." if missing else "")
