@@ -37,6 +37,7 @@ import { OAuth2ClientField } from './OAuth2ClientField';
 import { validatedInputField } from './ValidatedInputField';
 import { EncryptedField } from './EncryptedField';
 import { TableCatalog } from './TableCatalog';
+import { TRINO_ENGINE, TRINO_FORM_FIELD_MAP } from './TrinoParameters';
 import SSHTunnelSwitch from '../SSHTunnelSwitch';
 
 export const FormFieldOrder = [
@@ -92,4 +93,16 @@ export const FORM_FIELD_MAP = {
   account: validatedInputField,
   ssh: SSHTunnelSwitchComponent,
   project_id: projectIdfield,
+};
+
+/**
+ * Per-engine replacements for entries of ``FORM_FIELD_MAP``, keyed by the
+ * engine name. Engines use these when a common field needs engine-specific
+ * labels, placeholders or tooltips.
+ */
+export const ENGINE_FORM_FIELD_OVERRIDES: Record<
+  string,
+  Partial<typeof FORM_FIELD_MAP>
+> = {
+  [TRINO_ENGINE]: TRINO_FORM_FIELD_MAP,
 };
