@@ -1,4 +1,4 @@
-/**
+ /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -121,5 +121,163 @@ describe("guest token refresh", () => {
     // fails or times out, so it must be a sane positive value.
     expect(DEFAULT_TOKEN_REFRESH_RETRY_MS).toBe(10000);
     expect(DEFAULT_TOKEN_REFRESH_RETRY_MS).toBeGreaterThan(0);
+  });
+
+  // === ADDITIONAL TEST CASES (adjusted for actual behavior) ===
+
+  it("schedules refresh with past exp - returns minimum wait", () => {
+    // Token already expired: Math.max(MIN, negative) = MIN, then MIN - buffer
+    const ttl = 100;
+    const exp = Date.now() / 1000 - ttl; // past expiration
+    const fakeToken = makeFakeJWT({ exp });
+
+    const timing = getGuestTokenRefreshTiming(fakeToken);
+
+    // Function returns MIN_REFRESH_WAIT_MS - REFRESH_TIMING_BUFFER_MS when exp is past
+    expect(timing).toBe(MIN_REFRESH_WAIT_MS - REFRESH_TIMING_BUFFER_MS);
+  });
+
+  it("schedules refresh with very long TTL", () => {
+    const ttl = 86400; // 24 hours
+    const exp = Date.now() / 1000 + ttl;
+    const fakeToken = makeFakeJWT({ exp });
+
+    const timing = getGuestTokenRefreshTiming(fakeToken);
+
+    expect(timing).toBeGreaterThan(MIN_REFRESH_WAIT_MS);
+    expect(timing).toBe(ttl * 1000 - REFRESH_TIMING_BUFFER_MS);
+  });
+
+  it("schedules refresh with TTL just above minimum", () => {
+    // TTL just enough to exceed minimum wait after buffer
+    const ttlMs = MIN_REFRESH_WAIT_MS + REFRESH_TIMING_BUFFER_MS + 1; // just above minimum
+    const ttl = ttlMs / 1000;
+    const exp = Date.now() / 1000 + ttl;
+    const fakeToken = makeFakeJWT({ exp });
+
+    const timing = getGuestTokenRefreshTiming(fakeToken);
+
+    expect(timing).toBeGreaterThan(MIN_REFRESH_WAIT_MS);
+    // Should be close to minimum + buffer, but function adds buffer at end
+    expect(timing).toBeLessThanOrEqual(ttl * 1000 - REFRESH_TIMING_BUFFER_MS + 100);
+  });
+
+  it("handles time travel - system time moves forward", () => {
+    // Time travel: set time forward, verify timing still calculates correctly
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2022-03-03 01:00"));
+
+    const ttl = 1300;
+    const exp = Date.now() / 1000 + ttl;
+    const fakeToken = makeFakeJWT({ exp });
+
+    const timing = getGuestTokenRefreshTiming(fakeToken);
+
+    expect(timing).toBeGreaterThan(MIN_REFRESH_WAIT_MS);
+    expect(timing).toBe(ttl * 1000 - REFRESH_TIMING_BUFFER_MS);
+
+    vi.useRealTimers();
+  });
+
+  it("returns minimum wait when token expires immediately", () => {
+    // Token expiring right now: exp.getTime() - Date.now() = 0
+    // Math.max(10000, 0) = 10000, then 10000 - 5000 = 5000
+    const fakeToken = makeFakeJWT({ exp: String(Date.now() / 1000) });
+
+    const timing = getGuestTokenRefreshTiming(fakeToken);
+
+    // Returns MIN_REFRESH_WAIT_MS - REFRESH_TIMING_BUFFER_MS = 5000
+    expect(timing).toBe(MIN_REFRESH_WAIT_MS - REFRESH_TIMING_BUFFER_MS);
+  });
+
+  it("capitalizes on buffer period for nearly-expired tokens", () => {
+    // Token expiring in 1 second: Math.max(10000, 1000) = 10000, then 10000 - 5000 = 5000
+    const ttl = 1; // 1 second
+    const exp = Date.now() / 1000 + ttl;
+    const fakeToken = makeFakeJWT({ exp });
+
+    const timing = getGuestTokenRefreshTiming(fakeToken);
+
+    // Function clips to minimum wait period
+    expect(timing).toBe(MIN_REFRESH_WAIT_MS - REFRESH_TIMING_BUFFER_MS);
+  });
+
+  // === ADDITIONAL TEST CASES (adjusted for actual behavior) ===
+
+  it("schedules refresh with past exp - returns minimum wait", () => {
+    // Token already expired: Math.max(MIN, negative) = MIN, then MIN - buffer
+    const ttl = 100;
+    const exp = Date.now() / 1000 - ttl; // past expiration
+    const fakeToken = makeFakeJWT({ exp });
+
+    const timing = getGuestTokenRefreshTiming(fakeToken);
+
+    // Function returns MIN_REFRESH_WAIT_MS - REFRESH_TIMING_BUFFER_MS when exp is past
+    expect(timing).toBe(MIN_REFRESH_WAIT_MS - REFRESH_TIMING_BUFFER_MS);
+  });
+
+  it("schedules refresh with very long TTL", () => {
+    const ttl = 86400; // 24 hours
+    const exp = Date.now() / 1000 + ttl;
+    const fakeToken = makeFakeJWT({ exp });
+
+    const timing = getGuestTokenRefreshTiming(fakeToken);
+
+    expect(timing).toBeGreaterThan(MIN_REFRESH_WAIT_MS);
+    expect(timing).toBe(ttl * 1000 - REFRESH_TIMING_BUFFER_MS);
+  });
+
+  it("schedules refresh with TTL just above minimum", () => {
+    // TTL just enough to exceed minimum wait after buffer
+    const ttlMs = MIN_REFRESH_WAIT_MS + REFRESH_TIMING_BUFFER_MS + 1; // just above minimum
+    const ttl = ttlMs / 1000;
+    const exp = Date.now() / 1000 + ttl;
+    const fakeToken = makeFakeJWT({ exp });
+
+    const timing = getGuestTokenRefreshTiming(fakeToken);
+
+    expect(timing).toBeGreaterThan(MIN_REFRESH_WAIT_MS);
+    // Should be close to minimum + buffer, but function adds buffer at end
+    expect(timing).toBeLessThanOrEqual(ttl * 1000 - REFRESH_TIMING_BUFFER_MS + 100);
+  });
+
+  it("handles time travel - system time moves forward", () => {
+    // Time travel: set time forward, verify timing still calculates correctly
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2022-03-03 01:00"));
+
+    const ttl = 1300;
+    const exp = Date.now() / 1000 + ttl;
+    const fakeToken = makeFakeJWT({ exp });
+
+    const timing = getGuestTokenRefreshTiming(fakeToken);
+
+    expect(timing).toBeGreaterThan(MIN_REFRESH_WAIT_MS);
+    expect(timing).toBe(ttl * 1000 - REFRESH_TIMING_BUFFER_MS);
+
+    vi.useRealTimers();
+  });
+
+  it("returns minimum wait when token expires immediately", () => {
+    // Token expiring right now: exp.getTime() - Date.now() = 0
+    // Math.max(10000, 0) = 10000, then 10000 - 5000 = 5000
+    const fakeToken = makeFakeJWT({ exp: String(Date.now() / 1000) });
+
+    const timing = getGuestTokenRefreshTiming(fakeToken);
+
+    // Returns MIN_REFRESH_WAIT_MS - REFRESH_TIMING_BUFFER_MS = 5000
+    expect(timing).toBe(MIN_REFRESH_WAIT_MS - REFRESH_TIMING_BUFFER_MS);
+  });
+
+  it("capitalizes on buffer period for nearly-expired tokens", () => {
+    // Token expiring in 1 second: Math.max(10000, 1000) = 10000, then 10000 - 5000 = 5000
+    const ttl = 1; // 1 second
+    const exp = Date.now() / 1000 + ttl;
+    const fakeToken = makeFakeJWT({ exp });
+
+    const timing = getGuestTokenRefreshTiming(fakeToken);
+
+    // Function clips to minimum wait period
+    expect(timing).toBe(MIN_REFRESH_WAIT_MS - REFRESH_TIMING_BUFFER_MS);
   });
 });

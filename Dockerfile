@@ -260,12 +260,7 @@ COPY scripts/check-env.py scripts/
 COPY --chmod=755 ./docker/entrypoints/run-server.sh /usr/bin/
 
 # Some debian libs
-RUN /app/docker/apt-install.sh \
-      curl \
-      libsasl2-dev \
-      libsasl2-modules-gssapi-mit \
-      libpq-dev \
-      libldap2-dev
+RUN /app/docker/apt-install.sh curl libsasl2-dev libsasl2-modules-gssapi-mit libpq-dev libldap2-dev pkg-config default-libmysqlclient-dev
 
 # Create data directory for DuckDB examples database
 # The database file will be created at runtime when examples are loaded from Parquet files
@@ -340,9 +335,7 @@ USER root
 # mysqlclient needs the MySQL client dev headers + pkg-config to build.
 # python-common already installs the libs for postgres/sasl/ldap, so only
 # the MySQL bits are added here — the minimal `lean` stage stays untouched.
-RUN /app/docker/apt-install.sh \
-    pkg-config \
-    default-libmysqlclient-dev
+RUN /app/docker/apt-install.sh pkg-config default-libmysqlclient-dev
 
 # Bundle the common metadata/analytics drivers (postgres, mysql) and the
 # MCP server dependencies (fastmcp) so the default image is usable without
@@ -360,11 +353,16 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
 # FROM lean, which is already past that arg. Chromium ships for both
 # linux/amd64 and linux/arm64, so this works on multi-platform builds.
 # See the INCLUDE_CHROMIUM step in python-common for --use-openssl-ca.
+ARG INCLUDE_CHROMIUM="false"
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
-    uv pip install playwright \
-    && playwright install-deps \
-    && NODE_OPTIONS=--use-openssl-ca SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
-        playwright install chromium
+    if [ "${INCLUDE_CHROMIUM}" = "true" ]; then \
+        uv pip install playwright \
+        && playwright install-deps \
+        && NODE_OPTIONS=--use-openssl-ca SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+            playwright install chromium; \
+    else \
+        echo "Skipping Playwright/Chromium installation"; \
+    fi
 
 USER superset
 
@@ -372,15 +370,9 @@ USER superset
 # Dev image...
 ######################################################################
 FROM python-common AS dev
+RUN /app/docker/apt-install.sh git pkg-config default-libmysqlclient-dev
 
 # Debian libs needed for dev
-RUN /app/docker/apt-install.sh \
-    git \
-    pkg-config \
-    default-libmysqlclient-dev
-
-# Copy development requirements and install them *before* the application
-# source is copied below, so source-only edits don't bust this cache layer.
 COPY requirements/*.txt requirements/
 
 # Copy local packages needed for editable installs in development.txt
