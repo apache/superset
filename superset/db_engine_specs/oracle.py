@@ -21,6 +21,7 @@ import re
 from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
 
+from flask import g, has_app_context
 from sqlalchemy import types
 from sqlalchemy.dialects.oracle.base import OracleDialect
 
@@ -41,7 +42,7 @@ logger = logging.getLogger(__name__)
 FETCH_FIRST_MAJOR_VERSION = 12
 
 # Server major versions read from the database, keyed by database id and URI.
-_server_major_versions: dict[str, int] = {}
+_server_versions: dict[str, tuple[int, ...]] = {}
 
 
 class OracleEngineSpec(BaseEngineSpec):
@@ -88,6 +89,21 @@ class OracleEngineSpec(BaseEngineSpec):
         return cls.limit_method
 
     @classmethod
+    def get_max_column_name_length(cls, database: Database) -> int | None:
+        """Use Oracle's 30-byte identifier limit before release 12.2."""
+        server_version = cls.get_server_version(database)
+        if server_version is not None and server_version < (12, 2):
+            return 30
+        return cls.max_column_name_length
+
+    @classmethod
+    def get_column_name_length(
+        cls, label: str, database: Database | None = None
+    ) -> int:
+        """Measure Oracle identifiers in bytes, conservatively using UTF-8."""
+        return len(label.encode("utf-8"))
+
+    @classmethod
     def get_server_major_version(cls, database: Database) -> int | None:
         """
         Return the major version of the Oracle server, or `None` if unknown.
@@ -99,12 +115,25 @@ class OracleEngineSpec(BaseEngineSpec):
         engine has connected before; if not, this costs one connection per
         process.
         """
+        version = cls.get_server_version(database)
+        return version[0] if version else None
+
+    @classmethod
+    def get_server_version(cls, database: Database) -> tuple[int, ...] | None:
+        """Return the configured or detected Oracle server version."""
         version = database.get_extra().get("version")
-        if match := re.match(r"\s*(\d+)", str(version or "")):
-            return int(match.group(1))
+        if match := re.match(r"\s*(\d+(?:\.\d+)*)", str(version or "")):
+            return tuple(int(part) for part in match.group(1).split("."))
 
         key = f"{database.id}:{database.sqlalchemy_uri}"
-        if key not in _server_major_versions:
+        if key not in _server_versions:
+            failed_lookups: set[str] = (
+                g.setdefault("oracle_version_lookup_failures", set())
+                if has_app_context()
+                else set()
+            )
+            if key in failed_lookups:
+                return None
             try:
                 with database.get_sqla_engine() as engine:
                     version_info = engine.dialect.server_version_info
@@ -117,12 +146,14 @@ class OracleEngineSpec(BaseEngineSpec):
                 logger.warning(
                     "Unable to read the Oracle server version", exc_info=True
                 )
+                failed_lookups.add(key)
                 return None
             if not version_info:
+                failed_lookups.add(key)
                 return None
-            _server_major_versions[key] = int(version_info[0])
+            _server_versions[key] = tuple(int(part) for part in version_info)
 
-        return _server_major_versions[key]
+        return _server_versions[key]
 
     @classmethod
     def register_engine_events(cls, engine: Engine) -> None:

@@ -1197,6 +1197,23 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return cls.allows_alias_in_select
 
     @classmethod
+    def get_max_column_name_length(
+        cls,
+        database: Database,  # pylint: disable=unused-argument
+    ) -> int | None:
+        """Return the maximum supported column-name length for a database."""
+        return cls.max_column_name_length
+
+    @classmethod
+    def get_column_name_length(
+        cls,
+        label: str,
+        database: Database | None = None,  # pylint: disable=unused-argument
+    ) -> int:
+        """Return the length of a column name in the engine's supported units."""
+        return len(label)
+
+    @classmethod
     def get_limit_method(
         cls,
         database: Database,  # pylint: disable=unused-argument
@@ -2693,7 +2710,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return g and hasattr(g, "user") and isinstance(ex, cls.oauth2_exception)
 
     @classmethod
-    def make_label_compatible(cls, label: str) -> str | quoted_name:
+    def make_label_compatible(
+        cls, label: str, database: Database | None = None
+    ) -> str | quoted_name:
         """
         Conditionally mutate and/or quote a sqlalchemy expression label. If
         force_column_alias_quotes is set to True, return the label as a
@@ -2706,11 +2725,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: conditionally mutated label supported by the db engine
         """
         label_mutated = cls._mutate_label(label)
-        if (
-            cls.max_column_name_length
-            and len(label_mutated) > cls.max_column_name_length
+        max_column_name_length = (
+            cls.get_max_column_name_length(database)
+            if database is not None
+            else cls.max_column_name_length
+        )
+        if max_column_name_length and (
+            cls.get_column_name_length(label_mutated, database) > max_column_name_length
         ):
             label_mutated = cls._truncate_label(label)
+            while (
+                cls.get_column_name_length(label_mutated, database)
+                > max_column_name_length
+            ):
+                label_mutated = label_mutated[:-1]
         if cls.force_column_alias_quotes:
             label_mutated = quoted_name(label_mutated, True)
         return label_mutated

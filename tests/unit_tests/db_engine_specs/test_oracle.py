@@ -243,9 +243,9 @@ def server_versions() -> Any:
     """Start each test with no cached Oracle server versions."""
     from superset.db_engine_specs import oracle as oracle_spec
 
-    oracle_spec._server_major_versions.clear()
-    yield oracle_spec._server_major_versions
-    oracle_spec._server_major_versions.clear()
+    oracle_spec._server_versions.clear()
+    yield oracle_spec._server_versions
+    oracle_spec._server_versions.clear()
 
 
 def mock_oracle_database(
@@ -264,6 +264,63 @@ def mock_oracle_database(
     connection = engine.connect.return_value.__enter__.return_value
     connection.dialect.server_version_info = server_version_info
     return database
+
+
+@pytest.mark.parametrize(
+    "version, expected",
+    [
+        ("11g", 30),
+        ("11.2.0.4", 30),
+        ("12.1.0.2", 30),
+        ("12c", 30),
+        ("12.2.0.1", 128),
+        ("19c", 128),
+        (None, 128),
+    ],
+)
+def test_get_max_column_name_length_configured_version(
+    version: Any, expected: int, server_versions: Any
+) -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    database = mock_oracle_database(version=version)
+    assert OracleEngineSpec.get_max_column_name_length(database) == expected
+    if version is not None:
+        database.get_sqla_engine.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "version, expected_length",
+    [("11.2.0.4", 30), ("12.2.0.1", 40)],
+)
+def test_make_label_compatible_uses_database_identifier_limit(
+    version: str, expected_length: int, server_versions: Any
+) -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    database = mock_oracle_database(version=version)
+    label = "x" * 40
+
+    compatible_label = OracleEngineSpec.make_label_compatible(label, database)
+
+    assert len(compatible_label) == expected_length
+
+
+@pytest.mark.parametrize(
+    "version, max_bytes",
+    [("11.2.0.4", 30), ("12.2.0.1", 128)],
+)
+def test_make_label_compatible_uses_oracle_identifier_bytes(
+    version: str, max_bytes: int, server_versions: Any
+) -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    database = mock_oracle_database(version=version)
+    label = "é" * (max_bytes // 2 + 1)
+
+    compatible_label = OracleEngineSpec.make_label_compatible(label, database)
+
+    assert len(str(compatible_label).encode("utf-8")) <= max_bytes
 
 
 @pytest.mark.parametrize(
@@ -322,18 +379,54 @@ def test_get_limit_method_detected_version(
 
 def test_get_limit_method_unknown_version(server_versions: Any) -> None:
     """
-    If the version can't be read, keep `FETCH FIRST` and try again next time.
+    If the version can't be read, keep `FETCH FIRST` and cache the failure for
+    the current application context.
     """
     from superset.db_engine_specs.oracle import OracleEngineSpec
 
     unreachable = mock_oracle_database(error=Exception("ORA-12541: no listener"))
     assert OracleEngineSpec.get_limit_method(unreachable) == LimitMethod.FORCE_LIMIT
     assert OracleEngineSpec.get_limit_method(unreachable) == LimitMethod.FORCE_LIMIT
-    assert unreachable.get_sqla_engine.call_count == 2
+    assert unreachable.get_sqla_engine.call_count == 1
 
     unreported = mock_oracle_database(server_version_info=None)
+    unreported.id = 2
     assert OracleEngineSpec.get_limit_method(unreported) == LimitMethod.FORCE_LIMIT
+    assert OracleEngineSpec.get_limit_method(unreported) == LimitMethod.FORCE_LIMIT
+    assert unreported.get_sqla_engine.call_count == 1
     assert server_versions == {}
+
+
+def test_make_label_compatible_caches_failed_version_lookup(
+    server_versions: Any,
+) -> None:
+    """Repeated labels only attempt an unavailable Oracle version once per request."""
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    unreachable = mock_oracle_database(error=Exception("ORA-12541: no listener"))
+    for index in range(20):
+        OracleEngineSpec.make_label_compatible(f"column_{index}", unreachable)
+    assert unreachable.get_sqla_engine.call_count == 1
+
+    unreported = mock_oracle_database(server_version_info=None)
+    unreported.id = 2
+    for index in range(20):
+        OracleEngineSpec.make_label_compatible(f"column_{index}", unreported)
+    assert unreported.get_sqla_engine.call_count == 1
+
+
+def test_failed_version_lookup_retries_in_next_app_context(
+    app: Any, server_versions: Any
+) -> None:
+    """A failed version lookup is retried for a later request."""
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    unreachable = mock_oracle_database(error=Exception("ORA-12541: no listener"))
+    for _ in range(2):
+        with app.app_context():
+            OracleEngineSpec.make_label_compatible("column", unreachable)
+
+    assert unreachable.get_sqla_engine.call_count == 2
 
 
 def test_get_limit_method_reuses_connected_engine(server_versions: Any) -> None:
