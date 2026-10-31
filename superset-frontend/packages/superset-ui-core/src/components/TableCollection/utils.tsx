@@ -26,20 +26,11 @@ import { ComponentType, ReactNode } from 'react';
 import { Accessor, CellValue, HeaderGroup, Row } from 'react-table';
 
 import { SortOrder } from '../Table';
+import { COLUMN_SIZE_MAP, type ColumnLayout } from './columnWidths';
 
-type TableSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl' | 'xxxl';
+type TableSize = keyof typeof COLUMN_SIZE_MAP;
 
 type RowWithId<T extends object> = Row<T> & { rowId: string };
-
-const COLUMN_SIZE_MAP: Record<TableSize, number> = {
-  xs: 25,
-  sm: 50,
-  md: 75,
-  lg: 100,
-  xl: 150,
-  xxl: 200,
-  xxxl: 360,
-};
 
 // Mirrors react-table's `Renderer<Props>` (a component, a render function,
 // or a static node) loosely enough that both a hand-authored column config
@@ -67,8 +58,37 @@ export interface ListViewColumn<T extends object = any> {
   Cell?: ColumnRenderer;
   disableSortBy?: boolean;
   hidden?: boolean;
+  /**
+   * Width behavior of the column in list views: a preset from
+   * `COLUMN_LAYOUT_PRESETS` or an explicit fixed / min-max layout. Defaults
+   * to `actions` for the `actions` column and `text` otherwise.
+   */
+  layout?: ColumnLayout;
+  /**
+   * @deprecated Use `layout`. Treated as a fixed width from the legacy size
+   * token map.
+   */
   size?: string;
   className?: string;
+}
+
+/**
+ * The key of a column: its `id`, or its string `accessor`.
+ *
+ * react-table backfills `id` from a string `accessor` for its own internal
+ * column instances, but callers routinely author raw column configs with
+ * only `accessor` set. Falling back to it keeps every column's antd
+ * `key`/`dataIndex` unique; without it, id-less columns all collapse onto the
+ * same (undefined) key and antd can't tell them apart for sorting.
+ */
+export function getColumnId<T extends object>(
+  column: ListViewColumn<T>,
+): string {
+  return (
+    column.id ??
+    (typeof column.accessor === 'string' ? column.accessor : undefined) ??
+    ''
+  );
 }
 
 function getSortingInfo<T extends object>(
@@ -94,28 +114,21 @@ export function mapColumns<T extends object>(
   columns: ListViewColumn<T>[],
   headerGroups: HeaderGroup<T>[],
   columnsForWrapText?: string[],
+  resolvedWidths?: Record<string, number>,
+  frozenColumnIds?: string[],
 ) {
   return columns.map(column => {
-    // react-table backfills `id` from a string `accessor` for its own
-    // internal column instances, but callers routinely author raw column
-    // configs (the shape this function actually receives, per
-    // `ListViewColumn`) with only `accessor` set. Falling back to it here
-    // keeps every column's antd `key`/`dataIndex` unique; without it,
-    // id-less columns all collapse onto the same (undefined) key and antd
-    // can't tell them apart for sorting.
-    const id =
-      column.id ??
-      (typeof column.accessor === 'string' ? column.accessor : undefined) ??
-      '';
+    const id = getColumnId(column);
     const { isSorted, isSortedDesc } = getSortingInfo(headerGroups, id);
     return {
       title: column.Header as ReactNode,
+      fixed: frozenColumnIds?.includes(id) ? ('left' as const) : undefined,
       dataIndex: id.includes('.') ? id.split('.') : id,
       hidden: column.hidden,
       key: id,
-      width: column.size
-        ? COLUMN_SIZE_MAP[column.size as TableSize]
-        : undefined,
+      width:
+        resolvedWidths?.[id] ??
+        (column.size ? COLUMN_SIZE_MAP[column.size as TableSize] : undefined),
       ellipsis: !columnsForWrapText?.includes(id),
       defaultSortOrder: (isSorted
         ? isSortedDesc

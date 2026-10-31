@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetTheme, css, styled } from '@apache-superset/core/theme';
+import { styled } from '@apache-superset/core/theme';
 import { t, tn } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
@@ -72,12 +72,14 @@ import {
   TagsList,
   TagType,
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator as FilterOperator,
   DashboardCrossLinks,
   type ListViewProps,
   type ListViewFetchDataConfig,
   type ListViewFilters,
   type ListViewFilter,
+  ListViewTitleCell,
 } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { Link, useHistory } from 'react-router-dom';
@@ -98,24 +100,6 @@ import { Tag } from 'src/components/Tag';
 import { datasetLabel } from 'src/features/semanticLayers/label';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 import type { CellProps } from 'react-table';
-
-const FlexRowContainer = styled.div`
-  align-items: center;
-  display: flex;
-  gap: ${({ theme }) => theme.sizeUnit}px;
-
-  a {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 1.2;
-    min-width: 0;
-  }
-
-  svg {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
-  }
-`;
 
 const PAGE_SIZE = 25;
 // How many blocking alerts/reports the archive modal previews before the
@@ -246,6 +230,33 @@ interface ChartListProps {
   addSuccessToast: (msg: string, options?: ToastContent['options']) => void;
   user?: UserWithPermissionsAndRoles;
 }
+
+// The chart type name ellipsizes first; the Matrixified pill is never cut
+// mid-pill.
+const VizTypeCell = styled.span`
+  display: flex;
+  align-items: center;
+
+  .viz-type-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .viz-type-tag {
+    flex-shrink: 0;
+    max-width: 100%;
+    margin-left: ${({ theme }) => theme.marginXS}px;
+  }
+
+  .viz-type-tag .ant-tag {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colorIcon};
@@ -501,7 +512,7 @@ function ChartList(props: ChartListProps) {
     [addDangerToast],
   );
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<Chart>[]>(
     () => [
       {
         Cell: ({
@@ -519,7 +530,7 @@ function ChartList(props: ChartListProps) {
         Header: '',
         id: 'id',
         disableSortBy: true,
-        size: 'sm',
+        layout: 'icon',
         hidden: !userId,
       },
       {
@@ -534,7 +545,9 @@ function ChartList(props: ChartListProps) {
             },
           },
         }: any) => (
-          <FlexRowContainer>
+          <ListViewTitleCell
+            trailing={description && <InfoTooltip tooltip={description} />}
+          >
             <Link
               to={url}
               title={sliceName}
@@ -550,12 +563,11 @@ function ChartList(props: ChartListProps) {
               )}
               {sliceName}
             </Link>
-            {description && <InfoTooltip tooltip={description} />}
-          </FlexRowContainer>
+          </ListViewTitleCell>
         ),
         Header: t('Name'),
         accessor: 'slice_name',
-        size: 'xxxl',
+        layout: 'title',
         id: 'slice_name',
       },
       {
@@ -563,22 +575,21 @@ function ChartList(props: ChartListProps) {
           row: {
             original: { viz_type: vizType, form_data: formData },
           },
-        }: any) => (
-          <>
-            {registry.get(vizType)?.name || vizType}
-            {formData && isMatrixifyEnabled(formData) && (
-              <span
-                css={(theme: SupersetTheme) => css`
-                  margin-left: ${theme.marginXS}px;
-                `}
-              >
+        }: any) => {
+          const vizName = registry.get(vizType)?.name || vizType;
+          if (!formData || !isMatrixifyEnabled(formData)) return vizName;
+          return (
+            <VizTypeCell>
+              <span className="viz-type-name">{vizName}</span>
+              <span className="viz-type-tag">
                 <Tag name="Matrixified" color="purple" />
               </span>
-            )}
-          </>
-        ),
+            </VizTypeCell>
+          );
+        },
         Header: t('Type'),
         accessor: 'viz_type',
+        layout: 'text',
         id: 'viz_type',
       },
       {
@@ -607,7 +618,7 @@ function ChartList(props: ChartListProps) {
         Header: datasetLabel(),
         accessor: 'datasource_id',
         disableSortBy: true,
-        size: 'xl',
+        layout: 'identifier',
         id: 'datasource_id',
       },
       {
@@ -619,7 +630,7 @@ function ChartList(props: ChartListProps) {
         Header: t('On dashboards'),
         accessor: 'dashboards',
         disableSortBy: true,
-        size: 'xl',
+        layout: 'text',
         id: 'dashboards',
       },
       {
@@ -643,6 +654,7 @@ function ChartList(props: ChartListProps) {
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
+        layout: 'tags',
         id: 'tags',
       },
       {
@@ -654,7 +666,7 @@ function ChartList(props: ChartListProps) {
         Header: t('Editors'),
         accessor: 'editors',
         disableSortBy: true,
-        size: 'xl',
+        layout: 'people',
         id: 'editors',
       },
       ...(isFeatureEnabled(FeatureFlag.EnableViewers)
@@ -668,6 +680,7 @@ function ChartList(props: ChartListProps) {
               Header: t('Viewers'),
               accessor: 'viewers',
               disableSortBy: true,
+              layout: 'people' as const,
               id: 'viewers',
             },
           ]
@@ -683,7 +696,7 @@ function ChartList(props: ChartListProps) {
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -756,7 +769,7 @@ function ChartList(props: ChartListProps) {
         },
         Header: t('Actions'),
         id: 'actions',
-        size: 'lg',
+        layout: 'actions',
         disableSortBy: true,
         hidden: !canEdit && !canDelete,
       },

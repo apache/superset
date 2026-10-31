@@ -24,6 +24,7 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import {
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator,
   type ListViewFilter,
 } from 'src/components/ListView';
@@ -149,11 +150,12 @@ function ActionLogList() {
     [],
   );
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<ActionLogObject>[]>(
     () => [
       {
         accessor: 'action',
         Header: t('Action'),
+        layout: 'text',
         Cell: ({
           row: {
             original: { action },
@@ -163,6 +165,7 @@ function ActionLogList() {
       {
         accessor: 'user',
         Header: t('User'),
+        layout: 'text',
         // The log API only orders by scalar fields (e.g. `user.username`),
         // not the `user` relationship itself.
         disableSortBy: true,
@@ -191,6 +194,7 @@ function ActionLogList() {
       {
         accessor: 'duration_ms',
         Header: t('Duration Ms'),
+        layout: 'count',
 
         Cell: ({
           row: {
@@ -201,6 +205,7 @@ function ActionLogList() {
       {
         accessor: 'dashboard_id',
         Header: t('Dashboard Id'),
+        layout: 'count',
         hidden: false,
         Cell: ({
           row: {
@@ -211,6 +216,7 @@ function ActionLogList() {
       {
         accessor: 'slice_id',
         Header: t('Slice Id'),
+        layout: 'count',
         hidden: false,
         Cell: ({
           row: {
@@ -221,6 +227,7 @@ function ActionLogList() {
       {
         accessor: 'json',
         Header: t('JSON'),
+        layout: 'longtext',
 
         Cell: ({
           row: {
@@ -267,6 +274,7 @@ function ActionLogList() {
       {
         accessor: 'referrer',
         Header: t('Referrer'),
+        layout: 'text',
 
         Cell: ({
           row: {
@@ -297,6 +305,7 @@ function ActionLogList() {
       {
         accessor: 'dttm',
         Header: t('Dttm'),
+        layout: 'timestamp',
         Cell: ({
           row: {
             original: { dttm },

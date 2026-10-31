@@ -69,8 +69,10 @@ import {
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
+  type ListViewColumn,
   type ListViewFilters,
   type ListViewFetchDataConfig,
+  ListViewTitleCell,
 } from 'src/components';
 import type { SelectOption } from 'src/components/ListView/types';
 import { Typography } from '@superset-ui/core/components/Typography';
@@ -144,16 +146,6 @@ const extensionsRegistry = getExtensionsRegistry();
 const DatasetDeleteRelatedExtension = extensionsRegistry.get(
   'dataset.delete.related',
 );
-
-const FlexRowContainer = styled.div`
-  align-items: center;
-  display: flex;
-  gap: ${({ theme }) => theme.sizeUnit}px;
-
-  svg {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
-  }
-`;
 
 const Actions = styled.div`
   ${({ theme }) => css`
@@ -870,7 +862,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     }
   };
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<Dataset>[]>(
     () => [
       {
         accessor: 'id',
@@ -925,26 +917,31 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 ? JSON.parse(extra)
                 : (extra as DatasetExtra | null);
             return (
-              <FlexRowContainer>
-                {parsedExtra?.certification && (
-                  <CertifiedBadge
-                    certifiedBy={parsedExtra.certification.certified_by}
-                    details={parsedExtra.certification.details}
-                    size="l"
-                  />
-                )}
-                {parsedExtra?.warning_markdown && (
-                  <WarningIconWithTooltip
-                    warningMarkdown={parsedExtra.warning_markdown}
-                    size="l"
-                  />
-                )}
-                {rlsFilters && rlsFilters.length > 0 && (
-                  <RlsBadge rlsFilters={rlsFilters} size="l" />
-                )}
+              <ListViewTitleCell
+                leading={
+                  <>
+                    {parsedExtra?.certification && (
+                      <CertifiedBadge
+                        certifiedBy={parsedExtra.certification.certified_by}
+                        details={parsedExtra.certification.details}
+                        size="l"
+                      />
+                    )}
+                    {parsedExtra?.warning_markdown && (
+                      <WarningIconWithTooltip
+                        warningMarkdown={parsedExtra.warning_markdown}
+                        size="l"
+                      />
+                    )}
+                    {rlsFilters && rlsFilters.length > 0 && (
+                      <RlsBadge rlsFilters={rlsFilters} size="l" />
+                    )}
+                  </>
+                }
+                trailing={description && <InfoTooltip tooltip={description} />}
+              >
                 {titleLink}
-                {description && <InfoTooltip tooltip={description} />}
-              </FlexRowContainer>
+              </ListViewTitleCell>
             );
           } catch {
             return titleLink;
@@ -952,7 +949,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Name'),
         accessor: 'table_name',
-        size: 'xxxl',
+        layout: 'title',
         id: 'table_name',
       },
       {
@@ -969,7 +966,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Type'),
         accessor: 'kind',
         disableSortBy: true,
-        size: 'sm',
+        layout: 'status',
         id: 'kind',
       },
       {
@@ -980,7 +977,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         }: CellProps<Dataset>) => database?.database_name || '-',
         Header: databaseLabel(),
         accessor: 'database.database_name',
-        size: 'xl',
+        layout: 'identifier',
         id: 'database.database_name',
       },
       {
@@ -991,7 +988,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         }: CellProps<Dataset>) => schema || '-',
         Header: t('Schema'),
         accessor: 'schema',
-        size: 'lg',
+        layout: 'identifier',
         id: 'schema',
       },
       {
@@ -1009,7 +1006,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Editors'),
         id: 'editors',
         disableSortBy: true,
-        size: 'lg',
+        layout: 'people',
       },
       {
         Cell: ({
@@ -1024,7 +1021,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -1163,6 +1160,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Actions'),
         id: 'actions',
+        layout: 'actions',
         hidden: !canEdit && !canDelete && !canDuplicate,
         disableSortBy: true,
       },
