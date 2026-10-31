@@ -29,7 +29,12 @@ from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas.api.types import infer_dtype
 
-from superset.common.chart_data import ChartDataResultFormat
+from superset import is_feature_enabled
+from superset.charts.client_processing import (
+    apply_export_number_formats,
+    post_processors,
+)
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import (
     QueryAcquisitionResult,
     QueryAcquisitionTiming,
@@ -90,8 +95,10 @@ from superset.utils.pandas_postprocessing.utils import unescape_separator
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import BaseDatasource
     from superset.daos.datasource import Datasource
     from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.models.sql_lab import Query
 
 logger = logging.getLogger(__name__)
 
@@ -669,6 +676,32 @@ class QueryContextProcessor:
             if verbose_map:
                 df.columns = [verbose_map.get(column, column) for column in columns]
 
+            # A POST_PROCESSED export for a chart whose viz_type has a
+            # post-processor (table / pivot_table_v2) is re-parsed and run
+            # through pivot/table arithmetic by apply_client_processing, which
+            # would coerce a formatted "1,000.00" into NaN. That path formats
+            # after the post-processing step instead, so skip formatting here
+            # for those viz types only. Every other viz type has no
+            # post-processor, so apply_client_processing returns it unchanged
+            # and it must still be formatted here (scheduled reports and alerts
+            # request POST_PROCESSED for e.g. an ag-grid-table too).
+            form_data = self._query_context.form_data or {}
+            skip_for_post_processing = (
+                self._query_context.result_type == ChartDataResultType.POST_PROCESSED
+                and form_data.get("viz_type") in post_processors
+            )
+            format_numeric_export = (
+                is_feature_enabled("EXPORT_FORMATTED_NUMBERS")
+                and not skip_for_post_processing
+            )
+            if format_numeric_export:
+                apply_export_number_formats(
+                    df,
+                    coltypes,
+                    form_data,
+                    cast("BaseDatasource | Query | None", self._qc_datasource),
+                )
+
             result = None
             if self._query_context.result_format == ChartDataResultFormat.CSV:
                 result = csv.df_to_escaped_csv(
@@ -680,7 +713,19 @@ class QueryContextProcessor:
                     current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
                 )
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
-                excel.apply_column_types(df, coltypes)
+                export_coltypes = coltypes
+                if format_numeric_export:
+                    # Every numeric column was rendered to display text above, so
+                    # treat them as strings here; otherwise apply_column_types
+                    # would coerce e.g. "3.50" back to the number 3.5 and drop
+                    # the configured decimals.
+                    export_coltypes = [
+                        GenericDataType.STRING
+                        if coltype == GenericDataType.NUMERIC
+                        else coltype
+                        for coltype in coltypes
+                    ]
+                excel.apply_column_types(df, export_coltypes)
                 result = excel.df_to_excel(
                     df, index=include_index, **current_app.config["EXCEL_EXPORT"]
                 )
