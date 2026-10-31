@@ -1476,6 +1476,21 @@ SUPERSET_CACHE_WARMUP_USER: str | None = None
 # - Cascade/dependent filters and search-term variants are not warmed in this
 #   version; only base option queries are supported.
 
+# Gate for the `favorites` cache warm-up strategy, which warms charts on each
+# user's favorited dashboards. Schedule it through the `cache-warmup` Celery beat
+# task (see the `FavoritesStrategy` docstring in superset/tasks/cache.py). A
+# separate task per user runs as that user and computes only query results that
+# are missing or expired in DATA_CACHE_CONFIG. Requires a Celery worker and a real
+# DATA_CACHE_CONFIG backend (with NullCache every run would recompute).
+CACHE_WARMUP_FAVORITES = False
+# Maximum number of favorited dashboards (most recently favorited first) warmed
+# per user per run.
+CACHE_WARMUP_FAVORITES_MAX_DASHBOARDS = 5
+# Celery queue for per-user favorites warm-up tasks. Point it at a dedicated,
+# low-priority queue (served by its own worker) so a warm-up burst cannot delay
+# other tasks. None uses the default queue.
+CACHE_WARMUP_FAVORITES_QUEUE: str | None = None
+
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.
 SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())

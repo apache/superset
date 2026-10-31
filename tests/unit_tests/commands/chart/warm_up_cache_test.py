@@ -14,7 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from unittest.mock import Mock, patch
+from typing import Any
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -344,3 +345,64 @@ def test_validate_with_nonexistent_chart_id(mock_db):
 
     with pytest.raises(WarmUpCacheChartNotFoundError):
         command.validate()
+
+
+def _ctx(keys: list[str]) -> MagicMock:
+    query_context = MagicMock(queries=[MagicMock() for _ in keys])
+    query_context.get_cache_timeout.return_value = 300
+    query_context.query_cache_key.side_effect = keys
+    return query_context
+
+
+def test_missing_cache_keys_none_when_cached() -> None:
+    with patch("superset.commands.chart.warm_up_cache.cache_manager") as cm:
+        cm.data_cache.get.return_value = {"df": 1}
+        assert ChartWarmUpCacheCommand._missing_cache_keys(_ctx(["k1", "k2"])) == []
+
+
+def test_missing_cache_keys_reports_expired_entry() -> None:
+    with patch("superset.commands.chart.warm_up_cache.cache_manager") as cm:
+        cm.data_cache.get.side_effect = [{"df": 1}, None]
+        assert ChartWarmUpCacheCommand._missing_cache_keys(_ctx(["k1", "k2"])) == ["k2"]
+
+
+def test_missing_cache_keys_validates_before_keying() -> None:
+    """Keys are derived after query validation, as on the request path."""
+    query_context = _ctx(["k1"])
+    order: list[str] = []
+
+    def record_validate() -> None:
+        order.append("validate")
+
+    def record_key(_query: Any) -> str:
+        order.append("key")
+        return "k1"
+
+    query_context.queries[0].validate.side_effect = record_validate
+    query_context.query_cache_key.side_effect = record_key
+    with patch("superset.commands.chart.warm_up_cache.cache_manager") as cm:
+        cm.data_cache.get.return_value = {"df": 1}
+        ChartWarmUpCacheCommand._missing_cache_keys(query_context)
+    assert order == ["validate", "key"]
+
+
+def test_missing_cache_keys_empty_when_caching_disabled() -> None:
+    query_context = _ctx(["k1"])
+    query_context.get_cache_timeout.return_value = -1
+    assert ChartWarmUpCacheCommand._missing_cache_keys(query_context) == []
+
+
+def test_run_propagates_soft_time_limit() -> None:
+    """A Celery soft time limit must reach the task instead of becoming a viz error."""
+    from celery.exceptions import SoftTimeLimitExceeded
+
+    chart = Mock(spec=Slice)
+    command = ChartWarmUpCacheCommand(chart, None, None)
+    with (
+        patch.object(command, "validate"),
+        patch.object(
+            command, "_warm_up_non_legacy_cache", side_effect=SoftTimeLimitExceeded()
+        ),
+        pytest.raises(SoftTimeLimitExceeded),
+    ):
+        command.run()

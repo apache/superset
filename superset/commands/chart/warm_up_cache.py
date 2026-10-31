@@ -18,6 +18,8 @@
 
 from typing import Any, cast, Optional, Union
 
+from celery.exceptions import SoftTimeLimitExceeded
+
 from superset.commands.base import BaseCommand
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.exceptions import (
@@ -26,8 +28,9 @@ from superset.commands.chart.exceptions import (
     WarmUpCacheChartNotFoundError,
 )
 from superset.common.db_query_status import QueryStatus
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import db, security_manager
+from superset.extensions import cache_manager, db, security_manager
 from superset.models.slice import Slice
 from superset.semantic_layers.access import (
     is_semantic_layers_enabled,
@@ -37,6 +40,9 @@ from superset.utils import json
 from superset.utils.core import error_msg_from_exception, QueryObjectFilterClause
 from superset.views.utils import get_dashboard_extra_filters
 
+# Seconds a per-result warm-up lock is held if the worker dies before releasing it.
+WARMUP_LOCK_TTL = 900
+
 
 class ChartWarmUpCacheCommand(BaseCommand):
     def __init__(
@@ -44,10 +50,14 @@ class ChartWarmUpCacheCommand(BaseCommand):
         chart_or_id: Union[int, Slice],
         dashboard_id: Optional[int],
         extra_filters: Optional[str],
+        only_if_stale: bool = False,
     ):
         self._chart_or_id = chart_or_id
         self._dashboard_id = dashboard_id
         self._extra_filters = extra_filters
+        # When set, charts whose query results are all cached are left untouched
+        # and missing results are computed without bypassing the cache.
+        self._only_if_stale = only_if_stale
 
     def _get_dashboard_filters(self, chart_id: int) -> list[dict[str, Any]]:
         """Retrieve dashboard filters from extra_filters or dashboard metadata."""
@@ -58,6 +68,42 @@ class ChartWarmUpCacheCommand(BaseCommand):
             return json.loads(self._extra_filters)
 
         return get_dashboard_extra_filters(chart_id, self._dashboard_id)
+
+    @staticmethod
+    def _missing_cache_keys(query_context: Any) -> list[str]:
+        """Return cache keys of the context's queries lacking an unexpired entry."""
+        if query_context.get_cache_timeout() == CACHE_DISABLED_TIMEOUT:
+            # Results are never stored, so there is nothing to warm.
+            return []
+        missing: list[str] = []
+        for query in query_context.queries:
+            # Validation normalizes filters, matching the key used when querying.
+            query.validate()
+            cache_key = query_context.query_cache_key(query)
+            if not cache_key or cache_manager.data_cache.get(cache_key) is None:
+                missing.append(cache_key or "")
+        return missing
+
+    def _acquire_warmup_lock(self, query_context: Any) -> tuple[bool, str | None]:
+        """
+        Decide whether this worker should compute the chart's missing results.
+
+        Returns ``(should_run, lock_key)``. ``should_run`` is False when everything is
+        cached or another worker holds the lock; otherwise the returned lock key must
+        be released after the computation.
+        """
+        missing = self._missing_cache_keys(query_context)
+        if not missing:
+            return False, None
+        # Only one worker warms a given result at a time.
+        lock_key = f"cache-warmup-lock:{missing[0]}"
+        if not cache_manager.cache.add(lock_key, 1, timeout=WARMUP_LOCK_TTL):
+            return False, None
+        if not self._missing_cache_keys(query_context):
+            # Another worker stored the result while this one waited.
+            cache_manager.cache.delete(lock_key)
+            return False, None
+        return True, lock_key
 
     def _warm_up_non_legacy_cache(self, chart: Slice) -> tuple[Any, Any]:
         """Warm up cache for non-legacy visualizations."""
@@ -77,10 +123,20 @@ class ChartWarmUpCacheCommand(BaseCommand):
                     + query.filter
                 )
 
-        query_context.force = True
-        command = ChartDataCommand(query_context)
-        command.validate()
-        payload = command.run()
+        lock_key: str | None = None
+        if self._only_if_stale:
+            should_run, lock_key = self._acquire_warmup_lock(query_context)
+            if not should_run:
+                return None, QueryStatus.SUCCESS
+        else:
+            query_context.force = True
+        try:
+            command = ChartDataCommand(query_context)
+            command.validate()
+            payload = command.run()
+        finally:
+            if lock_key:
+                cache_manager.cache.delete(lock_key)
 
         # Report the first error.
         for query_result in cast(list[dict[str, Any]], payload["queries"]):
@@ -108,6 +164,8 @@ class ChartWarmUpCacheCommand(BaseCommand):
 
         try:
             error, status = self._warm_up_non_legacy_cache(chart)
+        except SoftTimeLimitExceeded:
+            raise
         except Exception as ex:  # pylint: disable=broad-except
             error = error_msg_from_exception(ex)
             status = None
