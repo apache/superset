@@ -105,6 +105,12 @@ class ImportFailedError(CommandException):
     message = "Import failed for an unknown reason"
 
 
+class ImportRefusedError(ImportFailedError):
+    """An import refused because of what the bundle contains, not a server fault."""
+
+    status = 400
+
+
 class DatasourceTypeInvalidError(ValidationError):
     status = 422
 
