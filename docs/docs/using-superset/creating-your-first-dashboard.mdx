@@ -83,6 +83,11 @@ for your target database.
 Click the **Test Connection** button to confirm things work end to end. If the connection looks good, save the configuration
 by clicking the **Connect** button in the bottom right corner of the modal window:
 
+Closing the connection window starts a fresh session the next time you add a database.
+A pending save may still complete on the server, but its response does not populate
+or close the new connection window. Check the database list before retrying a save
+that was pending when you closed the window.
+
 Congratulations, you've just added a new data source in Superset!
 
 ### Sharing a Database Connection

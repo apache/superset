@@ -680,7 +680,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     'connection',
   );
 
-  const databaseFetchGeneration = useRef(0);
+  const databaseRequestGeneration = useRef(0);
+  const dbFetchedGeneration = useRef(0);
+
+  /** Bind resource publication and save continuations to the requesting session. */
+  const getResponseGuard = () => {
+    const generation = databaseRequestGeneration.current;
+    return () => {
+      const active = show && generation === databaseRequestGeneration.current;
+      if (active) dbFetchedGeneration.current = generation;
+      return active;
+    };
+  };
 
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
@@ -924,7 +935,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   }, [db, getValidation]);
 
   const onClose = () => {
-    databaseFetchGeneration.current += 1;
+    databaseRequestGeneration.current += 1;
     setDB({ type: ActionType.Reset });
     setHasConnectedDb(false);
     handleClearValidationErrors(); // reset validation errors on close
@@ -970,6 +981,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   });
 
   const onSave = async () => {
+    const shouldApplyResponse = getResponseGuard();
     let dbConfigExtraExtensionOnSaveError;
     setLoading(true);
     setHasValidated(false);
@@ -1002,6 +1014,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
 
       const errors = await getValidation(dbToUpdate, true);
+      if (!shouldApplyResponse()) return;
       // ``getValidation`` returns ``[]`` on success, a field-keyed object
       // for blocking errors (e.g. the duplicate ``database_name`` check),
       // and ``null`` for stale or unexpected responses. During save we
@@ -1096,7 +1109,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         db.id as number,
         dbToUpdate as DatabaseObject,
         dbToUpdate.configuration_method === ConfigurationMethod.DynamicForm, // onShow toast on SQLA Forms
+        true,
+        shouldApplyResponse,
       );
+      if (!shouldApplyResponse()) return;
       if (result) {
         if (onDatabaseAdd) onDatabaseAdd();
         dbConfigExtraExtension
@@ -1121,7 +1137,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const dbId = await createResource(
         dbToUpdate as DatabaseObject,
         dbToUpdate.configuration_method === ConfigurationMethod.DynamicForm, // onShow toast on SQLA Forms
+        shouldApplyResponse,
       );
+      if (!shouldApplyResponse()) return;
       if (dbId) {
         setHasConnectedDb(true);
         if (onDatabaseAdd) onDatabaseAdd();
@@ -1175,13 +1193,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   /** Fetch only into the modal session that requested the database. */
-  const fetchDatabase = (id: number) => {
-    const generation = databaseFetchGeneration.current;
-    return fetchResource(
-      id,
-      () => show && generation === databaseFetchGeneration.current,
-    );
-  };
+  const fetchDatabase = (id: number) => fetchResource(id, getResponseGuard());
 
   // Initialize
   const fetchDB = () => {
@@ -1359,7 +1371,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const handleBackButtonOnConnect = () => {
-    databaseFetchGeneration.current += 1;
+    databaseRequestGeneration.current += 1;
     handleClearValidationErrors();
     if (editNewDb) setHasConnectedDb(false);
     if (importingModal) setImportingModal(false);
@@ -1546,13 +1558,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       fetchDB();
     }
     return () => {
-      // Closing or switching targets invalidates outstanding connection reads.
-      databaseFetchGeneration.current += 1;
+      // Closing or switching targets invalidates outstanding connection requests.
+      databaseRequestGeneration.current += 1;
     };
   }, [show, databaseId]);
 
   useEffect(() => {
-    if (show && dbFetched && (!databaseId || dbFetched.id === databaseId)) {
+    if (
+      show &&
+      dbFetched &&
+      dbFetchedGeneration.current === databaseRequestGeneration.current &&
+      (!databaseId || dbFetched.id === databaseId)
+    ) {
       setDB({
         type: ActionType.Fetched,
         isEditMode,

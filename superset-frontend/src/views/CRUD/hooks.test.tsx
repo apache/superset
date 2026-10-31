@@ -1038,6 +1038,89 @@ test('useSingleViewResource: updateResource puts to correct endpoint', async () 
   });
 });
 
+test.each(['create', 'update'] as const)(
+  'useSingleViewResource: discarded %s preserves the active resource and returns its response',
+  async operation => {
+    const response = deferredJsonResponse();
+    jest
+      .spyOn(SupersetClient, operation === 'create' ? 'post' : 'put')
+      .mockReturnValue(response.promise);
+    const { result } = renderHook(() =>
+      useSingleViewResource<{ id?: number; name?: string }>(
+        'database',
+        'Database',
+        jest.fn(),
+      ),
+    );
+    let active = true;
+    let request: Promise<unknown> = Promise.resolve();
+    act(() => {
+      request =
+        operation === 'create'
+          ? result.current.createResource({ name: 'Old' }, false, () => active)
+          : result.current.updateResource(
+              77,
+              { name: 'Old' },
+              false,
+              true,
+              () => active,
+            );
+    });
+    active = false;
+    act(() => result.current.setResource({ id: 88, name: 'Active' }));
+    await act(async () => {
+      response.resolve({
+        json: { id: 77, result: { name: 'Old' } },
+      } as unknown as JsonResponse);
+      expect(await request).toEqual(
+        operation === 'create' ? 77 : { name: 'Old' },
+      );
+    });
+    expect(result.current.state.resource).toEqual({ id: 88, name: 'Active' });
+    expect(result.current.state.error).toBeNull();
+  },
+);
+
+test.each(['create', 'update'] as const)(
+  'useSingleViewResource: discarded %s errors do not update state or show a toast',
+  async operation => {
+    const response = deferredJsonResponse();
+    jest
+      .spyOn(SupersetClient, operation === 'create' ? 'post' : 'put')
+      .mockReturnValue(response.promise);
+    const handleError = jest.fn();
+    const { result } = renderHook(() =>
+      useSingleViewResource<{ name: string }>(
+        'database',
+        'Database',
+        handleError,
+      ),
+    );
+    let active = true;
+    let request: Promise<unknown> = Promise.resolve();
+    act(() => {
+      request =
+        operation === 'create'
+          ? result.current.createResource({ name: 'Old' }, false, () => active)
+          : result.current.updateResource(
+              77,
+              { name: 'Old' },
+              false,
+              true,
+              () => active,
+            );
+    });
+    active = false;
+    await act(async () => {
+      response.reject({ error: 'Write failed' });
+      await request;
+    });
+    expect(result.current.state.resource).toBeNull();
+    expect(result.current.state.error).toBeNull();
+    expect(handleError).not.toHaveBeenCalled();
+  },
+);
+
 test('useSingleViewResource: clearError resets error to null', async () => {
   // First make a failing request to get an error state
   jest.spyOn(SupersetClient, 'get').mockRejectedValue('Network error');

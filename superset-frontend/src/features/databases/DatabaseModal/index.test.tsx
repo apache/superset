@@ -529,6 +529,149 @@ describe('DatabaseModal', () => {
     await expectFreshCreateAfterEdit('Late X');
   });
 
+  /** Check that late writes cannot populate or close a subsequent create session. */
+  const expectFreshCreateAfterLateWrite = async (
+    operation: 'create' | 'update',
+  ): Promise<void> => {
+    const resourceHook = jest.spyOn(hooks, 'useSingleViewResource');
+    const previousImplementation = resourceHook.getMockImplementation()!;
+    resourceHook.mockImplementation(realUseSingleViewResource);
+    let releaseWrite: () => void = () => {};
+    const writeReady = new Promise<void>(resolve => {
+      releaseWrite = resolve;
+    });
+    const connection = {
+      id: 77,
+      database_name: 'First connection',
+      backend: 'postgresql',
+      configuration_method: ConfigurationMethod.DynamicForm,
+    };
+    let createCount = 0;
+    fetchMock.modifyRoute('database-connect', {
+      response: async () => {
+        createCount += 1;
+        if (operation === 'create' && createCount === 1) await writeReady;
+        const id = createCount === 1 ? 77 : 88;
+        return { id, result: { ...connection, id } };
+      },
+    });
+    fetchMock.put('glob:*/api/v1/database/77', async () => {
+      await writeReady;
+      return { id: 77, result: connection };
+    });
+    const onDatabaseAdd = jest.fn();
+    const Harness = () => {
+      const [show, setShow] = useState(true);
+      return (
+        <>
+          <button type="button" onClick={() => setShow(true)}>
+            + Database
+          </button>
+          <DatabaseModal
+            show={show}
+            onHide={() => setShow(false)}
+            onDatabaseAdd={onDatabaseAdd}
+          />
+        </>
+      );
+    };
+    /** Fill a new dynamic-form connection without relying on saved state. */
+    const connectPostgres = async (name: string, host: string) => {
+      await userEvent.click(
+        await screen.findByRole('button', { name: /postgresql/i }),
+      );
+      fireEvent.change(
+        document.querySelector<HTMLInputElement>(
+          'input[name="database_name"]',
+        )!,
+        {
+          target: { value: name },
+        },
+      );
+      for (const [field, value] of Object.entries({
+        host,
+        port: '5432',
+        database: 'postgres',
+        username: 'testdb',
+      })) {
+        fireEvent.change(
+          document.querySelector<HTMLInputElement>(`input[name="${field}"]`)!,
+          { target: { value } },
+        );
+      }
+      fireEvent.blur(
+        document.querySelector<HTMLInputElement>('input[name="username"]')!,
+      );
+      const connect = screen.getByRole('button', { name: 'Connect' });
+      await waitFor(() => expect(connect).toBeEnabled());
+      await userEvent.click(connect);
+    };
+    try {
+      render(<Harness />, { useRedux: true });
+      await connectPostgres('First connection', 'first.example');
+      await waitFor(() =>
+        expect(
+          fetchMock.callHistory.calls(DATABASE_CONNECT_ENDPOINT),
+        ).toHaveLength(1),
+      );
+      if (operation === 'update') {
+        expect(await screen.findByText(/step 3 of 3/i)).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
+        await waitFor(() =>
+          expect(
+            fetchMock.callHistory.calls('glob:*/api/v1/database/77'),
+          ).toHaveLength(1),
+        );
+      }
+      await userEvent.click(screen.getAllByLabelText('Close')[0]);
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+      );
+      await userEvent.click(screen.getByRole('button', { name: '+ Database' }));
+      await screen.findByRole('dialog');
+      onDatabaseAdd.mockClear();
+      await act(async () => {
+        releaseWrite();
+        await fetchMock.callHistory.flush(true);
+      });
+      expect(
+        screen.getByRole('heading', {
+          name: /select a database to connect/i,
+        }),
+      ).toBeInTheDocument();
+      expect(onDatabaseAdd).not.toHaveBeenCalled();
+      fetchMock.clearHistory();
+      await connectPostgres('Second connection', 'second.example');
+      expect(await screen.findByText(/step 3 of 3/i)).toBeInTheDocument();
+      expect(
+        fetchMock.callHistory.calls(DATABASE_CONNECT_ENDPOINT),
+      ).toHaveLength(1);
+      expect(
+        fetchMock.callHistory.calls('glob:*/api/v1/database/77', {
+          method: 'PUT',
+        }),
+      ).toHaveLength(0);
+      const payload = JSON.parse(
+        fetchMock.callHistory.lastCall(DATABASE_CONNECT_ENDPOINT)!.options
+          .body as string,
+      );
+      expect(payload).not.toHaveProperty('id');
+      expect(payload.database_name).toBe('Second connection');
+      expect(payload.parameters.host).toBe('second.example');
+    } finally {
+      releaseWrite();
+      resourceHook.mockImplementation(previousImplementation);
+    }
+  };
+
+  test('late create response after X leaves the next connection as a fresh POST', async () => {
+    await expectFreshCreateAfterLateWrite('create');
+  });
+
+  test('late update response after X leaves the next connection as a fresh POST', async () => {
+    await expectFreshCreateAfterLateWrite('update');
+  });
+
   test('switching edit targets loads the active target while the previous fetch is pending', async () => {
     const resourceHook = jest.spyOn(hooks, 'useSingleViewResource');
     const previousImplementation = resourceHook.getMockImplementation()!;
@@ -3250,6 +3393,8 @@ test.each([true, false])(
             sqlalchemy_uri: 'databricks://example.cloud.databricks.com',
           }),
           false,
+          true,
+          expect.any(Function),
         );
       }
     } finally {
