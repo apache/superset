@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 12:38+0000\n"
+"POT-Creation-Date: 2026-10-30 19:32+0000\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -3240,6 +3240,10 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 msgid "An error occurred while loading the SQL"
 msgstr "SQL을 불러오는 중 오류가 발생했습니다"
 
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
+
 #, fuzzy
 msgid "An error occurred while overwriting the dataset"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
@@ -5663,9 +5667,6 @@ msgstr "날짜로 파싱할 열을 선택하십시오"
 #, fuzzy
 msgid "Choose columns to read"
 msgstr "컬럼 보기"
-
-msgid "Choose current semantic fields"
-msgstr ""
 
 msgid "Choose current semantic filter fields"
 msgstr ""
@@ -10680,6 +10681,10 @@ msgstr "RLS 필터의 jinja 표현식 오류: %(msg)s"
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "WHERE 절의 jinja 표현식 오류: %(msg)s"
 
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -12688,6 +12693,9 @@ msgid ""
 msgstr "계열 한도에 도달하면 나머지 계열을 \"기타\" 범주로 그룹화합니다. 이를 통해 불완전한 시계열 데이터가 표시되는 것을 방지합니다."
 
 msgid "Guest"
+msgstr ""
+
+msgid "Guest user cannot access this query"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -19018,6 +19026,12 @@ msgstr ""
 msgid "Raw records"
 msgstr "원시 레코드"
 
+msgid "Re-pick fields"
+msgstr ""
+
+msgid "Re-pick fields for this chart"
+msgstr ""
+
 msgid "Rearranged layout"
 msgstr ""
 
@@ -23187,12 +23201,6 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Start field selection using current member IDs. This clears any existing "
-"query and formatting settings. Saved display titles cannot be safely "
-"mapped to member IDs. The saved chart is unchanged until you save."
-msgstr ""
-
-msgid ""
 "Start with row groups collapsed when row subtotals are shown. Each group "
 "can still be expanded with its arrow."
 msgstr ""
@@ -26472,6 +26480,13 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid ""
+"This chart was saved with an older format of field names for this "
+"semantic view, so the fields it refers to can't be confirmed. Re-pick the"
+" metrics and dimensions to keep using it. The saved chart doesn't change "
+"until you save."
+msgstr ""
+
 msgid "This chart was updated to use the restored aggregation"
 msgstr ""
 
@@ -28148,6 +28163,9 @@ msgid "Unable to load dashboard"
 msgstr "대시보드 추가"
 
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,

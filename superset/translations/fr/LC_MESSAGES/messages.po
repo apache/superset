@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 12:38+0000\n"
+"POT-Creation-Date: 2026-10-30 19:32+0000\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -2453,6 +2453,10 @@ msgstr ""
 msgid "An error occurred while loading the SQL"
 msgstr "Une erreur s'est produite durant le chargement de SQL"
 
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
+
 msgid "An error occurred while overwriting the dataset"
 msgstr "Une erreur s'est produite lors du remplacement du jeu de données"
 
@@ -4083,9 +4087,6 @@ msgstr "choisir les Colonnes à traiter comme des dates"
 
 msgid "Choose columns to read"
 msgstr "choisir les Colonnes à lire"
-
-msgid "Choose current semantic fields"
-msgstr ""
 
 msgid "Choose current semantic filter fields"
 msgstr ""
@@ -7543,6 +7544,10 @@ msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Erreur d'expression jinja dans la clause WHERE : %(msg)s"
 
 #, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
+#, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr "Erreur de la colonne adhoc dans l'expression jinja : %(msg)s"
 
@@ -8885,6 +8890,9 @@ msgstr ""
 "données de séries temporelles incomplètes."
 
 msgid "Guest"
+msgstr ""
+
+msgid "Guest user cannot access this query"
 msgstr ""
 
 msgid "Guest user cannot modify chart payload"
@@ -12963,6 +12971,12 @@ msgstr ""
 msgid "Raw records"
 msgstr "Registres bruts"
 
+msgid "Re-pick fields"
+msgstr ""
+
+msgid "Re-pick fields for this chart"
+msgstr ""
+
 msgid "Rearranged layout"
 msgstr ""
 
@@ -15868,12 +15882,6 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Start field selection using current member IDs. This clears any existing "
-"query and formatting settings. Saved display titles cannot be safely "
-"mapped to member IDs. The saved chart is unchanged until you save."
-msgstr ""
-
-msgid ""
 "Start with row groups collapsed when row subtotals are shown. Each group "
 "can still be expanded with its arrow."
 msgstr ""
@@ -18365,6 +18373,13 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid ""
+"This chart was saved with an older format of field names for this "
+"semantic view, so the fields it refers to can't be confirmed. Re-pick the"
+" metrics and dimensions to keep using it. The saved chart doesn't change "
+"until you save."
+msgstr ""
+
 msgid "This chart was updated to use the restored aggregation"
 msgstr ""
 
@@ -19571,6 +19586,9 @@ msgid "Unable to load dashboard"
 msgstr "Impossible de charger le tableau de bord"
 
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 msgid ""

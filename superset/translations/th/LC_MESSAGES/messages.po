@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 12:38+0000\n"
+"POT-Creation-Date: 2026-10-30 19:32+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -3546,6 +3546,10 @@ msgstr "เกิดข้อผิดพลาดขณะโหลดข้อ
 msgid "An error occurred while loading the SQL"
 msgstr "เกิดข้อผิดพลาดขณะโหลด SQL"
 
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
@@ -6215,9 +6219,6 @@ msgstr "เลือกคอลัมน์ที่จะแปลงเป็
 #, fuzzy
 msgid "Choose columns to read"
 msgstr "เลือกคอลัมน์ที่จะอ่าน"
-
-msgid "Choose current semantic fields"
-msgstr ""
 
 msgid "Choose current semantic filter fields"
 msgstr ""
@@ -11849,6 +11850,10 @@ msgstr "ข้อผิดพลาดในนิพจน์ jinja ในต�
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "ข้อผิดพลาดในนิพจน์ jinja ในประโยค WHERE: %(msg)s"
 
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy, python-format
@@ -13990,6 +13995,9 @@ msgstr ""
 "ซึ่งจะป้องกันไม่ให้แสดงข้อมูลอนุกรมเวลาที่ไม่สมบูรณ์"
 
 msgid "Guest"
+msgstr ""
+
+msgid "Guest user cannot access this query"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -20732,6 +20740,12 @@ msgstr ""
 msgid "Raw records"
 msgstr "ระเบียนดิบ"
 
+msgid "Re-pick fields"
+msgstr ""
+
+msgid "Re-pick fields for this chart"
+msgstr ""
+
 msgid "Rearranged layout"
 msgstr ""
 
@@ -25402,12 +25416,6 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Start field selection using current member IDs. This clears any existing "
-"query and formatting settings. Saved display titles cannot be safely "
-"mapped to member IDs. The saved chart is unchanged until you save."
-msgstr ""
-
-msgid ""
 "Start with row groups collapsed when row subtotals are shown. Each group "
 "can still be expanded with its arrow."
 msgstr ""
@@ -28855,6 +28863,13 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid ""
+"This chart was saved with an older format of field names for this "
+"semantic view, so the fields it refers to can't be confirmed. Re-pick the"
+" metrics and dimensions to keep using it. The saved chart doesn't change "
+"until you save."
+msgstr ""
+
 msgid "This chart was updated to use the restored aggregation"
 msgstr ""
 
@@ -30595,6 +30610,9 @@ msgid "Unable to load dashboard"
 msgstr "ไม่สามารถโหลดแดชบอร์ดได้"
 
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,

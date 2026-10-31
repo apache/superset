@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 12:38+0000\n"
+"POT-Creation-Date: 2026-10-30 19:32+0000\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -2851,6 +2851,10 @@ msgstr "Došlo je do greške prilikom učitavanja informacija o kontrolnoj tabli
 msgid "An error occurred while loading the SQL"
 msgstr "Došlo je do greške prilikom učitavanja SQL-a"
 
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
+
 # ru, uk]
 msgid "An error occurred while overwriting the dataset"
 msgstr "Došlo je do greške prilikom prepisivanja skupa podataka"
@@ -4816,9 +4820,6 @@ msgstr "Izaberite kolone koje treba tumačiti kao datume"
 # fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Choose columns to read"
 msgstr "Izaberite kolone za čitanje"
-
-msgid "Choose current semantic fields"
-msgstr ""
 
 msgid "Choose current semantic filter fields"
 msgstr ""
@@ -8995,6 +8996,10 @@ msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Greška u jinja izrazu u WHERE klauzi: %(msg)s"
 
 #, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
+#, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr "Greška u jinja izrazu u ad hoc koloni: %(msg)s"
 
@@ -10575,6 +10580,9 @@ msgstr ""
 "vremenske serije."
 
 msgid "Guest"
+msgstr ""
+
+msgid "Guest user cannot access this query"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
@@ -15467,6 +15475,12 @@ msgstr ""
 msgid "Raw records"
 msgstr "Sirovi zapisi"
 
+msgid "Re-pick fields"
+msgstr ""
+
+msgid "Re-pick fields for this chart"
+msgstr ""
+
 msgid "Rearranged layout"
 msgstr ""
 
@@ -18870,12 +18884,6 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Start field selection using current member IDs. This clears any existing "
-"query and formatting settings. Saved display titles cannot be safely "
-"mapped to member IDs. The saved chart is unchanged until you save."
-msgstr ""
-
-msgid ""
 "Start with row groups collapsed when row subtotals are shown. Each group "
 "can still be expanded with its arrow."
 msgstr ""
@@ -21616,6 +21624,13 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid ""
+"This chart was saved with an older format of field names for this "
+"semantic view, so the fields it refers to can't be confirmed. Re-pick the"
+" metrics and dimensions to keep using it. The saved chart doesn't change "
+"until you save."
+msgstr ""
+
 msgid "This chart was updated to use the restored aggregation"
 msgstr ""
 
@@ -22973,6 +22988,9 @@ msgid "Unable to load dashboard"
 msgstr "Nije moguće učitati kontrolnu tablu"
 
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]

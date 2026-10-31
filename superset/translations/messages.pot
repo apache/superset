@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 12:38+0000\n"
+"POT-Creation-Date: 2026-10-30 19:32+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -424,6 +424,12 @@ msgstr[1] ""
 #, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -2043,6 +2049,10 @@ msgstr ""
 msgid "An error occurred while loading the SQL"
 msgstr ""
 
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
+
 msgid "An error occurred while overwriting the dataset"
 msgstr ""
 
@@ -2365,10 +2375,6 @@ msgstr ""
 
 #, python-format
 msgid "Are you sure you want to delete %s?"
-msgstr ""
-
-#, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
 msgstr ""
 
 #, python-format
@@ -3412,6 +3418,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr ""
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr ""
 
@@ -4390,6 +4399,9 @@ msgstr ""
 msgid "Create or select schema..."
 msgstr ""
 
+msgid "Create semantic layer"
+msgstr ""
+
 msgid "Created"
 msgstr ""
 
@@ -5262,7 +5274,7 @@ msgstr ""
 msgid "Delete item"
 msgstr ""
 
-msgid "Delete or move active datasets. To remove archived datasets, open Recently archived and select Delete permanently."
+msgid "Delete or move active datasets. To remove archived datasets, open Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -6386,11 +6398,11 @@ msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr ""
 
 #, python-format
-msgid "Error in jinja expression in adhoc column: %(msg)s"
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
 msgstr ""
 
 #, python-format
-msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr ""
 
 #, python-format
@@ -8727,6 +8739,12 @@ msgstr ""
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 msgid "Loading timezones..."
 msgstr ""
 
@@ -9797,6 +9815,15 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No semantic layer types are available. Ask your administrator to check the semantic layer setup for this deployment."
+msgstr ""
+
+msgid "No semantic layers are available to you. A semantic layer connects your data to its business definitions. Create a semantic layer before adding a semantic view."
+msgstr ""
+
+msgid "No semantic layers are available to you. Ask your administrator to set up a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12777,6 +12804,9 @@ msgstr ""
 msgid "Semantic layer parameters are invalid."
 msgstr ""
 
+msgid "Semantic layer setup guide"
+msgstr ""
+
 msgid "Semantic layer type"
 msgstr ""
 
@@ -15376,6 +15406,9 @@ msgstr ""
 msgid "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com)."
 msgstr ""
 
+msgid "This cannot be undone."
+msgstr ""
+
 msgid "This chart applies cross-filters to charts whose datasets contain columns with the same name."
 msgstr ""
 
@@ -16127,6 +16160,9 @@ msgstr ""
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 
@@ -16284,7 +16320,16 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr ""
 
+msgid "Unable to load semantic layer types. Try again or ask your administrator for help."
+msgstr ""
+
+msgid "Unable to load semantic layers. Try again or ask your administrator for help."
+msgstr ""
+
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 msgid "Unable to migrate query editor state to backend. Superset will retry later. Please contact your administrator if this problem persists."
@@ -17919,6 +17964,9 @@ msgstr ""
 msgid "aggregate"
 msgstr ""
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr ""
 
@@ -17934,6 +17982,10 @@ msgstr ""
 msgid "ancestor"
 msgstr ""
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr ""
 
@@ -17941,6 +17993,10 @@ msgid "annotation_layer"
 msgstr ""
 
 msgid "apple"
+msgstr ""
+
+#, python-format
+msgid "archived %s"
 msgstr ""
 
 msgid "asfreq"
@@ -18578,6 +18634,12 @@ msgid "queries"
 msgstr ""
 
 msgid "query"
+msgstr ""
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
 msgstr ""
 
 msgid "random"

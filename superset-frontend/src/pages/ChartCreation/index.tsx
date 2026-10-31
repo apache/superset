@@ -18,7 +18,12 @@
  */
 import { ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { FeatureFlag, isDefined, isFeatureEnabled } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  getClientErrorObject,
+  isDefined,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
@@ -31,11 +36,11 @@ import {
   Tag,
 } from '@superset-ui/core/components';
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
-import withToasts from 'src/components/MessageToasts/withToasts';
 
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { findPermission } from 'src/utils/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
@@ -43,7 +48,10 @@ import {
   Dataset,
   DatasetSelectLabel,
 } from 'src/features/datasets/DatasetSelectLabel';
-import { fetchDatasourceList } from 'src/features/datasets/fetchDatasourceList';
+import {
+  fetchDatasetById,
+  fetchDatasourceList,
+} from 'src/features/datasets/fetchDatasourceList';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
   datasetLabel,
@@ -52,7 +60,6 @@ import {
 
 export interface ChartCreationProps {
   user: UserWithPermissionsAndRoles;
-  addSuccessToast: (arg: string) => void;
 }
 
 type DatasourceOption = {
@@ -227,10 +234,7 @@ const createDatasourceOption = (
   };
 };
 
-export const ChartCreation = ({
-  user,
-  addSuccessToast,
-}: ChartCreationProps) => {
+export const ChartCreation = ({ user }: ChartCreationProps) => {
   const theme = useTheme();
   const history = useHistory();
   const semanticLayersEnabled = isFeatureEnabled(FeatureFlag.SemanticLayers);
@@ -240,8 +244,8 @@ export const ChartCreation = ({
     [user.roles],
   );
 
-  const hasDatasetParam = useMemo(
-    () => new URLSearchParams(window.location.search).has('dataset'),
+  const hasDatasetId = useMemo(
+    () => !!new URLSearchParams(window.location.search).get('dataset_id'),
     [],
   );
 
@@ -249,7 +253,8 @@ export const ChartCreation = ({
     SelectedDatasource | undefined
   >();
   const [vizType, setVizType] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(hasDatasetParam);
+  const [loading, setLoading] = useState<boolean>(hasDatasetId);
+  const { addDangerToast } = useToasts();
 
   const exploreUrl = useCallback(() => {
     const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
@@ -303,25 +308,38 @@ export const ChartCreation = ({
   );
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search).get('dataset');
-    if (params) {
-      // The URL names a dataset that was just saved, so resolve it against
-      // datasets only: a semantic view with the same name must not win.
-      fetchDatasourceList(params, 0, 1, {
-        exactMatch: true,
-        datasetsOnly: true,
-      })
-        .then(({ result }) => {
-          const [dataset] = result;
-          setDatasource(dataset && toDatasourceOption(dataset));
-          setLoading(false);
-        })
-        .catch(() => {
-          setLoading(false);
-        });
-      addSuccessToast(t('The dataset has been saved'));
+    const datasetId = new URLSearchParams(window.location.search).get(
+      'dataset_id',
+    );
+    if (!datasetId) {
+      return;
     }
-  }, [toDatasourceOption, addSuccessToast]);
+    // Resolve against datasets only: an ID is unambiguous, whereas a semantic
+    // view can share the same numeric ID. A missing or inaccessible dataset
+    // (404) silently leaves the picker empty; any other failure is surfaced.
+    fetchDatasetById(datasetId)
+      .then(dataset => {
+        setDatasource(toDatasourceOption(dataset));
+        setLoading(false);
+      })
+      .catch(async error => {
+        // Clear loading before parsing: getClientErrorObject may never settle
+        // for errors that carry no response.
+        setLoading(false);
+        const clientError = await getClientErrorObject(error);
+        if (clientError.status === 404) {
+          return;
+        }
+        addDangerToast(
+          clientError.error || clientError.message
+            ? t(
+                'An error occurred while loading the dataset: %s',
+                clientError.error || clientError.message,
+              )
+            : t('Unable to load the selected dataset'),
+        );
+      });
+  }, [toDatasourceOption, addDangerToast]);
 
   const isButtonDisabled = isBtnDisabled();
   const VIEW_INSTRUCTIONS_TEXT = t('view instructions');
@@ -430,4 +448,4 @@ export const ChartCreation = ({
   );
 };
 
-export default withToasts(ChartCreation);
+export default ChartCreation;

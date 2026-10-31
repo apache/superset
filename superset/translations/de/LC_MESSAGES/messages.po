@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 12:38+0000\n"
+"POT-Creation-Date: 2026-10-30 19:32+0000\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -2585,6 +2585,10 @@ msgstr "Beim Laden der Dashboard-Informationen ist ein Fehler aufgetreten."
 msgid "An error occurred while loading the SQL"
 msgstr "Beim Laden des SQL ist ein Fehler aufgetreten"
 
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
+
 msgid "An error occurred while overwriting the dataset"
 msgstr "Beim Überschreiben des Datensatzes ist ein Fehler aufgetreten"
 
@@ -4221,9 +4225,6 @@ msgstr "Wählen Sie Spalten, die als Datumswerte analysiert werden sollen"
 
 msgid "Choose columns to read"
 msgstr "Zu lesende Spalten wählen"
-
-msgid "Choose current semantic fields"
-msgstr "Aktuelle semantische Felder auswählen"
 
 msgid "Choose current semantic filter fields"
 msgstr "Aktuelle semantische Filterfelder auswählen"
@@ -7743,6 +7744,10 @@ msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Fehlerhafter Jinja-Ausdruck in WHERE-Klausel: %(msg)s"
 
 #, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
+#, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr "Fehler im Jinja-Ausdruck in der Ad-hoc-Spalte: %(msg)s"
 
@@ -9115,6 +9120,9 @@ msgstr ""
 
 msgid "Guest"
 msgstr "Gast"
+
+msgid "Guest user cannot access this query"
+msgstr ""
 
 msgid "Guest user cannot modify chart payload"
 msgstr "Gastbenutzer*in kann keine Daten in den Diagrammen ändern"
@@ -13270,6 +13278,12 @@ msgstr ""
 msgid "Raw records"
 msgstr "Roheinträge"
 
+msgid "Re-pick fields"
+msgstr ""
+
+msgid "Re-pick fields for this chart"
+msgstr ""
+
 msgid "Rearranged layout"
 msgstr "Layout neu angeordnet"
 
@@ -16228,16 +16242,6 @@ msgstr ""
 "automatisch wiederhergestellt werden."
 
 msgid ""
-"Start field selection using current member IDs. This clears any existing "
-"query and formatting settings. Saved display titles cannot be safely "
-"mapped to member IDs. The saved chart is unchanged until you save."
-msgstr ""
-"Feldauswahl mit den aktuellen Mitglieds-IDs starten. Dadurch werden alle "
-"vorhandenen Abfrage- und Formatierungseinstellungen gelöscht. "
-"Gespeicherte Anzeigetitel können nicht sicher Mitglieds-IDs zugeordnet "
-"werden. Das gespeicherte Diagramm bleibt unverändert, bis Sie speichern."
-
-msgid ""
 "Start with row groups collapsed when row subtotals are shown. Each group "
 "can still be expanded with its arrow."
 msgstr ""
@@ -18868,6 +18872,13 @@ msgstr ""
 " Version wieder her, die eine vorhandene semantische Ansicht oder einen "
 "vorhandenen Datensatz verwendet, oder erstellen Sie das Diagramm neu."
 
+msgid ""
+"This chart was saved with an older format of field names for this "
+"semantic view, so the fields it refers to can't be confirmed. Re-pick the"
+" metrics and dimensions to keep using it. The saved chart doesn't change "
+"until you save."
+msgstr ""
+
 msgid "This chart was updated to use the restored aggregation"
 msgstr ""
 "Dieses Diagramm wurde aktualisiert, um die wiederhergestellte Aggregation"
@@ -20158,6 +20169,9 @@ msgstr "Das Dashboard kann nicht geladen werden"
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr "Die Konfiguration von Alarmen und Berichten konnte nicht geladen werden."
+
+msgid "Unable to load the selected dataset"
+msgstr ""
 
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "

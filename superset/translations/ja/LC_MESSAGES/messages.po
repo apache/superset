@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 12:38+0000\n"
+"POT-Creation-Date: 2026-10-30 19:32+0000\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -2244,6 +2244,10 @@ msgstr "ダッシュボード情報の読み込み中にエラーが発生しま
 msgid "An error occurred while loading the SQL"
 msgstr "SQLの読み込み中にエラーが発生しました"
 
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
+
 msgid "An error occurred while overwriting the dataset"
 msgstr "データセットの上書き中にエラーが発生しました"
 
@@ -3725,9 +3729,6 @@ msgstr "日付として解析する列を選択"
 
 msgid "Choose columns to read"
 msgstr "読み込む列を選択"
-
-msgid "Choose current semantic fields"
-msgstr ""
 
 msgid "Choose current semantic filter fields"
 msgstr ""
@@ -6893,6 +6894,10 @@ msgstr "RLSフィルター内のJinja式エラー: %(msg)s"
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "WHERE句内のJinja式エラー: %(msg)s"
 
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr "日時列内のJinja式エラー: %(msg)s"
@@ -8147,6 +8152,9 @@ msgid ""
 msgstr "系列の上限に達した際、残りの系列を「その他」カテゴリにまとめます。これにより、一部の不完全な時系列データが表示されるのを防ぎます。"
 
 msgid "Guest"
+msgstr ""
+
+msgid "Guest user cannot access this query"
 msgstr ""
 
 msgid "Guest user cannot modify chart payload"
@@ -11969,6 +11977,12 @@ msgstr ""
 msgid "Raw records"
 msgstr "未加工レコード"
 
+msgid "Re-pick fields"
+msgstr ""
+
+msgid "Re-pick fields for this chart"
+msgstr ""
+
 msgid "Rearranged layout"
 msgstr ""
 
@@ -14626,12 +14640,6 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Start field selection using current member IDs. This clears any existing "
-"query and formatting settings. Saved display titles cannot be safely "
-"mapped to member IDs. The saved chart is unchanged until you save."
-msgstr ""
-
-msgid ""
 "Start with row groups collapsed when row subtotals are shown. Each group "
 "can still be expanded with its arrow."
 msgstr ""
@@ -16777,6 +16785,13 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid ""
+"This chart was saved with an older format of field names for this "
+"semantic view, so the fields it refers to can't be confirmed. Re-pick the"
+" metrics and dimensions to keep using it. The saved chart doesn't change "
+"until you save."
+msgstr ""
+
 msgid "This chart was updated to use the restored aggregation"
 msgstr ""
 
@@ -17834,6 +17849,9 @@ msgid "Unable to load dashboard"
 msgstr "ダッシュボードを読み込めませんでした"
 
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 msgid ""
