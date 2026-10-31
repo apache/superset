@@ -189,6 +189,9 @@ class ImpalaEngineSpec(BaseEngineSpec):
     def _abandon_service(service: Any) -> None:
         """Make connection close local-only and non-fatal after interruption."""
         transport = service.client._iprot.trans
+        # impyla opens a closed transport before looking up the RPC method.
+        # Reject that open too, including inside the driver's own close().
+        transport.open = service.client.check_active
 
         def close() -> None:
             try:
@@ -253,10 +256,9 @@ class ImpalaEngineSpec(BaseEngineSpec):
         connection, while the buffering layers above it keep their read and
         write buffers. Returns whether every layer was recognised and reset.
 
-        With ``reconnect`` the transport is opened again. Without it a socket
-        is left closed until impyla's next RPC opens it; an HTTP client is
-        still reopened, which creates a connection object without network I/O,
-        because closing it a second time raises.
+        With ``reconnect`` the transport is opened again. Without it every
+        transport remains closed; an abandoned client's open guard also stops
+        driver-internal cleanup from reconnecting before attempting an RPC.
         """
         # pylint: disable=import-outside-toplevel
         from io import BytesIO
@@ -268,7 +270,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
             if not reconnect:
                 transport.close()
             return False
-        buffers, over_socket = stack
+        buffers, _ = stack
 
         # Closing drops the socket together with any reply bytes still in it.
         try:
@@ -281,7 +283,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
                 raise
         for buffered_layer, attribute in buffers:
             setattr(buffered_layer, attribute, BytesIO())
-        if reconnect or not over_socket:
+        if reconnect:
             transport.open()
         return True
 
@@ -388,7 +390,10 @@ class ImpalaEngineSpec(BaseEngineSpec):
             except Exception as ex:  # pylint: disable=broad-except
                 logger.warning("Query %s: %s() failed", query_id, name)
                 if not cls._is_error_reply(ex):
-                    cls._abandon_cursor(cursor, query_id)
+                    if on_error := cls.prepare_cursor(cursor):
+                        on_error(ex)
+                    else:
+                        cls._abandon_cursor(cursor, query_id)
                     return
 
     @classmethod

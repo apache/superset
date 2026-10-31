@@ -851,3 +851,27 @@ def test_sqlalchemy_ping_abandons_before_dialect_cursor_cleanup(
         engine.dispose()
     assert raised.value is timeout
     assert handler.requests[-1] == "ExecuteStatement", handler.requests
+
+
+@pytest.mark.parametrize("timeout", TIMEOUTS)
+def test_driver_close_timeout_prevents_transport_reopen(
+    timeout: Exception,
+    hs2_connection: tuple[str, FakeHiveServer2, Any],
+    app_context: None,
+) -> None:
+    """Driver-internal CloseSession must not even reopen the abandoned socket."""
+    _, handler, conn = hs2_connection
+    cursor = conn.cursor()
+    spec.execute(cursor, "SELECT 1", None)  # type: ignore[arg-type]
+    _interrupt_after_header(cursor, "CloseOperation", timeout)
+    transport = cursor.session.service.client._iprot.trans
+    with patch.object(
+        transport, "open", side_effect=AssertionError("transport reopened")
+    ) as reopen:
+        with pytest.raises(type(timeout)) as raised:
+            cursor.close()
+        reopen.assert_not_called()
+    cursor.__del__()
+    conn.close()
+    assert raised.value is timeout
+    assert handler.requests[-1] == "CloseOperation", handler.requests

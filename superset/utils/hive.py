@@ -63,6 +63,11 @@ class ThriftClientGuard:
 
         self._targets[key] = (weakref.ref(target, discard), abandon)
 
+    def check_active(self) -> None:
+        """Reject transport reopen and RPC attempts after abandonment."""
+        if self._exception is not None:
+            raise self._exception
+
     def __getattr__(self, name: str) -> Any:
         """Forward attributes and wrap all callable driver-client entry points."""
         value = getattr(self._client, name)
@@ -71,8 +76,7 @@ class ThriftClientGuard:
 
         @wraps(value)
         def call(*args: Any, **kwargs: Any) -> Any:
-            if self._exception is not None:
-                raise self._exception
+            self.check_active()
             try:
                 return value(*args, **kwargs)
             except TIME_LIMIT_EXCEPTIONS as ex:
