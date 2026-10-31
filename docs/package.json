@@ -58,7 +58,7 @@
     "@fontsource/inter": "^5.3.0",
     "@storybook/addon-docs": "^10.6.3",
     "@superset-ui/core": "^0.20.4",
-    "@swc/core": "^1.16.18",
+    "@swc/core": "^1.16.20",
     "antd": "^6.6.7",
     "docusaurus-plugin-openapi-docs": "^5.2.0",
     "docusaurus-theme-openapi-docs": "^5.2.0",
@@ -84,9 +84,9 @@
     "@types/react": "^19.1.8",
     "oxfmt": "^0.74.0",
     "oxlint": "^1.89.0",
-    "oxlint-tsgolint": "^7.0.2004",
+    "oxlint-tsgolint": "^7.0.2005",
     "typescript": "7.0.2",
-    "webpack": "^5.112.0"
+    "webpack": "^5.112.1"
   },
   "browserslist": {
     "production": [

@@ -2647,7 +2647,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 return None
 
         quotes = "\"`'"
-        for select in [e for e in visitors.iterate(qry) if isinstance(e, Select)]:
+        selects = [e for e in visitors.iterate(qry) if isinstance(e, Select)]
+        taken = column_names | {
+            col.name
+            for select in selects
+            for col in select.selected_columns
+            if isinstance(col, Label) and isinstance(col.name, str)
+        }
+        for select in selects:
             for col in select.selected_columns:
                 if not isinstance(col, Label) or not isinstance(col.name, str):
                     continue
@@ -2661,7 +2668,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 unquoted = re.sub(f"[{quotes}]", "", expression)
                 reads_it = re.search(rf"(?<![\w.]){re.escape(name)}(?!\w)", unquoted)
                 if name in column_names or reads_it:
-                    col.name = f"{name}__"
+                    col.name = self._unused_alias(name, taken)
+
+    @staticmethod
+    def _unused_alias(name: str, taken: set[str]) -> str:
+        alias = f"{name}__"
+        while alias in taken:
+            alias += "_"
+        taken.add(alias)
+        return alias
 
     def _raise_for_disallowed_sql(self, sql: str) -> None:
         """

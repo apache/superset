@@ -666,7 +666,9 @@ class Superset(BaseSupersetView):
         return redirect(url)
 
     @api
-    @has_access
+    # has_access_api answers anonymous beacons with a 401; has_access would
+    # flash and redirect to /login/, whose response rewrites the session cookie
+    @has_access_api
     @event_logger.log_this
     @expose("/log/", methods=("POST",))
     def log(self) -> FlaskResponse:
