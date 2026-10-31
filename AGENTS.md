@@ -248,6 +248,7 @@ curl -f http://localhost:8088/health || echo "❌ Setup required - see https://s
    - Format: `type(scope): description`
    - Example: `fix(dashboard): load charts correctly`
    - Types: `fix`, `feat`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`
+4. **Follow guideline on AI-assisted PRs**: Understands expectations from reviewers for AI-assisted PRs in `docs/developer_docs/ai-pr-guideline.md`.
 
 **Important**: Always reference the actual template file at `.github/PULL_REQUEST_TEMPLATE.md` instead of using cached content, as the template may be updated over time.
 
