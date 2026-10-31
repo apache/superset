@@ -18421,10 +18421,6 @@ msgstr ""
 msgid "minutes"
 msgstr ""
 
-#, python-format
-msgid "missing keys: %(keys)s"
-msgstr ""
-
 msgid "month"
 msgstr ""
 
@@ -18563,19 +18559,14 @@ msgstr ""
 msgid "query"
 msgstr ""
 
-msgid "query_context datasource must be a JSON object"
-msgstr ""
-
-msgid "query_context is invalid"
+#, python-format
+msgid "query_context is invalid: %(details)s"
 msgstr ""
 
 msgid "query_context must be a JSON object"
 msgstr ""
 
 msgid "query_context must be valid JSON"
-msgstr ""
-
-msgid "query_context queries must be a list of JSON objects"
 msgstr ""
 
 msgid "random"
@@ -18739,10 +18730,6 @@ msgid "top"
 msgstr ""
 
 msgid "undo"
-msgstr ""
-
-#, python-format
-msgid "unexpected keys: %(keys)s"
 msgstr ""
 
 msgid "unknown type icon"

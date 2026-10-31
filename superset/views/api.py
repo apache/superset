@@ -36,6 +36,7 @@ from superset.exceptions import QueryObjectValidationError
 from superset.legacy import update_time_range
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
+from superset.utils.core import DatasourceType
 from superset.utils.date_parser import get_since_until
 from superset.utils.error_sanitization import redact_sensitive_query_fields
 from superset.views.base import api, BaseSupersetView
@@ -171,25 +172,35 @@ class Api(BaseSupersetView):
             )
             details = []
             if unexpected:
-                details.append(
-                    _("unexpected keys: %(keys)s", keys=", ".join(unexpected))
-                )
+                details.append(f"unexpected keys: {', '.join(unexpected)}")
             if missing:
-                details.append(_("missing keys: %(keys)s", keys=", ".join(missing)))
-            message = _("query_context is invalid")
-            if details:
-                message = f"{message} ({'; '.join(str(d) for d in details)})"
-            raise QueryObjectValidationError(message) from ex
-        if not isinstance(params["datasource"], dict):
+                details.append(f"missing keys: {', '.join(missing)}")
             raise QueryObjectValidationError(
-                _("query_context datasource must be a JSON object")
+                _("query_context is invalid: %(details)s", details="; ".join(details))
+            ) from ex
+
+        datasource = params["datasource"]
+        if (
+            not isinstance(datasource, dict)
+            or "id" not in datasource
+            or not isinstance(datasource.get("type"), str)
+            or datasource["type"] not in {member.value for member in DatasourceType}
+        ):
+            raise QueryObjectValidationError(
+                _(
+                    "query_context is invalid: %(details)s",
+                    details="datasource must be an object with an id and a valid type",
+                )
             )
         queries = params["queries"]
         if not isinstance(queries, list) or not all(
             isinstance(query, dict) for query in queries
         ):
             raise QueryObjectValidationError(
-                _("query_context queries must be a list of JSON objects")
+                _(
+                    "query_context is invalid: %(details)s",
+                    details="queries must be a list of objects",
+                )
             )
 
     def get_query_context_factory(self) -> QueryContextFactory:

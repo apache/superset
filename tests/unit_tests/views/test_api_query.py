@@ -30,6 +30,7 @@ from pytest_mock import MockerFixture
 from superset.utils import json
 
 QUERY_URL = "/api/v1/query/"
+VALID_DATASOURCE = {"id": 1, "type": "table"}
 
 
 @pytest.mark.parametrize(
@@ -71,11 +72,14 @@ def test_query_valid_query_context_reaches_factory(
     )
 
     response = client.post(
-        QUERY_URL, data={"query_context": '{"datasource": {"id": 1}, "queries": []}'}
+        QUERY_URL,
+        data={
+            "query_context": json.dumps({"datasource": VALID_DATASOURCE, "queries": []})
+        },
     )
 
     assert response.status_code == 200
-    create.assert_called_once_with(datasource={"id": 1}, queries=[])
+    create.assert_called_once_with(datasource=VALID_DATASOURCE, queries=[])
     query_context.raise_for_access.assert_called_once()
 
 
@@ -88,6 +92,11 @@ def test_query_valid_query_context_reaches_factory(
         {"datasource": {"id": 1, "type": "table"}, "queries": [], "bogus": 1},
         {"datasource": "not-an-object", "queries": []},
         {"datasource": [1], "queries": []},
+        {"datasource": {}, "queries": []},
+        {"datasource": {"id": 1}, "queries": []},
+        {"datasource": {"type": "table"}, "queries": []},
+        {"datasource": {"id": 1, "type": "bogus"}, "queries": []},
+        {"datasource": {"id": 1, "type": None}, "queries": []},
         {"datasource": {"id": 1, "type": "table"}, "queries": {"a": 1}},
         {"datasource": {"id": 1, "type": "table"}, "queries": ["not-an-object"]},
     ],
@@ -98,6 +107,11 @@ def test_query_valid_query_context_reaches_factory(
         "unknown_key",
         "datasource_string",
         "datasource_list",
+        "datasource_empty",
+        "datasource_missing_type",
+        "datasource_missing_id",
+        "datasource_invalid_type",
+        "datasource_null_type",
         "queries_object",
         "queries_non_object_item",
     ],
