@@ -2647,6 +2647,10 @@ Charts and dashboards using these anchors will compute a different (correct) tim
   list that explicitly contains NULL still excludes NULL rows. `!=`, `NOT LIKE`
   and `NOT ILIKE` are unchanged.
 
+### `paramiko` upgraded to v5
+
+`paramiko` has been upgraded to v5 with several breaking changes in terms of security hardening. Please upgrade your system to support SHA256/SHA512 Diff-Hellman key-exchange algorithm and SHA2-based signature with RSA keys.
+
 ## 6.1.0
 
 ### ClickHouse minimum driver version bump
