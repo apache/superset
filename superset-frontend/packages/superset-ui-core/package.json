@@ -59,6 +59,7 @@
     "ace-builds": "^1.45.0",
     "ag-grid-community": "36.2.0",
     "ag-grid-react": "36.2.0",
+    "apache-arrow": "^21.2.0",
     "brace": "^0.11.1",
     "classnames": "^2.5.1",
     "core-js": "^3.51.0",

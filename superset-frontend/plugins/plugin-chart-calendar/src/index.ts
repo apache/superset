@@ -26,6 +26,7 @@ import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
 
 const metadata = new ChartMetadata({
+  supportsArrowFormat: true,
   category: t('Correlation'),
   credits: ['https://github.com/wa0x6e/cal-heatmap'],
   description: t(

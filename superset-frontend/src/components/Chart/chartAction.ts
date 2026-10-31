@@ -31,6 +31,7 @@ import {
   DataMask,
   DatasourceType,
   LatestQueryFormData,
+  arrowBufferToQueryData,
 } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import type { ControlStateMapping } from '@superset-ui/chart-controls';
@@ -40,6 +41,7 @@ import {
   buildV1ChartDataPayload,
   getQuerySettings,
   getChartDataUri,
+  supportsArrowResultFormat,
 } from 'src/explore/exploreUtils';
 import {
   addDangerToast,
@@ -440,7 +442,7 @@ const v1ChartDataRequest = async (
   asyncMode: boolean,
   queryForceNonces?: string[],
 ): Promise<ChartDataRequestResponse> => {
-  const payload = await buildV1ChartDataPayload({
+  const builtPayload = await buildV1ChartDataPayload({
     formData: formData as QueryFormData,
     resultType,
     resultFormat,
@@ -449,6 +451,15 @@ const v1ChartDataRequest = async (
     setDataMask,
     ownState,
   });
+  // An Arrow IPC stream describes a single table, so a chart whose query
+  // context has several queries (e.g. the mixed time-series chart) falls back
+  // to JSON instead of hitting the endpoint's single-query Arrow constraint.
+  const useArrow =
+    resultFormat === 'arrow' && builtPayload.queries.length === 1;
+  const payload =
+    resultFormat === 'arrow' && !useArrow
+      ? { ...builtPayload, result_format: 'json' }
+      : builtPayload;
 
   // The dashboard id is added to query params for tracking purposes
   const { slice_id: sliceId } = formData;
@@ -482,8 +493,30 @@ const v1ChartDataRequest = async (
     url,
     headers: { 'Content-Type': 'application/json' },
     body,
-    parseMethod,
+    // Arrow bytes must never be run through SupersetClient's JSON parsing,
+    // regardless of what this viz type's own ChartMetadata.parseMethod says
+    // (that field exists for json-bigint vs. json, a JSON-vs-JSON choice):
+    // 'raw' hands back the untouched Response.
+    parseMethod: useArrow ? 'raw' : parseMethod,
   };
+
+  if (useArrow) {
+    // Only a chart type that opted in via
+    // ChartMetadata.supportsArrowFormat ever reaches this branch; async
+    // mode is never requested for Arrow (see getChartDataRequest), so the
+    // response here is always either the final result or an HTTP error
+    // that SupersetClient already rejected before this line.
+    const response = (await SupersetClient.post(
+      querySettings as Parameters<typeof SupersetClient.post>[0],
+    )) as unknown as Response;
+    const buffer = await response.arrayBuffer();
+    // Converted to the same ChartDataResponseResult shape a JSON response's
+    // `queries[0]` would have, so every consumer downstream of this request
+    // (extractResult, handleChartDataResponse, transformProps) keeps working
+    // unchanged — the Arrow transport is invisible past this point.
+    const queryResult = arrowBufferToQueryData(buffer);
+    return { response, json: { result: [queryResult] } };
+  }
 
   return SupersetClient.post(
     querySettings as Parameters<typeof SupersetClient.post>[0],
@@ -510,11 +543,15 @@ export async function getChartDataRequest({
   // (feature flag + deployment default + optional per-dashboard override). Only
   // callers that handle a 202 task response set enableAsyncMode; the server treats
   // an absent async_mode as synchronous, so this is additive.
+  // An opted-in Arrow render is a full chart-data render too, so it follows
+  // the same policy; the async 202 -> poll -> re-request flow only speaks
+  // JSON, so async execution takes precedence and the request stays JSON.
   const asyncMode =
     enableAsyncMode &&
-    resultFormat === 'json' &&
+    (resultFormat === 'json' || resultFormat === 'arrow') &&
     resultType === 'full' &&
     resolveAsyncMode(asyncModeOverride);
+  const effectiveResultFormat = asyncMode ? 'json' : resultFormat;
 
   let querySettings: RequestParams = { ...postParams };
 
@@ -528,7 +565,7 @@ export async function getChartDataRequest({
   const [parseMethod] = getQuerySettings(formData);
   return v1ChartDataRequest(
     formData,
-    resultFormat,
+    effectiveResultFormat,
     resultType,
     force,
     querySettings,
@@ -754,6 +791,10 @@ export async function requestChartDataResolved(
   ): Promise<QueryData[]> => {
     const { response, json } = await getChartDataRequest({
       ...params,
+      // Only an async (JSON) submission is answered with a 202, so the
+      // read-back that completes it stays JSON too, even for an Arrow render.
+      resultFormat:
+        params.resultFormat === 'arrow' ? 'json' : params.resultFormat,
       queryForceNonces: params.force ? queryForceNonces : undefined,
       enableAsyncMode: false,
     });
@@ -847,11 +888,18 @@ export function exploreJSON(
       setTimeout(() => prevController.abort(), 0);
     }
 
+    // Only a chart type that opted in via ChartMetadata.supportsArrowFormat
+    // ever requests Arrow; every other viz type keeps getting 'json' exactly
+    // as before. This is the only call site that decides the wire format for
+    // a chart's live render — exports (exportChart) and the "View query" /
+    // SQL Lab redirect (redirectSQLLab) always request 'json' explicitly and
+    // are untouched.
+    const resultFormat = supportsArrowResultFormat(formData) ? 'arrow' : 'json';
     const chartDataRequestCaught = requestChartDataResolved(
       {
         setDataMask,
         formData,
-        resultFormat: 'json',
+        resultFormat,
         resultType: 'full',
         force,
         requestParams,

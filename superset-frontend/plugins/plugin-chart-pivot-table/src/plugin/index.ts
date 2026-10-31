@@ -49,6 +49,7 @@ export default class PivotTableChartPlugin extends ChartPlugin<
    */
   constructor() {
     const metadata = new ChartMetadata({
+      supportsArrowFormat: true,
       behaviors: [
         Behavior.InteractiveChart,
         Behavior.DrillToDetail,
