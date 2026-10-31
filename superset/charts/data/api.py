@@ -55,6 +55,7 @@ from superset.common.query_context_factory import QueryContextFactory
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import CACHE_DISABLED_TIMEOUT, SemanticCacheStatus
 from superset.daos.exceptions import DatasourceNotFound
+from superset.databases.error_provenance import is_database_engine_error
 from superset.errors import SupersetErrorType
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.extensions import cache_manager, event_logger
@@ -700,7 +701,10 @@ class ChartDataRestApi(ChartRestApi):
             QueryObjectValidationError,
         ) as exc:
             return self.response_400(message=sanitize_error_message(exc.message))
-        except DBAPIError:
+        except DBAPIError as ex:
+            if not is_database_engine_error(ex):
+                # e.g. a Superset metadata-DB failure: keep it a 5xx
+                raise
             # Query execution failures are wrapped as ChartDataQueryFailedError, so a
             # raw DBAPIError here comes from acquiring a connection outside query
             # execution (e.g. dialect initialization while computing the cache key).
