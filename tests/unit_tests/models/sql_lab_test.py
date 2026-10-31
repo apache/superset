@@ -219,6 +219,363 @@ def test_query_schema_perm_guards_unset_database() -> None:
     assert query.schema_perm == ""
 
 
+@pytest.mark.parametrize(
+    (
+        "catalog",
+        "schema",
+        "database_name",
+        "default_catalog",
+        "expected",
+    ),
+    [
+        (None, "s1", "db", None, "[db].[s1]"),
+        ("cat", "s1", "db", None, "[db].[cat].[s1]"),
+        (None, "s1", "db", "defcat", "[db].[defcat].[s1]"),
+    ],
+)
+def test_saved_query_schema_perm(
+    catalog,
+    schema,
+    database_name,
+    default_catalog,
+    expected,
+) -> None:
+    """SavedQuery.schema_perm mirrors Query.schema_perm's default-catalog
+    fallback.
+
+    Regression test: a saved query against a database with a default
+    catalog can leave ``catalog`` unset (same as a raw SQL Lab ``Query``),
+    so this must fall back to ``database.get_default_catalog()`` -- not
+    building a ``[db].[schema]`` permission string that never matches the
+    ``[db].[catalog].[schema]`` grant a schema-authorized user actually
+    holds.
+    """
+    database = MagicMock()
+    database.database_name = database_name
+    database.get_default_catalog.return_value = default_catalog
+    saved_query = SavedQuery(label="q", schema=schema, catalog=catalog)
+    saved_query.database = database
+    with patch.object(
+        sql_lab_module.security_manager,
+        "get_schema_perm",
+        return_value=expected or None,
+    ) as mock_get_schema_perm:
+        result = saved_query.schema_perm
+        assert result == expected
+        effective_catalog = catalog if catalog is not None else default_catalog
+        mock_get_schema_perm.assert_called_once_with(
+            database_name, effective_catalog, schema
+        )
+
+
+def test_saved_query_schema_perm_guards_unset_database() -> None:
+    """schema_perm returns None instead of raising when the database is
+    unset, mirroring Query.schema_perm_guards_unset_database.
+    """
+    saved_query = SavedQuery(label="q", schema="s1", db_id=1)
+    assert saved_query.schema_perm is None
+
+
+def test_saved_query_before_update_syncs_dependent_slice_perms(app: Any) -> None:
+    """Moving a saved query to a new schema also updates dependent charts'
+    denormalized perm/catalog_perm/schema_perm.
+
+    ``SavedQuery`` has no persisted perm columns of its own and gets no
+    ``datasource_access`` PVM (unlike ``SqlaTable``/``SemanticView``), but
+    ``Slice``'s ``set_related_perm`` listener still copies its computed
+    perm strings onto the chart at save time. Without a ``before_update``
+    listener on ``SavedQuery`` to re-copy them, a chart would keep matching
+    a stale schema/catalog grant after the saved query moves -- the
+    no-viewer chart-list fallback matches on ``Slice.schema_perm``/
+    ``catalog_perm`` (see ``ChartFilter._apply_viewers``).
+    """
+    from superset.extensions import db
+    from superset.models.core import Database
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    database = Database(database_name="syncdb", sqlalchemy_uri="sqlite://")
+    saved_query = SavedQuery(label="Sync Query", schema="old_schema", database=database)
+
+    db.session.add(database)
+    db.session.add(saved_query)
+    db.session.flush()
+
+    chart = Slice(
+        slice_name="On the saved query",
+        datasource_type=DatasourceType.SAVEDQUERY,
+        datasource_id=saved_query.id,
+        datasource_name="Sync Query",
+        viz_type="table",
+        params="{}",
+    )
+    db.session.add(chart)
+    db.session.flush()
+
+    try:
+        assert chart.schema_perm == saved_query.schema_perm
+        old_schema_perm = chart.schema_perm
+
+        saved_query.schema = "new_schema"
+        db.session.flush()
+        db.session.expire(chart)
+        db.session.expire(saved_query)
+
+        new_schema_perm = saved_query.schema_perm
+        assert new_schema_perm != old_schema_perm
+        assert chart.schema_perm == new_schema_perm
+        assert chart.catalog_perm == saved_query.catalog_perm
+        assert chart.perm == saved_query.perm
+    finally:
+        db.session.rollback()
+
+
+def test_saved_query_before_update_syncs_perms_when_database_changes(
+    app: Any,
+) -> None:
+    """Moving a saved query to a different database re-copies the new
+    database's name into dependent charts' perm/schema_perm, which only works
+    when ``before_update`` reloads ``database`` from the changed ``db_id``.
+    """
+    from superset.extensions import db
+    from superset.models.core import Database
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    database_a = Database(database_name="move_db_a", sqlalchemy_uri="sqlite://")
+    database_b = Database(database_name="move_db_b", sqlalchemy_uri="sqlite://")
+    saved_query = SavedQuery(label="Move Query", schema="s1", database=database_a)
+
+    db.session.add_all([database_a, database_b, saved_query])
+    db.session.flush()
+
+    chart = Slice(
+        slice_name="On the moving saved query",
+        datasource_type=DatasourceType.SAVEDQUERY,
+        datasource_id=saved_query.id,
+        datasource_name="Move Query",
+        viz_type="table",
+        params="{}",
+    )
+    db.session.add(chart)
+    db.session.flush()
+
+    try:
+        assert "move_db_a" in chart.perm
+
+        saved_query.db_id = database_b.id
+        db.session.flush()
+        db.session.expire(chart)
+
+        assert "move_db_b" in chart.perm
+        assert "move_db_a" not in chart.perm
+        assert "move_db_b" in (chart.schema_perm or "")
+    finally:
+        db.session.rollback()
+
+
+def test_saved_query_before_update_syncs_catalog_perm(app: Any) -> None:
+    """Moving a saved query between catalogs replaces, not just preserves,
+    the dependent chart's ``catalog_perm`` and the catalog part of its
+    ``schema_perm``.
+    """
+    from superset.extensions import db
+    from superset.models.core import Database
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    database = Database(database_name="catdb", sqlalchemy_uri="sqlite://")
+    saved_query = SavedQuery(
+        label="Catalog Query", catalog="cat_a", schema="s1", database=database
+    )
+    db.session.add_all([database, saved_query])
+    db.session.flush()
+
+    chart = Slice(
+        slice_name="On the catalog-hopping saved query",
+        datasource_type=DatasourceType.SAVEDQUERY,
+        datasource_id=saved_query.id,
+        datasource_name="Catalog Query",
+        viz_type="table",
+        params="{}",
+    )
+    db.session.add(chart)
+    db.session.flush()
+
+    try:
+        assert chart.catalog_perm == "[catdb].[cat_a]"
+        assert chart.schema_perm == "[catdb].[cat_a].[s1]"
+
+        saved_query.catalog = "cat_b"
+        db.session.flush()
+        db.session.expire(chart)
+
+        assert chart.catalog_perm == "[catdb].[cat_b]"
+        assert chart.schema_perm == "[catdb].[cat_b].[s1]"
+    finally:
+        db.session.rollback()
+
+
+def test_database_rename_syncs_saved_query_chart_perms(app: Any) -> None:
+    """Renaming a database rewrites the perm strings on charts backed by its
+    saved queries, not only on dataset-backed charts.
+
+    ``database_after_update`` historically only walked ``SqlaTable`` rows, so
+    a saved-query chart kept ``[old].[...]`` strings after the rename and
+    would match a schema/catalog grant on an unrelated connection that later
+    took the old name.
+    """
+    from superset.extensions import db
+    from superset.models.core import Database
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    database = Database(database_name="rename_old", sqlalchemy_uri="sqlite://")
+    saved_query = SavedQuery(
+        label="Rename Query", catalog="c1", schema="s1", database=database
+    )
+    db.session.add_all([database, saved_query])
+    db.session.flush()
+
+    chart = Slice(
+        slice_name="On the renamed database's saved query",
+        datasource_type=DatasourceType.SAVEDQUERY,
+        datasource_id=saved_query.id,
+        datasource_name="Rename Query",
+        viz_type="table",
+        params="{}",
+    )
+    db.session.add(chart)
+    db.session.flush()
+
+    try:
+        saved_query_id = saved_query.id
+        assert chart.perm == f"[rename_old].[Rename Query](id:{saved_query_id})"
+        assert chart.catalog_perm == "[rename_old].[c1]"
+        assert chart.schema_perm == "[rename_old].[c1].[s1]"
+
+        database.database_name = "rename_new"
+        db.session.flush()
+        db.session.expire(chart)
+
+        assert chart.perm == f"[rename_new].[Rename Query](id:{saved_query_id})"
+        assert chart.catalog_perm == "[rename_new].[c1]"
+        assert chart.schema_perm == "[rename_new].[c1].[s1]"
+    finally:
+        db.session.rollback()
+
+
+def test_saved_query_resync_uses_default_catalog_and_scopes_to_one_query(
+    app: Any, mocker: Any
+) -> None:
+    """A saved query with no ``catalog`` resolves both ``catalog_perm`` and
+    ``schema_perm`` against the database's default catalog, and resyncing one
+    saved query leaves another saved query's chart untouched."""
+    from superset.extensions import db
+    from superset.models.core import Database
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    mocker.patch.object(Database, "get_default_catalog", return_value="main")
+
+    database = Database(database_name="dc_db", sqlalchemy_uri="sqlite://")
+    moved = SavedQuery(label="Moved", schema="s1", database=database)
+    other = SavedQuery(label="Other", schema="s1", database=database)
+    db.session.add_all([database, moved, other])
+    db.session.flush()
+
+    charts = {}
+    for key, saved_query in (("moved", moved), ("other", other)):
+        charts[key] = Slice(
+            slice_name=f"On {key}",
+            datasource_type=DatasourceType.SAVEDQUERY,
+            datasource_id=saved_query.id,
+            datasource_name=saved_query.label,
+            viz_type="table",
+            params="{}",
+        )
+    db.session.add_all(charts.values())
+    db.session.flush()
+
+    try:
+        assert charts["moved"].catalog_perm == "[dc_db].[main]"
+        moved.schema = "s2"
+        db.session.flush()
+        db.session.expire_all()
+
+        assert charts["moved"].catalog_perm == "[dc_db].[main]"
+        assert charts["moved"].schema_perm == "[dc_db].[main].[s2]"
+        assert charts["other"].schema_perm == "[dc_db].[main].[s1]"
+    finally:
+        db.session.rollback()
+
+
+def test_saved_query_after_delete_detaches_dependent_slices(app: Any) -> None:
+    """Deleting a saved query clears its charts' datasource reference and
+    denormalized perm columns.
+
+    ``slices`` has no foreign key to ``saved_query``, so without an
+    ``after_delete`` listener the chart would keep the dead ``datasource_id``
+    and the saved query's perm strings: a surviving schema/catalog grant
+    would still list it (``ChartFilter._apply_viewers``) even though it can
+    no longer resolve, and a later saved query reusing the id would be
+    silently adopted. Mirrors ``_detach_dataset_charts`` in the dataset
+    purge. A table-backed chart sharing the numeric id must be left alone.
+    """
+    from superset.extensions import db
+    from superset.models.core import Database
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    database = Database(database_name="del_db", sqlalchemy_uri="sqlite://")
+    saved_query = SavedQuery(
+        label="Doomed Query", catalog="c1", schema="s1", database=database
+    )
+
+    db.session.add_all([database, saved_query])
+    db.session.flush()
+
+    chart = Slice(
+        slice_name="On the doomed saved query",
+        datasource_type=DatasourceType.SAVEDQUERY,
+        datasource_id=saved_query.id,
+        datasource_name="Doomed Query",
+        viz_type="table",
+        params="{}",
+    )
+    same_id_table_chart = Slice(
+        slice_name="Unrelated table chart with the same id",
+        datasource_type=DatasourceType.TABLE,
+        datasource_id=saved_query.id,
+        datasource_name="unrelated",
+        viz_type="table",
+        params="{}",
+    )
+    db.session.add_all([chart, same_id_table_chart])
+    db.session.flush()
+
+    try:
+        saved_query_id = saved_query.id
+        assert chart.datasource_id == saved_query_id
+        assert chart.perm == saved_query.perm
+        assert chart.catalog_perm == "[del_db].[c1]"
+        assert chart.schema_perm == "[del_db].[c1].[s1]"
+
+        db.session.delete(saved_query)
+        db.session.flush()
+        db.session.expire(chart)
+        db.session.expire(same_id_table_chart)
+
+        assert chart.datasource_id is None
+        assert chart.perm is None
+        assert chart.catalog_perm is None
+        assert chart.schema_perm is None
+
+        assert same_id_table_chart.datasource_id == saved_query_id
+    finally:
+        db.session.rollback()
+
+
 def test_adhoc_column_to_sqla_applies_time_grain_for_unsaved_dataset() -> None:
     """
     Selecting a time grain on a chart backed by an unsaved SQL Lab query must
