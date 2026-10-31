@@ -247,6 +247,61 @@ APPROVER_ROLES_CONFIG = "ASSET_APPROVAL_APPROVER_ROLES"
 BUILTIN_ROLES = frozenset({"Admin", "Alpha", "Gamma", "sql_lab", "Public"})
 
 
+#: What covered approving before it was a right of its own.
+WRITE_PERMISSION = ("can_write", "ChangeRequest")
+
+
+def _seed_approval_permission() -> None:
+    """Hand the new approval right to whoever already had it.
+
+    Until the split, approving was covered by ``can_write`` on ChangeRequest.
+    FAB creates ``can_approve`` when the API is registered but grants it to
+    nobody: the grants come from ``superset init``'s role sync, which an
+    operator runs on upgrade and not on every restart.
+
+    In between, nothing holds the permission -- and ``@protect()`` denies a
+    permission no role holds, so every approver would get 403. A new
+    permission must not become an outage, which is the same reason
+    ``holds_approval_permission`` fails open when the permission is absent
+    altogether; the route cannot be made to fail open, so the grant has to
+    exist instead.
+
+    Only runs while nothing holds the right, so a later revoke is not undone,
+    and not at all once ``ASSET_APPROVAL_APPROVER_ROLES`` is set -- there the
+    operator has said who may approve, and an empty list means nobody.
+    """
+    from superset.extensions import security_manager
+
+    from asset_approval.eligibility import APPROVAL_PERMISSION
+
+    if current_app.config.get(APPROVER_ROLES_CONFIG) is not None:
+        return
+
+    try:
+        approval = security_manager.find_permission_view_menu(*APPROVAL_PERMISSION)
+        write = security_manager.find_permission_view_menu(*WRITE_PERMISSION)
+        if approval is None or write is None or list(approval.role):
+            return
+        for role in list(write.role):
+            security_manager.add_permission_role(role, approval)
+            logger.info(
+                "%s: %r could approve through %s, so it keeps the new %s",
+                EXTENSION_ID,
+                role.name,
+                WRITE_PERMISSION[0],
+                APPROVAL_PERMISSION[0],
+            )
+    except Exception:  # pylint: disable=broad-except
+        logger.warning(
+            "%s: could not seed %s from %s; approvers may get 403 until "
+            "`superset init` runs",
+            EXTENSION_ID,
+            APPROVAL_PERMISSION[0],
+            WRITE_PERMISSION[0],
+            exc_info=True,
+        )
+
+
 def _align_approval_permission() -> None:
     """Make the approval right match the operator's written decision.
 
@@ -379,7 +434,11 @@ def install_views() -> None:
 
     appbuilder.add_api(ChangeRequestRestApi)
     _grant_page_permission_to_the_workflow()
-    # After add_api, which is what creates ``can_approve`` in the first place.
+    # Both after add_api, which is what creates ``can_approve`` in the first
+    # place. Seed before align: the seed is what an upgraded instance needs,
+    # the alignment is what a configured one asks for, and only one of them
+    # ever does anything.
+    _seed_approval_permission()
     _align_approval_permission()
 
     # Settings -> Manage -> Change review (mock S1, mock 16c). The page is

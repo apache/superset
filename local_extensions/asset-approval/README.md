@@ -63,6 +63,15 @@ and Gamma, which is exactly the set that already held `can_write` on
 `ChangeRequest`. An instance that configures nothing therefore keeps the
 approval rights it already had.
 
+**On upgrade, before `superset init`.** FAB creates the permission when the
+API registers but grants it to nobody, and a route's `@protect()` denies a
+permission no role holds. So between a restart and the next role sync every
+approver would get a 403. The extension closes that: while nothing holds
+`can_approve`, it grants it to the roles holding `can_write` on
+`ChangeRequest` -- whoever could approve before the split. It does not run
+once any role holds the right, so a revoke is not undone, and not at all once
+`ASSET_APPROVAL_APPROVER_ROLES` is set, where an empty list means nobody.
+
 **Naming the roles.** Set `ASSET_APPROVAL_APPROVER_ROLES` in
 `superset_config.py` to a list of role names:
 

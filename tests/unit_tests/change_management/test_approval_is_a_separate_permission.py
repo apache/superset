@@ -342,3 +342,91 @@ def test_outside_a_request_nothing_is_cached(
         eligibility.roles_that_may_approve()
 
     assert lookup.find_permission_view_menu.call_count == 2
+
+
+# ------------------------------------------------- the upgrade that has to work
+
+
+def _seeding(
+    mocker: MockerFixture,
+    approval: Any,
+    write: Any,
+    configured: Any = None,
+) -> tuple[Any, list[str]]:
+    """A manager that records grants, with the two permissions to hand."""
+    granted: list[str] = []
+
+    def add(role: Any, permission: Any) -> None:
+        role.permissions.append(permission)
+        granted.append(role.name)
+
+    def find(permission_name: str, _view_menu: str) -> Any:
+        return approval if permission_name == "can_approve" else write
+
+    mocker.patch(
+        "superset.extensions.security_manager",
+        SimpleNamespace(find_permission_view_menu=find, add_permission_role=add),
+    )
+    return _configured(mocker, configured), granted
+
+
+def test_the_right_is_seeded_from_who_could_already_approve(
+    mocker: MockerFixture,
+) -> None:
+    """A restart must not take approving away until `superset init` runs.
+
+    FAB creates the permission when the API registers and grants it to
+    nobody, and `@protect()` denies a permission no role holds. Without the
+    seed, every approver would get 403 between the restart and the next role
+    sync.
+    """
+    approval = SimpleNamespace(role=[])
+    writers = [
+        SimpleNamespace(name="Admin", permissions=[]),
+        SimpleNamespace(name="Alpha", permissions=[]),
+        SimpleNamespace(name="Gamma", permissions=[]),
+    ]
+    entrypoint, granted = _seeding(
+        mocker, approval, SimpleNamespace(role=writers)
+    )
+
+    entrypoint._seed_approval_permission()
+
+    assert granted == ["Admin", "Alpha", "Gamma"]
+
+
+def test_a_right_someone_already_holds_is_not_reseeded(
+    mocker: MockerFixture,
+) -> None:
+    """Otherwise a revoke would be undone on the next boot."""
+    approval = SimpleNamespace(role=[SimpleNamespace(name="Admin")])
+    writers = [SimpleNamespace(name="Gamma", permissions=[])]
+    entrypoint, granted = _seeding(
+        mocker, approval, SimpleNamespace(role=writers)
+    )
+
+    entrypoint._seed_approval_permission()
+
+    assert granted == []
+
+
+def test_a_configured_instance_is_not_seeded(mocker: MockerFixture) -> None:
+    """The operator has said who may approve; an empty list means nobody."""
+    approval = SimpleNamespace(role=[])
+    writers = [SimpleNamespace(name="Gamma", permissions=[])]
+    entrypoint, granted = _seeding(
+        mocker, approval, SimpleNamespace(role=writers), configured=[]
+    )
+
+    entrypoint._seed_approval_permission()
+
+    assert granted == []
+
+
+def test_nothing_to_seed_from_is_not_an_error(mocker: MockerFixture) -> None:
+    approval = SimpleNamespace(role=[])
+    entrypoint, granted = _seeding(mocker, approval, None)
+
+    entrypoint._seed_approval_permission()
+
+    assert granted == []
