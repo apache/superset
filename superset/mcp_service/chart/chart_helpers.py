@@ -34,6 +34,10 @@ from urllib.parse import parse_qs, urlparse
 
 from superset.common.utils.time_grain_utils import apply_time_grain_to_base_axis
 from superset.constants import EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS
+from superset.mcp_service.dashboard_scope import (
+    merge_semantic_selection_sources,
+    SEMANTIC_SELECTION_MEMBER_KEYS,
+)
 from superset.utils.core import ExtraFiltersReasonType
 
 if TYPE_CHECKING:
@@ -320,6 +324,7 @@ def merge_extra_form_data(
     merge, which iterates them, never receives ``None``.
     """
     merged: dict[str, Any] = dict(existing) if isinstance(existing, dict) else {}
+    sources: list[Any] = merge_semantic_selection_sources(merged, incoming)
     for key in ("adhoc_filters", "filters"):
         if key in merged and merged[key] is None:
             del merged[key]
@@ -333,6 +338,8 @@ def merge_extra_form_data(
             merged[key] = {**current, **value}
         else:
             merged[key] = value
+    if sources:
+        merged["semantic_selection_sources"] = sources
     return merged
 
 
@@ -427,6 +434,19 @@ def merge_extra_form_data_filters_into_query(
     datasource_type: str,
 ) -> None:
     """Merge request extra_form_data predicates into an existing query payload."""
+    selection_version: str | None = (
+        _query_semantic_selection_version(
+            {
+                "datasource": f"{datasource_id}__{datasource_type}",
+                "semantic_selection_version": (query.get("extras") or {}).get(
+                    "semantic_selection_version"
+                ),
+            },
+            extra_form_data,
+        )
+        if datasource_type == "semantic_view"
+        else None
+    )
     extra_query_form_data: dict[str, Any] = {"adhoc_filters": []}
     prepare_form_data_for_query(
         extra_query_form_data,
@@ -435,6 +455,8 @@ def merge_extra_form_data_filters_into_query(
         extra_form_data,
     )
     merge_form_data_filters_into_query(query, extra_query_form_data)
+    if selection_version is not None:
+        query.setdefault("extras", {})["semantic_selection_version"] = selection_version
     if extra_form_data.get("time_range"):
         from superset.charts.data.dashboard_filter_context import (
             mark_dashboard_time_range_filters,
@@ -1178,20 +1200,7 @@ def _query_semantic_selection_version(
     for extra in (form_data.get("extra_form_data") or {}, extra_form_data or {}):
         if extra.get("semantic_selection_sources"):
             sources.extend(extra["semantic_selection_sources"])
-        elif any(
-            extra.get(key)
-            for key in (
-                "filters",
-                "adhoc_filters",
-                "interactive_drilldown",
-                "interactive_groupby",
-                "interactive_highlight",
-                "granularity_sqla",
-                "granularity",
-                "time_column",
-                "custom_form_data",
-            )
-        ):
+        elif any(extra.get(key) for key in SEMANTIC_SELECTION_MEMBER_KEYS):
             return unverified
     if any(
         not isinstance(source, dict)
