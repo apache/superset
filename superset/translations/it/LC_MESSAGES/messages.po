@@ -4783,6 +4783,9 @@ msgstr "Carica questo grafico:"
 msgid "Check out this dashboard: "
 msgstr "Dai un'occhiata a questa dashboard: "
 
+msgid "Check the value transform →"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -7895,6 +7898,12 @@ msgstr "Disabilita la funzionalità drill-to-dettaglio per questo database."
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Discard"
 msgstr "Annulla"
+
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Visualizza Nome"
@@ -14918,6 +14927,12 @@ msgid "Partition field:"
 msgstr ""
 
 msgid "Partition filter mapping"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -22225,6 +22240,14 @@ msgid ""
 msgstr ""
 "Può essere un indirizzo IP (ad esempio 127.0.0.1) o un nome di dominio "
 "(ad esempio mydatabase.com)."
+
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,

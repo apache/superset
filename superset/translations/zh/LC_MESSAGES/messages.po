@@ -4028,6 +4028,9 @@ msgstr "看看这张图表： "
 msgid "Check out this dashboard: "
 msgstr "查看此看板： "
 
+msgid "Check the value transform →"
+msgstr ""
+
 msgid "Check to force date partitions to have the same height"
 msgstr "选中以强制日期分区具有相同的高度"
 
@@ -6597,6 +6600,12 @@ msgstr "禁用此数据库的钻取到明细功能。"
 
 msgid "Discard"
 msgstr "放弃"
+
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
 
 msgid "Display Name"
 msgstr "显示名称"
@@ -12393,6 +12402,12 @@ msgid "Partition field:"
 msgstr ""
 
 msgid "Partition filter mapping"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
 msgstr ""
 
 msgid ""
@@ -18393,6 +18408,14 @@ msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
 "mydatabase.com)."
 msgstr "这可以是一个IP地址(例如127.0.0.1)或一个域名(例如mydatabase.com)。"
+
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
 
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"

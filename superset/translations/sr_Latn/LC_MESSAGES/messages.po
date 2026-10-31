@@ -4739,6 +4739,9 @@ msgstr "Pogledajte ovaj grafikon: "
 msgid "Check out this dashboard: "
 msgstr "Pogledajte ovu kontrolnu tablu: "
 
+msgid "Check the value transform →"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Check to force date partitions to have the same height"
 msgstr "Označite da biste primorali datumske particije da imaju istu visinu"
@@ -7827,6 +7830,12 @@ msgstr "Onemogućava funkciju prelaska na detalje za ovu bazu podataka."
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Discard"
 msgstr "Odbaci"
+
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Display Name"
@@ -14481,6 +14490,12 @@ msgid "Partition field:"
 msgstr ""
 
 msgid "Partition filter mapping"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -21490,6 +21505,14 @@ msgid ""
 msgstr ""
 "Ovo može biti ili IP adresa (npr. 127.0.0.1) ili ime domena (npr. "
 "mydatabase.com)."
+
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
 
 # es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid ""

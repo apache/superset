@@ -4018,6 +4018,9 @@ msgstr "Podívejte se na tento graf: "
 msgid "Check out this dashboard: "
 msgstr "Podívejte se na tuto nástěnku: "
 
+msgid "Check the value transform →"
+msgstr ""
+
 msgid "Check to force date partitions to have the same height"
 msgstr "Zaškrtněte pro vynucení stejné výšky datových oddílů"
 
@@ -6608,6 +6611,12 @@ msgstr "Zakáže funkci přechodu na detail pro tuto databázi."
 
 msgid "Discard"
 msgstr "Zahodit"
+
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Zobrazované jméno"
@@ -12240,6 +12249,12 @@ msgid "Partition field:"
 msgstr ""
 
 msgid "Partition filter mapping"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
 msgstr ""
 
 msgid ""
@@ -18292,6 +18307,14 @@ msgid ""
 msgstr ""
 "Může to být buď IP adresa (např. 127.0.0.1), nebo název domény (např. "
 "mojedatabaze.com)."
+
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
 
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
