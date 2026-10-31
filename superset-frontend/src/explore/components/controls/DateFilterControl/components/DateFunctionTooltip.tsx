@@ -90,7 +90,8 @@ dateunit = (year | month | week)`}</code>
       <pre>
         <code>{`holiday([string])
 holiday([holiday string], [datetime])
-holiday([holiday string], [datetime], [country name])`}</code>
+holiday([holiday string], [country code])
+holiday([holiday string], [datetime], [country code])`}</code>
       </pre>
       <h4>{t('Example')}</h4>
       <pre>
@@ -98,6 +99,7 @@ holiday([holiday string], [datetime], [country name])`}</code>
 holiday("christmas", datetime("2019"))
 holiday("christmas", dateadd(datetime("2019"), 1, year))
 holiday("christmas", datetime("2 years ago"))
+holiday("Boxing Day", "UK")
 holiday("Easter Monday", datetime("2019"), "UK")`}</code>
       </pre>
     </div>
