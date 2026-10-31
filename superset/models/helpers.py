@@ -249,7 +249,22 @@ def build_like_predicate(
 
     ``lower(expr) LIKE lower('%term%')`` is used rather than ``ILIKE`` because
     the latter is not portable across engines.
+
+    ``lower()`` is only defined for string types on strict engines (e.g.
+    PostgreSQL), so non-string expressions (numeric, boolean, date, or
+    untyped) are cast to a string first. String columns are left untouched.
     """
+    if not isinstance(expr.type, sa.String):
+        # A bare VARCHAR is invalid where a length is required (Oracle renders
+        # VARCHAR2, Db2 VARCHAR(None)); MSSQL needs NVARCHAR to keep characters
+        # outside the database code page.
+        cast_type = (
+            sa.String()
+            .with_variant(sa.String(4000), "oracle")
+            .with_variant(sa.String(32672), "ibm_db_sa")
+            .with_variant(sa.Unicode(), "mssql")
+        )
+        expr = sa.cast(expr, cast_type)
     return sa.func.lower(expr).contains(search.lower(), autoescape=True)
 
 

@@ -115,7 +115,7 @@ def test_build_like_predicate_is_case_insensitive_and_escaped() -> None:
 
     from superset.models.helpers import build_like_predicate
 
-    predicate = build_like_predicate(sa.column("c"), "50%")
+    predicate = build_like_predicate(sa.column("c", sa.String()), "50%")
 
     # The search term is lower-cased for a case-insensitive match, and the
     # user's ``%`` wildcard is neutralized (autoescape) rather than matching
@@ -141,6 +141,57 @@ def test_build_like_predicate_is_case_insensitive_and_escaped() -> None:
             dialect=BigQueryDialect(),
             compile_kwargs={"literal_binds": True},
         )
+    )
+    assert "ESCAPE" not in bigquery_sql
+
+
+def test_build_like_predicate_casts_non_text_columns() -> None:
+    import sqlalchemy as sa
+    from sqlalchemy_bigquery import BigQueryDialect
+
+    from superset.models.helpers import build_like_predicate
+
+    postgres = sa.dialects.registry.load("postgresql")()
+
+    def compile_sql(predicate: sa.ColumnElement, dialect: sa.engine.Dialect) -> str:
+        return str(
+            predicate.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+        )
+
+    for column_type in (sa.Numeric(), sa.Integer()):
+        sql = compile_sql(
+            build_like_predicate(sa.column("n", column_type), "0"), postgres
+        )
+        assert "lower(CAST(n AS VARCHAR))" in sql
+
+    # String columns are left untouched: no CAST is introduced.
+    text_sql = compile_sql(
+        build_like_predicate(sa.column("s", sa.String()), "a"), postgres
+    )
+    assert "lower(s)" in text_sql
+    assert "CAST" not in text_sql
+
+    # Untyped expressions (e.g. calculated columns) are cast as well.
+    untyped_sql = compile_sql(
+        build_like_predicate(sa.literal_column("upper(s)"), "a"), postgres
+    )
+    assert "lower(CAST(upper(s) AS VARCHAR))" in untyped_sql
+
+    # Dialects that need a length or a unicode type get one.
+    oracle_sql = compile_sql(
+        build_like_predicate(sa.column("n", sa.Numeric()), "0"),
+        sa.dialects.registry.load("oracle")(),
+    )
+    assert "CAST(n AS VARCHAR2(4000 CHAR))" in oracle_sql
+    mssql_sql = compile_sql(
+        build_like_predicate(sa.column("n", sa.Numeric()), "0"),
+        sa.dialects.registry.load("mssql")(),
+    )
+    assert "CAST(n AS NVARCHAR(max))" in mssql_sql
+
+    # BigQuery still has no ESCAPE clause for a non-text column.
+    bigquery_sql = compile_sql(
+        build_like_predicate(sa.column("n", sa.Numeric()), "0"), BigQueryDialect()
     )
     assert "ESCAPE" not in bigquery_sql
 
