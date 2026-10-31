@@ -1403,11 +1403,16 @@ def test_get_engine_spec_unrecognized_driver_prefers_python_connector() -> None:
         is DatabricksPythonConnectorEngineSpec
     )
 
+    assert (
+        get_engine_spec("databricks", "databricks-sql-python")
+        is DatabricksPythonConnectorEngineSpec
+    )
+
     # Exact driver matches must still resolve to their specific spec; the
     # relocation must not disturb exact-match resolution.
     assert get_engine_spec("databricks", "pyhive") is DatabricksHiveEngineSpec
     assert (
-        get_engine_spec("databricks", "databricks-sql-python")
+        get_engine_spec("databricks", "databricks")
         is DatabricksPythonConnectorEngineSpec
     )
 
