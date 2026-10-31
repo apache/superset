@@ -356,9 +356,11 @@ test('handles bulk dashboard export with correct ID and shows spinner', async ()
 });
 
 test('handles dashboard deletion confirmation', async () => {
+  const onActivityRefresh = jest.fn();
   const props = {
     ...defaultProps,
     mine: mockDashboards,
+    onActivityRefresh,
   };
 
   const refreshDataMock = jest.fn();
@@ -376,6 +378,20 @@ test('handles dashboard deletion confirmation', async () => {
     fetchData: jest.fn(),
     toggleBulkSelect: jest.fn(),
   }));
+
+  // Defer the delete so the test can observe the state before it resolves.
+  let resolveDelete: () => void = () => {};
+  const mockHandleDashboardDelete =
+    require('src/views/CRUD/utils').handleDashboardDelete;
+  mockHandleDashboardDelete.mockImplementationOnce(
+    (_dashboard: unknown, refreshData: () => void) =>
+      new Promise<void>(resolve => {
+        resolveDelete = () => {
+          refreshData();
+          resolve();
+        };
+      }),
+  );
 
   render(
     <Router history={history}>
@@ -410,6 +426,15 @@ test('handles dashboard deletion confirmation', async () => {
   // Click the now-enabled Delete button
   await userEvent.click(confirmDeleteButton);
 
+  await waitFor(() => {
+    expect(mockHandleDashboardDelete).toHaveBeenCalled();
+  });
+  // The delete has not succeeded yet, so nothing may refresh.
+  expect(refreshDataMock).not.toHaveBeenCalled();
+  expect(onActivityRefresh).not.toHaveBeenCalled();
+
+  resolveDelete();
+
   await waitFor(
     () => {
       expect(refreshDataMock).toHaveBeenCalled();
@@ -418,6 +443,7 @@ test('handles dashboard deletion confirmation', async () => {
   );
 
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(onActivityRefresh).toHaveBeenCalledTimes(1);
 });
 
 test('passes correct parameters to handleDashboardDelete for Other tab', async () => {
@@ -443,10 +469,12 @@ test('passes correct parameters to handleDashboardDelete for Other tab', async (
     toggleBulkSelect: jest.fn(),
   }));
 
+  const onActivityRefresh = jest.fn();
   const props = {
     ...defaultProps,
     otherTabData: mockDashboards,
     otherTabTitle: 'All',
+    onActivityRefresh,
   };
 
   render(
@@ -515,6 +543,8 @@ test('passes correct parameters to handleDashboardDelete for Other tab', async (
   const lastCall = mockHandleDashboardDelete.mock.calls[0];
   const getDataParam = lastCall[6];
 
+  // The default mock also invokes refreshData; isolate the getData path.
+  onActivityRefresh.mockClear();
   getDataParam('Other');
   expect(fetchDataMock).toHaveBeenCalledWith({
     filters: [],
@@ -522,6 +552,7 @@ test('passes correct parameters to handleDashboardDelete for Other tab', async (
     pageSize: 5,
     sortBy: [{ desc: true, id: 'changed_on_delta_humanized' }],
   });
+  expect(onActivityRefresh).toHaveBeenCalledTimes(1);
 });
 
 test('with soft delete on, the card delete flow shows the archive dialog', async () => {
