@@ -881,6 +881,37 @@ def test_get_catalog_from_engine_params_empty_database_query_param_falls_back_to
     assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) == "path_db"
 
 
+@pytest.mark.parametrize(
+    "handle", ["73", "", "73; DROP TABLE t", "-1", "1.0", "73\n", "７３"]
+)
+def test_sql_server_does_not_cancel_reusable_session_ids(handle: str) -> None:
+    """A delayed numeric handle must never target another connection."""
+    from unittest.mock import Mock
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    cursor, query = Mock(), Mock()
+    assert not MssqlEngineSpec.cancel_query(cursor, query, handle)
+    assert MssqlEngineSpec.get_cancel_query_id(cursor, query) is None
+    assert not MssqlEngineSpec.has_implicit_cancel()
+    cursor.execute.assert_not_called()
+
+
+def test_other_tsql_engines_do_not_inherit_sql_server_cancellation() -> None:
+    from unittest.mock import Mock
+
+    from superset.db_engine_specs.mssql import AzureSynapseSpec
+    from superset.db_engine_specs.sybase import SybaseEngineSpec
+
+    for spec in (AzureSynapseSpec, SybaseEngineSpec):
+        cursor, query = Mock(), Mock()
+        assert not spec.supports_cancel_on_live_cursor
+        assert not spec.can_cancel_live_cursor("pyodbc", cursor)
+        assert spec.get_cancel_query_id(cursor, query) is None
+        assert not spec.cancel_query(cursor, query, "73")
+        cursor.execute.assert_not_called()
+
+
 def test_use_equality_for_boolean_filters_property() -> None:
     """
     Test that MSSQL (and Sybase, by inheritance) use equality operators for

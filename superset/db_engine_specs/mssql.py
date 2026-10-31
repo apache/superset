@@ -96,11 +96,17 @@ class MssqlEngineSpec(BaseEngineSpec):
     max_column_name_length = 128
     allows_cte_in_subquery = False
     supports_multivalues_insert = True
+    supports_cancel_on_live_cursor = True
 
     # T-SQL's IS keyword only supports NULL checks (IS [NOT] NULL); there is
     # no generic IS <literal> predicate, so a boolean filter compiled with
     # SQLAlchemy's default IS true/false emits invalid syntax (IS 1 / IS 0).
     use_equality_for_boolean_filters = True
+
+    @classmethod
+    def can_cancel_live_cursor(cls, driver: str, cursor: Any) -> bool:
+        """Only pyodbc's ``cancel()`` (ODBC SQLCancel) is safe across threads."""
+        return driver == "pyodbc" and super().can_cancel_live_cursor(driver, cursor)
 
     _time_grain_expressions = {
         None: "{col}",
@@ -330,6 +336,8 @@ class MssqlEngineSpec(BaseEngineSpec):
 
 
 class AzureSynapseSpec(MssqlEngineSpec):
+    supports_cancel_on_live_cursor = False
+
     engine = "mssql"
     engine_name = "Azure Synapse"
     default_driver = "pyodbc"
