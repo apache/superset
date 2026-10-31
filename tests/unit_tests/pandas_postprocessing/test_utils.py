@@ -111,6 +111,35 @@ def test_append_columns_overwrites_a_target_already_in_base_df():
     assert series_to_list(base_df["z"]) == [3.0, 4.0]
 
 
+def test_append_columns_widens_an_int_target_the_new_values_do_not_fit():
+    """
+    A rename onto an int column must land even when its new values carry a NaN.
+
+    pandas 3 raises `TypeError` instead of widening a column's dtype when a
+    `.loc` write does not fit it, and a NaN never fits an int64 column. `diff`
+    and `cum` hand back exactly that for an integer metric, so without the
+    fallback to plain column replacement the write fails and the request 500s
+    rather than producing a float column.
+
+    The same-name case does not cover this on its own: a mapping only reaches
+    the in-place write for a target it does not name once a rename onto an
+    existing label is classified as an overwrite.
+    """
+    base_df = DataFrame({"y": [1, 2], "z": [3, 4]})
+    append_df = DataFrame({"y": [float("nan"), 20.0]})
+
+    post_df = _append_columns(base_df, append_df, {"y": "z"})
+
+    assert post_df.columns.tolist() == ["y", "z"]
+    assert not post_df.columns.duplicated().any()
+    assert post_df["z"].dtype == "float64"
+    assert post_df["z"].isna().tolist() == [True, False]
+    assert series_to_list(post_df["z"])[1] == 20.0
+    # Widening the copy must not reach the caller's frame.
+    assert base_df["z"].dtype == "int64"
+    assert series_to_list(base_df["z"]) == [3, 4]
+
+
 def test_append_columns_splits_a_mapping_by_whether_the_target_exists():
     """
     One mapping may overwrite an existing target and append a new one.
