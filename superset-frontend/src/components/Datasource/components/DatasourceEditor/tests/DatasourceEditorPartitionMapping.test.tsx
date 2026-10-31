@@ -742,7 +742,10 @@ const DATABASES = [
 ];
 
 /** Render in edit mode with a database list the selector can switch between. */
-const renderWithDatabases = async (supportsPartitionMapping: boolean) => {
+const renderWithDatabases = async (
+  supportsPartitionMapping: boolean,
+  mapping: Partial<DatasourceEditorProps['datasource']> = {},
+) => {
   // Ahead of the catch-all `/api/v1/database/` mock, so the selector lists
   // real options.
   fetchMock.removeRoutes();
@@ -767,6 +770,7 @@ const renderWithDatabases = async (supportsPartitionMapping: boolean) => {
     supports_partition_filter_mapping: supportsPartitionMapping,
     partition_value_transform_default:
       current.engine_information.partition_value_transform_default,
+    ...mapping,
   } as DatasourceEditorProps['datasource'];
 
   fastRender(props);
@@ -803,4 +807,54 @@ test('switching to a database whose engine supports it offers partition mapping'
   );
 
   expect(await showsPartitionSection()).toBe(true);
+});
+
+test('switching from Postgres to Hive pre-fills the Hive transform on a temporal column', async () => {
+  // The section showing is not enough: if the switch dropped the engine's
+  // default, Postgres -> Hive would offer the controls but pre-fill nothing,
+  // and the owner would get no hint that Hive's partition keys want
+  // `unix_timestamp(:value)`. So the mapping is moved onto `ds`, a DATETIME
+  // column, after the switch, and the transform it arrives with is asserted.
+  const props = await renderWithDatabases(false, {
+    main_dttm_col: 'ds',
+    partition_column: 'num',
+    partition_mapped_column: 'state',
+  });
+
+  await selectOption(
+    'warehouse_hive',
+    'Select database or type to search databases',
+  );
+  await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
+  await userEvent.type(
+    await screen.findByPlaceholderText('Search columns by name'),
+    'ds',
+  );
+  await userEvent.click((await screen.findAllByLabelText(/expand row/i))[0]);
+  await userEvent.click(await screen.findByTestId('move-mapping-here'));
+
+  await waitFor(() => {
+    expect(columnNamed(lastSavedColumns(props), 'ds')).toMatchObject({
+      partition_value_transform: 'unix_timestamp(:value)',
+    });
+  });
+});
+
+test('switching from Hive to Postgres clears the engine capability and default', async () => {
+  // The reverse direction: what the editor emits for the dataset has to stop
+  // carrying Hive's capability and transform default, or a later mapping move
+  // would pre-fill Hive syntax that does not parse on Postgres.
+  const props = await renderWithDatabases(true);
+
+  await selectOption(
+    'app_postgres',
+    'Select database or type to search databases',
+  );
+
+  await waitFor(() => {
+    expect(props.onChange.mock.lastCall?.[0]).toMatchObject({
+      supports_partition_filter_mapping: false,
+      partition_value_transform_default: null,
+    });
+  });
 });
