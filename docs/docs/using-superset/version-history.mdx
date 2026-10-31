@@ -283,6 +283,13 @@ respects.
 
 ## Restoring a version
 
+Before a dashboard restore, the confirmation dialog counts current member charts
+that were not members of the selected version. It warns that restoring will
+remove those charts from the dashboard, without deleting the charts themselves.
+The count includes archived and unplaced members, reflects membership when the
+dialog checks it, and may change if another user edits the dashboard before you
+confirm. If the check fails, the dialog warns that the removal count is unknown.
+
 **Restore** rewrites the entity back to the selected version. Two things are
 worth knowing:
 

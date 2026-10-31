@@ -21,6 +21,7 @@ import {
   createChartFromSnapshot,
   createDashboardFromSnapshot,
   fetchActivity,
+  fetchDashboardRestoreRemovalCount,
 } from './api';
 import type {
   ChartVersionSnapshot,
@@ -230,4 +231,54 @@ test('createChartFromSnapshot rejects a version with no viz type or dataset', as
     createChartFromSnapshot(chartSnapshot, 'Sales (copy)'),
   ).rejects.toThrow(/does not record a visualization type and dataset/);
   expect(fetchMock.callHistory.calls('glob:*/api/v1/chart/')).toHaveLength(0);
+});
+
+test.each([0, 2])(
+  'fetches the current restore removal count: %s',
+  async count => {
+    const endpoint =
+      'glob:*/api/v1/dashboard/dash/versions/saved/?include_restore_impact=true';
+    fetchMock.get(endpoint, {
+      result: { _restore_impact: { removed_chart_count: count } },
+    });
+    await expect(
+      fetchDashboardRestoreRemovalCount('dash', 'saved'),
+    ).resolves.toBe(count);
+  },
+);
+
+test.each([undefined, null, '2', -1, 1.5])(
+  'rejects an invalid restore count: %s',
+  async count => {
+    fetchMock.get(
+      'glob:*/api/v1/dashboard/dash/versions/saved/?include_restore_impact=true',
+      {
+        result: { _restore_impact: { removed_chart_count: count } },
+      },
+    );
+    await expect(
+      fetchDashboardRestoreRemovalCount('dash', 'saved'),
+    ).rejects.toThrow('Invalid restore impact response');
+  },
+);
+
+test('bounds a stalled restore-impact request so confirmation can recover', async () => {
+  jest.useFakeTimers();
+  try {
+    fetchMock.get(
+      'glob:*/api/v1/dashboard/dash/versions/saved/?include_restore_impact=true',
+      () => new Promise(() => {}),
+    );
+    let failure: unknown;
+    const request = fetchDashboardRestoreRemovalCount('dash', 'saved').catch(
+      error => {
+        failure = error;
+      },
+    );
+    await jest.advanceTimersByTimeAsync(10000);
+    expect(failure).toMatchObject({ statusText: 'timeout' });
+    await request;
+  } finally {
+    jest.useRealTimers();
+  }
 });

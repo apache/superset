@@ -3562,6 +3562,12 @@ class DashboardRestApi(
               format: uuid
             name: version_uuid_str
             description: Version UUID as returned by the list endpoint
+          - in: query
+            name: include_restore_impact
+            schema:
+              type: boolean
+              default: false
+            description: Include the current count of charts a restore would detach
           responses:
             200:
               description: Snapshot of the dashboard at the target version
@@ -3577,6 +3583,13 @@ class DashboardRestApi(
                           (entity-specific keys), plus a `_version` block
                           with the version-level metadata.
                         properties:
+                          _restore_impact:
+                            type: object
+                            description: Current membership impact when requested
+                            properties:
+                              removed_chart_count:
+                                type: integer
+                                minimum: 0
                           _version:
                             $ref: '#/components/schemas/VersionListItemSchema'
             400:
@@ -3588,7 +3601,13 @@ class DashboardRestApi(
             404:
               $ref: '#/components/responses/404'
         """
-        return get_version_endpoint(self, Dashboard, uuid_str, version_uuid_str)
+        return get_version_endpoint(
+            self,
+            Dashboard,
+            uuid_str,
+            version_uuid_str,
+            include_restore_impact=request.args.get("include_restore_impact") == "true",
+        )
 
     @expose("/<uuid_str>/activity/", methods=("GET",))
     @protect()
