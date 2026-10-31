@@ -357,6 +357,48 @@ def test_csv_reader_encoding_detection_iso88591():
     assert df.values.tolist() == [["Café", "naïve"]]
 
 
+def test_csv_reader_encoding_detection_cp1252_punctuation():
+    """Windows-1252 quotes, dashes and euro signs are read as those characters."""
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(),
+    )
+    binary_data = "name,note\nShop,“Best” – 5 €\n".encode("cp1252")
+    df = csv_reader.file_to_dataframe(FileStorage(io.BytesIO(binary_data)))
+    assert df.values.tolist() == [["Shop", "“Best” – 5 €"]]
+
+
+def test_csv_reader_encoding_detection_past_an_ascii_start():
+    """A file that starts in plain ASCII is still detected by its later bytes."""
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(),
+    )
+    for rows in (200, 7000):  # past the first sample, and past the largest one
+        content = "name,city\n" + "Anna,Berlin\n" * rows + "José,München\n"
+        df = csv_reader.file_to_dataframe(
+            FileStorage(io.BytesIO(content.encode("cp1252")))
+        )
+        assert len(df) == rows + 1
+        assert df.values.tolist()[-1] == ["José", "München"]
+
+
+def test_csv_reader_encoding_detection_reads_large_files_in_chunks():
+    """Detection past the largest sample never reads the whole file at once."""
+    content = "name,city\n" + "Anna,Berlin\n" * 7000 + "José,München\n"
+    file = FileStorage(io.BytesIO(content.encode("cp1252")))
+    original_read = file.read
+    read_sizes = []
+
+    def track_read(size=-1):
+        read_sizes.append(size)
+        return original_read(size)
+
+    file.read = track_read
+
+    assert CSVReader._detect_encoding(file) == "cp1252"
+    assert read_sizes
+    assert all(0 < size <= 65536 for size in read_sizes)
+
+
 def test_csv_reader_explicit_encoding():
     """Test that explicit encoding is respected."""
     csv_reader = CSVReader(
@@ -1342,8 +1384,8 @@ def test_csv_reader_progressive_encoding_detection():
 
     # Should detect the correct encoding
     assert detected_encoding in [
+        "cp1252",
         "latin-1",
-        "utf-8",
     ], f"Should detect valid encoding, got {detected_encoding}"
 
     # Should have made multiple read attempts with different sizes
