@@ -36,6 +36,7 @@ from superset_core.semantic_layers.context import (
     SemanticExecutionContext,
 )
 from superset_core.semantic_layers.layer import SemanticLayer
+from superset_core.semantic_layers.transport import ProviderTransport
 from superset_core.semantic_layers.types import (
     Dimension,
     Filter,
@@ -60,6 +61,7 @@ from superset.semantic_layers.models import (
     SemanticView as SemanticViewModel,
 )
 from superset.semantic_layers.registry import registry
+from superset.semantic_layers.transport import build_provider_transport
 
 
 @dataclass(frozen=True)
@@ -166,6 +168,7 @@ class LegacyLayer(SemanticLayer[LegacyConfiguration, LegacyView]):
         *,
         cache_token: str,
         context: SemanticExecutionContext,
+        transport: ProviderTransport,
         credentials: SemanticCredentials | None = None,
     ) -> LegacyLayer:
         layer: LegacyLayer = cls()
@@ -176,13 +179,17 @@ class LegacyLayer(SemanticLayer[LegacyConfiguration, LegacyView]):
 
     @classmethod
     def get_configuration_schema(
-        cls, configuration: BaseModel | None = None
+        cls, configuration: BaseModel | None = None, *, transport: ProviderTransport
     ) -> dict[str, Any]:
         return {"type": "object"}
 
     @classmethod
     def get_runtime_schema(
-        cls, configuration: BaseModel, runtime_data: dict[str, Any] | None = None
+        cls,
+        configuration: BaseModel,
+        runtime_data: dict[str, Any] | None = None,
+        *,
+        transport: ProviderTransport,
     ) -> dict[str, Any]:
         return {"type": "object"}
 
@@ -243,6 +250,7 @@ def stub_view(
         {},
         cache_token="test",  # noqa: S106
         context=make_execution_context(),
+        transport=build_provider_transport(),
     ).get_semantic_view("orders", {})
     model: SemanticViewModel = SemanticViewModel(
         id=91,

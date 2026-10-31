@@ -251,6 +251,7 @@ class TestExampleConformance(SemanticProviderConformance):
         "import flask",
         "open('/conformance-schema-must-not-read')",
         "__import__('socket').create_connection(('localhost', 1))",
+        "transport.request('Example', 'GET', 'https://example.test')",
     ],
 )
 def test_isolation_rejects_caught_attempts(
@@ -261,7 +262,7 @@ def test_isolation_rejects_caught_attempts(
     module.write_text(
         "class Layer:\n"
         "    @classmethod\n"
-        "    def get_configuration_schema(cls, configuration=None):\n"
+        "    def get_configuration_schema(cls, configuration=None, *, transport):\n"
         "        try:\n"
         f"            {violation}\n"
         "        except (ImportError, AssertionError):\n"

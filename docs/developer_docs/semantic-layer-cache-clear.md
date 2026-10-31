@@ -52,7 +52,8 @@ Providers implement one factory, invoked before eager discovery:
 @classmethod
 def from_configuration(
     cls, configuration: dict[str, Any], *, cache_token: str,
-    context: SemanticExecutionContext, credentials: SemanticCredentials | None = None,
+    context: SemanticExecutionContext, transport: ProviderTransport,
+    credentials: SemanticCredentials | None = None,
 ) -> SemanticLayer:
     ...
 ```

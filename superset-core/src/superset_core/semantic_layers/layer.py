@@ -29,6 +29,7 @@ from superset_core.semantic_layers.context import (
     SemanticCredentials,
     SemanticExecutionContext,
 )
+from superset_core.semantic_layers.transport import ProviderTransport
 from superset_core.semantic_layers.view import SemanticView
 
 ConfigT = TypeVar("ConfigT", bound=BaseModel)
@@ -122,9 +123,13 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
         *,
         cache_token: str,
         context: SemanticExecutionContext,
+        transport: ProviderTransport,
         credentials: SemanticCredentials | None = None,
     ) -> SemanticLayer[ConfigT, SemanticViewT]:
         """Bind this layer and its views to one host execution identity.
+
+        The host supplies transport separately from execution identity.
+        Use it for provider HTTP; no implicit or unbounded client is available.
 
         Under CONNECTION, results and catalogs must not depend on the context.
         Store the supplied context and cache_token; partition provider caches on
@@ -140,11 +145,14 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
     def get_configuration_schema(
         cls,
         configuration: ConfigT | None = None,
+        *,
+        transport: ProviderTransport,
     ) -> dict[str, Any]:
         """
         Get the JSON schema for the configuration needed to add the semantic layer.
 
-        Calling with no arguments (or ``None``) must return a static schema
+        Omitting configuration (or passing ``None``), with the required
+        ``transport`` keyword, must return a static schema
         without I/O: no connections, network discovery or credential lookup.
         The host uses this form before configuration exists, including for
         secret masking. It must not require a constructed provider instance.
@@ -174,6 +182,8 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
         cls,
         configuration: ConfigT,
         runtime_data: dict[str, Any] | None = None,
+        *,
+        transport: ProviderTransport,
     ) -> dict[str, Any]:
         """
         Get the JSON schema for the runtime parameters needed to load semantic views.
