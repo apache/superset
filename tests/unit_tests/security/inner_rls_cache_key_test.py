@@ -31,7 +31,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from types import SimpleNamespace
 from typing import Any, TYPE_CHECKING
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from flask_caching.backends import SimpleCache
@@ -404,10 +404,6 @@ def guest(mocker: MockerFixture, virtual_dataset: SqlaTable) -> SimpleNamespace:
         "is_feature_enabled",
         new=lambda flag: flag == "EMBEDDED_SUPERSET" or is_feature_enabled(flag),
     )
-    # Guests have no user id, so it cannot tell two guests' entries apart.
-    mocker.patch(
-        "superset.common.query_context_processor.get_user_id", return_value=None
-    )
     return current
 
 
@@ -433,7 +429,8 @@ def source_chart(
     return chart
 
 
-def _annotation_context(chart: Slice) -> dict[str, Any]:
+def _annotation_context(chart: Slice) -> dict[str, Any] | None:
+    from superset import security_manager
     from superset.common.query_context_processor import QueryContextProcessor
 
     query = MagicMock(
@@ -441,7 +438,15 @@ def _annotation_context(chart: Slice) -> dict[str, Any]:
     )
     # The context reads nothing from the processor's query context.
     processor = QueryContextProcessor.__new__(QueryContextProcessor)
-    return processor._annotation_cache_context(query)
+    # Access is not under test here, and there is no request user to check.
+    with patch.object(security_manager, "can_access_datasource", return_value=True):
+        return processor._annotation_cache_context(query)
+
+
+def _data_key(context: dict[str, Any] | None) -> Any:
+    """The data-identity component of the first chart-backed layer's scope."""
+    assert context is not None
+    return context["source_scope"][0]["data_key"]
 
 
 def test_annotation_context_partitions_guests_by_inner_table_rls(
@@ -455,14 +460,9 @@ def test_annotation_context_partitions_guests_by_inner_table_rls(
 
     # The source dataset's own rules are the same for both guests, so only the
     # inner-table rules can keep their annotation data apart.
-    assert first["source_rls"] == second["source_rls"]
     assert first != second
-    assert first["source_inner_rls"] == {
-        str(source_chart.id): [_inner_key("(tenant = 1)")]
-    }
-    assert second["source_inner_rls"] == {
-        str(source_chart.id): [_inner_key("(tenant = 2)")]
-    }
+    assert _data_key(first)["inner_rls"] == [_inner_key("(tenant = 1)")]
+    assert _data_key(second)["inner_rls"] == [_inner_key("(tenant = 2)")]
 
 
 @with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
@@ -473,21 +473,12 @@ def test_templated_own_rls_partitions_annotation_context(
 ) -> None:
     """Rendered source rules isolate annotation entries even without a user id."""
     datasource, current = templated_own_rls
-    mocker.patch(
-        "superset.common.query_context_processor.QueryContextProcessor."
-        "_annotation_source_datasource",
-        return_value=datasource,
-    )
-    mocker.patch(
-        "superset.common.query_context_processor.get_user_id", return_value=None
-    )
     first = _annotation_context(source_chart)
     first_chart_keys = datasource.get_extra_cache_keys(
         {"columns": ["name"], "is_timeseries": False}
     )
     current.name = "beta"
     second = _annotation_context(source_chart)
-    assert first["source_rls"] == second["source_rls"]
     assert first != second
     assert (
         datasource.get_extra_cache_keys({"columns": ["name"], "is_timeseries": False})
@@ -532,12 +523,10 @@ def test_annotation_context_shape_unchanged_without_inner_rls(
     db.session.flush()
     db.session.expire(source_chart)
 
-    assert set(_annotation_context(source_chart)) == {
-        "user_id",
-        "source_rls",
-        "semantic_filter_protocol",
-        "source_versions",
-    }
+    context = _annotation_context(source_chart)
+    assert context is not None
+    assert set(context) == {"source_scope"}
+    assert not isinstance(_data_key(context), dict)
 
 
 @pytest.fixture(params=[False, True], ids=["user", "guest"])
@@ -605,9 +594,6 @@ def swapped_inner_rules(
             ]
 
         mocker.patch.object(security_manager, "get_rls_filters", new=filters)
-    mocker.patch(
-        "superset.common.query_context_processor.get_user_id", return_value=None
-    )
     return current
 
 
@@ -676,7 +662,6 @@ def test_swapped_table_rules_do_not_share_annotation_context(
     first = _annotation_context(source_chart)
     swapped_inner_rules.swapped = True
     second = _annotation_context(source_chart)
-    assert first["source_rls"] == second["source_rls"]
     assert first != second
 
 
@@ -784,7 +769,7 @@ def test_schema_lookup_outage_builds_guest_annotation_context(
     )
     first = _annotation_context(source_chart)
     first_chart_keys = virtual_dataset.get_extra_cache_keys({})
-    assert first["source_inner_rls"][str(source_chart.id)]
+    assert "inner_rls" in _data_key(first)
     assert first == _annotation_context(source_chart)
     guest.clause = "tenant = 2"
     assert first != _annotation_context(source_chart)

@@ -1049,7 +1049,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             # so a concurrent abort/timeout can kill the query. No-op otherwise.
             from superset.tasks.query_cancel import notify_cursor
 
-            notify_cursor(cursor)
+            notify_cursor(cursor, self)
 
             from superset.sql.execution.cancellation import (
                 cancellable_cursor,

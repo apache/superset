@@ -449,6 +449,15 @@ class ChartDataRestApi(ChartRestApi):
                     return self._send_chart_response(result)
             except ChartDataCacheLoadError:
                 pass
+            except (
+                ChartDataQueryFailedError,
+                SemanticLayerQueryRejectedError,
+                QueryObjectValidationError,
+            ) as exc:
+                # A cached read-back can still fail (e.g. an annotation layer
+                # whose source chart is not visible to this user). Surface it
+                # the way the synchronous path does rather than as a 500.
+                return self.response_400(message=sanitize_error_message(exc.message))
         # Otherwise, kick off background GTF tasks (one per QueryObject) to run the
         # chart query. The client polls /api/v1/task/status_changes, aggregates the
         # tasks' statuses, and on success re-issues this same request — now served
