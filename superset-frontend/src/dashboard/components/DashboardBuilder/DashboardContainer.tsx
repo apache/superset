@@ -150,6 +150,10 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     state => state.dashboardInfo,
   );
   const filterItems = useSelector(selectFilterConfiguration);
+  const nativeFilters = useSelector<
+    RootState,
+    RootState['nativeFilters']['filters']
+  >(state => state.nativeFilters.filters);
   const chartCustomizations = useSelector<
     RootState,
     ChartCustomizationConfiguration
@@ -220,11 +224,21 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       tabsInScope: scope.tabsInScope,
     }));
 
-    if (!isEqual(scopes, prevFilterScopesRef.current)) {
+    // Hydration can replace the store's scopes after the last calculation.
+    const storeIsStale = scopes.some(scope => {
+      const stored = nativeFilters[scope.filterId];
+      return (
+        stored &&
+        (!isEqual(stored.chartsInScope, scope.chartsInScope) ||
+          !isEqual(stored.tabsInScope, scope.tabsInScope))
+      );
+    });
+
+    if (storeIsStale || !isEqual(scopes, prevFilterScopesRef.current)) {
       prevFilterScopesRef.current = scopes;
       dispatch(setInScopeStatusOfFilters(scopes));
     }
-  }, [chartIds, filterItems, chartLayoutItemMap, dispatch]);
+  }, [chartIds, filterItems, nativeFilters, chartLayoutItemMap, dispatch]);
 
   useEffect(() => {
     if (chartCustomizations.length === 0) {
