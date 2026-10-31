@@ -27,6 +27,7 @@ from flask_appbuilder.security.sqla.models import (
     PermissionView,
     ViewMenu,
 )
+from jsonpath_ng import parse
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
@@ -180,6 +181,53 @@ def oauth2_endpoint_rebind_unsafe(
         for field in OAUTH2_ENDPOINT_FIELDS
     )
     return secret_reused and endpoint_changed
+
+
+def encrypted_extra_secrets_reused(
+    sensitive_fields: set[str],
+    existing_encrypted_extra: str | None,
+    submitted_masked_encrypted_extra: str | None,
+    *,
+    submitted: bool,
+) -> bool:
+    """
+    Whether an update would carry a stored ``encrypted_extra`` secret over.
+
+    A stored secret (a non-empty value at one of ``sensitive_fields``) is reused
+    when the update leaves ``masked_encrypted_extra`` out -- the stored blob stays
+    attached as is -- or sends the mask at that secret's path, which
+    ``unmask_encrypted_extra`` restores verbatim. Judged per secret, not by
+    comparing whole blobs: any other field changing in the same save must not hide
+    a still-masked secret, and a secret re-entered with its stored value is a fresh
+    one the caller is entitled to attach. A dropped path drops the secret.
+    """
+    try:
+        existing = json.loads(existing_encrypted_extra or "{}")
+    except (TypeError, ValueError):
+        return False
+    if not isinstance(existing, dict):
+        return False
+
+    def is_stored(field: str) -> bool:
+        return any(
+            match.value not in (None, "") for match in parse(field).find(existing)
+        )
+
+    if not any(is_stored(field) for field in sensitive_fields):
+        return False  # nothing stored to carry over
+    if not submitted:
+        return True
+
+    try:
+        submitted_config = json.loads(submitted_masked_encrypted_extra or "{}")
+    except (TypeError, ValueError):
+        return False  # malformed payloads are rejected by schema validation elsewhere
+    if not isinstance(submitted_config, dict):
+        return False
+    return any(
+        is_stored(field)
+        for field in json.get_masked_fields(submitted_config, sensitive_fields)
+    )
 
 
 def ping(engine: Engine) -> bool:
