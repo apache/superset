@@ -123,10 +123,19 @@ def main() -> None:
     args = _parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
 
-    selected = set(args.countries.split(",")) if args.countries else None
+    selected = (
+        {name.strip() for name in args.countries.split(",") if name.strip()}
+        if args.countries
+        else None
+    )
     modules = [m for m in REGISTRY if selected is None or m.NAME in selected]
-    if not modules:
-        raise SystemExit(f"No registered country modules matched: {args.countries}")
+    if selected is not None:
+        unmatched = sorted(selected - {m.NAME for m in modules})
+        if unmatched or not modules:
+            raise SystemExit(
+                "No registered country module named: "
+                f"{', '.join(unmatched) or args.countries}"
+            )
 
     print(f"Loading Natural Earth data into {args.data_dir}...")
     ctx = load_natural_earth(args.data_dir, skip_existing=not args.force_download)
