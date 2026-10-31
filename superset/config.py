@@ -1869,6 +1869,14 @@ DISPLAY_MAX_ROW = 10000
 # the SQL Lab UI
 DEFAULT_SQLLAB_LIMIT = 1000
 
+# Ask users for a reason before downloading data: chart CSV/XLSX exports
+# (Explore, dashboards, drill-by), SQL Lab CSV exports and the dashboard-wide
+# Excel export. Those endpoints reject requests without a ``download_reason``;
+# the event logger records it in ``logs.json`` (Security → Action Log).
+# Client-side exports of already-loaded data (Explore "current view") ask
+# for the reason too and record it through the frontend event log.
+REQUIRE_DOWNLOAD_REASON = False
+
 # Dataset datetime format detection settings
 # Auto-detect datetime formats on dataset creation/refresh
 DATASET_AUTO_DETECT_DATETIME_FORMATS = True
