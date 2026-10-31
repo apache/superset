@@ -181,3 +181,45 @@
   - any-glob-to-any-file:
     - '.github/actions/**'
     - '.github/workflows/**'
+
+############################################
+# Hold labels - these block merge (see
+# .github/workflows/no-hold-label.yml) until a maintainer who's reviewed
+# the change removes the label. Path-triggered, replacing what used to be
+# CODEOWNERS-required review for the same paths.
+############################################
+
+"hold:audit-gha":
+- changed-files:
+  - any-glob-to-any-file:
+    - '.github/**'
+
+"hold:audit-scripts":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'scripts/**'
+
+"hold:audit-asf-yaml":
+- changed-files:
+  - any-glob-to-any-file:
+    - '.asf.yaml'
+
+"hold:audit-maps":
+- changed-files:
+  - any-glob-to-any-file:
+    - '**/*.geojson'
+    - '**/*.ipynb'
+    - 'superset-frontend/plugins/plugin-chart-country-map/**'
+
+"hold:audit-extensions":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'docs/developer_docs/extensions/**'
+    - 'superset-extensions-cli/**'
+    - 'superset/extensions/**'
+    - 'superset-frontend/src/extensions/**'
+
+"hold:audit-config":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/config.py'
