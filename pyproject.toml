@@ -275,7 +275,7 @@ prophet = [
     # evaluates TTX XML values with eval() in cffLib parseBlendList(),
     # allowing arbitrary code execution from a crafted TTX file
     # (fonttools/fonttools#4039, fixed in 4.62.0 by #4040).
-    "fonttools>=4.62.0,<5.0.0",
+    "fonttools>=4.67.0,<5.0.0",
 ]
 # sqlalchemy-redshift cuts hard from SQLAlchemy 1.4-only (0.8.x) to 2.0-only
 # (>=1.0.0) with no dual-compat release. Bumped now that Superset's own

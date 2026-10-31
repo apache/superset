@@ -365,7 +365,7 @@ flask-wtf==1.3.0
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   flask-appbuilder
-fonttools==4.62.0
+fonttools==4.68.0
     # via
     #   -r requirements/development.in
     #   apache-superset
