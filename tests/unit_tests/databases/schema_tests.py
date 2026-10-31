@@ -800,3 +800,39 @@ def test_validate_parameters_schema_accepts_server_host_key() -> None:
         loaded["ssh_tunnel"]["server_host_key"]
         == "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA"
     )
+
+
+@pytest.mark.parametrize("schema_name", ["DatabasePostSchema", "DatabasePutSchema"])
+def test_databricks_form_clear_catalog_removes_legacy_override(
+    schema_name: str,
+) -> None:
+    """Both create and update normalize cleared fields before persisting extra."""
+    from superset.databases import schemas
+
+    schema = getattr(schemas, schema_name)()
+    payload = schema.load(
+        {
+            "database_name": "Databricks",
+            "configuration_method": "dynamic_form",
+            "engine": "databricks",
+            "driver": "databricks-sql-python",
+            "parameters": {
+                "host": "host",
+                "port": 443,
+                "access_token": "test-token",
+                "default_schema": "default",
+                "http_path_field": "/legacy",
+                "default_catalog": "",
+            },
+            "extra": json.dumps(
+                {
+                    "engine_params": {
+                        "connect_args": {"catalog": "old", "http_path": "/legacy"}
+                    }
+                }
+            ),
+        }
+    )
+    args = json.loads(payload["extra"])["engine_params"]["connect_args"]
+    assert "catalog" not in args
+    assert args["http_path"] == "/legacy"

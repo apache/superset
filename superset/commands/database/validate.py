@@ -22,6 +22,7 @@ from flask_babel import gettext as __
 from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
+    DatabaseInvalidError,
     DatabaseOfflineError,
     DatabaseTestConnectionFailedError,
     InvalidEngineError,
@@ -30,7 +31,9 @@ from superset.commands.database.exceptions import (
 from superset.commands.database.utils import (
     engine_params_changed,
     ssh_tunnel_endpoint_changed,
+    uri_identity_changed,
 )
+from superset.constants import PASSWORD_MASK
 from superset.daos.database import DatabaseDAO
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
@@ -80,6 +83,11 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                 ),
             )
 
+        if hasattr(engine_spec, "get_extra_from_parameters"):
+            self._properties["extra"] = engine_spec.get_extra_from_parameters(
+                self._properties.get("parameters", {}),
+                self._properties.get("extra", "{}"),
+            )
         # perform initial validation (host, port, database, username)
         errors = engine_spec.validate_parameters(self._properties)  # type: ignore
 
@@ -130,7 +138,26 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             self._properties.get("parameters"),
             encrypted_extra,
         )
-        if self._model and sqlalchemy_uri == self._model.safe_sqlalchemy_uri():
+        if (
+            self._model
+            and self._properties["engine"] == "databricks"
+            and make_url_safe(sqlalchemy_uri).password == PASSWORD_MASK
+            and not self._reaches_stored_destination(sqlalchemy_uri)
+        ):
+            raise InvalidParametersError(
+                [
+                    SupersetError(
+                        message=__(
+                            "Re-enter the access token when changing the connection "
+                            "destination."
+                        ),
+                        error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+                        level=ErrorLevel.ERROR,
+                        extra={"invalid": ["access_token"]},
+                    )
+                ]
+            )
+        if self._model and self._reaches_stored_destination(sqlalchemy_uri):
             if identity_changed:
                 raise InvalidParametersError(
                     [
@@ -216,6 +243,28 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         """Load the existing database model if updating."""
         if (database_id := self._properties.get("id")) is not None:
             self._model = DatabaseDAO.find_by_id(database_id)
+
+    def _reaches_stored_destination(self, sqlalchemy_uri: str) -> bool:
+        """
+        Whether a URI rebuilt from masked parameters names the stored
+        connection's destination, even when spelled differently.
+        """
+        model = self._model
+        assert model is not None
+        safe_uri = model.safe_sqlalchemy_uri()
+        if sqlalchemy_uri == safe_uri:
+            return True
+        try:
+            password = make_url_safe(sqlalchemy_uri).password
+        except DatabaseInvalidError:
+            return False
+        # A newly typed password is the one to test, not the stored one.
+        return password == PASSWORD_MASK and not uri_identity_changed(
+            safe_uri,
+            sqlalchemy_uri,
+            model.extra,
+            self._properties.get("extra", "{}"),
+        )
 
     def _get_database_name_error(self) -> Optional[SupersetError]:
         """Check for duplicate database name and return error if found."""

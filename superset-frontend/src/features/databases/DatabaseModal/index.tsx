@@ -211,6 +211,7 @@ export type DBReducerActionType =
     }
   | {
       type: ActionType.Fetched;
+      isEditMode?: boolean;
       payload: Partial<DatabaseObject>;
     }
   | {
@@ -572,7 +573,14 @@ export function dbReducer(
         ...trimmedState,
         [action.payload.name]: action.payload.value,
       };
-    case ActionType.Fetched:
+    case ActionType.Fetched: {
+      const configurationMethod =
+        action.isEditMode &&
+        action.payload.configuration_method ===
+          ConfigurationMethod.DynamicForm &&
+        !Object.keys(action.payload.parameters_schema?.properties || {}).length
+          ? ConfigurationMethod.SqlalchemyUri
+          : action.payload.configuration_method;
       // convert query to a string and store in query_input
       query = action.payload?.parameters?.query || {};
       // eslint-disable-next-line camelcase
@@ -598,7 +606,7 @@ export function dbReducer(
         return {
           ...action.payload,
           engine: action.payload.backend || trimmedState.engine,
-          configuration_method: action.payload.configuration_method,
+          configuration_method: configurationMethod,
           catalog: engineRootCatalog,
           parameters: {
             ...(action.payload.parameters || trimmedState.parameters),
@@ -616,7 +624,7 @@ export function dbReducer(
         ...action.payload,
         masked_encrypted_extra: action.payload.masked_encrypted_extra || '',
         engine: action.payload.backend || trimmedState.engine,
-        configuration_method: action.payload.configuration_method,
+        configuration_method: configurationMethod,
         parameters: action.payload.parameters || trimmedState.parameters,
         ssh_tunnel: action.payload.ssh_tunnel || trimmedState.ssh_tunnel,
         // eslint-disable-next-line camelcase
@@ -625,7 +633,7 @@ export function dbReducer(
         // eslint-disable-next-line camelcase
         query_input,
       };
-
+    }
     case ActionType.DbSelected:
       // set initial state for blank form
       return {
@@ -660,7 +668,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   >(dbReducer, null);
   // Database fetch logic
   const {
-    state: { loading: dbLoading, resource: dbFetched, error: dbErrors },
+    state: { resource: dbFetched, error: dbErrors },
     fetchResource,
     createResource,
     updateResource,
@@ -671,6 +679,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     addDangerToast,
     'connection',
   );
+
+  const databaseRequestGeneration = useRef(0);
+  const dbFetchedGeneration = useRef(0);
+
+  /** Bind resource publication and save continuations to the requesting session. */
+  const getResponseGuard = () => {
+    const generation = databaseRequestGeneration.current;
+    return () => {
+      const active = show && generation === databaseRequestGeneration.current;
+      if (active) dbFetchedGeneration.current = generation;
+      return active;
+    };
+  };
 
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
@@ -768,7 +789,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const showDBError = validationErrors || dbErrors;
   const history = useHistory();
 
-  const dbModel: DatabaseForm =
+  const availableDbModel: DatabaseForm =
     // TODO: we need a centralized engine in one place
 
     // first try to match both engine and driver
@@ -786,6 +807,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         available.engine === (isEditMode ? db?.backend : db?.engine),
     ) ||
     {};
+
+  // A saved driver's schema can remain usable even when that driver is no longer
+  // installed. Do not replace it with another driver's form for the same engine.
+  const dbModel: DatabaseForm =
+    isEditMode && db?.parameters_schema?.properties
+      ? {
+          ...availableDbModel,
+          parameters: db.parameters_schema as DatabaseForm['parameters'],
+        }
+      : availableDbModel;
 
   const handleClearValidationErrors = useCallback(() => {
     setValidationErrors(null);
@@ -904,6 +935,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   }, [db, getValidation]);
 
   const onClose = () => {
+    databaseRequestGeneration.current += 1;
     setDB({ type: ActionType.Reset });
     setHasConnectedDb(false);
     handleClearValidationErrors(); // reset validation errors on close
@@ -949,6 +981,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   });
 
   const onSave = async () => {
+    const shouldApplyResponse = getResponseGuard();
     let dbConfigExtraExtensionOnSaveError;
     setLoading(true);
     setHasValidated(false);
@@ -981,6 +1014,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
 
       const errors = await getValidation(dbToUpdate, true);
+      if (!shouldApplyResponse()) return;
       // ``getValidation`` returns ``[]`` on success, a field-keyed object
       // for blocking errors (e.g. the duplicate ``database_name`` check),
       // and ``null`` for stale or unexpected responses. During save we
@@ -1075,7 +1109,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         db.id as number,
         dbToUpdate as DatabaseObject,
         dbToUpdate.configuration_method === ConfigurationMethod.DynamicForm, // onShow toast on SQLA Forms
+        true,
+        shouldApplyResponse,
       );
+      if (!shouldApplyResponse()) return;
       if (result) {
         if (onDatabaseAdd) onDatabaseAdd();
         dbConfigExtraExtension
@@ -1100,7 +1137,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const dbId = await createResource(
         dbToUpdate as DatabaseObject,
         dbToUpdate.configuration_method === ConfigurationMethod.DynamicForm, // onShow toast on SQLA Forms
+        shouldApplyResponse,
       );
+      if (!shouldApplyResponse()) return;
       if (dbId) {
         setHasConnectedDb(true);
         if (onDatabaseAdd) onDatabaseAdd();
@@ -1153,19 +1192,20 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setLoading(false);
   };
 
+  /** Fetch only into the modal session that requested the database. */
+  const fetchDatabase = (id: number) => fetchResource(id, getResponseGuard());
+
   // Initialize
   const fetchDB = () => {
     if (isEditMode && databaseId) {
-      if (!dbLoading) {
-        fetchResource(databaseId).catch(e =>
-          addDangerToast(
-            t(
-              'Sorry there was an error fetching database information: %s',
-              e.message,
-            ),
+      fetchDatabase(databaseId).catch(e =>
+        addDangerToast(
+          t(
+            'Sorry there was an error fetching database information: %s',
+            e.message,
           ),
-        );
-      }
+        ),
+      );
     }
   };
 
@@ -1324,13 +1364,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const handleBackButtonOnFinish = () => {
     if (dbFetched) {
-      fetchResource(dbFetched.id as number);
+      fetchDatabase(dbFetched.id as number);
     }
     setShowCTAbtns(false);
     setEditNewDb(true);
   };
 
   const handleBackButtonOnConnect = () => {
+    databaseRequestGeneration.current += 1;
     handleClearValidationErrors();
     if (editNewDb) setHasConnectedDb(false);
     if (importingModal) setImportingModal(false);
@@ -1516,18 +1557,30 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (databaseId && show) {
       fetchDB();
     }
+    return () => {
+      // Closing or switching targets invalidates outstanding connection requests.
+      databaseRequestGeneration.current += 1;
+    };
   }, [show, databaseId]);
 
   useEffect(() => {
-    if (dbFetched) {
+    if (
+      show &&
+      dbFetched &&
+      dbFetchedGeneration.current === databaseRequestGeneration.current &&
+      (!databaseId || dbFetched.id === databaseId)
+    ) {
       setDB({
         type: ActionType.Fetched,
+        isEditMode,
         payload: dbFetched,
       });
       // keep a copy of the name separate for display purposes
       // because it shouldn't change when the form is updated
       setDbName(dbFetched.database_name);
     }
+    // Apply resource changes only while open, including multi-step creates.
+    // Opening the modal must not reapply a cached record after onClose resets it.
   }, [dbFetched]);
 
   useEffect(() => {
@@ -1882,7 +1935,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const fetchAndSetDB = () => {
     setLoading(true);
-    fetchResource(dbFetched?.id as number).then(r => {
+    fetchDatabase(dbFetched?.id as number).then(r => {
       setItem(LocalStorageKeys.Database, r);
     });
   };

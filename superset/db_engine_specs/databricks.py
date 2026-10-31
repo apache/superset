@@ -209,7 +209,7 @@ class DatabricksPythonConnectorSchema(DatabricksBaseSchema):
     """
 
     http_path_field = fields.Str(required=True)
-    default_catalog = fields.Str(required=True)
+    default_catalog = fields.Str(required=False)
     default_schema = fields.Str(required=True)
 
 
@@ -742,8 +742,11 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
 class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
     engine = "databricks"
     engine_name = "Databricks"
-    default_driver = "databricks-sql-python"
-    drivers = {"databricks-sql-python": "Databricks SQL Python"}
+    default_driver = "databricks"
+    drivers = {
+        "databricks": "Databricks SQL Python",
+        "databricks-sql-python": "Databricks SQL Python",
+    }
 
     parameters_schema = DatabricksPythonConnectorSchema()
 
@@ -817,13 +820,15 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
                 "notes": "Requires ODBC driver. For serverless SQL warehouses.",
             },
             {
-                "name": "databricks-dbapi (Legacy)",
-                "pypi_package": "databricks-dbapi[sqlalchemy]",
+                "name": "Field-based connection",
+                "pypi_package": "apache-superset[databricks]",
                 "connection_string": (
-                    "databricks+connector://token:{access_token}@{host}:{port}/{database}"
+                    "databricks://token:{access_token}@{host}:{port}/{database}"
                 ),
                 "is_recommended": False,
-                "notes": "Legacy connector. Use Python Connector for new deployments.",
+                "notes": (
+                    "Use the dynamic form to enter connection fields individually."
+                ),
             },
         ],
     }
@@ -836,7 +841,6 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
     }
 
     required_parameters = DatabricksDynamicBaseEngineSpec.required_parameters | {
-        "default_catalog",
         "default_schema",
         "http_path_field",
     }
@@ -897,18 +901,82 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
             "access_token": url.password,
             "host": url.host,
             "port": url.port,
-            "http_path_field": query["http_path"],
-            "default_catalog": query["catalog"],
-            "default_schema": query["schema"],
+            "http_path_field": query.get("http_path", ""),
+            "default_catalog": query.get("catalog", ""),
+            "default_schema": query.get("schema", url.database or ""),
             "encryption": encryption,
         }
+
+    @classmethod
+    def get_parameters_from_database(
+        cls, database: Database, encrypted_extra: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Expose legacy connect_args in the native connector's field-based form."""
+        parameters = super().get_parameters_from_database(database, encrypted_extra)
+        query = database.url_object.query
+        for field, key in (
+            ("http_path_field", "http_path"),
+            ("default_catalog", "catalog"),
+            ("default_schema", "schema"),
+        ):
+            if key not in query and key in database.connect_args:
+                parameters[field] = database.connect_args[key]
+        return parameters
+
+    @classmethod
+    def get_extra_from_parameters(
+        cls, parameters: dict[str, Any], extra: str | None
+    ) -> str | None:
+        """Remove legacy overrides when a native form explicitly clears a field."""
+        try:
+            settings = json.loads(extra or "{}")
+            connect_args = settings.get("engine_params", {}).get("connect_args", {})
+        except (ValueError, AttributeError, TypeError):
+            return extra
+        if not isinstance(connect_args, dict):
+            return extra
+        changed = False
+        for field, key in (
+            ("http_path_field", "http_path"),
+            ("default_catalog", "catalog"),
+            ("default_schema", "schema"),
+        ):
+            if field in parameters and not parameters[field] and key in connect_args:
+                del connect_args[key]
+                changed = True
+        return json.dumps(settings) if changed else extra
+
+    @classmethod
+    def get_connection_identity(cls, uri: URL, connect_args: dict[str, Any]) -> URL:
+        """
+        Describe legacy connect_args and native query settings identically.
+
+        Mirrors ``adjust_engine_params``: query settings take precedence over
+        connect_args, and the URI path is the schema when neither sets one.
+        """
+        query: dict[str, str | tuple[str, ...]] = {
+            key: str(connect_args[key])
+            for key in ("http_path", "catalog", "schema")
+            if key in connect_args
+        }
+        query.update(uri.query)
+        if "schema" not in query and uri.database:
+            query["schema"] = uri.database
+        return uri._replace(database=None).set(query=query)
 
     @classmethod
     def get_default_catalog(
         cls,
         database: Database,
     ) -> str | None:
-        return database.url_object.query.get("catalog")
+        if catalog := database.url_object.query.get(
+            "catalog"
+        ) or database.connect_args.get("catalog"):
+            return catalog
+        # Converted rows retain the runtime catalog used by legacy permissions.
+        if database.get_extra().get("migrated_from_databricks_connector_uri"):
+            return DatabricksNativeEngineSpec.get_default_catalog(database)
+        return None
 
     @classmethod
     def get_catalog_names(
@@ -932,12 +1000,22 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
 
         if schema:
             uri = uri.update_query_dict({"schema": schema})
+        elif (
+            "schema" not in uri.query and "schema" not in connect_args and uri.database
+        ):
+            # The SQLAlchemy 2 dialect reads schema from the query, not the path.
+            uri = uri.update_query_dict({"schema": uri.database})
+
+        # Edits made in the native form take precedence over legacy connect_args.
+        for key in ("http_path", "catalog", "schema"):
+            if key in uri.query:
+                connect_args.pop(key, None)
 
         return uri, connect_args
 
 
 class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
-    """Legacy Databricks connector using databricks-dbapi."""
+    """Compatibility form for legacy Databricks connections."""
 
     engine = "databricks"
     engine_name = "Databricks (legacy)"
@@ -952,9 +1030,7 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
     )
 
     metadata = {
-        "description": (
-            "Legacy Databricks connector using the databricks-dbapi driver."
-        ),
+        "description": "Field-based configuration for legacy Databricks connections.",
         "logo": "databricks.png",
         "homepage_url": "https://www.databricks.com/",
         "categories": [
@@ -962,7 +1038,7 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.PROPRIETARY,
         ],
-        "pypi_packages": ["databricks-dbapi[sqlalchemy]"],
+        "pypi_packages": ["apache-superset[databricks]"],
         "connection_string": (
             "databricks+connector://token:{access_token}@{host}:{port}/{database_name}?http_path={http_path}"
         ),
@@ -1021,7 +1097,7 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         # False) is required here since this URI is stored/used to actually
         # connect, not just displayed.
         return URL.create(
-            f"{cls.engine}+{cls.default_driver}".rstrip("+"),
+            f"{cls.engine}+{cls.default_driver}",
             username="token",
             password=parameters.get("access_token"),
             host=parameters["host"],

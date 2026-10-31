@@ -19,6 +19,7 @@
 
 // TODO: These tests should be made atomic in separate files
 
+import { useState } from 'react';
 import fetchMock from 'fetch-mock';
 import {
   render,
@@ -27,6 +28,7 @@ import {
   within,
   waitFor,
   fireEvent,
+  act,
 } from 'spec/helpers/testing-library';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
@@ -43,6 +45,8 @@ jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: () => true,
 }));
+
+const realUseSingleViewResource = hooks.useSingleViewResource;
 
 const mockHistoryPush = jest.fn();
 jest.mock('react-router-dom', () => ({
@@ -335,6 +339,385 @@ describe('DatabaseModal', () => {
     render(<DatabaseModal {...dbProps} {...propsOverwrite} />, {
       useRedux: true,
     });
+
+  /** Check that closing a mounted modal cannot reuse a saved connection id. */
+  const expectFreshCreateAfterEdit = async (
+    closeAction: 'Close' | 'X' | 'Finish' | 'Late X',
+  ): Promise<void> => {
+    const resourceHook = jest.spyOn(hooks, 'useSingleViewResource');
+    const previousImplementation = resourceHook.getMockImplementation()!;
+    resourceHook.mockImplementation(realUseSingleViewResource);
+    let releaseEditFetch: () => void = () => {};
+    const editFetchReady = new Promise<void>(resolve => {
+      releaseEditFetch = resolve;
+    });
+    const editResponse = {
+      result: {
+        id: 10,
+        database_name: 'Existing connection',
+        backend: 'sqlite',
+        configuration_method: ConfigurationMethod.SqlalchemyUri,
+        sqlalchemy_uri: 'sqlite:///existing.db',
+      },
+    };
+    fetchMock.get(
+      'glob:*/api/v1/database/10/connection',
+      closeAction === 'Late X'
+        ? async () => {
+            await editFetchReady;
+            return editResponse;
+          }
+        : editResponse,
+    );
+    fetchMock.put(DATABASE_FETCH_ENDPOINT, {
+      id: 10,
+      result: {
+        database_name: 'Existing connection',
+        backend: 'sqlite',
+        configuration_method: ConfigurationMethod.SqlalchemyUri,
+        sqlalchemy_uri: 'sqlite:///existing.db',
+      },
+    });
+    fetchMock.post('glob:*/api/v1/database/test_connection/', {
+      message: 'OK',
+    });
+    const Harness = () => {
+      const [show, setShow] = useState(true);
+      const [databaseId, setDatabaseId] = useState<number | undefined>(10);
+      return (
+        <>
+          <button type="button" onClick={() => setShow(true)}>
+            + Database
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setDatabaseId(10);
+              setShow(true);
+            }}
+          >
+            Edit existing
+          </button>
+          <DatabaseModal
+            show={show}
+            databaseId={databaseId}
+            onHide={() => {
+              setShow(false);
+              setDatabaseId(undefined);
+            }}
+          />
+        </>
+      );
+    };
+    try {
+      render(<Harness />, { useRedux: true });
+      if (closeAction === 'Late X') {
+        await waitFor(() =>
+          expect(
+            fetchMock.callHistory.calls('glob:*/api/v1/database/10/connection'),
+          ).toHaveLength(1),
+        );
+      } else {
+        expect(
+          await screen.findByDisplayValue('Existing connection'),
+        ).toBeInTheDocument();
+      }
+      await userEvent.click(document.querySelector('.ant-modal-wrap')!);
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      if (closeAction === 'Finish') {
+        await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
+      } else if (closeAction === 'X' || closeAction === 'Late X') {
+        await userEvent.click(screen.getAllByLabelText('Close')[0]);
+      } else {
+        await userEvent.click(screen.getByText('Close'));
+      }
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+      );
+      if (closeAction !== 'Late X') fetchMock.clearHistory();
+      await userEvent.click(screen.getByRole('button', { name: '+ Database' }));
+      await screen.findByRole('dialog');
+      if (closeAction === 'Late X') {
+        await act(async () => {
+          releaseEditFetch();
+          await fetchMock.callHistory.flush(true);
+        });
+      }
+      const picker = screen.queryByRole('heading', {
+        name: /select a database to connect/i,
+      });
+      // Exercise saving even if stale state incorrectly skips the picker.
+      if (picker) {
+        await userEvent.click(
+          await screen.findByRole('button', { name: /sqlite/i }),
+        );
+      }
+      fireEvent.change(await screen.findByTestId('database-name-input'), {
+        target: { value: 'My new sandbox' },
+      });
+      fireEvent.change(screen.getByTestId('sqlalchemy-uri-input'), {
+        target: { value: 'sqlite:///sandbox.db' },
+      });
+      await userEvent.click(
+        screen.getByRole('button', { name: /test connection/i }),
+      );
+      const connect = screen.getByRole('button', { name: 'Connect' });
+      await waitFor(() => expect(connect).toBeEnabled());
+      await userEvent.click(connect);
+      await waitFor(() =>
+        expect(
+          fetchMock.callHistory.calls(DATABASE_CONNECT_ENDPOINT).length +
+            fetchMock.callHistory.calls(DATABASE_FETCH_ENDPOINT, {
+              method: 'PUT',
+            }).length,
+        ).toBeGreaterThan(0),
+      );
+      expect(
+        fetchMock.callHistory.calls(DATABASE_FETCH_ENDPOINT, {
+          method: 'PUT',
+        }),
+      ).toHaveLength(0);
+      expect(picker).not.toBeNull();
+      expect(
+        fetchMock.callHistory.calls(DATABASE_CONNECT_ENDPOINT),
+      ).toHaveLength(1);
+      expect(
+        JSON.parse(
+          fetchMock.callHistory.lastCall(DATABASE_CONNECT_ENDPOINT)!.options
+            .body as string,
+        ),
+      ).not.toHaveProperty('id');
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+      );
+      // A successful create also updates the resource cache before closing.
+      await userEvent.click(screen.getByRole('button', { name: '+ Database' }));
+      expect(
+        await screen.findByRole('heading', {
+          name: /select a database to connect/i,
+        }),
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getAllByLabelText('Close')[0]);
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+      );
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Edit existing' }),
+      );
+      expect(
+        await screen.findByDisplayValue('Existing connection'),
+      ).toBeInTheDocument();
+    } finally {
+      releaseEditFetch();
+      resourceHook.mockImplementation(previousImplementation);
+    }
+  };
+
+  test('closing edit then creating uses POST without the old id', async () => {
+    await expectFreshCreateAfterEdit('Close');
+  });
+
+  test('X edit then creating uses POST without the old id', async () => {
+    await expectFreshCreateAfterEdit('X');
+  });
+
+  test('saving edit then creating uses POST without the old id', async () => {
+    await expectFreshCreateAfterEdit('Finish');
+  });
+
+  test('late edit fetch after X then creating uses POST without the old id', async () => {
+    await expectFreshCreateAfterEdit('Late X');
+  });
+
+  /** Check that late writes cannot populate or close a subsequent create session. */
+  const expectFreshCreateAfterLateWrite = async (
+    operation: 'create' | 'update',
+  ): Promise<void> => {
+    const resourceHook = jest.spyOn(hooks, 'useSingleViewResource');
+    const previousImplementation = resourceHook.getMockImplementation()!;
+    resourceHook.mockImplementation(realUseSingleViewResource);
+    let releaseWrite: () => void = () => {};
+    const writeReady = new Promise<void>(resolve => {
+      releaseWrite = resolve;
+    });
+    const connection = {
+      id: 77,
+      database_name: 'First connection',
+      backend: 'postgresql',
+      configuration_method: ConfigurationMethod.DynamicForm,
+    };
+    let createCount = 0;
+    fetchMock.modifyRoute('database-connect', {
+      response: async () => {
+        createCount += 1;
+        if (operation === 'create' && createCount === 1) await writeReady;
+        const id = createCount === 1 ? 77 : 88;
+        return { id, result: { ...connection, id } };
+      },
+    });
+    fetchMock.put('glob:*/api/v1/database/77', async () => {
+      await writeReady;
+      return { id: 77, result: connection };
+    });
+    const onDatabaseAdd = jest.fn();
+    const Harness = () => {
+      const [show, setShow] = useState(true);
+      return (
+        <>
+          <button type="button" onClick={() => setShow(true)}>
+            + Database
+          </button>
+          <DatabaseModal
+            show={show}
+            onHide={() => setShow(false)}
+            onDatabaseAdd={onDatabaseAdd}
+          />
+        </>
+      );
+    };
+    /** Fill a new dynamic-form connection without relying on saved state. */
+    const connectPostgres = async (name: string, host: string) => {
+      await userEvent.click(
+        await screen.findByRole('button', { name: /postgresql/i }),
+      );
+      fireEvent.change(
+        document.querySelector<HTMLInputElement>(
+          'input[name="database_name"]',
+        )!,
+        {
+          target: { value: name },
+        },
+      );
+      for (const [field, value] of Object.entries({
+        host,
+        port: '5432',
+        database: 'postgres',
+        username: 'testdb',
+      })) {
+        fireEvent.change(
+          document.querySelector<HTMLInputElement>(`input[name="${field}"]`)!,
+          { target: { value } },
+        );
+      }
+      fireEvent.blur(
+        document.querySelector<HTMLInputElement>('input[name="username"]')!,
+      );
+      const connect = screen.getByRole('button', { name: 'Connect' });
+      await waitFor(() => expect(connect).toBeEnabled());
+      await userEvent.click(connect);
+    };
+    try {
+      render(<Harness />, { useRedux: true });
+      await connectPostgres('First connection', 'first.example');
+      await waitFor(() =>
+        expect(
+          fetchMock.callHistory.calls(DATABASE_CONNECT_ENDPOINT),
+        ).toHaveLength(1),
+      );
+      if (operation === 'update') {
+        expect(await screen.findByText(/step 3 of 3/i)).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
+        await waitFor(() =>
+          expect(
+            fetchMock.callHistory.calls('glob:*/api/v1/database/77'),
+          ).toHaveLength(1),
+        );
+      }
+      await userEvent.click(screen.getAllByLabelText('Close')[0]);
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+      );
+      await userEvent.click(screen.getByRole('button', { name: '+ Database' }));
+      await screen.findByRole('dialog');
+      onDatabaseAdd.mockClear();
+      await act(async () => {
+        releaseWrite();
+        await fetchMock.callHistory.flush(true);
+      });
+      expect(
+        screen.getByRole('heading', {
+          name: /select a database to connect/i,
+        }),
+      ).toBeInTheDocument();
+      expect(onDatabaseAdd).not.toHaveBeenCalled();
+      fetchMock.clearHistory();
+      await connectPostgres('Second connection', 'second.example');
+      expect(await screen.findByText(/step 3 of 3/i)).toBeInTheDocument();
+      expect(
+        fetchMock.callHistory.calls(DATABASE_CONNECT_ENDPOINT),
+      ).toHaveLength(1);
+      expect(
+        fetchMock.callHistory.calls('glob:*/api/v1/database/77', {
+          method: 'PUT',
+        }),
+      ).toHaveLength(0);
+      const payload = JSON.parse(
+        fetchMock.callHistory.lastCall(DATABASE_CONNECT_ENDPOINT)!.options
+          .body as string,
+      );
+      expect(payload).not.toHaveProperty('id');
+      expect(payload.database_name).toBe('Second connection');
+      expect(payload.parameters.host).toBe('second.example');
+    } finally {
+      releaseWrite();
+      resourceHook.mockImplementation(previousImplementation);
+    }
+  };
+
+  test('late create response after X leaves the next connection as a fresh POST', async () => {
+    await expectFreshCreateAfterLateWrite('create');
+  });
+
+  test('late update response after X leaves the next connection as a fresh POST', async () => {
+    await expectFreshCreateAfterLateWrite('update');
+  });
+
+  test('switching edit targets loads the active target while the previous fetch is pending', async () => {
+    const resourceHook = jest.spyOn(hooks, 'useSingleViewResource');
+    const previousImplementation = resourceHook.getMockImplementation()!;
+    resourceHook.mockImplementation(realUseSingleViewResource);
+    let releaseEditFetch: () => void = () => {};
+    const editFetchReady = new Promise<void>(resolve => {
+      releaseEditFetch = resolve;
+    });
+    const connection = {
+      backend: 'sqlite',
+      configuration_method: ConfigurationMethod.SqlalchemyUri,
+      sqlalchemy_uri: 'sqlite:///existing.db',
+    };
+    fetchMock.get('glob:*/api/v1/database/10/connection', async () => {
+      await editFetchReady;
+      return {
+        result: { ...connection, id: 10, database_name: 'Previous target' },
+      };
+    });
+    fetchMock.get('glob:*/api/v1/database/20/connection', {
+      result: { ...connection, id: 20, database_name: 'Active target' },
+    });
+    try {
+      const { rerender } = setup({ databaseId: 10 });
+      await waitFor(() =>
+        expect(
+          fetchMock.callHistory.calls('glob:*/api/v1/database/10/connection'),
+        ).toHaveLength(1),
+      );
+      rerender(<DatabaseModal {...dbProps} databaseId={20} />);
+      expect(
+        await screen.findByDisplayValue('Active target'),
+      ).toBeInTheDocument();
+      await act(async () => {
+        releaseEditFetch();
+        await fetchMock.callHistory.flush(true);
+      });
+      expect(screen.getByDisplayValue('Active target')).toBeInTheDocument();
+      expect(
+        screen.queryByDisplayValue('Previous target'),
+      ).not.toBeInTheDocument();
+    } finally {
+      releaseEditFetch();
+      resourceHook.mockImplementation(previousImplementation);
+    }
+  });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Visual: New database connection', () => {
@@ -1484,6 +1867,129 @@ describe('DatabaseModal', () => {
         });
       });
 
+      test.each(['Finish', 'Back'] as const)(
+        'keeps a created PostgreSQL field connection on step 3 without a saved schema: %s',
+        async action => {
+          const resourceHook = jest.spyOn(hooks, 'useSingleViewResource');
+          const previousImplementation = resourceHook.getMockImplementation()!;
+          resourceHook.mockImplementation(realUseSingleViewResource);
+          let releaseBackFetch: () => void = () => {};
+          const backFetchReady = new Promise<void>(resolve => {
+            releaseBackFetch = resolve;
+          });
+          fetchMock.get('glob:*/api/v1/database/10/connection', async () => {
+            await backFetchReady;
+            return {
+              result: {
+                id: 10,
+                database_name: 'PostgreSQL',
+                backend: 'postgresql',
+                configuration_method: ConfigurationMethod.DynamicForm,
+              },
+            };
+          });
+          try {
+            fetchMock.modifyRoute('database-connect', {
+              response: {
+                id: 10,
+                result: {
+                  id: 10,
+                  database_name: 'PostgreSQL',
+                  backend: 'postgresql',
+                  configuration_method: ConfigurationMethod.DynamicForm,
+                },
+              },
+            });
+            fetchMock.put(DATABASE_FETCH_ENDPOINT, { result: { id: 10 } });
+            const addDangerToast = jest.fn();
+            setup({ addDangerToast });
+            await userEvent.click(
+              await screen.findByRole('button', { name: /postgresql/i }),
+            );
+            expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+            const fieldByName = (name: string) =>
+              document.querySelector<HTMLInputElement>(
+                `input[name="${name}"]`,
+              )!;
+            for (const [name, value] of Object.entries({
+              host: 'localhost',
+              port: '5432',
+              database: 'postgres',
+              username: 'testdb',
+            })) {
+              fireEvent.change(fieldByName(name), { target: { value } });
+            }
+            fireEvent.blur(fieldByName('username'));
+            const connectButton = screen.getByRole('button', {
+              name: 'Connect',
+            });
+            await waitFor(() => expect(connectButton).toBeEnabled());
+            fireEvent.click(connectButton);
+            await waitFor(() =>
+              expect(
+                fetchMock.callHistory.calls(DATABASE_CONNECT_ENDPOINT),
+              ).toHaveLength(1),
+            );
+            expect(await screen.findByText(/step 3 of 3/i)).toBeInTheDocument();
+            expect(screen.getByText('Database connected')).toBeInTheDocument();
+            expect(
+              screen.queryByText('SQLAlchemy URI'),
+            ).not.toBeInTheDocument();
+            if (action === 'Back') {
+              await userEvent.click(
+                screen.getByRole('button', { name: 'Back' }),
+              );
+              await waitFor(() =>
+                expect(
+                  fetchMock.callHistory.calls(
+                    'glob:*/api/v1/database/10/connection',
+                  ),
+                ).toHaveLength(1),
+              );
+              await userEvent.click(
+                screen.getByRole('button', { name: 'Back' }),
+              );
+              expect(
+                await screen.findByRole('heading', {
+                  name: /select a database to connect/i,
+                }),
+              ).toBeInTheDocument();
+              await act(async () => {
+                releaseBackFetch();
+                await fetchMock.callHistory.flush(true);
+              });
+              expect(
+                screen.getByRole('heading', {
+                  name: /select a database to connect/i,
+                }),
+              ).toBeInTheDocument();
+              return;
+            }
+            await userEvent.click(
+              screen.getByRole('button', { name: 'Finish' }),
+            );
+            await waitFor(() =>
+              expect(
+                fetchMock.callHistory.calls(DATABASE_FETCH_ENDPOINT),
+              ).toHaveLength(1),
+            );
+            expect(
+              JSON.parse(
+                fetchMock.callHistory.lastCall(DATABASE_FETCH_ENDPOINT)!.options
+                  .body as string,
+              ),
+            ).toEqual(
+              expect.objectContaining({
+                configuration_method: ConfigurationMethod.DynamicForm,
+              }),
+            );
+          } finally {
+            releaseBackFetch();
+            resourceHook.mockImplementation(previousImplementation);
+          }
+        },
+      );
+
       test('does not fire redundant validation on blur when db has not changed', async () => {
         setup();
 
@@ -2054,6 +2560,7 @@ describe('dbReducer', () => {
     const currentState = dbReducer({}, action);
     expect(currentState).toEqual({
       ...databaseFixture,
+      configuration_method: ConfigurationMethod.DynamicForm,
       engine: 'postgres',
       masked_encrypted_extra: '',
       parameters: undefined,
@@ -2797,3 +3304,120 @@ describe('dbReducer', () => {
     });
   });
 });
+
+test.each([true, false])(
+  'editing an unavailable driver renders a usable form (saved schema: %s)',
+  async hasSavedSchema => {
+    const resource: DatabaseObject = {
+      ...databaseFixture,
+      id: 10,
+      backend: 'databricks',
+      driver: 'connector',
+      database_name: 'Legacy Databricks',
+      sqlalchemy_uri:
+        'databricks+connector://token:XXXXXXXXXX@example.cloud.databricks.com:443/default',
+      parameters: {
+        host: 'example.cloud.databricks.com',
+        port: 443,
+        access_token: 'XXXXXXXXXX',
+        database: 'default',
+      },
+      extra: JSON.stringify({
+        engine_params: {
+          connect_args: { http_path: '/sql/1.0/warehouses/example' },
+        },
+      }),
+      parameters_schema: hasSavedSchema
+        ? {
+            properties: {
+              host: { type: 'string' },
+              port: { type: 'integer' },
+              access_token: { type: 'string' },
+              database: { type: 'string' },
+              http_path: { type: 'string' },
+            },
+          }
+        : {},
+    };
+    const updateResource = jest.fn().mockResolvedValue(resource);
+    const hook = jest.spyOn(hooks, 'useSingleViewResource').mockReturnValue({
+      state: { loading: false, resource, error: null },
+      fetchResource: jest.fn().mockResolvedValue(resource),
+      createResource: jest.fn(),
+      updateResource,
+      clearError: jest.fn(),
+      setResource: jest.fn(),
+    });
+    // Matches the SQLAlchemy 2 installation: the old driver has no form in
+    // /available, but its saved schema and masked connection details survive.
+    fetchMock.get(AVAILABLE_DB_ENDPOINT, {
+      databases: [
+        {
+          engine: 'databricks',
+          name: 'Databricks',
+          default_driver: 'databricks-sql-python',
+          available_drivers: ['databricks'],
+        },
+      ],
+    });
+    try {
+      render(<DatabaseModal {...dbProps} databaseId={10} />, {
+        useRedux: true,
+      });
+      if (hasSavedSchema) {
+        expect(
+          await screen.findByDisplayValue('example.cloud.databricks.com'),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByDisplayValue('/sql/1.0/warehouses/example'),
+        ).toBeInTheDocument();
+        const token = screen.getByDisplayValue('XXXXXXXXXX');
+        fireEvent.change(token, {
+          target: { value: 'replacement-test-token' },
+        });
+        expect(token).toHaveValue('replacement-test-token');
+      } else {
+        const uri = await screen.findByTestId('sqlalchemy-uri-input');
+        expect(uri).toHaveValue(resource.sqlalchemy_uri);
+        fireEvent.change(uri, {
+          target: { value: 'databricks://example.cloud.databricks.com' },
+        });
+        expect(uri).toHaveValue('databricks://example.cloud.databricks.com');
+        await userEvent.click(
+          screen.getByRole('button', { name: /^finish$/i }),
+        );
+        expect(updateResource).toHaveBeenCalledWith(
+          10,
+          expect.objectContaining({
+            configuration_method: ConfigurationMethod.SqlalchemyUri,
+            sqlalchemy_uri: 'databricks://example.cloud.databricks.com',
+          }),
+          false,
+          true,
+          expect.any(Function),
+        );
+      }
+    } finally {
+      hook.mockRestore();
+      fetchMock.clearHistory().removeRoutes();
+    }
+  },
+);
+
+test.each(['postgresql', 'mysql', 'databricks', 'gsheets'])(
+  'only editing %s falls back to URI when the saved schema is absent',
+  backend => {
+    const payload = {
+      backend,
+      configuration_method: ConfigurationMethod.DynamicForm,
+    };
+    expect(
+      dbReducer({}, { type: ActionType.Fetched, payload, isEditMode: false })
+        ?.configuration_method,
+    ).toBe(ConfigurationMethod.DynamicForm);
+    expect(
+      dbReducer({}, { type: ActionType.Fetched, payload, isEditMode: true })
+        ?.configuration_method,
+    ).toBe(ConfigurationMethod.SqlalchemyUri);
+  },
+);
