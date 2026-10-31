@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Callable
 from functools import partial
 from typing import Any, TYPE_CHECKING
@@ -28,6 +27,7 @@ from superset import db, security_manager
 from superset.sql.parse import folds_unquoted_object_names, Table
 from superset.utils import json
 from superset.utils.core import get_user_id, remove_duplicates
+from superset.utils.hashing import hash_from_str
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -48,9 +48,9 @@ def _get_cache_identity() -> str:
     """
     if guest_user := security_manager.get_current_guest_user_if_guest():
         rls_rules = guest_user.guest_token.get("rls_rules", [])
-        digest = hashlib.sha256(
-            json.dumps(rls_rules, sort_keys=True).encode("utf-8")
-        ).hexdigest()
+        digest = hash_from_str(
+            json.dumps(rls_rules, sort_keys=True), algorithm="sha256"
+        )
         return f"guest-{digest}"
     return str(get_user_id())
 
@@ -350,11 +350,12 @@ def collect_rls_predicates_for_sql(
     sql: str,
     database: Database,
     catalog: str | None,
-    schema: str,
+    schema: str | None,
     exclude_dataset_id: int | None = None,
     *,
     include_global_guest_rls: bool = True,
     resolve_catalog: Callable[[], str | None] | None = None,
+    resolve_schema: Callable[[], str] | None = None,
 ) -> list[str]:
     """
     Collect all RLS predicates that would be applied to tables in the given SQL.
@@ -377,11 +378,23 @@ def collect_rls_predicates_for_sql(
         separately, since execution leaves the same table's other reads unfiltered.
     :param resolve_catalog: Optional memoized resolver shared by cache-key collectors,
         including engines that require a connection to discover the default catalog.
+    :param resolve_schema: Resolve the execution schema inside the failure guard.
     :return: Table-tagged RLS predicate strings that would be applied
     """
     from superset.sql.parse import SQLScript
 
     try:
+        # Schema discovery can connect to the database, so failures must use
+        # the same viewer-scoped fallback as predicate collection failures.
+        schema = (
+            resolve_schema()
+            if resolve_schema is not None
+            else (
+                schema
+                if schema is not None
+                else database.get_default_schema(catalog) or ""
+            )
+        )
         parsed_script = SQLScript(sql, engine=database.db_engine_spec.engine)
         default_catalog = (resolve_catalog or database.get_default_catalog)()
         keys: set[str] = set()

@@ -1298,6 +1298,15 @@ _THEME_DEFAULT_BASE: Theme = {
         # Editor selection color (for SQL Lab text highlighting)
         "colorEditorSelection": "#fff5cf",
     },
+    # Per-component token overrides. Tooltip text renders at the small font
+    # size rather than Ant Design's global ``fontSize`` so tooltips stay
+    # visually subordinate to the content they annotate.
+    "components": {
+        "Tooltip": {
+            "fontSize": 12,
+            "lineHeight": 1.6,
+        },
+    },
     "algorithm": "default",
 }
 
@@ -2997,6 +3006,10 @@ BUG_REPORT_ICON = None  # Recommended size: 16x16
 DOCUMENTATION_URL = None
 DOCUMENTATION_TEXT = "Documentation"
 DOCUMENTATION_ICON = None  # Recommended size: 16x16
+
+# Optional setup guide shown in the semantic layer and semantic view dialogs.
+# Use an absolute HTTP(S) URL; unset deployments show no setup-guide link.
+SEMANTIC_LAYER_DOCUMENTATION_URL: str | None = None
 
 # What is the Last N days relative in the time selector to:
 # 'today' means it is midnight (00:00:00) in the local timezone
