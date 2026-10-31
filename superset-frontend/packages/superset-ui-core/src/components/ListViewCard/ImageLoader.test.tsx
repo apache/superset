@@ -17,6 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import { logging } from '@apache-superset/core/utils';
 
 import { render, screen, waitFor } from '@superset-ui/core/spec';
 import { SupersetClient } from '../../connection';
@@ -97,6 +98,27 @@ describe('ImageLoader', () => {
       ).toEqual([prefixedUrl]);
     } finally {
       fetchMock.removeRoute('app-root-thumbnail');
+      await SupersetClient.configure({
+        protocol: 'http:',
+        host: 'localhost',
+      }).init();
+    }
+  });
+
+  test('displays fallback image when SupersetClient is not configured', async () => {
+    SupersetClient.reset();
+    const loggingSpy = jest.spyOn(logging, 'error').mockImplementation();
+
+    try {
+      setup({ src: 'https://picsum.photos/seed/superset/300/200' });
+      await waitFor(() => expect(loggingSpy).toHaveBeenCalled());
+      expect(screen.getByTestId('image-loader')).toHaveAttribute(
+        'src',
+        '/fallback',
+      );
+      expect(fetchMock.callHistory.calls(/picsum/)).toHaveLength(0);
+    } finally {
+      loggingSpy.mockRestore();
       await SupersetClient.configure({
         protocol: 'http:',
         host: 'localhost',

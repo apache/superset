@@ -58,7 +58,10 @@ export function ImageLoader({
 
   useEffect(() => {
     if (src) {
-      SupersetClient.get({ endpoint: src, parseMethod: 'raw' })
+      // Start the request inside the chain so an unconfigured client
+      // (e.g. Storybook) rejects into the fallback instead of throwing.
+      Promise.resolve()
+        .then(() => SupersetClient.get({ endpoint: src, parseMethod: 'raw' }))
         .then(response => response.blob())
         .then(blob => {
           if (/image/.test(blob.type)) {
