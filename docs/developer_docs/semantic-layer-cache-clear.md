@@ -103,6 +103,13 @@ alongside the provider token; the host ORM view also exposes it as
 existing `str | None` contract. The containment integration is tracked
 in [#42760](https://github.com/apache/superset/pull/42760).
 
+With the `CACHE_QUERY_BY_USER` feature flag enabled, host chart-data result keys
+also include the requesting user's server-authenticated principal ID, so users do
+not share cached results. Embedded guests are not partitioned: semantic views
+refuse guest row rules. The key uses the principal, not the execution-context
+`identity_digest`, so `SECRET_KEY` rotation leaves result identity unchanged.
+Value-suggestion and compatibility keys are not partitioned by user.
+
 Old entries expire normally. A page reload clears browser structure promises and
 rehydrates Explore state. Reload does not create/delete saved views, widen
 allow-lists, rewrite chart selections, or automatically execute charts. Removed

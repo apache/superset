@@ -38,6 +38,7 @@ from sqlalchemy.orm import Mapped, object_session, relationship, Session
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy_utils import UUIDType
 from sqlalchemy_utils.types.json import JSONType
+from superset_core.semantic_layers.context import SemanticExecutionContext
 from superset_core.semantic_layers.layer import (
     SemanticLayer as SemanticLayerABC,
 )
@@ -60,7 +61,7 @@ from superset.exceptions import (
     QueryObjectValidationError,
 )
 from superset.explorables.base import TimeGrainDict
-from superset.extensions import db, encrypted_field_factory
+from superset.extensions import db, encrypted_field_factory, feature_flag_manager
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.result_set import stringify_extension_columns
 from superset.semantic_layers.dimension_resolution import (
@@ -77,6 +78,7 @@ from superset.semantic_layers.exceptions import (
 )
 from superset.semantic_layers.execution import (
     configured_namespace,
+    current_host_execution_context,
     metadata_namespace,
     SemanticBindingMemo,
 )
@@ -905,7 +907,28 @@ class SemanticView(AuditMixinNullable, Model):
         keys: list[Hashable] = [self.metadata_generation, "semantic-null-filters-v1"]
         if discriminator is not None:
             keys.append(("semantic-result-version", *discriminator))
+        if (partition := self._user_cache_partition()) is not None:
+            keys.append(partition)
         return keys
+
+    @staticmethod
+    def _user_cache_partition() -> tuple[str, str | None] | None:
+        """Partition chart results by user when ``CACHE_QUERY_BY_USER`` is on.
+
+        Semantic views have no ``database``, so the per-user key that
+        ``add_impersonation_cache_key_if_needed`` adds for datasets is never
+        applied to them. The server-authenticated principal stands in for it,
+        as the username does for datasets. The identity digest is not used:
+        it rotates with ``SECRET_KEY``, which must not change semantic result
+        identity, so web and worker processes would disagree during a key
+        rotation. Guests get no partition: a guest principal cannot tell guest
+        tokens apart, semantic views refuse guest row rules, and connection
+        mode runs every guest under the same upstream account.
+        """
+        if not feature_flag_manager.is_feature_enabled("CACHE_QUERY_BY_USER"):
+            return None
+        context: SemanticExecutionContext = current_host_execution_context()
+        return None if context.is_guest else ("semantic-user", context.principal_id)
 
     @property
     def catalog_perm(self) -> str | None:
