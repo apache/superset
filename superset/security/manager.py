@@ -79,7 +79,8 @@ from sqlalchemy import (
     Table as SQLATable,
 )
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, object_session
+from sqlalchemy.orm.attributes import set_committed_value
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
@@ -3874,9 +3875,72 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self._update_vm_datasources_access(
             mapper, connection, old_database_name, target
         )
+        self._sync_loaded_dataset_perms(connection, target)
         # Note schema permissions are updated at the API level
         # (database.commands.update). Since we need to fetch all existing schemas from
         # the db
+
+    @staticmethod
+    def _set_committed_perms(instance: Any, values: dict[str, Optional[str]]) -> None:
+        """
+        Record perm strings that a Core UPDATE wrote for an instance loaded in
+        the session.
+
+        The permission event hooks rewrite ``perm``, ``schema_perm`` and
+        ``catalog_perm`` through the connection, so a loaded instance keeps
+        the previous strings until it is expired. ``set_related_perm`` copies
+        a chart's perm from its datasource instance, so a chart flushed later
+        in the same transaction would write the previous strings back.
+
+        An attribute that is not loaded reads the new value from the database
+        anyway, and one with a pending change keeps that change.
+
+        :param instance: The loaded datasource instance
+        :param values: The written value of each perm column
+        """
+        state = inspect(instance)
+        for key, value in values.items():
+            if key in state.unloaded or state.attrs[key].history.has_changes():
+                continue
+            set_committed_value(instance, key, value)
+
+    def _sync_loaded_dataset_perms(
+        self,
+        connection: Connection,
+        target: "Database",
+    ) -> None:
+        """
+        Refresh the ``perm`` of the database's datasets loaded in the session
+        after a database rename rewrote it through the connection.
+
+        :param connection: The SQLA connection
+        :param target: The renamed database
+        """
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+
+        if not (session := object_session(target)):
+            return
+        loaded_ids = [
+            key[1][0]
+            for key in session.identity_map.keys()
+            if issubclass(key[0], SqlaTable)
+        ]
+        if not loaded_ids:
+            return
+        sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
+        rows = connection.execute(
+            select(sqlatable_table.c.id, sqlatable_table.c.perm).where(
+                sqlatable_table.c.database_id == target.id,
+                sqlatable_table.c.id.in_(loaded_ids),
+            )
+        )
+        for row in rows:
+            if dataset := session.identity_map.get(
+                session.identity_key(SqlaTable, row.id)
+            ):
+                self._set_committed_perms(dataset, {"perm": row.perm})
 
     def _delete_vm_database_access(
         self,
@@ -4328,6 +4392,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 schema_perm=schema_permission_name,
             )
         )
+        self._set_committed_perms(
+            target,
+            {
+                "catalog_perm": catalog_permission_name,
+                "schema_perm": schema_permission_name,
+            },
+        )
 
         # Update charts (Slice schema_perm field)
         connection.execute(
@@ -4406,6 +4477,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
             .values(perm=new_permission_name)
         )
+        self._set_committed_perms(target, {"perm": new_permission_name})
         # Update charts (Slice perm field)
         connection.execute(
             chart_table.update()
@@ -4499,6 +4571,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             views = connection.execute(
                 sv_table.select().where(sv_table.c.semantic_layer_uuid == target.uuid)
             ).fetchall()
+            session = object_session(target)
             for view_row in views:
                 new_view_perm = f"[{target.name}].[{view_row.name}](id:{view_row.id})"
                 old_view_perm = view_row.perm
@@ -4515,6 +4588,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         .where(sv_table.c.id == view_row.id)
                         .values(perm=new_view_perm)
                     )
+                    if session and (
+                        view := session.identity_map.get(
+                            session.identity_key(SemanticView, view_row.id)
+                        )
+                    ):
+                        self._set_committed_perms(view, {"perm": new_view_perm})
 
                     # Update dependent charts so their denormalized perm stays
                     # in sync with the view: chart-list access filters match
