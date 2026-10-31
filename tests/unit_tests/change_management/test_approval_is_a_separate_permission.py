@@ -89,14 +89,17 @@ def test_the_reviewer_actions_do_not_share_write_with_the_author_actions() -> No
     # Submitting, withdrawing and discarding are the author's and the
     # editors', and stay where they were.
     assert mapping["submit"] == mapping["withdraw"] == mapping["discard"] == "write"
-    assert "approve" not in {mapping[name] for name in ("submit", "withdraw", "discard")}
+    author_actions = {mapping[name] for name in ("submit", "withdraw", "discard")}
+    assert "approve" not in author_actions
 
 
 def test_the_permission_name_is_the_one_eligibility_reads() -> None:
     """The route mapping and the eligibility check must name the same right."""
     permission, view_menu = eligibility.APPROVAL_PERMISSION
 
-    assert permission == f"can_{ChangeRequestRestApi.method_permission_name['approve']}"
+    mapping = ChangeRequestRestApi.method_permission_name
+
+    assert permission == f"can_{mapping['approve']}"
     assert view_menu == ChangeRequestRestApi.class_permission_name
 
 
@@ -150,7 +153,10 @@ def test_the_author_check_still_wins(mocker: MockerFixture, editor: None) -> Non
     _security(mocker, {1}, user_id=7, user_role_ids={1})
 
     assert eligibility.holds_approval_permission(7) is True
-    assert eligibility.can_approve(_request(author_fk=7), SimpleNamespace(id=42), 7) is False
+    assert (
+        eligibility.can_approve(_request(author_fk=7), SimpleNamespace(id=42), 7)
+        is False
+    )
 
 
 # ------------------------------------------------- who the operator grants it to
@@ -212,7 +218,8 @@ def test_configuring_nothing_leaves_who_may_approve_alone(
 
     entrypoint._align_approval_permission()
 
-    assert granted == [] and revoked == []
+    assert granted == []
+    assert revoked == []
 
 
 def test_a_configured_list_grants_and_revokes_the_builtin_roles(
@@ -251,8 +258,10 @@ def test_a_role_the_operator_built_is_never_revoked_from(
 
     entrypoint._align_approval_permission()
 
+    by_name = {role.name: role.permissions for role in roles}
+
     assert revoked == ["Gamma"]
-    assert pvm in dict((r.name, r.permissions) for r in roles)["Auditors"]
+    assert pvm in by_name["Auditors"]
 
 
 def test_an_instance_missing_the_permission_is_left_untouched(
@@ -263,7 +272,8 @@ def test_an_instance_missing_the_permission_is_left_untouched(
 
     entrypoint._align_approval_permission()
 
-    assert granted == [] and revoked == []
+    assert granted == []
+    assert revoked == []
 
 
 def test_a_failure_here_does_not_stop_the_extension_loading(

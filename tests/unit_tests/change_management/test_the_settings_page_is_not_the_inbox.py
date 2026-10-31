@@ -25,11 +25,12 @@ an administrator's question, and it was reaching everybody because it
 declared the same permission and so rode along on the same widening.
 """
 
-import json
 from pathlib import Path
 from typing import Any
 
 import pytest
+
+from superset.utils import json
 
 MANIFEST = (
     Path(__file__).resolve().parents[3]
