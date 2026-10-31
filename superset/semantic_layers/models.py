@@ -915,8 +915,8 @@ class SemanticView(AuditMixinNullable, Model):
                 )
 
                 exec_context = current_host_execution_context()
-                if not exec_context.is_guest and exec_context.identity_digest:
-                    keys.append(("semantic-user", exec_context.identity_digest))
+                if not exec_context.is_guest and exec_context.principal_id:
+                    keys.append(("semantic-user", exec_context.principal_id))
             except Exception as ex:
                 logger.warning(
                     "Could not resolve semantic execution context for cache: %s",

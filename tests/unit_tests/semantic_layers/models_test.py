@@ -719,8 +719,20 @@ def test_semantic_view_cache_query_by_user(
 
             assert keys_a != keys_b
             assert cache_key_a != cache_key_b
-            assert any(k[0] == "semantic-user" for k in keys_a if isinstance(k, tuple))
-            assert any(k[0] == "semantic-user" for k in keys_b if isinstance(k, tuple))
+            assert ("semantic-user", "1") in keys_a
+            assert ("semantic-user", "2") in keys_b
+
+            # Secret key rotation does not alter cache keys for the same user
+            from flask import current_app
+
+            orig_secret = current_app.config["SECRET_KEY"]
+            try:
+                current_app.config["SECRET_KEY"] = "rotated-test-secret-key-12345"  # noqa: S105
+                g.user = user_a
+                keys_a_rotated = view.get_extra_cache_keys({})
+                assert keys_a == keys_a_rotated
+            finally:
+                current_app.config["SECRET_KEY"] = orig_secret
 
             # Guest users do not partition cache keys, allowing shared guest caching
             g.user = guest_user_1
