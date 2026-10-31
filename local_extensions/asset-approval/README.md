@@ -92,7 +92,22 @@ row-level check, not the route permission: every read is filtered to its
 author or a strict editor of the asset, and every write re-checks eligibility
 (S-08).
 
-The Approvals page permission (`can_review`) is granted to whichever roles
-hold `can_read` on `ChangeRequest`, re-asserted on each boot for the same
-reason as above. To take the page off a role, revoke `can_read` on
-`ChangeRequest` from it.
+## The two pages
+
+| Page | Permission | Who gets it |
+|---|---|---|
+| `/approvals` | `can_review` | whichever roles hold `can_read` on `ChangeRequest`, re-asserted on each boot |
+| `/change-review-settings` | `can_configure_review` | Admin |
+
+The inbox is widened on purpose: authors need it too, so everyone in the
+workflow can open it. To take it off a role, revoke `can_read` on
+`ChangeRequest` from that role.
+
+Whether review is on for the instance is an administrator's question, so the
+settings page declares a permission of its own. Declaring the same one as the
+inbox meant it rode along on the same widening and reached every role in the
+workflow.
+
+Both pages also declare `featureFlag: CHANGE_MANAGEMENT`. With the flag off
+the page does not exist: the host answers 404 and leaves it out of the menu,
+for an administrator as much as anyone else (QA-23).

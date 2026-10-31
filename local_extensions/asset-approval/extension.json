@@ -25,7 +25,7 @@
           "category": "Manage"
         },
         "featureFlag": "CHANGE_MANAGEMENT",
-        "permission": "can_review"
+        "permission": "can_configure_review"
       }
     ]
   },
