@@ -94,6 +94,8 @@ test('removing the mapping does not leave the default datetime column mirroring'
   // mapping back onto `ds`, where the leftover transform switched mirroring
   // straight back on under a different column.
   const props = createProps();
+  // The editor offers partition mapping only on an engine that advertises it.
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
   props.datasource.partition_mapped_column = 'state';
@@ -117,7 +119,10 @@ test('removing the mapping does not leave the default datetime column mirroring'
     'state',
   );
   await userEvent.click((await screen.findAllByLabelText(/expand row/i))[0]);
-  await userEvent.click(await screen.findByText('Remove mapping'));
+  // By its test id, not its label: the mapping here is an explicit override on
+  // a dataset that has a default datetime column, so the action reads "Reset to
+  // default datetime column". Same handler either way.
+  await userEvent.click(await screen.findByTestId('remove-partition-mapping'));
 
   // Nothing mirrors any more, and the panel says so rather than quietly
   // re-pointing at `ds`.
@@ -147,6 +152,8 @@ test('moving the mapping onto a column does not arm a transform parked there', a
   // mapping went live emitting `num = lower(...)` for every filter, with the
   // pruning indicator still green and the row counts quietly short.
   const props = createProps();
+  // The editor offers partition mapping only on an engine that advertises it.
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
   props.datasource.partition_mapped_column = null;
@@ -168,13 +175,13 @@ test('moving the mapping onto a column does not arm a transform parked there', a
   await userEvent.click((await screen.findAllByLabelText(/expand row/i))[0]);
   await userEvent.click(await screen.findByTestId('move-mapping-here'));
 
-  // `state` is a VARCHAR, so it gets the bare `:value` pre-fill rather than an
-  // engine default -- never the `lower(:value)` parked there, which nobody
-  // wrote about this mapping.
+  // `state` is a VARCHAR, so there is no engine default to pre-fill either: the
+  // mapping arrives inert, and the field's own required marker says why rather
+  // than a mirror switching itself on.
   await waitFor(() => {
     expect(columnNamed(lastSavedColumns(props), 'state')).toMatchObject({
-      partition_value_transform: ':value',
-      partition_transform_is_monotonic: true,
+      partition_value_transform: null,
+      partition_transform_is_monotonic: false,
     });
   });
   // And the column it came from does not keep its own either -- one mapping,
@@ -183,6 +190,11 @@ test('moving the mapping onto a column does not arm a transform parked there', a
     partition_value_transform: null,
     partition_transform_is_monotonic: false,
   });
+  expect(lastValidationErrors(props)).toEqual(
+    expect.arrayContaining([
+      expect.stringContaining('A value transform is required on state'),
+    ]),
+  );
 });
 
 test('re-pointing the default datetime column leaves the value transform behind', async () => {
@@ -192,6 +204,8 @@ test('re-pointing the default datetime column leaves the value transform behind'
   // nobody checked there. It must not stay behind on the old column either --
   // invisible but saved, and ready to go live again.
   const props = createProps();
+  // The editor offers partition mapping only on an engine that advertises it.
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
   props.datasource.partition_mapped_column = null;
@@ -243,6 +257,8 @@ test('the mapping will not follow the default datetime column onto a calculated 
   // live mapping with no UI to see or undo it. The mapping goes inert instead,
   // and nothing is left behind on the old column either.
   const props = createProps();
+  // The editor offers partition mapping only on an engine that advertises it.
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
   props.datasource.partition_mapped_column = null;
@@ -286,6 +302,8 @@ test('a mapping onto a bare non-temporal column blocks the save', async () => {
   // the save went through, the PUT filed it as a non-blocking issue, and the
   // mapping sat inactive with nothing saying so at the field.
   const props = createProps();
+  // The editor offers partition mapping only on an engine that advertises it.
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = null;
   props.datasource.partition_mapped_column = 'state';
@@ -309,6 +327,8 @@ test('a mapping onto the default datetime column does not block the save', async
   // "saved but inactive" case the PRD asks for, so picking a partition column
   // must not strand the owner with a disabled Save button.
   const props = createProps();
+  // The editor offers partition mapping only on an engine that advertises it.
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = null;
   props.datasource.partition_mapped_column = null;
@@ -514,9 +534,10 @@ test('"Customize the value transform" opens the mapped column\'s editor', async 
   // but `CollectionTable` no longer consumed it -- so clicking the link left
   // the transform field out of reach behind a manual expand.
   const props = createProps();
+  // The editor offers partition mapping only on an engine that advertises it.
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
-  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.partition_mapped_column = 'state';
   const seeded = props.datasource.columns as EditorColumn[];
   columnNamed(seeded, 'state')!.partition_value_transform = 'lower(:value)';
@@ -545,6 +566,8 @@ test('"Customize the value transform" works from the Calculated columns tab', as
   // another tab left the owner where they were while the hidden Columns table's
   // search and reveal state changed underneath them.
   const props = createProps();
+  // The editor offers partition mapping only on an engine that advertises it.
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
   props.datasource.partition_mapped_column = 'state';
@@ -574,9 +597,10 @@ test("the mapped column's row is muted in the columns table", async () => {
   // editor asks for through `rowClassName`. Without the table applying it the
   // styling was dead and the partition row read as an ordinary column.
   const props = createProps();
+  // The editor offers partition mapping only on an engine that advertises it.
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
-  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.partition_mapped_column = 'state';
 
   const { container } = fastRender(props);
@@ -602,6 +626,8 @@ test('designating a partition column does not arm a stranded transform', async (
   // partition column then makes `ds` the mapped column: one select, no typing,
   // and an expression nobody authored starts mirroring.
   const props = createProps();
+  // The editor offers partition mapping only on an engine that advertises it.
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = null;
   props.datasource.partition_mapped_column = null;
@@ -636,6 +662,8 @@ test('re-pointing the partition column keeps the mapped transform', async () => 
   // not change which column is mirrored, so there is no move for the invariant
   // to act on and nothing to discard.
   const props = createProps();
+  // The editor offers partition mapping only on an engine that advertises it.
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
   props.datasource.partition_mapped_column = 'state';
@@ -670,6 +698,8 @@ test('designating a partition column leaves its filterable and groupby flags alo
   // column these tests usually map, ships with both already false and so could
   // not tell the two behaviours apart.
   const props = createProps();
+  // The editor offers partition mapping only on an engine that advertises it.
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = null;
   props.datasource.partition_mapped_column = null;
