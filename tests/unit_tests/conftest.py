@@ -279,6 +279,24 @@ def sqlite_supports_partition_filter_mapping(
     monkeypatch.setattr(SqliteEngineSpec, "supports_partition_filter_mapping", True)
 
 
+@pytest.fixture
+def every_engine_supports_partition_filter_mapping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Let a test exercise partition filter mapping on any engine spec.
+
+    Tests that check how the mirror reads and writes values on a specific
+    dialect -- Trino, Presto, BigQuery, Oracle and the rest -- are about that
+    dialect's literals, not about which engines the gate admits. They opt into
+    this so the gate does not decline the mapping before the code under test
+    runs. A spec that sets the flag explicitly keeps its own value.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    monkeypatch.setattr(BaseEngineSpec, "supports_partition_filter_mapping", True)
+
+
 def with_feature_flags(**mock_feature_flags):
     """
     Use this decorator to mock feature flags in tests.integration_tests.
