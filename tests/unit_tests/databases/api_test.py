@@ -3044,3 +3044,72 @@ def test_related_objects_limits_dataset_details(
     assert payload["count"] == MAX_RELATED_DATASETS + 2
     assert len(payload["result"]) == MAX_RELATED_DATASETS
     assert can_access.call_count == MAX_RELATED_DATASETS
+
+
+@pytest.mark.parametrize(
+    "endpoint, method",
+    [("schemas", "get_all_schema_names"), ("catalogs", "get_all_catalog_names")],
+)
+def test_schemas_and_catalogs_dbapi_programming_error(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    endpoint: str,
+    method: str,
+) -> None:
+    """
+    A `ProgrammingError` raised while connecting (e.g. dialect initialization
+    against a Postgres-compatible engine) is reported like other connection errors.
+    """
+    from sqlalchemy.exc import ProgrammingError
+
+    from superset.databases.api import DatabaseRestApi
+    from superset.databases.error_provenance import _DATABASE_ENGINE_ERROR_MARKER
+
+    error = ProgrammingError(
+        "show standard_conforming_strings", {}, Exception("unrecognized parameter")
+    )
+    setattr(error, _DATABASE_ENGINE_ERROR_MARKER, True)  # noqa: B010
+    database = mocker.MagicMock()
+    getattr(database, method).side_effect = error
+    DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
+    DatabaseDAO.find_by_id.return_value = database
+    mocker.patch.object(DatabaseRestApi, "datamodel").get.return_value = database
+
+    response = client.get(f"/api/v1/database/1/{endpoint}/")
+
+    assert response.status_code == 422
+    assert response.json == {"message": "There was an error connecting to the database"}
+
+
+@pytest.mark.parametrize(
+    "endpoint, method",
+    [("schemas", "get_all_schema_names"), ("catalogs", "get_all_catalog_names")],
+)
+def test_schemas_and_catalogs_unmarked_dbapi_error_not_masked(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    endpoint: str,
+    method: str,
+) -> None:
+    """
+    A DBAPIError not marked as coming from a Database engine (e.g. a Superset
+    metadata-DB failure) is not reported as a customer connection error.
+    """
+    from sqlalchemy.exc import ProgrammingError
+
+    from superset.databases.api import DatabaseRestApi
+
+    database = mocker.MagicMock()
+    getattr(database, method).side_effect = ProgrammingError(
+        "select 1", {}, Exception("metadata failure")
+    )
+    DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
+    DatabaseDAO.find_by_id.return_value = database
+    mocker.patch.object(DatabaseRestApi, "datamodel").get.return_value = database
+
+    response = client.get(f"/api/v1/database/1/{endpoint}/")
+
+    assert response.status_code == 500
+    assert "error connecting to the database" not in response.get_data(as_text=True)
