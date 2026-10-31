@@ -2430,6 +2430,29 @@ PERMISSION_INSTRUCTIONS_LINK = ""
 # configuration. These blueprints will get integrated in the app
 BLUEPRINTS: list[Blueprint] = []
 
+# Whether Superset keeps the permissions that extension pages declare in step
+# with the metadata database as extensions load.
+#
+# On by default, because an extension is installed long after a deployment is
+# initialised and an administrator cannot grant a permission that does not
+# exist. In the steady state this reads a few rows per worker at start and
+# writes nothing; it writes only the first time a page's permission is seen,
+# or when no role holds one.
+#
+# Turn it off where the metadata database must not be written during start --
+# a read-only replica, or a deployment that provisions roles and permissions
+# out of band. Pages still load and are still enforced, but nothing creates
+# the permissions they declare: `superset init` syncs the permissions of
+# FAB-registered views, and these pages are plain Flask rules, so it does not
+# reach them. A declared permission that does not exist is held by no role,
+# so the page answers 403 to everyone, administrators included.
+#
+# Provisioning them out of band means creating, for each page that declares
+# one, the permission under a view menu named `extension:<publisher>.<name>`
+# -- `can_review` on `extension:preset.asset-approval` -- and granting it to
+# the roles that should open the page.
+EXTENSIONS_SYNC_PAGE_PERMISSIONS = True
+
 # Provide a callable that receives a tracking_url and returns another
 # URL. This is used to translate internal Hadoop job tracker URL
 # into a proxied one

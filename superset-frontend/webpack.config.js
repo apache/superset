@@ -207,6 +207,13 @@ const plugins = [
         singleton: true,
         eager: true,
       },
+      // `@superset-ui/core` is deliberately NOT shared. Sharing it made its
+      // whole surface extension API by accident -- every symbol in a large
+      // internal package, moving between releases with no contract saying
+      // which parts extensions may rely on. What extensions actually needed
+      // from it was `SupersetClient`, and that is now the `http` namespace on
+      // `@apache-superset/core`: a named, documented surface the host can
+      // keep stable while the package behind it changes.
     },
   }),
 ];

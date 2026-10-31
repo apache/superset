@@ -24,6 +24,7 @@ import { getExtensionsRegistry } from '@superset-ui/core';
 import * as CoreTheme from '@apache-superset/core/theme';
 import { Menu } from './Menu';
 import * as getBootstrapData from 'src/utils/getBootstrapData';
+import { registerPageFor } from 'src/core/pages';
 
 // Capture what `<GenericLink to={...}>` receives so the SPA-route regression
 // tests can assert on the value handed to react-router-dom (which applies its
@@ -1243,4 +1244,183 @@ test('navbar renders inline on mobile viewport (md: false)', async () => {
   });
   const navbar = await screen.findByTestId('navbar-top');
   expect(navbar).toHaveClass('ant-menu-inline');
+});
+
+// Scoped so the registrations and the pushed route cannot leak into the rest
+// of the file.
+describe('active tab highlighting for a contributed page', () => {
+  const registered: Array<{ dispose: () => void }> = [];
+
+  /** Register a page the way the loader does, with a navbar entry. */
+  const contribute = (path: string, label: string) => {
+    registered.push(
+      registerPageFor(
+        'acme.tools',
+        [{ path }],
+        { path, name: label, nav: { label } },
+        (() => null) as never,
+      ),
+    );
+  };
+
+  const renderMenu = () => {
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    render(<Menu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+  };
+
+  afterEach(() => {
+    registered.forEach(r => r.dispose());
+    registered.length = 0;
+    window.history.pushState({}, '', '/');
+  });
+
+  test('its own entry is selected while its page is open', async () => {
+    contribute('/approvals', 'Approvals');
+    window.history.pushState({}, '', '/approvals');
+    renderMenu();
+
+    await screen.findByText('Approvals');
+    expect(getMenuItemByText('Approvals')).toHaveClass(
+      'ant-menu-item-selected',
+    );
+  });
+
+  test('a page keeps its entry selected on a path beneath it', async () => {
+    contribute('/approvals', 'Approvals');
+    window.history.pushState({}, '', '/approvals/42/edit');
+    renderMenu();
+
+    await screen.findByText('Approvals');
+    expect(getMenuItemByText('Approvals')).toHaveClass(
+      'ant-menu-item-selected',
+    );
+  });
+
+  test('a path that only shares a prefix selects nothing', async () => {
+    // `/approvals-extra` shares a prefix with `/approvals` without sharing a
+    // segment boundary, so it belongs to neither.
+    contribute('/approvals', 'Approvals');
+    window.history.pushState({}, '', '/approvals-extra');
+    renderMenu();
+
+    await screen.findByText('Approvals');
+    expect(getMenuItemByText('Approvals')).not.toHaveClass(
+      'ant-menu-item-selected',
+    );
+  });
+
+  test('the deeper of two nested pages is the one selected', async () => {
+    contribute('/reports', 'Reports');
+    contribute('/reports/archive', 'Archive');
+    window.history.pushState({}, '', '/reports/archive');
+    renderMenu();
+
+    await screen.findByText('Archive');
+    expect(getMenuItemByText('Archive')).toHaveClass('ant-menu-item-selected');
+    expect(getMenuItemByText('Reports')).not.toHaveClass(
+      'ant-menu-item-selected',
+    );
+  });
+
+  test('a page under a host prefix does not light up the host entry', async () => {
+    // The host cases match by unbounded prefix, so `/dashboard-review` read as
+    // Dashboards before the registry was consulted first.
+    contribute('/dashboard-review', 'Dashboard review');
+    window.history.pushState({}, '', '/dashboard-review');
+    renderMenu();
+
+    await screen.findByText('Dashboard review');
+    expect(getMenuItemByText('Dashboards')).not.toHaveClass(
+      'ant-menu-item-selected',
+    );
+    expect(getMenuItemByText('Dashboard review')).toHaveClass(
+      'ant-menu-item-selected',
+    );
+  });
+
+  test('a page registering after the first render still gets selected', async () => {
+    // A cold load onto a contributed page: the address is in the bar before
+    // the bundle that claims it arrives, and no navigation follows to re-run
+    // the effect.
+    window.history.pushState({}, '', '/approvals');
+    renderMenu();
+    await screen.findByText('Dashboards');
+
+    contribute('/approvals', 'Approvals');
+
+    expect(await screen.findByText('Approvals')).toBeInTheDocument();
+    expect(getMenuItemByText('Approvals')).toHaveClass(
+      'ant-menu-item-selected',
+    );
+  });
+});
+
+describe('the More dropdown for contributed pages', () => {
+  const registered: Array<{ dispose: () => void }> = [];
+
+  const contribute = (path: string, label: string) => {
+    registered.push(
+      registerPageFor(
+        'acme.tools',
+        [{ path }],
+        { path, name: label, nav: { label } },
+        (() => null) as never,
+      ),
+    );
+  };
+
+  const renderMenu = () => {
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    render(<Menu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+  };
+
+  afterEach(() => {
+    registered.forEach(r => r.dispose());
+    registered.length = 0;
+    window.history.pushState({}, '', '/');
+  });
+
+  test('a fourth contributed page puts the tail behind one entry', async () => {
+    ['/alpha', '/beta', '/gamma', '/delta'].forEach(path =>
+      contribute(path, path.slice(1)),
+    );
+    renderMenu();
+
+    // Two stay on the bar; the rest are behind "More", which antd renders as
+    // a submenu because the entry carries children and no url.
+    await screen.findByText('alpha');
+    expect(screen.getByText('beta')).toBeInTheDocument();
+    expect(screen.getByText('More')).toBeInTheDocument();
+    expect(screen.queryByText('gamma')).not.toBeInTheDocument();
+  });
+
+  test('the host entries are untouched by the fold', async () => {
+    ['/alpha', '/beta', '/gamma', '/delta'].forEach(path =>
+      contribute(path, path.slice(1)),
+    );
+    renderMenu();
+
+    await screen.findByText('More');
+    expect(screen.getByText('Dashboards')).toBeInTheDocument();
+  });
+
+  test('three contributed pages need no dropdown', async () => {
+    ['/alpha', '/beta', '/gamma'].forEach(path =>
+      contribute(path, path.slice(1)),
+    );
+    renderMenu();
+
+    await screen.findByText('gamma');
+    expect(screen.queryByText('More')).not.toBeInTheDocument();
+  });
 });

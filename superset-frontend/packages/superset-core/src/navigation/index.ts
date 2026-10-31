@@ -36,8 +36,11 @@ import { Event } from '../common';
  * `'dataset_list'` are the browse/list surfaces, distinct from those because no
  * single entity is active. `'sqllab'` is the SQL editor where
  * `sqlLab.getCurrentTab()` resolves; `'query_history'` and `'saved_queries'`
- * are the related SQL Lab browse pages, which are not the editor. `'home'` is
- * the welcome surface and the fallback for any route not explicitly enumerated.
+ * are the related SQL Lab browse pages, which are not the editor.
+ * `'extension'` is a page contributed by an extension, whichever one -- the
+ * surface is identified, not the page, so it does not distinguish two
+ * contributed pages from one another. `'home'` is the welcome surface and the
+ * fallback for any route not explicitly enumerated.
  */
 export type Page =
   | 'dashboard'
@@ -49,6 +52,7 @@ export type Page =
   | 'saved_queries'
   | 'dataset'
   | 'dataset_list'
+  | 'extension'
   | 'home';
 
 /**

@@ -33,6 +33,10 @@ def _extension_that_fails_to_init() -> MagicMock:
 def test_init_extensions_logs_exception_instead_of_printing() -> None:
     """An extension entrypoint failure is routed through logger.exception."""
     initializer = object.__new__(SupersetAppInitializer)
+    # `init_extensions` registers each manifest's pages on the Flask app
+    # before running the entrypoint. Nothing here exercises that, so the app
+    # is a stand-in and the two registration calls are stubbed below.
+    initializer.superset_app = MagicMock()
     extension = _extension_that_fails_to_init()
 
     with (
@@ -45,6 +49,8 @@ def test_init_extensions_logs_exception_instead_of_printing() -> None:
             "superset.extensions.utils.eager_import",
             side_effect=RuntimeError("boom"),
         ),
+        patch("superset.extensions.view.register_extension_pages"),
+        patch("superset.extensions.view.ensure_page_permissions"),
         patch("superset.initialization.extension_context", return_value=nullcontext()),
         patch("superset.initialization.logger") as mock_logger,
     ):

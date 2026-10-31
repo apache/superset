@@ -34,6 +34,30 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
+msgid "Ask an administrator to grant you the permission this page requires on the extension that provides it."
+msgstr ""
+
+msgid "No extension provides a page at this address."
+msgstr ""
+
+msgid "Not authorized"
+msgstr ""
+
+msgid "Page not found"
+msgstr ""
+
+msgid "Something went wrong on this page"
+msgstr ""
+
+msgid "The extension may not be installed, or may have failed to load. Check the browser console and the Extensions screen."
+msgstr ""
+
+msgid "Try again"
+msgstr ""
+
+msgid "You do not have permission to open this page."
+msgstr ""
+
 #, python-format
 msgid ""
 "\n"
