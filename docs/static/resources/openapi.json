@@ -28008,6 +28008,46 @@
         ]
       }
     },
+    "/api/v1/me/api_key_scopes/": {
+      "get": {
+        "description": "Lists the ``superset:<resource>:<action>`` API-key scopes the current user is allowed to put on a new API key, i.e. the subset of the scope catalog that does not exceed the user's own permissions. Returns a 401 error if the user is unauthenticated.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The allowed scopes"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get the self-issuable API-key scopes",
+        "tags": [
+          "Current User"
+        ]
+      }
+    },
     "/api/v1/me/roles/": {
       "get": {
         "description": "Gets the user roles corresponding to the agent making the request, or returns a 401 error if the user is unauthenticated.",
