@@ -24,7 +24,11 @@ which is where the correctness argument lives.
 
 from __future__ import annotations
 
+import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -33,11 +37,22 @@ import pytest
 import sqlalchemy as sa
 from flask import Flask
 
+from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.connectors.sqla.partition_mapping import RawProbeValue
 from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
+from superset.db_engine_specs.exceptions import (
+    SupersetDBAPIOperationalError,
+    SupersetDBAPIProgrammingError,
+)
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import (
+    QueryObjectValidationError,
+    SupersetSecurityException,
+    SupersetTimeoutException,
+)
 from superset.models.core import Database
 from superset.superset_typing import QueryObjectDict
 from superset.utils import json
@@ -3278,3 +3293,520 @@ def test_an_array_partition_column_gets_no_mirror(app: Flask) -> None:
     # The filter itself is untouched: the query is still correct, it just reads
     # every partition.
     assert "dt_epoch = 5" in sql
+
+
+# ---------------------------------------------------------------------------
+# A partition column the source no longer has
+# ---------------------------------------------------------------------------
+
+
+def _warehouse_table(
+    tmp_path: Path,
+    *,
+    source_partition_column: str | None,
+    partition_expression: str | None = None,
+    partition_column_name: str = "dt_key",
+) -> SqlaTable:
+    """
+    A dataset over a real SQLite table, mapped ``event_time`` -> ``dt_key``.
+
+    The dataset's cached columns always include ``dt_key``; ``source_partition_column``
+    is what the physical table actually has. ``None`` is a column dropped at the
+    source, a different name is one renamed there -- in both cases Superset's
+    metadata is stale until someone runs "Sync columns from source".
+
+    ``partition_expression`` makes ``dt_key`` a calculated column, in which case
+    ``source_partition_column`` is the physical column the expression reads.
+    """
+    path = tmp_path / "warehouse.db"
+    source_columns = [
+        sa.Column("event_time", sa.String),
+        sa.Column("country", sa.String),
+    ]
+    rows: list[dict[str, Any]] = [
+        {"event_time": "2026-01-05 00:00:00", "country": "US"},
+        {"event_time": "2026-03-05 00:00:00", "country": "FR"},
+    ]
+    if source_partition_column:
+        source_columns.append(sa.Column(source_partition_column, sa.Integer))
+        for row in rows:
+            row[source_partition_column] = int(row["event_time"][:10].replace("-", ""))
+    source = sa.Table("web_events", sa.MetaData(), *source_columns)
+    engine = sa.create_engine(f"sqlite:///{path}")
+    with engine.begin() as connection:
+        source.create(connection)
+        connection.execute(sa.insert(source), rows)
+    engine.dispose()
+    database = Database(database_name="warehouse", sqlalchemy_uri=f"sqlite:///{path}")
+    table = SqlaTable(
+        table_name="web_events",
+        database=database,
+        main_dttm_col="event_time",
+        columns=[
+            TableColumn(
+                column_name="event_time",
+                is_dttm=True,
+                type="TIMESTAMP",
+                partition_value_transform="CAST(strftime('%Y%m%d', :value) AS INTEGER)",
+                partition_transform_is_monotonic=True,
+            ),
+            TableColumn(column_name="country", type="TEXT"),
+            TableColumn(
+                column_name=partition_column_name,
+                type="INTEGER",
+                expression=partition_expression,
+            ),
+        ],
+    )
+    table.partition_column = partition_column_name
+    return table
+
+
+def _run_january_chart(table: SqlaTable) -> Any:
+    """A time-ranged chart that never references the partition column."""
+    return table.query(
+        {
+            "columns": ["country"],
+            "metrics": [],
+            "orderby": [],
+            "extras": {},
+            "filter": [],
+            "granularity": "event_time",
+            "is_timeseries": False,
+            "from_dttm": datetime(2026, 1, 1),
+            "to_dttm": datetime(2026, 2, 1),
+        }
+    )
+
+
+def test_a_time_ranged_chart_prunes_when_the_source_has_the_partition_column(
+    app: Flask, tmp_path: Path
+) -> None:
+    """Control for the tests below: the mirror is really in the executed SQL."""
+    table = _warehouse_table(tmp_path, source_partition_column="dt_key")
+
+    with app.app_context():
+        result = _run_january_chart(table)
+
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    assert "dt_key >= 20260101" in result.query
+    assert result.df["country"].tolist() == ["US"]
+
+
+@pytest.mark.parametrize("source_partition_column", [None, "dt_key_renamed"])
+def test_a_partition_column_missing_at_the_source_leaves_charts_unpruned(
+    app: Flask, tmp_path: Path, source_partition_column: str | None
+) -> None:
+    """
+    The mirror is only an optimisation, so a partition column the warehouse no
+    longer has may cost the query its pruning but never the chart.
+
+    ``resolve_partition_mapping`` reads the dataset's cached columns, which
+    still list the column until a sync, so the predicate is emitted into the
+    statement and the warehouse rejects it -- for a chart that does not even
+    select the column.
+    """
+    table = _warehouse_table(tmp_path, source_partition_column=source_partition_column)
+
+    with app.app_context():
+        result = _run_january_chart(table)
+
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    assert "dt_key" not in result.query
+    assert result.df["country"].tolist() == ["US"]
+
+
+def test_a_calculated_partition_column_prunes_while_its_source_column_exists(
+    app: Flask, tmp_path: Path
+) -> None:
+    """Control: a calculated partition key is inlined into the mirror."""
+    table = _warehouse_table(
+        tmp_path,
+        source_partition_column="source_key",
+        partition_expression="source_key + 0",
+    )
+
+    with app.app_context():
+        result = _run_january_chart(table)
+
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    assert "(source_key + 0) >= 20260101" in result.query
+    assert result.df["country"].tolist() == ["US"]
+
+
+def test_a_calculated_partition_column_whose_source_column_is_gone_stays_unpruned(
+    app: Flask, tmp_path: Path
+) -> None:
+    """
+    The mirror inlines a calculated column's expression, so the warehouse's
+    complaint is about a column the expression reads and never names the
+    partition column itself. Recovery therefore cannot hinge on the error
+    mentioning ``dt_key``.
+    """
+    table = _warehouse_table(
+        tmp_path,
+        source_partition_column=None,
+        partition_expression="source_key + 0",
+    )
+
+    with app.app_context():
+        result = _run_january_chart(table)
+
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    assert "source_key" not in result.query
+    assert result.df["country"].tolist() == ["US"]
+
+
+# ---------------------------------------------------------------------------
+# Which warehouse failures are attributed to the mirror
+# ---------------------------------------------------------------------------
+
+
+@contextmanager
+def _rejecting_statements_that_mention(
+    trigger: str, error: BaseException
+) -> Iterator[list[str]]:
+    """
+    Make the warehouse reject any statement whose SQL contains ``trigger``.
+
+    Stands in for an engine whose wording and exception class the test wants to
+    choose; everything else runs against the real table. Yields the SQL of every
+    chart statement that reached the warehouse.
+    """
+    executed: list[str] = []
+    real_get_df = Database.get_df
+
+    def get_df(self: Database, sql: str, *args: Any, **kwargs: Any) -> Any:
+        if "FROM web_events" in sql:
+            executed.append(sql)
+            if trigger in sql:
+                raise error
+        return real_get_df(self, sql, *args, **kwargs)
+
+    with patch.object(Database, "get_df", get_df):
+        yield executed
+
+
+def test_a_mapped_warehouse_error_for_a_missing_partition_column_is_recovered(
+    app: Flask, tmp_path: Path
+) -> None:
+    """
+    Engines convert driver errors into ``SupersetDBAPIError`` subclasses
+    (``get_dbapi_mapped_exception``), which derive from ``SupersetException``.
+    A missing-column rejection arriving that way is still a warehouse
+    rejection of the statement and has to be recovered like a raw driver error.
+    """
+    table = _warehouse_table(tmp_path, source_partition_column=None)
+    mapped: list[Exception] = []
+
+    def map_exception(cls: Any, exception: Exception) -> Exception:
+        mapped.append(exception)
+        return SupersetDBAPIProgrammingError(str(exception))
+
+    with (
+        app.app_context(),
+        patch.object(
+            SqliteEngineSpec,
+            "get_dbapi_mapped_exception",
+            classmethod(map_exception),
+        ),
+    ):
+        result = _run_january_chart(table)
+
+    assert mapped, "the rejection did not go through the engine exception mapping"
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    assert "dt_key" not in result.query
+    assert result.df["country"].tolist() == ["US"]
+
+
+@pytest.mark.parametrize(
+    ("partition_column", "error"),
+    [
+        pytest.param(
+            "dt_key",
+            sqlite3.OperationalError("no such column: dt_key"),
+            id="raw-driver-error",
+        ),
+        pytest.param(
+            "dt_key",
+            SupersetDBAPIProgrammingError(
+                "Invalid table alias or column reference 'dt_key'"
+            ),
+            id="mapped-programming-error",
+        ),
+        pytest.param(
+            "dt_key",
+            SupersetDBAPIOperationalError("Unknown column DT_KEY"),
+            id="mapped-operational-error-any-case",
+        ),
+        pytest.param(
+            "$dt_key",
+            sqlite3.OperationalError("Column '$dt_key' cannot be resolved"),
+            id="name-starting-with-punctuation",
+        ),
+        pytest.param(
+            "dt_key$",
+            sqlite3.OperationalError("column `dt_key$` does not exist"),
+            id="name-ending-with-punctuation",
+        ),
+        pytest.param(
+            "Dt_Key",
+            sqlite3.OperationalError('column "Dt_Key" does not exist'),
+            id="quoted-mixed-case-name",
+        ),
+    ],
+)
+def test_a_rejection_naming_the_partition_column_is_retried_without_the_mirror(
+    app: Flask, tmp_path: Path, partition_column: str, error: Exception
+) -> None:
+    """
+    The rejection is injected rather than produced by SQLite, so the identifier
+    spellings do not depend on how SQLite treats an unknown quoted name.
+    """
+    table = _warehouse_table(
+        tmp_path,
+        source_partition_column=None,
+        partition_column_name=partition_column,
+    )
+
+    with (
+        app.app_context(),
+        _rejecting_statements_that_mention(partition_column, error) as executed,
+    ):
+        result = _run_january_chart(table)
+
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    assert len(executed) == 2
+    assert partition_column in executed[0]
+    assert partition_column not in executed[1]
+    assert result.df["country"].tolist() == ["US"]
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        pytest.param(
+            SupersetDBAPIOperationalError("Query exceeded the maximum time limit"),
+            id="mapped-error-not-naming-the-column",
+        ),
+        pytest.param(
+            sqlite3.OperationalError("no such column: x$dt_key"),
+            id="another-identifier-ending-in-the-name",
+        ),
+        pytest.param(
+            sqlite3.OperationalError("no such column: my_dt_key"),
+            id="another-identifier-containing-the-name",
+        ),
+        pytest.param(
+            QueryObjectValidationError("Db engine did not return dt_key"),
+            id="validation-error",
+        ),
+    ],
+)
+def test_a_failure_that_does_not_implicate_the_mirror_is_not_retried(
+    app: Flask, tmp_path: Path, error: Exception
+) -> None:
+    table = _warehouse_table(tmp_path, source_partition_column=None)
+
+    with (
+        app.app_context(),
+        _rejecting_statements_that_mention("dt_key", error) as executed,
+    ):
+        result = _run_january_chart(table)
+
+    assert result.status == QueryStatus.FAILED
+    assert len(executed) == 1
+    assert str(error) in (result.error_message or "")
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        pytest.param(
+            SupersetTimeoutException(
+                error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+                message="Timed out running a statement over dt_key",
+                level=ErrorLevel.ERROR,
+            ),
+            id="timeout",
+        ),
+        pytest.param(
+            SupersetSecurityException(
+                SupersetError(
+                    message="Access to dt_key is denied",
+                    error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            ),
+            id="security",
+        ),
+    ],
+)
+def test_superset_control_flow_errors_naming_the_column_are_not_retried(
+    app: Flask, tmp_path: Path, error: Exception
+) -> None:
+    table = _warehouse_table(tmp_path, source_partition_column=None)
+
+    with (
+        app.app_context(),
+        _rejecting_statements_that_mention("dt_key", error) as executed,
+    ):
+        with pytest.raises(type(error)):
+            _run_january_chart(table)
+
+    assert len(executed) == 1
+
+
+def test_a_chart_selecting_the_missing_column_surfaces_the_genuine_error(
+    app: Flask, tmp_path: Path
+) -> None:
+    """
+    Dropping the mirror cannot help a statement that projects the column itself.
+    Whatever recovery is attempted, the error the user sees must be the
+    warehouse's rejection of the statement that actually ran, and the reported
+    query is that statement, not the mirrored one that was abandoned.
+    """
+    table = _warehouse_table(tmp_path, source_partition_column=None)
+
+    with app.app_context():
+        result = table.query(
+            {
+                "columns": ["country", "dt_key"],
+                "metrics": [],
+                "orderby": [],
+                "extras": {},
+                "filter": [],
+                "granularity": "event_time",
+                "is_timeseries": False,
+                "from_dttm": datetime(2026, 1, 1),
+                "to_dttm": datetime(2026, 2, 1),
+            }
+        )
+
+    assert result.status == QueryStatus.FAILED
+    assert result.error_message == "no such column: dt_key"
+    assert "dt_key >= " not in result.query
+
+
+def test_a_rejection_naming_a_column_the_expression_reads_is_retried(
+    app: Flask, tmp_path: Path
+) -> None:
+    table = _warehouse_table(
+        tmp_path, source_partition_column=None, partition_expression="source_key + 0"
+    )
+    error = SupersetDBAPIProgrammingError("Column 'SOURCE_KEY' cannot be resolved")
+
+    with (
+        app.app_context(),
+        _rejecting_statements_that_mention("source_key", error) as executed,
+    ):
+        result = _run_january_chart(table)
+
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    assert len(executed) == 2
+    assert "source_key" not in executed[1]
+
+
+def test_a_retry_that_also_fails_surfaces_its_own_error(
+    app: Flask, tmp_path: Path
+) -> None:
+    """
+    The unmirrored statement is the one the user would have run without the
+    feature, so when it fails too, its error is the one that explains why.
+    """
+    table = _warehouse_table(tmp_path, source_partition_column=None)
+    executed: list[str] = []
+
+    real_get_df = Database.get_df
+
+    def get_df(self: Database, sql: str, *args: Any, **kwargs: Any) -> Any:
+        if "FROM web_events" not in sql:
+            return real_get_df(self, sql, *args, **kwargs)
+        executed.append(sql)
+        if "dt_key" in sql:
+            raise sqlite3.OperationalError("no such column: dt_key")
+        raise sqlite3.OperationalError("disk I/O error")
+
+    with app.app_context(), patch.object(Database, "get_df", get_df):
+        result = _run_january_chart(table)
+
+    assert result.status == QueryStatus.FAILED
+    assert len(executed) == 2
+    assert result.error_message == "disk I/O error"
+    assert "dt_key" not in result.query
+
+
+def test_a_chart_selecting_the_missing_column_is_attempted_twice_and_fails_once(
+    app: Flask, tmp_path: Path
+) -> None:
+    table = _warehouse_table(tmp_path, source_partition_column=None)
+
+    with (
+        app.app_context(),
+        _rejecting_statements_that_mention(
+            "dt_key", sqlite3.OperationalError("no such column: dt_key")
+        ) as executed,
+    ):
+        result = table.query(
+            {
+                "columns": ["country", "dt_key"],
+                "metrics": [],
+                "orderby": [],
+                "extras": {},
+                "filter": [],
+                "granularity": "event_time",
+                "is_timeseries": False,
+                "from_dttm": datetime(2026, 1, 1),
+                "to_dttm": datetime(2026, 2, 1),
+            }
+        )
+
+    assert result.status == QueryStatus.FAILED
+    assert result.error_message == "no such column: dt_key"
+    assert len(executed) == 2
+    assert "dt_key >= " in executed[0]
+    assert "dt_key >= " not in executed[1]
+
+
+def test_a_series_limited_chart_recovers_with_one_retry(
+    app: Flask, tmp_path: Path
+) -> None:
+    """
+    The ranking subquery carries its own copy of the mirror, and both go with
+    the single retry.
+    """
+    table = _warehouse_table(tmp_path, source_partition_column=None)
+    error = sqlite3.OperationalError("no such column: dt_key")
+
+    with (
+        app.app_context(),
+        _rejecting_statements_that_mention("dt_key", error) as executed,
+    ):
+        result = table.query(
+            {
+                "columns": ["country"],
+                "metrics": [
+                    {
+                        "expressionType": "SQL",
+                        "sqlExpression": "COUNT(*)",
+                        "label": "hits",
+                    }
+                ],
+                "orderby": [],
+                "extras": {},
+                "filter": [],
+                "granularity": "event_time",
+                "is_timeseries": True,
+                "series_columns": ["country"],
+                "series_limit": 1,
+                "from_dttm": datetime(2026, 1, 1),
+                "to_dttm": datetime(2026, 2, 1),
+            }
+        )
+
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    assert len(executed) == 2
+    assert "dt_key" in executed[0]
+    assert "dt_key" not in executed[1]
+    assert result.df["country"].tolist() == ["US"]
+    assert list(result.df.columns) == ["__timestamp", "country", "hits"]
