@@ -665,6 +665,113 @@ def test_semantic_view_get_extra_cache_keys(
     provider.assert_not_called()
 
 
+def test_semantic_view_cache_query_by_user(
+    app_context: None, explicit_model_namespace: None
+) -> None:
+    """When CACHE_QUERY_BY_USER is enabled, different users get different cache keys (#45877)."""  # noqa: E501
+    from flask import g
+
+    from superset.common.query_object import QueryObject
+
+    provider = MagicMock()
+    provider.result_cache_version = None
+    view = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
+    query = QueryObject(columns=["category"])
+
+    user_a = MagicMock()
+    user_a.id = 1
+    user_a.username = "alice"
+    user_a.roles = []
+    user_a.is_anonymous = False
+    user_a.is_guest_user = False
+
+    user_b = MagicMock()
+    user_b.id = 2
+    user_b.username = "bob"
+    user_b.roles = []
+    user_b.is_anonymous = False
+    user_b.is_guest_user = False
+
+    guest_user_1 = MagicMock()
+    guest_user_1.id = 99
+    guest_user_1.username = "guest1"
+    guest_user_1.roles = []
+    guest_user_1.is_anonymous = False
+    guest_user_1.is_guest_user = True
+
+    guest_user_2 = MagicMock()
+    guest_user_2.id = 100
+    guest_user_2.username = "guest2"
+    guest_user_2.roles = []
+    guest_user_2.is_anonymous = False
+    guest_user_2.is_guest_user = True
+
+    with patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}):
+        # 1. With CACHE_QUERY_BY_USER enabled, users receive isolated cache keys
+        with patch("superset.is_feature_enabled", return_value=True):
+            g.user = user_a
+            keys_a = view.get_extra_cache_keys({})
+            cache_key_a = query.cache_key(extra_cache_keys=keys_a)
+
+            g.user = user_b
+            keys_b = view.get_extra_cache_keys({})
+            cache_key_b = query.cache_key(extra_cache_keys=keys_b)
+
+            assert keys_a != keys_b
+            assert cache_key_a != cache_key_b
+            assert any(k[0] == "semantic-user" for k in keys_a if isinstance(k, tuple))
+            assert any(k[0] == "semantic-user" for k in keys_b if isinstance(k, tuple))
+
+            # Guest users do not partition cache keys, allowing shared guest caching
+            g.user = guest_user_1
+            keys_g1 = view.get_extra_cache_keys({})
+            g.user = guest_user_2
+            keys_g2 = view.get_extra_cache_keys({})
+            assert keys_g1 == keys_g2
+            assert not any(
+                k[0] == "semantic-user" for k in keys_g1 if isinstance(k, tuple)
+            )
+
+        # 2. When flag is disabled, cache keys remain unpartitioned and identical
+        with patch("superset.is_feature_enabled", return_value=False):
+            g.user = user_a
+            keys_off_a = view.get_extra_cache_keys({})
+            g.user = user_b
+            keys_off_b = view.get_extra_cache_keys({})
+            assert keys_off_a == keys_off_b
+            assert not any(
+                k[0] == "semantic-user" for k in keys_off_a if isinstance(k, tuple)
+            )
+
+        # 3. Fail-safe isolation when execution context resolution fails
+        with (
+            patch("superset.is_feature_enabled", return_value=True),
+            patch(
+                "superset.semantic_layers.execution.current_host_execution_context",
+                side_effect=RuntimeError("Simulated context failure"),
+            ),
+            patch("superset.semantic_layers.models.logger.warning") as mock_warn,
+        ):
+            keys_err1 = view.get_extra_cache_keys({})
+            keys_err2 = view.get_extra_cache_keys({})
+
+            assert mock_warn.call_count == 2
+            assert keys_err1 != keys_err2
+            assert any(
+                k[0] == "semantic-user-unresolved"
+                for k in keys_err1
+                if isinstance(k, tuple)
+            )
+            assert any(
+                k[0] == "semantic-user-unresolved"
+                for k in keys_err2
+                if isinstance(k, tuple)
+            )
+            assert query.cache_key(extra_cache_keys=keys_err1) != query.cache_key(
+                extra_cache_keys=keys_err2
+            )
+
+
 def test_semantic_view_perm() -> None:
     """Test SemanticView perm stores the view-level permission string."""
     view = SemanticView()
