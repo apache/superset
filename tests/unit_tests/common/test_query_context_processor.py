@@ -1606,6 +1606,84 @@ def test_ensure_totals_available_updates_cache_values():
     )
 
 
+def test_ensure_totals_available_contribution_without_options():
+    """
+    A contribution entry with no ``options`` key is valid input, since
+    ``options`` is optional in the post-processing schema.
+    ensure_totals_available must create ``options`` rather than raising
+    ``KeyError``, which previously escaped as a 500.
+    """
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    mock_datasource.uid = "test_datasource"
+    mock_datasource.database.db_engine_spec.engine = "postgresql"
+    mock_datasource.cache_timeout = None
+    mock_datasource.changed_on = None
+
+    # Main query carries a contribution operation with no options dict.
+    main_query = QueryObject(
+        datasource=mock_datasource,
+        columns=["brokerage"],
+        metrics=["Amount In"],
+        row_limit=50000,
+        post_processing=[{"operation": "contribution"}],
+    )
+    # Totals query: no columns, has metrics, no post-processing.
+    totals_query = QueryObject(
+        datasource=mock_datasource,
+        columns=[],
+        metrics=["Amount In"],
+        row_limit=50000,
+        post_processing=[],
+    )
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_query_context.datasource = mock_datasource
+    mock_query_context.queries = [main_query, totals_query]
+    mock_query_context.result_type = "full"
+    mock_query_context.cache_values = {
+        "datasource": {"type": "table", "id": 1},
+        "queries": [
+            {
+                "columns": ["brokerage"],
+                "metrics": ["Amount In"],
+                "row_limit": 50000,
+                "post_processing": [{"operation": "contribution"}],
+            },
+            {
+                "columns": [],
+                "metrics": ["Amount In"],
+                "row_limit": 50000,
+                "post_processing": [],
+            },
+        ],
+        "result_type": "full",
+        "result_format": "json",
+    }
+    mock_query_context.is_async_execution = False
+    _wire_contribution_totals(mock_query_context)
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+
+    mock_query_result = MagicMock()
+    mock_query_result.df = pd.DataFrame({"Amount In": [40771550101.81883]})
+
+    with patch.object(
+        mock_query_context, "get_query_result", return_value=mock_query_result
+    ):
+        # Must not raise KeyError: 'options'.
+        processor.ensure_totals_available()
+
+    assert main_query.post_processing[0]["options"]["contribution_totals"] == {
+        "Amount In": 40771550101.81883
+    }
+
+
 def test_get_df_payload_validates_before_cache_key_generation():
     """
     Test that get_df_payload calls validate() before generating cache key.
