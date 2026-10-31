@@ -569,7 +569,7 @@ test.each([0, 2])(
       const modal = await screen.findByRole('dialog');
       expect(modal).not.toHaveTextContent('Deleting');
       if (count) {
-        expect(modal).toHaveTextContent('2 charts on 1 dashboard');
+        expect(modal).toHaveTextContent('2 charts and 1 dashboard');
         expect(modal).toHaveTextContent(
           'Archiving it will make dependent charts unavailable until it is recovered.',
         );

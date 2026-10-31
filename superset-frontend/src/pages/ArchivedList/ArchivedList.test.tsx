@@ -30,7 +30,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { rememberArchivedType } from 'src/utils/softDeleteCopy';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { MemoryRouter, useLocation, useHistory } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import ArchivedList from 'src/pages/ArchivedList';
@@ -196,12 +196,27 @@ const LocationProbe = () => (
   <output data-test="archive-location">{useLocation().search}</output>
 );
 
+function HistoryButtons() {
+  const history = useHistory();
+  return (
+    <>
+      <button type="button" onClick={() => history.goBack()}>
+        History Back
+      </button>
+      <button type="button" onClick={() => history.goForward()}>
+        History Forward
+      </button>
+    </>
+  );
+}
+
 const renderArchivedList = (withStore = store, entry = '/archived/') =>
   render(
     <MemoryRouter initialEntries={[entry]}>
       <QueryParamProvider adapter={ReactRouter5Adapter}>
         <ArchivedList />
         <LocationProbe />
+        <HistoryButtons />
       </QueryParamProvider>
     </MemoryRouter>,
     { useRedux: true, store: withStore },
@@ -1060,4 +1075,22 @@ test('explicit archive links override the remembered collection', async () => {
   rememberArchivedType('dataset');
   renderArchivedList(store, '/archived/?type=dashboard');
   expect(await screen.findByText('Deleted Dashboard One')).toBeInTheDocument();
+});
+
+test('Back and Forward restore the selected archived type', async () => {
+  mockRoutes();
+  renderArchivedList(store, '/archived/?type=chart');
+  await screen.findByTestId('archived-list-view');
+  await selectOption('Dashboard', 'Type');
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(/dashboard\/\?q/).length,
+    ).toBeGreaterThan(0),
+  );
+  fireEvent.click(screen.getByText('History Back'));
+  await screen.findByText('Deleted Chart One');
+  fireEvent.click(screen.getByText('History Forward'));
+  await waitFor(() =>
+    expect(screen.queryByText('Deleted Chart One')).not.toBeInTheDocument(),
+  );
 });

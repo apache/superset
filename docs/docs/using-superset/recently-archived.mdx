@@ -44,7 +44,9 @@ govern the normal lists apply here.
 
 Archive confirmations say the item will move to Recently Archived. Successful
 single-item and bulk archive messages include a direct link to the relevant
-object type. Without an
+object type. Link-bearing notifications stay open until dismissed, including while
+hovered or reached by keyboard. Recovery links respect the deployment URL prefix.
+Without an
 explicit type in the URL, the page opens the last type archived successfully in
 this browser, when you have permission to read that type. Otherwise it opens the
 first type you can read. Bookmarks can select a type with `/archived/?type=chart`,
@@ -53,7 +55,12 @@ available to you, the page selects the first type you can read.
 
 Archiving an unused dataset does not show a dependency warning. When a dataset
 has dependent charts, the confirmation lists the affected objects and explains
-that those charts become unavailable until the dataset is recovered.
+that those charts become unavailable until the dataset is recovered. Chart and
+dashboard totals are separate: some affected charts may not belong to a dashboard.
+
+Back and Forward restore the selected type and its page, sort, and search from
+the URL. In chart and dashboard card menus, Tab can focus an unavailable Archive
+or Edit action's explanation; the action itself remains disabled.
 
 Each row shows:
 

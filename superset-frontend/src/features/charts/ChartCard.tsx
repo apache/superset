@@ -118,6 +118,7 @@ export default function ChartCard({
       label: (
         <Tooltip
           placement="right"
+          trigger={['hover', 'focus']}
           title={
             allowEdit
               ? null
@@ -126,21 +127,23 @@ export default function ChartCard({
                 )
           }
         >
-          <MenuItemButton
-            type="button"
-            data-test="chart-list-edit-option"
-            disabled={!allowEdit}
-            aria-disabled={!allowEdit}
-            onClick={allowEdit ? () => openChartEditModal(chart) : undefined}
-          >
-            <Icons.EditOutlined
-              iconSize="l"
-              css={css`
-                vertical-align: text-top;
-              `}
-            />{' '}
-            {t('Edit')}
-          </MenuItemButton>
+          <span tabIndex={allowEdit ? undefined : 0}>
+            <MenuItemButton
+              type="button"
+              data-test="chart-list-edit-option"
+              disabled={!allowEdit}
+              aria-disabled={!allowEdit}
+              onClick={allowEdit ? () => openChartEditModal(chart) : undefined}
+            >
+              <Icons.EditOutlined
+                iconSize="l"
+                css={css`
+                  vertical-align: text-top;
+                `}
+              />{' '}
+              {t('Edit')}
+            </MenuItemButton>
+          </span>
         </Tooltip>
       ),
       disabled: !allowEdit,
@@ -206,6 +209,7 @@ export default function ChartCard({
           {confirmDelete => (
             <Tooltip
               placement="right"
+              trigger={['hover', 'focus']}
               title={
                 allowEdit
                   ? null
@@ -218,7 +222,7 @@ export default function ChartCard({
                       )
               }
             >
-              <span>
+              <span tabIndex={allowEdit ? undefined : 0}>
                 <MenuItemButton
                   type="button"
                   disabled={!allowEdit}

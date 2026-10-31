@@ -127,6 +127,33 @@ test.each([
     expect(archiveButton).toBeDisabled();
     const editButton = screen.getByTestId('chart-list-edit-option');
     expect(editButton).toBeDisabled();
+    const editHint = editButton.parentElement!;
+    const archiveHint = archiveButton.parentElement!;
+    expect(editHint).toHaveAttribute('tabindex', '0');
+    expect(archiveHint).toHaveAttribute('tabindex', '0');
+    await userEvent.unhover(archiveButton);
+    for (
+      let index = 0;
+      index < 20 && document.activeElement !== editHint;
+      index += 1
+    ) {
+      await userEvent.tab();
+    }
+    expect(editHint).toHaveFocus();
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'in order to edit.',
+    );
+    await userEvent.tab();
+    // Export may be between the two unavailable actions.
+    for (
+      let index = 0;
+      index < 20 && document.activeElement !== archiveHint;
+      index += 1
+    ) {
+      await userEvent.tab();
+    }
+    expect(archiveHint).toHaveFocus();
+
     expect(editButton).toHaveStyleRule('cursor', 'not-allowed', {
       target: ':disabled',
     });

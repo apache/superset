@@ -159,3 +159,19 @@ test('an actionable toast remains until it is explicitly dismissed', () => {
   expect(onCloseToast).not.toHaveBeenCalled();
   jest.useRealTimers();
 });
+
+test('an HTML link toast remains available until dismissed', () => {
+  jest.useFakeTimers();
+  const onCloseToast = jest.fn();
+  setup({
+    toast: {
+      ...htmlToast('<a href="/archived/">View archived</a>'),
+      duration: 100,
+    },
+    onCloseToast,
+  });
+  act(() => jest.advanceTimersByTime(1000));
+  act(() => jest.advanceTimersByTime(200));
+  expect(onCloseToast).not.toHaveBeenCalled();
+  jest.useRealTimers();
+});
