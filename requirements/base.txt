@@ -447,7 +447,7 @@ werkzeug==3.1.9
     #   flask-login
 wrapt==1.17.2
     # via deprecated
-wtforms==3.2.2
+wtforms==3.3.1
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
