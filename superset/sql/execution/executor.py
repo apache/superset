@@ -235,6 +235,7 @@ class _LimitedCursor:
 
         The rows within the budget are already materialized, so a failed probe
         reports the result as possibly partial instead of discarding them.
+        Time limits must propagate instead of becoming a partial result.
         """
         if self._remaining != 0:
             return False

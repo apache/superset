@@ -25,6 +25,7 @@ client's buffers.
 
 from __future__ import annotations
 
+import signal
 import socket
 import struct
 import threading
@@ -325,6 +326,17 @@ TIMEOUTS = [
 ]
 
 
+@pytest.fixture(autouse=True)
+def reset_timeout_tracebacks(request: pytest.FixtureRequest) -> None:
+    """Keep parametrized exception instances from retaining previous cases."""
+    if (callspec := getattr(request.node, "callspec", None)) is not None:
+        for value in callspec.params.values():
+            if isinstance(value, BaseException):
+                value.__traceback__ = None
+                value.__cause__ = None
+                value.__context__ = None
+
+
 def _assert_abandoned(
     handler: FakeHiveServer2,
     interrupted: str,
@@ -534,10 +546,10 @@ def test_time_limit_prevents_cleanup_rpcs_and_second_reply_timeout(
     app_context: None,
 ) -> None:
     """
-    A second limit inside a cleanup reply leaves that reply unread too.
+    A first limit prevents entering cleanup, including an armed second limit.
 
-    Nothing may be sent after it: not by the cancellation helper, the
-    caller's ``closing()``, nor the cursor's finalizer.
+    Nothing may be sent after the first interrupted reply: not by cancellation,
+    the caller's ``closing()``, nor the cursor's finalizer.
     """
     _, handler, conn = hs2_connection
     if entry == "fetch_data":
@@ -750,12 +762,11 @@ def test_connection_factory_guards_open_session_and_raw_cursor_calls(
     assert handler.requests[-1] == "OpenSession", handler.requests
 
 
+@pytest.mark.skipif(not hasattr(signal, "SIGALRM"), reason="SIGALRM is unavailable")
 def test_sigalrm_timeout_is_preserved_during_execute(
     hs2_connection: tuple[str, FakeHiveServer2, Any], app_context: None
 ) -> None:
     """Exercise utils.timeout's actual signal handler while a reply is unread."""
-    import signal
-
     from superset.utils import core as utils
 
     _, handler, conn = hs2_connection
@@ -810,4 +821,33 @@ def test_timer_timeout_abandons_before_keyboard_interrupt_conversion(
         run()
     conn.close()
     cursor.__del__()
+    assert handler.requests[-1] == "ExecuteStatement", handler.requests
+
+
+@pytest.mark.parametrize("timeout", TIMEOUTS)
+def test_sqlalchemy_ping_abandons_before_dialect_cursor_cleanup(
+    timeout: Exception,
+    hs2_connection: tuple[str, FakeHiveServer2, Any],
+    app_context: None,
+) -> None:
+    """Direct engine users get the guard before the dialect creates a cursor."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.pool import NullPool
+
+    _, handler, conn = hs2_connection
+    engine = create_engine("impala://", creator=lambda: conn, poolclass=NullPool)
+    spec.register_engine_events(engine)
+    _interrupt_replies(conn.service.client._iprot, [("ExecuteStatement", timeout)])
+
+    def run() -> None:
+        """Exercise the same raw-connection ping used by connection validation."""
+        with closing(engine.raw_connection()) as raw:
+            engine.dialect.do_ping(raw)
+
+    try:
+        with pytest.raises(type(timeout)) as raised:
+            run()
+    finally:
+        engine.dispose()
+    assert raised.value is timeout
     assert handler.requests[-1] == "ExecuteStatement", handler.requests

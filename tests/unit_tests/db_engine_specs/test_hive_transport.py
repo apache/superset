@@ -45,9 +45,10 @@ transport_tests = pytest.importorskip(
     "tests.unit_tests.db_engine_specs.test_impala_transport"
 )
 TTransportModule = pytest.importorskip("thrift.transport.TTransport")
+reset_timeout_tracebacks = transport_tests.reset_timeout_tracebacks
 
 
-@pytest.fixture(params=["NOSASL", "NONE"], ids=["binary", "sasl"])
+@pytest.fixture(params=["NOSASL", "NONE", "HTTP"], ids=["binary", "sasl", "http"])
 def hive_connection(
     request: pytest.FixtureRequest,
 ) -> Iterator[tuple[Any, Any]]:
@@ -55,6 +56,31 @@ def hive_connection(
     from pyhive import hive
 
     handler = transport_tests.FakeHiveServer2()
+    if request.param == "HTTP":
+        from thrift.transport.THttpClient import THttpClient
+
+        server = transport_tests.THttpServer.THttpServer(
+            transport_tests.TCLIService.Processor(handler),
+            ("127.0.0.1", 0),
+            transport_tests._RecordingProtocolFactory(handler),
+        )
+        thread = threading.Thread(target=server.serve, daemon=True)
+        thread.start()
+        transport = THttpClient(
+            f"http://127.0.0.1:{server.httpd.server_address[1]}/cliservice"
+        )
+        transport.setTimeout(2000)
+        conn = hive.connect(thrift_transport=transport, username="user")
+        try:
+            yield handler, conn
+        finally:
+            if transport.isOpen():
+                transport.close()
+            server.httpd.shutdown()
+            server.httpd.server_close()
+            thread.join(timeout=2)
+        return
+
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     listener.bind(("127.0.0.1", 0))
     listener.listen()
@@ -156,17 +182,29 @@ def test_failed_transport_drop_preserves_timeout_and_disables_session_close(
     handler, conn = hive_connection
     cursor = conn.cursor()
     cursor.execute("SELECT 1", async_=True)
-    transport_tests._interrupt_replies(
-        conn._client._iprot, [("GetOperationStatus", timeout)]
-    )
+    protocol = conn._client._iprot
+    read = protocol.readMessageBegin
+    reply_interrupted = False
+
+    def interrupted_read() -> Any:
+        """Arm the local-drop failure only after the reply has been interrupted."""
+        nonlocal reply_interrupted
+        header = read()
+        if header[0] == "GetOperationStatus":
+            reply_interrupted = True
+            raise timeout
+        return header
+
+    protocol.readMessageBegin = interrupted_read
     close = conn._transport.close
     attempts = 0
 
     def interrupted_close() -> None:
         nonlocal attempts
-        attempts += 1
-        if attempts == 1:
-            raise drop_failure
+        if reply_interrupted:
+            attempts += 1
+            if attempts == 1:
+                raise drop_failure
         close()
 
     with patch.object(conn._transport, "close", side_effect=interrupted_close):
@@ -204,19 +242,60 @@ def test_connection_close_sends_no_rpc_after_an_interrupted_reply(
 
 
 @pytest.mark.parametrize("timeout", TIMEOUTS)
-def test_execute_abandons_before_cursor_and_connection_cleanup(
+@pytest.mark.parametrize("interrupted", ["ExecuteStatement", "GetResultSetMetadata"])
+def test_execute_and_metadata_abandon_before_cursor_and_connection_cleanup(
+    interrupted: str,
     timeout: Exception,
     hive_connection: tuple[Any, Any],
     app_context: None,
 ) -> None:
-    """An interrupted ExecuteStatement must not be followed by CloseSession."""
+    """Execution and lazy metadata must be abandoned before any cleanup RPC."""
     handler, conn = hive_connection
     cursor = conn.cursor()
+    if interrupted != "ExecuteStatement":
+        HiveEngineSpec.execute(cursor, "SELECT 1", None, async_=True)  # type: ignore[arg-type]
+    transport_tests._interrupt_replies(conn._client._iprot, [(interrupted, timeout)])
+
+    def run() -> None:
+        """Read a reply, leaving its body unread when the limit fires."""
+        if interrupted == "ExecuteStatement":
+            HiveEngineSpec.execute(cursor, "SELECT 1", None, async_=True)  # type: ignore[arg-type]
+        else:
+            assert cursor.description
+
+    with pytest.raises(type(timeout)) as raised, closing(cursor):
+        run()
+    conn.close()
+    assert raised.value is timeout
+    assert handler.requests[-1] == interrupted, handler.requests
+
+
+@pytest.mark.parametrize("timeout", TIMEOUTS)
+def test_sqlalchemy_ping_abandons_before_dialect_cursor_cleanup(
+    timeout: Exception,
+    hive_connection: tuple[Any, Any],
+    app_context: None,
+) -> None:
+    """Connection validation must not reuse an interrupted transport either."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.pool import NullPool
+
+    handler, conn = hive_connection
+    engine = create_engine("hive://", creator=lambda: conn, poolclass=NullPool)
+    HiveEngineSpec.register_engine_events(engine)
     transport_tests._interrupt_replies(
         conn._client._iprot, [("ExecuteStatement", timeout)]
     )
-    with pytest.raises(type(timeout)) as raised, closing(cursor):
-        HiveEngineSpec.execute(cursor, "SELECT 1", None, async_=True)  # type: ignore[arg-type]
-    conn.close()
+
+    def run() -> None:
+        """Exercise the raw-connection ping, without calling spec.execute()."""
+        with closing(engine.raw_connection()) as raw:
+            engine.dialect.do_ping(raw)
+
+    try:
+        with pytest.raises(type(timeout)) as raised:
+            run()
+    finally:
+        engine.dispose()
     assert raised.value is timeout
     assert handler.requests[-1] == "ExecuteStatement", handler.requests

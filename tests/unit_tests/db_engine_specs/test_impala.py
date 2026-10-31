@@ -411,7 +411,7 @@ def test_fetch_data_abandons_the_operation_on_time_limit(
     "cancel_timeout_type", [SoftTimeLimitExceeded, SupersetTimeoutException]
 )
 @patch("superset.db_engine_specs.impala.time.sleep")
-def test_fetch_data_propagates_time_limit_during_cancel(
+def test_fetch_data_never_enters_cancellation_after_time_limit(
     sleep_mock: Mock,
     cancel_timeout_type: type[Exception],
     app_context: None,
@@ -663,7 +663,7 @@ def test_time_limit_during_transport_reset_propagates(
     ],
     ids=["async", "sync"],
 )
-def test_time_limit_during_cleanup_abandons_the_cursor(
+def test_fetch_time_limit_never_enters_rpc_cleanup(
     cleanup_rpc: str,
     second_timeout: Exception,
     clean_transport: Mock,

@@ -26,6 +26,7 @@ from typing import Any, Optional, TYPE_CHECKING
 
 from flask import current_app as app
 from sqlalchemy import text, types
+from sqlalchemy.engine import Engine
 from sqlalchemy.engine.reflection import Inspector
 
 from superset import db
@@ -40,6 +41,7 @@ from superset.utils.core import QueryStatus
 from superset.utils.hive import (
     guard_cursor,
     guard_cursor_factory,
+    guard_engine_connections,
     real_cursor,
     ThriftClientGuard,
 )
@@ -167,6 +169,12 @@ class ImpalaEngineSpec(BaseEngineSpec):
             except Error as ex:
                 raise cls.get_dbapi_mapped_exception(ex) from ex
         return super().fetch_data(cursor, limit)
+
+    @classmethod
+    def register_engine_events(cls, engine: Engine) -> None:
+        """Guard raw connections used outside SQL Lab, including dialect pings."""
+        super().register_engine_events(engine)
+        guard_engine_connections(engine, cls.prepare_connection)
 
     @classmethod
     def prepare_connection(cls, connection: Any) -> None:

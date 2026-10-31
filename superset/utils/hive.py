@@ -25,6 +25,9 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any, cast, TypeVar
 
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+
 from superset.db_engine_specs.base import TIME_LIMIT_EXCEPTIONS
 
 logger = logging.getLogger(__name__)
@@ -63,7 +66,7 @@ class ThriftClientGuard:
     def __getattr__(self, name: str) -> Any:
         """Forward attributes and wrap all callable driver-client entry points."""
         value = getattr(self._client, name)
-        if not callable(value):
+        if name.startswith("_") or not callable(value):
             return value
 
         @wraps(value)
@@ -123,3 +126,13 @@ def guard_cursor_factory(connection: Any, prepare: Callable[[Any], object]) -> N
 
     connection.cursor = cursor
     connection._superset_cursor_guard = True  # pylint: disable=protected-access
+
+
+def guard_engine_connections(engine: Engine, prepare: Callable[[Any], None]) -> None:
+    """Guard DB-API connections before dialect initialization and direct SQL use."""
+
+    def on_connect(connection: Any, _record: Any) -> None:
+        """Prepare a new connection before other SQLAlchemy connect listeners."""
+        prepare(connection)
+
+    event.listen(engine, "connect", on_connect, insert=True)
