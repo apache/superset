@@ -24,7 +24,11 @@ from contextvars import ContextVar
 from typing import Any, Awaitable, Callable, Sequence
 
 import mcp.types as mt
-from fastmcp.exceptions import ToolError, ValidationError as FastMCPValidationError
+from fastmcp.exceptions import (
+    NotFoundError,
+    ToolError,
+    ValidationError as FastMCPValidationError,
+)
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.middleware.middleware import CallNext
 from fastmcp.tools import Tool, ToolResult
@@ -450,6 +454,7 @@ _USER_ERROR_TYPES = (
     MCPPermissionDeniedError,
     ValueError,
     FileNotFoundError,
+    NotFoundError,
     CommandInvalidError,
     ObjectNotFoundError,
     ForbiddenError,
@@ -1432,6 +1437,17 @@ class GlobalErrorHandlerMiddleware(Middleware):
             # raised deliberately by tool code (it carries no cause, or no
             # FastMCP wrapper prefix) and is already formatted for MCP.
             raise error
+        elif isinstance(error, NotFoundError):
+            # FastMCP's own lookup miss for an unknown resource, prompt or
+            # tool (e.g. "Unknown resource: 'foo://bar'"). FastMCP turns it
+            # into the matching protocol error, which names what was missing;
+            # the generic branch below would report an "Internal error". When
+            # it arrives wrapped (a tool such as the ``call_tool`` proxy
+            # looked up another tool), re-raising it bare would make FastMCP
+            # report the outer tool as the unknown one, so keep the message.
+            if error is wrapped_error:
+                raise error
+            raise ToolError(str(error)) from error
         elif isinstance(error, (ValidationError, FastMCPValidationError)):
             raise ToolError(await validation_message(error, context)) from error
         elif isinstance(error, (OperationalError, TimeoutError)):
