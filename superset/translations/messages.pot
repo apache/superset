@@ -18559,6 +18559,10 @@ msgstr ""
 msgid "query"
 msgstr ""
 
+#, python-format
+msgid "query_context is invalid: %(details)s"
+msgstr ""
+
 msgid "query_context must be a JSON object"
 msgstr ""
 

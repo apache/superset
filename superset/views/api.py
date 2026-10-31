@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import inspect
 from typing import Any, TYPE_CHECKING
 
 from flask import request
@@ -35,6 +36,7 @@ from superset.exceptions import QueryObjectValidationError
 from superset.legacy import update_time_range
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
+from superset.utils.core import DatasourceType
 from superset.utils.date_parser import get_since_until
 from superset.utils.error_sanitization import redact_sensitive_query_fields
 from superset.views.base import api, BaseSupersetView
@@ -78,7 +80,9 @@ class Api(BaseSupersetView):
             ) from ex
         if not isinstance(query_context_params, dict):
             raise QueryObjectValidationError(_("query_context must be a JSON object"))
-        query_context = self.get_query_context_factory().create(**query_context_params)
+        factory = self.get_query_context_factory()
+        self._validate_query_context_shape(factory, query_context_params)
+        query_context = factory.create(**query_context_params)
         query_context.raise_for_access()
         result = query_context.get_payload()
         payload_json = result["queries"]
@@ -144,6 +148,60 @@ class Api(BaseSupersetView):
         except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
             error_msg = {"message": _("Unexpected time range: %(error)s", error=error)}
             return self.json_response(error_msg, 400)
+
+    @staticmethod
+    def _validate_query_context_shape(
+        factory: QueryContextFactory, params: dict[str, Any]
+    ) -> None:
+        """
+        Reject a ``query_context`` that cannot be passed to ``factory.create``.
+
+        Binding the keys against the factory signature and checking the types of
+        the required members turns user-fixable input errors into a 400 without
+        guarding the ``create`` call itself, so internal errors still surface.
+        """
+        signature = inspect.signature(factory.create)
+        try:
+            signature.bind(**params)
+        except TypeError as ex:
+            unexpected = sorted(set(params) - set(signature.parameters))
+            missing = sorted(
+                name
+                for name, parameter in signature.parameters.items()
+                if parameter.default is inspect.Parameter.empty and name not in params
+            )
+            details = []
+            if unexpected:
+                details.append(f"unexpected keys: {', '.join(unexpected)}")
+            if missing:
+                details.append(f"missing keys: {', '.join(missing)}")
+            raise QueryObjectValidationError(
+                _("query_context is invalid: %(details)s", details="; ".join(details))
+            ) from ex
+
+        datasource = params["datasource"]
+        if (
+            not isinstance(datasource, dict)
+            or "id" not in datasource
+            or not isinstance(datasource.get("type"), str)
+            or datasource["type"] not in {member.value for member in DatasourceType}
+        ):
+            raise QueryObjectValidationError(
+                _(
+                    "query_context is invalid: %(details)s",
+                    details="datasource must be an object with an id and a valid type",
+                )
+            )
+        queries = params["queries"]
+        if not isinstance(queries, list) or not all(
+            isinstance(query, dict) for query in queries
+        ):
+            raise QueryObjectValidationError(
+                _(
+                    "query_context is invalid: %(details)s",
+                    details="queries must be a list of objects",
+                )
+            )
 
     def get_query_context_factory(self) -> QueryContextFactory:
         if self.query_context_factory is None:
