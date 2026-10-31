@@ -14,11 +14,49 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime, timezone
+import re
+from datetime import datetime, timedelta, timezone, tzinfo
 
 import pytz
 
 EPOCH = datetime(1970, 1, 1)
+
+
+def is_date_only_format(fmt: str | None) -> bool:
+    """Recognize calendar-only strftime formats without time or epoch fields."""
+    directives = re.findall(
+        r"%[-_0^#:]*\d*[EO]?([a-zA-Z+])", (fmt or "").replace("%%", "")
+    )
+    return bool(directives) and all(
+        char in "aAbBdehjmuUwWxyYDCFgGV" for char in directives
+    )
+
+
+def normalize_time_bound(
+    value: datetime,
+    *,
+    dataset_timezone: tzinfo | None = None,
+    offset_hours: float = 0,
+    is_date: bool = False,
+) -> datetime:
+    """Resolve timestamp instants without shifting explicit calendar dates.
+
+    Explicit offsets take precedence over dataset settings. Naive bounds retain
+    the legacy dataset timezone or Hour Offset interpretation.
+    """
+    if value.utcoffset() is not None:
+        return (
+            value.replace(tzinfo=None)
+            if is_date
+            else value.astimezone(timezone.utc).replace(tzinfo=None)
+        )
+    if dataset_timezone is not None:
+        return (
+            value.replace(tzinfo=dataset_timezone)
+            .astimezone(timezone.utc)
+            .replace(tzinfo=None)
+        )
+    return value - timedelta(hours=offset_hours)
 
 
 def datetime_to_epoch(dttm: datetime) -> float:

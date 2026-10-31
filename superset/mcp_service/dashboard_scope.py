@@ -52,8 +52,8 @@ import zlib
 from collections.abc import Callable, Mapping
 from copy import deepcopy
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Any, TYPE_CHECKING, TypeGuard
+from datetime import datetime, timezone
+from typing import Any, cast, TYPE_CHECKING, TypeGuard
 
 from fastmcp.exceptions import ToolError
 
@@ -63,6 +63,7 @@ from superset.constants import (
     NO_TIME_RANGE,
 )
 from superset.utils import json
+from superset.utils.dates import normalize_time_bound
 
 if TYPE_CHECKING:
     import inspect
@@ -745,11 +746,17 @@ def dashboard_constraints(
     return DashboardConstraints(ordered, time_range, time_column)
 
 
-def intersect_time_ranges(scope_range: str, model_range: str | None) -> str:
+def intersect_time_ranges(
+    scope_range: str,
+    model_range: str | None,
+    normalize_bound: Callable[[datetime], datetime] = normalize_time_bound,
+) -> str:
     """The window both ranges allow, as a time range string.
 
     The scope's own string is kept when the model adds nothing, so relative
     ranges keep their exact dataset semantics (grain alignment, timezone).
+    normalize_bound must match the destination dataset's SQL interpretation;
+    without dataset settings, naive timestamps are treated as UTC.
     """
     from superset.common.utils.time_range_utils import (
         get_since_until_from_time_range,
@@ -771,25 +778,42 @@ def intersect_time_ranges(scope_range: str, model_range: str | None) -> str:
             _ASK_USER,
         ) from ex
 
-    since = _latest(scope_since, model_since)
-    until = _earliest(scope_until, model_until)
-    if since is not None and until is not None and since >= until:
-        raise MCPDashboardScopeError(
-            f"the requested time_range {model_range!r} does not overlap the "
-            f"dashboard time range {scope_range!r}.",
-            _ASK_USER,
-        )
+    since = _latest(scope_since, model_since, normalize_bound)
+    until = _earliest(scope_until, model_until, normalize_bound)
+    if since is not None and until is not None:
+        if normalize_bound(since) >= normalize_bound(until):
+            raise MCPDashboardScopeError(
+                f"the requested time_range {model_range!r} does not overlap the "
+                f"dashboard time range {scope_range!r}.",
+                _ASK_USER,
+            )
+        # Keep the parser from reinterpreting a mixed result using wall-clock
+        # ordering. Explicit UTC offsets also prevent dataset shifts from being
+        # applied twice when these normalized endpoints reach the SQL filter.
+        if (since.utcoffset() is None) != (until.utcoffset() is None):
+            since = normalize_bound(since).replace(tzinfo=timezone.utc)
+            until = normalize_bound(until).replace(tzinfo=timezone.utc)
     return f"{_iso(since)} : {_iso(until)}"
 
 
-def _latest(first: datetime | None, second: datetime | None) -> datetime | None:
-    candidates = [value for value in (first, second) if value is not None]
-    return max(candidates) if candidates else None
+def _latest(
+    first: datetime | None,
+    second: datetime | None,
+    normalize_bound: Callable[[datetime], datetime],
+) -> datetime | None:
+    if first is None or second is None:
+        return first or second
+    return first if normalize_bound(first) >= normalize_bound(second) else second
 
 
-def _earliest(first: datetime | None, second: datetime | None) -> datetime | None:
-    candidates = [value for value in (first, second) if value is not None]
-    return min(candidates) if candidates else None
+def _earliest(
+    first: datetime | None,
+    second: datetime | None,
+    normalize_bound: Callable[[datetime], datetime],
+) -> datetime | None:
+    if first is None or second is None:
+        return first or second
+    return first if normalize_bound(first) <= normalize_bound(second) else second
 
 
 def _iso(value: datetime | None) -> str:
@@ -970,6 +994,7 @@ def scoped_dataset_query(
     filters: list[dict[str, Any]],
     time_range: str | None,
     time_column: str | None,
+    normalize_bound: Callable[[datetime], datetime] = normalize_time_bound,
 ) -> tuple[list[dict[str, Any]], str | None, str | None]:
     """AND the dashboard constraints into a name-based dataset query.
 
@@ -1012,7 +1037,9 @@ def scoped_dataset_query(
                 "Pass the window as time_range instead; it is intersected with "
                 "the dashboard time range.",
             )
-        time_range = intersect_time_ranges(constraints.time_range, time_range)
+        time_range = intersect_time_ranges(
+            constraints.time_range, time_range, normalize_bound
+        )
         time_column = scope_column
 
     final = [*filters, *scope_filters]
@@ -1091,6 +1118,19 @@ def _rewrite_dataset_request(
     dataset: Any,
     make_filter: Callable[[dict[str, Any]], Any],
 ) -> Any:
+    time_col = next(
+        (col for col in dataset.columns if col.column_name == constraints.time_column),
+        None,
+    )
+
+    def normalize_bound(value: datetime) -> datetime:
+        """Compare in the same frame that the destination dataset queries."""
+        adjust = getattr(dataset, "adjust_time_bounds", None)
+        if not callable(adjust):
+            return normalize_time_bound(value)
+        bound, _ = adjust(value, None, time_col)
+        return cast(datetime, bound)
+
     request_filters = list(_field(request, "filters") or [])
     filters, time_range, time_column = scoped_dataset_query(
         constraints,
@@ -1100,6 +1140,7 @@ def _rewrite_dataset_request(
         filters=[_as_clause(f) for f in request_filters],
         time_range=_field(request, "time_range"),
         time_column=_field(request, "time_column"),
+        normalize_bound=normalize_bound,
     )
     scope_filters = [make_filter(clause) for clause in filters[len(request_filters) :]]
     return _with_fields(
