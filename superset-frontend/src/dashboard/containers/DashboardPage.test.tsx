@@ -19,6 +19,7 @@
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
 import {
+  act,
   createStore,
   render,
   screen,
@@ -46,7 +47,8 @@ import {
 } from 'src/dashboard/actions/dashboardLayout';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
-import DashboardPage from './DashboardPage';
+import { getFilterValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
+import DashboardPage, { NATIVE_FILTER_STATE_TIMEOUT_MS } from './DashboardPage';
 
 const mockTheme = {
   id: 42,
@@ -816,4 +818,84 @@ test('document.title falls back to the app name on unmount, not the title presen
   } finally {
     document.title = titleBeforeTest;
   }
+});
+
+const renderWithFilterKey = () => {
+  mockGetUrlParam.mockImplementation((param: { name: string }) =>
+    param.name === 'native_filters_key' ? 'abc123' : null,
+  );
+  return render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+};
+
+test('hydrates with an empty data mask when the saved filter state request stalls', async () => {
+  jest.useFakeTimers();
+  try {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    (getFilterValue as jest.Mock).mockReturnValue(new Promise(() => {}));
+    renderWithFilterKey();
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(NATIVE_FILTER_STATE_TIMEOUT_MS - 1);
+    });
+    expect(hydrateDashboard).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(1);
+    });
+    expect(hydrateDashboard).toHaveBeenCalledWith(
+      expect.objectContaining({ dataMask: {} }),
+    );
+    const signal = (getFilterValue as jest.Mock).mock.calls[0][2];
+    expect(signal.aborted).toBe(true);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('applies the saved filter state when the request resolves', async () => {
+  const savedMask = {
+    'NATIVE_FILTER-1': { id: 'NATIVE_FILTER-1', filterState: { value: ['a'] } },
+  };
+  (getFilterValue as jest.Mock).mockResolvedValue(savedMask);
+  renderWithFilterKey();
+
+  await waitFor(() => {
+    expect(hydrateDashboard).toHaveBeenCalledWith(
+      expect.objectContaining({ dataMask: savedMask }),
+    );
+  });
+});
+
+test('does not hydrate when unmounted while the saved filter state is loading', async () => {
+  let resolveValue: (value: unknown) => void = () => {};
+  (getFilterValue as jest.Mock).mockReturnValue(
+    new Promise(resolve => {
+      resolveValue = resolve;
+    }),
+  );
+  const { unmount } = renderWithFilterKey();
+  await waitFor(() => expect(getFilterValue).toHaveBeenCalled());
+
+  unmount();
+  const signal = (getFilterValue as jest.Mock).mock.calls[0][2];
+  expect(signal.aborted).toBe(true);
+  await act(async () => {
+    resolveValue({ 'NATIVE_FILTER-1': { id: 'NATIVE_FILTER-1' } });
+  });
+
+  expect(hydrateDashboard).not.toHaveBeenCalled();
 });

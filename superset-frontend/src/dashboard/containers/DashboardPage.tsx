@@ -61,6 +61,7 @@ import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import type { DashboardChartStates } from 'src/dashboard/types/chartState';
 import { DashboardDatasetsContext } from 'src/dashboard/contexts/DashboardDatasetsContext';
 
+import { logging } from '@apache-superset/core/utils';
 import { nanoid } from 'nanoid';
 import type { ActiveFilters } from '../types';
 import { RootState } from '../types';
@@ -99,6 +100,10 @@ const DashboardBuilder = lazyWithRetry(
       'src/dashboard/components/DashboardBuilder/DashboardBuilder'
     ),
 );
+
+// Upper bound on how long the dashboard waits for saved native filter state
+// before loading without it.
+export const NATIVE_FILTER_STATE_TIMEOUT_MS = 5000;
 
 type PageProps = {
   idOrSlug: string;
@@ -225,6 +230,8 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   }, [dispatch, status]);
 
   useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
     // eslint-disable-next-line consistent-return
     async function getDataMaskApplied() {
       const permalinkKey = getUrlParam(URL_PARAMS.permalinkKey);
@@ -239,6 +246,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       let anchor: string | undefined;
       if (permalinkKey) {
         const permalinkValue = await getPermalinkValue(permalinkKey);
+        if (cancelled) return null;
         if (permalinkValue?.state) {
           ({ dataMask, activeTabs, anchor } = permalinkValue.state);
           chartStates = permalinkValue.state.chartStates as
@@ -246,7 +254,26 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
             | undefined;
         }
       } else if (nativeFilterKeyValue) {
-        dataMask = await getFilterValue(id, nativeFilterKeyValue);
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+        const timeout = new Promise<null>(resolve => {
+          timeoutId = setTimeout(() => {
+            logging.warn(
+              `Saved native filter state did not load within ${NATIVE_FILTER_STATE_TIMEOUT_MS}ms; loading the dashboard without it.`,
+            );
+            controller.abort();
+            resolve(null);
+          }, NATIVE_FILTER_STATE_TIMEOUT_MS);
+        });
+        try {
+          dataMask =
+            (await Promise.race([
+              getFilterValue(id, nativeFilterKeyValue, controller.signal),
+              timeout,
+            ])) ?? {};
+        } finally {
+          clearTimeout(timeoutId);
+        }
+        if (cancelled) return null;
       }
       if (isOldRison) {
         // Normalize legacy `currentState` → `filterState`. Pre-2021 URLs stored
@@ -354,8 +381,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       return null;
     }
     if (id) getDataMaskApplied();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [readyToRender]);
+  }, [readyToRender, id]);
 
   // Update document title when dashboard title changes
   useEffect(() => {
