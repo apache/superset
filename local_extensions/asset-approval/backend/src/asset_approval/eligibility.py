@@ -43,6 +43,44 @@ from superset.subjects.types import SubjectType
 
 logger = logging.getLogger(__name__)
 
+#: The permission that separates approving from editing (SOW 5.4, S-05).
+#: FAB creates it from ``ChangeRequestRestApi.method_permission_name``, which
+#: maps ``approve`` and ``request_changes`` to it and leaves ``submit``,
+#: ``withdraw`` and ``discard`` on ``can_write``.
+APPROVAL_PERMISSION = ("can_approve", "ChangeRequest")
+
+
+def holds_approval_permission(user_id: int) -> bool:
+    """Whether this user's roles carry the approval right at all.
+
+    The REST routes enforce this themselves, through the permission mapping.
+    It is re-checked here because the same answer drives the UI: a role
+    without the right must not be told that a change "needs your review",
+    offered an Approve button, or counted in the bell. What the API
+    advertises and what it would allow have to come from one place.
+
+    Fails open on one case only -- the permission not existing yet, on an
+    instance that has not run ``superset init`` since this shipped. There
+    every role keeps exactly the approval rights it had before the
+    permission was introduced, rather than the feature quietly stopping.
+    """
+    from superset.extensions import (  # pylint: disable=import-outside-toplevel
+        security_manager,
+    )
+
+    pvm = security_manager.find_permission_view_menu(*APPROVAL_PERMISSION)
+    if pvm is None:
+        return True
+    role_ids = {role.id for role in pvm.role}
+    if not role_ids:
+        return False
+    user = security_manager.current_user
+    if user is None or getattr(user, "id", None) != user_id:
+        user = security_manager.get_user_by_id(user_id)
+    if user is None:
+        return False
+    return bool(role_ids & {role.id for role in user.roles})
+
 
 def asset_editor_subject_ids(model: Any) -> set[int]:
     """The subject ids granted editorship of this asset."""
@@ -84,6 +122,10 @@ def can_approve(
     # the separation of duties the whole feature exists for, so it is
     # checked before anything else and is not overridable.
     if change_request.author_fk == user_id:
+        return False
+    # Then the approval right, which is coarser than editorship and is the
+    # operator's to grant (S-05).
+    if not holds_approval_permission(user_id):
         return False
     return is_strict_editor(model, user_id)
 

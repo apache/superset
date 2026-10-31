@@ -235,6 +235,84 @@ PAGE_PERMISSION = "can_review"
 #: The permission that has always decided who belongs in the workflow.
 WORKFLOW_PERMISSION = ("can_read", "ChangeRequest")
 
+#: Config key naming the roles whose members may approve a change. Absent, or
+#: ``None``, leaves whatever ``superset init``'s own role sync produced, which
+#: is the behaviour the instance already had.
+APPROVER_ROLES_CONFIG = "ASSET_APPROVAL_APPROVER_ROLES"
+
+#: The roles ``sync_role_definitions`` rebuilds on every ``superset init``.
+#: Only these have the approval right taken back off them when it is not in
+#: the configured list: a role an operator created is theirs, and nothing
+#: here should revoke a grant they made deliberately.
+BUILTIN_ROLES = frozenset({"Admin", "Alpha", "Gamma", "sql_lab", "Public"})
+
+
+def _align_approval_permission() -> None:
+    """Make the approval right match the operator's written decision.
+
+    FAB creates ``can_approve`` on ChangeRequest from the route mapping, and
+    ``superset init``'s role sync then hands it to Admin, Alpha and Gamma --
+    the denylist's default, and exactly the set that already held
+    ``can_write``. So on an instance that configures nothing, who can approve
+    does not change: this only makes the right nameable, where before it was
+    folded into ``can_write`` along with submit, withdraw and discard (S-05).
+
+    ``ASSET_APPROVAL_APPROVER_ROLES`` is how an instance says otherwise. Given
+    a list of role names, the permission is granted to those roles and taken
+    back off the builtin roles that are not in it. Re-run on every boot
+    because that is also the only way a deliberate revoke survives: the next
+    ``superset init`` rebuilds the builtin roles from the denylist and would
+    otherwise hand the right straight back.
+
+    Holding the permission is necessary and not sufficient. An approver still
+    has to be a strict editor of the asset and not its author
+    (:mod:`asset_approval.eligibility`), and there is still no administrator
+    bypass in V1 (Visa Q1, SOW 9.3).
+    """
+    from superset.extensions import security_manager
+
+    from asset_approval.eligibility import APPROVAL_PERMISSION
+
+    configured = current_app.config.get(APPROVER_ROLES_CONFIG)
+    if configured is None:
+        return
+
+    try:
+        pvm = security_manager.find_permission_view_menu(*APPROVAL_PERMISSION)
+        if pvm is None:
+            logger.warning(
+                "%s: %s on %s does not exist yet, so %s cannot be applied; "
+                "run `superset init`",
+                EXTENSION_ID,
+                *APPROVAL_PERMISSION,
+                APPROVER_ROLES_CONFIG,
+            )
+            return
+        wanted = {str(name).strip() for name in configured if str(name).strip()}
+        for role in security_manager.get_all_roles():
+            holds = pvm in role.permissions
+            if role.name in wanted and not holds:
+                security_manager.add_permission_role(role, pvm)
+                logger.info(
+                    "%s: granted the approval right to %r", EXTENSION_ID, role.name
+                )
+            elif role.name not in wanted and holds and role.name in BUILTIN_ROLES:
+                security_manager.del_permission_role(role, pvm)
+                logger.info(
+                    "%s: took the approval right off %r", EXTENSION_ID, role.name
+                )
+    except Exception:  # pylint: disable=broad-except
+        # Same reasoning as the page grant below: a read-only or unmigrated
+        # metadata database must not stop the extension loading. The right
+        # stays as the last successful sync left it, which is a documented
+        # state rather than an outage.
+        logger.warning(
+            "%s: could not apply %s; who may approve is unchanged",
+            EXTENSION_ID,
+            APPROVER_ROLES_CONFIG,
+            exc_info=True,
+        )
+
 
 def _grant_page_permission_to_the_workflow() -> None:
     """Give the Approvals page to whoever may already read change requests.
@@ -301,6 +379,8 @@ def install_views() -> None:
 
     appbuilder.add_api(ChangeRequestRestApi)
     _grant_page_permission_to_the_workflow()
+    # After add_api, which is what creates ``can_approve`` in the first place.
+    _align_approval_permission()
 
     # Settings -> Manage -> Change review (mock S1, mock 16c). The page is
     # read-only, but an administrator still has to be able to find out

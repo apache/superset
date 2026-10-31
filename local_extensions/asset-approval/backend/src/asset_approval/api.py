@@ -356,8 +356,16 @@ class ChangeRequestRestApi(BaseSupersetApi):
         "pending_count": "read",
         "enabled": "read",
         "submit": "write",
-        "approve": "write",
-        "request_changes": "write",
+        # The two reviewer actions carry a permission of their own, so an
+        # operator can say who may approve without also deciding who may
+        # submit, withdraw or discard (SOW 5.4, S-05). FAB creates
+        # ``can_approve`` on ChangeRequest from this mapping; see
+        # ``entrypoint._align_approval_permission`` for who holds it.
+        "approve": "approve",
+        "request_changes": "approve",
+        # Author and editor actions. ``withdraw`` is the author's own
+        # (lifecycle.withdraw), and SOW 5.3 lets any editor ``discard`` so
+        # one abandoned draft cannot block an asset.
         "withdraw": "write",
         "discard": "write",
     }
