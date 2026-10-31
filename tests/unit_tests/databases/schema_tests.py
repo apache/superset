@@ -975,19 +975,7 @@ def test_validate_parameters_schema_accepts_server_host_key() -> None:
     )
 
 
-@pytest.mark.parametrize(
-    "disabled_flag", ["EMBEDDED_CREDENTIAL_FALLBACK", "EMBEDDED_SUPERSET"]
-)
-@pytest.mark.parametrize(
-    "schema_name",
-    ["DatabasePostSchema", "DatabasePutSchema", "DatabaseTestConnectionSchema"],
-)
-def test_disabled_embedded_credentials_survive_unrelated_api_edits(
-    mocker: MockerFixture, disabled_flag: str, schema_name: str
-) -> None:
-    """Save and connection-test schemas preserve partial imports while hidden."""
-    from superset.databases import schemas
-
+def _fallback_off(mocker: MockerFixture, disabled_flag: str) -> None:
     mocker.patch(
         "superset.extensions.feature_flag_manager.get_feature_flags",
         return_value={
@@ -996,8 +984,36 @@ def test_disabled_embedded_credentials_survive_unrelated_api_edits(
             disabled_flag: False,
         },
     )
+
+
+@pytest.mark.parametrize(
+    "disabled_flag", ["EMBEDDED_CREDENTIAL_FALLBACK", "EMBEDDED_SUPERSET"]
+)
+@pytest.mark.parametrize(
+    "schema_name,database_id",
+    [("DatabasePutSchema", 1), ("DatabaseTestConnectionSchema", None)],
+)
+def test_disabled_embedded_credentials_survive_unrelated_api_edits(
+    mocker: MockerFixture,
+    disabled_flag: str,
+    schema_name: str,
+    database_id: Optional[int],
+) -> None:
+    """
+    With the fallback off, a stored credential -- even a partial import -- is
+    preserved: re-saving it unchanged and testing the connection both load.
+    """
+    from superset.databases import schemas
+    from superset.models.core import Database
+
+    _fallback_off(mocker, disabled_flag)
     stored = json.dumps({"embedded_credentials": {"username": "embedded_svc"}})
-    loaded = getattr(schemas, schema_name)().load(
+    mocker.patch(
+        "superset.databases.schemas.db.session.get",
+        return_value=Database(sqlalchemy_uri="sqlite://", encrypted_extra=stored),
+    )
+    schema = getattr(schemas, schema_name)
+    loaded = (schema(database_id=database_id) if database_id else schema()).load(
         {
             "database_name": "renamed",
             "sqlalchemy_uri": "snowflake://user:pw@account/db",
@@ -1112,6 +1128,13 @@ _CREDENTIALS = {"username": "embedded_svc", "password": "embedded_pw"}
         (True, None, True, _CREDENTIALS, False),
         # A cleared credential is "no credential", wherever it is saved.
         (False, None, False, {"username": "", "password": ""}, False),
+        # sc-127897: a blank client is no client, so impersonation alone can't
+        # make the credential apply.
+        (True, {**_CLIENT, "id": "", "secret": ""}, False, _CREDENTIALS, True),
+        (True, {**_CLIENT, "secret": "  "}, False, _CREDENTIALS, True),
+        (True, {**_CLIENT, "id": ""}, False, _CREDENTIALS, True),
+        # A stored secret comes back masked on edit and still counts.
+        (True, {**_CLIENT, "secret": "XXXXXXXXXX"}, False, _CREDENTIALS, False),
     ],
 )
 @with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
@@ -1244,3 +1267,351 @@ def test_import_schema_asks_for_masks_an_existing_db_cannot_reveal(
     messages = str(excinfo.value.messages)
     assert "$.oauth2_client_info.secret" in messages
     assert "$.embedded_credentials.password" in messages
+
+
+def _stored_connection(
+    mocker: MockerFixture,
+    *,
+    credentials: Optional[dict[str, str]] = _CREDENTIALS,
+    impersonate_user: bool = True,
+    client: Optional[dict[str, str]] = _CLIENT,
+) -> Any:
+    """A stored per-user OAuth2 connection, optionally carrying a guest credential."""
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.core import Database
+
+    mocker.patch.object(SqliteEngineSpec, "supports_embedded_credential_fallback", True)
+    extra: dict[str, Any] = {}
+    if client is not None:
+        extra["oauth2_client_info"] = client
+    if credentials is not None:
+        extra["embedded_credentials"] = credentials
+    stored = Database(
+        sqlalchemy_uri="sqlite://",
+        impersonate_user=impersonate_user,
+        encrypted_extra=json.dumps(extra),
+    )
+    mocker.patch("superset.databases.schemas.db.session.get", return_value=stored)
+    return stored
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_turning_impersonation_off_is_refused_while_a_credential_is_stored(
+    mocker: MockerFixture,
+) -> None:
+    """
+    sc-130268: the API must refuse what the dialog refuses. An update that turns
+    impersonation off without resending Secure Extra keeps the stored credential
+    attached, and every embedded viewer would then run as the base account.
+    """
+    from superset.databases.schemas import DatabasePutSchema
+
+    _stored_connection(mocker)
+
+    with pytest.raises(ValidationError) as excinfo:
+        DatabasePutSchema(database_id=1).load({"impersonate_user": False})
+
+    assert "impersonate_user" in excinfo.value.messages
+    assert "Clear the embedded credentials" in str(excinfo.value.messages)
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        pytest.param({"impersonate_user": False}, id="impersonation-only"),
+        pytest.param(
+            {"impersonate_user": False, "database_name": "renamed"},
+            id="with-an-unrelated-edit",
+        ),
+        pytest.param(
+            {
+                "impersonate_user": False,
+                "masked_encrypted_extra": json.dumps(
+                    {
+                        "oauth2_client_info": _CLIENT,
+                        "embedded_credentials": _CREDENTIALS,
+                    }
+                ),
+            },
+            id="resending-the-credential",
+        ),
+        pytest.param(
+            {
+                "masked_encrypted_extra": json.dumps(
+                    {"embedded_credentials": _CREDENTIALS}
+                ),
+            },
+            id="dropping-the-oauth2-client",
+        ),
+    ],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_no_update_strands_a_stored_credential(
+    mocker: MockerFixture, payload: dict[str, Any]
+) -> None:
+    """
+    However the update is shaped, it cannot leave a credential on a connection
+    without impersonation or without an OAuth2 client.
+    """
+    from superset.databases.schemas import DatabasePutSchema
+
+    _stored_connection(mocker)
+
+    with pytest.raises(ValidationError):
+        DatabasePutSchema(database_id=1).load(payload)
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        # Clearing the credential in the same save is the way out.
+        pytest.param(
+            {
+                "impersonate_user": False,
+                "masked_encrypted_extra": json.dumps({"oauth2_client_info": _CLIENT}),
+            },
+            id="clearing-the-credential",
+        ),
+        pytest.param(
+            {
+                "impersonate_user": False,
+                "masked_encrypted_extra": json.dumps(
+                    {"embedded_credentials": {"username": "", "password": ""}}
+                ),
+            },
+            id="blanking-the-credential",
+        ),
+        pytest.param({"impersonate_user": True}, id="impersonation-kept-on"),
+        pytest.param({"database_name": "renamed"}, id="unrelated-edit"),
+    ],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_impersonation_updates_that_leave_no_stranded_credential_are_allowed(
+    mocker: MockerFixture, payload: dict[str, Any]
+) -> None:
+    from superset.databases.schemas import DatabasePutSchema
+
+    _stored_connection(mocker)
+
+    DatabasePutSchema(database_id=1).load(payload)
+
+
+@pytest.mark.parametrize(
+    "credentials",
+    [
+        pytest.param(None, id="no-stored-credential"),
+        pytest.param({"username": "", "password": ""}, id="cleared-credential"),
+    ],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_turning_impersonation_off_is_allowed_without_a_stored_credential(
+    mocker: MockerFixture, credentials: Optional[dict[str, str]]
+) -> None:
+    from superset.databases.schemas import DatabasePutSchema
+
+    _stored_connection(mocker, credentials=credentials)
+
+    DatabasePutSchema(database_id=1).load({"impersonate_user": False})
+
+
+@pytest.mark.parametrize(
+    "disabled_flag", ["EMBEDDED_CREDENTIAL_FALLBACK", "EMBEDDED_SUPERSET"]
+)
+def test_turning_impersonation_off_is_allowed_with_the_fallback_off(
+    mocker: MockerFixture, disabled_flag: str
+) -> None:
+    """With the fallback off a stored credential is inert and must not block edits."""
+    from superset.databases.schemas import DatabasePutSchema
+
+    mocker.patch(
+        "superset.extensions.feature_flag_manager.get_feature_flags",
+        return_value={
+            "EMBEDDED_CREDENTIAL_FALLBACK": True,
+            "EMBEDDED_SUPERSET": True,
+            disabled_flag: False,
+        },
+    )
+    _stored_connection(mocker)
+
+    DatabasePutSchema(database_id=1).load({"impersonate_user": False})
+
+
+@pytest.mark.parametrize("encrypted_extra", ["null", "[1]", ""])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_stored_secure_extra_without_an_object_carries_no_credential(
+    mocker: MockerFixture, encrypted_extra: str
+) -> None:
+    from superset.databases.schemas import DatabasePutSchema
+
+    stored = _stored_connection(mocker)
+    stored.encrypted_extra = encrypted_extra
+
+    DatabasePutSchema(database_id=1).load({"impersonate_user": False})
+
+
+_FALLBACK_OFF_MESSAGE = "can't be added or changed while the embedded credential"
+
+
+@pytest.mark.parametrize(
+    "disabled_flag", ["EMBEDDED_CREDENTIAL_FALLBACK", "EMBEDDED_SUPERSET"]
+)
+@pytest.mark.parametrize(
+    "credentials",
+    [
+        pytest.param(_CREDENTIALS, id="complete"),
+        pytest.param({"username": "EMBED_VIEWER"}, id="half-filled"),
+    ],
+)
+def test_a_new_credential_is_refused_while_the_fallback_is_off(
+    mocker: MockerFixture, disabled_flag: str, credentials: dict[str, str]
+) -> None:
+    """
+    sc-130270: nothing validates a credential while the fallback is off, and one
+    stored then goes live unchecked when the fallback is turned on.
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    _fallback_off(mocker, disabled_flag)
+
+    with pytest.raises(ValidationError) as excinfo:
+        DatabasePostSchema().load(
+            {
+                "database_name": "test_db",
+                "sqlalchemy_uri": "sqlite://",
+                "masked_encrypted_extra": json.dumps(
+                    {"embedded_credentials": credentials}
+                ),
+            }
+        )
+
+    assert "masked_encrypted_extra" in excinfo.value.messages
+    assert _FALLBACK_OFF_MESSAGE in str(excinfo.value.messages)
+
+
+@pytest.mark.parametrize(
+    "stored_credentials",
+    [
+        pytest.param(None, id="added"),
+        pytest.param(_CREDENTIALS, id="changed"),
+    ],
+)
+def test_adding_or_changing_a_credential_is_refused_while_the_fallback_is_off(
+    mocker: MockerFixture, stored_credentials: Optional[dict[str, str]]
+) -> None:
+    """The M3 repro: a non-impersonating connection given a credential by PUT."""
+    from superset.databases.schemas import DatabasePutSchema
+
+    _fallback_off(mocker, "EMBEDDED_CREDENTIAL_FALLBACK")
+    _stored_connection(
+        mocker, credentials=stored_credentials, impersonate_user=False, client=None
+    )
+
+    with pytest.raises(ValidationError) as excinfo:
+        DatabasePutSchema(database_id=1).load(
+            {
+                "masked_encrypted_extra": json.dumps(
+                    {"embedded_credentials": {"username": "EMBED_VIEWER"}}
+                )
+            }
+        )
+
+    assert _FALLBACK_OFF_MESSAGE in str(excinfo.value.messages)
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        # What the dialog loads and posts back: the secret comes back masked.
+        pytest.param(
+            {
+                "masked_encrypted_extra": json.dumps(
+                    {
+                        "oauth2_client_info": {**_CLIENT, "secret": "XXXXXXXXXX"},
+                        "embedded_credentials": {
+                            **_CREDENTIALS,
+                            "password": "XXXXXXXXXX",
+                        },
+                    }
+                ),
+                "database_name": "renamed",
+            },
+            id="masked-round-trip",
+        ),
+        pytest.param(
+            {
+                "masked_encrypted_extra": json.dumps(
+                    {
+                        "oauth2_client_info": _CLIENT,
+                        "embedded_credentials": _CREDENTIALS,
+                    }
+                ),
+                "impersonate_user": False,
+            },
+            id="unchanged-with-other-edits",
+        ),
+        pytest.param({"impersonate_user": False}, id="no-secure-extra"),
+        pytest.param(
+            {"masked_encrypted_extra": json.dumps({"oauth2_client_info": _CLIENT})},
+            id="cleared",
+        ),
+        pytest.param(
+            {
+                "masked_encrypted_extra": json.dumps(
+                    {"embedded_credentials": {"username": "", "password": ""}}
+                )
+            },
+            id="blanked",
+        ),
+    ],
+)
+def test_a_stored_credential_is_left_alone_while_the_fallback_is_off(
+    mocker: MockerFixture, payload: dict[str, Any]
+) -> None:
+    """
+    OEF-REG-07 (sc-125538): with the fallback off, the stored credential and the
+    edits around it keep working, so turning the fallback back on restores it.
+    """
+    from superset.databases.schemas import DatabasePutSchema
+
+    _fallback_off(mocker, "EMBEDDED_CREDENTIAL_FALLBACK")
+    _stored_connection(mocker)
+
+    DatabasePutSchema(database_id=1).load(payload)
+
+
+def test_a_new_connection_without_a_credential_loads_while_the_fallback_is_off(
+    mocker: MockerFixture,
+) -> None:
+    from superset.databases.schemas import DatabasePostSchema
+
+    _fallback_off(mocker, "EMBEDDED_CREDENTIAL_FALLBACK")
+
+    DatabasePostSchema().load(
+        {
+            "database_name": "test_db",
+            "sqlalchemy_uri": "sqlite://",
+            "masked_encrypted_extra": json.dumps(
+                {"embedded_credentials": {"auth_method": "password"}}
+            ),
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    "value, present",
+    [
+        (None, False),
+        ("", False),
+        ({}, False),
+        ({"auth_method": "keypair"}, False),
+        ({"username": "  ", "password": ""}, False),
+        ({"username": "svc"}, True),
+        (_CREDENTIALS, True),
+        ([], True),
+        ("not json", True),
+    ],
+)
+def test_embedded_credentials_present(value: Any, present: bool) -> None:
+    from superset.databases.utils import embedded_credentials_present
+
+    assert embedded_credentials_present(value) is present

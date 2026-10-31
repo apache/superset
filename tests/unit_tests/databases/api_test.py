@@ -3157,3 +3157,232 @@ def test_a_removed_embedded_credential_round_trips_through_the_dialog(
     stored = session.get(Database, database_id)
     assert stored is not None
     assert json.loads(stored.encrypted_extra) == removed
+
+
+_EMBEDDED_CLIENT = {
+    "id": "client",
+    "secret": "secret",
+    "scope": "refresh_token",
+    "authorization_request_uri": "https://oauth.example/authorize",
+    "token_request_uri": "https://oauth.example/token",
+}
+_EMBEDDED_CREDENTIALS = {"username": "embedded_svc", "password": "embedded_pw"}
+
+
+def _stored_embedded_connection(
+    mocker: MockerFixture,
+    session: Session,
+    encrypted_extra: dict[str, Any],
+    *,
+    impersonate_user: bool = True,
+) -> int:
+    """Store a connection on an engine that opted into the embedded fallback."""
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    mocker.patch.object(SqliteEngineSpec, "supports_embedded_credential_fallback", True)
+    mocker.patch.object(Database, "get_default_catalog", return_value=None)
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand.run")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    database = Database(
+        database_name="test_db",
+        sqlalchemy_uri="sqlite://",
+        impersonate_user=impersonate_user,
+        encrypted_extra=json.dumps(encrypted_extra),
+    )
+    session.add(database)
+    session.commit()
+    return database.id
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_turning_impersonation_off_is_refused_while_a_credential_is_stored(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    sc-130268: ``{"impersonate_user": false}`` alone used to be accepted, leaving
+    the credential stored while every embedded viewer ran as the base account.
+    """
+    from superset.models.core import Database
+
+    stored_extra = {
+        "oauth2_client_info": _EMBEDDED_CLIENT,
+        "embedded_credentials": _EMBEDDED_CREDENTIALS,
+    }
+    database_id = _stored_embedded_connection(mocker, session, stored_extra)
+
+    response = client.put(
+        f"/api/v1/database/{database_id}", json={"impersonate_user": False}
+    )
+
+    assert response.status_code == 400
+    assert "Clear the embedded credentials" in str(response.json)
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert stored.impersonate_user is True
+    assert json.loads(stored.encrypted_extra) == stored_extra
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_turning_impersonation_off_while_clearing_the_credential_is_allowed(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    from superset.models.core import Database
+
+    database_id = _stored_embedded_connection(
+        mocker,
+        session,
+        {
+            "oauth2_client_info": _EMBEDDED_CLIENT,
+            "embedded_credentials": _EMBEDDED_CREDENTIALS,
+        },
+    )
+
+    response = client.put(
+        f"/api/v1/database/{database_id}",
+        json={
+            "impersonate_user": False,
+            "masked_encrypted_extra": json.dumps(
+                {"oauth2_client_info": _EMBEDDED_CLIENT}
+            ),
+        },
+    )
+
+    assert response.status_code == 200, response.json
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert stored.impersonate_user is False
+    assert "embedded_credentials" not in json.loads(stored.encrypted_extra)
+
+
+def _fallback_off(mocker: MockerFixture) -> None:
+    mocker.patch(
+        "superset.extensions.feature_flag_manager.get_feature_flags",
+        return_value={"EMBEDDED_CREDENTIAL_FALLBACK": False, "EMBEDDED_SUPERSET": True},
+    )
+
+
+def test_a_credential_is_refused_while_the_fallback_is_off(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    sc-130270: with the fallback off, a credential PUT on a non-impersonating
+    connection used to be stored unchecked and go live when the flag came on.
+    """
+    from superset.models.core import Database
+
+    _fallback_off(mocker)
+    database_id = _stored_embedded_connection(
+        mocker, session, {}, impersonate_user=False
+    )
+
+    response = client.put(
+        f"/api/v1/database/{database_id}",
+        json={
+            "masked_encrypted_extra": json.dumps(
+                {"embedded_credentials": {"username": "EMBED_VIEWER"}}
+            )
+        },
+    )
+
+    assert response.status_code == 400
+    assert "can't be added or changed" in str(response.json)
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert json.loads(stored.encrypted_extra) == {}
+
+
+@pytest.mark.parametrize("rename", [False, True])
+def test_a_stored_credential_round_trips_while_the_fallback_is_off(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+    rename: bool,
+) -> None:
+    """
+    OEF-REG-07: re-saving what the dialog loaded, with its masked secrets, is not
+    a change, and the stored credential survives for when the flag returns.
+    """
+    from superset.constants import PASSWORD_MASK
+    from superset.models.core import Database
+
+    _fallback_off(mocker)
+    # The Snowflake override lists specific paths; the base default masks `$.*`.
+    mocker.patch.object(SqliteEngineSpec, "encrypted_extra_sensitive_fields", set())
+    stored_extra = {
+        "oauth2_client_info": _EMBEDDED_CLIENT,
+        "embedded_credentials": _EMBEDDED_CREDENTIALS,
+    }
+    database_id = _stored_embedded_connection(mocker, session, stored_extra)
+
+    loaded = client.get(f"/api/v1/database/{database_id}/connection").json["result"]
+    masked = json.loads(loaded["masked_encrypted_extra"])
+    assert masked["embedded_credentials"]["password"] == PASSWORD_MASK
+    payload = {"masked_encrypted_extra": loaded["masked_encrypted_extra"]}
+    if rename:
+        payload["database_name"] = "renamed"
+
+    response = client.put(f"/api/v1/database/{database_id}", json=payload)
+
+    assert response.status_code == 200, response.json
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert json.loads(stored.encrypted_extra) == stored_extra
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_credential_is_refused_on_a_blank_oauth2_client(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    sc-127897 step 6: a client block with an empty id and secret used to pass the
+    save check, and guests were then served through the fallback account.
+    """
+    from flask import current_app
+
+    from superset.models.core import Database
+
+    mocker.patch.dict(current_app.config, {"DATABASE_OAUTH2_CLIENTS": {}})
+    blank_client = {**_EMBEDDED_CLIENT, "id": "", "secret": ""}
+    database_id = _stored_embedded_connection(
+        mocker, session, {"oauth2_client_info": blank_client}
+    )
+
+    response = client.put(
+        f"/api/v1/database/{database_id}",
+        json={
+            "masked_encrypted_extra": json.dumps(
+                {
+                    "oauth2_client_info": blank_client,
+                    "embedded_credentials": _EMBEDDED_CREDENTIALS,
+                }
+            )
+        },
+    )
+
+    assert response.status_code == 400
+    assert "Configure OAuth2 client information" in str(response.json)
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert json.loads(stored.encrypted_extra) == {"oauth2_client_info": blank_client}
