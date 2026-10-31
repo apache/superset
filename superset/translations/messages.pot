@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-10-31 18:46+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3372,6 +3372,9 @@ msgstr ""
 msgid "Check out this dashboard: "
 msgstr ""
 
+msgid "Check the value transform →"
+msgstr ""
+
 msgid "Check to force date partitions to have the same height"
 msgstr ""
 
@@ -5558,6 +5561,12 @@ msgid "Disables the drill to detail feature for this database."
 msgstr ""
 
 msgid "Discard"
+msgstr ""
+
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
 msgstr ""
 
 msgid "Display Name"
@@ -10453,6 +10462,10 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+#, python-format
+msgid "Partition pruning on %(mapped)s has not been confirmed. Preview its value transform to check it."
+msgstr ""
+
 msgid "Partitions whose height to parent height proportions are below this value are pruned"
 msgstr ""
 
@@ -15333,6 +15346,10 @@ msgid "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. 
 msgstr ""
 
 msgid "This cannot be undone."
+msgstr ""
+
+#, python-format
+msgid "This change discards the value transform on %s. Once you save, filters on %s will no longer be applied to the partition column, so charts on this dataset can scan every partition and time out. Selecting %s again will not restore the transform."
 msgstr ""
 
 msgid "This chart applies cross-filters to charts whose datasets contain columns with the same name."

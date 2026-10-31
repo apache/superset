@@ -52,6 +52,9 @@ export interface PartitionMappingDatasource {
     evaluable?: boolean | null;
     /** The transform `evaluable` is a verdict about. */
     evaluated_transform?: string | null;
+    /** The columns the stored mapping resolved to when it was read. */
+    mapped_column?: string | null;
+    partition_column?: string | null;
   } | null;
 }
 

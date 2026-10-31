@@ -699,6 +699,41 @@ export function applyImplicitMappingMove<T extends PartitionMappingColumn>(
 }
 
 /**
+ * The mapped column whose value transform a change would throw away, if any.
+ *
+ * Every way the mapping can move clears the transform it moves off, on
+ * purpose: carrying it over mirrors an expression nobody checked against its
+ * new column, and leaving it behind lets it come back to life later. That is
+ * still a loss the owner did not ask for when the change was to something else
+ * -- the default datetime column, or the partition column -- and losing it
+ * stops pruning for every chart on the dataset. So the editor asks first, and
+ * this is how it knows when to.
+ *
+ * Only the transform the mapping is actually mirroring counts. A transform
+ * stranded on some other column is not live, the panel never shows it, and
+ * clearing it is the repair `clearUnmappedTransforms` exists to make; asking
+ * about it would be asking the owner to confirm a cleanup they cannot see.
+ *
+ * `before` and `after` are the columns either side of the change, physical and
+ * calculated alike, since `main_dttm_col` can name either.
+ */
+export function discardedMappedTransform(
+  datasource: PartitionMappingDatasource,
+  before: PartitionMappingColumn[],
+  after: PartitionMappingColumn[],
+): string | null {
+  const mappedColumn = resolveMappedColumn(datasource);
+  const transformOf = (columns: PartitionMappingColumn[]) =>
+    columns.find(column => column.column_name === mappedColumn)
+      ?.partition_value_transform || null;
+  const transform = transformOf(before);
+  if (!mappedColumn || !transform || transformOf(after) === transform) {
+    return null;
+  }
+  return mappedColumn;
+}
+
+/**
  * The mapped-column override that survives choosing a new partition column.
  *
  * The override only means anything relative to a partition column, so clearing
