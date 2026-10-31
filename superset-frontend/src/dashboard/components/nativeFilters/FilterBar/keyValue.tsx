@@ -66,13 +66,20 @@ export const createFilterKey = (
       return null;
     });
 
-export const getFilterValue = (dashId: string | number, key?: string | null) =>
+export const getFilterValue = (
+  dashId: string | number,
+  key?: string | null,
+  signal?: AbortSignal,
+) =>
   SupersetClient.get({
     endpoint: assembleEndpoint(dashId, key),
+    signal,
   })
     .then(({ json }) => JSON.parse(json.value))
     .catch(err => {
-      logging.error(err);
+      if (err?.name !== 'AbortError') {
+        logging.error(err);
+      }
       return null;
     });
 
