@@ -53,29 +53,57 @@ import { getColtypesMapping } from '../utils/series';
 export const getIntervalBoundsAndColors = (
   intervals: string,
   intervalColorIndices: string,
+  intervalColors: string[] | undefined,
   colorFn: CategoricalColorScale,
   min: number,
   max: number,
 ): Array<[number, string]> => {
   let intervalBoundsNonNormalized;
-  let intervalColorIndicesArray;
   try {
     intervalBoundsNonNormalized = parseNumbersList(intervals, ',');
-    intervalColorIndicesArray = parseNumbersList(intervalColorIndices, ',');
   } catch (error) {
     intervalBoundsNonNormalized = [] as number[];
-    intervalColorIndicesArray = [] as number[];
   }
 
   const intervalBounds = intervalBoundsNonNormalized.map(
     bound => (bound - min) / (max - min),
   );
-  const intervalColors = intervalColorIndicesArray.map(
+
+  // New-style: `interval_colors` holds real hex/rgb colors chosen through
+  // the Gauge control panel's per-interval `IntervalColorsControl`,
+  // positionally matched to the bounds parsed from `intervals`. Prefer this
+  // whenever it's populated.
+  if (Array.isArray(intervalColors) && intervalColors.length > 0) {
+    return intervalBounds.map((val, idx) => [
+      val,
+      // Wrap around the scheme for a bound past the end of `intervalColors`,
+      // matching `IntervalColorsControl`'s own positional fallback exactly --
+      // otherwise this and the editor's display disagree once there are more
+      // bounds than colors in the chosen scheme, and editing any other band
+      // would persist the wrong (undefined-turned-into-missing) color here.
+      intervalColors[idx] || colorFn.colors[idx % (colorFn.colors.length || 1)],
+    ]);
+  }
+
+  // Backward compatibility: charts saved before `interval_colors` existed
+  // store `interval_color_indices`, a comma-separated list of 1-indexed
+  // positions into the chart's categorical color scheme (e.g. "1,2,4")
+  // instead of literal colors. Resolve those indices against the scheme
+  // here -- exactly as this function always has -- so existing dashboards
+  // keep rendering identically. No data migration is required: this
+  // fallback runs every time such a chart is rendered.
+  let intervalColorIndicesArray;
+  try {
+    intervalColorIndicesArray = parseNumbersList(intervalColorIndices, ',');
+  } catch (error) {
+    intervalColorIndicesArray = [] as number[];
+  }
+  const legacyColors = intervalColorIndicesArray.map(
     ind => colorFn.colors[(ind - 1) % colorFn.colors.length],
   );
 
   return intervalBounds.map((val, idx) => {
-    const color = intervalColors[idx];
+    const color = legacyColors[idx];
     return [val, color || colorFn.colors[idx]];
   });
 };
@@ -135,6 +163,7 @@ export default function transformProps(
     showPointer,
     intervals,
     intervalColorIndices,
+    intervalColors,
     valueFormatter,
     sliceId,
   }: EchartsGaugeFormData = { ...DEFAULT_GAUGE_FORM_DATA, ...formData };
@@ -249,6 +278,7 @@ export default function transformProps(
   const intervalBoundsAndColors = getIntervalBoundsAndColors(
     intervals,
     intervalColorIndices,
+    intervalColors,
     colorFn,
     min,
     max,

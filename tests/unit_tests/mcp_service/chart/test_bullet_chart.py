@@ -2224,6 +2224,101 @@ def test_bullet_vega_omits_range_tooltip_for_frontend_default_labels() -> None:
     assert all(item.get("title") != "Range" for item in bar["encoding"]["tooltip"])
 
 
+def test_bullet_vega_preview_honors_range_colors() -> None:
+    """The MCP preview must match what Explore actually renders for the
+    saved chart: a custom `range_colors` entry wins over the default
+    categorical legend ramp, same as Bullet/transformProps.ts."""
+    specification = _generate_vega_lite_preview_from_data(
+        [{"Revenue": 75}],
+        {
+            "viz_type": "bullet",
+            "metric": "Revenue",
+            "ranges": "50,100",
+            "range_colors": ["#ff0000", "#00ff00"],
+        },
+    ).specification
+    range_layers = [
+        layer for layer in specification["layer"] if layer["mark"]["type"] == "rect"
+    ]
+    assert len(range_layers) == 2
+    # Ranges are drawn largest-threshold-first (descending), so the first
+    # layer is the "up to 100" band and the second is "up to 50".
+    assert range_layers[0]["encoding"]["color"]["scale"]["range"] == ["#00ff00"]
+    assert range_layers[1]["encoding"]["color"]["scale"]["range"] == ["#ff0000"]
+    # The custom color rides on the same legend-bearing `datum` encoding an
+    # uncolored range uses, never a fixed `value` that would skip the legend.
+    for layer in range_layers:
+        color = layer["encoding"]["color"]
+        assert "value" not in color
+        assert color["scale"]["domain"] == [color["datum"]]
+
+
+def test_bullet_vega_preview_ignores_range_colors_without_ranges() -> None:
+    """Hidden `range_colors` left over from cleared Ranges must not tint the
+    synthesized band, matching Explore."""
+    specification = _generate_vega_lite_preview_from_data(
+        [{"Revenue": 100}],
+        {
+            "viz_type": "bullet",
+            "metric": "Revenue",
+            "ranges": "",
+            "range_colors": ["#ff0000", "#00ff00"],
+        },
+    ).specification
+    range_layers = [
+        layer for layer in specification["layer"] if layer["mark"]["type"] == "rect"
+    ]
+    assert range_layers
+    for layer in range_layers:
+        assert "scale" not in layer["encoding"]["color"]
+
+
+def test_bullet_vega_preview_custom_range_colors_keep_legend_entries() -> None:
+    """A custom `range_colors` entry must not cost the range its legend
+    entry: with `show_legend` on, every range still carries the same legend
+    config as the metric bar and an uncolored range would."""
+    specification = _generate_vega_lite_preview_from_data(
+        [{"Revenue": 75}],
+        {
+            "viz_type": "bullet",
+            "metric": "Revenue",
+            "ranges": "50,100",
+            "range_labels": "Low,High",
+            "show_legend": True,
+            "range_colors": ["#ff0000", "#00ff00"],
+        },
+    ).specification
+    range_layers = [
+        layer for layer in specification["layer"] if layer["mark"]["type"] == "rect"
+    ]
+    bar_layer = next(
+        layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
+    )
+    assert bar_layer["encoding"]["color"]["legend"] == {"title": None}
+    assert [layer["encoding"]["color"]["datum"] for layer in range_layers] == [
+        "High: ≤ 100",
+        "Low: ≤ 50",
+    ]
+    for layer in range_layers:
+        assert layer["encoding"]["color"]["legend"] == {"title": None}
+
+
+def test_bullet_vega_preview_falls_back_to_legend_color_without_range_colors() -> None:
+    """No `range_colors` at all must preview identically to before this
+    control existed: the default categorical legend-based color encoding."""
+    specification = _generate_vega_lite_preview_from_data(
+        [{"Revenue": 75}],
+        {"viz_type": "bullet", "metric": "Revenue", "ranges": "50,100"},
+    ).specification
+    range_layers = [
+        layer for layer in specification["layer"] if layer["mark"]["type"] == "rect"
+    ]
+    assert len(range_layers) == 2
+    for layer in range_layers:
+        assert "datum" in layer["encoding"]["color"]
+        assert "value" not in layer["encoding"]["color"]
+
+
 def test_bullet_vega_empty_range_tooltip_matches_grouping_semantics() -> None:
     presentation = {
         "viz_type": "bullet",
@@ -3407,6 +3502,78 @@ def test_bullet_presentation_updates_are_atomic_and_comma_safe() -> None:
     stale = dict(existing)
     stale["ranges"] = "10"
     assert validate_merged_bullet_form_data(stale) is not None
+
+
+def test_bullet_update_preserves_range_colors_through_validation() -> None:
+    """`range_colors` is Explore-only state the typed schema doesn't model
+    (see `_BULLET_UNMODELED_NATIVE_KEYS`). An `update_chart` that only
+    changes the metric on a Bullet saved with custom range colors must not
+    choke validating the merged state merely because of their presence."""
+    existing = {
+        "viz_type": "bullet",
+        "metric": "SavedRevenue",
+        "ranges": "50,100",
+        "range_colors": ["#ff0000", "#00ff00"],
+    }
+    config = BulletChartConfig(metric=_simple_metric("profit"))
+    merged = BulletChartPlugin().merge_update_form_data(
+        existing, map_bullet_config(config), config, dataset_rebind=False
+    )
+    assert merged is not None
+    assert merged["range_colors"] == ["#ff0000", "#00ff00"]
+    validated = validate_merged_bullet_form_data(merged, config)
+    assert validated is not None
+    assert validated.metric.name == "profit"
+
+    # An explicit empty override is itself a valid, unchanged value too.
+    existing_cleared = {**existing, "range_colors": []}
+    merged_cleared = BulletChartPlugin().merge_update_form_data(
+        existing_cleared, map_bullet_config(config), config, dataset_rebind=False
+    )
+    assert merged_cleared is not None
+    assert merged_cleared["range_colors"] == []
+    assert validate_merged_bullet_form_data(merged_cleared, config) is not None
+
+
+def test_bullet_update_keeps_range_colors_when_ranges_repeat_saved_value() -> None:
+    """Repeating the saved thresholds leaves the bands unchanged, so their
+    per-band colors survive; changing the thresholds still clears them."""
+    existing = {
+        "viz_type": "bullet",
+        "metric": "SavedRevenue",
+        "ranges": "50,100",
+        "range_colors": ["#ff0000", "#00ff00"],
+    }
+    same = BulletChartConfig(metric=_simple_metric("profit"), ranges=[50, 100])
+    merged_same = BulletChartPlugin().merge_update_form_data(
+        existing, map_bullet_config(same), same, dataset_rebind=False
+    )
+    assert merged_same is not None
+    assert merged_same["range_colors"] == ["#ff0000", "#00ff00"]
+
+    changed = BulletChartConfig(metric=_simple_metric("profit"), ranges=[10, 20])
+    merged_changed = BulletChartPlugin().merge_update_form_data(
+        existing, map_bullet_config(changed), changed, dataset_rebind=False
+    )
+    assert merged_changed is not None
+    assert merged_changed["range_colors"] == []
+
+
+def test_bullet_update_keeps_range_colors_for_equivalent_ranges_spelling() -> None:
+    """Equivalent spellings of the saved thresholds are not a change."""
+    for saved in ("50, 100", "50.0,100", "50,100,"):
+        existing = {
+            "viz_type": "bullet",
+            "metric": "SavedRevenue",
+            "ranges": saved,
+            "range_colors": ["#ff0000", "#00ff00"],
+        }
+        same = BulletChartConfig(metric=_simple_metric("profit"), ranges=[50, 100])
+        merged = BulletChartPlugin().merge_update_form_data(
+            existing, map_bullet_config(same), same, dataset_rebind=False
+        )
+        assert merged is not None
+        assert merged["range_colors"] == ["#ff0000", "#00ff00"], saved
 
 
 def test_mapping_other_registered_chart_type_is_unchanged() -> None:
@@ -5314,3 +5481,22 @@ def test_validation_pipeline_reports_ambiguous_bullet_reference_error_code() -> 
     assert result.error.error_code == "AMBIGUOUS_COLUMN_REFERENCE"
     assert result.error.error_type == "ambiguous_column_reference"
     assert "differ only by case" in result.error.details
+
+
+def test_bullet_ranges_update_resets_stale_range_colors() -> None:
+    """Replacing `ranges` without `range_colors` must not re-apply the old
+    per-band colors by position to the new thresholds."""
+    from superset.mcp_service.chart.chart_utils import merge_bullet_form_data
+
+    existing = {
+        "viz_type": "bullet",
+        "ranges": "50,100",
+        "range_colors": ["#ff0000", "#00ff00"],
+    }
+    replaced = {"viz_type": "bullet", "ranges": "100,200,300"}
+    merge_bullet_form_data(existing, replaced)
+    assert replaced["range_colors"] == []
+
+    untouched = {"viz_type": "bullet"}
+    merge_bullet_form_data(existing, untouched)
+    assert untouched["range_colors"] == ["#ff0000", "#00ff00"]
