@@ -61,7 +61,8 @@ interface AdhocFilterInput {
   [key: string]: unknown;
 }
 
-function subjectForPill(
+/** Display name for an adhoc column that has no dataset `column_name`. */
+export function subjectForPill(
   subject: AdhocFilterInput['subject'],
 ): string | undefined {
   if (!subject || typeof subject !== 'object' || subject.column_name) {
