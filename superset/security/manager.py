@@ -6737,10 +6737,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # no JWT/guest token definitionally cannot be an embedded guest
             # viewer, so returning ``False`` is the semantically correct answer.
             try:
-                if not get_current_user():
-                    return False
-                user = g.user
+                # Evaluating the current user is what may raise; its username is
+                # deliberately not consulted, as guest tokens may carry any
+                # username value (including an empty one).
+                get_current_user()
+                user = getattr(g, "user", None)
             except NoAuthorizationError:
+                return False
+            if not user:
                 return False
 
         return hasattr(user, "is_guest_user") and user.is_guest_user
