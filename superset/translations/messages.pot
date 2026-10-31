@@ -1609,6 +1609,9 @@ msgstr ""
 msgid "Alert ended grace period."
 msgstr ""
 
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
+
 msgid "Alert failed"
 msgstr ""
 
@@ -10213,6 +10216,9 @@ msgstr ""
 msgid "Open in SQL Lab"
 msgstr ""
 
+msgid "Open in Superset"
+msgstr ""
+
 msgid "Open in SQL lab"
 msgstr ""
 
@@ -18814,4 +18820,69 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
+msgstr ""
+
+#, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
+msgstr ""
+
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
+msgid "Select an approved Teams channel"
+msgstr ""
+
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
+
+msgid "A configured Teams destination key is required"
+msgstr ""
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
+
+msgid "Teams alert delivery is disabled"
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
 msgstr ""

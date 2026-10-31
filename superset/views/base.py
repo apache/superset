@@ -64,6 +64,7 @@ from superset.dashboards.excel_export.storage import is_background_export_availa
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.extensions import cache_manager
+from superset.integrations.teams.destinations import configured_teams
 from superset.models.core import Theme as ThemeModel
 from superset.reports.models import ReportRecipientType
 from superset.security import password_recovery
@@ -580,6 +581,21 @@ def _soft_delete_conf() -> dict[str, Any]:
         return {}
 
 
+def _notification_methods() -> list[ReportRecipientType]:
+    """Expose configured delivery methods without deployment credentials."""
+    methods = [ReportRecipientType.EMAIL, ReportRecipientType.WEBHOOK]
+    if app.config.get("SLACK_API_TOKEN"):
+        methods = [
+            ReportRecipientType.EMAIL,
+            ReportRecipientType.SLACK,
+            ReportRecipientType.SLACKV2,
+            ReportRecipientType.WEBHOOK,
+        ]
+    if configured_teams() is not None:
+        methods.append(ReportRecipientType.TEAMS)
+    return methods
+
+
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     user_id: int | None, locale: str | None
@@ -598,18 +614,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     frontend_config.update(_soft_delete_conf())
 
-    if app.config.get("SLACK_API_TOKEN"):
-        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
-            ReportRecipientType.EMAIL,
-            ReportRecipientType.SLACK,
-            ReportRecipientType.SLACKV2,
-            ReportRecipientType.WEBHOOK,
-        ]
-    else:
-        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
-            ReportRecipientType.EMAIL,
-            ReportRecipientType.WEBHOOK,
-        ]
+    frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = _notification_methods()
 
     # verify client has google sheets installed
     available_specs = get_available_engine_specs()

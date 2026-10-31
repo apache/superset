@@ -68,6 +68,8 @@ jobs:
         uses: $/.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Verify Teams SDK is available for authentication and delivery tests
+        run: python -c "import microsoft_teams.apps"
       - name: SDK unit tests
         env:
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"

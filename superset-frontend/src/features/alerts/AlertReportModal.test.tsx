@@ -57,9 +57,11 @@ jest.mock('src/utils/getBootstrapData', () => ({
   })),
 }));
 
+let mockNotificationMethods = ['Email', 'Slack', 'SlackV2'];
+
 jest.mock('src/features/databases/state.ts', () => ({
   useCommonConf: () => ({
-    ALERT_REPORTS_NOTIFICATION_METHODS: ['Email', 'Slack', 'SlackV2'],
+    ALERT_REPORTS_NOTIFICATION_METHODS: mockNotificationMethods,
   }),
 }));
 
@@ -330,6 +332,7 @@ const restoreDefaultTabsRoute = () => {
 };
 
 afterEach(() => {
+  mockNotificationMethods = ['Email', 'Slack', 'SlackV2'];
   restoreDefaultTabsRoute();
 
   // Clear call history so stale counts don't leak between tests
@@ -1168,9 +1171,9 @@ test('removes notification method on clicking trash can', async () => {
     /add another notification method/i,
   );
   await userEvent.click(addNotificationMethod);
-  const images = screen.getAllByRole('img');
-  const trash = images[images.length - 1];
-  await userEvent.click(trash);
+  await userEvent.click(
+    screen.getByRole('button', { name: /remove notification method/i }),
+  );
   expect(
     screen.getAllByRole('combobox', { name: /delivery method/i }).length,
   ).toBe(1);
@@ -4662,3 +4665,434 @@ test('global attachment policy hides both the alert toggle and attachment contro
     );
   }
 });
+
+test('Changing the first Teams method preserves the following destination', async () => {
+  mockNotificationMethods = ['Email', 'Teams'];
+  fetchMock.get('glob:*/api/v1/report/92', {
+    result: {
+      ...generateMockPayload(true),
+      id: 92,
+      report_format: 'NONE',
+      recipients: [
+        { id: 1, type: 'Teams', recipient_config_json: '{"target":"ops"}' },
+        { id: 2, type: 'Teams', recipient_config_json: '{"target":"finance"}' },
+      ],
+    },
+  });
+  fetchMock.get(
+    'glob:*/api/v1/report/teams_destinations/',
+    {
+      result: [
+        { key: 'ops', label: 'Operations', available: true },
+        { key: 'finance', label: 'Finance', available: false },
+      ],
+    },
+    { name: 'teams-destinations' },
+  );
+  fetchMock.put(
+    'glob:*/api/v1/report/92',
+    { id: 92, result: {} },
+    { name: 'save-teams' },
+  );
+  try {
+    render(
+      <AlertReportModal
+        {...generateMockedProps(false, true)}
+        alert={{ ...validAlert, id: 92 }}
+      />,
+      {
+        useRedux: true,
+        initialState: { user: adminUser },
+      },
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /save/i })).toBeEnabled(),
+    );
+    await userEvent.click(screen.getByTestId('notification-method-panel'));
+    expect(
+      await screen.findByText('Finance (Bot installation required)'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('combobox', { name: 'Teams destination' }),
+    ).toHaveLength(2);
+    expect(
+      screen.getByText(/Add another notification method/i),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId('contents-panel'));
+    const attachmentToggle = screen.getByRole('switch', {
+      name: 'Include attachment',
+    });
+    await userEvent.click(attachmentToggle);
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /save/i })).toBeDisabled(),
+    );
+    await userEvent.click(attachmentToggle);
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /save/i })).toBeEnabled(),
+    );
+    await userEvent.click(screen.getByTestId('notification-method-panel'));
+    expect(
+      screen.getByText('Finance (Bot installation required)'),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getAllByRole('combobox', { name: /^Delivery method/ })[0],
+    );
+    await userEvent.click(await screen.findByText('Email'));
+    await addAsyncSelectValue(
+      /email recipients/i,
+      'owner@example.com',
+      reportUsersEndpoint,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls('save-teams')).toHaveLength(1),
+    );
+    const [call] = fetchMock.callHistory.calls('save-teams');
+    expect(JSON.parse(call.options.body as string)).toMatchObject({
+      report_format: 'NONE',
+      recipients: [
+        {
+          type: 'Email',
+          recipient_config_json: {
+            target: 'owner@example.com',
+            ccTarget: '',
+            bccTarget: '',
+          },
+        },
+        { type: 'Teams', recipient_config_json: { target: 'finance' } },
+      ],
+    });
+    expect(JSON.parse(call.options.body as string).recipients).toEqual([
+      {
+        type: 'Email',
+        recipient_config_json: {
+          target: 'owner@example.com',
+          ccTarget: '',
+          bccTarget: '',
+        },
+      },
+      { type: 'Teams', recipient_config_json: { target: 'finance' } },
+    ]);
+  } finally {
+    fetchMock.removeRoute('teams-destinations');
+    fetchMock.removeRoute('save-teams');
+  }
+});
+
+test.each([
+  ['an active alert', true, false],
+  ['an inactive alert', false, false],
+  ['pausing an alert', true, true],
+])('Teams unavailable integration allows %s', async (_, active, pause) => {
+  const id = pause ? 193 : active ? 194 : 195;
+  mockNotificationMethods = ['Email', 'Slack'];
+  fetchMock.get(`glob:*/api/v1/report/${id}`, {
+    result: {
+      ...generateMockPayload(true),
+      id,
+      active,
+      report_format: 'NONE',
+      recipients: [
+        {
+          id: 1,
+          type: 'Teams',
+          recipient_config_json: '{"target":"removed-key"}',
+        },
+        { id: 2, type: 'Slack', recipient_config_json: { target: 'C123' } },
+      ],
+    },
+  });
+  fetchMock.get(
+    'glob:*/api/v1/report/teams_destinations/',
+    { result: [] },
+    { name: 'teams-unavailable' },
+  );
+  fetchMock.put(
+    `glob:*/api/v1/report/${id}`,
+    { id, result: {} },
+    {
+      name: 'teams-unavailable-save',
+    },
+  );
+  try {
+    render(
+      <AlertReportModal
+        {...generateMockedProps(false, true)}
+        alert={{ ...validAlert, id }}
+      />,
+      { useRedux: true, initialState: { user: adminUser } },
+    );
+    await userEvent.click(screen.getByTestId('notification-method-panel'));
+    expect(
+      await screen.findByText('removed-key (Unavailable)'),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Teams delivery is unavailable/),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId('general-information-panel'));
+    const description = screen.getByPlaceholderText(
+      /include description to be sent with alert/i,
+    );
+    await userEvent.clear(description);
+    await userEvent.type(description, 'Updated description');
+    if (pause) await userEvent.click(screen.getByRole('switch'));
+    const save = screen.getByRole('button', { name: /save/i });
+    await waitFor(() => expect(save).toBeEnabled());
+    await userEvent.click(screen.getByTestId('notification-method-panel'));
+    const slackTarget = screen.getByTestId('recipients');
+    fireEvent.change(slackTarget, { target: { value: 'C456' } });
+    await waitFor(() => expect(save).toBeDisabled());
+    fireEvent.change(slackTarget, { target: { value: 'C123' } });
+    await waitFor(() => expect(save).toBeEnabled());
+    await userEvent.click(save);
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory.calls('teams-unavailable-save'),
+      ).toHaveLength(1),
+    );
+    const [call] = fetchMock.callHistory.calls('teams-unavailable-save');
+    expect(JSON.parse(call.options.body as string)).toMatchObject({
+      active: pause ? false : active,
+      description: 'Updated description',
+      report_format: 'NONE',
+      recipients: [
+        { type: 'Teams', recipient_config_json: { target: 'removed-key' } },
+        {
+          type: 'Slack',
+          recipient_config_json: {
+            target: 'C123',
+            ccTarget: '',
+            bccTarget: '',
+          },
+        },
+      ],
+    });
+  } finally {
+    fetchMock.removeRoute(`glob:*/api/v1/report/${id}`);
+    fetchMock.removeRoute('teams-unavailable');
+    fetchMock.removeRoute('teams-unavailable-save');
+  }
+});
+
+test('Teams unavailable saved keys can be replaced without losing inactive state', async () => {
+  mockNotificationMethods = ['Email', 'Teams'];
+  fetchMock.get('glob:*/api/v1/report/94', {
+    result: {
+      ...generateMockPayload(true),
+      id: 94,
+      active: false,
+      report_format: 'NONE',
+      recipients: [
+        {
+          id: 1,
+          type: 'Teams',
+          recipient_config_json: { target: 'removed-key' },
+        },
+      ],
+    },
+  });
+  fetchMock.get(
+    'glob:*/api/v1/report/teams_destinations/',
+    {
+      result: [{ key: 'ops', label: 'Operations', available: false }],
+    },
+    { name: 'teams-replacement' },
+  );
+  fetchMock.put(
+    'glob:*/api/v1/report/94',
+    { id: 94, result: {} },
+    { name: 'teams-replacement-save' },
+  );
+  try {
+    render(
+      <AlertReportModal
+        {...generateMockedProps(false, true)}
+        alert={{ ...validAlert, id: 94 }}
+      />,
+      {
+        useRedux: true,
+        initialState: { user: adminUser },
+      },
+    );
+    await userEvent.click(screen.getByTestId('notification-method-panel'));
+    expect(
+      await screen.findByText('removed-key (Unavailable)'),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('combobox', { name: 'Teams destination' }),
+    );
+    await userEvent.click(
+      await screen.findByText('Operations (Bot installation required)'),
+    );
+    expect(
+      screen.queryByText(/This saved Teams destination is unavailable/),
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory.calls('teams-replacement-save'),
+      ).toHaveLength(1),
+    );
+    const [call] = fetchMock.callHistory.calls('teams-replacement-save');
+    const payload = JSON.parse(call.options.body as string);
+    expect(payload.active).toBe(false);
+    expect(payload.report_format).toBe('NONE');
+    expect(payload.recipients).toEqual([
+      { type: 'Teams', recipient_config_json: { target: 'ops' } },
+    ]);
+  } finally {
+    fetchMock.removeRoute('teams-replacement');
+    fetchMock.removeRoute('teams-replacement-save');
+  }
+});
+
+test('Teams saved recipients stay visible and replaceable when the optional SDK is unavailable', async () => {
+  mockNotificationMethods = ['Email'];
+  fetchMock.get('glob:*/api/v1/report/95', {
+    result: {
+      ...generateMockPayload(true),
+      id: 95,
+      report_format: 'NONE',
+      recipients: [
+        { id: 1, type: 'Teams', recipient_config_json: '{"target":"ops"}' },
+      ],
+    },
+  });
+  fetchMock.get(
+    'glob:*/api/v1/report/teams_destinations/',
+    { result: [] },
+    { name: 'teams-sdk-missing' },
+  );
+  try {
+    render(
+      <AlertReportModal
+        {...generateMockedProps(false, true)}
+        alert={{ ...validAlert, id: 95 }}
+      />,
+      {
+        useRedux: true,
+        initialState: { user: adminUser },
+      },
+    );
+    await userEvent.click(screen.getByTestId('notification-method-panel'));
+    expect(await screen.findByText('ops (Unavailable)')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Teams delivery is unavailable.*optional Teams dependency/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: 'Teams destination' }),
+    ).toBeDisabled();
+    const save = screen.getByRole('button', { name: /save/i });
+    await waitFor(() => expect(save).toBeEnabled());
+    await userEvent.click(screen.getByTestId('general-information-panel'));
+    await userEvent.click(screen.getByRole('switch'));
+    await waitFor(() => expect(save).toBeDisabled());
+    await userEvent.click(screen.getByRole('switch'));
+    await waitFor(() => expect(save).toBeEnabled());
+    await userEvent.click(screen.getByTestId('notification-method-panel'));
+    await userEvent.click(
+      screen.getByRole('combobox', { name: /^Delivery method/ }),
+    );
+    await userEvent.click(await screen.findByText('Email'));
+    expect(
+      screen.queryByRole('combobox', { name: 'Teams destination' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('ops (Unavailable)')).not.toBeInTheDocument();
+  } finally {
+    fetchMock.removeRoute('teams-sdk-missing');
+  }
+});
+
+test.each(['PNG', 'CSV'])(
+  'Teams edits normalize saved %s format when attachments are globally disabled',
+  async reportFormat => {
+    mockNotificationMethods = ['Email', 'Teams'];
+    fetchMock.removeRoute(configurationEndpoint);
+    fetchMock.get(
+      configurationEndpoint,
+      {
+        result: { ...mockReportConfiguration, alerts_attach_reports: false },
+      },
+      { name: configurationEndpoint },
+    );
+    fetchMock.get(
+      'glob:*/api/v1/report/96',
+      {
+        result: {
+          ...generateMockPayload(true),
+          id: 96,
+          report_format: reportFormat,
+          recipients: [
+            {
+              id: 1,
+              type: 'Email',
+              recipient_config_json: { target: 'test@example.com' },
+            },
+          ],
+        },
+      },
+      { name: 'teams-saved-format' },
+    );
+    fetchMock.get(
+      'glob:*/api/v1/report/teams_destinations/',
+      {
+        result: [{ key: 'ops', label: 'Operations', available: true }],
+      },
+      { name: 'teams-hidden-attachments' },
+    );
+    fetchMock.put(
+      'glob:*/api/v1/report/96',
+      { id: 96, result: {} },
+      { name: 'save-teams-hidden' },
+    );
+    try {
+      render(
+        <AlertReportModal
+          {...generateMockedProps(false, true)}
+          alert={{ ...validAlert, id: 96 }}
+        />,
+        {
+          useRedux: true,
+          initialState: { user: adminUser },
+        },
+      );
+      await userEvent.click(screen.getByTestId('notification-method-panel'));
+      await userEvent.click(
+        screen.getByRole('combobox', { name: /^Delivery method/ }),
+      );
+      await userEvent.click(await screen.findByText('Teams'));
+      await userEvent.click(
+        screen.getByRole('combobox', { name: 'Teams destination' }),
+      );
+      await userEvent.click(await screen.findByText('Operations'));
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: /save/i })).toBeEnabled(),
+      );
+      await userEvent.click(screen.getByRole('button', { name: /save/i }));
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls('save-teams-hidden')).toHaveLength(
+          1,
+        ),
+      );
+      const [call] = fetchMock.callHistory.calls('save-teams-hidden');
+      expect(JSON.parse(call.options.body as string)).toMatchObject({
+        report_format: 'NONE',
+        recipients: [
+          { type: 'Teams', recipient_config_json: { target: 'ops' } },
+        ],
+      });
+    } finally {
+      fetchMock.removeRoute('teams-saved-format');
+      fetchMock.removeRoute('teams-hidden-attachments');
+      fetchMock.removeRoute('save-teams-hidden');
+      fetchMock.removeRoute(configurationEndpoint);
+      fetchMock.get(
+        configurationEndpoint,
+        { result: mockReportConfiguration },
+        { name: configurationEndpoint },
+      );
+    }
+  },
+);

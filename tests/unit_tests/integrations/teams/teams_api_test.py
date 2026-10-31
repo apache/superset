@@ -1,0 +1,926 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Exercise the real Teams SDK authentication boundary and Flask persistence."""
+
+from __future__ import annotations
+
+import asyncio
+import importlib
+import importlib.util
+import urllib.request
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
+from datetime import datetime, timedelta, timezone
+from io import BytesIO
+from types import SimpleNamespace
+from typing import Any
+from unittest.mock import patch
+
+import jwt
+import pytest
+from cryptography.hazmat.primitives.asymmetric import rsa
+from flask import current_app, Flask, Response
+from flask.testing import FlaskClient
+from sqlalchemy.engine import Engine
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+
+from superset.integrations.teams import api as teams_api
+from superset.integrations.teams.config import parse_teams_config
+from superset.integrations.teams.models import TeamsInstallation
+from superset.integrations.teams.store import TeamsInstallationStore
+from superset.utils import json
+
+if importlib.util.find_spec("microsoft_teams") is None:
+    pytest.skip("Optional Teams SDK is not installed", allow_module_level=True)
+
+teams_adapter = importlib.import_module("superset.integrations.teams.adapter")
+PATH = "/api/v1/teams/events/"
+TENANT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+APPLICATION = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+_REAL_KEY_LOOKUP = jwt.PyJWKClient.get_signing_key_from_jwt
+OTHER = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
+SERVICE_URL = "https://smba.trafficmanager.net/amer/"
+
+
+@pytest.fixture(scope="module")
+def signing_key() -> rsa.RSAPrivateKey:
+    """Sign real SDK-validated tokens without contacting Microsoft's JWKS service."""
+    return rsa.generate_private_key(public_exponent=65537, key_size=2048)
+
+
+@pytest.fixture(autouse=True)
+def trusted_signing_key(
+    monkeypatch: pytest.MonkeyPatch, signing_key: rsa.RSAPrivateKey
+) -> None:
+    """Replace only key discovery; the SDK verifies signature and claims itself."""
+    teams_adapter._callback_server.cache_clear()
+    monkeypatch.setattr(
+        jwt.PyJWKClient,
+        "get_signing_key_from_jwt",
+        lambda self, token: SimpleNamespace(key=signing_key.public_key()),
+    )
+
+
+@pytest.fixture
+def auth_headers(signing_key: rsa.RSAPrivateKey) -> Callable[..., dict[str, str]]:
+    """Build connector JWTs with optional invalid claims or signing key."""
+
+    def sign(
+        claims: dict[str, Any] | None = None,
+        key: rsa.RSAPrivateKey | None = None,
+    ) -> dict[str, str]:
+        """Sign a token so failures exercise the SDK's real validator."""
+        now = datetime.now(timezone.utc)
+        payload = {
+            "aud": APPLICATION,
+            "iss": "https://api.botframework.com",
+            "iat": int(now.timestamp()),
+            "nbf": int(now.timestamp()),
+            "exp": int((now + timedelta(hours=1)).timestamp()),
+            "serviceurl": SERVICE_URL,
+        }
+        payload.update(claims or {})
+        return {
+            "Authorization": "Bearer "
+            + jwt.encode(payload, key or signing_key, algorithm="RS256")
+        }
+
+    return sign
+
+
+@pytest.fixture
+def installation() -> dict[str, Any]:
+    """An installationUpdate event from a standard team channel."""
+    return {
+        "type": "installationUpdate",
+        "action": "add",
+        "id": "event-1",
+        "timestamp": "2026-10-01T12:00:00Z",
+        "serviceUrl": SERVICE_URL,
+        "channelId": "msteams",
+        "from": {"id": "29:installer"},
+        "recipient": {"id": f"28:{APPLICATION}"},
+        "conversation": {
+            "id": "channel-1",
+            "conversationType": "channel",
+            "tenantId": TENANT,
+        },
+        "channelData": {
+            "tenant": {"id": TENANT},
+            "team": {"id": "team-1"},
+            "channel": {"id": "channel-1", "type": "standard"},
+        },
+    }
+
+
+@pytest.fixture
+def teams_client(
+    teams_config: dict[str, Any],
+    teams_engine: Engine,
+    monkeypatch: pytest.MonkeyPatch,
+) -> FlaskClient:
+    """Mount the callback in Flask with real CSRF enforcement and SQLAlchemy."""
+    app = Flask(__name__)
+    app.config.update(
+        TESTING=True,
+        SECRET_KEY="test-callback-key",  # noqa: S106
+        WTF_CSRF_ENABLED=True,
+        FEATURE_FLAGS={"ALERT_REPORT_TEAMS": True},
+        ALERT_REPORTS_TEAMS=teams_config,
+    )
+    monkeypatch.setattr(teams_api, "db", SimpleNamespace(engine=teams_engine))
+    monkeypatch.setattr(
+        teams_api.feature_flag_manager,
+        "is_feature_enabled",
+        lambda name: current_app.config["FEATURE_FLAGS"].get(name, False),
+    )
+    teams_api.csrf.init_app(app)
+    teams_api.register_teams_api(app)
+
+    @app.post("/csrf-control")
+    def csrf_control() -> Response:
+        """An unrelated route must remain CSRF protected."""
+        return Response(status=200)
+
+    return app.test_client()
+
+
+def test_callback_persists_only_approved_metadata(
+    teams_client: FlaskClient,
+    teams_engine: Engine,
+    teams_config: dict[str, Any],
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+) -> None:
+    before = deepcopy(teams_config)
+    response = teams_client.post(PATH, json=installation, headers=auth_headers())
+    assert response.status_code == 200
+    assert response.data == b""
+    with Session(teams_engine) as session:
+        persisted = session.query(TeamsInstallation).one()
+        assert persisted.service_url == SERVICE_URL
+        assert persisted.active
+        assert str(persisted.tenant_id) == TENANT
+        assert str(persisted.application_id) == APPLICATION
+        assert persisted.team_id == "team-1"
+    assert teams_config == before
+    assert b"deployment-secret" not in response.data
+
+
+@pytest.mark.parametrize(
+    "authentication",
+    [
+        "missing",
+        "malformed",
+        "bad-signature",
+        "wrong-audience",
+        "expired",
+        "wrong-issuer",
+        "missing-serviceurl",
+        "mismatched-serviceurl",
+    ],
+)
+def test_invalid_authentication_never_opens_database_session(
+    teams_client: FlaskClient,
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+    authentication: str,
+) -> None:
+    if authentication == "missing":
+        headers = {}
+    elif authentication == "malformed":
+        headers = {"Authorization": "Bearer not-a-jwt"}
+    elif authentication == "bad-signature":
+        headers = auth_headers(
+            key=rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        )
+    else:
+        claims = {
+            "wrong-audience": {"aud": OTHER},
+            "expired": {"exp": 1},
+            "wrong-issuer": {"iss": "https://untrusted.example"},
+            "missing-serviceurl": {"serviceurl": None},
+            "mismatched-serviceurl": {
+                "serviceurl": "https://smba.trafficmanager.net/other/"
+            },
+        }
+        headers = auth_headers(claims[authentication])
+    with patch.object(teams_api, "Session") as session:
+        response = teams_client.post(PATH, json=installation, headers=headers)
+    assert response.status_code == 401
+    assert response.data == b""
+    session.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "mismatch",
+    [
+        "tenant",
+        "conversation-tenant",
+        "token-tenant",
+        "recipient",
+        "team",
+        "personal",
+        "groupChat",
+        "private",
+        "shared",
+        "private-team",
+        "shared-team",
+    ],
+)
+def test_authenticated_events_must_match_deployment_scope(
+    teams_client: FlaskClient,
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+    mismatch: str,
+) -> None:
+    claims = {}
+    if mismatch == "tenant":
+        installation["channelData"]["tenant"]["id"] = OTHER
+    elif mismatch == "conversation-tenant":
+        installation["conversation"]["tenantId"] = OTHER
+    elif mismatch == "token-tenant":
+        claims = {"tid": OTHER}
+    elif mismatch == "recipient":
+        installation["recipient"]["id"] = f"28:{OTHER}"
+    elif mismatch == "team":
+        installation["channelData"]["team"]["id"] = "unapproved-team"
+    elif mismatch in {"personal", "groupChat"}:
+        installation["conversation"]["conversationType"] = mismatch
+    elif mismatch in {"private", "shared"}:
+        installation["channelData"]["channel"]["type"] = mismatch
+    else:
+        installation["channelData"]["team"]["teamType"] = (
+            "privateChannel" if mismatch == "private-team" else "sharedChannel"
+        )
+    with patch.object(teams_api, "Session") as session:
+        response = teams_client.post(
+            PATH, json=installation, headers=auth_headers(claims)
+        )
+    assert response.status_code == 403
+    session.assert_not_called()
+
+
+def test_entra_tokens_cannot_bypass_signed_service_url_binding(
+    teams_client: FlaskClient,
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+) -> None:
+    # The SDK also supports Agent 365 tokens; this notification bot accepts only
+    # connector tokens whose signed serviceurl claim binds the installation URL.
+    headers = auth_headers(
+        {
+            "iss": f"https://login.microsoftonline.com/{TENANT}/v2.0",
+            "tid": TENANT,
+            "azp": "5a807f24-c9de-44ee-a3a7-329e88a00ffc",
+            "serviceurl": None,
+        }
+    )
+    with patch.object(teams_api, "Session") as session:
+        response = teams_client.post(PATH, json=installation, headers=headers)
+    assert response.status_code == 403
+    session.assert_not_called()
+
+
+def test_tokens_without_expiration_are_rejected(
+    teams_client: FlaskClient,
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+) -> None:
+    with patch.object(teams_api, "Session") as session:
+        response = teams_client.post(
+            PATH, json=installation, headers=auth_headers({"exp": None})
+        )
+    assert response.status_code in (401, 403)
+    session.assert_not_called()
+
+
+@pytest.mark.parametrize("add_action", ["add", "add-upgrade"])
+@pytest.mark.parametrize("remove_action", ["remove", "remove-upgrade"])
+def test_repeated_events_removal_and_reinstallation(
+    teams_client: FlaskClient,
+    teams_engine: Engine,
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+    add_action: str,
+    remove_action: str,
+) -> None:
+    installation["action"] = add_action
+    headers = auth_headers()
+    for _ in range(2):
+        assert (
+            teams_client.post(PATH, json=installation, headers=headers).status_code
+            == 200
+        )
+    with Session(teams_engine) as session:
+        original = session.query(TeamsInstallation).one()
+        identity, created_on = original.id, original.created_on
+    installation["action"] = remove_action
+    for _ in range(2):
+        assert (
+            teams_client.post(PATH, json=installation, headers=headers).status_code
+            == 200
+        )
+    with Session(teams_engine) as session:
+        removed = session.query(TeamsInstallation).one()
+        assert removed.id == identity
+        assert not removed.active
+    installation["action"] = add_action
+    installation["timestamp"] = "2026-10-01T12:01:00Z"
+    refreshed = "https://smba.trafficmanager.net/emea/"
+    installation["serviceUrl"] = refreshed
+    for _ in range(2):
+        response = teams_client.post(
+            PATH, json=installation, headers=auth_headers({"serviceurl": refreshed})
+        )
+        assert response.status_code == 200
+    with Session(teams_engine) as session:
+        reinstalled = session.query(TeamsInstallation).one()
+        assert reinstalled.id == identity
+        assert reinstalled.created_on == created_on
+        assert reinstalled.active
+        assert reinstalled.service_url == refreshed
+
+
+def test_removal_retains_unknown_installation_tombstone(
+    teams_client: FlaskClient,
+    teams_engine: Engine,
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+) -> None:
+    installation["action"] = "remove"
+    assert (
+        teams_client.post(PATH, json=installation, headers=auth_headers()).status_code
+        == 200
+    )
+    with Session(teams_engine) as session:
+        assert not session.query(TeamsInstallation).one().active
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        "type",
+        "action",
+        "malformed-action",
+        "missing-service",
+        "missing-channel",
+        "missing-recipient",
+        "attachment",
+    ],
+)
+def test_unsupported_or_incomplete_events_do_not_persist(
+    teams_client: FlaskClient,
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+    change: str,
+) -> None:
+    if change == "type":
+        installation["type"] = "message"
+    elif change == "action":
+        installation["action"] = "unknown"
+    elif change == "malformed-action":
+        installation["action"] = []
+    elif change == "missing-service":
+        installation.pop("serviceUrl")
+    elif change == "missing-channel":
+        installation.pop("channelId")
+    elif change == "missing-recipient":
+        installation.pop("recipient")
+    else:
+        installation["attachments"] = [{"contentType": "image/png"}]
+    with patch.object(teams_api, "Session") as session:
+        response = teams_client.post(PATH, json=installation, headers=auth_headers())
+    assert response.status_code == 400
+    session.assert_not_called()
+
+
+def test_session_cookie_does_not_authenticate_callback(
+    teams_client: FlaskClient, installation: dict[str, Any]
+) -> None:
+    with teams_client.session_transaction() as browser_session:
+        browser_session["_user_id"] = "1"
+        browser_session["_fresh"] = True
+    with patch.object(teams_api, "Session") as session:
+        response = teams_client.post(PATH, json=installation)
+    assert response.status_code == 401
+    session.assert_not_called()
+
+
+def test_csrf_exemption_is_only_for_callback(teams_client: FlaskClient) -> None:
+    # Without a CSRF exemption this would be 400 before SDK authentication.
+    assert teams_client.post(PATH, json={}).status_code == 401
+    assert teams_client.post("/csrf-control").status_code == 400
+    assert teams_client.get(PATH).status_code == 405
+
+
+@pytest.mark.parametrize(
+    "mode", ["disabled", "unconfigured", "invalid-config", "missing-sdk"]
+)
+def test_callback_fails_closed_without_sdk_or_configuration(
+    teams_client: FlaskClient,
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+    mode: str,
+) -> None:
+    expected = 503
+    if mode == "disabled":
+        teams_client.application.config["FEATURE_FLAGS"]["ALERT_REPORT_TEAMS"] = False
+        expected = 404
+    elif mode == "unconfigured":
+        teams_client.application.config["ALERT_REPORTS_TEAMS"] = {}
+    elif mode == "invalid-config":
+        teams_client.application.config["ALERT_REPORTS_TEAMS"] = {
+            "credential": "deployment-secret"
+        }
+    with patch.object(teams_adapter, "process_teams_event") as process_event:
+        if mode == "missing-sdk":
+            with patch.dict(
+                "sys.modules", {"superset.integrations.teams.adapter": None}
+            ):
+                response = teams_client.post(
+                    PATH, json=installation, headers=auth_headers()
+                )
+        else:
+            response = teams_client.post(
+                PATH, json=installation, headers=auth_headers()
+            )
+        process_event.assert_not_called()
+    assert response.status_code == expected
+    assert response.data == b""
+
+
+def test_bad_json_is_rejected(teams_client: FlaskClient) -> None:
+    assert teams_client.post(PATH, data="text").status_code == 415
+    assert (
+        teams_client.post(PATH, data="{", content_type="application/json").status_code
+        == 400
+    )
+    assert teams_client.post(PATH, json=[]).status_code == 400
+
+
+@pytest.mark.parametrize("fail", [False, True])
+def test_database_operation_closes_session_and_commits_or_rolls_back(
+    teams_client: FlaskClient,
+    teams_engine: Engine,
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+    monkeypatch: pytest.MonkeyPatch,
+    fail: bool,
+) -> None:
+    original_install = TeamsInstallationStore.install
+    closed: list[bool] = []
+
+    class TrackedSession(Session):
+        """Observe cleanup without replacing real SQLAlchemy transactions."""
+
+        def close(self) -> None:
+            """Record resource closure after rollback."""
+            super().close()
+            closed.append(not self.in_transaction())
+
+    def failing_install(
+        self: TeamsInstallationStore, *args: Any, **kwargs: Any
+    ) -> TeamsInstallation:
+        """Fail after writing so rollback must undo the database insert."""
+        installation = original_install(self, *args, **kwargs)
+        if fail:
+            raise SQLAlchemyError("injected persistence failure")
+        return installation
+
+    monkeypatch.setattr(TeamsInstallationStore, "install", failing_install)
+    monkeypatch.setattr(teams_api, "Session", TrackedSession)
+    response = teams_client.post(PATH, json=installation, headers=auth_headers())
+    assert response.status_code == (500 if fail else 200)
+    assert response.data == b""
+    assert closed == [True]
+    with Session(teams_engine) as session:
+        assert session.query(TeamsInstallation).count() == (0 if fail else 1)
+
+
+@pytest.mark.parametrize("invalid_auth", [False, True])
+def test_sdk_adapter_and_event_loop_are_operation_scoped(
+    teams_config: dict[str, Any],
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+    monkeypatch: pytest.MonkeyPatch,
+    invalid_auth: bool,
+) -> None:
+    config = parse_teams_config(teams_config)
+    assert config is not None
+    loops: list[asyncio.AbstractEventLoop] = []
+    original_stop = teams_adapter._FlaskServerAdapter.stop
+
+    async def stop(adapter: Any) -> None:
+        """Ensure cleanup runs within the operation's loop."""
+        loops.append(asyncio.get_running_loop())
+        await original_stop(adapter)
+        assert adapter.handler is None
+
+    monkeypatch.setattr(teams_adapter._FlaskServerAdapter, "stop", stop)
+    # This callback needs authentication only; no SDK App/outbound clients are used.
+    with patch(
+        "microsoft_teams.common.http.Client.__init__",
+        side_effect=AssertionError("unexpected outbound client"),
+    ):
+        result = teams_adapter.process_teams_event(
+            config, installation, {} if invalid_auth else auth_headers()
+        )
+    assert result.status == (401 if invalid_auth else 200)
+    assert len(loops) == 1
+    assert loops[0].is_closed()
+
+
+def test_sdk_initialization_failure_still_releases_adapter(
+    teams_config: dict[str, Any],
+    installation: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = parse_teams_config(teams_config)
+    assert config is not None
+    loops: list[asyncio.AbstractEventLoop] = []
+    original_stop = teams_adapter._FlaskServerAdapter.stop
+
+    async def stop(adapter: Any) -> None:
+        """Record cleanup even if route initialization raises."""
+        loops.append(asyncio.get_running_loop())
+        await original_stop(adapter)
+
+    monkeypatch.setattr(teams_adapter._FlaskServerAdapter, "stop", stop)
+    with patch.object(
+        teams_adapter.HttpServer,
+        "initialize",
+        side_effect=RuntimeError("initialization failed"),
+    ):
+        with pytest.raises(RuntimeError, match="initialization failed"):
+            teams_adapter.process_teams_event(config, installation, {})
+    assert len(loops) == 1
+    assert loops[0].is_closed()
+
+
+@pytest.fixture(params=[False, True], ids=["writable-limit", "read-only-limit"])
+def body_size_client(
+    teams_client: FlaskClient, request: pytest.FixtureRequest
+) -> FlaskClient:
+    """Exercise older Flask's read-only request limit alongside modern Flask."""
+    if request.param:
+
+        class ReadOnlyLimitRequest(teams_client.application.request_class):
+            @property
+            def max_content_length(self) -> int | None:
+                """Expose only the deployment limit, as Flask before 3.1 does."""
+                return current_app.config["MAX_CONTENT_LENGTH"]
+
+        teams_client.application.request_class = ReadOnlyLimitRequest
+    return teams_client
+
+
+def post_sized_event(
+    client: FlaskClient,
+    installation: dict[str, Any],
+    size: int,
+    content_length: bool,
+    **kwargs: Any,
+) -> Response:
+    """Send padded JSON through either sized or terminated-stream WSGI input."""
+    body = json.dumps(installation).encode()
+    return client.post(
+        PATH,
+        data=body + b" " * (size - len(body)),
+        environ_overrides=(
+            {}
+            if content_length
+            else {"CONTENT_LENGTH": "", "wsgi.input_terminated": True}
+        ),
+        **kwargs,
+    )
+
+
+@pytest.mark.parametrize("content_length", [True, False])
+@pytest.mark.parametrize("limit", [None, 1024])
+@pytest.mark.parametrize("extra_bytes", [1, 4096])
+@pytest.mark.parametrize("content_type", ["application/json", "text/plain"])
+def test_oversized_event_is_rejected_before_json_sdk_or_database(
+    body_size_client: FlaskClient,
+    installation: dict[str, Any],
+    content_length: bool,
+    extra_bytes: int,
+    content_type: str,
+    limit: int | None,
+) -> None:
+    """Even valid JSON followed by excess whitespace must not reach the parser."""
+    body_size_client.application.config["MAX_CONTENT_LENGTH"] = limit
+    with (
+        patch.object(body_size_client.application.json, "loads") as parse,
+        patch.object(teams_adapter, "process_teams_event") as sdk,
+        patch.object(teams_api, "Session") as session,
+    ):
+        response = post_sized_event(
+            body_size_client,
+            installation,
+            (limit or 256 * 1024) + extra_bytes,
+            content_length,
+            content_type=content_type,
+        )
+    assert response.status_code == 413
+    assert body_size_client.application.config["MAX_CONTENT_LENGTH"] == limit
+    parse.assert_not_called()
+    sdk.assert_not_called()
+    session.assert_not_called()
+
+
+@pytest.mark.parametrize("content_length", [True, False])
+@pytest.mark.parametrize("limit,size", [(None, 1024), (None, 256 * 1024), (1024, 1024)])
+def test_valid_event_within_body_limit_still_authenticates_and_persists(
+    body_size_client: FlaskClient,
+    teams_engine: Engine,
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+    content_length: bool,
+    size: int,
+    limit: int | None,
+) -> None:
+    """Accept normal and boundary-size JSON bodies, including terminated streams."""
+    body_size_client.application.config["MAX_CONTENT_LENGTH"] = limit
+    response = post_sized_event(
+        body_size_client,
+        installation,
+        size,
+        content_length,
+        content_type="application/json",
+        headers=auth_headers(),
+    )
+    assert response.status_code == 200
+    with Session(teams_engine) as session:
+        installation_record = session.query(TeamsInstallation).one()
+        assert installation_record.team_id == "team-1"
+        assert installation_record.active
+
+
+def test_body_limit_applies_only_to_teams_callback(teams_client: FlaskClient) -> None:
+    """A separate route retains the deployment's existing request-size handling."""
+    app = teams_client.application
+
+    @app.post("/other-body")
+    @teams_api.csrf.exempt
+    def other_body() -> Response:
+        from flask import request
+
+        return Response(str(len(request.get_data())))
+
+    body = b"x" * (256 * 1024 + 1)
+    assert (
+        teams_client.post(PATH, data=body, content_type="application/json").status_code
+        == 413
+    )
+    response = teams_client.post("/other-body", data=body)
+    assert response.status_code == 200
+    assert response.data == str(len(body)).encode()
+    assert app.config["MAX_CONTENT_LENGTH"] is None
+
+
+@pytest.mark.parametrize(
+    "timestamp", [None, "missing", "invalid", "2026-10-01T12:00:00"]
+)
+def test_callback_requires_source_timestamp(
+    teams_client: FlaskClient,
+    teams_engine: Engine,
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+    timestamp: str | None,
+) -> None:
+    if timestamp == "missing":
+        installation.pop("timestamp")
+    else:
+        installation["timestamp"] = timestamp
+    assert (
+        teams_client.post(PATH, json=installation, headers=auth_headers()).status_code
+        == 400
+    )
+    with Session(teams_engine) as session:
+        assert session.query(TeamsInstallation).count() == 0
+
+
+def test_delayed_install_callback_cannot_undo_removal(
+    teams_client: FlaskClient,
+    teams_engine: Engine,
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+) -> None:
+    headers = auth_headers()
+    removal = {**installation, "action": "remove", "timestamp": "2026-10-01T12:01:00Z"}
+    for body in (removal, installation, removal, installation):
+        assert teams_client.post(PATH, json=body, headers=headers).status_code == 200
+    with Session(teams_engine) as session:
+        assert not session.query(TeamsInstallation).one().active
+
+
+@pytest.mark.parametrize(
+    "action, active", [("add-upgrade", True), ("remove-upgrade", False)]
+)
+def test_upgrade_action_does_not_mutate_request(
+    teams_config: dict[str, Any],
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+    action: str,
+    active: bool,
+) -> None:
+    """Authenticate the original event and normalize only the SDK validation copy."""
+    config = parse_teams_config(teams_config)
+    assert config is not None
+    installation["action"] = action
+    original = deepcopy(installation)
+    result = teams_adapter.process_teams_event(config, installation, auth_headers())
+    assert result.status == 200
+    assert result.event is not None
+    assert result.event.active is active
+    assert installation == original
+
+
+@pytest.mark.parametrize("action", [None, [], {}, True, 1, "", "add upgrade", "other"])
+def test_invalid_actions_are_rejected_after_authentication(
+    teams_client: FlaskClient,
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+    action: Any,
+) -> None:
+    """Malformed actions return a client error without reaching persistence."""
+    installation["action"] = action
+    with patch.object(teams_api, "Session") as session:
+        response = teams_client.post(PATH, json=installation, headers=auth_headers())
+    assert response.status_code == 400
+    session.assert_not_called()
+
+
+@pytest.mark.parametrize("limit", [None, 1024])
+def test_oversized_declared_length_does_not_read_body(
+    body_size_client: FlaskClient, limit: int | None
+) -> None:
+    """Reject the header before consuming even one byte of WSGI input."""
+    body_size_client.application.config["MAX_CONTENT_LENGTH"] = limit
+    stream = BytesIO(b"{}")
+    with (
+        patch.object(
+            stream, "read", side_effect=AssertionError("unexpected read")
+        ) as read,
+        patch.object(body_size_client.application.json, "loads") as parse,
+        patch.object(teams_adapter, "process_teams_event") as sdk,
+        patch.object(teams_api, "Session") as session,
+    ):
+        response = body_size_client.post(
+            PATH,
+            content_type="application/json",
+            environ_overrides={
+                "wsgi.input": stream,
+                "CONTENT_LENGTH": str((limit or 256 * 1024) + 1),
+            },
+        )
+    assert response.status_code == 413
+    read.assert_not_called()
+    parse.assert_not_called()
+    sdk.assert_not_called()
+    session.assert_not_called()
+
+
+@pytest.mark.parametrize("limit", [None, 1024])
+@pytest.mark.parametrize("declared_length", ["", "1"])
+@pytest.mark.parametrize("short_reads", [False, True])
+def test_terminated_stream_reads_are_bounded_before_parsing(
+    body_size_client: FlaskClient,
+    limit: int | None,
+    declared_length: str,
+    short_reads: bool,
+) -> None:
+    """Bound reads even when a terminated stream omits or understates its length."""
+    body_size_client.application.config["MAX_CONTENT_LENGTH"] = limit
+    effective_limit = limit or 256 * 1024
+    stream = BytesIO(b"{}" + b" " * (effective_limit + 4096))
+    read_chunk = stream.read
+    with (
+        patch.object(
+            stream,
+            "read",
+            side_effect=lambda size: read_chunk(
+                min(size, 512) if short_reads else size
+            ),
+        ) as read,
+        patch.object(body_size_client.application.json, "loads") as parse,
+        patch.object(teams_adapter, "process_teams_event") as sdk,
+        patch.object(teams_api, "Session") as session,
+    ):
+        response = body_size_client.post(
+            PATH,
+            content_type="application/json",
+            environ_overrides={
+                "wsgi.input": stream,
+                "CONTENT_LENGTH": declared_length,
+                "wsgi.input_terminated": True,
+            },
+        )
+        assert stream.tell() == effective_limit + 1
+    assert response.status_code == 413
+    if short_reads:
+        assert read.call_count > 1
+        assert all(
+            0 < call.args[0] <= effective_limit + 1 for call in read.call_args_list
+        )
+    else:
+        read.assert_called_once_with(effective_limit + 1)
+    parse.assert_not_called()
+    sdk.assert_not_called()
+    session.assert_not_called()
+
+
+def test_callback_reuses_jwks_and_unknown_key_cooldown(
+    teams_config: dict[str, Any],
+    installation: dict[str, Any],
+    signing_key: rsa.RSAPrivateKey,
+    auth_headers: Callable[..., dict[str, str]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Separate callbacks share real signature verification and the SDK key cache."""
+    monkeypatch.setattr(jwt.PyJWKClient, "get_signing_key_from_jwt", _REAL_KEY_LOOKUP)
+    key = json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(signing_key.public_key()))
+    key.update(kid="trusted", use="sig")
+    opens = []
+    clock = [0.0]
+    monkeypatch.setattr(
+        jwt.jwks_client, "time", SimpleNamespace(monotonic=lambda: clock[0])
+    )
+
+    def open_keys(*args: Any, **kwargs: Any) -> BytesIO:
+        opens.append(args)
+        return BytesIO(json.dumps({"keys": [key]}).encode())
+
+    monkeypatch.setattr(urllib.request.OpenerDirector, "open", open_keys)
+    config = parse_teams_config(teams_config)
+    assert config is not None
+    claims = jwt.decode(
+        auth_headers()["Authorization"][7:], options={"verify_signature": False}
+    )
+    for kid, status in [
+        ("trusted", 200),
+        ("unknown-1", 401),
+        ("unknown-2", 401),
+        ("trusted", 200),
+    ]:
+        token = jwt.encode(claims, signing_key, algorithm="RS256", headers={"kid": kid})
+        result = teams_adapter.process_teams_event(
+            config, installation, {"Authorization": "Bearer " + token}
+        )
+        assert result.status == status
+    assert len(opens) == 1
+
+    clock[0] = 31.0
+    key["kid"] = "rotated"
+    token = jwt.encode(
+        claims, signing_key, algorithm="RS256", headers={"kid": "rotated"}
+    )
+    result = teams_adapter.process_teams_event(
+        config, installation, {"Authorization": "Bearer " + token}
+    )
+    assert result.status == 200
+    assert len(opens) == 2
+
+
+def test_cached_callback_keeps_concurrent_request_state_separate(
+    teams_config: dict[str, Any],
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+) -> None:
+    """A cached SDK handler cannot leak event state into another callback."""
+    config = parse_teams_config(teams_config)
+    assert config is not None
+    headers = auth_headers()
+    bodies = [dict(installation, action=action) for action in ["add", "remove"] * 4]
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(
+            pool.map(
+                lambda body: teams_adapter.process_teams_event(config, body, headers),
+                bodies,
+            )
+        )
+    for body, result in zip(bodies, results, strict=True):
+        assert result.status == 200
+        assert result.event is not None
+        assert result.event.active == (body["action"] == "add")
+    server, _ = teams_adapter._callback_server(
+        teams_adapter.os.getpid(), config.application_id, config.tenant_id
+    )
+    assert server.on_request is None

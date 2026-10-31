@@ -846,6 +846,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables webhook integration for Alerts and Reports
     # @lifecycle: testing
     "ALERT_REPORT_WEBHOOK": False,
+    # Enable notification-only Microsoft Teams alerts to approved standard channels.
+    # @lifecycle: development
+    "ALERT_REPORT_TEAMS": False,
     # Allow users to export full CSV of table viz type.
     # Warning: Could cause server memory/compute issues with large datasets.
     # @lifecycle: testing
@@ -2941,6 +2944,27 @@ EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
 
 # The text for call-to-action link in Alerts & Reports emails
 EMAIL_REPORTS_CTA = "Explore in Superset"
+
+# Server-side configuration for the notification-only Teams bot. One tenant per
+# deployment; only operator-approved standard channels are supported. Scheduled
+# reports, private/shared channels, DMs, and attachments are excluded.
+# See superset.integrations.teams.config.parse_teams_config for validation.
+# Never expose this mapping to the browser or store it in recipient JSON.
+# Recipients must reference only a destination's stable key.
+# ALERT_REPORTS_TEAMS = {
+#     "tenant_id": "<tenant UUID>",
+#     "application_id": "<bot application UUID>",
+#     "credential": os.environ["TEAMS_BOT_CLIENT_SECRET"],
+#     "destinations": [
+#         {
+#             "key": "operations",
+#             "label": "Operations alerts",
+#             "team_id": "<team ID>",
+#             "channel_id": "<standard channel ID>",
+#         },
+#     ],
+# }
+ALERT_REPORTS_TEAMS: dict[str, Any] = {}
 
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Callable[[], str] | str | None = None
