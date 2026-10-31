@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- The `Week` time grain for Oracle (`TRUNC(..., 'IW')`) and Impala
+  (`TRUNC(..., 'D')`) now always truncates to Monday. Previously `'WW'`
+  aligned weeks to the weekday of January 1, so the week start changed every
+  year and each year ended with a 1–2 day stub week. Existing Week-grain charts
+  on these engines will regroup, and cached results may show the old buckets
+  until they expire.
+
 - With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
   using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and
   `CACHE_REDIS_USER`. Previously they always ran on DB 0 and without the ACL user.

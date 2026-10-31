@@ -62,6 +62,19 @@ def test_oracle_time_expression_reserved_keyword_1m_grain() -> None:
     assert result == "TRUNC(CAST(\"decimal\" as DATE), 'MONTH')"
 
 
+def test_oracle_time_expression_week_grain_starts_on_monday() -> None:
+    """
+    'WW' truncates to the weekday of January 1, so the week start shifts
+    every year; 'IW' always truncates to Monday.
+    """
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    col = column("ts")
+    expr = OracleEngineSpec.get_timestamp_expr(col, None, "P1W")
+    result = str(expr.compile(dialect=oracle.dialect()))
+    assert result == "TRUNC(CAST(ts as DATE), 'IW')"
+
+
 @pytest.mark.parametrize(
     "sqla_type,expected_result",
     [
