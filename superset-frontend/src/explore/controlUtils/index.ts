@@ -21,5 +21,6 @@ export * from './getControlConfig';
 export * from './getDisplayControlNames';
 export * from './getControlState';
 export * from './getFormDataFromControls';
+export * from './getVisibleFormDataFromControls';
 export * from './getControlValuesCompatibleWithDatasource';
 export * from './standardizedFormData';
