@@ -37,7 +37,17 @@ import { withTimeout } from "./withTimeout";
  */
 export type GuestTokenFetchFn = () => Promise<string>;
 
+/**
+ * Fetches a guest token from the host application's backend server.
+ * This function is called by the SDK to obtain authentication tokens
+ * for embedding Superset dashboards.
+ */
+
 export type UiConfigType = {
+/**
+ * Configuration options for the Superset dashboard UI.
+ * Controls which elements are visible/hidden in the embedded dashboard.
+ */
   hideTitle?: boolean;
   hideTab?: boolean;
   hideChartControls?: boolean;
@@ -68,25 +78,36 @@ const HANDSHAKE_PROBE_METHOD = "supersetEmbeddedSdkHandshake";
 const HANDSHAKE_PROBE_TIMEOUT_MS = 5_000;
 
 export type EmbedDashboardParams = {
-  /** The id provided by the embed configuration UI in Superset */
+/**
+ * Parameters for embedding a Superset dashboard.
+ * All fields are required unless marked as optional with `?`.
+ */
   id: string;
-  /** The domain where Superset can be located, with protocol, such as: https://superset.example.com */
+  /**
+   * The domain where Superset can be located, with protocol, such as: https://superset.example.com
+   */
   supersetDomain: string;
-  /** The html element within which to mount the iframe */
+  /**
+   * The html element within which to mount the iframe
+   */
   mountPoint: HTMLElement;
-  /** A function to fetch a guest token from the Host App's backend server */
+  /**
+   * A function to fetch a guest token from the Host App's backend server
+   */
   fetchGuestToken: GuestTokenFetchFn;
-  /** The dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded **/
+  /**
+   * The dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded
+   */
   dashboardUiConfig?: UiConfigType;
   /** Are we in debug mode? */
   debug?: boolean;
   /** The iframe title attribute */
   iframeTitle?: string;
-  /** additional iframe sandbox attributes ex (allow-top-navigation, allow-popups-to-escape-sandbox) **/
+  /** additional iframe sandbox attributes ex (allow-top-navigation, allow-popups-to-escape-sandbox) */
   iframeSandboxExtras?: string[];
-  /** Additional Permissions Policy features for the iframe's `allow` attribute (e.g., ['camera', 'microphone']). `fullscreen` and `clipboard-write` are granted by default. **/
+  /** Additional Permissions Policy features for the iframe's `allow` attribute (e.g., ['camera', 'microphone']). `fullscreen` and `clipboard-write` are granted by default. */
   iframeAllowExtras?: string[];
-  /** force a specific refererPolicy to be used in the iframe request **/
+  /** force a specific refererPolicy to be used in the iframe request */
   referrerPolicy?: ReferrerPolicy;
   /** Callback to resolve permalink URLs. If provided, this will be called when generating permalinks
    * to allow the host app to customize the URL. If not provided, Superset's default URL is used. */
@@ -98,6 +119,9 @@ export type EmbedDashboardParams = {
 };
 
 export type Size = {
+/**
+ * Dimensions of the embedded dashboard.
+ */
   width: number;
   height: number;
 };
@@ -108,7 +132,19 @@ export type ObserveDataMaskCallbackFn = (
     nativeFiltersChanged: boolean;
   },
 ) => void;
+
+/**
+ * Callback invoked when the embedded dashboard's data mask changes.
+ * Receives the data mask with change-trigger booleans mixed in.
+ */
 export type ThemeMode = "default" | "dark" | "system";
+
+/**
+ * Themes available for the embedded dashboard.
+ * - `default`: Light theme
+ * - `dark`: Dark theme
+ * - `system`: Follows the system preference
+ */
 
 /**
  * Raised on the calls still in flight when the document they were sent to
@@ -155,6 +191,13 @@ export type ResolvePermalinkUrlFn = (params: {
   /** The permalink key (e.g., "xyz789") */
   key: string;
 }) => string | Promise<string>;
+
+/**
+ * Callback to resolve permalink URLs.
+ * Receives the permalink key and returns the full URL to use for the permalink.
+ * If not provided, Superset's default URL is used.
+ */
+export type ResolvePermalinkUrlFn = (params: {
 
 export type EmbeddedDashboard = {
   getScrollSize: () => Promise<Size>;
