@@ -50,6 +50,7 @@ module.exports = {
             'extensions/extension-points/editors',
             'extensions/extension-points/chat',
             'extensions/extension-points/semantic-layers',
+            'extensions/extension-points/dashboard-components',
           ],
         },
         'extensions/development',
