@@ -2662,6 +2662,7 @@ def _mirror_temporal(
         )
 
 
+@pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
 @pytest.mark.parametrize(
     "uri, partition_type, probed, literal",
     [
@@ -2742,6 +2743,7 @@ def test_a_temporal_probe_result_is_written_as_the_engines_own_literal(
     assert not re.search(r"(?:[<>=]|IN \() ?'", rendered)
 
 
+@pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
 def test_a_trino_date_mirror_is_the_predicate_the_engine_accepts(app: Flask) -> None:
     """The whole predicate, as View query shows it on Trino."""
     table = _temporal_partition_table("trino://localhost:8080/hive", "DATE")
@@ -2794,6 +2796,7 @@ def test_a_timestamp_the_engine_writes_in_full_still_mirrors(app: Flask) -> None
     assert "'2026-01-01 12:30:15'" in _render_predicate(table, predicates[0])
 
 
+@pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
 def test_a_date_key_takes_a_timestamp_floored_to_its_own_day(app: Flask) -> None:
     """
     Flooring to the day is the column's own resolution, so a `DATE` key takes a
@@ -2810,6 +2813,7 @@ def test_a_date_key_takes_a_timestamp_floored_to_its_own_day(app: Flask) -> None
     assert "part <= DATE '2026-01-01'" in _render_predicate(table, predicates[0])
 
 
+@pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
 def test_an_oracle_date_key_is_not_floored_to_its_day(app: Flask) -> None:
     """
     An Oracle ``DATE`` keeps the time of day -- its SQLAlchemy dialect makes
@@ -2834,6 +2838,7 @@ def test_an_oracle_date_key_is_not_floored_to_its_day(app: Flask) -> None:
     assert type_errors
 
 
+@pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
 def test_an_oracle_date_key_still_takes_an_exact_midnight(app: Flask) -> None:
     """Not a refusal of Oracle: an answer at midnight loses nothing to the
     day-only literal, so it still mirrors."""
@@ -2850,6 +2855,7 @@ def test_an_oracle_date_key_still_takes_an_exact_midnight(app: Flask) -> None:
     )
 
 
+@pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
 def test_a_dialect_whose_type_names_are_a_list_does_not_break_the_chart(
     app: Flask,
 ) -> None:
