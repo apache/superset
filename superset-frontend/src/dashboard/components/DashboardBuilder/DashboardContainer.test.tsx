@@ -28,6 +28,7 @@ import {
   CategoricalColorNamespace,
 } from '@superset-ui/core';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
+import { ChartCustomizationPlugins } from 'src/constants';
 import { applyDashboardLabelsColorOnLoad } from 'src/dashboard/actions/dashboardState';
 import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
@@ -346,6 +347,38 @@ test('handles filters with no charts in scope', async () => {
   );
 });
 
+test('keeps the last scope for a duplicate filter id without redispatching', async () => {
+  const lastFilter = {
+    ...defaultTestFilter,
+    scope: { rootPath: ['ROOT_ID'], excluded: [sliceId] },
+  };
+  // Bound a regression so the test fails without entering an update loop.
+  setInScopeStatusMock.mockImplementation(args =>
+    setInScopeStatusMock.mock.calls.length <= 3
+      ? originalSetInScopeStatus(args)
+      : () => undefined,
+  );
+  const { store } = setupWithStore({
+    dashboardInfo: {
+      ...mockState.dashboardInfo,
+      metadata: {
+        ...mockState.dashboardInfo.metadata,
+        native_filter_configuration: [defaultTestFilter, lastFilter],
+      },
+    },
+  });
+
+  await waitFor(() => {
+    expect(store.getState().nativeFilters.filters[lastFilter.id]).toMatchObject(
+      {
+        chartsInScope: [],
+        tabsInScope: [],
+      },
+    );
+  });
+  expect(setInScopeStatusMock).toHaveBeenCalledTimes(1);
+});
+
 test.each([
   { chartsInScope: [999], tabsInScope: ['TAB-STALE'] },
   { chartsInScope: [sliceId], tabsInScope: ['TAB-STALE'] },
@@ -597,6 +630,55 @@ test('calculates tabsInScope for filters with tab-scoped charts', async () => {
 
 // Chart customization scope tests.
 
+test('keeps the last scope for a duplicate customization id without redispatching', async () => {
+  const customization = {
+    ...defaultTestFilter,
+    id: 'CHART_CUSTOMIZATION-duplicate',
+    type: ChartCustomizationType.ChartCustomization,
+    filterType: ChartCustomizationPlugins.TimeGrain,
+    defaultDataMask: {},
+  };
+  const lastCustomization = {
+    ...customization,
+    scope: { rootPath: ['ROOT_ID'], excluded: [sliceId] },
+  };
+  const original = chartCustomizationActions.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(
+    chartCustomizationActions,
+    'setInScopeStatusOfCustomizations',
+  );
+  // Bound a regression so the test fails without entering an update loop.
+  spy.mockImplementation(args =>
+    spy.mock.calls.length <= 3 ? original(args) : () => undefined,
+  );
+  try {
+    const { store } = setupWithStore({
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          native_filter_configuration: [],
+          chart_customization_config: [customization, lastCustomization],
+        },
+      },
+      nativeFilters: {
+        filters: { [customization.id]: lastCustomization },
+      },
+    });
+    await waitFor(() => {
+      expect(
+        store.getState().nativeFilters.filters[customization.id],
+      ).toMatchObject({
+        chartsInScope: [],
+        tabsInScope: [],
+      });
+    });
+    expect(spy).toHaveBeenCalledTimes(1);
+  } finally {
+    spy.mockRestore();
+  }
+});
+
 test('calculates chartsInScope correctly for new-format chart customizations', async () => {
   const customizationId = 'CHART_CUSTOMIZATION-1';
   const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
@@ -650,6 +732,101 @@ test('calculates chartsInScope correctly for new-format chart customizations', a
         ]),
       );
     });
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+test.each([
+  { chartsInScope: [999], tabsInScope: [] },
+  { chartsInScope: [sliceId], tabsInScope: ['TAB-STALE'] },
+])('repairs hydrated chart customization scopes %j', async staleScopes => {
+  const customization = {
+    ...defaultTestFilter,
+    id: 'CHART_CUSTOMIZATION-time-grain',
+    type: ChartCustomizationType.ChartCustomization,
+    filterType: ChartCustomizationPlugins.TimeGrain,
+    defaultDataMask: {},
+  };
+  const selectedMask = {
+    id: customization.id,
+    filterState: { value: 'P1Y' },
+    extraFormData: { time_grain_sqla: 'P1Y' },
+  };
+  const spy = jest.spyOn(
+    chartCustomizationActions,
+    'setInScopeStatusOfCustomizations',
+  );
+  try {
+    const { store } = setupWithStore({
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          native_filter_configuration: [],
+          chart_customization_config: [customization],
+        },
+      },
+      nativeFilters: { filters: { [customization.id]: customization } },
+      dataMask: { [customization.id]: selectedMask },
+    });
+    await waitFor(() => {
+      expect(
+        store.getState().nativeFilters.filters[customization.id],
+      ).toMatchObject({
+        chartsInScope: [sliceId],
+        tabsInScope: [],
+      });
+    });
+    const hydratedState = store.getState();
+    spy.mockClear();
+    act(() => {
+      store.dispatch({
+        type: HYDRATE_DASHBOARD,
+        data: {
+          ...hydratedState,
+          nativeFilters: {
+            filters: {
+              [customization.id]: { ...customization, ...staleScopes },
+            },
+          },
+          dashboardInfo: {
+            ...hydratedState.dashboardInfo,
+            metadata: {
+              ...hydratedState.dashboardInfo.metadata,
+              chart_customization_config: [
+                { ...customization, ...staleScopes },
+              ],
+            },
+          },
+        },
+      });
+    });
+    await waitFor(() => {
+      expect(
+        store.getState().nativeFilters.filters[customization.id],
+      ).toMatchObject({
+        chartsInScope: [sliceId],
+        tabsInScope: [],
+      });
+    });
+    const state = store.getState();
+    expect(state.dataMask[customization.id]).toMatchObject(selectedMask);
+    expect(
+      getFormDataWithExtraFilters({
+        chartConfiguration: {},
+        chartCustomizationItems:
+          state.dashboardInfo.metadata.chart_customization_config,
+        chart: state.charts[sliceId],
+        sliceId,
+        filters: {},
+        nativeFilters: state.nativeFilters.filters,
+        dataMask: state.dataMask,
+        extraControls: {},
+        allSliceIds: [sliceId],
+      }),
+    ).toEqual(expect.objectContaining(selectedMask.extraFormData));
+    expect(spy).toHaveBeenCalledTimes(1);
   } finally {
     spy.mockRestore();
   }

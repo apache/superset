@@ -225,7 +225,11 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     }));
 
     // Hydration can replace the store's scopes after the last calculation.
-    const storeIsStale = scopes.some(scope => {
+    // The reducer keeps the last scope per filter id.
+    const latestScopes = new Map(
+      scopes.map(scope => [scope.filterId, scope] as const),
+    );
+    const storeIsStale = Array.from(latestScopes.values()).some(scope => {
       const stored = nativeFilters[scope.filterId];
       return (
         stored &&
@@ -262,11 +266,29 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       tabsInScope: scope.tabsInScope,
     }));
 
-    if (!isEqual(scopes, prevCustomizationScopesRef.current)) {
+    const latestScopes = new Map(
+      scopes.map(scope => [scope.customizationId, scope] as const),
+    );
+    const storeIsStale = Array.from(latestScopes.values()).some(scope => {
+      const stored = nativeFilters[scope.customizationId];
+      return (
+        stored &&
+        (!isEqual(stored.chartsInScope, scope.chartsInScope) ||
+          !isEqual(stored.tabsInScope, scope.tabsInScope))
+      );
+    });
+
+    if (storeIsStale || !isEqual(scopes, prevCustomizationScopesRef.current)) {
       prevCustomizationScopesRef.current = scopes;
       dispatch(setInScopeStatusOfCustomizations(scopes));
     }
-  }, [chartIds, chartCustomizations, chartLayoutItemMap, dispatch]);
+  }, [
+    chartIds,
+    chartCustomizations,
+    nativeFilters,
+    chartLayoutItemMap,
+    dispatch,
+  ]);
 
   const childIds: string[] = useMemo(
     () => (topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID]),
