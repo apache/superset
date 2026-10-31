@@ -50,6 +50,7 @@ from sqlglot.optimizer.scope import (
     traverse_scope,
     walk_in_scope,
 )
+from sqlglot.tokens import TokenType
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
 from superset.sql.dialects import (
@@ -1062,6 +1063,31 @@ def _comment_re_for(dialect: Dialects | None) -> re.Pattern[str]:
         ),
         re.DOTALL | re.VERBOSE,
     )
+
+
+def find_unmatched_parenthesis(sql: str, engine: str) -> int | None:
+    """
+    Locate an unmatched parenthesis, ignoring quoted text and comments.
+
+    :param sql: The SQL text to scan
+    :param engine: The engine whose dialect tokenizes the text
+    :return: The 1-based position of the first unmatched closing parenthesis,
+        or of the innermost unclosed opening one; ``None`` when they balance
+        or the text cannot be tokenized (so the parser can explain it)
+    """
+    try:
+        tokens = sqlglot.tokenize(sql, read=SQLGLOT_DIALECTS.get(engine))
+    except sqlglot.errors.TokenError:
+        return None
+    openings: list[int] = []
+    for token in tokens:
+        if token.token_type == TokenType.L_PAREN:
+            openings.append(token.start + 1)
+        elif token.token_type == TokenType.R_PAREN:
+            if not openings:
+                return token.start + 1
+            openings.pop()
+    return openings[-1] if openings else None
 
 
 # Oracle 11g and older cap identifiers at 30 bytes.

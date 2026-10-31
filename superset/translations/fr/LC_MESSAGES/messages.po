@@ -8924,6 +8924,12 @@ msgstr "Valeur la plus haute de chaque période."
 msgid "Histogram"
 msgstr "Histogramme"
 
+msgid ""
+"Hive requires a partition filter for this table. Add a filter on the "
+"partition column, or a time range on a column with a working partition "
+"mapping, and try again."
+msgstr ""
+
 msgid "Home"
 msgstr "Accueil"
 
@@ -9160,6 +9166,9 @@ msgstr "Dans cette vue, vous pouvez prévisualiser les 25 premières lignes."
 
 msgid "Inactive"
 msgstr "Inactif"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "Inclure la série"
@@ -12654,6 +12663,9 @@ msgstr ""
 
 msgid "Preview"
 msgstr "Prévisualisation"
+
+msgid "Preview temporarily unavailable"
+msgstr ""
 
 msgid "Preview this version"
 msgstr ""
@@ -17234,7 +17246,7 @@ msgstr "Le port est fermé."
 msgid "The port number is invalid."
 msgstr "Le numéro de port est invalide."
 
-msgid "The preview could not be loaded."
+msgid "The preview could not be loaded. Try again."
 msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
@@ -17622,7 +17634,9 @@ msgstr ""
 #, python-format
 msgid ""
 "The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+"Mirrored filters on this mapping would fail at the database. Return a "
+"value compatible with %(type)s; use an explicit CAST in the transform if "
+"appropriate."
 msgstr ""
 
 #, python-format
@@ -17630,6 +17644,11 @@ msgid ""
 "The transform returned %(returned)s for %(column)s, which this database "
 "cannot write into a query as a %(type)s value without changing it. "
 "Filters on this mapping will not be mirrored."
+msgstr ""
+
+msgid ""
+"The transform returned NULL for one or more preview values, so no "
+"partition filter was generated."
 msgstr ""
 
 msgid "The two passwords that you entered do not match!"
@@ -17716,14 +17735,14 @@ msgid ""
 msgstr ""
 
 msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+"The value transform could not be parsed. Fix the expression to preview "
+"it. Filters will not be mirrored while it is invalid."
 msgstr ""
 
 #, python-format
 msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+"The value transform could not be parsed: %(detail)s Fix the expression to"
+" preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
 
 msgid ""
@@ -19099,6 +19118,9 @@ msgid "Token Request URI"
 msgstr "URL de requête du Token"
 
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
+msgid "Too many preview requests. Wait a moment and try again."
 msgstr ""
 
 msgid "Too many requests. Please wait and try again."
@@ -22553,6 +22575,10 @@ msgstr "annuler"
 msgid "unknown type icon"
 msgstr "type d'icône inconnu"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 msgid "unset"
 msgstr "non défini"
 
@@ -22565,6 +22591,9 @@ msgid ""
 msgstr ""
 "le centile supérieur doit être supérieur à 0 et inférieur à 100. Doit "
 "être supérieur au percentile inférieur."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 msgid "use latest_partition template"
 msgstr "utiliser le modèle latest_partition"

@@ -204,7 +204,11 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, feature_flag_manager
-from superset.sql.parse import SQLScript, SQLStatement
+from superset.sql.parse import (
+    find_unmatched_parenthesis,
+    SQLScript,
+    SQLStatement,
+)
 from superset.superset_typing import FilterValues
 from superset.utils import core as utils, json
 from superset.utils.core import FilterOperator, get_username
@@ -899,6 +903,8 @@ def _parse_skeleton(
 
     Returns ``None`` when the transform does not parse.
     """
+    if find_unmatched_parenthesis(transform, engine) is not None:
+        return None
     try:
         return SQLStatement(
             f"{_SELECT_PREFIX}{parse_skeleton(transform, standin)}", engine
@@ -919,6 +925,18 @@ def parse_error_detail(transform: str, engine: str) -> str | None:
     The parser's own ``highlight`` is deliberately dropped: it would name the
     ``NULL`` we substituted for ``:value``, which is not a token the owner typed.
     """
+    if position := find_unmatched_parenthesis(transform, engine):
+        return str(
+            _("unmatched parenthesis at position %(position)d.", position=position)
+        )
+    statement = _parse_skeleton(transform, engine)
+    if statement is not None and statement.count_select_expressions() > 1:
+        return str(
+            _(
+                "use a single SQL expression; this transform contains "
+                "multiple expressions."
+            )
+        )
     try:
         SQLStatement(f"{_SELECT_PREFIX}{parse_skeleton(transform)}", engine)
     except SupersetParseError as ex:
@@ -1071,6 +1089,8 @@ def is_unfinished(transform: str | None, engine: str) -> bool:
     """
     if not transform or not transform.strip():
         return False
+    if find_unmatched_parenthesis(transform, engine) is not None:
+        return True
     try:
         SQLScript(f"{_SELECT_PREFIX}{parse_skeleton(transform)}", engine)
     except SupersetParseError:
@@ -2675,13 +2695,15 @@ def validate_transform(
                 message=(
                     _(
                         "The value transform could not be parsed: %(detail)s "
-                        "The mapping is saved but stays inactive until it does.",
+                        "Fix the expression to preview it. Filters will not be "
+                        "mirrored while it is invalid.",
                         detail=detail,
                     )
                     if detail
                     else _(
-                        "The value transform could not be parsed. The mapping "
-                        "is saved but stays inactive until it does."
+                        "The value transform could not be parsed. Fix the expression "
+                        "to preview it. Filters will not be mirrored while it "
+                        "is invalid."
                     )
                 ),
                 blocking=False,
@@ -3081,6 +3103,7 @@ def _preview_probe_value(
     type_errors: list[str] = []
     escaping_errors: list[str] = []
     shape_errors: list[str] = []
+    null_results: list[bool] = []
     try:
         predicates = build_mirrored_predicates(
             datasource,
@@ -3090,6 +3113,7 @@ def _preview_probe_value(
             type_errors=type_errors,
             escaping_errors=escaping_errors,
             shape_errors=shape_errors,
+            null_results=null_results,
         )
     except Exception:  # pylint: disable=broad-except
         # The chart path fails open on the same call; the preview reports it
@@ -3130,6 +3154,16 @@ def _preview_probe_value(
             "reason": "transform_escaping",
             "sample_input": sample_input,
             "error": escaping_errors[0],
+        }
+    if not predicates and null_results:
+        return {
+            "valid": False,
+            "reason": "null_result",
+            "sample_input": sample_input,
+            "error": _(
+                "The transform returned NULL for one or more preview values, "
+                "so no partition filter was generated."
+            ),
         }
     if not predicates:
         return {
@@ -3413,6 +3447,7 @@ def build_mirrored_predicates(
     type_errors: list[str] | None = None,
     escaping_errors: list[str] | None = None,
     shape_errors: list[str] | None = None,
+    null_results: list[bool] | None = None,
 ) -> list[ColumnElement[Any]]:
     """
     Turn collected ``(operator, value)`` mirror requests into predicates.
@@ -3514,6 +3549,7 @@ def build_mirrored_predicates(
         evaluated,
         spans,
         escaping_errors=escaping_errors,
+        null_results=null_results,
     )
     if not predicates:
         return []
@@ -3534,6 +3570,7 @@ def _predicates_from_probe(
     spans: list[tuple[FilterOperator, int, int]],
     *,
     escaping_errors: list[str] | None = None,
+    null_results: list[bool] | None = None,
 ) -> list[ColumnElement[Any]]:
     """
     One predicate on the partition column per surviving mirror request.
@@ -3569,6 +3606,8 @@ def _predicates_from_probe(
     for operator, start, length in spans:
         chunk = evaluated[start : start + length]
         if any(value is None for value in chunk):
+            if null_results is not None:
+                null_results.append(True)
             continue
         if not all(
             literal_round_trips(value, dialect, database.backend) for value in chunk
@@ -3938,10 +3977,12 @@ def probed_value_type_error(
                 _(
                     "The transform returned %(returned)s for %(column)s, which "
                     "is %(kind)s. Mirrored filters on this mapping would fail "
-                    "at the database.",
+                    "at the database. Return a value compatible with %(type)s; "
+                    "use an explicit CAST in the transform if appropriate.",
                     returned=repr(value),
                     column=partition_column.column_name,
                     kind=generic_type.name.lower(),
+                    type=partition_column.type,
                 )
             )
     return None

@@ -189,6 +189,18 @@ export function valueTransformIssues(
     ];
   }
 
+  if (transform?.trim() && !/:value\b/.test(transform)) {
+    return [
+      {
+        field: 'partition_value_transform',
+        message: t(
+          'Include :value in the transform to represent the filter value.',
+        ),
+        blocking: false,
+      },
+    ];
+  }
+
   return [];
 }
 
