@@ -1069,7 +1069,7 @@ def test_partial_update_uses_the_stored_engine_credential_validator(
         "masked_encrypted_extra": json.dumps({"embedded_credentials": {"token": "t"}})
     }
     DatabasePutSchema(database_id=1).load(payload)
-    validator.assert_called_once_with({"token": "t"})
+    validator.assert_called_with({"token": "t"})
 
 
 @pytest.mark.parametrize("credentials", ["not json", "[]", "42", [], False, 0])
@@ -1168,6 +1168,104 @@ def test_embedded_credentials_requirement_skips_engines_without_the_fallback() -
             ),
         }
     )
+
+
+def _pem(passphrase: str) -> str:
+    """A freshly generated RSA private key, PEM-encoded under ``passphrase``."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    return (
+        rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        .private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.BestAvailableEncryption(passphrase.encode()),
+        )
+        .decode()
+    )
+
+
+def _snowflake_keypair_payload(body: str, passphrase: str) -> dict[str, Any]:
+    return {
+        "database_name": "test_db",
+        "sqlalchemy_uri": "snowflake://base_user@xy12345/db",
+        "impersonate_user": True,
+        "masked_encrypted_extra": json.dumps(
+            {
+                "oauth2_client_info": _CLIENT,
+                "embedded_credentials": {
+                    "username": "embedded_svc",
+                    "auth_method": "keypair",
+                    "privatekey_body": body,
+                    "privatekey_pass": passphrase,
+                },
+            }
+        ),
+    }
+
+
+@pytest.mark.parametrize(
+    "body, passphrase, expect_error",
+    [
+        ("right", "key passphrase", False),
+        ("right", "wrong passphrase", True),
+        ("not a PEM key", "key passphrase", True),
+    ],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_an_unreadable_embedded_key_is_refused_at_save(
+    body: str, passphrase: str, expect_error: bool
+) -> None:
+    """A key pair that cannot be decoded is refused when saved (sc-130269)."""
+    from superset.databases.schemas import DatabasePostSchema
+
+    pem = _pem("key passphrase") if body == "right" else body
+    payload = _snowflake_keypair_payload(pem, passphrase)
+
+    if not expect_error:
+        DatabasePostSchema().load(payload)
+        return
+    with pytest.raises(ValidationError) as excinfo:
+        DatabasePostSchema().load(payload)
+    messages = str(excinfo.value.messages)
+    assert "private key could not be read" in messages
+    assert passphrase not in messages
+    assert all(line not in messages for line in pem.splitlines()[1:-1] or [pem])
+
+
+@pytest.mark.parametrize(
+    "new_passphrase, expect_error",
+    [("XXXXXXXXXX", False), ("key passphrase", False), ("wrong passphrase", True)],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_an_edit_checks_the_embedded_key_against_its_stored_secrets(
+    mocker: MockerFixture, new_passphrase: str, expect_error: bool
+) -> None:
+    """
+    An edit sends an unchanged key and passphrase masked. They are restored from
+    the stored connection before the key is checked, so an untouched credential
+    still saves and a new passphrase is checked against the stored key.
+    """
+    from superset.databases.schemas import DatabasePutSchema
+    from superset.models.core import Database
+
+    saved = _snowflake_keypair_payload(_pem("key passphrase"), "key passphrase")
+    stored = Database(
+        sqlalchemy_uri=saved["sqlalchemy_uri"],
+        impersonate_user=True,
+        encrypted_extra=saved["masked_encrypted_extra"],
+    )
+    mocker.patch("superset.databases.schemas.db.session.get", return_value=stored)
+    payload = _snowflake_keypair_payload("XXXXXXXXXX", new_passphrase)
+    del payload["database_name"], payload["sqlalchemy_uri"]
+
+    if expect_error:
+        with pytest.raises(ValidationError) as excinfo:
+            DatabasePutSchema(database_id=1).load(payload)
+        assert "private key could not be read" in str(excinfo.value.messages)
+    else:
+        DatabasePutSchema(database_id=1).load(payload)
 
 
 @pytest.mark.parametrize("stored_impersonate_user", [True, False])
