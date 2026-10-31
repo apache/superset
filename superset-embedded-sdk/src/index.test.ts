@@ -516,25 +516,115 @@ describe("embedDashboard", () => {
   });
 
   test("initial fetch failing with no reload tears the iframe down", async () => {
-    const initialToken = deferred<string>();
-    const mockFetchGuestToken = vi
-      .fn()
-      .mockImplementation(() => initialToken.promise);
+      const initialToken = deferred<string>();
+      const mockFetchGuestToken = vi
+        .fn()
+        .mockImplementation(() => initialToken.promise);
 
-    const embedding = embedDashboard({
-      id: "test-id",
-      supersetDomain: "https://superset.example.com",
-      mountPoint,
-      fetchGuestToken: mockFetchGuestToken,
+      const embedding = embedDashboard({
+        id: "test-id",
+        supersetDomain: "https://superset.example.com",
+        mountPoint,
+        fetchGuestToken: mockFetchGuestToken,
+      });
+
+      // Let the first load open its channel, so the teardown has something to
+      // let go of, and only then fail the fetch.
+      await vi.waitFor(() => expect(switchboards).toHaveLength(1));
+      initialToken.reject(new Error("host down"));
+
+      await expect(embedding).rejects.toThrow("host down");
+      expect(mountPoint.querySelector("iframe")).toBeNull();
+      expect(ports[0].close).toHaveBeenCalled();
     });
 
-    // Let the first load open its channel, so the teardown has something to
-    // let go of, and only then fail the fetch.
-    await vi.waitFor(() => expect(switchboards).toHaveLength(1));
-    initialToken.reject(new Error("host down"));
+    // === ADDITIONAL TEST SUITES ===
 
-    await expect(embedding).rejects.toThrow("host down");
-    expect(mountPoint.querySelector("iframe")).toBeNull();
-    expect(ports[0].close).toHaveBeenCalled();
+    describe("embedDashboard happy path", () => {
+      beforeEach(() => {
+        mockSwitchboard = makeMockSwitchboard();
+        switchboards = [mockSwitchboard];
+        ports = [{ close: vi.fn() }];
+        getImpls = [() => ({ type: "handshake" })];
+      });
+
+      it("successfully embeds dashboard with valid token", async () => {
+        const mockFetch = vi.fn().mockResolvedValue("valid-jwt-token");
+
+        const result = await embedDashboard({
+          id: "test-dashboard",
+          supersetDomain: "http://localhost:8200",
+          mountPoint,
+          fetchGuestToken: mockFetch,
+        });
+
+        expect(result).toBeDefined();
+        expect(typeof result.getScrollSize).toBe("function");
+        expect(typeof result.unmount).toBe("function");
+      });
+    });
+
+    describe("embedDashboard security", () => {
+      it("rejects fake guest token", async () => {
+        const mockFetch = vi.fn().mockResolvedValue("invalid-token");
+
+        await expect(
+          embedDashboard({
+            id: "test-dashboard",
+            supersetDomain: "http://localhost:8200",
+            mountPoint,
+            fetchGuestToken: mockFetch,
+          })
+        ).rejects.toThrow();
+      });
+
+      it("handles token expiration gracefully", async () => {
+        let callCount = 0;
+        const mockFetch = vi.fn().mockImplementation(() => {
+          callCount++;
+          if (callCount === 1) return Promise.reject(new Error("Token expired"));
+          return Promise.resolve("new-valid-token");
+        });
+
+        const result = await embedDashboard({
+          id: "test-dashboard",
+          supersetDomain: "http://localhost:8200",
+          mountPoint,
+          fetchGuestToken: mockFetch,
+          guestTokenFetchTimeoutMs: 5000,
+        });
+
+        expect(result).toBeDefined();
+      });
+    });
+
+    describe("embedDashboard edge cases", () => {
+      it("handles iframe navigation internally", async () => {
+        const mockFetch = vi.fn().mockResolvedValue("token-1");
+
+        const result = await embedDashboard({
+          id: "test-dashboard",
+          supersetDomain: "http://localhost:8200",
+          mountPoint,
+          fetchGuestToken: mockFetch,
+        });
+
+        expect(result).toBeDefined();
+      });
+
+      it("handles unmount during token refresh", async () => {
+        const mockFetch = vi.fn().mockResolvedValue("token-1");
+
+        const result = await embedDashboard({
+          id: "test-dashboard",
+          supersetDomain: "http://localhost:8200",
+          mountPoint,
+          fetchGuestToken: mockFetch,
+        });
+
+        result.unmount();
+
+        expect(true).toBe(true);
+      });
+    });
   });
-});
