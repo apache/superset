@@ -188,6 +188,29 @@ test('resolveSnapshotCharts swaps unreachable charts for a markdown placeholder'
   });
 });
 
+test('resolveSnapshotCharts shows an archived-chart placeholder while keeping other charts', async () => {
+  // Explore returns 200 with no slice for a chart excluded from normal access.
+  fetchMock.get('glob:*/api/v1/explore/?slice_id=9', {
+    result: { slice: null, form_data: { slice_id: 9 } },
+  });
+  const layout = { ...chartSlot('CHART-a', 1), ...chartSlot('CHART-b', 9) };
+
+  const { charts, positionData } = await resolveSnapshotCharts(
+    [liveChart(1, 'Live')],
+    layout,
+  );
+
+  expect(charts.map(chart => chart.slice_id)).toEqual([1]);
+  expect((positionData as JsonObject)['CHART-a'].type).toBe(CHART_TYPE);
+  const placeholder = (positionData as JsonObject)['CHART-b'];
+  expect(placeholder.type).toBe(MARKDOWN_TYPE);
+  expect(placeholder.meta).toEqual({
+    width: 4,
+    height: 50,
+    code: 'This chart is archived or unavailable. An editor can restore archived charts from Recently Archived.',
+  });
+});
+
 const HYDRATE_TEST = 'HYDRATE_TEST_ACTION';
 
 const mockedHydrateDashboard = hydrateDashboard as unknown as jest.Mock;
