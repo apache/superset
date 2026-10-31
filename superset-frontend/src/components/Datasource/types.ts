@@ -122,16 +122,6 @@ export enum SortOrder {
   Unsorted = 0,
 }
 
-export interface CRUDCollectionState {
-  collection: Record<PropertyKey, any>;
-  collectionArray: Record<PropertyKey, any>[];
-  expandedColumns: Record<PropertyKey, any>;
-  sortColumn: string;
-  sort: SortOrder;
-  currentPage: number;
-  pageSize: number;
-}
-
 export enum FoldersEditorItemType {
   Folder = 'folder',
   Column = 'column',

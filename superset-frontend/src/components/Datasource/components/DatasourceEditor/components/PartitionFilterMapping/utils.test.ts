@@ -606,6 +606,67 @@ test('a temporal column on an engine with a default gets the engine syntax', () 
   );
 });
 
+test('a temporal column stored as a number or as text gets no engine default', () => {
+  // The engine default takes a timestamp. On an epoch `BIGINT` both Hive and
+  // Impala reject `unix_timestamp(:value)`, so the pre-fill left the mapping
+  // broken until the owner replaced it. Such a column gets the identity
+  // transform instead.
+  const datasource = {
+    partition_value_transform_default: 'unix_timestamp(:value)',
+  };
+  expect(
+    defaultTransformFor(datasource, {
+      column_name: 'event_time',
+      type: 'BIGINT',
+      is_dttm: true,
+      python_date_format: 'epoch_s',
+    }),
+  ).toBe(':value');
+  expect(
+    defaultTransformFor(datasource, {
+      column_name: 'ds',
+      type: 'STRING',
+      is_dttm: true,
+      python_date_format: '%Y%m%d',
+    }),
+  ).toBe(':value');
+  expect(
+    defaultTransformFor(datasource, {
+      column_name: 'event_time',
+      type: 'DATETIME',
+      is_dttm: true,
+    }),
+  ).toBe('unix_timestamp(:value)');
+  // An undeclared type keeps the default, as before.
+  expect(
+    defaultTransformFor(datasource, {
+      column_name: 'event_time',
+      is_dttm: true,
+    }),
+  ).toBe('unix_timestamp(:value)');
+});
+
+test('a mapping onto an array partition column is never active', () => {
+  // The banner said filters would apply to `region_keys TEXT[]`,
+  // which no mirror can compare against.
+  const datasource = {
+    main_dttm_col: 'event_time',
+    partition_column: 'region_keys',
+    partition_mapped_column: 'region',
+  };
+  const columns = (partitionType: string) => [
+    {
+      column_name: 'region',
+      type: 'TEXT',
+      partition_value_transform: ':value',
+    },
+    { column_name: 'region_keys', type: partitionType },
+  ];
+  expect(mappingIsActive(datasource, columns('TEXT'))).toBe(true);
+  expect(mappingIsActive(datasource, columns('TEXT[]'))).toBe(false);
+  expect(mappingIsActive(datasource, columns('ARRAY<STRING>'))).toBe(false);
+});
+
 test('everything else falls back to the bare :value identity transform', () => {
   const datasource = {
     partition_value_transform_default: 'unix_timestamp(:value)',
@@ -654,7 +715,7 @@ test('a temporal column stored as a number previews in its stored representation
       is_dttm: true,
       python_date_format: 'epoch_s',
     }),
-  ).toEqual(['1768435200']);
+  ).toEqual(['1768474043']);
   expect(
     sampleValuesFor({
       column_name: 'event_epoch_ms',
@@ -662,7 +723,7 @@ test('a temporal column stored as a number previews in its stored representation
       is_dttm: true,
       python_date_format: 'epoch_ms',
     }),
-  ).toEqual(['1768435200000']);
+  ).toEqual(['1768474043000']);
   // A numeric temporal column without an epoch format still gets numbers,
   // never a timestamp string its own type cannot hold.
   expect(
@@ -675,6 +736,31 @@ test('a temporal column stored as a number previews in its stored representation
       is_dttm: true,
       python_date_format: 'epoch_s',
     }),
+  ).toEqual(['2026-01-15 10:47:23']);
+});
+
+test('the sample instant sits off every hour and day boundary', () => {
+  // At a boundary, `:value` and an hour- or day-floored `:value` are the same
+  // number, so a transform that forgot to round previewed as valid. Ribbon's
+  // hour bucket is the case: `:value - :value % 3600` and plain `:value` must
+  // preview differently.
+  const [epoch] = sampleValuesFor({
+    column_name: 'event_epoch',
+    type: 'BIGINT',
+    is_dttm: true,
+    python_date_format: 'epoch_s',
+  });
+  expect(Number(epoch) % 3600).not.toBe(0);
+  expect(
+    sampleValuesFor({ column_name: 'ts', type: 'DATETIME', is_dttm: true }),
+  ).toEqual(['2026-01-15 10:47:23']);
+});
+
+test('a column that may compare by the day keeps a midnight sample', () => {
+  // A time of day on a day-resolution column declines an equality, so the
+  // preview would report a working DATE mapping as broken.
+  expect(
+    sampleValuesFor({ column_name: 'ds', type: 'DATE', is_dttm: true }),
   ).toEqual(['2026-01-15 00:00:00']);
 });
 
@@ -699,7 +785,7 @@ test('a temporal column stored as formatted text previews in that format', () =>
       is_dttm: true,
       python_date_format: '%Y-%m-%d %H:%M:%S',
     }),
-  ).toEqual(['2026-01-15 00:00:00']);
+  ).toEqual(['2026-01-15 10:47:23']);
   expect(
     sampleValuesFor({
       column_name: 'ds',
@@ -718,7 +804,7 @@ test('a temporal column stored as formatted text previews in that format', () =>
       is_dttm: true,
       python_date_format: '%Y%m%d',
     }),
-  ).toEqual(['2026-01-15 00:00:00']);
+  ).toEqual(['2026-01-15 10:47:23']);
 
   // And a directive the renderer does not know falls back rather than sending
   // a sample with a literal `%c` in it.

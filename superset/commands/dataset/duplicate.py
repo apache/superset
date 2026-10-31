@@ -30,14 +30,25 @@ from superset.commands.dataset.exceptions import (
     DatasetExistsValidationError,
     DatasetInvalidError,
     DatasetNotFoundError,
+    DatasetSqlRenderValidationError,
+    TEMPLATE_RENDER_ERRORS,
+    TemplateParamsInvalidValidationError,
 )
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.daos.dataset import DatasetDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException, SupersetSecurityException
+from superset.exceptions import (
+    SupersetErrorException,
+    SupersetParseError,
+    SupersetSecurityException,
+)
 from superset.extensions import db
 from superset.models.core import Database
+from superset.models.helpers import (
+    parse_template_params,
+    template_params_for_access_check,
+)
 from superset.sql.parse import Table
 from superset.utils.decorators import on_error, transaction
 
@@ -143,6 +154,13 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
             except SupersetSecurityException as ex:
                 raise DatasetAccessDeniedError() from ex
             self._base_model = base_model
+            # The copy is a new dataset the caller owns that reads the base's
+            # SQL, so authorize it as the create path would: real data access
+            # to the tables that SQL reads, not editorship of the base (which
+            # the check above accepts). Otherwise the copy would outlive the
+            # caller's access to the base.
+            if base_model.sql:
+                self._validate_copy_sql_access(base_model, exceptions)
 
         if self._base_model and self._base_model.kind != "virtual":
             exceptions.append(DatasourceTypeInvalidError())
@@ -176,3 +194,31 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
 
         if exceptions:
             raise DatasetInvalidError(exceptions=exceptions)
+
+    @staticmethod
+    def _validate_copy_sql_access(
+        base_model: SqlaTable, exceptions: list[ValidationError]
+    ) -> None:
+        """Authorize the SQL the copy will run, as stored by ``run``."""
+        try:
+            template_params = parse_template_params(base_model.template_params)
+        except ValueError:
+            exceptions.append(TemplateParamsInvalidValidationError())
+            return
+        try:
+            security_manager.raise_for_access(
+                database=base_model.database,
+                sql=base_model.sql.strip().strip(";"),
+                catalog=base_model.catalog,
+                schema=base_model.schema,
+                template_params=template_params_for_access_check(template_params),
+                allow_editorship=False,
+            )
+        except SupersetSecurityException as ex:
+            raise DatasetAccessDeniedError() from ex
+        except SupersetParseError as ex:
+            exceptions.append(
+                ValidationError(f"Invalid SQL: {ex.error.message}", field_name="sql")
+            )
+        except TEMPLATE_RENDER_ERRORS as ex:
+            exceptions.append(DatasetSqlRenderValidationError(ex))

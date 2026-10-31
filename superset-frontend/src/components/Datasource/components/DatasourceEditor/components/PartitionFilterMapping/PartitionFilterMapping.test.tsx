@@ -152,6 +152,57 @@ test('an active mapping states which column mirrors onto which', () => {
   ).toBeInTheDocument();
 });
 
+test('without "preserves ordering" the banner does not promise the time range', () => {
+  // Range operators only mirror under an order-preserving transform, so the
+  // time range -- the filter owners care about most -- gets no partition
+  // filter, and the banner must say so rather than promise every filter.
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      columns={MAPPED_COLUMNS}
+      allColumns={MAPPED_COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.getByText(
+      /Time ranges and other range filters are not mirrored until "Transform preserves ordering" is on/,
+    ),
+  ).toBeInTheDocument();
+});
+
+test('with "preserves ordering" the banner promises every filter', () => {
+  const orderedColumns = MAPPED_COLUMNS.map(column =>
+    column.column_name === 'event_time'
+      ? { ...column, partition_transform_is_monotonic: true }
+      : column,
+  );
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      columns={orderedColumns}
+      allColumns={orderedColumns}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.getByText(/^Filters on event_time will automatically apply/),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText(/range filters are not mirrored/),
+  ).not.toBeInTheDocument();
+});
+
 test('the banner stops claiming a mirror the preview refused', () => {
   // Every check this section can make is static, and `no_such_fn(:value)`
   // clears all of them -- it parses, it has a `:value`, it is not Jinja. The
@@ -281,6 +332,41 @@ test('an unmapped column offers to take the mapping over', async () => {
 
   expect(onMoveMappingHere).toHaveBeenCalledWith('country');
 });
+
+test.each([
+  ['an epoch column', 'BIGINT', 'epoch_s', 'A SQL expression using :value'],
+  ['a timestamp column', 'TIMESTAMP', undefined, 'unix_timestamp(:value)'],
+])(
+  'the transform hint on %s offers the engine default only where it applies',
+  (_, type, format, placeholder) => {
+    // Ribbon's epoch `event_time` showed `unix_timestamp(:value)` as the hint,
+    // which both Hive and Impala reject on a number.
+    render(
+      <PartitionMappingSection
+        item={{
+          column_name: 'event_time',
+          type,
+          is_dttm: true,
+          python_date_format: format,
+        }}
+        value={null}
+        datasource={{
+          main_dttm_col: 'event_time',
+          partition_column: 'dt',
+          partition_value_transform_default: 'unix_timestamp(:value)',
+        }}
+        onMoveMappingHere={jest.fn()}
+        onRemoveMapping={jest.fn()}
+        onMonotonicChange={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('partition-value-transform')).toHaveAttribute(
+      'placeholder',
+      placeholder,
+    );
+  },
+);
 
 test('the partition column itself gets no mapping section', () => {
   const { container } = render(

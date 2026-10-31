@@ -32,11 +32,28 @@ page and its menu entry are hidden, and deletes are permanent as before.
 
 ## Finding archived objects
 
+Find **Recently Archived** under **Settings → Manage**. If that entry is not
+available in Manage and you can access the page, it appears under
+**Settings → User** instead.
+
 Open **Recently Archived** and pick a type — **Chart**, **Dashboard**, or
 **Dataset** (shown as **Datasource** when semantic layers are enabled) — from
 the Type selector. The view shows one type at a time; each
 type is read from its own list endpoint, so the same row-level access rules that
 govern the normal lists apply here.
+
+Archive confirmations say the item will move to Recently Archived. Successful
+single-item and bulk archive messages include a direct link to the relevant
+object type. Without an
+explicit type in the URL, the page opens the last type archived successfully in
+this browser, when you have permission to read that type. Otherwise it opens the
+first type you can read. Bookmarks can select a type with `/archived/?type=chart`,
+`/archived/?type=dashboard`, or `/archived/?type=dataset`. If that type is not
+available to you, the page selects the first type you can read.
+
+Archiving an unused dataset does not show a dependency warning. When a dataset
+has dependent charts, the confirmation lists the affected objects and explains
+that those charts become unavailable until the dataset is recovered.
 
 Each row shows:
 
@@ -52,7 +69,9 @@ Each row shows:
 - **Archived** time-range presets (Last 7 / 30 / 90 days, or All time) narrow
   the list to objects archived within the window.
 
-The list is sorted by archive time, most recently archived first.
+The list is sorted by archive time, most recently archived first. Browser Back
+and Forward restore the filters and page from the visited URL, keeping the filter
+controls and displayed results in sync.
 
 ## Recovering an object
 
@@ -80,6 +99,21 @@ is malformed, recovery still succeeds but leaves the metadata unchanged and skip
 filter cleanup; the response warns that the dashboard's filters need review.
 
 ## Deleting an object permanently
+
+Archived charts and dashboards still block deletion of semantic views and layers
+they depend on. The refusal includes the number of archived dependents. Use
+**Recently Archived** to restore and repoint them, or permanently delete them,
+before deleting the semantic layer or view. If you cannot access those assets,
+ask an admin for help.
+
+When deleting a semantic layer or view, a dependency refusal stays in the
+confirmation dialog with the total and archived counts, the names of up to 20
+blocking assets you can see, and a link to Recently Archived. Archived blockers
+are named only to users who could restore them from Recently Archived (admins
+and the asset's editors with write permission on its resource type); the dialog counts the others and suggests asking an
+admin. The typed confirmation is preserved so you can retry after removing
+or repointing the dependents. Dependencies are checked when you confirm deletion,
+not before you type the confirmation.
 
 Use the **Delete permanently** action on a row to remove an object for good.
 You will be asked to confirm.

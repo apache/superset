@@ -24,6 +24,7 @@ from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from functools import cache
 from typing import Any, Callable, cast, Optional, Union
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
@@ -72,6 +73,7 @@ from superset_core.common.models import Dataset as CoreDataset
 from superset import db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.partition_mapping import (
+    declares_array_type,
     equality_mirrors_safely,
     has_active_advanced_data_type,
     is_transform_active,
@@ -164,6 +166,19 @@ class MetadataResult:
     modified: list[str] = field(default_factory=list)
 
 
+def _default_unset_column_flags(column: TableColumn) -> None:
+    """Default *column*'s ``groupby`` and ``filterable`` flags when unset.
+
+    A column sync runs this on every column the source reports. A newly
+    discovered column, or a legacy row whose flags were never written,
+    gets both enabled; a flag the dataset owner turned off stays off.
+    """
+    if column.groupby is None:
+        column.groupby = True
+    if column.filterable is None:
+        column.filterable = True
+
+
 def _is_calculated_column(column: TableColumn) -> bool:
     """Return whether *column* is a user-defined virtual column.
 
@@ -228,6 +243,88 @@ COLUMN_FORM_DATA_PARAMS = [
     "order_by_cols",
     "series",
 ]
+
+# Display controls exclude filter and sort dependencies, which still belong in
+# the full-access dataset payload but must not contribute chart display labels.
+DISPLAY_METRIC_LIST_PARAMS = (
+    "metrics",
+    "metrics_b",
+    "percent_metrics",
+    "tooltip_metrics",
+)
+DISPLAY_METRIC_PARAMS = (
+    "metric",
+    "metric_2",
+    "secondary_metric",
+    "size",
+    "x",
+    "y",
+    "left_metric",
+    "right_metric",
+    "open",
+    "close",
+    "high",
+    "low",
+)
+DISPLAY_COLUMN_LIST_PARAMS = (
+    "all_columns",
+    "columns",
+    "groupby",
+    "groupby_b",
+    "groupbyRows",
+    "groupbyColumns",
+    "series_columns",
+    "tooltip_columns",
+)
+DISPLAY_COLUMN_PARAMS = (
+    "all_columns_x",
+    "all_columns_y",
+    "entity",
+    "series",
+    "x_axis",
+    "source",
+    "target",
+    "source_category",
+    "target_category",
+    "column",
+    "start_time",
+    "end_time",
+    "y_axis",
+    "dimension",
+)
+# These controls accept either one column or a legacy list of columns.
+DISPLAY_COLUMN_MIXED_PARAMS = ("all_columns_x", "series")
+
+DisplayReference = str | dict[str, Any]
+ChartDisplayReferences = tuple[list[DisplayReference], list[DisplayReference]]
+
+
+def _authored_display_label(reference: dict[str, Any]) -> str | None:
+    """Return an explicitly authored adhoc label without interpreting SQL."""
+    label = reference.get("label")
+    if (
+        reference.get("hasCustomLabel") is True
+        and isinstance(label, str)
+        and label.strip()
+    ):
+        return label
+    return None
+
+
+def _physical_display_column(reference: dict[str, Any]) -> str | None:
+    """Recognize only explicit, exact physical-column references."""
+    label = reference.get("label")
+    if (
+        (
+            reference.get("isColumnReference") is True
+            or reference.get("columnType") == "BASE_AXIS"
+        )
+        and isinstance(label, str)
+        and label.strip()
+        and reference.get("sqlExpression") == label
+    ):
+        return label
+    return None
 
 
 class DatasourceKind(StrEnum):
@@ -662,6 +759,131 @@ class BaseDatasource(
 
         return column_names or None
 
+    @staticmethod
+    def _query_output_references(
+        query_context: str | None,
+    ) -> ChartDisplayReferences:
+        """Collect query outputs for full-access metadata, including sort fields.
+
+        These references must not authorize chart labels: viewers can regenerate
+        the query context, and plugins add dependencies that they do not display.
+        """
+        columns: list[DisplayReference] = []
+        metrics: list[DisplayReference] = []
+        try:
+            payload = json.loads(query_context or "{}")
+        except (TypeError, ValueError):
+            return columns, metrics
+        if not isinstance(payload, dict) or not isinstance(
+            queries := payload.get("queries"), list
+        ):
+            return columns, metrics
+        for query in queries:
+            if not isinstance(query, dict):
+                continue
+            for name, target in (
+                ("columns", columns),
+                ("groupby", columns),
+                ("metrics", metrics),
+            ):
+                if isinstance(references := query.get(name), list):
+                    target.extend(
+                        item for item in references if isinstance(item, (str, dict))
+                    )
+        return columns, metrics
+
+    @staticmethod
+    def _active_display_form_data(
+        form_data: dict[str, Any], viz_type: str | None
+    ) -> dict[str, Any]:
+        """Exclude table controls retained while their query mode is hidden."""
+        if viz_type not in ("table", "ag-grid-table", "handlebars"):
+            return form_data
+        mode = form_data.get("query_mode")
+        if viz_type == "handlebars" and mode not in ("raw", "aggregate"):
+            # Handlebars' extractQueryFields retains both modes when unspecified.
+            params: tuple[str, ...] = ("all_columns", "columns", "groupby", "metrics")
+            return {name: form_data[name] for name in params if name in form_data}
+        if mode not in ("raw", "aggregate"):
+            # Match both table plugins' getQueryMode for legacy saved charts.
+            mode = "raw" if form_data.get("all_columns") else "aggregate"
+        params = (
+            ("all_columns", "columns")
+            if mode == "raw"
+            else ("groupby", "metrics", "percent_metrics")
+        )
+        return {
+            name: form_data[name]
+            for name in params
+            if name in form_data
+            and (viz_type != "handlebars" or name != "percent_metrics")
+        }
+
+    @classmethod
+    def _form_display_references(
+        cls, form_data: dict[str, Any], viz_type: str | None
+    ) -> ChartDisplayReferences:
+        """Collect recognized saved display controls without reading SQL.
+
+        List controls require lists. The single-column controls ``series`` and
+        ``all_columns_x`` also support their established legacy list shapes.
+        Control names are shared across visualizations, not validated against
+        each plugin's control panel or rendered fields.
+        """
+        columns: list[DisplayReference] = []
+        metrics: list[DisplayReference] = []
+        column_params: tuple[str, ...] = DISPLAY_COLUMN_PARAMS
+        if viz_type == "tree_chart":
+            column_params += ("id", "parent", "name")
+        for target, list_params, single_params in (
+            (columns, DISPLAY_COLUMN_LIST_PARAMS, column_params),
+            (metrics, DISPLAY_METRIC_LIST_PARAMS, DISPLAY_METRIC_PARAMS),
+        ):
+            for name in list_params:
+                if isinstance(references := form_data.get(name), list):
+                    target.extend(
+                        item for item in references if isinstance(item, (str, dict))
+                    )
+            for name in single_params:
+                if isinstance(value := form_data.get(name), (str, dict)):
+                    target.append(value)
+        for name in DISPLAY_COLUMN_MIXED_PARAMS:
+            if isinstance(references := form_data.get(name), list):
+                columns.extend(
+                    item for item in references if isinstance(item, (str, dict))
+                )
+
+        # Tooltip contents are explicit display references. Passing no currency
+        # column excludes the query-only currency-formatting dependency.
+        columns.extend(sorted(cls._extract_form_data_columns(form_data, None, False)))
+        return columns, metrics
+
+    @staticmethod
+    def _saved_display_form_data(slc: Slice) -> dict[str, Any]:
+        """Read saved display controls without model-derived form-data overrides."""
+        try:
+            form_data = json.loads(slc.params or "{}")
+        except (TypeError, ValueError):
+            return {}
+        return form_data if isinstance(form_data, dict) else {}
+
+    @classmethod
+    def _slice_display_references(cls, slc: Slice) -> ChartDisplayReferences:
+        """Collect label references from editor-controlled saved display controls.
+
+        Query context is viewer-writable and cannot expand the label allowlist.
+        Filter, sort, granularity and expression-internal dependencies are not
+        display controls, even when plugins include them in query outputs.
+        Query-mode pruning applies to table, AG Grid and Handlebars; other
+        plugins retain recognized controls even if a legacy or imported chart
+        saved fields that its visualization no longer uses.
+        """
+        form_data = cls._saved_display_form_data(slc)
+        viz_type = slc.viz_type or form_data.get("viz_type")
+        return cls._form_display_references(
+            cls._active_display_form_data(form_data, viz_type), viz_type
+        )
+
     def data_for_slices(  # pylint: disable=too-many-locals  # noqa: C901
         self, slices: list[Slice]
     ) -> dict[str, Any]:
@@ -675,6 +897,7 @@ class BaseDatasource(
         data = cast(dict[str, Any], self.data)
         metric_names = set()
         column_names = set()
+        authored_labels: dict[str, str] = {}
         for slc in slices:
             form_data = slc.form_data
             # pull out all required metrics from the form_data
@@ -718,6 +941,36 @@ class BaseDatasource(
                 ]
                 column_names.update(_columns)
 
+            # Full-access metadata retains hidden controls and query-only
+            # dependencies. Only saved display controls supply authored labels.
+            display_columns, display_metrics = self._form_display_references(
+                form_data,
+                slc.viz_type or self._saved_display_form_data(slc).get("viz_type"),
+            )
+            for references in (display_columns, display_metrics):
+                for reference in references:
+                    if isinstance(reference, dict) and (
+                        label := _authored_display_label(reference)
+                    ):
+                        authored_labels.setdefault(label, label)
+            query_columns, query_metrics = self._query_output_references(
+                slc.query_context
+            )
+            display_columns.extend(query_columns)
+            display_metrics.extend(query_metrics)
+            for references, names in (
+                (display_columns, column_names),
+                (display_metrics, metric_names),
+            ):
+                for reference in references:
+                    if isinstance(reference, str):
+                        names.add(reference)
+            for reference in display_columns:
+                if isinstance(reference, dict) and (
+                    column_name := _physical_display_column(reference)
+                ):
+                    column_names.add(column_name)
+
         filtered_metrics = [
             metric
             for metric in data["metrics"]
@@ -752,7 +1005,9 @@ class BaseDatasource(
             }
         )
         verbose_map.update(all_columns)
-        data["verbose_map"] = verbose_map
+        # Dataset labels take precedence when an authored label collides with
+        # a saved field name, matching the dashboard frontend's merge order.
+        data["verbose_map"] = {**authored_labels, **verbose_map}
         data["column_names"] = set(all_columns.values()) | set(self.column_names)
 
         return data
@@ -2071,6 +2326,7 @@ class SqlaTable(
         transform = mapped_column.partition_value_transform if mapped_column else None
         active = bool(
             self.partition_column in columns_by_name
+            and not declares_array_type(columns_by_name[self.partition_column].type)
             and mapped_column is not None
             and mapped_column_name != self.partition_column
             and is_transform_active(transform, self.database.backend)
@@ -2330,13 +2586,27 @@ class SqlaTable(
             return sql_expression
         try:
             return template_processor.process_template(sql_expression)
-        except SupersetSyntaxErrorException as ex:
+        except (TemplateError, SupersetSyntaxErrorException) as ex:
             raise QueryObjectValidationError(
                 _(
                     "Error in jinja expression in adhoc column: %(msg)s",
                     msg=str(ex),
                 )
             ) from ex
+
+    def _get_adhoc_column_rls_expression(
+        self,
+        col: AdhocColumn,
+        rendered_sql: str,
+        render: Callable[[str], str | None],
+    ) -> str | None:
+        """Match adhoc execution's metadata lookup and quoted-reference fallback."""
+        if saved_column := self.get_column(rendered_sql.strip()):
+            return render(saved_column.expression) if saved_column.expression else None
+        if col.get("isColumnReference"):
+            # Render the quoted source, never the already-rendered lookup SQL.
+            return render(self.database.quote_identifier(col["sqlExpression"]))
+        return rendered_sql
 
     def _shift_temporal_column_if_needed(
         self,
@@ -2642,15 +2912,6 @@ class SqlaTable(
                 db_engine_spec.alter_new_orm_column(new_column)
                 if expression:
                     new_column.expression = expression
-                # Only on a column being discovered. Setting them on a matched
-                # existing column undoes whatever the owner chose for it -- and
-                # a PUT with `override_columns=true` runs this refresh *after*
-                # the update has committed those choices, so a save through the
-                # editor's "Automatically sync columns" box reverted the very
-                # flags it had just written, including the ones designating a
-                # partition column turns off.
-                new_column.groupby = True
-                new_column.filterable = True
             else:
                 new_column = old_column
                 # Type and physical expression both feed generated SQL, so
@@ -2665,6 +2926,7 @@ class SqlaTable(
                 # Set description from comment field if available
                 if col.get("comment"):
                     new_column.description = col["comment"]
+            _default_unset_column_flags(new_column)
             columns.append(new_column)
             # Never the partition column. It is a technical column -- an epoch
             # integer, a lowercased region key -- that no analyst filters on,
@@ -2805,26 +3067,133 @@ class SqlaTable(
             templatable_statements.append(extras["where"])
         if "having" in extras:
             templatable_statements.append(extras["having"])
-        if columns := query_obj.get("columns"):
-            calculated_columns: dict[str, Any] = {
-                c.column_name: c.expression for c in self.columns if c.expression
-            }
-            for column_ in columns:
-                if utils.is_adhoc_column(column_):
-                    templatable_statements.append(column_["sqlExpression"])
-                elif isinstance(column_, str) and column_ in calculated_columns:
-                    templatable_statements.append(calculated_columns[column_])
-        if metrics := query_obj.get("metrics"):
-            metrics_by_name: dict[str, Any] = {
-                m.metric_name: m.expression for m in self.metrics
-            }
-            for metric in metrics:
-                if utils.is_adhoc_metric(metric) and (
-                    sql := metric.get("sqlExpression")
+        calculated_columns: dict[str, Any] = {
+            c.column_name: c.expression for c in self.columns if c.expression
+        }
+        calculated_columns_by_verbose_name: dict[str, Any] = {
+            c.verbose_name: c.expression
+            for c in self.columns
+            if c.expression and c.verbose_name
+        }
+        metrics_by_name: dict[str, Any] = {
+            m.metric_name: m.expression for m in self.metrics
+        }
+
+        def column_expression(column_: Any) -> Any:
+            """The templatable expression behind an adhoc or calculated column."""
+            if utils.is_adhoc_column(column_):
+                # ``adhoc_column_to_sqla`` looks the expression up against the
+                # dataset's columns before treating it as SQL of its own, so an
+                # adhoc column that only names a calculated column renders that
+                # column's expression instead of this string. The frontend
+                # builds that shape for an ``x_axis`` column reference.
+                expression = column_["sqlExpression"] or ""
+                return calculated_columns.get(expression.strip(), expression)
+            if isinstance(column_, str):
+                return calculated_columns.get(column_)
+            return None
+
+        def metric_expression(metric: Any) -> Any:
+            """The templatable expression behind an adhoc or saved metric."""
+            if utils.is_adhoc_metric(metric):
+                if sql_expression := metric.get("sqlExpression"):
+                    return sql_expression
+                # A SIMPLE adhoc metric has no expression of its own, but
+                # ``adhoc_metric_to_sqla`` wraps its aggregate around the
+                # column's rendered expression, so a macro in a calculated
+                # column reaches the SQL through it.
+                metric_column = metric.get("column") or {}
+                column_name = metric_column.get("column_name")
+                return calculated_columns.get(column_name) if column_name else None
+            if isinstance(metric, str):
+                return metrics_by_name.get(metric)
+            return None
+
+        def filter_expression(flt: Any) -> Any:
+            """The templatable expression a filter's ``col`` resolves to."""
+            col = flt.get("col")
+            if expression := column_expression(col):
+                return expression
+            if isinstance(col, str):
+                # A filter column that is not a column name is resolved against
+                # the columns' verbose names (right-click "Drill to detail by"
+                # passes those) and then against the saved metrics, for a
+                # filter that becomes a HAVING clause.
+                return calculated_columns_by_verbose_name.get(
+                    col
+                ) or metrics_by_name.get(col)
+            return None
+
+        # ``get_sqla_query`` resolves ``groupby`` through the same column lookup
+        # as ``columns``, and prefers it when both are set, so a calculated
+        # column grouped on is rendered exactly like a selected one. In
+        # practice ``QueryObject.to_dict()`` never emits a ``groupby`` key of
+        # its own (``_rename_deprecated_fields`` folds it into ``columns`` at
+        # construction time, and that is the only real caller of this
+        # method), so this is defensive: it only matters for a caller that
+        # builds a ``QueryObjectDict`` directly rather than through
+        # ``QueryObject``.
+        for column_ in [
+            *(query_obj.get("columns") or []),
+            *(query_obj.get("groupby") or []),
+        ]:
+            if expression := column_expression(column_):
+                templatable_statements.append(expression)
+        for metric in query_obj.get("metrics") or []:
+            if expression := metric_expression(metric):
+                templatable_statements.append(expression)
+        # ``get_sqla_query`` renders these through the same template processor as
+        # the columns and metrics above, so a macro in them must trigger the
+        # extraction too, otherwise two users whose rendered SQL differs share a
+        # cache key:
+        #   - an adhoc metric in ``orderby``, or an ``orderby`` entry naming a
+        #     saved metric or calculated column not selected by the query
+        #   - ``series_limit_metric`` (and its legacy ``timeseries_limit_metric``
+        #     alias), via ``_get_series_orderby``
+        #   - a filter whose ``col`` resolves to a calculated column or a saved
+        #     metric
+        #   - the temporal column named by ``granularity``
+        for order_by in query_obj.get("orderby") or []:
+            entry = order_by[0] if isinstance(order_by, (list, tuple)) else order_by
+            if expression := metric_expression(entry) or column_expression(entry):
+                templatable_statements.append(expression)
+        for limit_metric in (
+            query_obj.get("series_limit_metric"),
+            query_obj.get("timeseries_limit_metric"),
+        ):
+            if expression := metric_expression(limit_metric):
+                templatable_statements.append(expression)
+        for flt in query_obj.get("filter") or []:
+            if isinstance(flt, dict) and (expression := filter_expression(flt)):
+                templatable_statements.append(expression)
+        if (raw_granularity := query_obj.get("granularity")) is not None:
+            # The temporal column reaches the select list and the time filter
+            # through ``get_timestamp_expression``, which renders its
+            # expression. ``get_sqla_query`` falls back to ``main_dttm_col``
+            # whenever ``granularity`` is not one of the temporal columns,
+            # which includes an empty string, so the fallback is checked on
+            # that condition rather than on ``granularity``'s truthiness.
+            granularity = (
+                self.main_dttm_col
+                if raw_granularity not in self.dttm_cols
+                else raw_granularity
+            )
+            if granularity:
+                if expression := calculated_columns.get(granularity):
+                    templatable_statements.append(expression)
+                # When the dataset always filters on ``main_dttm_col`` and it
+                # differs from the column ``granularity`` resolved to,
+                # ``get_sqla_query`` adds a second, independent time filter on
+                # ``main_dttm_col``, rendering that column's own expression
+                # regardless of which column was actually named.
+                if (
+                    self.always_filter_main_dttm
+                    and self.main_dttm_col
+                    and self.main_dttm_col in self.dttm_cols
+                    and self.main_dttm_col != granularity
+                    and (expression := calculated_columns.get(self.main_dttm_col))
                 ):
-                    templatable_statements.append(sql)
-                elif isinstance(metric, str) and metric in metrics_by_name:
-                    templatable_statements.append(metrics_by_name[metric])
+                    templatable_statements.append(expression)
         if self.is_rls_supported:
             templatable_statements += [
                 f.clause for f in security_manager.get_rls_filters(self)
@@ -2850,8 +3219,6 @@ class SqlaTable(
         :param query_obj: query object to analyze
         :return: The extra cache keys
         """
-        from superset.utils.rls import collect_rls_predicates_for_sql
-
         extra_cache_keys = super().get_extra_cache_keys(query_obj)
         if self.has_extra_cache_key_calls(query_obj):
             # Filter out keys that aren't parameters to get_sqla_query
@@ -2870,22 +3237,24 @@ class SqlaTable(
             sqla_query = self.get_sqla_query(
                 **cast(Any, filtered_query_obj),
                 mirror_partition_filters=False,
+                execute_prequeries=False,
             )
             extra_cache_keys += sqla_query.extra_cache_keys
 
-        # For virtual datasets, include RLS predicates in the cache key
-        if self.is_virtual and self.sql:
-            default_schema = self.database.get_default_schema(self.catalog)
-            rls_predicates = collect_rls_predicates_for_sql(
-                self.sql,
-                self.database,
-                self.catalog,
-                self.schema or default_schema or "",
-                exclude_dataset_id=self.id,
+        resolve_catalog = cache(self.database.get_default_catalog)
+        resolve_schema = cache(self._get_rls_schema)
+        extra_cache_keys.extend(
+            self.get_inner_rls_cache_key(
+                resolve_catalog=resolve_catalog, resolve_schema=resolve_schema
             )
-            # Add each predicate as a separate cache key component
-            extra_cache_keys.extend(rls_predicates)
-
+        )
+        extra_cache_keys.extend(
+            self._get_query_rls_cache_keys(
+                query_obj,
+                resolve_catalog=resolve_catalog,
+                resolve_schema=resolve_schema,
+            )
+        )
         # An active partition filter mapping changes the SQL a cached result came
         # from, so it has to participate in the key or a mapping fix leaves stale
         # pruned results behind. Only appended when the mapping is actually
@@ -2908,6 +3277,48 @@ class SqlaTable(
             )
 
         return list(set(extra_cache_keys))
+
+    def get_rendered_rls_cache_key(self) -> list[str]:
+        """Fingerprint own RLS when templates can depend on viewer context.
+
+        Scan only own RLS with the chart cache's macro detection, including
+        guest-token clauses. Scanning the entire datasource would also load
+        unrelated SQL, columns and metrics before every cache lookup.
+        Compile the filters rather than collecting macro cache keys so even a
+        macro opting out of extra keys cannot hide a different RLS predicate.
+        Static RLS is already represented by ``get_rls_cache_key``.
+        """
+        if not any(
+            ExtraCache.regex.search(clause)
+            for clause in security_manager.get_rls_cache_key(self)
+        ):
+            return []
+        return sorted(
+            str(clause.compile(compile_kwargs={"literal_binds": True}))
+            for clause in self.get_sqla_row_level_filters()
+        )
+
+    def get_inner_rls_cache_key(
+        self,
+        *,
+        resolve_catalog: Callable[[], str | None] | None = None,
+        resolve_schema: Callable[[], str] | None = None,
+    ) -> list[str]:
+        """Key caches on table-bound inner RLS, with viewer isolation on failure."""
+        from superset.utils.rls import collect_rls_predicates_for_sql
+
+        if not (self.is_virtual and self.sql):
+            return []
+        return collect_rls_predicates_for_sql(
+            self.sql,
+            self.database,
+            self.catalog,
+            self.schema,
+            exclude_dataset_id=self.id,
+            include_global_guest_rls=False,
+            resolve_catalog=resolve_catalog,
+            resolve_schema=resolve_schema or self._get_rls_schema,
+        )
 
     @property
     def quote_identifier(self) -> Callable[[str], str]:

@@ -128,6 +128,13 @@ export function transformCanPreview(
 }
 
 /**
+ * A declared type naming an array, as the server's `declares_array_type` reads
+ * it: PostgreSQL's `TEXT[]`, and the `ARRAY<...>` / `ARRAY(...)` / `Array(...)`
+ * spellings.
+ */
+const ARRAY_TYPE_RE = /(?:\[\s*(?:\d+\s*)?\])+\s*$|^\s*ARRAY\b/i;
+
+/**
  * Whether the mapping will actually mirror anything.
  *
  * Drives the choice between the green "filters will automatically apply"
@@ -149,6 +156,15 @@ export function mappingIsActive(
 ): boolean {
   const mappedColumnName = resolveMappedColumn(datasource);
   if (!mappedColumnName || mappedColumnName === datasource.partition_column) {
+    return false;
+  }
+  // An array partition column can never take a mirror: there is no scalar a
+  // transform could return that compares. The server refuses the mapping the
+  // same way (`declares_array_type`), so the banner must not promise one.
+  const partitionColumn = columns.find(
+    column => column.column_name === datasource.partition_column,
+  );
+  if (partitionColumn?.type && ARRAY_TYPE_RE.test(partitionColumn.type)) {
     return false;
   }
   const mappedColumn = columns.find(
@@ -313,42 +329,6 @@ export function partitionRowState(
 }
 
 /**
- * The transform to pre-fill when a column becomes the mapped one.
- *
- * A temporal column on an engine that advertises its own syntax gets that:
- * `unix_timestamp(:value)` is Hive-family and would not parse on Postgres or
- * BigQuery, so the engine default only applies where the engine supplies it.
- * Every other case -- a non-temporal column, or a temporal one on an engine
- * with no default -- falls back to the bare `:value` identity transform rather
- * than an empty field. `:value` is a valid, working starting point (the mapped
- * and partition columns often share a shape, so mirroring the bound unchanged
- * is exactly right) and it is far easier for the owner to edit than to write
- * from nothing.
- */
-export function defaultTransformFor(
-  datasource: PartitionMappingDatasource,
-  column: PartitionMappingColumn | undefined,
-): string {
-  if (column?.is_dttm && datasource.partition_value_transform_default) {
-    return datasource.partition_value_transform_default;
-  }
-  return IDENTITY_TRANSFORM;
-}
-
-/** Declared types whose values are numbers rather than strings. */
-const NUMERIC_TYPE_RE =
-  /INT|NUMERIC|DECIMAL|DOUBLE|FLOAT|REAL|NUMBER|BIGNUMERIC/i;
-
-/** The sample instant, 2026-01-15 00:00:00 UTC, in each epoch representation. */
-const EPOCH_SAMPLES: Record<string, string> = {
-  epoch_s: '1768435200',
-  epoch_ms: '1768435200000',
-};
-
-/** The sample instant as ISO text, which is what an unformatted column gets. */
-const TIMESTAMP_SAMPLE = '2026-01-15 00:00:00';
-
-/**
  * Declared types the engine renders a datetime for on its own.
  *
  * `python_date_format` only reaches the comparison when the engine's
@@ -358,6 +338,76 @@ const TIMESTAMP_SAMPLE = '2026-01-15 00:00:00';
  * keeps the ISO sample.
  */
 const TEMPORAL_TYPE_RE = /DATE|TIME|TIMESTAMP|DATETIME/i;
+
+/**
+ * The transform to pre-fill when a column becomes the mapped one.
+ *
+ * A temporal column on an engine that advertises its own syntax gets that:
+ * `unix_timestamp(:value)` is Hive-family and would not parse on Postgres or
+ * BigQuery, so the engine default only applies where the engine supplies it.
+ *
+ * And only where the column holds a timestamp, which is what the engine's
+ * default takes. A column flagged temporal but stored as an epoch `BIGINT` or
+ * as formatted text reaches the transform as that number or text: Hive and
+ * Impala both reject `unix_timestamp(1768474043)`, so the pre-fill left an
+ * epoch mapping broken until the owner replaced it, which is what Ribbon's
+ * validation ran into. A column whose declared type is unknown keeps the
+ * default, as before.
+ *
+ * Every other case -- a non-temporal column, a temporal one stored as a
+ * number or as text, or a temporal one on an engine with no default -- falls
+ * back to the bare `:value` identity transform rather than an empty field.
+ * `:value` is a valid, working starting point (the mapped and partition
+ * columns often share a shape, so mirroring the bound unchanged is exactly
+ * right) and it is far easier for the owner to edit than to write from
+ * nothing.
+ */
+export function defaultTransformFor(
+  datasource: PartitionMappingDatasource,
+  column: PartitionMappingColumn | undefined,
+): string {
+  if (
+    column?.is_dttm &&
+    (!column.type || TEMPORAL_TYPE_RE.test(column.type)) &&
+    datasource.partition_value_transform_default
+  ) {
+    return datasource.partition_value_transform_default;
+  }
+  return IDENTITY_TRANSFORM;
+}
+
+/** Declared types whose values are numbers rather than strings. */
+const NUMERIC_TYPE_RE =
+  /INT|NUMERIC|DECIMAL|DOUBLE|FLOAT|REAL|NUMBER|BIGNUMERIC/i;
+
+/**
+ * The sample instant, 2026-01-15 10:47:23 UTC, in each epoch representation.
+ *
+ * Deliberately off every boundary. Bucketing is the usual transform -- an epoch
+ * floored to the hour or the day -- and at a boundary a transform that does not
+ * round at all answers exactly what one that rounds correctly does, so the
+ * preview showed a broken key as valid.
+ */
+const EPOCH_SAMPLES: Record<string, string> = {
+  epoch_s: '1768474043',
+  epoch_ms: '1768474043000',
+};
+
+/** The sample instant as ISO text, for a column whose type keeps a time of day. */
+const TIMESTAMP_SAMPLE = '2026-01-15 10:47:23';
+
+/**
+ * The same day at midnight, for a column that may be compared by the day.
+ *
+ * A `DATE` column -- or one whose declared type is unknown -- can compare at
+ * day resolution, where an equality carrying a time of day is declined
+ * (`_engine_literal_resolution`), and a preview of `=` with the off-boundary
+ * sample would report a working mapping as broken.
+ */
+const DATE_SAMPLE = '2026-01-15 00:00:00';
+
+/** Declared types that keep a time of day: TIMESTAMP, DATETIME, TIME. */
+const TIME_OF_DAY_TYPE_RE = /TIME/i;
 
 /**
  * Each `strftime` directive's value for the sample instant.
@@ -371,10 +421,10 @@ const STRFTIME_FIELDS: Record<string, string> = {
   y: '26',
   m: '01',
   d: '15',
-  H: '00',
-  I: '12',
-  M: '00',
-  S: '00',
+  H: '10',
+  I: '10',
+  M: '47',
+  S: '23',
   f: '000000',
   j: '015',
   p: 'AM',
@@ -448,7 +498,14 @@ export function sampleValuesFor(
         format.includes('%') && !TEMPORAL_TYPE_RE.test(column.type ?? '')
           ? renderSampleWithFormat(format)
           : undefined;
-      return [formatted || TIMESTAMP_SAMPLE];
+      if (formatted) {
+        return [formatted];
+      }
+      return [
+        TIME_OF_DAY_TYPE_RE.test(column.type ?? '')
+          ? TIMESTAMP_SAMPLE
+          : DATE_SAMPLE,
+      ];
     }
     const epochSample = EPOCH_SAMPLES[format];
     if (epochSample) {

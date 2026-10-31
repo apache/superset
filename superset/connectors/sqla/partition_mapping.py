@@ -134,6 +134,16 @@ engine's own dialect instead, and a value that does not survive the trip is not
 mirrored -- the usual trade, pruning for correctness. `probe_sql_is_evaluable`
 re-reads the finished statement behind it.
 
+The probe's *answers* make the same trip, in the other direction. The chart
+query is compiled with ``literal_binds``, so a probed partition key is rendered
+into its SQL by the same renderer and read by the same lexer -- and
+``concat(:value, chr(92), 'b')`` turns the unremarkable input ``a`` into the key
+``a\\b``, which Hive reads back as ``a`` followed by a backspace. So
+`_predicates_from_probe` asks `literal_round_trips` about each result too, and
+declines the request rather than emitting a predicate no row can satisfy: the
+mirror is ``AND``-ed onto the query, so a mirror that matches nothing costs the
+chart its rows rather than its pruning.
+
 Negations are never safe because ``T`` need not be injective:
 ``lower(:value)`` with ``country != 'US'`` mirrors to ``region_key != 'us'``,
 which wrongly excludes rows whose ``country`` is already lowercase ``'us'`` --
@@ -172,9 +182,9 @@ import hashlib
 import logging
 import numbers
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta
 from functools import lru_cache
 from typing import Any, cast, TYPE_CHECKING
 
@@ -548,6 +558,28 @@ def _native_generic_type(
         return column.type_generic
     except Exception:  # pylint: disable=broad-except  # noqa: BLE001
         return None
+
+
+#: A declared type naming an array: PostgreSQL's ``TEXT[]`` / ``INTEGER[][]``
+#: / ``int[3]``, and the ``ARRAY<...>`` / ``ARRAY(...)`` / ``Array(...)``
+#: spellings of Hive, Spark, Trino, BigQuery and ClickHouse.
+#: The bracket body is written so no two runs can match the same blanks:
+#: ``\s*\d*\s*`` backtracks polynomially on a long run of spaces.
+_ARRAY_TYPE_RE = re.compile(r"(?:\[\s*(?:\d+\s*)?\])+\s*$|^\s*ARRAY\b", re.IGNORECASE)
+
+
+def declares_array_type(column_type: str | None) -> bool:
+    """
+    Whether a declared column type is an array, whatever the engine spec says.
+
+    The engine spec only reports ``MULTI_VALUE`` where it has opted into
+    ``supports_multivalue_columns``; PostgreSQL has not, and resolves ``TEXT[]``
+    to ``STRING`` and ``INTEGER[]`` to ``NUMERIC``. So an array partition column
+    there cleared the array refusal, previewed valid, and every equality chart
+    on the mapping failed with ``malformed array literal``. The declared type
+    is what the engine will compare, so it is read directly as well.
+    """
+    return bool(column_type and _ARRAY_TYPE_RE.search(column_type))
 
 
 #: Declared types whose comparison ignores trailing blanks.
@@ -1183,6 +1215,13 @@ def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
 
     if mapped_column_name == partition_column:
         # Self-mapping: the mirrored predicate would duplicate the original.
+        return None
+
+    # An array holds no scalar a transform could return, so no mirror onto it
+    # can ever compare. Refused for the mapping rather than only per value, so
+    # the Explore glyph stops promising one: a probe of ``:value`` succeeds and
+    # records a working transform, and only the later type gate declined.
+    if declares_array_type(columns_by_name[partition_column].type):
         return None
 
     mapped_column = columns_by_name[mapped_column_name]
@@ -1833,6 +1872,51 @@ def _from_suffix_sql(from_suffix: str, engine: str) -> str | None:
         return None
 
 
+def _evaluate_with_text_forms(
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+    transform: str,
+    values: list[Any],
+    errors: list[str] | None,
+    text_answers: list[tuple[int, Any]],
+) -> tuple[bool, list[Any] | None]:
+    """
+    `evaluate_transform` with each temporal value also asked as text -- see its
+    ``text_answers`` parameter. ``(False, None)`` where ``values`` holds no
+    temporal value, so the caller evaluates them the ordinary way.
+    """
+    indexes = [
+        index
+        for index, value in enumerate(values)
+        if isinstance(value, date) and not is_unmirrorable(value)
+    ]
+    if indexes:
+        combined = evaluate_transform(
+            database,
+            catalog,
+            schema,
+            transform,
+            values + [_as_filter_text(values[index]) for index in indexes],
+            errors=errors,
+        )
+        if combined is not None:
+            text_answers.extend(zip(indexes, combined[len(values) :], strict=False))
+            return True, combined[: len(values)]
+        # The text form was refused, or everything was. Oracle refuses the
+        # text of every correct transform too -- `CAST(:value AS DATE)`
+        # cannot read '2026-01-12 06:30:00' under the default
+        # ``NLS_DATE_FORMAT`` -- so declining here cost Oracle every time
+        # range. The typed values are asked alone, a second round trip only
+        # on this path, and `_declined_for_reading_by_type` checks what they
+        # answer against the instants they were asked about instead.
+        typed = evaluate_transform(database, catalog, schema, transform, values)
+        if typed is not None:
+            text_answers.extend((index, TEXT_REFUSED) for index in indexes)
+        return True, typed
+    return False, None
+
+
 def evaluate_transform(
     database: Database,
     catalog: str | None,
@@ -1841,6 +1925,7 @@ def evaluate_transform(
     values: list[Any],
     *,
     errors: list[str] | None = None,
+    text_answers: list[tuple[int, Any]] | None = None,
 ) -> list[Any] | None:
     """
     Evaluate ``transform`` against the engine once per distinct value.
@@ -1858,9 +1943,22 @@ def evaluate_transform(
         query path passes nothing and stays silent; the editor's preview passes
         a list so it can tell the owner *why* the transform did not evaluate --
         a misspelled function is the common case and sqlglot parses it happily.
+    :param text_answers: optional sink. When given, every date or timestamp in
+        ``values`` is also asked as the text a simple filter would bind, in the
+        same round trip, and ``(index, answer)`` is appended for each -- see
+        `_declined_for_reading_by_type` for why. Where the text is refused the
+        typed values are asked alone, and ``(index, TEXT_REFUSED)`` is appended
+        for each if they answer.
     """
     if not values:
         return None
+
+    if text_answers is not None:
+        answered, result = _evaluate_with_text_forms(
+            database, catalog, schema, transform, values, errors, text_answers
+        )
+        if answered:
+            return result
 
     # Dedupe so a 200-value `IN` list costs one column, not 200.
     distinct: list[Any] = []
@@ -1941,14 +2039,31 @@ def _run_probe(
     later hit, and the editor reported a working mapping as not mirroring
     while the query went on pruning. The per-input skip still happens where it
     belongs, in the caller's own ``NULL`` guard.
+
+    A probe where *every* input answers ``NULL`` is different only when it is
+    all the evidence there is. ``trunc(..., 'HH')`` on Hive returns ``NULL`` for
+    any input, and recording that as a working transform left Explore's glyph
+    promising a partition predicate no query carried. So an all-``NULL`` probe
+    records ``False`` -- but never over a stored ``True``, which some other
+    input earned and the ``NULLIF`` case above must keep. A later probe that
+    answers anything restores ``True`` the ordinary way: a fresh input misses
+    the probe cache, so it re-records.
     """
     values = _probe(database, catalog, schema, transform, distinct, errors=errors)
+    if values is None:
+        mirrors = False
+    elif any(value is not None for value in values):
+        mirrors = True
+    elif known_mirror_verdict(database, catalog, schema, transform) is not True:
+        mirrors = False
+    else:
+        return values
     record_mirror_verdict(
         database,
         catalog,
         schema,
         transform,
-        mirrors=values is not None,
+        mirrors=mirrors,
     )
     return values
 
@@ -2106,6 +2221,16 @@ def _execution_identity(database: Database) -> str | None:
     return get_username()
 
 
+#: Bumped whenever what the probe cache or the verdict cache *means* changes,
+#: so entries written under the old meaning are never read under the new one.
+#: v2: an all-``NULL`` probe stopped recording a working transform. A ``True``
+#: stored before that is indistinguishable from one another input earned, so
+#: it would have kept Explore's glyph lit for up to a cache timeout -- and the
+#: cached probe results behind it would have kept any query from re-probing
+#: and writing a fresh one.
+PROBE_CACHE_VERSION = "v2"
+
+
 def _probe_cache_key(
     database: Database,
     catalog: str | None,
@@ -2142,7 +2267,7 @@ def _probe_cache_key(
         default=repr,
     )
     digest = hashlib.md5(payload.encode("utf-8")).hexdigest()  # noqa: S324
-    return f"partition_transform_probe:{digest}"
+    return f"partition_transform_probe:{PROBE_CACHE_VERSION}:{digest}"
 
 
 def _cache_get(key: str) -> list[Any] | None:
@@ -2192,7 +2317,7 @@ def _mirror_verdict_cache_key(
         default=repr,
     )
     digest = hashlib.md5(payload.encode("utf-8")).hexdigest()  # noqa: S324
-    return f"partition_transform_verdict:{digest}"
+    return f"partition_transform_verdict:{PROBE_CACHE_VERSION}:{digest}"
 
 
 def record_mirror_verdict(
@@ -2889,12 +3014,68 @@ def _preview_probe(
     Split out from `preview_partition_mapping` so that the gates which answer
     from the stored mapping alone stay readable as the single run of guard
     clauses they are. Everything here has either run a query or decided not to.
+
+    A chart hands the transform a temporal value in two shapes. A simple filter
+    binds the text the author typed; a time range binds a `datetime`, which the
+    dialect writes as a typed literal (``TO_DATE(...)`` on Oracle). A
+    transform can read the two differently -- ``TO_DATE(:value, fmt)`` parses
+    the text, but converts the typed value back to text through the session's
+    ``NLS_DATE_FORMAT`` first and lands in year 0012 -- and previewing only the
+    text said valid for a mapping whose every time range came back empty. So a
+    temporal sample is previewed as the time range sends it. Comparing it with
+    the text shape is `build_mirrored_predicates`' job rather than this
+    function's, so the chart path runs the same check -- see
+    `_declined_for_reading_by_type`.
     """
-    value = datasource.mirror_probe_request(
-        operator,
-        _probe_input(datasource, mapped_col, operator, sample_values),
+    probe_input = _probe_input(datasource, mapped_col, operator, sample_values)
+    range_input = _as_range_bound(mapped_col, operator, probe_input)
+    return _preview_probe_value(
+        datasource,
+        mapping,
         mapped_col,
+        operator,
+        datasource.mirror_probe_request(
+            operator,
+            range_input if range_input is not None else probe_input,
+            mapped_col,
+        ),
+        sample_input,
     )
+
+
+def _as_range_bound(
+    column: "TableColumn",
+    operator: FilterOperator,
+    probe_input: Any,
+) -> datetime | None:
+    """
+    The `datetime` a time range would hand the transform for this sample, or
+    `None` where the sample is not a temporal bound a time range could carry.
+    """
+    # Imported here: `superset.models.helpers` imports this module.
+    from superset.models.helpers import (  # pylint: disable=import-outside-toplevel
+        _instant_from_filter_value,
+    )
+
+    if not column.is_dttm or operator == FilterOperator.IN:
+        return None
+    if not isinstance(probe_input, str):
+        return None
+    instant = _instant_from_filter_value(probe_input)
+    if instant is None or instant.tzinfo is not None:
+        return None
+    return instant
+
+
+def _preview_probe_value(
+    datasource: SqlaTable,
+    mapping: PartitionMapping,
+    mapped_col: "TableColumn",
+    operator: FilterOperator,
+    value: Any,
+    sample_input: str,
+) -> dict[str, Any]:
+    """`_preview_probe` for one shape of the probe input."""
     if is_unmirrorable(value):
         # The same step the chart path applies, so the preview cannot promise a
         # mirror the query declines -- and it reports the reason that step
@@ -2954,13 +3135,35 @@ def _preview_probe(
         }
     errors: list[str] = []
     type_errors: list[str] = []
-    predicates = build_mirrored_predicates(
-        datasource,
-        mapping,
-        [(operator, value)],
-        errors=errors,
-        type_errors=type_errors,
-    )
+    escaping_errors: list[str] = []
+    shape_errors: list[str] = []
+    try:
+        predicates = build_mirrored_predicates(
+            datasource,
+            mapping,
+            [(operator, value)],
+            errors=errors,
+            type_errors=type_errors,
+            escaping_errors=escaping_errors,
+            shape_errors=shape_errors,
+        )
+    except Exception:  # pylint: disable=broad-except
+        # The chart path fails open on the same call; the preview reports it
+        # as a mapping that will not mirror rather than as a server error.
+        logger.warning("Could not preview the partition mapping", exc_info=True)
+        return {
+            "valid": False,
+            "reason": "engine",
+            "sample_input": sample_input,
+            "error": _("The transform could not be evaluated against the database."),
+        }
+    if shape_errors:
+        return {
+            "valid": False,
+            "reason": "shape",
+            "sample_input": sample_input,
+            "error": shape_errors[0],
+        }
     if type_errors:
         # Its own reason, because "the database would not evaluate this" and
         # "it evaluated and answered with the wrong kind of thing" are
@@ -2971,6 +3174,18 @@ def _preview_probe(
             "reason": "type",
             "sample_input": sample_input,
             "error": type_errors[0],
+        }
+    if escaping_errors:
+        # Its own reason, and distinct from the `escaping` one above: that is
+        # about the value the chart author typed, this is about what the
+        # transform made of it. Falling through to `engine` below told the owner
+        # the database would not evaluate the transform, when it evaluated it
+        # perfectly and answered with a key that cannot be asked for here.
+        return {
+            "valid": False,
+            "reason": "transform_escaping",
+            "sample_input": sample_input,
+            "error": escaping_errors[0],
         }
     if not predicates:
         return {
@@ -3123,6 +3338,128 @@ def _render_literal(database: Database, value: Any) -> str:
     return _compile_literal(sa.literal(value), _dialect_for(database))
 
 
+#: `evaluate_transform`'s ``text_answers`` entry for a temporal value whose
+#: text form the transform refused while the value itself evaluated.
+TEXT_REFUSED = object()
+
+
+def _as_filter_text(value: date) -> str:
+    """``value`` as the text a simple filter on a temporal column carries."""
+    if isinstance(value, datetime):
+        return value.isoformat(
+            sep=" ", timespec="seconds" if not value.microsecond else "auto"
+        )
+    return value.isoformat()
+
+
+#: How far a temporal answer may sit from the instant it was asked about and
+#: still be read as a bucket of it. The coarsest grain is a year, so a year
+#: and a day leaves room for the boundary and an offset; Oracle's
+#: ``NLS_DATE_FORMAT`` misreading lands nearly two millennia away.
+_BUCKET_REACH = timedelta(days=367)
+
+
+def _is_bucket_of(value: date, answer: Any) -> bool:
+    """
+    Whether ``answer`` can be a time bucket of ``value``.
+
+    The only check left for a typed answer whose text form the engine refused.
+    A date or timestamp within `_BUCKET_REACH` of the instant passes, which is
+    what ``CAST(:value AS DATE)`` and ``TRUNC(:value, 'HH')`` answer on Oracle.
+    Anything else cannot be told from a misreading -- a number has no instant
+    to compare against -- so it does not.
+    """
+    if not isinstance(answer, date):
+        return False
+
+    def as_instant(moment: date) -> datetime:
+        if isinstance(moment, datetime):
+            return moment.replace(tzinfo=None)
+        return datetime.combine(moment, time.min)
+
+    return abs(as_instant(answer) - as_instant(value)) <= _BUCKET_REACH
+
+
+def _declined_for_reading_by_type(
+    values: list[Any],
+    evaluated: list[Any],
+    text_answers: list[tuple[int, Any]],
+    shape_errors: list[str] | None,
+) -> bool:
+    """
+    Whether a temporal value's text form answered differently from the value.
+
+    A chart hands a temporal value to the transform in two shapes. A time
+    range binds a `datetime`, which the dialect writes as a typed literal
+    (``TO_DATE(...)`` on Oracle); a simple filter binds the text the author
+    typed. A transform can read the two differently: Oracle's
+    ``TO_DATE(:value, fmt)`` parses the text, but turns the typed value back
+    into text through ``NLS_DATE_FORMAT`` first, so every time range asked for
+    a partition in year 0012 and came back empty -- or, under an ISO
+    ``NLS_DATE_FORMAT``, short by whatever the format drops. Nothing about the
+    typed answer alone looks wrong, so `evaluate_transform` asks the same
+    instant as text in the same round trip (``text_answers``), and a mapping
+    whose two answers differ cannot be right for both and is not mirrored.
+
+    The text goes straight to the evaluator rather than through the mirror
+    request path, whose gates decline some text before it reaches the engine
+    -- which is how the preview at a time of day said valid for exactly this
+    transform. Reported to ``shape_errors`` and the log when it declines.
+
+    Where the engine refused the text (`TEXT_REFUSED`), there is no second
+    answer to compare, and Oracle refuses it for correct transforms as often
+    as for broken ones. The typed answer is then held to `_is_bucket_of` the
+    instant instead, which is the year 0012 misreading's tell.
+    """
+    disagreement = next(
+        (
+            (index, text_answer)
+            for index, text_answer in text_answers
+            if text_answer is not None
+            and (
+                not _is_bucket_of(values[index], evaluated[index])
+                if text_answer is TEXT_REFUSED
+                else text_answer != evaluated[index]
+            )
+        ),
+        None,
+    )
+    if disagreement is None:
+        return False
+    index, text_answer = disagreement
+    typed_answer = evaluated[index]
+    if text_answer is TEXT_REFUSED:
+        reason = str(
+            _(
+                "The transform could not read %(value)s written as text, which "
+                "a filter typed as text sends, so its answer for the timestamp "
+                "can only be checked by being a date or timestamp within a year "
+                "of it. It answered %(typed)s, so filters on this mapping will "
+                "not be mirrored. Write the transform so it reads :value both "
+                "as a timestamp and as text.",
+                value=_as_filter_text(values[index]),
+                typed=typed_answer,
+            )
+        )
+    else:
+        reason = str(
+            _(
+                "The transform gives a different partition value for a "
+                "timestamp (%(typed)s) than for the same instant written as "
+                "text (%(text)s). A time range and a filter typed as text both "
+                "reach it, so it cannot be right for both; filters on this "
+                "mapping will not be mirrored. Write the transform so it reads "
+                ":value the same way in either form.",
+                typed=typed_answer,
+                text=text_answer,
+            )
+        )
+    logger.warning("Partition transform reads :value by type: %s", reason)
+    if shape_errors is not None:
+        shape_errors.append(reason)
+    return True
+
+
 def build_mirrored_predicates(
     datasource: SqlaTable,
     mapping: PartitionMapping,
@@ -3130,6 +3467,8 @@ def build_mirrored_predicates(
     *,
     errors: list[str] | None = None,
     type_errors: list[str] | None = None,
+    escaping_errors: list[str] | None = None,
+    shape_errors: list[str] | None = None,
 ) -> list[ColumnElement[Any]]:
     """
     Turn collected ``(operator, value)`` mirror requests into predicates.
@@ -3151,6 +3490,12 @@ def build_mirrored_predicates(
         because the two say different things to an owner: that one is "the
         database would not evaluate this", and this one is "it evaluated, and
         answered with the wrong kind of thing".
+    :param escaping_errors: optional sink for a probe result the driver and the
+        engine would spell differently -- see `_predicates_from_probe`. Its own
+        sink for the same reason: "it evaluated, and answered with something
+        this database cannot be asked about" is a third problem, and the only
+        one of the three whose fix is to stop the transform producing the
+        character.
     """
     if not requests:
         return []
@@ -3175,6 +3520,7 @@ def build_mirrored_predicates(
         spans.append((operator, len(flat), len(values)))
         flat.extend(values)
 
+    text_answers: list[tuple[int, Any]] = []
     evaluated = evaluate_transform(
         datasource.database,
         datasource.catalog,
@@ -3182,11 +3528,15 @@ def build_mirrored_predicates(
         mapping.value_transform,
         flat,
         errors=errors,
+        text_answers=text_answers,
     )
     if evaluated is None:
         return []
 
     if not _bounds_are_ordered(evaluated, spans):
+        return []
+
+    if _declined_for_reading_by_type(flat, evaluated, text_answers, shape_errors):
         return []
 
     # Declining here is the last chance to decline at all: once these
@@ -3215,7 +3565,11 @@ def build_mirrored_predicates(
 
     sqla_col = datasource.convert_tbl_column_to_sqla_col(partition_column)
     predicates = _predicates_from_probe(
-        sqla_col, datasource.db_engine_spec, evaluated, spans
+        sqla_col,
+        partition_column,
+        evaluated,
+        spans,
+        escaping_errors=escaping_errors,
     )
     if not predicates:
         return []
@@ -3231,9 +3585,11 @@ def build_mirrored_predicates(
 
 def _predicates_from_probe(
     sqla_col: ColumnElement[Any],
-    db_engine_spec: type[BaseEngineSpec],
+    partition_column: TableColumn,
     evaluated: list[Any],
     spans: list[tuple[FilterOperator, int, int]],
+    *,
+    escaping_errors: list[str] | None = None,
 ) -> list[ColumnElement[Any]]:
     """
     One predicate on the partition column per surviving mirror request.
@@ -3241,12 +3597,67 @@ def _predicates_from_probe(
     A request whose probe answered `None` for any of its values is skipped
     rather than emitted: `col = NULL` is `NULL`, so it would drop every row the
     filter keeps. A strict bound is emitted non-strictly; see `mirror_operator`.
+
+    A request whose probe answered with a value the driver and the engine spell
+    differently is skipped for the same reason -- see `literal_round_trips`.
+    `evaluate_transform` asks that question of the probe's *inputs*; the answers
+    are the other end of the same round trip, because the chart query is
+    compiled with ``literal_binds`` and every one of them is rendered into its
+    SQL as a literal too. A transform of ``concat(:value, chr(92), 'b')`` maps
+    the unremarkable input ``a`` to the partition key ``a\\b``, which Hive reads
+    back as ``a`` followed by a backspace: the mirror then asks for a partition
+    no row is in, and because it is ``AND``-ed onto the query the chart loses
+    every row the filter keeps rather than losing its pruning.
+
+    A request whose probe answered with a date or a timestamp is emitted with
+    the engine's own temporal literal -- see `_temporal_literal_sql` -- and
+    skipped where the engine has none, as for `None`.
+
+    :param escaping_errors: optional sink; see `build_mirrored_predicates`.
     """
+    database = partition_column.table.database
+    # Once for the whole call, not once per value: `_dialect_for` asks the
+    # `Database` for a dialect, and a 200-member `IN` would otherwise ask 200
+    # times. The same reading `evaluate_transform` takes on the way in.
+    dialect = _dialect_for(database)
+
     predicates: list[ColumnElement[Any]] = []
     for operator, start, length in spans:
         chunk = evaluated[start : start + length]
         if any(value is None for value in chunk):
             continue
+        if not all(
+            literal_round_trips(value, dialect, database.backend) for value in chunk
+        ):
+            # One member is the whole request's problem, as for `None` above:
+            # mirroring the rest of an `IN` list would be narrower than the
+            # filter. Dropping this request alone is not, which is why the
+            # decline is per request rather than per query -- a range arrives as
+            # two of them, and keeping only the bound that survives the trip is
+            # a mirror wider than the filter, which is all the mirror has to be.
+            logger.warning(
+                "The partition transform answered with a value the driver and "
+                "the database do not write down the same way, so this filter "
+                "is not mirrored; the query will not prune for it"
+            )
+            if escaping_errors is not None:
+                escaping_errors.append(
+                    _(
+                        "The transform answered with a value the driver and the "
+                        "database do not agree on how to write into a query, so "
+                        "the mirrored predicate would ask for a partition key no "
+                        "row holds. A transform whose result carries neither a "
+                        "quote nor a backslash still mirrors."
+                    )
+                )
+            continue
+        if any(isinstance(value, date) for value in chunk):
+            rendered = [_temporal_clause(partition_column, value) for value in chunk]
+            if any(clause is None for clause in rendered):
+                # `probed_value_type_error` refuses these before this point;
+                # this is the backstop for a column type it could not resolve.
+                continue
+            chunk = rendered
         if operator == FilterOperator.IN:
             # The probe answers per value, so a transform over a mixed-number
             # filter can answer with a mixed-number partition key -- and
@@ -3256,7 +3667,7 @@ def _predicates_from_probe(
             predicates.append(sqla_col.in_(normalize_mixed_numbers(chunk)))
         else:
             predicates.append(
-                db_engine_spec.handle_comparison_filter(
+                database.db_engine_spec.handle_comparison_filter(
                     sqla_col, mirror_operator(operator), chunk[0]
                 )
             )
@@ -3285,8 +3696,12 @@ UPPER_BOUND_OPERATORS = {
 #:
 #: Only the types a mismatch can actually break a query with are listed. An
 #: unresolvable column type is absent because there is nothing to check
-#: against, and ``MULTI_VALUE`` because this module does not mirror onto an
-#: array partition key at all.
+#: against. ``MULTI_VALUE`` is absent because no entry here could express it:
+#: an array partition key cannot hold *any* scalar, so it is refused for the
+#: column rather than for a value, in `probed_value_type_error`'s own branch
+#: ahead of this table. It was absent without that branch for a while, and
+#: absence here reads as "nothing to check" -- so an ``Array(Int32)`` key took
+#: a scalar mirror and failed the chart.
 #: ``numbers.Number`` rather than ``(int, float)``: Postgres answers
 #: ``extract(epoch from ...)`` with a `Decimal`, which is the single commonest
 #: transform this feature has, and an engine is free to answer with any number
@@ -3357,6 +3772,112 @@ def _reads_as_temporal(value: str, db_engine_spec: type[BaseEngineSpec]) -> bool
     return False
 
 
+#: The leading type name of a declared column type: ``DATE`` from ``DATE``,
+#: ``TIMESTAMP`` from ``TIMESTAMP(6) WITH TIME ZONE``.
+_TYPE_NAME_RE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)")
+
+
+def holds_days_only(partition_column: TableColumn) -> bool:
+    """
+    Whether the column's values carry no time of day.
+
+    The engine spec's mapping is not the answer on its own: Superset maps
+    Oracle's ``DATE`` to `sa.Date`, but an Oracle ``DATE`` stores the time of
+    day, and its own SQLAlchemy dialect says so by making ``DATE`` a
+    `DateTime`. Exempting it from the precision check let
+    ``TO_DATE('2026-01-12', 'YYYY-MM-DD')`` stand in for 06:30, so a mirrored
+    range on a ``CAST(:value AS DATE)`` key asked for midnight and the chart
+    lost every row after it. So the database's own dialect has the last word
+    where it names the type.
+    """
+    spec_type = partition_column.db_engine_spec.get_sqla_column_type(
+        partition_column.type or ""
+    )
+    if not isinstance(spec_type, sa.Date):
+        return False
+    try:
+        match = _TYPE_NAME_RE.match(partition_column.type or "")
+        dialect = _dialect_for(partition_column.table.database)
+        names = getattr(dialect, "ischema_names", None)
+        # A `Mapping` only. `ischema_names` is not part of SQLAlchemy's dialect
+        # contract, and third-party dialects shape it as they like --
+        # clickhouse-connect 1.10/1.11 make it a list, and calling `.get` on that
+        # raised out of the chart query, so every chart filtering the mapped
+        # column failed rather than losing its pruning.
+        if match and isinstance(names, Mapping):
+            name = match.group(1)
+            dialect_type = (
+                names.get(name) or names.get(name.upper()) or names.get(name.lower())
+            )
+            if isinstance(dialect_type, type) and issubclass(dialect_type, sa.DateTime):
+                return False
+    except Exception:  # pylint: disable=broad-except
+        # Not knowing is answered as "may hold a time of day": the precision
+        # check then runs, and at worst declines a mirror it could have kept.
+        logger.warning("Could not read the partition column's type", exc_info=True)
+        return False
+    return True
+
+
+def _temporal_literal_sql(partition_column: TableColumn, value: date) -> str | None:
+    """
+    A probed date or timestamp as the engine's own literal for the column.
+
+    The probe answers a temporal transform with a `date` or a `datetime`, and
+    SQLAlchemy's literal processor writes either one as plain quoted text --
+    ``part_date >= '2026-01-01'`` -- whatever the dialect. Trino and Presto
+    have no implicit coercion from ``varchar`` to ``date`` or ``timestamp``, so
+    they refuse that comparison outright, and because the mirror is ``AND``-ed
+    onto the chart query the whole chart fails rather than its pruning.
+
+    `BaseEngineSpec.convert_dttm` is how every other temporal bound in a chart
+    query is written (see `ExploreMixin.dttm_sql_literal`), so the mirror
+    writes its values the same way: ``DATE '2026-01-01'`` on Trino,
+    ``CAST('2026-01-01' AS DATE)`` on Hive.
+
+    `None` where that cannot be done faithfully, and the caller declines:
+
+    * The engine has no literal for the column's type. An engine Superset has
+      no rendering for is one it has not confirmed, the same answer
+      `_reads_as_temporal` gives for text.
+    * The literal throws part of the value away -- SQLite's, for one, stops at
+      the second. A bound floored past what the probe answered is a mirror
+      narrower than the filter, which drops rows. Detected the way
+      `ExploreMixin._engine_literal_resolution` detects it, by rendering a
+      second instant and comparing the text: a value one microsecond earlier
+      writes differently from this one exactly when nothing of it is lost.
+      A column holding only days is exempt, because flooring to the day is
+      the column's own resolution and every comparison against it reads the
+      same either way -- see `holds_days_only` for what "only days" means.
+    """
+    instant = (
+        value if isinstance(value, datetime) else datetime.combine(value, time.min)
+    )
+    spec = partition_column.db_engine_spec
+    column_type = partition_column.type or ""
+    db_extra = partition_column.db_extra
+    rendered = spec.convert_dttm(column_type, instant, db_extra=db_extra)
+    if rendered is None:
+        return None
+    days_only = holds_days_only(partition_column)
+    if not days_only and rendered == spec.convert_dttm(
+        column_type, instant - timedelta(microseconds=1), db_extra=db_extra
+    ):
+        return None
+    return rendered
+
+
+def _temporal_clause(partition_column: TableColumn, value: Any) -> Any:
+    """`_temporal_literal_sql` as a clause, or `None` where it declines."""
+    if not isinstance(value, date):
+        return value
+    if (rendered := _temporal_literal_sql(partition_column, value)) is None:
+        return None
+    # Not `get_text_clause`: a `TextClause` is not a column expression, so
+    # `in_` refuses it, and the literal has no bind parameter to parse.
+    return sa.literal_column(rendered)
+
+
 def probed_value_type_error(
     partition_column: "TableColumn",
     values: Sequence[Any],
@@ -3396,6 +3917,32 @@ def probed_value_type_error(
     resolve.
     """
     generic_type = _native_generic_type(partition_column)
+
+    if generic_type == utils.GenericDataType.MULTI_VALUE or declares_array_type(
+        partition_column.type
+    ):
+        # Refused for the column rather than per value: an array holds no
+        # scalar, so there is no result a transform could return that would
+        # compare. `handle_comparison_filter` emits a bare ``col = value``, so
+        # an ``Array(Int32)`` partition key mirrors as ``region_keys = 5`` and
+        # a PostgreSQL ``text[]`` one as ``region_keys = 'us'`` -- neither of
+        # which is an operator the engine has, so the predicate fails the whole
+        # chart once it is in the statement.
+        #
+        # Knowable from the schema alone, unlike every other branch here, which
+        # needs a probe result to compare. It is still answered from this gate
+        # so the preview reports it the same way, and so the decline costs only
+        # the pruning.
+        return str(
+            _(
+                "%(column)s is an array column, which cannot be compared "
+                "against the single value a transform returns. Mirrored "
+                "filters on this mapping would fail at the database. Map a "
+                "scalar partition column instead.",
+                column=partition_column.column_name,
+            )
+        )
+
     if generic_type is None:
         return None
 
@@ -3422,6 +3969,26 @@ def probed_value_type_error(
             and not _reads_as_temporal(value, partition_column.db_engine_spec)
         ):
             held = False
+        # And a real date or timestamp only where the engine can write it as
+        # a literal of the column's type: SQLAlchemy writes it as plain text,
+        # which Trino and Presto refuse to compare. See `_temporal_literal_sql`.
+        if (
+            held
+            and generic_type == utils.GenericDataType.TEMPORAL
+            and isinstance(value, date)
+            and _temporal_literal_sql(partition_column, value) is None
+        ):
+            return str(
+                _(
+                    "The transform returned %(returned)s for %(column)s, which "
+                    "this database cannot write into a query as a %(type)s "
+                    "value without changing it. Filters on this mapping will "
+                    "not be mirrored.",
+                    returned=repr(value),
+                    column=partition_column.column_name,
+                    type=partition_column.type,
+                )
+            )
         if not held:
             return str(
                 _(

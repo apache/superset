@@ -250,6 +250,11 @@ Known gaps, all of which are out of scope rather than bugs:
 - **Custom SQL `WHERE` clauses do not mirror**, for the same reason.
 - **Columns with an active advanced data type do not mirror.** Those build their own
   predicate shape from translated values, so there is no operator/value pair to mirror.
+- **An array partition column does not mirror.** A transform answers with one scalar, and
+  there is no engine that compares an array against one — `region_keys = 5` on a ClickHouse
+  `Array(Int32)` key, or `region_keys = 'us'` on a PostgreSQL `text[]` one, is not an
+  operator that exists. The mapping stores and shows, and the preview says why. Map a scalar
+  partition column instead.
 - Dashboard native filters and cross-filters *do* mirror — they arrive as ordinary filters —
   they just carry no visual indicator in the filter bar.
 - **The Explore glyph is advisory.** It is computed from the dataset's mapping, which knows

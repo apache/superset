@@ -510,11 +510,11 @@ test('DatasourceEditor source pins the sync to the mapping it leaves behind', ()
   );
   // Both sides are passed, in that order, and before the columns are set.
   expect(src).toMatch(
-    /clearUnmappedTransformsAcrossMove\(\s*liveDatasource,\s*syncedDatasource,\s*columnChanges\.finalColumns,?\s*\)[\s\S]{0,400}?setColumns\(\{/,
+    /clearUnmappedTransformsAcrossMove\(\s*liveDatasource,\s*syncedDatasource,\s*syncedColumns,?\s*\)[\s\S]{0,400}?setColumns\(\{/,
   );
   // Never the repaired side alone, which is the shape NEW-R12-01 was.
   expect(src).not.toMatch(
-    /clearUnmappedTransforms\(\s*syncedDatasource,\s*columnChanges\.finalColumns/,
+    /clearUnmappedTransforms\(\s*syncedDatasource,\s*syncedColumns/,
   );
   // Calculated columns too: the default datetime column can be one, and the
   // sync does not carry them.

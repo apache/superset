@@ -122,9 +122,16 @@ export default function PartitionColumnFields({
 
   const mappedColumn = resolveMappedColumn(datasource);
   const isImplicit = mappedColumnIsImplicit(datasource);
-  const liveTransform =
-    allColumns.find(column => column.column_name === mappedColumn)
-      ?.partition_value_transform ?? null;
+  const mappedColumnRow = allColumns.find(
+    column => column.column_name === mappedColumn,
+  );
+  const liveTransform = mappedColumnRow?.partition_value_transform ?? null;
+  // Range operators -- the time range among them -- only mirror under a
+  // transform declared order-preserving, so without it the banner must not
+  // promise the time range a partition filter it will not get.
+  const isMonotonic = Boolean(
+    mappedColumnRow?.partition_transform_is_monotonic,
+  );
   // The stored refusal, but only while the box still holds the expression it
   // was about. It is a verdict on one transform, and it outlived it: reopen a
   // dataset whose stored `no_such_fn(:value)` failed its last probe, replace it
@@ -319,10 +326,21 @@ export default function PartitionColumnFields({
                   icon={<Icons.FilterOutlined />}
                   message={
                     <span>
-                      {t(
-                        'Filters on %(mapped)s will automatically apply an equivalent filter to %(partition)s.',
-                        { mapped: mappedColumn, partition: partitionColumn },
-                      )}{' '}
+                      {isMonotonic
+                        ? t(
+                            'Filters on %(mapped)s will automatically apply an equivalent filter to %(partition)s.',
+                            {
+                              mapped: mappedColumn,
+                              partition: partitionColumn,
+                            },
+                          )
+                        : t(
+                            'Equality and list filters on %(mapped)s will automatically apply an equivalent filter to %(partition)s. Time ranges and other range filters are not mirrored until "Transform preserves ordering" is on.',
+                            {
+                              mapped: mappedColumn,
+                              partition: partitionColumn,
+                            },
+                          )}{' '}
                       <Button
                         buttonStyle="link"
                         onClick={() => onNavigateToColumn(mappedColumn)}

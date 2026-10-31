@@ -1139,6 +1139,13 @@ function DatasourceEditor({
     propsDatasource.datasource_type === 'table' ||
       propsDatasource.type === 'table',
   );
+  // Captured once when the editor opens: onChange round-trips through the
+  // parent (e.g. DatasourceModal) and echoes the edit back down as a new
+  // `datasource` prop, so comparing against the live prop would immediately
+  // erase the "just toggled" signal this baseline is used to detect.
+  const [normalizeColumnsBaseline] = useState(
+    propsDatasource.normalize_columns,
+  );
   const [isEditMode, setIsEditMode] = useState(false);
   const [databaseColumns, setDatabaseColumns] = useState<Column[]>(
     propsDatasource.columns.filter(col => !col.expression),
@@ -1740,12 +1747,32 @@ function DatasourceEditor({
         newCols,
         addSuccessToast,
       );
+      // Merging against the live rows means a column deleted this session but
+      // still in the source comes back as "added", with a fresh id -- and the
+      // save then tries to create a name the dataset already has ("One or more
+      // columns already exist"). Such a column is restored from its saved row
+      // instead, so the save updates it, as merging against the saved columns
+      // used to.
+      const added = new Set(columnChanges.added);
+      const savedColumns = new Map(
+        (liveDatasource.columns ?? [])
+          .filter(col => !col.expression)
+          .map(col => [col.column_name, col]),
+      );
+      const syncedColumns = columnChanges.finalColumns.map(col => {
+        const saved = added.has(col.column_name)
+          ? savedColumns.get(col.column_name)
+          : undefined;
+        return saved
+          ? { ...saved, type: col.type, is_dttm: saved.is_dttm || col.is_dttm }
+          : col;
+      });
       // A sync can remove the partition column at the source. Leave the editor
       // showing a mapping that points at a column the table no longer has and
       // the owner has no way to tell why pruning stopped.
       const clearedMapping = clearDanglingPartitionMapping(
         liveDatasource,
-        columnChanges.finalColumns,
+        syncedColumns,
       );
       // A sync can move which column the mapping mirrors, so the one-transform
       // invariant has to be enforced against the mapping on *both* sides of it
@@ -1765,9 +1792,9 @@ function DatasourceEditor({
         ? clearUnmappedTransformsAcrossMove(
             liveDatasource,
             syncedDatasource,
-            columnChanges.finalColumns,
+            syncedColumns,
           )
-        : columnChanges.finalColumns;
+        : syncedColumns;
       setColumns({
         databaseColumns: finalColumns.filter(
           col => !col.expression,
@@ -2381,15 +2408,29 @@ function DatasourceEditor({
           />
         )}
         {datasourceType === DATASOURCE_TYPES.physical.key && (
-          <Field
-            inline
-            fieldKey="normalize_columns"
-            label={t('Normalize column names')}
-            description={t(
-              'Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).',
+          <>
+            <Field
+              inline
+              fieldKey="normalize_columns"
+              label={t('Normalize column names')}
+              description={t(
+                'Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).',
+              )}
+              control={<CheckboxControl />}
+            />
+            {datasource.normalize_columns && !normalizeColumnsBaseline && (
+              <Alert
+                css={themeParam => ({ marginBottom: themeParam.sizeUnit * 4 })}
+                type="warning"
+                showIcon
+                message={t(
+                  'Changing this setting may change the casing for all columns in this dataset, ' +
+                    'which may break any existing charts and dashboard filters that reference the ' +
+                    'current column names.',
+                )}
+              />
             )}
-            control={<CheckboxControl />}
-          />
+          </>
         )}
         <Field
           inline
@@ -2402,7 +2443,13 @@ function DatasourceEditor({
         />
       </Fieldset>
     ),
-    [datasource, onDatasourcePropChange, isSqla, datasourceType],
+    [
+      datasource,
+      onDatasourcePropChange,
+      isSqla,
+      normalizeColumnsBaseline,
+      datasourceType,
+    ],
   );
 
   const renderSourceFieldset = useCallback(

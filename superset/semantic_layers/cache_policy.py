@@ -47,6 +47,7 @@ from superset.semantic_layers.cache_types import (
     ROLLUP_COMPATIBLE_AGGREGATIONS,
     SAFE_CONTAINMENT_CAPABILITIES as SAFE_CONTAINMENT_CAPABILITIES,
 )
+from superset.semantic_layers.ordering import with_default_order
 
 
 def _comparable(left: object, right: object) -> bool:
@@ -338,12 +339,16 @@ def select_reuse(
     capabilities: ContainmentCapabilities,
 ) -> ReuseDecision | None:
     """Prove whether and how a cached descriptor can satisfy a query."""
-    query_order_key: str = SemanticCacheIdentityFactory.order(query.order)
+    # Compare the order the rows were cut by, defaults included: two unordered
+    # queries can default to different temporal dimensions.
+    order_compatible: bool = (
+        SemanticCacheIdentityFactory.order(with_default_order(query).order)
+        == entry.order_key
+    )
     query_offset: int = query.offset or 0
     pagination_compatible: bool = (
         query_offset == 0
         and entry.offset == 0
-        and query_order_key == entry.order_key
         and (
             entry.limit is None
             or (query.limit is not None and query.limit <= entry.limit)
@@ -358,6 +363,11 @@ def select_reuse(
     leftovers: frozenset[Filter] | None = _filter_decision(query, entry, capabilities)
     mode: ReuseMode | None = _reuse_mode(query, entry)
     if leftovers is None or mode is None:
+        return None
+    # EXACT and PROJECT keep the cached row order. A rollup comes from an
+    # unlimited entry and is re-sorted by the default order, so the order the
+    # entry was stored in does not matter.
+    if mode is not ReuseMode.ROLLUP and not order_compatible:
         return None
     if mode is ReuseMode.ROLLUP and query.order:
         return None

@@ -24,7 +24,7 @@ which is where the correctness argument lives.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -1063,9 +1063,84 @@ def test_the_probe_rounds_outward_on_a_date_column_too(app: Flask) -> None:
             )
 
     assert probe.call_args.args[-1] == [
-        datetime(2026, 1, 1, 0, 0, 0),
+        date(2026, 1, 1),
         datetime(2026, 2, 1, 0, 0, 1),
     ]
+
+
+def test_a_midnight_bound_on_a_date_column_is_probed_as_the_day(
+    app: Flask,
+) -> None:
+    """
+    SQLite writes a midnight bound on a DATE column as the bare day, so the
+    filter compares ``event_date >= '2026-01-01'``. Probing with the midnight
+    `datetime` instead bound ``'2026-01-01 00:00:00.000000'``, and on a text
+    key ``p = CAST(event_date AS TEXT)`` mirrored by ``CAST(:value AS TEXT)``
+    that asked for ``p >= '2026-01-01 00:00:00.000000'`` -- above the key
+    ``'2026-01-01'``, so every January 1 row the filter keeps was dropped.
+
+    A bound that is not at midnight keeps its time, because SQLite's literal
+    does too.
+    """
+    table = _table(
+        transform="CAST(:value AS TEXT)",
+        partition_column="p",
+        mapped_column="event_date",
+        main_dttm_col="event_date",
+    )
+    table.columns.append(TableColumn(column_name="p", type="TEXT"))
+    table.columns.append(
+        TableColumn(column_name="event_date", is_dttm=True, type="DATE")
+    )
+    table.columns[-1].partition_value_transform = "CAST(:value AS TEXT)"
+    table.columns[-1].partition_transform_is_monotonic = True
+
+    with app.app_context():
+        with patch(PROBE, return_value=["2026-01-01", "2026-02-01"]) as probe:
+            sql = _query(
+                table,
+                granularity="event_date",
+                from_dttm=datetime(2026, 1, 1),
+                to_dttm=datetime(2026, 2, 1),
+            )
+        with patch(PROBE, return_value=["x", "y"]) as intraday:
+            _query(
+                table,
+                granularity="event_date",
+                from_dttm=datetime(2026, 1, 1, 10, 0),
+                to_dttm=datetime(2026, 2, 1),
+            )
+
+    assert probe.call_args.args[-1] == [date(2026, 1, 1), date(2026, 2, 1)]
+    assert "event_date >= '2026-01-01'" in sql
+    assert "p >= '2026-01-01'" in sql
+    assert intraday.call_args.args[-1] == [
+        datetime(2026, 1, 1, 10, 0),
+        date(2026, 2, 1),
+    ]
+
+
+def test_a_midnight_bound_on_a_timestamp_column_stays_an_instant(
+    app: Flask,
+) -> None:
+    """
+    Only a column that holds days is probed with the day: a TIMESTAMP column
+    compares the instant, and its transform is a function of one.
+    """
+    table = _table()
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1, 2]) as probe:
+            _query(
+                table,
+                granularity="event_time",
+                from_dttm=datetime(2026, 1, 1),
+                to_dttm=datetime(2026, 2, 1),
+            )
+
+    values = probe.call_args.args[-1]
+    assert values == [datetime(2026, 1, 1), datetime(2026, 2, 1)]
+    assert all(isinstance(value, datetime) for value in values)
 
 
 def test_the_probe_widens_to_the_day_when_the_engine_drops_the_time(
@@ -1099,8 +1174,8 @@ def test_the_probe_widens_to_the_day_when_the_engine_drops_the_time(
                 )
 
     assert probe.call_args.args[-1] == [
-        datetime(2026, 1, 1, 0, 0),
-        datetime(2026, 1, 3, 0, 0),
+        date(2026, 1, 1),
+        date(2026, 1, 3),
     ]
     assert "dt_epoch <= 2" in sql
 
@@ -1133,8 +1208,8 @@ def test_the_probe_widens_to_the_day_on_a_date_column_not_flagged_temporal(
                 )
 
     assert probe.call_args.args[-1] == [
-        datetime(2026, 1, 1, 0, 0),
-        datetime(2026, 1, 3, 0, 0),
+        date(2026, 1, 1),
+        date(2026, 1, 3),
     ]
 
 
@@ -1164,8 +1239,8 @@ def test_a_day_resolution_bound_already_at_midnight_is_left_alone(
                 )
 
     assert probe.call_args.args[-1] == [
-        datetime(2026, 1, 1, 0, 0),
-        datetime(2026, 2, 1, 0, 0),
+        date(2026, 1, 1),
+        date(2026, 2, 1),
     ]
 
 
@@ -1395,7 +1470,7 @@ def test_a_string_lower_bound_rounds_outward_on_a_date_column(app: Flask) -> Non
                     ],
                 )
 
-    assert probe.call_args.args[-1] == [datetime(2026, 1, 5, 0, 0)]
+    assert probe.call_args.args[-1] == [date(2026, 1, 5)]
     assert "dt_epoch >= 1767571200" in sql
 
 
@@ -1421,7 +1496,7 @@ def test_a_string_upper_bound_rounds_outward_on_a_date_column(app: Flask) -> Non
                     ],
                 )
 
-    assert probe.call_args.args[-1] == [datetime(2026, 1, 21, 0, 0)]
+    assert probe.call_args.args[-1] == [date(2026, 1, 21)]
     assert "dt_epoch <= 1768953600" in sql
 
 
@@ -1477,7 +1552,7 @@ def test_a_datetime_lower_bound_rounds_outward_instead_of_declining(
                     ],
                 )
 
-    assert probe.call_args.args[-1] == [datetime(2026, 1, 5, 0, 0)]
+    assert probe.call_args.args[-1] == [date(2026, 1, 5)]
     assert "dt_epoch >= 1767571200" in sql
 
 
@@ -3158,3 +3233,57 @@ def test_a_null_member_of_an_in_list_declines_the_whole_mirror(app: Flask) -> No
             )
 
     assert "region_key" not in sql
+
+
+def test_an_array_partition_column_gets_no_mirror(app: Flask) -> None:
+    """
+    Nothing in this module looked at whether the partition key is an array.
+
+    `handle_comparison_filter` emits a bare ``col = value``, so an
+    ``Array(Int32)`` partition key took the scalar the transform returned and
+    mirrored as ``region_keys = 5``; a PostgreSQL ``text[]`` key takes
+    ``region_keys = 'us'`` the same way. Neither is an operator the engine has,
+    and by then the predicate is in the statement -- so the chart errored
+    instead of losing its pruning, which is the one outcome this feature may
+    not have.
+
+    It is refused for the *mapping*, since an array holds no scalar at all and
+    there is no result that could compare: `resolve_partition_mapping` declines
+    it before any probe, so the warehouse is not asked either. The mapped
+    column is numeric here because `equality_mirrors_safely` withdraws ``=`` on
+    a text column under ClickHouse anyway, which would mask the gate under test.
+    """
+    table = _table(
+        transform=":value + 0",
+        monotonic=False,
+        mapped_column="dt_epoch",
+        partition_mapped_column="dt_epoch",
+        partition_column="region_keys",
+    )
+    table.columns.append(TableColumn(column_name="region_keys", type="Array(Int32)"))
+
+    with app.app_context():
+        with patch(PROBE, return_value=[5]) as probe:
+            with patch.object(
+                type(table.database),
+                "db_engine_spec",
+                new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
+            ):
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "dt_epoch",
+                            "op": FilterOperator.EQUALS.value,
+                            "val": 5,
+                        }
+                    ],
+                )
+
+    # Declined before the probe -- no round trip for a mapping that can never
+    # mirror -- and nothing is mirrored onto the array.
+    assert not probe.called
+    assert "region_keys" not in sql
+    # The filter itself is untouched: the query is still correct, it just reads
+    # every partition.
+    assert "dt_epoch = 5" in sql

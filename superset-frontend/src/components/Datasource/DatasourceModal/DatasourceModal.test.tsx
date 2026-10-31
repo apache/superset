@@ -345,12 +345,9 @@ describe('DatasourceModal', () => {
     }
   });
 
-  test('offers no column sync for a physical dataset, whose SQL never changed', async () => {
-    // A physical dataset has no SQL: the API reports that as `null`, while the
-    // editor normalises it to `''` on every change. Comparing the two raw read
-    // the first edit as a SQL change and offered -- pre-ticked -- to resync the
-    // columns from a query that does not exist, which reverted the per-column
-    // flags the same save had just set.
+  test('does not offer a column sync for a physical dataset', async () => {
+    // The API reports a physical dataset's SQL as `null`; the editor emits `''`
+    // on its first change, which must not read as a SQL change.
     cleanup();
     fetchMock.clearHistory().removeRoutes();
     fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
@@ -367,9 +364,6 @@ describe('DatasourceModal', () => {
       { store, useRouter: true },
     );
 
-    // The editor rewrites a physical dataset's SQL to `''` whenever it emits a
-    // change, so the divergence only appears once the owner has edited
-    // something -- as they have by the time they press Save.
     await userEvent.click(await screen.findByRole('tab', { name: 'Settings' }));
     const certifiedBy = await screen.findByPlaceholderText('Certified by');
     jest.useFakeTimers();
@@ -385,13 +379,98 @@ describe('DatasourceModal', () => {
     await waitFor(() => {
       expect(screen.getByText('Confirm save')).toBeInTheDocument();
     });
-
-    // The Settings tab has checkboxes of its own, so the sync offer is
-    // identified by its own label rather than by role.
     expect(
       screen.queryByText('Automatically sync columns'),
     ).not.toBeInTheDocument();
 
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+
+    await waitFor(() => {
+      const putCalls = fetchMock.callHistory
+        .calls()
+        .filter(
+          call =>
+            call.url.includes('/api/v1/dataset/7') &&
+            call.options?.method === 'put',
+        );
+      expect(putCalls.length).toBeGreaterThan(0);
+      expect(putCalls[putCalls.length - 1].url).toContain(
+        'override_columns=false',
+      );
+    });
+  });
+
+  test('does not offer a column sync when its own read reports null SQL', async () => {
+    // The caller's snapshot still holds SQL, but the read this modal edits
+    // against says the dataset is physical; that read is the baseline.
+    cleanup();
+    fetchMock.clearHistory().removeRoutes();
+    fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
+    fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
+    fetchMock.get(GET_DATASOURCE_ENDPOINT, {
+      body: { result: { ...mockedProps.datasource, sql: null } },
+      headers: { ETag: '"v2"' },
+    });
+    fetchMock.get(GET_DATABASE_ENDPOINT, { result: [] });
+
+    render(
+      <DatasourceModal
+        {...mockedProps}
+        datasource={{
+          ...mockedProps.datasource,
+          sql: 'SELECT * FROM stale_table',
+        }}
+      />,
+      { store, useRouter: true },
+    );
+
+    await waitForSaveEnabled();
+    fireEvent.click(screen.getByTestId('datasource-modal-save'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Confirm save')).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByText('Automatically sync columns'),
+    ).not.toBeInTheDocument();
+  });
+
+  test('does not sync columns once a SQL change is reverted', async () => {
+    cleanup();
+    fetchMock.clearHistory().removeRoutes();
+    fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
+    fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
+    fetchMock.get(GET_DATASOURCE_ENDPOINT, { result: {} });
+    fetchMock.get(GET_DATABASE_ENDPOINT, { result: [] });
+    const original = {
+      ...mockedProps.datasource,
+      sql: 'SELECT * FROM original_table',
+    };
+
+    const { rerender } = render(
+      <DatasourceModal {...mockedProps} datasource={original} etag='"v1"' />,
+      { store, useRouter: true },
+    );
+    // A SQL change ticks the sync checkbox; changing it back hides it.
+    rerender(
+      <DatasourceModal
+        {...mockedProps}
+        datasource={{ ...original, sql: 'SELECT * FROM new_table' }}
+        etag='"v1"'
+      />,
+    );
+    rerender(
+      <DatasourceModal {...mockedProps} datasource={original} etag='"v1"' />,
+    );
+
+    await waitForSaveEnabled();
+    fireEvent.click(screen.getByTestId('datasource-modal-save'));
+    await waitFor(() => {
+      expect(screen.getByText('Confirm save')).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByText('Automatically sync columns'),
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
     await waitFor(() => {

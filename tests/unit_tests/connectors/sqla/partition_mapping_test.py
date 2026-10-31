@@ -19,7 +19,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+import re
+from datetime import date, datetime
 from decimal import Decimal
 from importlib import import_module
 from typing import Any, cast
@@ -40,12 +41,14 @@ from superset.connectors.sqla.partition_mapping import (
     _probe_cache_key,
     _reads_as_temporal,
     _render_literal,
+    _render_predicate,
     BARE_WALL_CLOCK_KEYWORDS,
     build_mirrored_predicates,
     build_probe_sql,
     contains_executable_comment,
     contains_jinja,
     contains_value_placeholder,
+    declares_array_type,
     drop_unmapped_value_transforms,
     equality_mirrors_safely,
     evaluate_transform,
@@ -66,6 +69,7 @@ from superset.connectors.sqla.partition_mapping import (
     NON_DETERMINISTIC_FUNCTIONS,
     parse_error_detail,
     placeholder_is_executable,
+    PROBE_CACHE_VERSION,
     probe_sql_is_evaluable,
     probed_value_type_error,
     RawProbeValue,
@@ -640,6 +644,34 @@ def test_resolve_returns_none_when_the_feature_flag_is_off(app: Flask) -> None:
             return_value=False,
         ):
             assert resolve_partition_mapping(table) is None
+
+
+def test_an_array_partition_column_resolves_no_mapping(app: Flask) -> None:
+    """
+    With only the per-value refusal the chart stopped
+    failing, but the glyph stayed lit -- the probe of ``:value`` succeeds and
+    records a working transform. An array partition column can never take a
+    mirror, so the mapping itself is refused, and the summary the glyph reads
+    reports it inactive.
+    """
+    table = _mapped_table(
+        partition_column="region_keys",
+        mapped_column="country",
+        partition_mapped_column="country",
+        transform=":value",
+    )
+    region_keys = TableColumn(column_name="region_keys", type="VARCHAR")
+    table.columns.append(region_keys)
+    with app.app_context():
+        # The same mapping onto a scalar column is live, so what follows is the
+        # array type's doing and nothing else's.
+        assert resolve_partition_mapping(table) is not None
+
+        region_keys.type = "TEXT[]"
+        assert resolve_partition_mapping(table) is None
+        summary = table.partition_filter_mapping_summary
+        assert summary is not None
+        assert summary["active"] is False
 
 
 def test_resolve_returns_none_without_a_partition_column(app: Flask) -> None:
@@ -2505,6 +2537,581 @@ def test_a_type_mismatch_does_not_poison_the_shared_transform_verdict(
         )
 
 
+def _text_mapped_table(backend: str, transform: str) -> SqlaTable:
+    """
+    A text key mirrored from a text column, on ``backend``.
+
+    The module's own fixture maps a timestamp onto a `BIGINT`, where no probe
+    result can carry a quote or a backslash at all. These tests are about what
+    the probe *answers*, so both ends have to be text.
+
+    Callers name the driver (``hive+hive://``) rather than leaving it to be
+    discovered. `Database.get_db_engine_spec` asks the URL for its driver name,
+    and SQLAlchemy answers that by importing the dialect entrypoint unless the
+    URL spells the driver out -- so a bare ``hive://`` drags in `pyhive`, which
+    imports `TCLIService`, which imports `thrift`. CI installs the first two and
+    not the third, and `get_db_engine_spec` rescues only `NoSuchModuleError`, so
+    the `ModuleNotFoundError` came out of the fixture. Naming the driver skips
+    the import entirely and leaves `backend` as ``hive``, which is all these
+    tests need: it is the sqlglot dialect `literal_round_trips` parses the
+    rendered literal with.
+    """
+    table = _mapped_table(
+        partition_column="region_key",
+        mapped_column="country",
+        partition_mapped_column="country",
+        transform=transform,
+        monotonic=False,
+    )
+    table.database = Database(database_name="probe_db", sqlalchemy_uri=backend)
+    return table
+
+
+def test_a_probe_result_the_engine_reads_back_differently_is_not_mirrored(
+    app: Flask,
+) -> None:
+    """
+    The other end of the round trip `evaluate_transform` makes on the way in.
+
+    The chart query is compiled with ``literal_binds``, so the probed key is
+    rendered into it by the same renderer and read by the same lexer -- and
+    `concat(:value, chr(92), 'b')` turns the unremarkable input `US` into the key
+    `us\\b`, which Hive reads back as `us` followed by a backspace. Emitted, the
+    mirror asks for a partition no row is in, and because it is ANDed onto the
+    query the chart loses every row the filter keeps rather than losing its
+    pruning.
+
+    No verdict is recorded, for the reason the type mismatch above gives: the
+    probe succeeded, and this is a property of one of its answers.
+    """
+    table = _text_mapped_table(
+        "hive+hive://localhost:10000/default", "concat(lower(:value), chr(92), 'b')"
+    )
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+
+    escaping_errors: list[str] = []
+    with app.app_context():
+        with patch(
+            "superset.connectors.sqla.partition_mapping.evaluate_transform",
+            return_value=["us\\b"],
+        ):
+            predicates = build_mirrored_predicates(
+                table,
+                mapping,
+                [(FilterOperator.EQUALS, "US")],
+                escaping_errors=escaping_errors,
+            )
+
+    assert predicates == []
+    assert escaping_errors
+    assert (
+        known_mirror_verdict(table.database, None, None, mapping.value_transform)
+        is None
+    )
+
+
+def test_the_same_probe_result_still_mirrors_where_the_engine_agrees(
+    app: Flask,
+) -> None:
+    """
+    Not a blanket refusal of the character: SQLite's renderer and lexer spell a
+    backslash the same way, so the key it answered with is asked for as it
+    stands.
+    """
+    table = _text_mapped_table("sqlite://", "concat(lower(:value), char(92), 'b')")
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+
+    with app.app_context():
+        with patch(
+            "superset.connectors.sqla.partition_mapping.evaluate_transform",
+            return_value=["us\\b"],
+        ):
+            predicates = build_mirrored_predicates(
+                table, mapping, [(FilterOperator.EQUALS, "US")]
+            )
+
+    assert len(predicates) == 1
+    assert "us\\b" in _render_predicate(table, predicates[0])
+
+
+def _temporal_partition_table(uri: str, partition_type: str) -> SqlaTable:
+    """The module's epoch mapping, re-pointed at a temporal partition key."""
+    table = _mapped_table(partition_column="part")
+    table.columns.append(TableColumn(column_name="part", type=partition_type))
+    table.database = Database(database_name="probe_db", sqlalchemy_uri=uri)
+    return table
+
+
+def _mirror_temporal(
+    table: SqlaTable,
+    operator: FilterOperator,
+    probed: Any,
+    type_errors: list[str] | None = None,
+) -> list[Any]:
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+    value: Any = ["2026-01-01"] if operator == FilterOperator.IN else "2026-01-01"
+    with patch(
+        "superset.connectors.sqla.partition_mapping.evaluate_transform",
+        return_value=[probed],
+    ):
+        return build_mirrored_predicates(
+            table, mapping, [(operator, value)], type_errors=type_errors
+        )
+
+
+@pytest.mark.parametrize(
+    "uri, partition_type, probed, literal",
+    [
+        ("trino://localhost:8080/hive", "DATE", date(2026, 1, 1), "DATE '2026-01-01'"),
+        (
+            "trino://localhost:8080/hive",
+            "TIMESTAMP",
+            datetime(2026, 1, 1, 12, 30, 15, 500000),
+            "TIMESTAMP '2026-01-01 12:30:15.500000'",
+        ),
+        # A day answered for a timestamp key is that day's midnight, in the
+        # key's own type.
+        (
+            "trino://localhost:8080/hive",
+            "TIMESTAMP",
+            date(2026, 1, 1),
+            "TIMESTAMP '2026-01-01 00:00:00.000000'",
+        ),
+        ("presto://localhost:8080/hive", "DATE", date(2026, 1, 1), "DATE '2026-01-01'"),
+        (
+            # Presto's own spec writes milliseconds; a sub-millisecond
+            # answer would decline, as SQLite's sub-second one does below.
+            "presto://localhost:8080/hive",
+            "TIMESTAMP",
+            datetime(2026, 1, 1),
+            "TIMESTAMP '2026-01-01 00:00:00.000'",
+        ),
+        (
+            "hive+hive://localhost:10000/default",
+            "DATE",
+            date(2026, 1, 1),
+            "CAST('2026-01-01' AS DATE)",
+        ),
+        (
+            "bigquery://project/dataset",
+            "DATE",
+            date(2026, 1, 1),
+            "CAST('2026-01-01' AS DATE)",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "operator",
+    [
+        FilterOperator.GREATER_THAN_OR_EQUALS,
+        FilterOperator.EQUALS,
+        FilterOperator.IN,
+    ],
+)
+def test_a_temporal_probe_result_is_written_as_the_engines_own_literal(
+    app: Flask,
+    uri: str,
+    partition_type: str,
+    probed: Any,
+    literal: str,
+    operator: FilterOperator,
+) -> None:
+    """
+    SQLAlchemy's literal processor writes a `date` or a `datetime` as plain
+    quoted text on every one of these dialects, and Trino and Presto have no
+    implicit coercion from ``varchar`` to a temporal type: the mirror came out
+    as ``part >= '2026-01-01'``, which Trino refuses with "Cannot apply
+    operator: date >= varchar(10)" -- and because the mirror is ANDed onto the
+    chart query, the chart failed rather than its pruning.
+
+    So the value is written the way every other temporal bound in a chart query
+    is, through the engine spec's `convert_dttm`.
+    """
+    table = _temporal_partition_table(uri, partition_type)
+
+    with app.app_context():
+        predicates = _mirror_temporal(table, operator, probed)
+
+    assert len(predicates) == 1
+    rendered = _render_predicate(table, predicates[0])
+    assert literal in rendered
+    # Never the bare quoted text the driver's literal processor would write.
+    assert not re.search(r"(?:[<>=]|IN \() ?'", rendered)
+
+
+def test_a_trino_date_mirror_is_the_predicate_the_engine_accepts(app: Flask) -> None:
+    """The whole predicate, as View query shows it on Trino."""
+    table = _temporal_partition_table("trino://localhost:8080/hive", "DATE")
+
+    with app.app_context():
+        predicates = _mirror_temporal(
+            table, FilterOperator.GREATER_THAN_OR_EQUALS, date(2026, 1, 1)
+        )
+
+    assert _render_predicate(table, predicates[0]) == (
+        "part >= DATE '2026-01-01' OR part IS NULL"
+    )
+
+
+def test_a_timestamp_the_engine_would_floor_is_not_mirrored(app: Flask) -> None:
+    """
+    SQLite writes a timestamp literal to the second. An upper bound floored
+    past what the probe answered is a mirror narrower than the filter -- it
+    drops the rows between the two -- so the mirror is declined, and the
+    preview is told why rather than shown a predicate.
+    """
+    table = _temporal_partition_table("sqlite://", "TIMESTAMP")
+    type_errors: list[str] = []
+
+    with app.app_context():
+        predicates = _mirror_temporal(
+            table,
+            FilterOperator.LESS_THAN_OR_EQUALS,
+            datetime(2026, 1, 1, 12, 30, 15, 500000),
+            type_errors,
+        )
+
+    assert predicates == []
+    assert type_errors
+    assert "part" in type_errors[0]
+
+
+def test_a_timestamp_the_engine_writes_in_full_still_mirrors(app: Flask) -> None:
+    """Not a refusal of SQLite: a whole second loses nothing to its literal."""
+    table = _temporal_partition_table("sqlite://", "TIMESTAMP")
+
+    with app.app_context():
+        predicates = _mirror_temporal(
+            table,
+            FilterOperator.LESS_THAN_OR_EQUALS,
+            datetime(2026, 1, 1, 12, 30, 15),
+        )
+
+    assert len(predicates) == 1
+    assert "'2026-01-01 12:30:15'" in _render_predicate(table, predicates[0])
+
+
+def test_a_date_key_takes_a_timestamp_floored_to_its_own_day(app: Flask) -> None:
+    """
+    Flooring to the day is the column's own resolution, so a `DATE` key takes a
+    timestamp answer as its day: every comparison against a column of days
+    reads the same either way.
+    """
+    table = _temporal_partition_table("trino://localhost:8080/hive", "DATE")
+
+    with app.app_context():
+        predicates = _mirror_temporal(
+            table, FilterOperator.LESS_THAN_OR_EQUALS, datetime(2026, 1, 1, 12, 30)
+        )
+
+    assert "part <= DATE '2026-01-01'" in _render_predicate(table, predicates[0])
+
+
+def test_an_oracle_date_key_is_not_floored_to_its_day(app: Flask) -> None:
+    """
+    An Oracle ``DATE`` keeps the time of day -- its SQLAlchemy dialect makes
+    ``DATE`` a `DateTime` -- but Superset maps it to `sa.Date`, so the
+    days-only exemption wrote 06:30 as ``TO_DATE('2026-01-12', 'YYYY-MM-DD')``.
+    A range mirrored that way asked for midnight and a ``CAST(:value AS DATE)``
+    chart lost every row after it. Oracle's literal drops the time, so the
+    mirror is declined and only the pruning is lost.
+    """
+    table = _temporal_partition_table("oracle+oracledb://u:p@host:1521/svc", "DATE")
+    type_errors: list[str] = []
+
+    with app.app_context():
+        predicates = _mirror_temporal(
+            table,
+            FilterOperator.GREATER_THAN_OR_EQUALS,
+            datetime(2026, 1, 12, 6, 30),
+            type_errors,
+        )
+
+    assert predicates == []
+    assert type_errors
+
+
+def test_an_oracle_date_key_still_takes_an_exact_midnight(app: Flask) -> None:
+    """Not a refusal of Oracle: an answer at midnight loses nothing to the
+    day-only literal, so it still mirrors."""
+    table = _temporal_partition_table("oracle+oracledb://u:p@host:1521/svc", "DATE")
+
+    with app.app_context():
+        predicates = _mirror_temporal(
+            table, FilterOperator.GREATER_THAN_OR_EQUALS, datetime(2026, 1, 12)
+        )
+
+    assert len(predicates) == 1
+    assert "TO_DATE('2026-01-12', 'YYYY-MM-DD')" in _render_predicate(
+        table, predicates[0]
+    )
+
+
+def test_a_dialect_whose_type_names_are_a_list_does_not_break_the_chart(
+    app: Flask,
+) -> None:
+    """
+    `ischema_names` is not part of SQLAlchemy's dialect contract, and
+    clickhouse-connect 1.10/1.11 make it a list. Calling `.get` on it raised
+    out of the chart query, so every chart filtering the mapped column failed.
+    A list is read as "no answer", which leaves the date key's own literal in
+    charge -- the same answer as before the Oracle check existed.
+    """
+    table = _temporal_partition_table("trino://localhost:8080/hive", "DATE")
+    dialect = MagicMock(ischema_names=["Date", "DateTime"])
+
+    with app.app_context():
+        with patch(
+            "superset.connectors.sqla.partition_mapping._dialect_for",
+            return_value=dialect,
+        ):
+            predicates = _mirror_temporal(
+                table,
+                FilterOperator.GREATER_THAN_OR_EQUALS,
+                datetime(2026, 1, 12, 6, 30),
+            )
+
+    assert len(predicates) == 1
+
+
+def test_an_unexpected_failure_building_the_mirror_costs_only_the_pruning(
+    app: Flask,
+) -> None:
+    """The chart path fails open: a mirror is only ever an optimisation."""
+    table = _mapped_table()
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+
+    with app.app_context():
+        with patch(
+            "superset.models.helpers.build_mirrored_predicates",
+            side_effect=AttributeError("'list' object has no attribute 'get'"),
+        ):
+            predicates = table._build_partition_mirror_predicates(  # noqa: SLF001
+                mapping, [(FilterOperator.EQUALS, "2026-01-01")]
+            )
+
+    assert predicates == []
+
+
+def _get_df_by_shape(text_answer: Any, typed_answer: Any) -> Any:
+    """Answer each probed column by whether ``:value`` reached it as the text
+    ``'2026-01-12 06:30:00'`` or as a typed literal."""
+
+    def answer(sql: str, **kwargs: Any) -> pd.DataFrame:
+        selections = re.split(r" AS v\d+,?\s*", sql.removeprefix("SELECT "))
+        row = [
+            text_answer if "'2026-01-12 06:30:00'" in selection else typed_answer
+            for selection in selections
+            if selection.strip()
+        ]
+        return pd.DataFrame([row], columns=[f"v{i}" for i in range(len(row))])
+
+    return answer
+
+
+@pytest.mark.parametrize(
+    "text_answer, mirrored",
+    [
+        # Oracle's TO_DATE(:value, fmt) under the default NLS_DATE_FORMAT: the
+        # typed bound comes back in year 0012.
+        (datetime(2026, 1, 12, 6, 30), False),
+        # Both shapes agree: the ordinary case keeps its mirror.
+        (datetime(12, 1, 26), True),
+    ],
+)
+def test_a_chart_bound_is_not_mirrored_when_its_text_form_reads_differently(
+    app: Flask, text_answer: datetime, mirrored: bool
+) -> None:
+    """
+    The chart path runs the check too, not only the preview: a mapping set up
+    in the editor returned 0 rows for 06:30-18:30 (48 with the flag off). The
+    text form rides in the same probe, so a query still costs one round trip.
+    """
+    table = _temporal_partition_table("sqlite://", "TIMESTAMP")
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+    table.database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=_get_df_by_shape(text_answer, datetime(12, 1, 26))
+    )
+    shape_errors: list[str] = []
+
+    with app.app_context():
+        predicates = build_mirrored_predicates(
+            table,
+            mapping,
+            [(FilterOperator.GREATER_THAN_OR_EQUALS, datetime(2026, 1, 12, 6, 30))],
+            shape_errors=shape_errors,
+        )
+
+    assert bool(predicates) is mirrored
+    assert bool(shape_errors) is not mirrored
+    assert cast(MagicMock, table.database.get_df).call_count == 1
+
+
+def _refusing_text(typed_answer: Any) -> Any:
+    """Raise ORA-01830 on the text ``'2026-01-12 06:30:00'``; answer the typed
+    literal with ``typed_answer``."""
+
+    def answer(sql: str, **kwargs: Any) -> pd.DataFrame:
+        if "'2026-01-12 06:30:00'" in sql:
+            raise RuntimeError("ORA-01830: date format picture ends before ...")
+        return pd.DataFrame([[typed_answer]], columns=["v0"])
+
+    return answer
+
+
+@pytest.mark.parametrize(
+    "typed_answer, mirrored",
+    [
+        # Oracle's TO_DATE(:value, 'YYYY-MM-DD') under the default
+        # NLS_DATE_FORMAT: the typed bound comes back in year 0012.
+        (datetime(12, 1, 26), False),
+        # CAST(:value AS DATE) and TRUNC(:value, 'HH') on Oracle: the text is
+        # refused under the same NLS_DATE_FORMAT, but the typed answer is right.
+        (datetime(2026, 1, 12, 6, 30), True),
+        (datetime(2026, 1, 12, 6, 0), True),
+        (date(2026, 1, 1), True),
+        # Further than any bucket of the instant can be.
+        (datetime(2027, 3, 1), False),
+        # A number has no instant to compare against.
+        (1768198200, False),
+    ],
+)
+def test_a_chart_bound_whose_text_form_is_refused_is_held_to_its_instant(
+    app: Flask, typed_answer: Any, mirrored: bool
+) -> None:
+    """
+    Oracle refuses the text ``'2026-01-12 06:30:00'`` for every transform
+    under its default ``NLS_DATE_FORMAT``, broken or not. Declining on the
+    refusal alone kept ``TO_DATE(:value, 'YYYY-MM-DD')`` from emptying every
+    time range, and cost ``CAST(:value AS DATE)`` its pruning with it. The
+    typed answer is asked alone instead -- a second round trip, only on this
+    path -- and kept where it can be a bucket of the instant.
+    """
+    table = _temporal_partition_table("sqlite://", "TIMESTAMP")
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+    table.database.get_df = MagicMock(side_effect=_refusing_text(typed_answer))  # type: ignore[method-assign]
+    shape_errors: list[str] = []
+
+    with app.app_context():
+        predicates = build_mirrored_predicates(
+            table,
+            mapping,
+            [(FilterOperator.GREATER_THAN_OR_EQUALS, datetime(2026, 1, 12, 6, 30))],
+            shape_errors=shape_errors,
+        )
+
+    assert bool(predicates) is mirrored
+    assert bool(shape_errors) is not mirrored
+    assert cast(MagicMock, table.database.get_df).call_count == 2
+
+
+def test_the_preview_says_the_text_form_was_refused(app: Flask) -> None:
+    """The preview names the text it could not read and the typed answer."""
+    table = _temporal_partition_table("sqlite://", "TIMESTAMP")
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+    table.database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=_refusing_text(datetime(12, 1, 26))
+    )
+    errors: list[str] = []
+    shape_errors: list[str] = []
+
+    with app.app_context():
+        predicates = build_mirrored_predicates(
+            table,
+            mapping,
+            [(FilterOperator.GREATER_THAN_OR_EQUALS, datetime(2026, 1, 12, 6, 30))],
+            errors=errors,
+            shape_errors=shape_errors,
+        )
+
+    assert predicates == []
+    assert "2026-01-12 06:30:00 written as text" in shape_errors[0]
+    assert "within a year" in shape_errors[0]
+
+
+def test_an_engine_with_no_temporal_literal_declines_a_temporal_answer() -> None:
+    """
+    Where the engine spec has no `convert_dttm` rendering for the column, the
+    only way left to write the value is the driver's plain text, which is what
+    fails on Trino. An engine Superset has not confirmed declines, which costs
+    only the pruning -- the same answer `_reads_as_temporal` gives for text.
+    """
+    column = _partition_column("DATE")
+
+    with patch.object(
+        type(column.table.database),
+        "db_engine_spec",
+        new_callable=lambda: property(lambda self: BaseEngineSpec),
+    ):
+        error = probed_value_type_error(column, [date(2026, 1, 1)])
+
+    assert error is not None
+    assert "dt_epoch" in error
+
+
+def test_one_unspellable_answer_costs_only_its_own_request(app: Flask) -> None:
+    """
+    Per request, not per query. A range arrives as two requests, and keeping
+    only the bound whose key survives the trip leaves a mirror *wider* than the
+    filter, which is all a mirror has to be -- so declining the whole query
+    would cost the other filters their pruning for nothing.
+    """
+    table = _text_mapped_table(
+        "hive+hive://localhost:10000/default", "concat(lower(:value), chr(92), 'b')"
+    )
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+
+    with app.app_context():
+        with patch(
+            "superset.connectors.sqla.partition_mapping.evaluate_transform",
+            return_value=["us\\b", "ca"],
+        ):
+            predicates = build_mirrored_predicates(
+                table,
+                mapping,
+                [
+                    (FilterOperator.EQUALS, "US"),
+                    (FilterOperator.EQUALS, "CA"),
+                ],
+            )
+
+    assert len(predicates) == 1
+    rendered = _render_predicate(table, predicates[0])
+    assert "'ca'" in rendered
+    assert "\\b" not in rendered
+
+
+def test_one_unspellable_answer_declines_the_whole_in_list(app: Flask) -> None:
+    """
+    As for a `None` answer: mirroring the members that survive would be
+    *narrower* than the `IN` the chart carries, and would drop rows it keeps.
+    """
+    table = _text_mapped_table(
+        "hive+hive://localhost:10000/default", "concat(lower(:value), chr(92), 'b')"
+    )
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+
+    with app.app_context():
+        with patch(
+            "superset.connectors.sqla.partition_mapping.evaluate_transform",
+            return_value=["us\\b", "ca"],
+        ):
+            predicates = build_mirrored_predicates(
+                table, mapping, [(FilterOperator.IN, ["US", "CA"])]
+            )
+
+    assert predicates == []
+
+
 def _partition_column(column_type: str, **kwargs: Any) -> TableColumn:
     column = TableColumn(column_name="dt_epoch", type=column_type, **kwargs)
     column.table = SqlaTable(
@@ -2666,22 +3273,100 @@ def test_a_failed_probe_records_that_it_does_not_mirror(app: Flask) -> None:
         assert known_mirror_verdict(database, None, None, "no_such_fn(:value)") is False
 
 
-def test_a_probe_that_returns_null_leaves_the_verdict_alone(app: Flask) -> None:
+def test_a_null_does_not_withdraw_a_verdict_another_input_earned(
+    app: Flask,
+) -> None:
     """
     A `NULL` is this input's answer, not the transform's. The verdict is keyed
-    without the values -- see the test below -- so recording one input's `NULL`
-    against the whole transform is the same category error the type-mismatch
-    decline already avoids.
+    without the values -- see the tests below -- so recording one input's
+    `NULL` over a transform that has mirrored is the same category error the
+    type-mismatch decline already avoids.
 
     The filter itself still gets no mirror: that is the caller's own `NULL`
     guard, which is per request and where it belongs.
     """
+    transform = "NULLIF(:value, 0)"
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+
+    def answer(sql: str, **kwargs: Any) -> pd.DataFrame:
+        value = None if "'0'" in sql else 2
+        return pd.DataFrame([[value]], columns=["v0"])
+
+    database.get_df = MagicMock(side_effect=answer)  # type: ignore[method-assign]
+
+    with app.app_context():
+        evaluate_transform(database, None, None, transform, ["2"])
+        evaluate_transform(database, None, None, transform, ["0"])
+
+        assert known_mirror_verdict(database, None, None, transform) is True
+
+
+def test_a_transform_that_only_ever_answers_null_does_not_mirror(
+    app: Flask,
+) -> None:
+    """
+    `trunc(from_unixtime(:value), 'HH')` on Hive 4: the unit is not supported,
+    so every input answers `NULL` and no query ever carries a mirror. With
+    nothing else to go on, that is the transform's answer, and the glyph must
+    not promise pruning on it.
+    """
+    transform = "unix_timestamp(trunc(from_unixtime(:value), 'HH'))"
+    database = _database_returning([None, None])
+
+    with app.app_context():
+        evaluate_transform(database, None, None, transform, [1790850600, 1790852399])
+
+        assert known_mirror_verdict(database, None, None, transform) is False
+
+
+def test_a_verdict_stored_before_the_all_null_rule_is_not_read(app: Flask) -> None:
+    """
+    A `True` written before an all-`NULL` probe stopped counting as working is
+    indistinguishable from one another input earned, and the new rule will not
+    overwrite such a `True`. Ribbon's QA cache held exactly that for
+    `trunc(from_unixtime(:value), 'HH')` on Hive. Both caches are versioned, so
+    the old entries are never read: the next query re-probes and records
+    `False`.
+    """
+    from superset.extensions import cache_manager  # noqa: PLC0415
+
+    transform = "unix_timestamp(trunc(from_unixtime(:value), 'HH'))"
     database = _database_returning([None])
 
     with app.app_context():
-        evaluate_transform(database, None, None, "lower(:value)", ["x"])
+        legacy_verdict = _mirror_verdict_cache_key(
+            database, None, None, transform
+        ).replace(f"{PROBE_CACHE_VERSION}:", "")
+        legacy_probe = _probe_cache_key(
+            database, None, None, transform, [1790850600]
+        ).replace(f"{PROBE_CACHE_VERSION}:", "")
+        cache_manager.cache.set(legacy_verdict, True)
+        cache_manager.cache.set(legacy_probe, [None])
 
-        assert known_mirror_verdict(database, None, None, "lower(:value)") is True
+        evaluate_transform(database, None, None, transform, [1790850600])
+
+        assert cast(MagicMock, database.get_df).called
+        assert known_mirror_verdict(database, None, None, transform) is False
+
+
+def test_an_answer_after_an_all_null_probe_restores_the_verdict(app: Flask) -> None:
+    """The `False` an all-`NULL` probe records is not sticky: the next input that
+    answers misses the probe cache, re-probes and re-records."""
+    transform = "NULLIF(:value, 0)"
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+
+    def answer(sql: str, **kwargs: Any) -> pd.DataFrame:
+        value = None if "'0'" in sql else 2
+        return pd.DataFrame([[value]], columns=["v0"])
+
+    database.get_df = MagicMock(side_effect=answer)  # type: ignore[method-assign]
+
+    with app.app_context():
+        evaluate_transform(database, None, None, transform, ["0"])
+        assert known_mirror_verdict(database, None, None, transform) is False
+
+        evaluate_transform(database, None, None, transform, ["2"])
+        assert known_mirror_verdict(database, None, None, transform) is True
 
 
 def test_a_null_for_one_input_does_not_outlive_itself(app: Flask) -> None:
@@ -3081,7 +3766,7 @@ def test_a_value_the_dialect_cannot_write_faithfully_is_never_probed(
     for every later value, the way a `NULL` result once did.
     """
     database = Database(
-        database_name="probe_db", sqlalchemy_uri="hive://localhost:10000/default"
+        database_name="probe_db", sqlalchemy_uri="hive+hive://localhost:10000/default"
     )
     database.get_df = MagicMock()  # type: ignore[method-assign]
 
@@ -3484,3 +4169,118 @@ def test_dropping_incoming_transforms_tolerates_no_columns() -> None:
         )
         == []
     )
+
+
+@pytest.mark.parametrize(
+    "column_type, value",
+    [
+        ("Array(Int32)", 5),
+        ("Array(String)", "us"),
+    ],
+    ids=["numeric-elements", "text-elements"],
+)
+def test_an_array_partition_column_is_refused_whatever_the_value(
+    column_type: str, value: Any
+) -> None:
+    """
+    Every other branch of this gate compares a probe result against the
+    column's type. An array has no scalar to compare: `handle_comparison_filter`
+    emits a bare ``col = value``, so an ``Array(Int32)`` key mirrors as
+    ``dt_epoch = 5`` and a PostgreSQL ``text[]`` one as ``dt_epoch = 'us'``,
+    and neither is an operator the engine has -- the predicate fails the whole
+    chart once it is in the statement.
+
+    So it is refused for the *column*, ahead of the per-value table, and the
+    value it is handed makes no difference. `MULTI_VALUE` having no entry in
+    `_PROBE_RESULT_TYPES` read as "nothing to check" and let the mirror
+    through.
+    """
+    # Imported here rather than at module scope: at module scope it widens the
+    # set of modules the mypy pre-commit hook analyses, which then reports an
+    # unrelated `type: ignore` in `db_engine_specs/mysql.py` as unused.
+    from superset.db_engine_specs.clickhouse import (  # noqa: PLC0415
+        ClickHouseEngineSpec,
+    )
+
+    column = _partition_column(column_type)
+
+    with patch.object(
+        type(column.table.database),
+        "db_engine_spec",
+        new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
+    ):
+        assert column.type_generic == GenericDataType.MULTI_VALUE
+        error = probed_value_type_error(column, [value])
+
+    assert error is not None
+    assert "array column" in error
+
+
+@pytest.mark.parametrize(
+    "column_type",
+    ["TEXT[]", "INTEGER[]", "VARCHAR(10)[]", "int[3]", "TEXT[][]"],
+)
+def test_a_postgres_array_partition_column_is_refused(column_type: str) -> None:
+    """
+    SC-128852. `PostgresEngineSpec` does not opt into multi-value columns, so it
+    resolves ``TEXT[]`` to ``STRING`` and the ``MULTI_VALUE`` check never fired:
+    the preview said valid and ``region_keys = 'us'`` failed every chart with
+    ``malformed array literal``. The declared type answers on its own.
+    """
+    from superset.db_engine_specs.postgres import (  # noqa: PLC0415
+        PostgresEngineSpec,
+    )
+
+    column = _partition_column(column_type)
+
+    with patch.object(
+        type(column.table.database),
+        "db_engine_spec",
+        new_callable=lambda: property(lambda self: PostgresEngineSpec),
+    ):
+        assert column.type_generic != GenericDataType.MULTI_VALUE
+        error = probed_value_type_error(column, ["us"])
+
+    assert error is not None
+    assert "array column" in error
+
+
+@pytest.mark.parametrize(
+    "column_type, is_array",
+    [
+        ("TEXT[]", True),
+        ("integer[]", True),
+        ("ARRAY<STRING>", True),
+        ("array(varchar)", True),
+        ("Array(Int32)", True),
+        ("ARRAY", True),
+        ("TEXT", False),
+        ("BIGINT", False),
+        ("VARCHAR(255)", False),
+        ("ARRAYLIKE", False),
+        ("STRUCT<a: ARRAY<INT>>", False),
+        (None, False),
+    ],
+)
+def test_declares_array_type(column_type: str | None, is_array: bool) -> None:
+    assert declares_array_type(column_type) is is_array
+
+
+def test_a_scalar_column_on_an_array_capable_engine_still_mirrors() -> None:
+    """
+    The refusal is for the array type, not for every column on an engine that
+    has arrays -- an ordinary `Int32` key under the same spec still takes the
+    number its transform returns.
+    """
+    from superset.db_engine_specs.clickhouse import (  # noqa: PLC0415
+        ClickHouseEngineSpec,
+    )
+
+    column = _partition_column("Int32")
+
+    with patch.object(
+        type(column.table.database),
+        "db_engine_spec",
+        new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
+    ):
+        assert probed_value_type_error(column, [1767225600]) is None

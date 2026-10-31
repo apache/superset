@@ -25,6 +25,7 @@ from unittest.mock import patch
 
 import pytest
 from _pytest.fixtures import SubRequest
+from flask_appbuilder.menu import Menu
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
@@ -35,7 +36,7 @@ from superset import security_manager
 from superset.app import SupersetApp
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object_factory import QueryObjectFactory
-from superset.extensions import appbuilder, feature_flag_manager
+from superset.extensions import appbuilder, csrf, feature_flag_manager
 from superset.initialization import SupersetAppInitializer
 
 
@@ -131,10 +132,16 @@ def _preload_clock_reading_drivers() -> None:
         pass
 
 
-@pytest.fixture(scope="module")
-def app(request: SubRequest) -> Iterator[SupersetApp]:
+def build_app(config_overrides: dict[str, Any] | None = None) -> SupersetApp:
     """
-    A fixture that generates a Superset app.
+    Build and initialize a Superset app for the unit tests.
+
+    Every test module gets its own app, so this runs hundreds of times in one
+    xdist worker. Each initialization must replace the previous app in the
+    process-wide singletons rather than add to them: an app that stays
+    reachable keeps its views, routing rules, mappers and worker pools alive
+    for the rest of the worker's life, and the suite's resident memory then
+    grows with the number of modules until the CI runner is exhausted.
     """
     app = SupersetApp(__name__)
 
@@ -152,24 +159,22 @@ def app(request: SubRequest) -> Iterator[SupersetApp]:
     app.config["APPLICATION_ROOT"] = "/"
     app.config["PREFERRED_URL_SCHEME="] = "http"
 
-    # loop over extra configs passed in by tests
-    # and update the app config
-    # to override the default configs use:
-    #
-    # @pytest.mark.parametrize(
-    #     "app",
-    #     [{"SOME_CONFIG": "SOME_VALUE"}],
-    #     indirect=True,
-    # )
-    # def test_some_test(app_context: None) -> None:
-    if request and hasattr(request, "param"):
-        for key, val in request.param.items():
-            app.config[key] = val
+    for key, val in (config_overrides or {}).items():
+        app.config[key] = val
 
     # ``superset.extensions.appbuilder`` is a singleton, and won't rebuild the
-    # routes when this fixture is called multiple times; we need to clear the
-    # registered views to ensure the initialization can happen more than once.
+    # routes when this runs multiple times; we need to clear the registered
+    # views to ensure the initialization can happen more than once. The menu
+    # is reset for the same reason: ``init_views`` adds one set of menu items
+    # per initialization, and each item's link closure holds the app that
+    # registered it.
     appbuilder.baseviews = []
+    appbuilder.menu = Menu()
+    # ``superset.extensions.csrf`` is a singleton too, and accumulates the CSRF
+    # exemptions of every app built here; reset them so one test's config (e.g.
+    # FAB_API_KEY_ENABLED) can't leak exempt blueprints into later tests.
+    csrf._exempt_views = set()  # noqa: SLF001
+    csrf._exempt_blueprints = set()  # noqa: SLF001
 
     app_initializer = SupersetAppInitializer(app)
     app_initializer.init_app()
@@ -181,6 +186,23 @@ def app(request: SubRequest) -> Iterator[SupersetApp]:
         importlib.reload(superset.views.base)
 
     return app
+
+
+@pytest.fixture(scope="module")
+def app(request: SubRequest) -> SupersetApp:
+    """
+    A fixture that generates a Superset app.
+
+    To override the default configs use:
+
+        @pytest.mark.parametrize(
+            "app",
+            [{"SOME_CONFIG": "SOME_VALUE"}],
+            indirect=True,
+        )
+        def test_some_test(app_context: None) -> None:
+    """
+    return build_app(getattr(request, "param", None))
 
 
 @pytest.fixture

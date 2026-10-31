@@ -147,6 +147,7 @@ export default function getControlItemsMap({
                 doesColumnMatchFilterType(
                   formFilter?.filterType || '',
                   column,
+                  datasourceType,
                 ) && !!column?.filterable
               }
               onChange={() => {

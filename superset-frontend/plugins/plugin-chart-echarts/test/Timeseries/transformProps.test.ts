@@ -37,13 +37,17 @@ import {
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
+import { withChartDisplayLabels } from 'src/dashboard/util/withChartDisplayLabels';
 import { init, type SeriesOption } from 'echarts';
 import type { GridComponentOption } from 'echarts/components';
-import transformProps from '../../src/Timeseries/transformProps';
+import transformProps, {
+  getLegendSeriesIcon,
+} from '../../src/Timeseries/transformProps';
 import {
   EchartsTimeseriesSeriesType,
   OrientationType,
   EchartsTimeseriesFormData,
+  type TimeseriesLegendIcon,
 } from '../../src/Timeseries/types';
 import { StackControlsValue, TIMESERIES_CONSTANTS } from '../../src/constants';
 import {
@@ -170,6 +174,7 @@ type CustomLegendResult = {
     };
     items: {
       color: string;
+      icon: TimeseriesLegendIcon;
       interactive: boolean;
       name: string;
       selected: boolean;
@@ -1466,6 +1471,36 @@ test('moves a visible horizontal Plain legend into a custom HTML legend and rest
   expect('contentHeight' in transformed).toBe(false);
 });
 
+test('hides legend selector buttons when showSelectorLegend is false', () => {
+  const plain = transformProps(
+    createTestChartProps({
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
+        showLegend: true,
+        showSelectorLegend: false,
+      },
+    }),
+  );
+  expect(getCustomLegend(plain)?.showSelectors).toBe(false);
+
+  const scroll = transformProps(
+    createTestChartProps({
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Scroll,
+        showLegend: true,
+        showSelectorLegend: false,
+      },
+    }),
+  );
+  expect(
+    (scroll.echartOptions.legend as { selector?: false | unknown[] }).selector,
+  ).toBe(false);
+});
+
 test.each([LegendOrientation.Top, LegendOrientation.Bottom])(
   'uses the custom HTML legend for a %s-oriented Plain legend',
   legendOrientation => {
@@ -1654,6 +1689,10 @@ test('derives custom legend items from a single-object custom series override', 
       color: '#123456',
       name: 'San Francisco',
     }),
+    expect.objectContaining({
+      color: '#123456',
+      name: 'New York',
+    }),
   ]);
 });
 
@@ -1816,6 +1855,236 @@ const timeCompareFormData: SqlaFormData = {
   metric: 'sum__num',
   viz_type: 'my_viz',
 };
+
+function getPlainTopLegendItems(
+  overrides: Parameters<typeof createTestChartProps>[0] = {},
+) {
+  const transformed = transformProps(
+    createTestChartProps({
+      ...overrides,
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
+        showLegend: true,
+        ...overrides.formData,
+      },
+    }),
+  );
+  return getCustomLegend(transformed)?.items ?? [];
+}
+
+test('custom legend items describe a line series as a solid line with its symbol', () => {
+  const items = getPlainTopLegendItems();
+
+  expect(items.map(item => item.icon)).toEqual([
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'emptyCircle',
+      symbolOpacity: 1,
+    },
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'emptyCircle',
+      symbolOpacity: 1,
+    },
+  ]);
+});
+
+test('custom legend items describe a bar series as a box', () => {
+  const items = getPlainTopLegendItems({
+    formData: { seriesType: EchartsTimeseriesSeriesType.Bar },
+  });
+
+  expect(items.every(item => item.icon.shape === 'box')).toBe(true);
+});
+
+test('custom legend items describe a scatter series as its symbol', () => {
+  const items = getPlainTopLegendItems({
+    formData: { seriesType: EchartsTimeseriesSeriesType.Scatter },
+  });
+
+  expect(items.map(item => item.icon)).toEqual([
+    { shape: 'symbol', opacity: 1, symbol: 'circle' },
+    { shape: 'symbol', opacity: 1, symbol: 'circle' },
+  ]);
+});
+
+test('custom legend items keep the dash style of a formula annotation line', () => {
+  const formula: FormulaAnnotationLayer = {
+    name: 'Reporting limit',
+    annotationType: AnnotationType.Formula,
+    value: '2',
+    style: AnnotationStyle.Dashed,
+    width: 3,
+    show: true,
+    showLabel: false,
+  };
+  const items = getPlainTopLegendItems({
+    formData: { annotationLayers: [formula] },
+  });
+  const annotation = items.find(item => item.name === 'Reporting limit');
+
+  expect(annotation?.icon).toEqual({
+    shape: 'line',
+    lineType: 'dashed',
+    lineWidth: 2,
+    opacity: 1,
+    symbol: 'emptyCircle',
+    symbolOpacity: 1,
+  });
+});
+
+test('custom legend items carry the dash pattern and symbol of a time-shifted series', () => {
+  const transformed = transformProps(
+    createTestChartProps({
+      formData: {
+        ...timeCompareFormData,
+        time_compare: ['1 week ago'],
+        timeShiftColor: true,
+        comparison_type: ComparisonType.Values,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
+        showLegend: true,
+      },
+      queriesData: [
+        createTestQueryData([
+          { sum__num: 100, '1 week ago': 80, __timestamp: 599616000000 },
+          { sum__num: 150, '1 week ago': 120, __timestamp: 599916000000 },
+        ]),
+      ],
+    }),
+  );
+  const items = getCustomLegend(transformed)?.items ?? [];
+  const shifted = items.find(item => item.name === '1 week ago');
+
+  // Time-shifted series are drawn at 0.7 opacity, and the ECharts legend inherits it.
+  expect(shifted?.icon).toEqual({
+    shape: 'line',
+    lineType: 'dotted',
+    lineWidth: 2,
+    opacity: 0.7,
+    symbol: 'triangle',
+    symbolOpacity: 0.7,
+  });
+});
+
+test.each<[string, SeriesOption | undefined, TimeseriesLegendIcon]>([
+  ['no series', undefined, { shape: 'box', opacity: 1 }],
+  ['a bar series', { type: 'bar' }, { shape: 'box', opacity: 1 }],
+  [
+    'a bar series with item opacity',
+    { type: 'bar', itemStyle: { opacity: 0.5 } },
+    { shape: 'box', opacity: 0.5 },
+  ],
+  [
+    'a line series with line opacity',
+    { type: 'line', lineStyle: { opacity: 0.7 } },
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 0.7,
+      symbol: 'emptyCircle',
+      symbolOpacity: 1,
+    },
+  ],
+  [
+    'a line series whose line is fully transparent',
+    { type: 'line', lineStyle: { opacity: 0 } },
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'emptyCircle',
+      symbolOpacity: 1,
+    },
+  ],
+  [
+    'a scatter series with item opacity',
+    { type: 'scatter', itemStyle: { opacity: 0.3 } },
+    { shape: 'symbol', opacity: 0.3, symbol: 'circle' },
+  ],
+  [
+    'a line series with ECharts defaults',
+    { type: 'line' },
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'emptyCircle',
+      symbolOpacity: 1,
+    },
+  ],
+  [
+    'a line series whose symbol is none',
+    { type: 'line', symbol: 'none' },
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'circle',
+      symbolOpacity: 1,
+    },
+  ],
+  [
+    'a line series with a numeric dash and a hidden line',
+    { type: 'line', lineStyle: { type: 5, width: 0 } } as SeriesOption,
+    {
+      shape: 'line',
+      lineType: [5],
+      lineWidth: 0,
+      opacity: 1,
+      symbol: 'emptyCircle',
+      symbolOpacity: 1,
+    },
+  ],
+  [
+    'a line series with a dash array and a thick line',
+    { type: 'line', lineStyle: { type: [6, 15], width: 4 } } as SeriesOption,
+    {
+      shape: 'line',
+      lineType: [6, 15],
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'emptyCircle',
+      symbolOpacity: 1,
+    },
+  ],
+  [
+    'a line series with an unknown dash style',
+    { type: 'line', lineStyle: { type: 'wavy' } } as unknown as SeriesOption,
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'emptyCircle',
+      symbolOpacity: 1,
+    },
+  ],
+  [
+    'a scatter series with a non-string symbol',
+    { type: 'scatter', symbol: 42 } as unknown as SeriesOption,
+    { shape: 'symbol', opacity: 1, symbol: 'circle' },
+  ],
+  [
+    'a scatter series with a rect symbol',
+    { type: 'scatter', symbol: 'rect' },
+    { shape: 'symbol', opacity: 1, symbol: 'rect' },
+  ],
+])('getLegendSeriesIcon describes %s', (_label, series, expected) => {
+  expect(getLegendSeriesIcon(series)).toEqual(expected);
+});
 
 test('should apply dashed line style to time comparison series with single metric', () => {
   const queriesDataWithTimeCompare = [
@@ -3240,7 +3509,7 @@ test('honors the snake_case flag the compare-chart migration stores in params', 
 });
 describe('EchartsTimeseries tooltip truncation', () => {
   const longSeriesName = 'prod-us-east-1-service-checkout-latency-p99';
-  const marker = '<span style="background-color:#1f77b4;"></span>';
+  const color = '#1f77b4';
 
   const buildTooltip = (
     tooltipTruncation?: TooltipTruncationMode,
@@ -3279,7 +3548,7 @@ describe('EchartsTimeseries tooltip truncation', () => {
         seriesId: longSeriesName,
         seriesName: longSeriesName,
         value: [xValue, 1],
-        marker,
+        color,
       },
     ]);
   };
@@ -3311,9 +3580,11 @@ describe('EchartsTimeseries tooltip truncation', () => {
     expect(html).not.toContain(longSeriesName);
   });
 
-  test('preserves the echarts marker in every mode', () => {
+  test('keeps the series color marker in every mode', () => {
     (['off', 'end', 'start', 'middle'] as const).forEach(mode => {
-      expect(buildTooltip(mode)).toContain('background-color:#1f77b4');
+      expect(buildTooltip(mode).replace(/\s/g, '')).toContain(
+        'style="color:#1f77b4;',
+      );
     });
   });
 
@@ -3410,10 +3681,12 @@ describe('weekly x-axis tick alignment', () => {
     // axisTick: a label surviving hideOverlap thinning then always lands on
     // a real tick and gridline rather than a capped-away bucket.
     const { manyMondays, chartProps } = manyMondaysChartProps();
-    const { xAxis } = transformProps(chartProps).echartOptions as any;
+    const { xAxis, toolbox } = transformProps(chartProps).echartOptions as any;
 
     expect(xAxis.axisTick.customValues.length).toBeLessThan(manyMondays.length);
     expect(xAxis.axisLabel.customValues).toEqual(xAxis.axisTick.customValues);
+    // a hidden toolbox would still filter series data through its dataZoom
+    expect(toolbox).toBeUndefined();
   });
 
   test('keeps the full bucket set for axisLabel on a zoomable axis', () => {
@@ -4636,4 +4909,168 @@ test('tooltip keeps the metric format on a Difference time comparison', () => {
 
   expect(result).toContain('$ 100');
   expect(result).toContain('$ 25');
+});
+
+test('uses authorized chart display labels in timeseries legends and tooltips', () => {
+  const datasource = withChartDisplayLabels(
+    { chart_display_labels: { '12': { sum__num: 'Population' } } },
+    12,
+  );
+  const normalizedProps = new ChartProps({ datasource, theme: supersetTheme });
+  const chartProps = createTestChartProps({
+    formData: { metrics: ['sum__num'], richTooltip: true },
+    queriesData: [
+      createTestQueryData([{ sum__num: 1000, __timestamp: BASE_TIMESTAMP }], {
+        label_map: { sum__num: ['sum__num'] },
+      }),
+    ],
+    datasource: normalizedProps.datasource,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  expect(echartOptions.series).toEqual(
+    expect.arrayContaining([expect.objectContaining({ name: 'Population' })]),
+  );
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+  expect(
+    tooltip.formatter([
+      {
+        seriesId: 'Population',
+        seriesName: 'Population',
+        value: [BASE_TIMESTAMP, 1000],
+      },
+    ]),
+  ).toContain('Population');
+  expect(chartProps.queriesData[0].data[0]).toEqual({
+    sum__num: 1000,
+    __timestamp: BASE_TIMESTAMP,
+  });
+});
+
+test('applies user-defined minimum interval to both axes', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      orientation: OrientationType.Vertical,
+      xAxisMinInterval: 86400000,
+      yAxisMinInterval: 1,
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  expect((echartOptions.xAxis as any).minInterval).toBe(86400000);
+  expect((echartOptions.yAxis as any).minInterval).toBe(1);
+});
+
+test('swaps the minimum interval of both axes for horizontal bar charts', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      xAxisMinInterval: 86400000,
+      yAxisMinInterval: 1,
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  expect((echartOptions.xAxis as any).minInterval).toBe(1);
+  expect((echartOptions.yAxis as any).minInterval).toBe(86400000);
+});
+
+test('ignores empty or invalid minimum interval values', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      orientation: OrientationType.Vertical,
+      xAxisMinInterval: '',
+      yAxisMinInterval: 'not a number',
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  expect((echartOptions.yAxis as any).minInterval).toBeUndefined();
+  expect((echartOptions.xAxis as any).minInterval).toBe(0);
+});
+
+test.each([
+  ['null', null],
+  ['undefined', undefined],
+  ['zero', 0],
+  ['a negative number', -1],
+  ['a non-finite number', Number.NaN],
+])('ignores %s as a minimum interval', (_label, value) => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      orientation: OrientationType.Vertical,
+      xAxisMinInterval: value,
+      yAxisMinInterval: value,
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  // The y-axis drops the property entirely, while the x-axis falls back to the
+  // time grain derived interval, which is 0 without a time grain.
+  expect((echartOptions.yAxis as any).minInterval).toBeUndefined();
+  expect((echartOptions.xAxis as any).minInterval).toBe(0);
+});
+
+test.each([
+  ['a numeric string', '86400000', 86400000],
+  ['a decimal value', 0.5, 0.5],
+])('accepts %s as a minimum interval', (_label, value, expected) => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      orientation: OrientationType.Vertical,
+      yAxisMinInterval: value,
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  expect((echartOptions.yAxis as any).minInterval).toBe(expected);
 });

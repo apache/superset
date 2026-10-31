@@ -25,6 +25,7 @@ expression from costing a query at all.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -880,10 +881,10 @@ def test_preview_renders_a_probed_value_read_from_a_dataframe(
     """
     import pandas as pd
 
-    frame = pd.DataFrame([[1768435200]], columns=["v0"])
+    value = pd.DataFrame([[1768435200]], columns=["v0"]).iat[0, 0]
     with patch(
         "superset.models.core.Database.get_df",
-        return_value=frame,
+        side_effect=_probe_by_shape(value, value),
     ):
         response = client.post(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
@@ -905,10 +906,10 @@ def test_preview_renders_a_probed_timestamp_read_from_a_dataframe(
     """A transform returning a date hits the same renderer gap as an integer."""
     import pandas as pd
 
-    frame = pd.DataFrame([[pd.Timestamp("2026-01-15")]], columns=["v0"])
+    value = pd.Timestamp("2026-01-15")
     with patch(
         "superset.models.core.Database.get_df",
-        return_value=frame,
+        side_effect=_probe_by_shape(value, value),
     ):
         response = client.post(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
@@ -1215,6 +1216,43 @@ def test_preview_explains_a_value_the_driver_cannot_write_as_its_own_case(
     probe.assert_not_called()
 
 
+def test_preview_explains_a_transform_whose_answer_cannot_be_written(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The other end of the round trip, and its own case for the same reason: the
+    sample is unremarkable, the transform evaluates, and what cannot be written
+    into a query is the key it answered with.
+
+    Reported as `engine` before this, which told the owner the database would
+    not evaluate a transform it evaluated perfectly -- and the fix is a
+    different one, since no other column or operator makes a backslash
+    spellable here.
+    """
+    dataset.database.sqlalchemy_uri = "postgresql://user@host/db"
+    db.session.flush()
+
+    with patch(PROBE, return_value=["a\\b"]) as probe:
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "country",
+                "partition_column": "region_key",
+                "value_transform": "concat(lower(:value), chr(92), 'b')",
+                "sample_values": ["a"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "transform_escaping"
+    assert "backslash" in result["error"]
+    assert "emitted_predicate" not in result
+    # The transform did reach the engine; this is a verdict on its answer.
+    probe.assert_called_once()
+
+
 def test_preview_explains_an_offset_bearing_sample_as_its_own_case(
     client: Any, full_api_access: None, dataset: Any
 ) -> None:
@@ -1307,3 +1345,149 @@ def test_preview_and_the_chart_path_agree_about_a_coarse_column(
     assert exact["valid"] is True
     assert "region_key = '20260706100811'" in exact["emitted_predicate"]
     assert "region_key = '20260706100811'" in exact_sql
+
+
+def test_preview_shows_a_temporal_answer_as_the_engines_own_literal(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    A transform answering with a timestamp was previewed as valid with
+    ``part_ts >= '2026-01-01 00:00:00'`` on Trino, which the engine refuses:
+    it has no implicit coercion from ``varchar`` to ``timestamp``. The preview
+    shows what the chart emits, so it now shows the engine's own literal.
+    """
+    dataset.database.sqlalchemy_uri = "trino://user@localhost:8080/hive"
+    db.session.flush()
+
+    with patch(PROBE, return_value=[datetime(2026, 1, 1)]):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "dt_epoch",
+                "partition_column": "part_ts",
+                "value_transform": "from_unixtime(:value)",
+                "is_monotonic": True,
+                "operator": ">=",
+                "sample_values": ["1767225600"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is True
+    assert result["emitted_predicate"] == (
+        "part_ts >= TIMESTAMP '2026-01-01 00:00:00.000000' OR part_ts IS NULL"
+    )
+
+
+def test_preview_declines_a_temporal_answer_the_engine_would_floor(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    SQLite writes a timestamp literal to the second, so a sub-second answer
+    cannot be asked for as it stands. The preview says so rather than showing
+    a predicate narrower than the filter.
+    """
+    with patch(PROBE, return_value=[datetime(2026, 1, 1, 0, 0, 0, 500000)]):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "dt_epoch",
+                "partition_column": "part_ts",
+                "value_transform": "from_unixtime(:value)",
+                "is_monotonic": True,
+                "operator": "<=",
+                "sample_values": ["1767225600"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "type"
+    assert "emitted_predicate" not in result
+
+
+def _probe_by_shape(text_answer: Any, typed_answer: Any) -> Any:
+    """
+    A `get_df` that answers each probed column by how it wrote ``:value``: as
+    the text a simple filter binds, or as the typed literal a time range's
+    `datetime` renders to. Oracle reads the two differently under
+    ``TO_DATE(:value, fmt)``; this stands in for that without an Oracle server.
+    """
+    import re
+
+    import pandas as pd
+
+    def answer(sql: str, **kwargs: Any) -> pd.DataFrame:
+        selections = re.split(r" AS v\d+,?\s*", sql.removeprefix("SELECT "))
+        row = [
+            text_answer if "'2026-01-15 10:47:23'" in selection else typed_answer
+            for selection in selections
+            if selection.strip()
+        ]
+        return pd.DataFrame([row], columns=[f"v{i}" for i in range(len(row))])
+
+    return answer
+
+
+def test_preview_refuses_a_transform_that_reads_a_time_range_differently(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    On Oracle ``TO_DATE(:value, 'YYYY-MM-DD HH24:MI:SS')`` parses the text a
+    simple filter sends, but a time range sends a typed ``TO_DATE(...)``, which
+    is converted back to text through ``NLS_DATE_FORMAT`` and lands in year
+    0012. Previewing only the text said valid while every time range came back
+    empty, so both shapes are probed and a disagreement is refused.
+    """
+    with patch(
+        "superset.models.core.Database.get_df",
+        side_effect=_probe_by_shape(1768474043, -61755000000),
+    ) as get_df:
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["2026-01-15 10:47:23"],
+                "operator": ">=",
+                "is_monotonic": True,
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "shape"
+    # Both shapes reached the engine in one round trip, written differently.
+    assert get_df.call_count == 1
+    sql = get_df.call_args.kwargs.get("sql") or get_df.call_args.args[0]
+    assert sql.count(" AS v") == 2
+    assert "'2026-01-15 10:47:23'" in sql
+
+
+def test_preview_accepts_a_transform_that_reads_both_shapes_alike(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """The ordinary case: both shapes answer with the same key, so it mirrors."""
+    with patch(
+        "superset.models.core.Database.get_df",
+        side_effect=_probe_by_shape(1768474043, 1768474043),
+    ):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["2026-01-15 10:47:23"],
+                "operator": ">=",
+                "is_monotonic": True,
+            },
+        )
+
+    assert response.json["result"] == {
+        "valid": True,
+        "sample_input": "event_time >= '2026-01-15 10:47:23'",
+        "emitted_predicate": "dt_epoch >= 1768474043 OR dt_epoch IS NULL",
+    }

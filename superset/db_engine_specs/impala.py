@@ -23,18 +23,17 @@ import time
 from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
 
-import requests
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app as app
 from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 
 from superset import db
-from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, TimeGrain
+from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.models.sql_lab import Query
 from superset.utils.core import QueryStatus
-from superset.utils.network import is_safe_host
+from superset.utils.network import get_ssrf_safe_requester, is_safe_host
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -117,7 +116,11 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     @classmethod
     def has_implicit_cancel(cls) -> bool:
-        """Keep HTTP cancellation independent of the live cursor polling loop."""
+        """
+        Keep the HTTP cancel available to callers without a polling loop, such as
+        chart and MCP cancellation. SQL Lab stops are routed to the live cursor by
+        ``prepare_cancel_query``.
+        """
         return False
 
     @classmethod
@@ -197,6 +200,10 @@ class ImpalaEngineSpec(BaseEngineSpec):
         try:
             status = cursor.status()
             while status in unfinished_states:
+                # End the read transaction first. Under REPEATABLE READ, refreshing
+                # inside one long transaction keeps returning the first snapshot,
+                # so a Stop committed by another request would never be seen.
+                db.session.commit()  # pylint: disable=consider-using-transaction
                 db.session.refresh(query)
                 # Stop was requested: either before a cancel handle was published
                 # (early-cancel flag) or through SQL Lab's stop, which persists
@@ -243,16 +250,34 @@ class ImpalaEngineSpec(BaseEngineSpec):
     @classmethod
     def prepare_cancel_query(cls, query: Query) -> None:
         """
-        Route a stop that arrives before the operation's cancel handle is
-        published to the live cursor.
+        Route a SQL Lab stop to the live cursor, whether or not the operation's
+        cancel handle has been published.
 
-        The handle is only known once ``execute_async`` has returned. Until then,
-        the early-cancel flag lets the stop succeed, and ``handle_cursor`` cancels
-        the operation as soon as it polls.
+        The early-cancel flag lets the stop succeed, and ``handle_cursor`` cancels
+        the operation with ``cancel_operation()`` as soon as it polls. Cancelling
+        through the coordinator's HTTP endpoint instead would invalidate the
+        handle the worker is still polling, so the run fails with an unknown
+        query handle error rather than ending as stopped.
+
+        The stop caller commits STOPPED before preparing engine cancellation,
+        and persists this flag afterwards through the guarded-stop protocol.
+        Preparation must not commit or claim the stop a second time.
+
+        Known gap: the stop only reaches Impala while a worker is polling the
+        operation in ``handle_cursor``. The query is marked stopped, but Impala
+        keeps running it and holds its admission slot until it finishes or
+        Impala closes it on its own, when:
+
+        - the worker has died or restarted;
+        - the stop lands after polling ended, while ``fetch_data`` is reading
+          results;
+        - polling ended early because ``cursor.status()`` raised.
+
+        Hive and Presto stop SQL Lab queries the same way. Chart and MCP
+        cancellation still use the coordinator's HTTP endpoint through
+        ``cancel_query``.
         """
-        if QUERY_CANCEL_KEY not in query.extra:
-            query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
-            db.session.commit()  # pylint: disable=consider-using-transaction
+        query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
 
     @classmethod
     def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
@@ -307,7 +332,15 @@ class ImpalaEngineSpec(BaseEngineSpec):
             url = f"http://{impala_host}:25000/cancel_query?query_id={cancel_query_id}"
             # Do not follow redirects: a validated host could otherwise 30x the
             # request to an internal target, bypassing the is_safe_host check.
-            response = requests.post(url, timeout=3, allow_redirects=False)
+            # get_ssrf_safe_requester also re-validates the actually-connected
+            # peer on this request, closing the DNS-rebinding/TOCTOU gap the
+            # upfront is_safe_host check alone leaves open.
+            requester = get_ssrf_safe_requester(
+                allow_unsafe_hosts=app.config[
+                    "IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS"
+                ]
+            )
+            response = requester.post(url, timeout=3, allow_redirects=False)
         except Exception:  # pylint: disable=broad-except
             return False
 

@@ -319,7 +319,7 @@ AURORA_DATA_API_KNOWN_INCOMPATIBILITIES: list[KnownIncompatibility] = [
         "tracking_url": (
             "https://github.com/cloud-utils/sqlalchemy-aurora-data-api/issues/43"
         ),
-        "since": "2026-07-28",
+        "since": "2026-10-27",
     }
 ]
 
@@ -466,6 +466,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ),
         (
             re.compile(r"^smallint", re.IGNORECASE),
+            types.SmallInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^tinyint", re.IGNORECASE),
             types.SmallInteger(),
             GenericDataType.NUMERIC,
         ),
@@ -1201,6 +1206,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         to define dynamic values for the attribute.
         """
         return cls.allows_alias_in_select
+
+    @classmethod
+    def get_limit_method(
+        cls,
+        database: Database,  # pylint: disable=unused-argument
+    ) -> LimitMethod:
+        """
+        Method for dynamic `limit_method`.
+
+        In Oracle the limit syntax is version-dependent, so Superset needs to inspect
+        the database configuration in order to determine it. This method allows
+        engine-specs to define dynamic values for the attribute.
+        """
+        return cls.limit_method
 
     @classmethod
     def supports_url(cls, url: URL) -> bool:
@@ -3075,6 +3094,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cancelation request has been received. For those cases, the db engine spec
         can record the cancelation intent so that the query can either be stopped
         prior to execution, or canceled once the query id is acquired.
+
+        Only stage changes on the query; do not flush or commit here. The caller
+        persists them with a guarded stop so a concurrent terminal result wins.
         """
         return None
 

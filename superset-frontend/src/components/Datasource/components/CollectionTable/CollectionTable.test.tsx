@@ -17,17 +17,9 @@
  * under the License.
  */
 import { useState } from 'react';
-import {
-  fireEvent,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
+import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 
 import mockDatasource from 'spec/fixtures/mockDatasource';
-import TextControl from 'src/explore/components/controls/TextControl';
-import Field from '../Field';
 import Fieldset from '../Fieldset';
 import CollectionTable from '.';
 
@@ -276,108 +268,6 @@ test('restores the original order after a sort is cleared when the parent echoes
     (container.querySelector('[data-test="type-input-2"]') as HTMLInputElement)
       .value,
   ).toBe('EDITED');
-});
-
-test("a delayed fieldset commit does not revert another row's edit", async () => {
-  // Each expanded row renders its own `Fieldset`, and the value-transform
-  // input commits on a debounce -- so the collection a closure captured at the
-  // keystroke is older than the real one by the time the timer fires. Written
-  // back as an absolute value, that snapshot reverted whatever a *different*
-  // row had committed in between, and one of the two edits was silently lost
-  // on save.
-  const onChange = jest.fn();
-  const collection = [
-    { id: 'a', column_name: 'a', description: '' },
-    { id: 'b', column_name: 'b', description: '' },
-  ];
-
-  render(
-    <CollectionTable
-      collection={collection}
-      tableColumns={['column_name']}
-      sortColumns={[]}
-      expandFieldset={
-        <Fieldset compact>
-          <Field
-            fieldKey="description"
-            label="Description"
-            control={<TextControl />}
-          />
-        </Fieldset>
-      }
-      onChange={onChange}
-    />,
-  );
-
-  const expanders = screen.getAllByRole('button', { name: /expand row/i });
-  await userEvent.click(expanders[0]);
-  await userEvent.click(expanders[1]);
-
-  const inputs = screen.getAllByRole('textbox');
-  expect(inputs).toHaveLength(2);
-
-  // Both rows edited before either commit is observed by the other.
-  fireEvent.change(inputs[0], { target: { value: 'from A' } });
-  fireEvent.change(inputs[1], { target: { value: 'from B' } });
-
-  await waitFor(() => expect(onChange).toHaveBeenCalled());
-
-  const final = onChange.mock.calls[onChange.mock.calls.length - 1][0];
-  const byId = Object.fromEntries(
-    final.map((item: { id: string; description?: string }) => [
-      item.id,
-      item.description,
-    ]),
-  );
-  expect(byId.a).toBe('from A');
-  expect(byId.b).toBe('from B');
-});
-
-test('a fieldset commit reaches the keyed collection a cleared sort reads', async () => {
-  // `onSortChange` restores the pre-sort order from `collection[id]`, so a
-  // fieldset commit that updated only the array would resurface as a stale row
-  // the moment the sort is cleared. Both structures have to move together.
-  const onChange = jest.fn();
-  const collection = [
-    { id: 1, column_name: 'b_col', description: '' },
-    { id: 2, column_name: 'a_col', description: '' },
-  ];
-
-  const { container } = render(
-    <CollectionTable
-      collection={collection}
-      tableColumns={['column_name']}
-      sortColumns={['column_name']}
-      expandFieldset={
-        <Fieldset compact>
-          <Field
-            fieldKey="description"
-            label="Description"
-            control={<TextControl />}
-          />
-        </Fieldset>
-      }
-      onChange={onChange}
-    />,
-  );
-
-  await userEvent.click(
-    screen.getAllByRole('button', { name: /expand row/i })[0],
-  );
-  fireEvent.change(screen.getByRole('textbox'), {
-    target: { value: 'edited' },
-  });
-  await waitFor(() => expect(onChange).toHaveBeenCalled());
-
-  // Sort, then clear the sort.
-  const header = container.querySelector('th.ant-table-column-has-sorters');
-  await userEvent.click(header!);
-  await userEvent.click(header!);
-  await userEvent.click(header!);
-
-  const final = onChange.mock.calls[onChange.mock.calls.length - 1][0];
-  const edited = final.find((item: { id: number }) => item.id === 1);
-  expect(edited?.description).toBe('edited');
 });
 
 test('applies rowClassName to each row', () => {

@@ -624,47 +624,6 @@ def test_fetch_metadata_still_defaults_without_a_partition_column(
     assert table.main_dttm_col == "event_time"
 
 
-def test_fetch_metadata_keeps_the_flags_an_owner_turned_off(
-    mocker: MockerFixture,
-) -> None:
-    """
-    A sync re-reads the source's columns; it is not a statement about which of
-    them belong in Explore's pickers. Setting the defaults on a column that
-    already exists undoes whatever the owner chose for it -- and a PUT with
-    `override_columns=true` runs this refresh *after* the update has committed
-    those choices, so saving through the editor's "Automatically sync columns"
-    box reverted the very flags it had just written, including the ones
-    designating a partition column turns off.
-    """
-    table = _fetch_metadata_table(mocker)
-    table.columns = [
-        TableColumn(
-            column_name="dt_epoch", type="TIMESTAMP", groupby=False, filterable=False
-        )
-    ]
-
-    table.fetch_metadata()
-
-    by_name = {column.column_name: column for column in table.columns}
-    assert by_name["dt_epoch"].groupby is False
-    assert by_name["dt_epoch"].filterable is False
-
-
-def test_fetch_metadata_gives_a_newly_discovered_column_the_defaults(
-    mocker: MockerFixture,
-) -> None:
-    """
-    The other half: a column nobody has had an opinion about yet still arrives
-    available as a dimension and a filter, which is what a sync is for.
-    """
-    table = _fetch_metadata_table(mocker)
-
-    table.fetch_metadata()
-
-    assert all(column.groupby for column in table.columns)
-    assert all(column.filterable for column in table.columns)
-
-
 def test_fetch_metadata_with_comment_field_new_columns(mocker: MockerFixture) -> None:
     """Test that fetch_metadata correctly assigns comment field to description
     for new columns
@@ -1267,6 +1226,44 @@ def test_fetch_metadata_does_not_bump_changed_on_for_kept_virtual_columns(
     assert table.changed_on == original_changed_on
 
 
+def test_fetch_metadata_keeps_groupby_and_filterable_on_existing_columns(
+    mocker: MockerFixture,
+) -> None:
+    """A column sync must not reset flags the dataset owner turned off.
+
+    ``PUT /api/v1/dataset/<id>?override_columns=true`` runs ``fetch_metadata``
+    after the update commits, so resetting them reverted the same save.
+    """
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[
+            {"column_name": "id", "type": "INTEGER"},
+            {"column_name": "legacy", "type": "INTEGER"},
+            {"column_name": "name", "type": "VARCHAR"},
+        ],
+        existing=[
+            {"column_name": "id", "type": "INTEGER"},
+            {"column_name": "legacy", "type": "INTEGER"},
+        ],
+    )
+    table.columns[0].groupby = False
+    table.columns[0].filterable = False
+    # A row from before the flags had defaults: unset, not turned off.
+    table.columns[1].groupby = None
+    table.columns[1].filterable = None
+
+    table.fetch_metadata()
+
+    columns_by_name = {col.column_name: col for col in table.columns}
+    assert columns_by_name["id"].groupby is False
+    assert columns_by_name["id"].filterable is False
+    assert columns_by_name["legacy"].groupby is True
+    assert columns_by_name["legacy"].filterable is True
+    # A newly discovered column still gets the defaults.
+    assert columns_by_name["name"].groupby is True
+    assert columns_by_name["name"].filterable is True
+
+
 def test_fetch_metadata_keeps_dotted_calculated_column(
     mocker: MockerFixture,
 ) -> None:
@@ -1632,8 +1629,8 @@ def test_get_sqla_table_schema_not_qualified_when_engine_opts_out(
     database = mocker.MagicMock()
     database.db_engine_spec.supports_cross_catalog_queries = False
     database.db_engine_spec.quote_table_includes_schema = False
-    database.db_engine_spec.quote_table.side_effect = (
-        lambda table, dialect: dialect.identifier_preparer.quote(table.table)
+    database.db_engine_spec.quote_table.side_effect = lambda table, dialect: (
+        dialect.identifier_preparer.quote(table.table)
     )
     database.get_dialect.return_value = engine.dialect
 
@@ -2745,6 +2742,34 @@ def test_get_fetch_values_predicate_wraps_undefined_error(
         sqla_table.get_fetch_values_predicate(template_processor=mock_processor)
 
 
+def test_adhoc_column_to_sqla_wraps_undefined_error_in_metadata_lookup(
+    mocker: MockerFixture,
+) -> None:
+    """A template that raises a raw ``UndefinedError`` (an undefined name that is
+    not shaped like a function call, e.g. ``{{ foo.bar }}``) while rendering an
+    adhoc column for the metadata lookup must surface as a
+    ``QueryObjectValidationError``, not bubble up as a raw 500."""
+    from superset.jinja_context import JinjaTemplateProcessor
+
+    database = mocker.MagicMock()
+    sqla_table = SqlaTable(
+        table_name="my_sqla_table",
+        columns=[],
+        metrics=[],
+        database=database,
+    )
+    template_processor = JinjaTemplateProcessor(database=database, table=sqla_table)
+
+    with pytest.raises(QueryObjectValidationError, match="Error in jinja expression"):
+        sqla_table.adhoc_column_to_sqla(
+            {
+                "label": "my_col",
+                "sqlExpression": "{{ foo.bar }}",
+            },
+            template_processor=template_processor,
+        )
+
+
 def test_get_rendered_sql_wraps_type_error(mocker: MockerFixture) -> None:
     """A ``TypeError`` raised by a Python builtin invoked from within the
     template (e.g. ``"','".join(filter_values(...))`` when ``filter_values()``
@@ -2812,3 +2837,50 @@ def test_data_exposes_editors_when_empty(mocker: MockerFixture) -> None:
     )
 
     assert dataset.data["editors"] == []
+
+
+@pytest.mark.parametrize(
+    "sql_expression",
+    [
+        "SUM({{ foo.bar }})",
+        "SUM({{ [].x.y }})",
+    ],
+)
+def test_adhoc_metric_to_sqla_wraps_template_undefined_error(
+    sql_expression: str,
+) -> None:
+    """A real Jinja ``UndefinedError`` raised while rendering an adhoc SQL metric
+    must surface as a ``QueryObjectValidationError`` (a 4xx), not a raw 500."""
+    from superset.jinja_context import JinjaTemplateProcessor
+
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(table_name="t", database=database)
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": sql_expression,
+        "label": "bad_metric",
+    }
+
+    with pytest.raises(QueryObjectValidationError):
+        table.adhoc_metric_to_sqla(
+            metric,
+            {},
+            template_processor=JinjaTemplateProcessor(database=database, table=table),
+        )
+
+
+def test_process_select_expression_wraps_template_undefined_error() -> None:
+    """A real Jinja ``UndefinedError`` raised while rendering an adhoc column or
+    filter expression must surface as a ``QueryObjectValidationError``."""
+    from superset.jinja_context import JinjaTemplateProcessor
+
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(table_name="t", database=database)
+
+    with pytest.raises(QueryObjectValidationError):
+        table._process_select_expression(
+            "{{ [].x.y }}",
+            "sqlite",
+            "main",
+            JinjaTemplateProcessor(database=database, table=table),
+        )

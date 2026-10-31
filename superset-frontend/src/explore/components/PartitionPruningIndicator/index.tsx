@@ -353,13 +353,24 @@ function hasMirrorableValue(
  * The operator list is not restated here; it is computed server-side from the
  * transform's declared monotonicity and shipped on the mapping.
  *
- * One gate is deliberately not reproduced. A virtual dataset's SQL can consume
- * a filter with a Jinja `get_filters('col', remove_filter=True)` call, and
- * `should_skip_filter` then drops both the filter's own predicate and its
- * mirror -- so the glyph can appear on a filter that produces no SQL at all.
- * `removed_filters` is assembled while the query is generated and is not in
- * `form_data`, so the only way to know would be to render the template in the
- * browser. The glyph is advisory, and "View query" remains the authority.
+ * Two gates are deliberately not reproduced, both for the same reason: what
+ * they read does not exist until the query runs.
+ *
+ * A virtual dataset's SQL can consume a filter with a Jinja
+ * `get_filters('col', remove_filter=True)` call, and `should_skip_filter` then
+ * drops both the filter's own predicate and its mirror -- so the glyph can
+ * appear on a filter that produces no SQL at all. `removed_filters` is
+ * assembled while the query is generated and is not in `form_data`, so the only
+ * way to know would be to render the template in the browser.
+ *
+ * And the mirror is declined where the *probe's answer* is a partition key this
+ * database spells ambiguously (`_predicates_from_probe`), as a transform
+ * appending a backslash makes every answer. `carriesUnspellableCharacter` is
+ * the input side of that same question, which is answerable here because the
+ * value is in `form_data`; the output side is one warehouse round trip away and
+ * differs per value, so no summary could carry it.
+ *
+ * The glyph is advisory, and "View query" remains the authority.
  */
 export function isMirroredFilter(
   mapping: PartitionFilterMapping | null | undefined,

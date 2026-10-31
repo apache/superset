@@ -268,6 +268,33 @@ def has_aggregate(
     )
 
 
+def is_constant_expression(expression: str, engine: str = "base") -> bool:
+    """
+    Return True if the SQL expression is a bare constant: a string or numeric
+    literal (including a negated number such as ``-1``), ``NULL``, or (outside
+    SQLite) a boolean literal, optionally wrapped in parentheses.
+
+    Anything that merely contains a constant (``CASE WHEN 1=1 THEN 'x' END``,
+    ``CAST('x' AS VARCHAR)``, ``'a' || col``) is not a bare constant. Fails closed
+    (returns False) on a parse error, so an expression that can't be proven
+    constant is never treated as one.
+
+    ``TRUE``/``FALSE`` are not bare constants on SQLite: they are ordinary
+    identifiers there, resolved to a column of that name when one exists.
+    """
+    dialect = SQLGLOT_DIALECTS.get(engine)
+    try:
+        parsed = sqlglot.parse_one(f"SELECT {expression}", dialect=dialect)
+    except Exception:
+        return False
+    if not isinstance(parsed, exp.Select) or len(parsed.expressions) != 1:
+        return False
+    node = parsed.expressions[0].unnest()
+    if isinstance(node, exp.Boolean):
+        return dialect != Dialects.SQLITE
+    return node.is_number or isinstance(node, (exp.Literal, exp.Null))
+
+
 class LimitMethod(enum.Enum):
     """
     Limit methods.
@@ -278,6 +305,9 @@ class LimitMethod(enum.Enum):
     FORCE_LIMIT = enum.auto()
     WRAP_SQL = enum.auto()
     FETCH_MANY = enum.auto()
+    # Wrap the query and filter on Oracle's `ROWNUM`, for releases before 12c,
+    # which have no `FETCH FIRST`.
+    WRAP_ROWNUM = enum.auto()
 
 
 class CTASMethod(enum.Enum):
@@ -917,6 +947,32 @@ def _find_last_token_node(node: exp.Expression) -> exp.Expression:
     return node
 
 
+def _collect_sql_statements(
+    statements: list[exp.Expression | None],
+) -> list[exp.Expression]:
+    """Collect real statements and attach comment-only segments in source order."""
+    parsed_statements: list[exp.Expression] = []
+    leading_comments: list[str] = []
+    for statement in statements:
+        # Empty statements from consecutive semicolons have no AST.
+        if statement is None:
+            continue
+        # sqlglot represents comment-only segments as Semicolon nodes.
+        if isinstance(statement, exp.Semicolon):
+            if parsed_statements:
+                target = _find_last_token_node(parsed_statements[-1])
+                target.add_comments(statement.comments or [])
+            else:
+                leading_comments.extend(statement.comments or [])
+            continue
+        if leading_comments:
+            statement.comments = leading_comments + (statement.comments or [])
+            leading_comments = []
+        parsed_statements.append(statement)
+
+    return parsed_statements
+
+
 # Alternation ordered so a quoted region is consumed whole before either
 # comment form can match inside it, keeping a `--` or `/*` that is merely
 # part of a literal from truncating the text after it. Each of the two
@@ -1008,6 +1064,112 @@ def _comment_re_for(dialect: Dialects | None) -> re.Pattern[str]:
     )
 
 
+# Oracle 11g and older cap identifiers at 30 bytes.
+ORACLE_LEGACY_MAX_IDENTIFIER_LENGTH = 30
+
+
+def _oracle_output_identifier(projection: exp.Expression) -> exp.Identifier | None:
+    """
+    Return the identifier naming a projected column, if it has one.
+    """
+    if isinstance(projection, exp.Alias):
+        identifier = projection.args.get("alias")
+    elif isinstance(projection, exp.Column):
+        identifier = projection.this
+    else:
+        return None
+    return identifier if isinstance(identifier, exp.Identifier) else None
+
+
+def _oracle_name_key(identifier: exp.Identifier) -> str:
+    """
+    Return the name Oracle compares, since unquoted names are case-insensitive.
+    """
+    return identifier.name if identifier.quoted else identifier.name.upper()
+
+
+def _unique_oracle_alias(identifier: exp.Identifier, taken: set[str]) -> exp.Identifier:
+    """
+    Return a `_2`, `_3`, ... variant of the identifier that isn't taken yet.
+
+    The limit is in bytes, so a multibyte name is cut on a character boundary.
+    """
+    suffix = 2
+    while True:
+        tail = f"_{suffix}"
+        budget = ORACLE_LEGACY_MAX_IDENTIFIER_LENGTH - len(tail)
+        stem = identifier.name.encode()[:budget].decode(errors="ignore")
+        alias = exp.to_identifier(stem + tail, quoted=identifier.quoted)
+        if _oracle_name_key(alias) not in taken:
+            return alias
+        suffix += 1
+
+
+def _deduplicate_oracle_output_names(query: exp.Expression) -> None:
+    """
+    Rename repeated output columns so the query can be wrapped on Oracle.
+
+    Before 12c the row limit wraps the query in `SELECT * FROM (<query>) WHERE
+    ROWNUM <= n`, and Oracle 11g rejects that wrapper when the query returns two
+    columns with the same name, as in `SELECT a.id, b.id FROM a JOIN b ...`, with
+    "ORA-00918: column ambiguously defined". The second and later copies get a
+    `_2`, `_3`, ... suffix instead. A set operation takes its column names from
+    its leftmost query, so that is the one renamed, and parentheses around the
+    query are looked through.
+
+    Two shapes are left as they are and still fail with ORA-00918 once wrapped:
+    qualified stars such as `a.*, b.*` or `a.*, b.id`, whose names aren't known
+    without the schema (a bare `*` over a join works), and a repeated expression
+    without an alias, such as `SELECT 1 + 1, 1 + 1`, which Oracle names after its
+    text. Neither ran before 12c without this rewrite either, since `FETCH FIRST`
+    fails there, and listing the columns with aliases avoids both.
+    """
+    while isinstance(query, (exp.SetOperation, exp.Subquery)):
+        query = query.this
+    if not isinstance(query, exp.Select):
+        return
+
+    identifiers = [_oracle_output_identifier(p) for p in query.expressions]
+    taken = {_oracle_name_key(identifier) for identifier in identifiers if identifier}
+    seen: set[str] = set()
+    for projection, identifier in zip(query.expressions, identifiers, strict=True):
+        if identifier is None:
+            continue
+        if _oracle_name_key(identifier) not in seen:
+            seen.add(_oracle_name_key(identifier))
+            continue
+
+        alias = _unique_oracle_alias(identifier, taken)
+        taken.add(_oracle_name_key(alias))
+        if isinstance(projection, exp.Alias):
+            projection.set("alias", alias)
+        else:
+            projection.replace(exp.alias_(projection.copy(), alias))
+
+
+def _flatten_and(condition: exp.Expression) -> list[exp.Expression]:
+    """
+    Return the leaves of a chain of `AND`s, looking through parentheses.
+
+    `exp.And.flatten()` only unwraps a left- or right-leaning chain of plain
+    `AND`s; a nested `AND` grouped in parentheses, as in `x AND (y AND z)`,
+    comes back as a single `And` leaf rather than its own `y` and `z` leaves.
+    This walks an explicit stack instead, so a condition `AND`-ed together with
+    others stays found regardless of how it is grouped, and a long chain of
+    predicates cannot hit the recursion limit.
+    """
+    leaves: list[exp.Expression] = []
+    stack = [condition]
+    while stack:
+        node = stack.pop().unnest()
+        if isinstance(node, exp.And):
+            stack.append(node.expression)
+            stack.append(node.this)
+        else:
+            leaves.append(node)
+    return leaves
+
+
 class SQLStatement(BaseSQLStatement[exp.Expression]):
     """
     A SQL statement.
@@ -1037,6 +1199,22 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # last value, so it is intentionally not listed.)
             "SETVAL",
             "NEXTVAL",
+            # dblink functions open a separate connection and auto-commit,
+            # so writes persist even when the outer transaction is read-only.
+            "DBLINK",
+            "DBLINK_EXEC",
+            "DBLINK_CONNECT",
+            "DBLINK_CONNECT_U",
+            "DBLINK_SEND_QUERY",
+            # PostgreSQL state-mutating functions callable via SELECT
+            "PG_CANCEL_BACKEND",
+            "PG_RELOAD_CONF",
+            "PG_ROTATE_LOGFILE",
+            "PG_STAT_RESET",
+            "PG_SWITCH_WAL",
+            "PG_LOGICAL_EMIT_MESSAGE",
+            "PG_CREATE_RESTORE_POINT",
+            "PG_DROP_REPLICATION_SLOT",
         }
     )
 
@@ -1476,7 +1654,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                     # If MySQL dialect also fails, raise the original error
                     pass
                 else:
-                    return statements
+                    return _collect_sql_statements(statements)
 
             kwargs = (
                 {
@@ -1495,15 +1673,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 message="Unable to parse script",
             ) from ex
 
-        # `sqlglot` will parse comments after the last semicolon as a separate
-        # statement; move them back to the last token in the last real statement
-        if len(statements) > 1 and isinstance(statements[-1], exp.Semicolon):
-            last_statement = statements.pop()
-            target = _find_last_token_node(statements[-1])
-            target.comments = target.comments or []
-            target.comments.extend(last_statement.comments)
-
-        return statements
+        return _collect_sql_statements(statements)
 
     @classmethod
     def split_script(
@@ -1984,6 +2154,31 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             comments=comments,
         ).generate(self._parsed, copy=True)
 
+    def format_select_clause(
+        self, *, orderby: bool = False, apply_dialect: bool = True
+    ) -> str:
+        """Unwrap a synthetic SELECT using its parsed projection or ORDER BY nodes.
+
+        Extract clauses structurally so keywords inside comments are never wrappers.
+        Disable dialect rewrites when unwrapping sanitize_clause's neutral output.
+        """
+        if not isinstance(self._parsed, exp.Select):
+            raise SupersetParseError("Expected a SELECT statement")
+        select = self._parsed
+        clause = select.args.get("order") if orderby else select
+        if clause is None:
+            raise SupersetParseError("Expected an ORDER BY clause")
+        expressions = [expression.copy() for expression in clause.expressions]
+        if expressions:
+            expressions[0].add_comments(select.comments)
+        generator = _normalized_generator(
+            self._dialect if apply_dialect else None, pretty=False, comments=True
+        )
+        result = ", ".join(generator.generate(expression) for expression in expressions)
+        if not orderby and (distinct := select.args.get("distinct")):
+            result = f"{generator.generate(distinct.copy())} {result}"
+        return result
+
     def get_settings(self) -> dict[str, str | bool]:
         """
         Return the settings for the SQL statement.
@@ -2363,7 +2558,52 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             if isinstance(literal, exp.Literal) and literal.is_int:
                 return int(literal.name)
 
-        return None
+        return self._get_rownum_limit()
+
+    def _get_rownum_limit(self) -> int | None:
+        """
+        Return the row cap of a top-level Oracle `ROWNUM` filter, if any.
+
+        Oracle releases before 12c have no `FETCH FIRST`, so a `ROWNUM <= n`
+        condition in the outer `WHERE` is how a query caps its rows there. It is
+        also the shape `set_limit_value()` produces with `WRAP_ROWNUM`. Only
+        conditions that are `AND`-ed into the filter count: under an `OR` the
+        comparison no longer bounds the result.
+        """
+        if self._dialect != Dialects.ORACLE or not isinstance(self._parsed, exp.Select):
+            return None
+
+        where = self._parsed.args.get("where")
+        if where is None:
+            return None
+
+        conditions = _flatten_and(where.this)
+        caps = []
+        for predicate in conditions:
+            predicate = predicate.unnest()
+            if isinstance(predicate, (exp.LTE, exp.LT)):
+                rownum, bound = predicate.this, predicate.expression
+            elif isinstance(predicate, (exp.GTE, exp.GT)):
+                bound, rownum = predicate.this, predicate.expression
+            else:
+                continue
+
+            rownum = rownum.unnest()
+            bound = bound.unnest()
+            if (
+                isinstance(rownum, exp.Column)
+                and not rownum.table
+                # A quoted "rownum" is a column of that name, not the pseudocolumn.
+                and not rownum.this.quoted
+                and rownum.name.upper() == "ROWNUM"
+                and isinstance(bound, exp.Literal)
+                and bound.is_int
+            ):
+                # `ROWNUM < n` keeps one row fewer than `ROWNUM <= n`.
+                strict = isinstance(predicate, (exp.LT, exp.GT))
+                caps.append(max(int(bound.name) - strict, 0))
+
+        return min(caps, default=None)
 
     def cap_limit_value(
         self,
@@ -2423,6 +2663,36 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # special-case so it holds for every non-query statement, including ones
         # whose generators may learn to render a `limit` arg in a later sqlglot.
         if not isinstance(self._parsed, exp.Query):
+            return
+
+        # Oracle only gained `FETCH FIRST` in 12c, and that is how sqlglot
+        # renders every Oracle limit, so on 10g and 11g a limited query fails
+        # with "ORA-00933: SQL command not properly ended". There, cap the rows
+        # by filtering the original query on `ROWNUM` from outside. `ROWNUM` is
+        # assigned after the inner `ORDER BY` runs, so the first `n` rows are
+        # still the top `n`. SQLAlchemy uses the same rewrite for pre-12c
+        # servers. The wrapper rejects duplicate output column names (ORA-00918)
+        # on 11g and 23ai alike, so they are renamed first, and later releases
+        # keep `FETCH FIRST`, which accepts them.
+        if method == LimitMethod.WRAP_ROWNUM:
+            inner = self._parsed.copy()
+            # Keep CTEs at statement level rather than inside the derived table.
+            cte = inner.args.pop("with_", None)
+            _deduplicate_oracle_output_names(inner)
+            wrapper = exp.Select(
+                expressions=[exp.Star()],
+                from_=exp.From(this=exp.Subquery(this=inner)),
+                where=exp.Where(
+                    this=exp.LTE(
+                        this=exp.column("ROWNUM"),
+                        expression=exp.Literal.number(limit),
+                    )
+                ),
+            )
+            if cte:
+                wrapper.set("with_", cte)
+
+            self._parsed = wrapper
             return
 
         # A ClickHouse `LIMIT ... BY` occupies the very `limit`/`offset` slot that

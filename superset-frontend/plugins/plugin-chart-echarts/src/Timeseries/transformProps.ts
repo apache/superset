@@ -71,7 +71,9 @@ import {
   OrientationType,
   TimeseriesCustomLegend,
   TimeseriesChartTransformedProps,
+  TimeseriesLegendIcon,
   TimeseriesLegendItem,
+  TimeseriesLegendLineType,
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
 import {
@@ -146,10 +148,83 @@ import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
 
 type LegendSeriesVisual = {
-  itemStyle?: { color?: unknown };
-  lineStyle?: { color?: unknown };
+  itemStyle?: { color?: unknown; opacity?: unknown };
+  lineStyle?: {
+    color?: unknown;
+    opacity?: unknown;
+    type?: unknown;
+    width?: unknown;
+  };
   name?: string | number;
+  symbol?: unknown;
+  type?: string;
 };
+
+// ECharts draws a circle for `none` and falls back to the series default when unset.
+function normalizeLegendSymbol(symbol: unknown, fallback: string): string {
+  if (symbol === 'none') {
+    return 'circle';
+  }
+  return typeof symbol === 'string' ? symbol : fallback;
+}
+
+// The icon inherits the series opacity, except that an invisible series
+// (opacity 0) still gets a visible icon so the legend entry can be read.
+function normalizeLegendOpacity(opacity: unknown): number {
+  return typeof opacity === 'number' && opacity > 0 && opacity < 1
+    ? opacity
+    : 1;
+}
+
+// The symbol on a line icon takes itemStyle.opacity, as in ECharts. transformSeries
+// sets it to 0 when rich tooltip and markers are both off, which hides the symbol.
+function normalizeLegendSymbolOpacity(opacity: unknown): number {
+  return typeof opacity === 'number' && opacity >= 0 && opacity <= 1
+    ? opacity
+    : 1;
+}
+
+/**
+ * The icon the ECharts legend would draw for a series: its line in the series'
+ * dash style with its symbol, the symbol alone for scatter, a box otherwise.
+ * The legend line is 2px like ECharts' `lineStyle.width: 'auto'`, or hidden
+ * when the series hides its own line.
+ */
+export function getLegendSeriesIcon(
+  series: SeriesOption | undefined,
+): TimeseriesLegendIcon {
+  const visual = series as LegendSeriesVisual | undefined;
+  if (visual?.type === 'scatter') {
+    return {
+      shape: 'symbol',
+      opacity: normalizeLegendOpacity(visual.itemStyle?.opacity),
+      symbol: normalizeLegendSymbol(visual.symbol, 'circle'),
+    };
+  }
+  if (visual?.type !== 'line') {
+    return {
+      shape: 'box',
+      opacity: normalizeLegendOpacity(visual?.itemStyle?.opacity),
+    };
+  }
+  const { opacity, type, width } = visual.lineStyle ?? {};
+  let lineType: TimeseriesLegendLineType = 'solid';
+  if (type === 'dashed' || type === 'dotted') {
+    lineType = type;
+  } else if (typeof type === 'number') {
+    lineType = [type];
+  } else if (Array.isArray(type)) {
+    lineType = type;
+  }
+  return {
+    shape: 'line',
+    lineType,
+    lineWidth: width === 0 ? 0 : 2,
+    opacity: normalizeLegendOpacity(opacity),
+    symbol: normalizeLegendSymbol(visual.symbol, 'emptyCircle'),
+    symbolOpacity: normalizeLegendSymbolOpacity(visual.itemStyle?.opacity),
+  };
+}
 
 function getLegendSeriesColor(
   series: SeriesOption | undefined,
@@ -168,6 +243,7 @@ function buildTimeseriesCustomLegend({
   legendState,
   orientation,
   series,
+  showSelectors,
 }: {
   fallbackColor: string;
   grid: TimeseriesCustomLegend['grid'];
@@ -176,6 +252,7 @@ function buildTimeseriesCustomLegend({
   legendState?: LegendState;
   orientation: LegendOrientation.Top | LegendOrientation.Bottom;
   series: SeriesOption[];
+  showSelectors: boolean;
 }): TimeseriesCustomLegend {
   const firstSeriesByName = new Map<string, SeriesOption>();
   series.forEach(seriesOption => {
@@ -201,6 +278,7 @@ function buildTimeseriesCustomLegend({
     return [
       {
         color: getLegendSeriesColor(matchingSeries, fallbackColor),
+        icon: getLegendSeriesIcon(matchingSeries),
         interactive: interactive && !rowBreak,
         name,
         selected: legendState?.[name] !== false,
@@ -212,7 +290,7 @@ function buildTimeseriesCustomLegend({
     grid,
     items,
     orientation,
-    showSelectors: interactive,
+    showSelectors,
   };
 }
 
@@ -231,43 +309,17 @@ const visibleSymbols = [
   'pin',
 ] as const;
 
-function getSymbolMarker(symbol: string, color: string) {
-  const size = 10;
-  switch (symbol) {
-    case 'circle':
-      return `<span style="
-        display:inline-block;width:${size}px;height:${size}px;
-        border-radius:50%;background:${color};margin-right:5px"></span>`;
-    case 'rect':
-      return `<span style="
-        display:inline-block;width:${size}px;height:${size}px;
-        background:${color};margin-right:5px"></span>`;
-    case 'roundRect':
-      return `<span style="
-        display:inline-block;width:${size}px;height:${size}px;border-radius:2px;
-        background:${color};margin-right:5px"></span>`;
-    case 'triangle':
-      return `<span style="
-        display:inline-block;width:0;height:0;
-        border-left:${size / 2}px solid transparent;
-        border-right:${size / 2}px solid transparent;
-        border-bottom:${size}px solid ${color};
-        margin-right:5px"></span>`;
-    case 'diamond':
-      return `<span style="
-        display:inline-block;width:${size - 2}px;height:${size - 2}px;
-        background:${color};transform: rotate(45deg) translateX(1px) translateY(-1px);
-        margin-right:5px"></span>`;
-    case 'pin':
-      return `<span style="
-        display:inline-block;width:${size - 2}px;height:${size - 2}px;
-        background:${color};transform: rotate(45deg) translateX(1px) translateY(-1px);
-        border-radius:50%;border-bottom-right-radius:0;margin-right:5px"></span>`;
-    default:
-      return `<span style="
-        display:inline-block;width:${size}px;height:${size}px;
-        border-radius:50%;background:${color};margin-right:5px"></span>`;
-  }
+/**
+ * Parses a user supplied minimum axis interval into a positive number.
+ * Returns undefined when the control is empty or not a valid number, so
+ * ECharts falls back to its automatic tick calculation.
+ */
+function parseMinInterval(
+  value: number | string | null | undefined,
+): number | undefined {
+  if (value === null || value === undefined || value === '') return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
 /**
@@ -379,6 +431,7 @@ export default function transformProps(
     richTooltip,
     seriesType,
     showLegend,
+    showSelectorLegend,
     showValue,
     valueLabelPosition,
     size,
@@ -410,9 +463,11 @@ export default function transformProps(
     xAxisNumberFormat,
     xAxisTitle,
     xAxisTitleMargin,
+    xAxisMinInterval,
     yAxisBounds,
     yAxisFormat,
     currencyFormat,
+    yAxisMinInterval,
     yAxisTitle,
     yAxisTitleMargin,
     yAxisTitlePosition,
@@ -1425,7 +1480,7 @@ export default function transformProps(
       legendMargin: candidateLegendMargin,
       orientation: legendOrientation,
       show: nativeLegendVisible,
-      showSelectors: !usesPrimaryAxisLegend,
+      showSelectors: !usesPrimaryAxisLegend && showSelectorLegend !== false,
       theme,
       type: legendType,
     });
@@ -1519,6 +1574,9 @@ export default function transformProps(
     zoomable,
   );
 
+  const parsedXAxisMinInterval = parseMinInterval(xAxisMinInterval);
+  const parsedYAxisMinInterval = parseMinInterval(yAxisMinInterval);
+
   let xAxis: any = {
     type: xAxisType,
     name: xAxisTitle,
@@ -1535,11 +1593,12 @@ export default function transformProps(
     },
     ...(gridlines ? {} : { splitLine: { show: false } }),
     minInterval:
-      xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
+      parsedXAxisMinInterval ??
+      (xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
         ? (TIMEGRAIN_TO_TIMESTAMP[
             resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
           ] ?? 0)
-        : 0,
+        : 0),
     maxInterval:
       xAxisType === AxisType.Time && resolvedTimeGrain && forceMaxInterval
         ? TIMEGRAIN_TO_TIMESTAMP[
@@ -1575,6 +1634,9 @@ export default function transformProps(
     ...(yAxisSplitNumber !== undefined && { splitNumber: yAxisSplitNumber }),
     min: yAxisMin,
     max: yAxisMax,
+    ...(parsedYAxisMinInterval !== undefined && {
+      minInterval: parsedYAxisMinInterval,
+    }),
     minorTick: { show: isSmallChart ? false : minorTicks },
     minorSplitLine: { show: isSmallChart ? false : minorSplitLine },
     splitLine: { show: isSmallChart ? false : gridlines },
@@ -1657,6 +1719,15 @@ export default function transformProps(
       });
     }
   }
+
+  // Looked up per tooltip row; built once since the formatter runs on every mousemove.
+  const symbolBySeriesName = new Map<string, string>();
+  series.forEach(s => {
+    const { symbol } = s as { symbol?: unknown };
+    if (typeof s.name === 'string' && typeof symbol === 'string') {
+      symbolBySeriesName.set(s.name, symbol);
+    }
+  });
 
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
@@ -1765,16 +1836,11 @@ export default function transformProps(
             if (value.observation === 0 && stack) {
               return;
             }
-            const seriesForKey = series.find(s => s.name === key);
-            const symbolForSeries = (seriesForKey as any)?.symbol || 'circle';
-            const marker = value.color
-              ? getSymbolMarker(symbolForSeries, value.color)
-              : value.marker;
             const row = formatForecastTooltipSeries({
               ...value,
               seriesName: key,
+              symbol: symbolBySeriesName.get(key),
               formatter: getSeriesFormatter(key),
-              marker,
               truncation: tooltipTruncation,
             });
 
@@ -1823,6 +1889,7 @@ export default function transformProps(
         legendOrientation,
         nativeLegendVisible,
         theme,
+        showSelectorLegend,
         zoomable,
         legendState,
         padding,
@@ -1841,20 +1908,23 @@ export default function transformProps(
         : {}),
     },
     series: renderedSeries,
-    toolbox: {
-      show: zoomable,
-      top: TIMESERIES_CONSTANTS.toolboxTop,
-      right: TIMESERIES_CONSTANTS.toolboxRight,
-      feature: {
-        dataZoom: {
-          ...(stack ? { yAxisIndex: false } : {}), // disable y-axis zoom for stacked charts
-          title: {
-            zoom: t('zoom area'),
-            back: t('restore zoom'),
+    // A hidden toolbox still registers its dataZoom feature, which filters
+    // out points (e.g. wide confidence bands) even when zooming is disabled.
+    toolbox: zoomable
+      ? {
+          top: TIMESERIES_CONSTANTS.toolboxTop,
+          right: TIMESERIES_CONSTANTS.toolboxRight,
+          feature: {
+            dataZoom: {
+              ...(stack ? { yAxisIndex: false } : {}), // disable y-axis zoom for stacked charts
+              title: {
+                zoom: t('zoom area'),
+                back: t('restore zoom'),
+              },
+            },
           },
-        },
-      },
-    },
+        }
+      : undefined,
     dataZoom: zoomable
       ? [
           {
@@ -1929,6 +1999,7 @@ export default function transformProps(
               : padding.top,
         },
         interactive: !usesPrimaryAxisLegend,
+        showSelectors: !usesPrimaryAxisLegend && showSelectorLegend !== false,
         legendNames: resolvedLegendNames,
         legendState,
         orientation: legendOrientation,

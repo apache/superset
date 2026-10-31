@@ -137,7 +137,12 @@ const setupMocks = ({
   }
   fetchMock.delete(
     DELETE_ROUTE,
-    deleteError ? { status: 409, body: { message: deleteError } } : {},
+    deleteError
+      ? {
+          status: 409,
+          body: { message: deleteError, total: 25, archived_count: 3 },
+        }
+      : {},
   );
 };
 
@@ -202,10 +207,11 @@ test('delete confirmation warns about cascade-deleting dependent views by count 
   renderDatabaseList();
 
   const dialog = await openDeleteModal();
+  expect(dialog).not.toHaveTextContent('Deletion is blocked');
 
   expect(
     within(dialog).getByText(
-      'This will also permanently delete its 3 semantic views. Charts built on those views will stop working.',
+      'This will also permanently delete its 3 semantic views. This cannot be undone.',
     ),
   ).toBeInTheDocument();
   expect(
@@ -232,7 +238,7 @@ test('a single dependent view is announced in the singular', async () => {
 
   expect(
     within(dialog).getByText(
-      'This will also permanently delete its 1 semantic view. Charts built on that view will stop working.',
+      'This will also permanently delete its 1 semantic view. This cannot be undone.',
     ),
   ).toBeInTheDocument();
 });
@@ -245,10 +251,12 @@ test('a genuinely empty layer says so instead of warning about nonexistent views
   renderDatabaseList();
 
   const dialog = await openDeleteModal();
+  expect(dialog).toHaveTextContent('This cannot be undone.');
+  expect(dialog).not.toHaveTextContent('Deletion is blocked');
 
   expect(
     within(dialog).getByText(
-      'This semantic layer has no dependent semantic views.',
+      'This semantic layer has no dependent semantic views. This cannot be undone.',
     ),
   ).toBeInTheDocument();
   expect(
@@ -275,7 +283,7 @@ test('a counted response with an empty name page keeps the count but omits the l
 
   expect(
     within(dialog).getByText(
-      'This will also permanently delete its 3 semantic views. Charts built on those views will stop working.',
+      'This will also permanently delete its 3 semantic views. This cannot be undone.',
     ),
   ).toBeInTheDocument();
   expect(
@@ -291,7 +299,7 @@ test('a failed dependent lookup still opens the modal with an uncounted warning'
 
   expect(
     within(dialog).getByText(
-      'Deleting this semantic layer also permanently deletes any semantic views it contains, and charts built on those views will stop working. The affected views could not be listed.',
+      'Deleting this semantic layer also permanently deletes any semantic views it contains. This cannot be undone. The affected views could not be listed.',
     ),
   ).toBeInTheDocument();
 });
@@ -316,7 +324,7 @@ test('the overflow footer reports dependent views beyond the listed page', async
 
   expect(
     within(dialog).getByText(
-      'This will also permanently delete its 12 semantic views. Charts built on those views will stop working.',
+      'This will also permanently delete its 12 semantic views. This cannot be undone.',
     ),
   ).toBeInTheDocument();
   expect(within(dialog).getByText('view_10')).toBeInTheDocument();
@@ -443,7 +451,7 @@ test("a stale lookup resolving late cannot replace a newer row's modal", async (
 
 test('layer delete displays the counted dependency conflict', async () => {
   const reason =
-    'Semantic source is used by 25 dependent assets and cannot be deleted.';
+    'Semantic source is used by 25 dependent assets and cannot be deleted. 3 dependent assets are archived. Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.';
   setupMocks({ dependents: [], deleteError: reason });
   const addDangerToast = jest.fn();
   renderDatabaseList(mockUser, addDangerToast);
@@ -453,11 +461,24 @@ test('layer delete displays the counted dependency conflict', async () => {
     'DELETE',
   );
   await userEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
-  await waitFor(() =>
-    expect(addDangerToast).toHaveBeenCalledWith(
-      `There was an issue deleting Demo Semantic Layer: ${reason}`,
-    ),
+  const alert = await within(dialog).findByRole('alert');
+  expect(alert).toHaveTextContent('25 dependent assets');
+  expect(alert).toHaveTextContent('3 archived');
+  expect(
+    within(alert).getByRole('link', { name: 'Recently Archived' }),
+  ).toHaveAttribute('href', '/archived/');
+  expect(within(dialog).getByTestId('delete-modal-input')).toHaveValue(
+    'DELETE',
   );
+  expect(addDangerToast).not.toHaveBeenCalled();
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+  await openDeleteModal();
+  expect(
+    within(screen.getByRole('dialog')).queryByRole('alert'),
+  ).not.toBeInTheDocument();
+  expect(
+    within(screen.getByRole('dialog')).getByTestId('delete-modal-input'),
+  ).toHaveValue('');
 });
 
 test('confirming the modal deletes the semantic layer', async () => {
@@ -586,4 +607,132 @@ test('failed authorized upload lookup leaves uploads disabled', async () => {
   expect(
     fetchMock.callHistory.calls('glob:*/api/v1/database/?q=*'),
   ).toHaveLength(1);
+});
+
+test('a layer created after Cancel refreshes the Connections list', async () => {
+  setupMocks({ dependents: [], rows: [] });
+  fetchMock.get('glob:*/api/v1/semantic_layer/types', {
+    result: [{ id: 'example', name: 'Example provider' }],
+  });
+  fetchMock.post('glob:*/api/v1/semantic_layer/schema/configuration', {
+    result: { type: 'object', properties: {} },
+  });
+  let finishCreate!: (value: { result: { uuid: string } }) => void;
+  fetchMock.post(
+    'glob:*/api/v1/semantic_layer/',
+    () =>
+      new Promise(resolve => {
+        finishCreate = resolve;
+      }),
+  );
+  renderDatabaseList();
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length,
+    ).toBeGreaterThan(0),
+  );
+  const initialLoads = fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length;
+
+  await userEvent.click(screen.getByTestId('btn-create-new'));
+  await userEvent.click(
+    await screen.findByRole('menuitem', { name: 'Semantic Layer' }),
+  );
+  const typePicker = await screen.findByRole('combobox', {
+    name: 'Semantic layer type',
+  });
+  await waitFor(() => expect(typePicker).toBeEnabled());
+  fireEvent.mouseDown(typePicker);
+  await userEvent.click(
+    await screen.findByText('Example provider', {
+      selector: '.ant-select-item-option-content',
+    }),
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+  const create = await screen.findByRole('button', { name: 'Create' });
+  await waitFor(() => expect(create).toBeEnabled());
+  await userEvent.click(create);
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/semantic_layer/'),
+    ).toHaveLength(1),
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length,
+    ).toBeGreaterThan(initialLoads),
+  );
+  const loadsBeforeCreate =
+    fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length;
+
+  await act(async () => finishCreate({ result: { uuid: 'new-layer' } }));
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length,
+    ).toBeGreaterThan(loadsBeforeCreate),
+  );
+});
+
+test('a layer updated after Cancel refreshes the Connections list again', async () => {
+  setupMocks({ dependents: [] });
+  fetchMock.get('glob:*/api/v1/semantic_layer/types', {
+    result: [{ id: 'demo', name: 'Demo provider' }],
+  });
+  fetchMock.get(`glob:*/api/v1/semantic_layer/${SL_UUID}`, {
+    result: {
+      name: semanticLayerRow.database_name,
+      type: 'demo',
+      configuration: {},
+    },
+  });
+  fetchMock.post('glob:*/api/v1/semantic_layer/schema/configuration', {
+    result: { type: 'object', properties: {} },
+  });
+  let finishUpdate!: (value: { result: object }) => void;
+  const updateRoute = `glob:*/api/v1/semantic_layer/${SL_UUID}`;
+  fetchMock.put(
+    updateRoute,
+    () =>
+      new Promise(resolve => {
+        finishUpdate = resolve;
+      }),
+  );
+
+  renderDatabaseList();
+  await screen.findByText(semanticLayerRow.database_name);
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length,
+    ).toBeGreaterThan(0),
+  );
+  await userEvent.click(await screen.findByTestId('Edit'));
+  const name = await screen.findByPlaceholderText('Name of the semantic layer');
+  await userEvent.clear(name);
+  await userEvent.type(name, 'Updated Semantic Layer');
+  const save = screen.getByRole('button', { name: 'Save' });
+  await waitFor(() => expect(save).toBeEnabled());
+  await userEvent.click(save);
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(updateRoute, { method: 'PUT' }),
+    ).toHaveLength(1),
+  );
+
+  const loadsBeforeCancel =
+    fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length;
+  await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length,
+    ).toBeGreaterThan(loadsBeforeCancel),
+  );
+  const loadsAfterCancel =
+    fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length;
+
+  await act(async () => finishUpdate({ result: {} }));
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length,
+    ).toBeGreaterThan(loadsAfterCancel),
+  );
 });
