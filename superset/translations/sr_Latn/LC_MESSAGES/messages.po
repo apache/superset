@@ -16007,6 +16007,9 @@ msgstr "Resetovanje lozinke"
 msgid "Reset state"
 msgstr "Resetuj stanje"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 msgid "Reset to default folders?"
 msgstr "Resetovati fascikle na podrazumevano?"
 
@@ -20151,6 +20154,10 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Donja granica praga opsega izoband-a"
+
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""

@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import type {
   PartitionMappingColumn,
   PartitionMappingDatasource,
@@ -33,6 +34,36 @@ import type {
  * transform and the check that blocks saving it cannot drift apart.
  */
 const JINJA_PATTERN = /\{\{|\{%|\{#/;
+
+/**
+ * Whether the dataset editor should offer partition filter mapping at all.
+ *
+ * The single source of truth for the gate, so every place that shows partition
+ * mapping UI stays in lockstep: it needs the feature flag on, a datasource to
+ * read, and an engine that advertises support (`supports_partition_filter_mapping`,
+ * true only for partition-directory engines like Hive/Impala/Spark). This lived
+ * inline at one call site and was missed at another, which showed the section on
+ * engines that do not support it -- hence one predicate both sites share.
+ */
+export function partitionFilterMappingEnabled(
+  datasource: PartitionMappingDatasource | undefined,
+): boolean {
+  return (
+    isFeatureEnabled(FeatureFlag.PartitionFilterMapping) &&
+    Boolean(datasource) &&
+    Boolean(datasource?.supports_partition_filter_mapping)
+  );
+}
+
+/**
+ * The bare `:value` placeholder, i.e. the identity transform.
+ *
+ * It mirrors the filter bound unchanged, so it parses on every engine and is
+ * provably order-preserving -- editing nothing cannot make it non-monotonic.
+ * That is what lets it be both the universal pre-fill and the one transform the
+ * UI may auto-declare monotonic without asking.
+ */
+export const IDENTITY_TRANSFORM = ':value';
 
 /**
  * The column whose filters are mirrored.
@@ -311,9 +342,9 @@ const TEMPORAL_TYPE_RE = /DATE|TIME|TIMESTAMP|DATETIME/i;
 /**
  * The transform to pre-fill when a column becomes the mapped one.
  *
- * Only temporal columns get one, and only when the engine supplies it:
- * `unix_timestamp(:value)` is Hive-family syntax and would not parse on
- * Postgres or BigQuery, so a wrong default is worse than none.
+ * A temporal column on an engine that advertises its own syntax gets that:
+ * `unix_timestamp(:value)` is Hive-family and would not parse on Postgres or
+ * BigQuery, so the engine default only applies where the engine supplies it.
  *
  * And only where the column holds a timestamp, which is what the engine's
  * default takes. A column flagged temporal but stored as an epoch `BIGINT` or
@@ -322,18 +353,27 @@ const TEMPORAL_TYPE_RE = /DATE|TIME|TIMESTAMP|DATETIME/i;
  * epoch mapping broken until the owner replaced it, which is what Ribbon's
  * validation ran into. A column whose declared type is unknown keeps the
  * default, as before.
+ *
+ * Every other case -- a non-temporal column, a temporal one stored as a
+ * number or as text, or a temporal one on an engine with no default -- falls
+ * back to the bare `:value` identity transform rather than an empty field.
+ * `:value` is a valid, working starting point (the mapped and partition
+ * columns often share a shape, so mirroring the bound unchanged is exactly
+ * right) and it is far easier for the owner to edit than to write from
+ * nothing.
  */
 export function defaultTransformFor(
   datasource: PartitionMappingDatasource,
   column: PartitionMappingColumn | undefined,
 ): string {
-  if (!column?.is_dttm) {
-    return '';
+  if (
+    column?.is_dttm &&
+    (!column.type || TEMPORAL_TYPE_RE.test(column.type)) &&
+    datasource.partition_value_transform_default
+  ) {
+    return datasource.partition_value_transform_default;
   }
-  if (column.type && !TEMPORAL_TYPE_RE.test(column.type)) {
-    return '';
-  }
-  return datasource.partition_value_transform_default || '';
+  return IDENTITY_TRANSFORM;
 }
 
 /** Declared types whose values are numbers rather than strings. */
@@ -660,13 +700,21 @@ export function applyMappingMove<T extends PartitionMappingColumn>(
 ): T[] {
   const next = columns.find(column => column.column_name === nextColumnName);
   const isAlreadyMapped = resolveMappedColumn(datasource) === nextColumnName;
+  const nextValue =
+    (isAlreadyMapped && next?.partition_value_transform) ||
+    nextTransform ||
+    null;
   return withMappingOn(
     columns,
     nextColumnName,
-    (isAlreadyMapped && next?.partition_value_transform) ||
-      nextTransform ||
-      null,
-    Boolean(isAlreadyMapped && next?.partition_transform_is_monotonic),
+    nextValue,
+    // A fresh pre-fill of the identity `:value` may declare monotonicity for
+    // the owner, because that placeholder provably preserves ordering. Any
+    // other pre-fill (an engine default) is the owner's to declare, so leave
+    // whatever the mapped column already carried.
+    nextValue === IDENTITY_TRANSFORM
+      ? true
+      : Boolean(isAlreadyMapped && next?.partition_transform_is_monotonic),
   );
 }
 

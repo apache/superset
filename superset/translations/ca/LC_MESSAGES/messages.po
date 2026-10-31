@@ -13934,6 +13934,9 @@ msgstr ""
 msgid "Reset state"
 msgstr "Restablir estat"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 #, fuzzy
 msgid "Reset to default folders?"
 msgstr "Actualitzar els valors per defecte"
@@ -17659,6 +17662,10 @@ msgstr ""
 
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "El límit inferior del rang de llindar de l'Isobanda"
+
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
 
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"

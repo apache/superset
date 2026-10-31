@@ -12400,6 +12400,9 @@ msgstr "パスワードをリセット"
 msgid "Reset state"
 msgstr "状態をリセット"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 msgid "Reset to default folders?"
 msgstr "既定のフォルダーにリセットしますか？"
 
@@ -15604,6 +15607,10 @@ msgstr ""
 
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "等値帯のしきい値範囲の下限"
+
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
 
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"

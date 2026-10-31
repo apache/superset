@@ -13278,6 +13278,9 @@ msgstr "Atjaunot paroli"
 msgid "Reset state"
 msgstr "Atiestatīt stāvokli"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 msgid "Reset to default folders?"
 msgstr "Atjaunot noklusējuma mapes?"
 
@@ -16791,6 +16794,10 @@ msgstr ""
 
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Izojoslas sliekšņa diapazona apakšējā robeža"
+
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
 
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
