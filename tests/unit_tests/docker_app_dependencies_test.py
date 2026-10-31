@@ -23,6 +23,20 @@ from pathlib import Path
 import pytest
 
 
+@pytest.mark.parametrize(
+    "relative_path",
+    [
+        "docker/install-app-dependencies.sh",
+        "tests/unit_tests/docker_app_dependencies_test.py",
+    ],
+)
+def test_dependency_installation_files_have_asf_headers(relative_path: str) -> None:
+    repository = Path(__file__).resolve().parents[2]
+    header = "\n".join((repository / relative_path).read_text().splitlines()[:20])
+    assert "Licensed to the Apache Software Foundation (ASF)" in header
+    assert "http://www.apache.org/licenses/LICENSE-2.0" in header
+
+
 @pytest.mark.parametrize("metadata", [False, True])
 def test_docker_dependency_layers_preserve_legacy_cache(metadata: bool) -> None:
     repository = Path(__file__).resolve().parents[2]
