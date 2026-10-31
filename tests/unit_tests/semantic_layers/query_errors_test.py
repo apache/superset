@@ -1297,3 +1297,60 @@ def test_async_provider_error_matches_sync_chart_error(
     assert "private" not in str(captured.value.to_dict())
     task_context.update_task.assert_not_called()
     date_view.get_table.assert_called_once()
+
+
+@pytest.mark.parametrize("force", [False, True])
+def test_async_refusal_over_http(
+    client: FlaskClient,
+    full_api_access: None,
+    date_view: MagicMock,
+    mocker: MockerFixture,
+    force: bool,
+) -> None:
+    """Async chart requests preserve refusals instead of returning a job or 500."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    message: str = "This data source can't be queried in the current context."
+    refusal: SupersetSecurityException = SupersetSecurityException(
+        SupersetError(
+            message=message,
+            error_type=SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={"reason": "method_not_supported"},
+        )
+    )
+    # Exercise both async paths: cache probe and fresh task submission.
+    mocker.patch(
+        "superset.charts.data.api.ChartDataRestApi._should_run_async", return_value=True
+    )
+    execute: MagicMock = mocker.patch(
+        "superset.charts.data.api.ChartDataCommand.execute", side_effect=refusal
+    )
+    submit: MagicMock = mocker.patch(
+        "superset.charts.data.api.submit_chart_data_query_tasks", side_effect=refusal
+    )
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [{"columns": ["ORDER_DATE"], "metrics": ["ORDER_COUNT"]}],
+            "result_format": "json",
+            "result_type": "full",
+            "async_mode": True,
+            "force": force,
+        },
+    )
+    assert response.status_code == 403
+    assert (
+        response.json["errors"][0]["error_type"] == "SEMANTIC_EXECUTION_REFUSED_ERROR"
+    )
+    assert response.json["errors"][0]["message"] == message
+    assert "job_id" not in response.json
+    if force:
+        execute.assert_not_called()
+        submit.assert_called_once()
+    else:
+        execute.assert_called_once_with(force_cached=True)
+        submit.assert_not_called()
+    date_view.get_table.assert_not_called()

@@ -229,6 +229,9 @@ async def _collect_external_metrics(
                         compatible_dimensions=compat_dims,
                     )
                 )
+        except SupersetSecurityException:
+            # Refusals must reach the tool boundary, never a partial catalog.
+            raise
         except AmbiguousDimensionError as exc:
             await ctx.warning(
                 "Could not load metrics for view id=%s: %s" % (view.id, str(exc))
