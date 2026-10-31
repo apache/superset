@@ -19,7 +19,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { getChartComponentRegistry } from '@superset-ui/core';
 import { ThemeProvider } from '@apache-superset/core/theme';
-import { FC, useEffect, useState } from 'react';
+import { FC, useEffect, useMemo, useState } from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { ChartWrapperProps } from '../types';
 
@@ -49,13 +49,20 @@ export const ChartWrapper: FC<ChartWrapperProps> = ({
     reducer: (state = { common: { locale } }) => state,
   });
 
+  const chartProperties = useMemo(
+    () =>
+      chartConfig.properties.getSizedProps?.(width, height) ??
+      chartConfig.properties,
+    [chartConfig, width, height],
+  );
+
   return (
     <ThemeProvider theme={theme}>
       <ReduxProvider store={mockStore}>
         {Chart === undefined ? (
           <></>
         ) : (
-          <Chart {...chartConfig.properties} height={height} width={width} />
+          <Chart {...chartProperties} height={height} width={width} />
         )}
       </ReduxProvider>
     </ThemeProvider>
