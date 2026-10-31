@@ -3707,7 +3707,7 @@
       "engine": "databricks",
       "engine_name": "Databricks",
       "engine_aliases": [],
-      "default_driver": "databricks-sql-python",
+      "default_driver": "databricks",
       "supports_file_upload": true,
       "supports_dynamic_schema": true,
       "supports_catalog": true,

@@ -742,8 +742,8 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
 class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
     engine = "databricks"
     engine_name = "Databricks"
-    default_driver = "databricks-sql-python"
-    drivers = {"databricks-sql-python": "Databricks SQL Python"}
+    default_driver = "databricks"
+    drivers = {"databricks": "Databricks SQL Python"}
 
     parameters_schema = DatabricksPythonConnectorSchema()
 
