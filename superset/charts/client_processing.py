@@ -652,10 +652,10 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
             for col in df.columns:
                 # we need to replace the temporary placeholder with either a string
                 # or np.nan, depending on the column type so that they can sum correctly
-                if pd.api.types.is_numeric_dtype(df[col]):
-                    df[col].replace("SUPERSET_PANDAS_NAN", np.nan, inplace=True)
-                else:
-                    df[col].replace("SUPERSET_PANDAS_NAN", "nan", inplace=True)
+                # Assigning the result back is required: under copy-on-write,
+                # an inplace replace on df[col] only updates a copy.
+                missing = np.nan if pd.api.types.is_numeric_dtype(df[col]) else "nan"
+                df[col] = df[col].replace("SUPERSET_PANDAS_NAN", missing)
         else:
             # when we applied metrics on rows, we switched the columns and rows
             # so checking column type doesn't apply. Replace everything with np.nan
@@ -1006,9 +1006,11 @@ def format_column(
                     format_number_with_config, small_d3_format, small_currency or {}
                 )
                 df[column] = df[column].apply(
-                    lambda value: format_small(value)
-                    if is_small_number(value)
-                    else format_value(value)
+                    lambda value: (
+                        format_small(value)
+                        if is_small_number(value)
+                        else format_value(value)
+                    )
                 )
                 return
             df[column] = df[column].apply(format_value)

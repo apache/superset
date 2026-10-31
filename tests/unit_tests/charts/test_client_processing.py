@@ -145,6 +145,36 @@ def test_pivot_df_no_cols_no_rows_single_metric():
     )
 
 
+def test_pivot_df_rows_total_keeps_nan_text_in_non_numeric_metric() -> None:
+    """
+    With row totals on, a missing cell in a non-numeric metric column holds
+    the text "nan", so a CSV export shows "nan" there rather than a blank.
+    """
+    df = pd.DataFrame(
+        {
+            "gender": ["girl", "boy"],
+            "SUM(num)": [118065, "NULL"],
+            "MAX(num)": [2588, None],
+        }
+    )
+
+    pivoted = pivot_df(
+        df,
+        rows=["gender"],
+        columns=[],
+        metrics=["SUM(num)", "MAX(num)"],
+        aggfunc="Sum",
+        transpose_pivot=False,
+        combine_metrics=False,
+        show_rows_total=True,
+        show_columns_total=True,
+        apply_metrics_on_rows=False,
+    )
+
+    assert pivoted.loc[("boy",), ("MAX(num)",)] == "nan"
+    assert pivoted.to_csv().splitlines()[1] == "boy,NULL,nan,"
+
+
 def test_pivot_df_no_cols_no_rows_two_metrics():
     """
     Pivot table when no cols/rows and 2 metrics are selected.
