@@ -89,6 +89,7 @@ from superset.commands.importers.v1.utils import (
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.database import DatabaseDAO
 from superset.databases.decorators import check_table_access
+from superset.databases.error_provenance import is_database_engine_error
 from superset.databases.filters import (
     DatabaseFilter,
     DatabaseOAuth2TokensUserFilter,
@@ -782,12 +783,14 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 catalogs,
             )
             return self.response(200, result=list(catalogs))
-        except DBAPIError:
+        except DBAPIError as ex:
+            if not is_database_engine_error(ex):
+                raise
             logger.warning(
                 "Error connecting to database %s to list catalogs", pk, exc_info=True
             )
             return self.response(
-                500,
+                422,
                 message="There was an error connecting to the database",
             )
         except OAuth2RedirectError:
@@ -870,12 +873,14 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                         ],
                     )
             return self.response(200, result=list(schemas))
-        except DBAPIError:
+        except DBAPIError as ex:
+            if not is_database_engine_error(ex):
+                raise
             logger.warning(
                 "Error connecting to database %s to list schemas", pk, exc_info=True
             )
             return self.response(
-                500, message="There was an error connecting to the database"
+                422, message="There was an error connecting to the database"
             )
         except OAuth2RedirectError:
             raise

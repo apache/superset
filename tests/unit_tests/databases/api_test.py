@@ -319,101 +319,104 @@ def test_database_connection(
     mocker.patch("superset.utils.log.DBEventLogger.log")
 
     response = client.get("/api/v1/database/1/connection")
-    assert response.json == {
-        "id": 1,
-        "result": {
-            "allow_ctas": False,
-            "allow_cvas": False,
-            "allow_dml": False,
-            "allow_file_upload": False,
-            "allow_run_async": False,
-            "backend": "gsheets",
-            "cache_timeout": None,
-            "configuration_method": "sqlalchemy_form",
-            "database_name": "my_database",
-            "driver": "gsheets",
-            "engine_information": {
-                "oauth2_enabled": False,
-                "disable_ssh_tunneling": True,
-                "supports_dynamic_catalog": False,
-                "supports_file_upload": True,
-                "supports_oauth2": True,
-                "supports_offset": True,
-                "supports_schemas": True,
-                "identifier_quote": {
-                    "start": '"',
-                    "end": '"',
-                    "escape_by_doubling": True,
-                },
-            },
-            "expose_in_sqllab": True,
-            "extra": '{\n    "metadata_params": {},\n    "engine_params": {},\n    "metadata_cache_timeout": {},\n    "schemas_allowed_for_file_upload": []\n}\n',  # noqa: E501
-            "force_ctas_schema": None,
+    assert (
+        response.json
+        == {
             "id": 1,
-            "impersonate_user": False,
-            "is_managed_externally": False,
-            "masked_encrypted_extra": json.dumps(
-                {
+            "result": {
+                "allow_ctas": False,
+                "allow_cvas": False,
+                "allow_dml": False,
+                "allow_file_upload": False,
+                "allow_run_async": False,
+                "backend": "gsheets",
+                "cache_timeout": None,
+                "configuration_method": "sqlalchemy_form",
+                "database_name": "my_database",
+                "driver": "gsheets",
+                "engine_information": {
+                    "oauth2_enabled": False,
+                    "disable_ssh_tunneling": True,
+                    "supports_dynamic_catalog": False,
+                    "supports_file_upload": True,
+                    "supports_oauth2": True,
+                    "supports_offset": True,
+                    "supports_schemas": True,
+                    "identifier_quote": {
+                        "start": '"',
+                        "end": '"',
+                        "escape_by_doubling": True,
+                    },
+                },
+                "expose_in_sqllab": True,
+                "extra": '{\n    "metadata_params": {},\n    "engine_params": {},\n    "metadata_cache_timeout": {},\n    "schemas_allowed_for_file_upload": []\n}\n',  # noqa: E501
+                "force_ctas_schema": None,
+                "id": 1,
+                "impersonate_user": False,
+                "is_managed_externally": False,
+                "masked_encrypted_extra": json.dumps(
+                    {
+                        "service_account_info": {
+                            "type": "service_account",
+                            "project_id": "black-sanctum-314419",
+                            "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",  # noqa: E501
+                            "private_key": "XXXXXXXXXX",
+                            "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",  # noqa: E501
+                            "client_id": "114567578578109757129",
+                            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                            "token_uri": "https://oauth2.googleapis.com/token",
+                            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                            "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/google-spreadsheets-demo-servi%40black-sanctum-314419.iam.gserviceaccount.com",
+                        }
+                    }
+                ),
+                "parameters": {
                     "service_account_info": {
-                        "type": "service_account",
-                        "project_id": "black-sanctum-314419",
-                        "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",  # noqa: E501
-                        "private_key": "XXXXXXXXXX",
+                        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                         "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",  # noqa: E501
                         "client_id": "114567578578109757129",
-                        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                        "token_uri": "https://oauth2.googleapis.com/token",
-                        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
                         "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/google-spreadsheets-demo-servi%40black-sanctum-314419.iam.gserviceaccount.com",
+                        "private_key": "XXXXXXXXXX",
+                        "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
+                        "project_id": "black-sanctum-314419",
+                        "token_uri": "https://oauth2.googleapis.com/token",
+                        "type": "service_account",
                     }
-                }
-            ),
-            "parameters": {
-                "service_account_info": {
-                    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                    "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",  # noqa: E501
-                    "client_id": "114567578578109757129",
-                    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/google-spreadsheets-demo-servi%40black-sanctum-314419.iam.gserviceaccount.com",
-                    "private_key": "XXXXXXXXXX",
-                    "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
-                    "project_id": "black-sanctum-314419",
-                    "token_uri": "https://oauth2.googleapis.com/token",
-                    "type": "service_account",
-                }
-            },
-            "parameters_schema": {
-                "properties": {
-                    "catalog": {"type": "object"},
-                    "oauth2_client_info": {
-                        "default": {
-                            "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
-                            "scope": (
-                                "https://www.googleapis.com/auth/drive.readonly "
-                                "https://www.googleapis.com/auth/spreadsheets "
-                                "https://spreadsheets.google.com/feeds"
-                            ),
-                            "token_request_uri": "https://oauth2.googleapis.com/token",
-                        },
-                        "description": "OAuth2 client information",
-                        "nullable": True,
-                        "type": "string",
-                        "x-encrypted-extra": True,
-                    },
-                    "service_account_info": {
-                        "description": "Contents of GSheets JSON credentials.",
-                        "type": "string",
-                        "x-encrypted-extra": True,
-                    },
                 },
-                "type": "object",
+                "parameters_schema": {
+                    "properties": {
+                        "catalog": {"type": "object"},
+                        "oauth2_client_info": {
+                            "default": {
+                                "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
+                                "scope": (
+                                    "https://www.googleapis.com/auth/drive.readonly "
+                                    "https://www.googleapis.com/auth/spreadsheets "
+                                    "https://spreadsheets.google.com/feeds"
+                                ),
+                                "token_request_uri": "https://oauth2.googleapis.com/token",
+                            },
+                            "description": "OAuth2 client information",
+                            "nullable": True,
+                            "type": "string",
+                            "x-encrypted-extra": True,
+                        },
+                        "service_account_info": {
+                            "description": "Contents of GSheets JSON credentials.",
+                            "type": "string",
+                            "x-encrypted-extra": True,
+                        },
+                    },
+                    "type": "object",
+                },
+                "server_cert": None,
+                "sqlalchemy_uri": "gsheets://",
+                "ssh_tunnel": None,
+                "uuid": "02feae18-2dd6-4bb4-a9c0-49e9d4f29d58",
             },
-            "server_cert": None,
-            "sqlalchemy_uri": "gsheets://",
-            "ssh_tunnel": None,
-            "uuid": "02feae18-2dd6-4bb4-a9c0-49e9d4f29d58",
-        },
-    }
+        }
+    )
 
     response = client.get("/api/v1/database/1")
     assert response.json == {
@@ -2903,9 +2906,9 @@ def test_import_includes_configuration_method(
         .first()
     )
     assert db_obj is not None, "Database not found in SQLAlchemy session after import"
-    assert hasattr(db_obj, "configuration_method"), (
-        "'configuration_method' not found on model"
-    )
+    assert hasattr(
+        db_obj, "configuration_method"
+    ), "'configuration_method' not found on model"
     assert db_obj.configuration_method == "dynamic_form", (
         "Expected configuration_method 'dynamic_form', got "
         f"{db_obj.configuration_method}"
@@ -2923,9 +2926,9 @@ def test_import_includes_configuration_method(
     result = get_resp.json["result"]
     assert result, "No database returned from API after import."
     db_obj_api = result[0]
-    assert "configuration_method" in db_obj_api, (
-        f"'configuration_method' not found in database list response: {db_obj_api}"
-    )
+    assert (
+        "configuration_method" in db_obj_api
+    ), f"'configuration_method' not found in database list response: {db_obj_api}"
     assert db_obj_api["configuration_method"] == "dynamic_form"
 
 
@@ -3064,10 +3067,46 @@ def test_schemas_and_catalogs_dbapi_programming_error(
     from sqlalchemy.exc import ProgrammingError
 
     from superset.databases.api import DatabaseRestApi
+    from superset.databases.error_provenance import _DATABASE_ENGINE_ERROR_MARKER
+
+    error = ProgrammingError(
+        "show standard_conforming_strings", {}, Exception("unrecognized parameter")
+    )
+    setattr(error, _DATABASE_ENGINE_ERROR_MARKER, True)  # noqa: B010
+    database = mocker.MagicMock()
+    getattr(database, method).side_effect = error
+    DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
+    DatabaseDAO.find_by_id.return_value = database
+    mocker.patch.object(DatabaseRestApi, "datamodel").get.return_value = database
+
+    response = client.get(f"/api/v1/database/1/{endpoint}/")
+
+    assert response.status_code == 422
+    assert response.json == {"message": "There was an error connecting to the database"}
+
+
+@pytest.mark.parametrize(
+    "endpoint, method",
+    [("schemas", "get_all_schema_names"), ("catalogs", "get_all_catalog_names")],
+)
+def test_schemas_and_catalogs_unmarked_dbapi_error_not_masked(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    endpoint: str,
+    method: str,
+) -> None:
+    """
+    A DBAPIError not marked as coming from a Database engine (e.g. a Superset
+    metadata-DB failure) is not reported as a customer connection error.
+    """
+    from sqlalchemy.exc import ProgrammingError
+
+    from superset.databases.api import DatabaseRestApi
 
     database = mocker.MagicMock()
     getattr(database, method).side_effect = ProgrammingError(
-        "show standard_conforming_strings", {}, Exception("unrecognized parameter")
+        "select 1", {}, Exception("metadata failure")
     )
     DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
     DatabaseDAO.find_by_id.return_value = database
@@ -3076,4 +3115,4 @@ def test_schemas_and_catalogs_dbapi_programming_error(
     response = client.get(f"/api/v1/database/1/{endpoint}/")
 
     assert response.status_code == 500
-    assert response.json == {"message": "There was an error connecting to the database"}
+    assert "error connecting to the database" not in response.get_data(as_text=True)

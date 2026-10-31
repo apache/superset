@@ -1674,10 +1674,14 @@ def test_get_data_response_handles_dbapi_error_on_connect(app: SupersetApp) -> N
     """
     from sqlalchemy.exc import ProgrammingError
 
-    command = MagicMock()
-    command.execute.side_effect = ProgrammingError(
+    from superset.databases.error_provenance import _DATABASE_ENGINE_ERROR_MARKER
+
+    error = ProgrammingError(
         "show standard_conforming_strings", {}, Exception("secret driver detail")
     )
+    setattr(error, _DATABASE_ENGINE_ERROR_MARKER, True)  # noqa: B010
+    command = MagicMock()
+    command.execute.side_effect = error
     api = ChartDataRestApi()
 
     with app.test_request_context("/api/v1/chart/data"):
@@ -1688,3 +1692,19 @@ def test_get_data_response_handles_dbapi_error_on_connect(app: SupersetApp) -> N
     assert "There was an error connecting to the database" in body
     assert "secret driver detail" not in body
     assert "standard_conforming_strings" not in body
+
+
+def test_get_data_response_reraises_unmarked_dbapi_error(app: SupersetApp) -> None:
+    """
+    A DBAPIError that did not come from a customer Database engine (e.g. the
+    Superset metadata DB) is not reported as a connection error to the user.
+    """
+    from sqlalchemy.exc import ProgrammingError
+
+    command = MagicMock()
+    command.execute.side_effect = ProgrammingError("select 1", {}, Exception("meta"))
+    api = ChartDataRestApi()
+
+    with app.test_request_context("/api/v1/chart/data"):
+        with pytest.raises(ProgrammingError):
+            api._get_data_response(command)
