@@ -546,6 +546,144 @@ def test_import_existing_active_chart_overwrite_without_can_write_returns_existi
     assert result.deleted_at is None
 
 
+def test_import_chart_synthesizes_query_context(
+    mocker: MockerFixture, session_with_schema: Session
+) -> None:
+    """
+    #33615 / F1-T2: importing a derivable chart that arrives WITHOUT a
+    query_context persists a synthesized one naming the resolved datasource.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+    # Make the chart derivable and strip its persisted context.
+    config["viz_type"] = "table"
+    config["params"]["viz_type"] = "table"
+    config["params"]["metrics"] = ["count"]
+    config["params"]["groupby"] = ["gender"]
+    config.pop("query_context", None)
+
+    chart = import_chart(config)
+
+    # --- RED anchor: a synthesized context is persisted (FR-001) ---
+    assert chart.query_context is not None
+    query_context = json.loads(chart.query_context)
+    # --- RED anchor: datasource taken from resolved id, not params (RISK-T02) ---
+    assert query_context["datasource"] == {"id": 1, "type": "table"}
+    assert query_context["queries"][0]["metrics"] == ["count"]
+
+
+def test_import_chart_preserves_existing_query_context(
+    mocker: MockerFixture, session_with_schema: Session
+) -> None:
+    """
+    FR-006 / INV-3: an imported chart that already carries a query_context is
+    left untouched — synthesis is non-destructive (absent-guard).
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+    original_query_context = config["query_context"]
+
+    chart = import_chart(config)
+
+    # --- RED anchor: existing context is preserved verbatim (idempotent) ---
+    assert chart.query_context is not None
+    assert json.loads(chart.query_context) == json.loads(original_query_context)
+
+
+def test_synthesis_runs_after_migration_for_legacy_viz(
+    mocker: MockerFixture, session_with_schema: Session
+) -> None:
+    """
+    #33615 review: query_context synthesis must run AFTER ``migrate_chart`` so a
+    legacy viz type (``dual_line`` -> ``mixed_timeseries``) derives its context
+    from the MIGRATED viz_type/params, not the pre-migration form data. Otherwise
+    the persisted context describes a chart shape that no longer exists.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    # Capture the viz_type handed to the synthesis builder.
+    builder = mocker.patch(
+        "superset.commands.chart.importers.v1.utils.build_query_context_config",
+        return_value=None,
+    )
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+    config["viz_type"] = "dual_line"
+    config["params"]["viz_type"] = "dual_line"
+    config.pop("query_context", None)
+
+    chart = import_chart(config)
+
+    # The chart is migrated to the modern viz type ...
+    assert chart.viz_type == "mixed_timeseries"
+    # ... and synthesis saw the MIGRATED viz type, never "dual_line".
+    assert builder.call_args is not None
+    passed_viz_type = builder.call_args.args[1]
+    assert passed_viz_type == "mixed_timeseries"
+
+
+def test_synthesis_drops_foreign_slice_id_and_binds_local(
+    mocker: MockerFixture, session_with_schema: Session
+) -> None:
+    """
+    #33615 review: the exported ``slice_id`` must never survive into the
+    synthesized context. If that id named an unrelated chart in the destination,
+    ``QueryContextFactory`` would resolve that foreign chart from the context,
+    changing its cache/guest-access behavior. It is dropped before building, and
+    the imported chart's OWN id is bound afterwards (``import_from_dict`` assigns
+    it), so the stored context resolves THIS chart — its cache timeout / guest
+    access follow the imported chart live, and later ``cache_timeout`` edits take
+    effect the same as for a non-imported chart (no frozen import-time value).
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+    config["viz_type"] = "table"
+    config["params"]["viz_type"] = "table"
+    config["params"]["metrics"] = ["count"]
+    config["params"]["slice_id"] = 999999  # a foreign id from the source export
+    config.pop("query_context", None)
+
+    chart = import_chart(config)
+
+    assert chart.query_context is not None
+    form_data = json.loads(chart.query_context)["form_data"]
+    # The foreign id never survives; the context binds to this chart's own id.
+    assert form_data.get("slice_id") == chart.id
+    assert form_data.get("slice_id") != 999999
+
+
+def test_import_non_derivable_chart_leaves_query_context_null(
+    mocker: MockerFixture, session_with_schema: Session
+) -> None:
+    """
+    FR-003: a non-derivable chart (datasource-less viz) imports with a NULL
+    query_context — no fabricated context, and no crash.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+    config["viz_type"] = "markup"
+    config["params"]["viz_type"] = "markup"
+    config.pop("query_context", None)
+
+    chart = import_chart(config)
+
+    # --- RED anchor: honest-fail leaves NULL, import still succeeds (FR-003) ---
+    assert chart.query_context is None
+
+
 def test_import_tag_logic_for_charts(session_with_schema: Session):
     contents = {
         "tags.yaml": yaml.dump(
