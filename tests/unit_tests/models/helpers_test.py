@@ -23,6 +23,7 @@ import contextlib
 import copy
 import re
 from contextlib import contextmanager
+from datetime import datetime
 from typing import Any, cast, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
@@ -1087,6 +1088,205 @@ def test_get_sqla_query_does_not_mutate_adhoc_orderby_with_jinja(
         "SUM(CASE WHEN a > {{ 1 + 1 }} THEN 1 END)",
         "a>2",
     )
+
+
+@pytest.mark.parametrize(
+    "time_range",
+    ["a : b", "2024-02-01 : 2024-01-01"],
+)
+def test_get_sqla_query_rejects_a_bad_range_in_a_second_temporal_filter(
+    database: Database, time_range: str
+) -> None:
+    """
+    Building the SQL parses every temporal filter, not just the one the query
+    context was built from, so a bad range in any of them is a bad request.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="ds", is_dttm=True, type="TIMESTAMP"),
+            TableColumn(column_name="other_ds", is_dttm=True, type="TIMESTAMP"),
+        ],
+    )
+
+    with pytest.raises(QueryObjectValidationError) as excinfo:
+        table.get_sqla_query(
+            columns=["a"],
+            metrics=[],
+            granularity="ds",
+            is_timeseries=False,
+            row_limit=100,
+            filter=[
+                # The range the query context is built from, which is parsed
+                # and reported on well before this point.
+                {
+                    "col": "ds",
+                    "op": FilterOperator.TEMPORAL_RANGE,
+                    "val": "2024-01-01 : 2024-12-31",
+                },
+                {
+                    "col": "other_ds",
+                    "op": FilterOperator.TEMPORAL_RANGE,
+                    "val": time_range,
+                },
+            ],
+        )
+
+    assert "other_ds" in excinfo.value.message
+
+
+@pytest.mark.parametrize(
+    "filters,message",
+    [
+        pytest.param(
+            [
+                {"col": "ds", "val": "2024-01-01 : 2024-12-31"},
+                {"col": "other_ds", "val": "a : b"},
+            ],
+            "Cannot parse time string [a]",
+            id="unreadable range in the last temporal filter",
+        ),
+        pytest.param(
+            [
+                {"col": "other_ds", "val": "a : b"},
+                {"col": "ds", "val": "2024-01-01 : 2024-12-31"},
+            ],
+            "Cannot parse time string [a]",
+            id="unreadable range in an earlier temporal filter",
+        ),
+        pytest.param(
+            [
+                {"col": "ds", "val": "2024-01-01 : 2024-12-31"},
+                {"col": "other_ds", "val": "2024-02-01 : 2024-01-01"},
+            ],
+            "From date cannot be larger than to date",
+            id="reversed range in the last temporal filter",
+        ),
+    ],
+)
+def test_processing_time_offsets_rejects_a_bad_temporal_range(
+    database: Database, filters: list[dict[str, str]], message: str
+) -> None:
+    """
+    A time comparison parses the temporal filters twice, once to find the
+    enclosing range and once to shift each of them, and neither is covered by
+    the parsing the query context was built from.
+
+    The two ways a range fails arrive as different exceptions, so both have to
+    be caught for the answer to be a 400. A range the parser cannot read raises
+    ``TimeRangeParseFailError``, which is a marshmallow ``ValidationError``; a
+    range whose bounds are the wrong way round raises a bare ``ValueError``.
+    """
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="ds", is_dttm=True, type="TIMESTAMP"),
+            TableColumn(column_name="other_ds", is_dttm=True, type="TIMESTAMP"),
+        ],
+    )
+    query_object = QueryObject(
+        datasource=table,
+        columns=["a"],
+        metrics=[],
+        is_timeseries=False,
+        row_limit=10,
+        time_offsets=["1 week ago"],
+        from_dttm=datetime(2024, 1, 1),
+        to_dttm=datetime(2024, 12, 31),
+        filters=[
+            {"col": flt["col"], "op": FilterOperator.TEMPORAL_RANGE, "val": flt["val"]}
+            for flt in filters
+        ],
+    )
+
+    with pytest.raises(QueryObjectValidationError) as excinfo:
+        # The index column is absent from the frame, which is what sends a
+        # relative offset down the branch that shifts every temporal filter.
+        table.processing_time_offsets(pd.DataFrame({"a": [1, 2]}), query_object)
+
+    assert message in excinfo.value.message
+
+
+@pytest.mark.parametrize(
+    "offset,message",
+    [
+        pytest.param(
+            "2024-01-01:2024-12-31",
+            "Cannot parse time string [2024-01-01:2024-12-31]",
+            id="colon without the surrounding spaces",
+        ),
+        pytest.param(
+            "2024-02-01 : 2024-01-01",
+            "From date cannot be larger than to date",
+            id="reversed bounds",
+        ),
+    ],
+)
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
+def test_processing_time_offsets_rejects_a_bad_date_range_offset(
+    database: Database, offset: str, message: str
+) -> None:
+    """
+    A date-range time offset that cannot be used is a bad request too.
+
+    ``is_valid_date_range`` splits the offset on ``:`` while the range parser
+    wants ``" : "``, so an offset written without the spaces passes the check
+    and is then sent down this branch, where it cannot be read. That failure is
+    a marshmallow ``ValidationError``, which is not a ``ValueError``, while
+    reversed bounds fail as a bare ``ValueError``.
+    """
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="ds", is_dttm=True, type="TIMESTAMP"),
+        ],
+    )
+    query_object = QueryObject(
+        datasource=table,
+        columns=["a"],
+        metrics=[],
+        is_timeseries=False,
+        row_limit=10,
+        time_offsets=[offset],
+        from_dttm=datetime(2024, 1, 1),
+        to_dttm=datetime(2024, 12, 31),
+        filters=[
+            {
+                "col": "ds",
+                "op": FilterOperator.TEMPORAL_RANGE,
+                "val": "2024-01-01 : 2024-12-31",
+            }
+        ],
+    )
+
+    with pytest.raises(QueryObjectValidationError) as excinfo:
+        table.processing_time_offsets(pd.DataFrame({"a": [1, 2]}), query_object)
+
+    assert message in excinfo.value.message
 
 
 def test_cache_key_stable_across_query_build(database: Database) -> None:
