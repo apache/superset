@@ -21,7 +21,6 @@ from contextlib import nullcontext
 from datetime import datetime
 from typing import Any, Callable
 
-import numpy
 import pandas as pd
 import pytest
 from flask import current_app
@@ -169,6 +168,14 @@ def test_get_db_engine_spec(mocker: MockerFixture) -> None:
         PostgresDBEngineSpec,
         OldDBEngineSpec,
     ]
+    # `get_db_engine_spec` is an `lru_cache` keyed on the URL, and the specs
+    # below are only loaded on a miss -- so this test passed only as long as
+    # nothing earlier in the session had resolved a Postgres URL. Any new test
+    # anywhere that builds a `postgresql://` database made it fail, which is a
+    # property of test ordering rather than of the code under test. Cleared
+    # here, and again afterwards so the real specs are not left cached under a
+    # mock's verdict.
+    Database.get_db_engine_spec.cache_clear()
 
     assert (
         Database(database_name="db", sqlalchemy_uri="postgresql://").db_engine_spec
@@ -208,6 +215,11 @@ def test_get_db_engine_spec(mocker: MockerFixture) -> None:
         ).db_engine_spec
         == OldDBEngineSpec
     )
+
+    # The mocked specs above are cached against these URLs now; leaving them
+    # there would answer a later test with a spec defined in this function's
+    # body.
+    Database.get_db_engine_spec.cache_clear()
 
 
 @pytest.mark.parametrize(
@@ -335,6 +347,40 @@ def test_catalog_cache() -> None:
 
     assert database.catalog_cache_enabled
     assert database.catalog_cache_timeout == 10
+    assert not database.schema_cache_enabled
+    assert database.schema_cache_timeout is None
+
+
+@pytest.mark.parametrize("level", ["catalog", "schema", "table"])
+@pytest.mark.parametrize(
+    "stored, expected",
+    [
+        (3600, 3600),
+        (0, 0),
+        ("3600", 3600),
+        ("0", 0),
+        (" 60", 60),
+        ("", None),
+        ("1h", None),
+        (None, None),
+    ],
+)
+def test_metadata_cache_timeout_legacy_values(
+    level: str, stored: object, expected: int | None
+) -> None:
+    """
+    Legacy string timeouts, stored by older database forms, are read as integers;
+    unparseable values fall back to the default timeout.
+    """
+    key = f"{level}_cache_timeout"
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+        extra=json.dumps({"metadata_cache_timeout": {key: stored}}),
+    )
+
+    assert getattr(database, f"{level}_cache_enabled")
+    assert getattr(database, key) == expected
 
 
 def test_get_default_catalog() -> None:
@@ -2402,7 +2448,7 @@ def test_post_process_df_non_zero_based_index() -> None:
     df = pd.DataFrame({"col": [None, [1, 2], [3, 4]]}, dtype=object)
     df = df[df["col"].notna()]  # index is now [1, 2], not [0, 1, 2]
     result = Database.post_process_df(df)
-    assert result["col"].dtype == numpy.object_
+    assert result["col"].dtype == "str"
     assert result["col"].iloc[0] == "[1, 2]"
     assert result["col"].iloc[1] == "[3, 4]"
 

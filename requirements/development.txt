@@ -368,6 +368,7 @@ flask-wtf==1.3.0
 fonttools==4.62.0
     # via
     #   -r requirements/development.in
+    #   apache-superset
     #   matplotlib
 freezegun==1.5.1
     # via apache-superset
@@ -529,9 +530,10 @@ jmespath==1.1.0
     #   boto3
     #   botocore
     #   pymongosql
-joserfc==1.7.3
+joserfc==1.7.7
     # via
     #   -r requirements/development.in
+    #   apache-superset
     #   fastmcp-slim
 jsonpath-ng==1.13.0
     # via
@@ -719,7 +721,7 @@ packaging==25.0
     #   sqlalchemy-bigquery
     #   sqlalchemy-firebird
     #   ydb
-pandas==2.3.3
+pandas==3.0.6
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -945,16 +947,16 @@ python-dotenv==1.2.2
     #   testcontainers
 python-ldap==3.4.8
     # via apache-superset
-python-multipart==0.0.31
+python-multipart==0.0.32
     # via
     #   -r requirements/development.in
+    #   apache-superset
     #   fastmcp-slim
     #   mcp
 pytz==2025.2
     # via
     #   -c requirements/base-constraint.txt
     #   flask-babel
-    #   pandas
     #   trino
 pyxlsb==1.0.10
     # via
@@ -1192,7 +1194,6 @@ tzdata==2025.2
     # via
     #   -c requirements/base-constraint.txt
     #   kombu
-    #   pandas
 tzlocal==5.4.4
     # via
     #   -c requirements/base-constraint.txt

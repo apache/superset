@@ -462,13 +462,20 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
     def metadata_cache_timeout(self) -> dict[str, Any]:
         return self.get_extra().get("metadata_cache_timeout", {})
 
+    def _metadata_cache_timeout_value(self, key: str) -> int | None:
+        """Older database forms stored these timeouts as strings."""
+        try:
+            return int(self.metadata_cache_timeout[key])
+        except (KeyError, TypeError, ValueError):
+            return None
+
     @property
     def catalog_cache_enabled(self) -> bool:
         return "catalog_cache_timeout" in self.metadata_cache_timeout
 
     @property
     def catalog_cache_timeout(self) -> int | None:
-        return self.metadata_cache_timeout.get("catalog_cache_timeout")
+        return self._metadata_cache_timeout_value("catalog_cache_timeout")
 
     @property
     def schema_cache_enabled(self) -> bool:
@@ -476,7 +483,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     @property
     def schema_cache_timeout(self) -> int | None:
-        return self.metadata_cache_timeout.get("schema_cache_timeout")
+        return self._metadata_cache_timeout_value("schema_cache_timeout")
 
     @property
     def table_cache_enabled(self) -> bool:
@@ -484,7 +491,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     @property
     def table_cache_timeout(self) -> int | None:
-        return self.metadata_cache_timeout.get("table_cache_timeout")
+        return self._metadata_cache_timeout_value("table_cache_timeout")
 
     @property
     def default_schemas(self) -> list[str]:
@@ -499,7 +506,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         try:
             engine_information = self.db_engine_spec.get_public_information()
         except Exception:  # pylint: disable=broad-except
-            engine_information = {}
+            return {}
+        try:
+            engine_information["oauth2_enabled"] = self.is_oauth2_enabled()
+        except Exception:  # pylint: disable=broad-except
+            engine_information["oauth2_enabled"] = False
         return engine_information
 
     @classmethod
@@ -1760,6 +1771,7 @@ class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):
     __tablename__ = "database_user_oauth2_tokens"
     __table_args__ = (
         sqla.Index("idx_user_id_database_id", "user_id", "database_id", unique=True),
+        sqla.Index("idx_oauth2_tokens_database_id", "database_id"),
     )
 
     id = Column(Integer, primary_key=True)
