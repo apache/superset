@@ -994,7 +994,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             table_info = get_table_metadata(database, Table(table_name, schema_name))
         except SQLAlchemyError as ex:
             self.incr_stats("error", self.table_metadata_deprecated.__name__)
-            return self.response_422(error_msg_from_exception(ex))
+            return self.response_422("An error occurred while processing the request.")
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
 

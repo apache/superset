@@ -258,10 +258,10 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         except ThemeForbiddenError:
             return self.response_403()
         except SystemThemeInUseError as ex:
-            return self.response_422(message=str(ex))
+            return self.response_422(message="An error occurred while processing the request.")
         except ThemeDeleteFailedError as ex:
             logger.exception("Theme delete failed for ID: %s", pk)
-            return self.response_422(message=str(ex))
+            return self.response_422(message="An error occurred while processing the request.")
 
     @expose("/", methods=("DELETE",))
     @protect()
@@ -323,10 +323,10 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         except ThemeForbiddenError:
             return self.response_403()
         except SystemThemeInUseError as ex:
-            return self.response_422(message=str(ex))
+            return self.response_422(message="An error occurred while processing the request.")
         except ThemeDeleteFailedError as ex:
             logger.exception("Theme delete failed for IDs: %s", item_ids)
-            return self.response_422(message=str(ex))
+            return self.response_422(message="An error occurred while processing the request.")
 
     @expose("/<int:pk>", methods=("PUT",))
     @protect()
@@ -414,7 +414,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except Exception as ex:
             logger.exception("Unexpected error in PUT /theme/%s", pk)
-            return self.response_422(message=str(ex))
+            return self.response_422(message="An error occurred while processing the request.")
 
     @expose("/", methods=("POST",))
     @protect()
@@ -474,7 +474,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except Exception as ex:
             logger.exception("Unexpected error in POST /theme")
-            return self.response_422(message=str(ex))
+            return self.response_422(message="An error occurred while processing the request.")
 
     @expose("/export/", methods=("GET",))
     @protect()
@@ -661,7 +661,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         except ThemeNotFoundError:
             return self.response_404()
         except Exception as ex:
-            return self.response_422(message=str(ex))
+            return self.response_422(message="An error occurred while processing the request.")
 
     @expose("/<int:pk>/set_system_dark", methods=("PUT",))
     @protect()
@@ -728,7 +728,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         except ThemeNotFoundError:
             return self.response_404()
         except Exception as ex:
-            return self.response_422(message=str(ex))
+            return self.response_422(message="An error occurred while processing the request.")
 
     @expose("/unset_system_default", methods=("DELETE",))
     @protect()
@@ -778,7 +778,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             ClearSystemDefaultThemeCommand().run()
             return self.response(200, result="success")
         except Exception as ex:
-            return self.response_422(message=str(ex))
+            return self.response_422(message="An error occurred while processing the request.")
 
     @expose("/unset_system_dark", methods=("DELETE",))
     @protect()
@@ -828,7 +828,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             ClearSystemDarkThemeCommand().run()
             return self.response(200, result="success")
         except Exception as ex:
-            return self.response_422(message=str(ex))
+            return self.response_422(message="An error occurred while processing the request.")
 
     @expose("/system", methods=("GET",))
     @protect()
