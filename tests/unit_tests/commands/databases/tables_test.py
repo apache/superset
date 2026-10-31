@@ -114,13 +114,10 @@ def test_tables_with_catalog(
     get_datasources_accessible_by_user = mocker.patch.object(
         security_manager,
         "get_datasources_accessible_by_user",
-        side_effect=[
-            {
-                DatasourceName("table1", "schema1", "catalog1"),
-                DatasourceName("table2", "schema1", "catalog1"),
-            },
-            {DatasourceName("view1", "schema1", "catalog1")},
-            set(),  # Empty set for materialized views
+        return_value=[
+            DatasourceName("table1", "schema1", "catalog1"),
+            DatasourceName("table2", "schema1", "catalog1"),
+            DatasourceName("view1", "schema1", "catalog1"),
         ],
     )
 
@@ -140,31 +137,15 @@ def test_tables_with_catalog(
         ],
     }
 
-    get_datasources_accessible_by_user.assert_has_calls(
-        [
-            mocker.call(
-                database=database_with_catalog,
-                catalog="catalog1",
-                schema="schema1",
-                datasource_names=[
-                    DatasourceName("table1", "schema1", "catalog1"),
-                    DatasourceName("table2", "schema1", "catalog1"),
-                ],
-            ),
-            mocker.call(
-                database=database_with_catalog,
-                catalog="catalog1",
-                schema="schema1",
-                datasource_names=[
-                    DatasourceName("view1", "schema1", "catalog1"),
-                ],
-            ),
-            mocker.call(
-                database=database_with_catalog,
-                catalog="catalog1",
-                schema="schema1",
-                datasource_names=[],
-            ),
+    # Tables, views and materialized views share one permission check.
+    get_datasources_accessible_by_user.assert_called_once_with(
+        database=database_with_catalog,
+        catalog="catalog1",
+        schema="schema1",
+        datasource_names=[
+            DatasourceName("table1", "schema1", "catalog1"),
+            DatasourceName("table2", "schema1", "catalog1"),
+            DatasourceName("view1", "schema1", "catalog1"),
         ],
     )
 
@@ -212,13 +193,9 @@ def test_tables_without_schema_support(
     get_datasources_accessible_by_user = mocker.patch.object(
         security_manager,
         "get_datasources_accessible_by_user",
-        side_effect=[
-            {
-                DatasourceName("table1", None),  # type: ignore[arg-type]
-                DatasourceName("table2", None),  # type: ignore[arg-type]
-            },
-            set(),  # Empty set for views
-            set(),  # Empty set for materialized views
+        return_value=[
+            DatasourceName("table1", None),  # type: ignore[arg-type]
+            DatasourceName("table2", None),  # type: ignore[arg-type]
         ],
     )
 
@@ -241,7 +218,7 @@ def test_tables_without_schema_support(
     )
 
     # Verify security_manager was called with schema=None
-    get_datasources_accessible_by_user.assert_any_call(
+    get_datasources_accessible_by_user.assert_called_once_with(
         database=database_without_schema_support,
         catalog=None,
         schema=None,
@@ -259,13 +236,10 @@ def test_tables_without_catalog(
     get_datasources_accessible_by_user = mocker.patch.object(
         security_manager,
         "get_datasources_accessible_by_user",
-        side_effect=[
-            {
-                DatasourceName("table1", "schema1"),
-                DatasourceName("table2", "schema1"),
-            },
-            {DatasourceName("view1", "schema1")},
-            set(),  # Empty set for materialized views
+        return_value=[
+            DatasourceName("table1", "schema1"),
+            DatasourceName("table2", "schema1"),
+            DatasourceName("view1", "schema1"),
         ],
     )
 
@@ -285,31 +259,15 @@ def test_tables_without_catalog(
         ],
     }
 
-    get_datasources_accessible_by_user.assert_has_calls(
-        [
-            mocker.call(
-                database=database_without_catalog,
-                catalog=None,
-                schema="schema1",
-                datasource_names=[
-                    DatasourceName("table1", "schema1"),
-                    DatasourceName("table2", "schema1"),
-                ],
-            ),
-            mocker.call(
-                database=database_without_catalog,
-                catalog=None,
-                schema="schema1",
-                datasource_names=[
-                    DatasourceName("view1", "schema1"),
-                ],
-            ),
-            mocker.call(
-                database=database_without_catalog,
-                catalog=None,
-                schema="schema1",
-                datasource_names=[],
-            ),
+    # Tables, views and materialized views share one permission check.
+    get_datasources_accessible_by_user.assert_called_once_with(
+        database=database_without_catalog,
+        catalog=None,
+        schema="schema1",
+        datasource_names=[
+            DatasourceName("table1", "schema1"),
+            DatasourceName("table2", "schema1"),
+            DatasourceName("view1", "schema1"),
         ],
     )
 
@@ -382,7 +340,7 @@ def test_tables_schema_list_uses_catalog_and_force(
     mocker.patch.object(
         security_manager,
         "get_datasources_accessible_by_user",
-        side_effect=[set(), set(), set()],
+        return_value=[],
     )
 
     TablesDatabaseCommand(1, None, "schema1", True).run()
@@ -405,7 +363,7 @@ def test_tables_schema_not_checked_without_schema_support(
     mocker.patch.object(
         security_manager,
         "get_datasources_accessible_by_user",
-        side_effect=[set(), set(), set()],
+        return_value=[],
     )
 
     TablesDatabaseCommand(1, None, "any_schema", False).run()
@@ -425,7 +383,7 @@ def test_tables_schema_list_uses_cache(
     mocker.patch.object(
         security_manager,
         "get_datasources_accessible_by_user",
-        side_effect=[set(), set(), set()],
+        return_value=[],
     )
 
     TablesDatabaseCommand(1, None, "schema1", False).run()
@@ -456,3 +414,33 @@ def test_tables_schema_check_unexpected_error(
         TablesDatabaseCommand(1, None, "schema1", False).run()
 
     database_without_catalog.get_all_table_names_in_schema.assert_not_called()
+
+
+def test_tables_resolve_permissions_once(
+    mocker: MockerFixture,
+    database_without_catalog: MagicMock,
+) -> None:
+    """
+    Tables, views and materialized views are filtered in one permission pass.
+
+    Each pass reads the user's grants from the metadata database, so filtering
+    the lists one by one ran every one of those queries three times. Run the
+    real filter and count the lookups that hit the database.
+    """
+    mocker.patch.object(security_manager, "can_access_database", return_value=False)
+    mocker.patch.object(security_manager, "can_access", return_value=False)
+    user_view_menu_names = mocker.patch.object(
+        security_manager, "user_view_menu_names", return_value=set()
+    )
+    accessible = mocker.MagicMock(table_name="view1", schema="schema1", catalog=None)
+    query_datasources_by_permissions = mocker.patch(
+        "superset.connectors.sqla.models.SqlaTable.query_datasources_by_permissions",
+        return_value=[accessible],
+    )
+
+    payload = TablesDatabaseCommand(1, None, "schema1", False).run()
+
+    assert payload == {"count": 1, "result": [{"value": "view1", "type": "view"}]}
+    # One lookup per permission name, and one datasource query, for all lists.
+    assert user_view_menu_names.call_count == 3
+    query_datasources_by_permissions.assert_called_once()

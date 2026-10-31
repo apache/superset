@@ -56,62 +56,62 @@ class TablesDatabaseCommand(BaseCommand):
     def run(self) -> dict[str, Any]:
         self.validate()
         try:
-            tables = security_manager.get_datasources_accessible_by_user(
-                database=self._model,
-                catalog=self._catalog_name,
-                schema=self._schema_name,
-                datasource_names=sorted(
-                    # get_all_table_names_in_schema may return raw (unserialized) cached
-                    # results, so we wrap them as DatasourceName objects here instead of
-                    # directly in the method to ensure consistency.
-                    DatasourceName(*datasource_name)
-                    for datasource_name in self._model.get_all_table_names_in_schema(
-                        catalog=self._catalog_name,
-                        schema=self._schema_name,
-                        force=self._force,
-                        cache=self._model.table_cache_enabled,
-                        cache_timeout=self._model.table_cache_timeout,
-                    )
-                ),
+            tables = sorted(
+                # get_all_table_names_in_schema may return raw (unserialized) cached
+                # results, so we wrap them as DatasourceName objects here instead of
+                # directly in the method to ensure consistency.
+                DatasourceName(*datasource_name)
+                for datasource_name in self._model.get_all_table_names_in_schema(
+                    catalog=self._catalog_name,
+                    schema=self._schema_name,
+                    force=self._force,
+                    cache=self._model.table_cache_enabled,
+                    cache_timeout=self._model.table_cache_timeout,
+                )
             )
 
-            views = security_manager.get_datasources_accessible_by_user(
-                database=self._model,
-                catalog=self._catalog_name,
-                schema=self._schema_name,
-                datasource_names=sorted(
-                    # get_all_view_names_in_schema may return raw (unserialized) cached
-                    # results, so we wrap them as DatasourceName objects here instead of
-                    # directly in the method to ensure consistency.
-                    DatasourceName(*datasource_name)
-                    for datasource_name in self._model.get_all_view_names_in_schema(
-                        catalog=self._catalog_name,
-                        schema=self._schema_name,
-                        force=self._force,
-                        cache=self._model.table_cache_enabled,
-                        cache_timeout=self._model.table_cache_timeout,
-                    )
-                ),
+            views = sorted(
+                # get_all_view_names_in_schema may return raw (unserialized) cached
+                # results, so we wrap them as DatasourceName objects here instead of
+                # directly in the method to ensure consistency.
+                DatasourceName(*datasource_name)
+                for datasource_name in self._model.get_all_view_names_in_schema(
+                    catalog=self._catalog_name,
+                    schema=self._schema_name,
+                    force=self._force,
+                    cache=self._model.table_cache_enabled,
+                    cache_timeout=self._model.table_cache_timeout,
+                )
             )
 
             # Get materialized views if the database supports them
-            materialized_views = security_manager.get_datasources_accessible_by_user(
-                database=self._model,
-                catalog=self._catalog_name,
-                schema=self._schema_name,
-                datasource_names=sorted(
-                    DatasourceName(table.table, table.schema, table.catalog)
-                    for table in (
-                        self._model.get_all_materialized_view_names_in_schema(
-                            catalog=self._catalog_name,
-                            schema=self._schema_name,
-                            force=self._force,
-                            cache=self._model.table_cache_enabled,
-                            cache_timeout=self._model.table_cache_timeout,
-                        )
+            materialized_views = sorted(
+                DatasourceName(table.table, table.schema, table.catalog)
+                for table in (
+                    self._model.get_all_materialized_view_names_in_schema(
+                        catalog=self._catalog_name,
+                        schema=self._schema_name,
+                        force=self._force,
+                        cache=self._model.table_cache_enabled,
+                        cache_timeout=self._model.table_cache_timeout,
                     )
-                ),
+                )
             )
+
+            # Filter all three lists in one pass: each call resolves the user's
+            # database, catalog, schema and datasource grants afresh, so doing it
+            # per list ran the same permission queries three times.
+            accessible = set(
+                security_manager.get_datasources_accessible_by_user(
+                    database=self._model,
+                    catalog=self._catalog_name,
+                    schema=self._schema_name,
+                    datasource_names=[*tables, *views, *materialized_views],
+                )
+            )
+            tables = [table for table in tables if table in accessible]
+            views = [view for view in views if view in accessible]
+            materialized_views = [mv for mv in materialized_views if mv in accessible]
 
             extra_dict_by_name = {
                 table.name: table.extra_dict
