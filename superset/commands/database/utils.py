@@ -89,6 +89,25 @@ def engine_params_changed(
     return _engine_params(submitted_extra) != _engine_params(existing_extra)
 
 
+def import_connection_identity_changed(
+    existing: Database, config: dict[str, Any]
+) -> bool:
+    """Whether an import config points ``existing`` at a different endpoint."""
+    if uri_identity_changed(existing.sqlalchemy_uri, config.get("sqlalchemy_uri")):
+        return True
+
+    # The URI's host/port aren't the whole story: `extra.engine_params`
+    # (e.g. `connect_args.host`/`port`) is merged into the actual DBAPI
+    # connect kwargs and can override them. An import that opens a live
+    # connection (`add_permissions` -> `get_all_catalog_names`) with a
+    # rehydrated stored password must not do so against a destination this
+    # field silently redirected.
+    submitted_extra = config.get("extra")
+    if isinstance(submitted_extra, dict):
+        submitted_extra = json.dumps(submitted_extra)
+    return engine_params_changed(existing.extra, submitted_extra)
+
+
 def ssh_tunnel_endpoint_changed(
     existing_tunnel: SSHTunnel | None, submitted_tunnel: dict[str, Any] | None
 ) -> bool:

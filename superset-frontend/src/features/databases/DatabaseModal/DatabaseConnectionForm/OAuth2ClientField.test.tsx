@@ -197,6 +197,25 @@ describe('OAuth2ClientField', () => {
     expect(queryByText('OAuth2 client information')).not.toBeInTheDocument();
   });
 
+  test('renders for snowflake', () => {
+    const props = {
+      ...defaultProps,
+      db: {
+        ...defaultProps.db,
+        engine: 'snowflake',
+      },
+    };
+
+    const { getByText, getByTestId } = render(<OAuth2ClientField {...props} />);
+
+    // The only early return in this component is the gsheets one, so Snowflake
+    // renders as soon as its parameters schema advertises oauth2_client_info.
+    fireEvent.click(getByText('OAuth2 client information'));
+
+    expect(getByTestId('client-id')).toHaveValue('test-id');
+    expect(getByTestId('client-secret')).toHaveValue('test-secret');
+  });
+
   test('renders normally when engine is gsheets but isPublic is false', () => {
     const props = {
       ...defaultProps,
@@ -245,6 +264,99 @@ describe('OAuth2ClientField', () => {
     expect(getByTestId('client-id')).toHaveValue('');
     expect(getByTestId('client-secret')).toHaveValue('');
   });
+
+  test('prefers an in-flight client over the stored blob', () => {
+    // After a switch to the SQLAlchemy URI form and back, this field re-mounts
+    // while the typed client still sits in `parameters.oauth2_client_info`.
+    // Seeding from `masked_encrypted_extra` alone would show empty inputs for
+    // a client the save payload would nonetheless carry.
+    const props = {
+      ...defaultProps,
+      db: {
+        ...defaultProps.db,
+        parameters: {
+          oauth2_client_info: { id: 'typed-id', secret: 'typed-secret' },
+        },
+      } as DatabaseObject,
+    };
+
+    const { getByText, getByTestId } = render(<OAuth2ClientField {...props} />);
+    fireEvent.click(getByText('OAuth2 client information'));
+
+    expect(getByTestId('client-id')).toHaveValue('typed-id');
+    expect(getByTestId('client-secret')).toHaveValue('typed-secret');
+  });
+
+  test('reads an in-flight client that a save attempt has stringified', () => {
+    // `onSave` re-serializes every `x-encrypted-extra` parameter in place, so
+    // a second pass through this field sees a JSON string where the first saw
+    // an object.
+    const props = {
+      ...defaultProps,
+      db: {
+        ...defaultProps.db,
+        parameters: {
+          oauth2_client_info: JSON.stringify({ id: 'stringified-id' }),
+        } as unknown as DatabaseObject['parameters'],
+      } as DatabaseObject,
+    };
+
+    const { getByText, getByTestId } = render(<OAuth2ClientField {...props} />);
+    fireEvent.click(getByText('OAuth2 client information'));
+
+    expect(getByTestId('client-id')).toHaveValue('stringified-id');
+  });
+
+  test.each([
+    ['authorization_request_uri', 'client-authorization-request-uri'],
+    ['token_request_uri', 'client-token-request-uri'],
+    ['scope', 'client-scope'],
+  ])(
+    'keeps an explicitly cleared %s empty after a parent update',
+    (field, id) => {
+      const defaults = {
+        authorization_request_uri: 'https://accounts.google.com/o/oauth2/auth',
+        token_request_uri: 'https://oauth2.googleapis.com/token',
+        scope: 'https://www.googleapis.com/auth/spreadsheets',
+      };
+      const props = {
+        ...defaultProps,
+        default_value: defaults,
+        isPublic: false,
+        db: {
+          ...defaultProps.db,
+          engine: 'gsheets',
+          masked_encrypted_extra: '{}',
+        },
+      };
+      const { getByTestId, getByText, rerender } = render(
+        <OAuth2ClientField {...props} />,
+      );
+      fireEvent.click(getByText('OAuth2 client information'));
+      expect(getByTestId(id)).not.toHaveValue('');
+
+      fireEvent.change(getByTestId(id), { target: { value: '' } });
+      const submittedInfo = { id: '', secret: '', ...defaults, [field]: '' };
+      expect(mockChangeMethods.onParametersChange).toHaveBeenLastCalledWith({
+        target: {
+          type: 'object',
+          name: 'oauth2_client_info',
+          value: submittedInfo,
+        },
+      });
+
+      rerender(
+        <OAuth2ClientField
+          {...props}
+          db={{
+            ...props.db,
+            parameters: { oauth2_client_info: submittedInfo },
+          }}
+        />,
+      );
+      expect(getByTestId(id)).toHaveValue('');
+    },
+  );
 
   test.each([
     ['the literal string "null"', 'null'],

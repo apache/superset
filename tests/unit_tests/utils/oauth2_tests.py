@@ -40,6 +40,7 @@ from superset.exceptions import (
     OAuth2RedirectError,
     OAuth2TokenRefreshError,
 )
+from superset.security.guest_token import GuestToken, GuestUser
 from superset.superset_typing import OAuth2ClientConfig
 from superset.utils.oauth2 import (
     check_for_oauth2,
@@ -55,6 +56,7 @@ from superset.utils.oauth2 import (
     OAUTH2_LOCK_BACKOFF_MAX_TRIES,
     refresh_oauth2_token,
 )
+from tests.unit_tests.conftest import with_feature_flags
 
 DUMMY_OAUTH2_CONFIG = cast(OAuth2ClientConfig, {})
 
@@ -1097,3 +1099,89 @@ def test_execute_with_oauth2_retry_survives_lock_contention(
 
     assert lock.call_count == OAUTH2_LOCK_BACKOFF_MAX_TRIES
     db.session.query().filter_by().one_or_none.assert_called()
+
+
+def _guest_user() -> GuestUser:
+    """
+    Build an embedded guest principal, the way the guest-token loader would.
+    """
+    token: GuestToken = {
+        "user": {"username": "guest_user"},
+        "resources": [],
+        "rls_rules": [],
+        "iat": 0,
+        "exp": 1,
+    }
+    return GuestUser(token=token, roles=[])
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True)
+def test_check_for_oauth2_starts_the_dance_for_a_logged_in_user(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that `check_for_oauth2` still starts the dance for a real user.
+    """
+    mocker.patch("superset.utils.oauth2.g").user = mocker.MagicMock(
+        spec=["id", "username"]
+    )
+
+    database = mocker.MagicMock()
+    database.is_oauth2_enabled.return_value = True
+
+    with pytest.raises(OAuth2TokenRefreshError):
+        with check_for_oauth2(database):
+            raise OAuth2TokenRefreshError()
+
+    database.db_engine_spec.start_oauth2_dance.assert_called_once_with(database)
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True)
+def test_check_for_oauth2_skips_the_dance_for_an_embedded_guest(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that an embedded guest does not trigger the dance from `check_for_oauth2`.
+
+    The `OAuth2TokenRefreshError` arm of the condition reaches the dance without
+    consulting `needs_oauth2`, so the guest check has to be repeated here. Without it
+    an embedded viewer reaches `start_oauth2_dance`, which needs a user id the guest
+    token does not carry.
+    """
+    mocker.patch("superset.utils.oauth2.g").user = _guest_user()
+
+    database = mocker.MagicMock()
+    database.is_oauth2_enabled.return_value = True
+
+    with pytest.raises(OAuth2TokenRefreshError):
+        with check_for_oauth2(database):
+            raise OAuth2TokenRefreshError()
+
+    database.db_engine_spec.start_oauth2_dance.assert_not_called()
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True)
+def test_execute_with_oauth2_retry_skips_the_dance_for_an_embedded_guest(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a guest gets the driver's error out of `execute_with_oauth2_retry`.
+
+    This passes on the strength of the `needs_oauth2` guard alone -- every arm of the
+    retry sits behind `is_oauth2_error`. It is here to pin that ordering, which is
+    easy to lose in a refactor of the surrounding branches.
+    """
+    mocker.patch("superset.utils.oauth2.g").user = _guest_user()
+    mocker.patch("superset.utils.oauth2.db")
+
+    database = mocker.MagicMock()
+    database.is_oauth2_enabled.return_value = True
+    database.db_engine_spec.needs_oauth2.return_value = False
+
+    def operation() -> None:
+        raise OAuth2TokenRefreshError()
+
+    with pytest.raises(OAuth2TokenRefreshError):
+        execute_with_oauth2_retry(database, operation)
+
+    database.start_oauth2_dance.assert_not_called()

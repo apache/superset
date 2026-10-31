@@ -20,18 +20,22 @@ from typing import Any
 
 from flask import current_app as app
 
-from superset import db, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.commands.database.utils import (
     add_permissions,
-    engine_params_changed,
+    import_connection_identity_changed,
     ssh_tunnel_rebind_unsafe,
-    uri_identity_changed,
 )
-from superset.commands.exceptions import ImportFailedError
-from superset.constants import PASSWORD_MASK
+from superset.commands.exceptions import ImportFailedError, ImportRefusedError
+from superset.constants import EMBEDDED_CREDENTIALS_KEY, PASSWORD_MASK
 from superset.databases.ssh_tunnel.models import SSHTunnel
-from superset.databases.utils import make_url_safe
+from superset.databases.utils import (
+    embedded_credentials_incomplete,
+    embedded_credentials_missing_fields,
+    make_url_safe,
+)
+from superset.db_engine_specs import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIError
 from superset.exceptions import (
     OAuth2RedirectError,
@@ -44,23 +48,6 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-def _connection_identity_changed(existing: Database, config: dict[str, Any]) -> bool:
-    """Whether the import points the database at a different endpoint."""
-    if uri_identity_changed(existing.sqlalchemy_uri, config.get("sqlalchemy_uri")):
-        return True
-
-    # The URI's host/port aren't the whole story: `extra.engine_params`
-    # (e.g. `connect_args.host`/`port`) is merged into the actual DBAPI
-    # connect kwargs and can override them. An import that opens a live
-    # connection (`add_permissions` -> `get_all_catalog_names`) with a
-    # rehydrated stored password must not do so against a destination this
-    # field silently redirected.
-    submitted_extra = config.get("extra")
-    if isinstance(submitted_extra, dict):
-        submitted_extra = json.dumps(submitted_extra)
-    return engine_params_changed(existing.extra, submitted_extra)
-
-
 def _refuse_stored_secret_reuse(existing: Database, config: dict[str, Any]) -> None:
     """
     Refuse an overwrite that changes the connection endpoint without fresh
@@ -71,7 +58,7 @@ def _refuse_stored_secret_reuse(existing: Database, config: dict[str, Any]) -> N
     host while the stored password (or SSH tunnel key) is silently kept: the
     next connection would hand the real credential to the new endpoint.
     """
-    if _connection_identity_changed(existing, config):
+    if import_connection_identity_changed(existing, config):
         try:
             uri_password = make_url_safe(config["sqlalchemy_uri"]).password
         except DatabaseInvalidError:
@@ -94,6 +81,46 @@ def _refuse_stored_secret_reuse(existing: Database, config: dict[str, Any]) -> N
             "credentials. Re-enter the SSH tunnel credentials to "
             "confirm the change."
         )
+
+
+def _refuse_incomplete_embedded_credentials(
+    database_name: str,
+    encrypted_extra: dict[str, Any],
+    engine_spec: type[BaseEngineSpec],
+) -> None:
+    """
+    Refuse a half-filled embedded guest credential, as the dialog and API do.
+
+    Only the secrets that arrive masked are revealed from the stored credential,
+    so one the file leaves out entirely (e.g. a key-pair credential without its
+    private key) would replace the stored credential with one no embedded
+    viewer can log in with.
+    """
+    if not (
+        is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK")
+        and is_feature_enabled("EMBEDDED_SUPERSET")
+    ):
+        return
+
+    credentials = encrypted_extra.get(EMBEDDED_CREDENTIALS_KEY)
+    if not embedded_credentials_incomplete(
+        credentials, engine_spec.validate_embedded_credentials
+    ):
+        return
+
+    sensitive_fields = engine_spec.encrypted_extra_sensitive_fields
+    labels = sensitive_fields if isinstance(sensitive_fields, dict) else {}
+    missing = [
+        field + (f" ({labels[field]})" if field in labels else "")
+        for field in embedded_credentials_missing_fields(credentials)
+    ]
+    raise ImportRefusedError(
+        f"Embedded guest credentials of database '{database_name}' are invalid "
+        "or incomplete."
+        + (f" Missing: {', '.join(missing)}." if missing else "")
+        + " Provide all required fields or clear them to leave embedded viewers "
+        "unconfigured."
+    )
 
 
 def _sync_permissions_best_effort(database: Database) -> None:
@@ -174,7 +201,7 @@ def import_database(  # noqa: C901
         if (
             existing
             and existing.encrypted_extra
-            and not _connection_identity_changed(existing, config)
+            and not import_connection_identity_changed(existing, config)
         ):
             old_config = json.loads(existing.encrypted_extra)
             new_config = json.loads(masked_encrypted_extra)
@@ -189,6 +216,32 @@ def import_database(  # noqa: C901
             config["encrypted_extra"] = json.dumps(revealed)
         else:
             config["encrypted_extra"] = masked_encrypted_extra
+
+    if encrypted_extra := config.get("encrypted_extra"):
+        engine_spec = (
+            existing.db_engine_spec
+            if existing
+            else Database.get_db_engine_spec(make_url_safe(config["sqlalchemy_uri"]))
+        )
+        payload = json.loads(encrypted_extra)
+
+        # Never store a mask as if it were the secret: the schema asks for any
+        # value that cannot be revealed, so one left here is a bug, not input.
+        if masked_encrypted_extra and (
+            still_masked := json.get_masked_fields(
+                payload,
+                engine_spec.encrypted_extra_sensitive_field_paths(),
+            )
+        ):
+            raise ImportFailedError(
+                "Must provide value for masked_encrypted_extra field: "
+                + ", ".join(still_masked)
+            )
+
+        if isinstance(payload, dict):
+            _refuse_incomplete_embedded_credentials(
+                config["database_name"], payload, engine_spec
+            )
 
     ssh_tunnel_config = config.pop("ssh_tunnel", None)
 

@@ -135,6 +135,9 @@ def test_contribution_totals_round_trip_preserves_cache_key(
     datasource.changed_on = None
     datasource.get_extra_cache_keys.return_value = []
     datasource.database.extra = "{}"
+    datasource.database.get_embedded_fallback_credentials.return_value = None
+    datasource.database.embedded_fallback_applies.return_value = False
+    datasource.database.embedded_guest_missing_oauth2_client.return_value = False
     datasource.database.impersonate_user = False
     datasource.database.db_engine_spec.get_impersonation_key.return_value = None
     mocker.patch(

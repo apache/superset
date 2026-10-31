@@ -445,3 +445,28 @@ def test_get_query_handles_parsing_error_with_null_sql_value() -> None:
         assert "query" not in result
         assert result["error"] == "Parsing error occurred"
         assert result["language"] == "sql"
+
+
+def test_database_error_while_building_the_query_is_a_failed_query() -> None:
+    """
+    A connection failure while the query is being built -- a virtual dataset's
+    default-schema lookup connects -- is reported as a failed query (a 400),
+    not left to escape as an unexpected server error (an HTML 500).
+    """
+    from sqlalchemy.exc import OperationalError
+
+    mock_query_context = Mock(spec=QueryContext)
+    mock_query_context.result_type = ChartDataResultType.FULL
+    mock_query_context.get_payload.side_effect = OperationalError(
+        "connect", {}, Exception("Incorrect username or password was specified.")
+    )
+    database = Mock()
+    database.db_engine_spec.extract_error_message.return_value = (
+        "Incorrect username or password was specified."
+    )
+    mock_query_context.datasource = Mock(database=database)
+
+    with pytest.raises(ChartDataQueryFailedError) as excinfo:
+        ChartDataCommand(mock_query_context).run()
+
+    assert "Incorrect username or password" in excinfo.value.message

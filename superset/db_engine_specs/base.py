@@ -63,13 +63,19 @@ from sqlalchemy.sql.expression import (
 )
 from sqlalchemy.types import TypeEngine
 
-from superset import db
+from superset import db, is_feature_enabled
 from superset.constants import (
+    EMBEDDED_CREDENTIALS_KEY,
     EPOCH_FORMATS,
     QUERY_CANCEL_KEY,
     TimeGrain as TimeGrainConstants,
 )
-from superset.databases.utils import get_table_metadata, make_url_safe
+from superset.databases.types import encrypted_field_properties
+from superset.databases.utils import (
+    get_table_metadata,
+    make_url_safe,
+    validated_embedded_credentials,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2Error,
@@ -786,6 +792,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Does the engine supports OAuth 2.0? This requires logic to be added to one of the
     # the user impersonation methods to handle personal tokens.
     supports_oauth2 = False
+
+    # Can a connection on this engine carry a username/password used only for embedded
+    # guest requests? Opting in requires the engine's impersonation to be a no-op for
+    # the fallback path, so that the stored credential -- rather than a per-user OAuth2
+    # token the guest does not have -- authenticates the connection.
+    supports_embedded_credential_fallback = False
     oauth2_scope = ""
     oauth2_authorization_request_uri: str | None = None  # pylint: disable=invalid-name
     oauth2_token_request_uri: str | None = None
@@ -861,14 +873,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Returns a set of JSONPath expressions for fields that should be masked
         in the ``masked_encrypted_extra`` JSON.
 
-        The OAuth2 client secret is always included, since
-        ``Database.get_oauth2_config`` reads ``oauth2_client_info`` from the
-        ``encrypted_extra`` of any database regardless of its engine, so engine
-        specs that override ``encrypted_extra_sensitive_fields`` cannot
-        accidentally expose it.
+        The OAuth2 client secret and the embedded fallback credential's secrets are
+        always included: ``Database`` reads both blocks from the ``encrypted_extra``
+        of any database regardless of its engine, so engine specs that override
+        ``encrypted_extra_sensitive_fields`` cannot accidentally expose them.
         """
         return set(cls.encrypted_extra_sensitive_fields) | {
-            "$.oauth2_client_info.secret"
+            "$.oauth2_client_info.secret",
+            f"$.{EMBEDDED_CREDENTIALS_KEY}.password",
+            f"$.{EMBEDDED_CREDENTIALS_KEY}.privatekey_body",
+            f"$.{EMBEDDED_CREDENTIALS_KEY}.privatekey_pass",
         }
 
     @classmethod
@@ -913,6 +927,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         # Prevent circular import.
         from superset.daos.key_value import KeyValueDAO
 
+        # Every caller is expected to have gone through `needs_oauth2`, which refuses
+        # the dance for principals that cannot complete it. This is the backstop: the
+        # state below needs a user id, and an embedded `GuestUser` has none, so without
+        # it a caller that skipped the check gets an `AttributeError` and a 500 rather
+        # than something a reader can act on.
+        user_id = getattr(getattr(g, "user", None), "id", None)
+        if user_id is None:
+            raise OAuth2Error(
+                "OAuth2 requires an authenticated user with an id; "
+                "the current principal has none"
+            )
+
         tab_id = str(uuid4())
         default_redirect_uri = get_oauth2_redirect_uri()
 
@@ -940,7 +966,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         state: OAuth2State = {
             # Database ID and user ID are the primary key associated with the token.
             "database_id": database.id,
-            "user_id": g.user.id,
+            "user_id": user_id,
             # In multi-instance deployments there might be a single proxy handling
             # redirects, with a custom `DATABASE_OAUTH2_REDIRECT_URI`. Since the OAuth2
             # application requires every redirect URL to be registered a priori, this
@@ -2612,6 +2638,67 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return url, engine_kwargs
 
     @classmethod
+    def validate_embedded_credentials(cls, credentials: Any) -> dict[str, str] | None:
+        """
+        Return a complete embedded fallback credential, or ``None``.
+
+        Called by ``Database.get_embedded_fallback_credentials`` once its gate has
+        decided the request is one the fallback governs. The canonical shape is
+        ``{username, password}`` or ``{username, auth_method: "keypair",
+        privatekey_body, privatekey_pass}``; an engine whose driver needs a
+        different shape overrides this. The database API and parameter-validation
+        command use the same hook when checking credentials before saving.
+        """
+        return validated_embedded_credentials(credentials)
+
+    @classmethod
+    def apply_embedded_credentials(
+        cls,
+        database: Database,  # pylint: disable=unused-argument
+        credentials: dict[str, str],
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        """
+        Apply an embedded fallback credential to the connection.
+
+        Called *instead of* :meth:`impersonate_user`, not alongside it -- see the
+        comment in ``Database._get_sqla_engine`` for why skipping impersonation is
+        load-bearing twice over.
+
+        The identity is replaced on the URL rather than added to ``connect_args``
+        because the per-process engine cache is keyed on the rendered URL and the
+        engine kwargs: putting it on the URL is what keeps a guest engine and a
+        logged-in user's engine on separate entries. ``URL.create`` rather than
+        ``URL.set`` so that the base credential is *replaced* -- ``set`` ignores
+        ``password=None``, which would leave a key-pair credential carrying the
+        connection's own password.
+        """
+        url = URL.create(
+            drivername=url.drivername,
+            username=credentials["username"],
+            password=credentials.get("password"),
+            host=url.host,
+            port=url.port,
+            database=url.database,
+            query=url.query,
+        )
+        return url, engine_kwargs
+
+    @classmethod
+    def get_embedded_credential_cache_key(cls, credentials: dict[str, str]) -> str:
+        """
+        Cache-key material for results produced under an embedded fallback credential.
+
+        Keyed on the configured identity rather than on the requesting principal: a
+        ``GuestUser`` carries whatever username the guest token claims, and whoever
+        mints the token must not get to choose which cache entry they read. All
+        guests on one connection legitimately share an entry -- they do run as one
+        database user -- and guest-token RLS already separates them.
+        """
+        return f"embedded:{credentials['username']}"
+
+    @classmethod
     @deprecated(deprecated_in="6.0.0")
     def get_url_for_impersonation(
         cls,
@@ -2690,7 +2777,23 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Check if the exception is one that indicates OAuth2 is needed.
         """
-        return g and hasattr(g, "user") and isinstance(ex, cls.oauth2_exception)
+        # The cheap type check comes first so that the common case -- an error that
+        # has nothing to do with OAuth2 -- never reaches the import or the feature
+        # flag lookup below.
+        if not isinstance(ex, cls.oauth2_exception):
+            return False
+
+        if not (g and hasattr(g, "user")):
+            return False
+
+        # Prevent circular import.
+        from superset import security_manager
+
+        # An embedded viewer authenticates with a guest token rather than a Superset
+        # account, so there is no per-user token to resolve for them and no route by
+        # which they could authorize one. Starting the dance would raise instead of
+        # helping; let the driver's own error reach the user.
+        return not security_manager.is_guest_user(g.user)
 
     @classmethod
     def make_label_compatible(cls, label: str) -> str | quoted_name:
@@ -2926,6 +3029,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return
         try:
             encrypted_extra = json.loads(database.encrypted_extra)
+            # The embedded fallback credential is read by `Database._get_sqla_engine`,
+            # not by any driver. Splatting it in here would make it a `create_engine`
+            # kwarg and raise `TypeError` on every engine that inherits this method, so
+            # it is dropped regardless of whether the engine opted into the feature.
+            encrypted_extra.pop(EMBEDDED_CREDENTIALS_KEY, None)
             params.update(encrypted_extra)
         except json.JSONDecodeError as ex:
             logger.error(ex, exc_info=True)
@@ -3521,14 +3629,83 @@ class BasicParametersMixin:
         """
         Return configuration parameters as OpenAPI.
         """
-        if not cls.parameters_schema:
-            return None
+        return build_parameters_json_schema(cast("type[BaseEngineSpec]", cls))
 
-        spec = APISpec(
-            title="Database Parameters",
-            version="1.0.0",
-            openapi_version="3.0.2",
-            plugins=[MarshmallowPlugin()],
-        )
-        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
-        return spec.to_dict()["components"]["schemas"][cls.__name__]
+
+def build_parameters_json_schema(engine_spec: type[BaseEngineSpec]) -> Any:
+    """
+    Return a DB engine spec's configuration parameters as OpenAPI.
+
+    A module-level function rather than a method so that it is reachable both from
+    ``BasicParametersMixin``, which most dynamic-parameter engines inherit, and from
+    a spec that cannot mix that in because its ``build_sqlalchemy_uri`` takes a
+    narrower parameters type. Before this existed each such spec carried a
+    near-verbatim copy, and the copies drifted.
+    """
+    # `parameters_schema` is deliberately absent from `BaseEngineSpec` -- its presence
+    # is what `ValidateDatabaseParametersCommand` tests to tell a dynamic-parameters
+    # engine from a URI-only one -- so it is read defensively rather than declared.
+    parameters_schema = getattr(engine_spec, "parameters_schema", None)
+    if not parameters_schema:
+        return None
+
+    ma_plugin = MarshmallowPlugin()
+    spec = APISpec(
+        title="Database Parameters",
+        version="1.0.0",
+        openapi_version="3.0.2",
+        plugins=[ma_plugin],
+    )
+
+    # `APISpec` has already run `init_spec` for the plugin passed above, so the
+    # converter exists by now. This is what tags `EncryptedField` parameters with
+    # `x-encrypted-extra`, which is the signal the connection dialog uses both to
+    # render the field and to move its value into `masked_encrypted_extra` rather
+    # than posting it as a plain parameter.
+    ma_plugin.converter.add_attribute_function(encrypted_field_properties)
+
+    spec.components.schema(engine_spec.__name__, schema=parameters_schema)
+    schema = spec.to_dict()["components"]["schemas"][engine_spec.__name__]
+    _apply_embedded_credentials_schema(engine_spec, schema)
+    return schema
+
+
+def _apply_embedded_credentials_schema(
+    engine_spec: type[BaseEngineSpec],
+    schema: dict[str, Any],
+) -> None:
+    """
+    Gate and annotate the embedded fallback credential parameter, in place.
+
+    This payload is the sole source of the fields the connection dialog renders, so
+    dropping the property is all it takes to hide the sub-form -- no feature-flag
+    plumbing is needed on the frontend. Note that this only stops the credential
+    being *offered*: one already stored is left untouched, so turning the flag off is
+    reversible rather than destructive.
+
+    Lives here rather than in each opted-in engine so that a second engine's opt-in
+    is a schema field and a class attribute, not a copied override.
+    """
+    properties = schema.get("properties")
+    if not isinstance(properties, dict) or EMBEDDED_CREDENTIALS_KEY not in properties:
+        return
+
+    # Both flags are required because `Database.embedded_fallback_applies` requires
+    # both: without `EMBEDDED_SUPERSET` there are no guests for the credential to
+    # apply to, so offering the field would save a setting the gate then ignores.
+    if not (
+        is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK")
+        and is_feature_enabled("EMBEDDED_SUPERSET")
+    ):
+        properties.pop(EMBEDDED_CREDENTIALS_KEY, None)
+        return
+
+    # Not a default *value* for the field. A property's `default` is the only channel
+    # the connection dialog plumbs through to a field component (as `default_value`),
+    # and whether a deployment-wide OAuth2 client exists -- `DATABASE_OAUTH2_CLIENTS`,
+    # the second half of `Database.is_oauth2_enabled` -- is knowable only here. The
+    # per-connection half is live form state, so the field reads that itself and shows
+    # the sub-form when either holds.
+    properties[EMBEDDED_CREDENTIALS_KEY]["default"] = {
+        "engine_oauth2_client_configured": engine_spec.is_oauth2_enabled(),
+    }
