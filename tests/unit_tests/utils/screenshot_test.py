@@ -31,6 +31,7 @@ from superset.utils.screenshots import (
     ScreenshotCacheError,
     ScreenshotCachePayload,
     ScreenshotCachePayloadType,
+    StatusValues,
 )
 from superset.utils.webdriver import WebDriverPlaywright, WebDriverProxy
 
@@ -250,6 +251,74 @@ def test_explicit_cache_write_rejection_raises(monkeypatch: pytest.MonkeyPatch) 
         BaseScreenshot.store_cache_payload("key", ScreenshotCachePayload())
 
 
+@pytest.mark.parametrize(
+    ("scope", "prior_image", "reject_retained_error", "expected_image"),
+    [
+        pytest.param("dashboard:5", FAKE_PNG_BYTES, False, FAKE_PNG_BYTES, id="retain"),
+        pytest.param(
+            "dashboard:5", FAKE_PNG_BYTES, True, None, id="small-error-fallback"
+        ),
+        pytest.param("dashboard:7", FAKE_PNG_BYTES, False, None, id="other-scope"),
+        pytest.param(None, FAKE_PNG_BYTES, False, None, id="missing-scope"),
+        pytest.param("dashboard:5", b"invalid", False, None, id="invalid-image"),
+        pytest.param("dashboard:5", None, False, None, id="no-image"),
+    ],
+)
+def test_rejected_refresh_write_preserves_only_valid_same_scope_image(
+    monkeypatch: pytest.MonkeyPatch,
+    scope: str | None,
+    prior_image: bytes | None,
+    reject_retained_error: bool,
+    expected_image: bytes | None,
+) -> None:
+    """A rejected replacement keeps the last-good capture when it can be stored."""
+    carried = ScreenshotCachePayload(scope=scope)
+    carried.retain_image(prior_image)
+    values = {"generation": carried.to_dict()}
+    rejection = RuntimeError("replacement exceeds maximum item size")
+
+    def store(key: str, value: ScreenshotCachePayloadType) -> bool:
+        """Reject the new image and optionally its retained-image fallback."""
+        if value["status"] == "Updated":
+            raise rejection
+        if reject_retained_error and value["status"] == "Error" and value["image"]:
+            return False
+        values[key] = value
+        return True
+
+    cache = MagicMock()
+    cache.get.side_effect = values.get
+    cache.set.side_effect = store
+    monkeypatch.setattr(BaseScreenshot, "cache", cache)
+    screenshot = DashboardScreenshot(
+        "http://example.com", "digest", require_complete_capture=True
+    )
+    screenshot.cache_scope = "dashboard:5"
+
+    with (
+        patch("superset.utils.screenshots.DistributedLock"),
+        patch.object(
+            screenshot, "get_screenshot", return_value=FAKE_PNG_BYTES + b"new"
+        ),
+        pytest.raises(ScreenshotCacheError) as error,
+    ):
+        screenshot.compute_and_cache(
+            force=False,
+            cache_key="generation",
+            window_size=(800, 600),
+            thumb_size=(800, 600),
+        )
+
+    assert error.value.__cause__ is rejection
+    result = ScreenshotCachePayload.from_dict(values["generation"])
+    assert result.status == StatusValues.ERROR
+    assert result.get_scope() == "dashboard:5"
+    if expected_image is None:
+        assert result.to_dict()["image"] is None
+    else:
+        assert result.get_image().read() == expected_image
+
+
 def test_mark_cache_error_if_incomplete_does_not_clobber_success(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -279,6 +348,57 @@ def test_mark_cache_error_if_incomplete_persists_small_error(
     stored_payload = cache.set.call_args.args[1]
     assert stored_payload["status"] == "Error"
     assert stored_payload["image"] is None
+
+
+def test_mark_cache_error_if_incomplete_preserves_matching_scope_image(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A non-UPDATED entry carrying a valid image rendered for this same object
+    (e.g. a staleness-refresh successor whose broker publication then failed)
+    must be marked Error without dropping the image, so image_url keeps serving
+    the last-good capture through the error backoff instead of 404ing."""
+    carried = ScreenshotCachePayload(scope="dashboard:5")
+    carried.pending()
+    carried.retain_image(FAKE_PNG_BYTES)
+    cache = MagicMock()
+    cache.get.return_value = carried.to_dict()
+    monkeypatch.setattr(BaseScreenshot, "cache", cache)
+
+    with patch("superset.utils.screenshots.DistributedLock"):
+        BaseScreenshot.mark_cache_error_if_incomplete("key", "dashboard:5")
+
+    stored_payload = cache.set.call_args.args[1]
+    assert stored_payload["status"] == "Error"
+    assert stored_payload["image"] is not None
+    assert stored_payload["scope"] == "dashboard:5"
+
+
+def test_mark_cache_error_if_incomplete_drops_mismatched_scope_image(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bytes rendered for a different object must never survive a rebind to this
+    scope: a mismatched-scope image is dropped (it would otherwise be servable
+    under this object's authorized URL).
+
+    This pins the security invariant (cross-scope bytes never survive), not the
+    retention conditional itself -- the prior unconditional ``discard_image=True``
+    also dropped them, so this test alone does not fail if the conditional is
+    reverted. Its sibling ``..._preserves_matching_scope_image`` is the revert
+    guard for the conditional."""
+    other = ScreenshotCachePayload(scope="dashboard:1")
+    other.pending()
+    other.retain_image(FAKE_PNG_BYTES)
+    cache = MagicMock()
+    cache.get.return_value = other.to_dict()
+    monkeypatch.setattr(BaseScreenshot, "cache", cache)
+
+    with patch("superset.utils.screenshots.DistributedLock"):
+        BaseScreenshot.mark_cache_error_if_incomplete("key", "dashboard:5")
+
+    stored_payload = cache.set.call_args.args[1]
+    assert stored_payload["status"] == "Error"
+    assert stored_payload["image"] is None
+    assert stored_payload["scope"] == "dashboard:5"
 
 
 def test_mark_cache_error_if_incomplete_does_not_write_after_read_failure(
@@ -525,6 +645,59 @@ class TestComputeAndCache:
         cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
         assert cache_payload["image"] != b"initial_value"
         assert cache_payload["scope"] == "dashboard:5"
+
+    @pytest.mark.parametrize("status", list(StatusValues))
+    def test_mismatched_scope_discards_prior_image_on_failed_recompute(
+        self,
+        mocker: MockerFixture,
+        screenshot_obj: BaseScreenshot,
+        status: StatusValues,
+    ) -> None:
+        """Security: rebinding an entry to a different scope must not carry the
+        previous scope's image into the new one. The read paths serve any valid
+        retained image regardless of status, so bytes left on a rescoped
+        COMPUTING/ERROR entry would be servable under the new object's authorized
+        URL. A failed recompute must therefore leave no image behind."""
+        mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
+        # A valid image rendered for a DIFFERENT object (scope "dashboard:1").
+        cached_value = ScreenshotCachePayload(status=status, scope="dashboard:1")
+        cached_value.retain_image(FAKE_PNG_BYTES)
+        mocks["get_from_cache_key"].return_value = cached_value
+        # This screenshot object renders for dashboard:5, and the recompute fails.
+        screenshot_obj.cache_scope = "dashboard:5"
+        mocks["get_screenshot"].side_effect = Exception("render failed")
+
+        screenshot_obj.compute_and_cache(force=False)
+
+        mocks["get_screenshot"].assert_called_once()
+        cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
+        assert cache_payload["status"] == "Error"
+        assert cache_payload["scope"] == "dashboard:5"
+        # The other object's bytes were dropped the moment the scope was rebound.
+        assert cache_payload["image"] is None
+
+    def test_matching_scope_retains_prior_image_on_failed_recompute(
+        self,
+        mocker: MockerFixture,
+        screenshot_obj: BaseScreenshot,
+    ) -> None:
+        """A failed refresh preserves the same object's last-good capture."""
+        mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
+        cached_value = ScreenshotCachePayload(scope="dashboard:5")
+        cached_value.retain_image(FAKE_PNG_BYTES)
+        mocks["get_from_cache_key"].return_value = cached_value
+        screenshot_obj.cache_scope = "dashboard:5"
+        mocks["get_screenshot"].side_effect = Exception("render failed")
+
+        screenshot_obj.compute_and_cache(force=False)
+
+        mocks["get_screenshot"].assert_called_once()
+        cached_payload = ScreenshotCachePayload.from_dict(
+            screenshot_obj.cache.get("key")
+        )
+        assert cached_payload.status == StatusValues.ERROR
+        assert cached_payload.get_scope() == "dashboard:5"
+        assert cached_payload.get_image().read() == FAKE_PNG_BYTES
 
     def test_resize(self, mocker: MockerFixture, screenshot_obj):
         mocks = self._setup_compute_and_cache(mocker, screenshot_obj)

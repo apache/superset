@@ -1471,6 +1471,17 @@ theme editor picker.
   should `pip uninstall superset-engine-d1 dbapi-d1` and reinstall the extra.
   `d1://` connection strings are unchanged. File upload is now off for D1:
   D1 has no transactions, so a failed upload could leave a half-written table.
+- Dashboard screenshot requests without `force=true` refresh successfully-rendered
+  (`UPDATED`) images older than `THUMBNAIL_UPDATED_CACHE_TTL` (default 7 days),
+  retaining the last valid image during refresh and error backoff. This also applies
+  to dashboard thumbnails refreshed by `superset compute-thumbnails` without
+  `--force`; chart screenshots and card-list thumbnail endpoints are excluded.
+  Set the TTL to `0` or `None` to disable this freshness check and rely on the cache
+  backend's retention policy. Only backends without TTL eviction, such as S3, can
+  then serve a cached image indefinitely. Timestamps are naive local time, so run
+  web servers and workers with the same `TZ` and keep the TTL above any clock offset
+  between them. Roll thumbnail workers before web servers: older workers can skip
+  refreshes requested by newer web servers until the worker rollout finishes.
 
 ### Native Value filter "Select all" always targets the whole column
 

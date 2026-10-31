@@ -1441,6 +1441,14 @@ THUMBNAIL_ERROR_CACHE_TTL = int(timedelta(days=1).total_seconds())
 # How long to treat a COMPUTING cache entry as an active lease before considering
 # the worker stuck.  Should exceed the task soft_time_limit (300 s) by a margin.
 THUMBNAIL_COMPUTING_CACHE_TTL = int(timedelta(seconds=360).total_seconds())
+# Refresh threshold for UPDATED dashboard screenshots requested by the on-demand
+# endpoint or dashboard thumbnails refreshed by compute-thumbnails without --force.
+# Chart screenshots and card-list thumbnail endpoints do not use this check.
+# Retained images remain servable during refresh and error backoff: this triggers
+# recomputation, not image expiry. Defaults to match THUMBNAIL_CACHE_CONFIG's
+# CACHE_DEFAULT_TIMEOUT (7 days). Set to 0 or None to disable this check;
+# cache backend expiry and eviction still apply.
+THUMBNAIL_UPDATED_CACHE_TTL = int(timedelta(days=7).total_seconds())
 
 # Cache warmup user — must be set explicitly before enabling the cache-warmup
 # Celery task. Intentionally defaults to None so operators pick a dedicated
