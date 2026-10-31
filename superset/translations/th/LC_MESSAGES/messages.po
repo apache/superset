@@ -14998,6 +14998,10 @@ msgid "Invalid tab ids: %(tab_ids)s"
 msgstr ""
 
 #, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr ""
+
+#, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 

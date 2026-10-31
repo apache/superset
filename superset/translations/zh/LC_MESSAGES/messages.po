@@ -9630,6 +9630,10 @@ msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "无效的标签页ID：%(tab_ids)s"
 
 #, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr ""
+
+#, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 

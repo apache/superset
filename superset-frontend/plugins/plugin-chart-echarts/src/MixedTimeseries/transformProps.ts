@@ -1149,6 +1149,7 @@ export default function transformProps(
     groupby,
     groupbyB,
     seriesBreakdown: rawSeriesA.length,
+    resolvedTimeGrain,
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
     onFocusedSeries,

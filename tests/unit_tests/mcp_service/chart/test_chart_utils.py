@@ -2468,6 +2468,22 @@ class TestAdhocFiltersToQueryFilters:
         result = adhoc_filters_to_query_filters(adhoc)
         assert result == [{"col": "genre", "op": "==", "val": "Action"}]
 
+    def test_keeps_the_grain_of_a_drilled_bucket(self) -> None:
+        """A chart saved from a Drill by compares its time bucket by grain."""
+        adhoc = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "order_date",
+                "operator": "==",
+                "comparator": 1072915200000,
+                "timeGrain": "P1M",
+            }
+        ]
+        assert adhoc_filters_to_query_filters(adhoc) == [
+            {"col": "order_date", "op": "==", "val": 1072915200000, "grain": "P1M"}
+        ]
+
     def test_converts_multiple_filters(self) -> None:
         adhoc = [
             {

@@ -439,6 +439,56 @@ class TestQueryContextFactory:
         assert len(query_object.filter) == 1
         assert query_object.filter[0]["col"] == "ds"
 
+    def test_apply_granularity_keeps_grained_bucket_filters(self):
+        """A grained filter selects time buckets, not a range: the Time Column
+        override keeps it while it drops the x-axis time filters."""
+        bucket = {"col": "ds", "op": "==", "val": 1704067200000, "grain": "P1M"}
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = "ship_date"
+        query_object.columns = [
+            {
+                "sqlExpression": "ds",
+                "label": "ds",
+                "columnType": "BASE_AXIS",
+                "timeGrain": "P1M",
+            }
+        ]
+        query_object.post_processing = []
+        query_object.filter = [
+            {"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"},
+            dict(bucket),
+        ]
+        datasource = Mock()
+        datasource.columns = [
+            {"column_name": "ds", "is_dttm": True},
+            {"column_name": "ship_date", "is_dttm": True},
+        ]
+
+        self.factory._apply_granularity(query_object, {"x_axis": "ds"}, datasource)
+
+        # get_sqla_query compares it to the overridden axis column by label.
+        assert query_object.filter == [bucket]
+        assert query_object.columns[0]["sqlExpression"] == "ship_date"
+
+    def test_apply_granularity_keeps_a_grained_filter_on_the_time_column(self):
+        """Without an x-axis the Time Column's range filter is replaced, but a
+        bucket on it (e.g. a Sunburst level) is not."""
+        bucket = {"col": "ds", "op": "==", "val": 1704067200000, "grain": "P1M"}
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = "ds"
+        query_object.columns = ["other_col"]
+        query_object.post_processing = []
+        query_object.filter = [
+            {"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"},
+            dict(bucket),
+        ]
+        datasource = Mock()
+        datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+
+        self.factory._apply_granularity(query_object, {}, datasource)
+
+        assert query_object.filter == [bucket]
+
     def test_apply_granularity_no_granularity(self):
         """Test _apply_granularity when no granularity is set"""
         query_object = Mock(spec=QueryObject)

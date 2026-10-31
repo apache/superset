@@ -11289,6 +11289,10 @@ msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Неважећи ИД-ови картица: %(tab_ids)s"
 
 #, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr ""
+
+#, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
