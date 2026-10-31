@@ -85,9 +85,9 @@ cd /tmp/s61 && git apply /tmp/delivery.patch
 python -m pytest tests/unit_tests/
 ```
 
-`git apply` reports no conflict: 217 files changed, and the
-change-management suite gives the same 251 passed / 4 skipped it gives on
-this branch.
+`git apply` reports no conflict: 219 files changed. The change-management,
+extensions and security suites give the same 1236 passed / 4 skipped there
+as on this branch.
 
 One limit worth stating plainly. That run used this branch's installed
 dependencies, not the tag's pins -- `sqlalchemy-continuum` is 1.8.0 at the
