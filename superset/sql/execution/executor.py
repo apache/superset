@@ -70,6 +70,7 @@ import pandas as pd
 import pyarrow as pa
 from flask import current_app as app, g, has_app_context
 from flask_babel import gettext as __
+from sqlalchemy import inspect
 
 from superset import db
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -86,6 +87,7 @@ from superset.sql.execution.serialization import deserialize_nested_columns
 from superset.sql.parse import SQLScript
 from superset.superset_typing import FetchedRows
 from superset.utils import core as utils, json
+from superset.utils.dates import now_as_float
 from superset.utils.hashing import hash_from_str
 
 if TYPE_CHECKING:
@@ -99,6 +101,7 @@ if TYPE_CHECKING:
 
     from superset.db_engine_specs.base import BaseEngineSpec
     from superset.models.core import Database
+    from superset.models.sql_lab import Query
     from superset.result_set import SupersetResultSet
 
 logger = logging.getLogger(__name__)
@@ -575,8 +578,12 @@ class SQLExecutor:
             StatementResult,
         )
 
+        from superset.sql.execution.cancellation import WorkerDeadlineExceeded
+        from superset.sql.execution.utils import commit_query_unless_stopped
+
         opts: QueryOptionsType = options or QueryOptionsType()
         start_time = time.time()
+        query: Query | None = None
 
         try:
             # 1. Prepare SQL (assembly only, no security checks)
@@ -660,7 +667,16 @@ class SQLExecutor:
             query.status = "success"
             query.rows = total_rows
             query.progress = 100
-            db.session.commit()  # pylint: disable=consider-using-transaction
+            if not commit_query_unless_stopped(query):
+                result = QueryResultType(
+                    status=QueryStatus.STOPPED,
+                    statements=[],
+                    query_id=query.id,
+                    error_message=query.error_message,
+                    total_execution_time_ms=total_execution_time_ms,
+                )
+                db.session.commit()  # pylint: disable=consider-using-transaction
+                return result
 
             result = QueryResultType(
                 status=QueryStatus.SUCCESS,
@@ -675,21 +691,37 @@ class SQLExecutor:
 
             return result
 
+        except WorkerDeadlineExceeded:
+            self._create_error_result(
+                QueryStatus.TIMED_OUT,
+                "Query exceeded the execution deadline",
+                start_time,
+                query=query,
+            )
+            raise
         except SupersetTimeoutException:
             return self._create_error_result(
                 QueryStatus.TIMED_OUT,
                 "Query exceeded the timeout limit",
                 start_time,
+                query=query,
             )
         except SupersetSecurityException as ex:
-            return self._create_error_result(QueryStatus.FAILED, str(ex), start_time)
-        except (OAuth2RedirectError, OAuth2Error):
+            return self._create_error_result(
+                QueryStatus.FAILED, str(ex), start_time, query=query
+            )
+        except (OAuth2RedirectError, OAuth2Error) as ex:
             # Let OAuth2 exceptions propagate so callers (MCP, API) can
             # handle them with context-appropriate responses.
+            self._create_error_result(
+                QueryStatus.FAILED, str(ex), start_time, query=query
+            )
             raise
         except Exception as ex:
             error_msg = self.database.db_engine_spec.extract_error_message(ex)
-            return self._create_error_result(QueryStatus.FAILED, error_msg, start_time)
+            return self._create_error_result(
+                QueryStatus.FAILED, error_msg, start_time, query=query
+            )
 
     def execute_async(
         self,
@@ -995,10 +1027,11 @@ class SQLExecutor:
 
     def _create_error_result(
         self,
-        status: Any,
-        error_message: str,
+        status: QueryStatus,
+        error_message: str | None,
         start_time: float,
         partial_results: list[Any] | None = None,
+        query: Query | None = None,
     ) -> QueryResult:
         """
         Create a QueryResult for error cases.
@@ -1008,14 +1041,45 @@ class SQLExecutor:
         :param start_time: Start time for calculating execution duration
         :param partial_results: Optional list of StatementResult from successful
             statements before the failure
+        :param query: Persisted audit record, if execution reached that stage
         :returns: QueryResult with error status
         """
-        from superset_core.queries.types import QueryResult as QueryResultType
+        from superset_core.queries.types import (
+            QueryResult as QueryResultType,
+            QueryStatus,
+        )
+
+        from superset.sql.execution.utils import commit_query_unless_stopped
+
+        query_id = None
+        try:
+            if query is not None:
+                # Read the persisted identity without loading expired attributes.
+                query_id = inspect(query).identity[0]
+            # Creation can fail before the caller receives a Query object.
+            if not db.session.is_active:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+            if query is not None:
+                # Loading an expired timestamp must not flush unguarded metadata.
+                with db.session.no_autoflush:
+                    query.end_time = query.end_time or now_as_float()
+                    query.status = status.value
+                    query.error_message = error_message
+                if not commit_query_unless_stopped(query):
+                    status = QueryStatus.STOPPED
+                    error_message = query.error_message
+                    db.session.commit()  # pylint: disable=consider-using-transaction
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Failed to persist SQL query error", exc_info=True)
+            # Metadata recovery must not replace the original execution error.
+            with contextlib.suppress(Exception):
+                db.session.rollback()  # pylint: disable=consider-using-transaction
 
         return QueryResultType(
             status=status,
             statements=partial_results or [],
             error_message=error_message,
+            query_id=query_id,
             total_execution_time_ms=(time.time() - start_time) * 1000,
         )
 
@@ -1166,7 +1230,7 @@ class SQLExecutor:
         catalog: str | None,
         schema: str | None,
         status: QueryStatus,
-    ) -> Any:
+    ) -> Query:
         """
         Create Query model for audit/tracking.
 
@@ -1279,54 +1343,57 @@ class SQLExecutor:
         if result.status != QueryStatus.SUCCESS:
             return
 
-        cache_key = self._generate_cache_key(sql, opts)
-        if cache_key is None:
-            return
+        try:
+            cache_key = self._generate_cache_key(sql, opts)
+            if cache_key is None:
+                return
 
-        timeout = (
-            (opts.cache.timeout if opts.cache else None)
-            or self.database.cache_timeout
-            or app.config.get("CACHE_DEFAULT_TIMEOUT", 300)
-        )
+            timeout = (
+                (opts.cache.timeout if opts.cache else None)
+                or self.database.cache_timeout
+                or app.config.get("CACHE_DEFAULT_TIMEOUT", 300)
+            )
 
-        # Serialize statement results for caching.
-        # Convert DataFrames to list-of-dicts so the cache backend
-        # does not need to pickle pandas objects (which can fail to
-        # deserialize correctly with some backends or pandas versions).
-        cached_data = {
-            "statements": [
-                {
-                    "original_sql": stmt.original_sql,
-                    "executed_sql": stmt.executed_sql,
-                    "data": (
-                        stmt.data.to_dict(orient="records")
-                        if isinstance(stmt.data, pd.DataFrame)
-                        else stmt.data
-                    ),
-                    "columns": (
-                        list(stmt.data.columns)
-                        if isinstance(stmt.data, pd.DataFrame)
-                        else []
-                    ),
-                    "dtypes": (
-                        [str(dtype) for dtype in stmt.data.dtypes]
-                        if isinstance(stmt.data, pd.DataFrame)
-                        else []
-                    ),
-                    "row_count": stmt.row_count,
-                    "truncated": stmt.truncated,
-                    "execution_time_ms": stmt.execution_time_ms,
-                }
-                for stmt in result.statements
-            ],
-            "total_execution_time_ms": result.total_execution_time_ms,
-        }
+            # Serialize statement results for caching.
+            # Convert DataFrames to list-of-dicts so the cache backend
+            # does not need to pickle pandas objects (which can fail to
+            # deserialize correctly with some backends or pandas versions).
+            cached_data = {
+                "statements": [
+                    {
+                        "original_sql": stmt.original_sql,
+                        "executed_sql": stmt.executed_sql,
+                        "data": (
+                            stmt.data.to_dict(orient="records")
+                            if isinstance(stmt.data, pd.DataFrame)
+                            else stmt.data
+                        ),
+                        "columns": (
+                            list(stmt.data.columns)
+                            if isinstance(stmt.data, pd.DataFrame)
+                            else []
+                        ),
+                        "dtypes": (
+                            [str(dtype) for dtype in stmt.data.dtypes]
+                            if isinstance(stmt.data, pd.DataFrame)
+                            else []
+                        ),
+                        "row_count": stmt.row_count,
+                        "truncated": stmt.truncated,
+                        "execution_time_ms": stmt.execution_time_ms,
+                    }
+                    for stmt in result.statements
+                ],
+                "total_execution_time_ms": result.total_execution_time_ms,
+            }
 
-        cache_manager.data_cache.set(
-            cache_key,
-            cached_data,
-            timeout=timeout,
-        )
+            cache_manager.data_cache.set(
+                cache_key,
+                cached_data,
+                timeout=timeout,
+            )
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Failed to cache query result", exc_info=True)
 
     def _connection_carries_user_identity(self) -> bool:
         """

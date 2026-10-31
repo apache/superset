@@ -110,6 +110,11 @@ retains its call's slot rather than exhausting cancellation capacity for new
 calls. One warning with the call ID records abandonment. A timeout does not guarantee that warehouse writes were
 rolled back, so do not blindly retry mutating SQL.
 
+When synchronous `execute_sql` observes its deadline, it finalizes an existing
+SQL Lab query record as `timed_out` before propagating the timeout. An accepted
+Stop remains `stopped`. Finalization may wait for an uninterruptible driver to
+return and depends on the metadata database being available.
+
 ## Externally managed dashboards
 
 MCP dashboard mutation tools refuse changes to externally managed dashboards,
