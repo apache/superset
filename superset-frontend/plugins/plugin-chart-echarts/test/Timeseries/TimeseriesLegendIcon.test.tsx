@@ -171,13 +171,24 @@ test('fades the symbol separately from the line', () => {
   expect(container.querySelector('circle')).toHaveAttribute('opacity', '0.5');
 });
 
-test('applies the series opacity to the whole icon', () => {
+test('applies the line and symbol opacities side by side, not nested', () => {
+  // ECharts paints the line with lineStyle.opacity and the symbol with
+  // itemStyle.opacity; nesting them would fade a 0.7 marker to 0.49.
+  const container = renderIcon(lineIcon({ opacity: 0.7, symbolOpacity: 0.7 }));
+
+  expect(container.querySelector('svg')).not.toHaveAttribute('opacity');
+  expect(container.querySelector('line')).toHaveAttribute('opacity', '0.7');
+  expect(container.querySelector('circle')).toHaveAttribute('opacity', '0.7');
   expect(
-    renderIcon(lineIcon({ opacity: 0.7 })).querySelector('svg'),
-  ).toHaveAttribute('opacity', '0.7');
-  expect(
-    renderIcon({ shape: 'box', opacity: 0.5 }).querySelector('svg'),
+    renderIcon({ shape: 'box', opacity: 0.5 }).querySelector('rect'),
   ).toHaveAttribute('opacity', '0.5');
+});
+
+test('hides the symbol but keeps the line when the series hides its markers', () => {
+  const container = renderIcon(lineIcon({ symbolOpacity: 0 }));
+
+  expect(container.querySelector('line')).not.toBeNull();
+  expect(container.querySelector('circle')).toBeNull();
 });
 
 test('draws a hollow rect for emptyRect', () => {

@@ -32,6 +32,14 @@ const round = (value: number) => Math.round(value * 100) / 100;
 
 const LINE_SYMBOL_SIZE = round(HEIGHT * 0.8);
 
+// How far the pin's head rises above the icon box (ECharts draws it the same
+// way). A row that sits under the sticky selector row needs this much room.
+export const LEGEND_ICON_OVERFLOW_PX = (() => {
+  const r = (LINE_SYMBOL_SIZE * 3) / 10;
+  const dy = (r * r) / (LINE_SYMBOL_SIZE - r);
+  return Math.ceil(LINE_SYMBOL_SIZE - HEIGHT / 2 - dy);
+})();
+
 // Same expansion zrender applies to a dashed or dotted line of this width.
 function getDashArray(
   lineType: TimeseriesLegendLineType,
@@ -149,7 +157,6 @@ function LegendSymbol({
 
 const Icon = styled.svg`
   flex: 0 0 auto;
-  margin-top: 3px;
   overflow: visible;
 `;
 
@@ -175,14 +182,20 @@ export default function TimeseriesLegendIcon({
       width={WIDTH}
       height={HEIGHT}
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      opacity={icon.opacity}
     >
       {icon.shape === 'box' && (
-        <rect width={WIDTH} height={HEIGHT} rx={HEIGHT / 4} fill={paint} />
+        <rect
+          width={WIDTH}
+          height={HEIGHT}
+          rx={HEIGHT / 4}
+          fill={paint}
+          opacity={icon.opacity < 1 ? icon.opacity : undefined}
+        />
       )}
       {icon.shape === 'symbol' && (
         <LegendSymbol
           hollowFill={hollowFill}
+          opacity={icon.opacity}
           paint={paint}
           size={HEIGHT}
           symbol={icon.symbol}
@@ -199,6 +212,7 @@ export default function TimeseriesLegendIcon({
               stroke={paint}
               strokeWidth={icon.lineWidth}
               strokeDasharray={getDashArray(icon.lineType, icon.lineWidth)}
+              opacity={icon.opacity < 1 ? icon.opacity : undefined}
             />
           )}
           {icon.symbolOpacity > 0 && (

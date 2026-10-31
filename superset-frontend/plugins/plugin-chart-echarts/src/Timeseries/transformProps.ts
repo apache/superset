@@ -168,8 +168,8 @@ function normalizeLegendSymbol(symbol: unknown, fallback: string): string {
   return typeof symbol === 'string' ? symbol : fallback;
 }
 
-// The legend inherits the series opacity; a fully transparent line (a forecast
-// confidence band) still gets a visible icon.
+// The icon inherits the series opacity, except that an invisible series
+// (opacity 0) still gets a visible icon so the legend entry can be read.
 function normalizeLegendOpacity(opacity: unknown): number {
   return typeof opacity === 'number' && opacity > 0 && opacity < 1
     ? opacity
