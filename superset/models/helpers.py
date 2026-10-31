@@ -378,7 +378,18 @@ def _parse_temporal_join_values(series: pd.Series, column_name: str) -> pd.Serie
         return series
     try:
         return pd.to_datetime(series, errors="coerce", format="mixed")
-    except (TypeError, ValueError) as ex:
+    except ValueError as ex:
+        if "Mixed timezones" in str(ex):
+            # pandas 3 refuses to unify a column of strings carrying different
+            # fixed UTC offsets into a single dtype; parsed element-by-element
+            # it still yields each value's own tz-aware Timestamp (object
+            # dtype), which the wall-clock fallback in this function's caller
+            # (`_coerce_temporal_join_series`) already knows how to normalize.
+            return series.map(
+                lambda value: pd.NaT if pd.isna(value) else pd.to_datetime(value)
+            )
+        raise _temporal_axis_parse_error(column_name) from ex
+    except TypeError as ex:
         raise _temporal_axis_parse_error(column_name) from ex
 
 
@@ -2247,13 +2258,42 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> Optional[str]:
         return self._process_validated_sql_expression(expression, context)
 
+    @staticmethod
+    def _render_sql_expression_template(
+        expression: str,
+        template_processor: BaseTemplateProcessor,
+    ) -> str:
+        """Render Jinja in an adhoc SQL expression, mapping template failures
+        (e.g. ``UndefinedError``) to ``QueryObjectValidationError``."""
+        try:
+            return template_processor.process_template(expression)
+        except (
+            TemplateError,
+            SupersetSyntaxErrorException,
+            SupersetTemplateException,
+        ) as ex:
+            if isinstance(ex, TemplateError):
+                error_msg = ex.message
+            elif isinstance(ex, SupersetSyntaxErrorException):
+                error_msg = str(ex.errors[0].message if ex.errors else ex)
+            else:  # SupersetTemplateException
+                error_msg = str(ex)
+            raise QueryObjectValidationError(
+                _(
+                    "Error in jinja expression in adhoc SQL expression: %(msg)s",
+                    msg=error_msg,
+                )
+            ) from ex
+
     def _process_metric_sql_expression(
         self,
         expression: Optional[str],
         context: SqlExpressionContext,
     ) -> Optional[str]:
         if context.template_processor and expression:
-            expression = context.template_processor.process_template(expression)
+            expression = self._render_sql_expression_template(
+                expression, context.template_processor
+            )
         if not expression:
             return expression
 
@@ -2287,7 +2327,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         validate_subquery: bool = True,
     ) -> Optional[str]:
         if render_template and context.template_processor and expression:
-            expression = context.template_processor.process_template(expression)
+            expression = self._render_sql_expression_template(
+                expression, context.template_processor
+            )
         if expression:
             if validate_subquery:
                 expression = validate_adhoc_subquery(
@@ -2597,18 +2639,36 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 return None
 
         quotes = "\"`'"
-        for select in [e for e in visitors.iterate(qry) if isinstance(e, Select)]:
+        selects = [e for e in visitors.iterate(qry) if isinstance(e, Select)]
+        taken = column_names | {
+            col.name
+            for select in selects
+            for col in select.selected_columns
+            if isinstance(col, Label) and isinstance(col.name, str)
+        }
+        for select in selects:
             for col in select.selected_columns:
                 if not isinstance(col, Label) or not isinstance(col.name, str):
                     continue
                 name = col.name
-                expression = expression_text(col.element)
+                selected = col.type.column_expression(col.element)
+                expression = expression_text(
+                    col.element if selected is None else selected
+                )
                 if expression is None or expression.strip().strip(quotes) == name:
                     continue
                 unquoted = re.sub(f"[{quotes}]", "", expression)
                 reads_it = re.search(rf"(?<![\w.]){re.escape(name)}(?!\w)", unquoted)
                 if name in column_names or reads_it:
-                    col.name = f"{name}__"
+                    col.name = self._unused_alias(name, taken)
+
+    @staticmethod
+    def _unused_alias(name: str, taken: set[str]) -> str:
+        alias = f"{name}__"
+        while alias in taken:
+            alias += "_"
+        taken.add(alias)
+        return alias
 
     def _raise_for_disallowed_sql(self, sql: str) -> None:
         """
