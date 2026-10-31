@@ -27,7 +27,6 @@ from collections.abc import Hashable
 from dataclasses import dataclass, field
 from typing import Any, cast, TYPE_CHECKING
 
-import pandas as pd
 import pyarrow as pa
 import sqlalchemy as sa
 from flask_appbuilder import Model
@@ -463,8 +462,6 @@ class SemanticView(AuditMixinNullable, Model):
                 result.df = query_object.exec_post_processing(result.df)
             except InvalidPostProcessingError as ex:
                 raise QueryObjectValidationError(ex.message) from ex
-            except (TypeError, pd.errors.DataError) as ex:
-                raise QueryObjectValidationError(str(ex)) from ex
         return result
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
