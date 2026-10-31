@@ -1032,10 +1032,17 @@ async def _get_chart_data(  # noqa: C901
                     query_context, guest_dashboard_id, guest_chart
                 )
 
+            datasource = getattr(query_context, "datasource", None)
+            datasource_id = getattr(datasource, "id", None)
+            datasource_type = getattr(datasource, "type", None)
+            if not isinstance(datasource_id, (int, str)):
+                datasource_id = query_datasource_id
+            if not isinstance(datasource_type, str):
+                datasource_type = query_datasource_type
             set_query_context_form_data(
                 query_context,
-                query_datasource_id,
-                query_datasource_type,
+                datasource_id,
+                str(datasource_type),
             )
 
             # Execute the query
