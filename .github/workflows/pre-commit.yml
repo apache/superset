@@ -174,8 +174,22 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: "superset-frontend/.nvmrc"
-          cache: "npm"
-          cache-dependency-path: "superset-frontend/package-lock.json"
+
+      # Not setup-node's built-in `cache: npm`: it keys on the exact
+      # package-lock.json hash with no fallback, so every lockfile change
+      # makes npm ci re-download every tarball (including xlsx from
+      # cdn.sheetjs.com), exposing the install to any registry/CDN outage
+      # at that moment, which is how runs 40649064300 and 40679638770
+      # failed. Restoring from the prefix instead cuts the downloads to the
+      # changed packages.
+      - name: Cache npm
+        if: steps.changed_files.outputs.needs_node == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.npm
+          key: npm-v1-${{ runner.os }}-${{ hashFiles('superset-frontend/package-lock.json') }}
+          restore-keys: |
+            npm-v1-${{ runner.os }}-
 
       - name: Install Frontend Dependencies
         if: steps.changed_files.outputs.needs_frontend == 'true'
