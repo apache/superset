@@ -14082,6 +14082,9 @@ msgstr "Resetează parola"
 msgid "Reset state"
 msgstr "Resetează starea"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # lv, ru, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -17853,6 +17856,10 @@ msgstr ""
 
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Limita inferioară a intervalului de prag al izobandei"
+
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
 
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"

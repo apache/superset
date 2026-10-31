@@ -24,6 +24,25 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [45929](https://github.com/apache/superset/pull/45929): Partition filter
+  mapping (`PARTITION_FILTER_MAPPING`) only applies on engines whose spec sets
+  `supports_partition_filter_mapping = True`: Hive and Impala, plus the specs
+  that inherit from them -- Apache Spark SQL, Databricks Interactive Cluster
+  (`databricks+pyhive://`) and Ascend. On every other engine -- Trino, Presto,
+  PostgreSQL, the other Databricks connectors (Databricks SQL Python, legacy
+  `databricks+connector://`, SQL Endpoint `databricks+pyodbc://`) and the
+  rest -- an existing mapping **silently stops applying** after upgrade: no
+  filter is mirrored onto the partition column, so queries that used to prune
+  partitions scan the whole table. The dataset editor hides the mapping
+  settings and Explore shows no pruning indicator. The stored mapping is kept,
+  not deleted, and applies again if the dataset is pointed at a database on a
+  supported engine.
+  Superset logs a warning (`Ignoring partition filter mapping on dataset ...`)
+  the first time each worker resolves such a mapping; search for it after
+  upgrading to find affected datasets. A deployment that depends on mirroring
+  on another engine has to add a predicate on the partition column to the
+  affected charts, or opt that engine spec in.
+
 - With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
   using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and
   `CACHE_REDIS_USER`. Previously they always ran on DB 0 and without the ACL user.

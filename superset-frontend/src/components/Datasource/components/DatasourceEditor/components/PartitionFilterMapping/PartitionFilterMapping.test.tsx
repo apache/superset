@@ -24,6 +24,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import { getClientErrorObject } from '@superset-ui/core';
 import PartitionColumnFields from './PartitionColumnFields';
@@ -86,8 +87,31 @@ test('the mapped column shows as following the default datetime column', () => {
   );
 
   expect(screen.getByText('Maps to partition')).toBeInTheDocument();
-  expect(screen.getByText('event_time')).toBeInTheDocument();
-  expect(screen.getByText('Default datetime column')).toBeInTheDocument();
+  // The implicit mapping renders both values as two segments inside one
+  // outlined container, rather than a filled pill plus loose text.
+  const mappedColumn = screen.getByTestId('mapped-column-default');
+  expect(within(mappedColumn).getByText('event_time')).toBeInTheDocument();
+  expect(
+    within(mappedColumn).getByText('Default datetime column'),
+  ).toBeInTheDocument();
+});
+
+test('the selected partition column shows its name and type pill when closed', () => {
+  render(
+    <PartitionColumnFields
+      datasource={{ main_dttm_col: 'event_time', partition_column: 'dt_epoch' }}
+      columns={COLUMNS}
+      allColumns={COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  // The closed Select shows the rich label -- column name plus its type pill --
+  // not just the bare column name.
+  const select = screen.getByTestId('partition-column-select');
+  expect(within(select).getByText('dt_epoch')).toBeInTheDocument();
+  expect(within(select).getByText('BIGINT')).toBeInTheDocument();
 });
 
 test('a partition column with nothing mapped warns that queries will not prune', () => {
@@ -661,6 +685,76 @@ test('removing the mapping is reported to the editor', async () => {
   await userEvent.click(screen.getByText('Remove mapping'));
 
   expect(onRemoveMapping).toHaveBeenCalled();
+  // This row already is the default datetime column, so there is nowhere for
+  // the mapping to move back to and no return-to-default note.
+  expect(
+    screen.queryByTestId('remove-partition-mapping-helper'),
+  ).not.toBeInTheDocument();
+});
+
+test('clearing an explicit override says the mapping returns to the default datetime column', async () => {
+  // A null `partition_mapped_column` means "follow `main_dttm_col`", so with a
+  // default datetime column the action moves the mapping rather than removing
+  // it -- the label and note have to say so.
+  fetchMock.post(PREVIEW_URL, { result: { valid: false } });
+  const onRemoveMapping = jest.fn();
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'country', type: 'TEXT' }}
+      value="lower(:value)"
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'region_key',
+        partition_mapped_column: 'country',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={onRemoveMapping}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  expect(screen.queryByText('Remove mapping')).not.toBeInTheDocument();
+  expect(
+    screen.getByTestId('remove-partition-mapping-helper'),
+  ).toHaveTextContent(
+    'The mapping returns to the default datetime column (event_time).',
+  );
+
+  await userEvent.click(screen.getByText('Reset to default datetime column'));
+
+  expect(onRemoveMapping).toHaveBeenCalled();
+});
+
+test('without a default datetime column the mapping is genuinely removed', async () => {
+  // Nothing to fall back to, so clearing the override does leave no mapped
+  // column and "Remove mapping" is the honest label.
+  fetchMock.post(PREVIEW_URL, { result: { valid: false } });
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'country', type: 'TEXT' }}
+      value="lower(:value)"
+      datasource={{
+        id: 1,
+        main_dttm_col: null,
+        partition_column: 'region_key',
+        partition_mapped_column: 'country',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  expect(screen.getByText('Remove mapping')).toBeInTheDocument();
+  expect(
+    screen.queryByText('Reset to default datetime column'),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByTestId('remove-partition-mapping-helper'),
+  ).not.toBeInTheDocument();
 });
 
 /**

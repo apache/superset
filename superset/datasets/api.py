@@ -415,6 +415,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         # `columns` is not an option: `data_for_slices` prunes the partition
         # column on dashboards, which is why the summary is self-contained.
         "partition_filter_mapping",
+        # Whether the engine's tables are partition-directory laid out, which is
+        # what decides whether the editor offers partition filter mapping.
+        "supports_partition_filter_mapping",
         "database.backend",
         "database.allow_multi_catalog",
         "columns.advanced_data_type",
