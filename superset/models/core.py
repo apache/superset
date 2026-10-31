@@ -103,6 +103,7 @@ from superset.utils.oauth2 import (
     is_oauth2_retry_active,
     OAuth2ClientConfigSchema,
 )
+from superset.utils.timing_metrics import metric_suffix, timed
 
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
@@ -1005,6 +1006,22 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             )
         return sql_
 
+    @contextmanager
+    def _timed_raw_connection(
+        self, engine_suffix: str, catalog: str | None, schema: str | None
+    ) -> Iterator[Any]:
+        """
+        Open a raw connection, timing the attempt even when it fails.
+
+        Only establishing the connection is timed, not the body that uses it.
+        """
+        with ExitStack() as stack:
+            with timed(f"database.connect.{engine_suffix}"):
+                conn = stack.enter_context(
+                    self.get_raw_connection(catalog=catalog, schema=schema)
+                )
+            yield conn
+
     def _execute_sql_with_mutation_and_logging(
         self,
         sql: str,
@@ -1039,7 +1056,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     security_manager,
                 )
 
-        with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
+        engine_suffix = metric_suffix(self.db_engine_spec.engine)
+        with self._timed_raw_connection(
+            engine_suffix, catalog=catalog, schema=schema
+        ) as conn:
             cursor = conn.cursor()
             rows = None
             description = None
@@ -1076,12 +1096,14 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         database=self,
                         object_ref=__name__,
                     ):
-                        self.db_engine_spec.execute(cursor, sql_, self)
+                        with timed(f"database.execute.{engine_suffix}"):
+                            self.db_engine_spec.execute(cursor, sql_, self)
                         query_executed()
 
                     # Fetch results from last statement if requested
                     if fetch_last_result and i == len(script.statements) - 1:
-                        rows = self.db_engine_spec.fetch_data(cursor)
+                        with timed(f"database.fetch.{engine_suffix}"):
+                            rows = self.db_engine_spec.fetch_data(cursor)
                         # Some asynchronous DB-API drivers expose placeholder metadata
                         # until fetching waits for the operation to finish.
                         description = cursor.description
@@ -1130,7 +1152,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
         df = None
         if rows is not None:
-            df = self.load_into_dataframe(description, rows)
+            with timed(
+                f"database.dataframe.{metric_suffix(self.db_engine_spec.engine)}"
+            ):
+                df = self.load_into_dataframe(description, rows)
 
         if mutator:
             df = mutator(df)
