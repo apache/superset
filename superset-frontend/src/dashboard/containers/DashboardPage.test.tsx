@@ -1046,3 +1046,60 @@ test('a superseded permalink lookup does not mark the current load as hydrated',
     window.history.replaceState({}, '', '/');
   }
 });
+
+test('a new idOrSlug for the same dashboard id withholds the builder until its lookup resolves', async () => {
+  window.history.replaceState({}, '', '/dashboard/1/');
+  mockGetUrlParam.mockImplementation((param: UrlParam) =>
+    new URLSearchParams(window.location.search).get(param.name),
+  );
+  type PermalinkValue = Awaited<ReturnType<typeof getPermalinkValue>>;
+  let resolvePermalink!: (value: PermalinkValue) => void;
+  const permalinkValue: PermalinkValue = {
+    dashboardId: '1',
+    state: { activeTabs: ['TAB-saved'], dataMask: {}, anchor: '' },
+  };
+  jest.mocked(getPermalinkValue).mockReturnValueOnce(
+    new Promise<PermalinkValue>(resolve => {
+      resolvePermalink = resolve;
+    }),
+  );
+  const renderPage = (idOrSlug: string) => (
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug={idOrSlug} />
+    </Suspense>
+  );
+
+  const { rerender, unmount } = render(renderPage('1'), {
+    useRedux: true,
+    useRouter: true,
+    initialState: {
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: { sliceIds: [], activeTabs: ['TAB-previous'] },
+      nativeFilters: { filters: {} },
+      dataMask: {},
+    },
+  });
+
+  try {
+    expect(await screen.findByText('DashboardBuilder')).toBeInTheDocument();
+
+    window.history.replaceState({}, '', '/dashboard/my-slug/?permalink_key=K');
+    mockUseDashboard.mockReturnValue({ result: undefined, error: null });
+    rerender(renderPage('my-slug'));
+    mockUseDashboard.mockReturnValue({ result: mockDashboard, error: null });
+    rerender(renderPage('my-slug'));
+
+    await waitFor(() => expect(getPermalinkValue).toHaveBeenCalled());
+    expect(screen.queryByText('DashboardBuilder')).not.toBeInTheDocument();
+    expect(
+      new URLSearchParams(window.location.search).get('active_tabs'),
+    ).toBeNull();
+
+    resolvePermalink(permalinkValue);
+    expect(await screen.findByText('DashboardBuilder')).toBeInTheDocument();
+  } finally {
+    resolvePermalink?.(permalinkValue);
+    unmount();
+    window.history.replaceState({}, '', '/');
+  }
+});

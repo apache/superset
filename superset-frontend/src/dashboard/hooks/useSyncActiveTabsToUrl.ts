@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { matchPath, useHistory } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { URL_PARAMS } from 'src/constants';
@@ -56,6 +56,8 @@ export default function useSyncActiveTabsToUrl(enabled: boolean): void {
     (state: RootState) => state.dashboardState.editMode,
   );
 
+  const reconciledHash = useRef<string>();
+
   useEffect(() => {
     // The pathname check avoids racing with navigation to Explore
     if (
@@ -70,8 +72,9 @@ export default function useSyncActiveTabsToUrl(enabled: boolean): void {
     }
 
     // `navigateWithState` updates the address bar without the router, so after
-    // an in-session save the router can hold a stale pathname (e.g. an old
-    // slug). Writing it back would undo that navigation.
+    // an in-session save the router can hold a stale location (e.g. an old
+    // slug). In that case the address bar is the source of truth and is
+    // written directly, so the navigation is neither undone nor left unsynced.
     // The router decodes its pathname, so compare against the decoded address
     // bar to keep non-ASCII slugs from reading as a divergence.
     let addressBarPath = window.location.pathname;
@@ -80,14 +83,28 @@ export default function useSyncActiveTabsToUrl(enabled: boolean): void {
     } catch {
       // malformed escapes: compare the raw path
     }
-    if (
+    const diverged =
       addressBarPath !==
-      history.createHref({ pathname: history.location.pathname })
-    ) {
-      return;
-    }
+      history.createHref({ pathname: history.location.pathname });
+    const location = diverged ? window.location : history.location;
 
-    const params = new URLSearchParams(history.location.search);
+    // A deep link hash outranks `active_tabs` on load, so it is dropped once
+    // the selected tabs no longer include a tab the hash targets. The tabs are
+    // resolved from the layout, as a tab click replaces `directPathToChild`.
+    // Only a hash that was first reconciled with the selected tabs can go
+    // stale, so the initial hydration, where `Tabs` has yet to switch to the
+    // hash's tab, never clears it.
+    const hashId = location.hash.slice(1);
+    const hashTabsActive = [...(layout[hashId]?.parents ?? []), hashId].every(
+      id => layout[id]?.type !== TAB_TYPE || activeTabs?.includes(id),
+    );
+    if (hashId && hashTabsActive) {
+      reconciledHash.current = hashId;
+    }
+    const hashIsStale =
+      Boolean(hashId) && reconciledHash.current === hashId && !hashTabsActive;
+
+    const params = new URLSearchParams(location.search);
     const current = params.get(URL_PARAMS.activeTabs.name);
     const next = activeTabs?.length ? [...activeTabs].sort().join(',') : null;
     const currentNormalized = current
@@ -102,19 +119,16 @@ export default function useSyncActiveTabsToUrl(enabled: boolean): void {
     } else {
       params.delete(URL_PARAMS.activeTabs.name);
     }
-    // A deep link hash outranks `active_tabs` on load, so it is dropped once
-    // the selected tabs no longer include a tab the hash targets. The path is
-    // resolved from the layout, as a tab click replaces `directPathToChild`.
-    const hashId = history.location.hash.slice(1);
-    const hashIsStale =
-      Boolean(hashId) &&
-      [...(layout[hashId]?.parents ?? []), hashId].some(
-        id => layout[id]?.type === TAB_TYPE && !activeTabs?.includes(id),
+    const search = params.toString();
+    const hash = hashIsStale ? '' : location.hash;
+    if (diverged) {
+      window.history.replaceState(
+        window.history.state,
+        '',
+        `${window.location.pathname}${search ? `?${search}` : ''}${hash}`,
       );
-    history.replace({
-      ...history.location,
-      search: params.toString(),
-      ...(hashIsStale && { hash: '' }),
-    });
+    } else {
+      history.replace({ ...history.location, search, hash });
+    }
   }, [activeTabs, editMode, enabled, history, layout]);
 }
