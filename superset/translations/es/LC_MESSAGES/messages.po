@@ -3649,8 +3649,6 @@ msgstr "No se puede cargar el filtro"
 msgid "Cannot modify system themes."
 msgstr "No se pueden modificar los temas del sistema."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Cannot nest folders in default folders"
 msgstr "No se pueden anidar carpetas dentro de carpetas predeterminadas"
 
@@ -3967,8 +3965,6 @@ msgstr "No se pudo restaurar el gráfico."
 msgid "Chart could not be updated."
 msgstr "No se ha podido actualizar el gráfico."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Chart customization to control deck.gl layer visibility"
 msgstr ""
 "Personalización del gráfico para controlar la visibilidad de capas de "
@@ -4692,8 +4688,6 @@ msgstr " para añadir métricas"
 msgid "Columns and metrics should be inside folders"
 msgstr " para añadir métricas"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Columns folder can only contain column items"
 msgstr "La carpeta de columnas solo puede contener elementos de columna"
 
@@ -5885,8 +5879,6 @@ msgstr "Configuración de la base de datos actualizada"
 msgid "Database type does not support file uploads."
 msgstr "El tipo de base de datos no admite subidas de archivos."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Database upload file exceeds the maximum allowed size."
 msgstr "El archivo de carga a la base de datos supera el tamaño máximo permitido."
 
@@ -7149,8 +7141,6 @@ msgstr "Función de agregación dinámica"
 msgid "Dynamically search all filter values"
 msgstr "Buscar dinámicamente todos los valores de filtro"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Dynamically select grouping columns from a dataset"
 msgstr "Seleccionar dinámicamente columnas de agrupación de un conjunto de datos"
 
@@ -7486,13 +7476,9 @@ msgstr ""
 "Habilitar la paginación de resultados del lado del servidor (función "
 "experimental)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Enables rendering of icons for GeoJSON points"
 msgstr "Habilita la representación de iconos para puntos GeoJSON"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Enables rendering of labels for GeoJSON points"
 msgstr "Habilita la representación de etiquetas para puntos GeoJSON"
 
@@ -8008,8 +7994,6 @@ msgstr "Error al exportar: %s"
 msgid "Export query"
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Export screenshot (jpeg)"
 msgstr "Exportar captura de pantalla (jpeg)"
 
@@ -8364,8 +8348,6 @@ msgstr "No se han podido verificar las opciones de selección: %s"
 msgid "Failure Notifications"
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Falling back to CSV; Excel export library not available."
 msgstr ""
 "Usando CSV como alternativa; la biblioteca de exportación a Excel no está"
@@ -8421,14 +8403,10 @@ msgstr "Campo obligatorio"
 msgid "File extension is not allowed."
 msgstr "La extensión del archivo no está permitida."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "File handling is not supported in this browser. Please use a modern "
 "browser like Chrome or Edge."
-msgstr ""
-"El manejo de archivos no está disponible en este navegador. Por favor, "
-"use un navegador moderno como Chrome o Edge."
+msgstr "La gestión de archivos no es compatible con este navegador. Usa un navegador moderno como Chrome o Edge."
 
 msgid "File settings"
 msgstr "Ajustes de archivo"
@@ -8843,19 +8821,12 @@ msgstr ""
 msgid "Format dates in email subjects"
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "Format metrics or columns with currency symbols as prefixes or suffixes. "
 "Choose a symbol manually or use 'Auto-detect' to apply the correct symbol"
 " based on the dataset's currency code column. When multiple currencies "
 "are present, formatting falls back to neutral numbers."
-msgstr ""
-"Formatee métricas o columnas con símbolos de moneda como prefijos o "
-"sufijos. Elija un símbolo manualmente o use 'Detección automática' para "
-"aplicar el símbolo correcto según la columna de código de moneda del "
-"conjunto de datos. Cuando hay varias monedas presentes, el formato vuelve"
-" a números neutros."
+msgstr "Formatea métricas o columnas con símbolos de moneda como prefijos o sufijos. Elige un símbolo manualmente o usa «Detección automática» para aplicar el símbolo correcto según la columna de código de moneda del conjunto de datos. Cuando hay varias monedas presentes, el formato vuelve a números neutros."
 
 msgid "Formatted CSV attached in email"
 msgstr "CSV formateado adjunto en el correo electrónico"
@@ -9109,8 +9080,6 @@ msgstr ""
 msgid "Guest user cannot modify chart payload"
 msgstr "Un usuario invitado no puede modificar la carga útil del gráfico"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "HTTP Path"
 msgstr "Ruta HTTP"
 
@@ -9312,14 +9281,10 @@ msgstr ""
 "Si está habilitado, este control ordena los resultados/valores de forma "
 "descendente; de lo contrario, ordena los resultados de forma ascendente."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "If it stays empty, it won't be saved and will be removed from the list. "
 "To remove folders, move metrics and columns to other folders."
-msgstr ""
-"Si permanece vacío, no se guardará y se eliminará de la lista. Para "
-"eliminar carpetas, mueva métricas y columnas a otras carpetas."
+msgstr "Si permanece vacía, no se guardará y se eliminará de la lista. Para eliminar carpetas, mueve métricas y columnas a otras carpetas."
 
 msgid "If table already exists"
 msgstr "Si la tabla ya existe"
@@ -9498,8 +9463,6 @@ msgstr "Información"
 msgid "Inherit range from time filter"
 msgstr "Heredar intervalo del filtro de tiempo"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Initial tree depth"
 msgstr "Profundidad inicial del árbol"
 
@@ -9840,8 +9803,6 @@ msgstr ""
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Problema 1001: la base de datos está bajo una carga inusual."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "It won't be removed even if empty. It won't be shown in chart editing "
 "view if empty."
@@ -10787,8 +10748,6 @@ msgstr "Anchura mínima"
 msgid "Maximum dot size"
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Maximum folder nesting depth reached"
 msgstr "Se ha alcanzado la profundidad máxima de anidamiento de carpetas"
 
@@ -11009,8 +10968,6 @@ msgstr "Métricas (%s)"
 msgid "Metrics can't be used for both rows and columns at the same time"
 msgstr "Las métricas no se pueden usar para filas y columnas al mismo tiempo"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Metrics folder can only contain metric items"
 msgstr "La carpeta de métricas solo puede contener elementos de métricas"
 
@@ -11380,8 +11337,6 @@ msgstr ""
 msgid "Name your database"
 msgstr "Ponle un nombre a tu base de datos"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Name your folder and to edit it later, click on the folder name"
 msgstr ""
 "Asigna un nombre a tu carpeta y para editarla más tarde, haz clic en el "
@@ -12665,8 +12620,6 @@ msgstr ""
 msgid "Person or group that has certified this metric"
 msgstr "Persona o grupo que ha certificado esta métrica."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Personal info"
 msgstr "Información personal"
 
@@ -12725,10 +12678,8 @@ msgstr "Anclar a la izquierda"
 msgid "Pin Right"
 msgstr "Anclar a la derecha"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Pin to the result panel"
-msgstr "Fijar en el panel de resultados"
+msgstr "Anclar al panel de resultados"
 
 #, fuzzy
 msgid "Pin to top"
@@ -13106,8 +13057,7 @@ msgstr "Contraseña de la clave privada"
 msgid "Proceed"
 msgstr "Continuar"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid "Processing export for %s"
 msgstr "Procesando exportación para %s"
 
@@ -13810,8 +13760,6 @@ msgstr "Restablecer"
 msgid "Reset Columns"
 msgstr "Restablecer columnas"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Reset all folders to default"
 msgstr "Restablecer todas las carpetas a los valores predeterminados"
 
@@ -14936,8 +14884,6 @@ msgstr "Seleccionar formato"
 msgid "Select groups"
 msgstr "Seleccionar roles"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "Select layers in the order you want them stacked. First selected appears "
 "at the bottom.Layers let you combine multiple visualizations on one map. "
@@ -15099,8 +15045,6 @@ msgstr ""
 "Selecciona el color para los valores que indican una disminución en el "
 "gráfico."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "Select the column containing currency codes such as USD, EUR, GBP, etc. "
 "Used when building charts when 'Auto-detect' currency formatting is "
@@ -17498,8 +17442,6 @@ msgstr "No se puede resolver el nombre de «host» proporcionado."
 msgid "The id of the active chart"
 msgstr "El ID del gráfico activo"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "The image URL of the icon to display for GeoJSON points. Note that the "
 "image URL must conform to the content security policy (CSP) in order to "
@@ -17509,8 +17451,6 @@ msgstr ""
 "cuenta que la URL de la imagen debe cumplir con la política de seguridad "
 "de contenido (CSP) para cargarse correctamente."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "The initial level (depth) of the tree. If set as -1 all nodes are "
 "expanded."
@@ -18191,8 +18131,6 @@ msgstr "El tipo de visualización a mostrar"
 msgid "The unit for icon size"
 msgstr "Tamaño de fuente del subtítulo"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "The unit for label size"
 msgstr "La unidad para el tamaño de etiqueta"
 
@@ -19062,23 +19000,15 @@ msgstr ""
 msgid "This filter might be incompatible with current %s"
 msgstr "Puede que este filtro sea incompatible con el %s actual"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "This folder is currently empty"
 msgstr "Esta carpeta está actualmente vacía"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "This folder only supports columns"
 msgstr "Esta carpeta solo acepta columnas"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "This folder only supports metrics"
 msgstr "Esta carpeta solo acepta métricas"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "This is a default columns folder. Its name cannot be changed or removed. "
 "It can stay empty but will only accept column items."
@@ -19087,8 +19017,6 @@ msgstr ""
 "cambiar ni eliminar. Puede estar vacía pero solo aceptará elementos de "
 "columna."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "This is a default metrics folder. Its name cannot be changed or removed. "
 "It can stay empty but will only accept metric items."
@@ -19097,13 +19025,9 @@ msgstr ""
 "cambiar ni eliminar. Puede estar vacía pero solo aceptará elementos de "
 "métrica."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "This is custom error message for a"
 msgstr "Este es un mensaje de error personalizado para a"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "This is custom error message for b"
 msgstr "Este es un mensaje de error personalizado para b"
 
@@ -19153,8 +19077,6 @@ msgstr ""
 msgid "This link can be used once and expires in %(minutes)s minutes."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
 msgstr "Este enlace no puede seguirse porque su dirección no es segura."
 
@@ -19405,8 +19327,6 @@ msgstr "Esto cancelará la tarea."
 msgid "This will remove your current embed configuration."
 msgstr "Esto eliminará tu configuración de incrustación actual."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "This will reorganize all metrics and columns into default folders. Any "
 "custom folders will be removed."
@@ -19626,18 +19546,12 @@ msgstr "El título es obligatorio"
 msgid "Title or Slug"
 msgstr "Título o «slug»"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "To begin using your Google Sheets, you need to create a database first. "
 "Databases are used as a way to identify your data so that it can be "
 "queried and visualized. This database will hold all of your individual "
 "Google Sheets you choose to connect here."
-msgstr ""
-"Para comenzar a usar sus Google Sheets, primero debe crear una base de "
-"datos. Las bases de datos se utilizan como una forma de identificar sus "
-"datos para que puedan consultarse y visualizarse. Esta base de datos "
-"contendrá todas las hojas de Google individuales que elija conectar aquí."
+msgstr "Para comenzar a usar tus Google Sheets, primero debes crear una base de datos. Las bases de datos se utilizan como una forma de identificar tus datos para que puedan consultarse y visualizarse. Esta base de datos contendrá todas las hojas de Google individuales que elijas conectar aquí."
 
 msgid ""
 "To enable multiple column sorting, hold down the ⇧ Shift key while "
@@ -19664,8 +19578,6 @@ msgstr[1] ""
 msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Token Request URI"
 msgstr "URI de solicitud de token"
 
@@ -20024,15 +19936,10 @@ msgstr ""
 msgid "Unable to create chart without a query id."
 msgstr "No se puede crear un gráfico sin un ID de consulta."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "Unable to create report: User email address is required but not found. "
 "Please ensure your user profile has a valid email address."
-msgstr ""
-"No se puede crear el informe: se requiere la dirección de correo "
-"electrónico del usuario pero no se encontró. Asegúrese de que su perfil "
-"de usuario tenga una dirección de correo electrónico válida."
+msgstr "No se puede crear el informe: se requiere la dirección de correo electrónico del usuario pero no se encontró. Asegúrate de que tu perfil de usuario tenga una dirección de correo electrónico válida."
 
 msgid "Unable to decode value"
 msgstr "No se ha podido decodificar el valor"
@@ -20239,10 +20146,8 @@ msgstr "Valor desconocido"
 msgid "Unpin"
 msgstr "Desanclar"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Unpin from the result panel"
-msgstr "Desanclar en el panel de resultados"
+msgstr "Desanclar del panel de resultados"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -20261,8 +20166,6 @@ msgid ""
 "explicitly filter the dataset."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Unsafe link blocked"
 msgstr "Enlace no seguro bloqueado"
 
@@ -20284,10 +20187,8 @@ msgstr "Tipo de cláusula no admitido: %(clause)s"
 msgid "Unsupported country or region_format for typed geographic chart"
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Unsupported file type. Please use CSV, Excel, or Columnar files."
-msgstr "Tipo de archivo no compatible. Utilice archivos CSV, Excel o Columnar."
+msgstr "Tipo de archivo no compatible. Utiliza archivos CSV, Excel o Columnar."
 
 #, python-format
 msgid "Unsupported post processing operation: %(operation)s"
@@ -20976,10 +20877,8 @@ msgstr "Esperando a la base de datos..."
 msgid "Want to add a new database?"
 msgstr "¿Quieres añadir una nueva base de datos?"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Warehouse"
-msgstr "Almacén"
+msgstr "«Warehouse»"
 
 msgid "Warning"
 msgstr "Advertencia"
@@ -22027,15 +21926,11 @@ msgstr ""
 "controles con datos (columnas, métricas) que coinciden con este nuevo "
 "conjunto de datos."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Your account is activated. You can log in with your credentials."
-msgstr "Su cuenta está activada. Puede iniciar sesión con sus credenciales."
+msgstr "Tu cuenta está activada. Puedes iniciar sesión con tus credenciales."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Your changes will be lost if you leave without saving."
-msgstr "Se perderán los cambios si sale sin guardar."
+msgstr "Se perderán los cambios si sales sin guardar."
 
 msgid "Your chart is not up to date"
 msgstr "Tu gráfico no está actualizado"
@@ -22214,8 +22109,7 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "Propiedad «operation» del objeto de posprocesamiento no definida"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid "`periods` must be between 1 and %(max)s"
 msgstr "`periods` debe estar entre 1 y %(max)s"
 
@@ -22594,10 +22488,8 @@ msgstr "asunto del correo"
 msgid "ends with"
 msgstr "Anchura del borde"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "entire row"
-msgstr "A toda la fila"
+msgstr "toda la fila"
 
 msgid "entries"
 msgstr "entradas"
