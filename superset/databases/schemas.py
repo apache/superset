@@ -505,7 +505,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
         impersonate_user = data.get(
             "impersonate_user", stored.impersonate_user if stored else False
         )
-        if not _embedded_credentials_stranded(
+        if not embedded_credentials_stranded(
             engine_spec, encrypted_extra, impersonate_user
         ):
             return
@@ -601,7 +601,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
         )
 
 
-def _embedded_credentials_stranded(
+def embedded_credentials_stranded(
     engine_spec: type[BaseEngineSpec],
     encrypted_extra: dict[str, Any],
     impersonate_user: bool,

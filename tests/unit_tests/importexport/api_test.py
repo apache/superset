@@ -556,41 +556,67 @@ def test_bundle_imports_pass_encrypted_extra_secrets(
     assert import_command.call_args.kwargs["encrypted_extra_secrets"] == secrets
 
 
+def _pem(passphrase: str) -> str:
+    """A freshly generated RSA private key, PEM-encoded under ``passphrase``."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    return (
+        rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        .private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.BestAvailableEncryption(passphrase.encode()),
+        )
+        .decode()
+    )
+
+
 EMBEDDED_KEYPAIR = {
     "username": "EMBED_SVC",
     "auth_method": "keypair",
-    "privatekey_body": "-----BEGIN PRIVATE KEY-----\nKEY\n-----END PRIVATE KEY-----\n",
+    "privatekey_body": _pem("passphrase"),
     "privatekey_pass": "passphrase",
 }
 
 
 @pytest.mark.parametrize(
-    "fallback_enabled,incoming,status,stored",
+    "fallback_enabled,incoming,status,message",
     [
         pytest.param(
             True,
             {"username": "EMBED_SVC", "auth_method": "keypair", "privatekey_pass": "X"},
-            500,
-            EMBEDDED_KEYPAIR,
+            400,
+            "$.embedded_credentials.privatekey_body",
             id="private-key-missing",
+        ),
+        pytest.param(
+            True,
+            {**EMBEDDED_KEYPAIR, "privatekey_body": "X", "privatekey_pass": "wrong"},
+            400,
+            "private key could not be read",
+            id="wrong-passphrase",
         ),
         pytest.param(
             True,
             {**EMBEDDED_KEYPAIR, "privatekey_body": "X", "privatekey_pass": "X"},
             200,
-            EMBEDDED_KEYPAIR,
+            None,
             id="complete",
         ),
         pytest.param(
             False,
             {"username": "EMBED_SVC", "auth_method": "keypair", "privatekey_pass": "X"},
+            400,
+            "while the embedded credential fallback is turned off",
+            id="fallback-off-changed",
+        ),
+        pytest.param(
+            False,
+            {**EMBEDDED_KEYPAIR, "privatekey_body": "X", "privatekey_pass": "X"},
             200,
-            {
-                "username": "EMBED_SVC",
-                "auth_method": "keypair",
-                "privatekey_pass": "passphrase",
-            },
-            id="fallback-off",
+            None,
+            id="fallback-off-unchanged",
         ),
     ],
 )
@@ -602,12 +628,13 @@ def test_import_assets_overwrite_embedded_credential(
     fallback_enabled: bool,
     incoming: dict[str, str],
     status: int,
-    stored: dict[str, str],
+    message: str | None,
 ) -> None:
     """
     An overwrite import whose embedded guest credential leaves out a required
-    value is refused with a message naming it, and the stored credential stays
-    (sc-127530). A complete credential, or the fallback off, imports as before.
+    value (sc-127530) or carries a key its passphrase doesn't open (sc-130269) is
+    refused with a 400 naming the problem, and the stored credential stays. With
+    the fallback off, only an unchanged credential imports (sc-130270).
 
     ``"X"`` in ``incoming`` stands for the export mask, which the import reveals
     from the stored credential.
@@ -691,11 +718,9 @@ def test_import_assets_overwrite_embedded_credential(
     )
 
     assert response.status_code == status, response.json
-    if status != 200:
-        assert (
-            "$.embedded_credentials.privatekey_body"
-            in (response.json["errors"][0]["message"])
-        )
+    if message is not None:
+        assert message in response.json["errors"][0]["message"]
     db.session.expire_all()
     database = db.session.query(Database).filter_by(uuid=UUID(db_uuid)).one()
-    assert json.loads(database.encrypted_extra)["embedded_credentials"] == stored
+    stored = json.loads(database.encrypted_extra)["embedded_credentials"]
+    assert stored == EMBEDDED_KEYPAIR

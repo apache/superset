@@ -18,6 +18,7 @@
 
 import copy
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 import pytest
 from flask import current_app
@@ -1019,10 +1020,26 @@ def test_import_database_never_stores_a_mask_over_an_existing_db(
     assert existing.encrypted_extra is None
 
 
+def _pem(passphrase: str) -> str:
+    """A freshly generated RSA private key, PEM-encoded under ``passphrase``."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    return (
+        rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        .private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.BestAvailableEncryption(passphrase.encode()),
+        )
+        .decode()
+    )
+
+
 EMBEDDED_KEYPAIR = {
     "username": "EMBED_SVC",
     "auth_method": "keypair",
-    "privatekey_body": "-----BEGIN PRIVATE KEY-----\nKEY\n-----END PRIVATE KEY-----\n",
+    "privatekey_body": _pem("passphrase"),
     "privatekey_pass": "passphrase",
 }
 
@@ -1055,6 +1072,28 @@ def _import_snowflake_with_stored_keypair(mocker: MockerFixture) -> "Database":
     Database.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
 
     existing = import_database(_snowflake_config(EMBEDDED_KEYPAIR))
+    db.session.flush()
+    return existing
+
+
+def _store_snowflake_keypair(mocker: MockerFixture) -> "Database":
+    """Store the connection directly, for tests that import with the flag off."""
+    from superset import security_manager
+    from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    Database.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+
+    config = _snowflake_config(EMBEDDED_KEYPAIR)
+    existing = Database(
+        database_name=config["database_name"],
+        sqlalchemy_uri=config["sqlalchemy_uri"],
+        uuid=UUID(str(config["uuid"])),
+        impersonate_user=True,
+        encrypted_extra=config["masked_encrypted_extra"],
+    )
+    db.session.add(existing)
     db.session.flush()
     return existing
 
@@ -1127,20 +1166,113 @@ def test_import_database_keeps_complete_embedded_credential_on_overwrite(
     assert stored == EMBEDDED_KEYPAIR
 
 
-@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=False)
-def test_import_database_skips_embedded_credential_check_when_flag_off(
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=True)
+def test_import_database_refuses_embedded_key_with_wrong_passphrase(
     mocker: MockerFixture, session: Session
 ) -> None:
     """
-    With the fallback off the credential is inert, so import doesn't judge it --
-    the same as the dialog and the API.
+    A key pair whose passphrase doesn't open its key is refused, as the API
+    refuses it, instead of breaking every embedded chart later (sc-130269).
     """
     from superset.commands.database.importers.v1.utils import import_database
+    from superset.commands.exceptions import ImportRefusedError
 
-    _import_snowflake_with_stored_keypair(mocker)
+    existing = _import_snowflake_with_stored_keypair(mocker)
+
+    wrong = {**EMBEDDED_KEYPAIR, "privatekey_pass": "wrong"}
+    with pytest.raises(ImportRefusedError, match="private key could not be read"):
+        import_database(_snowflake_config(wrong), overwrite=True)
+
+    stored = json.loads(existing.encrypted_extra)["embedded_credentials"]
+    assert stored == EMBEDDED_KEYPAIR
+
+
+@pytest.mark.parametrize("carries_secure_extra", [True, False])
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=True)
+def test_import_database_refuses_impersonation_off_with_embedded_credential(
+    mocker: MockerFixture, session: Session, carries_secure_extra: bool
+) -> None:
+    """
+    A file that turns impersonation off on a connection that keeps an embedded
+    credential is refused, whether the file carries the credential or leaves
+    the stored one attached; otherwise viewers run as the base account
+    (sc-130268).
+    """
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.commands.exceptions import ImportRefusedError
+
+    existing = _import_snowflake_with_stored_keypair(mocker)
+
+    masked = {
+        **EMBEDDED_KEYPAIR,
+        "privatekey_body": PASSWORD_MASK,
+        "privatekey_pass": PASSWORD_MASK,
+    }
+    config = {**_snowflake_config(masked), "impersonate_user": False}
+    if not carries_secure_extra:
+        del config["masked_encrypted_extra"]
+    with pytest.raises(ImportRefusedError, match="Impersonate logged in user"):
+        import_database(config, overwrite=True)
+
+    assert existing.impersonate_user is True
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=False)
+def test_import_database_refuses_changed_embedded_credential_when_flag_off(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    With the fallback off nothing validates a credential, so a new or changed
+    one is refused, as the API refuses it; the stored one stays (sc-130270).
+    """
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.commands.exceptions import ImportRefusedError
+
+    existing = _store_snowflake_keypair(mocker)
 
     half_filled = {"username": "EMBED_SVC", "auth_method": "keypair"}
-    database = import_database(_snowflake_config(half_filled), overwrite=True)
+    with pytest.raises(ImportRefusedError, match="fallback is turned off"):
+        import_database(_snowflake_config(half_filled), overwrite=True)
+
+    stored = json.loads(existing.encrypted_extra)["embedded_credentials"]
+    assert stored == EMBEDDED_KEYPAIR
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=False)
+def test_import_database_keeps_unchanged_embedded_credential_when_flag_off(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """Re-importing the stored credential unchanged still works with the flag off."""
+    from superset.commands.database.importers.v1.utils import import_database
+
+    _store_snowflake_keypair(mocker)
+
+    masked = {
+        **EMBEDDED_KEYPAIR,
+        "privatekey_body": PASSWORD_MASK,
+        "privatekey_pass": PASSWORD_MASK,
+    }
+    database = import_database(_snowflake_config(masked), overwrite=True)
 
     stored = json.loads(database.encrypted_extra)["embedded_credentials"]
-    assert stored == half_filled
+    assert stored == EMBEDDED_KEYPAIR
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=False)
+def test_import_database_refuses_new_db_with_embedded_credential_when_flag_off(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """A new connection can't bring an embedded credential in with the flag off."""
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.commands.exceptions import ImportRefusedError
+    from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    Database.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+
+    with pytest.raises(ImportRefusedError, match="fallback is turned off"):
+        import_database(_snowflake_config({"username": "EMBED_SVC"}))
+
+    assert db.session.query(Database).count() == 0

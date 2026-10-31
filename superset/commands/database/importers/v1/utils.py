@@ -27,12 +27,15 @@ from superset.commands.database.utils import (
     import_connection_identity_changed,
     ssh_tunnel_rebind_unsafe,
 )
-from superset.commands.exceptions import ImportFailedError
+from superset.commands.exceptions import ImportFailedError, ImportRefusedError
 from superset.constants import EMBEDDED_CREDENTIALS_KEY, PASSWORD_MASK
+from superset.databases.schemas import embedded_credentials_stranded
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import (
+    embedded_credentials_error,
     embedded_credentials_incomplete,
     embedded_credentials_missing_fields,
+    embedded_credentials_present,
     make_url_safe,
 )
 from superset.db_engine_specs import BaseEngineSpec
@@ -83,26 +86,91 @@ def _refuse_stored_secret_reuse(existing: Database, config: dict[str, Any]) -> N
         )
 
 
-def _refuse_incomplete_embedded_credentials(
+def _refuse_unusable_embedded_credentials(  # pylint: disable=too-many-arguments
     database_name: str,
     encrypted_extra: dict[str, Any],
     engine_spec: type[BaseEngineSpec],
+    existing: Database | None,
+    impersonate_user: bool,
+    *,
+    authored: bool,
 ) -> None:
     """
-    Refuse a half-filled embedded guest credential, as the dialog and API do.
+    Hold an imported embedded guest credential to the rules the dialog and API do.
+
+    ``encrypted_extra`` is the Secure Extra the connection will have after the
+    import, its masked secrets already revealed. ``authored`` says whether the
+    file supplied it; when it doesn't, the stored one stays attached and only the
+    file's ``impersonate_user`` can strand it.
+    """
+    credentials = encrypted_extra.get(EMBEDDED_CREDENTIALS_KEY)
+    if not (
+        is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK")
+        and is_feature_enabled("EMBEDDED_SUPERSET")
+    ):
+        if authored:
+            _refuse_embedded_credentials_while_disabled(
+                database_name, credentials, existing
+            )
+        return
+
+    if authored:
+        _refuse_incomplete_embedded_credentials(database_name, credentials, engine_spec)
+        if message := embedded_credentials_error(engine_spec, credentials, None):
+            raise ImportRefusedError(
+                f"Embedded guest credentials of database '{database_name}' can't "
+                f"be used. {message}"
+            )
+
+    if embedded_credentials_stranded(engine_spec, encrypted_extra, impersonate_user):
+        raise ImportRefusedError(
+            f"Embedded guest credentials of database '{database_name}' only apply "
+            'to connections that use OAuth2 with "Impersonate logged in user" '
+            "turned on. Turn on impersonation and configure OAuth2 client "
+            "information, or clear the embedded credentials."
+        )
+
+
+def _refuse_embedded_credentials_while_disabled(
+    database_name: str,
+    credentials: Any,
+    existing: Database | None,
+) -> None:
+    """
+    Refuse a new or changed credential while the fallback is off, as the API does.
+
+    Nothing validates a credential while the fallback is off, and one stored then
+    goes live, unchecked, the moment it is turned on. Re-importing the stored
+    credential unchanged, or clearing it, is accepted.
+    """
+    if not embedded_credentials_present(credentials):
+        return
+    if existing is not None and existing.encrypted_extra:
+        stored = json.loads(existing.encrypted_extra)
+        if isinstance(stored, dict) and credentials == stored.get(
+            EMBEDDED_CREDENTIALS_KEY
+        ):
+            return
+    raise ImportRefusedError(
+        f"Embedded guest credentials of database '{database_name}' can't be added "
+        "or changed while the embedded credential fallback is turned off. Leave "
+        "the stored credentials unchanged or clear them."
+    )
+
+
+def _refuse_incomplete_embedded_credentials(
+    database_name: str,
+    credentials: Any,
+    engine_spec: type[BaseEngineSpec],
+) -> None:
+    """
+    Refuse a half-filled embedded guest credential.
 
     Only the secrets that arrive masked are revealed from the stored credential,
     so one the file leaves out entirely (e.g. a key-pair credential without its
     private key) would replace the stored credential with one no embedded
     viewer can log in with.
     """
-    if not (
-        is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK")
-        and is_feature_enabled("EMBEDDED_SUPERSET")
-    ):
-        return
-
-    credentials = encrypted_extra.get(EMBEDDED_CREDENTIALS_KEY)
     if not embedded_credentials_incomplete(
         credentials, engine_spec.validate_embedded_credentials
     ):
@@ -114,7 +182,7 @@ def _refuse_incomplete_embedded_credentials(
         field + (f" ({labels[field]})" if field in labels else "")
         for field in embedded_credentials_missing_fields(credentials)
     ]
-    raise ImportFailedError(
+    raise ImportRefusedError(
         f"Embedded guest credentials of database '{database_name}' are invalid "
         "or incomplete."
         + (f" Missing: {', '.join(missing)}." if missing else "")
@@ -217,7 +285,16 @@ def import_database(  # noqa: C901
         else:
             config["encrypted_extra"] = masked_encrypted_extra
 
-    if encrypted_extra := config.get("encrypted_extra"):
+    # A file without Secure Extra leaves the stored one attached, embedded
+    # credential included, so the rest of the file is checked against that.
+    authored = "encrypted_extra" in config
+    if encrypted_extra := (
+        config.get("encrypted_extra")
+        if authored
+        else existing.encrypted_extra
+        if existing
+        else None
+    ):
         engine_spec = (
             existing.db_engine_spec
             if existing
@@ -239,8 +316,16 @@ def import_database(  # noqa: C901
             )
 
         if isinstance(payload, dict):
-            _refuse_incomplete_embedded_credentials(
-                config["database_name"], payload, engine_spec
+            _refuse_unusable_embedded_credentials(
+                config["database_name"],
+                payload,
+                engine_spec,
+                existing,
+                config.get(
+                    "impersonate_user",
+                    existing.impersonate_user if existing else False,
+                ),
+                authored=authored,
             )
 
     ssh_tunnel_config = config.pop("ssh_tunnel", None)
