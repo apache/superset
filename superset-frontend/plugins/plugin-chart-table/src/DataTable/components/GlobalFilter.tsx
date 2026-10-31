@@ -38,6 +38,7 @@ export interface SearchInputProps {
   value: string;
   onChange: ChangeEventHandler<HTMLInputElement>;
   onBlur?: FocusEventHandler<HTMLInputElement>;
+  // onCompositionStart/End support IME input (CJK) composition events
   onCompositionStart?: CompositionEventHandler<HTMLInputElement>;
   onCompositionEnd?: CompositionEventHandler<HTMLInputElement>;
   inputRef?: Ref<InputRef>;
