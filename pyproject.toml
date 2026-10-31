@@ -121,7 +121,7 @@ dependencies = [
     "typing-extensions>=4.16.0, <5",
     "waitress; sys_platform == 'win32'",
     "watchdog>=6.0.0",
-    "wtforms>=3.2.2, <4",
+    "wtforms>=3.3.0, <4",
     "wtforms-json",
     "xlsxwriter>=3.2.9, <3.3",
 ]
@@ -245,7 +245,7 @@ kylin = ["kylinpy>=2.8.4, <2.9"]
 mariadb = ["apache-superset[mysql]"]
 monetdb = ["sqlalchemy-monetdb>=2.1.0, <3", "pymonetdb>=1.9.1, <2"]
 mongodb = ["pymongosql>=0.7.4, <1"]
-mssql = ["pymssql>=2.4.2, <3"]
+mssql = ["pymssql>=2.4.5, <3"]
 # motherduck is an alias for duckdb - MotherDuck works via the duckdb driver
 motherduck = ["apache-superset[duckdb]"]
 mysql = ["mysqlclient>=2.3.0, <3"]
@@ -275,7 +275,7 @@ prophet = [
     # evaluates TTX XML values with eval() in cffLib parseBlendList(),
     # allowing arbitrary code execution from a crafted TTX file
     # (fonttools/fonttools#4039, fixed in 4.62.0 by #4040).
-    "fonttools>=4.62.0,<5.0.0",
+    "fonttools>=4.67.0,<5.0.0",
 ]
 # sqlalchemy-redshift cuts hard from SQLAlchemy 1.4-only (0.8.x) to 2.0-only
 # (>=1.0.0) with no dual-compat release. Bumped now that Superset's own
@@ -329,7 +329,7 @@ development = [
     "docker>=7.2.0",
     "flask-testing",
     "freezegun",
-    "grpcio>=1.84.0",
+    "grpcio>=1.84.1",
     "openapi-spec-validator",
     "parameterized",
     "pip",

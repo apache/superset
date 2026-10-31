@@ -46,6 +46,9 @@ jobs:
     # Leave time for setup, the full suite, scoped coverage gates, and uploads.
     timeout-minutes: 45
     permissions:
+      # Declaring any permission drops the defaults, and checkout and `$/` actions
+      # need read access wherever the repository is not public.
+      contents: read
       id-token: write
     strategy:
       matrix:
