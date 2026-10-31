@@ -218,6 +218,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "force_ctas_schema",
         "impersonate_user",
         "is_managed_externally",
+        "query_cost_warning",
+        "query_warning_state",
         "engine_information",
     ]
     list_columns = [
@@ -227,6 +229,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "allow_dml",
         "allow_run_async",
         "allows_cost_estimate",
+        "query_cost_warning",
+        "query_warning_state",
         "allows_subquery",
         "allows_virtual_table_explore",
         "backend",

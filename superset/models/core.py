@@ -291,6 +291,36 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         )
 
     @property
+    def query_cost_warning(self) -> dict[str, Any] | None:
+        """Return a validated rule without exposing the connection's other extras."""
+        from superset.db_engine_specs.query_warning import validate_query_warning_rule
+
+        try:
+            return validate_query_warning_rule(
+                self.get_extra().get("query_cost_warning", {"enabled": False}),
+                self.db_engine_spec.get_query_warning_check(),
+            )
+        except ValidationError:
+            return None
+
+    @property
+    def query_warning_state(self) -> str:
+        """Expose check readiness without confusing invalid settings with opt-out."""
+        rule = self.query_cost_warning
+        if rule is None:
+            return "invalid"
+        check = self.db_engine_spec.get_query_warning_check()
+        if check is None:
+            return "unsupported"
+        if (
+            not is_feature_enabled("SQLLAB_QUERY_COST_WARNINGS")
+            or not rule["enabled"]
+            or not check.is_enabled(self)
+        ):
+            return "disabled"
+        return "ready"
+
+    @property
     def allows_virtual_table_explore(self) -> bool:
         extra = self.get_extra()
         return bool(extra.get("allows_virtual_table_explore", True))

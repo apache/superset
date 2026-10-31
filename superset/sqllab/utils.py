@@ -16,14 +16,23 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any
+import logging
+from typing import Any, TYPE_CHECKING
 
 import pyarrow as pa
 
 from superset import db, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.daos.database import DatabaseDAO
-from superset.models.sql_lab import TabState
+from superset.models.sql_lab import Query, TabState
+from superset.sqllab.limiting_factor import LimitingFactor
+from superset.utils.core import apply_max_row_limit
+
+if TYPE_CHECKING:
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+logger = logging.getLogger(__name__)
+
 
 DATABASE_KEYS = [
     "allow_file_upload",
@@ -32,6 +41,8 @@ DATABASE_KEYS = [
     "allow_dml",
     "allow_run_async",
     "allows_cost_estimate",
+    "query_cost_warning",
+    "query_warning_state",
     "allows_subquery",
     "backend",
     "database_name",
@@ -43,6 +54,32 @@ DATABASE_KEYS = [
     "allow_multi_catalog",
     "engine_information",
 ]
+
+
+def get_query_limit(query_limit: int | None) -> int:
+    """Normalize the SQL Lab dropdown limit using the execution row cap."""
+    limit = apply_max_row_limit(query_limit or 0)
+    if limit < 0:
+        logger.warning("Invalid limit of %i specified. Defaulting to max limit.", limit)
+        limit = 0
+    return limit
+
+
+def set_query_limit(
+    query: Query,
+    rendered_query: str,
+    limit: int,
+    db_engine_spec: type[BaseEngineSpec],
+) -> None:
+    """Choose the execution limit and record whether SQL or the dropdown sets it."""
+    sql_limit = db_engine_spec.get_limit_from_sql(rendered_query)
+    if sql_limit is None or sql_limit > limit:
+        query.limiting_factor = LimitingFactor.DROPDOWN
+    elif limit > sql_limit:
+        query.limiting_factor = LimitingFactor.QUERY
+    else:
+        query.limiting_factor = LimitingFactor.QUERY_AND_DROPDOWN
+    query.limit = min(lim for lim in (sql_limit, limit) if lim is not None)
 
 
 def apply_display_max_row_configuration_if_require(  # pylint: disable=invalid-name

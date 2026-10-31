@@ -49,6 +49,10 @@ from superset.db_engine_specs.base import (
     DatabaseCategory,
 )
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+from superset.db_engine_specs.query_warning import (
+    QueryCostEstimate,
+    QueryCostThresholdCheck,
+)
 from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.sql.parse import SQLScript, Table
@@ -64,6 +68,7 @@ logger = logging.getLogger(__name__)
 try:
     import google.auth
     from google.cloud import bigquery
+    from google.cloud.bigquery.dbapi import Connection as BigQueryConnection
     from google.oauth2 import service_account
 
     dependencies_installed = True
@@ -916,6 +921,96 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return True
 
     @classmethod
+    def get_query_warning_check(cls) -> QueryCostThresholdCheck | None:
+        """Opt only the verified BigQueryEngineSpec into native cost warnings."""
+        return (
+            QueryCostThresholdCheck("bytes_processed")
+            if cls is BigQueryEngineSpec
+            else None
+        )
+
+    @classmethod
+    def estimate_query_cost_for_warning(
+        cls,
+        database: Database,
+        catalog: str | None,
+        schema: str,
+        sql: str,
+    ) -> QueryCostEstimate:
+        """Dry-run with the execution connection's client and job defaults."""
+        if cls.get_query_warning_check() is None or not dependencies_installed:
+            return QueryCostEstimate()
+        script = SQLScript(sql, engine=cls.engine)
+        if len(script.statements) != 1 or not script.statements[0].is_select():
+            return QueryCostEstimate()
+        with database.get_raw_connection(
+            catalog=catalog, schema=schema, source=utils.QuerySource.SQL_LAB
+        ) as connection:
+            dbapi_connection = connection.driver_connection
+            if not isinstance(dbapi_connection, BigQueryConnection):
+                return QueryCostEstimate()
+            # google-cloud-bigquery's DB-API has no public client accessor.
+            # Tested with the minimum supported SDK/driver and installed versions.
+            client = getattr(dbapi_connection, "_client", None)
+            if not isinstance(client, bigquery.Client):
+                return QueryCostEstimate()
+            # Direct SDK calls bypass DBAPI's percent unescaping for parameters=None.
+            job = client.query(
+                cls.process_statement(script.statements[0], database).replace(
+                    "%%", "%"
+                ),
+                job_config=bigquery.QueryJobConfig(dry_run=True),
+                job_retry=None,
+            )
+            return cls._query_cost_warning_estimate(job)
+
+    @staticmethod
+    def _query_cost_warning_estimate(job: bigquery.QueryJob) -> QueryCostEstimate:
+        """Read response statistics without rounding or SDK integer coercion."""
+        # The public serializer omits response statistics, and the SDK exposes
+        # neither accuracy nor row-security metadata through public accessors.
+        resource = getattr(job, "_properties", {})
+        if not isinstance(resource, dict):
+            return QueryCostEstimate()
+        statistics = resource.get("statistics", {})
+        if not isinstance(statistics, dict):
+            return QueryCostEstimate()
+        query_statistics = statistics.get("query", {})
+        row_security_statistics = statistics.get("rowLevelSecurityStatistics", {})
+        if not isinstance(query_statistics, dict) or not isinstance(
+            row_security_statistics, dict
+        ):
+            return QueryCostEstimate()
+        accuracy = query_statistics.get("totalBytesProcessedAccuracy")
+        row_security_applied = row_security_statistics.get("rowLevelSecurityApplied")
+        if row_security_applied is not None and not isinstance(
+            row_security_applied, bool
+        ):
+            return QueryCostEstimate()
+        if row_security_applied is True:
+            return QueryCostEstimate(
+                unavailable_reason=__(
+                    "BigQuery cannot provide an estimate when row-level "
+                    "security hides usage."
+                )
+            )
+        bytes_processed = query_statistics.get("totalBytesProcessed")
+        # The REST API represents int64 byte counts as decimal strings.
+        if isinstance(bytes_processed, str) and re.fullmatch(
+            r"[0-9]+", bytes_processed
+        ):
+            try:
+                bytes_processed = int(bytes_processed)
+            except ValueError:
+                bytes_processed = None
+        if isinstance(bytes_processed, bool) or not isinstance(bytes_processed, int):
+            bytes_processed = None
+        return QueryCostEstimate.from_value(
+            bytes_processed,
+            accuracy if isinstance(accuracy, str) else None,
+        )
+
+    @classmethod
     def custom_estimate_statement_cost(
         cls,
         statement: str,
@@ -931,11 +1026,13 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         # TODO: Humanize in case more db engine specs need to be added,
         # this should be made a function outside this scope.
         byte_division = 1024
-        if hasattr(query_job, "total_bytes_processed"):
-            query_bytes_processed = query_job.total_bytes_processed
+        query_bytes_processed = getattr(query_job, "total_bytes_processed", None)
+        if isinstance(query_bytes_processed, int) and not isinstance(
+            query_bytes_processed, bool
+        ):
             if query_bytes_processed // byte_division == 0:
                 byte_type = "B"
-                total_bytes_processed = query_bytes_processed
+                total_bytes_processed: int | float = query_bytes_processed
             elif query_bytes_processed // (byte_division**2) == 0:
                 byte_type = "KB"
                 total_bytes_processed = round(query_bytes_processed / byte_division, 2)

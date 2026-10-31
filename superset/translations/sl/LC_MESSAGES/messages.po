@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-10-30 19:28-0400\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -2214,6 +2214,9 @@ msgstr "Prišlo je do napake"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "Opozorilo poimenovano %(name)s že obstaja"
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
@@ -2979,6 +2982,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Asinhroni zagon poizvedb"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Pripisovanje"
 
@@ -3200,6 +3207,9 @@ msgstr "Velika številka s časovno primerjavo"
 msgid "Big Number with Trendline"
 msgstr "Velika številka s trendno krivuljo"
 
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
+
 msgid "Bins"
 msgstr "Razdelki"
 
@@ -3383,6 +3393,9 @@ msgstr "Po ključu: za razvrščanje uporabite imena vrstic"
 
 msgid "By value: use metric values as sorting key"
 msgstr "Po vrednosti: za razvrščanje uporabite vrednosti mere"
+
+msgid "Bytes"
+msgstr ""
 
 msgid "CC recipients"
 msgstr "V vednost (CC)"
@@ -6589,6 +6602,9 @@ msgstr "Onemogočite vrtanje v podrobnosti"
 msgid "Disable embedding?"
 msgstr "Onemogočite vgrajevanje?"
 
+msgid "Disable saved rule"
+msgstr ""
+
 msgid "Disabled"
 msgstr "Onemogočeno"
 
@@ -7313,8 +7329,16 @@ msgstr "Omogoči matrixify"
 msgid "Enable node dragging"
 msgstr "Omogoči premikanje vozlišč"
 
+msgid "Enable pre-run warnings"
+msgstr ""
+
 msgid "Enable query cost estimation"
 msgstr "Omogoči ocenjevanje potratnosti poizvedbe"
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
+msgstr ""
 
 msgid "Enable row expansion in schemas"
 msgstr "Omogoči razširitev vrstic v shemah"
@@ -7403,8 +7427,22 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Vnesite del imena predmeta"
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
+msgid "Enter a warning threshold no greater than 9,007,199,254,740,991."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Vnesite naslov opozorila"
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
+msgstr ""
 
 msgid "Enter duration in seconds"
 msgstr "Vnesite trajanje v sekundah"
@@ -7469,6 +7507,9 @@ msgid "Enter theme name"
 msgstr "Vnesite ime teme"
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -7641,6 +7682,20 @@ msgstr "Oceni potratnost izbrane poizvedbe"
 
 msgid "Estimate the cost before running a query"
 msgstr "Oceni potratnost pred zagonom poizvedbe"
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
+msgstr ""
 
 msgid "Event"
 msgstr "Dogodek"
@@ -8455,6 +8510,9 @@ msgid "Fit data"
 msgstr "Prilagodi podatkom"
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 msgid ""
@@ -12410,6 +12468,9 @@ msgstr "Piksli"
 msgid "Plain"
 msgstr "Preprosto"
 
+msgid "Planner cost is relative, not dollars or memory."
+msgstr ""
+
 msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
@@ -12850,6 +12911,12 @@ msgstr "Ime poizvedbe"
 
 msgid "Query preview"
 msgstr "Predogled poizvedbe"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 msgid "Query was stopped"
 msgstr "Poizvedba je bila ustavljena"
@@ -13746,6 +13813,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -14046,6 +14116,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 msgid "Saving..."
@@ -16817,6 +16892,14 @@ msgid ""
 "call."
 msgstr "Objekt engine_params se razširi v klic sqlalchemy.create_engine."
 
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "The exponent to compute all sizes from. \"EXP\" only"
@@ -17241,6 +17324,26 @@ msgid ""
 "properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid "The query cost warning threshold must be no greater than 9007199254740991."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "Poizvedbe ni mogoče naložiti"
 
@@ -17257,6 +17360,9 @@ msgstr "Poizvedba ima sintaktično napako."
 
 msgid "The query returned no data"
 msgstr "Poizvedba ni vrnila podatkov"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -17355,6 +17461,14 @@ msgstr ""
 
 #, python-format
 msgid "The sample row limit was reached. This %s may contain more rows."
+msgstr ""
+
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
 msgstr ""
 
 #, python-format
@@ -18383,6 +18497,9 @@ msgid ""
 "this operator."
 msgstr ""
 
+msgid "This engine does not support pre-run warnings."
+msgstr ""
+
 #, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr ""
@@ -18519,6 +18636,11 @@ msgid ""
 msgstr ""
 "Ta povezava vas bo pripeljala na zunanje spletno mesto. Ne moremo "
 "zagotoviti varnosti zunanjih destinacij."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 msgid "This markdown component has an error."
 msgstr "Markdown komponenta ima napako."
@@ -18771,6 +18893,9 @@ msgstr "Mejna vrednost alfa za določanje značilnosti"
 
 msgid "Threshold for Other"
 msgstr "Prag za kategorijo »Drugo«"
+
+msgid "Threshold size unit"
+msgstr ""
 
 msgid "Threshold: "
 msgstr "Prag: "
@@ -19655,6 +19780,10 @@ msgstr "Neimenovana poizvedba"
 msgid "Unverified"
 msgstr "Nepreverjeno"
 
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
+
 msgid "Update"
 msgstr "Posodobi"
 
@@ -20267,6 +20396,24 @@ msgstr "Skladišče"
 msgid "Warning"
 msgstr "Opozorilo"
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 msgid "Warning!"
 msgstr "Opozorilo!"
 
@@ -20285,6 +20432,12 @@ msgid ""
 msgstr ""
 "Opozorilo: poizvedbe ILIKE so lahko počasne pri velikih naborih podatkov,"
 " saj ne morejo učinkovito uporabljati indeksov."
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
+msgstr ""
 
 msgid "Was unable to check your query"
 msgstr "Poizvedbe ni bilo mogoče preveriti"
@@ -21603,6 +21756,9 @@ msgstr "gumb (cmd + z) dokler ne shranite sprememb."
 msgid "by using"
 msgstr "z uporabo"
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -22222,6 +22378,9 @@ msgstr "pivoted_xlsx"
 msgid "pixels"
 msgstr "piksli"
 
+msgid "planner cost units"
+msgstr ""
+
 msgid "previous calendar month"
 msgstr "prejšnji koledarski mesec"
 
@@ -22245,6 +22404,12 @@ msgstr "poizvedbe"
 
 msgid "query"
 msgstr "poizvedba"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "naključno"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-10-30 19:28-0400\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -2907,6 +2907,9 @@ msgstr "오류가 발생했습니다"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "데이터셋 %(name)s 은 이미 존재합니다"
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -3959,6 +3962,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "비동기 쿼리 실행"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 #, fuzzy
 msgid "Attribution"
 msgstr "설명"
@@ -4334,6 +4341,9 @@ msgstr "기간 비교가 있는 큰 숫자"
 msgid "Big Number with Trendline"
 msgstr "추세선이 있는 큰 숫자"
 
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
+
 #, fuzzy
 msgid "Bins"
 msgstr "활동"
@@ -4606,6 +4616,9 @@ msgstr "키 기준: 행 이름을 정렬 키로 사용"
 #, fuzzy
 msgid "By value: use metric values as sorting key"
 msgstr "값 기준: 지표 값을 정렬 키로 사용"
+
+msgid "Bytes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, uk]
@@ -9198,6 +9211,9 @@ msgstr "세부 정보 드릴다운 비활성화"
 msgid "Disable embedding?"
 msgstr "임베딩을 비활성화하시겠습니까?"
 
+msgid "Disable saved rule"
+msgstr ""
+
 #, fuzzy
 msgid "Disabled"
 msgstr "테이블 수정"
@@ -10312,12 +10328,20 @@ msgstr "matrixify 활성화"
 msgid "Enable node dragging"
 msgstr "노드 드래그 활성화"
 
+msgid "Enable pre-run warnings"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
 #, fuzzy
 msgid "Enable query cost estimation"
 msgstr "쿼리 비용 추정 활성화"
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -10458,9 +10482,23 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "차트 유형"
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
+msgid "Enter a warning threshold no greater than 9,007,199,254,740,991."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 #, fuzzy
 msgid "Enter alert name"
 msgstr "테이블 명"
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
+msgstr ""
 
 #, fuzzy
 msgid "Enter duration in seconds"
@@ -10545,6 +10583,9 @@ msgid "Enter theme name"
 msgstr "테이블 명"
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -10798,6 +10839,20 @@ msgstr "선택한 쿼리 비용 추정"
 #, fuzzy
 msgid "Estimate the cost before running a query"
 msgstr "쿼리 실행 전 비용 추정"
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
+msgstr ""
 
 #, fuzzy
 msgid "Event"
@@ -11969,6 +12024,9 @@ msgid "Fit data"
 msgstr "데이터 맞추기"
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -18108,6 +18166,9 @@ msgstr "픽셀"
 msgid "Plain"
 msgstr "일반"
 
+msgid "Planner cost is relative, not dollars or memory."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -18816,6 +18877,12 @@ msgstr "Query 검색"
 
 msgid "Query preview"
 msgstr "데이터 미리보기"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20137,6 +20204,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -20566,6 +20636,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -24555,6 +24630,14 @@ msgid ""
 "call."
 msgstr "engine_params 객체는 sqlalchemy.create_engine 호출로 언패킹됩니다."
 
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -25116,6 +25199,26 @@ msgid ""
 "properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid "The query cost warning threshold must be no greater than 9007199254740991."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
 # sr_Latn, tr, uk, zh, zh_TW]
@@ -25146,6 +25249,9 @@ msgstr "쿼리에 구문 오류가 있습니다."
 #, fuzzy
 msgid "The query returned no data"
 msgstr "쿼리가 데이터를 반환하지 않았습니다"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -25281,6 +25387,14 @@ msgstr "차트에 설정된 행 제한에 도달했습니다. 차트에 일부 �
 
 #, python-format
 msgid "The sample row limit was reached. This %s may contain more rows."
+msgstr ""
+
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -26637,6 +26751,9 @@ msgid ""
 "this operator."
 msgstr ""
 
+msgid "This engine does not support pre-run warnings."
+msgstr ""
+
 #, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr ""
@@ -26799,6 +26916,11 @@ msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
 msgstr "이 링크를 클릭하면 외부 웹사이트로 이동합니다. 외부 목적지의 안전을 보장할 수 없습니다."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -27115,6 +27237,9 @@ msgstr "유의성 결정을 위한 임계 알파 수준"
 #, fuzzy
 msgid "Threshold for Other"
 msgstr "기타 임계값"
+
+msgid "Threshold size unit"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -28425,6 +28550,10 @@ msgstr "Query 공유"
 msgid "Unverified"
 msgstr "수정됨"
 
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -29323,6 +29452,24 @@ msgstr "웨어하우스"
 msgid "Warning"
 msgstr "경고"
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
 # tr, uk, zh, zh_TW]
@@ -29346,6 +29493,12 @@ msgid ""
 "Warning: ILIKE queries may be slow on large datasets as they cannot use "
 "indexes effectively."
 msgstr "경고: ILIKE 쿼리는 인덱스를 효과적으로 사용할 수 없어 대용량 데이터셋에서 느릴 수 있습니다."
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -31391,6 +31544,9 @@ msgstr "버튼(cmd + z)을 변경 사항을 저장할 때까지 누르세요."
 msgid "by using"
 msgstr "을(를) 사용하여"
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -32363,6 +32519,9 @@ msgstr "테이블 수정"
 msgid "pixels"
 msgstr "픽셀"
 
+msgid "planner cost units"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -32405,6 +32564,12 @@ msgstr ""
 
 msgid "query"
 msgstr "Query 공유"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]

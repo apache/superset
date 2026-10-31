@@ -70,6 +70,11 @@ from superset.constants import (
     TimeGrain as TimeGrainConstants,
 )
 from superset.databases.utils import get_table_metadata, make_url_safe
+from superset.db_engine_specs.query_warning import (
+    QueryCostEstimate,
+    QueryCostThresholdCheck,
+    QueryWarningCheck,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2Error,
@@ -2526,6 +2531,28 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
 
     @classmethod
+    def get_query_warning_check(cls) -> QueryWarningCheck | None:
+        """Select a warning check only for an explicitly verified implementation."""
+        return None
+
+    @classmethod
+    def get_query_cost_warning_metric(cls) -> str | None:
+        """Expose the numeric setting capability without coupling Run to metrics."""
+        check = cls.get_query_warning_check()
+        return check.metric if isinstance(check, QueryCostThresholdCheck) else None
+
+    @classmethod
+    def estimate_query_cost_for_warning(
+        cls,
+        database: Database,
+        catalog: str | None,
+        schema: str,
+        sql: str,
+    ) -> QueryCostEstimate:
+        """Leave unsupported engines unavailable without contacting the warehouse."""
+        return QueryCostEstimate()
+
+    @classmethod
     def process_statement(
         cls,
         statement: BaseSQLStatement[Any],
@@ -3232,6 +3259,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return {
             "supports_file_upload": cls.supports_file_upload,
+            "query_cost_warning_metric": cls.get_query_cost_warning_metric(),
+            "query_warning_supported": cls.get_query_warning_check() is not None,
             "disable_ssh_tunneling": cls.disable_ssh_tunneling,
             "supports_dynamic_catalog": cls.supports_dynamic_catalog,
             "supports_oauth2": cls.supports_oauth2,

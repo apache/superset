@@ -2057,3 +2057,98 @@ def test_expand_nested_columns_default_returns_input() -> None:
     ]
 
     assert BaseEngineSpec.expand_nested_columns(object(), columns) is columns
+
+
+@pytest.mark.parametrize(
+    "value",
+    [None, "1", True, False, -1, float("nan"), float("inf"), float("-inf"), {}, []],
+)
+def test_query_cost_warning_rejects_unusable_values(
+    mocker: MockerFixture, value: object
+) -> None:
+    """Unusable provider values cannot become an apparently safe zero."""
+    from superset.db_engine_specs.query_warning import (
+        QueryCostEstimate,
+        QueryCostThresholdCheck,
+    )
+
+    estimate = QueryCostEstimate.from_value(value)
+    assert estimate.value is None
+    database = mocker.MagicMock()
+    database.db_engine_spec.estimate_query_cost_for_warning.return_value = mocker.Mock(
+        spec=QueryCostEstimate,
+        value=value,
+        accuracy="PRECISE",
+        unavailable_reason=None,
+    )
+    result = QueryCostThresholdCheck("total_cost").assess(
+        database,
+        None,
+        "",
+        "SELECT 1",
+        {"enabled": True, "metric": "total_cost", "threshold": 100},
+    )
+    assert result["action"] == "confirm"
+    assert result["reason"] == "unavailable"
+
+
+@pytest.mark.parametrize(
+    "value,accuracy,expected",
+    [
+        (0, "PRECISE", "within_threshold"),
+        (99.5, "PRECISE", "within_threshold"),
+        (100, "PRECISE", "within_threshold"),
+        (100.01, "PRECISE", "above_threshold"),
+        (2**60 + 1, "PRECISE", "above_threshold"),
+        (101, "LOWER_BOUND", "above_threshold"),
+        (100, "LOWER_BOUND", "unavailable"),
+        (0, "LOWER_BOUND", "unavailable"),
+        (101, "UPPER_BOUND", "above_threshold"),
+        (100, "UPPER_BOUND", "within_threshold"),
+        (1000, "UNKNOWN", "unavailable"),
+        (1000, None, "unavailable"),
+    ],
+)
+def test_query_cost_warning_compares_raw_bounds(
+    mocker: MockerFixture, value: int | float, accuracy: str | None, expected: str
+) -> None:
+    """Only useful bounds prove a threshold crossing or a within-threshold estimate."""
+    from superset.db_engine_specs.query_warning import (
+        QueryCostEstimate,
+        QueryCostThresholdCheck,
+    )
+
+    estimate = QueryCostEstimate.from_value(value, accuracy)
+    assert estimate.value == value
+    database = mocker.MagicMock()
+    database.db_engine_spec.estimate_query_cost_for_warning.return_value = estimate
+    result = QueryCostThresholdCheck("total_cost").assess(
+        database,
+        None,
+        "",
+        "SELECT 1",
+        {"enabled": True, "metric": "total_cost", "threshold": 100},
+    )
+    if expected == "within_threshold":
+        assert result == {"action": "proceed"}
+    else:
+        assert result["action"] == "confirm"
+        assert result["reason"] == (
+            "warning" if expected == "above_threshold" else "unavailable"
+        )
+
+
+def test_query_cost_warning_unsupported_engine_does_not_estimate() -> None:
+    """Other engines do not inherit warning support from manual cost estimation."""
+    from unittest.mock import MagicMock
+
+    database = MagicMock()
+    assert BaseEngineSpec.get_public_information()["query_cost_warning_metric"] is None
+    assert BaseEngineSpec.get_query_warning_check() is None
+    assert (
+        BaseEngineSpec.estimate_query_cost_for_warning(
+            database, None, "", "SELECT 1"
+        ).value
+        is None
+    )
+    database.get_raw_connection.assert_not_called()

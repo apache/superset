@@ -20,6 +20,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
+from sqlalchemy.orm.session import Session
 
 from superset import db
 from superset.commands.database.exceptions import (
@@ -28,6 +29,7 @@ from superset.commands.database.exceptions import (
 )
 from superset.commands.database.update import UpdateDatabaseCommand
 from superset.constants import PASSWORD_MASK
+from superset.databases.schemas import DatabasePutSchema
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import security_manager
 from superset.models.core import Database
@@ -204,6 +206,7 @@ def test_rename_with_catalog(
     been renamed from `my_db` to `my_other_db`.
     """
     original_database = mocker.MagicMock()
+    original_database.extra = "{}"
     original_database.database_name = "my_db"
     database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
     database_dao.find_by_id.return_value = original_database
@@ -306,6 +309,7 @@ def test_rename_without_catalog(
     """  # noqa: E501
     database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
     original_database = mocker.MagicMock()
+    original_database.extra = "{}"
     original_database.database_name = "my_db"
     database_without_catalog.database_name = "my_other_db"
     database_dao.update.return_value = database_without_catalog
@@ -354,6 +358,7 @@ def test_rename_without_catalog_with_assets(
     """
     database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
     original_database = mocker.MagicMock()
+    original_database.extra = "{}"
     original_database.database_name = "my_db"
     database_without_catalog.database_name = "my_other_db"
     database_without_catalog.get_all_schema_names.return_value = ["schema1"]
@@ -658,7 +663,7 @@ def test_update_broken_connection(mocker: MockerFixture) -> None:
     Test that updating a database with a broken connection works
     even if it has to run a query to get the default catalog.
     """
-    database = mocker.MagicMock()
+    database = mocker.MagicMock(extra="{}")
     database.get_default_catalog.side_effect = Exception("Broken connection")
     database.id = 1
     new_db = mocker.MagicMock()
@@ -829,7 +834,12 @@ def test_update_unreachable_database_invalid_json_fails(
     rollback = mocker.patch.object(db.session, "rollback")
     commit = mocker.patch.object(db.session, "commit")
 
-    with pytest.raises(DatabaseConnectionFailedError):
+    error = (
+        DatabaseInvalidError
+        if field == "extra" and not invalid_original
+        else DatabaseConnectionFailedError
+    )
+    with pytest.raises(error):
         UpdateDatabaseCommand(1, properties).run()
 
     rollback.assert_called_once()
@@ -1285,3 +1295,188 @@ def test_update_oauth2_unresolvable_endpoints_purges_tokens(
     command._handle_oauth2()
 
     purge_oauth2_tokens.assert_called_once()
+
+
+@pytest.mark.parametrize("new_uri", ["bigquery://", "postgresql://"])
+def test_warning_update_with_uri_and_empty_extra_clears_saved_settings(
+    mocker: MockerFixture, session: Session, new_uri: str
+) -> None:
+    """The PUT schema and real update command preserve an explicit empty replacement."""
+    Database.metadata.create_all(db.session.get_bind())
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri="bigquery://",
+        extra=json.dumps(
+            {
+                "query_cost_warning": {
+                    "enabled": True,
+                    "metric": "bytes_processed",
+                    "threshold": 100,
+                },
+                "cost_estimate_enabled": True,
+                "metadata_params": {},
+            }
+        ),
+    )
+    db.session.add(database)
+    db.session.flush()
+    properties = DatabasePutSchema().load({"sqlalchemy_uri": new_uri, "extra": "{}"})
+    mocker.patch(
+        "superset.commands.database.update.DatabaseDAO.find_by_id",
+        return_value=database,
+    )
+    mocker.patch.object(Database, "get_default_catalog", return_value=None)
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand")
+    mocker.patch("superset.commands.database.update.get_username", return_value="test")
+    command = UpdateDatabaseCommand(database.id, properties)
+
+    updated = command.run()
+
+    assert json.loads(properties["extra"]) == {}
+    assert isinstance(updated, Database)
+    assert updated.extra == "{}"
+    assert json.loads(command._properties["extra"]) == {}
+    assert db.session.get(Database, database.id) is updated
+
+
+@pytest.mark.parametrize("new_uri", [None, "postgresql://"])
+@pytest.mark.parametrize("threshold", ["invalid", 100])
+def test_warning_update_replaces_rule_without_restoring_saved_fields(
+    mocker: MockerFixture, new_uri: str | None, threshold: str | int
+) -> None:
+    """A minimal disabled rule replaces all submitted extra without restoring fields."""
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri="bigquery://",
+        extra=json.dumps(
+            {
+                "query_cost_warning": {
+                    "enabled": True,
+                    "metric": "bytes_processed",
+                    "threshold": threshold,
+                },
+                "metadata_params": {},
+            }
+        ),
+    )
+    properties = {"extra": json.dumps({"query_cost_warning": {"enabled": False}})}
+    if new_uri:
+        properties["sqlalchemy_uri"] = new_uri
+    command = UpdateDatabaseCommand(1, properties)
+    command._model = database
+    mocker.patch.object(command, "_check_no_unsafe_secret_rebind")
+    command.validate()
+    saved = json.loads(command._properties["extra"])
+    assert saved == {
+        "query_cost_warning": {"enabled": False},
+    }
+
+
+def test_warning_update_validates_retained_rule_against_new_engine(
+    mocker: MockerFixture,
+) -> None:
+    """Changing an engine without resending extra cannot retain an incompatible rule."""
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri="bigquery://",
+        extra=json.dumps(
+            {
+                "query_cost_warning": {
+                    "enabled": True,
+                    "metric": "bytes_processed",
+                    "threshold": 100,
+                }
+            }
+        ),
+    )
+    properties = DatabasePutSchema().load({"sqlalchemy_uri": "postgresql://"})
+    command = UpdateDatabaseCommand(1, properties)
+    command._model = database
+    mocker.patch.object(command, "_check_no_unsafe_secret_rebind")
+    with pytest.raises(DatabaseInvalidError):
+        command.validate()
+    assert "extra" not in command._properties
+
+
+@pytest.mark.parametrize("submitted", [True, False])
+def test_warning_update_rejects_unparseable_extra(
+    mocker: MockerFixture, submitted: bool
+) -> None:
+    """Unparseable extra that mentions warning settings fails before saving."""
+    invalid = '{"query_cost_warning": {"enabled": true}'
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri="bigquery://",
+        extra="{}" if submitted else invalid,
+    )
+    properties = {"extra": invalid} if submitted else {}
+    command = UpdateDatabaseCommand(1, properties)
+    command._model = database
+    rebind = mocker.patch.object(command, "_check_no_unsafe_secret_rebind")
+    with pytest.raises(DatabaseInvalidError) as excinfo:
+        command.validate()
+    assert isinstance(excinfo.value.__cause__, json.JSONDecodeError)
+    rebind.assert_not_called()
+    assert command._properties == properties
+
+
+@pytest.mark.parametrize(
+    "enabled,new_uri",
+    [(False, None), (True, None), (False, "postgresql://"), (True, "bigquery://other")],
+)
+def test_warning_update_preserves_rule_without_resubmitting_extra(
+    mocker: MockerFixture, enabled: bool, new_uri: str | None
+) -> None:
+    """Unrelated updates retain the connection's explicit warning settings."""
+    extra = {
+        "query_cost_warning": {
+            "enabled": enabled,
+            "metric": "bytes_processed",
+            "threshold": 100,
+        },
+        "metadata_params": {},
+    }
+    database = Database(
+        database_name="test", sqlalchemy_uri="bigquery://", extra=json.dumps(extra)
+    )
+    properties = DatabasePutSchema().load(
+        {"sqlalchemy_uri": new_uri} if new_uri else {}
+    )
+    command = UpdateDatabaseCommand(1, properties)
+    command._model = database
+    mocker.patch.object(command, "_check_no_unsafe_secret_rebind")
+    command.validate()
+    assert "extra" not in command._properties
+    assert json.loads(database.extra) == extra
+
+
+@pytest.mark.parametrize("submitted", [True, False])
+@pytest.mark.parametrize(
+    "metric,threshold", [("bytes_processed", -1), ("total_cost", 100)]
+)
+def test_warning_update_validates_json_escaped_key(
+    mocker: MockerFixture, submitted: bool, metric: str, threshold: int
+) -> None:
+    """Escaped keys cannot bypass engine validation for submitted or retained rules."""
+    extra = json.dumps(
+        {
+            "query_cost_warning": {
+                "enabled": True,
+                "metric": metric,
+                "threshold": threshold,
+            }
+        }
+    ).replace("query_cost_warning", r"\u0071uery_cost_warning")
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri="bigquery://",
+        extra="{}" if submitted else extra,
+    )
+    properties = {"extra": extra} if submitted else {}
+    command = UpdateDatabaseCommand(1, properties)
+    command._model = database
+    rebind = mocker.patch.object(command, "_check_no_unsafe_secret_rebind")
+    with pytest.raises(DatabaseInvalidError):
+        command.validate()
+    rebind.assert_not_called()
+    assert command._properties == properties

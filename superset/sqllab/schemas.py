@@ -50,6 +50,15 @@ class EstimateQueryCostSchema(Schema):
     schema = fields.String(
         allow_none=True, metadata={"description": "The database schema"}
     )
+    check_warning = fields.Boolean(
+        load_default=False,
+        metadata={"description": "Run the connection's advisory pre-execution check"},
+    )
+    query_limit = fields.Integer(
+        allow_none=True,
+        strict=True,
+        metadata={"description": "The SQL Lab dropdown row limit"},
+    )
 
 
 class FormatQueryPayloadSchema(Schema):
@@ -175,6 +184,10 @@ class SQLLabBootstrapDatabaseSchema(Schema):
     allow_run_async = fields.Boolean()
     allow_multi_catalog = fields.Boolean()
     allows_cost_estimate = fields.Boolean(allow_none=True)
+    query_cost_warning = fields.Dict(allow_none=True)
+    query_warning_state = fields.String(
+        validate=validate.OneOf(["unsupported", "disabled", "ready", "invalid"])
+    )
     allows_subquery = fields.Boolean()
     allows_virtual_table_explore = fields.Boolean()
     disable_data_preview = fields.Boolean()

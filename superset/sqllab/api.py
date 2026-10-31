@@ -172,14 +172,55 @@ class SqlLabRestApi(BaseSupersetApi):
                   $ref: '#/components/schemas/EstimateQueryCostSchema'
           responses:
             200:
-              description: Query estimation result
+              description: >-
+                Formatted manual estimate, or a warning decision when check_warning
+                is true. The action is proceed when this check does not require
+                confirmation. A confirm action includes a warning or unavailable
+                reason, a nonempty message, and optional plain-text label/value details.
               content:
                 application/json:
                   schema:
                     type: object
                     properties:
                       result:
-                        type: object
+                        oneOf:
+                          - type: array
+                            items:
+                              type: object
+                          - type: object
+                            required:
+                              - action
+                            properties:
+                              action:
+                                type: string
+                                enum: [proceed]
+                          - type: object
+                            required:
+                              - action
+                              - reason
+                              - message
+                            properties:
+                              action:
+                                type: string
+                                enum: [confirm]
+                              reason:
+                                type: string
+                                enum: [warning, unavailable]
+                              message:
+                                type: string
+                                minLength: 1
+                              details:
+                                type: array
+                                items:
+                                  type: object
+                                  required:
+                                    - label
+                                    - value
+                                  properties:
+                                    label:
+                                      type: string
+                                    value:
+                                      type: string
             400:
               $ref: '#/components/responses/400'
             401:

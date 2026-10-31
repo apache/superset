@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-10-30 19:28-0400\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -2145,6 +2145,9 @@ msgstr "ஒரு பிழை ஏற்பட்டது"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "\"%(name)s\" என்ற பெயரில் ஒரு எச்சரிக்கை ஏற்கனவே உள்ளது"
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
@@ -2903,6 +2906,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "ஒத்திசைவற்ற வினவல் இயக்கம் (Asynchronous query execution)"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 msgid "Attribution"
 msgstr "பண்புக்கூறு (Attribution)"
 
@@ -3113,6 +3120,9 @@ msgstr "கால அளவு ஒப்பீட்டுடன் கூடி
 msgid "Big Number with Trendline"
 msgstr "போக்குக் கோட்டுடன் (Trendline) கூடிய பெரிய எண்"
 
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
+
 msgid "Bins"
 msgstr "பின்கள் (Bins)"
 
@@ -3291,6 +3301,9 @@ msgstr "சாவி மூலம்: வரிசைப் பெயர்க�
 
 msgid "By value: use metric values as sorting key"
 msgstr "மதிப்பு மூலம்: அளவீட்டு மதிப்புகளை வரிசைப்படுத்தும் சாவியாகப் பயன்படுத்து"
+
+msgid "Bytes"
+msgstr ""
 
 msgid "CC recipients"
 msgstr "CC பெறுநர்கள்"
@@ -6434,6 +6447,9 @@ msgstr "டிரில்-டு-டீடைல் (drill to detail) வசத
 msgid "Disable embedding?"
 msgstr "உட்பொதிப்பதை (embedding) முடக்கவா?"
 
+msgid "Disable saved rule"
+msgstr ""
+
 msgid "Disabled"
 msgstr "முடக்கப்பட்டது"
 
@@ -7147,8 +7163,16 @@ msgstr "Matrixify-ஐ இயக்கு"
 msgid "Enable node dragging"
 msgstr "முனைகளை (nodes) இழுக்கும் வசதியை இயக்கு"
 
+msgid "Enable pre-run warnings"
+msgstr ""
+
 msgid "Enable query cost estimation"
 msgstr "வினவல் செலவு மதிப்பீட்டை (query cost estimation) இயக்கு"
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
+msgstr ""
 
 msgid "Enable row expansion in schemas"
 msgstr "ஸ்கீமாக்களில் வரிசை விரிவாக்கத்தை (row expansion) இயக்கு"
@@ -7232,8 +7256,22 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "பொருளின் பெயரின் ஒரு பகுதியை உள்ளிடவும்"
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
+msgid "Enter a warning threshold no greater than 9,007,199,254,740,991."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "எச்சரிக்கை பெயரை உள்ளிடவும்"
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
+msgstr ""
 
 msgid "Enter duration in seconds"
 msgstr "கால அளவை விநாடிகளில் உள்ளிடவும்"
@@ -7292,6 +7330,9 @@ msgid "Enter theme name"
 msgstr "தீம் பெயரை உள்ளிடவும்"
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -7461,6 +7502,20 @@ msgstr "தேர்ந்தெடுக்கப்பட்ட வினவ�
 
 msgid "Estimate the cost before running a query"
 msgstr "வினவலை இயக்குவதற்கு முன் அதன் செலவை மதிப்பிடவும்"
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
+msgstr ""
 
 msgid "Event"
 msgstr "நிகழ்வு"
@@ -8250,6 +8305,9 @@ msgid "Fit data"
 msgstr "தரவுத்தொகுப்பைத் திருத்து"
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 msgid ""
@@ -12049,6 +12107,9 @@ msgstr "பிக்சல்கள் (Pixels)"
 msgid "Plain"
 msgstr "சாதாரண (Plain)"
 
+msgid "Planner cost is relative, not dollars or memory."
+msgstr ""
+
 msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
@@ -12474,6 +12535,12 @@ msgstr "வினவல் பெயர்"
 
 msgid "Query preview"
 msgstr "வினவல் முன்னோட்டம்"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 msgid "Query was stopped"
 msgstr "வினவல் நிறுத்தப்பட்டது"
@@ -13338,6 +13405,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -13621,6 +13691,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 msgid "Saving..."
@@ -16252,6 +16327,14 @@ msgstr ""
 "engine_params பொருள் sqlalchemy.create_engine அழைப்பில் "
 "விரிவுபடுத்தப்படுகிறது."
 
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "அனைத்து அளவுகளையும் கணக்கிட வேண்டிய அடுக்கு (Exponent)."
 
@@ -16629,6 +16712,26 @@ msgid ""
 "properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid "The query cost warning threshold must be no greater than 9007199254740991."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "வினவலை ஏற்ற முடியவில்லை"
 
@@ -16643,6 +16746,9 @@ msgstr "வினவலில் ஒரு தொடரியல் பிழை
 
 msgid "The query returned no data"
 msgstr "வினவல் தரவு எதையும் தரவில்லை"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16728,6 +16834,14 @@ msgstr ""
 
 #, python-format
 msgid "The sample row limit was reached. This %s may contain more rows."
+msgstr ""
+
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
 msgstr ""
 
 #, python-format
@@ -17724,6 +17838,9 @@ msgid ""
 "this operator."
 msgstr ""
 
+msgid "This engine does not support pre-run warnings."
+msgstr ""
+
 #, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr ""
@@ -17824,6 +17941,11 @@ msgstr ""
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
+msgstr ""
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
 msgstr ""
 
 msgid "This markdown component has an error."
@@ -18061,6 +18183,9 @@ msgstr "முக்கியத்துவத்தைத் தீர்ம�
 
 msgid "Threshold for Other"
 msgstr "'மற்றவை' க்கான வரம்பு"
+
+msgid "Threshold size unit"
+msgstr ""
 
 msgid "Threshold: "
 msgstr "வரம்பு: "
@@ -18888,6 +19013,10 @@ msgstr "தலைப்பில்லாத வினவல்"
 msgid "Unverified"
 msgstr "சரிபார்க்கப்படாதது"
 
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
+
 msgid "Update"
 msgstr "புதுப்பிக்கவும்"
 
@@ -19479,6 +19608,24 @@ msgstr "தரவுக் கிடங்கு (Warehouse)"
 msgid "Warning"
 msgstr "எச்சரிக்கை"
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 msgid "Warning!"
 msgstr "எச்சரிக்கை!"
 
@@ -19492,6 +19639,12 @@ msgstr ""
 msgid ""
 "Warning: ILIKE queries may be slow on large datasets as they cannot use "
 "indexes effectively."
+msgstr ""
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
 msgstr ""
 
 msgid "Was unable to check your query"
@@ -20769,6 +20922,9 @@ msgstr "மாற்றங்களைச் சேமிக்கும் வ�
 msgid "by using"
 msgstr "பயன்படுத்துவதன் மூலம்"
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -21356,6 +21512,9 @@ msgstr "pivoted_xlsx"
 msgid "pixels"
 msgstr "பிக்சல்கள்"
 
+msgid "planner cost units"
+msgstr ""
+
 msgid "previous calendar month"
 msgstr "முந்தைய காலண்டர் மாதம்"
 
@@ -21380,6 +21539,12 @@ msgstr "வினவல்கள் (Queries)"
 
 msgid "query"
 msgstr "வினவல்"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "சீரற்ற (random)"

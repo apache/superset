@@ -5448,6 +5448,12 @@
           "is_managed_externally": {
             "type": "boolean"
           },
+          "query_cost_warning": {
+            "readOnly": true
+          },
+          "query_warning_state": {
+            "readOnly": true
+          },
           "uuid": {
             "format": "uuid",
             "nullable": true,
@@ -5546,6 +5552,12 @@
           },
           "id": {
             "type": "integer"
+          },
+          "query_cost_warning": {
+            "readOnly": true
+          },
+          "query_warning_state": {
+            "readOnly": true
           },
           "uuid": {
             "format": "uuid",
@@ -7852,6 +7864,13 @@
             "description": "OAuth2 authentication is enabled on this connection",
             "type": "boolean"
           },
+          "query_cost_warning_metric": {
+            "nullable": true,
+            "type": "string"
+          },
+          "query_warning_supported": {
+            "type": "boolean"
+          },
           "supports_dynamic_catalog": {
             "description": "The database supports multiple catalogs in a single connection",
             "type": "boolean"
@@ -7882,8 +7901,18 @@
             "nullable": true,
             "type": "string"
           },
+          "check_warning": {
+            "default": false,
+            "description": "Run the connection's advisory pre-execution check",
+            "type": "boolean"
+          },
           "database_id": {
             "description": "The database id",
+            "type": "integer"
+          },
+          "query_limit": {
+            "description": "The SQL Lab dropdown row limit",
+            "nullable": true,
             "type": "integer"
           },
           "schema": {
@@ -11879,6 +11908,19 @@
           "id": {
             "description": "The database id",
             "type": "integer"
+          },
+          "query_cost_warning": {
+            "nullable": true,
+            "type": "object"
+          },
+          "query_warning_state": {
+            "enum": [
+              "unsupported",
+              "disabled",
+              "ready",
+              "invalid"
+            ],
+            "type": "string"
           }
         },
         "type": "object"
@@ -36089,14 +36131,80 @@
                 "schema": {
                   "properties": {
                     "result": {
-                      "type": "object"
+                      "oneOf": [
+                        {
+                          "items": {
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        {
+                          "properties": {
+                            "action": {
+                              "enum": [
+                                "proceed"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "action"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "properties": {
+                            "action": {
+                              "enum": [
+                                "confirm"
+                              ],
+                              "type": "string"
+                            },
+                            "details": {
+                              "items": {
+                                "properties": {
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "label",
+                                  "value"
+                                ],
+                                "type": "object"
+                              },
+                              "type": "array"
+                            },
+                            "message": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "reason": {
+                              "enum": [
+                                "warning",
+                                "unavailable"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "action",
+                            "reason",
+                            "message"
+                          ],
+                          "type": "object"
+                        }
+                      ]
                     }
                   },
                   "type": "object"
                 }
               }
             },
-            "description": "Query estimation result"
+            "description": "Formatted manual estimate, or a warning decision when check_warning is true. The action is proceed when this check does not require confirmation. A confirm action includes a warning or unavailable reason, a nonempty message, and optional plain-text label/value details."
           },
           "400": {
             "$ref": "#/components/responses/400"

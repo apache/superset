@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-10-30 19:28-0400\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -2393,6 +2393,9 @@ msgstr "حدث خطأ"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "تنبيه باسم \"%(name)s\" موجود بالفعل"
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
@@ -3179,6 +3182,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "تنفيذ استعلام غير متزامن"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 #, fuzzy
 msgid "Attribution"
 msgstr "التوزيع"
@@ -3427,6 +3434,9 @@ msgstr "رقم كبير مع مقارنة الفترة الزمنية"
 msgid "Big Number with Trendline"
 msgstr "رقم كبير مع خط الاتجاه"
 
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
+
 #, fuzzy
 msgid "Bins"
 msgstr "في"
@@ -3620,6 +3630,9 @@ msgstr "حسب المفتاح: استخدم أسماء الصفوف كمفتاح
 
 msgid "By value: use metric values as sorting key"
 msgstr "حسب القيمة: استخدام قيم المقاييس كمفتاح فرز"
+
+msgid "Bytes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, uk]
@@ -7074,6 +7087,9 @@ msgstr "قم بالتنقيب عن التفاصيل"
 msgid "Disable embedding?"
 msgstr "تعطيل التضمين؟"
 
+msgid "Disable saved rule"
+msgstr ""
+
 msgid "Disabled"
 msgstr "مُعطل"
 
@@ -7884,8 +7900,16 @@ msgstr "تمكين matrixify"
 msgid "Enable node dragging"
 msgstr "تمكين سحب العقدة"
 
+msgid "Enable pre-run warnings"
+msgstr ""
+
 msgid "Enable query cost estimation"
 msgstr "تمكين تقدير تكلفة الاستعلام"
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
+msgstr ""
 
 msgid "Enable row expansion in schemas"
 msgstr "تمكين توسيع الصفوف في المخططات"
@@ -7977,9 +8001,23 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "ما إذا كنت تريد ملء الكائنات"
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
+msgid "Enter a warning threshold no greater than 9,007,199,254,740,991."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 #, fuzzy
 msgid "Enter alert name"
 msgstr "اسم التنبيه"
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
+msgstr ""
 
 msgid "Enter duration in seconds"
 msgstr "أدخل المدة بالثواني"
@@ -8056,6 +8094,9 @@ msgid "Enter theme name"
 msgstr "اسم التنبيه"
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -8241,6 +8282,20 @@ msgstr "تقدير تكلفة الاستعلام المحدد"
 
 msgid "Estimate the cost before running a query"
 msgstr "قم بتقدير التكلفة قبل تشغيل الاستعلام"
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
+msgstr ""
 
 msgid "Event"
 msgstr "حدث"
@@ -9114,6 +9169,9 @@ msgid "Fit data"
 msgstr "ملاءمة البيانات"
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 msgid ""
@@ -13341,6 +13399,9 @@ msgstr "بكسل"
 msgid "Plain"
 msgstr "عادي"
 
+msgid "Planner cost is relative, not dollars or memory."
+msgstr ""
+
 msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
@@ -13809,6 +13870,12 @@ msgstr "اسم الاستعلام"
 
 msgid "Query preview"
 msgstr "معاينة الاستعلام"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 msgid "Query was stopped"
 msgstr "تم إيقاف الاستعلام"
@@ -14756,6 +14823,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -15062,6 +15132,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 #, fuzzy
@@ -18058,6 +18133,14 @@ msgid ""
 "call."
 msgstr "يتم تفكيك كائن engine_params في استدعاء sqlalchemy.create_engine."
 
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -18498,6 +18581,26 @@ msgid ""
 "properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid "The query cost warning threshold must be no greater than 9007199254740991."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "لا يمكن تحميل الاستعلام"
 
@@ -18514,6 +18617,9 @@ msgstr "يحتوي الاستعلام على خطأ في بناء الجملة."
 
 msgid "The query returned no data"
 msgstr "لم يعرض الاستعلام أي بيانات"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -18623,6 +18729,14 @@ msgstr "تم الوصول إلى حد الصفوف المحدد للمخطط. ق
 
 #, python-format
 msgid "The sample row limit was reached. This %s may contain more rows."
+msgstr ""
+
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
 msgstr ""
 
 #, python-format
@@ -19698,6 +19812,9 @@ msgid ""
 "this operator."
 msgstr ""
 
+msgid "This engine does not support pre-run warnings."
+msgstr ""
+
 #, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr ""
@@ -19849,6 +19966,11 @@ msgid ""
 msgstr ""
 "سيأخذك هذا الرابط إلى موقع ويب خارجي. لا يمكننا ضمان سلامة الوجهات "
 "الخارجية."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 msgid "This markdown component has an error."
 msgstr "يوجد خطأ في مكون تخفيض السعر هذا."
@@ -20122,6 +20244,9 @@ msgstr "عتبة مستوى ألفا لتحديد الأهمية"
 #, fuzzy
 msgid "Threshold for Other"
 msgstr "عتبة"
+
+msgid "Threshold size unit"
+msgstr ""
 
 msgid "Threshold: "
 msgstr "العتبة: "
@@ -21056,6 +21181,10 @@ msgstr "استعلام بدون عنوان"
 msgid "Unverified"
 msgstr "غير محدد"
 
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
+
 msgid "Update"
 msgstr "Update"
 
@@ -21718,6 +21847,24 @@ msgstr "المستودع"
 msgid "Warning"
 msgstr "تحذير"
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 msgid "Warning!"
 msgstr "تحذير!"
 
@@ -21737,6 +21884,12 @@ msgid ""
 msgstr ""
 "تحذير: قد تكون استعلامات ILIKE بطيئة على مجموعات البيانات الكبيرة لأنها "
 "لا تستطيع استخدام الفهارس بفعالية."
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
+msgstr ""
 
 msgid "Was unable to check your query"
 msgstr "لم يكن قادرًا على التحقق من الاستعلام الخاص بك"
@@ -23094,6 +23247,9 @@ msgstr "زر (cmd + z) حتى تقوم بحفظ التغييرات."
 msgid "by using"
 msgstr "باستخدام"
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -23767,6 +23923,9 @@ msgstr "ممحور"
 msgid "pixels"
 msgstr "بكسل"
 
+msgid "planner cost units"
+msgstr ""
+
 msgid "previous calendar month"
 msgstr "الشهر التقويمي السابق"
 
@@ -23794,6 +23953,12 @@ msgstr ""
 
 msgid "query"
 msgstr "استعلام"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "عشوائي"

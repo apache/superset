@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-10-30 19:28-0400\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -2689,6 +2689,9 @@ msgstr "Ocorreu um erro"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "Já existe um alerta chamado \"%(name)s\""
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -3612,6 +3615,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Execução de consulta assíncrona"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Atribuição"
 
@@ -3922,6 +3929,9 @@ msgstr "Número Grande com Comparação de Período de Tempo"
 msgid "Big Number with Trendline"
 msgstr "Número grande com Trendline"
 
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
+
 msgid "Bins"
 msgstr "Caixas"
 
@@ -4167,6 +4177,9 @@ msgstr "Por chave: utilizar nomes de linhas como chave de ordenação"
 # uk, zh, zh_TW]
 msgid "By value: use metric values as sorting key"
 msgstr "Por valor: utilizar valores métricos como chave de ordenação"
+
+msgid "Bytes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, uk]
@@ -8129,6 +8142,9 @@ msgstr "Desativar detalhamento"
 msgid "Disable embedding?"
 msgstr "Desativar incorporação?"
 
+msgid "Disable saved rule"
+msgstr ""
+
 msgid "Disabled"
 msgstr "Desativado"
 
@@ -9102,11 +9118,19 @@ msgstr "Habilitar matrizificar"
 msgid "Enable node dragging"
 msgstr "Ativar arrastar nó"
 
+msgid "Enable pre-run warnings"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
 msgid "Enable query cost estimation"
 msgstr "Ativar estimativa de custo de consulta"
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -9226,8 +9250,22 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Insira uma parte do nome do objeto"
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
+msgid "Enter a warning threshold no greater than 9,007,199,254,740,991."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Insira o nome do alerta"
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
+msgstr ""
 
 msgid "Enter duration in seconds"
 msgstr "Insira a duração em segundos"
@@ -9298,6 +9336,9 @@ msgid "Enter theme name"
 msgstr "Digite o nome do tema"
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -9518,6 +9559,20 @@ msgstr "Estimar custo da consulta selecionada"
 # uk, zh, zh_TW]
 msgid "Estimate the cost before running a query"
 msgstr "Estimar o custo antes de executar uma consulta"
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
+msgstr ""
 
 msgid "Event"
 msgstr "Evento"
@@ -10507,6 +10562,9 @@ msgid "Fit data"
 msgstr "Ajustar dados"
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -15742,6 +15800,9 @@ msgstr "Pixels"
 msgid "Plain"
 msgstr "Simples"
 
+msgid "Planner cost is relative, not dollars or memory."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -16353,6 +16414,12 @@ msgstr "Nome da consulta"
 
 msgid "Query preview"
 msgstr "Pré-visualização da consulta"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 msgid "Query was stopped"
 msgstr "A consulta foi interrompida"
@@ -17468,6 +17535,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -17832,6 +17902,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -21313,6 +21388,14 @@ msgstr ""
 "O objeto engine_params é descompactado na chamada "
 "sqlalchemy.create_engine."
 
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "The exponent to compute all sizes from. \"EXP\" only"
@@ -21857,6 +21940,26 @@ msgid ""
 "properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid "The query cost warning threshold must be no greater than 9007199254740991."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "Não foi possível carregar a consulta"
 
@@ -21882,6 +21985,9 @@ msgstr "A consulta tem um erro de sintaxe."
 # uk, zh, zh_TW]
 msgid "The query returned no data"
 msgstr "A consulta não retornou dados"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -22009,6 +22115,14 @@ msgstr ""
 
 #, python-format
 msgid "The sample row limit was reached. This %s may contain more rows."
+msgstr ""
+
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -23250,6 +23364,9 @@ msgid ""
 "this operator."
 msgstr ""
 
+msgid "This engine does not support pre-run warnings."
+msgstr ""
+
 #, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr ""
@@ -23401,6 +23518,11 @@ msgid ""
 msgstr ""
 "Este link o levará a um site externo. Não podemos garantir a segurança de"
 " destinos externos."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -23700,6 +23822,9 @@ msgstr "Nível alfa de limiar para determinar a significância"
 # lv, ro, ru, sr, sr_Latn, tr, uk]
 msgid "Threshold for Other"
 msgstr "Limite para outro"
+
+msgid "Threshold size unit"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -24833,6 +24958,10 @@ msgstr "Consulta sem título"
 msgid "Unverified"
 msgstr "Não verificado"
 
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -25656,6 +25785,24 @@ msgstr "Armazém"
 msgid "Warning"
 msgstr "Advertência"
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 msgid "Warning!"
 msgstr "Atenção!"
 
@@ -25677,6 +25824,12 @@ msgid ""
 msgstr ""
 "Aviso: as consultas ILIKE podem ser lentas em grandes conjuntos de dados,"
 " pois não podem usar índices de forma eficaz."
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
+msgstr ""
 
 msgid "Was unable to check your query"
 msgstr "Não foi possível verificar sua consulta"
@@ -27452,6 +27605,9 @@ msgstr "botão (cmd + z) até você salvar suas mudanças."
 msgid "by using"
 msgstr "usando"
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -28284,6 +28440,9 @@ msgstr "pivotado_xlsx"
 msgid "pixels"
 msgstr "pixels"
 
+msgid "planner cost units"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -28320,6 +28479,12 @@ msgstr "consultas"
 
 msgid "query"
 msgstr "consulta"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]

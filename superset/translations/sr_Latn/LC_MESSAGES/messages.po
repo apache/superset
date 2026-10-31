@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-10-30 19:28-0400\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -2542,6 +2542,9 @@ msgstr "Došlo je do greške"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "Upozorenje pod nazivom „%(name)s” već postoji"
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
@@ -3459,6 +3462,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Asinhrono izvršavanje upita"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Attribution"
 msgstr "Atribucija"
@@ -3729,6 +3736,9 @@ msgstr "Veliki broj sa poređenjem vremenskih perioda"
 msgid "Big Number with Trendline"
 msgstr "Veliki broj sa linijom trenda"
 
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid "Bins"
 msgstr "Intervali"
@@ -3951,6 +3961,9 @@ msgstr "Po ključu: koristi imena redova kao ključ za sortiranje"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "By value: use metric values as sorting key"
 msgstr "Po vrednosti: koristi vrednosti metrika kao ključ za sortiranje"
+
+msgid "Bytes"
+msgstr ""
 
 # es, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid "CC recipients"
@@ -7816,6 +7829,9 @@ msgstr "Onemogući prelazak na detalje"
 msgid "Disable embedding?"
 msgstr "Onemogućiti ugrađivanje?"
 
+msgid "Disable saved rule"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Disabled"
 msgstr "Onemogućeno"
@@ -8697,9 +8713,17 @@ msgstr "Omogući matrixify"
 msgid "Enable node dragging"
 msgstr "Omogući prevlačenje čvorova"
 
+msgid "Enable pre-run warnings"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Enable query cost estimation"
 msgstr "Omogući procenu troška upita"
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Enable row expansion in schemas"
@@ -8804,9 +8828,23 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Unesite deo naziva objekta"
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
+msgid "Enter a warning threshold no greater than 9,007,199,254,740,991."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Enter alert name"
 msgstr "Unesite naziv upozorenja"
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Enter duration in seconds"
@@ -8878,6 +8916,9 @@ msgid "Enter theme name"
 msgstr "Unesite naziv teme"
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -9084,6 +9125,20 @@ msgstr "Proceni trošak izabranog upita"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Estimate the cost before running a query"
 msgstr "Proceni trošak pre izvršavanja upita"
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Event"
@@ -10024,6 +10079,9 @@ msgid "Fit data"
 msgstr "Prilagodi podatke"
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -14764,6 +14822,9 @@ msgstr "Pikseli"
 msgid "Plain"
 msgstr "Običan"
 
+msgid "Planner cost is relative, not dollars or memory."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "Please check your query and confirm that all template parameters are "
@@ -15297,6 +15358,12 @@ msgstr "Naziv upita"
 # zh_TW]
 msgid "Query preview"
 msgstr "Pregled upita"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Query was stopped"
@@ -16354,6 +16421,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -16737,6 +16807,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
@@ -19982,6 +20057,14 @@ msgid ""
 "call."
 msgstr "Objekat engine_params se raspakuje u pozivu sqlalchemy.create_engine."
 
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "Eksponent na osnovu kojeg se izračunavaju sve veličine. Samo za „EXP”"
@@ -20444,6 +20527,26 @@ msgid ""
 "properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid "The query cost warning threshold must be no greater than 9007199254740991."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
+msgstr ""
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "The query couldn't be loaded"
@@ -20465,6 +20568,9 @@ msgstr "Upit ima sintaksnu grešku."
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The query returned no data"
 msgstr "Upit nije vratio podatke"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -20579,6 +20685,14 @@ msgstr ""
 
 #, python-format
 msgid "The sample row limit was reached. This %s may contain more rows."
+msgstr ""
+
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -21747,6 +21861,9 @@ msgid ""
 "this operator."
 msgstr ""
 
+msgid "This engine does not support pre-run warnings."
+msgstr ""
+
 #, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr ""
@@ -21882,6 +21999,11 @@ msgid ""
 msgstr ""
 "Ova veza će vas odvesti na spoljni veb-sajt. Ne možemo garantovati "
 "bezbednost spoljnih odredišta."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "This markdown component has an error."
@@ -22149,6 +22271,9 @@ msgstr "Prag alfa nivoa za utvrđivanje značajnosti"
 # ru, uk]
 msgid "Threshold for Other"
 msgstr "Prag za „Ostalo“"
+
+msgid "Threshold size unit"
+msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Threshold: "
@@ -23172,6 +23297,10 @@ msgstr "Neimenovan upit"
 msgid "Unverified"
 msgstr "Neprovereno"
 
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Update"
 msgstr "Ažuriraj"
@@ -23914,6 +24043,24 @@ msgstr "Skladište"
 msgid "Warning"
 msgstr "Upozorenje"
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Warning!"
@@ -23933,6 +24080,12 @@ msgid ""
 msgstr ""
 "Upozorenje: ILIKE upiti mogu biti spori na velikim skupovima podataka jer"
 " ne mogu efikasno koristiti indekse."
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Was unable to check your query"
@@ -25481,6 +25634,9 @@ msgstr "dugme (cmd + z) dok ne sačuvate izmene."
 msgid "by using"
 msgstr "koristeći"
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -26220,6 +26376,9 @@ msgstr "pivoted_xlsx"
 msgid "pixels"
 msgstr "pikseli"
 
+msgid "planner cost units"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "previous calendar month"
 msgstr "prethodni kalendarski mesec"
@@ -26250,6 +26409,12 @@ msgstr ""
 # zh_TW]
 msgid "query"
 msgstr "upit"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "random"

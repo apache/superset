@@ -16,7 +16,44 @@
 # under the License.
 from unittest import mock
 
-from superset.sqllab.utils import bootstrap_sqllab_data
+import pytest
+
+from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.models.sql_lab import Query
+from superset.sqllab.limiting_factor import LimitingFactor
+from superset.sqllab.utils import bootstrap_sqllab_data, set_query_limit
+
+
+@pytest.mark.parametrize(
+    "rule,state",
+    [
+        ({"enabled": False}, "disabled"),
+        ({"enabled": True, "metric": "bytes_processed", "threshold": 1024}, "ready"),
+        ({"enabled": False}, "unsupported"),
+        (None, "invalid"),
+    ],
+)
+def test_bootstrap_includes_cost_warning_rule(
+    rule: dict[str, object] | None, state: str
+) -> None:
+    """SQL Lab receives the computed policy without exposing database extras."""
+    database = mock.MagicMock()
+    database.id = 1
+    database.to_json.return_value = {}
+    database.query_cost_warning = rule
+    database.query_warning_state = state
+    database.engine_information = {"query_warning_supported": state != "unsupported"}
+    with (
+        mock.patch(
+            "superset.sqllab.utils.DatabaseDAO.find_all", return_value=[database]
+        ),
+        mock.patch("superset.sqllab.utils.is_feature_enabled", return_value=False),
+    ):
+        result = bootstrap_sqllab_data(user_id=1)
+    assert result["databases"][1]["query_cost_warning"] == rule
+    assert result["databases"][1]["query_warning_state"] == state
+    assert result["databases"][1]["engine_information"] == database.engine_information
+    assert "extra" not in result["databases"][1]
 
 
 def test_bootstrap_sqllab_data_includes_non_ansi_identifier_quote() -> None:
@@ -50,3 +87,23 @@ def test_bootstrap_sqllab_data_includes_non_ansi_identifier_quote() -> None:
         "supports_offset": True,
         "identifier_quote": {"start": "`", "end": "`"},
     }
+
+
+@pytest.mark.parametrize(
+    "sql_limit,expected_limit,expected_factor",
+    [
+        (5, 5, LimitingFactor.QUERY),
+        (500, 100, LimitingFactor.DROPDOWN),
+        (100, 100, LimitingFactor.QUERY_AND_DROPDOWN),
+    ],
+)
+def test_set_query_limit_records_limiting_factor(
+    sql_limit: int, expected_limit: int, expected_factor: LimitingFactor
+) -> None:
+    """Truncation guidance identifies the SQL limit, dropdown, or both."""
+    query = Query()
+
+    set_query_limit(query, f"SELECT 1 LIMIT {sql_limit}", 100, PostgresEngineSpec)
+
+    assert query.limit == expected_limit
+    assert query.limiting_factor == expected_factor

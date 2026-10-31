@@ -17,15 +17,22 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from flask import current_app as app
 from flask_babel import gettext as __
+from jinja2 import Environment
 from jinja2.exceptions import TemplateError
+from marshmallow import ValidationError
 
-from superset import is_feature_enabled, security_manager
+from superset import config, db, is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand
 from superset.daos.database import DatabaseDAO
+from superset.db_engine_specs.query_warning import (
+    QueryWarningCheck,
+    QueryWarningResult,
+    validate_query_warning_rule,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
@@ -39,7 +46,10 @@ from superset.exceptions import (
 )
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database
+from superset.models.sql_lab import Query
 from superset.sql.parse import SQLScript
+from superset.sql_lab import apply_limit
+from superset.sqllab.utils import get_query_limit, set_query_limit
 from superset.utils import core as utils, json
 from superset.utils.rls import apply_rls
 
@@ -52,6 +62,8 @@ class EstimateQueryCostType(TypedDict):
     template_params: dict[str, Any]
     catalog: str | None
     schema: str | None
+    check_warning: NotRequired[bool]
+    query_limit: NotRequired[int | None]
 
 
 class QueryEstimationCommand(BaseCommand):
@@ -68,6 +80,8 @@ class QueryEstimationCommand(BaseCommand):
         self._template_params = params.get("template_params", {})
         self._schema = params.get("schema") or ""
         self._catalog = params.get("catalog")
+        self._check_warning = params.get("check_warning", False)
+        self._query_limit = params.get("query_limit")
 
     def validate(self) -> None:
         # Load the database through the DAO so ``DatabaseFilter`` scopes
@@ -164,11 +178,107 @@ class QueryEstimationCommand(BaseCommand):
 
         return sql
 
+    def _get_warning_rule(self, check: QueryWarningCheck | None) -> dict[str, Any]:
+        """Validate saved settings directly so invalid rules remain errors."""
+        try:
+            rule = json.loads(self._database.extra or "{}").get(
+                "query_cost_warning", {"enabled": False}
+            )
+            rule = validate_query_warning_rule(rule, check)
+        except ValidationError as ex:
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__("The saved query cost warning rule is invalid."),
+                    error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"messages": ex.messages},
+                ),
+                status=400,
+            ) from ex
+        return rule
+
+    def _prepare_warning_sql(self) -> tuple[str | None, str | None]:
+        """Prepare execution-equivalent SQL, or explain why it cannot be estimated."""
+        spec = self._database.db_engine_spec
+        if self._template_params or any(
+            kind != "data" for _, kind, _ in Environment(autoescape=True).lex(self._sql)
+        ):
+            return None, __("Warning checks are unavailable for SQL templates.")
+        mutator = app.config["SQL_QUERY_MUTATOR"]
+        if (mutator and mutator is not config._default_sql_query_mutator) or (
+            is_feature_enabled("ENABLE_TEMPLATE_PROCESSING")
+            and spec.engine in app.config["CUSTOM_TEMPLATE_PROCESSORS"]
+        ):
+            return None, __(
+                "Warning checks are unavailable for custom SQL transformations."
+            )
+
+        if self._catalog is None:
+            self._catalog = self._database.get_default_catalog()
+        sql = self._apply_sql_security(self._sql)
+        script = SQLScript(sql, engine=spec.engine)
+        if (
+            len(script.statements) != 1
+            or not script.statements[0].is_select()
+            or script.statements[0].is_mutating()
+        ):
+            return None, __("Warning checks require a single read-only SELECT.")
+
+        # Use execution's dropdown/SQL limits and its extra truncation row.
+        # This Query is never persisted or dispatched for execution.
+        query = Query(database=self._database, select_as_cta_used=False)
+        if query in db.session:
+            db.session.expunge(query)
+        set_query_limit(query, sql, get_query_limit(self._query_limit), spec)
+        apply_limit(query, script.statements[0])
+        return script.format(comments=spec.allows_sql_comments), None
+
+    def _run_warning_check(self) -> QueryWarningResult:
+        """Prepare the intended query and delegate assessment to its engine check."""
+        if not is_feature_enabled("SQLLAB_QUERY_COST_WARNINGS"):
+            return {"action": "proceed"}
+        check = self._database.db_engine_spec.get_query_warning_check()
+        rule = self._get_warning_rule(check)
+        if check is None or not rule["enabled"] or not check.is_enabled(self._database):
+            return {"action": "proceed"}
+        prepared_sql, unavailable_reason = self._prepare_warning_sql()
+        if prepared_sql is None:
+            return {
+                "action": "confirm",
+                "reason": "unavailable",
+                "message": unavailable_reason
+                or __(
+                    "The estimate is unavailable or cannot establish whether "
+                    "usage is within the warning threshold."
+                ),
+            }
+        timeout = app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
+        try:
+            with utils.timeout(
+                seconds=timeout,
+                error_message=f"The assessment exceeded the {timeout} seconds timeout.",
+            ):
+                return check.assess(
+                    self._database, self._catalog, self._schema, prepared_sql, rule
+                )
+        except SupersetTimeoutException:
+            return {
+                "action": "confirm",
+                "reason": "unavailable",
+                "message": __("The query cost estimate timed out."),
+            }
+
     def run(
         self,
-    ) -> list[dict[str, Any]]:
+    ) -> list[dict[str, Any]] | QueryWarningResult:
         self.validate()
 
+        if self._check_warning:
+            return self._run_warning_check()
+        return self._run_manual_estimate()
+
+    def _run_manual_estimate(self) -> list[dict[str, Any]]:
+        """Preserve the manual estimator's rendering, formatter and error contract."""
         sql = self._sql
         if self._template_params:
             # Access is already checked in validate() before any rendering.

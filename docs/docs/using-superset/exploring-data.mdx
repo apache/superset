@@ -451,6 +451,134 @@ to be drawn as zero across the entire day rather than only around the hours that
 Lastly, save your chart as Tutorial Resample and add it to the Tutorial Dashboard. Go to the
 tutorial dashboard to see the four charts side by side and compare the different outputs.
 
+### SQL Lab query cost warning settings
+
+SQL Lab supports opt-in pre-run warnings for BigQuery and PostgreSQL. It can ask
+for confirmation when estimated usage exceeds a connection's threshold or cannot
+be assessed reliably. Warnings are off by default. They do not enforce a spending
+or resource limit: an analyst can choose to continue, and existing permissions and
+native database limits still apply.
+
+To enable warnings:
+
+1. Add `"SQLLAB_QUERY_COST_WARNINGS": True` and `"ESTIMATE_QUERY_COST": True` to the
+   existing `FEATURE_FLAGS` dictionary in `superset_config.py`, then restart
+   Superset and refresh SQL Lab.
+2. Open **Settings > Database Connections**, edit the connection, and select
+   **Advanced > SQL Lab**. Expose the connection in SQL Lab if necessary.
+3. Select **Enable query cost estimation**, then **Enable pre-run warnings**
+   and enter a positive threshold. Save the connection. No threshold is chosen
+   automatically; choose one appropriate for the connection's workload.
+
+The shipped cost checks use one rule per connection in `extra.query_cost_warning`,
+containing `enabled`, `metric`, and `threshold`. BigQuery uses `bytes_processed`,
+a positive whole number of bytes. PostgreSQL uses `total_cost`, a positive number
+that can include decimals. Both numeric thresholds must be no greater than
+9,007,199,254,740,991 so integer settings can be edited safely in the browser.
+Planner-cost decimals use ordinary floating-point precision. This settings bound
+does not limit database estimates, which are compared on the server. PostgreSQL
+planner units are not runtime, money, or memory. BigQuery estimates describe usage,
+not a guaranteed bill. These metrics are not converted into a common unit.
+
+BigQuery thresholds can be entered in Bytes, MB, or GB (decimal units: 1 MB =
+1,000,000 bytes and 1 GB = 1,000,000,000 bytes). Changing the unit changes the
+display while retaining the saved byte amount. Fractional MB or GB are accepted
+only when they represent a positive whole number of bytes in the allowed range;
+invalid amounts show validation instead of being rounded. PostgreSQL thresholds
+stay in relative planner cost units and have no default amount.
+
+Disabling warnings retains valid saved values. Turning connection estimation off
+also retains the rule and makes checking inactive. A broken rule can be replaced
+with `{ "enabled": false }` to disable it without retaining invalid fields.
+
+Create, update, and import validate the rule against the resulting connection's
+engine.
+
+The warning estimator uses BigQuery dry runs and PostgreSQL `EXPLAIN (FORMAT
+JSON)` without `ANALYZE`. It compares raw values on the server. Valid zero
+estimates are retained; missing, malformed, unknown, and masked estimates are
+unavailable. A BigQuery lower bound must exceed the threshold to establish a
+warning; a lower bound at or below it does not establish that usage is within the
+threshold. An upper bound can provide a conservative warning. Estimates hidden by
+BigQuery row-level security are unavailable.
+
+For BigQuery, a SQL row `LIMIT` does not cap bytes scanned. Use the warehouse's
+native controls, such as `maximum_bytes_billed` where supported, for an actual
+scan cap. The warning threshold is separate from those controls. Dry-run a small,
+bounded query before executing it when verifying a connection's setup.
+
+The existing manual estimate button keeps its formatted display. Warning checks
+are advisory and are intended for deliberate SQL Lab runs, not dashboards,
+scheduled queries, automatic retries, CTAS/CVAS, or enforced warehouse limits.
+
+API clients can request an advisory check with `POST /api/v1/sqllab/estimate/`, setting
+`check_warning` to `true` and passing the selected `sql`, `database_id`, `catalog`,
+`schema`, `template_params`, and SQL Lab dropdown `query_limit`. The check applies
+the execution row limits, including the extra row fetched to detect truncation.
+The result returns `action: proceed` when this check does not need confirmation.
+This is not a guarantee that the query is safe in every other way. Otherwise it
+returns `action: confirm`, a `warning` or `unavailable` reason, a nonempty message,
+and optional plain-text label/value details. For the cost checks, estimates and
+thresholds are compared before display formatting. Precise estimates and upper
+bounds equal to the threshold do not warn; lower bounds at equality still require
+confirmation because usage could exceed the threshold.
+BigQuery bounds are displayed as **At least** or **Up to**. Byte counts can exceed JavaScript's safe integer
+range, so clients should display the server-provided details without reconverting
+them to numbers.
+
+Checking supports one read-only SELECT. Templates, multiple statements, and
+custom SQL transformations are unavailable. A known estimation timeout or an
+unusable estimate also returns unavailable. Invalid rules, access failures, and
+database or network errors remain errors. Omitting `check_warning` preserves the
+manual estimator response.
+
+Database API and SQL Lab bootstrap responses include `query_warning_state`:
+`unsupported`, `disabled`, `ready`, or `invalid`. Invalid saved settings are not
+an opt-out: clients must preserve validation errors. Engine information exposes
+`query_warning_supported` separately from the optional numeric
+`query_cost_warning_metric`. `SQLLAB_QUERY_COST_WARNINGS` gates all checks;
+`ESTIMATE_QUERY_COST` and connection cost estimation are prerequisites of the
+numeric threshold check.
+
+When checking is enabled, a deliberate **Run** (including Run selection or its
+keyboard shortcut) sends an assessment request before execution. This adds a
+delay that depends on the query, database, and network. The check uses the
+captured execution request. The current-statement shortcut uses the existing
+statement range without changing your selection. While checking,
+**Stop** in the Run area (or its keyboard shortcut) prevents that attempt from
+executing; it does not forcibly cancel a database dry run. The **Query warning**
+popup explains an above-threshold or unavailable estimate and offers **Cancel**
+and **Run anyway**. Errors stop the attempt without executing it.
+
+Changing the SQL or selection, connection, catalog, schema, template parameters,
+effective limit, asynchronous execution setting, or locally loaded warning
+settings cancels a pending attempt. Switching editor tabs does too. Confirming
+runs the captured request once. Remote policy changes become visible when
+connection metadata is refreshed; the dialog does not detect them in advance.
+
+**Run query in a new tab** from query history uses the same warning flow. The
+rerun retains its existing settings: SQL, connection, catalog, and schema come
+from the historical query; the limit and template parameters come from the
+active editor, and asynchronous execution follows the connection's current
+setting. Cancelling leaves the new tab open without executing its query. Repeated
+Run clicks while a check or confirmation is pending do not create another attempt.
+
+#### Engine extension point
+
+Only BigQuery and PostgreSQL have production warning checks. An engine spec can
+explicitly opt into the shared flow through `get_query_warning_check()`, returning
+a check with `validate(rule)`, `is_enabled(database)`, and
+`assess(database, catalog, schema, prepared_sql, rule)`, or `None` when unsupported.
+The shared settings validation requires a rule object and a strict boolean
+`enabled`; the selected check validates its own fields and prerequisites.
+
+Both shipped integrations use `QueryCostThresholdCheck` with their engine-specific
+estimation adapters. A future integration can supply a message-only check and its
+own settings controls without changing Run or the confirmation dialog. Checks
+return the same `proceed` or `confirm` contract, with display details as plain text.
+Subclasses must explicitly opt in; inheriting an engine's manual estimator alone
+does not establish warning support.
+
 ### Stopping chart queries
 
 In Explore, a mouse, touch, pen, or Enter/Space key press that starts on **Stop** will not

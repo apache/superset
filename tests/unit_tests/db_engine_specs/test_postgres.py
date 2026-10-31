@@ -934,3 +934,122 @@ def test_extended_aggregation_func_compiles_expected_sql(
         )
     )
     assert compiled == expected_sql
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        0,
+        0.125,
+        100.01,
+        None,
+        "100",
+        True,
+        False,
+        -1,
+        float("nan"),
+        float("inf"),
+        float("-inf"),
+    ],
+)
+def test_warning_estimate_reads_only_root_plan_cost(
+    mocker: MockerFixture, value: object
+) -> None:
+    """EXPLAIN JSON returns unrounded numeric root cost without running the SQL."""
+    from superset.utils.core import QuerySource
+
+    database = mocker.MagicMock()
+    database.mutate_sql_based_on_config.side_effect = lambda sql, **kwargs: sql
+    connection = database.get_raw_connection.return_value.__enter__.return_value
+    cursor = connection.cursor.return_value
+    cursor.fetchone.return_value = (
+        [{"Plan": {"Total Cost": value, "Plans": [{"Total Cost": 99999}]}}],
+    )
+    estimate = spec.estimate_query_cost_for_warning(
+        database, "catalog", "schema", "SELECT * FROM test"
+    )
+    valid = (
+        not isinstance(value, bool)
+        and isinstance(value, (int, float))
+        and value in (0, 0.125, 100.01)
+    )
+    assert estimate.value == (value if valid else None)
+    if valid:
+        assert estimate.accuracy == "PRECISE"
+    cursor.execute.assert_called_once()
+    assert " ".join(cursor.execute.call_args.args[0].split()) == (
+        "EXPLAIN (FORMAT JSON) SELECT * FROM test"
+    )
+    cursor.close.assert_called_once()
+    database.get_raw_connection.assert_called_once_with(
+        catalog="catalog", schema="schema", source=QuerySource.SQL_LAB
+    )
+
+
+@pytest.mark.parametrize(
+    "row",
+    [
+        None,
+        (),
+        (None,),
+        ([],),
+        ([{}],),
+        ([{"Plan": None}],),
+        ("masked",),
+        ([{"Plan": {}}],),
+    ],
+)
+def test_warning_estimate_missing_plan_is_unavailable(
+    mocker: MockerFixture, row: object
+) -> None:
+    """Malformed or absent plans never become a zero-cost estimate."""
+    database = mocker.MagicMock()
+    connection = database.get_raw_connection.return_value.__enter__.return_value
+    cursor = connection.cursor.return_value
+    cursor.fetchone.return_value = row
+    assert (
+        spec.estimate_query_cost_for_warning(database, None, "", "SELECT 1").value
+        is None
+    )
+
+
+def test_warning_estimate_does_not_change_manual_postgres_response() -> None:
+    """Manual estimates keep their existing display keys and formatter input."""
+    cursor = MagicMock()
+    cursor.fetchone.return_value = (
+        "Seq Scan on test (cost=0.00..45.67 rows=1 width=8)",
+    )
+    costs = spec.estimate_statement_cost(MagicMock(), "SELECT * FROM test", cursor)
+    assert costs == {"Start-up cost": 0.0, "Total cost": 45.67}
+    assert spec.query_cost_formatter([costs]) == [
+        {"Start-up cost": "0.0", "Total cost": "45.67"}
+    ]
+    cursor.execute.assert_called_once_with("EXPLAIN SELECT * FROM test")
+
+
+@pytest.mark.parametrize("sql", ["SELECT 1; SELECT 2", "CREATE TABLE t AS SELECT 1"])
+def test_warning_estimate_unsupported_script_does_not_run_explain(
+    mocker: MockerFixture, sql: str
+) -> None:
+    """Warning estimates do not plan unsupported scripts or CTAS statements."""
+    database = mocker.MagicMock()
+    assert spec.estimate_query_cost_for_warning(database, None, "", sql).value is None
+    database.get_raw_connection.assert_not_called()
+
+
+def test_warning_estimate_unverified_postgres_subclass_is_unsupported() -> None:
+    """Postgres-like connectors must explicitly verify their own planner semantics."""
+
+    class UnverifiedPostgres(spec):
+        """A connector whose EXPLAIN semantics are unverified."""
+
+    database = MagicMock()
+    assert UnverifiedPostgres.get_query_cost_warning_metric() is None
+    assert UnverifiedPostgres.get_query_warning_check() is None
+    assert (
+        UnverifiedPostgres.estimate_query_cost_for_warning(
+            database, None, "", "SELECT 1"
+        ).value
+        is None
+    )
+    database.get_raw_connection.assert_not_called()

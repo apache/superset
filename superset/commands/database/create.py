@@ -40,10 +40,12 @@ from superset.commands.database.ssh_tunnel.exceptions import (
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
 from superset.commands.database.utils import add_permissions
 from superset.daos.database import DatabaseDAO
+from superset.databases.schemas import normalize_query_cost_warning
 from superset.databases.utils import make_url_safe
 from superset.exceptions import OAuth2RedirectError, SupersetErrorsException
 from superset.extensions import event_logger
 from superset.models.core import Database
+from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -125,6 +127,16 @@ class CreateDatabaseCommand(BaseCommand):
         sqlalchemy_uri: Optional[str] = self._properties.get("sqlalchemy_uri")
         if not sqlalchemy_uri:
             exceptions.append(DatabaseRequiredFieldValidationError("sqlalchemy_uri"))
+        elif "extra" in self._properties:
+            try:
+                self._properties["extra"] = json.dumps(
+                    normalize_query_cost_warning(
+                        json.loads(self._properties.get("extra") or "{}"),
+                        sqlalchemy_uri,
+                    )
+                )
+            except ValidationError as ex:
+                exceptions.append(ex)
 
         database_name: Optional[str] = self._properties.get("database_name")
         if not database_name:

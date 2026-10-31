@@ -46,6 +46,7 @@ export interface RunQueryActionButtonProps {
   runQuery: () => void;
   stopQuery: () => void;
   overlayCreateAsMenu: ReactElement | null;
+  awaitingConfirmation?: boolean;
 }
 
 const buildTextAndIcon = (
@@ -73,7 +74,7 @@ const onClick = (
   isStopAction: boolean,
   runQuery: () => void = () => undefined,
   stopQuery = () => {},
-  logAction: (name: string, payload: Record<string, any>) => void,
+  logAction: (name: string, payload: Record<string, unknown>) => void,
 ): void => {
   const eventName = isStopAction
     ? LOG_ACTIONS_SQLLAB_STOP_QUERY
@@ -110,6 +111,7 @@ const RunQueryActionButton = ({
   overlayCreateAsMenu,
   runQuery,
   stopQuery,
+  awaitingConfirmation = false,
 }: RunQueryActionButtonProps) => {
   const theme = useTheme();
   const logAction = useLogAction({ queryEditorId });
@@ -131,14 +133,18 @@ const RunQueryActionButton = ({
     onClick(shouldShowStopBtn, runQuery, stopQuery, logAction),
   );
 
-  const ButtonComponent: FC<QueryButtonProps> = overlayCreateAsMenu
+  const showCreateAsMenu = overlayCreateAsMenu && !awaitingConfirmation;
+  const ButtonComponent: FC<QueryButtonProps> = showCreateAsMenu
     ? (DropdownButton as FC)
     : Button;
 
   const sqlContent = selectedText || sql || '';
-  const isDisabled = !sqlContent
-    ?.replace(/(\/\*[^*]*\*\/)|(\/\/[^*]*)|(--[^.].*)/gm, '')
-    .trim();
+  const isDisabled =
+    !shouldShowStopBtn &&
+    (awaitingConfirmation ||
+      !sqlContent
+        ?.replace(/(\/\*[^*]*\*\/)|(\/\/[^*]*)|(--[^.].*)/gm, '')
+        .trim());
 
   const stopButtonTooltipText = useMemo(
     () =>
@@ -174,7 +180,7 @@ const RunQueryActionButton = ({
               : t('Run query (Ctrl + Return)'))) as string
         }
         cta
-        {...(overlayCreateAsMenu
+        {...(showCreateAsMenu
           ? {
               popupRender: () => overlayCreateAsMenu,
               icon: (
@@ -195,7 +201,7 @@ const RunQueryActionButton = ({
               icon,
             })}
       >
-        {overlayCreateAsMenu && <>{icon}</>}
+        {showCreateAsMenu && <>{icon}</>}
         {text}
       </ButtonComponent>
     </StyledButton>

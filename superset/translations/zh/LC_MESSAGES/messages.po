@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-10-30 19:28-0400\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -2194,6 +2194,9 @@ msgstr "发生了一个错误"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "名为“%(name)s”的警报已存在"
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
@@ -2932,6 +2935,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "异步执行查询"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 msgid "Attribution"
 msgstr "归因"
 
@@ -3178,6 +3185,9 @@ msgstr "带时间周期比较的大数字"
 msgid "Big Number with Trendline"
 msgstr "带趋势线的数字"
 
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
+
 msgid "Bins"
 msgstr "分箱"
 
@@ -3353,6 +3363,9 @@ msgstr "使用行名作为排序关键字"
 
 msgid "By value: use metric values as sorting key"
 msgstr "使用度量值作为排序关键字"
+
+msgid "Bytes"
+msgstr ""
 
 msgid "CC recipients"
 msgstr "抄送收件人"
@@ -6589,6 +6602,9 @@ msgstr "钻取详情"
 msgid "Disable embedding?"
 msgstr "禁用嵌入吗？"
 
+msgid "Disable saved rule"
+msgstr ""
+
 msgid "Disabled"
 msgstr "禁用"
 
@@ -7328,8 +7344,16 @@ msgstr "启用矩阵化"
 msgid "Enable node dragging"
 msgstr "启用节点拖动"
 
+msgid "Enable pre-run warnings"
+msgstr ""
+
 msgid "Enable query cost estimation"
 msgstr "启用查询成本估算"
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
+msgstr ""
 
 msgid "Enable row expansion in schemas"
 msgstr "在模式中启用行展开功能"
@@ -7419,9 +7443,23 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "输入对象名称的一部分"
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
+msgid "Enter a warning threshold no greater than 9,007,199,254,740,991."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 #, fuzzy
 msgid "Enter alert name"
 msgstr "告警名称"
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
+msgstr ""
 
 msgid "Enter duration in seconds"
 msgstr "输入间隔时间(秒)"
@@ -7489,6 +7527,9 @@ msgid "Enter theme name"
 msgstr "输入主题名称"
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -7664,6 +7705,20 @@ msgstr "对所选的查询进行成本估算"
 
 msgid "Estimate the cost before running a query"
 msgstr "在运行查询之前计算成本估算"
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
+msgstr ""
 
 #, fuzzy
 msgid "Event"
@@ -8519,6 +8574,9 @@ msgid "Fit data"
 msgstr "拟合数据"
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 msgid ""
@@ -12645,6 +12703,9 @@ msgstr "像素"
 msgid "Plain"
 msgstr "平铺"
 
+msgid "Planner cost is relative, not dollars or memory."
+msgstr ""
+
 msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
@@ -13107,6 +13168,12 @@ msgstr "查询名称"
 
 msgid "Query preview"
 msgstr "查询预览"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 msgid "Query was stopped"
 msgstr "查询被终止。"
@@ -14025,6 +14092,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -14336,6 +14406,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 msgid "Saving..."
@@ -17127,6 +17202,14 @@ msgid ""
 "call."
 msgstr "engine_params 对象在调用 sqlalchemy.create_engine 时被解包。"
 
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "The exponent to compute all sizes from. \"EXP\" only"
@@ -17519,6 +17602,26 @@ msgid ""
 "properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid "The query cost warning threshold must be no greater than 9007199254740991."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "这个查询无法被加载"
 
@@ -17533,6 +17636,9 @@ msgstr "查询有语法错误。"
 
 msgid "The query returned no data"
 msgstr "查询无结果"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -17621,6 +17727,14 @@ msgstr "已达到为图表设置的行数限制。图表可能仅显示部分数
 
 #, python-format
 msgid "The sample row limit was reached. This %s may contain more rows."
+msgstr ""
+
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
 msgstr ""
 
 #, python-format
@@ -18623,6 +18737,9 @@ msgid ""
 "this operator."
 msgstr ""
 
+msgid "This engine does not support pre-run warnings."
+msgstr ""
+
 #, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr "此导出请求于 %(when)s UTC 发起。"
@@ -18756,6 +18873,11 @@ msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
 msgstr "此链接将带您前往外部网站。我们无法保证外部目标的安全性。"
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 msgid "This markdown component has an error."
 msgstr "此 markdown 组件有错误。"
@@ -19002,6 +19124,9 @@ msgstr "确定显著性的阈值α水平"
 
 msgid "Threshold for Other"
 msgstr "其他阈值"
+
+msgid "Threshold size unit"
+msgstr ""
 
 msgid "Threshold: "
 msgstr "阈值 "
@@ -19903,6 +20028,10 @@ msgstr "未命名的查询"
 msgid "Unverified"
 msgstr "未验证"
 
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
+
 msgid "Update"
 msgstr "更新"
 
@@ -20527,6 +20656,24 @@ msgstr "仓库"
 msgid "Warning"
 msgstr "警告"
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 msgid "Warning!"
 msgstr "警告！"
 
@@ -20542,6 +20689,12 @@ msgid ""
 "Warning: ILIKE queries may be slow on large datasets as they cannot use "
 "indexes effectively."
 msgstr "警告：ILIKE 查询在大型数据集上可能较慢，因为它们无法有效使用索引。"
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
+msgstr ""
 
 #, fuzzy
 msgid "Was unable to check your query"
@@ -21841,6 +21994,9 @@ msgstr "按钮（cmd + z）直到你保存更改。"
 msgid "by using"
 msgstr "通过使用"
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -22529,6 +22685,9 @@ msgstr "透视表"
 msgid "pixels"
 msgstr "像素"
 
+msgid "planner cost units"
+msgstr ""
+
 msgid "previous calendar month"
 msgstr "前一月"
 
@@ -22556,6 +22715,12 @@ msgstr "查询"
 
 msgid "query"
 msgstr "查询"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 #, fuzzy
 msgid "random"

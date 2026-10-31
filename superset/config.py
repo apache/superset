@@ -878,6 +878,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Requires `cost_estimate_enabled: true` in database `extra` attribute.
     # @lifecycle: testing
     "ESTIMATE_QUERY_COST": False,
+    # Optional advisory warnings before deliberately running SQL in SQL Lab.
+    # Requires explicit connection-level opt-in. Numeric checks also require
+    # ESTIMATE_QUERY_COST and connection cost estimation.
+    # @lifecycle: testing
+    "SQLLAB_QUERY_COST_WARNINGS": False,
     # Enable async queries for dashboards and Explore via WebSocket.
     # Requires Redis 5.0+ and Celery workers.
     # @lifecycle: testing
@@ -2757,6 +2762,10 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noqa: 
     sql: str, **kwargs: Any
 ) -> str:
     return sql
+
+
+# Retain the built-in identity when user configuration replaces the public hook.
+_default_sql_query_mutator = SQL_QUERY_MUTATOR
 
 
 # A variable that chooses whether to apply the SQL_QUERY_MUTATOR before or after splitting the input query  # noqa: E501

@@ -54,6 +54,10 @@ from superset.databases.types import (  # pylint:disable=unused-import
 )
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
+from superset.db_engine_specs.query_warning import (
+    QueryWarningRuleSchema,
+    validate_query_warning_rule,
+)
 from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import ConfigurationMethod, Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
@@ -271,6 +275,30 @@ def masked_encrypted_extra_validator(value: str) -> None:
     encrypted_extra_validator(value)
 
 
+def get_query_cost_warning(extra: dict[str, Any]) -> dict[str, Any]:
+    """Read the connection's warning rule without mutating extras."""
+    if "query_cost_warning" in extra:
+        return QueryWarningRuleSchema().load(extra["query_cost_warning"])
+    return {"enabled": False}
+
+
+def normalize_query_cost_warning(
+    extra: dict[str, Any],
+    sqlalchemy_uri: str,
+) -> dict[str, Any]:
+    """Validate a supplied rule against the resulting engine without adding fields."""
+    if "query_cost_warning" not in extra:
+        return extra.copy()
+    url = make_url_safe(sqlalchemy_uri)
+    spec = get_engine_spec(
+        url.get_backend_name(), url.drivername.partition("+")[2] or None
+    )
+    rule = validate_query_warning_rule(
+        extra["query_cost_warning"], spec.get_query_warning_check()
+    )
+    return {**extra, "query_cost_warning": rule}
+
+
 def extra_validator(value: str) -> str:  # noqa: C901
     """
     Validate that extra is a valid JSON string, and that metadata_params
@@ -288,6 +316,9 @@ def extra_validator(value: str) -> str:  # noqa: C901
             raise ValidationError(
                 [_("Extra field must be a mapping from string keys to values.")]
             )
+
+        if "query_cost_warning" in extra_:
+            get_query_cost_warning(extra_)
 
         metadata_signature = inspect.signature(MetaData)
         for key in extra_.get("metadata_params", {}):
@@ -382,6 +413,19 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
         metadata={"description": configuration_method_description},
         load_default=ConfigurationMethod.SQLALCHEMY_FORM,
     )
+
+    @post_load
+    def validate_query_cost_warning(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        """Validate complete payloads after dynamic connection parameters resolve."""
+        if data.get("sqlalchemy_uri") and "extra" in data:
+            data["extra"] = json.dumps(
+                normalize_query_cost_warning(
+                    json.loads(data["extra"] or "{}"), data["sqlalchemy_uri"]
+                )
+            )
+        return data
 
     @pre_load
     def build_sqlalchemy_uri(
@@ -1003,6 +1047,7 @@ class ImportV1DatabaseExtraSchema(Schema):
     )
     schemas_allowed_for_csv_upload = fields.List(fields.String())
     cost_estimate_enabled = fields.Boolean()
+    query_cost_warning = fields.Nested(QueryWarningRuleSchema)
     allows_virtual_table_explore = fields.Boolean(required=False)
     cancel_query_on_windows_unload = fields.Boolean(required=False)
     disable_data_preview = fields.Boolean(required=False)
@@ -1015,6 +1060,17 @@ class ImportV1DatabaseExtraSchema(Schema):
 
 
 class ImportV1DatabaseSchema(Schema):
+    @post_load
+    def validate_query_cost_warning(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        """Apply the same warning rules to imported connections and API saves."""
+        if "extra" in data:
+            data["extra"] = normalize_query_cost_warning(
+                data["extra"], data["sqlalchemy_uri"]
+            )
+        return data
+
     @pre_load
     def fix_allow_csv_upload(
         self, data: dict[str, Any], **kwargs: Any
@@ -1221,6 +1277,8 @@ class IdentifierQuoteSchema(Schema):
 
 
 class EngineInformationSchema(Schema):
+    query_cost_warning_metric = fields.String(allow_none=True)
+    query_warning_supported = fields.Boolean()
     oauth2_enabled = fields.Boolean(
         metadata={"description": "OAuth2 authentication is enabled on this connection"}
     )

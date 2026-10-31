@@ -53,6 +53,99 @@ from superset.sql.parse import LimitMethod, Table
 from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 
+
+@pytest.mark.parametrize(
+    "warnings_flag,estimate_flag,connection_estimation",
+    [(True, True, True), (False, True, True), (True, False, True), (True, True, False)],
+)
+@pytest.mark.parametrize(
+    "engine,metric", [("bigquery", "bytes_processed"), ("postgresql", "total_cost")]
+)
+@pytest.mark.parametrize("enabled", [False, True])
+def test_cost_warning_rule_survives_inactive_settings(
+    mocker: MockerFixture,
+    request: pytest.FixtureRequest,
+    warnings_flag: bool,
+    estimate_flag: bool,
+    connection_estimation: bool,
+    engine: str,
+    metric: str,
+    enabled: bool,
+) -> None:
+    """Saved rules remain available for display independently of activation gates."""
+    request.addfinalizer(Database.get_db_engine_spec.cache_clear)
+    mocker.patch(
+        "superset.models.core.is_feature_enabled",
+        side_effect=lambda name: warnings_flag
+        if name == "SQLLAB_QUERY_COST_WARNINGS"
+        else estimate_flag,
+    )
+    mocker.patch.object(
+        Database,
+        "allows_cost_estimate",
+        new_callable=mocker.PropertyMock,
+        return_value=connection_estimation,
+    )
+    mocker.patch(
+        "superset.db_engine_specs.query_warning.is_feature_enabled",
+        return_value=estimate_flag,
+    )
+    rule = {"enabled": enabled, "metric": metric, "threshold": 100}
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri=f"{engine}://",
+        extra=json.dumps({"query_cost_warning": rule}),
+    )
+    assert database.query_cost_warning == rule
+    assert database.query_warning_state == (
+        "ready"
+        if enabled and warnings_flag and estimate_flag and connection_estimation
+        else "disabled"
+    )
+
+
+@pytest.mark.parametrize("extra", [{}, {"cost_estimate_enabled": True}])
+def test_absent_saved_cost_warning_is_disabled(extra: dict[str, object]) -> None:
+    """Connections without a saved rule explicitly report warnings disabled."""
+    database = Database(
+        database_name="test", sqlalchemy_uri="bigquery://", extra=json.dumps(extra)
+    )
+    assert database.query_cost_warning == {"enabled": False}
+
+
+def test_minimal_disabled_cost_warning_is_preserved() -> None:
+    """A valid disabled rule remains distinct from an invalid saved rule."""
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri="bigquery://",
+        extra=json.dumps({"query_cost_warning": {"enabled": False}}),
+    )
+    assert database.query_cost_warning == {"enabled": False}
+
+
+@pytest.mark.parametrize(
+    "rule",
+    [
+        None,
+        {"enabled": "false"},
+        {"enabled": False, "threshold": -1},
+        {"enabled": True},
+        {"enabled": True, "metric": "bytes_processed", "threshold": -1},
+        {"enabled": True, "metric": "total_cost", "threshold": 100},
+        {"enabled": True, "metric": "unknown", "threshold": 100},
+    ],
+)
+def test_invalid_saved_cost_warning_is_null(rule: object) -> None:
+    """Invalid and incompatible rules are withheld instead of reported disabled."""
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri="bigquery://",
+        extra=json.dumps({"query_cost_warning": rule}),
+    )
+    assert database.query_cost_warning is None
+    assert database.query_warning_state == "invalid"
+
+
 # sample config for OAuth2 tests
 oauth2_client_info = {
     "oauth2_client_info": {
@@ -2991,3 +3084,44 @@ def test_connection_does_not_re_exchange_a_refused_refresh_token(
     isolated_session.assert_not_called()
     start_dance.assert_called_once_with(database)
     engine.raw_connection.assert_not_called()
+
+
+def test_warning_state_for_unsupported_engine() -> None:
+    """An unsupported connection remains distinct from one explicitly disabled."""
+    database = Database(database_name="test", sqlalchemy_uri="sqlite://", extra="{}")
+    assert database.query_warning_state == "unsupported"
+    assert database.engine_information["query_warning_supported"] is False
+    assert database.engine_information["query_cost_warning_metric"] is None
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+def test_message_check_state_does_not_require_estimation(
+    mocker: MockerFixture, enabled: bool
+) -> None:
+    """The same message check reports ready or disabled with estimation off."""
+    from tests.fixtures.query_warning import MessageOnlyQueryWarningCheck
+
+    mocker.patch(
+        "superset.models.core.is_feature_enabled",
+        side_effect=lambda name: name == "SQLLAB_QUERY_COST_WARNINGS",
+    )
+    mocker.patch(
+        "superset.db_engine_specs.query_warning.is_feature_enabled", return_value=False
+    )
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri="postgresql://",
+        extra=json.dumps(
+            {"query_cost_warning": {"enabled": enabled}, "cost_estimate_enabled": False}
+        ),
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "get_query_warning_check",
+        return_value=MessageOnlyQueryWarningCheck(),
+    )
+    assert database.allows_cost_estimate is False
+    assert database.query_warning_state == ("ready" if enabled else "disabled")
+    assert database.query_cost_warning == {"enabled": enabled}
+    assert database.engine_information["query_warning_supported"] is True
+    assert database.engine_information["query_cost_warning_metric"] is None

@@ -185,6 +185,39 @@ test('renders the caret icon with a color that contrasts with the primary button
   expect(caretIcon).toHaveStyle({ color: supersetTheme.colorTextLightSolid });
 });
 
+test('pending checks use the existing Stop button without extra controls', () => {
+  const runQuery = jest.fn();
+  const stopQuery = jest.fn();
+  const { getByRole, queryByRole } = setup(
+    { queryState: 'pending', runQuery, stopQuery },
+    mockStore(initialState),
+  );
+  const stop = getByRole('button', { name: /Stop$/ });
+  expect(stop).toBeEnabled();
+  expect(queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+  fireEvent.click(stop);
+  expect(runQuery).not.toHaveBeenCalled();
+  expect(stopQuery).toHaveBeenCalledTimes(1);
+});
+
+test('confirmation disables Run without adding extra toolbar labels', () => {
+  const { getByRole } = setup(
+    { awaitingConfirmation: true },
+    mockStore(initialState),
+  );
+  expect(getByRole('button', { name: /Run$/ })).toBeDisabled();
+});
+
+test('Stop still stops an already running query', () => {
+  const stopQuery = jest.fn();
+  const { getByRole } = setup(
+    { queryState: 'running', stopQuery },
+    mockStore(initialState),
+  );
+  fireEvent.click(getByRole('button', { name: /Stop$/ }));
+  expect(stopQuery).toHaveBeenCalledTimes(1);
+});
+
 const renderGestureButton = (props: Partial<RunQueryActionButtonProps>) => {
   const runQuery = jest.fn();
   const stopQuery = jest.fn();

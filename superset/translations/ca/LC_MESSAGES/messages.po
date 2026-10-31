@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-10-30 19:28-0400\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -2213,6 +2213,9 @@ msgstr "S'ha Produït un Error"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "Ja existeix una alerta anomenada \"%(name)s\""
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
@@ -3017,6 +3020,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Execució de consulta asíncrona"
 
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Atribució"
 
@@ -3250,6 +3257,9 @@ msgstr "Número Gran amb Comparació de Període de Temps"
 msgid "Big Number with Trendline"
 msgstr "Número Gran amb Línia de Tendència"
 
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
+
 msgid "Bins"
 msgstr "Grups"
 
@@ -3447,6 +3457,9 @@ msgstr "Per clau: utilitzar noms de fila com a clau d'ordenació"
 
 msgid "By value: use metric values as sorting key"
 msgstr "Per valor: utilitzar valors de mètrica com a clau d'ordenació"
+
+msgid "Bytes"
+msgstr ""
 
 msgid "CC recipients"
 msgstr "Destinataris CC"
@@ -6790,6 +6803,9 @@ msgstr "Desactivar exploració en detall"
 msgid "Disable embedding?"
 msgstr "Desactivar incrustació?"
 
+msgid "Disable saved rule"
+msgstr ""
+
 msgid "Disabled"
 msgstr "Desactivat"
 
@@ -7555,8 +7571,16 @@ msgstr "Activa matrixify"
 msgid "Enable node dragging"
 msgstr "Habilitar arrossegament de nodes"
 
+msgid "Enable pre-run warnings"
+msgstr ""
+
 msgid "Enable query cost estimation"
 msgstr "Habilitar estimació de cost de consulta"
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
+msgstr ""
 
 msgid "Enable row expansion in schemas"
 msgstr "Habilitar expansió de files en esquemes"
@@ -7652,8 +7676,22 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Si omplir els objectes"
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
+msgid "Enter a warning threshold no greater than 9,007,199,254,740,991."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Introdueix nom de l'alerta"
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
+msgstr ""
 
 msgid "Enter duration in seconds"
 msgstr "Introdueix duració en segons"
@@ -7718,6 +7756,9 @@ msgid "Enter theme name"
 msgstr "Introdueix nom de l'alerta"
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -7896,6 +7937,20 @@ msgstr "Estimar cost de la consulta seleccionada"
 
 msgid "Estimate the cost before running a query"
 msgstr "Estimar el cost abans d'executar una consulta"
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
+msgstr ""
 
 msgid "Event"
 msgstr "Esdeveniment"
@@ -8747,6 +8802,9 @@ msgid "Fit data"
 msgstr "Ajustar a les dades"
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 msgid ""
@@ -12878,6 +12936,9 @@ msgstr "Píxels"
 msgid "Plain"
 msgstr "Senzill"
 
+msgid "Planner cost is relative, not dollars or memory."
+msgstr ""
+
 msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
@@ -13326,6 +13387,12 @@ msgstr "Nom de la consulta"
 
 msgid "Query preview"
 msgstr "Vista prèvia de la consulta"
+
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
 
 msgid "Query was stopped"
 msgstr "La consulta va ser aturada"
@@ -14237,6 +14304,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -14546,6 +14616,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 msgid "Saving..."
@@ -17493,6 +17568,14 @@ msgstr ""
 "L'objecte engine_params es desempaqueta a la crida "
 "sqlalchemy.create_engine."
 
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "L'exponent per calcular totes les mides. Només \"EXP\""
 
@@ -17929,6 +18012,26 @@ msgid ""
 "properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid "The query cost warning threshold must be no greater than 9007199254740991."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "La consulta no s'ha pogut carregar"
 
@@ -17946,6 +18049,9 @@ msgstr "La consulta té un error de sintaxi."
 
 msgid "The query returned no data"
 msgstr "La consulta no ha retornat dades"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -18052,6 +18158,14 @@ msgstr ""
 
 #, python-format
 msgid "The sample row limit was reached. This %s may contain more rows."
+msgstr ""
+
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
 msgstr ""
 
 #, python-format
@@ -19120,6 +19234,9 @@ msgid ""
 "this operator."
 msgstr ""
 
+msgid "This engine does not support pre-run warnings."
+msgstr ""
+
 #, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr ""
@@ -19275,6 +19392,11 @@ msgid ""
 msgstr ""
 "Aquest enllaç us portarà a un lloc web extern. No podem garantir la "
 "seguretat dels destins externs."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 msgid "This markdown component has an error."
 msgstr "Aquest component markdown té un error."
@@ -19533,6 +19655,9 @@ msgstr "Nivell alfa del llindar per determinar significança"
 #, fuzzy
 msgid "Threshold for Other"
 msgstr "Llindar"
+
+msgid "Threshold size unit"
+msgstr ""
 
 msgid "Threshold: "
 msgstr "Llindar: "
@@ -20458,6 +20583,10 @@ msgstr "Consulta sense títol"
 msgid "Unverified"
 msgstr "Indefinit"
 
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
+
 msgid "Update"
 msgstr "Actualitzar"
 
@@ -21103,6 +21232,24 @@ msgstr "Magatzem"
 msgid "Warning"
 msgstr "Avís"
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 msgid "Warning!"
 msgstr "Avís!"
 
@@ -21122,6 +21269,12 @@ msgid ""
 msgstr ""
 "Advertència: les consultes ILIKE poden ser lentes en conjunts de dades "
 "grans, ja que no poden utilitzar índexs de manera efectiva."
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
+msgstr ""
 
 msgid "Was unable to check your query"
 msgstr "No s'ha pogut comprovar la teva consulta"
@@ -22466,6 +22619,9 @@ msgstr "botó (cmd + z) fins que desis els teus canvis."
 msgid "by using"
 msgstr "usant"
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -23118,6 +23274,9 @@ msgstr "Pivotat"
 msgid "pixels"
 msgstr "píxels"
 
+msgid "planner cost units"
+msgstr ""
+
 msgid "previous calendar month"
 msgstr "mes del calendari anterior"
 
@@ -23142,6 +23301,12 @@ msgstr ""
 
 msgid "query"
 msgstr "consulta"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "aleatori"
