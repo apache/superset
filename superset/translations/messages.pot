@@ -3410,6 +3410,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr ""
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr ""
 
@@ -4380,6 +4383,9 @@ msgid "Create new chart"
 msgstr ""
 
 msgid "Create or select schema..."
+msgstr ""
+
+msgid "Create semantic layer"
 msgstr ""
 
 msgid "Created"
@@ -8689,6 +8695,12 @@ msgstr ""
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 msgid "Loading timezones..."
 msgstr ""
 
@@ -9749,6 +9761,15 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No semantic layer types are available. Ask your administrator to check the semantic layer setup for this deployment."
+msgstr ""
+
+msgid "No semantic layers are available to you. A semantic layer connects your data to its business definitions. Create a semantic layer before adding a semantic view."
+msgstr ""
+
+msgid "No semantic layers are available to you. Ask your administrator to set up a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12715,6 +12736,9 @@ msgid "Semantic layer does not exist"
 msgstr ""
 
 msgid "Semantic layer parameters are invalid."
+msgstr ""
+
+msgid "Semantic layer setup guide"
 msgstr ""
 
 msgid "Semantic layer type"
@@ -16057,6 +16081,9 @@ msgstr ""
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 
@@ -16212,6 +16239,12 @@ msgid "Unable to load columns for the selected table."
 msgstr ""
 
 msgid "Unable to load dashboard"
+msgstr ""
+
+msgid "Unable to load semantic layer types. Try again or ask your administrator for help."
+msgstr ""
+
+msgid "Unable to load semantic layers. Try again or ask your administrator for help."
 msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
