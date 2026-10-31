@@ -21,7 +21,7 @@ import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import { styled } from '@apache-superset/core/theme';
 import { SupersetClient } from '@superset-ui/core';
-import { List, Select } from '@superset-ui/core/components';
+import { Button, List, Select } from '@superset-ui/core/components';
 import { Alert } from '@apache-superset/core/components';
 import { Spin } from '@superset-ui/core/components/Spin';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -49,6 +49,8 @@ import {
   isRecord,
   parseCreationResult,
 } from './creationResult';
+
+import SemanticLayerSetupHelp from '../semanticLayers/SemanticLayerSetupHelp';
 
 interface SemanticLayerOption {
   uuid: string;
@@ -151,6 +153,8 @@ interface AddSemanticViewModalProps {
   show: boolean;
   onHide: () => void;
   onSuccess: () => void;
+  onCreateLayer?: () => void;
+  layerCreatedSignal?: number;
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
@@ -159,6 +163,8 @@ export default function AddSemanticViewModal({
   show,
   onHide,
   onSuccess,
+  onCreateLayer,
+  layerCreatedSignal,
   addDangerToast,
   addSuccessToast,
 }: AddSemanticViewModalProps) {
@@ -167,7 +173,11 @@ export default function AddSemanticViewModal({
   const [selectedLayerUuid, setSelectedLayerUuid] = useState<string | null>(
     null,
   );
-  const [loadingLayers, setLoadingLayers] = useState(false);
+  const [layerStatus, setLayerStatus] = useState<
+    'loading' | 'success' | 'error'
+  >('loading');
+  const layerRequestRef = useRef(0);
+  const loadingLayers = layerStatus === 'loading';
 
   // --- Runtime config ---
   const [runtimeSchema, setRuntimeSchema] = useState<JsonSchema | null>(null);
@@ -210,21 +220,31 @@ export default function AddSemanticViewModal({
   // =========================================================================
 
   const fetchLayers = async () => {
-    setLoadingLayers(true);
+    layerRequestRef.current += 1;
+    const request = layerRequestRef.current;
+    setLayerStatus('loading');
     try {
       const { json } = await SupersetClient.get({
         endpoint: '/api/v1/semantic_layer/',
       });
-      setLayers(
-        (json.result ?? []).map((l: { uuid: string; name: string }) => ({
-          uuid: l.uuid,
-          name: l.name,
-        })),
-      );
+      if (request !== layerRequestRef.current) return;
+      const result: unknown = json.result;
+      if (
+        !Array.isArray(result) ||
+        !result.every(
+          (layer): layer is SemanticLayerOption =>
+            isRecord(layer) &&
+            typeof layer.uuid === 'string' &&
+            typeof layer.name === 'string',
+        )
+      )
+        throw new Error('Invalid semantic layer list');
+      setLayers(result);
+      setLayerStatus('success');
     } catch {
+      if (request !== layerRequestRef.current) return;
+      setLayerStatus('error');
       addDangerToast(t('An error occurred while fetching semantic layers'));
-    } finally {
-      setLoadingLayers(false);
     }
   };
 
@@ -567,6 +587,7 @@ export default function AddSemanticViewModal({
     unmountedRef.current = false;
     return () => {
       unmountedRef.current = true;
+      layerRequestRef.current += 1;
       // Drop in-flight continuations, as closing the modal does.
       fetchGenRef.current += 1;
       if (schemaTimerRef.current) clearTimeout(schemaTimerRef.current);
@@ -587,7 +608,8 @@ export default function AddSemanticViewModal({
       if (viewsTimerRef.current) clearTimeout(viewsTimerRef.current);
       setLayers([]);
       setSelectedLayerUuid(null);
-      setLoadingLayers(false);
+      layerRequestRef.current += 1;
+      setLayerStatus('loading');
       setRuntimeSchema(null);
       setRuntimeUiSchema(undefined);
       setRuntimeData({});
@@ -608,7 +630,7 @@ export default function AddSemanticViewModal({
       setCreationErrors([]);
       lastViewsKeyRef.current = '';
     }
-  }, [show]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [show, layerCreatedSignal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // =========================================================================
   // Save
@@ -765,12 +787,17 @@ export default function AddSemanticViewModal({
       icon={<Icons.PlusOutlined />}
       width={MODAL_STANDARD_WIDTH}
       saveDisabled={
-        newViewCount === 0 || saving || staleSchemaOptions || refreshingSchema
+        layerStatus !== 'success' ||
+        newViewCount === 0 ||
+        saving ||
+        staleSchemaOptions ||
+        refreshingSchema
       }
       saveText={newViewCount > 0 ? t('Add %s view(s)', newViewCount) : t('Add')}
       saveLoading={saving}
     >
       <ModalContent>
+        <SemanticLayerSetupHelp />
         {creationErrors.length > 0 && (
           <Alert
             type="error"
@@ -795,13 +822,54 @@ export default function AddSemanticViewModal({
             }
           />
         )}
+        {/* COPY-TBD: semantic setup guidance, pending product copy. */}
+        {loadingLayers && (
+          <p>
+            <output>{t('Loading semantic layers…')}</output>
+          </p>
+        )}
+        {layerStatus === 'error' && (
+          <>
+            <Alert
+              type="error"
+              showIcon
+              role="alert"
+              message={t(
+                'Unable to load semantic layers. Try again or ask your administrator for help.',
+              )}
+            />
+            <Button onClick={fetchLayers}>{t('Try again')}</Button>
+          </>
+        )}
+        {layerStatus === 'success' && layers.length === 0 && (
+          <>
+            <p>
+              <output>
+                {onCreateLayer
+                  ? t(
+                      'No semantic layers are available to you. A semantic layer connects your data to its business definitions. Create a semantic layer before adding a semantic view.',
+                    )
+                  : t(
+                      'No semantic layers are available to you. Ask your administrator to set up a semantic layer or grant you access to one.',
+                    )}
+              </output>
+            </p>
+            {onCreateLayer && (
+              <Button onClick={onCreateLayer}>
+                {t('Create semantic layer')}
+              </Button>
+            )}
+          </>
+        )}
         {/* Semantic Layer */}
         <ModalFormField label={t('Semantic Layer')}>
           <Select
             ariaLabel={t('Semantic layer')}
             placeholder={t('Select a semantic layer')}
             loading={loadingLayers}
-            disabled={saving}
+            disabled={
+              saving || layerStatus !== 'success' || layers.length === 0
+            }
             value={selectedLayerUuid}
             onChange={value => handleLayerChange(value as string)}
             options={layers.map(l => ({
