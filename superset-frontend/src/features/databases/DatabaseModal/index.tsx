@@ -199,7 +199,6 @@ export type DBReducerActionType =
       type:
         | ActionType.ExtraEditorChange
         | ActionType.ExtraInputChange
-        | ActionType.EncryptedExtraInputChange
         | ActionType.ClearEncryptedExtraKey
         | ActionType.TextChange
         | ActionType.QueryChange
@@ -208,6 +207,14 @@ export type DBReducerActionType =
         | ActionType.ParametersChange
         | ActionType.ParametersSSHTunnelChange;
       payload: DBReducerPayloadType;
+    }
+  | {
+      // Nested Secure Extra blocks (e.g. `embedded_credentials`) carry an
+      // object rather than a string.
+      type: ActionType.EncryptedExtraInputChange;
+      payload: Omit<DBReducerPayloadType, 'value'> & {
+        value?: string | Record<string, string>;
+      };
     }
   | {
       type: ActionType.Fetched;
@@ -634,8 +641,20 @@ export function dbReducer(
         expose_in_sqllab: true,
       };
     case ActionType.ConfigMethodChange:
+      // Switching how a connection is described must not discard what has
+      // already been typed into it. The payload carries only the three keys
+      // the other mode needs; everything else -- the parameters, the
+      // encrypted-extra blob, the advanced-tab fields and the engine metadata
+      // the form needs to render itself -- is kept, so a round trip through
+      // the other mode returns the form in the state it left. Both callers
+      // read these three keys straight out of the current state, so an
+      // undefined value means "unset", never "clear what is there".
       return {
-        ...action.payload,
+        ...trimmedState,
+        configuration_method: action.payload.configuration_method,
+        database_name:
+          action.payload.database_name ?? trimmedState.database_name,
+        engine: action.payload.engine ?? trimmedState.engine,
       };
 
     case ActionType.Reset:

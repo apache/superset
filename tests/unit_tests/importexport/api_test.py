@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 from zipfile import is_zipfile, ZIP_DEFLATED, ZipFile
 
+import pytest
 from pytest_mock import MockerFixture
 
 from superset import security_manager
@@ -500,3 +501,54 @@ def test_import_assets_no_contents(
             }
         ]
     }
+
+
+@pytest.mark.parametrize(
+    "resource,module,command",
+    [
+        ("dashboard", "superset.dashboards.api", "ImportDashboardsCommand"),
+        ("chart", "superset.charts.api", "ImportChartsCommand"),
+        ("dataset", "superset.datasets.api", "ImportDatasetsCommand"),
+        (
+            "saved_query",
+            "superset.queries.saved_queries.api",
+            "ImportSavedQueriesCommand",
+        ),
+    ],
+)
+def test_bundle_imports_pass_encrypted_extra_secrets(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    resource: str,
+    module: str,
+    command: str,
+) -> None:
+    """
+    Dashboard, chart, dataset and saved-query imports pass the secrets for their
+    databases' masked Secure Extra to the command, as the database import does.
+
+    Bundles carry the masked block, so without this a promoted connection could
+    never get its OAuth2 client secret or embedded credential back.
+    """
+    import_command = mocker.patch(f"{module}.{command}")
+    buf = BytesIO()
+    with ZipFile(buf, "w") as bundle:
+        with bundle.open("export/metadata.yaml", "w") as fp:
+            fp.write(b"version: 1.0.0\n")
+    buf.seek(0)
+    secrets = {
+        "export/databases/promoted.yaml": {"$.oauth2_client_info.secret": "s3cret"}
+    }
+
+    response = client.post(
+        f"/api/v1/{resource}/import/",
+        data={
+            "formData": (buf, "export.zip"),
+            "encrypted_extra_secrets": json.dumps(secrets),
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 200, response.json
+    assert import_command.call_args.kwargs["encrypted_extra_secrets"] == secrets

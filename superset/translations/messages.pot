@@ -146,7 +146,7 @@ msgstr ""
 msgid "\"%s\" is now the system default theme"
 msgstr ""
 
-#, no-python-format
+#, python-format
 msgid "% calculation"
 msgstr ""
 
@@ -166,7 +166,7 @@ msgstr ""
 msgid "% of grand total"
 msgstr ""
 
-#, no-python-format
+#, python-format
 msgid "% of parent"
 msgstr ""
 
@@ -174,7 +174,7 @@ msgstr ""
 msgid "% of row total"
 msgstr ""
 
-#, no-python-format
+#, python-format
 msgid "% of total"
 msgstr ""
 
@@ -656,6 +656,9 @@ msgid ""
 "\n"
 msgstr ""
 
+msgid "-----BEGIN PRIVATE KEY-----"
+msgstr ""
+
 #, python-format
 msgid "... and %d more"
 msgstr ""
@@ -746,7 +749,6 @@ msgstr ""
 msgid "10/90 percentiles"
 msgstr ""
 
-#. do-not-translate
 msgid "10000"
 msgstr ""
 
@@ -2473,6 +2475,9 @@ msgstr ""
 msgid "August"
 msgstr ""
 
+msgid "Authentication method"
+msgstr ""
+
 msgid "Authorization Request URI"
 msgstr ""
 
@@ -4046,6 +4051,9 @@ msgstr ""
 msgid "Configure your how you overlay is displayed here."
 msgstr ""
 
+msgid "Configured"
+msgstr ""
+
 msgid "Confirm"
 msgstr ""
 
@@ -4626,7 +4634,6 @@ msgstr ""
 msgid "DEC"
 msgstr ""
 
-#. do-not-translate
 msgid "DELETE"
 msgstr ""
 
@@ -5877,14 +5884,12 @@ msgstr ""
 msgid "Dynamically select grouping columns from a dataset"
 msgstr ""
 
-#. do-not-translate
 msgid "ECharts"
 msgstr ""
 
 msgid "ECharts Options (JS object literals)"
 msgstr ""
 
-#. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
 msgstr ""
 
@@ -6091,6 +6096,15 @@ msgstr ""
 msgid "Embedded dashboard could not be deleted."
 msgstr ""
 
+msgid "Embedded guest credentials"
+msgstr ""
+
+msgid "Embedded guest credentials are invalid or incomplete. Provide all required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
+msgid "Embedded guest credentials only apply to connections that use OAuth2 with \"Impersonate logged in user\" turned on. Configure OAuth2 client information and turn on impersonation, or clear the embedded credentials."
+msgstr ""
+
 msgid "Embedding deactivated."
 msgstr ""
 
@@ -6275,6 +6289,9 @@ msgstr ""
 
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
+msgstr ""
+
+msgid "Enter the scopes allowed by your Snowflake integration, for example session:role:ANALYST refresh_token. Without a role scope, Snowflake uses the user's default role."
 msgstr ""
 
 msgid "Enter the unique project id for your database."
@@ -7386,7 +7403,6 @@ msgstr ""
 msgid "Further customize how to display each metric"
 msgstr ""
 
-#. do-not-translate
 msgid "GROUP BY"
 msgstr ""
 
@@ -7701,7 +7717,7 @@ msgstr ""
 msgid "Id of root node of the tree."
 msgstr ""
 
-msgid "If Presto or Trino, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property. If Databricks, uses OAuth2 to authenticate as the currently logged on user. If Snowflake or Google Sheets, and OAuth authentication is configured for the database, will run the queries as the currently logged on user via their own OAuth credentials."
+msgid "If Presto or Trino, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property. If Databricks, uses OAuth2 to authenticate as the currently logged on user. If Snowflake or Google Sheets, and OAuth authentication is configured for the database, will run the queries as the currently logged on user via their own OAuth2 credentials. Snowflake OAuth2 connections also require it for embedded guest credentials."
 msgstr ""
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
@@ -8243,6 +8259,9 @@ msgid "Key"
 msgstr ""
 
 msgid "Key Prefix"
+msgstr ""
+
+msgid "Key pair"
 msgstr ""
 
 msgid "Keyboard shortcuts"
@@ -9442,7 +9461,6 @@ msgstr ""
 msgid "N/A"
 msgstr ""
 
-#. do-not-translate
 msgid "NOT GROUPED BY"
 msgstr ""
 
@@ -10046,7 +10064,6 @@ msgstr ""
 msgid "OR"
 msgstr ""
 
-#. do-not-translate
 msgid "OVERWRITE"
 msgstr ""
 
@@ -10943,6 +10960,12 @@ msgstr ""
 msgid "Private Key Password"
 msgstr ""
 
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
+msgstr ""
+
 msgid "Proceed"
 msgstr ""
 
@@ -11296,6 +11319,9 @@ msgstr ""
 msgid "Remove dependency"
 msgstr ""
 
+msgid "Remove embedded guest credentials"
+msgstr ""
+
 msgid "Remove filter"
 msgstr ""
 
@@ -11558,6 +11584,9 @@ msgid "Required if your account already has a password"
 msgstr ""
 
 msgid "Required to mirror range filters, including the time range."
+msgstr ""
+
+msgid "Requires OAuth2 client information and “Impersonate logged in user” (Advanced → Security)."
 msgstr ""
 
 msgid "Resample"
@@ -13888,7 +13917,6 @@ msgstr ""
 msgid "TABLES"
 msgstr ""
 
-#. do-not-translate
 msgid "TEMPORAL_RANGE"
 msgstr ""
 
@@ -14578,16 +14606,16 @@ msgstr ""
 msgid "The password reset was successful"
 msgstr ""
 
-msgid "The passwords for the databases below are needed in order to import them together with the charts. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed."
+msgid "The passwords for the databases below are needed in order to import them together with the charts. Please note that the \"Certificate\" section of the database configuration is not present in export files, and should be added manually after the import if it is needed."
 msgstr ""
 
-msgid "The passwords for the databases below are needed in order to import them together with the dashboards. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed."
+msgid "The passwords for the databases below are needed in order to import them together with the dashboards. Please note that the \"Certificate\" section of the database configuration is not present in export files, and should be added manually after the import if it is needed."
 msgstr ""
 
-msgid "The passwords for the databases below are needed in order to import them together with the datasets. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed."
+msgid "The passwords for the databases below are needed in order to import them together with the datasets. Please note that the \"Certificate\" section of the database configuration is not present in export files, and should be added manually after the import if it is needed."
 msgstr ""
 
-msgid "The passwords for the databases below are needed in order to import them together with the saved queries. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed."
+msgid "The passwords for the databases below are needed in order to import them together with the saved queries. Please note that the \"Certificate\" section of the database configuration is not present in export files, and should be added manually after the import if it is needed."
 msgstr ""
 
 msgid "The passwords for the databases below are needed in order to import them."
@@ -15336,6 +15364,9 @@ msgid "This cannot be undone."
 msgstr ""
 
 msgid "This chart applies cross-filters to charts whose datasets contain columns with the same name."
+msgstr ""
+
+msgid "This chart can't be shown here because its database connection isn't set up for embedded dashboards. Please contact the dashboard's owner."
 msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
@@ -16598,6 +16629,9 @@ msgstr ""
 msgid "Used internally to identify the plugin. Should be set to the package name from the pluginʼs package.json"
 msgstr ""
 
+msgid "Used only when a dashboard is viewed through an embedded guest token. Every embedded viewer of this connection queries as this one user, so it should be a dedicated account with the narrowest access those dashboards need. Logged-in users are unaffected and continue to authenticate individually via OAuth2."
+msgstr ""
+
 msgid "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location. Not the most visually stunning visualization, but highly informative and versatile."
 msgstr ""
 
@@ -16906,11 +16940,9 @@ msgstr ""
 msgid "WED"
 msgstr ""
 
-#. do-not-translate
 msgid "WFS"
 msgstr ""
 
-#. do-not-translate
 msgid "WMS"
 msgstr ""
 
@@ -17357,7 +17389,6 @@ msgstr ""
 msgid "X-scale interval"
 msgstr ""
 
-#. do-not-translate
 msgid "XYZ"
 msgstr ""
 
@@ -17956,7 +17987,6 @@ msgstr ""
 msgid "bfill"
 msgstr ""
 
-#. do-not-translate
 msgid "bolt"
 msgstr ""
 
@@ -18045,7 +18075,6 @@ msgstr ""
 msgid "create dataset from SQL query"
 msgstr ""
 
-#. do-not-translate
 msgid "crontab"
 msgstr ""
 
@@ -18112,7 +18141,6 @@ msgstr ""
 msgid "deck.gl Contour"
 msgstr ""
 
-#. do-not-translate
 msgid "deck.gl Geojson"
 msgstr ""
 
@@ -18164,7 +18192,6 @@ msgstr ""
 msgid "documentation"
 msgstr ""
 
-#. do-not-translate
 msgid "dttm"
 msgstr ""
 
@@ -18187,6 +18214,9 @@ msgid "e.g. compute_wh"
 msgstr ""
 
 msgid "e.g. default"
+msgstr ""
+
+msgid "e.g. embedded_viewer"
 msgstr ""
 
 msgid "e.g. hive_metastore"
@@ -18225,7 +18255,6 @@ msgstr ""
 msgid "entries"
 msgstr ""
 
-#. do-not-translate
 msgid "error_message"
 msgstr ""
 
@@ -18503,19 +18532,15 @@ msgstr ""
 msgid "p-value precision"
 msgstr ""
 
-#. do-not-translate
 msgid "p1"
 msgstr ""
 
-#. do-not-translate
 msgid "p5"
 msgstr ""
 
-#. do-not-translate
 msgid "p95"
 msgstr ""
 
-#. do-not-translate
 msgid "p99"
 msgstr ""
 
@@ -18528,7 +18553,6 @@ msgstr ""
 msgid "permalink state not found"
 msgstr ""
 
-#. do-not-translate
 msgid "pivoted_xlsx"
 msgstr ""
 
@@ -18615,7 +18639,6 @@ msgstr ""
 msgid "schedule \"%s\" runs more often than the minimum interval"
 msgstr ""
 
-#. do-not-translate
 msgid "schema1,schema2"
 msgstr ""
 
@@ -18644,7 +18667,6 @@ msgstr ""
 msgid "show_values_as is only supported for additive aggregates (sum, count); got non-additive operator(s) for: %(metrics)s."
 msgstr ""
 
-#. do-not-translate
 msgid "sql"
 msgstr ""
 
@@ -18678,7 +18700,6 @@ msgstr ""
 msgid "sum"
 msgstr ""
 
-#. do-not-translate
 msgid "superset.example.com"
 msgstr ""
 
@@ -18794,7 +18815,6 @@ msgstr ""
 msgid "year"
 msgstr ""
 
-#. do-not-translate
 msgid "your-project-1234-a1"
 msgstr ""
 

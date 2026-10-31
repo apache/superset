@@ -24,14 +24,14 @@ from superset import db, security_manager
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.commands.database.utils import (
     add_permissions,
-    engine_params_changed,
+    import_connection_identity_changed,
     ssh_tunnel_rebind_unsafe,
-    uri_identity_changed,
 )
 from superset.commands.exceptions import ImportFailedError
 from superset.constants import PASSWORD_MASK
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
+from superset.db_engine_specs import get_engine_spec
 from superset.db_engine_specs.exceptions import SupersetDBAPIError
 from superset.exceptions import (
     OAuth2RedirectError,
@@ -44,23 +44,6 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-def _connection_identity_changed(existing: Database, config: dict[str, Any]) -> bool:
-    """Whether the import points the database at a different endpoint."""
-    if uri_identity_changed(existing.sqlalchemy_uri, config.get("sqlalchemy_uri")):
-        return True
-
-    # The URI's host/port aren't the whole story: `extra.engine_params`
-    # (e.g. `connect_args.host`/`port`) is merged into the actual DBAPI
-    # connect kwargs and can override them. An import that opens a live
-    # connection (`add_permissions` -> `get_all_catalog_names`) with a
-    # rehydrated stored password must not do so against a destination this
-    # field silently redirected.
-    submitted_extra = config.get("extra")
-    if isinstance(submitted_extra, dict):
-        submitted_extra = json.dumps(submitted_extra)
-    return engine_params_changed(existing.extra, submitted_extra)
-
-
 def _refuse_stored_secret_reuse(existing: Database, config: dict[str, Any]) -> None:
     """
     Refuse an overwrite that changes the connection endpoint without fresh
@@ -71,7 +54,7 @@ def _refuse_stored_secret_reuse(existing: Database, config: dict[str, Any]) -> N
     host while the stored password (or SSH tunnel key) is silently kept: the
     next connection would hand the real credential to the new endpoint.
     """
-    if _connection_identity_changed(existing, config):
+    if import_connection_identity_changed(existing, config):
         try:
             uri_password = make_url_safe(config["sqlalchemy_uri"]).password
         except DatabaseInvalidError:
@@ -174,7 +157,7 @@ def import_database(  # noqa: C901
         if (
             existing
             and existing.encrypted_extra
-            and not _connection_identity_changed(existing, config)
+            and not import_connection_identity_changed(existing, config)
         ):
             old_config = json.loads(existing.encrypted_extra)
             new_config = json.loads(masked_encrypted_extra)
@@ -189,6 +172,25 @@ def import_database(  # noqa: C901
             config["encrypted_extra"] = json.dumps(revealed)
         else:
             config["encrypted_extra"] = masked_encrypted_extra
+
+        # Never store a mask as if it were the secret: the schema asks for any
+        # value that cannot be revealed, so one left here is a bug, not input.
+        engine_spec = (
+            existing.db_engine_spec
+            if existing
+            else get_engine_spec(
+                make_url_safe(config["sqlalchemy_uri"]).get_backend_name(),
+                driver=make_url_safe(config["sqlalchemy_uri"]).get_driver_name(),
+            )
+        )
+        if still_masked := json.get_masked_fields(
+            json.loads(config["encrypted_extra"]),
+            engine_spec.encrypted_extra_sensitive_field_paths(),
+        ):
+            raise ImportFailedError(
+                "Must provide value for masked_encrypted_extra field: "
+                + ", ".join(still_masked)
+            )
 
     ssh_tunnel_config = config.pop("ssh_tunnel", None)
 

@@ -53,6 +53,7 @@ from superset.exceptions import (
     OAuth2RedirectError,
     SupersetGenericDBErrorException,
 )
+from superset.security.guest_token import GuestToken, GuestUser
 from superset.sql.parse import Table
 from superset.superset_typing import (
     OAuth2ClientConfig,
@@ -63,6 +64,7 @@ from superset.superset_typing import (
 from superset.utils.core import FilterOperator, GenericDataType
 from superset.utils.oauth2 import decode_oauth2_state
 from tests.conftest import with_config
+from tests.unit_tests.conftest import with_feature_flags
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 
 
@@ -543,7 +545,48 @@ def test_encrypted_extra_sensitive_field_paths_from_dict(
         if masked_encrypted_extra:
             encrypted_extra_sensitive_fields = masked_encrypted_extra
 
-    assert DictFieldsSpec.encrypted_extra_sensitive_field_paths() == expected_result
+    assert DictFieldsSpec.encrypted_extra_sensitive_field_paths() == (
+        expected_result | ALWAYS_MASKED_PATHS
+    )
+
+
+# Masked for every engine, whatever it declares: `Database` reads both blocks from
+# any connection's `encrypted_extra`.
+ALWAYS_MASKED_PATHS = {
+    "$.oauth2_client_info.secret",
+    "$.embedded_credentials.password",
+    "$.embedded_credentials.privatekey_body",
+    "$.embedded_credentials.privatekey_pass",
+}
+
+
+def test_secrets_are_masked_for_an_engine_that_declares_no_sensitive_fields() -> None:
+    """
+    The OAuth2 client secret and embedded credential are masked regardless.
+
+    An engine with no sensitive fields of its own, or a deployment override that
+    fails to load, must not return either in clear.
+    """
+
+    class NoSensitiveFieldsSpec(BaseEngineSpec):
+        encrypted_extra_sensitive_fields: set[str] = set()
+
+    masked_text = NoSensitiveFieldsSpec.mask_encrypted_extra(
+        json.dumps(
+            {
+                "oauth2_client_info": {"id": "client", "secret": "s3cret"},
+                "embedded_credentials": {"username": "svc", "password": "pw"},
+            }
+        )
+    )
+    assert masked_text is not None
+    masked = json.loads(masked_text)
+
+    assert masked["oauth2_client_info"] == {"id": "client", "secret": "XXXXXXXXXX"}
+    assert masked["embedded_credentials"] == {
+        "username": "svc",
+        "password": "XXXXXXXXXX",
+    }
 
 
 def test_impersonate_user_backwards_compatible(mocker: MockerFixture) -> None:
@@ -2048,6 +2091,265 @@ def test_epoch_us_to_dttm(spec: type[BaseEngineSpec], expected: str) -> None:
     assert spec.epoch_us_to_dttm() == expected
 
 
+def _guest_user(username: str = "guest_user") -> GuestUser:
+    """
+    Build an embedded guest principal, the way the guest-token loader would.
+    """
+    token: GuestToken = {
+        "user": {"username": username},
+        "resources": [],
+        "rls_rules": [],
+        "iat": 0,
+        "exp": 1,
+    }
+    return GuestUser(token=token, roles=[])
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True)
+def test_needs_oauth2_for_a_logged_in_user(mocker: MockerFixture) -> None:
+    """
+    Test that a logged-in user hitting an OAuth2 error still starts the dance.
+    """
+    g = mocker.patch("superset.db_engine_specs.base.g")
+    g.user = mocker.MagicMock(spec=["id", "username"])
+
+    assert BaseEngineSpec.needs_oauth2(OAuth2RedirectError("url", "tab", "redirect"))
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True)
+def test_needs_oauth2_is_false_for_an_embedded_guest(mocker: MockerFixture) -> None:
+    """
+    Test that an embedded guest never triggers the OAuth2 dance.
+
+    A guest authenticates with a guest token rather than a Superset account, so there
+    is no per-user token to resolve and no way for them to authorize one. Before this
+    guard, `start_oauth2_dance` read `g.user.id` -- which `GuestUser` does not define
+    -- and the viewer got an `AttributeError` and a 500 instead of the driver's error.
+    """
+    g = mocker.patch("superset.db_engine_specs.base.g")
+    g.user = _guest_user()
+
+    assert not BaseEngineSpec.needs_oauth2(
+        OAuth2RedirectError("url", "tab", "redirect")
+    )
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True)
+def test_needs_oauth2_is_false_for_an_unrelated_exception(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a non-OAuth2 error is not treated as one, for either principal.
+    """
+    g = mocker.patch("superset.db_engine_specs.base.g")
+
+    g.user = mocker.MagicMock(spec=["id", "username"])
+    assert not BaseEngineSpec.needs_oauth2(ValueError("not an OAuth2 problem"))
+
+    g.user = _guest_user()
+    assert not BaseEngineSpec.needs_oauth2(ValueError("not an OAuth2 problem"))
+
+
+def test_needs_oauth2_without_a_user(mocker: MockerFixture) -> None:
+    """
+    Test that a request with no user on `g` does not start the dance.
+    """
+    mocker.patch("superset.db_engine_specs.base.g", spec=[])
+
+    assert not BaseEngineSpec.needs_oauth2(
+        OAuth2RedirectError("url", "tab", "redirect")
+    )
+
+
+@with_config(
+    {
+        "SECRET_KEY": "test-secret-key",
+        "DATABASE_OAUTH2_JWT_ALGORITHM": "HS256",
+    }
+)
+def test_start_oauth2_dance_rejects_a_principal_without_an_id(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the dance fails legibly when the principal has no id.
+
+    This is the backstop behind `needs_oauth2`: a caller that skips the guest check
+    should get an `OAuth2Error` naming the problem, not an `AttributeError` raised
+    while building the state dict.
+    """
+    mocker.patch("superset.daos.key_value.KeyValueDAO")
+    mocker.patch("superset.db_engine_specs.base.db")
+
+    g = mocker.patch("superset.db_engine_specs.base.g")
+    g.user = _guest_user()
+
+    database = mocker.MagicMock()
+    database.id = 1
+
+    with pytest.raises(OAuth2Error) as excinfo:
+        BaseEngineSpec.start_oauth2_dance(database)
+
+    assert "authenticated user with an id" in excinfo.value.error.extra["error"]
+
+
+def test_apply_embedded_credentials_replaces_the_connection_identity(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the default implementation replaces, rather than merges, the identity.
+
+    ``URL.set`` ignores ``password=None``, so merging would leave a credential that
+    carries no password -- a key pair, say -- paired with the connection's own
+    password. Everything else about the URL has to survive: a dropped query
+    parameter here is a connection that silently loses its warehouse or role.
+    """
+    url = make_url(
+        "snowflake://svc_user:svc_pass@xy12345.us-east-2.aws:443/ANALYTICS_DB"
+        "?role=ANALYST&warehouse=COMPUTE_WH"
+    )
+    engine_kwargs: dict[str, Any] = {"connect_args": {}}
+
+    applied_url, applied_kwargs = BaseEngineSpec.apply_embedded_credentials(
+        mocker.MagicMock(),
+        {"username": "embedded_svc", "auth_method": "keypair"},
+        url,
+        engine_kwargs,
+    )
+
+    assert applied_url.username == "embedded_svc"
+    assert applied_url.password is None
+    assert applied_url.host == "xy12345.us-east-2.aws"
+    assert applied_url.port == 443
+    assert applied_url.database == "ANALYTICS_DB"
+    assert dict(applied_url.query) == {"role": "ANALYST", "warehouse": "COMPUTE_WH"}
+    # The base implementation has no opinion about engine kwargs.
+    assert applied_kwargs is engine_kwargs
+
+
+def test_apply_embedded_credentials_sets_a_password_on_the_url(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a password credential lands on the URL, not in ``connect_args``.
+
+    The per-process engine cache is keyed on the rendered URL and the engine kwargs.
+    Putting the credential on the URL is what keeps a guest's engine and a logged-in
+    user's engine on separate entries; moving it into ``connect_args`` would still be
+    in the key today, but the URL is where the rest of the stack expects a
+    connection's identity to be visible.
+    """
+    url = make_url("snowflake://svc_user:svc_pass@xy12345/DB")
+
+    applied_url, _ = BaseEngineSpec.apply_embedded_credentials(
+        mocker.MagicMock(),
+        {"username": "embedded_svc", "password": "embedded_pw"},
+        url,
+        {},
+    )
+
+    assert applied_url.username == "embedded_svc"
+    assert applied_url.password == "embedded_pw"  # noqa: S105
+
+
+@pytest.mark.parametrize(
+    "credentials,expected",
+    [
+        (
+            {"username": "u", "password": "p"},
+            {"username": "u", "password": "p"},
+        ),
+        (
+            {"username": "u", "auth_method": "keypair", "privatekey_body": "PEM"},
+            {
+                "username": "u",
+                "auth_method": "keypair",
+                "privatekey_body": "PEM",
+                "privatekey_pass": "",
+            },
+        ),
+        ({"username": "   ", "password": "p"}, None),
+        (
+            {"username": " \t ", "auth_method": "keypair", "privatekey_body": "PEM"},
+            None,
+        ),
+        (
+            {"username": " u ", "password": " p "},
+            {"username": " u ", "password": " p "},
+        ),
+        ({"username": "u"}, None),
+        ({"password": "p"}, None),
+        ({"username": "u", "auth_method": "keypair"}, None),
+        ({"username": "u", "auth_method": "unknown", "password": "p"}, None),
+        ("not a dict", None),
+        (None, None),
+    ],
+)
+def test_validate_embedded_credentials_default_rule(
+    credentials: Any,
+    expected: dict[str, str] | None,
+) -> None:
+    """
+    Test the canonical credential shape every engine inherits.
+
+    A half-filled credential resolves to ``None`` rather than being half-applied, so
+    that a connection cannot end up authenticating with a username and no secret.
+    """
+    assert BaseEngineSpec.validate_embedded_credentials(credentials) == expected
+
+
+def test_get_embedded_credential_cache_key_default() -> None:
+    """
+    Test that the default cache key is the configured identity.
+
+    Not the requesting principal's: a ``GuestUser`` carries whatever username the
+    guest token claims, so keying on that would let whoever mints the token choose
+    which cache entry they read.
+    """
+    assert (
+        BaseEngineSpec.get_embedded_credential_cache_key(
+            {"username": "embedded_svc", "password": "embedded_pw"}
+        )
+        == "embedded:embedded_svc"
+    )
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_an_opting_in_engine_gets_the_credential_field_without_an_override() -> None:
+    """
+    Test that opting a second engine in is a schema field, not a copied override.
+
+    The ``x-encrypted-extra`` tagging and the feature-flag gating both live in the
+    shared ``parameters_json_schema``, so an engine opts in by declaring the field
+    and flipping ``supports_embedded_credential_fallback``. When each engine carried
+    its own copy of that method, opting in meant duplicating all of it -- and the
+    copies drifted.
+    """
+    from marshmallow import fields as ma_fields, Schema as MarshmallowSchema
+
+    from superset.databases.types import EncryptedString
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    class OptedInParametersSchema(MarshmallowSchema):
+        host = ma_fields.Str()
+        embedded_credentials = EncryptedString(required=False, allow_none=True)
+
+    # Subclassing a spec that already mixes in `BasicParametersMixin`, which is how
+    # a dynamic-parameters engine reaches `parameters_json_schema`. The opt-in is
+    # the schema field plus the class attribute and nothing else.
+    class OptedInEngineSpec(PostgresEngineSpec):
+        engine = "optedin"
+        engine_name = "Opted In"
+        parameters_schema = OptedInParametersSchema()
+        supports_embedded_credential_fallback = True
+
+    field = OptedInEngineSpec.parameters_json_schema()["properties"][
+        "embedded_credentials"
+    ]
+
+    assert field["x-encrypted-extra"] is True
+    assert field["default"] == {"engine_oauth2_client_configured": False}
+
+
 def test_expand_nested_columns_default_returns_input() -> None:
     """
     By default the columns inferred from ``cursor.description`` are kept as is.
@@ -2057,3 +2359,26 @@ def test_expand_nested_columns_default_returns_input() -> None:
     ]
 
     assert BaseEngineSpec.expand_nested_columns(object(), columns) is columns
+
+
+def test_update_params_from_encrypted_extra_drops_the_embedded_credential(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The fallback credential never becomes an engine kwarg.
+
+    It is read by `Database._get_sqla_engine`, not by any driver; splatting it into
+    `create_engine` kwargs would raise on every engine and leak it to the driver.
+    """
+    database = mocker.MagicMock()
+    database.encrypted_extra = json.dumps(
+        {
+            "embedded_credentials": {"username": "svc", "password": "pw"},
+            "connect_args": {"sslmode": "require"},
+        }
+    )
+    params: dict[str, Any] = {}
+
+    BaseEngineSpec.update_params_from_encrypted_extra(database, params)
+
+    assert params == {"connect_args": {"sslmode": "require"}}

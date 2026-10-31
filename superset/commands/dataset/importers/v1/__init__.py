@@ -40,7 +40,8 @@ class ImportDatasetsCommand(ImportModelsCommand):
     model_name = "dataset"
     prefix = "datasets/"
     schemas: dict[str, Schema] = {
-        "databases/": ImportV1DatabaseSchema(),
+        # Related databases are reused rather than overwritten.
+        "databases/": ImportV1DatabaseSchema(overwrites_existing=False),
         "datasets/": ImportV1DatasetSchema(),
     }
     import_error = DatasetImportError
