@@ -23,6 +23,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask, g, Response
+from superset_core.semantic_layers.errors import SemanticQueryErrorCode
 
 from superset.charts.data.api import ChartDataRestApi
 from superset.charts.data.dashboard_filter_context import (
@@ -43,8 +44,10 @@ from superset.common.chart_data_timing import (
 from superset.common.query_context_factory import QueryContextFactory
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.constants import CACHE_DISABLED_TIMEOUT
+from superset.exceptions import QueryObjectValidationError, SupersetException
 from superset.jinja_context import ExtraCache
 from superset.models.core import Database
+from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
 from superset.superset_typing import AdhocColumn
 from superset.utils import json
 from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
@@ -956,6 +959,56 @@ def test_run_async_does_not_project_timing_onto_a_job_response(
         "cursor": "2020-01-01T00:00:00",
     }
     submit.assert_called_once_with(command.query_context, 1)
+
+
+def test_get_data_response_returns_400_for_query_object_validation_error(
+    app: SupersetApp,
+) -> None:
+    command = MagicMock()
+    command.execute.side_effect = QueryObjectValidationError(
+        "Invalid time range: start is after end"
+    )
+    api = ChartDataRestApi()
+
+    with app.test_request_context("/api/v1/chart/data"):
+        response = api._get_data_response(command)
+
+    assert response.status_code == 400
+    assert json.loads(response.get_data(as_text=True))["message"] == (
+        "Invalid time range: start is after end"
+    )
+
+
+@pytest.mark.parametrize(
+    "exception",
+    [
+        QueryObjectValidationError("Invalid time range: start is after end"),
+        ChartDataQueryFailedError("query failed"),
+        SemanticLayerQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY),
+    ],
+)
+def test_run_async_returns_400_when_cache_lookup_rejects_the_query(
+    app: SupersetApp,
+    exception: SupersetException,
+) -> None:
+    """
+    A client-side query error raised during the cache-only lookup must surface as
+    a 400, not fall through to the generic 500 handler or enqueue async tasks.
+    """
+    command = MagicMock()
+    command.execute.side_effect = exception
+    api = ChartDataRestApi()
+
+    with (
+        app.test_request_context("/api/v1/chart/data", method="POST"),
+        patch("superset.charts.data.api.submit_chart_data_query_tasks") as submit,
+    ):
+        response = api._run_async({"force": False}, command)
+
+    assert response.status_code == 400
+    assert json.loads(response.get_data(as_text=True))["message"] == exception.message
+    command.execute.assert_called_once_with(force_cached=True)
+    submit.assert_not_called()
 
 
 def test_run_async_projects_opt_in_timing_for_a_cached_result(
