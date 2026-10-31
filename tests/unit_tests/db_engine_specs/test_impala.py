@@ -454,3 +454,49 @@ def test_fetch_data_reconnects_before_cancelling_an_interrupted_fetch(
     assert calls.mock_calls[:2] == [call.reconnect(), call.cancel_operation()]
     cursor.close_operation.assert_called_once_with()
     cursor.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize("interrupted_rpc", ["status", "get_log"])
+@pytest.mark.parametrize("cancel_fails", [False, True])
+@pytest.mark.parametrize(
+    "timeout",
+    [
+        SoftTimeLimitExceeded(),
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="Timed out polling the operation",
+            level=ErrorLevel.ERROR,
+        ),
+    ],
+    ids=["async", "sync"],
+)
+def test_handle_cursor_reconnects_before_cancelling_an_interrupted_poll(
+    interrupted_rpc: str,
+    cancel_fails: bool,
+    timeout: Exception,
+    app_context: None,
+) -> None:
+    """Discard interrupted status/log replies before cancelling and releasing."""
+    cursor = Mock()
+    cursor.status.return_value = "RUNNING_STATE"
+    getattr(cursor, interrupted_rpc).side_effect = timeout
+    if cancel_fails:
+        cursor.cancel_operation.side_effect = RuntimeError("cancel RPC failed")
+    query = Mock(id=1, extra={}, status="running", progress=0)
+    calls = MagicMock()
+    calls.attach_mock(cursor.session.service.reconnect, "reconnect")
+    calls.attach_mock(cursor.cancel_operation, "cancel_operation")
+    calls.attach_mock(cursor.close_operation, "close_operation")
+    calls.attach_mock(cursor.close, "close")
+
+    with patch("superset.db_engine_specs.impala.db"):
+        with pytest.raises(type(timeout)) as raised:
+            spec.handle_cursor(cursor, query)
+
+    assert raised.value is timeout
+    assert calls.mock_calls == [
+        call.reconnect(),
+        call.cancel_operation(),
+        call.close_operation(),
+        call.close(),
+    ]

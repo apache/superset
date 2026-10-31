@@ -160,19 +160,24 @@ class ImpalaEngineSpec(BaseEngineSpec):
                     raise cls.get_dbapi_mapped_exception(ex) from ex
             return super().fetch_data(cursor, limit)
         except TIME_LIMIT_EXCEPTIONS:
-            # The operation is released before the time limit propagates so
-            # it does not keep running on the coordinator. The limit can land
-            # part way through a FetchResults response, so the transport is
-            # reopened first: reading the cancel's reply from the remainder of
-            # that response would hang or request a garbage-sized read.
-            try:
-                cursor.session.service.reconnect()
-            except TIME_LIMIT_EXCEPTIONS:
-                raise
-            except Exception:  # pylint: disable=broad-except
-                logger.warning("reconnect() failed after a time limit")
-            cls._cancel_operation(cursor)
+            cls._cancel_operation_after_time_limit(cursor)
             raise
+
+    @classmethod
+    def _cancel_operation_after_time_limit(
+        cls, cursor: Any, query_id: int | None = None
+    ) -> None:
+        """Discard interrupted RPC replies before cancelling and releasing handles."""
+        # A signal can interrupt any RPC reply, including status, logs, or rows.
+        # Reading the cancel reply on that transport could consume leftover bytes
+        # and hang or request a garbage-sized read, so reopen the transport first.
+        try:
+            cursor.session.service.reconnect()
+        except TIME_LIMIT_EXCEPTIONS:
+            raise
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("reconnect() failed after a time limit")
+        cls._cancel_operation(cursor, query_id)
 
     @classmethod
     def _cancel_operation(cls, cursor: Any, query_id: int | None = None) -> None:
@@ -260,7 +265,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
             # SQL Lab ends the query as timed out once this propagates; the
             # operation is cancelled first so it does not keep running on the
             # coordinator while fetch_data() waits on it.
-            cls._cancel_operation(cursor, query_id)
+            cls._cancel_operation_after_time_limit(cursor, query_id)
             raise
         except Exception:  # pylint: disable=broad-except
             logger.debug("Call to status() failed ")
