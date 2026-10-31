@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlparse
 
@@ -28,8 +29,10 @@ from superset_core.semantic_layers.layer import SemanticLayerAuthenticationRequi
 
 from superset.exceptions import OAuth2RedirectError
 from superset.extensions.context import get_context
+from superset.semantic_layers.oauth2 import check_for_oauth2
 from superset.semantic_layers.registry import (
     contextualize_semantic_layer,
+    contextualize_semantic_view,
     ContextualSemanticLayer,
     ContextualSemanticView,
     register_semantic_layer,
@@ -199,5 +202,28 @@ def test_wrapped_view_sets_preserve_provider_equality(app: Flask) -> None:
             assert len(first) == 2
             assert first == second
             assert len(first | second) == 2
+            for view in first:
+                assert view == ProviderView(view.name)
+                assert view != ProviderView("unrelated")
     finally:
         unregister_semantic_layer(provider_id)
+
+
+@pytest.mark.parametrize(
+    "contextualize", [contextualize_semantic_layer, contextualize_semantic_view]
+)
+def test_unbound_host_provider_preserves_identity(
+    contextualize: Callable[..., object],
+) -> None:
+    """Host providers without a persisted layer need no context proxy."""
+    implementation = MagicMock()
+    assert contextualize("host-provider", implementation) is implementation
+
+
+def test_unpersisted_layer_preserves_authentication_error() -> None:
+    """An unpersisted layer cannot supply a browser action URL."""
+    error = SemanticLayerAuthenticationRequiredError("connect")
+    with pytest.raises(SemanticLayerAuthenticationRequiredError) as raised:
+        with check_for_oauth2(None):
+            raise error
+    assert raised.value is error
