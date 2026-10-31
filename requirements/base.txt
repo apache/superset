@@ -181,6 +181,8 @@ idna==3.20
     #   email-validator
     #   requests
     #   url-normalize
+invoke==3.0.3
+    # via paramiko
 isodate==0.7.2
     # via
     #   apache-superset (pyproject.toml)
@@ -269,7 +271,7 @@ packaging==25.0
     #   shillelagh
 pandas==3.0.6
     # via apache-superset (pyproject.toml)
-paramiko==3.5.1
+paramiko==5.1.0
     # via
     #   apache-superset (pyproject.toml)
     #   sshtunnel
