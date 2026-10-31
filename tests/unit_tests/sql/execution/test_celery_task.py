@@ -18,7 +18,8 @@
 """Tests for celery_task.py - async SQL execution via Celery."""
 
 import base64
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -1220,6 +1221,92 @@ def test_execute_sql_task_stopped(
     result = execute_sql_task(123, "SELECT * FROM users")
 
     assert result["status"] == QueryStatusEnum.STOPPED
+
+
+def test_failed_statement_keeps_its_executed_sql(
+    mocker: MockerFixture, app: Any, session: Any
+) -> None:
+    """A statement that fails with no stop involved keeps the SQL it executed."""
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+    from superset.sql.execution.celery_task import execute_sql_task
+
+    Query.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    # As SQLExecutor._create_query_record leaves it: no executed_sql yet.
+    query = Query(
+        client_id="failing",
+        database=database,
+        sql="SELECT 1",
+        limit=100,
+        select_as_cta=False,
+        status=QueryStatusEnum.PENDING,
+    )
+    session.add_all([database, query])
+    session.commit()
+    query_id = query.id
+
+    cursor = MagicMock()
+    cursor.execute.side_effect = RuntimeError("syntax error at or near FROM")
+    connection = MagicMock()
+    connection.cursor.return_value = cursor
+
+    @contextmanager
+    def get_raw_connection(*args: Any, **kwargs: Any) -> Iterator[Any]:
+        yield connection
+
+    mocker.patch.object(Database, "get_raw_connection", get_raw_connection)
+
+    execute_sql_task(query_id, "SELECT 1")
+
+    session.rollback()
+    session.expire_all()
+    failed = session.query(Query).filter_by(id=query_id).one()
+    assert failed.status == QueryStatusEnum.FAILED
+    assert "syntax error" in failed.error_message
+    assert failed.executed_sql == "SELECT\n  1"
+
+
+@pytest.mark.parametrize("stopped", [True, False])
+def test_failed_fetch_of_a_stopped_query_is_reported_as_stopped(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_query: MagicMock,
+    mock_database: MagicMock,
+    stopped: bool,
+) -> None:
+    """A fetch an engine ended because of a stop is not logged as an error."""
+    from superset.sql.execution.celery_task import execute_sql_task
+
+    mock_query.database = mock_database
+    mocker.patch(
+        "superset.sql.execution.celery_task._get_query", return_value=mock_query
+    )
+    mocker.patch(
+        "superset.sql.execution.celery_task.execute_sql_with_cursor",
+        side_effect=RuntimeError("operation cancelled"),
+    )
+    mocker.patch(
+        "superset.sql.execution.celery_task._make_check_stopped_fn",
+        return_value=lambda: stopped,
+    )
+    mocker.patch("superset.sql.execution.celery_task.db.session")
+    mocker.patch("superset.sql.execution.celery_task.security_manager")
+    logger = mocker.patch("superset.sql.execution.celery_task.logger")
+    mocker.patch.dict(current_app.config, {"STATS_LOGGER": MagicMock()})
+
+    from .conftest import setup_mock_raw_connection
+
+    setup_mock_raw_connection(mock_database)
+
+    result = execute_sql_task(123, "SELECT * FROM users")
+
+    if stopped:
+        assert result["status"] == QueryStatusEnum.STOPPED
+        logger.exception.assert_not_called()
+    else:
+        assert result["status"] == QueryStatusEnum.FAILED
+        logger.exception.assert_called_once()
 
 
 @pytest.mark.parametrize("stop_intent", ["executor", "early", "status"])

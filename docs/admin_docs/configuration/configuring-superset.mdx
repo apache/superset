@@ -835,6 +835,16 @@ pending when result fetching begins, the additional polling wait is bounded by
 a timeout. Configure the driver's network timeout separately to bound individual
 RPC calls.
 
+Impala reports a streaming `SELECT` as finished as soon as its rows can be fetched,
+so most of such a query runs while SQL Lab reads its results. While it fetches, the
+worker checks for a stop between result RPCs, at most once per
+`DB_POLL_INTERVAL_SECONDS`, and cancels the query on its own connection. Each result
+RPC returns within Impala's `FETCH_ROWS_TIMEOUT_MS` query option (10 seconds by
+default, available from Impala 3.4) even when no rows are ready, so a stop takes
+effect within about `FETCH_ROWS_TIMEOUT_MS` plus `DB_POLL_INTERVAL_SECONDS`;
+lowering either makes stops take effect sooner. Impala checks for cancellation between row batches, so a batch whose
+rows are slow to compute runs to its end before the query stops.
+
 ## SQL Lab Query History Pruning
 
 SQL Lab query history is stored in the metadata database and is **not** pruned by default. To trim older rows, enable the `prune_query` Celery beat task by uncommenting it in `CELERY_BEAT_SCHEDULE` and choosing a retention window:
