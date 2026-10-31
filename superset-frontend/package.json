@@ -248,7 +248,6 @@
     "@emotion/babel-plugin": "^11.13.5",
     "@emotion/jest": "^11.14.2",
     "@formatjs/intl-durationformat": "^0.11.1",
-    "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@oxlint/plugins": "^1.88.0",
     "@playwright/test": "^1.64.0",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.6.3",
@@ -283,7 +282,6 @@
     "@types/tinycolor2": "^1.4.3",
     "@types/unzipper": "^0.10.11",
     "babel-jest": "^30.5.2",
-    "babel-loader": "^10.1.1",
     "babel-plugin-dynamic-import-node": "^2.3.3",
     "babel-plugin-jsx-remove-data-test-id": "^3.0.0",
     "baseline-browser-mapping": "^2.11.29",
@@ -294,6 +292,7 @@
     "gettext-parser": "^10.0.0",
     "history": "^5.3.0",
     "html-webpack-plugin": "^5.6.8",
+    "http-proxy-middleware": "^4.2.0",
     "imports-loader": "^5.0.0",
     "jest": "^30.5.2",
     "jest-environment-jsdom": "^30.5.2",
@@ -327,7 +326,7 @@
     "webpack": "^5.112.1",
     "webpack-bundle-analyzer": "^5.4.0",
     "webpack-cli": "^7.2.3",
-    "webpack-dev-server": "^6.0.0",
+    "webpack-dev-server": "^6.1.0",
     "webpack-manifest-plugin": "^6.0.1",
     "webpack-sources": "^3.6.0",
     "webpack-visualizer-plugin2": "^2.0.0"
@@ -351,9 +350,6 @@
     "@great-expectations/jsonforms-antd-renderers": {
       "antd": "$antd"
     },
-    "@istanbuljs/load-nyc-config": {
-      "js-yaml": "^3.15.1"
-    },
     "@loaders.gl/compression": {
       "fflate": "^0.7.5"
     },
@@ -364,39 +360,14 @@
     "@luma.gl/shadertools": "~9.4.0",
     "@luma.gl/webgl": "~9.4.0",
     "core-js": "^3.38.1",
-    "cosmiconfig": {
-      "js-yaml": "^4.3.2"
-    },
-    "dompurify": "^3.4.16",
-    "esbuild": "^0.28.1",
-    "fast-uri": "^3.1.9",
     "fast-xml-parser": "^5.8.0",
-    "http-proxy-middleware": "^2.0.10",
-    "js-yaml-loader": {
-      "js-yaml": "^3.15.1"
-    },
     "jspdf": "^4.2.0",
-    "lerna": {
-      "js-yaml": "^4.3.2"
-    },
-    "minimatch@>=10": {
-      "brace-expansion": ">=5.0.8"
-    },
-    "nanoid@>=3 <4": "3.3.18",
     "nwsapi": "^2.2.24",
-    "nx": {
-      "smol-toml": "^1.7.1"
-    },
     "puppeteer": "^22.4.1",
-    "react-diff-viewer-continued": {
-      "js-yaml": "^4.3.2"
-    },
-    "tar": "^7.5.16",
     "texture-compressor": {
       "image-size": "^2.0.3"
     },
-    "typescript-json-schema": "^0.68.0",
-    "uuid": "$uuid"
+    "typescript-json-schema": "^0.68.0"
   },
   "browserslist": [
     "last 3 chrome versions",
