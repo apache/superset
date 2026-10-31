@@ -258,7 +258,7 @@ ocient = [
     # names (pyocient._STPoint) to public ones under pyocient.api
     # (pyocient.api.STPoint), which is unrelated to the SQLAlchemy bump.
     "sqlalchemy-ocient>=3.0.0, <4",
-    "pyocient>=3.9.0, <4",
+    "pyocient>=3.10.0, <4",
     "shapely",
     "geojson",
 ]
