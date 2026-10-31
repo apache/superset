@@ -21,6 +21,7 @@ import {
   CategoricalColorNamespace,
   DataRecordValue,
   getColumnLabel,
+  getConstantLabel,
   getMetricLabel,
   getNumberFormatter,
   getSequentialSchemeRegistry,
@@ -29,13 +30,14 @@ import {
   SMART_DATE_ID,
   TimeGranularity,
   getValueFormatter,
+  NULL_STRING,
   NumberFormats,
   tooltipHtml,
   ValueFormatter,
 } from '@superset-ui/core';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
-import { NULL_STRING, OpacityEnum } from '../constants';
+import { OpacityEnum } from '../constants';
 import { defaultGrid } from '../defaults';
 import { Refs } from '../types';
 import { formatSeriesName, getColtypesMapping } from '../utils/series';
@@ -135,7 +137,9 @@ export function formatTooltip({
   const parentNode =
     treePathInfo.length > 2 ? treePathInfo[treePathInfo.length - 2] : undefined;
 
-  const title = (node.name || NULL_STRING)
+  const nullLabel = getConstantLabel(NULL_STRING);
+
+  const title = (node.name || nullLabel)
     .toString()
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;');
@@ -149,8 +153,8 @@ export function formatTooltip({
   rows.push([metricLabel, formattedValue]);
   if (!colorByCategory) {
     rows.push([
-      secondaryMetricLabel || NULL_STRING,
-      formattedSecondaryValue || NULL_STRING,
+      secondaryMetricLabel || nullLabel,
+      formattedSecondaryValue || nullLabel,
     ]);
     rows.push([
       `${metricLabel}/${secondaryMetricLabel}`,

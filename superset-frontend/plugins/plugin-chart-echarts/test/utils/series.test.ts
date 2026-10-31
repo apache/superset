@@ -20,8 +20,10 @@ import { LegendPaddingType, SortSeriesType } from '@superset-ui/chart-controls';
 import {
   AxisType,
   DataRecord,
+  getConstantLabel,
   getNumberFormatter,
   getTimeFormatter,
+  NULL_STRING,
   TimeGranularity,
 } from '@superset-ui/core';
 import { supersetTheme as theme } from '@apache-superset/core/theme';
@@ -59,7 +61,6 @@ import {
 } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
 import {
-  NULL_STRING,
   ONE_DAY_MS,
   StackControlsValue,
   TIMEGRAIN_TO_TIMESTAMP,
@@ -708,7 +709,7 @@ describe('extractSeries', () => {
           name: 'count',
           data: [
             ['Firefox', 5],
-            [NULL_STRING, 10],
+            [getConstantLabel(NULL_STRING), 10],
             ['Chrome', 8],
           ],
         },
@@ -1075,8 +1076,8 @@ describe('formatSeriesName', () => {
   const numberFormatter = getNumberFormatter();
   const timeFormatter = getTimeFormatter();
   test('should handle missing values properly', () => {
-    expect(formatSeriesName(undefined)).toEqual('<NULL>');
-    expect(formatSeriesName(null)).toEqual('<NULL>');
+    expect(formatSeriesName(undefined)).toEqual(getConstantLabel(NULL_STRING));
+    expect(formatSeriesName(null)).toEqual(getConstantLabel(NULL_STRING));
   });
 
   test('should handle string values properly', () => {

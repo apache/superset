@@ -55,6 +55,7 @@ from werkzeug.test import TestResponse
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
 from superset.common.tabular_query import _resolve_time_column
+from superset.constants import NULL_STRING
 from superset.exceptions import QueryObjectValidationError
 from superset.semantic_layers.models import (
     ColumnMetadata,
@@ -634,7 +635,7 @@ def test_semantic_view_get_extra_cache_keys(
     view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
     query: QueryObject = QueryObject(
         columns=["category"],
-        filters=[{"col": "category", "op": "IN", "val": ["a", "<NULL>"]}],
+        filters=[{"col": "category", "op": "IN", "val": ["a", NULL_STRING]}],
     )
     with patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}):
         composed_key: str = query.cache_key(
