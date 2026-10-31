@@ -729,7 +729,7 @@ pandas==3.0.6
     #   db-dtypes
     #   pandas-gbq
     #   prophet
-pandas-gbq==0.35.2
+pandas-gbq==0.35.3
     # via apache-superset
 parameterized==0.9.0
     # via apache-superset
