@@ -3428,6 +3428,16 @@ GUEST_TOKEN_VALIDATOR_HOOK = None
 # version 0, so nothing is revoked until an admin explicitly bumps the version.
 GUEST_TOKEN_REVOCATION_ENABLED = False
 
+# Enforces validation of the identity strings (username, first_name, last_name)
+# carried in a guest token's user claim: at most 255 characters, no control
+# characters or Unicode line/paragraph separators.
+#
+# While False (warn-first), an invalid identity is logged and counted under the
+# `security.GuestTokenIdentityViolation` metric but still accepted. When True,
+# minting such a token returns HTTP 400 and an already-issued token carrying one
+# is treated as unauthenticated.
+GUEST_TOKEN_IDENTITY_ENFORCE = False
+
 # A SQL dataset health check. Note if enabled it is strongly advised that the callable
 # be memoized to aid with performance, i.e.,
 #

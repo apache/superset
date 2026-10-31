@@ -60,6 +60,7 @@ from superset.extensions import db, event_logger
 from superset.security import password_recovery
 from superset.security.guest_token import (
     build_guest_token_audit_payload,
+    GuestTokenIdentityError,
     GuestTokenResourceType,
 )
 from superset.utils.core import get_user_id
@@ -293,6 +294,8 @@ class SecurityRestApi(BaseSupersetApi):
             return self.response(403, message=error.message)
         except ValidationError as error:
             return self.response_400(message=error.messages)
+        except GuestTokenIdentityError as error:
+            return self.response_400(message=str(error))
 
 
 class RoleRestAPI(BaseSupersetApi):
