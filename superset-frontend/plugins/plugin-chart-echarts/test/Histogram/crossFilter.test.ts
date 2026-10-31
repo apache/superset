@@ -73,6 +73,7 @@ test('a cumulative bin filter drops the lower bound', () => {
   expect(earlier.extraFormData.filters).toEqual([
     { col: 'price', op: '<', val: 10 },
   ]);
+  expect(earlier.filterState.label).toBe('< 10');
 
   const last = getHistogramCrossFilterDataMask({
     column: 'price',
@@ -86,6 +87,7 @@ test('a cumulative bin filter drops the lower bound', () => {
     { col: 'price', op: '<=', val: 15 },
     { col: 'region', op: 'IN', val: ['WEST'] },
   ]);
+  expect(last.filterState.label).toBe('<= 15, WEST');
 });
 
 test('getHistogramCrossFilterDataMask includes the right edge of the last bin', () => {

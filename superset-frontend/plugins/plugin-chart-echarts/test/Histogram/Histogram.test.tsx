@@ -141,6 +141,9 @@ test('a cumulative click filters every value up to the bin edge', () => {
           { col: 'region', op: 'IN', val: ['WEST'] },
         ],
       },
+      filterState: expect.objectContaining({
+        label: '< 5, WEST',
+      }),
     }),
   );
 });

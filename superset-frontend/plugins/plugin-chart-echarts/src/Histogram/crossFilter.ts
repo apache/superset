@@ -151,18 +151,27 @@ function groupbyFilters(
   });
 }
 
+function rangeLabel(bin: HistogramBin, cumulative: boolean): string {
+  // The chip has to name the filter that was sent. A cumulative bar covers
+  // every value up to its right edge, not the one bin printed on the axis.
+  if (cumulative) {
+    return `${bin.isLast ? '<=' : '<'} ${bin.end}`;
+  }
+  return bin.label;
+}
+
 function crossFilterLabel(
   bin: HistogramBin,
   groupby: QueryFormColumn[],
   groupbyValues: DataRecordValue[],
-  coltypeMapping?: Record<string, number>,
+  coltypeMapping: Record<string, number> | undefined,
+  cumulative: boolean,
 ): string {
   const groupLabels = groupby.map((col, index) =>
     formatGroupbyValue(col, groupbyValues[index], coltypeMapping),
   );
-  return groupLabels.length
-    ? `${bin.label}, ${groupLabels.join(', ')}`
-    : bin.label;
+  const range = rangeLabel(bin, cumulative);
+  return groupLabels.length ? `${range}, ${groupLabels.join(', ')}` : range;
 }
 
 export function getHistogramCrossFilterDataMask({
@@ -192,7 +201,7 @@ export function getHistogramCrossFilterDataMask({
       ];
   const label = isCurrentValueSelected
     ? null
-    : crossFilterLabel(bin, groupby, groupbyValues, coltypeMapping);
+    : crossFilterLabel(bin, groupby, groupbyValues, coltypeMapping, cumulative);
 
   return {
     dataMask: {
