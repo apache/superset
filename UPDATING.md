@@ -30,7 +30,7 @@ assists people when migrating to a new version.
   non-empty viewers list restricts access regardless of the flag), and removing
   viewers remains possible so stale assignments can be cleared.
 
-- [44431](https://github.com/apache/superset/pull/44431): Partition filter
+- [45929](https://github.com/apache/superset/pull/45929): Partition filter
   mapping (`PARTITION_FILTER_MAPPING`) only applies on engines whose spec sets
   `supports_partition_filter_mapping = True`: Hive and Impala, plus the specs
   that inherit from them -- Apache Spark SQL, Databricks Interactive Cluster
