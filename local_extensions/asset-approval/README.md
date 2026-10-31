@@ -22,30 +22,8 @@ Three conditions, all required. None of them can be bought back by another.
    approve a change to it.
 3. **The approval permission**, `can_approve` on `ChangeRequest`.
 
-The account itself also has to be one a person uses. It must be **active**,
-and it must not be a **service account**.
-
-### How a machine user is identified
-
-Superset has no notion of a machine user, so the instance names one:
-
-```python
-ASSET_APPROVAL_MACHINE_USER_ROLES = ["Service accounts"]
-```
-
-Members of those roles are never listed as possible approvers and are
-refused if they try. The setting is empty by default, which is the behaviour
-this had before (S-07).
-
-A `NULL` in `ab_user.active` counts as not active. FAB writes that column
-when it creates an account, so a null is a row that came from a direct write
-or an older schema, and an approval right is the wrong place to read a null
-in the account's favour.
-
-The list the request dialog shows and the check the approve route makes read
-one predicate. They used to disagree: `active` was filtered out of the list
-and not out of the check, so a deactivated editor never appeared as an option
-yet could still approve through the API.
+The account itself also has to be one a person uses: **active**, and not a
+**service account**.
 
 ### How the approval right is identified
 
@@ -90,6 +68,28 @@ a revoke would be handed straight back the next time an operator ran it.
 
 Leave the setting unset, or set it to `None`, and nothing is touched.
 
+### How a machine user is identified
+
+Superset has no notion of a machine user, so the instance names one:
+
+```python
+ASSET_APPROVAL_MACHINE_USER_ROLES = ["Service accounts"]
+```
+
+Members of those roles are never listed as possible approvers and are
+refused if they try. The setting is empty by default, which is the behaviour
+this had before (S-07).
+
+A `NULL` in `ab_user.active` counts as not active. FAB writes that column
+when it creates an account, so a null is a row that came from a direct write
+or an older schema, and an approval right is the wrong place to read a null
+in the account's favour.
+
+The list the request dialog shows and the check the approve route makes read
+one predicate. They used to disagree: `active` was filtered out of the list
+and not out of the check, so a deactivated editor never appeared as an option
+yet could still approve through the API.
+
 ### What is not separated
 
 Gamma keeps `can_read` and `can_write` on `ChangeRequest` by default, and
@@ -120,3 +120,24 @@ workflow.
 Both pages also declare `featureFlag: CHANGE_MANAGEMENT`. With the flag off
 the page does not exist: the host answers 404 and leaves it out of the menu,
 for an administrator as much as anyone else (QA-23).
+
+## Imports
+
+An import that would overwrite a governed asset is refused rather than held
+for review. Capturing one means storing the uploaded archive somewhere and
+replaying it on approval, and the `change_requests` table is not that place,
+so refusing is the honest behaviour until it exists. It is a departure from
+"each overwritten asset gets its own request" (Visa Q12) and deliberately a
+loud one.
+
+The refusal is scoped to the collisions a bundle really has. Its uuids are
+looked up, and only an asset the import would actually replace produces a
+refusal, which is named after what was found. A bundle of entirely new assets
+creates nothing a viewer can already see, so V1 does not gate it (SOW 8) --
+including `superset import-dashboards`, whose CLI hardcodes `overwrite=True`
+and so could not reach an empty instance at all before (S-06).
+
+For a single-kind importer that is the assets under its own prefix.
+`overwrite_all` widens it to the bundled charts, datasets and databases,
+which is the importer's own rule: those are replaced only when both flags
+are set.
