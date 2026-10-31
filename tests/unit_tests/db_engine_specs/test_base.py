@@ -170,6 +170,7 @@ def test_cte_query_parsing(original: types.TypeEngine, expected: str) -> None:
     "native_type,sqla_type,attrs,generic_type,is_dttm",
     [
         ("SMALLINT", types.SmallInteger, None, GenericDataType.NUMERIC, False),
+        ("TINYINT", types.SmallInteger, None, GenericDataType.NUMERIC, False),
         ("INTEGER", types.Integer, None, GenericDataType.NUMERIC, False),
         ("BIGINT", types.BigInteger, None, GenericDataType.NUMERIC, False),
         ("DECIMAL", types.Numeric, None, GenericDataType.NUMERIC, False),
