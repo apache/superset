@@ -88,10 +88,16 @@ jest.mock('src/dashboard/actions/dashboardState', () => ({
 const mockDispatch = jest.fn();
 jest.spyOn(reduxHooks, 'useDispatch').mockReturnValue(mockDispatch);
 
+type OAuthMessage = { tabId?: string };
+
+const globalWithBroadcastChannel = global as unknown as {
+  BroadcastChannel: jest.Mock;
+};
+
 // Capture the channel instance created by the component so tests can drive its
 // onmessage handler and assert it gets closed on unmount.
 let capturedChannel: {
-  onmessage: ((event: any) => void) | null;
+  onmessage: ((event: { data: OAuthMessage }) => void) | null;
   close: jest.Mock;
 };
 const channelCloseMock = jest.fn();
@@ -99,16 +105,16 @@ const channelCloseMock = jest.fn();
 beforeEach(() => {
   jest.clearAllMocks();
   capturedChannel = { onmessage: null, close: channelCloseMock };
-  (global as any).BroadcastChannel = jest
+  globalWithBroadcastChannel.BroadcastChannel = jest
     .fn()
     .mockImplementation(() => capturedChannel);
 });
 
-function simulateBroadcastMessage(data: any) {
+function simulateBroadcastMessage(data: OAuthMessage) {
   capturedChannel.onmessage?.({ data });
 }
 
-function simulateStorageMessage(data: any) {
+function simulateStorageMessage(data: OAuthMessage) {
   window.dispatchEvent(
     new StorageEvent('storage', {
       key: 'oauth2_auth_complete',
@@ -168,7 +174,9 @@ describe('OAuth2RedirectMessage Component', () => {
   test('closes the BroadcastChannel on unmount', () => {
     const { unmount } = render(setup());
 
-    expect((global as any).BroadcastChannel).toHaveBeenCalledWith('oauth');
+    expect(globalWithBroadcastChannel.BroadcastChannel).toHaveBeenCalledWith(
+      'oauth',
+    );
     unmount();
     expect(channelCloseMock).toHaveBeenCalled();
   });
@@ -303,5 +311,107 @@ describe('OAuth2RedirectMessage Component', () => {
       expect(errorMitigationFunction).toHaveBeenCalledTimes(1);
     });
     expect(api.util.invalidateTags).not.toHaveBeenCalled();
+  });
+
+  test('dispatches only once when both BroadcastChannel and storage signals arrive', async () => {
+    render(setup());
+
+    simulateBroadcastMessage({ tabId: 'tabId' });
+    simulateStorageMessage({ tabId: 'tabId' });
+
+    await waitFor(() => {
+      expect(reRunQuery).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  test('falls back to storage events when BroadcastChannel construction throws', async () => {
+    globalWithBroadcastChannel.BroadcastChannel = jest
+      .fn()
+      .mockImplementation(() => {
+        throw new Error('blocked');
+      });
+
+    render(setup());
+
+    simulateStorageMessage({ tabId: 'tabId' });
+
+    await waitFor(() => {
+      expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
+    });
+  });
+
+  test('re-processes a later signal when the first arrived before state was ready', async () => {
+    const initialState = {
+      sqlLab: {
+        queries: {},
+        queryEditors: [{ id: 'editor-id' }],
+        tabHistory: ['editor-id'],
+      },
+      explore: { slice: { slice_id: 123 } },
+      charts: { '1': {}, '2': {} },
+      dashboardInfo: { id: 'dashboard-id' },
+    };
+    type DynamicStoreState = typeof initialState;
+    type DynamicStoreAction = { type: string };
+    const dynamicStore = createStore(
+      (state: DynamicStoreState = initialState, action: DynamicStoreAction) => {
+        if (action.type === 'SET_READY') {
+          return {
+            ...state,
+            sqlLab: {
+              ...state.sqlLab,
+              queries: { 'query-id': { sql: 'SELECT * FROM table' } },
+              queryEditors: [{ id: 'editor-id', latestQueryId: 'query-id' }],
+            },
+          };
+        }
+        return state;
+      },
+    );
+
+    const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
+
+    render(
+      <Provider store={dynamicStore}>
+        <OAuth2RedirectMessage {...defaultProps} />
+      </Provider>,
+    );
+
+    const storageListenerCalls = () =>
+      addEventListenerSpy.mock.calls.filter(([type]) => type === 'storage')
+        .length;
+
+    // First signal arrives before the SQL Lab query state is populated;
+    // nothing dispatches and `handled` must NOT be flipped.
+    simulateBroadcastMessage({ tabId: 'tabId' });
+    expect(reRunQuery).not.toHaveBeenCalled();
+    expect(globalWithBroadcastChannel.BroadcastChannel).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(storageListenerCalls()).toBe(1);
+
+    // Query state becomes available, then the storage fallback signal fires.
+    act(() => {
+      dynamicStore.dispatch({ type: 'SET_READY' });
+    });
+
+    // The effect's deps are [extra.tab_id, dispatch], so this unrelated
+    // Redux update must not tear down and recreate the channel or its
+    // storage listener: a regression that restores the old (state-dependent)
+    // deps would still happen to pass this test's final assertion otherwise,
+    // since the mock always hands back the same captured channel either way.
+    expect(globalWithBroadcastChannel.BroadcastChannel).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(channelCloseMock).not.toHaveBeenCalled();
+    expect(storageListenerCalls()).toBe(1);
+
+    simulateStorageMessage({ tabId: 'tabId' });
+
+    await waitFor(() => {
+      expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
+    });
+
+    addEventListenerSpy.mockRestore();
   });
 });
