@@ -1259,7 +1259,7 @@ wrapt==1.17.2
     #   -c requirements/base-constraint.txt
     #   deprecated
     #   testcontainers
-wtforms==3.2.2
+wtforms==3.3.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
