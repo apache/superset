@@ -21,6 +21,7 @@ import os
 import re
 import tempfile
 import time
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any, TYPE_CHECKING
 from urllib import parse
@@ -31,6 +32,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from flask import current_app as app, g
 from sqlalchemy import Column, false, text, true, types
+from sqlalchemy.engine import Engine
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -39,13 +41,24 @@ from sqlalchemy.sql.expression import ColumnClause, Select
 from superset import db
 from superset.common.db_query_status import QueryStatus
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    DatabaseCategory,
+    TIME_LIMIT_EXCEPTIONS,
+)
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
 from superset.models.sql_lab import Query
 from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType
+from superset.utils.hive import (
+    guard_cursor,
+    guard_cursor_factory,
+    guard_engine_connections,
+    real_cursor,
+    ThriftClientGuard,
+)
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -193,6 +206,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         hive.ttypes = patched_ttypes
 
     @classmethod
+    @guard_cursor
     def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
         # pylint: disable=import-outside-toplevel
         import pyhive
@@ -207,6 +221,52 @@ class HiveEngineSpec(PrestoEngineSpec):
             return super().fetch_data(cursor, limit)
         except pyhive.exc.ProgrammingError:
             return []
+
+    @classmethod
+    def register_engine_events(cls, engine: Engine) -> None:
+        """Guard raw connections used outside SQL Lab, including dialect pings."""
+        super().register_engine_events(engine)
+        guard_engine_connections(engine, cls.prepare_connection)
+
+    @classmethod
+    def prepare_connection(cls, connection: Any) -> None:
+        """Guard every RPC on the PyHive connection's shared Thrift client."""
+        if not isinstance(connection._client, ThriftClientGuard):  # pylint: disable=protected-access
+            connection._client = ThriftClientGuard(connection._client)  # pylint: disable=protected-access
+        connection._client.register(connection, cls._abandon_connection)  # pylint: disable=protected-access
+        guard_cursor_factory(connection, cls.prepare_cursor)
+
+    @classmethod
+    def prepare_cursor(cls, cursor: Any) -> Callable[[BaseException], None] | None:
+        """Register real cursor cleanup before executing any driver call."""
+        cursor = real_cursor(cursor)
+        connection = cursor._connection  # pylint: disable=protected-access
+        cls.prepare_connection(connection)
+        connection._client.register(cursor, cls._abandon_cursor)  # pylint: disable=protected-access
+        return connection._client.abandon  # pylint: disable=protected-access
+
+    @staticmethod
+    def _abandon_connection(connection: Any) -> None:
+        """Replace CloseSession with a best-effort local transport drop."""
+        if getattr(connection, "_superset_abandoned", False) is True:
+            return
+        connection._superset_abandoned = True  # pylint: disable=protected-access
+
+        def close() -> None:
+            try:
+                connection._transport.close()  # pylint: disable=protected-access
+            except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
+                logger.warning("Closing the transport after a time limit failed")
+
+        connection.close = close
+        close()
+
+    @classmethod
+    def _abandon_cursor(cls, cursor: Any) -> None:
+        """Disable cursor and connection RPC cleanup before dropping the socket."""
+        cursor = real_cursor(cursor)
+        cursor._operationHandle = None  # pylint: disable=protected-access
+        cls._abandon_connection(cursor._connection)  # pylint: disable=protected-access
 
     @classmethod
     def df_to_sql(
@@ -429,10 +489,16 @@ class HiveEngineSpec(PrestoEngineSpec):
         return None
 
     @classmethod
-    def handle_cursor(  # pylint: disable=too-many-locals  # noqa: C901
+    @guard_cursor
+    def handle_cursor(cls, cursor: Any, query: Query) -> None:
+        """Updates progress information"""
+        cls._poll_cursor(cursor, query)
+
+    @classmethod
+    def _poll_cursor(  # pylint: disable=too-many-locals  # noqa: C901
         cls, cursor: Any, query: Query
     ) -> None:
-        """Updates progress information"""
+        """Poll the operation until it finishes, recording its progress."""
         # pylint: disable=import-outside-toplevel
         from pyhive import hive
 
@@ -458,7 +524,9 @@ class HiveEngineSpec(PrestoEngineSpec):
             try:
                 logs = cursor.fetch_logs()
                 log = "\n".join(logs) if logs else ""
-            except Exception:  # pylint: disable=broad-except
+            except TIME_LIMIT_EXCEPTIONS:
+                raise
+            except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
                 logger.warning("Call to GetLog() failed")
                 log = ""
 
@@ -528,7 +596,7 @@ class HiveEngineSpec(PrestoEngineSpec):
                 table,
                 show_first=True,
             )
-        except Exception:  # pylint: disable=broad-except
+        except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
             # table is not partitioned
             return None
         if values is not None and columns is not None:
@@ -629,14 +697,17 @@ class HiveEngineSpec(PrestoEngineSpec):
 
         return url, engine_kwargs
 
-    @staticmethod
-    def execute(  # type: ignore
-        cursor,
+    @classmethod
+    @guard_cursor
+    def execute(
+        cls,
+        cursor: Any,
         query: str,
         database: Database,
         async_: bool = False,
-    ):  # pylint: disable=arguments-differ
-        kwargs = {"async": async_}
+        **kwargs: Any,
+    ) -> None:
+        kwargs["async"] = async_
         cursor.execute(query, **kwargs)
 
     @classmethod

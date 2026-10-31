@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Iterator
 from contextlib import nullcontext
 from unittest.mock import MagicMock, Mock, patch
 
@@ -29,9 +30,43 @@ from superset.constants import (
     QUERY_EARLY_CANCEL_KEY,
 )
 from superset.db_engine_specs.impala import ImpalaEngineSpec
+from superset.errors import ErrorLevel, SupersetErrorType
+from superset.exceptions import SupersetTimeoutException
 from superset.sql.execution.executor import SQLExecutor
-from superset.sql_lab import cancel_query, execute_query, SqlLabQueryStoppedException
+from superset.sql_lab import (
+    cancel_query,
+    execute_query,
+    SqlLabException,
+    SqlLabQueryStoppedException,
+)
 from superset.utils.core import QueryStatus
+
+
+class _RejectedReplyError(Exception):
+    """Represent impyla's error for an error status, read in full."""
+
+
+@pytest.fixture
+def rejected_reply(mocker: MockerFixture) -> type[Exception]:
+    """Provide impyla's error-status class without requiring impyla."""
+    mocker.patch.dict(
+        "sys.modules", {"impala.error": Mock(HiveServer2Error=_RejectedReplyError)}
+    )
+    return _RejectedReplyError
+
+
+@pytest.fixture(autouse=True)
+def clean_transport() -> Iterator[Mock]:
+    """
+    Stub local transport drops for mock cursors.
+
+    Mock cursors have no Thrift transport; resets over real impyla transports
+    are covered in ``test_impala_transport.py``.
+    """
+    with patch.object(
+        ImpalaEngineSpec, "_reset_transport", return_value=True
+    ) as reset_transport:
+        yield reset_transport
 
 
 @pytest.mark.parametrize("use_executor", [False, True])
@@ -222,12 +257,14 @@ def test_non_progress_logs_keep_polling(log: str) -> None:
     db.session.commit.assert_called_once_with()
 
 
-def test_failed_cancel_still_releases_the_operation() -> None:
-    """A cancel RPC that errors must not leave the operation and cursor open."""
+def test_failed_cancel_still_releases_the_operation(
+    rejected_reply: type[Exception],
+) -> None:
+    """A rejected cancel must not leave the operation and cursor open."""
     query: Mock = Mock(id=1, extra={QUERY_EARLY_CANCEL_KEY: True}, progress=0)
     cursor: Mock = Mock()
     cursor.status.return_value = "PENDING_STATE"
-    cursor.cancel_operation.side_effect = RuntimeError("rpc failed")
+    cursor.cancel_operation.side_effect = rejected_reply("rpc rejected")
     with patch("superset.db_engine_specs.impala.db"):
         ImpalaEngineSpec.handle_cursor(cursor, query)
     cursor.close_operation.assert_called_once_with()
@@ -311,7 +348,7 @@ def test_pending_operation_polls_with_backoff() -> None:
 
 
 @pytest.mark.parametrize("state", ["PENDING_STATE", "RUNNING_STATE"])
-def test_soft_time_limit_cancels_the_operation(state: str) -> None:
+def test_soft_time_limit_abandons_the_operation(state: str) -> None:
     """
     The soft time limit firing while the loop polls cancels the operation and
     propagates, so SQL Lab marks the query timed out instead of waiting on it.
@@ -332,9 +369,11 @@ def test_soft_time_limit_cancels_the_operation(state: str) -> None:
     ):
         with pytest.raises(SoftTimeLimitExceeded):
             ImpalaEngineSpec.handle_cursor(cursor, query)
-    cursor.cancel_operation.assert_called_once_with()
-    cursor.close_operation.assert_called_once_with()
-    cursor.close.assert_called_once_with()
+    cursor.cancel_operation.assert_not_called()
+    cursor.close_operation.assert_not_called()
+    cursor.close.assert_not_called()
+
+    assert cursor._closed is True
 
 
 @pytest.mark.parametrize("method", ["cancel_operation", "close_operation", "close"])
@@ -362,21 +401,41 @@ def test_stop_cleanup_propagates_soft_time_limit(
     with patch("superset.db_engine_specs.impala.db"):
         with pytest.raises(SoftTimeLimitExceeded):
             ImpalaEngineSpec.handle_cursor(cursor, query)
-    if not repeat_timeout:
-        cursor.close.assert_called()
+    # The interrupted cleanup is not retried by the outer time-limit handler.
+    assert getattr(cursor, method).call_count == 1
+    assert cursor._closed is True
 
 
 @pytest.mark.parametrize("method", ["cancel_operation", "close_operation", "close"])
-def test_cancel_operation_tolerates_rpc_failures(method: str) -> None:
-    """Ordinary RPC failures must not prevent the remaining cleanup calls."""
+def test_cancel_operation_tolerates_rejected_rpcs(
+    method: str, rejected_reply: type[Exception]
+) -> None:
+    """A rejected cleanup RPC must not prevent the remaining cleanup calls."""
     cursor: Mock = Mock()
-    getattr(cursor, method).side_effect = RuntimeError("rpc failed")
+    getattr(cursor, method).side_effect = rejected_reply("rpc rejected")
 
     ImpalaEngineSpec._cancel_operation(cursor, 1)
 
     cursor.cancel_operation.assert_called_once_with()
     cursor.close_operation.assert_called_once_with()
     cursor.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize("method", ["cancel_operation", "close_operation", "close"])
+def test_cancel_operation_abandons_the_cursor_after_an_unread_reply(
+    method: str, clean_transport: Mock
+) -> None:
+    """A cleanup RPC that may have left its reply unread ends the cleanup."""
+    methods = ["cancel_operation", "close_operation", "close"]
+    cursor: Mock = Mock()
+    getattr(cursor, method).side_effect = RuntimeError("connection lost")
+
+    ImpalaEngineSpec._cancel_operation(cursor, 1)
+
+    for later in methods[methods.index(method) + 1 :]:
+        getattr(cursor, later).assert_not_called()
+    assert cursor._closed is True
+    clean_transport.assert_called_once_with(cursor, reconnect=False)
 
 
 def test_pending_refresh_observes_stop() -> None:
@@ -401,3 +460,120 @@ def test_pending_refresh_observes_stop() -> None:
     cursor.cancel_operation.assert_called_once_with()
     cursor.close_operation.assert_called_once_with()
     cursor.close.assert_called_once_with()
+
+
+def _sync_timeout() -> SupersetTimeoutException:
+    """Build the exception SQL Lab's synchronous ``SQLLAB_TIMEOUT`` alarm raises."""
+    return SupersetTimeoutException(
+        error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+        message="The query exceeded the 30 seconds timeout.",
+        level=ErrorLevel.ERROR,
+    )
+
+
+@pytest.mark.parametrize("state", ["PENDING_STATE", "RUNNING_STATE"])
+def test_sync_timeout_abandons_the_operation(state: str) -> None:
+    """
+    The synchronous ``SQLLAB_TIMEOUT`` firing while the loop polls must cancel the
+    operation and propagate, rather than being swallowed so the Run keeps waiting
+    for the whole query.
+    """
+    app: Flask = Flask(__name__)
+    app.config["DB_POLL_INTERVAL_SECONDS"] = {"impala": 5}
+    query: Mock = Mock(id=1, extra={}, status="running", progress=0)
+    cursor: Mock = Mock()
+    cursor.status.return_value = state
+    cursor.get_log.return_value = ""
+    timeout: SupersetTimeoutException = _sync_timeout()
+    with (
+        app.app_context(),
+        patch("superset.db_engine_specs.impala.db"),
+        patch("superset.db_engine_specs.impala.time.sleep", side_effect=timeout),
+    ):
+        with pytest.raises(SupersetTimeoutException):
+            ImpalaEngineSpec.handle_cursor(cursor, query)
+    cursor.cancel_operation.assert_not_called()
+    cursor.close_operation.assert_not_called()
+    cursor.close.assert_not_called()
+
+    assert cursor._closed is True
+
+
+@pytest.mark.parametrize(
+    "timeout", [SoftTimeLimitExceeded(), _sync_timeout()], ids=["async", "sync"]
+)
+def test_timeout_during_progress_log_abandons_the_operation(
+    timeout: Exception,
+) -> None:
+    """
+    A time limit that fires while the progress log is fetched must not be mistaken
+    for a failed ``GetLog()`` call: it fires only once, so swallowing it leaves
+    the query running until the hard limit.
+    """
+    app: Flask = Flask(__name__)
+    app.config["DB_POLL_INTERVAL_SECONDS"] = {"impala": 5}
+    query: Mock = Mock(id=1, extra={}, status="running", progress=0)
+    cursor: Mock = Mock()
+    # Finite, so a swallowed time limit shows up as a failed assertion rather than
+    # a loop that never ends.
+    cursor.status.side_effect = ["RUNNING_STATE", "RUNNING_STATE", "FINISHED_STATE"]
+    cursor.get_log.side_effect = timeout
+    with (
+        app.app_context(),
+        patch("superset.db_engine_specs.impala.db"),
+        patch("superset.db_engine_specs.impala.time.sleep") as sleep,
+    ):
+        with pytest.raises(type(timeout)):
+            ImpalaEngineSpec.handle_cursor(cursor, query)
+    sleep.assert_not_called()
+    cursor.cancel_operation.assert_not_called()
+    cursor.close_operation.assert_not_called()
+    cursor.close.assert_not_called()
+
+    assert cursor._closed is True
+
+
+def test_status_failure_still_ends_polling_without_raising() -> None:
+    """Ordinary polling failures keep ending the loop quietly."""
+    app: Flask = Flask(__name__)
+    query: Mock = Mock(id=1, extra={}, status="running", progress=0)
+    cursor: Mock = Mock()
+    cursor.status.side_effect = RuntimeError("rpc failed")
+    with app.app_context(), patch("superset.db_engine_specs.impala.db"):
+        ImpalaEngineSpec.handle_cursor(cursor, query)
+    cursor.cancel_operation.assert_not_called()
+
+
+def test_sync_timeout_fails_the_run_and_abandons_the_operation(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """A synchronous timeout during polling ends the Run with the timeout message."""
+    query = MagicMock(
+        id=1,
+        status=QueryStatus.RUNNING,
+        progress=0,
+        executed_sql="SELECT 1",
+        extra={},
+        limit=None,
+    )
+    query.database.db_engine_spec = ImpalaEngineSpec
+    cursor = MagicMock()
+    cursor.status.return_value = "RUNNING_STATE"
+    cursor.get_log.return_value = ""
+    mocker.patch(
+        "superset.db_engine_specs.impala.time.sleep", side_effect=_sync_timeout()
+    )
+    mocker.patch("superset.db.session")
+    mocker.patch("superset.sql_lab.warm_and_release_connection")
+    mocker.patch(
+        "superset.sql_lab.event_logger.log_context", return_value=nullcontext()
+    )
+    mocker.patch.object(ImpalaEngineSpec, "get_cancel_query_id", return_value=None)
+
+    with pytest.raises(SqlLabException, match="exceeded the 30 seconds timeout"):
+        execute_query(query, cursor)
+
+    cursor.cancel_operation.assert_not_called()
+    cursor.fetchall.assert_not_called()
+
+    assert cursor._closed is True

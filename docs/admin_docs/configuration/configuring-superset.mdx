@@ -833,7 +833,17 @@ for results, and propagates asynchronous database errors. If an operation is sti
 pending when result fetching begins, the additional polling wait is bounded by
 `SQLLAB_TIMEOUT` (in seconds); on expiry, Superset requests cancellation and reports
 a timeout. Configure the driver's network timeout separately to bound individual
-RPC calls.
+RPC calls. A signal-based SQL Lab time limit can interrupt any HiveServer2
+response, including execution, lazy result metadata, status, logs, rows, or
+cleanup. Superset abandons the affected Impala or Hive cursor and connection
+before driver exception handlers run: subsequent cancellation, close, and
+finalizer calls send no RPCs on that transport. The socket is dropped locally;
+cleanup failures are logged without replacing the original time-limit exception.
+No reconnect or cancellation is attempted after a signal-based limit. Configure
+server-side query and session timeouts to release an abandoned operation.
+The local Impala polling deadline and an explicit Stop still request cancellation
+when the transport has not been interrupted; an incomplete cleanup reply also
+abandons the transport rather than attempting another cleanup RPC.
 
 ## SQL Lab Query History Pruning
 

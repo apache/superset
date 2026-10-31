@@ -72,6 +72,7 @@ from flask import current_app as app, g, has_app_context
 from flask_babel import gettext as __
 
 from superset import db
+from superset.db_engine_specs.base import TIME_LIMIT_EXCEPTIONS
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2Error,
@@ -205,15 +206,17 @@ class _LimitedCursor:
         """Delegate metadata and driver-specific methods to the real cursor."""
         return getattr(self._cursor, name)
 
-    @property
-    def arraysize(self) -> int:
-        """Expose the driver's default fetch batch size."""
-        return self._cursor.arraysize
+    def __setattr__(self, name: str, value: Any) -> None:
+        """
+        Write driver state, such as a closed flag, to the real cursor.
 
-    @arraysize.setter
-    def arraysize(self, value: int) -> None:
-        """Preserve engine-specific cursor batch-size configuration."""
-        self._cursor.arraysize = value
+        A flag left on the wrapper would be invisible to the driver when the
+        caller closes the real cursor.
+        """
+        if name in {"_cursor", "_remaining"}:
+            object.__setattr__(self, name, value)
+        else:
+            setattr(self._cursor, name, value)
 
     def fetchmany(self, size: int | None = None) -> list[Any]:
         """Read no more than the remaining budget, including across batches."""
@@ -232,11 +235,14 @@ class _LimitedCursor:
 
         The rows within the budget are already materialized, so a failed probe
         reports the result as possibly partial instead of discarding them.
+        Time limits must propagate instead of becoming a partial result.
         """
         if self._remaining != 0:
             return False
         try:
             return bool(db_engine_spec.fetch_data(_LimitedCursor(self._cursor, 1)))
+        except TIME_LIMIT_EXCEPTIONS:
+            raise
         except Exception:  # pylint: disable=broad-except
             logger.warning(
                 "Truncation probe failed; reporting the result as partial",
@@ -918,6 +924,7 @@ class SQLExecutor:
 
                 with (
                     contextlib.closing(conn.cursor()) as cursor,
+                    self.database.db_engine_spec.cursor_context(cursor),
                     cancellable_cursor(self.database, cursor, catalog, schema),
                 ):
                     return execute_sql_with_cursor(
@@ -1644,6 +1651,7 @@ class SQLExecutor:
             source=QuerySource.SQL_LAB,
         ) as engine:
             with contextlib.closing(engine.raw_connection()) as conn:
+                database.db_engine_spec.prepare_connection(conn.dbapi_connection)
                 with contextlib.closing(conn.cursor()) as cursor:
                     return database.db_engine_spec.cancel_query(
                         cursor, query, cancel_query_id

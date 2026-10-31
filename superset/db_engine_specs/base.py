@@ -21,6 +21,8 @@ from __future__ import annotations
 import logging
 import re
 import warnings
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from inspect import signature
 from re import Match, Pattern
@@ -41,6 +43,7 @@ from uuid import UUID, uuid4
 import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from celery.exceptions import SoftTimeLimitExceeded
 from deprecation import deprecated
 from flask import current_app as app, g
 from flask_appbuilder.security.sqla.models import User
@@ -77,6 +80,7 @@ from superset.exceptions import (
     OAuth2TokenRefreshError,
     SupersetGenericDBErrorException,
     SupersetParseError,
+    SupersetTimeoutException,
 )
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.sql.parse import (
@@ -133,6 +137,19 @@ logger = logging.getLogger()
 # generic `Exception` class, which requires a pylint disablee comment. To make it clear
 # that we know this is a necessary evil we create an alias, and catch it instead.
 GenericDBException = Exception
+
+# SQL Lab's Celery soft limit for asynchronous runs and ``SQLLAB_TIMEOUT``
+# SIGALRM for main-thread synchronous runs reach the cancellation handlers.
+# The alarm is main-thread only: threaded synchronous requests are not covered
+# by this change. Each limit fires once, so swallowing it leaves the query running
+# with nothing left to stop it.
+# TimerTimeout raises KeyboardInterrupt inside its block on Windows and converts
+# it to SupersetTimeoutException on exit, after inner cursor cleanup has run.
+TIME_LIMIT_EXCEPTIONS = (
+    SoftTimeLimitExceeded,
+    SupersetTimeoutException,
+    KeyboardInterrupt,
+)
 
 
 def convert_inspector_columns(cols: list[SQLAColumnType]) -> list[ResultSetColumnType]:
@@ -2066,6 +2083,37 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         The flow works without this method doing anything, but it allows
         for handling the cursor and updating progress information in the
         query object"""
+
+    @classmethod
+    def prepare_connection(cls, connection: Any) -> None:
+        """Install driver-specific safeguards before creating a cursor."""
+
+    @classmethod
+    def prepare_cursor(cls, cursor: Any) -> Callable[[BaseException], None] | None:
+        """Install safeguards and return the driver's timeout-abandon callback."""
+        return None
+
+    @classmethod
+    def _abandon_cursor(cls, cursor: Any) -> None:
+        """Disable driver cleanup when an interrupted reply cannot be reused."""
+
+    @classmethod
+    @contextmanager
+    def cursor_context(cls, cursor: Any) -> Iterator[None]:
+        """Preserve time limits before callers or drivers start cursor cleanup."""
+        on_timeout = None
+        try:
+            on_timeout = cls.prepare_cursor(cursor)
+            yield
+        except TIME_LIMIT_EXCEPTIONS as ex:
+            try:
+                if on_timeout is not None:
+                    on_timeout(ex)
+                else:
+                    cls._abandon_cursor(cursor)
+            except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
+                logger.warning("Abandoning an interrupted cursor failed")
+            raise
 
     @classmethod
     # pylint: disable=consider-using-transaction

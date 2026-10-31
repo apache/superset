@@ -20,19 +20,31 @@ from __future__ import annotations
 import logging
 import re
 import time
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
 
-from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app as app
 from sqlalchemy import text, types
+from sqlalchemy.engine import Engine
 from sqlalchemy.engine.reflection import Inspector
 
 from superset import db
 from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    DatabaseCategory,
+    TIME_LIMIT_EXCEPTIONS,
+)
 from superset.models.sql_lab import Query
 from superset.utils.core import QueryStatus
+from superset.utils.hive import (
+    guard_cursor,
+    guard_cursor_factory,
+    guard_engine_connections,
+    real_cursor,
+    ThriftClientGuard,
+)
 from superset.utils.network import get_ssrf_safe_requester, is_safe_host
 
 if TYPE_CHECKING:
@@ -121,6 +133,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         return False
 
     @classmethod
+    @guard_cursor
     def execute(
         cls,
         cursor: Any,
@@ -130,10 +143,13 @@ class ImpalaEngineSpec(BaseEngineSpec):
     ) -> None:
         try:
             cursor.execute_async(query)
+        except TIME_LIMIT_EXCEPTIONS:
+            raise
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
+    @guard_cursor
     def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
         """Wait for asynchronous operations using the public cursor API."""
         if callable(getattr(cursor, "execute_async", None)):
@@ -143,7 +159,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
             try:
                 while cursor.is_executing():
                     if time.monotonic() >= deadline:
-                        cursor.cancel_operation()
+                        cls._cancel_operation(cursor)
                         raise TimeoutError("Timed out waiting for the Impala operation")
                     time.sleep(0.1)
                 if cursor.execution_failed():
@@ -155,31 +171,233 @@ class ImpalaEngineSpec(BaseEngineSpec):
         return super().fetch_data(cursor, limit)
 
     @classmethod
-    def _cancel_operation(cls, cursor: Any, query_id: int) -> None:
-        """Cancel the live operation and release its handles."""
-        try:
-            cursor.cancel_operation()
-        except SoftTimeLimitExceeded:
-            raise
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Query %s: cancel_operation() failed", query_id)
-        # The handles are released even when the cancel RPC failed, so a stopped
-        # query does not leave an operation open on the coordinator for the rest
-        # of the connection's life.
-        try:
-            cursor.close_operation()
-        except SoftTimeLimitExceeded:
-            raise
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Query %s: close_operation() failed", query_id)
-        try:
-            cursor.close()
-        except SoftTimeLimitExceeded:
-            raise
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Query %s: close() failed", query_id)
+    def register_engine_events(cls, engine: Engine) -> None:
+        """Guard raw connections used outside SQL Lab, including dialect pings."""
+        super().register_engine_events(engine)
+        guard_engine_connections(engine, cls.prepare_connection)
 
     @classmethod
+    def prepare_connection(cls, connection: Any) -> None:
+        """Guard OpenSession and all cursors sharing this connection's client."""
+        service = connection.service
+        if not isinstance(service.client, ThriftClientGuard):
+            service.client = ThriftClientGuard(service.client)
+        service.client.register(service, cls._abandon_service)
+        guard_cursor_factory(connection, cls.prepare_cursor)
+
+    @staticmethod
+    def _abandon_service(service: Any) -> None:
+        """Make connection close local-only and non-fatal after interruption."""
+        transport = service.client._iprot.trans
+        # impyla opens a closed transport before looking up the RPC method.
+        # Reject that open too, including inside the driver's own close().
+        transport.open = service.client.check_active
+
+        def close() -> None:
+            try:
+                transport.close()
+            except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
+                logger.warning("Dropping the interrupted Impala transport failed")
+
+        service.close = close
+        close()
+
+    @classmethod
+    def prepare_cursor(cls, cursor: Any) -> Callable[[BaseException], None] | None:
+        """Cover lazy metadata and cleanup inside the driver, as well as rows."""
+        cursor = real_cursor(cursor)
+        session = getattr(cursor, "session", None)
+        if session is None:
+            return None
+        service = session.service
+        if not isinstance(service.client, ThriftClientGuard):
+            service.client = ThriftClientGuard(service.client)
+        guard = service.client
+        session.client = guard
+        if cursor._last_operation is not None:  # pylint: disable=protected-access
+            cursor._last_operation.client = guard  # pylint: disable=protected-access
+        guard.register(service, cls._abandon_service)
+        guard.register(cursor, cls._abandon_cursor)
+        return guard.abandon
+
+    @classmethod
+    def _abandon_cursor(cls, cursor: Any, query_id: int | None = None) -> None:
+        """Send no further RPC on a transport that may hold an unread reply."""
+        cursor = real_cursor(cursor)
+        if (
+            getattr(cursor, "_superset_abandoned", False) is True
+            or getattr(cursor, "_closed", False) is True
+        ):
+            return
+        cursor._superset_abandoned = True  # pylint: disable=protected-access
+        # ``HiveServer2Cursor.close()``, which callers reach through
+        # ``closing()``, and its finalizer send CloseOperation and CloseSession.
+        # Both skip a cursor already marked closed. Wrappers such as SQL Lab's
+        # row-limited cursor forward the attribute to the driver's cursor.
+        cursor._closed = True  # pylint: disable=protected-access
+        # Metadata reads after a Stop must not reach the abandoned operation,
+        # even if its transport stack could not be recognised or dropped.
+        cursor._last_operation_active = False  # pylint: disable=protected-access
+        cursor._last_operation = None  # pylint: disable=protected-access
+        cursor._description = None  # pylint: disable=protected-access
+        # Discard any buffered reply before releasing the connection locally.
+        try:
+            cls._reset_transport(cursor, reconnect=False)
+        except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
+            # The closed flag is set before this best-effort, local cleanup.
+            logger.warning("Query %s: dropping the transport failed", query_id)
+
+    @classmethod
+    def _reset_transport(cls, cursor: Any, reconnect: bool = True) -> bool:
+        """
+        Close the cursor's Thrift transport with every buffer emptied.
+
+        impyla's ``reconnect()`` only closes and reopens the socket or HTTP
+        connection, while the buffering layers above it keep their read and
+        write buffers. Returns whether every layer was recognised and reset.
+
+        With ``reconnect`` the transport is opened again. Without it every
+        transport remains closed; an abandoned client's open guard also stops
+        driver-internal cleanup from reconnecting before attempting an RPC.
+        """
+        # pylint: disable=import-outside-toplevel
+        from io import BytesIO
+
+        # The same transport object impyla's own ``reconnect()`` reopens.
+        transport = cursor.session.service.client._iprot.trans
+        stack = cls._transport_buffers(transport)
+        if stack is None:
+            if not reconnect:
+                transport.close()
+            return False
+        buffers, _ = stack
+
+        # Closing drops the socket together with any reply bytes still in it.
+        try:
+            transport.close()
+        except TIME_LIMIT_EXCEPTIONS:
+            raise
+        except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
+            # An HTTP client that was already closed raises on a second close.
+            if transport.isOpen():
+                raise
+        for buffered_layer, attribute in buffers:
+            setattr(buffered_layer, attribute, BytesIO())
+        if reconnect:
+            transport.open()
+        return True
+
+    @staticmethod
+    def _transport_buffers(
+        transport: Any,
+    ) -> tuple[list[tuple[Any, str]], bool] | None:
+        """
+        List the buffers of every layer of an impyla transport stack.
+
+        Returns the (layer, buffer attribute) pairs and whether the stack ends
+        in a socket rather than an HTTP client, or None if a layer is not
+        recognised.
+        """
+        # pylint: disable=import-outside-toplevel
+        from impala._thrift_api import ImpalaHttpClient
+        from thrift.transport.TSocket import TSocket
+        from thrift.transport.TTransport import TBufferedTransport
+
+        # (layer type, its buffer attributes, the attribute of the layer below).
+        # The buffers are private to thrift, thrift_sasl and impyla, so the
+        # whole stack is checked before anything is changed.
+        layouts: list[tuple[type, tuple[str, ...], str | None]] = [
+            (
+                TBufferedTransport,
+                ("_TBufferedTransport__rbuf", "_TBufferedTransport__wbuf"),
+                "_TBufferedTransport__trans",
+            ),
+            # Each HTTP request opens a new connection; only the pending
+            # request body is kept on the client.
+            (ImpalaHttpClient, ("_ImpalaHttpClient__wbuf",), None),
+        ]
+        try:
+            from thrift_sasl import TSaslClientTransport
+
+            layouts.append(
+                (
+                    TSaslClientTransport,
+                    ("_TSaslClientTransport__rbuf", "_TSaslClientTransport__wbuf"),
+                    "_trans",
+                )
+            )
+        except ImportError:
+            pass
+
+        buffers: list[tuple[Any, str]] = []
+        layer = transport
+        while not isinstance(layer, TSocket):
+            layout = next((lay for lay in layouts if isinstance(layer, lay[0])), None)
+            if layout is None:
+                return None
+            _, attributes, inner = layout
+            if not all(hasattr(layer, attribute) for attribute in attributes):
+                return None
+            buffers.extend((layer, attribute) for attribute in attributes)
+            if inner is None:
+                return buffers, False
+            layer = getattr(layer, inner, None)
+        return buffers, True
+
+    @staticmethod
+    def _is_error_reply(ex: Exception) -> bool:
+        """Whether ``ex`` reports an error reply that was read to its end."""
+        # impyla raises HiveServer2Error for an error status, and Thrift raises
+        # TApplicationException for an exception reply, each after reading the
+        # whole reply. Any other failure, such as a dropped connection or a
+        # reply that could not be parsed, can leave part of a reply unread.
+        # pylint: disable=import-outside-toplevel
+        reply_errors: list[type[Exception]] = []
+        try:
+            from impala.error import HiveServer2Error
+
+            reply_errors.append(HiveServer2Error)
+        except ImportError:
+            pass
+        try:
+            from thrift.Thrift import TApplicationException
+
+            reply_errors.append(TApplicationException)
+        except ImportError:
+            pass
+        return isinstance(ex, tuple(reply_errors))
+
+    @classmethod
+    def _cancel_operation(cls, cursor: Any, query_id: int | None = None) -> None:
+        """Cancel the live operation and release its handles."""
+        # The handles are released even when the coordinator rejects the
+        # cancel, so a stopped query does not leave an operation open on the
+        # coordinator for the rest of the connection's life. A call that fails
+        # without reading its whole reply leaves the transport unusable, so the
+        # cursor is abandoned instead of reading the next reply from it.
+        for name, rpc in (
+            ("cancel_operation", cursor.cancel_operation),
+            ("close_operation", cursor.close_operation),
+            ("close", cursor.close),
+        ):
+            try:
+                rpc()
+            except TIME_LIMIT_EXCEPTIONS:
+                # Also covers Stop and the local fetch deadline: their outer
+                # time-limit handler must not retry this interrupted cleanup.
+                cls._abandon_cursor(cursor, query_id)
+                raise
+            except Exception as ex:  # pylint: disable=broad-except
+                logger.warning("Query %s: %s() failed", query_id, name)
+                if not cls._is_error_reply(ex):
+                    if on_error := cls.prepare_cursor(cursor):
+                        on_error(ex)
+                    else:
+                        cls._abandon_cursor(cursor, query_id)
+                    return
+
+    @classmethod
+    @guard_cursor
     def handle_cursor(cls, cursor: Any, query: Query) -> None:
         """Stop query and updates progress information"""
 
@@ -219,7 +437,9 @@ class ImpalaEngineSpec(BaseEngineSpec):
                 if status == "RUNNING_STATE":
                     try:
                         log = cursor.get_log() or ""
-                    except Exception:  # pylint: disable=broad-except
+                    except TIME_LIMIT_EXCEPTIONS:
+                        raise
+                    except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
                         logger.warning("Call to GetLog() failed")
                         log = ""
 
@@ -234,13 +454,9 @@ class ImpalaEngineSpec(BaseEngineSpec):
                     pending_sleep_interval *= 2
                 time.sleep(sleep_interval)
                 status = cursor.status()
-        except SoftTimeLimitExceeded:
-            # SQL Lab's own handler marks the query TIMED_OUT once this propagates;
-            # the operation is cancelled first so it does not keep running on the
-            # coordinator while fetch_data() waits on it.
-            cls._cancel_operation(cursor, query_id)
+        except TIME_LIMIT_EXCEPTIONS:
             raise
-        except Exception:  # pylint: disable=broad-except
+        except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
             logger.debug("Call to status() failed ")
             return
 
@@ -338,7 +554,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
                 ]
             )
             response = requester.post(url, timeout=3, allow_redirects=False)
-        except Exception:  # pylint: disable=broad-except
+        except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
             return False
 
         return bool(response and response.status_code == 200)
