@@ -428,7 +428,7 @@ export function useSingleViewResource<
   );
 
   const fetchResource = useCallback(
-    (resourceID: number) => {
+    (resourceID: number, shouldApplyResponse: () => boolean = () => true) => {
       // Set loading state
       updateState({
         loading: true,
@@ -442,13 +442,16 @@ export function useSingleViewResource<
       })
         .then(
           ({ json = {} }) => {
-            updateState({
-              resource: json.result,
-              error: null,
-            });
+            if (shouldApplyResponse()) {
+              updateState({
+                resource: json.result,
+                error: null,
+              });
+            }
             return json.result;
           },
           createErrorHandler((errMsg: Record<string, string[] | string>) => {
+            if (!shouldApplyResponse()) return;
             handleErrorMsg(
               t(
                 'An error occurred while fetching %ss: %s',

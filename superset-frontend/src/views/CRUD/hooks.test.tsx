@@ -939,6 +939,52 @@ test('useSingleViewResource: fetchResource appends pathSuffix', async () => {
   });
 });
 
+test('useSingleViewResource: discarded fetch does not replace the active resource', async () => {
+  const response = deferredJsonResponse();
+  jest.spyOn(SupersetClient, 'get').mockReturnValue(response.promise);
+  const { result } = renderHook(() =>
+    useSingleViewResource('database', 'Database', jest.fn()),
+  );
+  let active = true;
+  let request: Promise<unknown> = Promise.resolve();
+  act(() => {
+    result.current.setResource({ id: 20 });
+    request = result.current.fetchResource(10, () => active);
+  });
+  active = false;
+  await act(async () => {
+    response.resolve({
+      json: { result: { id: 10 } },
+    } as unknown as JsonResponse);
+    expect(await request).toEqual({ id: 10 });
+  });
+  expect(result.current.state.resource).toEqual({ id: 20 });
+  expect(result.current.state.loading).toBe(false);
+});
+
+test('useSingleViewResource: discarded fetch errors do not update state or show a toast', async () => {
+  const response = deferredJsonResponse();
+  jest.spyOn(SupersetClient, 'get').mockReturnValue(response.promise);
+  const handleError = jest.fn();
+  const { result } = renderHook(() =>
+    useSingleViewResource('database', 'Database', handleError),
+  );
+  let active = true;
+  let request: Promise<unknown> = Promise.resolve();
+  act(() => {
+    request = result.current.fetchResource(10, () => active);
+  });
+  active = false;
+  await act(async () => {
+    response.reject({ error: 'Fetch failed' });
+    await request;
+  });
+  expect(result.current.state.resource).toBeNull();
+  expect(result.current.state.error).toBeNull();
+  expect(result.current.state.loading).toBe(false);
+  expect(handleError).not.toHaveBeenCalled();
+});
+
 test('useSingleViewResource: createResource posts to correct endpoint', async () => {
   const postSpy = jest.spyOn(SupersetClient, 'post').mockResolvedValue({
     json: { id: 99, result: { name: 'New Chart' } },

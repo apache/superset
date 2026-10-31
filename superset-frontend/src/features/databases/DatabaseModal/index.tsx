@@ -668,7 +668,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   >(dbReducer, null);
   // Database fetch logic
   const {
-    state: { loading: dbLoading, resource: dbFetched, error: dbErrors },
+    state: { resource: dbFetched, error: dbErrors },
     fetchResource,
     createResource,
     updateResource,
@@ -679,6 +679,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     addDangerToast,
     'connection',
   );
+
+  const databaseFetchGeneration = useRef(0);
 
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
@@ -922,6 +924,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   }, [db, getValidation]);
 
   const onClose = () => {
+    databaseFetchGeneration.current += 1;
     setDB({ type: ActionType.Reset });
     setHasConnectedDb(false);
     handleClearValidationErrors(); // reset validation errors on close
@@ -1171,19 +1174,26 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setLoading(false);
   };
 
+  /** Fetch only into the modal session that requested the database. */
+  const fetchDatabase = (id: number) => {
+    const generation = databaseFetchGeneration.current;
+    return fetchResource(
+      id,
+      () => show && generation === databaseFetchGeneration.current,
+    );
+  };
+
   // Initialize
   const fetchDB = () => {
     if (isEditMode && databaseId) {
-      if (!dbLoading) {
-        fetchResource(databaseId).catch(e =>
-          addDangerToast(
-            t(
-              'Sorry there was an error fetching database information: %s',
-              e.message,
-            ),
+      fetchDatabase(databaseId).catch(e =>
+        addDangerToast(
+          t(
+            'Sorry there was an error fetching database information: %s',
+            e.message,
           ),
-        );
-      }
+        ),
+      );
     }
   };
 
@@ -1342,13 +1352,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const handleBackButtonOnFinish = () => {
     if (dbFetched) {
-      fetchResource(dbFetched.id as number);
+      fetchDatabase(dbFetched.id as number);
     }
     setShowCTAbtns(false);
     setEditNewDb(true);
   };
 
   const handleBackButtonOnConnect = () => {
+    databaseFetchGeneration.current += 1;
     handleClearValidationErrors();
     if (editNewDb) setHasConnectedDb(false);
     if (importingModal) setImportingModal(false);
@@ -1534,6 +1545,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (databaseId && show) {
       fetchDB();
     }
+    return () => {
+      // Closing or switching targets invalidates outstanding connection reads.
+      databaseFetchGeneration.current += 1;
+    };
   }, [show, databaseId]);
 
   useEffect(() => {
@@ -1903,7 +1918,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const fetchAndSetDB = () => {
     setLoading(true);
-    fetchResource(dbFetched?.id as number).then(r => {
+    fetchDatabase(dbFetched?.id as number).then(r => {
       setItem(LocalStorageKeys.Database, r);
     });
   };
