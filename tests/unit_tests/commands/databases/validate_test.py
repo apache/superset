@@ -1149,8 +1149,8 @@ def test_parameter_validation_uses_the_engine_credential_validator(
 @pytest.mark.parametrize(
     "privatekey_body, privatekey_pass",
     [
-        (_pem("key passphrase"), "wrong passphrase"),
-        ("-----BEGIN PRIVATE KEY-----", ""),
+        pytest.param(_pem("key passphrase"), "wrong passphrase", id="wrong-passphrase"),
+        pytest.param("-----BEGIN PRIVATE KEY-----", "", id="not-a-pem-key"),
     ],
 )
 @with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
