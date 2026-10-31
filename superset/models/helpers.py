@@ -65,6 +65,7 @@ from markupsafe import escape, Markup
 from pandas import DateOffset, Timedelta
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     declared_attr,
@@ -250,7 +251,51 @@ def build_like_predicate(
     ``lower(expr) LIKE lower('%term%')`` is used rather than ``ILIKE`` because
     the latter is not portable across engines.
     """
-    return sa.func.lower(expr).contains(search.lower(), autoescape=True)
+    return _ContainsSearch(sa.func.lower(expr), search.lower())
+
+
+class _ContainsSearch(ColumnElement[bool]):
+    """
+    ``expr LIKE '%term%'`` with the term's wildcards escaped.
+
+    Rendering is deferred to compile time so ClickHouse can be special-cased:
+    its SQLAlchemy compiler rejects the ``ESCAPE`` clause that
+    ``contains(..., autoescape=True)`` emits. The compiled output is the
+    grouped ``contains()`` expression, so it is identical to calling
+    ``contains()`` directly on every other dialect.
+    """
+
+    inherit_cache = True
+    type = sa.Boolean()
+    _is_implicitly_boolean = True
+    _traverse_internals = [
+        ("expr", visitors.InternalTraversal.dp_clauseelement),
+        ("term", visitors.InternalTraversal.dp_string),
+    ]
+
+    def __init__(self, expr: ColumnElement[Any], term: str) -> None:
+        super().__init__()
+        self.expr = expr
+        self.term = term
+
+    @property
+    def _from_objects(self) -> list[Any]:
+        return self.expr._from_objects
+
+
+@compiles(_ContainsSearch)
+def _compile_contains_search(element: _ContainsSearch, compiler: Any, **kw: Any) -> str:
+    predicate = element.expr.contains(element.term, autoescape=True)
+    return compiler.process(predicate.self_group(), **kw)
+
+
+@compiles(_ContainsSearch, "clickhousedb")
+def _compile_contains_search_clickhouse(
+    element: _ContainsSearch, compiler: Any, **kw: Any
+) -> str:
+    # ClickHouse's LIKE has no ESCAPE clause; backslash is its native escape.
+    term = element.term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return compiler.process(element.expr.contains(term).self_group(), **kw)
 
 
 def _is_parenthesized(sqla_col: ColumnElement) -> bool:

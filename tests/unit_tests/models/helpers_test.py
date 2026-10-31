@@ -145,6 +145,103 @@ def test_build_like_predicate_is_case_insensitive_and_escaped() -> None:
     assert "ESCAPE" not in bigquery_sql
 
 
+@pytest.mark.parametrize(
+    "dialect_name",
+    ["postgresql", "mysql", "mssql", "oracle", "sqlite"],
+)
+def test_build_like_predicate_matches_plain_contains(dialect_name: str) -> None:
+    """Outside ClickHouse the SQL is identical to ``contains(autoescape=True)``."""
+    import sqlalchemy as sa
+
+    from superset.models.helpers import build_like_predicate
+
+    column = sa.column("c")
+    dialect = sa.dialects.registry.load(dialect_name)()
+
+    def render(predicate: Any) -> str:
+        return str(
+            sa.select(column)
+            .where(predicate)
+            .compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+        )
+
+    assert render(build_like_predicate(column, "A%_b")) == render(
+        sa.func.lower(column).contains("a%_b", autoescape=True)
+    )
+
+
+def test_build_like_predicate_matches_plain_contains_bigquery() -> None:
+    import sqlalchemy as sa
+
+    pytest.importorskip("sqlalchemy_bigquery")
+    from sqlalchemy_bigquery import BigQueryDialect
+
+    from superset.models.helpers import build_like_predicate
+
+    column = sa.column("c")
+
+    def render(predicate: Any) -> str:
+        return str(
+            sa.select(column)
+            .where(predicate)
+            .compile(dialect=BigQueryDialect(), compile_kwargs={"literal_binds": True})
+        )
+
+    assert render(build_like_predicate(column, "A%_b")) == render(
+        sa.func.lower(column).contains("a%_b", autoescape=True)
+    )
+
+
+def test_build_like_predicate_executes_correctly_on_sqlite() -> None:
+    import sqlalchemy as sa
+
+    from superset.models.helpers import build_like_predicate
+
+    engine = sa.create_engine("sqlite://")
+    table = sa.table("t", sa.column("c", sa.String))
+    with engine.begin() as conn:
+        conn.execute(sa.text("CREATE TABLE t (c TEXT)"))
+        for value in ("50%x", "50ax", "A_b", "ab"):
+            conn.execute(sa.text("INSERT INTO t VALUES (:v)"), {"v": value})
+
+        def search(term: str) -> list[str]:
+            query = sa.select(table.c.c).where(
+                build_like_predicate(table.c.c, term)
+            )
+            return sorted(row[0] for row in conn.execute(query))
+
+        assert search("a_") == ["A_b"]
+        assert search("zz") == []
+        assert search("50%") == ["50%x"]
+
+
+def test_build_like_predicate_clickhouse_uses_backslash_escaping() -> None:
+    """
+    clickhouse-connect's compiler raises on ``LIKE ... ESCAPE``; ClickHouse
+    treats backslash as the LIKE escape character natively, so wildcards are
+    escaped in the term itself and no ESCAPE clause is emitted.
+    """
+    import sqlalchemy as sa
+
+    pytest.importorskip("clickhouse_connect.cc_sqlalchemy.dialect")
+    from clickhouse_connect.cc_sqlalchemy.dialect import ClickHouseDialect
+
+    from superset.models.helpers import build_like_predicate
+
+    column = sa.column("c")
+    predicate = build_like_predicate(column, "50%_a\\B")
+    clickhouse_sql = str(
+        sa.select(column)
+        .where(predicate)
+        .compile(dialect=ClickHouseDialect(), compile_kwargs={"literal_binds": True})
+    )
+    assert "ESCAPE" not in clickhouse_sql
+    assert "= 1" not in clickhouse_sql
+    # LIKE-level ``\%``, ``\_`` and ``\\`` (each backslash doubled again by the
+    # dialect's string-literal rendering); the term is lower-cased.
+    assert "50\\\\%\\\\_a\\\\\\\\b" in clickhouse_sql
+
+
 def test_values_for_column_search(database: Database) -> None:
     """``search`` narrows the distinct-value query in the database."""
     import pandas as pd
