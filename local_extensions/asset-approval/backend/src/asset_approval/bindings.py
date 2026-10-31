@@ -264,9 +264,11 @@ def install_bindings() -> None:
     # "import failed for an unknown reason". Refusing from inside would be
     # swallowed by that, and the person importing would be told nothing
     # about review. Refusing first costs the ordering the other paths have
-    # (validate, then gate): an overwriting import is refused before the
-    # bundle is validated. The refusal discloses only that review is on,
-    # which the asset's own banner already does.
+    # (validate, then gate): the refusal is decided before the bundle is
+    # validated, which is why the gates read the uuids out of ``contents``
+    # themselves rather than from ``_configs``, which does not exist yet.
+    # The refusal discloses only that review is on and what it collided
+    # with, which the asset's own banner already does.
     for module_path, class_name, kind in (
         ("superset.commands.dashboard.importers.v1", "ImportDashboardsCommand", "dashboard"),
         ("superset.commands.chart.importers.v1", "ImportChartsCommand", "chart"),
@@ -278,7 +280,7 @@ def install_bindings() -> None:
             _import_gate(kind),
             validate_first=False,
         )
-    # An asset bundle is refused only where it would actually overwrite
+    # Every importer is refused only where it would actually overwrite
     # something: a bundle of entirely new assets is not a governed write,
     # whatever its overwrite flag says.
     gate_run(
@@ -443,40 +445,122 @@ def _gate_embedded_upsert(
     )
 
 
-def _assets_import_gate(command: Any) -> None:
-    """Refuse a bundle import that would overwrite a governed asset.
+#: What a bundle prefix is called in a refusal. The model class behind a
+#: prefix is not always named after it -- ``charts/`` lands on ``Slice`` --
+#: and the message names what the person importing recognises.
+_KIND_BY_PREFIX = {
+    "databases/": "database",
+    "datasets/": "dataset",
+    "charts/": "chart",
+    "dashboards/": "dashboard",
+    "queries/": "saved query",
+}
 
-    The host's own validation already refuses an ``overwrite=False``
-    bundle whose assets exist, with its own message. What review adds is
-    the other half: with ``overwrite`` on, the import would replace live
-    assets without anyone reviewing the replacement. So the refusal fires
-    only for the assets the bundle would actually land on, and names the
-    kind it found, rather than refusing every bundle outright.
+
+def _prefix_models() -> dict[str, Any]:
+    """Core's own map of bundle prefix to the model that prefix lands on.
+
+    Borrowed rather than restated, so the gate cannot fall behind a prefix
+    core starts shipping.
     """
-    if not getattr(command, "overwrite", True):
-        return
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
 
+    return dict(ImportAssetsCommand._MODEL_BY_PREFIX)  # noqa: SLF001
+
+
+def _bundle_uuids(
+    contents: dict[str, Any], prefixes: list[str]
+) -> dict[str, list[str]]:
+    """The uuids the bundle carries under each prefix, read from the archive.
+
+    Read from ``contents`` rather than from ``command._configs``: the import
+    gates are bound with ``validate_first=False``, and ``validate()`` is what
+    fills ``_configs`` in. A gate that read them saw an empty bundle on every
+    call, so it could only ever decide on the overwrite flag.
+
+    Only the files under a prefix that is in scope are parsed, so the work is
+    the part of the bundle the refusal actually depends on.
+    """
+    import yaml
+
+    found: dict[str, list[str]] = {prefix: [] for prefix in prefixes}
+    for file_name, content in (contents or {}).items():
+        prefix = next((p for p in found if file_name.startswith(p)), None)
+        if prefix is None:
+            continue
+        try:
+            config = yaml.safe_load(content)
+        except (yaml.YAMLError, AttributeError, TypeError):
+            # A bundle this malformed is ``validate()``'s to reject, with its
+            # own message. The gate declines to turn it into a refusal about
+            # review.
+            continue
+        uuid = config.get("uuid") if isinstance(config, dict) else None
+        if uuid:
+            found[prefix].append(str(uuid))
+    return found
+
+
+def _refuse_if_bundle_lands_on_a_live_asset(
+    command: Any, prefixes: list[str]
+) -> None:
+    """Refuse only for the assets this import would actually replace.
+
+    The host's own validation already refuses an ``overwrite=False`` bundle
+    whose assets exist, with its own message. What review adds is the other
+    half: with ``overwrite`` on, the import would replace live assets without
+    anyone reviewing the replacement.
+
+    So the refusal is scoped to the collisions the bundle really has. A
+    bundle of entirely new assets is not a governed write, whatever its
+    overwrite flag says -- which is what makes a first-time import work at
+    all, including ``superset import-dashboards``, whose CLI hardcodes
+    ``overwrite=True`` and had no way to reach an empty instance (S-06).
+    """
     from superset import db
 
-    for prefix, entries in command._bundle_entries_by_prefix().items():
-        if not entries:
+    models = _prefix_models()
+    uuids_by_prefix = _bundle_uuids(getattr(command, "contents", None) or {}, prefixes)
+    for prefix in prefixes:
+        uuids = uuids_by_prefix.get(prefix) or []
+        model_cls = models.get(prefix)
+        if not uuids or model_cls is None:
             continue
-        model_cls = command._MODEL_BY_PREFIX[prefix]
         existing = (
             db.session.query(model_cls.uuid)
-            .filter(model_cls.uuid.in_([uuid for _, uuid in entries]))
+            .filter(model_cls.uuid.in_(uuids))
             .first()
         )
         if existing is not None:
-            refuse_import_overwrite(model_cls.__name__.lower())
+            refuse_import_overwrite(
+                _KIND_BY_PREFIX.get(prefix, model_cls.__name__.lower())
+            )
+
+
+def _assets_import_gate(command: Any) -> None:
+    """An asset bundle replaces everything in it, so every prefix is in scope."""
+    if not getattr(command, "overwrite", True):
+        return
+    _refuse_if_bundle_lands_on_a_live_asset(command, list(_prefix_models()))
 
 
 def _import_gate(kind: str) -> Any:
+    """Gate one kind's importer, scoped to what that importer replaces."""
+
     def gate(command: Any) -> None:
-        if getattr(command, "overwrite", False) or getattr(
-            command, "overwrite_all", False
-        ):
-            refuse_import_overwrite(kind)
+        if not getattr(command, "overwrite", False):
+            return
+        # ``overwrite`` replaces the models under the command's own prefix.
+        # The assets they are built on -- the bundled charts, datasets and
+        # databases -- are replaced only when ``overwrite_all`` is set as
+        # well, which is the importer's own rule: ``overwrite_assets =
+        # overwrite and kwargs.get("overwrite_all", False)``.
+        prefixes = (
+            list(_prefix_models())
+            if getattr(command, "overwrite_all", False)
+            else [getattr(command, "prefix", "") or f"{kind}s/"]
+        )
+        _refuse_if_bundle_lands_on_a_live_asset(command, prefixes)
 
     return gate
 

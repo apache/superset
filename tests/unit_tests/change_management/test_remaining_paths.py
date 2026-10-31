@@ -187,12 +187,18 @@ def test_restore_endpoint_answers_capture_with_202(
 
 
 def _assets_command(mocker: MockerFixture, uuid: str) -> Any:
+    """A bundle command holding one dashboard, built the way a request does.
+
+    The bundle is passed as ``contents`` -- the uploaded archive -- and not
+    as ``_configs``. ``_configs`` is written by ``validate()``, which runs
+    inside ``run()`` and so after the gate; setting it here by hand used to
+    hide that the gate never saw a bundle in production at all (S-06).
+    """
     from superset.commands.importers.v1.assets import ImportAssetsCommand
 
-    command = ImportAssetsCommand({})
+    command = ImportAssetsCommand({"dashboards/d.yaml": f"uuid: {uuid}\n"})
     mocker.patch.object(command, "validate")
     mocker.patch.object(command, "_import")
-    command._configs = {"dashboards/d.yaml": {"uuid": uuid}}
     return command
 
 
