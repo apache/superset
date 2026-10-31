@@ -123,7 +123,7 @@ export interface SimpleExpressionType {
   label: string;
 }
 export interface SQLExpressionType {
-  expressionType: keyof typeof ExpressionTypes;
+  expressionType: ExpressionTypes;
   sqlExpression: string;
   label: string;
 }
@@ -505,14 +505,12 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
       typeof subject.sqlExpression === 'string'
         ? subject.sqlExpression
         : '';
-    columns = [
-      ...columns,
-      {
-        expressionType: ExpressionTypes.Sql,
-        sqlExpression,
-        label: adhocLabel,
-      },
-    ];
+    const adhocColumn: SQLExpressionType = {
+      expressionType: ExpressionTypes.Sql,
+      sqlExpression,
+      label: adhocLabel,
+    };
+    columns = [...columns, adhocColumn];
   }
 
   const subjectString = typeof subject === 'string' ? subject : '';
