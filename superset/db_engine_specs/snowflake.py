@@ -24,8 +24,6 @@ from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict
 from urllib import parse
 
 import sqlalchemy as sa
-from apispec import APISpec
-from apispec.ext.marshmallow import MarshmallowPlugin
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from flask import current_app as app, has_request_context
@@ -37,13 +35,16 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import DatabaseError as SqlalchemyDatabaseError
 from sqlalchemy.sql import quoted_name
 from sqlalchemy.sql.elements import ColumnElement
+from typing_extensions import NotRequired
 
 from superset import is_feature_enabled
 from superset.constants import TimeGrain
+from superset.databases.types import EncryptedString
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicPropertiesType,
+    build_parameters_json_schema,
     DatabaseCategory,
 )
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
@@ -126,6 +127,29 @@ class SnowflakeParametersSchema(Schema):
     database = fields.Str(required=True)
     role = fields.Str(required=True)
     warehouse = fields.Str(required=True)
+    # Unlike GSheets, the endpoints cannot be defaulted: they live on the customer's
+    # own Snowflake account (`https://<account>.snowflakecomputing.com/oauth/...`),
+    # so there is no URI that would be right for every deployment. The scope is
+    # configured explicitly to match the integration's permitted session role.
+    oauth2_client_info = EncryptedString(
+        required=False,
+        metadata={
+            "description": "OAuth2 client information",
+        },
+        allow_none=True,
+    )
+    embedded_credentials = EncryptedString(
+        required=False,
+        metadata={
+            "description": (
+                "Password or PEM key pair used only for embedded guest requests. "
+                "Every embedded viewer of this connection queries as this one "
+                "Snowflake user; "
+                "logged-in users are unaffected and continue to use OAuth2."
+            ),
+        },
+        allow_none=True,
+    )
 
 
 class SnowflakeParametersType(TypedDict):
@@ -135,6 +159,26 @@ class SnowflakeParametersType(TypedDict):
     database: str
     role: str
     warehouse: str
+    oauth2_client_info: NotRequired[dict[str, Any] | None]
+    embedded_credentials: NotRequired[dict[str, Any] | None]
+
+
+# Snowflake driver arguments that choose who a connection signs in as. Embedded
+# guests sign in as the embedded account only, so none of the connection's own
+# may reach the driver on their login.
+_CONNECTION_IDENTITY_ARGUMENTS = (
+    "user",
+    "password",
+    "role",
+    "authenticator",
+    "token",
+    "private_key",
+    "private_key_file",
+    "private_key_file_pwd",
+    "private_key_pwd",
+    "passcode",
+    "passcode_in_password",
+)
 
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
@@ -246,6 +290,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         "$.auth_params.privatekey_body": "Private Key Body",
         "$.auth_params.privatekey_pass": "Private Key Password",
         "$.oauth2_client_info.secret": "OAuth2 Client Secret",
+        # The username is deliberately left visible: an admin needs to be able to see
+        # which Snowflake user embedded queries run as without having to re-enter it.
+        "$.embedded_credentials.password": "Embedded Fallback Password",
+        "$.embedded_credentials.privatekey_body": "Embedded Fallback Private Key",
+        "$.embedded_credentials.privatekey_pass": "Embedded Fallback Key Passphrase",
     }
 
     _time_grain_expressions = {
@@ -286,6 +335,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
     # OAuth 2.0 support
     supports_oauth2: bool = True
+
+    # Snowflake's `impersonate_user` below sets `authenticator=oauth` whether or not a
+    # token exists, so the fallback path in `Database._get_sqla_engine` -- which skips
+    # impersonation entirely -- is what lets a stored username/password authenticate.
+    supports_embedded_credential_fallback: bool = True
     # `CustomSnowflakeAuthError` is only matched via `isinstance()` (see the
     # metaclass docstring above), so it's paired with `OAuth2TokenRefreshError`
     # (a real subclass) to keep `refresh_oauth2_token`'s `except` clause working.
@@ -367,6 +421,52 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
                         url = url.set(username=email)
 
                 url = url.update_query_dict({"token": user_token})
+
+        return url, engine_kwargs
+
+    @classmethod
+    def apply_embedded_credentials(
+        cls,
+        database: Database,
+        credentials: dict[str, str],
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        """
+        Apply an embedded guest credential, by password or by key pair.
+
+        Called instead of :meth:`impersonate_user`, which above sets
+        ``authenticator=oauth`` whether or not a token exists -- skipping it is what
+        lets a stored credential authenticate at all, and is why this engine opts
+        into the fallback.
+
+        The base implementation puts the username and, for password authentication,
+        the password on the URL. A key pair cannot go there: the driver takes it as
+        DER bytes in ``connect_args``.
+
+        Guests run with the fallback user's default role, not the connection's
+        ``role``: the connection form always writes one into the URI, and a
+        least-privilege fallback user -- or a programmatic access token restricted
+        to its own role -- is not granted it, so Snowflake would refuse the session.
+        """
+        url, engine_kwargs = super().apply_embedded_credentials(
+            database, credentials, url, engine_kwargs
+        )
+        # Everything that signs in as the connection's own account goes: the
+        # driver merges the URI query and `connect_args` into its arguments, so a
+        # `user`/`password`, key or token left in either would win over the
+        # embedded account. `authenticator=SNOWFLAKE_JWT` would also make the
+        # driver expect a key pair from a password guest; it picks key-pair
+        # sign-in itself when the embedded credential supplies `private_key`.
+        url = url.difference_update_query(_CONNECTION_IDENTITY_ARGUMENTS)
+        connect_args = engine_kwargs.get("connect_args", {})
+        for argument in _CONNECTION_IDENTITY_ARGUMENTS:
+            connect_args.pop(argument, None)
+
+        if credentials.get("auth_method") == "keypair":
+            engine_kwargs.setdefault("connect_args", {})["private_key"] = (
+                cls._load_private_key(credentials)
+            )
 
         return url, engine_kwargs
 
@@ -640,20 +740,14 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     def parameters_json_schema(cls) -> Any:
         """
         Return configuration parameters as OpenAPI.
+
+        Delegates rather than inheriting: this spec is not a ``BasicParametersMixin``
+        user -- its ``build_sqlalchemy_uri`` takes ``SnowflakeParametersType``, which
+        the mixin's signature does not admit -- but it needs the same schema,
+        including the ``x-encrypted-extra`` tagging and the embedded-credential
+        gating.
         """
-        if not cls.parameters_schema:
-            return None
-
-        ma_plugin = MarshmallowPlugin()
-        spec = APISpec(
-            title="Database Parameters",
-            version="1.0.0",
-            openapi_version="3.0.0",
-            plugins=[ma_plugin],
-        )
-
-        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
-        return spec.to_dict()["components"]["schemas"][cls.__name__]
+        return build_parameters_json_schema(cls)
 
     @staticmethod
     def update_params_from_encrypted_extra(
@@ -672,6 +766,13 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         if connect_args.get("authenticator") == "oauth":
             return
 
+        # The guest path skips impersonation, leaving `authenticator` unset, so the
+        # check above does not catch it. Its credential has already been applied by
+        # `apply_embedded_credentials`; return before the connection's own
+        # `auth_params` can be layered on top of it.
+        if database.embedded_fallback_applies():
+            return
+
         if not database.encrypted_extra:
             return
         try:
@@ -685,26 +786,9 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             return
         connect_args = params.setdefault("connect_args", {})
         if auth_method == "keypair":
-            privatekey_body = auth_params.get("privatekey_body", None)
-            key = None
-            if privatekey_body:
-                key = privatekey_body.encode()
-            else:
-                with open(auth_params["privatekey_path"], "rb") as key_temp:
-                    key = key_temp.read()
-            privatekey_pass = auth_params.get("privatekey_pass", None)
-            password = privatekey_pass.encode() if privatekey_pass is not None else None
-            p_key = serialization.load_pem_private_key(
-                key,
-                password=password,
-                backend=default_backend(),
+            connect_args["private_key"] = SnowflakeEngineSpec._load_private_key(
+                auth_params
             )
-            pkb = p_key.private_bytes(
-                encoding=serialization.Encoding.DER,
-                format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption(),
-            )
-            connect_args["private_key"] = pkb
         else:
             allowed_extra_auths = app.config["ALLOWED_EXTRA_AUTHENTICATIONS"].get(
                 "snowflake", {}
@@ -717,3 +801,25 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
                     f"must be listed in 'ALLOWED_EXTRA_AUTHENTICATIONS' config"
                 )
             connect_args["auth"] = snowflake_auth(**auth_params)
+
+    @staticmethod
+    def _load_private_key(auth_params: dict[str, Any]) -> bytes:
+        """Convert a PEM private key into the bytes required by Snowflake."""
+        if privatekey_body := auth_params.get("privatekey_body"):
+            key = privatekey_body.encode()
+        else:
+            with open(auth_params["privatekey_path"], "rb") as key_file:
+                key = key_file.read()
+
+        privatekey_pass = auth_params.get("privatekey_pass")
+        password = privatekey_pass.encode() if privatekey_pass else None
+        private_key = serialization.load_pem_private_key(
+            key,
+            password=password,
+            backend=default_backend(),
+        )
+        return private_key.private_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )

@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any, TYPE_CHECKING
 
 from sqlalchemy.engine.url import make_url, URL
@@ -24,6 +25,7 @@ from sqlalchemy.exc import NoSuchTableError
 
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.sql.parse import Table
+from superset.utils import json
 
 if TYPE_CHECKING:
     from superset.databases.schemas import (
@@ -160,3 +162,86 @@ def make_url_safe(raw_url: str | URL) -> URL:
 
     else:
         return raw_url
+
+
+def _is_present(value: Any) -> bool:
+    """Is a credential field actually filled in? Whitespace does not count."""
+    if isinstance(value, str):
+        return bool(value.strip())
+    return bool(value)
+
+
+def validated_embedded_credentials(credentials: Any) -> dict[str, str] | None:
+    """
+    Return a complete embedded fallback credential, or ``None``.
+
+    The canonical shape is ``{username, password}`` or ``{username, auth_method:
+    "keypair", privatekey_body, privatekey_pass}``; a half-filled credential is
+    ignored rather than half-applied. Engines may override this default through
+    ``BaseEngineSpec.validate_embedded_credentials`` for both query-time and
+    authoring-time validation.
+    """
+    if not isinstance(credentials, dict):
+        return None
+
+    username = credentials.get("username")
+    if not isinstance(username, str) or not _is_present(username):
+        return None
+
+    auth_method = credentials.get("auth_method", "password")
+    if auth_method == "keypair":
+        privatekey_body = credentials.get("privatekey_body")
+        privatekey_pass = credentials.get("privatekey_pass", "")
+        if (
+            not isinstance(privatekey_body, str)
+            or not privatekey_body
+            or not isinstance(privatekey_pass, str)
+        ):
+            return None
+        return {
+            "username": username,
+            "auth_method": "keypair",
+            "privatekey_body": privatekey_body,
+            "privatekey_pass": privatekey_pass,
+        }
+
+    password = credentials.get("password")
+    if auth_method != "password" or not isinstance(password, str) or not password:
+        return None
+    return {"username": username, "password": password}
+
+
+def embedded_credentials_incomplete(
+    value: Any,
+    validate_credentials: Callable[[Any], dict[str, str] | None],
+) -> bool:
+    """
+    Is an embedded credential malformed or incomplete for its engine?
+
+    Absent and entirely blank values pass -- they mean "no credential configured".
+    Accepts the value as a dict or as the JSON string the connection dialog posts.
+    Use the engine's query-time validator when the connection is known, keeping
+    authoring checks consistent with engine-specific credential shapes.
+    """
+    if value is None or value == "":
+        return False
+
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except json.JSONDecodeError:
+            return True
+
+    if value is None:
+        return False
+    if not isinstance(value, dict):
+        return True
+
+    # `auth_method` alone is not a credential -- the dialog writes it as soon as the
+    # selector renders, so an untouched sub-form must not count as half-filled.
+    if not any(
+        _is_present(field) for key, field in value.items() if key != "auth_method"
+    ):
+        return False
+
+    return validate_credentials(value) is None

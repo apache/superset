@@ -24,6 +24,29 @@ assists people when migrating to a new version.
 
 ## Next
 
+- `EMBEDDED_CREDENTIAL_FALLBACK` (new, off by default) changes behaviour for embedded
+  guests on database connections that authenticate users individually via OAuth2 with
+  **Impersonate logged in user** enabled. Ordinary service-account connections retain
+  their existing behavior, even with a deployment-wide OAuth2 client configured. With
+  the flag on, a guest whose request has no applicable embedded credential — none
+  configured on the connection, or one missing its username, password, or private key
+  required by the selected authentication method — is refused
+  with a `CONNECTION_ACCESS_DENIED_ERROR` instead of connecting with the credential in
+  the connection's own SQLAlchemy URI. Queries that do run under an embedded credential
+  get a dedicated cache partition distinct from every logged-in username, including
+  a separate partition for guests without credentials, so they no longer share a
+  DATA-cache entry (or, under `GLOBAL_ASYNC_QUERIES`, a deduplicated chart task) with a logged-in user's
+  per-user result; existing cached entries for such charts are effectively invalidated
+  for guests. A malformed or incomplete `embedded_credentials` is rejected by
+  `POST`/`PUT /api/v1/database/` and by `validate_parameters` rather than stored and
+  ignored while both embedding flags are enabled; asset import is unchanged. Validation
+  uses the engine's credential rules and edited credentials rather than stale stored
+  values, and rejects whitespace-only usernames. Disabling either flag preserves stored credentials without blocking unrelated edits. Restored async guest
+  queries use the same credential as synchronous queries. Connection-mutator hooks
+  receive the selected fallback username. Snowflake OAuth2 scope is
+  configured explicitly; a role scope selects that role, and omitting it uses the
+  user's default role. Deployments that leave the fallback flag off are unaffected.
+
 - With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
   using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and
   `CACHE_REDIS_USER`. Previously they always ran on DB 0 and without the ACL user.

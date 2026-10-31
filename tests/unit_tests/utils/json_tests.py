@@ -450,3 +450,43 @@ def test_dumps_preserves_unicode_when_ensure_ascii_false() -> None:
     assert json.dumps("Hello, world!", ensure_ascii=False) == '"Hello, world!"'
     assert json.dumps("Привет, мир!", ensure_ascii=False) == '"Привет, мир!"'
     assert json.dumps("你好，世界！", ensure_ascii=False) == '"你好，世界！"'
+
+
+def test_redact_sensitive_leaves_empty_values_unmasked() -> None:
+    """An empty secret has nothing to hide, and must not read as a stored one."""
+    payload = {"credential": {"username": "", "password": "", "token": None}}
+
+    assert (
+        json.redact_sensitive(
+            payload,
+            {"$.credential.password", "$.credential.token"},
+        )
+        == payload
+    )
+    assert json.redact_sensitive(
+        {"credential": {"password": "pw"}}, {"$.credential.password"}
+    ) == {"credential": {"password": PASSWORD_MASK}}
+
+
+@pytest.mark.parametrize(
+    "old_payload,expected",
+    [
+        (None, ["$.secret", "$.other"]),
+        ({"secret": "stored"}, ["$.other"]),
+        ({"secret": "stored", "other": ""}, ["$.other"]),
+        ({"secret": "stored", "other": "also"}, []),
+        # A stored mask is what master saved when it had nothing to reveal.
+        ({"secret": PASSWORD_MASK, "other": "also"}, ["$.secret"]),
+    ],
+)
+def test_unrevealable_masked_fields(
+    old_payload: dict[str, Any] | None, expected: list[str]
+) -> None:
+    """Masked fields the stored payload has no (non-empty) value for."""
+    new_payload = {"secret": PASSWORD_MASK, "other": PASSWORD_MASK, "plain": "x"}
+
+    assert sorted(
+        json.unrevealable_masked_fields(
+            old_payload, new_payload, {"$.secret", "$.other", "$.plain"}
+        )
+    ) == sorted(expected)

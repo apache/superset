@@ -315,6 +315,61 @@ describe('DatabaseModal', () => {
           sqlalchemy_uri_placeholder:
             'databricks+connector://token:{access_token}@{host}:{port}/{database_name}',
         },
+        {
+          available_drivers: ['snowflake'],
+          default_driver: 'snowflake',
+          engine: 'snowflake',
+          name: 'Snowflake',
+          parameters: {
+            properties: {
+              account: {
+                type: 'string',
+              },
+              database: {
+                type: 'string',
+              },
+              password: {
+                type: 'string',
+              },
+              role: {
+                type: 'string',
+              },
+              username: {
+                type: 'string',
+              },
+              warehouse: {
+                type: 'string',
+              },
+              oauth2_client_info: {
+                description: 'OAuth2 client information',
+                type: 'string',
+                'x-encrypted-extra': true,
+              },
+              embedded_credentials: {
+                description:
+                  'Credentials used only for embedded guest requests',
+                type: 'string',
+                'x-encrypted-extra': true,
+              },
+            },
+            required: [
+              'account',
+              'database',
+              'password',
+              'role',
+              'username',
+              'warehouse',
+            ],
+            type: 'object',
+          },
+          preferred: false,
+          sqlalchemy_uri_placeholder: 'snowflake://',
+          engine_information: {
+            supports_file_upload: true,
+            disable_ssh_tunneling: false,
+            supports_oauth2: true,
+          },
+        },
       ],
     });
     fetchMock.post(
@@ -1879,6 +1934,49 @@ describe('DatabaseModal', () => {
     expect(screen.getByTestId('sqlalchemy-uri-input')).toBeInTheDocument();
   });
 
+  test('keeps what was typed when the configuration method round-trips', async () => {
+    // Switching to the SQLAlchemy URI form and back used to replace the whole
+    // reducer state with {engine, configuration_method, database_name}, so
+    // every other field -- including the OAuth2 and embedded sub-forms, whose
+    // values live under `parameters` -- came back empty.
+    setup({ dbEngine: 'Snowflake' });
+    expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+
+    await userEvent.type(fieldByName('account'), 'dummy-account');
+
+    await userEvent.click(screen.getByText('OAuth2 client information'));
+    await userEvent.type(await screen.findByTestId('client-id'), 'client-123');
+
+    // Impersonation cannot be turned on before the connection exists, so the
+    // embedded sub-form stays disabled during creation (the backend would
+    // refuse the credential anyway). Its round-trip is covered by
+    // EmbeddedCredentialsField's in-flight credential test.
+    await userEvent.click(screen.getByText('Embedded guest credentials'));
+    expect(
+      await screen.findByTestId('embedded-credentials-username'),
+    ).toBeDisabled();
+    expect(
+      screen.getByTestId('embedded-credentials-inactive-reason'),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId('sqla-connect-btn'));
+    expect(
+      await screen.findByTestId('sqlalchemy-uri-input'),
+    ).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole('button', { name: /dynamic form instead/i }),
+    );
+    expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+
+    expect(fieldByName('account')).toHaveValue('dummy-account');
+
+    // The sub-form re-mounts collapsed, and re-reads its value from the
+    // parameters the switch no longer drops.
+    await userEvent.click(screen.getByText('OAuth2 client information'));
+    expect(await screen.findByTestId('client-id')).toHaveValue('client-123');
+  });
+
   test.each([
     {
       field: 'host',
@@ -1955,6 +2053,42 @@ describe('DatabaseModal', () => {
       useSingleViewResourceMock.mockRestore();
     },
   );
+
+  test('keeps Connect disabled while a half-filled embedded credential is rejected', async () => {
+    setup();
+    await selectPostgres();
+    fillDynamicForm();
+
+    const submitButton = screen.getByTestId('btn-submit-connection');
+    await userEvent.click(document.body);
+    await waitFor(() => expect(submitButton).toBeEnabled());
+
+    // `ValidateDatabaseParametersCommand._get_embedded_credentials_error`
+    // reports this shape. `INVALID_PAYLOAD_SCHEMA_ERROR` is on the blur-time
+    // allowlist in `useDatabaseValidation`, so the half-filled credential
+    // blocks the save without waiting for the user to press Connect.
+    fetchMock.modifyRoute('validate-params', {
+      response: {
+        status: 422,
+        body: {
+          errors: [
+            {
+              message:
+                'Embedded guest credentials need both a username and a password.',
+              error_type: 'INVALID_PAYLOAD_SCHEMA_ERROR',
+              level: 'error',
+              extra: { invalid: ['embedded_credentials'] },
+            },
+          ],
+        },
+      },
+    });
+
+    await userEvent.type(fieldByName('database'), 'x');
+    await userEvent.click(document.body);
+
+    await waitFor(() => expect(submitButton).toBeDisabled());
+  });
 });
 
 test('handleChangeWithValidation function clears validation errors when called', () => {
@@ -2046,6 +2180,41 @@ describe('dbReducer', () => {
     expect(currentState).toBeNull();
   });
 
+  test('it keeps everything typed so far when the configuration method changes', () => {
+    // The dialog's two mode-switch links hand back only the three keys the
+    // other mode needs. Everything else -- the parameters (which is where the
+    // OAuth2 and embedded sub-forms keep their values), the encrypted-extra
+    // blob and the advanced-tab fields -- has to survive, or a round trip
+    // silently empties the form.
+    const typedState: Partial<DatabaseObject> = {
+      database_name: 'My database',
+      engine: 'snowflake',
+      driver: 'snowflake',
+      configuration_method: ConfigurationMethod.DynamicForm,
+      parameters: {
+        account: 'abc12345',
+        oauth2_client_info: { id: 'client-123' },
+        embedded_credentials: { username: 'embedded_svc', password: 'pw' },
+      } as DatabaseObject['parameters'],
+      masked_encrypted_extra: '{}',
+      extra: '{"allows_virtual_table_explore":true}',
+      expose_in_sqllab: true,
+    };
+    const action: DBReducerActionType = {
+      type: ActionType.ConfigMethodChange,
+      payload: {
+        database_name: 'My database',
+        engine: 'snowflake',
+        configuration_method: ConfigurationMethod.SqlalchemyUri,
+      },
+    };
+
+    expect(dbReducer(typedState, action)).toEqual({
+      ...typedState,
+      configuration_method: ConfigurationMethod.SqlalchemyUri,
+    });
+  });
+
   test('it will set state to payload from fetched', () => {
     const action: DBReducerActionType = {
       type: ActionType.Fetched,
@@ -2132,6 +2301,33 @@ describe('dbReducer', () => {
     expect(currentState).toEqual({
       ...databaseFixture,
       masked_encrypted_extra: '{"foo":"bar"}',
+    });
+  });
+
+  test('EncryptedExtraInputChange replaces a nested embedded credential', () => {
+    // The embedded credentials sub-form mirrors each edit into Secure Extra so
+    // the JSON shown under Advanced → Security matches what will be saved.
+    const action: DBReducerActionType = {
+      type: ActionType.EncryptedExtraInputChange,
+      payload: {
+        name: 'embedded_credentials',
+        value: { username: 'new_svc', password: 'XXXXXXXXXX' },
+      },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        masked_encrypted_extra: JSON.stringify({
+          oauth2_client_info: { id: 'client-id' },
+          embedded_credentials: { username: 'old_svc', password: 'XXXXXXXXXX' },
+        }),
+      },
+      action,
+    );
+
+    expect(JSON.parse(currentState?.masked_encrypted_extra || '{}')).toEqual({
+      oauth2_client_info: { id: 'client-id' },
+      embedded_credentials: { username: 'new_svc', password: 'XXXXXXXXXX' },
     });
   });
 

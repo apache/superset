@@ -970,3 +970,45 @@ def test_import_database_masked_encrypted_extra_not_revealed_on_host_change(
     assert database.password == "newpass"  # noqa: S105
     encrypted = json.loads(database.encrypted_extra)
     assert encrypted["my_secret"] == PASSWORD_MASK
+
+
+def test_import_database_never_stores_a_mask_over_an_existing_db(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Overwriting a connection that has no stored value for a masked secret fails.
+
+    A connection promoted by a dashboard bundle exists without its secrets, so
+    there is nothing to reveal; storing the mask would make it the secret (QA
+    OEF-SECRET-04). The schema asks for the value first; this is the backstop.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.commands.exceptions import ImportFailedError
+    from superset.constants import PASSWORD_MASK
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import (
+        database_config_with_masked_encrypted_extra,
+    )
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    # The promoted copy: same connection, no encrypted_extra.
+    config = copy.deepcopy(database_config_with_masked_encrypted_extra)
+    del config["masked_encrypted_extra"]
+    existing = import_database(config)
+    db.session.flush()
+
+    masked = copy.deepcopy(database_config_with_masked_encrypted_extra)
+    masked["masked_encrypted_extra"] = json.dumps(
+        {"credentials_info": {"type": "service_account", "private_key": PASSWORD_MASK}}
+    )
+    with pytest.raises(ImportFailedError, match="credentials_info.private_key"):
+        import_database(masked, overwrite=True)
+
+    assert existing.encrypted_extra is None

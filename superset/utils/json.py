@@ -273,6 +273,11 @@ def redact_sensitive(
     for json_path in sensitive_fields:
         jsonpath_expr = parse(json_path)
         for match in jsonpath_expr.find(redacted_payload):
+            # An empty value has nothing to hide. Masking it would tell the admin a
+            # secret is stored when none is, and send back a mask paired with,
+            # say, a cleared username -- which then reads as half-filled.
+            if match.value in (None, ""):
+                continue
             match.context.value[match.path.fields[0]] = PASSWORD_MASK
 
     return redacted_payload
@@ -360,6 +365,37 @@ def get_masked_fields(
                 # `Child` paths in parentheses when stringified).
                 masked.append(f"$.{_render_jsonpath(match.full_path)}")
     return masked
+
+
+def unrevealable_masked_fields(
+    old_payload: dict[str, Any] | None,
+    new_payload: dict[str, Any],
+    sensitive_fields: set[str],
+) -> list[str]:
+    """
+    Returns masked fields in ``new_payload`` that ``old_payload`` cannot reveal.
+
+    :func:`reveal_sensitive` swaps a mask back for the stored value at the same
+    path. Where the stored payload has no value there, the mask would be kept and
+    stored as if it were the secret, so callers that must not do that (imports
+    overwriting a connection) use this to ask for the real value instead. A
+    stored mask counts as no value: earlier releases saved one when an import
+    had nothing to reveal, and revealing it only hands the mask back.
+
+    :param old_payload: The stored payload, if any
+    :param new_payload: The incoming payload, possibly containing masks
+    :param sensitive_fields: The set of fields to check, as JSONPath expressions
+    :returns: JSONPath expressions for masked fields with nothing to reveal
+    """
+    return [
+        field
+        for field in get_masked_fields(new_payload, sensitive_fields)
+        if old_payload is None
+        or not any(
+            match.value and match.value != PASSWORD_MASK
+            for match in parse(field).find(old_payload)
+        )
+    ]
 
 
 def set_masked_fields(
