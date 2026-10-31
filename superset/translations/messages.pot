@@ -14275,6 +14275,9 @@ msgstr ""
 msgid "The country code standard that Superset should expect to find in the [country] column"
 msgstr ""
 
+msgid "The credential configured for embedded viewers of this connection could not be used. An administrator needs to update it."
+msgstr ""
+
 msgid "The current version could not be identified. Restore is temporarily unavailable."
 msgstr ""
 
@@ -14374,6 +14377,9 @@ msgid "The distance between cells, in pixels"
 msgstr ""
 
 msgid "The duration of time in seconds before the cache is invalidated. Set to -1 to bypass the cache."
+msgstr ""
+
+msgid "The embedded guest private key could not be read. Provide a PEM private key and its correct passphrase (leave the passphrase empty for an unencrypted key)."
 msgstr ""
 
 msgid "The encoding format of the lines"
