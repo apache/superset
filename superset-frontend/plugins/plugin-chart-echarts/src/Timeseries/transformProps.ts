@@ -71,7 +71,9 @@ import {
   OrientationType,
   TimeseriesCustomLegend,
   TimeseriesChartTransformedProps,
+  TimeseriesLegendIcon,
   TimeseriesLegendItem,
+  TimeseriesLegendLineType,
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
 import {
@@ -145,10 +147,83 @@ import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
 
 type LegendSeriesVisual = {
-  itemStyle?: { color?: unknown };
-  lineStyle?: { color?: unknown };
+  itemStyle?: { color?: unknown; opacity?: unknown };
+  lineStyle?: {
+    color?: unknown;
+    opacity?: unknown;
+    type?: unknown;
+    width?: unknown;
+  };
   name?: string | number;
+  symbol?: unknown;
+  type?: string;
 };
+
+// ECharts draws a circle for `none` and falls back to the series default when unset.
+function normalizeLegendSymbol(symbol: unknown, fallback: string): string {
+  if (symbol === 'none') {
+    return 'circle';
+  }
+  return typeof symbol === 'string' ? symbol : fallback;
+}
+
+// The icon inherits the series opacity, except that an invisible series
+// (opacity 0) still gets a visible icon so the legend entry can be read.
+function normalizeLegendOpacity(opacity: unknown): number {
+  return typeof opacity === 'number' && opacity > 0 && opacity < 1
+    ? opacity
+    : 1;
+}
+
+// The symbol on a line icon takes itemStyle.opacity, as in ECharts. transformSeries
+// sets it to 0 when rich tooltip and markers are both off, which hides the symbol.
+function normalizeLegendSymbolOpacity(opacity: unknown): number {
+  return typeof opacity === 'number' && opacity >= 0 && opacity <= 1
+    ? opacity
+    : 1;
+}
+
+/**
+ * The icon the ECharts legend would draw for a series: its line in the series'
+ * dash style with its symbol, the symbol alone for scatter, a box otherwise.
+ * The legend line is 2px like ECharts' `lineStyle.width: 'auto'`, or hidden
+ * when the series hides its own line.
+ */
+export function getLegendSeriesIcon(
+  series: SeriesOption | undefined,
+): TimeseriesLegendIcon {
+  const visual = series as LegendSeriesVisual | undefined;
+  if (visual?.type === 'scatter') {
+    return {
+      shape: 'symbol',
+      opacity: normalizeLegendOpacity(visual.itemStyle?.opacity),
+      symbol: normalizeLegendSymbol(visual.symbol, 'circle'),
+    };
+  }
+  if (visual?.type !== 'line') {
+    return {
+      shape: 'box',
+      opacity: normalizeLegendOpacity(visual?.itemStyle?.opacity),
+    };
+  }
+  const { opacity, type, width } = visual.lineStyle ?? {};
+  let lineType: TimeseriesLegendLineType = 'solid';
+  if (type === 'dashed' || type === 'dotted') {
+    lineType = type;
+  } else if (typeof type === 'number') {
+    lineType = [type];
+  } else if (Array.isArray(type)) {
+    lineType = type;
+  }
+  return {
+    shape: 'line',
+    lineType,
+    lineWidth: width === 0 ? 0 : 2,
+    opacity: normalizeLegendOpacity(opacity),
+    symbol: normalizeLegendSymbol(visual.symbol, 'emptyCircle'),
+    symbolOpacity: normalizeLegendSymbolOpacity(visual.itemStyle?.opacity),
+  };
+}
 
 function getLegendSeriesColor(
   series: SeriesOption | undefined,
@@ -200,6 +275,7 @@ function buildTimeseriesCustomLegend({
     return [
       {
         color: getLegendSeriesColor(matchingSeries, fallbackColor),
+        icon: getLegendSeriesIcon(matchingSeries),
         interactive: interactive && !rowBreak,
         name,
         selected: legendState?.[name] !== false,
