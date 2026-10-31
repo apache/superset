@@ -296,3 +296,49 @@ def test_a_failure_here_does_not_stop_the_extension_loading(
     )
 
     entrypoint._align_approval_permission()
+
+
+# ---------------------------------------------------------------- the lookup
+
+
+def test_the_permission_is_looked_up_once_per_request(
+    mocker: MockerFixture, app: Any
+) -> None:
+    """The Approvals page asks this once per row it lists.
+
+    Without a cache each row cost a permission lookup, so a page listing
+    everything waiting paid one query per change request for an answer that
+    cannot change while the request is being served.
+    """
+    from asset_approval import eligibility
+
+    pvm = SimpleNamespace(role=[SimpleNamespace(id=1)])
+    lookup = mocker.patch(
+        "superset.extensions.security_manager",
+        SimpleNamespace(find_permission_view_menu=mocker.Mock(return_value=pvm)),
+    )
+
+    with app.test_request_context("/"):
+        for _ in range(5):
+            assert eligibility.roles_that_may_approve() == frozenset({1})
+
+    lookup.find_permission_view_menu.assert_called_once()
+
+
+def test_outside_a_request_nothing_is_cached(
+    mocker: MockerFixture, app: Any
+) -> None:
+    """A CLI run or a replay must not inherit, or leave behind, an answer."""
+    from asset_approval import eligibility
+
+    pvm = SimpleNamespace(role=[SimpleNamespace(id=1)])
+    lookup = mocker.patch(
+        "superset.extensions.security_manager",
+        SimpleNamespace(find_permission_view_menu=mocker.Mock(return_value=pvm)),
+    )
+
+    with app.app_context():
+        eligibility.roles_that_may_approve()
+        eligibility.roles_that_may_approve()
+
+    assert lookup.find_permission_view_menu.call_count == 2

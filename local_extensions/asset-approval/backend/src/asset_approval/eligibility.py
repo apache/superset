@@ -109,6 +109,44 @@ def load_user(user_id: int) -> Any | None:
     return security_manager.get_user_by_id(user_id)
 
 
+#: Where the roles holding the approval right are cached for a request.
+_APPROVER_ROLES_CACHE = "asset_approval_approver_role_ids"
+
+#: Tells "not cached" apart from a cached ``None``.
+_UNCACHED = object()
+
+
+def roles_that_may_approve() -> frozenset[int] | None:
+    """Ids of the roles holding the approval right, ``None`` if it is absent.
+
+    Cached for the request. ``can_approve`` is asked once per row when the
+    Approvals page lists what is waiting, so without this each row cost a
+    permission lookup. Only inside a request, where a grant cannot
+    meaningfully change underneath the answer; a CLI or a replay reads it
+    fresh and leaves nothing behind for the next caller.
+    """
+    from flask import (  # pylint: disable=import-outside-toplevel
+        g,
+        has_request_context,
+    )
+
+    from superset.extensions import (  # pylint: disable=import-outside-toplevel
+        security_manager,
+    )
+
+    cacheable = has_request_context()
+    if cacheable:
+        cached = g.get(_APPROVER_ROLES_CACHE, _UNCACHED)
+        if cached is not _UNCACHED:
+            return cached  # type: ignore[no-any-return]
+
+    pvm = security_manager.find_permission_view_menu(*APPROVAL_PERMISSION)
+    answer = None if pvm is None else frozenset(role.id for role in pvm.role)
+    if cacheable:
+        setattr(g, _APPROVER_ROLES_CACHE, answer)
+    return answer
+
+
 def holds_approval_permission(user_id: int) -> bool:
     """Whether this user's roles carry the approval right at all.
 
@@ -123,14 +161,9 @@ def holds_approval_permission(user_id: int) -> bool:
     every role keeps exactly the approval rights it had before the
     permission was introduced, rather than the feature quietly stopping.
     """
-    from superset.extensions import (  # pylint: disable=import-outside-toplevel
-        security_manager,
-    )
-
-    pvm = security_manager.find_permission_view_menu(*APPROVAL_PERMISSION)
-    if pvm is None:
+    role_ids = roles_that_may_approve()
+    if role_ids is None:
         return True
-    role_ids = {role.id for role in pvm.role}
     if not role_ids:
         return False
     user = load_user(user_id)
