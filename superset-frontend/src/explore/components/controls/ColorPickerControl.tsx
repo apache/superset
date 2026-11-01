@@ -105,6 +105,11 @@ const normalizeColorToHex = (color: string): string => {
   return color.toLowerCase();
 };
 
+const PURE_BLACK_OR_WHITE = new Set([
+  rgbaToHex({ r: 0, g: 0, b: 0, a: 1 }).toLowerCase(),
+  rgbaToHex({ r: 255, g: 255, b: 255, a: 1 }).toLowerCase(),
+]);
+
 const getReverseThemeColorMap = (
   themeColors: Record<string, string>,
 ): Map<string, string> => {
@@ -119,7 +124,7 @@ const getReverseThemeColorMap = (
       // instead of a usable color value.
       if (
         /^#[0-9a-f]{3,4}$/i.test(value) &&
-        (hex === '#000000' || hex === '#ffffff')
+        PURE_BLACK_OR_WHITE.has(hex)
       ) {
         return;
       }
