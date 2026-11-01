@@ -442,6 +442,51 @@ class TestExecuteSql:
     @patch("superset.security_manager", new_callable=MagicMock)
     @patch("superset.db")
     @pytest.mark.asyncio
+    async def test_execute_sql_write_target_denied(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """A query whose write target the user cannot act on is rejected after
+        the per-table check passes, and never executed."""
+        mock_database = _mock_database()
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        message = "You need access to the following tables: secret_table"
+        mock_security_manager.raise_for_write_target_access.side_effect = (
+            SupersetSecurityException(
+                SupersetError(
+                    message=message,
+                    error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+        )
+
+        request = {
+            "database_id": 1,
+            "sql": "DELETE FROM secret_table",
+            "limit": 10,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+            data = result.structured_content
+            assert data["success"] is False
+            assert data["error"] == message
+
+        mock_security_manager.raise_for_access.assert_called_once()
+        mock_security_manager.raise_for_write_target_access.assert_called_once_with(
+            database=mock_database,
+            sql="DELETE FROM secret_table",
+            catalog=None,
+            schema=None,
+            template_params={},
+        )
+        mock_database.execute.assert_not_called()
+
+    @patch("superset.security_manager", new_callable=MagicMock)
+    @patch("superset.db")
+    @pytest.mark.asyncio
     @pytest.mark.parametrize("template_params", [None, {}, {"a": 1}])
     async def test_execute_sql_authorizes_the_sql_that_executes(
         self, mock_db, mock_security_manager, mcp_server, template_params
