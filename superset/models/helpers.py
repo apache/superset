@@ -2790,7 +2790,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         The unmirrored statement is appended to ``executed`` before it runs, so
         a caller sees what was last sent even when that attempt fails too. A
         failure that is not attributed to the mirror is re-raised unchanged; if
-        the retry itself fails, that failure is the one raised.
+        the retry itself fails, that failure is the one raised. The unmirrored
+        statement goes through the disallowed SQL check first, and is refused
+        the way the first statement would have been.
         """
         try:
             return run_query(executed[-1].sql)
@@ -2805,6 +2807,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 "without it: %s",
                 utils.error_msg_from_exception(failure),
             )
+            # A fresh render, so it is checked like the first statement rather
+            # than trusted to say the same thing. This is the caller's job, not
+            # the decision method's, which never raises.
+            self._raise_for_disallowed_sql(unmirrored.sql)
             executed.append(unmirrored)
             return run_query(unmirrored.sql)
 
