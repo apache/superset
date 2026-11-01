@@ -1220,6 +1220,7 @@ function DatabaseList({
       />
       <SemanticLayerModal
         show={semanticLayerModalOpen}
+        onCreated={refreshData}
         onHide={() => {
           setSemanticLayerModalOpen(false);
           refreshData();
@@ -1229,6 +1230,7 @@ function DatabaseList({
       />
       <SemanticLayerModal
         show={!!slCurrentlyEditing}
+        onUpdated={refreshData}
         onHide={() => {
           setSlCurrentlyEditing(null);
           refreshData();
