@@ -117,8 +117,8 @@ def test_aware_quarter_filter_queries_sqlite_text_rows(
 @pytest.mark.parametrize(
     "start_offset,end_offset,offset,expected",
     [
-        ("+08:00", "", "inherit", "5270400 seconds ago"),
-        ("", "+08:00", "inherit", "5270400 seconds ago"),
+        ("+08:00", "", "inherit", "5299200 seconds ago"),
+        ("", "+08:00", "inherit", "5241600 seconds ago"),
         ("+08:00", "+00:00", "inherit", "5299200 seconds ago"),
         ("+08:00", "", "2024-03-01", "31 days ago"),
     ],

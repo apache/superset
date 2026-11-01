@@ -816,7 +816,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             return bound.replace(tzinfo=None)
         get_timezone = getattr(self.datasource, "get_dataset_timezone", None)
         dataset_timezone = get_timezone() if callable(get_timezone) else None
-        if isinstance(dataset_timezone, str):
+        if isinstance(dataset_timezone, str) and dataset_timezone:
             try:
                 return bound.astimezone(ZoneInfo(dataset_timezone)).replace(tzinfo=None)
             except ZoneInfoNotFoundError:

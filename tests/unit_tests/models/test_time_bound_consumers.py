@@ -18,6 +18,8 @@
 
 import sqlite3
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -438,3 +440,147 @@ def test_review_fill_aware_index_includes_display_hour_offset(
     assert utc_index[-1] == pd.Timestamp(expected_end) + pd.Timedelta(hours=offset)
     assert len(result) == expected_count
     assert result.loc[frame.ts.iloc[0], "value"] == 1.0
+
+
+@pytest.mark.parametrize(
+    "extra,offset,column_type,time_range",
+    [
+        (None, 0, "TIMESTAMP", "2024-04-01T00:00:00+08:00 : 2024-07-01"),
+        (
+            '{"timezone": "Europe/Berlin"}',
+            0,
+            "TIMESTAMP",
+            "2024-04-01T00:00:00+08:00 : 2024-07-01",
+        ),
+        (
+            '{"timezone": "Europe/Berlin"}',
+            0,
+            "TIMESTAMP",
+            "2024-01-01T00:00:00+08:00 : 2024-07-01",
+        ),
+        (
+            '{"timezone": "Europe/Berlin"}',
+            0,
+            "TIMESTAMP",
+            "2024-04-01 : 2024-07-01T00:00:00+08:00",
+        ),
+        (None, 8, "TIMESTAMP", "2024-04-01T00:00:00+08:00 : 2024-07-01"),
+        (None, 0, "DATE", "2024-04-01T00:00:00+08:00 : 2024-07-01"),
+    ],
+)
+@pytest.mark.parametrize("datetime_axis", [True, False])
+def test_review_inherit_sql_periods_are_adjacent(
+    app: Flask,
+    extra: str | None,
+    offset: int,
+    column_type: str,
+    time_range: str,
+    datetime_axis: bool,
+) -> None:
+    """The actual comparison request selects a preceding, non-overlapping SQL window."""
+    table, col = _dataset(extra, offset, column_type)
+    start, end = get_since_until(time_range)
+    query = QueryObject(
+        datasource=table,
+        granularity="ts",
+        time_range=time_range,
+        filters=[{"col": "ts", "op": "TEMPORAL_RANGE", "val": time_range}],
+        row_limit=100,
+        from_dttm=start,
+        to_dttm=end,
+        time_offsets=["inherit"],
+        metrics=["value"],
+    )
+    frame = pd.DataFrame(
+        {
+            "__timestamp": pd.to_datetime(["2024-04-01"])
+            if datetime_axis
+            else ["category"],
+            "value": [1],
+        }
+    )
+    with app.app_context():
+        main_start, main_end = table.adjust_time_bounds(start, end, col)
+        main_sql = str(table.get_time_filter(col, start, end))
+        with (
+            patch(
+                "superset.common.utils.query_cache_manager.QueryCacheManager.get",
+                return_value=SimpleNamespace(is_loaded=False),
+            ),
+            patch.object(table, "join_offset_dfs", return_value=frame),
+            patch.object(
+                table,
+                "query",
+                return_value=SimpleNamespace(df=pd.DataFrame(), query="comparison"),
+            ) as run_query,
+        ):
+            table.processing_time_offsets(frame, query)
+        request = run_query.call_args.args[0]
+        previous_start, previous_end = table.adjust_time_bounds(
+            request["from_dttm"], request["to_dttm"], col
+        )
+        previous_sql = str(
+            table.get_time_filter(col, request["from_dttm"], request["to_dttm"])
+        )
+        filter_bounds = get_since_until(request["filter"][0]["val"])
+        assert table.adjust_time_bounds(*filter_bounds, col) == (
+            previous_start,
+            previous_end,
+        )
+    assert previous_end == main_start
+    assert main_start is not None
+    assert main_end is not None
+    assert previous_start is not None
+    assert previous_end is not None
+    assert main_end - main_start == previous_end - previous_start
+    # Execute the generated predicates on both sides of the shared boundary.
+    with sqlite3.connect(":memory:") as connection:
+        connection.execute("CREATE TABLE events (ts TEXT)")
+        connection.executemany(
+            "INSERT INTO events VALUES (?)",
+            [
+                ((main_start - timedelta(hours=1)).strftime("%Y-%m-%d %H:%M:%S"),),
+                (main_start.strftime("%Y-%m-%d %H:%M:%S"),),
+                ((main_start + timedelta(hours=1)).strftime("%Y-%m-%d %H:%M:%S"),),
+            ],
+        )
+        overlap = connection.execute(
+            f"SELECT count(*) FROM events WHERE ({main_sql}) AND ({previous_sql})"  # noqa: S608
+        ).fetchone()[0]
+    assert overlap == 0
+    assert query.from_dttm == start
+    assert query.to_dttm == end
+
+
+@pytest.mark.parametrize("offset", [0, 8])
+def test_review_empty_dataset_timezone_uses_display_fallback(offset: int) -> None:
+    """An empty timezone is unset, so range padding uses UTC/Hour Offset."""
+    table, _ = _dataset('{"timezone": ""}', offset)
+    start, end = get_since_until(QUARTER_RANGE)
+    query = QueryObject(
+        datasource=table,
+        from_dttm=start,
+        to_dttm=end,
+        row_limit=1,
+        post_processing=[
+            {
+                "operation": "resample",
+                "options": {
+                    "rule": "1h",
+                    "method": "asfreq",
+                    "fill_value": 0,
+                    "fill_time_range": True,
+                },
+            }
+        ],
+    )
+    frame = pd.DataFrame({"ts": pd.to_datetime(["2024-05-01"]), "value": [1]})
+    normalize_dttm_col(frame, (DateColumn(col_label="ts", timezone="", offset=offset),))
+    result = query.exec_post_processing(frame.set_index("ts"))
+    assert result.index[0] == pd.Timestamp("2024-03-31 16:00") + pd.Timedelta(
+        hours=offset
+    )
+    assert result.index[-1] == pd.Timestamp("2024-06-30 15:00") + pd.Timedelta(
+        hours=offset
+    )
+    assert result.loc[frame.ts.iloc[0], "value"] == 1

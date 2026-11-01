@@ -504,7 +504,10 @@ mix boundaries with and without offsets (for example, a quarter expression and
 `now`) retain their offsets and use wall-clock ordering for range validation.
 Use explicit offsets on both boundaries when validation must compare instants.
 Time-comparison periods preserve explicit offsets. Mixed-bound date arithmetic
-uses the same wall-clock compatibility rule as validation. MCP dashboard range
+uses the same wall-clock compatibility rule as validation. For `inherit` time
+comparisons with explicit-offset boundaries, the preceding period uses the
+dataset's actual SQL range and duration, so its exclusive end meets the main
+period's start without an overlap or gap. MCP dashboard range
 intersections compare the instants used by the destination dataset's SQL filter,
 so an intersection cannot widen the dashboard range. Jinja time-filter macros
 use the chart filter's adjustments for explicit offsets; boundaries without

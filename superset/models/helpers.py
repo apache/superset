@@ -3110,11 +3110,28 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
                 else:
                     # RELATIVE OFFSET LOGIC (like "1 day ago")
+                    shift_from_dttm, shift_to_dttm = outer_from_dttm, outer_to_dttm
+                    if offset == "inherit":
+                        temporal_col = self._get_temporal_column_for_filter(
+                            query_object, get_x_axis_label(query_object.columns)
+                        )
+                        shift_from_dttm, shift_to_dttm = self._inherit_time_bounds(
+                            outer_from_dttm,
+                            outer_to_dttm,
+                            next(
+                                (
+                                    col
+                                    for col in self.columns
+                                    if col.column_name == temporal_col
+                                ),
+                                None,
+                            ),
+                        )
                     if self.is_valid_date(offset) or offset == "inherit":
                         offset = self.get_offset_custom_or_inherit(
                             offset,
-                            outer_from_dttm,
-                            outer_to_dttm,
+                            shift_from_dttm,
+                            shift_to_dttm,
                         )
                     elif not is_parseable_human_timedelta(offset):
                         # get_past_or_future silently returns the source time
@@ -3134,10 +3151,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         )
                     query_object_clone.from_dttm = get_past_or_future(
                         offset,
-                        outer_from_dttm,
+                        shift_from_dttm,
                     )
                     query_object_clone.to_dttm = get_past_or_future(
-                        offset, outer_to_dttm
+                        offset, shift_to_dttm
                     )
 
                     query_object_clone.inner_from_dttm = outer_from_dttm
@@ -3210,6 +3227,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         ) == FilterOperator.TEMPORAL_RANGE and isinstance(
                             flt.get("val"), str
                         ):
+                            if (
+                                original_offset == "inherit"
+                                and flt.get("col") == temporal_col
+                                and (
+                                    outer_from_dttm.utcoffset() is not None
+                                    or outer_to_dttm.utcoffset() is not None
+                                )
+                            ):
+                                flt["val"] = (
+                                    f"{query_object_clone.from_dttm} : "
+                                    f"{query_object_clone.to_dttm}"
+                                )
+                                continue
                             time_range = cast(str, flt.get("val"))
                             (
                                 new_outer_from_dttm,
@@ -3392,6 +3422,28 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # YYYY-MM-DD:YYYY-MM-DD
             return False
 
+    def _inherit_time_bounds(
+        self,
+        start: datetime,
+        end: datetime,
+        time_col: Optional["TableColumn"] = None,
+    ) -> tuple[datetime, datetime]:
+        """Resolve explicit inherited periods in the SQL filter's coordinate frame."""
+        if start.utcoffset() is None and end.utcoffset() is None:
+            return start, end
+        if time_col is None:
+            time_col = next(
+                (col for col in self.columns if col.column_name == self.main_dttm_col),
+                None,
+            )
+        sql_start, sql_end = self.adjust_time_bounds(start, end, time_col)
+        # Both inputs are enclosed. UTC tags prevent naive dataset settings from
+        # being applied a second time to the shifted comparison window.
+        return (
+            cast(datetime, sql_start).replace(tzinfo=timezone.utc),
+            cast(datetime, sql_end).replace(tzinfo=timezone.utc),
+        )
+
     def get_offset_custom_or_inherit(
         self,
         offset: str,
@@ -3415,7 +3467,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # single day and overlap it. Whole-day ranges resolve to the same
             # instant either way.
             from_comparison, to_comparison = get_comparable_bounds(
-                outer_from_dttm, outer_to_dttm
+                *self._inherit_time_bounds(outer_from_dttm, outer_to_dttm)
             )
             duration = to_comparison - from_comparison
             return f"{int(duration.total_seconds())} seconds ago"
