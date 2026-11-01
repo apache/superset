@@ -272,7 +272,9 @@ the same way.
 
 When the warehouse rejects a chart query because of that column, Superset runs the query once
 more without the mirrored predicate. The rows returned are the same; the query is slower,
-because it reads every partition. The unpruned result is cached like any other.
+because it reads every partition. The unpruned result is cached like any other, and the
+unpruned statement is checked against the same disallowed SQL tables and functions settings as
+any chart query, and refused the same way if it is denied.
 
 This applies to chart queries run through the normal chart path, and the cost depends on the
 query:
