@@ -395,6 +395,14 @@ class DashboardDatasetSchema(Schema):
     granularity_sqla = fields.List(fields.List(fields.Str()))
     normalize_columns = fields.Bool()
     always_filter_main_dttm = fields.Bool()
+    # Nullable, because `SqlaTable.data` includes all three unconditionally:
+    # the first two are `None` on any dataset without a mapping, and
+    # `partition_mapped_column` is `None` whenever the mapping follows
+    # `main_dttm_col`. Declared non-nullable, the generated spec rejected an
+    # ordinary successful response under strict client validation.
+    partition_column = fields.Str(allow_none=True)
+    partition_mapped_column = fields.Str(allow_none=True)
+    partition_filter_mapping = fields.Dict(allow_none=True)
 
     # pylint: disable=unused-argument
     @post_dump()
@@ -405,7 +413,11 @@ class DashboardDatasetSchema(Schema):
             serialized.pop("semantic_view_features", None)
             serialized.pop("editors", None)
             # Guest users should never receive fields that expose internal
-            # connection or query details.
+            # connection or query details. The partition filter mapping is in
+            # the list for the reason `sql` is: `evaluated_transform` is a SQL
+            # expression, and the other two name columns. Only the dataset
+            # editor and Explore's pruning indicator read them, neither of
+            # which is a guest surface.
             for key in (
                 "sql",
                 "select_star",
@@ -413,6 +425,9 @@ class DashboardDatasetSchema(Schema):
                 "edit_url",
                 "fetch_values_predicate",
                 "template_params",
+                "partition_column",
+                "partition_mapped_column",
+                "partition_filter_mapping",
             ):
                 serialized.pop(key, None)
         return serialized

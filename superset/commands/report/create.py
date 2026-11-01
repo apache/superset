@@ -211,6 +211,7 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         )
         self.validate_recipients_policy(exceptions)
         self._validate_executors(report_type, exceptions)
+        self.validate_executor_target_access(exceptions)
 
         if exceptions:
             raise ReportScheduleInvalidError(exceptions=exceptions)

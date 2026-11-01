@@ -99,6 +99,11 @@ MCP Vega-Lite previews of grouped time-series charts retain each series from
 post-processed chart data, including charts with multiple grouping dimensions.
 Saved line, bar, area, and scatter previews honor the requested width and height
 and include the chart name in their description.
+Chart filters on the selected temporal column apply independently of the chart's
+time range, including Big Number trendlines and generated or updated previews.
+Dashboard-scoped dataset queries refuse a time-column override that would discard
+a caller or dashboard predicate on a different temporal column. Use that filtered
+column as `time_column`, or query the dashboard's charts.
 When rebuilding queries for saved charts without a query context, MCP honors
 resampling across the requested time range, inherited table time comparisons,
 and temporal column references for semantic views. A matching inherited table

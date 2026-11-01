@@ -1274,7 +1274,9 @@ def test_cancelled_impala_cursor_is_not_finalized_as_success(
     finalize = mocker.spy(celery_task, "_finalize_successful_query")
     store = mocker.patch("superset.sql.execution.celery_task._store_results_in_backend")
     mocker.patch("superset.sql.execution.celery_task.results_backend", MagicMock())
-    post = mocker.patch("superset.db_engine_specs.impala.requests.post")
+    post = mocker.patch(
+        "superset.db_engine_specs.impala.get_ssrf_safe_requester"
+    ).return_value.post
 
     payload = celery_task._execute_sql_statements(123, "SELECT 1", None)
 

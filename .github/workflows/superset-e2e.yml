@@ -551,10 +551,16 @@ jobs:
   playwright-tests-required:
     needs: [changes, playwright-tests]
     if: always()
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     timeout-minutes: 5
-    permissions: {}
+    permissions:
+      contents: read
+      actions: read
     steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
+        with:
+          expand-composite-actions: true
+
       - name: Check playwright-tests result
         env:
           CHANGES: ${{ needs.changes.result }}
@@ -569,14 +575,3 @@ jobs:
             exit 1
           fi
           echo "playwright-tests result: $RESULT (changes: $CHANGES)"
-
-  actions-timeline:
-    needs: [playwright-tests, playwright-tests-required]
-    if: always()
-    runs-on: ubuntu-slim
-    permissions:
-      actions: read
-    steps:
-      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
-        with:
-          expand-composite-actions: true
