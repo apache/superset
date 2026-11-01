@@ -50,10 +50,13 @@ from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     QueryObjectValidationError,
+    SupersetDisallowedSQLFunctionException,
+    SupersetDisallowedSQLTableException,
     SupersetSecurityException,
     SupersetTimeoutException,
 )
 from superset.models.core import Database
+from superset.models.helpers import ExploreMixin
 from superset.superset_typing import QueryObjectDict
 from superset.utils import json
 from superset.utils.core import FilterOperator
@@ -3810,3 +3813,100 @@ def test_a_series_limited_chart_recovers_with_one_retry(
     assert "dt_key" not in executed[1]
     assert result.df["country"].tolist() == ["US"]
     assert list(result.df.columns) == ["__timestamp", "country", "hits"]
+
+
+# ---------------------------------------------------------------------------
+# The retried statement goes through the disallowed SQL gate
+# ---------------------------------------------------------------------------
+
+
+@contextmanager
+def _rendering_the_unmirrored_query_as(sql: str) -> Iterator[None]:
+    """
+    Make the render without the partition mirror come out as ``sql``.
+
+    Stands in for a template whose output differs from one render to the next:
+    the statement checked first and the statement retried are separate renders,
+    and nothing guarantees the second says what the first did.
+    """
+    real = ExploreMixin.get_query_str_extended
+
+    def get_query_str_extended(
+        self: ExploreMixin, query_obj: QueryObjectDict, *args: Any, **kwargs: Any
+    ) -> Any:
+        rendered = real(self, query_obj, *args, **kwargs)
+        if kwargs.get("mirror_partition_filters", True) is False:
+            return rendered._replace(sql=sql)
+        return rendered
+
+    with patch.object(ExploreMixin, "get_query_str_extended", get_query_str_extended):
+        yield
+
+
+def test_a_retried_statement_naming_a_disallowed_table_is_refused(
+    app: Flask, tmp_path: Path
+) -> None:
+    table = _warehouse_table(tmp_path, source_partition_column=None)
+    error = sqlite3.OperationalError("no such column: dt_key")
+
+    with (
+        app.app_context(),
+        patch.dict(app.config, {"DISALLOWED_SQL_TABLES": {"sqlite": {"secret_table"}}}),
+        _rendering_the_unmirrored_query_as("SELECT country FROM secret_table"),
+        _rejecting_statements_that_mention("dt_key", error) as executed,
+    ):
+        with pytest.raises(SupersetDisallowedSQLTableException):
+            _run_january_chart(table)
+
+    assert len(executed) == 1
+
+
+def test_a_retried_statement_calling_a_disallowed_function_is_refused(
+    app: Flask, tmp_path: Path
+) -> None:
+    table = _warehouse_table(tmp_path, source_partition_column=None)
+    error = sqlite3.OperationalError("no such column: dt_key")
+
+    with (
+        app.app_context(),
+        patch.dict(
+            app.config, {"DISALLOWED_SQL_FUNCTIONS": {"sqlite": {"load_extension"}}}
+        ),
+        _rendering_the_unmirrored_query_as(
+            "SELECT load_extension('x') FROM web_events"
+        ),
+        _rejecting_statements_that_mention("dt_key", error) as executed,
+    ):
+        with pytest.raises(SupersetDisallowedSQLFunctionException):
+            _run_january_chart(table)
+
+    assert len(executed) == 1
+
+
+def test_a_retried_statement_the_denylist_allows_still_recovers(
+    app: Flask, tmp_path: Path
+) -> None:
+    """
+    Control: with a denylist configured, a retried statement that does not match
+    it runs as before. (With no denylist configured the recovery is covered by
+    the guards above.)
+    """
+    table = _warehouse_table(tmp_path, source_partition_column=None)
+    error = sqlite3.OperationalError("no such column: dt_key")
+
+    with (
+        app.app_context(),
+        patch.dict(
+            app.config,
+            {
+                "DISALLOWED_SQL_TABLES": {"sqlite": {"secret_table"}},
+                "DISALLOWED_SQL_FUNCTIONS": {"sqlite": {"load_extension"}},
+            },
+        ),
+        _rejecting_statements_that_mention("dt_key", error) as executed,
+    ):
+        result = _run_january_chart(table)
+
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    assert len(executed) == 2
+    assert "dt_key" not in executed[1]
