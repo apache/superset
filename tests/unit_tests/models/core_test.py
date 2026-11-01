@@ -678,6 +678,34 @@ def test_get_sqla_engine_honors_adjusted_connect_args(mocker: MockerFixture) -> 
     assert kwargs["connect_args"].get("local_infile") == 0
 
 
+def test_get_sqla_engine_enforced_connect_args_outlast_encrypted_extra(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``encrypted_extra`` is merged into ``engine_kwargs`` after
+    ``adjust_engine_params`` has applied the engine spec's enforced
+    ``connect_args``. The enforced values must stay authoritative, so an
+    ``encrypted_extra`` that also provides ``connect_args`` cannot replace them.
+    Exercised via MySQL, which enforces ``local_infile=0``.
+    """
+    from superset.models.core import Database
+
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="mysql://u:p@h/db",
+        encrypted_extra=json.dumps({"connect_args": {"local_infile": 1}}),
+    )
+    database._get_sqla_engine(nullpool=False)
+
+    _, kwargs = create_engine_mock.call_args
+    assert kwargs["connect_args"].get("local_infile") == 0
+
+
 def test_get_sqla_engine_caches_engine_per_url(mocker: MockerFixture) -> None:
     """
     Regression for #27897: a single SQLAlchemy ``Engine`` should be created per
