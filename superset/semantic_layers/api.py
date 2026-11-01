@@ -18,11 +18,12 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any
+from collections.abc import Callable
+from functools import wraps
+from typing import Any, ParamSpec
 
-from flask import Blueprint, current_app, make_response, request, Response
-from flask_appbuilder import AppBuilder
-from flask_appbuilder.api import BaseApi, expose, protect, rison, safe
+from flask import current_app, make_response, request, Response
+from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as t, ngettext
@@ -120,28 +121,21 @@ def _log_bulk_create_timeouts(timed_out: int, total: int) -> None:
         )
 
 
-def _refuse_disabled_semantic_layers() -> FlaskResponse | None:
-    """Refuse semantic API dispatch before authentication or handler side effects."""
-    if not is_semantic_layers_enabled():
-        return BaseSupersetApi.response(404, message="Not found")
-    return None
+P = ParamSpec("P")
 
 
-class _RuntimeGuardedApiMixin(BaseApi):
-    """Install the same runtime guard on both semantic API blueprints."""
+def _requires_semantic_layers(
+    function: Callable[P, FlaskResponse],
+) -> Callable[P, FlaskResponse]:
+    """Check runtime availability after the endpoint's permission decorator."""
 
-    def create_blueprint(
-        self,
-        appbuilder: AppBuilder,
-        endpoint: str | None = None,
-        static_folder: str | None = None,
-    ) -> Blueprint:
-        """Register all routes behind a runtime feature-availability guard."""
-        blueprint: Blueprint = super().create_blueprint(
-            appbuilder, endpoint, static_folder
-        )
-        blueprint.before_request(_refuse_disabled_semantic_layers)
-        return blueprint
+    @wraps(function)
+    def wrapped(*args: P.args, **kwargs: P.kwargs) -> FlaskResponse:
+        if not is_semantic_layers_enabled():
+            return BaseSupersetApi.response(404, message="Not found")
+        return function(*args, **kwargs)
+
+    return wrapped
 
 
 def _mask_configuration(layer: SemanticLayer, config: dict[str, Any]) -> dict[str, Any]:
@@ -247,7 +241,7 @@ def _parse_partial_config(
         return None
 
 
-class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
+class SemanticViewRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(SemanticView)
 
     resource_name = "semantic_view"
@@ -268,6 +262,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/structure", methods=("GET",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -363,6 +358,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
 
     @expose("/", methods=("POST",))
     @protect()
+    @_requires_semantic_layers
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
@@ -473,6 +469,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
 
     @expose("/<int:pk>", methods=("PUT",))
     @protect()
+    @_requires_semantic_layers
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
@@ -546,6 +543,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
 
     @expose("/<int:pk>", methods=("DELETE",))
     @protect()
+    @_requires_semantic_layers
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
@@ -644,6 +642,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
 
     @expose("/", methods=("DELETE",))
     @protect()
+    @_requires_semantic_layers
     @statsd_metrics
     @rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
@@ -759,7 +758,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
             return self.response_422(message=str(ex))
 
 
-class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
+class SemanticLayerRestApi(BaseSupersetApi):
     resource_name = "semantic_layer"
     allow_browser_login = True
     class_permission_name = "SemanticLayer"
@@ -783,6 +782,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/types", methods=("GET",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     def types(self) -> FlaskResponse:
@@ -804,6 +804,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/schema/configuration", methods=("POST",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     @requires_json
@@ -877,6 +878,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/<uuid>/schema/runtime", methods=("POST",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     def runtime_schema(self, uuid: str) -> FlaskResponse:
@@ -945,6 +947,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/<uuid>/views", methods=("POST",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     def views(self, uuid: str) -> FlaskResponse:
@@ -1028,6 +1031,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/", methods=("POST",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     @requires_json
@@ -1083,6 +1087,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/<uuid>", methods=("PUT",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     @requires_json
@@ -1149,6 +1154,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/<uuid>/clear_cache", methods=("POST",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     @requires_json
@@ -1200,6 +1206,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/<uuid>", methods=("DELETE",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     def delete(self, uuid: str) -> FlaskResponse:
@@ -1292,6 +1299,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/connections/", methods=("GET",))
     @protect_read("Database", "SemanticLayer")
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     @rison(get_list_schema)
@@ -1507,6 +1515,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/", methods=("GET",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     def get_list(self) -> FlaskResponse:
@@ -1529,6 +1538,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
     @expose("/<uuid>", methods=("GET",))
     @protect()
+    @_requires_semantic_layers
     @safe
     @statsd_metrics
     def get(self, uuid: str) -> FlaskResponse:
