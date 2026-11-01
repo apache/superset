@@ -91,6 +91,7 @@ const renderItem = (props: Partial<SaveGroupItemProps> = {}) =>
       entityType="chart"
       group={makeGroup()}
       isCurrent={false}
+      currentKnown
       canRestore
       isHighlighted={false}
       marksCurrentState={false}
@@ -226,6 +227,10 @@ test('a chart starting group exposes an explicit preview action', async () => {
   renderItem({ group, onPreview });
 
   const button = screen.getByRole('button', { name: 'Preview this version' });
+  expect(button).toHaveAttribute('data-test', 'version-history-group-preview');
+  expect(button).toHaveAccessibleDescription(
+    'Ada Lovelace · 12/5/2025 12:18PM',
+  );
   await userEvent.click(button);
 
   expect(onPreview).toHaveBeenCalledWith(group);
@@ -356,6 +361,14 @@ test.each<{ entityType: VersionedEntityType; isCurrent: boolean }>([
       onRestore,
     });
 
+    const headerPreview = screen.queryByRole('button', {
+      name: 'Preview this version',
+    });
+    if (isCurrent) {
+      expect(headerPreview).not.toBeInTheDocument();
+    } else {
+      expect(headerPreview).toBeInTheDocument();
+    }
     await userEvent.click(screen.getByRole('button', { name: /Aug 31, 2026/ }));
     const rows = screen.getAllByTestId('version-history-action-row');
     expect(rows).toHaveLength(2);

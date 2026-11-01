@@ -376,6 +376,9 @@ test('an unavailable current-version probe explains and withholds restore', asyn
     currentVersionStatus: 'unavailable',
   });
   render(<VersionHistoryPanel {...props} />);
+  expect(
+    screen.queryAllByRole('button', { name: 'Preview this version' }),
+  ).toHaveLength(0);
 
   expect(
     screen.getByText(
@@ -398,6 +401,9 @@ test('a loading current-version probe withholds restore without an error', async
     currentVersionStatus: 'loading',
   });
   render(<VersionHistoryPanel {...props} />);
+  expect(
+    screen.queryAllByRole('button', { name: 'Preview this version' }),
+  ).toHaveLength(0);
 
   expect(
     screen.queryByText(/current version could not be identified/i),
@@ -406,6 +412,39 @@ test('a loading current-version probe withholds restore without an error', async
     screen.getAllByRole('button', { name: 'More actions' })[1],
   );
   expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
+});
+
+test('header preview follows current-version probe transitions', () => {
+  const { newest, older } = dashboardPair();
+  const props = defaultProps([newest, older], 'dashboard');
+  const { rerender } = render(
+    <VersionHistoryPanel
+      {...props}
+      activity={activity([newest, older], {
+        newestGroup: null,
+        currentVersionStatus: 'loading',
+      })}
+    />,
+  );
+  expect(
+    screen.queryAllByRole('button', { name: 'Preview this version' }),
+  ).toHaveLength(0);
+  rerender(<VersionHistoryPanel {...props} />);
+  expect(
+    screen.getAllByRole('button', { name: 'Preview this version' }),
+  ).toHaveLength(1);
+  rerender(
+    <VersionHistoryPanel
+      {...props}
+      activity={activity([newest, older], {
+        newestGroup: null,
+        currentVersionStatus: 'unavailable',
+      })}
+    />,
+  );
+  expect(
+    screen.queryAllByRole('button', { name: 'Preview this version' }),
+  ).toHaveLength(0);
 });
 
 // Search is server-side: the panel forwards the term to the container, which
