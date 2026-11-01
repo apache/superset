@@ -16,8 +16,9 @@
 # under the License.
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
+from functools import partial
 from typing import Any, cast
 
 from flask import current_app
@@ -30,6 +31,20 @@ from superset.utils.core import (
     get_x_axis_label,
 )
 from superset.utils.date_parser import get_since_until
+
+
+def get_time_range_normalizer(
+    datasource: Any, time_column: str | None = None
+) -> Callable[[datetime, datetime], tuple[datetime, datetime]] | None:
+    """Bind inherited comparisons to the destination column's SQL semantics."""
+    normalize = getattr(datasource, "_inherit_time_bounds", None)
+    if not callable(normalize):
+        return None
+    columns = getattr(datasource, "columns", ())
+    if not isinstance(columns, (list, tuple)):
+        return None
+    time_col = next((col for col in columns if col.column_name == time_column), None)
+    return partial(normalize, time_col=time_col)
 
 
 def get_time_range_from_filters(
@@ -60,6 +75,9 @@ def get_since_until_from_time_range(
     time_range: str | None = None,
     time_shift: str | None = None,
     extras: dict[str, Any] | None = None,
+    *,
+    time_range_normalizer: Callable[[datetime, datetime], tuple[datetime, datetime]]
+    | None = None,
 ) -> tuple[datetime | None, datetime | None]:
     return get_since_until(
         relative_start=(extras or {}).get(
@@ -73,6 +91,7 @@ def get_since_until_from_time_range(
         instant_time_comparison_range=(extras or {}).get(
             "instant_time_comparison_range"
         ),
+        time_range_normalizer=time_range_normalizer,
     )
 
 
@@ -93,6 +112,9 @@ def get_since_until_from_query_object(
             time_range=query_object.time_range,
             time_shift=query_object.time_shift,
             extras=query_object.extras,
+            time_range_normalizer=get_time_range_normalizer(
+                query_object.datasource, query_object.granularity
+            ),
         )
 
     time_range = None
@@ -106,4 +128,7 @@ def get_since_until_from_query_object(
         time_range=time_range,
         time_shift=query_object.time_shift,
         extras=query_object.extras,
+        time_range_normalizer=get_time_range_normalizer(
+            query_object.datasource, query_object.granularity
+        ),
     )

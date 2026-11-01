@@ -57,7 +57,7 @@ def _coerce_bound(
         return timestamp if tz is None else timestamp.tz_localize(tz)
     # an index and a boundary in different timezones would append into an
     # object-dtype index that ``resample`` cannot bin
-    return timestamp.tz_localize(None) if tz is None else timestamp.tz_convert(tz)
+    return timestamp.tz_convert(None) if tz is None else timestamp.tz_convert(tz)
 
 
 def _pad_to_time_range(
