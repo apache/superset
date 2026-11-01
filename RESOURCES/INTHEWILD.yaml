@@ -465,6 +465,10 @@ categories:
       url: https://brandct.cn/
       contributors: ["@wenbinye"]
 
+    - name: Wordfully
+      url: https://wordfully.ai
+      contributors: ["@vlbaluk"]
+
     - name: XNET
       url: https://xnetmobile.com/
       logo: xnet.png

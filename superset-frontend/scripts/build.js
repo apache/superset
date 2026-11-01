@@ -139,6 +139,8 @@ run(`${babelCommand} --out-dir esm`, {
 console.log('--- Run tsc ---');
 // only run tsc for packages with ts files
 scope = getPackages(glob, true);
+// Each compiler also builds project references. Serialize these runs so shared
+// dependency declarations are not written by multiple compilers at once.
 run(
-  `lerna exec --stream --concurrency 3 --scope ${scope} -- ../../scripts/tsc.sh --build`,
+  `lerna exec --stream --concurrency 1 --scope ${scope} -- ../../scripts/tsc.sh --build`,
 );
