@@ -24,6 +24,7 @@ export interface Dashboard {
   slug?: string | null;
   url: string;
   dashboard_title: string;
+  description?: string | null;
   thumbnail_url: string | null;
   published: boolean;
   css?: string | null;

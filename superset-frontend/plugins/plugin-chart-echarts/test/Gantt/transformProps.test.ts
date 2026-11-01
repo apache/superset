@@ -56,6 +56,7 @@ const formData: EchartsGanttFormData = {
   legendOrientation: LegendOrientation.Top,
   legendType: LegendType.Scroll,
   showLegend: true,
+  showSelectorLegend: true,
   sortSeriesAscending: true,
   legendSort: null,
 };
@@ -140,6 +141,7 @@ describe('Gantt transformProps', () => {
           legend: expect.objectContaining({
             show: true,
             type: 'scroll',
+            selector: ['all', 'inverse'],
           }),
           tooltip: {
             formatter: expect.anything(),
@@ -613,7 +615,10 @@ test('reserves grid room for category names so they are not clipped (#38844)', (
       queriesData: [
         {
           ...queriesData[0],
-          data: queriesData[0].data.map(datum => ({ ...datum, 'Y Axis': 'a' })),
+          data: queriesData[0].data.map(datum => ({
+            ...datum,
+            'Y Axis': 'a',
+          })),
         },
       ],
     }) as EchartsGanttChartProps,

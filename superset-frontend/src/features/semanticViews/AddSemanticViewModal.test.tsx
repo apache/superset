@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import getBootstrapData from 'src/utils/getBootstrapData';
 import {
   act,
   fireEvent,
@@ -46,6 +47,13 @@ jest.mock('@superset-ui/core', () => ({
   },
 }));
 
+let mockSemanticDocsUrl: unknown;
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  ...jest.requireActual('src/utils/getBootstrapData'),
+  default: jest.fn(jest.requireActual('src/utils/getBootstrapData').default),
+}));
+
 const mockedGet = SupersetClient.get as jest.Mock;
 const mockedPost = SupersetClient.post as jest.Mock;
 
@@ -64,6 +72,22 @@ const selectOption = async (name: string, optionLabel: string) => {
 };
 
 beforeEach(() => {
+  mockSemanticDocsUrl = undefined;
+  jest.mocked(getBootstrapData).mockImplementation(() => {
+    const bootstrap = jest
+      .requireActual('src/utils/getBootstrapData')
+      .default();
+    return {
+      ...bootstrap,
+      common: {
+        ...bootstrap.common,
+        conf: {
+          ...bootstrap.common.conf,
+          SEMANTIC_LAYER_DOCUMENTATION_URL: mockSemanticDocsUrl,
+        },
+      },
+    };
+  });
   mockedGet.mockReset();
   mockedPost.mockReset();
 });
@@ -215,8 +239,252 @@ test('shows partial success feedback when only some semantic views are created',
       '1 semantic view(s) failed to add: customers',
     );
   });
-  expect(props.onSuccess).not.toHaveBeenCalled();
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    'customers: create failed',
+  );
+  expect(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  ).toBeEnabled();
+  await selectOption('Semantic views', 'orders (already added)');
+  expect(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  ).toBeEnabled();
+  expect(props.onSuccess).toHaveBeenCalledTimes(1);
   expect(props.onHide).not.toHaveBeenCalled();
+  mockedPost.mockResolvedValueOnce({
+    json: { result: { created: [{ uuid: 'view-2', name: 'customers' }] } },
+  });
+  await userEvent.click(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  );
+  expect(mockedPost).toHaveBeenLastCalledWith({
+    endpoint: '/api/v1/semantic_view/',
+    jsonPayload: {
+      views: [
+        {
+          name: 'customers',
+          semantic_layer_uuid: 'layer-1',
+          configuration: {},
+        },
+      ],
+    },
+  });
+  await waitFor(() => expect(props.onHide).toHaveBeenCalledTimes(1));
+});
+
+test.each([
+  [
+    'all failed',
+    {
+      result: {
+        created: [],
+        errors: [
+          { name: 'orders', error: 'Invalid <script>model</script>' },
+          { name: 'customers', error: { configuration: ['Missing field'] } },
+        ],
+      },
+    },
+    [
+      'Failed to add orders: Invalid <script>model</script>',
+      'Failed to add customers: configuration: Missing field',
+    ],
+  ],
+  [
+    'malformed',
+    { result: { errors: 'private provider details' } },
+    ['An error occurred while adding semantic views'],
+  ],
+  [
+    'malformed success',
+    { result: { created: [null], errors: [null] } },
+    ['An error occurred while adding semantic views'],
+  ],
+])(
+  'shows safe inline creation feedback for %s',
+  async (_label, body, messages) => {
+    mockedGet.mockResolvedValue({
+      json: { result: [{ uuid: 'layer-1', name: 'Test layer' }] },
+    });
+    mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+      if (endpoint.endsWith('/schema/runtime'))
+        return Promise.resolve({ json: { result: { properties: {} } } });
+      if (endpoint.endsWith('/views'))
+        return Promise.resolve({
+          json: {
+            result: [
+              { name: 'orders', already_added: false },
+              { name: 'customers', already_added: false },
+            ],
+          },
+        });
+      return _label === 'malformed success'
+        ? Promise.resolve({ json: body })
+        : Promise.reject({ status: 422, json: async () => body });
+    });
+    const props = createProps();
+    render(<AddSemanticViewModal {...props} />);
+    await selectOption('Semantic layer', 'Test layer');
+    await selectOption('Semantic views', 'orders');
+    await selectOption('Semantic views', 'customers');
+    await userEvent.click(
+      screen.getByRole('button', { name: /add 2 view\(s\)/i }),
+    );
+    const alert = await screen.findByRole('alert');
+    messages.forEach(message => expect(alert).toHaveTextContent(message));
+    expect(alert.querySelector('script')).toBeNull();
+    expect(alert).not.toHaveTextContent('private provider details');
+    if (_label.startsWith('malformed')) {
+      expect(props.addDangerToast).toHaveBeenCalledWith(
+        'An error occurred while adding semantic views',
+      );
+    }
+    expect(props.onHide).not.toHaveBeenCalled();
+    expect(props.onSuccess).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('button', { name: /add 2 view\(s\)/i }),
+    ).toBeEnabled();
+  },
+);
+
+test('a creation response cannot update a closed and reopened modal', async () => {
+  let finishSave: (value: unknown) => void = () => {};
+  const pendingSave = new Promise(resolve => {
+    finishSave = resolve;
+  });
+  mockedGet.mockResolvedValue({
+    json: { result: [{ uuid: 'layer-1', name: 'Test layer' }] },
+  });
+  mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+    if (endpoint.endsWith('/schema/runtime'))
+      return Promise.resolve({ json: { result: { properties: {} } } });
+    if (endpoint.endsWith('/views'))
+      return Promise.resolve({
+        json: { result: [{ name: 'orders', already_added: false }] },
+      });
+    return pendingSave;
+  });
+  const props = createProps();
+  const { rerender } = render(<AddSemanticViewModal {...props} />);
+  await selectOption('Semantic layer', 'Test layer');
+  await selectOption('Semantic views', 'orders');
+  await userEvent.click(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  );
+  rerender(<AddSemanticViewModal {...props} show={false} />);
+  rerender(<AddSemanticViewModal {...props} />);
+  await act(async () => {
+    finishSave({
+      json: { result: { created: [{ uuid: 'view-1', name: 'orders' }] } },
+    });
+  });
+  expect(props.onSuccess).toHaveBeenCalledTimes(1);
+  expect(props.onHide).not.toHaveBeenCalled();
+  expect(props.addSuccessToast).toHaveBeenCalledWith(
+    '1 semantic view(s) added',
+  );
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
+test.each([1, 2, 100])(
+  'counts %s unnamed failures without a long toast',
+  async count => {
+    mockedGet.mockResolvedValue({
+      json: { result: [{ uuid: 'layer-1', name: 'Test layer' }] },
+    });
+    mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+      if (endpoint.endsWith('/schema/runtime'))
+        return Promise.resolve({ json: { result: { properties: {} } } });
+      if (endpoint.endsWith('/views'))
+        return Promise.resolve({
+          json: { result: [{ name: 'orders', already_added: false }] },
+        });
+      return Promise.resolve({
+        json: {
+          result: {
+            created: [],
+            errors: Array.from({ length: count }, (_, index) => ({
+              name: count === 2 && index === 0 ? 'orders' : null,
+              error: 'Invalid view',
+            })),
+          },
+        },
+      });
+    });
+    const props = createProps();
+    render(<AddSemanticViewModal {...props} />);
+    await selectOption('Semantic layer', 'Test layer');
+    await selectOption('Semantic views', 'orders');
+    await userEvent.click(
+      screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+    );
+    await waitFor(() =>
+      expect(props.addDangerToast).toHaveBeenCalledWith(
+        count === 2
+          ? '2 semantic view(s) failed to add: orders'
+          : `${count} semantic view(s) failed to add`,
+      ),
+    );
+  },
+);
+
+test('clears failures on a configuration change and bounds a large failure list', async () => {
+  mockedGet.mockResolvedValue({
+    json: { result: [{ uuid: 'layer-1', name: 'Test layer' }] },
+  });
+  mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+    if (endpoint.endsWith('/schema/runtime'))
+      return Promise.resolve({
+        json: {
+          result: { properties: { note: { type: 'string', title: 'Note' } } },
+        },
+      });
+    if (endpoint.endsWith('/views'))
+      return Promise.resolve({
+        json: { result: [{ name: 'orders', already_added: false }] },
+      });
+    return Promise.resolve({
+      json: {
+        result: {
+          created: [],
+          errors: Array.from({ length: 100 }, (_, index) => ({
+            name: `view-${index}`,
+            error: 'Invalid view',
+          })),
+        },
+      },
+    });
+  });
+  const props = createProps();
+  render(<AddSemanticViewModal {...props} />);
+  await selectOption('Semantic layer', 'Test layer');
+  fireEvent.change(await screen.findByRole('textbox', { name: 'Note' }), {
+    target: { value: 'schema' },
+  });
+  await waitFor(() =>
+    expect(
+      screen.getByRole('combobox', { name: 'Semantic views' }),
+    ).toBeEnabled(),
+  );
+  await selectOption('Semantic views', 'orders');
+  await userEvent.click(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  );
+  const alert = await screen.findByRole('alert');
+  expect(alert).toHaveTextContent('view-99');
+  expect(props.addDangerToast).toHaveBeenCalledWith(
+    '100 semantic view(s) failed to add',
+  );
+  const region = screen.getByRole('region', {
+    name: 'Some semantic views could not be added',
+  });
+  expect(region).toHaveStyleRule('overflow-y', 'auto');
+  expect(region).toHaveStyleRule('max-height', '240px');
+  fireEvent.change(screen.getByRole('textbox', { name: 'Note' }), {
+    target: { value: 'another schema' },
+  });
+  await waitFor(() =>
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument(),
+  );
 });
 
 test('shows toast when loading semantic layers fails', async () => {
@@ -276,6 +544,11 @@ test('shows toast when add semantic views fails', async () => {
       'An error occurred while adding semantic views',
     );
   });
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    'An error occurred while adding semantic views',
+  );
+  expect(screen.getByRole('alert')).not.toHaveTextContent('save failed');
+  expect(props.onHide).not.toHaveBeenCalled();
 });
 
 // ---------------------------------------------------------------------------
@@ -1427,4 +1700,169 @@ test('a superseded refresh failure cannot toast or clobber a newer response', as
   expect(schema.closest('.ant-select')).toHaveTextContent('shared');
   fireEvent.mouseDown(schema);
   expect(await screen.findByText('third_only')).toBeInTheDocument();
+});
+
+test('setup guidance distinguishes pending and empty layers for readers', async () => {
+  let resolveLayers!: (value: { json: { result: [] } }) => void;
+  mockedGet.mockReturnValue(
+    new Promise(resolve => {
+      resolveLayers = resolve;
+    }),
+  );
+  render(<AddSemanticViewModal {...createProps()} />);
+  expect(screen.getByRole('status')).toHaveTextContent(
+    'Loading semantic layers',
+  );
+  expect(screen.queryByText(/Ask your administrator/)).not.toBeInTheDocument();
+  await act(async () => resolveLayers({ json: { result: [] } }));
+  expect(
+    await screen.findByText(
+      /Ask your administrator to set up a semantic layer or grant you access/,
+    ),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Create semantic layer' }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
+});
+
+test('setup guidance offers direct creation only when a caller supplies the action', async () => {
+  mockedGet.mockResolvedValue({ json: { result: [] } });
+  const onCreateLayer = jest.fn();
+  render(
+    <AddSemanticViewModal {...createProps()} onCreateLayer={onCreateLayer} />,
+  );
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Create semantic layer' }),
+  );
+  expect(onCreateLayer).toHaveBeenCalledTimes(1);
+  expect(mockedPost).not.toHaveBeenCalled();
+});
+
+test.each([
+  {},
+  { result: null },
+  { result: {} },
+  { result: [{ name: 'missing id' }] },
+])('setup guidance treats malformed layer data as an error: %j', async json => {
+  mockedGet.mockResolvedValue({ json });
+  render(<AddSemanticViewModal {...createProps()} />);
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Unable to load semantic layers',
+  );
+  expect(
+    screen.queryByText(/No semantic layers are available/),
+  ).not.toBeInTheDocument();
+});
+
+test.each([403, 404, 500])(
+  'setup guidance retries a failed %s read without diagnosing installation',
+  async status => {
+    mockedGet
+      .mockRejectedValueOnce({ status })
+      .mockResolvedValueOnce({ json: { result: [] } });
+    render(<AddSemanticViewModal {...createProps()} />);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to load semantic layers',
+    );
+    expect(
+      screen.queryByText(/No semantic layers are available/),
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(
+      await screen.findByText(/No semantic layers are available to you/),
+    ).toBeInTheDocument();
+    expect(mockedGet).toHaveBeenCalledTimes(2);
+  },
+);
+
+test.each(['resolve', 'reject'])(
+  'setup guidance ignores stale layer %s after reopening',
+  async settlement => {
+    let resolveOld!: (value: { json: { result: [] } }) => void;
+    let rejectOld!: (error: Error) => void;
+    mockedGet
+      .mockReturnValueOnce(
+        new Promise((resolve, reject) => {
+          resolveOld = resolve;
+          rejectOld = reject;
+        }),
+      )
+      .mockResolvedValueOnce({
+        json: { result: [{ uuid: 'current', name: 'Current layer' }] },
+      });
+    const props = createProps();
+    const { rerender } = render(<AddSemanticViewModal {...props} />);
+    rerender(<AddSemanticViewModal {...props} show={false} />);
+    rerender(<AddSemanticViewModal {...props} />);
+    await waitFor(() => expect(mockedGet).toHaveBeenCalledTimes(2));
+    await act(async () => {
+      if (settlement === 'resolve') resolveOld({ json: { result: [] } });
+      else rejectOld(new Error('stale request'));
+    });
+    await userEvent.click(
+      screen.getByRole('combobox', { name: 'Semantic layer' }),
+    );
+    expect(await screen.findByText('Current layer')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/No semantic layers are available/),
+    ).not.toBeInTheDocument();
+    expect(props.addDangerToast).not.toHaveBeenCalled();
+  },
+);
+
+describe('setup documentation', () => {
+  test.each([
+    undefined,
+    null,
+    '',
+    '   ',
+    '/relative',
+    'https://',
+    'https:example.org',
+    '//example.org/docs',
+    // Deliberately unsafe input: the link must reject executable URLs.
+    // eslint-disable-next-line no-script-url
+    'javascript:alert(1)',
+    'data:text/html,test',
+    'https://user:secret@example.org/docs',
+    123,
+  ])('hides an unset or unsafe URL: %p', async url => {
+    mockSemanticDocsUrl = url;
+    mockedGet.mockReset().mockResolvedValue({ json: { result: [] } });
+    render(<AddSemanticViewModal {...createProps()} />);
+    await screen.findByText(/No semantic layer/);
+    expect(
+      screen.queryByRole('link', { name: 'Semantic layer setup guide' }),
+    ).not.toBeInTheDocument();
+  });
+
+  test.each([
+    'https://docs.example.org/setup',
+    'http://docs.example.org/setup',
+  ])(
+    'keeps the configured help link available while loading and after failure: %s',
+    async url => {
+      mockSemanticDocsUrl = url;
+      let reject!: (reason: Error) => void;
+      mockedGet.mockReset().mockReturnValue(
+        new Promise((_, rejectRequest) => {
+          reject = rejectRequest;
+        }),
+      );
+      render(<AddSemanticViewModal {...createProps()} />);
+      const link = screen.getByRole('link', {
+        name: 'Semantic layer setup guide',
+      });
+      expect(link).toHaveAttribute('href', url);
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+      await act(async () => reject(new Error('private detail')));
+      expect(screen.getByRole('alert')).toHaveTextContent('Unable to load');
+      expect(
+        screen.getByRole('link', { name: 'Semantic layer setup guide' }),
+      ).toHaveAttribute('href', url);
+      expect(screen.queryByText('private detail')).not.toBeInTheDocument();
+    },
+  );
 });

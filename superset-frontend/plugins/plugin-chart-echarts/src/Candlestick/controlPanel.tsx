@@ -144,7 +144,7 @@ const config: ControlPanelConfig = {
             name: 'open',
             config: {
               ...sharedControls.metric,
-              label: t('Open'),
+              label: t('Open price'),
               description: t('Opening value for each period.'),
               validators: [validateNonEmpty],
             },
@@ -155,7 +155,7 @@ const config: ControlPanelConfig = {
             name: 'close',
             config: {
               ...sharedControls.metric,
-              label: t('Close'),
+              label: t('Close price'),
               description: t('Closing value for each period.'),
               validators: [validateNonEmpty],
             },
@@ -166,7 +166,7 @@ const config: ControlPanelConfig = {
             name: 'high',
             config: {
               ...sharedControls.metric,
-              label: t('High'),
+              label: t('High price'),
               description: t('Highest value for each period.'),
               validators: [validateNonEmpty],
             },
@@ -177,7 +177,7 @@ const config: ControlPanelConfig = {
             name: 'low',
             config: {
               ...sharedControls.metric,
-              label: t('Low'),
+              label: t('Low price'),
               description: t('Lowest value for each period.'),
               validators: [validateNonEmpty],
             },

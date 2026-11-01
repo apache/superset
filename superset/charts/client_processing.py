@@ -26,6 +26,7 @@ In order to do that, we reproduce the post-processing in Python for these chart 
 
 import logging
 from collections.abc import Callable
+from decimal import Decimal
 from functools import partial
 from io import BytesIO, StringIO
 from typing import Any, Optional, TYPE_CHECKING, Union
@@ -72,6 +73,10 @@ PERCENT_1_POINT = ",.1%"
 
 # The Excel equivalent, applied as a cell format so the value stays numeric.
 EXCEL_PERCENT_FORMAT = "0.0%"
+
+# ``VizType.TableAgGrid``. The AG Grid table plugin reuses the Table plugin's
+# column meta and formatter selection, so it shares this post-processor.
+AG_GRID_TABLE = "ag-grid-table"
 
 
 def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
@@ -930,6 +935,25 @@ pivot_v2_aggfunc_map = {
 }
 
 
+def is_small_number(value: Any) -> bool:
+    """
+    Whether a cell takes the small-number format, as the browser decides it.
+
+    ``formatColumnValue`` in ``plugin-chart-table`` switches formatter when
+    ``Math.abs(value) < 1``, which only applies to numbers; booleans are not
+    numbers there.
+
+    The type check is not only about matching that: the percent metric branch
+    is the one caller that does not test ``is_numeric_dtype`` first, so a
+    percent metric column carrying a null or a text value reaches here, and
+    ``float`` would raise on both. NaN and infinity need no check of their own,
+    since ``abs`` leaves them outside the comparison just as ``Math.abs`` does.
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, float, Decimal)):
+        return False
+    return abs(float(value)) < 1
+
+
 def format_column(
     df: pd.DataFrame,
     column: Any,
@@ -938,6 +962,8 @@ def format_column(
     detected_currency: Optional[str] = None,
     currency_context: Optional[pd.Series] = None,
     fallback_to_detected: bool = True,
+    small_d3_format: Optional[str] = None,
+    small_currency: Optional[dict[str, Any]] = None,
 ) -> None:
     """
     Format a column in place when a number or currency format is configured.
@@ -946,18 +972,67 @@ def format_column(
     parallel ``currency_context`` series is present, AUTO uses each row/cell's
     contributing currencies first. Mixed context renders a neutral number;
     empty context optionally falls back to query-wide detection.
+
+    ``small_d3_format`` is the column's small-number format. The choice is per
+    cell rather than per column, matching ``formatColumnValue``: a value below
+    one in absolute value takes that format with the column config's own
+    currency, exactly what ``getSmallNumberFormatter`` builds, and every other
+    value keeps the column's normal format. An AUTO currency resolves against
+    the row's context on both paths, since the browser passes the row data to
+    either formatter.
+
+    ``small_currency`` is the column config's ``currencyFormat`` as it stands,
+    an absent one included, because the browser decides whether to build a
+    currency formatter on the object rather than on its symbol.
     """
-    if d3_format or currency.get("symbol"):
+    if small_d3_format and small_currency is not None:
+        # ``getSmallNumberFormatter`` builds a ``CurrencyFormatter`` from any
+        # ``currencyFormat`` object, and that constructor strips ``$`` from the
+        # format before the symbol is looked at, so a config whose currency was
+        # cleared still drops the ``$``. Stripping it away entirely leaves an
+        # empty format, which the browser's registry answers with its default
+        # key. Without a ``currencyFormat`` object at all the browser builds a
+        # plain number formatter, which honors the ``$``.
+        small_d3_format = small_d3_format.replace("$", "") or SMART_NUMBER
+
+    if d3_format or currency.get("symbol") or small_d3_format:
         if currency_context is None:
             resolved_currency = resolve_auto_currency(currency, detected_currency)
-            df[column] = df[column].apply(
-                partial(format_number_with_config, d3_format, resolved_currency)
+            format_value = partial(
+                format_number_with_config, d3_format, resolved_currency
             )
+            if small_d3_format:
+                format_small = partial(
+                    format_number_with_config, small_d3_format, small_currency or {}
+                )
+                df[column] = df[column].apply(
+                    lambda value: format_small(value)
+                    if is_small_number(value)
+                    else format_value(value)
+                )
+                return
+            df[column] = df[column].apply(format_value)
             return
 
         contexts = currency_context.reindex(df.index)
-        df[column] = [
-            format_number_with_config(
+
+        def format_with_context(value: Any, context: Any) -> Any:
+            if small_d3_format and is_small_number(value):
+                # ``formatValue`` hands the row's data to the small-number
+                # formatter too, so an AUTO currency there resolves against
+                # that row's contributing currencies. That formatter never
+                # sees the query-wide detection, hence no fallback to it.
+                return format_number_with_config(
+                    small_d3_format,
+                    resolve_auto_currency(
+                        small_currency or {},
+                        None,
+                        context,
+                        fallback_to_detected=False,
+                    ),
+                    value,
+                )
+            return format_number_with_config(
                 d3_format,
                 resolve_auto_currency(
                     currency,
@@ -967,6 +1042,9 @@ def format_column(
                 ),
                 value,
             )
+
+        df[column] = [
+            format_with_context(value, context)
             for value, context in zip(df[column], contexts, strict=True)
         ]
 
@@ -1339,6 +1417,12 @@ def table(
         df[currency_column].map(currency_context_value) if currency_column else None
     )
     column_config = form_data.get("column_config") or {}
+    # ``ColumnConfigControl`` offers the small-number format for both plugins,
+    # but the AG Grid table's cells are painted through ``valueFormatter``,
+    # which formats with the column's own formatter and never builds the
+    # small-number one the way ``formatColumnValue`` does. A report leaves that
+    # format alone rather than apply one the chart itself ignores.
+    applies_small_number_format = form_data.get("viz_type") != AG_GRID_TABLE
 
     def label_of(name: str) -> str:
         """Return the column label as it appears in ``df`` (verbose-renamed)."""
@@ -1373,6 +1457,10 @@ def table(
     for column in df.columns:
         config = config_by_label.get(column) or {}
         configured_currency = config.get("currencyFormat") or {}
+        # The small-number formatter is built from this object whether or not a
+        # symbol survived in it, so an absent one has to stay distinguishable
+        # from a cleared one.
+        small_currency = config.get("currencyFormat")
         number_format = config.get("d3NumberFormat") or number_format_by_label.get(
             column
         )
@@ -1381,15 +1469,45 @@ def table(
             if configured_currency.get("symbol")
             else currency_by_label.get(column) or {}
         )
+        # The small-number format has no dataset-level counterpart, and the
+        # browser pairs it with the column config's own currency rather than
+        # the resolved one, so both come straight from ``config``. A cleared
+        # Select leaves a blank string behind, which the browser treats as
+        # unset.
+        small_number_format = (
+            (config.get("d3SmallNumberFormat") or "").strip() or None
+            if applies_small_number_format
+            else None
+        )
 
         is_number = pd.api.types.is_numeric_dtype(df[column])
 
         if column in percent_metric_labels:
-            format_column(df, column, number_format or PERCENT_3_POINT, {})
+            # A percent metric's own formatter never carries a currency, but
+            # ``getSmallNumberFormatter`` still builds one from the column
+            # config, so the small-number cells need the row's context too.
+            format_column(
+                df,
+                column,
+                number_format or PERCENT_3_POINT,
+                {},
+                currency_context=row_currency_context,
+                small_d3_format=small_number_format,
+                small_currency=small_currency,
+            )
         elif (column in metric_labels and is_number) or (
-            is_number and (number_format or currency.get("symbol"))
+            is_number
+            and (number_format or currency.get("symbol") or small_number_format)
         ):
-            if not number_format and not currency.get("symbol"):
+            # Only a metric falls back to SMART_NUMBER, the way
+            # ``transformProps`` only builds a default formatter for one. A
+            # plain numeric column configured with just a small-number format
+            # keeps its other cells unformatted, as the browser does.
+            if (
+                column in metric_labels
+                and not number_format
+                and not currency.get("symbol")
+            ):
                 number_format = SMART_NUMBER
             format_column(
                 df,
@@ -1399,6 +1517,8 @@ def table(
                 detected_currency,
                 row_currency_context,
                 fallback_to_detected=False,
+                small_d3_format=small_number_format,
+                small_currency=small_currency,
             )
 
     return df
@@ -1417,20 +1537,29 @@ def _is_default_index_column(series: pd.Series) -> bool:
 def _read_excel_for_client_processing(
     data: bytes,
     form_data: dict[str, Any],
+    verbose_map: Optional[dict[str, str]] = None,
 ) -> pd.DataFrame:
     df = pd.read_excel(BytesIO(data))
     if len(df.columns) == 0:
         return df
 
     first_column = df.columns[0]
-    expected_columns = {
+    expected_columns: set[str] = {
         *get_column_names(form_data.get("columns")),
+        *get_column_names(form_data.get("all_columns")),
+        *get_column_names(form_data.get("groupby")),
         *get_column_names(form_data.get("groupbyRows")),
         *get_column_names(form_data.get("groupbyColumns")),
         *get_metric_names(form_data.get("metrics")),
+        *(f"%{name}" for name in get_metric_names(form_data.get("percent_metrics"))),
     }
+    # Query exports can already carry display labels rather than selection names.
+    if verbose_map:
+        expected_columns |= {
+            verbose_map.get(column, column) for column in expected_columns
+        }
 
-    if first_column in expected_columns:
+    if str(first_column) in expected_columns:
         return df
 
     if _is_default_index_column(df.iloc[:, 0]):
@@ -1501,10 +1630,13 @@ def apply_client_processing(  # noqa: C901
                 decimal=decimal,
             )
         elif query["result_format"] == ChartDataResultFormat.XLSX:
-            df = _read_excel_for_client_processing(data, form_data)
+            df = _read_excel_for_client_processing(
+                data, form_data, datasource.data["verbose_map"] if datasource else None
+            )
 
-        # convert all columns to verbose (label) name
-        if datasource:
+        # Serialized exports already carry labels from QueryContextProcessor.get_data.
+        # Remapping those labels can mistake them for another column's raw name.
+        if datasource and query["result_format"] == ChartDataResultFormat.JSON:
             df.rename(columns=datasource.data["verbose_map"], inplace=True)
 
         apply_number_format = query["result_format"] == ChartDataResultFormat.JSON
@@ -1561,14 +1693,17 @@ def apply_client_processing(  # noqa: C901
                 name if name is not None else "" for name in processed_df.index.names
             ]
         else:
-            processed_df.index = [
-                (
-                    " ".join(str(name) for name in index).strip()
-                    if isinstance(index, tuple)
-                    else index
-                )
-                for index in processed_df.index
-            ]
+            processed_df.index = pd.Index(
+                [
+                    (
+                        " ".join(str(name) for name in index).strip()
+                        if isinstance(index, tuple)
+                        else index
+                    )
+                    for index in processed_df.index
+                ],
+                name=processed_df.index.name,
+            )
 
         if query["result_format"] == ChartDataResultFormat.JSON:
             query["data"] = processed_df.to_dict()

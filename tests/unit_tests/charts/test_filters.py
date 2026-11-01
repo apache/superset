@@ -275,3 +275,113 @@ def test_chart_filter_no_viewer_table_matches_by_database_access(
     assert "slices.datasource_type = 'table'" in compiled
     assert "JOIN tables AS tables_1" in compiled
     assert "dbs.id IN (1, 2, 3)" in compiled
+
+
+# -- Exclusion-hook placement --
+#
+# Where the exclusion call sits is the whole behaviour: it must survive the
+# ``can_access_all_datasources()`` short-circuit, and must not reach an
+# embedded guest. Both of those are invisible to a test that calls
+# ``apply_extra_access_exclusions`` directly, so these go through
+# ``ChartFilter.apply``.
+
+
+def _compiled(clause: object) -> str:
+    return str(
+        clause.compile(  # type: ignore[attr-defined]
+            create_engine("sqlite://"),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+
+
+def _chart_exclusion_hook() -> Any:
+    from sqlalchemy import select
+
+    from superset.models.slice import Slice
+
+    return lambda _uid: select(Slice.id).where(Slice.id == 99).subquery()
+
+
+def test_chart_filter_exclusion_survives_all_datasource_access(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """An all-datasource principal is exactly who the role paths stop narrowing."""
+    from flask import current_app
+
+    from superset.charts.filters import ChartFilter
+    from superset.extensions import security_manager
+    from superset.models.slice import Slice
+
+    mocker.patch.object(
+        security_manager, "can_access_all_datasources", return_value=True
+    )
+    mocker.patch(
+        "superset.charts.filters.guest_embedded_dashboard_filter", return_value=None
+    )
+    mocker.patch("superset.utils.core.get_user_id", return_value=1)
+    mocker.patch.dict(
+        current_app.config,
+        {"EXTRA_ACCESS_QUERY_EXCLUSIONS": {"charts": _chart_exclusion_hook()}},
+    )
+
+    captured: dict[str, Any] = {}
+    query: MagicMock = MagicMock()
+
+    def _capture(clause: object) -> MagicMock:
+        captured["clause"] = clause
+        return query
+
+    query.filter.side_effect = _capture  # noqa: E501
+
+    filt: ChartFilter = ChartFilter.__new__(ChartFilter)
+    filt.model = Slice
+    filt.apply(query, None)
+
+    query.filter.assert_called_once()
+    assert "NOT (EXISTS" in _compiled(captured["clause"])
+
+
+def test_chart_filter_exclusion_skipped_for_embedded_guest(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """A guest token already scopes its holder; narrowing further is wrong."""
+    from flask import current_app
+
+    from superset.charts.filters import ChartFilter
+    from superset.extensions import security_manager
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+
+    mocker.patch.object(
+        security_manager, "can_access_all_datasources", return_value=False
+    )
+    mocker.patch(
+        "superset.charts.filters.guest_embedded_dashboard_filter",
+        return_value=Dashboard.id.in_([1, 2]),
+    )
+    mocker.patch("superset.utils.core.get_user_id", return_value=1)
+    mocker.patch.dict(
+        current_app.config,
+        {"EXTRA_ACCESS_QUERY_EXCLUSIONS": {"charts": _chart_exclusion_hook()}},
+    )
+
+    captured: dict[str, Any] = {}
+    query: MagicMock = MagicMock()
+
+    def _capture(clause: object) -> MagicMock:
+        captured["clause"] = clause
+        return query
+
+    query.filter.side_effect = _capture  # noqa: E501
+
+    filt: ChartFilter = ChartFilter.__new__(ChartFilter)
+    filt.model = Slice
+    filt.apply(query, None)
+
+    query.filter.assert_called_once()
+    compiled = _compiled(captured["clause"])
+    assert "IN (1, 2)" in compiled
+    assert "NOT (EXISTS" not in compiled

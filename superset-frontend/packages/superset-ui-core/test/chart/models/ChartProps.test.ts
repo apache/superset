@@ -170,3 +170,18 @@ test('preserves an optional shared color scale through construction and selector
     selector({ ...config, colorScale: undefined }).colorScale,
   ).toBeUndefined();
 });
+
+test('camelizes chart display labels only at the datasource top level', () => {
+  const chartDisplayLabels = {
+    '12': { country_name: 'Country', sum__SP_POP_TOTL: 'Population' },
+  };
+  const datasource = { chart_display_labels: chartDisplayLabels };
+  const props = new ChartProps({ datasource, theme: supersetTheme });
+
+  expect(props.datasource.chartDisplayLabels).toBe(chartDisplayLabels);
+  expect(props.datasource.chartDisplayLabels?.['12']).toEqual({
+    country_name: 'Country',
+    sum__SP_POP_TOTL: 'Population',
+  });
+  expect(props.rawDatasource).toBe(datasource);
+});

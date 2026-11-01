@@ -21,9 +21,14 @@ from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
 from superset import db, security_manager
+from superset.charts.filters import ChartFilter
 from superset.daos.base import _escape_like
+from superset.dashboards.filters import DashboardAccessFilter
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.reports.models import ReportExecutionLog, ReportSchedule
 from superset.subjects.filters import subject_relation_exists_for_current_user
+from superset.utils.filters import apply_extra_access_exclusions
 from superset.views.base import BaseFilter
 
 
@@ -88,3 +93,35 @@ class ReportScheduleAllTextFilter(BaseFilter):  # pylint: disable=too-few-public
                 ReportSchedule.sql.ilike(ilike_value, escape="\\"),
             )
         )
+
+
+class ReportTargetChartFilter(ChartFilter):  # pylint: disable=too-few-public-methods
+    """Charts selectable as the target of a scheduled report.
+
+    A scheduled report is not rendered by the user who creates it: it runs later,
+    as whichever principal the deployment configures as its executor. So a
+    deployment can hold assets a user may read themselves but may not schedule a
+    report on, and that is a narrower question than ordinary chart visibility.
+
+    Only the exclusion key differs; every other rule is inherited. The exclusion
+    is applied before delegating so it survives the parent's short-circuits.
+    """
+
+    def apply(self, query: Query, value: Any) -> Query:
+        query = apply_extra_access_exclusions(query, "report_target_charts", Slice.id)
+        return super().apply(query, value)
+
+
+class ReportTargetDashboardFilter(  # pylint: disable=too-few-public-methods
+    DashboardAccessFilter
+):
+    """Dashboards selectable as the target of a scheduled report.
+
+    See :class:`ReportTargetChartFilter`.
+    """
+
+    def apply(self, query: Query, value: Any) -> Query:
+        query = apply_extra_access_exclusions(
+            query, "report_target_dashboards", Dashboard.id
+        )
+        return super().apply(query, value)

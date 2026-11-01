@@ -16,100 +16,127 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import ZoomConfigControl from './ZoomConfigControl';
 import { ZoomConfigs } from './types';
+import { computeConfigValues } from './zoomUtil';
 
-jest.mock('./ZoomConfigsChart', () => () => null);
+// echarts needs a real canvas/layout engine; replace only chart creation and
+// keep the rest of the module (e.g. util) intact.
+jest.mock('echarts', () => ({
+  ...jest.requireActual('echarts'),
+  init: jest.fn(() => ({
+    setOption: jest.fn(),
+    convertToPixel: jest.fn(() => [0, 0]),
+    convertFromPixel: jest.fn(() => [0, 0]),
+  })),
+}));
 
-jest.mock('../ColumnConfigControl/ControlForm', () => {
-  const nextValues: Record<string, number> = {
-    baseWidth: 101,
-    baseHeight: 101,
-    slope: 3,
-    exponent: 1.2,
+const makeValue = (type: ZoomConfigs['type'] = 'FIXED'): ZoomConfigs => {
+  const configs = {
+    zoom: 5,
+    width: 40,
+    height: 20,
+    slope: 2,
+    exponent: 1.4,
   };
+  const base = { type, configs: { ...configs }, values: {} } as ZoomConfigs;
+  return { ...base, values: computeConfigValues(base) } as ZoomConfigs;
+};
 
-  return {
-    ControlFormItem: ({
-      name,
-      onAfterChange,
-    }: {
-      name: string;
-      onAfterChange?: (value: number) => void;
-    }) => (
-      <button
-        type="button"
-        aria-label={name}
-        onClick={() => onAfterChange?.(nextValues[name])}
-      />
-    ),
-  };
+const setup = (value?: ZoomConfigs) => {
+  const onChange = jest.fn();
+  render(
+    <ZoomConfigControl
+      name="zoom_configs"
+      label="Zoom sizes"
+      value={value}
+      onChange={onChange}
+    />,
+  );
+  return { onChange };
+};
+
+test('renders the label, shape options, sliders and current zoom', () => {
+  setup(makeValue());
+  expect(screen.getByText('Zoom sizes')).toBeInTheDocument();
+  ['FIXED', 'LINEAR', 'EXP'].forEach(shape =>
+    expect(screen.getByText(shape)).toBeInTheDocument(),
+  );
+  expect(screen.getAllByRole('slider')).toHaveLength(4);
+  expect(screen.getByText(/Current Zoom/)).toHaveTextContent('Current Zoom: 5');
+});
+
+test('initialises the sliders from the configured sizes', () => {
+  setup(makeValue());
+  const [width, height, slope, exponent] = screen.getAllByRole('slider');
+  expect(width).toHaveAttribute('aria-valuenow', '40');
+  expect(height).toHaveAttribute('aria-valuenow', '20');
+  expect(slope).toHaveAttribute('aria-valuenow', '2');
+  expect(exponent).toHaveAttribute('aria-valuenow', '1.4');
+});
+
+test('switching the shape emits a config of that type built from the base values', () => {
+  const { onChange } = setup(makeValue('FIXED'));
+  fireEvent.click(screen.getByRole('radio', { name: 'LINEAR' }));
+  const emitted = onChange.mock.lastCall?.[0];
+  expect(emitted.type).toBe('LINEAR');
+  expect(emitted.configs).toMatchObject({
+    width: 40,
+    height: 20,
+    slope: 2,
+    zoom: 5,
+  });
+  // Linear sizes grow by `slope` per zoom level, keeping the aspect ratio.
+  expect(emitted.values[5]).toEqual({ width: 40, height: 20 });
+  expect(emitted.values[6]).toEqual({ width: 42, height: 21 });
+  expect(emitted.values[4]).toEqual({ width: 38, height: 19 });
+});
+
+test('does not emit when the shape changes without a value', () => {
+  const { onChange } = setup(undefined);
+  fireEvent.click(screen.getByRole('radio', { name: 'EXP' }));
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('changing the base width recomputes the values for every zoom level', () => {
+  const { onChange } = setup(makeValue('FIXED'));
+  const [width] = screen.getAllByRole('slider');
+  fireEvent.keyDown(width, { key: 'ArrowRight', keyCode: 39 });
+  fireEvent.keyUp(width, { key: 'ArrowRight', keyCode: 39 });
+  expect(onChange).toHaveBeenCalledTimes(1);
+  const emitted = onChange.mock.calls[0][0];
+  expect(emitted.configs.width).toBe(41);
+  expect(emitted.values[0].width).toBe(41);
+  expect(emitted.values[28].width).toBe(41);
+});
+
+test('only the slope slider applies to the LINEAR shape', () => {
+  setup(makeValue('LINEAR'));
+  const [, , slope, exponent] = screen.getAllByRole('slider');
+  expect(slope).toHaveAttribute('aria-disabled', 'false');
+  expect(exponent).toHaveAttribute('aria-disabled', 'true');
 });
 
 test.each([
-  {
-    field: 'width' as const,
-    controlName: 'baseWidth',
-    nextValue: 101,
-    value: {
-      type: 'FIXED',
-      configs: { zoom: 5, width: 100, height: 100 },
-      values: {},
-    } satisfies ZoomConfigs,
-  },
-  {
-    field: 'height' as const,
-    controlName: 'baseHeight',
-    nextValue: 101,
-    value: {
-      type: 'FIXED',
-      configs: { zoom: 5, width: 100, height: 100 },
-      values: {},
-    } satisfies ZoomConfigs,
-  },
-  {
-    field: 'slope' as const,
-    controlName: 'slope',
-    nextValue: 3,
-    value: {
-      type: 'LINEAR',
-      configs: { zoom: 5, width: 100, height: 100, slope: 2 },
-      values: {},
-    } satisfies ZoomConfigs,
-  },
-  {
-    field: 'exponent' as const,
-    controlName: 'exponent',
-    nextValue: 1.2,
-    value: {
-      type: 'EXP',
-      configs: { zoom: 5, width: 100, height: 100, exponent: 1 },
-      values: {},
-    } satisfies ZoomConfigs,
-  },
+  { shape: 'FIXED' as const, slider: 0, field: 'width' as const },
+  { shape: 'FIXED' as const, slider: 1, field: 'height' as const },
+  { shape: 'LINEAR' as const, slider: 2, field: 'slope' as const },
+  { shape: 'EXP' as const, slider: 3, field: 'exponent' as const },
 ])(
-  'copies configs for $field without mutating the incoming value',
-  async ({ field, controlName, nextValue, value }) => {
-    const onChange = jest.fn();
-    const originalFieldValue = value.configs[field];
+  'editing $field emits new configs without mutating the incoming value',
+  ({ shape, slider, field }) => {
+    const value = makeValue(shape);
+    const original = value.configs[field];
     Object.freeze(value.configs);
-
-    render(
-      <ZoomConfigControl
-        name="zoomConfig"
-        label="Zoom configuration"
-        onChange={onChange}
-        value={value}
-      />,
-    );
-
-    await userEvent.click(screen.getByRole('button', { name: controlName }));
-
-    expect(value.configs[field]).toBe(originalFieldValue);
-    expect(onChange).toHaveBeenCalled();
-    const updatedValue = onChange.mock.lastCall?.[0] as ZoomConfigs;
-    expect(updatedValue.configs).not.toBe(value.configs);
-    expect(updatedValue.configs[field]).toBe(nextValue);
+    const { onChange } = setup(value);
+    const target = screen.getAllByRole('slider')[slider];
+    fireEvent.keyDown(target, { key: 'ArrowRight', keyCode: 39 });
+    fireEvent.keyUp(target, { key: 'ArrowRight', keyCode: 39 });
+    expect(value.configs[field]).toBe(original);
+    expect(onChange).toHaveBeenCalledTimes(1);
+    const emitted = onChange.mock.calls[0][0] as ZoomConfigs;
+    expect(emitted.configs).not.toBe(value.configs);
+    expect(emitted.configs[field]).not.toBe(original);
   },
 );

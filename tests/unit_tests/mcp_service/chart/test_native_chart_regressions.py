@@ -195,6 +195,141 @@ def test_pivot_result_aggregation_skips_grouping_sets(
     assert ("grouping_sets" in query) is has_grouping_sets
 
 
+_PIVOT_SALES_METRICS: list[dict[str, Any]] = [
+    {
+        "expressionType": "SIMPLE",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+        "label": "sum_sales",
+    },
+    {
+        "expressionType": "SIMPLE",
+        "aggregate": "AVG",
+        "column": {"column_name": "sales"},
+        "label": "avg_sales",
+    },
+]
+
+
+@pytest.mark.parametrize(
+    ("options", "expected"),
+    [
+        # Nothing checked: the leaf level only.
+        ({"metricsLayout": "ROWS"}, [["territory", "quarter"]]),
+        # Metrics on rows: the fully collapsed row level is each metric
+        # group's Subtotal line, so rowSubTotals alone requests it.
+        (
+            {"metricsLayout": "ROWS", "rowSubTotals": True},
+            [["quarter"], ["territory", "quarter"]],
+        ),
+        # Metrics on columns: the mirror, requested by colSubTotals alone.
+        (
+            {"metricsLayout": "COLUMNS", "colSubTotals": True},
+            [["territory"], ["territory", "quarter"]],
+        ),
+        # A missing metricsLayout is treated like COLUMNS.
+        (
+            {"colSubTotals": True},
+            [["territory"], ["territory", "quarter"]],
+        ),
+        # The subtotal toggle on the axis without the metrics adds no level.
+        (
+            {"metricsLayout": "COLUMNS", "rowSubTotals": True},
+            [["territory", "quarter"]],
+        ),
+        (
+            {"metricsLayout": "ROWS", "colSubTotals": True},
+            [["territory", "quarter"]],
+        ),
+        # transposePivot swaps the display axes: display rows are
+        # groupbyColumns (quarter) and display columns are groupbyRows
+        # (territory).
+        (
+            {"metricsLayout": "ROWS", "transposePivot": True, "rowSubTotals": True},
+            [["territory"], ["quarter", "territory"]],
+        ),
+        (
+            {
+                "metricsLayout": "COLUMNS",
+                "transposePivot": True,
+                "colSubTotals": True,
+            },
+            [["quarter"], ["quarter", "territory"]],
+        ),
+        (
+            {
+                "metricsLayout": "COLUMNS",
+                "transposePivot": True,
+                "rowSubTotals": True,
+            },
+            [["quarter", "territory"]],
+        ),
+        (
+            {"metricsLayout": "ROWS", "transposePivot": True, "colSubTotals": True},
+            [["quarter", "territory"]],
+        ),
+        # Combined metrics draw no per-metric Subtotal line, so the toggle
+        # adds no level, even though a percent mode lets its denominator
+        # level through the combineMetric filter.
+        (
+            {
+                "metricsLayout": "ROWS",
+                "combineMetric": True,
+                "showValuesAs": "percent_row",
+                "rowSubTotals": True,
+            },
+            [["territory"], ["territory", "quarter"]],
+        ),
+        (
+            {
+                "metricsLayout": "ROWS",
+                "combineMetric": True,
+                "showValuesAs": "percent_row",
+                "rowSubTotals": True,
+                "transposePivot": True,
+            },
+            [["quarter"], ["quarter", "territory"]],
+        ),
+        (
+            {
+                "metricsLayout": "COLUMNS",
+                "combineMetric": True,
+                "showValuesAs": "percent_col",
+                "colSubTotals": True,
+            },
+            [["quarter"], ["territory", "quarter"]],
+        ),
+        (
+            {
+                "metricsLayout": "COLUMNS",
+                "combineMetric": True,
+                "showValuesAs": "percent_col",
+                "colSubTotals": True,
+                "transposePivot": True,
+            },
+            [["territory"], ["quarter", "territory"]],
+        ),
+    ],
+)
+def test_pivot_metric_axis_subtotal_levels(
+    options: dict[str, Any], expected: list[list[str]]
+) -> None:
+    """Native pivot queries request the same rollup levels as the frontend.
+
+    Mirrors the cases in the Pivot Table plugin's ``totalsRequery.test.ts``
+    (territory x quarter, SUM and AVG metrics), so both builders visibly agree.
+    """
+    form: dict[str, Any] = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["territory"],
+        "groupbyColumns": ["quarter"],
+        "metrics": _PIVOT_SALES_METRICS,
+        **options,
+    }
+    query = build_query_dicts_from_form_data(form, 1, "table")[0]
+    assert query["grouping_sets"] == expected
+
+
 def test_bullet_sql_metric_adapter_uses_expression_as_label() -> None:
     """Native SQL metrics without labels survive compatible update validation."""
     native = {

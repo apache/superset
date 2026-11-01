@@ -23,6 +23,9 @@ permissions:
 jobs:
   cleanup-expired:
     name: Clean up expired showtime environments
+    # The environments live in the upstream project's infrastructure; forks
+    # and mirrors can still start a cleanup manually.
+    if: github.event_name != 'schedule' || github.repository == 'apache/superset'
     runs-on: ubuntu-latest
 
     permissions:

@@ -530,6 +530,76 @@ def test_get_time_partition_column_uses_catalog_in_table_reference(
     client.get_table.assert_called_once_with("other_project.my_dataset.my_table")
 
 
+def test_get_extra_table_metadata_table_not_found(mocker: MockerFixture) -> None:
+    """
+    Test that a missing table yields empty extra metadata instead of raising.
+    """
+    from google.api_core.exceptions import NotFound
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    mocker.patch.object(
+        BigQueryEngineSpec,
+        "get_time_partition_column",
+        side_effect=NotFound("table gone"),
+    )
+
+    result = BigQueryEngineSpec.get_extra_table_metadata(
+        mock.Mock(), Table("my_table", "my_dataset", "my_project")
+    )
+
+    assert result == {}
+
+
+def test_get_extra_table_metadata_other_errors_propagate(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that errors other than NotFound (e.g. 403) are not swallowed.
+    """
+    from google.api_core.exceptions import Forbidden
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    mocker.patch.object(
+        BigQueryEngineSpec,
+        "get_time_partition_column",
+        side_effect=Forbidden("denied"),
+    )
+
+    with pytest.raises(Forbidden):
+        BigQueryEngineSpec.get_extra_table_metadata(
+            mock.Mock(), Table("my_table", "my_dataset", "my_project")
+        )
+
+
+def test_get_extra_table_metadata_partitioned(mocker: MockerFixture) -> None:
+    """
+    Test that partitioned tables still return partition metadata.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    mocker.patch.object(
+        BigQueryEngineSpec, "get_time_partition_column", return_value="ds"
+    )
+    mocker.patch.object(
+        BigQueryEngineSpec, "get_max_partition_id", return_value="20240101"
+    )
+    mocker.patch.object(BigQueryEngineSpec, "select_star", return_value="SELECT 1")
+    mocker.patch.object(BigQueryEngineSpec, "get_engine")
+
+    result = BigQueryEngineSpec.get_extra_table_metadata(
+        mock.Mock(), Table("my_table", "my_dataset", "my_project")
+    )
+
+    assert result["partitions"] == {
+        "cols": ["ds"],
+        "latest": {"ds": "20240101"},
+        "partitionQuery": "SELECT 1",
+    }
+    assert result["indexes"][0]["cols"] == ["ds"]
+
+
 def test_adjust_engine_params_catalog_as_host() -> None:
     """
     Test passing a custom catalog.

@@ -200,6 +200,7 @@ The Developer Portal auto-generates MDX documentation from Storybook stories. **
 # Frontend
 npm run test                           # All tests
 npm run test -- filename.test.tsx     # Single file
+JEST_MAX_WORKERS=2 npm run test -- filename.test.tsx  # Cap workers on a shared machine
 
 # E2E Tests (Playwright)
 npm run playwright:test                # All Playwright tests

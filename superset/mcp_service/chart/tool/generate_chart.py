@@ -252,8 +252,12 @@ async def generate_chart(  # noqa: C901
                     is_valid=valid, request=request, error=semantic_error
                 )
             else:
-                # Preserve omitted controls through schema revalidation.
-                request_data: dict[str, Any] = request.model_dump(exclude_unset=True)
+                # Preserve omitted controls through schema revalidation. The
+                # name was sanitized when this request was validated; a second
+                # sanitizer pass is not idempotent, so it is carried over.
+                request_data: dict[str, Any] = request.model_dump(
+                    exclude_unset=True, exclude={"chart_name"}
+                )
                 request_data["config"]["chart_type"] = request.config.chart_type
                 validation_result = ValidationPipeline.validate_request_with_warnings(
                     request_data
@@ -261,7 +265,9 @@ async def generate_chart(  # noqa: C901
 
             if validation_result.is_valid and validation_result.request is not None:
                 # Use the validated request going forward
-                request = validation_result.request
+                request = validation_result.request.model_copy(
+                    update={"chart_name": request.chart_name}
+                )
 
             # Capture runtime warnings (informational, not blocking)
             if validation_result.warnings:

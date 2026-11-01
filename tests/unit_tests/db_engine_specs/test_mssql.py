@@ -879,3 +879,55 @@ def test_get_catalog_from_engine_params_empty_database_query_param_falls_back_to
     )
     assert "database" not in url.query
     assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) == "path_db"
+
+
+def test_use_equality_for_boolean_filters_property() -> None:
+    """
+    Test that MSSQL (and Sybase, by inheritance) use equality operators for
+    boolean filters instead of IS, since T-SQL's IS keyword only supports
+    NULL checks.
+    """
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.db_engine_specs.sybase import SybaseEngineSpec
+
+    assert MssqlEngineSpec.use_equality_for_boolean_filters is True
+    assert SybaseEngineSpec.use_equality_for_boolean_filters is True
+
+
+def test_handle_boolean_filter() -> None:
+    """
+    Test that MSSQL uses equality operators for boolean filters instead of
+    IS. Compiling with SQLAlchemy's default IS true/false against the real
+    mssql dialect produces invalid T-SQL (`col IS 1` / `col IS 0`), since
+    IS is a NULL-check-only predicate in T-SQL.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.utils.core import FilterOperator
+
+    bool_col = Column("test_col", Boolean)
+
+    result_true = MssqlEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(
+            result_true.compile(
+                dialect=mssql.dialect(), compile_kwargs={"literal_binds": True}
+            )
+        )
+        == "test_col = 1"
+    )
+
+    result_false = MssqlEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(
+            result_false.compile(
+                dialect=mssql.dialect(), compile_kwargs={"literal_binds": True}
+            )
+        )
+        == "test_col = 0"
+    )

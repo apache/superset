@@ -411,13 +411,19 @@ class StarRocksParser(_StarRocksParser):
             )
         )
 
-    def _parse_drop(self, exists: bool = False) -> exp.Drop | exp.Command:
+    def _parse_drop(
+        self, exists: bool = False, kind: str | None = None
+    ) -> exp.Drop | exp.Command:
         start = self._prev
-        temporary = self._match(TokenType.TEMPORARY)
-        materialized = self._match_text_seq("MATERIALIZED")
-        iceberg = self._match_text_seq("ICEBERG")
-
-        kind = self._match_set(self.CREATABLES) and self._prev.text.upper()
+        if kind:
+            temporary = False
+            materialized = False
+            iceberg = False
+        else:
+            temporary = self._match(TokenType.TEMPORARY)
+            materialized = self._match_text_seq("MATERIALIZED")
+            iceberg = self._match_text_seq("ICEBERG")
+            kind = self._match_set(self.CREATABLES) and self._prev.text.upper()
         if not kind or (iceberg and kind and kind != "TABLE"):
             return self._parse_as_command(start)
 
@@ -738,7 +744,16 @@ class StarRocksGenerator(_StarRocksGenerator):
         if expression.args.get("kind") == "CONNECTIONS":
             return "REFRESH CONNECTIONS"
 
-        sql = super().refresh_sql(expression)
+        # Rendered directly rather than via `super().refresh_sql()`: newer
+        # sqlglot StarRocks generators already append the PARTITION / FORCE /
+        # MODE clauses themselves, which would duplicate the ones added below.
+        this = self.sql(expression, "this")
+        kind = (
+            ""
+            if isinstance(expression.this, exp.Literal)
+            else f"{expression.text('kind')} "
+        )
+        sql = f"REFRESH {kind}{this}"
 
         # REFRESH MATERIALIZED VIEW's own FORCE / PARTITION START(...)
         # END(...) / WITH {SYNC|ASYNC} MODE clauses, set by `_parse_refresh`

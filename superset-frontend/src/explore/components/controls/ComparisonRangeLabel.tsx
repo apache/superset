@@ -135,39 +135,43 @@ export const ComparisonRangeLabel = ({
             startDate) ||
           ensureIsArray(customOrInheritShifts).includes('inherit')
         ) {
-          return fetchTimeRange(filter.comparator, filter.subject).then(res => {
-            const dates = res?.value?.match(DEFAULT_DATE_PATTERN);
-            const [parsedStartDate, parsedEndDate] = dates ?? [];
-            if (parsedStartDate) {
-              const parsedDateDayjs = extendedDayjs(
-                parseDttmToDate(parsedStartDate),
-              );
-              const startDateDayjs = extendedDayjs(parseDttmToDate(startDate));
-              if (
-                startDateDayjs.isBefore(parsedDateDayjs) ||
-                startDateDayjs.isSame(parsedDateDayjs) ||
-                !startDate
-              ) {
-                const postProcessedShifts = getTimeOffset({
-                  timeRangeFilter: {
-                    ...filter,
-                    comparator: `${parsedStartDate} : ${parsedEndDate}`,
-                  },
-                  shifts: customOrInheritShifts,
-                  startDate: useStartDate,
-                  includeFutureOffsets: false, // So we don't trigger requests for future dates
-                });
-                return fetchTimeRange(
-                  filter.comparator,
-                  filter.subject,
-                  ensureIsArray(
-                    postProcessedShifts.concat(nonCustomNorInheritShifts),
-                  ),
+          return fetchTimeRange(filter.comparator, filter.subject).then(
+            async res => {
+              const dates = res?.value?.match(DEFAULT_DATE_PATTERN);
+              const [parsedStartDate, parsedEndDate] = dates ?? [];
+              if (parsedStartDate) {
+                const parsedDateDayjs = extendedDayjs(
+                  parseDttmToDate(parsedStartDate),
                 );
+                const startDateDayjs = extendedDayjs(
+                  parseDttmToDate(startDate),
+                );
+                if (
+                  startDateDayjs.isBefore(parsedDateDayjs) ||
+                  startDateDayjs.isSame(parsedDateDayjs) ||
+                  !startDate
+                ) {
+                  const postProcessedShifts = getTimeOffset({
+                    timeRangeFilter: {
+                      ...filter,
+                      comparator: `${parsedStartDate} : ${parsedEndDate}`,
+                    },
+                    shifts: customOrInheritShifts,
+                    startDate: useStartDate,
+                    includeFutureOffsets: false, // So we don't trigger requests for future dates
+                  });
+                  return fetchTimeRange(
+                    filter.comparator,
+                    filter.subject,
+                    ensureIsArray(
+                      postProcessedShifts.concat(nonCustomNorInheritShifts),
+                    ),
+                  );
+                }
               }
-            }
-            return Promise.resolve({ value: '' });
-          });
+              return Promise.resolve({ value: '' });
+            },
+          );
         }
         return Promise.resolve({ value: '' });
       });

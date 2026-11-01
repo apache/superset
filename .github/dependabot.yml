@@ -132,6 +132,11 @@ updates:
       default-days: 7
 
   - package-ecosystem: "pip"
+    ignore:
+      # Only permits patch version to SQLAlchemy v2.0.x as SQLAlchemy v2.1.x contains
+      # significant changes that requires careful curation before landing
+      - dependency-name: "sqlalchemy"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
     directory: "/"
     open-pull-requests-limit: 10
     # Bump the lower bound to the new version, not just widen the upper

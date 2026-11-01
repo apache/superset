@@ -68,8 +68,9 @@ jobs:
           BUILD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
           EVENT_NAME: ${{ github.event_name }}
           REPO: ${{ github.repository }}
+          BRANCH: master
           OUTPUT_NAME: is-current
-        run: .github/workflows/scripts/check-docs-deploy-freshness.sh
+        run: .github/workflows/scripts/check-branch-freshness.sh
 
   build-deploy:
     needs: [config, check-freshness]
@@ -118,7 +119,7 @@ jobs:
           node-version-file: "./docs/.nvmrc"
       - name: Setup Python
         uses: $/.github/actions/setup-backend/
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: "zulu"
           java-version: "21"
@@ -186,8 +187,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BUILD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
           REPO: ${{ github.repository }}
+          BRANCH: master
           OUTPUT_NAME: still-current
-        run: .github/workflows/scripts/check-docs-deploy-freshness.sh
+        run: .github/workflows/scripts/check-branch-freshness.sh
       - name: deploy docs
         if: github.event_name == 'workflow_dispatch' || steps.recheck-freshness.outputs.still-current == 'true'
         # github-action-push-to-another-repository is a submodule (not a

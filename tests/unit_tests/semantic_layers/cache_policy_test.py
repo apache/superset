@@ -26,6 +26,7 @@ from superset_core.semantic_layers.types import (
     AggregationType,
     Dimension,
     Filter,
+    FilterExpression,
     FilterValues,
     Grains,
     GroupLimit,
@@ -70,7 +71,7 @@ def where(
 def _candidate(
     *,
     cached_filters: frozenset[Filter] = frozenset(),
-    query_filters: set[Filter] | None = None,
+    query_filters: set[FilterExpression] | None = None,
 ) -> tuple[SemanticQuery, CachedEntry]:
     query: SemanticQuery = SemanticQuery(
         metrics=[REVENUE_METRIC],

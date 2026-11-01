@@ -664,10 +664,9 @@ def test_timezone_cache_hit_dtype_matches_sync(
     mocker.patch.object(executor, "_generate_cache_key", return_value="tz-key")
     executor._store_in_cache(sync, sql, QueryOptions())
     cached = executor._get_from_cache(sql, QueryOptions())
-    if data_kind != "populated" and not isinstance(tz, ZoneInfo):
-        # Unparseable timezone metadata cannot be inferred without any values.
-        assert cached is None
-        return
+    # A fixed-offset tz's dtype string round-trips through pandas' own
+    # "UTC+HH:MM" parsing even without a non-null value to infer it from, so
+    # every data_kind/tz combination here is a cache hit.
     assert cached is not None
     for result in (
         cached,
@@ -752,6 +751,7 @@ def test_legacy_cache_without_column_metadata_preserves_values(
     )
     assert result.status == QueryStatus.SUCCESS, result.error_message
     assert result.is_cached
+    assert result.statements[0].data is not None
     assert result.statements[0].data["id"].tolist() == [value, None]
     pd.testing.assert_frame_equal(
         result.statements[0].data,
@@ -891,6 +891,7 @@ def test_corrupt_cache_is_a_miss(
         result = executor.execute(sql)
         assert result.status == QueryStatus.SUCCESS, result.error_message
         assert not result.is_cached
+        assert result.statements[0].data is not None
         assert result.statements[0].data["value"].tolist() == [1]
 
 
@@ -1038,7 +1039,8 @@ def test_async_unsupported_nested_types_use_arrow_strings(
     assert actual["value"][0] != sync.statements[0].data["value"][0]
     assert type(actual["value"][0]) is not type(sync.statements[0].data["value"][0])
     assert actual["value"][1] == '{"a": [3]}'
-    assert actual["value"][2] is None
+    # StringDtype's missing-value sentinel is float nan, not None.
+    assert pd.isna(actual["value"][2])
 
 
 def test_legacy_nested_oversized_integer_matches_sync() -> None:
@@ -1104,6 +1106,26 @@ def test_legacy_record_column_inference(
     from superset.sql.execution.executor import _records_to_dataframe
 
     pd.testing.assert_frame_equal(_records_to_dataframe(records, []), expected)
+
+
+def test_records_to_dataframe_unparseable_dtype_falls_back_to_inference() -> None:
+    """A dtype string pandas cannot parse falls back to value inference."""
+    from superset.sql.execution.executor import _records_to_dataframe
+
+    result = _records_to_dataframe(
+        [{"value": "a"}, {"value": None}], ["value"], ["not-a-dtype"]
+    )
+
+    assert list(result["value"].iloc[:1]) == ["a"]
+    assert pd.isna(result["value"].iloc[1])
+
+
+def test_records_to_dataframe_unparseable_dtype_without_values_raises() -> None:
+    """Without a non-null value there is nothing to infer from, so it raises."""
+    from superset.sql.execution.executor import _records_to_dataframe
+
+    with pytest.raises(TypeError):
+        _records_to_dataframe([{"value": None}], ["value"], ["not-a-dtype"])
 
 
 @pytest.mark.parametrize("use_msgpack", [True, False])
@@ -1326,12 +1348,19 @@ def test_deep_nested_sidecar_falls_back_to_arrow(
     for _ in range(550):
         value = [value]
     result_set = _result_set(["value"], [(value,)])
+    # The depth at which encoding exceeds the recursion limit varies with the
+    # interpreter (Python 3.12 inlines comprehensions), so raise it explicitly.
+    encode = mocker.patch(
+        "superset.sql.execution.serialization._encode_nested_value",
+        side_effect=RecursionError,
+    )
     result = _store_and_read(
         mocker,
         "SELECT value",
         [("SELECT value", result_set, 1.0, 1)],
         write_msgpack=use_msgpack,
     )
+    encode.assert_called_once()
     assert result.status == QueryStatus.SUCCESS, result.error_message
     pd.testing.assert_frame_equal(
         result.statements[0].data,

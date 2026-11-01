@@ -48,6 +48,7 @@ from superset.utils.core import (
     ExtraFiltersReasonType,
     ExtraFiltersTimeColumnType,
     GenericDataType,
+    remove_duplicates,
 )
 from superset.utils.dates import datetime_to_epoch, EPOCH
 
@@ -1715,7 +1716,7 @@ def validate_query_result_envelope(  # noqa: C901
             dict.__getitem__(query, "colnames") if "colnames" in query else None
         )
         declared_row_columns = (
-            list(dict.fromkeys(declared_columns))
+            remove_duplicates(declared_columns)
             if declared_columns is not None
             else None
         )

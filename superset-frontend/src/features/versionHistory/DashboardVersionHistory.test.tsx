@@ -214,6 +214,27 @@ test('a restore that also moves the save signal refreshes exactly once', () => {
   expect(refresh).toHaveBeenCalledTimes(1);
 });
 
+test('activity without a snapshot cannot start a dashboard preview', () => {
+  const store = makeStore();
+  renderAdapter(store);
+  const { onPreview } = mockPanelProps.mock.lastCall[0];
+  act(() => {
+    onPreview({
+      type: 'group',
+      transactionId: 10,
+      versionUuid: null,
+      issuedAt: '2025-12-05T17:18:00',
+      changedBy: null,
+      actionKind: null,
+      records: [],
+    });
+  });
+  expect(
+    store.actions.some(action => action.type === 'SET_VERSION_PREVIEW'),
+  ).toBe(false);
+  expect(mockAddDangerToast).not.toHaveBeenCalled();
+});
+
 test('preview is blocked while the dashboard has unsaved edit-mode changes', () => {
   const store = makeTestStore({
     versionHistory: versionHistoryState(),
@@ -277,8 +298,8 @@ test('withholds restore on an externally managed dashboard', () => {
 test('renders nothing in place while the panel is closed', () => {
   // The DashboardBuilder overlay relies on this contract: the closed
   // column must stay DOM-empty (the restore modal portals out of it), or
-  // the :empty shadow guard stops matching and a stray shadow line appears
-  // at the viewport edge below the overlay breakpoint (sc-119737). The
+  // its :empty guard stops matching and the column, with its shadow, stays
+  // visible over the content's right edge (sc-119737). The
   // panel mock renders a marker and the restore-modal mock portals a
   // marker into document.body, so this test fails if the closed state
   // ever renders the panel — or any wrapper element — in place.

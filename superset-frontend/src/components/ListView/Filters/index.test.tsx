@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { ListViewFilterOperator } from '../types';
 import UIFilters from './index';
@@ -191,6 +191,48 @@ test('select pill tooltip falls back to static selects on cold URL load (no cach
   expect(
     screen.getByRole('button', { name: /clear owner filter/i }),
   ).toBeInTheDocument();
+});
+
+test('select pill tooltip uses the option title when a fetched option has a React label', async () => {
+  // User options carry a React label (name over email) plus a plain-text
+  // `title`, so the cold-load tooltip must fall back to `title` rather than
+  // stringifying the label or the numeric id.
+  const fetchSelects = jest.fn().mockResolvedValue({
+    data: [
+      { label: <span>Jane Smith</span>, value: 7, title: 'Jane Smith' },
+      { label: <span>Bob Jones</span>, value: 8, title: 'Bob Jones' },
+    ],
+    totalCount: 2,
+  });
+  const filters = [
+    {
+      Header: 'User',
+      key: 'user',
+      id: 'user',
+      input: 'select' as const,
+      operator: ListViewFilterOperator.RelationOneMany,
+      fetchSelects,
+    },
+  ];
+
+  render(
+    <UIFilters
+      filters={filters}
+      internalFilters={[
+        {
+          id: 'user',
+          operator: ListViewFilterOperator.RelationOneMany,
+          value: { value: 7 } as any,
+        },
+      ]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  await waitFor(() => expect(fetchSelects).toHaveBeenCalledWith('', 0, 500));
+  await userEvent.hover(screen.getByTestId('compact-filter-pill'));
+
+  expect(await screen.findByRole('tooltip')).toHaveTextContent('Jane Smith');
 });
 
 test('datetime_range filter renders as CompactFilterTrigger with dialog aria-haspopup', () => {

@@ -590,8 +590,12 @@ def test_explore_command_uses_chart_access_when_slice_exists(app_context):
     mock_slc.dashboards = []
     mock_slc.created_by = None
     mock_slc.changed_by = None
+    mock_slc.datasource_id = 1
+    mock_slc.datasource_type = "table"
 
     mock_datasource = MagicMock()
+    mock_datasource.id = 1
+    mock_datasource.type = "table"
     mock_datasource.name = "test"
     mock_datasource.default_endpoint = None
 

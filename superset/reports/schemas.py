@@ -41,6 +41,7 @@ from superset.reports.models import (
     ReportScheduleValidatorType,
 )
 from superset.reports.utils import EMAIL_DOMAIN_REGEX
+from superset.subjects.schemas import SubjectReferenceField
 from superset.tasks.types import ExecutorType
 
 openapi_spec_methods_override = {
@@ -101,7 +102,7 @@ sql_description = (
     "not. The query is expected to return either NULL or a number value."
 )
 editors_description = (
-    "A list of subject IDs (users, roles, or groups) that can alter the report."
+    "Subject IDs or explicit principal references that can alter the report."
 )
 validator_type_description = (
     "Determines when to trigger alert based off value from alert query. "
@@ -360,7 +361,9 @@ class ReportSchedulePostSchema(RetryFieldStripMixin, RunAsFieldStripMixin, Schem
     )
     dashboard = fields.Integer(required=False, allow_none=True)
     database = fields.Integer(required=False)
-    editors = fields.List(fields.Integer(metadata={"description": editors_description}))
+    editors = fields.List(
+        SubjectReferenceField(metadata={"description": editors_description})
+    )
     run_as_type = fields.String(
         required=False,
         allow_none=True,
@@ -615,7 +618,8 @@ class ReportSchedulePutSchema(RetryFieldStripMixin, RunAsFieldStripMixin, Schema
     dashboard = fields.Integer(required=False, allow_none=True)
     database = fields.Integer(required=False, allow_none=True)
     editors = fields.List(
-        fields.Integer(metadata={"description": editors_description}), required=False
+        SubjectReferenceField(metadata={"description": editors_description}),
+        required=False,
     )
     run_as_type = fields.String(
         required=False,
