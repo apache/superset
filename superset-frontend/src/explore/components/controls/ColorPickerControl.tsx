@@ -71,17 +71,14 @@ export interface ColorPickerControlProps {
 const normalizeOpaqueAlpha = (hex: string): string =>
   /^#[0-9a-f]{8}$/.test(hex) && hex.endsWith('ff') ? hex.slice(0, 7) : hex;
 
-const normalizeColorToHex = (
-  color: string,
-  expandShorthand = true,
-): string => {
+const normalizeColorToHex = (color: string): string => {
   if (!color) return '';
 
   if (color.startsWith('#')) {
     const lower = color.toLowerCase();
     // Expand 3/4-digit shorthand so it compares equal to the six/eight-digit
     // hex the picker emits.
-    if (expandShorthand && /^#[0-9a-f]{3,4}$/.test(lower)) {
+    if (/^#[0-9a-f]{3,4}$/.test(lower)) {
       return normalizeOpaqueAlpha(
         `#${Array.from(lower.slice(1), c => c + c).join('')}`,
       );
@@ -116,10 +113,16 @@ const getReverseThemeColorMap = (
 
   Object.entries(themeColors).forEach(([name, value]) => {
     if (typeof value === 'string') {
-      // Shorthand stays unexpanded here: expanding would make a plain black or
-      // white pick match base tokens like `colorTextBase` (`#000`) and save the
-      // token name instead of a usable color value.
-      const hex = normalizeColorToHex(value, false);
+      const hex = normalizeColorToHex(value);
+      // Shorthand pure black/white (e.g. `colorTextBase: '#000'`) would make a
+      // plain black or white pick match a base token and save the token name
+      // instead of a usable color value.
+      if (
+        /^#[0-9a-f]{3,4}$/i.test(value) &&
+        (hex === '#000000' || hex === '#ffffff')
+      ) {
+        return;
+      }
       if (!reverseMap.has(hex)) {
         reverseMap.set(hex, name);
       }
