@@ -438,3 +438,42 @@ describe('toDisplayHex', () => {
     expect(toDisplayHex('Green', {}, true)).toBe('#00960033');
   });
 });
+
+test('saves a literal color, not a base token, for a pure black pick when the theme token is shorthand', async () => {
+  const onChange = jest.fn();
+
+  jest
+    .spyOn(require('@apache-superset/core/theme'), 'useTheme')
+    .mockReturnValue({
+      colors: {
+        colorTextBase: '#000',
+      },
+    });
+
+  render(
+    <ColorPickerControl
+      {...defaultProps}
+      onChange={onChange}
+      resolveThemeTokens
+      outputFormat="hex"
+      presets={[{ label: 'Custom', colors: ['#000000'] }]}
+    />,
+  );
+
+  await userEvent.click(
+    document.querySelector('.ant-color-picker-trigger') as HTMLElement,
+  );
+
+  await waitFor(() => {
+    expect(
+      document.querySelector('.ant-color-picker-presets-color'),
+    ).toBeInTheDocument();
+  });
+
+  await userEvent.click(
+    document.querySelectorAll('.ant-color-picker-presets-color')[0],
+  );
+
+  expect(onChange).toHaveBeenCalledWith('#000000');
+  expect(onChange).not.toHaveBeenCalledWith('colorTextBase');
+});
