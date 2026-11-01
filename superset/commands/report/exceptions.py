@@ -281,6 +281,26 @@ class ReportScheduleExecutorNotFoundError(CommandException):
         )
 
 
+class ReportScheduleExecutorAccessDeniedError(CommandException):
+    """Raised when the identity a report runs as cannot access its target."""
+
+    # 5xx for the same reason as ReportScheduleExecutorNotFoundError: the
+    # schedule cannot deliver until its executor or target is reconfigured,
+    # which task-state alerting should surface as a failure.
+    status = 500
+
+    def __init__(self, kind: str, username: str, reason: str) -> None:
+        super().__init__(
+            _(
+                "The report runs as %(username)s, who cannot access its "
+                "%(kind)s: %(reason)s",
+                username=f'"{username}"',
+                kind=kind,
+                reason=reason,
+            )
+        )
+
+
 class ReportScheduleExecuteUnexpectedError(CommandException):
     message = _("Report Schedule execution got an unexpected error.")
 
@@ -598,3 +618,29 @@ class ReportScheduleCeleryNotConfiguredError(CommandException):
         "Report Schedule execution requires a Celery backend to be configured. "
         "Please configure a Celery broker (Redis or RabbitMQ) and worker processes."
     )
+
+
+class ReportScheduleExecutorTargetAccessError(ValidationError):
+    """
+    Validation error when the identity a schedule runs as cannot access the
+    chart or dashboard it delivers
+    """
+
+    def __init__(self, kind: str, username: str | None = None) -> None:
+        message = (
+            _(
+                "This report runs as %(username)s, who cannot access this "
+                "%(kind)s. Choose a %(kind)s that user can access, or a "
+                "different user to run the report as.",
+                username=f'"{username}"',
+                kind=kind,
+            )
+            if username
+            else _(
+                "The user this report runs as cannot access this %(kind)s. "
+                "Choose a %(kind)s that user can access, or ask an admin to "
+                "change who the report runs as.",
+                kind=kind,
+            )
+        )
+        super().__init__(message, field_name=kind)

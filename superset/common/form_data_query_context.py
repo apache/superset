@@ -43,7 +43,13 @@ from collections.abc import Mapping
 from typing import Any
 
 from superset.utils import json
-from superset.utils.core import as_list, DTTM_ALIAS, get_column_name, get_metric_name
+from superset.utils.core import (
+    as_list,
+    DTTM_ALIAS,
+    get_column_name,
+    get_metric_name,
+    remove_duplicates,
+)
 
 # Keep this mapping identical to ``queryFieldAliases`` in
 # ``superset-ui-core/src/query/extractQueryFields.ts``.  It is the shared
@@ -1511,7 +1517,7 @@ def _table_queries(  # noqa: C901
                 else [metric_label]
             )
         ]
-        labels = list(dict.fromkeys(labels))
+        labels = remove_duplicates(labels)
         contribution = {
             "operation": "contribution",
             "options": {
