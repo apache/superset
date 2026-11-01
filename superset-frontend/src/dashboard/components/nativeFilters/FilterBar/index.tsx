@@ -68,6 +68,7 @@ import {
   clearedCustomizationTarget,
   getAppliedFilterLogPayload,
   getFiltersToApply,
+  isRequiredFirst,
 } from './utils';
 import { extractLabel } from '../selectors';
 import { FiltersBarProps } from './types';
@@ -269,7 +270,7 @@ const FilterBar: FC<FiltersBarProps> = ({
         // Force instant updating for requiredFirst filters or auto-apply when needed
         const shouldDispatch =
           dataMask.filterState?.value !== undefined &&
-          ((isFirstTimeInitialization && filter.requiredFirst) ||
+          ((isFirstTimeInitialization && isRequiredFirst(filter)) ||
             needsAutoApply);
 
         if (shouldDispatch) {
