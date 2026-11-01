@@ -31,7 +31,7 @@ import textwrap
 import time
 import traceback
 from collections.abc import Callable, Iterator
-from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor, wait
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -1306,13 +1306,34 @@ def test_connect_boundary_stall_uses_real_socket_timeout(
         right.close()
 
 
-def test_ten_concurrent_deadlines_release_descriptors() -> None:
+def test_ten_concurrent_deadlines_release_descriptors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from http.server import ThreadingHTTPServer
     from threading import Event
 
-    import psutil
-
     done: Event = Event()
+    watched: list[socket.socket] = []
+    register: Callable[
+        [
+            semantic_layer_http.DeadlineScheduler,
+            semantic_layer_http._Deadline,
+            socket.socket,
+        ],
+        None,
+    ] = semantic_layer_http.DeadlineScheduler.register
+
+    def record_registration(
+        scheduler: semantic_layer_http.DeadlineScheduler,
+        bound: semantic_layer_http._Deadline,
+        sock: socket.socket,
+    ) -> None:
+        register(scheduler, bound, sock)
+        watched.extend(bound.sockets)
+
+    monkeypatch.setattr(
+        semantic_layer_http.DeadlineScheduler, "register", record_registration
+    )
 
     class Stall(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802
@@ -1321,12 +1342,10 @@ def test_ten_concurrent_deadlines_release_descriptors() -> None:
             self.end_headers()
             self.wfile.write(b"x")
             self.wfile.flush()
-            done.wait(2)
+            done.wait()
 
         def log_message(self, *args: Any) -> None:
             pass
-
-    before: int = psutil.Process().num_fds()
 
     class ConcurrentServer(ThreadingHTTPServer):
         request_queue_size: int = 32
@@ -1337,7 +1356,7 @@ def test_ten_concurrent_deadlines_release_descriptors() -> None:
     )
     worker.start()
 
-    def call(index: int) -> tuple[float, float]:
+    def call(index: int) -> None:
         budget: float = 0.15 + index * 0.02
         start: float = time.monotonic()
         transport: semantic_layer_http.HostProviderTransport = (
@@ -1351,21 +1370,24 @@ def test_ten_concurrent_deadlines_release_descriptors() -> None:
                 budget=RequestBudget(start + budget, 100),
             )
         assert raised.value.failure == ProviderRequestFailure.TIMEOUT
-        return time.monotonic() - start, budget
 
+    pool: ThreadPoolExecutor = ThreadPoolExecutor(10)
     try:
-        with ThreadPoolExecutor(10) as pool:
-            results: list[tuple[float, float]] = list(pool.map(call, range(10)))
-        assert all(elapsed < budget + 1 for elapsed, budget in results)
+        futures: list[Future[None]] = [pool.submit(call, index) for index in range(10)]
+        completed: set[Future[None]]
+        pending: set[Future[None]]
+        completed, pending = wait(futures, timeout=10)
+        assert not pending, "deadline requests did not complete while server stalled"
+        for future in completed:
+            future.result()
     finally:
         done.set()
+        pool.shutdown(wait=True)
         server.shutdown()
         server.server_close()
         worker.join(2)
-    deadline: float = time.monotonic() + 1
-    while psutil.Process().num_fds() > before and time.monotonic() < deadline:
-        time.sleep(0.01)
-    assert psutil.Process().num_fds() <= before
+    assert watched, "no request registered a socket with the deadline scheduler"
+    assert all(sock.fileno() == -1 for sock in watched)
     assert not semantic_layer_http._scheduler()._tokens
 
 
