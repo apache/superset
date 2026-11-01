@@ -251,7 +251,7 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
                     "sqlalchemy==1.4.*; no SQLAlchemy 2.0 work has started."
                 ),
                 "tracking_url": "https://github.com/dodopizza/sqlalchemy-kusto",
-                "since": "2026-07-28",
+                "since": "2026-10-27",
             }
         ],
     }
