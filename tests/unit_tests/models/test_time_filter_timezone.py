@@ -117,8 +117,8 @@ def test_aware_quarter_filter_queries_sqlite_text_rows(
 @pytest.mark.parametrize(
     "start_offset,end_offset,offset,expected",
     [
-        ("+08:00", "", "inherit", "5299200 seconds ago"),
-        ("", "+08:00", "inherit", "5241600 seconds ago"),
+        ("+08:00", "", "inherit", "5270400 seconds ago"),
+        ("", "+08:00", "inherit", "5270400 seconds ago"),
         ("+08:00", "+00:00", "inherit", "5299200 seconds ago"),
         ("+08:00", "", "2024-03-01", "31 days ago"),
     ],
@@ -144,7 +144,7 @@ def test_quarter_comparison_offsets_accept_mixed_bounds(
         ("y", "2023-04-01T00:00:00+08:00", "2023-07-01T00:00:00+08:00"),
         ("m", "2024-03-01T00:00:00+08:00", "2024-06-01T00:00:00+08:00"),
         ("w", "2024-03-25T00:00:00+08:00", "2024-06-24T00:00:00+08:00"),
-        ("r", "2024-01-01T00:00:00+08:00", "2024-04-01T00:00:00+08:00"),
+        ("r", "2023-12-31T16:00:00+00:00", "2024-03-31T16:00:00+00:00"),
     ],
 )
 def test_quarter_instant_comparison_preserves_offsets_through_sql(

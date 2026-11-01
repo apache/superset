@@ -19,7 +19,8 @@ from __future__ import annotations
 import calendar
 import logging
 import re
-from datetime import datetime, timedelta
+from collections.abc import Callable
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from time import struct_time
 
@@ -47,6 +48,7 @@ from superset.commands.chart.exceptions import (
     TimeRangeParseFailError,
 )
 from superset.constants import InstantTimeComparison, LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
+from superset.utils.dates import normalize_time_bound
 
 ParserElement.enable_packrat()
 
@@ -517,6 +519,8 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     relative_start: str | None = None,
     relative_end: str | None = None,
     instant_time_comparison_range: str | None = None,
+    time_range_normalizer: Callable[[datetime, datetime], tuple[datetime, datetime]]
+    | None = None,
 ) -> tuple[datetime | None, datetime | None]:
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
@@ -754,6 +758,29 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
                 time_unit = "WEEK"
             elif instant_time_comparison_range == InstantTimeComparison.INHERITED:
                 if _since and _until:
+                    if _since.utcoffset() is not None or _until.utcoffset() is not None:
+                        _since, _until = (
+                            time_range_normalizer(_since, _until)
+                            if time_range_normalizer
+                            else (
+                                normalize_time_bound(_since).replace(
+                                    tzinfo=timezone.utc
+                                ),
+                                normalize_time_bound(_until).replace(
+                                    tzinfo=timezone.utc
+                                ),
+                            )
+                        )
+                        duration = _until - _since
+                        if duration < timedelta(0):
+                            raise ValueError(
+                                _("From date cannot be larger than to date")
+                            )
+                        _since, _until = _since - duration, _since
+                        time_unit = ""
+                        # Explicit ranges use exact SQL instants, including sub-day
+                        # spans. The calendar/day fallback below is for naive input.
+                        return _since, _until
                     since_comparison, until_comparison = get_comparable_bounds(
                         _since, _until
                     )

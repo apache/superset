@@ -98,6 +98,7 @@ from superset.common.utils import dataframe_utils
 from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
     get_since_until_from_time_range,
+    get_time_range_normalizer,
 )
 from superset.connectors.sqla.partition_mapping import (
     build_mirrored_predicates,
@@ -3058,6 +3059,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         queries: list[str] = []
         cache_keys: list[str | None] = []
         offset_dfs: dict[str, pd.DataFrame] = {}
+        alignment_offsets: dict[str, str] = {}
 
         outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(query_object)
         if not outer_from_dttm or not outer_to_dttm:
@@ -3156,6 +3158,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     query_object_clone.to_dttm = get_past_or_future(
                         offset, shift_to_dttm
                     )
+                    if (
+                        original_offset == "inherit"
+                        and time_grain
+                        in (
+                            TimeGrain.DAY,
+                            TimeGrain.HOUR,
+                        )
+                        and (
+                            outer_from_dttm.utcoffset() is not None
+                            or outer_to_dttm.utcoffset() is not None
+                        )
+                    ):
+                        alignment_offsets[offset] = self._inherit_alignment_offset(
+                            shift_from_dttm, query_object_clone.from_dttm, time_grain
+                        )
 
                     query_object_clone.inner_from_dttm = outer_from_dttm
                     query_object_clone.inner_to_dttm = outer_to_dttm
@@ -3383,6 +3400,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 x_axis_label=get_x_axis_label(query_object.columns),
                 x_axis_is_temporal=x_axis_metadata.is_temporal,
                 x_axis_datetime_format=x_axis_metadata.python_date_format,
+                alignment_offsets=alignment_offsets,
             )
 
         return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
@@ -3422,6 +3440,33 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # YYYY-MM-DD:YYYY-MM-DD
             return False
 
+    def _inherit_alignment_offset(
+        self, start: datetime, previous_start: datetime, grain: str
+    ) -> str:
+        """Align grained display buckets separately from SQL window durations."""
+        if grain == TimeGrain.HOUR:
+            start_bucket = start.replace(minute=0, second=0, microsecond=0)
+            previous_bucket = previous_start.replace(minute=0, second=0, microsecond=0)
+            return (
+                f"{int((start_bucket - previous_bucket).total_seconds())} seconds ago"
+            )
+        anchors = pd.DataFrame({DTTM_ALIAS: [start, previous_start]})
+        normalize_dttm_col(
+            anchors,
+            (
+                DateColumn(
+                    col_label=DTTM_ALIAS,
+                    offset=self.offset,
+                    timezone=self.get_dataset_timezone(),
+                ),
+            ),
+        )
+        values = anchors[DTTM_ALIAS]
+        if grain == TimeGrain.DAY:
+            values = values.dt.normalize()
+        duration = values.iloc[0] - values.iloc[1]
+        return f"{int(duration.total_seconds())} seconds ago"
+
     def _inherit_time_bounds(
         self,
         start: datetime,
@@ -3433,7 +3478,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return start, end
         if time_col is None:
             time_col = next(
-                (col for col in self.columns if col.column_name == self.main_dttm_col),
+                (col for col in self.columns if col.is_dttm),
                 None,
             )
         sql_start, sql_end = self.adjust_time_bounds(start, end, time_col)
@@ -3467,7 +3512,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # single day and overlap it. Whole-day ranges resolve to the same
             # instant either way.
             from_comparison, to_comparison = get_comparable_bounds(
-                *self._inherit_time_bounds(outer_from_dttm, outer_to_dttm)
+                outer_from_dttm, outer_to_dttm
             )
             duration = to_comparison - from_comparison
             return f"{int(duration.total_seconds())} seconds ago"
@@ -3809,6 +3854,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         x_axis_label: str | None = None,
         x_axis_is_temporal: bool = False,
         x_axis_datetime_format: str | None = None,
+        alignment_offsets: dict[str, str] | None = None,
     ) -> pd.DataFrame:
         """
         Join offset DataFrames with the main DataFrame.
@@ -3827,6 +3873,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             x-axis temporal.
         :param x_axis_datetime_format: The physical x-axis column's configured
             Python datetime format.
+        :param alignment_offsets: Bucket shifts that differ from SQL window durations.
         """
         join_column_producer = app.config["TIME_GRAIN_JOIN_COLUMN_PRODUCERS"].get(
             time_grain
@@ -3834,6 +3881,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         original_columns = list(df.columns)
 
         for offset, offset_df in offset_dfs.items():
+            inherited_hour = bool(
+                alignment_offsets
+                and offset in alignment_offsets
+                and time_grain == TimeGrain.HOUR
+                and not join_column_producer
+                and join_keys
+            )
+            offset = (alignment_offsets or {}).get(offset, offset)
             is_date_range_offset = self.is_valid_date_range(
                 offset
             ) and feature_flag_manager.is_feature_enabled(
@@ -3853,8 +3908,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 else self._resolve_week_grain_offset(df, time_grain, offset)
             )
 
+            working_df = self._inherit_hour_join_frame(df) if inherited_hour else df
+            displayed_offset_values = (
+                offset_df.iloc[:, 0].copy() if inherited_hour else None
+            )
+            if inherited_hour:
+                offset_df = self._inherit_hour_join_frame(offset_df)
             offset_df, actual_join_keys = self._determine_join_keys(
-                df,
+                working_df,
                 offset_df,
                 offset,
                 time_grain,
@@ -3866,6 +3927,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 x_axis_datetime_format,
                 resolved_week_offset,
             )
+            if inherited_hour:
+                for key in actual_join_keys:
+                    if key not in df:
+                        df[key] = working_df[key]
+                offset_df.iloc[:, 0] = displayed_offset_values
 
             # The full-range option is only meaningful for relative offsets aligned
             # on a temporal join column (time_grain set). Date-range offsets and the
@@ -3902,6 +3968,26 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 ]
 
         return df
+
+    def _inherit_hour_join_frame(self, frame: pd.DataFrame) -> pd.DataFrame:
+        """Build elapsed-hour join keys without changing the displayed timestamps."""
+        name = self.get_dataset_timezone()
+        if (
+            not name
+            or frame.empty
+            or not pd.api.types.is_datetime64_any_dtype(frame.iloc[:, 0])
+        ):
+            return frame.copy()
+        try:
+            zone = ZoneInfo(name)
+        except ZoneInfoNotFoundError:
+            return frame.copy()
+        result = frame.copy()
+        values = result.iloc[:, 0]
+        if values.dt.tz is None:
+            values = values.dt.tz_localize(zone, ambiguous="infer")
+        result[result.columns[0]] = values.dt.tz_convert("UTC").dt.tz_localize(None)
+        return result
 
     def _coalesce_offset_index(
         self,
@@ -4100,6 +4186,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             if time_grain == TimeGrain.YEAR:
                 return value.strftime("%Y")
+
+            if time_grain == TimeGrain.DAY:
+                return value.strftime("%Y-%m-%d")
 
         return str(value)
 
@@ -7491,6 +7580,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             time_range=eq,
                             time_shift=time_shift,
                             extras=extras,
+                            time_range_normalizer=get_time_range_normalizer(
+                                self, col_obj.column_name
+                            ),
                         )
                         _temporal_filter = self.get_time_filter(
                             time_col=col_obj,

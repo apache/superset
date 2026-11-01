@@ -19,13 +19,15 @@
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
 from flask import Flask
 
+from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
+from superset.common.query_object_factory import QueryObjectFactory
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.jinja_context import ExtraCache
 from superset.mcp_service.dashboard_scope import (
@@ -34,12 +36,14 @@ from superset.mcp_service.dashboard_scope import (
     intersect_time_ranges,
 )
 from superset.models.core import Database
+from superset.models.sql_lab import Query
 from superset.utils.core import DateColumn, normalize_dttm_col
 from superset.utils.date_parser import (
     datetime_eval,
     get_past_or_future,
     get_since_until,
 )
+from tests.unit_tests.conftest import with_feature_flags
 
 QUARTER_RANGE = (
     "DATETRUNC(DATETIME('2024-05-31T12:00:00+08:00'), QUARTER) : "
@@ -584,3 +588,181 @@ def test_review_empty_dataset_timezone_uses_display_fallback(offset: int) -> Non
         hours=offset
     )
     assert result.loc[frame.ts.iloc[0], "value"] == 1
+
+
+@pytest.mark.parametrize("grain", ["P1D", "PT1H"])
+@pytest.mark.parametrize(
+    "source,extra",
+    [
+        ("table", None),
+        ("table", '{"timezone": "Europe/Berlin"}'),
+        ("sql_lab", None),
+    ],
+)
+@pytest.mark.parametrize("season", ["quarter", "autumn"])
+@pytest.mark.parametrize("full_range", [False, True])
+@pytest.mark.parametrize("bound_offset", ["+08:00", "+05:30"])
+def test_review_inherit_joins_actual_grouped_rows(
+    app: Flask,
+    grain: str,
+    extra: str | None,
+    source: str,
+    season: str,
+    full_range: bool,
+    bound_offset: str,
+) -> None:
+    """Execute grained SQL and merge metrics with the real join implementation."""
+    table, _ = _dataset(extra)
+    if source == "sql_lab":
+        datasource = Query(database=table.database, sql="SELECT ts FROM events")
+        datasource.extra = {
+            "columns": [{"column_name": "ts", "is_dttm": True, "type": "TIMESTAMP"}]
+        }
+        table = datasource
+    time_range = (
+        "DATETRUNC(DATETIME('2024-05-31T12:00:00+08:00'), QUARTER) : 2024-07-01"
+        if season == "quarter"
+        else "2024-10-26T00:00:00+08:00 : 2024-11-01"
+    )
+    time_range = time_range.replace("+08:00", bound_offset)
+    start, end = get_since_until(time_range)
+    query = QueryObject(
+        datasource=table,
+        granularity="ts",
+        time_range=time_range,
+        from_dttm=start,
+        to_dttm=end,
+        time_offsets=["inherit"],
+        time_compare_full_range=full_range,
+        columns=["__timestamp"],
+        is_timeseries=True,
+        row_limit=10000,
+        extras={"time_grain_sqla": grain},
+        metrics=[
+            {"expressionType": "SQL", "sqlExpression": "COUNT(*)", "label": "value"}
+        ],
+        order_desc=False,
+    )
+    with sqlite3.connect(":memory:") as connection, app.app_context():
+        connection.execute("CREATE TABLE events (ts TEXT)")
+        connection.executemany(
+            "INSERT INTO events VALUES (?)",
+            [
+                (value.strftime("%Y-%m-%d %H:%M:%S"),)
+                for value in pd.date_range("2023-12-01", "2024-11-02", freq="30min")
+            ],
+        )
+        requests = []
+
+        def execute(request):
+            sql = table.get_query_str(request)
+            requests.append(request)
+            return SimpleNamespace(
+                df=pd.read_sql_query(sql, connection),
+                query=sql,
+                sql_shifted_temporal_labels=set(),
+            )
+
+        main = table.normalize_df(execute(query.to_dict()).df, query)
+        unjoined_main = main.copy()
+        with (
+            patch(
+                "superset.common.utils.query_cache_manager.QueryCacheManager.get",
+                return_value=SimpleNamespace(is_loaded=False),
+            ),
+            patch.object(table, "query", side_effect=execute),
+        ):
+            result = table.processing_time_offsets(main, query)
+        assert len(result["df"]) == len(main)
+        assert result["df"]["value__inherit"].notna().all()
+        if grain == "P1D" and extra is None and season == "quarter":
+            assert len(result["df"]) == 92
+        previous = requests[-1]
+        main_start, _ = table.adjust_time_bounds(start, end, table.columns[0])
+        _, previous_end = table.adjust_time_bounds(
+            previous["from_dttm"], previous["to_dttm"], table.columns[0]
+        )
+        assert previous_end == main_start
+        cached_frame = table.normalize_df(execute(previous).df, query).rename(
+            columns={"value": "value__inherit"}
+        )
+        with (
+            patch(
+                "superset.common.utils.query_cache_manager.QueryCacheManager.get",
+                return_value=SimpleNamespace(
+                    is_loaded=True, df=cached_frame, query="cached comparison"
+                ),
+            ),
+            patch.object(
+                table,
+                "query",
+                side_effect=AssertionError("Cache hit must not execute a query"),
+            ),
+        ):
+            cached_result = table.processing_time_offsets(unjoined_main.copy(), query)
+        pd.testing.assert_frame_equal(result["df"], cached_result["df"])
+
+
+def test_review_sql_lab_inherited_comparison_accepts_table_columns(app: Flask) -> None:
+    """SQL Lab's TableColumn objects work when resolving default time metadata."""
+    table, _ = _dataset()
+    datasource = Query(database=table.database, sql="SELECT ts FROM events")
+    datasource.extra = {
+        "columns": [{"column_name": "ts", "is_dttm": True, "type": "TIMESTAMP"}]
+    }
+    start, end = get_since_until("2024-04-01T00:00:00+08:00 : 2024-07-01")
+    assert start is not None
+    assert end is not None
+    with app.app_context():
+        assert datasource.get_offset_custom_or_inherit("inherit", start, end)
+        bounds = datasource._inherit_time_bounds(start, end)
+    assert bounds == (
+        datetime(2024, 3, 31, 16, tzinfo=timezone.utc),
+        datetime(2024, 7, 1, tzinfo=timezone.utc),
+    )
+
+
+@with_feature_flags(CHART_PLUGINS_EXPERIMENTAL=True)
+@pytest.mark.parametrize("extra", [None, '{"timezone": "Europe/Berlin"}'])
+@pytest.mark.parametrize(
+    "time_range",
+    [
+        "DATETRUNC(DATETIME('2024-05-31T12:00:00+08:00'), QUARTER) : 2024-07-01",
+        "2024-04-01 : 2024-07-01T00:00:00+08:00",
+        "2024-04-01T12:00:00+08:00 : 2024-04-01T16:30:00+08:00",
+    ],
+)
+def test_review_instant_inherited_factory_uses_sql_period(
+    app: Flask, extra: str | None, time_range: str
+) -> None:
+    """The factory resolves INHERITED against the destination's SQL bounds."""
+    table, col = _dataset(extra)
+    factory = QueryObjectFactory(app.config, Mock())
+    with app.app_context():
+        main = factory.create(
+            ChartDataResultType.FULL,
+            datasource_model_instance=table,
+            time_range=time_range,
+            granularity="ts",
+            row_limit=100,
+        )
+        previous = factory.create(
+            ChartDataResultType.FULL,
+            datasource_model_instance=table,
+            time_range=time_range,
+            granularity="ts",
+            row_limit=100,
+            extras={"instant_time_comparison_range": "r"},
+        )
+        main_start, main_end = table.adjust_time_bounds(
+            main.from_dttm, main.to_dttm, col
+        )
+        previous_start, previous_end = table.adjust_time_bounds(
+            previous.from_dttm, previous.to_dttm, col
+        )
+    assert previous_end == main_start
+    assert main_start is not None
+    assert main_end is not None
+    assert previous_start is not None
+    assert previous_end is not None
+    assert previous_end - previous_start == main_end - main_start

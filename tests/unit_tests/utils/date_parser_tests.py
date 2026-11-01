@@ -445,21 +445,27 @@ def test_get_since_until_sub_day_next_with_explicit_relative_bounds() -> None:
     `now`; pin that this still produces a correctly-ordered range.
     """
     with freezegun.freeze_time("2026-09-14 17:16:40"):
-        kwargs = {"relative_start": "today", "relative_end": "today"}
-
-        result = get_since_until("Next second", **kwargs)
+        result = get_since_until(
+            "Next second", relative_start="today", relative_end="today"
+        )
         expected = (datetime(2026, 9, 14, 0, 0), datetime(2026, 9, 14, 0, 0, 1))
         assert result == expected
 
-        result = get_since_until("Next minute", **kwargs)
+        result = get_since_until(
+            "Next minute", relative_start="today", relative_end="today"
+        )
         expected = (datetime(2026, 9, 14, 0, 0), datetime(2026, 9, 14, 0, 1))
         assert result == expected
 
-        result = get_since_until("Next hour", **kwargs)
+        result = get_since_until(
+            "Next hour", relative_start="today", relative_end="today"
+        )
         expected = (datetime(2026, 9, 14, 0, 0), datetime(2026, 9, 14, 1, 0))
         assert result == expected
 
-        result = get_since_until("Next 2 hours", **kwargs)
+        result = get_since_until(
+            "Next 2 hours", relative_start="today", relative_end="today"
+        )
         expected = (datetime(2026, 9, 14, 0, 0), datetime(2026, 9, 14, 2, 0))
         assert result == expected
 
@@ -541,8 +547,8 @@ def test_get_since_until_inherited_comparison_with_mixed_quarter_bounds() -> Non
             instant_time_comparison_range="r",
         )
     assert result == (
-        datetime(2024, 1, 31, tzinfo=timezone(timedelta(hours=8))),
-        datetime(2024, 4, 1, 12),
+        datetime(2024, 1, 29, 20, tzinfo=timezone.utc),
+        datetime(2024, 3, 31, 16, tzinfo=timezone.utc),
     )
 
 
