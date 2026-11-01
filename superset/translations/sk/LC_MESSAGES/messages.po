@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-30 19:32+0000\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -560,10 +560,10 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
-msgstr[0] "Řadit metriku"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
@@ -781,9 +781,6 @@ msgid ""
 "clear your cookies or change browsers.\n"
 "\n"
 msgstr ""
-"-- Poznámka: Pokiaľ svoj dotaz neuložíte, tieto karty NEZŮSTANOU "
-"zachovány, pokiaľ vymažete súbory cookie alebo zmeníte prehliadač.\n"
-"\n"
 
 #, fuzzy, python-format
 msgid "... and %d more"
@@ -2458,6 +2455,10 @@ msgstr "Pri načítavanie informací o nástenke došlo k chybe."
 msgid "An error occurred while loading the SQL"
 msgstr "Pri načítavanie SQL došlo k chybe"
 
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
+
 #, fuzzy
 msgid "An error occurred while overwriting the dataset"
 msgstr "Pri prepise datasetu došlo k chybe"
@@ -4073,9 +4074,6 @@ msgstr "Vyberte stĺpce, ktoré sa majú spracovať ako data"
 msgid "Choose columns to read"
 msgstr "Vyberte stĺpce ke čtenie"
 
-msgid "Choose current semantic fields"
-msgstr ""
-
 msgid "Choose current semantic filter fields"
 msgstr ""
 
@@ -4334,7 +4332,7 @@ msgid "Closing value for each period."
 msgstr "Uzatváracia hodnota za každé obdobie."
 
 msgid "Cluster label aggregator"
-msgstr "Agregátor popisků shluků"
+msgstr ""
 
 msgid "Clustering Radius"
 msgstr "Polomer shlukovanie"
@@ -4634,7 +4632,7 @@ msgid "Columns to group by on the columns"
 msgstr "Stĺpce pre zoskupenie ve stĺpcoch"
 
 msgid "Columns to group by on the rows"
-msgstr "Stĺpce pre zoskupenie v řádcích"
+msgstr ""
 
 msgid "Columns to read"
 msgstr "Stĺpce ke čtenie"
@@ -4654,16 +4652,11 @@ msgid ""
 "denote colors from the chosen color scheme and are 1-indexed. Length must"
 " be matching that of interval bounds."
 msgstr ""
-"Čiarkou oddelené výbery farieb pre intervaly, např. 1,2,4. Celé čísla "
-"označují farby z vybraného fariebného schématu a sú indexována od 1. "
-"Dĺžka sa musí shodovať s dĺžkou hranic intervalů."
 
 msgid ""
 "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and "
 "4-5. Last number should match the value provided for MAX."
 msgstr ""
-"Čiarkou oddelené hranica intervalů, např. 2,4,5 pre intervaly 0-2, 2-4 a "
-"4-5. Posledný číslo by sa melo shodovať s hodnotou zadanou pre MAX."
 
 msgid ""
 "Comma-separated numeric thresholds to shade as background ranges, e.g. "
@@ -4697,8 +4690,6 @@ msgid ""
 "Compare multiple time series charts (as sparklines) and related metrics "
 "quickly."
 msgstr ""
-"Rýchlo porovnajte viac grafů časových radov (ako minigrafy) a súvisejúci "
-"metriky."
 
 msgid "Compare results with other time periods."
 msgstr "Porovnať výsledky s inými časovými obdobími."
@@ -4737,7 +4728,7 @@ msgid "Compose multiple layers together to form complex visuals."
 msgstr "Skombinujte viac vrstiev dohromady a vytvorte komplexní vizualizácia."
 
 msgid "Compute the contribution to the total"
-msgstr "Vypočítať příspevek k celku"
+msgstr ""
 
 msgid "Condition"
 msgstr "Podmienka"
@@ -4801,7 +4792,7 @@ msgid "Configure this dashboard to embed it into an external web application."
 msgstr "Nakonfigurujte tuto nástenku pre vloženie do externí webové aplikácia."
 
 msgid "Configure your how you overlay is displayed here."
-msgstr "Tu nakonfigurujte, ako sa má zobraziť vaše překrytí."
+msgstr ""
 
 #, fuzzy
 msgid "Confirm"
@@ -4845,7 +4836,7 @@ msgid "Connect database"
 msgstr "Pripojiť databázy"
 
 msgid "Connect this database using the dynamic form instead"
-msgstr "Namiesto toho pripojte tuto databázy pomocí dynamického formuláře"
+msgstr ""
 
 msgid "Connect this database with a SQLAlchemy URI string instead"
 msgstr "Namiesto toho pripojte tuto databázy pomocí reťazca URI SQLAlchemy"
@@ -5015,7 +5006,7 @@ msgid "Correlation"
 msgstr "Korelácie"
 
 msgid "Cost estimate"
-msgstr "Odhad nákladů"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -5211,10 +5202,10 @@ msgid "Created on"
 msgstr "Vytvorené dne"
 
 msgid "Creating SSH Tunnel failed for an unknown reason"
-msgstr "Vytvářenie SSH tunelu zlyhalo z neznámého dôvodu"
+msgstr ""
 
 msgid "Creating a data source and creating a new tab"
-msgstr "Vytvářenie zdroje dat a vytváranie nové karty"
+msgstr ""
 
 msgid "Creator"
 msgstr "Tvorca"
@@ -5513,9 +5504,8 @@ msgstr ""
 msgid "Dashboard cannot be unfavorited."
 msgstr "Nástenku nemožno odebrat z oblíbených."
 
-#, fuzzy
 msgid "Dashboard chart customizations could not be updated."
-msgstr "Konfiguraci grafů nástenky sa nepodarilo aktualizovať."
+msgstr ""
 
 msgid "Dashboard color configuration could not be updated."
 msgstr "Konfiguraci farieb nástenky sa nepodarilo aktualizovať."
@@ -5911,7 +5901,7 @@ msgid "Date format"
 msgstr "Formát data"
 
 msgid "Date format string"
-msgstr "Řetezec formátu data"
+msgstr ""
 
 msgid "Date/Time"
 msgstr "Dátum/Čas"
@@ -5946,7 +5936,7 @@ msgid "December"
 msgstr "Prosinec"
 
 msgid "Decides which column or measure to sort the base axis by."
-msgstr "Určuje, popodľa kterého stĺpce alebo míry sa má řadit základná os."
+msgstr ""
 
 msgid "Decimal character"
 msgstr "Desetinný znak"
@@ -6054,10 +6044,6 @@ msgid ""
 "represent a collection of polygons that fill the are containing values in"
 " a given threshold range."
 msgstr ""
-"Definujte vrstvy obrysů. Izolinie predstavujú zbierku úseček, ktoré "
-"oddelují oblasť nad a pod danou prahovú hodnotou. Izopásy predstavujú "
-"zbierku polygonů, ktoré vyplňují oblasť obsahujúci hodnoty v daném "
-"prahovejm rozsahu."
 
 msgid "Define delivery schedule, timezone, and frequency settings."
 msgstr "Definujte plán doručenie, časové pásmo a nastavenie frekvencia."
@@ -6077,7 +6063,7 @@ msgstr ""
 "textovým polem [Období]"
 
 msgid "Defines the grid size in pixels"
-msgstr "Definuje veľkosť mřížky v pixelech"
+msgstr ""
 
 msgid ""
 "Defines the grouping of entities. Each series is represented by a "
@@ -6294,9 +6280,9 @@ msgstr[2] "Zmazané %(num)d vrstev anotací"
 #, python-format
 msgid "Deleted %(num)d chart"
 msgid_plural "Deleted %(num)d charts"
-msgstr[0] "Zmazaný %(num)d graf"
-msgstr[1] "Smazány %(num)d grafy"
-msgstr[2] "Zmazané %(num)d grafů"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "Deleted %(num)d css template"
@@ -6322,9 +6308,9 @@ msgstr[2] "Zmazané %(num)d sad dat"
 #, python-format
 msgid "Deleted %(num)d report schedule"
 msgid_plural "Deleted %(num)d report schedules"
-msgstr[0] "Zmazaný %(num)d plán reportu"
-msgstr[1] "Smazány %(num)d plány reportů"
-msgstr[2] "Zmazané %(num)d plánů reportů"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, fuzzy, python-format
 msgid "Deleted %(num)d rules"
@@ -6576,9 +6562,6 @@ msgid ""
 "geographical data. Use dimensions to categorize, segment, and reveal the "
 "details in your data. Dimensions affect the level of detail in the view."
 msgstr ""
-"Dimenze obsahují kvalitativní hodnoty, ako sú jména, data alebo "
-"geografická data. Použijte dimenze k kategorizaci, segmentaci a odhalenie"
-" detailů vo vašich datech. Dimenze ovlivňují úroveň detailů v zobrazenie."
 
 msgid "Directional"
 msgstr "Smerový"
@@ -6591,9 +6574,6 @@ msgid ""
 "avoid browser performance issues when using  databases with very wide "
 "tables."
 msgstr ""
-"Zakázat náhľad dat pri načítavanie metadat tabuľky v SQL Labu.  Užitečné "
-"pre zamedzenie je problémům s výkonem prehliadača pri použití  databáz s "
-"velmi širokými tabuľkami."
 
 msgid "Disable drill to detail"
 msgstr "Zakázat prechod na detail"
@@ -6699,8 +6679,6 @@ msgid ""
 "value, from the first step of the funnel, or from the previous step in "
 "the funnel."
 msgstr ""
-"Zobrazovať procenta v popisku a nápovede ako procento z celkové hodnoty, "
-"z prvního kroku lievika alebo z předchozího kroku v lieviku."
 
 msgid "Display row level subtotal"
 msgstr "Zobraziť mezisoučet na úrovni riadku"
@@ -6722,10 +6700,6 @@ msgid ""
 " Graph charts can be configured to be force-directed or circulate. If "
 "your data has a geospatial component, try the deck.gl Arc chart."
 msgstr ""
-"Zobrazuje spojenie mezi entitami v štruktúre grafu. Užitečné pre "
-"mapovanie vztahů a zobrazenie, ktoré uzly sú v síti důležité. Grafy možno"
-" nakonfigurovať ako riadené silou alebo kruhové. Pokiaľ vaše data majú "
-"geoprostorovou priečinok, vyzkoušejte graf deck.gl Arc."
 
 msgid "Distribute across"
 msgstr "Rozdelit naprieč"
@@ -6740,8 +6714,6 @@ msgid ""
 "Divides each category into subcategories based on the values in the "
 "dimension. It can be used to exclude intersections."
 msgstr ""
-"Rozdelí každou kategorii na podkategorie na základe hodnôt v dimenzi. "
-"Môže být použit k vynechanie průsečíků."
 
 msgid "Do you want a donut or a pie?"
 msgstr "Chcete prstencový alebo koláčový graf?"
@@ -6804,19 +6776,16 @@ msgid "Drag %s folder"
 msgstr ""
 
 msgid "Drag and drop components and charts to the dashboard"
-msgstr "Přetáhnete komponenty a grafy na nástenku"
+msgstr ""
 
 msgid "Drag and drop components to this tab"
-msgstr "Přetáhnete komponenty na tuto kartu"
+msgstr ""
 
 msgid ""
 "Drag columns and metrics here to customize tooltip content. Order matters"
 " - items will appear in the same order in tooltips. Click the button to "
 "manually select columns and metrics."
 msgstr ""
-"Přetáhnete stĺpce a metriky tu pre prispôsobenie obsahu nápovedy. "
-"Vrátenie poradie je důležité - položky sa objeví ve stejném poradie v "
-"nápovede. Kliknete na tlačidlo pre ruční výber stĺpce a metriky."
 
 #, fuzzy
 msgid "Drag to reorder"
@@ -6824,11 +6793,9 @@ msgstr "Nezpracované záznamy"
 
 msgid "Draw a marker on data points. Only applicable for line types."
 msgstr ""
-"Vykreslit značku na dátové body. Použitelné iba pre typy spojnicových "
-"grafů."
 
 msgid "Draw area under curves. Only applicable for line types."
-msgstr "Vykreslit plochu pod krivkami. Použitelné iba pre typy spojnicových grafů."
+msgstr ""
 
 msgid "Draw line from Pie to label when labels outside?"
 msgstr "Vykreslit čáru od koláče k popisku, keď sú popisky vne?"
@@ -6856,56 +6823,48 @@ msgid "Drill by: %s"
 msgstr "Procházet podle: %s"
 
 msgid "Drill to detail"
-msgstr "Přechod na detail"
+msgstr ""
 
 msgid "Drill to detail by"
-msgstr "Přechod na detail podle"
+msgstr ""
 
 msgid "Drill to detail by value is not yet supported for this chart type."
 msgstr ""
-"Přechod na detail popodľa hodnoty zatiaľ nie je pre tento typ grafu "
-"podporován."
 
 msgid ""
 "Drill to detail is disabled because this chart does not group data by "
 "dimension value."
 msgstr ""
-"Přechod na detail je zakázán, pretože tento graf neseskupuje data popodľa"
-" hodnoty dimenze."
 
 msgid ""
 "Drill to detail is disabled for this database. Change the database "
 "settings to enable it."
 msgstr ""
-"Přechod na detail je pre tuto databázy zakázán. Zmeňte nastavenie "
-"databáza, aby ste jej povolili."
 
 msgid "Drill to detail is not available for this datasource type."
 msgstr ""
 
 #, python-format
 msgid "Drill to detail: %s"
-msgstr "Přechod na detail: %s"
+msgstr ""
 
-#, fuzzy
 msgid "Drop a column here or click"
 msgid_plural "Drop columns here or click"
-msgstr[0] "Přetáhnete sem stĺpec alebo kliknete"
-msgstr[1] "Přetáhnete sem stĺpce alebo kliknete"
-msgstr[2] "Přetáhnete sem stĺpce alebo kliknete"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
-#, fuzzy
 msgid "Drop a column/metric here or click"
 msgid_plural "Drop columns/metrics here or click"
-msgstr[0] "Přetáhnete sem stĺpec/metriku alebo kliknete"
-msgstr[1] "Přetáhnete sem stĺpce/metriky alebo kliknete"
-msgstr[2] "Přetáhnete sem stĺpce/metriky alebo kliknete"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 msgid "Drop a temporal column here or click"
-msgstr "Přetáhnete sem časový stĺpec alebo kliknete"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
-msgstr "Přetáhnete sem stĺpce/metriky alebo kliknete"
+msgstr ""
 
 #, fuzzy
 msgid "Dttm"
@@ -6916,7 +6875,7 @@ msgstr "Duplikovať"
 
 #, python-format
 msgid "Duplicate column name(s): %(columns)s"
-msgstr "Duplicitní názov(vy) stĺpce(ů): %(columns)s"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -7221,7 +7180,7 @@ msgid "Elapsed"
 msgstr "Uplynulý čas"
 
 msgid "Elevation"
-msgstr "Nadmořská výška"
+msgstr ""
 
 msgid "Email"
 msgstr "E-mail"
@@ -7239,7 +7198,7 @@ msgid "Email reports active"
 msgstr "E-mailové reporty aktívny"
 
 msgid "Email subject name (optional)"
-msgstr "Předmet e-mailu (volitelné)"
+msgstr ""
 
 msgid "Embed"
 msgstr "Vložiť"
@@ -7314,7 +7273,7 @@ msgid "Enable embedding"
 msgstr "Povolit vkládanie"
 
 msgid "Enable forecast"
-msgstr "Povolit předpoveď"
+msgstr ""
 
 msgid "Enable forecasting"
 msgstr "Povolit prognózovanie"
@@ -7335,10 +7294,10 @@ msgid "Enable matrixify"
 msgstr "Povolit Matrixify"
 
 msgid "Enable node dragging"
-msgstr "Povolit přetahovanie uzlov"
+msgstr ""
 
 msgid "Enable query cost estimation"
-msgstr "Povolit odhad nákladů dotazu"
+msgstr ""
 
 msgid "Enable row expansion in schemas"
 msgstr "Povolit rozbalenie riadkov ve schématech"
@@ -7350,7 +7309,7 @@ msgid "Enables rendering of icons for GeoJSON points"
 msgstr "Povolí vykreslovanie ikon pre GeoJSON body"
 
 msgid "Enables rendering of labels for GeoJSON points"
-msgstr "Povolí vykreslovanie popisků pre GeoJSON body"
+msgstr ""
 
 msgid "Encrypted extra field must be a mapping from string keys to values."
 msgstr ""
@@ -7398,7 +7357,7 @@ msgstr "končí s"
 
 #, python-format
 msgid "Engine \"%(engine)s\" cannot be configured through parameters."
-msgstr "Engine „%(engine)s“ nemožno konfigurovať pomocí parametrů."
+msgstr ""
 
 msgid "Engine Parameters"
 msgstr "Parametre enginu"
@@ -7407,8 +7366,6 @@ msgid ""
 "Engine spec \"InvalidEngine\" does not support being configured via "
 "individual parameters."
 msgstr ""
-"Specifikace enginu „InvalidEngine“ nepodporuje konfiguráciu pomocí "
-"jednotlivých parametrů."
 
 msgid "Enter CA_BUNDLE"
 msgstr "Zadejte CA_BUNDLE"
@@ -7471,7 +7428,7 @@ msgid "Enter the user's email"
 msgstr "Zadejte e-mail používateľa"
 
 msgid "Enter the user's first name"
-msgstr "Zadejte křestní meno používateľa"
+msgstr ""
 
 msgid "Enter the user's last name"
 msgstr "Zadejte priezvisko používateľa"
@@ -7523,7 +7480,7 @@ msgid "Error"
 msgstr "Chyba"
 
 msgid "Error Fetching Tagged Objects"
-msgstr "Chyba pri načítavanie označených objektů"
+msgstr ""
 
 msgid "Error Handling"
 msgstr ""
@@ -7549,9 +7506,8 @@ msgstr "Chyba pri provádení dotazu."
 msgid "Error faving chart"
 msgstr "Chyba pri pridávanie grafu do oblíbených"
 
-#, fuzzy
 msgid "Error fetching charts"
-msgstr "Chyba pri načítavanie grafů"
+msgstr ""
 
 msgid "Error handling"
 msgstr ""
@@ -7566,6 +7522,10 @@ msgstr "Chyba ve výrazu Jinja ve filtrech RLS: %(msg)s"
 #, python-format
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Chyba ve výrazu Jinja v klauzuli WHERE: %(msg)s"
+
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
@@ -7588,7 +7548,7 @@ msgid "Error in jinja expression in metric expression: %(msg)s"
 msgstr "Chyba ve výrazu Jinja ve výrazu metriky: %(msg)s"
 
 msgid "Error loading chart datasources. Filters may not work correctly."
-msgstr "Chyba pri načítavanie zdrojů dat grafu. Filtre nemusí fungovať správne."
+msgstr ""
 
 msgid "Error message"
 msgstr "Chybová správa"
@@ -7612,7 +7572,7 @@ msgid "Error unfaving chart"
 msgstr "Chyba pri odebíranie grafu z oblíbených"
 
 msgid "Error while fetching charts"
-msgstr "Chyba pri načítavanie grafů"
+msgstr ""
 
 #, python-format
 msgid "Error while fetching data: %s"
@@ -7670,7 +7630,7 @@ msgid "Evolution"
 msgstr "Vývoj"
 
 msgid "Exact"
-msgstr "Přesný"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -7685,7 +7645,7 @@ msgid "Example export does not support charts or filters using semantic views."
 msgstr ""
 
 msgid "Examples"
-msgstr "Příklady"
+msgstr ""
 
 #, fuzzy
 msgid "Excel Export"
@@ -7774,10 +7734,6 @@ msgid ""
 "formulas.\n"
 "        Example: '2x+5'"
 msgstr ""
-"Očekává vzorec sa závislým časovým parametrem 'x'\n"
-"        v milisekundách od epochy. Pre vyhodnocenie vzorců sa používa "
-"mathjs.\n"
-"        Príklad: '2*x+5'"
 
 msgid "Experimental"
 msgstr "Experimentální"
@@ -7895,7 +7851,7 @@ msgid "Export to full Excel"
 msgstr "Exportovať do úplného Excelu"
 
 msgid "Export to original .CSV"
-msgstr "Exportovať do původního .CSV"
+msgstr ""
 
 msgid "Export to pivoted .CSV"
 msgstr "Exportovať do kontingenčnejho .CSV"
@@ -7917,10 +7873,10 @@ msgid ""
 msgstr ""
 
 msgid "Expose database in SQL Lab"
-msgstr "Zpřístupnit databázy v SQL Labu"
+msgstr ""
 
 msgid "Expose in SQL Lab"
-msgstr "Zpřístupnit v SQL Labu"
+msgstr ""
 
 #, fuzzy
 msgid "Expression"
@@ -8332,8 +8288,6 @@ msgstr "Názov filtra"
 
 msgid "Filter only displays values relevant to selections made in other filters."
 msgstr ""
-"Filter zobrazuje iba hodnoty relevantní k výberům provedeným v iných "
-"filtrech."
 
 #, fuzzy
 msgid "Filter options"
@@ -8430,14 +8384,6 @@ msgid ""
 "filter (department = 'Finance' OR department = 'Marketing') AND (region ="
 " 'Europe')."
 msgstr ""
-"Filtre sa stejným klíčem skupiny budú v rámci skupiny spojeny operátorem "
-"OR, zatiaľco rôzne skupiny filtrov budú spojeny operátorem AND. "
-"Nedefinované klíče skupiny sú považovány za jedinečné skupiny, tj. nesú "
-"seskupeny. Například, pokiaľ má tabuľka tři filtre, z nichž dva sú pre "
-"oddelenie Finance a Marketing (kľúč skupiny = 'department') a jeden sa "
-"vztahuje na region Evropa (kľúč skupiny = 'region'), klauzule filtra by "
-"použila filter (department = 'Finance' OR department = 'Marketing') AND "
-"(region = 'Europe')."
 
 msgid "Financial"
 msgstr ""
@@ -8451,22 +8397,20 @@ msgstr "Dokončiť"
 msgid "First"
 msgstr "První"
 
-#, fuzzy
 msgid "First Name"
-msgstr "Křestní meno"
+msgstr ""
 
 msgid "First name"
-msgstr "Křestní meno"
+msgstr ""
 
 msgid "First name is required"
-msgstr "Křestní meno je povinné"
+msgstr ""
 
 msgid "First tracked save"
 msgstr ""
 
-#, fuzzy
 msgid "Fit columns dynamically"
-msgstr "Dynamicky přizůsobit stĺpce"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
 #, fuzzy
@@ -8480,8 +8424,6 @@ msgid ""
 "Fix the trend line to the full time range specified in case filtered "
 "results do not include the start or end dates"
 msgstr ""
-"Prispôsobiť trendovou čáru celému zadanému časovému rozsahu pre případ, "
-"že filtrované výsledky neobsahují počáteční alebo koncové dátum"
 
 msgid "Fix to selected Time Range"
 msgstr "Prispôsobiť vybranému časovému rozsahu"
@@ -8513,7 +8455,7 @@ msgid "Font size"
 msgstr "Veľkosť písma"
 
 msgid "Font size for axis labels, detail value and other text elements"
-msgstr "Veľkosť písma pre popisky os, hodnoty detailů a ďalší textové prvky"
+msgstr ""
 
 msgid "Font size for the biggest value in the list"
 msgstr "Veľkosť písma pre nejväčší hodnotu v zozname"
@@ -8525,28 +8467,20 @@ msgid ""
 "For Bigquery, Presto and Postgres, shows a button to compute cost before "
 "running a query."
 msgstr ""
-"Pre BigQuery, Presto a Postgres zobrazí tlačidlo pre výpočet nákladů pred"
-" spuštením dotazu."
 
 msgid ""
 "For Trino, describe full schemas of nested ROW types, expanding them with"
 " dotted paths"
 msgstr ""
-"Pre Trino popište úplná schémata vnorených typů ROW a rozšiřte je pomocí "
-"tečkovaných cest"
 
 msgid "For further instructions, consult the"
 msgstr "Pre ďalší pokyny sa obraťte na"
 
-#, fuzzy
 msgid ""
 "For regular filters, these are the subjects (users, roles, groups) this "
 "filter will be applied to. For base filters, these are the subjects that "
 "the filter DOES NOT apply to, e.g. Admin if admin should see all data."
 msgstr ""
-"Pre bežné filtre sú to role, na ktoré bude tento filter aplikován. Pre "
-"základný filtre sú to role, na ktoré sa filter NEVZTAHUJE, např. Admin, "
-"pokiaľ by admin mel videt všetky data."
 
 msgid "Forbidden"
 msgstr "Zakázáno"
@@ -8586,7 +8520,7 @@ msgid "Force refresh"
 msgstr "Vynutit obnovenie"
 
 msgid "Force refresh Slack channels list"
-msgstr "Vynutit obnovenie zozname kanálů Slack"
+msgstr ""
 
 msgid "Force refresh catalog list"
 msgstr "Vynutit obnovenie zozname katalógov"
@@ -8601,7 +8535,7 @@ msgid "Forces selected Time Grain as the maximum interval for X Axis Labels"
 msgstr "Vynutí vybranou časovou úroveň ako maximální interval pre jmenovky osy X"
 
 msgid "Forecast periods"
-msgstr "Období předpovedi"
+msgstr ""
 
 msgid "Forecast requires at least 2 data points"
 msgstr ""
@@ -8619,10 +8553,10 @@ msgid "Forgot password?"
 msgstr ""
 
 msgid "Form data not found in cache, reverting to chart metadata."
-msgstr "Data formuláře nenalezena v mezipameti, vraciam sa k metadatům grafu."
+msgstr ""
 
 msgid "Form data not found in cache, reverting to dataset metadata."
-msgstr "Data formuláře nenalezena v mezipameti, vraciam sa k metadatům sady dat."
+msgstr ""
 
 #, fuzzy
 msgid "Format"
@@ -8659,13 +8593,9 @@ msgid ""
 " based on the dataset's currency code column. When multiple currencies "
 "are present, formatting falls back to neutral numbers."
 msgstr ""
-"Formátovať meny alebo stĺpce s menovými symboly ako prefixy alebo "
-"suffixy. Vyberte symbol ručne alebo použijte 'Auto-detect', aby ste "
-"aplikovali správný symbol na základe stĺpce s kódem meny v sade dat. "
-"Pokiaľ sú presentní viac men, formátovanie sa vráti k neutrálním číslům."
 
 msgid "Formatted CSV attached in email"
-msgstr "Formátované CSV přiloženo v e-mailu"
+msgstr ""
 
 msgid "Formatted Excel attached in email"
 msgstr ""
@@ -8688,7 +8618,7 @@ msgid "Formula"
 msgstr "Vzorec"
 
 msgid "Forward values"
-msgstr "Dopředné hodnoty"
+msgstr ""
 
 msgid "Found invalid orderby options"
 msgstr "Nalezeny neplatné možnosti order by"
@@ -8700,10 +8630,10 @@ msgid "Frequency"
 msgstr "Frekvencia"
 
 msgid "Friction"
-msgstr "Tření"
+msgstr ""
 
 msgid "Friction between nodes"
-msgstr "Tření mezi uzly"
+msgstr ""
 
 msgid "Friday"
 msgstr "Pátek"
@@ -8719,7 +8649,7 @@ msgid "Fullscreen is not supported in this browser."
 msgstr "Procházenie popodľa zatiaľ nie je pre tento typ grafu podporováno"
 
 msgid "Funnel Chart"
-msgstr "Trychtýřový graf"
+msgstr ""
 
 msgid "Further customize how to display each column"
 msgstr "Dále prispôsobiť, ako zobraziť každý stĺpec"
@@ -8731,19 +8661,16 @@ msgstr "Dále prispôsobiť, ako zobraziť každou metriku"
 msgid "GROUP BY"
 msgstr "SESKUPIT PODLE"
 
-#, fuzzy
 msgid "Gantt Chart"
-msgstr "Ganttův graf"
+msgstr ""
 
 msgid ""
 "Gantt chart visualizes important events over a time span. Every data "
 "point displayed as a separate event along a horizontal line."
 msgstr ""
-"Ganttův graf zobrazuje důležité události v čase. Každý dátový bod sa "
-"zobrazuje ako samostatná událost na horizontální ose."
 
 msgid "Gauge Chart"
-msgstr "Meřidlový graf"
+msgstr ""
 
 msgid "General"
 msgstr "Obecné"
@@ -8801,7 +8728,7 @@ msgid "Go to Welcome Page"
 msgstr ""
 
 msgid "Go to the edit mode to configure the dashboard and add charts"
-msgstr "Přejdete do režimu úprav pre konfiguráciu nástenky a pridanie grafů"
+msgstr ""
 
 msgid "Gold"
 msgstr "Zlatá"
@@ -8843,11 +8770,10 @@ msgid "Grid"
 msgstr "Mriežka"
 
 msgid "Grid Size"
-msgstr "Veľkosť mřížky"
+msgstr ""
 
-#, fuzzy
 msgid "Grid view"
-msgstr "Veľkosť mřížky"
+msgstr ""
 
 msgid "Gridlines"
 msgstr ""
@@ -8895,10 +8821,11 @@ msgid ""
 "Groups remaining series into an \"Others\" category when series limit is "
 "reached. This prevents incomplete time series data from being displayed."
 msgstr ""
-"Zůstávající riadky seskupí do skupiny \"Ostatní\", pokiaľ je dosažen "
-"limit riadkov. Toto znemožní zobrazenie nekompletních dat časové rady."
 
 msgid "Guest"
+msgstr ""
+
+msgid "Guest user cannot access this query"
 msgstr ""
 
 msgid "Guest user cannot modify chart payload"
@@ -8980,7 +8907,7 @@ msgid "Histogram"
 msgstr "Histogram"
 
 msgid "Home"
-msgstr "Domů"
+msgstr ""
 
 msgid "Horizon Chart"
 msgstr "Horizontální graf"
@@ -8989,7 +8916,7 @@ msgid "Horizontal"
 msgstr "Vodorovný"
 
 msgid "Horizontal (Top)"
-msgstr "Vodorovný (nahoře)"
+msgstr ""
 
 msgid "Horizontal alignment"
 msgstr "Vodorovné zarovnanie"
@@ -9019,10 +8946,10 @@ msgid "How do you want to enter service account credentials?"
 msgstr "Ako chcete zadat poverenie servisního účtu?"
 
 msgid "How many buckets should the data be grouped in."
-msgstr "Do kolika intervalů by mela být data seskupena."
+msgstr ""
 
 msgid "How many periods into the future do we want to predict"
-msgstr "Kolik období do budoucna chceme předpovídat"
+msgstr ""
 
 msgid "How many top values to select"
 msgstr "Kolik horních hodnôt chcete vybrať"
@@ -9032,9 +8959,6 @@ msgid ""
 "between the main time series and each time shift; as the percentage "
 "change; or as the ratio between series and time shifts."
 msgstr ""
-"Ako zobraziť časové posuny: ako jednotlivé čáry; ako rozdiel mezi hlavní "
-"časovou řadou a každým časovým posunem; ako percentuálna zmenu; alebo ako"
-" pomer mezi sériemi a časovými posuny."
 
 msgid "Huge"
 msgstr "Obrovský"
@@ -9066,7 +8990,7 @@ msgid "Id"
 msgstr "Id"
 
 msgid "Id of root node of the tree."
-msgstr "Id kořenového uzlu stromu."
+msgstr ""
 
 msgid ""
 "If Presto or Trino, all the queries in SQL Lab are going to be executed "
@@ -9098,8 +9022,6 @@ msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
 msgstr ""
-"Pokiaľ je povoleno, tento ovládací prvek řadí výsledky/hodnoty sestupne, "
-"jinak řadí výsledky vzestupne."
 
 msgid ""
 "If it stays empty, it won't be saved and will be removed from the list. "
@@ -9208,8 +9130,6 @@ msgid ""
 "In order to connect to non-public sheets you need to either provide a "
 "service account or configure an OAuth2 client."
 msgstr ""
-"Pre pripojenie k neveřejným listům musíte buď poskytnúť servisní účet, "
-"alebo nakonfigurovať klienta OAuth2."
 
 msgid "In this view you can preview the first 25 rows. "
 msgstr "V tomto pohľadu môžete prohlédnúť první 25 riadkov."
@@ -9285,16 +9205,16 @@ msgid "Initial tree depth"
 msgstr "Počáteční hloubka stromu"
 
 msgid "Inner Radius"
-msgstr "Vnitřní polomer"
+msgstr ""
 
 msgid "Inner radius of donut hole"
-msgstr "Vnitřní polomer díry prstence"
+msgstr ""
 
 msgid "Input custom width in pixels"
 msgstr "Zadejte vlastný šírku v pixelech"
 
 msgid "Input field supports custom rotation. e.g. 30 for 30°"
-msgstr "Vstupní pole podporuje vlastný rotaci. např. 30 pre 30°"
+msgstr ""
 
 msgid "Insert Layer URL"
 msgstr "Vložiť URL vrstvy"
@@ -9302,9 +9222,8 @@ msgstr "Vložiť URL vrstvy"
 msgid "Insert Layer title"
 msgstr "Vložiť názov vrstvy"
 
-#, fuzzy
 msgid "Inside"
-msgstr "Uvnitř"
+msgstr ""
 
 msgid "Inside Base"
 msgstr ""
@@ -9315,36 +9234,29 @@ msgstr ""
 msgid "Inside End"
 msgstr ""
 
-#, fuzzy
 msgid "Inside bottom"
-msgstr "Uvnitř dole"
+msgstr ""
 
-#, fuzzy
 msgid "Inside bottom left"
-msgstr "Uvnitř dole vlevo"
+msgstr ""
 
-#, fuzzy
 msgid "Inside bottom right"
-msgstr "Uvnitř dole vpravo"
+msgstr ""
 
-#, fuzzy
 msgid "Inside left"
-msgstr "Uvnitř vlevo"
+msgstr ""
 
-#, fuzzy
 msgid "Inside right"
-msgstr "Uvnitř vpravo"
+msgstr ""
 
 msgid "Inside top"
-msgstr "Uvnitř nahoře"
+msgstr ""
 
-#, fuzzy
 msgid "Inside top left"
-msgstr "Uvnitř nahoře vlevo"
+msgstr ""
 
-#, fuzzy
 msgid "Inside top right"
-msgstr "Uvnitř nahoře vpravo"
+msgstr ""
 
 msgid "Intensity"
 msgstr "Intenzita"
@@ -9383,8 +9295,6 @@ msgid ""
 "Invalid Connection String: Expecting String of the form "
 "'ocient://user:pass@host:port/database'."
 msgstr ""
-"Neplatný připojovací reťazec: Očekává sa reťazec ve forme "
-"'ocient://user:pass@host:port/database'."
 
 msgid "Invalid JSON"
 msgstr "Neplatný JSON"
@@ -9425,8 +9335,6 @@ msgid ""
 "Invalid connection string, a valid string usually follows: "
 "backend+driver://user:password@database-host/database-name"
 msgstr ""
-"Neplatný připojovací reťazec, platný reťazec obvykle následuje: "
-"backend+driver://user:password@database-host/database-name"
 
 msgid ""
 "Invalid connection string, a valid string usually "
@@ -9434,10 +9342,6 @@ msgid ""
 "NAME'<p>Example:'postgresql://user:password@your-postgres-"
 "db/database'</p>"
 msgstr ""
-"Neplatný připojovací reťazec, platný reťazec obvykle "
-"následuje:'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-"
-"NAME'<p>Príklad:'postgresql://user:password@your-postgres-"
-"db/database'</p>"
 
 msgid "Invalid cron expression"
 msgstr "Neplatný výraz cron"
@@ -9657,10 +9561,6 @@ msgid ""
 "BigQuery which do not conform to the username:password syntax normally "
 "used by SQLAlchemy."
 msgstr ""
-"Řetezec JSON obsahujúci ďalší konfigurační údaje pripojenie. Používa sa k"
-" poskytnutí informací o pripojenie pre systémy ako Hive, Presto a "
-"BigQuery, ktoré neodpovídají syntaxi username:password, kterou bežne "
-"používá SQLAlchemy."
 
 msgid "JUL"
 msgstr "ČVC"
@@ -10023,7 +9923,7 @@ msgid "Liberty (OpenFreeMap)"
 msgstr "Liberty (OpenFreeMap)"
 
 msgid "Lift percent precision"
-msgstr "Přesnost procenta zvýšenie"
+msgstr ""
 
 msgid "Light"
 msgstr "Svetlý"
@@ -10074,11 +9974,6 @@ msgid ""
 "when grouping by high cardinality column(s) though does increase the "
 "query complexity and cost."
 msgstr ""
-"Omezuje počet sérií, ktoré sa zobrazí. Připojený poddotaz (alebo "
-"dodatečná fáze, kde poddotazy nesú podporovány) je aplikován k omezenie "
-"počtu sérií, ktoré sú načteny a vykresleny. Táto funkce je užitečná pri "
-"seskupovanie popodľa stĺpcov s vysokou kardinalitou, i keď zvyšuje "
-"složitost a náklady dotazu."
 
 msgid ""
 "Limits the number of the rows that are computed in the query that is the "
@@ -10102,10 +9997,6 @@ msgid ""
 "data points connected by straight line segments. It is a basic type of "
 "chart common in many fields."
 msgstr ""
-"Spojnicový graf sa používa k vizualizáciu meřenie provedených v dané "
-"kategorii. Spojnicový graf je typ grafu, ktorý zobrazuje informácie ako "
-"sérii dátových bodov spojených přímými úsečkami. Je to základný typ grafu"
-" bežný v mnoha oborech."
 
 msgid "Line charts on a map"
 msgstr "Spojnicové grafy na mape"
@@ -10166,7 +10057,7 @@ msgid ""
 msgstr ""
 
 msgid "List of n+1 values for bucketing metric into n buckets."
-msgstr "Zoznam n+1 hodnôt pre rozdelenie metriky do n intervalů."
+msgstr ""
 
 msgid "List of the column names that should be read"
 msgstr "Zoznam názvov stĺpcov, ktoré by sa mely číst"
@@ -10240,7 +10131,7 @@ msgid "Log Scale"
 msgstr "Logaritmická stupnice"
 
 msgid "Log retention"
-msgstr "Uchovávanie protokolů"
+msgstr ""
 
 msgid "Logarithmic axis"
 msgstr "Logaritmická osa"
@@ -10318,10 +10209,10 @@ msgid "Lowest value for each period."
 msgstr "Najnižšia hodnota za každé obdobie."
 
 msgid "MAR"
-msgstr "BŘE"
+msgstr ""
 
 msgid "MAY"
-msgstr "KVĚ"
+msgstr ""
 
 msgid "MCP scopes"
 msgstr ""
@@ -10447,7 +10338,7 @@ msgid "Maps to partition"
 msgstr ""
 
 msgid "March"
-msgstr "Březen"
+msgstr ""
 
 msgid "Margin"
 msgstr "Okraj"
@@ -10558,7 +10449,7 @@ msgid "Maximum value"
 msgstr "Maximální hodnota"
 
 msgid "Maximum value on the gauge axis"
-msgstr "Maximální hodnota na ose meřidla"
+msgstr ""
 
 #, fuzzy
 msgid "Maximum width size of the path, in pixels or meters."
@@ -10571,7 +10462,7 @@ msgid "Mean of values over specified period"
 msgstr "Priemer hodnôt za zadané období"
 
 msgid "Mean values"
-msgstr "Průmerné hodnoty"
+msgstr ""
 
 msgid "Median"
 msgstr ""
@@ -10579,18 +10470,18 @@ msgstr ""
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
-msgstr "Střední šírka hrany, nejtlustší hrana bude 4krát tlustší než nejtenčí."
+msgstr ""
 
 msgid ""
 "Median node size, the largest node will be 4 times larger than the "
 "smallest"
-msgstr "Střední veľkosť uzlu, nejväčší uzel bude 4krát väčší než najmenší"
+msgstr ""
 
 msgid "Median values"
-msgstr "Střední hodnoty"
+msgstr ""
 
 msgid "Medium"
-msgstr "Střední"
+msgstr ""
 
 msgid "Memory in bytes - binary (1024B => 1KiB)"
 msgstr "Pameť v bytech - binární (1024B => 1KiB)"
@@ -10599,10 +10490,10 @@ msgid "Memory in bytes - decimal (1024B => 1.024kB)"
 msgstr "Pameť v bytech - desetinná (1024B => 1.024kB)"
 
 msgid "Memory transfer rate in bytes - binary (1024B => 1KiB/s)"
-msgstr "Přenosová rychlost pameti v bytech - binární (1024B => 1KiB/s)"
+msgstr ""
 
 msgid "Memory transfer rate in bytes - decimal (1024B => 1.024kB/s)"
-msgstr "Přenosová rychlost pameti v bytech - desetinná (1024B => 1.024kB/s)"
+msgstr ""
 
 msgid "Menu"
 msgstr ""
@@ -10635,10 +10526,6 @@ msgid ""
 "additive metrics like ratios, averages, or distinct counts. Other methods"
 " operate over the time series data points."
 msgstr ""
-"Metoda pre výpočet zobrazené hodnoty. \"Celková hodnota\" vypočítá jednu "
-"metriku pre celý filtrovaný časový period, ideální pre metriky, ktoré "
-"nesú součinitelné, ako sú pomery, průmery alebo počty rôznych hodnôt. "
-"Ďalší metody pracují nad dátovými body časové rady."
 
 msgid "Metric"
 msgstr "Metrika"
@@ -10658,10 +10545,10 @@ msgid "Metric ascending"
 msgstr "Metrika vzestupne"
 
 msgid "Metric assigned to the [X] axis"
-msgstr "Metrika přiřazená k ose [X]"
+msgstr ""
 
 msgid "Metric assigned to the [Y] axis"
-msgstr "Metrika přiřazená k ose [Y]"
+msgstr ""
 
 msgid "Metric change in value from `since` to `until`"
 msgstr "Zmena hodnoty metriky od `since` do `until`"
@@ -10709,7 +10596,7 @@ msgid "Metric to use for ordering Top N values"
 msgstr "Metrika pre radenie Top N hodnot"
 
 msgid "Metric used as a weight for the grid's coloring"
-msgstr "Metrika použitá ako váha pre barvenie mřížky"
+msgstr ""
 
 msgid "Metric used to calculate bubble size"
 msgstr "Metrika použitá k výpočtu veľkosti bubliny"
@@ -10722,18 +10609,12 @@ msgid ""
 "limit is present. If undefined reverts to the first metric (where "
 "appropriate)."
 msgstr ""
-"Metrika použitá k definovanie způsobu radenie najvyššejch sérií, pokiaľ "
-"je prítomný limit sérií alebo bunek. Pokiaľ nie je definována, vráti sa k"
-" první metrice (pokiaľ je to vhodné)."
 
 msgid ""
 "Metric used to define how the top series are sorted if a series or row "
 "limit is present. If undefined reverts to the first metric (where "
 "appropriate)."
 msgstr ""
-"Metrika použitá k definovanie způsobu radenie najvyššejch sérií, pokiaľ "
-"je prítomný limit sérií alebo riadkov. Pokiaľ nie je definována, vráti sa"
-" k první metrice (pokiaľ je to vhodné)."
 
 msgid "Metrics"
 msgstr "Metriky"
@@ -10765,10 +10646,10 @@ msgid "Mid color"
 msgstr ""
 
 msgid "Middle"
-msgstr "Uprostřed"
+msgstr ""
 
 msgid "Midnight"
-msgstr "Půlnoc"
+msgstr ""
 
 msgid "Miles"
 msgstr "Míle"
@@ -10852,7 +10733,7 @@ msgstr ""
 "priblíženie, toto zajišťuje, že kruh respektuje tento minimální polomer."
 
 msgid "Minimum threshold in percentage points for showing labels."
-msgstr "Minimální práh v procentních bodech pre zobrazenie popisků."
+msgstr ""
 
 msgid "Minimum value"
 msgstr "Minimální hodnota"
@@ -10861,7 +10742,7 @@ msgid "Minimum value for label to be displayed on graph."
 msgstr "Minimální hodnota pre zobrazenie popisku na grafu."
 
 msgid "Minimum value on the gauge axis"
-msgstr "Minimální hodnota na ose meřidla"
+msgstr ""
 
 #, fuzzy
 msgid "Minimum width size of the path, in pixels or meters."
@@ -11015,8 +10896,6 @@ msgid ""
 "Multiple formats accepted, look the geopy.points Python library for more "
 "details"
 msgstr ""
-"Je prijímano viac formátů, podívejte sa na knihovnu geopy.points v "
-"Pythonu pre viac podrobností"
 
 #, python-format
 msgid ""
@@ -11060,7 +10939,7 @@ msgid "My beautiful colors"
 msgstr "Mé krásné farby"
 
 msgid "My column"
-msgstr "Můj stĺpec"
+msgstr ""
 
 msgid "My metric"
 msgstr "Má metrika"
@@ -11133,10 +11012,10 @@ msgid "Native filter values has no values"
 msgstr "Hodnoty pre nativní filter nesú k dispozici"
 
 msgid "Need help? Learn how to connect your database"
-msgstr "Potřebujete pomoc? Zjistete, ako pripojiť svoju databázy"
+msgstr ""
 
 msgid "Need help? Learn more about"
-msgstr "Potřebujete pomoc? Zjistete viac o"
+msgstr ""
 
 msgid "Network Error"
 msgstr "Chyba síte"
@@ -11194,7 +11073,7 @@ msgid "Nightingale"
 msgstr "Slavík"
 
 msgid "Nightingale Rose Chart"
-msgstr "Růžicový graf Nightingale"
+msgstr ""
 
 msgid "No"
 msgstr "Nie"
@@ -11302,7 +11181,7 @@ msgid "No description available."
 msgstr "Nie je k dispozici žiadny popis."
 
 msgid "No entities have this tag currently assigned"
-msgstr "Táto značka nie je v současné dobe přiřazena žádným entitám"
+msgstr ""
 
 msgid "No filter"
 msgstr "Žiadny filter"
@@ -11333,7 +11212,7 @@ msgid "No filters or customizations created yet"
 msgstr "Zatiaľ neboli vytvorené žiadne filtre ani prispôsobenia"
 
 msgid "No form settings were maintained"
-msgstr "Nebyla zachována žiadna nastavenie formuláře"
+msgstr ""
 
 msgid "No global filters are currently added"
 msgstr "V současné dobe nesú pridanýy žiadne globální filtre"
@@ -11643,19 +11522,19 @@ msgid "Number format"
 msgstr "Formát čísla"
 
 msgid "Number format string"
-msgstr "Řetezec formátu čísla"
+msgstr ""
 
 msgid "Number formatting"
 msgstr "Formátovanie čísel"
 
 msgid "Number of buckets to group data"
-msgstr "Počet intervalů pre zoskupenie dat"
+msgstr ""
 
 msgid "Number of charts per row when not fitting dynamically"
-msgstr "Počet grafů na riadok pri nečiste doplňovanie"
+msgstr ""
 
 msgid "Number of charts to display per row"
-msgstr "Počet grafů na riadok"
+msgstr ""
 
 msgid "Number of decimal digits to round numbers to"
 msgstr "Počet desetinných míst, na ktorá sa majú zaokrouhlovať čísla"
@@ -11688,13 +11567,13 @@ msgid "Number of rows to skip at start of file."
 msgstr "Počet riadkov k cezkočenie na začátku súboru."
 
 msgid "Number of split segments on the axis"
-msgstr "Počet delicích segmentů na ose"
+msgstr ""
 
 msgid "Number of steps to take between ticks when displaying the X scale"
-msgstr "Počet kroků mezi značkami pri zobrazovanie stupnice X"
+msgstr ""
 
 msgid "Number of steps to take between ticks when displaying the Y scale"
-msgstr "Počet kroků mezi značkami pri zobrazovanie stupnice Y"
+msgstr ""
 
 #, fuzzy
 msgid "Number of top values"
@@ -11723,7 +11602,7 @@ msgid ""
 msgstr ""
 
 msgid "OCT"
-msgstr "ŘÍJ"
+msgstr ""
 
 msgid "OHLC"
 msgstr "OHLC"
@@ -11737,10 +11616,10 @@ msgstr "NEBO"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "PŘEPSAT"
+msgstr ""
 
 msgid "October"
-msgstr "Říjen"
+msgstr ""
 
 msgid "Off"
 msgstr ""
@@ -11812,13 +11691,13 @@ msgid "One or more parameters are missing: %(missing)s"
 msgstr ""
 
 msgid "One or more parameters needed to configure a database are missing."
-msgstr "Chybí jeden alebo viac parametrů potřebných ke konfiguráciu databáza."
+msgstr ""
 
 msgid "One or more parameters specified in the query are malformed."
-msgstr "Jeden alebo viac parametrů zadaných v dotaze je chybne formátováno."
+msgstr ""
 
 msgid "One or more parameters specified in the query are missing."
-msgstr "Chybí jeden alebo viac parametrů zadaných v dotaze."
+msgstr ""
 
 msgid "Only Total"
 msgstr "Iba celkovo"
@@ -11890,13 +11769,13 @@ msgid "Opacity of Area Chart. Also applies to confidence band."
 msgstr "Nepriehľadnosť plošného grafu. Platí také pre pás spolehlivosti."
 
 msgid "Opacity of all clusters, points, and labels. Between 0 and 1."
-msgstr "Nepriehľadnosť všetkých shluků, bodov a popisků. Mezi 0 a 1."
+msgstr ""
 
 msgid "Opacity of area chart."
 msgstr "Nepriehľadnosť plošného grafu."
 
 msgid "Opacity of bubbles, 0 means completely transparent, 1 means opaque"
-msgstr "Nepriehľadnosť bublin, 0 znamená zcela průhledné, 1 znamená neprůhledné"
+msgstr ""
 
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Nepriehľadnosť, očekává hodnoty mezi 0 a 100"
@@ -11952,10 +11831,6 @@ msgid ""
 "assumes that you have a Celery worker setup as well as a results backend."
 " Refer to the installation docs for more information."
 msgstr ""
-"Provozovať databázy v asynchronním režimu, což znamená, že dotazy sú "
-"provádeny na vzdálených workerech na rozdiel od samotného webového "
-"serveru. To předpokládá, že máte nastaven Celery worker a také výsledkový"
-" backend. Ďalší informácie naleznete v instalační dokumentaci."
 
 msgid "Operator"
 msgstr "Operátor"
@@ -11968,8 +11843,6 @@ msgid ""
 "Optional CA_BUNDLE contents to validate HTTPS requests. Only available on"
 " certain database engines."
 msgstr ""
-"Voliteľný obsah CA_BUNDLE pre oveřenie HTTPS požadavků. K dispozici iba u"
-" nekterých databázových enginů."
 
 msgid "Optional d3 date format string"
 msgstr "Voliteľný reťazec formátu data d3"
@@ -12012,7 +11885,7 @@ msgid "Order results by selected columns"
 msgstr "Zoradiť výsledky popodľa vybraných stĺpcov"
 
 msgid "Ordering"
-msgstr "Řazenie"
+msgstr ""
 
 msgid ""
 "Orders the query result that generates the source data for this chart. If"
@@ -12020,10 +11893,6 @@ msgid ""
 "truncated. If undefined, defaults to the first metric (where "
 "appropriate)."
 msgstr ""
-"Seřadí výsledok dotazu, ktorý generuje zdrojová data pre tento graf. "
-"Pokiaľ je dosaženo limitu sérií alebo riadkov, toto určuje, ktorá data sú"
-" zkrácena. Pokiaľ nie je definováno, predvolený je první metrika (pokiaľ "
-"je to vhodné)."
 
 msgid "Orientation"
 msgstr "Orientace"
@@ -12073,25 +11942,19 @@ msgid "Outside End"
 msgstr ""
 
 msgid "Overlap"
-msgstr "Překrytí"
+msgstr ""
 
 msgid ""
 "Overlay one or more timeseries from a relative time period. Expects "
 "relative time deltas in natural language (example:  24 hours, 7 days, 52 "
 "weeks, 365 days). Free text is supported."
 msgstr ""
-"Překrýt jednu alebo viac časových radov z relatívneho časového období. "
-"Očekává relatívne časové delty v prirodzenom jazyce (príklad: 24 hodin, 7"
-" dní, 52 týždňov, 365 dní). Je podporován volný text."
 
 msgid ""
 "Overlay one or more timeseries from a relative time period. Expects "
 "relative time deltas in natural language (example: 24 hours, 7 days, 52 "
 "weeks, 365 days). Free text is supported."
 msgstr ""
-"Překrýt jednu alebo viac časových radov z relatívneho časového období. "
-"Očekává relatívne časové delty v prirodzenom jazyce (príklad: 24 hodin, 7"
-" dní, 52 týždňov, 365 dní). Je podporován volný text."
 
 msgid ""
 "Overlay results from a relative time period. Expects relative time deltas"
@@ -12100,12 +11963,6 @@ msgid ""
 "the comparison time range by the same length as your time range and use "
 "\"Custom\" to set a custom comparison range."
 msgstr ""
-"Překrýt výsledky z relatívneho časového období. Očekává relatívne časové "
-"delty v prirodzenom jazyce (príklad: 24 hodin, 7 dní, 52 týždňov, 365 "
-"dní). Je podporován volný text. Použijte „Zdedit rozsah z časových "
-"filtrov“ pre posunutí porovnávacího časového rozsahu o stejnou délku ako "
-"váš časový rozsah a použijte „Vlastný“ pre nastavenie vlastného "
-"porovnávacího rozsahu."
 
 msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
@@ -12118,14 +11975,12 @@ msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
 "boundary of each cell."
 msgstr ""
-"Překryje mapu šestiúhelníkovou mřížkou a agreguje data vnútri hranic "
-"každé bunky."
 
 msgid "Override time grain"
-msgstr "Přepsat časovou granularitu"
+msgstr ""
 
 msgid "Override time range"
-msgstr "Přepsat časový rozsah"
+msgstr ""
 
 msgid ""
 "Overrides the highest value used for coloring. Leave blank to use the "
@@ -12138,23 +11993,23 @@ msgid ""
 msgstr ""
 
 msgid "Overwrite"
-msgstr "Přepsat"
+msgstr ""
 
 msgid "Overwrite & Explore"
-msgstr "Přepsat a prozkoumat"
+msgstr ""
 
 #, python-format
 msgid "Overwrite Dashboard [%s]"
-msgstr "Přepsat nástenku [%s]"
+msgstr ""
 
 msgid "Overwrite existing"
-msgstr "Přepsat existujúci"
+msgstr ""
 
 msgid "Overwrite text in the editor with a query on this table"
-msgstr "Přepsat text v editoru dotazem na tuto tabuľku"
+msgstr ""
 
 msgid "Owned Created or Favored"
-msgstr "Vlastnené, vytvořené alebo obľúbené"
+msgstr ""
 
 #, python-format
 msgid "Owner: %(names)s"
@@ -12191,10 +12046,10 @@ msgid "Paired t-test Table"
 msgstr "Tabuľka párového t-testu"
 
 msgid "Pandas resample method"
-msgstr "Metoda převzorkovanie Pandas"
+msgstr ""
 
 msgid "Pandas resample rule"
-msgstr "Pravidlo převzorkovanie Pandas"
+msgstr ""
 
 msgid "Parallel Coordinates"
 msgstr "Rovnobežné súradnice"
@@ -12222,7 +12077,7 @@ msgid "Part of a Whole"
 msgstr "Část celku"
 
 msgid "Partition Chart"
-msgstr "Graf oddílů"
+msgstr ""
 
 msgid "Partition Limit"
 msgstr "Limit oddílu"
@@ -12247,8 +12102,6 @@ msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
 msgstr ""
-"Oddíly, jejichž pomer výšky k výšce rodiče je pod touto hodnotou, sú "
-"oříznuty"
 
 msgid "Password"
 msgstr "Heslo"
@@ -12400,7 +12253,7 @@ msgid "Pick a name to help you identify this database."
 msgstr "Vyberte názov, ktorý vám pomôže identifikovať tuto databázy."
 
 msgid "Pick a nickname for how the database will display in Superset."
-msgstr "Vyberte přezdívku, ako sa bude databáza zobrazovať v Supersetu."
+msgstr ""
 
 msgid "Pick a title for you annotation."
 msgstr "Vyberte názov pre vaši anotaci."
@@ -12428,24 +12281,22 @@ msgid "Piecewise"
 msgstr "Po částech"
 
 msgid "Pin"
-msgstr "Připnúť"
+msgstr ""
 
-#, fuzzy
 msgid "Pin Column"
-msgstr "Připnúť stĺpec"
+msgstr ""
 
 msgid "Pin Left"
-msgstr "Připnúť vlevo"
+msgstr ""
 
 msgid "Pin Right"
-msgstr "Připnúť vpravo"
+msgstr ""
 
 msgid "Pin to the result panel"
-msgstr "Připnúť k panelu výsledkov"
+msgstr ""
 
-#, fuzzy
 msgid "Pin to top"
-msgstr "Shora dolů"
+msgstr ""
 
 #, fuzzy
 msgid "Pivot Mode"
@@ -12484,9 +12335,6 @@ msgid ""
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
 "your query again."
 msgstr ""
-"Skontrolujte prosím svoj dotaz a potvrďte, že všetky parametre šablony sú"
-" obklopeny dvojitými složenými závorkami, například „{{ ds }}“. Potom "
-"skúste dotaz spustiť znovu."
 
 #, python-format
 msgid ""
@@ -12509,9 +12357,6 @@ msgid ""
 "they match across your SQL query and Set Parameters. Then, try running "
 "your query again."
 msgstr ""
-"Skontrolujte prosím parametre šablony na syntaktické chyby a uistite sa, "
-"že sa shodují vo vašom SQL dotazu a Nastavenie parametrů. Potom skúste "
-"dotaz spustiť znovu."
 
 msgid "Please choose a valid value"
 msgstr "Vyberte prosím platnou hodnotu"
@@ -12545,9 +12390,8 @@ msgstr "Zadejte prosím platný text. Samotné mezery nesú povoleny."
 msgid "Please enter your email"
 msgstr "Zadejte prosím svoj e-mail"
 
-#, fuzzy
 msgid "Please enter your first name"
-msgstr "Zadejte prosím svoje křestní meno"
+msgstr ""
 
 #, fuzzy
 msgid "Please enter your last name"
@@ -12640,7 +12484,7 @@ msgid "Point Radius"
 msgstr "Polomer bodu"
 
 msgid "Point Radius Scale"
-msgstr "Meřítko polomeru bodu"
+msgstr ""
 
 msgid "Point Radius Unit"
 msgstr "Jednotka polomeru bodu"
@@ -12715,13 +12559,13 @@ msgid "Powered by Apache Superset"
 msgstr "Poháneno Apache Superset"
 
 msgid "Pre-filter"
-msgstr "Předfiltr"
+msgstr ""
 
 msgid "Pre-filter available values"
-msgstr "Předfiltrovať dostupné hodnoty"
+msgstr ""
 
 msgid "Pre-filter is required"
-msgstr "Předfiltr je povinný"
+msgstr ""
 
 msgid "Predictive"
 msgstr "Prediktivní"
@@ -12847,7 +12691,7 @@ msgid "Publicly shared sheets only"
 msgstr "Iba verejne zdieľané hárky"
 
 msgid "Published"
-msgstr "Zveřejneno"
+msgstr ""
 
 msgid "Purple"
 msgstr "Fialová"
@@ -12994,13 +12838,19 @@ msgid "Ranges"
 msgstr "Rozsahy"
 
 msgid "Ranking"
-msgstr "Pořadí"
+msgstr ""
 
 msgid "Ratio"
 msgstr "Pomer"
 
 msgid "Raw records"
 msgstr "Nezpracované záznamy"
+
+msgid "Re-pick fields"
+msgstr ""
+
+msgid "Re-pick fields for this chart"
+msgstr ""
 
 msgid "Rearranged layout"
 msgstr ""
@@ -13021,7 +12871,7 @@ msgid "Recents"
 msgstr "Nedávné"
 
 msgid "Recipients are separated by \",\" or \";\""
-msgstr "Příjemci sú oddeleni „,“ alebo „;“"
+msgstr ""
 
 #, fuzzy
 msgid "Records"
@@ -13097,7 +12947,7 @@ msgid "Refresh the default values"
 msgstr "Obnoviť predvolený hodnoty"
 
 msgid "Refreshing charts"
-msgstr "Obnovovanie grafů"
+msgstr ""
 
 msgid "Refreshing columns"
 msgstr "Obnovovanie stĺpcov"
@@ -13248,7 +13098,7 @@ msgid "Removed filter on '%s'"
 msgstr ""
 
 msgid "Rename tab"
-msgstr "Přejmenovať kartu"
+msgstr ""
 
 msgid "Renamed chart"
 msgstr ""
@@ -13263,8 +13113,6 @@ msgid ""
 "Renders table cells as HTML when applicable. For example, HTML <a> tags "
 "will be rendered as hyperlinks."
 msgstr ""
-"Vykreslí bunky tabuľky ako HTML, pokiaľ je to možné. Například značky "
-"HTML <a> budú vykresleny ako hypertextové odkazy."
 
 msgid "Replace"
 msgstr "Nahradit"
@@ -13333,7 +13181,7 @@ msgid "Report Schedule executor user %(username)s was not found."
 msgstr ""
 
 msgid "Report Schedule is still working, refusing to re-compute."
-msgstr "Plán reportu stále pracuje, odmítá sa přepočítat."
+msgstr ""
 
 msgid "Report Schedule log prune failed."
 msgstr "Promazanie protokolu plánu reportu zlyhalo."
@@ -13466,13 +13314,13 @@ msgid "Required to mirror range filters, including the time range."
 msgstr ""
 
 msgid "Resample"
-msgstr "Převzorkovať"
+msgstr ""
 
 msgid "Resample method should be in "
-msgstr "Metoda převzorkovanie by mela být v "
+msgstr ""
 
 msgid "Resample operation requires DatetimeIndex"
-msgstr "Operace převzorkovanie vyžaduje DatetimeIndex"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -13523,7 +13371,7 @@ msgid "Resize"
 msgstr "Zmeniť veľkosť"
 
 msgid "Resource already has an attached report."
-msgstr "Zdroj již má připojený report."
+msgstr ""
 
 msgid "Resource was not found."
 msgstr "Zdroj nebyl nalezen."
@@ -13572,8 +13420,6 @@ msgstr "Backend pre výsledky nie je nakonfigurován."
 
 msgid "Results backend needed for asynchronous queries is not configured."
 msgstr ""
-"Backend pre výsledky potřebný pre asynchronní dotazy nie je "
-"nakonfigurován."
 
 #, fuzzy
 msgid "Resume auto-refresh"
@@ -13703,13 +13549,13 @@ msgid "Rolling window"
 msgstr "Klouzavé okno"
 
 msgid "Root certificate"
-msgstr "Kořenový certifikát"
+msgstr ""
 
 msgid "Root node id"
-msgstr "ID kořenového uzlu"
+msgstr ""
 
 msgid "Rose Type"
-msgstr "Typ růžice"
+msgstr ""
 
 msgid "Rotate category label"
 msgstr ""
@@ -13849,7 +13695,7 @@ msgid "SAT"
 msgstr "SO"
 
 msgid "SEP"
-msgstr "ZÁŘ"
+msgstr ""
 
 msgid "SQL"
 msgstr "SQL"
@@ -13888,14 +13734,6 @@ msgid ""
 "delete the tab.\n"
 "Note that you will need to close other SQL Lab windows before you do this."
 msgstr ""
-"SQL Lab používá lokální úložište vašeho prehliadača k ukládanie dotazov a"
-" výsledkov.\n"
-"V současné dobe využíváte %(currentUsage)s KB z %(maxStorage)d KB "
-"úložného prostoru.\n"
-"Aby sa SQL Lab nezhroutil, smažte prosím niektoré karty s dotazy.\n"
-"K temto dotazovm sa môžete znovu dostat pomocí funkce Uložiť, než kartu "
-"smažete.\n"
-"Upozorňujeme, že předtím budete muset zavrieť ostatní okna SQL Labu."
 
 msgid "SQL Query"
 msgstr "SQL dotaz"
@@ -13960,7 +13798,7 @@ msgid "STEP %(stepCurr)s OF %(stepLast)s"
 msgstr "KROK %(stepCurr)s Z %(stepLast)s"
 
 msgid "STRING"
-msgstr "ŘETĚZEC"
+msgstr ""
 
 msgid "SUN"
 msgstr "NE"
@@ -13990,7 +13828,7 @@ msgid "Samples for datasource could not be retrieved."
 msgstr "Vzorky pre zdroj dat sa nepodarilo načítať."
 
 msgid "Sankey Chart"
-msgstr "Sankeyův diagram"
+msgstr ""
 
 msgid "Satellite"
 msgstr "Satelitní"
@@ -14046,7 +13884,7 @@ msgid "Save chart"
 msgstr "Uložiť graf"
 
 msgid "Save color breakpoint values"
-msgstr "Uložiť hodnoty zlomů farieb"
+msgstr ""
 
 msgid "Save dashboard"
 msgstr "Uložiť nástenku"
@@ -14122,7 +13960,7 @@ msgid "Saving..."
 msgstr "Ukládanie..."
 
 msgid "Scale and Move"
-msgstr "Meřítko a posun"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -14131,7 +13969,7 @@ msgid "Scale factor applied to metric-driven line widths"
 msgstr "Faktor škálovania aplikovaný na šírky čiar riadených metrikami"
 
 msgid "Scale only"
-msgstr "Iba meřítko"
+msgstr ""
 
 msgid "Scatter"
 msgstr "Bodový"
@@ -14206,7 +14044,7 @@ msgid "Scroll"
 msgstr "Posunúť"
 
 msgid "Scroll down to the bottom to enable overwriting changes. "
-msgstr "Posuňte sa dolů pre povolenie prepísanie zmen. "
+msgstr ""
 
 msgid "Search"
 msgstr "Hľadať"
@@ -14440,7 +14278,7 @@ msgstr ""
 "alebo napsat vlastný SQL pre vytvorenie metriky."
 
 msgid "Select a predefined CSS template to apply to your dashboard"
-msgstr "Vybrať předdefinovanou CSS šablonu pre aplikaci na váš dashboard"
+msgstr ""
 
 msgid "Select a schema"
 msgstr "Vybrať schéma"
@@ -14620,9 +14458,8 @@ msgstr ""
 msgid "Select layers to hide"
 msgstr "Vybrať vrstvy ke skrytí"
 
-#, fuzzy
 msgid "Select object name"
-msgstr "Vybrať předmet"
+msgstr ""
 
 msgid ""
 "Select one or many metrics to display, that will be displayed in the "
@@ -14705,7 +14542,7 @@ msgstr ""
 "zadaného exponentu"
 
 msgid "Select subject"
-msgstr "Vybrať předmet"
+msgstr ""
 
 msgid "Select tab"
 msgstr "Vybrať kartu"
@@ -14980,7 +14817,7 @@ msgid "Separate domains with commas. Leave empty to allow any domain."
 msgstr ""
 
 msgid "September"
-msgstr "Září"
+msgstr ""
 
 msgid "Sequential"
 msgstr "Sekvenční"
@@ -14992,7 +14829,7 @@ msgid "Series Height"
 msgstr "Výška série"
 
 msgid "Series Order"
-msgstr "Pořadí sérií"
+msgstr ""
 
 msgid "Series Style"
 msgstr "Styl série"
@@ -15113,9 +14950,6 @@ msgid ""
 "        represented by one ring with the innermost circle as the top of "
 "the hierarchy."
 msgstr ""
-"Nastaví úrovne hierarchie grafu. Každá úroveň je\n"
-"        reprezentována jedním prstencem, přičemž nejvnitřnejší kruh je "
-"vrcholem hierarchie."
 
 msgid "Settings"
 msgstr "Nastavenie"
@@ -15161,22 +14995,16 @@ msgid ""
 "Should daily seasonality be applied. An integer value will specify "
 "Fourier order of seasonality."
 msgstr ""
-"Mela by být aplikována denný sezónnost. Celočíselná hodnota specifikuje "
-"Fourierův řád sezónnosti."
 
 msgid ""
 "Should weekly seasonality be applied. An integer value will specify "
 "Fourier order of seasonality."
 msgstr ""
-"Mela by být aplikována týždenný sezónnost. Celočíselná hodnota "
-"specifikuje Fourierův řád sezónnosti."
 
 msgid ""
 "Should yearly seasonality be applied. An integer value will specify "
 "Fourier order of seasonality."
 msgstr ""
-"Mela by být aplikována ročný sezónnost. Celočíselná hodnota specifikuje "
-"Fourierův řád sezónnosti."
 
 msgid "Show"
 msgstr "Zobraziť"
@@ -15322,8 +15150,6 @@ msgid ""
 "Show hierarchical relationships of data, with the value represented by "
 "area, showing proportion and contribution to the whole."
 msgstr ""
-"Zobrazuje hierarchické vztahy dat, přičemž hodnota je reprezentována "
-"plochou, což ukazuje proporci a příspevek k celku."
 
 msgid "Show info tooltip"
 msgstr "Zobraziť informační nápovedu"
@@ -15435,27 +15261,18 @@ msgid ""
 "call attention to a KPI or the one thing you want your audience to focus "
 "on."
 msgstr ""
-"Zobrazuje jednu metriku v popředí. Velké číslo je nejlepší použít k "
-"upoutanie pozornosti na KPI alebo na jednu vec, na kterou chcete, aby sa "
-"vaše publikum zameřilo."
 
 msgid ""
 "Showcases a single number accompanied by a simple line chart, to call "
 "attention to an important metric along with its change over time or other"
 " dimension."
 msgstr ""
-"Zobrazuje jedno číslo doprovázené jednoduchým spojnicovým grafem, aby "
-"upoutalo pozornost na důležitou metriku spolu s její zmenou v čase alebo "
-"inú dimenzí."
 
 msgid ""
 "Showcases how a metric changes as the funnel progresses. This classic "
 "chart is useful for visualizing drop-off between stages in a pipeline or "
 "lifecycle."
 msgstr ""
-"Ukazuje, ako sa metrika mení v průbehu lievika. Tento klasický graf je "
-"užitečný pre vizualizáciu poklesu mezi fázemi v procesu alebo životním "
-"cyklu."
 
 msgid ""
 "Showcases the flow or link between categories using thickness of chords. "
@@ -15519,7 +15336,7 @@ msgid "Size in pixels"
 msgstr "Veľkosť v pixelech"
 
 msgid "Size of edge symbols"
-msgstr "Veľkosť symbolů hran"
+msgstr ""
 
 msgid "Size of marker. Also applies to forecast observations."
 msgstr "Veľkosť značky. Platí také pre prognózované pozorovanie."
@@ -15532,8 +15349,6 @@ msgstr ""
 
 msgid "Skip blank lines rather than interpreting them as Not A Number values"
 msgstr ""
-"Přeskakovať prázdne riadky, namiesto aby sa interpretovaly ako hodnoty "
-"Nie je číslo"
 
 msgid "Skip rows"
 msgstr "Preskočiť riadky"
@@ -15547,10 +15362,10 @@ msgstr "Preskočiť mezery za oddelovačem"
 
 #, python-format
 msgid "Skipped %d system themes that cannot be deleted"
-msgstr "Přeskočeno %d systémových témat, ktorá nemožno zmazať"
+msgstr ""
 
 msgid "Slice Id"
-msgstr "ID řezu"
+msgstr ""
 
 #, fuzzy
 msgid "Slider"
@@ -15585,8 +15400,6 @@ msgid ""
 "Smooth-line is a variation of the line chart. Without angles and hard "
 "edges, Smooth-line sometimes looks smarter and more professional."
 msgstr ""
-"Hladká spojnice je variací spojnicového grafu. Bez úhlů a ostrých hran "
-"vypadá hladká spojnice niekedy chytřeji a profesionálneji."
 
 msgid "Solid"
 msgstr "Plný"
@@ -15659,8 +15472,6 @@ msgid ""
 "Something went wrong with embedded authentication. Check the dev console "
 "for details."
 msgstr ""
-"Niečo sa pokazilo s vloženou autentizací. Skontrolujte vývojářskou "
-"konzoli pre podrobnosti."
 
 msgid "Something went wrong."
 msgstr "Niečo sa pokazilo."
@@ -15673,7 +15484,7 @@ msgid "Sorry there was an error fetching database information: %s"
 msgstr "Omlouváme se, pri načítavanie informací o databázy došlo k chybe: %s"
 
 msgid "Sorry there was an error fetching saved charts: "
-msgstr "Omlouváme se, pri načítavanie uložených grafů došlo k chybe: "
+msgstr ""
 
 msgid "Sorry, An error occurred"
 msgstr "Omlouváme se, došlo k chybe"
@@ -15710,67 +15521,63 @@ msgstr ""
 " + C!"
 
 msgid "Sort"
-msgstr "Řadit"
+msgstr ""
 
-#, fuzzy
 msgid "Sort Ascending"
-msgstr "Řadit vzestupne"
+msgstr ""
 
 msgid "Sort Descending"
-msgstr "Řadit sestupne"
+msgstr ""
 
 msgid "Sort Metric"
-msgstr "Řadit metriku"
+msgstr ""
 
 msgid "Sort Series Ascending"
-msgstr "Řadit série vzestupne"
+msgstr ""
 
 msgid "Sort Series By"
-msgstr "Řadit série podle"
+msgstr ""
 
 msgid "Sort X Axis"
-msgstr "Řadit osu X"
+msgstr ""
 
 msgid "Sort Y Axis"
-msgstr "Řadit osu Y"
+msgstr ""
 
 msgid "Sort ascending"
-msgstr "Řadit vzestupne"
+msgstr ""
 
 msgid "Sort by"
-msgstr "Řadit podle"
+msgstr ""
 
 #, python-format
 msgid "Sort by %s"
-msgstr "Řadit popodľa %s"
+msgstr ""
 
-#, fuzzy
 msgid "Sort by data"
-msgstr "Řadit popodľa dat"
+msgstr ""
 
 msgid "Sort by metric"
-msgstr "Řadit popodľa metriky"
+msgstr ""
 
 #, fuzzy
 msgid "Sort by original table order"
 msgstr "Pôvodný poradie stĺpcov tabuľky"
 
-#, fuzzy
 msgid "Sort by series"
-msgstr "Řadit série podle"
+msgstr ""
 
 msgid "Sort columns alphabetically"
-msgstr "Řadit stĺpce abecedne"
+msgstr ""
 
 msgid "Sort columns by"
-msgstr "Řadit stĺpce podle"
+msgstr ""
 
 msgid "Sort descending"
-msgstr "Řadit sestupne"
+msgstr ""
 
-#, fuzzy
 msgid "Sort display control values"
-msgstr "Řadit hodnoty ovládacího prvku zobrazenie"
+msgstr ""
 
 msgid "Sort filter values"
 msgstr "Hodnoty filtra radenie"
@@ -15780,10 +15587,10 @@ msgid "Sort legend"
 msgstr "Zobraziť legendu"
 
 msgid "Sort metric"
-msgstr "Řadit metriku"
+msgstr ""
 
 msgid "Sort query by"
-msgstr "Řadit dotaz podle"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [plain-text
 # fallback for quoted string]
@@ -15799,10 +15606,10 @@ msgstr ""
 "niektorých databázach."
 
 msgid "Sort rows by"
-msgstr "Řadit riadky podle"
+msgstr ""
 
 msgid "Sort series in ascending order"
-msgstr "Řadit série vzestupne"
+msgstr ""
 
 msgid "Sort type"
 msgstr "Typ radenie"
@@ -15846,8 +15653,6 @@ msgid ""
 "Specify the database version. This is used with Presto for query cost "
 "estimation, and Dremio for syntax changes, among others."
 msgstr ""
-"Zadejte verzii databáza. Používa sa s Presto pre odhad nákladů na dotaz a"
-" s Dremio pre zmeny syntaxe, mezi inými."
 
 msgid "Split number"
 msgstr "Číslo rozdelenie"
@@ -15923,12 +15728,6 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Start field selection using current member IDs. This clears any existing "
-"query and formatting settings. Saved display titles cannot be safely "
-"mapped to member IDs. The saved chart is unchanged until you save."
-msgstr ""
-
-msgid ""
 "Start with row groups collapsed when row subtotals are shown. Each group "
 "can still be expanded with its arrow."
 msgstr ""
@@ -15976,7 +15775,7 @@ msgid "Step - end"
 msgstr "Krok - konec"
 
 msgid "Step - middle"
-msgstr "Krok - střed"
+msgstr ""
 
 msgid "Step - start"
 msgstr "Krok - začátek"
@@ -15993,9 +15792,6 @@ msgid ""
 "chart can be useful when you want to show the changes that occur at "
 "irregular intervals."
 msgstr ""
-"Krokový graf je variací spojnicového grafu, ale s čárou tvořící sérii "
-"kroků mezi dátovými body. Krokový graf môže být užitečný, keď chcete "
-"zobraziť zmeny, ktoré sa vyskytují v nepravidelných intervalech."
 
 msgid "Stop"
 msgstr "Zastaviť"
@@ -16034,7 +15830,7 @@ msgid "Streets (OSM)"
 msgstr "Ulice (OSM)"
 
 msgid "Strength to pull the graph toward center"
-msgstr "Síla pre přitahovanie grafu ke středu"
+msgstr ""
 
 msgid "Stroke Color"
 msgstr "Farba obrysu"
@@ -16195,21 +15991,18 @@ msgid ""
 "scatter, and bar charts. This viz type has many customization options as "
 "well."
 msgstr ""
-"Švýcarský nůž pre vizualizáciu dat. Vyberte si mezi krokovými, "
-"spojnicovými, bodovými a sloupcovými grafy. Tento typ vizualizácia má "
-"také mnoho možností prispôsobenie."
 
 msgid "Switch to the next tab"
-msgstr "Přepnúť na ďalší kartu"
+msgstr ""
 
 msgid "Switch to the previous tab"
-msgstr "Přepnúť na predchádzajúci kartu"
+msgstr ""
 
 msgid "Symbol"
 msgstr "Symbol"
 
 msgid "Symbol of two ends of edge line"
-msgstr "Symbol dvou konců hrany"
+msgstr ""
 
 msgid "Symbol size"
 msgstr "Veľkosť symbolu"
@@ -16337,8 +16130,6 @@ msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
 "statistical differences between groups."
 msgstr ""
-"Tabuľka, ktorá vizualizuje párové t-testy, ktoré sa používají k "
-"pochopenie statistických rozdílů mezi skupinami."
 
 msgid "Tables"
 msgstr "Tabuľky"
@@ -16492,9 +16283,6 @@ msgid ""
 "another page. Available for Presto, Hive, MySQL, Postgres and Snowflake "
 "databases."
 msgstr ""
-"Ukončiť bežící dotazy pri zavřenie okna prehliadača alebo prechodu na inú"
-" stránku. K dispozici pre databáza Presto, Hive, MySQL, Postgres a "
-"Snowflake."
 
 msgid "Test connection"
 msgstr "Testovať pripojenie"
@@ -16629,12 +16417,6 @@ msgid ""
 "representation of\n"
 "          value distribution and transformation."
 msgstr ""
-"Sankeyův diagram vizuálne sleduje pohyb a transformáciu hodnôt naprieč\n"
-"          systémovými fázemi. Uzly predstavujú fáze, spojené odkazy "
-"znázorňujícími tok hodnôt. Výška\n"
-"          uzlu odpovídá vizualizované metrice, což poskytuje jasnou "
-"reprezentaci\n"
-"          distribúcia a transformace hodnôt."
 
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "V URL chybí parametre dataset_id alebo slice_id."
@@ -16671,7 +16453,7 @@ msgid "The annotation has been updated"
 msgstr "Anotace bola aktualizována"
 
 msgid "The background color of the charts."
-msgstr "Farba pozadí grafů."
+msgstr ""
 
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -16711,16 +16493,9 @@ msgid ""
 " relative proportion is important, consider using a bar or other chart "
 "type instead."
 msgstr ""
-"Klasika. Skvelé pre zobrazenie, ako velký podíl společnosti každý "
-"investor získal, jaká demografie sleduje váš blog, alebo jaká část "
-"rozpočtu jde na vojensko-průmyslový komplex.\n"
-"\n"
-"        Koláčové grafy môžu být obtížne cezne interpretovatelné. Pokiaľ "
-"je důležitá jasnost relatívneho pomeru, zvažte namiesto toho použití "
-"sloupcového alebo iného typu grafu."
 
 msgid "The color for points and clusters in RGB"
-msgstr "Farba bodov a shluků v RGB"
+msgstr ""
 
 msgid "The color of the elements border"
 msgstr "Farba ohraničenie prvkov"
@@ -16731,9 +16506,8 @@ msgstr "Farba izopásu"
 msgid "The color of the isoline"
 msgstr "Farba izolinie"
 
-#, fuzzy
 msgid "The color of the point labels"
-msgstr "Farba popisků bodov"
+msgstr ""
 
 msgid "The color scheme for rendering chart"
 msgstr "Barevné schéma pre vykreslenie grafu"
@@ -16755,9 +16529,6 @@ msgid ""
 "the related dashboard.\n"
 "    Check the JSON metadata in the Advanced settings."
 msgstr ""
-"Farby tohoto grafu môžu být prepísanýy vlastnémi farbami popisků "
-"súvisejúci nástenky.\n"
-"    Skontrolujte metadata JSON v Pokročilých nastaveniech."
 
 msgid "The column header label"
 msgstr "Popisek záhlavie stĺpce"
@@ -16769,7 +16540,7 @@ msgid "The column to be used as the target of the edge."
 msgstr "Stĺpec, ktorý sa má použít ako cieľ hrany."
 
 msgid "The column was deleted or renamed in the database."
-msgstr "Stĺpec bol v databázy zmazaný alebo přejmenován."
+msgstr ""
 
 msgid ""
 "The column whose filters are mirrored. It follows the default datetime "
@@ -16881,11 +16652,6 @@ msgid ""
 "                here may affect other charts\n"
 "                in undesirable ways."
 msgstr ""
-"Tu vystavená konfigurácia sady dat\n"
-"                ovlivňuje všetky grafy používající tuto sadu dát.\n"
-"                Mejte na pameti, že zmena nastavenie\n"
-"                tu môže ovlivnit ostatní grafy\n"
-"                nežádoucím způsobem."
 
 msgid "The dataset has been saved"
 msgstr "Sada dat bola uložena"
@@ -16916,8 +16682,6 @@ msgid ""
 "The description can be displayed as widget headers in the dashboard view."
 " Supports markdown."
 msgstr ""
-"Popis možno zobraziť ako záhlavie widgetů v zobrazenie nástenky. "
-"Podporuje markdown."
 
 #, fuzzy
 msgid "The display name of your dashboard"
@@ -16953,9 +16717,6 @@ msgid ""
 "the extent so that all data points are included in the viewport. CUSTOM "
 "allows users to define the extent manually."
 msgstr ""
-"Rozsah mapy pri spustenie aplikácia. PŘIZPŮSOBIT DATŮM automaticky "
-"nastaví rozsah tak, aby všetky dátové body boli zahrnuty v zobrazenie. "
-"VLASTNÍ umožňuje používateľom definovať rozsah ručne."
 
 msgid "The feature property to use for point labels"
 msgstr "Vlastný vlastnosť pre popisky bodov"
@@ -17013,9 +16774,8 @@ msgid ""
 "configuration: %(addresses)s"
 msgstr ""
 
-#, fuzzy
 msgid "The font size of the point labels"
-msgstr "Veľkosť popisků bodov"
+msgstr ""
 
 msgid "The function to use when aggregating points into groups"
 msgstr "Funkce, ktorá sa má použít pri agregaci bodov do skupin"
@@ -17099,8 +16859,6 @@ msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
 msgstr ""
-"Maximální počet pododdílů každé skupiny; nižší hodnoty sú oříznuty ako "
-"první"
 
 msgid "The maximum value of metrics. It is an optional configuration"
 msgstr "Maximální hodnota metrik. Je to volitelná konfigurácia"
@@ -17130,11 +16888,6 @@ msgid ""
 "periods. This will hide the \"ramp up\" taking place over the first 7 "
 "periods"
 msgstr ""
-"Minimální počet plovoucích období potřebných k zobrazenie hodnoty. "
-"Například pokiaľ provádíte kumulatívny súčet za 7 dní, môžete chtít, aby "
-"vaše „Minimální období“ bolo 7, takže všetky zobrazené dátové body sú "
-"součtem 7 období. Tím sa skryje „nábeh“ prebiehajúci behem prvních 7 "
-"období"
 
 msgid ""
 "The minimum value of metrics. It is an optional configuration. If not "
@@ -17153,10 +16906,10 @@ msgid "The name of the rule must be unique"
 msgstr "Názov pravidla musí byť jedinečný"
 
 msgid "The number color \"steps\""
-msgstr "Počet fariebných „kroků“"
+msgstr ""
 
 msgid "The number of bins for the histogram"
-msgstr "Počet intervalů (bins) pre histogram"
+msgstr ""
 
 msgid ""
 "The number of hours, negative or positive, to shift the time column. This"
@@ -17236,10 +16989,6 @@ msgid ""
 " export files, and should be added manually after the import if they are "
 "needed."
 msgstr ""
-"Hesla pre níže uvedené databáza sú nutná k jejich importu spolu s grafy. "
-"Upozorňujeme, že sekcia „Zabezpečené extra“ a „Certifikát“ v konfiguráciu"
-" databáza nesú prítomné v exportních súboroch a je třeba je po importu "
-"pridať ručne, pokiaľ sú potreba."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
@@ -17248,10 +16997,6 @@ msgid ""
 " export files, and should be added manually after the import if they are "
 "needed."
 msgstr ""
-"Hesla pre níže uvedené databáza sú nutná k jejich importu spolu s "
-"nástenkami. Upozorňujeme, že sekcia „Zabezpečené extra“ a „Certifikát“ v "
-"konfiguráciu databáza nesú prítomné v exportních súboroch a je třeba je "
-"po importu pridať ručne, pokiaľ sú potreba."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
@@ -17260,10 +17005,6 @@ msgid ""
 " export files, and should be added manually after the import if they are "
 "needed."
 msgstr ""
-"Hesla pre níže uvedené databáza sú nutná k jejich importu spolu sa sadami"
-" dat. Upozorňujeme, že sekcia „Zabezpečené extra“ a „Certifikát“ v "
-"konfiguráciu databáza nesú prítomné v exportních súboroch a je třeba je "
-"po importu pridať ručne, pokiaľ sú potreba."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
@@ -17272,10 +17013,6 @@ msgid ""
 "present in export files, and should be added manually after the import if"
 " they are needed."
 msgstr ""
-"Hesla pre níže uvedené databáza sú nutná k jejich importu spolu s "
-"uloženými dotazy. Upozorňujeme, že sekcia „Zabezpečené extra“ a "
-"„Certifikát“ v konfiguráciu databáza nesú prítomné v exportních súboroch "
-"a je třeba je po importu pridať ručne, pokiaľ sú potreba."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -17327,7 +17064,7 @@ msgid "The preview could not be loaded."
 msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
-msgstr "Primární metrika sa používa k definovanie veľkostí segmentů oblouku"
+msgstr ""
 
 msgid "The provided table was not found in the provided database"
 msgstr "Zadaná tabuľka nebyla nalezena v zadané databázy"
@@ -17346,7 +17083,7 @@ msgstr ""
 "pôvodný dotaz."
 
 msgid "The query contains one or more malformed template parameters."
-msgstr "Dotaz obsahuje jeden alebo viac nesprávne formátovaných parametrů šablony."
+msgstr ""
 
 msgid "The query context datasource does not match the chart datasource"
 msgstr ""
@@ -17388,9 +17125,6 @@ msgid ""
 "to turn off clustering, but beware that a large number of points (>1000) "
 "will cause lag."
 msgstr ""
-"Polomer (v pixelech), ktorý algoritmus používá k definovanie zhluku. "
-"Zvolte 0 pre vypnutí shlukovanie, ale mejte na pameti, že velký počet "
-"bodov (>1000) způsobí zpoždení."
 
 msgid ""
 "The radius of individual points (ones that are not in a cluster). Either "
@@ -17414,7 +17148,13 @@ msgid "The remaining %s will be moved to Recently Archived."
 msgstr ""
 
 msgid "The report has been created"
-msgstr "Report bol vytvořen"
+msgstr ""
+
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
 
 msgid "The report will be sent to your email at"
 msgstr "Report bude odeslán na váš e-mail na adresu"
@@ -17424,8 +17164,6 @@ msgid ""
 "interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() "
 "function)."
 msgstr ""
-"Výsledok tohoto dotazu musí byť hodnota schopná číselné interpretace, "
-"např. 1, 1.0 alebo „1“ (kompatibilný s funkciuí float() v Pythonu)."
 
 msgid "The result size exceeds the allowed limit."
 msgstr "Veľkosť výsledku prekračuje povolený limit."
@@ -17494,7 +17232,7 @@ msgid "The schema of the submitted payload is invalid."
 msgstr "Schéma odeslaných dat je neplatné."
 
 msgid "The schema was deleted or renamed in the database."
-msgstr "Schéma bolo v databázy zmazané alebo přejmenováno."
+msgstr ""
 
 msgid "The screenshot could not be downloaded. Please, try again later."
 msgstr "Snímek obrazovky sa nepodarilo stiahnuť. Skúste to prosím znovu neskôr."
@@ -17590,7 +17328,7 @@ msgstr ""
 " použita platná tabuľka."
 
 msgid "The table was deleted or renamed in the database."
-msgstr "Tabuľka bola v databázy zmazaná alebo přejmenována."
+msgstr ""
 
 msgid ""
 "The time column for the visualization. Note that you can define arbitrary"
@@ -17637,13 +17375,6 @@ msgid ""
 " explicitly set the timezone per the ISO 8601 format if specifying either"
 " the start and/or end time."
 msgstr ""
-"Časový rozsah pre vizualizáciu. Všetky relatívne časy, např. „Posledný "
-"mesíc“, „Posledných 7 dní“, „teraz“ atd., sú vyhodnocovány na serveru "
-"pomocí místního času serveru (bez časového pásma). Všetky nápovedy a "
-"zástupné časy sú vyjadrené v UTC (bez časového pásma). Časové značky sú "
-"potom vyhodnocována databáz pomocí místního časového pásma enginu. "
-"Všimnete si, že možno explicitne nastaviť časové pásmo popodľa formátu "
-"ISO 8601, pokiaľ specifikujete počáteční a/alebo koncový čas."
 
 msgid ""
 "The time unit for each block. Should be a smaller unit than "
@@ -17653,7 +17384,7 @@ msgstr ""
 "domain_granularity. Mela by být väčší alebo rovna časové granularite"
 
 msgid "The time unit used for the grouping of blocks"
-msgstr "Časová jednotka použitá pre zoskupenie bloků"
+msgstr ""
 
 msgid ""
 "The transform answered with a value the driver and the database do not "
@@ -17738,6 +17469,13 @@ msgstr "Používateľ bol úspešne aktualizován."
 msgid "The user has been updated successfully."
 msgstr "Používateľ bol úspešne aktualizován."
 
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
+
 msgid "The user was updated successfully"
 msgstr "Používateľ bol úspešne aktualizován"
 
@@ -17800,7 +17538,7 @@ msgid ""
 msgstr ""
 
 msgid "The values overlap other breakpoint values"
-msgstr "Hodnoty překrývají hodnoty iných breakpointů"
+msgstr ""
 
 msgid "The version of the service"
 msgstr "Verzia služby"
@@ -17888,8 +17626,6 @@ msgid ""
 "There is a syntax error in the SQL query. Perhaps there was a misspelling"
 " or a typo."
 msgstr ""
-"V SQL dotazu je syntaktická chyba. Možná došlo k překlepu alebo chybe v "
-"psaní."
 
 msgid "There is currently no information to display."
 msgstr "V současné dobe nesú k zobrazenie žiadne informácie."
@@ -17938,14 +17674,14 @@ msgid "There was an error fetching dataset"
 msgstr "Pri načítavanie sady dat došlo k chybe"
 
 msgid "There was an error fetching dataset's related objects"
-msgstr "Pri načítavanie súvisejúcich objektů sady dat došlo k chybe"
+msgstr ""
 
 #, python-format
 msgid "There was an error fetching the favorite status: %s"
 msgstr "Pri načítavanie stavu oblíbenosti došlo k chybe: %s"
 
 msgid "There was an error fetching the filtered charts and dashboards:"
-msgstr "Pri načítavanie filtrovaných grafů a násteniek došlo k chybe:"
+msgstr ""
 
 msgid "There was an error generating the permalink."
 msgstr ""
@@ -18062,7 +17798,7 @@ msgstr "Pri mazanie vybraných anotací došlo k problému: %s"
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
-msgstr "Pri mazanie vybraných grafů došlo k problému: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected dashboards: %s"
@@ -18230,9 +17966,6 @@ msgid ""
 "overwrite button in the dashboard view. It is exposed here for reference "
 "and for power users who may want to alter specific parameters."
 msgstr ""
-"Tento objekt JSON je generován dynamicky pri kliknutie na tlačidlo Uložiť"
-" alebo Přepsat v zobrazenie nástenky. Je tu vystaven pre referenci a pre "
-"pokročilé používateľa, ktorí môžu chtít menit specifické parametre."
 
 #, python-format
 msgid "This action will permanently delete %s."
@@ -18275,8 +18008,6 @@ msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
 "mydatabase.com)."
 msgstr ""
-"Môže to být buď IP adresa (např. 127.0.0.1), alebo názov domény (např. "
-"mojedatabaze.com)."
 
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
@@ -18320,6 +18051,13 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid ""
+"This chart was saved with an older format of field names for this "
+"semantic view, so the fields it refers to can't be confirmed. Re-pick the"
+" metrics and dimensions to keep using it. The saved chart doesn't change "
+"until you save."
+msgstr ""
+
 msgid "This chart was updated to use the restored aggregation"
 msgstr ""
 
@@ -18348,14 +18086,6 @@ msgid ""
 "engine's local timezone. Note one can explicitly set the timezone per the"
 " ISO 8601 format if specifying either the start and/or end time."
 msgstr ""
-"Tento ovládací prvek filtruje celý graf na základe vybraného časového "
-"rozsahu. Všetky relatívne časy, např. „Posledný mesíc“, „Posledných 7 "
-"dní“, „teraz“ atd., sú vyhodnocovány na serveru pomocí místního času "
-"serveru (bez časového pásma). Všetky nápovedy a zástupné časy sú "
-"vyjadrené v UTC (bez časového pásma). Časové značky sú potom "
-"vyhodnocována databáz pomocí místního časového pásma enginu. Všimnete si,"
-" že možno explicitne nastaviť časové pásmo popodľa formátu ISO 8601, "
-"pokiaľ specifikujete počáteční a/alebo koncový čas."
 
 msgid ""
 "This controls whether the \"time_range\" field from the current\n"
@@ -18390,9 +18120,6 @@ msgid ""
 "list of dashboards. Favorite it to see it there or access it by using the"
 " URL directly."
 msgstr ""
-"Táto nástenka nie je zverejnená, což znamená, že sa nezobrazí v zozname "
-"násteniek. Pridajte si ji do oblíbených, aby ste ji tam videli, alebo k "
-"ní prístupujte přímo pomocí URL."
 
 msgid ""
 "This dashboard is not published, it will not show up in the list of "
@@ -18511,15 +18238,11 @@ msgid ""
 "This field is used as a unique identifier to attach the calculated "
 "dimension to charts. It is also used as the alias in the SQL query."
 msgstr ""
-"Toto pole sa používa ako jedinečný identifikátor pre pripojenie počítané "
-"dimenze ke grafům. Používa sa také ako alias v SQL dotazu."
 
 msgid ""
 "This field is used as a unique identifier to attach the metric to charts."
 " It is also used as the alias in the SQL query."
 msgstr ""
-"Toto pole sa používa ako jedinečný identifikátor pre pripojenie metriky "
-"ke grafům. Používa sa také ako alias v SQL dotazu."
 
 #, fuzzy
 msgid "This filter already exist on the report"
@@ -18574,11 +18297,6 @@ msgid ""
 " a user belongs to a RLS filter role, a base filter can be created with "
 "the clause `1 = 0` (always false)."
 msgstr ""
-"Toto je podmienka, ktorá bude pridanýa do klauzule WHERE. Například pre "
-"vrátenie iba riadkov pre konkrétního klienta môžete definovať bežný "
-"filter s klauzulí `client_id = 9`. Pre nezobrazenie žádných riadkov, "
-"pokiaľ používateľ nepatří do role RLS filtra, možno vytvoriť základný "
-"filter s klauzulí `1 = 0` (vždy nepravda)."
 
 msgid "This is the default dark theme"
 msgstr "Toto je predvolený tmavé téma."
@@ -18601,9 +18319,6 @@ msgid ""
 "dashboard. It is dynamically generated when adjusting the widgets size "
 "and positions by using drag & drop in the dashboard view"
 msgstr ""
-"Tento objekt JSON popisuje umístení widgetů v nástenke. Je generován "
-"dynamicky pri úprave veľkosti a pozic widgetů pomocí přetahovanie v "
-"zobrazenie nástenky"
 
 #, python-format
 msgid "This link can be used once and expires in %(minutes)s minutes."
@@ -18693,6 +18408,13 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -18743,9 +18465,6 @@ msgid ""
 "work as intended. If you are the developer of this app, please check that"
 " the guest token is being generated correctly."
 msgstr ""
-"Táto relácie bola prerušená a niektoré ovládací prvky nemusí fungovať, "
-"ako by mely. Pokiaľ jste vývojářem tejto aplikácia, skontrolujte prosím, "
-"či je správne generován token pre hosta."
 
 msgid "This table already has a dataset"
 msgstr "Táto tabuľka již má sadu dat"
@@ -18996,7 +18715,7 @@ msgid "Time ratio"
 msgstr "Časový pomer"
 
 msgid "Time related form attributes"
-msgstr "Atributy formuláře súvisejúci s časem"
+msgstr ""
 
 msgid "Time series"
 msgstr "Časový rad"
@@ -19154,26 +18873,26 @@ msgid "Tooltip contents"
 msgstr "Obsah nápovedy"
 
 msgid "Tooltip sort by metric"
-msgstr "Řadit nápovedu popodľa metriky"
+msgstr ""
 
 msgid "Tooltip time format"
 msgstr "Formát času v nápovede"
 
 msgid "Top"
-msgstr "Nahoře"
+msgstr ""
 
 msgid "Top left"
-msgstr "Vlevo nahoře"
+msgstr ""
 
 #, fuzzy
 msgid "Top n"
 msgstr "Horních n"
 
 msgid "Top right"
-msgstr "Vpravo nahoře"
+msgstr ""
 
 msgid "Top to Bottom"
-msgstr "Shora dolů"
+msgstr ""
 
 msgid "Total"
 msgstr "Celkovo"
@@ -19503,9 +19222,6 @@ msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
 msgstr ""
-"Nemožno identifikovať časový stĺpec pre porovnanie dátových rozsahů. "
-"Prosím, uistite sa, že váš dataset má správne nakonfigurovaný časový "
-"stĺpec."
 
 #, python-format
 msgid ""
@@ -19521,6 +19237,9 @@ msgid "Unable to load dashboard"
 msgstr "Nemožno načítať nástenku"
 
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 msgid ""
@@ -19663,9 +19382,8 @@ msgstr "Neznámá hodnota"
 msgid "Unpin"
 msgstr "Odepnúť"
 
-#, fuzzy
 msgid "Unpin from the result panel"
-msgstr "Připnúť k panelu výsledkov"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -19846,8 +19564,6 @@ msgid ""
 "Use Handlebars syntax to create custom tooltips. Available variables are "
 "based on your tooltip contents selection above."
 msgstr ""
-"Použijte Handlebars syntaxi pre vytvorenie vlastnéch nápoved. Dostupné "
-"promenné sú založené na výberu výpisů nápovedy výše."
 
 msgid "Use a log scale"
 msgstr "Použít logaritmickou stupnici"
@@ -19866,8 +19582,6 @@ msgid ""
 "Use another existing chart as a source for annotations and overlays.\n"
 "          Your chart must be one of these visualization types: [%s]"
 msgstr ""
-"Použijte iný existujúci graf ako zdroj pre anotace a překryvy.\n"
-"          Váš graf musí byť jedním z týchto typů vizualizácia: [%s]"
 
 #, fuzzy
 msgid "Use automatic color"
@@ -19930,11 +19644,6 @@ msgid ""
 "status and assignee, active users by age and location. Not the most "
 "visually stunning visualization, but highly informative and versatile."
 msgstr ""
-"Používa sa k sumarizaci sady dat seskupením viac statistik podél dvou os."
-" Příklady: Prodejní čísla popodľa regionu a mesiace, úkoly popodľa stavu "
-"a priradeného pracovníka, aktívny používatelia popodľa veku a lokality. "
-"Nejde o vizuálne nejúžasnejší vizualizáciu, ale je vysoce informativní a "
-"všestranná."
 
 msgid "User"
 msgstr "Používateľ"
@@ -19949,7 +19658,7 @@ msgid "User does not exist or is inactive"
 msgstr ""
 
 msgid "User doesn't have the proper permissions."
-msgstr "Používateľ nemá příslušná oprávnenie."
+msgstr ""
 
 msgid "User info"
 msgstr "Informácie o používateľovi"
@@ -19987,8 +19696,6 @@ msgstr "Používatelia"
 
 msgid "Users are not allowed to set a search path for security reasons."
 msgstr ""
-"Uživatelům nie je z bezpečnostných dôvodov povoleno nastavovať cestu pre "
-"vyhľadávanie."
 
 msgid ""
 "Uses Gaussian Kernel Density Estimation to visualize spatial distribution"
@@ -20002,9 +19709,6 @@ msgid ""
 "position of the dial represents the progress and the terminal value in "
 "the gauge represents the target value."
 msgstr ""
-"Používá meřidlo k zobrazenie pokroku metriky smerem k cieľi. Pozice "
-"ručičky predstavuje pokrok a konečná hodnota na meřipodľa predstavuje "
-"cieľovú hodnotu."
 
 msgid ""
 "Uses circles to visualize the flow of data through different stages of a "
@@ -20012,10 +19716,6 @@ msgid ""
 "the stages a value took. Useful for multi-stage, multi-group visualizing "
 "funnels and pipelines."
 msgstr ""
-"Používá kruhy k vizualizáciu toku dat rôznymi fázemi systému. Přejeďte "
-"myší cez jednotlivé cesty ve vizualizáciu, aby ste pochopili, kterými "
-"fázemi hodnota prošla. Užitečné pre vícestupňové, víceskupinové "
-"vizualizácia lievikoov a procesů."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -20040,11 +19740,10 @@ msgstr "Overte svoj výraz"
 
 #, python-format
 msgid "Validating connectivity for %s"
-msgstr "Oveřuje sa konektivita pre %s"
+msgstr ""
 
-#, fuzzy
 msgid "Validating..."
-msgstr "Oveřovanie..."
+msgstr ""
 
 msgid "Value"
 msgstr "Hodnota"
@@ -20239,7 +19938,7 @@ msgid "Virtual dataset query cannot be empty"
 msgstr "Dotaz virtuálnej sady dat nemôže být prázdny"
 
 msgid "Virtual dataset query cannot consist of multiple statements"
-msgstr "Dotaz virtuálnej sady dat nemôže sestávat z viac príkazů"
+msgstr ""
 
 msgid "Virtual dataset query must be read-only"
 msgstr "Dotaz virtuálnej sady dat musí byť iba pre čtenie"
@@ -20271,16 +19970,11 @@ msgid ""
 "showcasing the correlation or strength between two groups. Color is used "
 "to emphasize the strength of the link between each pair of groups."
 msgstr ""
-"Vizualizujte súvisejúci metriku naprieč páry skupin. Teplotní mapy "
-"vynikají v zobrazovanie korelácie alebo síly mezi dvema skupinami. Farba "
-"sa používá k zdůraznie je síly spojenie mezi každým párem skupin."
 
 msgid ""
 "Visualize geospatial data like 3D buildings, landscapes, or objects in "
 "grid view."
 msgstr ""
-"Vizualizujte geoprostorová data ako 3D budovy, krajiny alebo objekty v "
-"mřížkovém zobrazenie."
 
 msgid ""
 "Visualize multiple levels of hierarchy using a familiar tree-like "
@@ -20292,21 +19986,15 @@ msgid ""
 "series can be visualized with a different chart type (e.g. 1 using bars "
 "and 1 using a line)."
 msgstr ""
-"Vizualizujte dve rôzne série pomocí stejné osy X. Všimnete si, že obe "
-"série môžu být vizualizovány rôznym typem grafu (např. 1 pomocí stĺpcov a"
-" 1 pomocí spojnice)."
 
 msgid ""
 "Visualizes a metric across three dimensions of data in a single chart (X "
 "axis, Y axis, and bubble size). Bubbles from the same group can be "
 "showcased using bubble color."
 msgstr ""
-"Vizualizuje metriku naprieč třemi dimenzemi dat v jediném grafu (osa X, "
-"osa Y a veľkosť bubliny). Bubliny zo stejné skupiny môžu být zobrazeny "
-"pomocí farby bubliny."
 
 msgid "Visualizes connected points, which form a path, on a map."
-msgstr "Vizualizuje spojené body, ktoré tvoří cestu, na mape."
+msgstr ""
 
 msgid ""
 "Visualizes geographic areas from your data as polygons on a Mapbox "
@@ -20320,10 +20008,6 @@ msgid ""
 " calendar view. Gray values are used to indicate missing values and the "
 "linear color scheme is used to encode the magnitude of each day's value."
 msgstr ""
-"Vizualizuje, ako sa metrika zmenila v čase pomocí fariebné škály a "
-"kalendářového zobrazenie. Šedé hodnoty sa používají k označenie "
-"chybejících hodnôt a lineární fariebné schéma sa používa ke kódovanie "
-"veľkosti hodnoty každého dne."
 
 msgid ""
 "Visualizes how a single metric varies across a country's principal "
@@ -20447,8 +20131,6 @@ msgid ""
 "We were unable to carry over any controls when switching to this new "
 "dataset."
 msgstr ""
-"Pri prechodu na tuto novou sadu dat sa nám nepodarilo přenést žiadne "
-"ovládací prvky."
 
 #, python-format
 msgid ""
@@ -20462,7 +20144,7 @@ msgid "Web"
 msgstr "Web"
 
 msgid "Wednesday"
-msgstr "Středa"
+msgstr ""
 
 msgid "Week"
 msgstr "Týden"
@@ -20553,7 +20235,7 @@ msgid "When a secondary metric is provided, a linear color scale is used."
 msgstr "Keď je poskytnuta sekundární metrika, použije sa lineární fariebná škála."
 
 msgid "When checked, the map will zoom to your data after each query"
-msgstr "Keď je zaškrtnuto, mapa sa po každém dotazu přiblíží k vašim datům"
+msgstr ""
 
 msgid ""
 "When disabled, alerts only send the message and link, without screenshots"
@@ -20578,25 +20260,18 @@ msgstr ""
 
 msgid "When enabled, users are able to visualize SQL Lab results in Explore."
 msgstr ""
-"Keď je povoleno, používatelia môžu vizualizovať výsledky SQL Labu v "
-"Průzkumníku."
 
 msgid "When only a primary metric is provided, a categorical color scale is used."
 msgstr ""
 "Keď je poskytnuta iba primární metrika, použije sa kategorická fariebná "
 "škála."
 
-#, fuzzy
 msgid ""
 "When specifying SQL, the datasource acts as a view. Superset will use "
 "this statement as a subquery while grouping and filtering on the "
 "generated parent queries.If changes are made to your SQL query, columns "
 "in your dataset will be synced when saving the dataset."
 msgstr ""
-"Pri specifikaci SQL funguje zdroj dat ako pohled. Superset použije tento "
-"príkaz ako poddotaz pri seskupovanie a filtrovanie v generovaných "
-"nadřazených dotazech. Pokiaľ sú provedeny zmeny vo vašom SQL dotazu, "
-"stĺpce v dátové sade budú synchronizovány pri uloženie dátové sady."
 
 msgid ""
 "When the secondary temporal columns are filtered, apply the same filter "
@@ -20640,7 +20315,7 @@ msgid "When using 'Group By' you are limited to use a single metric"
 msgstr "Pri použití 'Zoskupiť podle' jste omezeni na použití jediné metriky"
 
 msgid "When using other than adaptive formatting, labels may overlap"
-msgstr "Pri použití iného než adaptivního formátovanie sa môžu popisky překrývat"
+msgstr ""
 
 #, fuzzy
 msgid ""
@@ -20657,7 +20332,7 @@ msgid ""
 msgstr ""
 
 msgid "Whether the progress bar overlaps when there are multiple groups of data"
-msgstr "Či sa ukazatel pokroku překrývá, pokiaľ existuje viac skupin dat"
+msgstr ""
 
 msgid ""
 "Whether to align background charts with both positive and negative values"
@@ -20755,10 +20430,10 @@ msgid "Whether to display the type icon (#, Δ, %)"
 msgstr "Či zobraziť ikonu typu (#, Δ, %)"
 
 msgid "Whether to enable changing graph position and scaling."
-msgstr "Či povolit zmenu pozice a meřítka grafu."
+msgstr ""
 
 msgid "Whether to enable node dragging in force layout mode."
-msgstr "Či povolit přetahovanie uzlov v režimu silového usporiadanie."
+msgstr ""
 
 msgid "Whether to fill the objects"
 msgstr "Či vyplnit objekty"
@@ -20776,7 +20451,7 @@ msgid "Whether to include the time granularity as defined in the time section"
 msgstr "Či zahrnúť časovou granularitu definovanou v sekci času"
 
 msgid "Whether to make the grid 3D"
-msgstr "Či udelat mřížku 3D"
+msgstr ""
 
 msgid "Whether to populate autocomplete filters options"
 msgstr "Či naplnit možnosti filtrov s automatickým doplňováním"
@@ -20788,8 +20463,6 @@ msgid ""
 "Whether to show extra controls or not. Extra controls include things like"
 " making multiBar charts stacked or side by side."
 msgstr ""
-"Či zobraziť ďalší ovládací prvky. Ďalší ovládací prvky zahrnují veci ako "
-"vytváranie skládaných alebo vedľa seba postavených grafů s viac stĺpci."
 
 msgid "Whether to show minor ticks on the axis"
 msgstr "Či zobraziť vedlejší značky na ose"
@@ -20798,19 +20471,19 @@ msgid "Whether to show the pointer"
 msgstr "Či zobraziť ukazatel"
 
 msgid "Whether to show the progress of gauge chart"
-msgstr "Či zobraziť pokrok v meřidlovém grafu"
+msgstr ""
 
 msgid "Whether to show the split lines on the axis"
 msgstr "Či zobraziť delicí čáry na ose"
 
 msgid "Whether to sort ascending or descending on the base Axis."
-msgstr "Či řadit vzestupne alebo sestupne na základný ose."
+msgstr ""
 
 msgid "Whether to sort descending or ascending"
-msgstr "Či řadit sestupne alebo vzestupne"
+msgstr ""
 
 msgid "Whether to sort results by the selected metric in descending order."
-msgstr "Či řadit výsledky popodľa vybrané metriky sestupne."
+msgstr ""
 
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
@@ -20824,10 +20497,10 @@ msgid "Which country to plot the map for?"
 msgstr "Pre kterou zemi vykreslit mapu?"
 
 msgid "Which relatives to highlight on hover"
-msgstr "Ktoré příbuzné prvky zvýraznit pri najetí myší"
+msgstr ""
 
 msgid "Whisker/outlier options"
-msgstr "Možnosti vousů/odlehlých hodnot"
+msgstr ""
 
 #, fuzzy
 msgid "Why do I need to create a database?"
@@ -20889,9 +20562,8 @@ msgstr "Formát osy X"
 msgid "X Axis Label"
 msgstr "Popisek osy X"
 
-#, fuzzy
 msgid "X Axis Label Interval"
-msgstr "Interval popisků osy X"
+msgstr ""
 
 #, fuzzy
 msgid "X Axis Minimum Interval"
@@ -20917,10 +20589,10 @@ msgid "X axis title margin"
 msgstr "Okraj názvu osy X"
 
 msgid "X-Axis Sort Ascending"
-msgstr "Řadit osu X vzestupne"
+msgstr ""
 
 msgid "X-Axis Sort By"
-msgstr "Řadit osu X podle"
+msgstr ""
 
 msgid "X-axis"
 msgstr "Osa X"
@@ -20970,10 +20642,10 @@ msgid "Y-Axis"
 msgstr "Osa Y"
 
 msgid "Y-Axis Sort Ascending"
-msgstr "Řadit osu Y vzestupne"
+msgstr ""
 
 msgid "Y-Axis Sort By"
-msgstr "Řadit osu Y podle"
+msgstr ""
 
 msgid "Y-axis"
 msgstr "Osa Y"
@@ -21015,7 +20687,7 @@ msgstr "Áno, prepísať zmeny"
 
 #, python-format
 msgid "You are adding tags to %s %ss"
-msgstr "Přidáváte značky k %s %s"
+msgstr ""
 
 #, fuzzy
 msgid "You are editing a query from the virtual dataset "
@@ -21026,8 +20698,6 @@ msgid ""
 "might cause you to lose some of your work. Are you sure you want to "
 "overwrite?"
 msgstr ""
-"Importujete jeden alebo viac grafů, ktoré již existujú. Prepísanie môže "
-"spôsobiť ztrátu vaší práce. Jste si jisti, že chcete prepísať?"
 
 msgid ""
 "You are importing one or more dashboards that already exist. Overwriting "
@@ -21062,15 +20732,11 @@ msgstr ""
 "Prepísanie môže spôsobiť ztrátu vaší práce. Jste si jisti, že chcete "
 "prepísať?"
 
-#, fuzzy
 msgid ""
 "You are importing one or more themes that already exist. Overwriting "
 "might cause you to lose some of your work. Are you sure you want to "
 "overwrite?"
 msgstr ""
-"Importujete jeden alebo viac již existujúcich dátových súborov. Pokiaľ "
-"jepřepíšete, môže dojít ke ztráte části vaší práce. Opravdu "
-"chceteprepísať?"
 
 msgid "You are not an editor of this theme - Read Only"
 msgstr ""
@@ -21090,9 +20756,6 @@ msgid ""
 "        To edit the color scheme, open this chart outside of the "
 "dashboard."
 msgstr ""
-"Prohlížíte si tento graf v kontextu nástenky, ktorá přímo ovlivňuje jeho "
-"farby.\n"
-"        Pre úpravu fariebného schématu otevřete tento graf mimo nástenku."
 
 msgid "You can"
 msgstr "Môžete"
@@ -21112,10 +20775,6 @@ msgid ""
 "              Your filter selection will be saved and remain active until"
 " you choose to change it."
 msgstr ""
-"Môžete si vybrať zobrazenie všetkých grafů, ke ktorým máte prístup, alebo"
-" len tech, ktoré vlastnéte.\n"
-"              Váš výber filtra bude uložený a zostane aktívny, dokud sa "
-"ho nerozhodnete zmeniť."
 
 msgid ""
 "You can create a new chart or use existing ones from the panel on the "
@@ -21289,9 +20948,6 @@ msgid ""
 "fully undo subsequent actions. You may save your current state to reset "
 "the history."
 msgstr ""
-"Použili jste všetkých %(historyLength)s slotů pre vrátenie späť a "
-"nebudete moci plne vrátiť späť následující akce. Môžete uložiť svoj "
-"aktuálny stav pre resetovanie historie."
 
 #, python-format
 msgid ""
@@ -21402,7 +21058,7 @@ msgstr ""
 "ktoré odpovídají tejto nové sade dat, boli zachovány."
 
 msgid "Your account is activated. You can log in with your credentials."
-msgstr "Váš účet je aktivován. Môžete sa prihlásiť pomocí prihlasovaciech údajů."
+msgstr ""
 
 msgid "Your changes will be lost if you leave without saving."
 msgstr "Vaše zmeny budú ztraceny, pokiaľ sa odhlásíte bez uloženie."
@@ -21510,7 +21166,7 @@ msgid "Z-A"
 msgstr "kľúč z-a"
 
 msgid "ZIP file contains multiple file types"
-msgstr "Súbor ZIP obsahuje viac typů súborov"
+msgstr ""
 
 msgid "Zebra striping"
 msgstr ""
@@ -21519,7 +21175,7 @@ msgid "Zero imputation"
 msgstr "Imputace nulou"
 
 msgid "Zoom"
-msgstr "Přiblíženie"
+msgstr ""
 
 msgid "Zoom level"
 msgstr "Úroveň priblíženie"
@@ -21634,7 +21290,7 @@ msgid "also copy (duplicate) charts"
 msgstr "také kopírovať (duplikovať) grafy"
 
 msgid "ancestor"
-msgstr "předek"
+msgstr ""
 
 msgid "annotation"
 msgstr "anotace"
@@ -21758,7 +21414,7 @@ msgstr "stĺpec"
 
 #, python-format
 msgid "connecting to %(dbModelName)s"
-msgstr "připojuje sa k %(dbModelName)s"
+msgstr ""
 
 msgid "containing"
 msgstr "obsahuje"
@@ -21911,40 +21567,40 @@ msgid "dttm"
 msgstr "dttm"
 
 msgid "e.g. ********"
-msgstr "např. ********"
+msgstr ""
 
 msgid "e.g. 127.0.0.1"
-msgstr "např. 127.0.0.1"
+msgstr ""
 
 msgid "e.g. 5432"
-msgstr "např. 5432"
+msgstr ""
 
 msgid "e.g. AccountAdmin"
-msgstr "např. AccountAdmin"
+msgstr ""
 
 msgid "e.g. Analytics"
-msgstr "např. Analytics"
+msgstr ""
 
 msgid "e.g. compute_wh"
-msgstr "např. compute_wh"
+msgstr ""
 
 msgid "e.g. default"
-msgstr "např. default"
+msgstr ""
 
 msgid "e.g. hive_metastore"
-msgstr "např. hive_metastore"
+msgstr ""
 
 msgid "e.g. param1=value1&param2=value2"
-msgstr "např. param1=hodnota1&param2=hodnota2"
+msgstr ""
 
 msgid "e.g. sql/protocolv1/o/12345"
-msgstr "např. sql/protocolv1/o/12345"
+msgstr ""
 
 msgid "e.g. world_population"
-msgstr "např. world_population"
+msgstr ""
 
 msgid "e.g. xy12345.us-east-2.aws"
-msgstr "např. xy12345.us-east-2.aws"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -21959,7 +21615,7 @@ msgid "editors"
 msgstr "editori"
 
 msgid "email subject"
-msgstr "předmet e-mailu"
+msgstr ""
 
 #, fuzzy
 msgid "ends with"
@@ -22052,9 +21708,8 @@ msgstr "geohash (čtverec)"
 msgid "green — increase / red — decrease"
 msgstr ""
 
-#, fuzzy
 msgid "greeting"
-msgstr "Uchovávanie protokolů"
+msgstr ""
 
 msgid "header"
 msgstr ""
@@ -22096,8 +21751,6 @@ msgid ""
 "is expected to be a Mapbox/OSM URL (eg. mapbox://styles/...) or a tile "
 "server URL (eg. tile://http...)"
 msgstr ""
-"se očekává, že bude Mapbox/OSM URL (např. mapbox://styles/...) alebo URL "
-"pre server s vrstvami (např. tile://http...)"
 
 msgid "is expected to be a number"
 msgstr "se očekává, že bude číslo"
@@ -22115,10 +21768,6 @@ msgid ""
 " Lab tabs using this database open. Are you sure you want to continue? "
 "Deleting the database will break those objects."
 msgstr ""
-"je propojena s %s grafy, ktoré sa objevují na %s nástenkách a "
-"používatelia majú otevřeno %s karet SQL Labu používajících tuto databázy."
-" Jste si jisti, že chcete pokračovať? Zmazanie databáza poškodí tieto "
-"objekty."
 
 #, python-format
 msgid ""
@@ -22444,9 +22093,6 @@ msgid ""
 " scale; change: Show changes compared to the first data point in each "
 "series"
 msgstr ""
-"série: Považovať každou sérii nezávisle; celkove: Všetky série používají "
-"stejné meřítko; zmena: Zobraziť zmeny v porovnanie s prvním dátovým bodem"
-" v každé sérii"
 
 msgid "setting"
 msgstr ""
@@ -22484,9 +22130,8 @@ msgstr "zastavené"
 msgid "stream"
 msgstr "proud"
 
-#, fuzzy
 msgid "string"
-msgstr "ŘETĚZEC"
+msgstr ""
 
 msgid "string type icon"
 msgstr "ikona typu reťazec"
@@ -22550,7 +22195,7 @@ msgid "to"
 msgstr "do"
 
 msgid "top"
-msgstr "nahoře"
+msgstr ""
 
 msgid "undo"
 msgstr "späť"

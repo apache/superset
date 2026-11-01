@@ -94,6 +94,9 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
+      # Declaring any permission drops the defaults, and checkout and `$/` actions
+      # need read access wherever the repository is not public.
+      contents: read
       id-token: write
     env:
       PYTHONPATH: ${{ github.workspace }}
@@ -190,6 +193,9 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
+      # Declaring any permission drops the defaults, and checkout and `$/` actions
+      # need read access wherever the repository is not public.
+      contents: read
       id-token: write
     strategy:
       matrix:
@@ -263,6 +269,9 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
+      # Declaring any permission drops the defaults, and checkout and `$/` actions
+      # need read access wherever the repository is not public.
+      contents: read
       id-token: write
     env:
       PYTHONPATH: ${{ github.workspace }}
