@@ -239,10 +239,16 @@ def test_cached_empty_membership_matches_sql_aggregation(
     count: Metric = replace(
         REVENUE_METRIC, id="count", name="Count", aggregation=AggregationType.COUNT
     )
+    minimum: Metric = replace(
+        REVENUE_METRIC, id="minimum", name="Minimum", aggregation=AggregationType.MIN
+    )
+    maximum: Metric = replace(
+        REVENUE_METRIC, id="maximum", name="Maximum", aggregation=AggregationType.MAX
+    )
     entry: CachedEntry = CachedEntry(
         filters=frozenset(),
         dimensions=frozenset({COUNTRY}),
-        metrics=frozenset({REVENUE_METRIC, count}),
+        metrics=frozenset({REVENUE_METRIC, count, minimum, maximum}),
         limit=None,
         offset=0,
         order_key="",
@@ -255,6 +261,8 @@ def test_cached_empty_membership_matches_sql_aggregation(
                 "Country": ["GB", None],
                 "Revenue": [2.0, 3.0],
                 "Count": pd.array([1, 1], dtype="int64"),
+                "Minimum": [2.0, 3.0],
+                "Maximum": [2.0, 3.0],
             }
         )
     )
@@ -262,7 +270,7 @@ def test_cached_empty_membership_matches_sql_aggregation(
     capabilities: ContainmentCapabilities = ContainmentCapabilities(membership=True)
     grouped: bool = expected_countries is not None
     query: SemanticQuery = SemanticQuery(
-        metrics=[REVENUE_METRIC, count],
+        metrics=[REVENUE_METRIC, count, minimum, maximum],
         dimensions=[COUNTRY] if grouped else [],
         filters={empty},
     )
@@ -279,10 +287,24 @@ def test_cached_empty_membership_matches_sql_aggregation(
     expected: dict[str, object] = {
         "Revenue": expected_revenue,
         "Count": [1, 1] if grouped else [0],
+        "Minimum": expected_revenue,
+        "Maximum": expected_revenue,
     }
     if grouped:
         expected["Country"] = expected_countries
     assert transformed.results.to_pydict() == expected
+    if operator == Operator.IN:
+        assert transformed.results.num_rows == 1
+        assert (
+            transformed.results.column("Minimum")
+            .combine_chunks()
+            .equals(pa.array([None], type=pa.float64()))
+        )
+        assert (
+            transformed.results.column("Maximum")
+            .combine_chunks()
+            .equals(pa.array([None], type=pa.float64()))
+        )
 
 
 def test_membership_implication_does_not_merge_bool_and_integer_values() -> None:
