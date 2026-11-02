@@ -809,11 +809,11 @@ def _diff_named(
     """
     before, after = _by_key(current, key), _by_key(proposed, key)
     added = [
-        {"name": n, "fields": _stated(after[n], fields, arriving=True)}
+        {"name": n, "fields": _stated_values(after[n], fields, arriving=True)}
         for n in sorted(set(after) - set(before))
     ]
     removed = [
-        {"name": n, "fields": _stated(before[n], fields, arriving=False)}
+        {"name": n, "fields": _stated_values(before[n], fields, arriving=False)}
         for n in sorted(set(before) - set(after))
     ]
     changed = []
@@ -822,14 +822,14 @@ def _diff_named(
         # describe a column by the few keys it is changing, and reading an
         # absent key as ``None`` reported every other field as cleared --
         # burying the one real edit under a column of invented ones.
-        stated = _states(after[name], fields)
+        present = _fields_present(after[name], fields)
         deltas = [
             {
                 "field": f,
                 "before": _field_of(before[name], f),
                 "after": _field_of(after[name], f),
             }
-            for f in stated
+            for f in present
             if _field_of(before[name], f) != _field_of(after[name], f)
         ]
         if deltas:
@@ -837,14 +837,16 @@ def _diff_named(
     return {"added": added, "changed": changed, "removed": removed}
 
 
-def _states(item: Any, fields: tuple[str, ...]) -> tuple[str, ...]:
+def _fields_present(item: Any, fields: tuple[str, ...]) -> tuple[str, ...]:
     """The compared fields this proposal has an opinion about."""
     if isinstance(item, dict):
         return tuple(f for f in fields if f in item)
     return fields
 
 
-def _stated(item: Any, fields: tuple[str, ...], arriving: bool) -> list[dict[str, Any]]:
+def _stated_values(
+    item: Any, fields: tuple[str, ...], arriving: bool
+) -> list[dict[str, Any]]:
     """What an added or removed entry actually says, field by field.
 
     A name on its own tells a reviewer that a metric arrived but not what it
@@ -854,7 +856,7 @@ def _stated(item: Any, fields: tuple[str, ...], arriving: bool) -> list[dict[str
     no "before", a departure has no "after".
     """
     stated = []
-    for field in _states(item, fields):
+    for field in _fields_present(item, fields):
         value = _field_of(item, field)
         if value in (None, ""):
             continue
