@@ -1,0 +1,21 @@
+Hi team, thanks for run 5 and for putting it on the production-like stack.
+
+Please retest at commit 064d38fe5e on the asset-demo branch. Run 5 was cut at 3eef50b, which is 15 commits behind the tip, so part of the open list had already moved before we started on the rest.
+
+All four R5 defects are fixed, including the critical one. R5-05 is the only item we are deliberately leaving, because it is a scope question rather than a defect.
+
+R5-03, the critical one, is fixed. The cause was in our gate: the import collision check looked up existing rows by uuid only, so a bundle carrying a new uuid found no collision and raised no refusal, and the host importer then matched the live row on its natural key and replaced it. The gate now resolves the identity the import will really bind, using the host's own lookup so there is no second copy of the matching rules to drift. Checked against the real models and database: a dashboard with a new uuid and a live slug is refused, so is a dataset with a new uuid and a live table identity, a genuinely new dashboard still imports, and a dataset whose database is not present is not refused on its table name alone.
+
+R5-01 is fixed, and it had two halves. Superset recomputes a dashboard's cross-filter scopes from its layout on every read and answers with the same chart ids in a different order, so the properties dialog posted them back reordered and a title-only save read as a change. We sort those id collections before comparing rather than exempting the keys, because a cross-filter scope is reviewable under Visa Q3 and exempting them would have bought the same quiet by making a real scope edit invisible. The second half was that the reviewer's panel asked a looser question of its own, so a bare "json_metadata Changed" row survived even once the gate was quiet. The panel now reports the fields the gate counted. Confirmed live: a title-only save reports only the title, and removing a chart from a scope is still gated and still named.
+
+R5-02 is fixed. A report is captured by a headless browser signed in as a real user, so an editor with a draft had their banner drawn into the PNG. The banner is now left out of a capture on both the dashboard and the chart.
+
+R5-04 is fixed. Only the requested page is serialized, which is where the time went, while every visible row is still counted so the list can page at all. The filters moved to the server with it, since narrowing only the rows the browser is holding would miss a match on a later page. The From filter still offers every author in the view, not just the ones on the current page.
+
+R4-08 and R4-04 on the Approvals page were already fixed after your snapshot, so please retest those too.
+
+R5-05 we are not treating as fixed. The approver-roles setting was removed, so the scenario as written will not reproduce, but please record it as a deviation from SOW 5.4 rather than as resolved. That clause asks for an editor with access, edit permission for the asset type, and the approval permission; we currently require only asset editorship and that the approver is not the author. We are also missing the asset-type permission check, which looks like a straightforward gap rather than a decision. We would rather agree the intended behaviour with you and Reed than pick one.
+
+One item for product, found in our own adversarial pass and not in the 89. A pending delete is silently replaced by any later save from its author: it resets to draft, its operation changes from delete to update, and the approver's queue item disappears with no notice. Nothing publishes unreviewed, so the control holds, but the submitted delete is lost and the record changes its own meaning. Two intents in the code disagree about whether an author may keep editing while a request is pending, so we have left it for a decision.
+
+Full detail is in the repo at local_extensions/asset-approval/qa/RETEST-REQUEST.md.
