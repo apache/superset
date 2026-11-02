@@ -38,7 +38,7 @@ export interface DiscardChangesModalProps {
 }
 
 /**
- * Clearing work that is not yours.
+ * Clearing work, usually somebody else's.
  *
  * SOW 5.3 lets any editor discard to unblock the asset, which means the
  * destructive case is the normal one, not an edge case. So the count and
@@ -46,6 +46,12 @@ export interface DiscardChangesModalProps {
  * whether they are unblocking a forgotten draft or deleting this morning's
  * work -- and the author is told who did it rather than finding their
  * request silently gone.
+ *
+ * The author discarding their own draft is the other normal case, and it
+ * was being told about itself in the third person: "Discard Alex Rivera's
+ * changes?", then a note explaining that Alex Rivera would see "Discarded
+ * by you" (R4-02). Second person throughout for them, and no note at all,
+ * since there is nobody to tell.
  */
 export default function DiscardChangesModal({
   changeRequest,
@@ -55,37 +61,48 @@ export default function DiscardChangesModal({
 }: DiscardChangesModalProps) {
   const author = displayName(changeRequest.author);
   const count = totalChangeCount(changeRequest);
+  const mine = changeRequest.is_author === true;
+  const when = ago(changeRequest.changed_on);
+
+  const body = () => {
+    if (mine) {
+      return count === 1
+        ? t('This deletes 1 change you made %s. It cannot be undone.', when)
+        : t(
+            'This deletes %s changes you made %s. It cannot be undone.',
+            count,
+            when,
+          );
+    }
+    return count === 1
+      ? t('This deletes 1 change %s made %s. It cannot be undone.', author, when)
+      : t(
+          'This deletes %s changes %s made %s. It cannot be undone.',
+          count,
+          author,
+          when,
+        );
+  };
 
   return (
     <Modal
       show={open}
-      title={t("Discard %s's changes?", author)}
+      title={mine ? t('Discard your changes?') : t("Discard %s's changes?", author)}
       onHide={onClose}
       onHandledPrimaryAction={onConfirm}
       primaryButtonName={t('Discard changes')}
       primaryButtonStyle="danger"
       data-test="discard-changes-modal"
     >
-      <div>
-        {count === 1
-          ? t(
-              'This deletes 1 change %s made %s. It cannot be undone.',
-              author,
-              ago(changeRequest.changed_on),
-            )
-          : t(
-              'This deletes %s changes %s made %s. It cannot be undone.',
-              count,
-              author,
-              ago(changeRequest.changed_on),
-            )}
-      </div>
-      <Hint>
-        {t(
-          '%s sees this in their Approvals history: "Discarded by you".',
-          author,
-        )}
-      </Hint>
+      <div>{body()}</div>
+      {mine ? null : (
+        <Hint>
+          {t(
+            '%s sees this in their Approvals history: "Discarded by you".',
+            author,
+          )}
+        </Hint>
+      )}
     </Modal>
   );
 }
