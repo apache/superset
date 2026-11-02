@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -590,6 +590,12 @@ msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "há %s dia"
 msgstr[1] "há %s dias"
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%s field"
@@ -2977,6 +2983,10 @@ msgstr "Ocorreu um erro ao carregar as informações do painel."
 msgid "An error occurred while loading the SQL"
 msgstr "Ocorreu um erro ao carregar o SQL"
 
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
+
 msgid "An error occurred while overwriting the dataset"
 msgstr "Ocorreu um erro ao substituir o conjunto de dados"
 
@@ -3421,10 +3431,6 @@ msgstr "Tem certeza que deseja remover"
 #, python-format
 msgid "Are you sure you want to delete %s?"
 msgstr "Tem certeza de que deseja excluir %s?"
-
-#, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -5044,6 +5050,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr "Escolha um formato de número"
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr "Escolha uma fonte"
 
@@ -5063,9 +5072,6 @@ msgstr "Escolha colunas a serem analisadas como datas"
 
 msgid "Choose columns to read"
 msgstr "Escolha colunas para ler"
-
-msgid "Choose current semantic fields"
-msgstr ""
 
 msgid "Choose current semantic filter fields"
 msgstr ""
@@ -6459,6 +6465,9 @@ msgstr "Criar novo gráfico"
 msgid "Create or select schema..."
 msgstr "Criar ou selecionar esquema..."
 
+msgid "Create semantic layer"
+msgstr ""
+
 msgid "Created"
 msgstr "Criado"
 
@@ -7703,7 +7712,7 @@ msgstr "Excluir item"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -9391,6 +9400,10 @@ msgstr "Erro na expressão jinja em filtros RLS: %(msg)s"
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Erro na expressão jinja na cláusula WHERE: %(msg)s"
 
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, python-format
@@ -11068,6 +11081,9 @@ msgstr ""
 "sejam exibidos."
 
 msgid "Guest"
+msgstr ""
+
+msgid "Guest user cannot access this query"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -12766,6 +12782,12 @@ msgstr "Carregando valores de filtro"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ru, sr, sr_Latn, uk]
 msgid "Loading timezones..."
@@ -14326,6 +14348,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -16449,6 +16487,12 @@ msgstr "Proporção"
 # uk, zh, zh_TW]
 msgid "Raw records"
 msgstr "Registros Brutos"
+
+msgid "Re-pick fields"
+msgstr ""
+
+msgid "Re-pick fields for this chart"
+msgstr ""
 
 msgid "Rearranged layout"
 msgstr ""
@@ -18711,6 +18755,9 @@ msgstr "Camada semântica não existe"
 msgid "Semantic layer parameters are invalid."
 msgstr "Os parâmetros da camada semântica são inválidos."
 
+msgid "Semantic layer setup guide"
+msgstr ""
+
 msgid "Semantic layer type"
 msgstr "Tipo de camada semântica"
 
@@ -20017,12 +20064,6 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "field selections, pre-filters, sorting, defaults and dependencies. Saved "
 "display titles cannot be recovered automatically."
-msgstr ""
-
-msgid ""
-"Start field selection using current member IDs. This clears any existing "
-"query and formatting settings. Saved display titles cannot be safely "
-"mapped to member IDs. The saved chart is unchanged until you save."
 msgstr ""
 
 msgid ""
@@ -21926,6 +21967,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr "O relatório foi criado"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "The report will be sent to your email at"
@@ -22324,6 +22371,13 @@ msgstr "O usuário foi criado com sucesso."
 
 msgid "The user has been updated successfully."
 msgstr "O usuário foi atualizado com sucesso."
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 msgid "The user was updated successfully"
 msgstr "O usuário foi atualizado com sucesso"
@@ -22938,6 +22992,9 @@ msgstr ""
 "Pode ser um endereço IP (por exemplo, 127.0.0.1) ou um nome de domínio "
 "(por exemplo, mydatabase.com)."
 
+msgid "This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
 # zh_TW]
@@ -22995,6 +23052,13 @@ msgid ""
 "This chart version can't be restored because the semantic view it used "
 "has been permanently deleted. Restore a version that uses an existing "
 "semantic view or dataset, or recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart was saved with an older format of field names for this "
+"semantic view, so the fields it refers to can't be confirmed. Re-pick the"
+" metrics and dimensions to keep using it. The saved chart doesn't change "
+"until you save."
 msgstr ""
 
 msgid "This chart was updated to use the restored aggregation"
@@ -23452,6 +23516,13 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
 msgstr ""
 
 msgid ""
@@ -24207,6 +24278,9 @@ msgstr "Confie neste URL e não pergunte novamente"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -24470,7 +24544,20 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr "Não foi possível carregar o painel"
 
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
+
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -27294,6 +27381,9 @@ msgstr "alguns segundos"
 msgid "aggregate"
 msgstr "agregar"
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr "condição de alerta"
 
@@ -27321,6 +27411,10 @@ msgstr "também copiar (duplicar) gráficos"
 msgid "ancestor"
 msgstr "ancestral"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "anotação"
 
@@ -27330,6 +27424,10 @@ msgstr "camada_de_anotação"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "apple"
 msgstr "maçã"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -28282,6 +28380,12 @@ msgstr "consultas"
 
 msgid "query"
 msgstr "consulta"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
