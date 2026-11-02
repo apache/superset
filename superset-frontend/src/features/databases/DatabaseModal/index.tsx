@@ -559,11 +559,23 @@ export function dbReducer(
       return {
         ...trimmedState,
       };
-    case ActionType.EditorChange:
-      return {
+    case ActionType.EditorChange: {
+      const edited = {
         ...trimmedState,
         [action.payload.name]: action.payload.json,
       };
+      if (
+        action.payload.name === 'masked_encrypted_extra' &&
+        edited.parameters?.embedded_credentials
+      ) {
+        // `onSave` copies the typed credential over Secure Extra, which would undo
+        // this later edit of it.
+        const { embedded_credentials: _typedCredentials, ...parameters } =
+          edited.parameters;
+        return { ...edited, parameters };
+      }
+      return edited;
+    }
     case ActionType.QueryChange:
       return {
         ...trimmedState,

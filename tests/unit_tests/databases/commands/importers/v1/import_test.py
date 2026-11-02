@@ -17,7 +17,7 @@
 # pylint: disable=unused-argument, import-outside-toplevel, invalid-name
 
 import copy
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import pytest
 from flask import current_app
@@ -349,31 +349,13 @@ def test_import_database_with_masked_encrypted_extra_existing_db(
     assert encrypted["credentials_info"]["private_key"] != PASSWORD_MASK
 
 
-@pytest.mark.parametrize(
-    ("bundle", "keeps_other_settings"),
-    [
-        # What a dashboard, chart or dataset export carries.
-        (
-            {"embedded_credentials": {"username": "svc", "password": PASSWORD_MASK}},
-            True,
-        ),
-        # What a database export carries.
-        (
-            {
-                "embedded_credentials": {"username": "svc", "password": PASSWORD_MASK},
-                "credentials_info": {"project_id": "updated"},
-            },
-            False,
-        ),
-    ],
-)
-def test_import_database_keeps_secure_extra_a_bundle_does_not_carry(
+@pytest.mark.parametrize("partial", [True, False])
+def test_import_database_keeps_secure_extra_only_for_a_partial_bundle(
     mocker: MockerFixture,
     session: Session,
-    bundle: dict[str, Any],
-    keeps_other_settings: bool,
+    partial: bool,
 ) -> None:
-    """Only a bundle limited to the carried blocks merges into the stored value."""
+    """A database export removing a block, even a carried one, removes it."""
     from superset import security_manager
     from superset.commands.database.importers.v1.utils import import_database
     from superset.models.core import Database
@@ -390,17 +372,23 @@ def test_import_database_keeps_secure_extra_a_bundle_does_not_carry(
         {
             "other_setting": "kept",
             "embedded_credentials": {"username": "svc", "password": "stored"},
+            "oauth2_client_info": {"id": "client", "secret": "stored"},
         }
     )
     import_database(config)
     db.session.flush()
 
     config = copy.deepcopy(database_config_with_masked_encrypted_extra)
-    config["masked_encrypted_extra"] = json.dumps(bundle)
+    config["masked_encrypted_extra"] = json.dumps(
+        {"oauth2_client_info": {"id": "client", "secret": PASSWORD_MASK}}
+    )
+    if partial:
+        config["masked_encrypted_extra_partial"] = True
     encrypted = json.loads(import_database(config, overwrite=True).encrypted_extra)
 
-    assert encrypted["embedded_credentials"]["password"] == "stored"  # noqa: S105
-    assert ("other_setting" in encrypted) is keeps_other_settings
+    assert encrypted["oauth2_client_info"]["secret"] == "stored"  # noqa: S105
+    assert ("other_setting" in encrypted) is partial
+    assert ("embedded_credentials" in encrypted) is partial
 
 
 def test_import_database_existing_no_overwrite_backfills_permissions(
