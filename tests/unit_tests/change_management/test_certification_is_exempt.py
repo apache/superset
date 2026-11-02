@@ -101,7 +101,11 @@ def test_an_unreadable_extra_is_not_exempt() -> None:
 def test_extra_rewritten_with_the_same_meaning_is_not_a_change() -> None:
     """Re-serialising the blob must not read as a certification edit."""
     live = _dataset(extra={"certification": {"certified_by": "Risk", "details": "x"}})
-    payload = {"extra": json.dumps({"certification": {"details": "x", "certified_by": "Risk"}})}
+    payload = {
+        "extra": json.dumps(
+            {"certification": {"details": "x", "certified_by": "Risk"}}
+        )
+    }
 
     assert bindings._only_exempt(live, payload) is False
 

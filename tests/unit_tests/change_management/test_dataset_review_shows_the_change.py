@@ -62,7 +62,9 @@ def _metric(name: str, **fields: Any) -> SimpleNamespace:
 @pytest.fixture
 def dataset_request(mocker: MockerFixture) -> Any:
     """A dataset update, with the impact query stubbed out."""
-    mocker.patch.object(api, "dataset_impact", return_value={"charts": 0, "dashboards": 0})
+    mocker.patch.object(
+        api, "dataset_impact", return_value={"charts": 0, "dashboards": 0}
+    )
     return lambda body: SimpleNamespace(
         id=1, asset_type="dataset", operation="update", payload_dict=body
     )
@@ -131,7 +133,9 @@ def test_fields_a_new_entry_does_not_set_are_left_out(dataset_request: Any) -> N
 
 def test_an_untouched_dataset_still_reports_nothing(dataset_request: Any) -> None:
     live = SimpleNamespace(
-        columns=[_column("name", verbose_name="Name")], metrics=[_metric("count")], sql=None
+        columns=[_column("name", verbose_name="Name")],
+        metrics=[_metric("count")],
+        sql=None,
     )
     body = {
         "columns": [{"column_name": "name", "verbose_name": "Name"}],
