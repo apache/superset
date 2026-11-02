@@ -34,7 +34,11 @@ from pytest_mock import MockerFixture
 
 from superset.common.db_query_status import QueryStatus as QueryStatusEnum
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException, SupersetErrorsException
+from superset.exceptions import (
+    QueryStoppedException,
+    SupersetErrorException,
+    SupersetErrorsException,
+)
 from superset.utils import json as superset_json
 
 # Note: mock_query, mock_database, mock_result_set, and mock_db_session
@@ -1267,15 +1271,32 @@ def test_failed_statement_keeps_its_executed_sql(
     assert failed.executed_sql == "SELECT\n  1"
 
 
-@pytest.mark.parametrize("stopped", [True, False])
-def test_failed_fetch_of_a_stopped_query_is_reported_as_stopped(
+@pytest.mark.parametrize(
+    ("error", "stopped", "status", "logged"),
+    [
+        # An engine's explicit stop signal is reported as the stop, quietly.
+        (
+            QueryStoppedException("stopped while fetching"),
+            True,
+            QueryStatusEnum.STOPPED,
+            False,
+        ),
+        # Any other failure keeps its diagnostics, even when a stop raced it.
+        (MemoryError("out of memory"), True, QueryStatusEnum.STOPPED, True),
+        (RuntimeError("syntax error"), False, QueryStatusEnum.FAILED, True),
+    ],
+)
+def test_only_an_engine_stop_signal_is_reported_quietly(
     mocker: MockerFixture,
     app_context: None,
     mock_query: MagicMock,
     mock_database: MagicMock,
+    error: Exception,
     stopped: bool,
+    status: QueryStatusEnum,
+    logged: bool,
 ) -> None:
-    """A fetch an engine ended because of a stop is not logged as an error."""
+    """A fetch ended by a stop is not an unhandled error; other failures are."""
     from superset.sql.execution.celery_task import execute_sql_task
 
     mock_query.database = mock_database
@@ -1284,7 +1305,7 @@ def test_failed_fetch_of_a_stopped_query_is_reported_as_stopped(
     )
     mocker.patch(
         "superset.sql.execution.celery_task.execute_sql_with_cursor",
-        side_effect=RuntimeError("operation cancelled"),
+        side_effect=error,
     )
     mocker.patch(
         "superset.sql.execution.celery_task._make_check_stopped_fn",
@@ -1301,12 +1322,8 @@ def test_failed_fetch_of_a_stopped_query_is_reported_as_stopped(
 
     result = execute_sql_task(123, "SELECT * FROM users")
 
-    if stopped:
-        assert result["status"] == QueryStatusEnum.STOPPED
-        logger.exception.assert_not_called()
-    else:
-        assert result["status"] == QueryStatusEnum.FAILED
-        logger.exception.assert_called_once()
+    assert result["status"] == status
+    assert logger.exception.called is logged
 
 
 @pytest.mark.parametrize("stop_intent", ["executor", "early", "status"])

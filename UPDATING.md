@@ -129,7 +129,8 @@ assists people when migrating to a new version.
   worker checks between result RPCs, at most once per `DB_POLL_INTERVAL_SECONDS`
   (5 seconds for Impala by default), and Impala returns each RPC within
   `FETCH_ROWS_TIMEOUT_MS` (10 seconds by default), so such a stop takes effect
-  within about the sum of the two.
+  within about the sum of the two. Setting `FETCH_ROWS_TIMEOUT_MS=0` disables
+  that timeout and can delay a stop until the fetch returns.
   When no worker is polling or fetching, for example because it has died or
   restarted, the query is marked stopped but Impala keeps running it and holds
   its admission slot until it finishes or Impala closes it. Impala checks for

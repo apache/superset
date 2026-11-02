@@ -48,7 +48,7 @@ from superset.constants import (
     QUERY_EARLY_CANCEL_KEY,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException
+from superset.exceptions import QueryStoppedException, SupersetErrorException
 from superset.extensions import celery_app
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
@@ -661,11 +661,12 @@ def _execute_sql_statements(
                     level=ErrorLevel.ERROR,
                 )
             ) from ex
-        except Exception:
+        except QueryStoppedException:
             # An engine that ends a stopped query while its results are read,
-            # such as Impala, fails the fetch; report the stop, not an error.
-            # Read only the status, so a failure keeps its pending metadata,
-            # such as the statement it was executing.
+            # such as Impala, raises this; report the stop, not an error. Any
+            # other failure keeps the error path and its diagnostics, even if a
+            # stop raced it. Read only the status, so a failure keeps its
+            # pending metadata, such as the statement it was executing.
             if not _make_check_stopped_fn(query, preserve_pending=True)():
                 raise
             execution_results = []

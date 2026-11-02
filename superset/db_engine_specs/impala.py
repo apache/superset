@@ -34,7 +34,7 @@ from sqlalchemy.engine.reflection import Inspector
 from superset import db
 from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
-from superset.exceptions import SupersetTimeoutException
+from superset.exceptions import QueryStoppedException, SupersetTimeoutException
 from superset.models.sql_lab import Query
 from superset.utils.core import QueryStatus
 from superset.utils.network import get_ssrf_safe_requester, is_safe_host
@@ -53,7 +53,7 @@ QUERY_PROGRESS_REGEX = re.compile(r"Query.*: (?P<query_progress>[0-9]+)%")
 _STOP_WATCHED_OPERATIONS: WeakKeyDictionary[Any, Query] = WeakKeyDictionary()
 
 
-class ImpalaFetchStoppedError(Exception):
+class ImpalaFetchStoppedError(QueryStoppedException):
     """A stop committed for a SQL Lab query ended its result fetch."""
 
 
@@ -193,9 +193,9 @@ class ImpalaEngineSpec(BaseEngineSpec):
         Impala reports a streaming SELECT as finished once its rows can be
         fetched, so most of such a query runs while the worker reads results,
         after ``handle_cursor`` stopped polling. The driver issues one fetch RPC
-        at a time, and each returns within the coordinator's
-        ``FETCH_ROWS_TIMEOUT_MS`` even when no rows are ready, so a stop goes
-        unseen for at most about that plus the poll interval. A stop is applied
+        at a time, and while the coordinator's ``FETCH_ROWS_TIMEOUT_MS`` is
+        positive each returns within it even when no rows are ready, so a stop
+        goes unseen for at most about that plus the poll interval. A stop is applied
         on the worker's own cursor and thread, as in ``handle_cursor``, so no
         second connection or HTTP call is involved.
         """
