@@ -2486,11 +2486,27 @@ class DashboardRestApi(
                 ),
             )
 
+        def force_needs_new_generation(cache_payload: ScreenshotCachePayload) -> bool:
+            """A forced download cannot join a generation carrying an older capture."""
+            if not force or cache_payload.is_updated():
+                return False
+            try:
+                cache_payload.get_image()
+            except ScreenshotImageNotAvailableException:
+                return False
+            return True
+
         def should_enqueue(cache_payload: ScreenshotCachePayload) -> bool:
+            if force_needs_new_generation(cache_payload):
+                return True
             return cache_payload.should_enqueue_task(
                 force,
                 expected_scope=cache_scope,
                 force_retry_after_seconds=SCREENSHOT_API_FORCE_RETRY_SECONDS,
+                # Only DashboardScreenshot opts in: a stale-but-valid UPDATED
+                # generation older than THUMBNAIL_UPDATED_CACHE_TTL enqueues a
+                # refresh while the old generation stays servable.
+                check_updated_staleness=screenshot_obj.supports_updated_staleness,
             )
 
         try:
@@ -2549,8 +2565,9 @@ class DashboardRestApi(
                                 message=gettext("Screenshot cache is unavailable"),
                             )
                             return lock_response
-                        if cache_key != observed_cache_key or not should_enqueue(
-                            cache_payload
+                        if not force_needs_new_generation(cache_payload) and (
+                            cache_key != observed_cache_key
+                            or not should_enqueue(cache_payload)
                         ):
                             lock_response = build_response(
                                 200, cache_key, cache_payload
@@ -2564,6 +2581,32 @@ class DashboardRestApi(
                     )
                     cache_payload = ScreenshotCachePayload(scope=cache_scope)
                     cache_payload.pending()
+                    # A force-less staleness refresh of a still-valid capture must
+                    # not publish an imageless successor: carry the prior
+                    # generation's last-good image onto this in-progress payload so
+                    # the read path keeps serving it while the refresh renders, and
+                    # a failed render retains it (ERROR keeps the image) instead of
+                    # leaving image_url at 404 for the error backoff. Any valid,
+                    # scope-matching retained image qualifies -- not only UPDATED --
+                    # so the image also survives a retry that rotates to a fresh
+                    # generation after a prior render failed (whose predecessor is
+                    # ERROR, still carrying the last-good bytes). The successor
+                    # stays PENDING, so concurrent producers still coalesce and the
+                    # worker still recomputes it. Skipped for an explicit force (the
+                    # caller asked to discard the capture) and for a scope mismatch
+                    # (must never serve another object's image).
+                    if (
+                        not force
+                        and cached_payload is not None
+                        and cached_payload.get_scope() == cache_scope
+                        and cached_payload.get_invalid_image_reason() is None
+                    ):
+                        try:
+                            cache_payload.retain_image(
+                                cached_payload.get_image().read()
+                            )
+                        except ScreenshotImageNotAvailableException:
+                            pass
                     try:
                         screenshot_obj.store_cache_payload(
                             next_cache_key,
@@ -2614,6 +2657,16 @@ class DashboardRestApi(
                                 message=gettext("Screenshot cache is unavailable"),
                             )
                             return lock_response
+                        if force_needs_new_generation(winner_payload):
+                            if time.monotonic() >= lock_deadline:
+                                lock_response = self.response(
+                                    503,
+                                    message=gettext(
+                                        "Screenshot request is temporarily unavailable"
+                                    ),
+                                )
+                                return lock_response
+                            continue
                         lock_response = build_response(
                             200,
                             winner_cache_key,
@@ -2699,7 +2752,8 @@ class DashboardRestApi(
                             503,
                             message=gettext("Screenshot cache is unavailable"),
                         )
-                    return build_response(200, cache_key, current_payload)
+                    if not force_needs_new_generation(current_payload):
+                        return build_response(200, cache_key, current_payload)
                 if time.monotonic() >= lock_deadline:
                     logger.warning(
                         "Timed out waiting for screenshot producer: %s",
@@ -2908,6 +2962,8 @@ class DashboardRestApi(
             "DashboardRestApi.thumbnail", pk=dashboard.id, digest=cache_key
         )
 
+        # No check_updated_staleness here on purpose: this high-traffic card-list
+        # thumbnail path must never opt into updated-staleness recompute.
         if cache_payload.should_trigger_task():
             self.incr_stats("async", self.thumbnail.__name__)
             logger.info(

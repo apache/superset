@@ -45,11 +45,33 @@ from superset.utils.core import timeout
 logger = logging.getLogger(__name__)
 
 
-def uri_identity_changed(existing_uri: str | None, submitted_uri: str | None) -> bool:
+def _connect_args(serialized_extra: str | None) -> dict[str, Any]:
+    try:
+        connect_args = (
+            json.loads(serialized_extra or "{}")
+            .get("engine_params", {})
+            .get("connect_args", {})
+        )
+    except (TypeError, ValueError, AttributeError):
+        return {}
+    return connect_args if isinstance(connect_args, dict) else {}
+
+
+def uri_identity_changed(
+    existing_uri: str | None,
+    submitted_uri: str | None,
+    existing_extra: str | None = None,
+    submitted_extra: str | None = None,
+) -> bool:
     """
     Whether two SQLAlchemy URIs differ once their password is stripped --
     i.e. whether the effective connection destination (driver, host, port,
     database, username, query params) changed.
+
+    The stored engine spec compares URIs that spell the same destination
+    differently (e.g. a setting in ``connect_args`` versus the URI query) by
+    their effective destination. ``engine_params`` changes are checked
+    separately by ``engine_params_changed``.
     """
     try:
         stored = make_url_safe(existing_uri or "")._replace(password=None)
@@ -58,7 +80,12 @@ def uri_identity_changed(existing_uri: str | None, submitted_uri: str | None) ->
         # An unparseable URI cannot be compared: treat it as a change so a
         # stored secret never survives onto it.
         return True
-    return stored != incoming
+    if stored == incoming:
+        return False
+    engine_spec = Database.get_db_engine_spec(stored)
+    return engine_spec.get_connection_identity(
+        stored, _connect_args(existing_extra)
+    ) != engine_spec.get_connection_identity(incoming, _connect_args(submitted_extra))
 
 
 def engine_params_changed(

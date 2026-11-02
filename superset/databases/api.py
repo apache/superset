@@ -125,6 +125,7 @@ from superset.databases.schemas import (
 )
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
+from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     DatabaseNotFoundException,
@@ -1999,7 +2000,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         preferred_databases: list[str] = app.config.get("PREFERRED_DATABASES", [])
         available_databases = []
         for engine_spec, drivers in get_available_engine_specs().items():
-            if not drivers:
+            if not drivers or engine_spec is DatabricksNativeEngineSpec:
                 continue
 
             payload: dict[str, Any] = {
@@ -2255,9 +2256,9 @@ class DatabaseOAuth2TokensRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.delete_oauth2_tokens",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.delete_oauth2_tokens"
+        ),
         log_to_statsd=False,
     )
     @requires_json
@@ -2312,9 +2313,9 @@ class DatabaseOAuth2TokensRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.delete_all_oauth2_tokens",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.delete_all_oauth2_tokens"
+        ),
         log_to_statsd=False,
     )
     def delete_all_oauth2_tokens(self, pk: int) -> FlaskResponse:

@@ -3157,3 +3157,26 @@ def test_a_removed_embedded_credential_round_trips_through_the_dialog(
     stored = session.get(Database, database_id)
     assert stored is not None
     assert json.loads(stored.encrypted_extra) == removed
+
+
+def test_available_hides_legacy_databricks(
+    mocker: MockerFixture,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """New connections offer the supported Databricks form, not the legacy one."""
+    from superset.db_engine_specs.databricks import (
+        DatabricksNativeEngineSpec,
+        DatabricksPythonConnectorEngineSpec,
+    )
+
+    mocker.patch(
+        "superset.databases.api.get_available_engine_specs",
+        return_value={
+            DatabricksNativeEngineSpec: {"connector"},
+            DatabricksPythonConnectorEngineSpec: {"databricks-sql-python"},
+        },
+    )
+    response = client.get("/api/v1/database/available/")
+    assert response.status_code == 200
+    assert [item["name"] for item in response.json["databases"]] == ["Databricks"]
