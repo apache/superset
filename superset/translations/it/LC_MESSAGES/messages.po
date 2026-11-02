@@ -1880,7 +1880,7 @@ msgstr ""
 #, python-format
 msgid "Added to 1 dashboard"
 msgid_plural "Added to %s dashboards"
-msgstr[0] "Aggiunto a 1 dashboard"
+msgstr[0] "Aggiunto a %s dashboard"
 msgstr[1] "Aggiunto a %s dashboard"
 
 msgid "Additional Parameters"
