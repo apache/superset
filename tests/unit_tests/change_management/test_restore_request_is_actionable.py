@@ -134,7 +134,9 @@ def test_a_restore_request_can_be_discarded(mocker: MockerFixture) -> None:
     statuses: list[Any] = []
     request.set_status = statuses.append
 
-    mocker.patch.object(lifecycle, "find", return_value=request)
+    # ``_locked`` rather than ``find``: every transition loads its request
+    # under the row lock, so that is the seam a stubbed row goes through.
+    mocker.patch.object(lifecycle, "_locked", return_value=request)
     mocker.patch.object(lifecycle, "get_user_id", return_value=7)
     mocker.patch(
         "superset.daos.chart.ChartDAO.find_by_id",

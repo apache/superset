@@ -43,6 +43,10 @@ export interface FieldChange {
   /** True when the value is too large or structural to show inline. */
   opaque?: boolean;
   /** For an opaque JSON column: which entries inside it moved. */
+  /** The shown value was shortened. It is never dropped: a reviewer who
+   * cannot see what they are approving is the thing this feature exists
+   * to prevent. */
+  truncated?: boolean;
   keys?: string[];
   /** Settings the save wrote down for the first time, nearly
    * always a control's own default rather than an edit. Counted

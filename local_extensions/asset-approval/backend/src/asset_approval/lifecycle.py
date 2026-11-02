@@ -69,24 +69,41 @@ def revision_of(change_request: ChangeRequest) -> str | None:
     into an open request, which is exactly the event that makes an open
     review stale.
     """
-    return (
-        change_request.changed_on.isoformat() if change_request.changed_on else None
-    )
+    changed_on = getattr(change_request, "changed_on", None)
+    return changed_on.isoformat() if changed_on else None
 
 
 def _locked(change_request_id: int) -> ChangeRequest:
-    """The request, held against concurrent deciders until this commit.
+    """The request, held against every other transition until this commit.
 
-    Without the lock, two approvals read PENDING before either writes, both
-    pass the status check and both replay -- which is how three concurrent
-    Approves all returned 200 and the change applied more than once
-    (129071). On a backend without row locks this degrades to ``find``,
+    Each guard below asks whether the status it just read permits the move.
+    Unlocked, two transitions both read the old status, both pass their own
+    guard, and both write -- so the guards are advisory and the row ends up
+    holding half of each.
+
+    129071 was the approve case: three concurrent Approves all returned 200
+    and the change replayed more than once. The lock answered it, but only
+    ``approve`` was given the lock, so the class of bug survived everywhere
+    else. Racing ``submit`` against ``discard`` then produced a row that read
+    ``pending`` while carrying a decision, reviewer and a freed
+    ``active_slot``: the author was told "Changes discarded.", the request
+    stayed in the approver's queue, and approving it published content the
+    author believed was gone.
+
+    So this is not an approve helper. Every transition takes it, and a racing
+    caller loses on its own guard with ``InvalidTransitionError`` rather than
+    a false 200. On a backend without row locks this degrades to ``find``,
     which is the behaviour we already had.
     """
     found = (
         db.session.query(ChangeRequest)
         .filter_by(id=change_request_id)
         .with_for_update()
+        # Without this, a row already in the identity map comes back with its
+        # attributes as they were loaded, so the guard below would read a
+        # stale ``status`` while holding the lock -- a lock that proves
+        # nothing. ``populate_existing`` makes the read the committed state.
+        .populate_existing()
         .one_or_none()
     )
     if found is None:
@@ -130,7 +147,7 @@ def submit(
     was reviewed, so the content cannot move underneath the reviewer. If the
     author wants to keep editing they withdraw first.
     """
-    change_request = find(change_request_id)
+    change_request = _locked(change_request_id)
     user_id = get_user_id()
     if change_request.author_fk != user_id:
         raise ApprovalForbiddenError("review")
@@ -262,7 +279,17 @@ def approve(
         raise ApprovalForbiddenError()
     if ChangeStatus(change_request.status) is not ChangeStatus.PENDING:
         raise InvalidTransitionError(change_request.status, "approved")
-    if seen_revision and revision_of(change_request) != seen_revision:
+    # Fail closed. This used to read ``if seen_revision and ...``, so a
+    # caller that simply left the field out skipped the check and published
+    # unread -- the one outcome the feature exists to prevent. Approving is
+    # an attestation to a particular version, and a caller that will not name
+    # the version it reviewed has not reviewed anything.
+    #
+    # The requirement is the server's own state, not the caller's choice:
+    # it applies exactly when there is a revision to quote. A request with
+    # no ``changed_on`` has nothing to attest to and is left alone.
+    current_revision = revision_of(change_request)
+    if current_revision is not None and seen_revision != current_revision:
         raise ReviewedVersionStaleError()
 
     # The reviewer read the right version of the *request*; this asks
@@ -332,7 +359,7 @@ def request_changes(change_request_id: int, review_note: str) -> ChangeRequest:
     Not a rejection: the record stays open and the author keeps working on
     it (Decision 3, Visa Q7).
     """
-    change_request = find(change_request_id)
+    change_request = _locked(change_request_id)
     user_id = get_user_id()
     # Authorize first; see ``approve``. Before the note is validated, too:
     # telling someone their note is too short, and only then that they were
@@ -357,7 +384,7 @@ def request_changes(change_request_id: int, review_note: str) -> ChangeRequest:
 @transaction()
 def withdraw(change_request_id: int) -> ChangeRequest:
     """Take a pending request back, so the author can keep editing."""
-    change_request = find(change_request_id)
+    change_request = _locked(change_request_id)
     if change_request.author_fk != get_user_id():
         raise ApprovalForbiddenError("withdraw")
     if ChangeStatus(change_request.status) is not ChangeStatus.PENDING:
@@ -378,7 +405,7 @@ def discard(change_request_id: int) -> ChangeRequest:
     and uncommon elsewhere (Decision 6), so the confirmation names the author
     and the draft's age -- that part is the UI's job; this records the act.
     """
-    change_request = find(change_request_id)
+    change_request = _locked(change_request_id)
     user_id = get_user_id()
 
     # Authorize first; see ``approve``.

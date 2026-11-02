@@ -146,13 +146,34 @@ def _same(current: Any, proposed: Any) -> bool:
     return bool(current == proposed)
 
 
-def _readable(value: Any) -> Any:
-    """A value fit to show in a side panel, or None if it is not."""
+#: How much of a text value the side panel shows before it is shortened.
+#: A dataset's SQL is a governed field the reviewer is asked to read as a
+#: definition (Visa Q11), and real SQL runs to hundreds of characters, so
+#: the limit has to fit one rather than cut it off.
+SHOWN_VALUE_LIMIT = 2000
+
+
+def _shown(value: Any) -> tuple[Any, bool]:
+    """The value as the panel should show it, and whether it was shortened.
+
+    It never answers ``None`` for a value that is actually there. It used
+    to: a string over 300 characters became ``None``, and the panel renders
+    that identically to a field being emptied. So a reviewer looking at a
+    renamed dashboard saw the old title struck through and nothing put in
+    its place, and on a dataset any realistic SQL change showed them
+    nothing at all -- while the SOW asks for exactly that diff.
+
+    Approving what you cannot see is the one thing this feature exists to
+    prevent, so a value that is too long is shortened and *said* to be
+    shortened, never silently dropped.
+    """
     if value is None or isinstance(value, (bool, int, float)):
-        return value
+        return value, False
     if isinstance(value, str):
-        return value if len(value) <= 300 else None
-    return None
+        if len(value) <= SHOWN_VALUE_LIMIT:
+            return value, False
+        return value[:SHOWN_VALUE_LIMIT], True
+    return None, False
 
 
 #: Dashboard sub-commands whose captured body is a config diff, and the
@@ -255,11 +276,15 @@ def describe_changes(
             # the reviewer nothing to decide on (129075).
             changes.append(_opaque_entry(field, current, proposed))
             continue
-        before, after = _readable(current), _readable(proposed)
+        before, before_cut = _shown(current)
+        after, after_cut = _shown(proposed)
         if before is None and after is None:
             changes.append({"field": field, "opaque": True})
             continue
-        changes.append({"field": field, "before": before, "after": after})
+        entry = {"field": field, "before": before, "after": after}
+        if before_cut or after_cut:
+            entry["truncated"] = True
+        changes.append(entry)
     return changes
 
 

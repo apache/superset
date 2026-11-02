@@ -332,6 +332,9 @@ export default function WhatChangedPanel({
                     <>
                       <Before>{String(change.before ?? '—')}</Before>
                       <After>{String(change.after ?? '—')}</After>
+                      {change.truncated ? (
+                        <Muted>{t('Shortened to fit. Open the asset to read it in full.')}</Muted>
+                      ) : null}
                     </>
                   )}
                 </FieldBlock>
