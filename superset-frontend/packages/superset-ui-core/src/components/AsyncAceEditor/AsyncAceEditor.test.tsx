@@ -351,6 +351,39 @@ test('renders FullSQLEditor', async () => {
   });
 });
 
+test.each([
+  ['SQLEditor', SQLEditor],
+  ['FullSQLEditor', FullSQLEditor],
+])('%s folds SQL blocks without changing the query', async (_, Editor) => {
+  const ref = createRef<AceEditor>();
+  const sql = [
+    'WITH nested_query AS (',
+    '  SELECT 1 AS value',
+    ')',
+    'SELECT * FROM nested_query;',
+    '/* multi-line',
+    '   comment */',
+  ].join('\n');
+  render(<Editor ref={ref as React.Ref<never>} defaultValue={sql} />);
+  await waitFor(() => expect(ref.current).not.toBeNull());
+
+  const { session } = ref.current!.editor;
+  expect(session.getFoldWidget(0)).toBe('start');
+  expect(session.getFoldWidget(4)).toBe('start');
+  session.foldAll();
+  expect(session.getAllFolds().map(fold => fold.start.row)).toEqual([0, 4]);
+  expect(session.getValue()).toBe(sql);
+
+  session.unfold();
+  expect(session.getAllFolds()).toHaveLength(0);
+  expect(session.getValue()).toBe(sql);
+  expect(session.getTokens(3)).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ type: 'keyword', value: 'SELECT' }),
+    ]),
+  );
+});
+
 test('renders MarkdownEditor', async () => {
   const { container } = render(<MarkdownEditor />);
 
@@ -602,6 +635,61 @@ test('cleans up event listeners on unmount', async () => {
   expect(offSpy).toHaveBeenCalledWith('afterExec', expect.any(Function));
 
   offSpy.mockRestore();
+});
+
+test('re-applies annotations only when their content actually changes across renders (react-ace 15 fast-equals regression guard)', async () => {
+  // react-ace's componentDidUpdate decides whether to call
+  // session.setAnnotations() by deep-comparing the new/old `annotations`
+  // prop (lib/ace.js, using an internal deep-equality helper -- lodash's
+  // isEqual through react-ace 14.x, fast-equals's deepEqual from 15.0.0
+  // onward). Superset's own AceEditorProvider/EditorWrapper always pass a
+  // freshly `.map()`-derived annotations array on every render, so this
+  // guards the actual behavior Superset relies on: a same-content-but-
+  // different-reference array must NOT re-trigger setAnnotations (or the
+  // editor would thrash on every keystroke-driven re-render), while a
+  // genuinely different array must still update the editor.
+  const ref = createRef<AceEditor>();
+  const annotationsV1 = [{ row: 0, column: 0, type: 'error', text: 'oops' }];
+
+  const { rerender, container } = render(
+    <SQLEditor ref={ref as React.Ref<never>} annotations={annotationsV1} />,
+  );
+
+  await waitFor(() => {
+    expect(container.querySelector(selector)).toBeInTheDocument();
+  });
+
+  const session = ref.current?.editor?.getSession();
+  expect(session).toBeDefined();
+  if (!session) return;
+
+  // The initial mount already applies annotations via componentDidMount,
+  // not componentDidUpdate, so start observing only from the first update.
+  const setAnnotationsSpy = jest.spyOn(session, 'setAnnotations');
+
+  // Same content, new array/object references -- must be a no-op.
+  const annotationsV1SameContent = [
+    { row: 0, column: 0, type: 'error', text: 'oops' },
+  ];
+  rerender(
+    <SQLEditor
+      ref={ref as React.Ref<never>}
+      annotations={annotationsV1SameContent}
+    />,
+  );
+  expect(setAnnotationsSpy).not.toHaveBeenCalled();
+
+  // Genuinely different content -- must update, with the new value.
+  const annotationsV2 = [
+    { row: 1, column: 2, type: 'warning', text: 'different' },
+  ];
+  rerender(
+    <SQLEditor ref={ref as React.Ref<never>} annotations={annotationsV2} />,
+  );
+  expect(setAnnotationsSpy).toHaveBeenCalledTimes(1);
+  expect(setAnnotationsSpy).toHaveBeenCalledWith(annotationsV2);
+
+  setAnnotationsSpy.mockRestore();
 });
 
 test('does not move autocomplete popup if target container is document.body', async () => {

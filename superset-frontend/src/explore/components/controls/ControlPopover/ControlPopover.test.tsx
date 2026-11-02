@@ -91,26 +91,56 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-test('Should render', () => {
+test('Should render', async () => {
   setupTest();
   expect(screen.getByTestId('control-popover')).toBeInTheDocument();
-  userEvent.click(screen.getByTestId('control-popover'));
+  await userEvent.click(screen.getByTestId('control-popover'));
   expect(screen.getByText('Control Popover Test')).toBeInTheDocument();
   expect(screen.getByTestId('control-popover-content')).toBeInTheDocument();
 });
 
-test('Should lock the vertical scroll when the popover is visible', () => {
+test('Should lock the vertical scroll when the popover is visible', async () => {
   setupTest();
   expect(screen.getByTestId('control-popover')).toBeInTheDocument();
   expect(screen.getByTestId('outer-container')).not.toHaveStyle(
     'overflowY: hidden',
   );
-  userEvent.click(screen.getByTestId('control-popover'));
+  await userEvent.click(screen.getByTestId('control-popover'));
   expect(screen.getByTestId('outer-container')).toHaveStyle(
     'overflowY: hidden',
   );
-  userEvent.click(document.body);
+  await userEvent.click(document.body);
   expect(screen.getByTestId('outer-container')).not.toHaveStyle(
+    'overflowY: hidden',
+  );
+});
+
+test('does not release the scroll lock when a closed sibling popover mounts', async () => {
+  const TwoPopovers = ({ showSibling = false }: { showSibling?: boolean }) => (
+    <div id="controlSections">
+      <div data-test="outer-container">
+        <ControlPopover {...createProps()} destroyOnHidden open>
+          <span data-test="open-popover">Open</span>
+        </ControlPopover>
+        {showSibling && (
+          <ControlPopover {...createProps()} destroyOnHidden open={false}>
+            <span data-test="closed-popover">Closed</span>
+          </ControlPopover>
+        )}
+      </div>
+    </div>
+  );
+
+  const { rerender } = render(<TwoPopovers />);
+
+  expect(await screen.findByText('Control Popover Test')).toBeInTheDocument();
+  expect(screen.getByTestId('outer-container')).toHaveStyle(
+    'overflowY: hidden',
+  );
+
+  rerender(<TwoPopovers showSibling />);
+
+  expect(screen.getByTestId('outer-container')).toHaveStyle(
     'overflowY: hidden',
   );
 });
@@ -122,7 +152,7 @@ test('Should place popover at the top', async () => {
   });
 
   expect(screen.getByTestId('control-popover')).toBeInTheDocument();
-  userEvent.click(screen.getByTestId('control-popover'));
+  await userEvent.click(screen.getByTestId('control-popover'));
 
   await waitFor(() => {
     expect(setStateMock).toHaveBeenCalledWith('rightTop');
@@ -136,7 +166,7 @@ test('Should place popover at the center', async () => {
   });
 
   expect(screen.getByTestId('control-popover')).toBeInTheDocument();
-  userEvent.click(screen.getByTestId('control-popover'));
+  await userEvent.click(screen.getByTestId('control-popover'));
 
   await waitFor(() => {
     expect(setStateMock).toHaveBeenCalledWith('left');
@@ -150,7 +180,7 @@ test('Should place popover at the bottom', async () => {
   });
 
   expect(screen.getByTestId('control-popover')).toBeInTheDocument();
-  userEvent.click(screen.getByTestId('control-popover'));
+  await userEvent.click(screen.getByTestId('control-popover'));
 
   await waitFor(() => {
     expect(setStateMock).toHaveBeenCalledWith('rightBottom');
@@ -165,7 +195,7 @@ test('Should close popover on escape press', async () => {
 
   expect(screen.getByTestId('control-popover')).toBeInTheDocument();
   expect(screen.queryByText('Control Popover Test')).not.toBeInTheDocument();
-  userEvent.click(screen.getByTestId('control-popover'));
+  await userEvent.click(screen.getByTestId('control-popover'));
   expect(await screen.findByText('Control Popover Test')).toBeInTheDocument();
 
   // Ensure that pressing any other key than escape does nothing
@@ -207,6 +237,42 @@ test('Controlled mode', async () => {
   await waitFor(() => {
     expect(screen.queryByText('Control Popover Test')).not.toBeInTheDocument();
   });
+});
+
+test('stays closed when a parent keeps open={false}', async () => {
+  const onOpenChange = jest.fn();
+  setupTest({
+    ...createProps(),
+    destroyOnHidden: true,
+    open: false,
+    onOpenChange,
+  });
+
+  expect(screen.queryByText('Control Popover Test')).not.toBeInTheDocument();
+  await userEvent.click(screen.getByTestId('control-popover'));
+  expect(onOpenChange).toHaveBeenCalledWith(true);
+  expect(screen.queryByText('Control Popover Test')).not.toBeInTheDocument();
+});
+
+test('does not close on Escape when a parent keeps open={true}', async () => {
+  const onOpenChange = jest.fn();
+  setupTest({
+    ...createProps(),
+    destroyOnHidden: true,
+    open: true,
+    onOpenChange,
+  });
+
+  expect(await screen.findByText('Control Popover Test')).toBeInTheDocument();
+
+  fireEvent.keyDown(screen.getByTestId('control-popover'), {
+    key: 'Escape',
+    code: 'Escape',
+    keyCode: 27,
+  });
+
+  expect(onOpenChange).toHaveBeenCalledWith(false);
+  expect(screen.getByText('Control Popover Test')).toBeInTheDocument();
 });
 
 test('Keeps an oversized popover reachable inside the viewport', () => {
@@ -258,7 +324,7 @@ test('Hands the overflow options for its placement to the popover', async () => 
   ) => {
     mockPopoverProps.length = 0;
     const { unmount } = render(<TestComponent {...createProps()} {...props} />);
-    userEvent.click(screen.getByTestId('control-popover'));
+    await userEvent.click(screen.getByTestId('control-popover'));
     await waitFor(() =>
       expect(mockPopoverProps[mockPopoverProps.length - 1].placement).toBe(
         placement,

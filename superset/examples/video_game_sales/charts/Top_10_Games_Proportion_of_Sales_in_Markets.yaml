@@ -37,7 +37,7 @@ params:
   columns: []
   contribution: true
   datasource: 21__table
-  granularity_sqla: year
+  x_axis: year
   groupby:
   - name
   label_colors: {}

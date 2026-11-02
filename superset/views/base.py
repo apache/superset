@@ -16,13 +16,16 @@
 # under the License.
 from __future__ import annotations
 
+import base64
 import copy
 import functools
 import logging
 import os
+import re
 import traceback
 from datetime import datetime
 from typing import Any, Callable, cast
+from urllib.parse import SplitResult, urlsplit
 
 from flask import (
     abort,
@@ -57,11 +60,13 @@ from superset.commands.deletion_retention.window import resolve_retention_window
 from superset.config import _THEME_DARK_BASE, _THEME_DEFAULT_BASE
 from superset.connectors.sqla import models
 from superset.daos.theme import ThemeDAO
+from superset.dashboards.excel_export.storage import is_background_export_available
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.extensions import cache_manager
 from superset.models.core import Theme as ThemeModel
 from superset.reports.models import ReportRecipientType
+from superset.security import password_recovery
 from superset.superset_typing import FlaskResponse
 from superset.themes.types import Theme, ThemeMode
 from superset.themes.utils import (
@@ -73,10 +78,12 @@ from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.version import get_version_metadata, visible_version_metadata
 from superset.views.error_handling import json_error_response
+from superset.websocket.permissions import can_access_realtime_notifications
 
 from .utils import bootstrap_user_data, get_config_value
 
 FRONTEND_CONF_KEYS = (
+    "SEMANTIC_LAYER_DOCUMENTATION_URL",
     "AUTH_ROLE_ADMIN",
     "SUPERSET_WEBSERVER_TIMEOUT",
     "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT",
@@ -90,12 +97,16 @@ FRONTEND_CONF_KEYS = (
     "SQLLAB_SAVE_WARNING_MESSAGE",
     "SQLLAB_DEFAULT_DBID",
     "DISPLAY_MAX_ROW",
-    "GLOBAL_ASYNC_QUERIES_TRANSPORT",
     "GLOBAL_ASYNC_QUERIES_POLLING_DELAY",
+    "GLOBAL_ASYNC_QUERIES_POLLING_MAX_DELAY",
+    "GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT",
+    "GLOBAL_ASYNC_QUERIES_DEFAULT",
+    "WEBSOCKET_ENABLE",
+    "WEBSOCKET_URL",
+    "WEBSOCKET_JWT_EXPIRATION_SECONDS",
     "SQL_VALIDATORS_BY_ENGINE",
     "SQLALCHEMY_DOCS_URL",
     "SQLALCHEMY_DISPLAY_TEXT",
-    "GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL",
     "DASHBOARD_AUTO_REFRESH_MODE",
     "DASHBOARD_AUTO_REFRESH_INTERVALS",
     "DASHBOARD_VIRTUALIZATION",
@@ -115,6 +126,7 @@ FRONTEND_CONF_KEYS = (
     "ALERT_REPORTS_DEFAULT_CRON_VALUE",
     "ALERT_REPORTS_DEFAULT_RETENTION",
     "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT",
+    "ALERT_REPORTS_RUN_AS_TOOLTIP",
     "NATIVE_FILTER_DEFAULT_ROW_LIMIT",
     "SUPERSET_CLIENT_RETRY_ATTEMPTS",
     "SUPERSET_CLIENT_RETRY_DELAY",
@@ -285,6 +297,9 @@ def get_environment_tag() -> dict[str, Any]:
 
 
 def menu_data(user: User) -> dict[str, Any]:
+    # The archived view inherits BaseSupersetView from this module.
+    from superset.views.archived_assets import can_access_recently_archived
+
     languages = {
         lang: {**appbuilder.languages[lang], "url": appbuilder.get_url_for_locale(lang)}
         for lang in appbuilder.languages
@@ -316,6 +331,7 @@ def menu_data(user: User) -> dict[str, Any]:
         },
         "environment_tag": get_environment_tag(),
         "navbar_right": {
+            "can_access_recently_archived": can_access_recently_archived(),
             # show the watermark if the default app icon has been overridden
             "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
             "bug_report_url": app.config["BUG_REPORT_URL"],
@@ -501,9 +517,33 @@ def _get_user_subject_id(user_id: int | None) -> int | None:
 def _get_frontend_config_value(key: str) -> Any:
     """Get frontend config value, converting sets to lists for JSON compatibility."""
     val = app.config.get(key)
+    if key == "SEMANTIC_LAYER_DOCUMENTATION_URL":
+        return _semantic_layer_documentation_url(val)
     if isinstance(val, set):
         return list(val)
     return val
+
+
+def _semantic_layer_documentation_url(value: object) -> str | None:
+    """Expose only absolute HTTP(S) setup links without URL credentials."""
+    if value is None:
+        return None
+    if isinstance(value, str) and value and not re.search(r"[\s\x00-\x1f\x7f]", value):
+        try:
+            parsed: SplitResult = urlsplit(value)
+            port: int | None = parsed.port
+            if (
+                parsed.scheme.lower() in ("http", "https")
+                and parsed.hostname
+                and parsed.username is None
+                and parsed.password is None
+                and (port is None or port > 0)
+            ):
+                return value
+        except ValueError:
+            pass
+    logger.warning("Dropped invalid SEMANTIC_LAYER_DOCUMENTATION_URL")
+    return None
 
 
 def _soft_delete_conf() -> dict[str, Any]:
@@ -511,7 +551,8 @@ def _soft_delete_conf() -> dict[str, Any]:
 
     Resolved rather than read from config: an operator can change the window at
     runtime with ``superset deletion-retention set_window``, which persists to
-    a shared key taking precedence over the config seed. Passing the config
+    a shared key taking precedence over the config seed unless an authoritative
+    host policy is installed. Passing the config
     value through would tell users they have longer to recover an object than
     the purge task will actually allow.
 
@@ -551,6 +592,9 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     # should not expose API TOKEN to frontend
     frontend_config = {k: _get_frontend_config_value(k) for k in FRONTEND_CONF_KEYS}
+    frontend_config["EXCEL_EXPORT_STORAGE_CONFIGURED"] = (
+        is_background_export_available()
+    )
 
     frontend_config.update(_soft_delete_conf())
 
@@ -602,6 +646,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         frontend_config["RECAPTCHA_PUBLIC_KEY"] = recaptcha_public_key
 
     frontend_config["AUTH_TYPE"] = auth_type
+    frontend_config["PASSWORD_RECOVERY_ENABLED"] = password_recovery.is_enabled()
     if auth_type == AUTH_OAUTH:
         oauth_providers = []
         for provider in appbuilder.sm.oauth_providers:
@@ -655,6 +700,12 @@ def common_bootstrap_payload() -> dict[str, Any]:
     # Convert locale to string for proper cache key hashing
     locale_str = str(locale) if locale else None
     payload = dict(cached_common_bootstrap_data(utils.get_user_id(), locale_str))
+    frontend_config = payload.get("conf")
+    if isinstance(frontend_config, dict) and frontend_config.get("WEBSOCKET_ENABLE"):
+        payload["conf"] = {
+            **frontend_config,
+            "WEBSOCKET_ENABLE": can_access_realtime_notifications(),
+        }
     # The language pack itself is NOT embedded in the payload: spa.html loads
     # it through the content-addressed /language_pack/<lang>/<version>/script.js
     # tag before the entry bundle, keeping HTML small while still configuring
@@ -743,6 +794,20 @@ def _ensure_static_assets_prefix(url_or_path: str) -> str:
     return f"{normalized_prefix}{url_or_path}"
 
 
+def _svg_to_data_uri(svg: str | None) -> str | None:
+    """Encode SVG markup as a base64 data URI, or ``None`` if no SVG is given.
+
+    A malformed theme (hand-edited config or a stale database row) could
+    supply a truthy non-string value here; treat that as absent rather than
+    raising, since raising would 500 every SPA render.
+    """
+    if not isinstance(svg, str) or not svg:
+        return None
+    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode(
+        "ascii"
+    )
+
+
 def get_spa_template_context(
     entry: str | None = "spa",
     extra_bootstrap_data: dict[str, Any] | None = None,
@@ -812,6 +877,10 @@ def get_spa_template_context(
         # No custom URL either, use default SVG
         spinner_svg = get_default_spinner_svg()
 
+    # Serve the spinner as an <img> data URI (see spa.html). SVG loaded via <img>
+    # can't execute scripts, so rendering doesn't depend on sanitize_svg_content.
+    spinner_svg_data_uri = _svg_to_data_uri(spinner_svg)
+
     # Determine default title using the (potentially updated) brandAppName
     default_title = theme_tokens.get("brandAppName", "Superset")
 
@@ -826,7 +895,7 @@ def get_spa_template_context(
         ),
         "theme_tokens": theme_tokens,
         "dark_theme_bg": dark_theme_bg,
-        "spinner_svg": spinner_svg,
+        "spinner_svg_data_uri": spinner_svg_data_uri,
         "default_title": default_title,
         **get_language_pack_template_context(payload.get("common") or {}),
         **template_kwargs,

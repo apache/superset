@@ -23,7 +23,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import { requestChartDataResolved } from 'src/components/Chart/chartAction';
 import type { VersionHistoryState } from './types';
 import type { VersionHistoryRootState } from './reducer';
 import { fetchDatasourceMetadata, fetchVersionSnapshot } from './api';
@@ -38,8 +38,7 @@ jest.mock('./PreviewBanner', () => ({
   default: () => null,
 }));
 jest.mock('src/components/Chart/chartAction', () => ({
-  getChartDataRequest: jest.fn(),
-  handleChartDataResponse: jest.fn(),
+  requestChartDataResolved: jest.fn(),
 }));
 // SuperChart would need a registered viz plugin; the assertions here are
 // about what the effect resolves to, not how it renders.
@@ -49,10 +48,6 @@ jest.mock('@superset-ui/core', () => ({
     <div data-test="super-chart">{formData.datasource}</div>
   ),
 }));
-
-const { handleChartDataResponse } = jest.requireMock(
-  'src/components/Chart/chartAction',
-);
 
 const previewState = (): VersionHistoryState => ({
   isPanelOpen: true,
@@ -97,11 +92,7 @@ beforeEach(() => {
     datasource_id: 5,
     datasource_type: 'table',
   });
-  (getChartDataRequest as jest.Mock).mockResolvedValue({
-    response: {},
-    json: {},
-  });
-  (handleChartDataResponse as jest.Mock).mockResolvedValue([{ data: [] }]);
+  (requestChartDataResolved as jest.Mock).mockResolvedValue([{ data: [] }]);
 });
 
 test('renders the snapshot against the datasource the version was built on', async () => {
@@ -132,7 +123,7 @@ test('announces completion even when the preview fails to load', async () => {
   // A failed load shows the error alert in place of the chart; the applying
   // state must still clear so the banner is not stuck reporting a load that
   // has already settled.
-  (getChartDataRequest as jest.Mock).mockRejectedValue(
+  (requestChartDataResolved as jest.Mock).mockRejectedValue(
     new Response(JSON.stringify({ message: 'boom' }), { status: 500 }),
   );
   const store = renderPreview();
@@ -207,12 +198,12 @@ test('explains a version that records no viz type or dataset', async () => {
     ).toBeInTheDocument();
   });
   expect(fetchDatasourceMetadata).not.toHaveBeenCalled();
-  expect(getChartDataRequest).not.toHaveBeenCalled();
+  expect(requestChartDataResolved).not.toHaveBeenCalled();
   expect(screen.queryByTestId('super-chart')).not.toBeInTheDocument();
 });
 
 test('surfaces a chart-data failure instead of rendering an empty chart', async () => {
-  (getChartDataRequest as jest.Mock).mockRejectedValue(
+  (requestChartDataResolved as jest.Mock).mockRejectedValue(
     new Response(JSON.stringify({ message: 'Query timed out' }), {
       status: 422,
     }),

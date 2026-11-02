@@ -49,6 +49,7 @@ _DEFAULT_LIST_TASKS_REQUEST = ListTasksRequest()
         title="List tasks",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def list_tasks(

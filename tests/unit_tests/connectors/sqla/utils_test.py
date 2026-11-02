@@ -20,14 +20,89 @@ from contextlib import closing
 from pathlib import Path
 
 import pytest
+from jinja2 import UndefinedError
 from pytest_mock import MockerFixture
 
 from superset.connectors.sqla.utils import (
     get_columns_description,
     get_virtual_table_metadata,
 )
-from superset.exceptions import SupersetSecurityException
+from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+from superset.exceptions import (
+    OAuth2RedirectError,
+    SupersetSecurityException,
+    SupersetVirtualTableParseException,
+)
 from superset.models.core import Database
+
+
+@pytest.mark.parametrize("top", ["50 PERCENT", "5 WITH TIES", "(1 + 4)"])
+def test_get_columns_description_caps_complex_tsql_limits(
+    top: str, mocker: MockerFixture
+) -> None:
+    """Column discovery must enforce its SQL cap without an executor cursor."""
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.sql.parse import SQLScript
+
+    database = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(database, "get_db_engine_spec", return_value=MssqlEngineSpec)
+    connection = mocker.patch.object(database, "get_raw_connection")
+    cursor = connection.return_value.__enter__.return_value.cursor.return_value
+    cursor.description = [("n", "INT", None, None, None, None, None)]
+    cursor.fetchall.return_value = [(1,)]
+    mocker.patch.object(
+        database, "mutate_sql_based_on_config", side_effect=lambda sql: sql
+    )
+    execute = mocker.patch.object(MssqlEngineSpec, "execute")
+    fetch = mocker.spy(MssqlEngineSpec, "fetch_data")
+    result_set = mocker.patch("superset.connectors.sqla.utils.SupersetResultSet")
+
+    get_columns_description(
+        database,
+        None,
+        None,
+        f"SELECT TOP {top} n FROM t ORDER BY n",  # noqa: S608
+    )
+
+    expected = SQLScript("SELECT TOP 1 n FROM t ORDER BY n", "mssql").format()
+    execute.assert_called_once_with(cursor, expected, database)
+    fetch.assert_called_once_with(cursor, limit=1)
+    result_set.assert_called_once_with([(1,)], cursor.description, MssqlEngineSpec)
+
+
+def test_get_columns_description_expands_nested_columns(
+    mocker: MockerFixture,
+) -> None:
+    """Column discovery lets the engine spec expand nested fields from the cursor."""
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.superset_typing import ResultSetColumnType
+
+    database = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(database, "get_db_engine_spec", return_value=SqliteEngineSpec)
+    connection = mocker.patch.object(database, "get_raw_connection")
+    cursor = connection.return_value.__enter__.return_value.cursor.return_value
+    cursor.description = [("calendar", "RECORD", None, None, None, None, None)]
+    cursor.fetchall.return_value = [(None,)]
+    mocker.patch.object(
+        database, "mutate_sql_based_on_config", side_effect=lambda sql: sql
+    )
+    mocker.patch.object(SqliteEngineSpec, "execute")
+    expanded = ResultSetColumnType(
+        name="calendar.day",
+        column_name="calendar.day",
+        type="STRING",
+        is_dttm=False,
+    )
+    hook = mocker.patch.object(
+        SqliteEngineSpec, "expand_nested_columns", return_value=[expanded]
+    )
+
+    result = get_columns_description(database, None, None, "SELECT calendar FROM t")
+
+    assert result == [expanded]
+    hook.assert_called_once()
+    assert hook.call_args.args[0] is cursor
+    assert hook.call_args.args[1][0]["column_name"] == "calendar"
 
 
 # Returns column descriptions when given valid database, catalog, schema, and query
@@ -49,6 +124,7 @@ def test_returns_column_descriptions(mocker: MockerFixture) -> None:
 
     database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
     database.db_engine_spec = db_engine_spec
+    db_engine_spec.expand_nested_columns.side_effect = lambda _, columns: columns
     database.apply_limit_to_sql.return_value = "SELECT * FROM table LIMIT 1"
     database.mutate_sql_based_on_config.return_value = "SELECT * FROM table LIMIT 1"
     db_engine_spec.fetch_data.return_value = [("col1", "col1", "STRING", None, False)]
@@ -100,6 +176,51 @@ def test_returns_column_descriptions(mocker: MockerFixture) -> None:
             "is_dttm": False,
         },
     ]
+
+
+def test_get_columns_description_propagates_oauth2_redirect(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``get_columns_description`` wraps every exception raised while executing
+    the metadata query into ``SupersetGenericDBErrorException`` -- but an
+    ``OAuth2RedirectError`` raised by the driver (e.g. a database requiring
+    per-user OAuth2 tokens) must reach the caller unchanged so the frontend
+    can start the OAuth2 dance, instead of being flattened into an opaque
+    generic DB error.
+    """
+    database = mocker.MagicMock()
+    cursor = mocker.MagicMock()
+    oauth2_error = OAuth2RedirectError("https://example.org/oauth2", "tab-id", "uri")
+
+    database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
+    database.db_engine_spec.execute.side_effect = oauth2_error
+
+    with pytest.raises(OAuth2RedirectError):
+        get_columns_description(database, "catalog", "schema", "SELECT * FROM table")
+
+
+def test_get_columns_description_propagates_dbapi_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A connection failure normalized by ``db_engine_spec.execute`` into a
+    ``SupersetDBAPIConnectionError`` must also reach the caller unchanged --
+    not be re-flattened into an opaque ``SupersetGenericDBErrorException`` --
+    so callers like ``CreateDatasetCommand`` can let it propagate with its
+    own status instead of misreporting an infra failure as bad user input.
+    """
+    database = mocker.MagicMock()
+    cursor = mocker.MagicMock()
+    connection_error = SupersetDBAPIConnectionError(
+        "could not connect to server: Connection refused"
+    )
+
+    database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
+    database.db_engine_spec.execute.side_effect = connection_error
+
+    with pytest.raises(SupersetDBAPIConnectionError):
+        get_columns_description(database, "catalog", "schema", "SELECT * FROM table")
 
 
 def _create_zero_row_database(tmp_path: Path) -> tuple[Database, str]:
@@ -193,6 +314,7 @@ def test_get_columns_description_retries_with_comment_safe_sql_when_empty(
 
     database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
     database.db_engine_spec = db_engine_spec
+    db_engine_spec.expand_nested_columns.side_effect = lambda _, columns: columns
     database.apply_limit_to_sql.return_value = "SELECT 1 WHERE false"
     database.mutate_sql_based_on_config.return_value = (
         "-- comment\nSELECT 1 WHERE false"
@@ -215,14 +337,11 @@ def test_get_columns_description_retries_with_comment_safe_sql_when_empty(
     db_engine_spec.get_column_description_retry_sql.assert_called_once_with(
         "-- comment\nSELECT 1 WHERE false"
     )
-    # The original mutated (comment-prefixed) query is executed directly
-    # once, and then -- because the first metadata result came back empty --
-    # db_engine_spec.execute() is invoked a second time with the
-    # comment-safe retry query.
-    assert cursor.execute.call_count == 1
-    assert cursor.execute.call_args_list[0].args[0] == (
-        "-- comment\nSELECT 1 WHERE false"
-    )
+    # The original mutated (comment-prefixed) query is executed once via
+    # db_engine_spec.execute() -- the only statement dispatch -- and then,
+    # because the first metadata result came back empty, a second time with
+    # the comment-safe retry query.
+    assert cursor.execute.call_count == 0
     assert db_engine_spec.execute.call_count == 2
     assert db_engine_spec.execute.call_args_list[0].args[:2] == (
         cursor,
@@ -250,6 +369,7 @@ def test_get_columns_description_no_retry_when_engine_has_no_hook(
 
     database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
     database.db_engine_spec = db_engine_spec
+    db_engine_spec.expand_nested_columns.side_effect = lambda _, columns: columns
     database.apply_limit_to_sql.return_value = "SELECT * FROM table"
     database.mutate_sql_based_on_config.return_value = "SELECT * FROM table"
 
@@ -262,9 +382,50 @@ def test_get_columns_description_no_retry_when_engine_has_no_hook(
     )
 
     assert columns == []
-    assert cursor.execute.call_count == 1, (
+    assert db_engine_spec.execute.call_count == 1, (
         "no retry should be attempted when the engine spec has no comment-safe "
         "retry query to offer"
+    )
+
+
+def test_get_columns_description_executes_probe_statement_once(
+    tmp_path: Path,
+    mocker: MockerFixture,
+) -> None:
+    """
+    The column probe must send the statement to the database exactly once.
+    ``db_engine_spec.execute`` is the single statement-dispatch point (it
+    calls ``cursor.execute`` itself, with per-engine overrides for Impala's
+    async API and Kusto's ARRAY() unwrapping), so an extra direct
+    ``cursor.execute`` before it runs the same statement twice against the
+    target database -- doubling probe cost and doubling whatever per-statement
+    timeout the administrator configured. Asserted at the driver level, with
+    a real SQLite connection counting every statement it executes.
+    """
+    db_path = tmp_path / "probe_once.db"
+    with closing(sqlite3.connect(db_path)) as conn:
+        conn.execute("CREATE TABLE events (id INTEGER, name TEXT)")
+        conn.commit()
+
+    statements: list[str] = []
+    raw_conn = sqlite3.connect(db_path)
+    raw_conn.set_trace_callback(statements.append)
+
+    database = Database(
+        id=1,
+        database_name="probe_once_db",
+        sqlalchemy_uri=f"sqlite:///{db_path}",
+    )
+    mocker.patch.object(database, "get_raw_connection", return_value=closing(raw_conn))
+
+    columns = get_columns_description(
+        database, None, None, "SELECT id, name FROM events"
+    )
+
+    assert [column["name"] for column in columns] == ["id", "name"]
+    assert len(statements) == 1, (
+        f"the probe statement must be sent to the database exactly once, "
+        f"got {len(statements)} executions: {statements}"
     )
 
 
@@ -283,6 +444,30 @@ def test_get_virtual_table_metadata(mocker: MockerFixture) -> None:
     dataset.get_template_processor().process_template.return_value = dataset.sql
 
     assert get_virtual_table_metadata(dataset) == [{"name": "one", "type": "INTEGER"}]
+
+
+def test_get_virtual_table_metadata_drops_reserved_template_params(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Chart execution never exposes ``removed_filters`` and the other names the
+    template processor reserves as template variables, and neither does the
+    access check. Column sync must render the same SQL, or a template that
+    branches on one of them would run a branch the check never saw.
+    """
+    mocker.patch(
+        "superset.connectors.sqla.utils.get_columns_description",
+        return_value=[{"name": "one", "type": "INTEGER"}],
+    )
+    dataset = mocker.MagicMock(sql="SELECT 1 AS one")
+    dataset.template_params_dict = {"removed_filters": [], "table": 1, "t": "x"}
+    dataset.database.db_engine_spec.engine = "postgresql"
+    process_template = dataset.get_template_processor().process_template
+    process_template.return_value = dataset.sql
+
+    get_virtual_table_metadata(dataset)
+
+    process_template.assert_called_once_with(dataset.sql, t="x")
 
 
 def test_get_virtual_table_metadata_mutating(mocker: MockerFixture) -> None:
@@ -309,6 +494,26 @@ def test_get_virtual_table_metadata_multiple(mocker: MockerFixture) -> None:
     with pytest.raises(SupersetSecurityException) as excinfo:
         get_virtual_table_metadata(dataset)
     assert str(excinfo.value) == "Only single queries supported"
+
+
+def test_get_virtual_table_metadata_render_undefined_error(
+    mocker: MockerFixture,
+) -> None:
+    """Regression: a virtual dataset SQL template like
+    ``SELECT {{ nonexistent_var + 1 }}`` raises a raw ``jinja2.UndefinedError``
+    from the Jinja *render* step (not the parse step), which the
+    ``except SupersetSyntaxErrorException`` branch alone doesn't catch. Must
+    be softened to ``SupersetVirtualTableParseException`` like the sibling
+    parse-time UndefinedError case.
+    """
+    dataset = mocker.MagicMock(template_params_dict={})
+    dataset.database.db_engine_spec.engine = "postgresql"
+    dataset.get_template_processor().process_template.side_effect = UndefinedError(
+        "'nonexistent_var' is undefined"
+    )
+
+    with pytest.raises(SupersetVirtualTableParseException):
+        get_virtual_table_metadata(dataset)
 
 
 def test_get_virtual_table_metadata_renders_jinja(mocker: MockerFixture) -> None:
@@ -357,3 +562,29 @@ def test_get_virtual_table_metadata_renders_jinja(mocker: MockerFixture) -> None
     assert passed_query == rendered_sql, (
         f"get_columns_description received unrendered SQL: {passed_query!r}"
     )
+
+
+@pytest.mark.parametrize(
+    "mutated_sql",
+    ["SELECT 1; SELECT 2", "DELETE FROM t"],
+    ids=["multi_statement", "write"],
+)
+def test_get_columns_description_rejects_unsafe_sql_after_mutation(
+    mocker: MockerFixture,
+    mutated_sql: str,
+) -> None:
+    """A mutator that turns the validated single read-only probe into multiple
+    statements or a write must be rejected before execution: the caller's check
+    runs on the pre-mutation SQL, so the mutated text is re-checked."""
+    database = mocker.MagicMock()
+    db_engine_spec = mocker.MagicMock()
+    db_engine_spec.engine = "postgresql"
+
+    database.db_engine_spec = db_engine_spec
+    database.apply_limit_to_sql.return_value = "SELECT 1"
+    database.mutate_sql_based_on_config.return_value = mutated_sql
+
+    with pytest.raises(SupersetSecurityException):
+        get_columns_description(database, None, None, "SELECT 1")
+
+    db_engine_spec.execute.assert_not_called()

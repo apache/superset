@@ -25,6 +25,9 @@ permissions:
 
 jobs:
   refresh-baseline:
+    # The nightly baseline is only consumed by upstream pull requests; forks
+    # and mirrors can still start it manually.
+    if: github.event_name != 'schedule' || github.repository == 'apache/superset'
     runs-on: ubuntu-26.04
     timeout-minutes: 30
     env:
@@ -89,7 +92,7 @@ jobs:
           -v ${{ github.workspace }}/superset/static/assets:/app/superset/static/assets \
           --rm $TAG \
           bash -c \
-          "npm i && BUNDLE_SIZE_STATS=true BUNDLE_ANALYZER=true npm run build -- --json=bundle-stats/stats.json"
+          "BUNDLE_SIZE_STATS=true BUNDLE_ANALYZER=true npm run build -- --json=bundle-stats/stats.json"
 
       - name: Summarize bundle size
         run: |
@@ -100,7 +103,7 @@ jobs:
       # No PR to comment on here, so comment-on-alert is off -- the job
       # summary (summary-always) is the only surface for this run.
       - name: Update bundle size baseline
-        uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba # v1.22.1
+        uses: benchmark-action/github-action-benchmark@4322e5726e6334590d251fc4f92bec0efafc45dc # v1.22.2
         with:
           tool: customSmallerIsBetter
           output-file-path: bundle-size-summary.json

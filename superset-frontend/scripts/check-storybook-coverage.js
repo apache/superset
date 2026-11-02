@@ -21,10 +21,13 @@
 // This script checks that UI components and plugins have corresponding
 // Storybook story files. Run with --fix to see suggestions.
 
-const fs = require('fs');
-const path = require('path');
-const glob = require('glob');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import glob from 'glob';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '..');
 
 // Directories to check for storybook coverage

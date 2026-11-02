@@ -109,7 +109,10 @@ test('start and end the title edit mode', async () => {
   );
 
   expect(await screen.findByTestId('AdhocMetricEditTitle#input')).toBeVisible();
-  userEvent.type(screen.getByTestId('AdhocMetricEditTitle#input'), 'Test');
+  await userEvent.type(
+    screen.getByTestId('AdhocMetricEditTitle#input'),
+    'Test',
+  );
 
   expect(onChange).toHaveBeenCalledTimes(4);
   fireEvent.keyPress(screen.getByTestId('AdhocMetricEditTitle#input'), {
@@ -126,7 +129,7 @@ test('start and end the title edit mode', async () => {
   );
 
   expect(await screen.findByTestId('AdhocMetricEditTitle#input')).toBeVisible();
-  userEvent.type(
+  await userEvent.type(
     screen.getByTestId('AdhocMetricEditTitle#input'),
     'Second test',
   );

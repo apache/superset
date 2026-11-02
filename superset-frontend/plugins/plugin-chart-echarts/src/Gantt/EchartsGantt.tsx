@@ -22,6 +22,7 @@ import { t } from '@apache-superset/core/translation';
 import Echart from '../components/Echart';
 import { EchartsGanttChartTransformedProps } from './types';
 import { EventHandlers } from '../types';
+import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 
 const { RadioButtonControl } = sharedControlComponents;
 
@@ -35,6 +36,7 @@ export default function EchartsGantt(props: EchartsGanttChartTransformedProps) {
     formData,
     setControlValue,
     onLegendStateChanged,
+    onLegendScroll,
   } = props;
   const extraControlRef = useRef<HTMLDivElement>(null);
   const [extraHeight, setExtraHeight] = useState(0);
@@ -44,23 +46,10 @@ export default function EchartsGantt(props: EchartsGanttChartTransformedProps) {
     setExtraHeight(updatedHeight);
   }, [formData.showExtraControls]);
 
-  const eventHandlers: EventHandlers = {
-    legendselectchanged: payload => {
-      requestAnimationFrame(() => {
-        onLegendStateChanged?.(payload.selected);
-      });
-    },
-    legendselectall: payload => {
-      requestAnimationFrame(() => {
-        onLegendStateChanged?.(payload.selected);
-      });
-    },
-    legendinverseselect: payload => {
-      requestAnimationFrame(() => {
-        onLegendStateChanged?.(payload.selected);
-      });
-    },
-  };
+  const eventHandlers: EventHandlers = useLegendEventHandlers(
+    onLegendStateChanged,
+    onLegendScroll,
+  );
 
   return (
     <>

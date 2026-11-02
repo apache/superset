@@ -16,19 +16,19 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any, cast, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import DEPRECATED_FIELDS, QueryObject
-from superset.common.utils.time_range_utils import get_since_until_from_time_range
-from superset.constants import NO_TIME_RANGE
+from superset.common.utils.time_range_utils import (
+    get_since_until_from_time_range,
+    get_time_range_from_filters,
+)
 from superset.superset_typing import Column
 from superset.utils.core import (
     apply_max_row_limit,
     DatasourceDict,
     DatasourceType,
-    FilterOperator,
-    get_x_axis_label,
     QueryObjectFilterClause,
 )
 
@@ -59,6 +59,7 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         time_shift: str | None = None,
         server_pagination: bool | None = None,
         datasource_model_instance: BaseDatasource | None = None,
+        preserve_null_row_limit: bool = False,
         **kwargs: Any,
     ) -> QueryObject:
         if datasource_model_instance is None and datasource:
@@ -74,7 +75,10 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
 
         # Process row limit taking server pagination into account
         row_limit = self._process_row_limit(
-            row_limit, result_type, server_pagination=server_pagination
+            row_limit,
+            result_type,
+            server_pagination=server_pagination,
+            preserve_null_row_limit=preserve_null_row_limit,
         )
 
         processed_time_range = self._process_time_range(
@@ -112,14 +116,19 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         row_limit: int | None,
         result_type: ChartDataResultType,
         server_pagination: bool | None = None,
-    ) -> int:
+        preserve_null_row_limit: bool = False,
+    ) -> int | None:
         """Process row limit taking into account server pagination.
 
         :param row_limit: The requested row limit
         :param result_type: The type of result being processed
         :param server_pagination: Whether server-side pagination is enabled
+        :param preserve_null_row_limit: Whether explicit null means no limit
         :return: The processed row limit
         """
+        if row_limit is None and preserve_null_row_limit:
+            return None
+
         default_row_limit = (
             self._config["SAMPLES_ROW_LIMIT"]
             if result_type == ChartDataResultType.SAMPLES
@@ -136,26 +145,7 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         filters: list[QueryObjectFilterClause] | None = None,
         columns: list[Column] | None = None,
     ) -> str:
-        if time_range is None:
-            time_range = NO_TIME_RANGE
-            temporal_flt = [
-                flt
-                for flt in filters or []
-                if flt.get("op") == FilterOperator.TEMPORAL_RANGE
-            ]
-            if temporal_flt:
-                # Use the temporal filter as the time range.
-                # if the temporal filters uses x-axis as the temporal filter
-                # then use it or use the first temporal filter
-                x_axis_label = get_x_axis_label(columns)
-                match_flt = [
-                    flt for flt in temporal_flt if flt.get("col") == x_axis_label
-                ]
-                if match_flt:
-                    time_range = cast(str, match_flt[0].get("val"))
-                else:
-                    time_range = cast(str, temporal_flt[0].get("val"))
-        return time_range
+        return get_time_range_from_filters(time_range, filters, columns)
 
     # light version of the view.utils.core
     # import view.utils require application context

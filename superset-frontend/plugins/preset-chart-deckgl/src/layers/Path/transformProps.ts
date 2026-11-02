@@ -27,6 +27,7 @@ import {
 } from '../transformUtils';
 import { DeckPathFormData } from './buildQuery';
 import { isFixedValue, getFixedValue } from '../utils/metricUtils';
+import { NULL_CATEGORY_KEY } from '../../utils';
 
 declare global {
   interface Window {
@@ -145,11 +146,16 @@ function processPathData(
       }
     }
 
-    if (categoryColumn && record[categoryColumn] != null) {
-      feature.cat_color = String(record[categoryColumn]);
-    }
-
     feature = addPropertiesToFeature(feature, record, excludeKeys);
+
+    // Assigned after the property copy so a column named `cat_color` cannot
+    // overwrite the selected dimension's category.
+    if (categoryColumn) {
+      feature.cat_color =
+        record[categoryColumn] != null
+          ? String(record[categoryColumn])
+          : NULL_CATEGORY_KEY;
+    }
     return feature;
   });
 }

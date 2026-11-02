@@ -28,7 +28,7 @@ params:
   comparison_type: values
   contribution: false
   datasource: 23__table
-  granularity_sqla: order_date
+  x_axis: order_date
   groupby:
   - deal_size
   label_colors: {}

@@ -193,8 +193,8 @@ test('changing the search term refetches from page 0 with q', async () => {
 
 test('newestGroup comes from a self probe, not the visible page', async () => {
   // Page 0 filled entirely by newer related records — the newest self save is
-  // beyond it. Deriving "Current" from the page would drop the tag (or, with
-  // a search active, freeze it on a stale save after a restore).
+  // beyond it. Deriving the live version from the page would lose it (or,
+  // with a search active, freeze it on a stale save after a restore).
   mockedFetchActivity.mockImplementation(async (_type, _uuid, options) => {
     if (options?.pageSize === 1) {
       // The dedicated include='self' probe.

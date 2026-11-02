@@ -51,16 +51,32 @@ export class DashboardFilterBar {
    * @param index - The zero-based position of the filter.
    */
   async selectOption(optionText: string, index = 0): Promise<void> {
-    const select = new Select(
-      this.page,
-      this.root
-        .locator(DashboardFilterBar.SELECTORS.FILTER_VALUE)
-        .nth(index)
-        .getByRole('combobox'),
-    );
+    const select = this.getFilterSelect(index);
     await select.open();
     await select.clickOption(optionText);
     await select.close();
+  }
+
+  /**
+   * The Select control for the Nth native filter (0-based). For callers that
+   * need lower-level control than {@link selectOption} — e.g. opening the
+   * dropdown to read its visible option set before choosing.
+   */
+  getFilterSelect(index = 0): Select {
+    return new Select(
+      this.page,
+      this.getValueLocator(index).getByRole('combobox'),
+    );
+  }
+
+  /**
+   * Locator for the Nth native filter's value control (0-based), for
+   * asserting on its displayed text (e.g. a default or resolved value).
+   */
+  getValueLocator(index = 0): Locator {
+    return this.root
+      .locator(DashboardFilterBar.SELECTORS.FILTER_VALUE)
+      .nth(index);
   }
 
   /**
@@ -109,7 +125,11 @@ export class DashboardFilterBar {
     return modal;
   }
 
-  private getApplyButton(): Button {
+  /**
+   * The Apply button, exposed for specs that need to assert on its
+   * enabled/disabled state (e.g. a re-selection re-enabling it).
+   */
+  getApplyButton(): Button {
     return new Button(
       this.page,
       this.root.locator(DashboardFilterBar.SELECTORS.APPLY_BUTTON),

@@ -32,7 +32,7 @@ from typing import Any
 
 from flask import g, request
 from flask.wrappers import Response
-from flask_appbuilder.api import BaseApi, expose, protect, safe
+from flask_appbuilder.api import expose, protect, safe
 
 from superset.extensions.storage.codecs import DEFAULT_CODEC, get_codec, SAFE_CODECS
 from superset.extensions.storage.ephemeral_dao import (
@@ -50,6 +50,7 @@ from superset.extensions.storage.persistent_dao import (
 from superset.extensions.storage.utils import get_extension_or_404, parse_ttl
 from superset.key_value.exceptions import KeyValueCodecEncodeException
 from superset.utils.decorators import transaction
+from superset.views.base_api import BaseSupersetApi
 
 
 def _decoded_result_for_wire(decoded: Any) -> tuple[Any, bool]:
@@ -85,8 +86,14 @@ def _wire_value_for_request(value: Any, is_binary: bool) -> Any:
     return value
 
 
-class ExtensionStorageRestApi(BaseApi):
-    """REST API for extension ephemeral (Tier 2) and persistent (Tier 3) storage."""
+class ExtensionStorageRestApi(BaseSupersetApi):
+    """REST API for extension ephemeral (Tier 2) and persistent (Tier 3) storage.
+
+    Docstring descriptions below use backticks rather than double quotes: FAB
+    re-parses each operation's parsed YAML through ``str(dict)``, and a value
+    that mixes ``'`` and ``"`` comes back with escapes YAML rejects, which
+    breaks ``/api/v1/_openapi`` and ``superset update-api-docs``.
+    """
 
     allow_browser_login = True
     route_base = "/api/v1/extensions"
@@ -165,7 +172,7 @@ class ExtensionStorageRestApi(BaseApi):
                       codec:
                         type: string
                         description: Name of the codec 'result' was encoded
-                          with, e.g. "json" (default) or "binary"
+                          with, e.g. `json` (default) or `binary`
                       isBinary:
                         type: boolean
                         description: Whether the stored value is binary
@@ -247,7 +254,7 @@ class ExtensionStorageRestApi(BaseApi):
                     codec:
                       type: string
                       description: Name of the codec used to encode 'value',
-                        e.g. "json" (default). Must be one of the codecs
+                        e.g. `json` (default). Must be one of the codecs
                         allowed over the REST API.
                     isBinary:
                       type: boolean
@@ -543,7 +550,7 @@ class ExtensionStorageRestApi(BaseApi):
                       codec:
                         type: string
                         description: Name of the codec 'result' was encoded
-                          with, e.g. "json" (default) or "binary"
+                          with, e.g. `json` (default) or `binary`
                       isBinary:
                         type: boolean
                         description: Whether the stored value is binary
@@ -626,7 +633,7 @@ class ExtensionStorageRestApi(BaseApi):
                     codec:
                       type: string
                       description: Name of the codec used to encode 'value',
-                        e.g. "json" (default). Must be one of the codecs
+                        e.g. `json` (default). Must be one of the codecs
                         allowed over the REST API.
                     isBinary:
                       type: boolean

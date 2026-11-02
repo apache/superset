@@ -26,7 +26,10 @@ from superset.common.chart_data_timing import (
     QueryAcquisitionResult,
     QueryContextExecutionResult,
 )
-from superset.common.query_context_processor import QueryContextProcessor
+from superset.common.query_context_processor import (
+    normalize_contribution_totals,
+    QueryContextProcessor,
+)
 from superset.common.query_object import QueryObject
 from superset.explorables.base import Explorable
 from superset.models.slice import Slice
@@ -55,7 +58,22 @@ class QueryContext:
     result_type: ChartDataResultType
     result_format: ChartDataResultFormat
     force: bool
+    # Optional idempotency token for a forced refresh. Set once per user-initiated
+    # force refresh (Explore/Dashboard) and carried on every request of that
+    # refresh — the async submit and the follow-up read-back. The first execution
+    # to see it recomputes and records a per-(nonce, cache_key) marker; later
+    # requests carrying the same nonce read the freshly-cached result instead of
+    # recomputing it (see QueryContextProcessor.get_df_payload_result). Kept
+    # separate from the result cache key, so non-forced loads stay warm.
+    force_nonce: str | None
     custom_cache_timeout: int | None
+
+    # Set by the async chart-data execution path (see
+    # superset.tasks.async_queries.execute_chart_query). The async flow caches a
+    # result and a follow-up request reads it back, so the result cache TTL is
+    # floored to GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL (see
+    # QueryContextProcessor.get_cache_timeout). Never set on the synchronous path.
+    is_async_execution: bool = False
 
     cache_values: dict[str, Any]
 
@@ -73,6 +91,7 @@ class QueryContext:
         result_type: ChartDataResultType,
         result_format: ChartDataResultFormat,
         force: bool = False,
+        force_nonce: str | None = None,
         custom_cache_timeout: int | None = None,
         cache_values: dict[str, Any],
     ) -> None:
@@ -83,8 +102,13 @@ class QueryContext:
         self.queries = queries
         self.form_data = form_data
         self.force = force
+        self.force_nonce = force_nonce
         self.custom_cache_timeout = custom_cache_timeout
         self.cache_values = cache_values
+        # Normalize the contribution totals query before any cache key is
+        # computed. The return value is unused here; we only need the side
+        # effect on the totals query's row_limit.
+        self.prepare_contribution_totals()
         self._processor = QueryContextProcessor(self)
 
     def get_data(
@@ -132,6 +156,15 @@ class QueryContext:
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
         return self._processor.query_cache_key(query_obj, **kwargs)
+
+    def prepare_contribution_totals(self) -> tuple[list[int], int | None]:
+        """Identify contribution queries and normalize the totals query.
+
+        Returns the indices of queries whose contribution post-processing needs a
+        shared totals row, and the index of the totals query itself (or ``None``).
+        The normalization is idempotent and runs at construction time as well.
+        """
+        return normalize_contribution_totals(self.queries, self.cache_values)
 
     def get_df_payload(
         self,

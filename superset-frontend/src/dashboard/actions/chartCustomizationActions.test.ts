@@ -23,7 +23,10 @@ import {
   saveChartCustomization,
 } from './chartCustomizationActions';
 import { SET_IN_SCOPE_STATUS_OF_FILTERS } from './nativeFilters';
-import { DASHBOARD_INFO_UPDATED } from './dashboardInfo';
+import {
+  DASHBOARD_INFO_UPDATED,
+  dashboardSaveSucceeded,
+} from './dashboardInfo';
 
 beforeAll(() => fetchMock.mockGlobal());
 afterAll(() => fetchMock.hardReset());
@@ -225,6 +228,8 @@ test('saveChartCustomization filters null entries from currentConfig before merg
   const thunk = saveChartCustomization([customization], [], [], false);
   await thunk(dispatch, getState, null);
 
+  expect(dispatch).toHaveBeenCalledWith(dashboardSaveSucceeded(1));
+
   // DASHBOARD_INFO_UPDATED should have merged config without nulls
   const infoUpdateCall = dispatch.mock.calls.find(
     ([action]: [{ type: string }]) => action.type === DASHBOARD_INFO_UPDATED,
@@ -270,4 +275,17 @@ test('saveChartCustomization filters null entries from oldConfig when resetDataM
 
   // Should not throw when building oldCustomizationsById from null-containing config
   await expect(thunk(dispatch, getState, null)).resolves.toBeDefined();
+});
+
+test('failed customization persistence does not signal a successful dashboard save', async () => {
+  fetchMock.put('glob:*/api/v1/dashboard/1/chart_customizations', 500);
+  const { getState, dispatch } = setup({
+    dashboardInfo: { id: 1, metadata: {} },
+  });
+
+  await expect(
+    saveChartCustomization([], [])(dispatch, getState, null),
+  ).rejects.toBeDefined();
+
+  expect(dispatch).not.toHaveBeenCalledWith(dashboardSaveSucceeded(1));
 });

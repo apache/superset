@@ -57,9 +57,17 @@ class TestUpdateThemeCommand:
         with pytest.raises(SystemThemeProtectedError):
             command.validate()
 
+    @patch("superset.commands.theme.update.compute_subjects")
+    @patch("superset.security_manager.raise_for_editorship")
     @patch("superset.commands.theme.update.ThemeDAO")
-    def test_validate_regular_theme_success(self, mock_theme_dao):
-        """Test validation succeeds for regular (non-system) themes"""
+    def test_validate_regular_theme_success(
+        self, mock_theme_dao, mock_raise_for_editorship, mock_compute_subjects
+    ):
+        """Test validation succeeds for regular (non-system) themes.
+
+        An editor (or admin) passes the editorship gate, so
+        ``raise_for_editorship`` is a no-op here.
+        """
         # Arrange
         mock_theme = Mock(spec=Theme)
         mock_theme.is_system = False
@@ -73,9 +81,14 @@ class TestUpdateThemeCommand:
 
         # Assert
         assert command._model == mock_theme
+        mock_raise_for_editorship.assert_called_once_with(mock_theme)
 
+    @patch("superset.commands.theme.update.compute_subjects")
+    @patch("superset.security_manager.raise_for_editorship")
     @patch("superset.commands.theme.update.ThemeDAO")
-    def test_run_success(self, mock_theme_dao):
+    def test_run_success(
+        self, mock_theme_dao, mock_raise_for_editorship, mock_compute_subjects
+    ):
         """Test successful theme update"""
         # Arrange
         mock_theme = Mock(spec=Theme)
@@ -116,10 +129,11 @@ class TestUpdateThemeCommand:
         with pytest.raises(SystemThemeInUseError):
             command.validate()
 
+    @patch("superset.commands.theme.update.compute_subjects")
     @patch("superset.commands.theme.update.security_manager")
     @patch("superset.commands.theme.update.ThemeDAO")
     def test_validate_system_default_theme_allows_admin(
-        self, mock_theme_dao, mock_security_manager
+        self, mock_theme_dao, mock_security_manager, mock_compute_subjects
     ):
         """Admins can still update the active system-default/dark theme slot."""
         mock_theme = Mock(spec=Theme)

@@ -208,6 +208,8 @@ class TestDashboardThemeIntegration(SupersetTestCase):
         """Test that deleting a theme dissociates it from dashboards"""
         from superset.commands.theme.delete import DeleteThemeCommand
 
+        self.login(ADMIN_USERNAME)
+
         # Assign theme to dashboard
         self.dashboard.theme_id = self.theme.id
         db.session.commit()
@@ -234,6 +236,8 @@ class TestDashboardThemeIntegration(SupersetTestCase):
     def test_theme_deletion_dashboard_usage_detection(self):
         """Test that theme deletion detects dashboard usage"""
         from superset.commands.theme.delete import DeleteThemeCommand
+
+        self.login(ADMIN_USERNAME)
 
         # Create another dashboard for testing
         dashboard2 = Dashboard(
@@ -273,6 +277,8 @@ class TestDashboardThemeIntegration(SupersetTestCase):
     def test_multiple_themes_deletion_with_dashboard_dissociation(self):
         """Test deletion of multiple themes with dashboard associations"""
         from superset.commands.theme.delete import DeleteThemeCommand
+
+        self.login(ADMIN_USERNAME)
 
         # Create another theme
         theme2 = Theme(

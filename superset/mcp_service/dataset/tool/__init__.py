@@ -16,17 +16,27 @@
 # under the License.
 
 from .create_dataset import create_dataset
+from .create_dataset_metric import create_dataset_metric
 from .create_virtual_dataset import create_virtual_dataset
+from .delete_dataset import delete_dataset
+from .delete_dataset_metric import delete_dataset_metric
 from .get_dataset_info import get_dataset_info
 from .list_datasets import list_datasets
 from .query_dataset import query_dataset
+from .restore_dataset import restore_dataset
+from .update_dataset import update_dataset
 from .update_dataset_metric import update_dataset_metric
 
 __all__ = [
     "create_dataset",
+    "create_dataset_metric",
     "create_virtual_dataset",
+    "delete_dataset",
+    "delete_dataset_metric",
     "get_dataset_info",
     "list_datasets",
     "query_dataset",
+    "restore_dataset",
+    "update_dataset",
     "update_dataset_metric",
 ]

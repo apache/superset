@@ -42,11 +42,11 @@ import {
   Loading,
   Popover,
   Icons,
+  type InputRef,
 } from '@superset-ui/core/components';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { debounce } from 'lodash-es';
 import { List, type RowComponentProps } from 'react-window';
-import { InputRef } from 'antd';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { VirtualizedMenuItem } from '../MenuItemWithTruncation';
 import { Dataset } from '../types';

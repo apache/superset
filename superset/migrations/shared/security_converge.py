@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from sqlalchemy import (
@@ -244,6 +245,39 @@ def migrate_roles(  # noqa: C901
                         role.permissions.append(new_pvm)
 
     # Delete old permissions
+    _delete_old_permissions(session, pvm_map)
+    if commit:
+        session.commit()
+
+
+def delete_pvms(session: Session, pvms: Iterable[Pvm], commit: bool = False) -> None:
+    """
+    Deletes the given PVMs outright (no successor): unassigns each from every
+    role that holds it, then removes the PermissionView, plus the underlying
+    Permission/ViewMenu if they become orphans. PVMs that don't resolve are
+    skipped, so this is safe to run repeatedly or against a DB that never had
+    them.
+    """
+    # pvm_map intentionally maps each old PVM to an empty successor list:
+    # _delete_old_permissions() only reads pvm_map's keys (the PVMs to
+    # delete) and never inspects the values, so an empty list is a safe,
+    # deliberate way to reuse it for pure deletion here. Role unassignment
+    # is handled explicitly below, not by that function.
+    pvm_map: dict[PermissionView, list[PermissionView]] = {}
+    for pvm_key in pvms:
+        old_pvm = _find_pvm(session, pvm_key.view, pvm_key.permission)
+        if old_pvm:
+            pvm_map[old_pvm] = []
+
+    # Unassign from all existing roles
+    roles = session.query(Role).options(Load(Role).joinedload(Role.permissions)).all()
+    for role in roles:
+        for old_pvm in pvm_map:
+            if old_pvm in role.permissions:
+                logger.info("Removing %s from %s", old_pvm, role)
+                role.permissions.remove(old_pvm)
+
+    # Delete the PermissionView's and any now-orphaned Permission/ViewMenu's
     _delete_old_permissions(session, pvm_map)
     if commit:
         session.commit()

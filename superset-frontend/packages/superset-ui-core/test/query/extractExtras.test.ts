@@ -150,3 +150,65 @@ describe('extractExtras', () => {
     });
   });
 });
+
+test('requires selection provenance even when a historical title equals a member ID', () => {
+  const form = {
+    datasource: '7__semantic_view',
+    viz_type: 'table',
+    metrics: ['Orders.b'],
+  };
+  expect(extractExtras(form).extras.semantic_selection_version).toBeUndefined();
+  expect(
+    extractExtras({ ...form, semantic_selection_version: 'cube-member-id-v1' })
+      .extras.semantic_selection_version,
+  ).toBe('cube-member-id-v1');
+});
+
+test('a chart version cannot certify a stale or foreign external filter', () => {
+  const form = {
+    datasource: '7__semantic_view',
+    viz_type: 'table',
+    semantic_selection_version: 'cube-member-id-v1',
+  };
+  const filter = { col: 'Orders.b', op: 'IN' as const, val: ['x'] };
+  expect(
+    extractExtras({ ...form, extra_form_data: { filters: [filter] } }).extras
+      .semantic_selection_version,
+  ).toBe('unverified-external-selections');
+  expect(
+    extractExtras({
+      ...form,
+      extra_form_data: {
+        filters: [filter],
+        semantic_selection_sources: [
+          { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
+        ],
+      },
+    }).extras.semantic_selection_version,
+  ).toBe('cube-member-id-v1');
+  expect(
+    extractExtras({
+      ...form,
+      extra_form_data: {
+        filters: [filter],
+        semantic_selection_sources: [
+          { datasource: '8__semantic_view', version: 'cube-member-id-v1' },
+        ],
+      },
+    }).extras.semantic_selection_version,
+  ).toBe('unverified-external-selections');
+});
+
+test.each(['__time_col', '__granularity', 'Orders.status'])(
+  'legacy external member %s cannot borrow the chart generation',
+  col => {
+    expect(
+      extractExtras({
+        datasource: '7__semantic_view',
+        viz_type: 'table',
+        semantic_selection_version: 'cube-member-id-v1',
+        extra_filters: [{ col, op: 'IN', val: ['Orders.created'] }],
+      }).extras.semantic_selection_version,
+    ).toBe('unverified-external-selections');
+  },
+);

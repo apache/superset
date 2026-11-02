@@ -168,3 +168,20 @@ describe('updateComponentParentsList with bad inputs', () => {
     ).not.toThrow();
   });
 });
+
+test('skips a back-edge to an ancestor instead of recursing forever', () => {
+  const layout: Record<
+    string,
+    { id: string; children?: string[]; parents?: string[] }
+  > = {
+    root: { id: 'root', children: ['row'] },
+    row: { id: 'row', children: ['col'] },
+    col: { id: 'col', children: ['row'] },
+  };
+
+  expect(() =>
+    updateComponentParentsList({ currentComponent: layout.root, layout }),
+  ).not.toThrow();
+  expect(layout.row.parents).toEqual(['root']);
+  expect(layout.col.parents).toEqual(['root', 'row']);
+});

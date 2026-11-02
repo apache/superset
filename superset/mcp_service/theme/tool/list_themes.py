@@ -71,6 +71,7 @@ _DEFAULT_LIST_THEMES_REQUEST = ListThemesRequest()
         title="List themes",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def list_themes(

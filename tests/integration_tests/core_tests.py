@@ -124,7 +124,6 @@ class TestCore(SupersetTestCase):
         def assert_admin_view_menus_in(role_name, assert_func):
             role = security_manager.find_role(role_name)
             view_menus = [p.view_menu.name for p in role.permissions]
-            assert_func("ResetPasswordView", view_menus)
             assert_func("RoleRestAPI", view_menus)
             assert_func("Security", view_menus)
             assert_func("SQL Lab", view_menus)
@@ -132,6 +131,35 @@ class TestCore(SupersetTestCase):
         assert_admin_view_menus_in("Admin", self.assertIn)
         assert_admin_view_menus_in("Alpha", self.assertNotIn)
         assert_admin_view_menus_in("Gamma", self.assertNotIn)
+
+    def test_legacy_fab_password_views_are_gone(self):
+        """The legacy FAB reset routes are not registered and no role holds
+        their permissions. ``test_disable_legacy_password_reset_launchers``
+        covers the user-view buttons being dead ends rather than 500s."""
+        rules = {rule.rule for rule in current_app.url_map.iter_rules()}
+        endpoints = {rule.endpoint for rule in current_app.url_map.iter_rules()}
+        assert "/resetpassword/form" not in rules
+        assert "/resetmypassword/form" not in rules
+        assert not {
+            endpoint
+            for endpoint in endpoints
+            if endpoint.startswith(("ResetPasswordView.", "ResetMyPasswordView."))
+        }
+
+        for role_name in ("Admin", "Alpha", "Gamma"):
+            role = security_manager.find_role(role_name)
+            perms = {(p.permission.name, p.view_menu.name) for p in role.permissions}
+            assert not {
+                view_menu
+                for _, view_menu in perms
+                if view_menu in ("ResetPasswordView", "ResetMyPasswordView")
+            }, role_name
+            assert ("resetpasswords", "UserDBModelView") not in perms, role_name
+            assert ("resetmypassword", "UserDBModelView") not in perms, role_name
+
+        self.login(ADMIN_USERNAME)
+        assert self.client.get("/resetpassword/form?pk=1").status_code == 404
+        assert self.client.get("/resetmypassword/form").status_code == 404
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_save_slice(self):
@@ -196,6 +224,56 @@ class TestCore(SupersetTestCase):
         for slc in slices:
             db.session.delete(slc)
         db.session.commit()
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_overwrite_refuses_externally_managed_slice(self):
+        """sc-120011: the legacy Explore overwrite is gated server-side.
+
+        /superset/explore/ with action=overwrite assigns request values
+        (params, query_context, ...) directly to the loaded chart and
+        persists via ChartDAO.update, bypassing UpdateChartCommand -- so
+        the managed-externally refusal must exist on this path too, even
+        for an admin who could otherwise edit the chart.
+
+        The refusal message is asserted (not just the status) so a 403
+        from an unrelated check cannot satisfy the pin; environments with
+        broken admin datasource grants fail here with the datasource
+        error instead -- CI is the verifier.
+        """
+        self.login(ADMIN_USERNAME)
+        slc = self.get_slice("Energy Sankey")
+        slice_id = slc.id
+        original_name = slc.slice_name
+        original_query_context = slc.query_context
+        slc.is_managed_externally = True
+        db.session.commit()
+
+        tbl_id = self.table_ids.get("energy_usage")
+        url = (
+            f"/explore/table/{tbl_id}/?slice_name=changed&action=overwrite"
+            "&datasource_name=energy_usage"
+        )
+        form_data = {
+            "adhoc_filters": [],
+            "viz_type": "sankey",
+            "groupby": ["target"],
+            "metric": "sum__value",
+            "row_limit": 5000,
+            "slice_id": slice_id,
+        }
+
+        try:
+            resp = self.client.post(url, data={"form_data": json.dumps(form_data)})
+            assert resp.status_code == 403
+            assert "rights to alter this chart" in resp.get_data(as_text=True)
+
+            slc = db.session.query(Slice).filter_by(id=slice_id).one()
+            assert slc.slice_name == original_name
+            assert slc.query_context == original_query_context
+        finally:
+            slc = db.session.query(Slice).filter_by(id=slice_id).one()
+            slc.is_managed_externally = False
+            db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_data(self):

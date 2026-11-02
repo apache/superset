@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const http = require('http');
-const zlib = require('zlib');
-const { ZSTDCompress } = require('simple-zstd');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+import http from 'node:http';
+import zlib from 'node:zlib';
+import { ZSTDCompress } from 'simple-zstd';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 
 // yargs ships ESM-only and jest's default transform doesn't cover
 // node_modules; webpack.proxy-config.js only uses it to parse a `--env`
@@ -40,11 +40,11 @@ const HANG_GUARD_MS = 2000;
 async function startProxy(backendPort) {
   const previousPort = process.env.supersetPort;
   // webpack.proxy-config.js resolves its target port from process.env at
-  // require()-time, so the module must be (re-)required after this is set.
+  // import-time, so the module must be re-imported after this is set.
   process.env.supersetPort = String(backendPort);
   jest.resetModules();
-  // eslint-disable-next-line global-require
-  const getProxyConfig = require('../webpack.proxy-config');
+  const { default: getProxyConfig } =
+    await import('../webpack.proxy-config.js');
   process.env.supersetPort = previousPort;
 
   const proxyMiddleware = createProxyMiddleware(getProxyConfig(undefined));

@@ -104,6 +104,7 @@ const dashboard: Dashboard = {
   charts: [],
   editors: [editorSubject],
   viewers: [],
+  is_managed_externally: false,
 };
 
 jest.mock('src/utils/getBootstrapData', () => ({

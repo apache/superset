@@ -28,6 +28,7 @@ export default class TimeFilterPlugin extends ChartPlugin {
       name: t('Time filter'),
       description: t('Custom time filter plugin'),
       behaviors: [Behavior.InteractiveChart, Behavior.NativeFilter],
+      supportsCascadeDependencies: true,
       thumbnail,
       tags: [t('Experimental')],
       datasourceCount: 0,

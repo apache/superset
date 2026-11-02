@@ -172,3 +172,22 @@ def test_is_odps_partitioned_table_not_partitioned(
         result = DatabaseDAO.is_odps_partitioned_table(database, "my_table")
 
     assert result == (False, [])
+
+
+def test_odps_metadata_has_required_fields() -> None:
+    """Regression test for #42980: OdpsEngineSpec must expose the four
+    ``REQUIRED_FIELDS`` from ``lint_metadata.py`` so the DB picker renders
+    the driver with useful context (description, pypi package, connection
+    string template, categories).
+
+    Deliberately narrow — checks presence + the driver package name pinned
+    by the ``daos/database.py`` runtime warning for ``pyodps``. Does not
+    lock down description wording, URLs, or optional-field decisions.
+    """
+    metadata = getattr(OdpsEngineSpec, "metadata", None)
+    assert metadata is not None, "OdpsEngineSpec.metadata must be defined"
+    for field in ("description", "categories", "pypi_packages", "connection_string"):
+        assert field in metadata, (
+            f"OdpsEngineSpec.metadata missing required field: {field}"
+        )
+    assert "pyodps" in metadata["pypi_packages"]

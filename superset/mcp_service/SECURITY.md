@@ -402,7 +402,7 @@ Different MCP tools require different Superset permissions:
 | `update_chart` | `can_write` on Slice + editorship or Admin | Must be a chart editor or Admin |
 | `list_datasets` | `datasource_access` | Returns only accessible datasets |
 | `get_dataset_info` | `datasource_access` | Validates dataset access |
-| `execute_sql` | `can_sql_json` or `can_sqllab` on Database | Executes SQL with RLS |
+| `execute_sql` | `can_execute_sql_query` on SQLLab | Executes SQL with RLS |
 | `generate_dashboard` | `can_write` on Dashboard + dataset access | Creates new dashboard |
 
 **Permission Denied Handling**:

@@ -16,10 +16,14 @@
 # under the License.
 """Tests for the examples importer: orchestration, transpilation, normalization."""
 
+import copy
 from unittest.mock import MagicMock, patch
+
+from sqlalchemy.orm.session import Session
 
 from superset.commands.importers.v1.examples import transpile_virtual_dataset_sql
 from superset.examples.utils import _normalize_dataset_schema
+from superset.utils import json as utils_json
 
 
 def test_transpile_virtual_dataset_sql_no_sql():
@@ -313,6 +317,7 @@ def test_import_passes_ignore_permissions_to_all_importers(
         "charts/test/chart.yaml": {
             "uuid": chart_uuid,
             "dataset_uuid": dataset_uuid,
+            "params": {"viz_type": "table"},
         },
         "dashboards/test.yaml": {
             "uuid": dashboard_uuid,
@@ -346,6 +351,117 @@ def test_import_passes_ignore_permissions_to_all_importers(
 
     mock_import_dashboard.assert_called_once()
     assert mock_import_dashboard.call_args[1].get("ignore_permissions") is True
+
+
+@patch(
+    "superset.commands.importers.v1.examples.safe_insert_dashboard_chart_relationships"
+)
+@patch("superset.commands.importers.v1.examples.import_dataset")
+@patch("superset.commands.importers.v1.examples.import_database")
+def test_import_dedupes_datasets_with_same_uuid(
+    mock_import_db,
+    mock_import_dataset,
+    mock_safe_insert,
+):
+    """_import() must import a given dataset uuid at most once per run.
+
+    Two example folders can ship a dataset config for the same
+    underlying table with an identical uuid (e.g. "world_health" and
+    "misc_charts" both shipping a config for "wb_health_population").
+    Importing it twice repeats the same column/metric sync for no
+    benefit.
+    """
+    from superset.commands.importers.v1.examples import ImportExamplesCommand
+
+    db_uuid = "a2dc77af-e654-49bb-b321-40f6b559a1ee"
+    dataset_uuid = "69e9de42-fe7f-4948-946a-f7913227aee8"
+
+    mock_db_obj = MagicMock()
+    mock_db_obj.uuid = db_uuid
+    mock_db_obj.id = 1
+    mock_import_db.return_value = mock_db_obj
+
+    mock_dataset_obj = MagicMock()
+    mock_dataset_obj.uuid = dataset_uuid
+    mock_dataset_obj.id = 10
+    mock_dataset_obj.table_name = "wb_health_population"
+    mock_import_dataset.return_value = mock_dataset_obj
+
+    configs = {
+        "databases/examples.yaml": {
+            "uuid": db_uuid,
+            "database_name": "examples",
+            "sqlalchemy_uri": "sqlite:///test.db",
+        },
+        "datasets/examples/world_health.yaml": {
+            "uuid": dataset_uuid,
+            "table_name": "wb_health_population",
+            "database_uuid": db_uuid,
+            "schema": None,
+            "sql": None,
+        },
+        "datasets/examples/wb_health_population.yaml": {
+            "uuid": dataset_uuid,
+            "table_name": "wb_health_population",
+            "database_uuid": db_uuid,
+            "schema": None,
+            "sql": None,
+        },
+    }
+
+    with patch(
+        "superset.commands.importers.v1.examples.get_example_default_schema",
+        return_value=None,
+    ):
+        ImportExamplesCommand._import(configs)
+
+    mock_import_dataset.assert_called_once()
+
+
+# A dataset id that no import into a fresh database can assign.
+STALE_DATASET_ID = 123456789
+
+
+def test_import_rewrites_stale_chart_datasource_reference(
+    app_context: None, session: Session
+) -> None:
+    """Imported charts query the dataset created by the import, not the one named
+    by the stale id kept in the exported ``params``."""
+    from superset.commands.importers.v1.examples import ImportExamplesCommand
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.slice import Slice
+    from tests.integration_tests.fixtures.importexport import (
+        chart_config,
+        database_config_sqlite,
+        dataset_config,
+    )
+
+    SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    chart = copy.deepcopy(chart_config)
+    chart["params"]["datasource"] = f"{STALE_DATASET_ID}__table"
+    dataset = copy.deepcopy(dataset_config)
+    dataset["database_uuid"] = database_config_sqlite["uuid"]
+    dataset["uuid"] = chart["dataset_uuid"]
+    configs = {
+        "databases/examples.yaml": copy.deepcopy(database_config_sqlite),
+        "datasets/examples/dataset.yaml": dataset,
+        "charts/examples/chart.yaml": chart,
+    }
+
+    with patch(
+        "superset.commands.importers.v1.examples.get_example_default_schema",
+        return_value=None,
+    ):
+        ImportExamplesCommand._import(configs)
+
+    imported_dataset = session.query(SqlaTable).one()
+    imported_chart = session.query(Slice).one()
+    assert imported_chart.datasource_id == imported_dataset.id
+    assert (
+        utils_json.loads(imported_chart.params)["datasource"]
+        == f"{imported_dataset.id}__table"
+    )
 
 
 def test_normalize_dataset_schema_converts_main_to_null():

@@ -203,7 +203,7 @@ test('display no compatible schema found when schema api throws errors', async (
   const select = screen.getByRole('combobox', {
     name: 'Select schema',
   });
-  userEvent.click(select);
+  await userEvent.click(select);
   expect(
     await screen.findByText('No compatible schema found'),
   ).toBeInTheDocument();

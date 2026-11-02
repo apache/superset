@@ -117,6 +117,7 @@ export type DatabaseObject = {
     disable_ssh_tunneling?: boolean;
     supports_dynamic_catalog?: boolean;
     supports_oauth2?: boolean;
+    oauth2_enabled?: boolean;
   };
 
   // SSH Tunnel information

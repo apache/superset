@@ -27,6 +27,7 @@ import {
 import { t } from '@apache-superset/core/translation';
 import type { EChartsCoreOption } from 'echarts/core';
 import { Refs } from '../types';
+import { sanitizeHtml as escapeHtml } from '../utils/series';
 import { EchartsBulletChartProps, BulletChartTransformedProps } from './types';
 import { tokenizeToNumericArray, tokenizeToStringArray } from './utils';
 import { estimateWrappedLegendRowCount } from '../utils/legendLayout';
@@ -225,11 +226,15 @@ export default function transformProps(
         tooltip: {
           formatter: (params?: { dataIndex?: number }) => {
             const i = params?.dataIndex ?? 0;
-            const prefix = grouped ? `${categories[i]} \u2014 ` : '';
+            const prefix = grouped
+              ? `${escapeHtml(categories[i])} \u2014 `
+              : '';
             const band = containingRangeLabel(measures[i]);
-            const bandLine = band ? `<br/>${t('Range')}: ${band}` : '';
+            const bandLine = band
+              ? `<br/>${escapeHtml(t('Range'))}: ${escapeHtml(band)}`
+              : '';
             return sanitizeHtml(
-              `${prefix}${metricLabel}: <b>${formatter(measures[i])}</b>${bandLine}`,
+              `${prefix}${escapeHtml(metricLabel)}: <b>${escapeHtml(formatter(measures[i]))}</b>${bandLine}`,
             );
           },
         },
@@ -258,7 +263,7 @@ export default function transformProps(
           tooltip: {
             formatter: () =>
               sanitizeHtml(
-                `${rangeLabels[index] || ''} \u2264 <b>${formatter(value)}</b>`,
+                `${escapeHtml(rangeLabels[index] || '')} \u2264 <b>${escapeHtml(formatter(value))}</b>`,
               ),
           },
         })),
@@ -275,7 +280,7 @@ export default function transformProps(
           tooltip: {
             formatter: () =>
               sanitizeHtml(
-                `${markerLabelAt(index, markerLabels, markers)}: <b>${formatter(value)}</b>`,
+                `${escapeHtml(markerLabelAt(index, markerLabels, markers))}: <b>${escapeHtml(formatter(value))}</b>`,
               ),
           },
         })),

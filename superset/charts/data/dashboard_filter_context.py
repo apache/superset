@@ -24,6 +24,7 @@ from typing import Any
 from flask_babel import gettext as _
 
 from superset import db, security_manager
+from superset.common.utils.time_grain_utils import apply_time_grain_to_base_axis
 from superset.constants import (
     EXTRA_FORM_DATA_APPEND_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
@@ -31,6 +32,8 @@ from superset.constants import (
 )
 from superset.models.dashboard import Dashboard
 from superset.utils import json
+from superset.utils.core import QueryObjectFilterClause
+from superset.utils.date_parser import is_no_time_range
 
 logger = logging.getLogger(__name__)
 
@@ -341,6 +344,24 @@ def get_dashboard_filter_context(
     return context
 
 
+def mark_dashboard_time_range_filters(
+    filters: list[QueryObjectFilterClause],
+) -> None:
+    """Give a dashboard time range provenance over saved unbounded predicates.
+
+    The query factory rewrites temporal predicates with the dashboard range; a
+    saved range with bounds stays the chart's own.
+    """
+    for filter_ in filters:
+        if not isinstance(filter_, dict):
+            continue  # Malformed saved filters are left to schema validation.
+        saved: object = filter_.get("val")
+        if filter_.get("op") == "TEMPORAL_RANGE" and (
+            saved is None or (isinstance(saved, str) and is_no_time_range(saved))
+        ):
+            filter_["isExtra"] = True
+
+
 def apply_dashboard_filter_context(  # noqa: C901
     query_context: dict[str, Any],
     extra_form_data: dict[str, Any],
@@ -373,10 +394,7 @@ def apply_dashboard_filter_context(  # noqa: C901
         # top-level key, but query_context objects expect it as an extra key.
         if custom_time_grain := extra_form_data.get("time_grain_sqla"):
             extras["time_grain_sqla"] = custom_time_grain
-            # get_time_grain() resolves grain from the first adhoc column (columns[0])
-            columns = query.get("columns") or []
-            if columns and isinstance(columns[0], dict):
-                columns[0]["timeGrain"] = custom_time_grain
+            apply_time_grain_to_base_axis(query, custom_time_grain)
 
         if extras:
             query["extras"] = extras
@@ -384,5 +402,7 @@ def apply_dashboard_filter_context(  # noqa: C901
         for src_key, target_key in EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.items():
             if src_key in extra_form_data:
                 query[target_key] = extra_form_data[src_key]
+                if src_key == "time_range" and extra_form_data[src_key]:
+                    mark_dashboard_time_range_filters(query.get("filters") or [])
 
         query["extra_form_data"] = extra_form_data

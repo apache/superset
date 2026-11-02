@@ -19,7 +19,8 @@ from __future__ import annotations
 
 from typing import Any, Callable, TYPE_CHECKING
 
-from flask_babel import gettext as __, ngettext
+from flask_babel import gettext as __, lazy_gettext as _, ngettext
+from flask_babel.speaklater import LazyString
 from jinja2 import TemplateError
 from jinja2.meta import find_undeclared_variables
 
@@ -35,7 +36,9 @@ if TYPE_CHECKING:
     from superset.jinja_context import BaseTemplateProcessor
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 
-PARAMETER_MISSING_ERR = __(
+# Lazy on purpose: evaluated at import time, an eager constant would be
+# frozen in the default locale (see the same convention in views/core.py).
+PARAMETER_MISSING_ERR: LazyString = _(
     "Please check your template parameters for syntax errors and make sure "
     "they match across your SQL query and Set Parameters. Then, try running "
     "your query again."
@@ -114,7 +117,7 @@ class SqlQueryRenderImpl(SqlQueryRender):
                 len(undefined_parameters),
                 parameters=utils.format_list(undefined_parameters),
             ),
-            suggestion_help_msg=PARAMETER_MISSING_ERR,
+            suggestion_help_msg=str(PARAMETER_MISSING_ERR),
             extra={
                 "undefined_parameters": list(undefined_parameters),
                 "template_parameters": execution_context.template_params,

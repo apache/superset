@@ -90,6 +90,7 @@ export const usePermissions = () => {
     canDrill,
     canDrillBy,
     canDrillToDetail,
+    canGetDrillInfo,
     canViewQuery,
     canViewTable,
   };

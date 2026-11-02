@@ -22,6 +22,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, ClassVar
 
+from superset.common.form_data_query_context import _table_time_offsets
 from superset.mcp_service.chart.chart_utils import (
     _summarize_filters,
     _table_chart_what,
@@ -36,12 +37,19 @@ from superset.mcp_service.common.error_schemas import ChartGenerationError
 class TableChartPlugin(BaseChartPlugin):
     """Plugin for table chart type."""
 
+    query_role_keys = BaseChartPlugin.query_role_keys | {"percent_metrics"}
     chart_type = "table"
     display_name = "Table"
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "table": "Table",
         "ag-grid-table": "Interactive Table",
     }
+    supports_column_append = True
+
+    def prepare_query_form_data(self, form_data: dict[str, Any]) -> None:
+        """Resolve inherited offsets before the filter merge removes their source."""
+        if (form_data.get("extra_form_data") or {}).get("time_compare"):
+            form_data["time_compare"] = _table_time_offsets(form_data)
 
     def pre_validate(
         self,
@@ -95,6 +103,23 @@ class TableChartPlugin(BaseChartPlugin):
     ) -> dict[str, Any]:
         return map_table_config(config)
 
+    def finalize_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        merged: dict[str, Any],
+        config: Any,
+    ) -> dict[str, Any]:
+        """Keep unmodeled percent metrics only for same-viz aggregate updates."""
+        if (
+            existing_form_data.get("viz_type") == new_form_data.get("viz_type")
+            and merged.get("query_mode") == "aggregate"
+            and "percent_metrics" not in new_form_data
+            and "percent_metrics" in existing_form_data
+        ):
+            merged["percent_metrics"] = existing_form_data["percent_metrics"]
+        return merged
+
     def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
         what = _table_chart_what(config, dataset_name)
         context = _summarize_filters(config.filters)
@@ -103,11 +128,31 @@ class TableChartPlugin(BaseChartPlugin):
     def resolve_viz_type(self, config: Any) -> str:
         return getattr(config, "viz_type", "table")
 
+    def resolve_update_config(
+        self,
+        config: Any,
+        existing_form_data: dict[str, Any],
+        *,
+        dataset_rebind: bool,
+    ) -> Any:
+        """Keep the saved table variant when the update does not name one."""
+        if (
+            not isinstance(config, TableChartConfig)
+            or "viz_type" in config.model_fields_set
+        ):
+            return config
+        saved_viz_type = existing_form_data.get("viz_type")
+        if saved_viz_type not in self.native_viz_types:
+            return config
+        # model_copy marks the viz_type as set, which carries it through the
+        # exclude_unset rebuild in normalize_column_refs.
+        return config.model_copy(update={"viz_type": saved_viz_type})
+
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
         # Preserve which nested column formatting fields were explicitly supplied.
         # Round-tripping them through model_dump/model_validate would materialize
         # omitted optional fields as None, turning a partial update into a clear.
-        config_dict = config.model_dump(exclude={"column_config"})
+        config_dict = config.model_dump(exclude={"column_config"}, exclude_unset=True)
         get_canonical = DatasetValidator.get_canonical_column_name
         get_canonical_metric = DatasetValidator.get_canonical_metric_name
         raw_column_names: dict[str, str] = {}
@@ -128,6 +173,7 @@ class TableChartPlugin(BaseChartPlugin):
                 raw_column_names.get(label, label): column_config
                 for label, column_config in config.column_config.items()
             }
+            normalized.__pydantic_fields_set__.add("column_config")
         return normalized
 
     def schema_error_hint(self) -> ChartGenerationError | None:

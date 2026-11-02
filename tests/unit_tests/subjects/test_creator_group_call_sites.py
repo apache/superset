@@ -30,9 +30,15 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from sqlalchemy.orm import Session
 
+from superset import db
+from superset.connectors.sqla.models import Database, SqlaTable
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
+from superset.utils import json
 
 
 def _group_subject(id_: int = 11) -> Subject:
@@ -173,13 +179,11 @@ def test_copy_dashboard_attaches_viewers_from_the_users_in_memory_groups(
 
     viewer = _group_subject()
     group = MagicMock()
-    new_user = MagicMock()
-    new_user.id = 5
-    new_user.groups = [group]
+    user = SimpleNamespace(id=5, groups=[group])
+    template = MagicMock()
     session = MagicMock()
-    # Both lookups (the user, then the template dashboard) go through the same
-    # mocked chain; a MagicMock stands in for either.
-    session.query.return_value.filter_by.return_value.first.return_value = new_user
+    session.query.return_value.filter_by.return_value.first.return_value = template
+    session.query.return_value.filter.return_value.all.return_value = [viewer]
 
     created: dict[str, Any] = {}
 
@@ -190,7 +194,9 @@ def test_copy_dashboard_attaches_viewers_from_the_users_in_memory_groups(
     with (
         patch.dict(dashboard_module.app.config, {"DASHBOARD_TEMPLATE_ID": 1}),
         patch.object(
-            dashboard_module.sqla, "inspect", return_value=MagicMock(session=session)
+            dashboard_module,
+            "Session",
+            return_value=MagicMock(__enter__=MagicMock(return_value=session)),
         ),
         patch.object(dashboard_module, "Dashboard", side_effect=_capture),
         patch("superset.subjects.utils.get_user_subject", return_value=None),
@@ -202,7 +208,7 @@ def test_copy_dashboard_attaches_viewers_from_the_users_in_memory_groups(
         dashboard_module.copy_dashboard(
             MagicMock(),
             MagicMock(),
-            SimpleNamespace(id=5),  # type: ignore[arg-type]
+            user,
         )
 
     assert created["viewers"] == [viewer]
@@ -267,72 +273,102 @@ def test_new_dashboard_view_attaches_default_viewers(app_context) -> None:
     assert created["viewers"] == [viewer]
 
 
-def test_dashboard_copy_dao_attaches_default_viewers(app_context) -> None:
+@pytest.fixture
+def dashboard_copy_source(session: Session) -> Dashboard:
+    """Persist a source whose three chart slots exercise the real clone loop."""
+    Dashboard.metadata.create_all(session.get_bind())
+    dataset: SqlaTable = SqlaTable(
+        table_name="creator_copy",
+        database=Database(database_name="creator_copy", sqlalchemy_uri="sqlite://"),
+    )
+    db.session.add(dataset)
+    db.session.flush()
+    source_viewer: Subject = _group_subject(12)
+    source_viewer.label = "source viewers"
+    source: Dashboard = Dashboard(
+        dashboard_title="source",
+        viewers=[source_viewer],
+        slices=[
+            Slice(
+                slice_name=f"chart {index}",
+                datasource_id=dataset.id,
+                datasource_type="table",
+            )
+            for index in range(3)
+        ],
+    )
+    db.session.add(source)
+    db.session.flush()
+    source.position_json = json.dumps(
+        {
+            f"CHART-{chart.id}": {"type": "CHART", "meta": {"chartId": chart.id}}
+            for chart in source.slices
+        }
+    )
+    return source
+
+
+def test_dashboard_copy_dao_attaches_default_viewers(
+    dashboard_copy_source: Dashboard,
+) -> None:
+    """The copied dashboard receives creator defaults, not the source's viewers."""
     from superset.daos import dashboard as dashboard_dao
 
-    viewer = _group_subject()
-    original = MagicMock()
-    original.slices = []
-    created: list[Any] = []
-
+    viewer: Subject = _group_subject()
+    viewer.label = "creator viewers"
     with (
         patch.object(dashboard_dao.security_manager, "is_editor", return_value=True),
         patch.object(dashboard_dao, "g", MagicMock(user=_user())),
-        patch.object(dashboard_dao, "db"),
-        patch.object(dashboard_dao.DashboardDAO, "set_dash_metadata"),
-        patch.object(
-            dashboard_dao,
-            "Dashboard",
-            side_effect=lambda: created.append(MagicMock())  # type: ignore[func-returns-value]
-            or created[-1],
-        ),
         patch("superset.subjects.utils.get_user_subject", return_value=None),
         patch(
             "superset.subjects.utils.get_default_viewers_for_new_asset",
             return_value=[viewer],
         ),
     ):
-        dashboard_dao.DashboardDAO.copy_dashboard(
-            original, {"dashboard_title": "copy", "json_metadata": "{}"}
+        copied: Dashboard = dashboard_dao.DashboardDAO.copy_dashboard(
+            dashboard_copy_source, {"dashboard_title": "copy", "json_metadata": "{}"}
         )
-
-    assert created[-1].viewers == [viewer]
+    db.session.expire_all()
+    assert copied.viewers == [viewer]
+    assert {subject.id for subject in dashboard_copy_source.viewers} == {12}
 
 
 def test_dashboard_copy_dao_attaches_default_viewers_to_cloned_charts(
-    app_context,
+    dashboard_copy_source: Dashboard,
 ) -> None:
+    """Real retained chart clones receive the same default viewers as the copy."""
     from superset.daos import dashboard as dashboard_dao
 
-    viewer = _group_subject()
-    clone = MagicMock()
-    source_slice = MagicMock()
-    source_slice.clone.return_value = clone
-    original = MagicMock()
-    original.slices = [source_slice]
-
+    viewer: Subject = _group_subject()
+    viewer.label = "creator viewers"
     with (
         patch.object(dashboard_dao.security_manager, "is_editor", return_value=True),
         patch.object(dashboard_dao, "g", MagicMock(user=_user())),
-        patch.object(dashboard_dao, "db"),
-        patch.object(dashboard_dao.DashboardDAO, "set_dash_metadata"),
-        patch.object(dashboard_dao, "Dashboard", return_value=MagicMock()),
         patch("superset.subjects.utils.get_user_subject", return_value=None),
         patch(
             "superset.subjects.utils.get_default_viewers_for_new_asset",
             return_value=[viewer],
         ),
     ):
-        dashboard_dao.DashboardDAO.copy_dashboard(
-            original,
+        copied: Dashboard = dashboard_dao.DashboardDAO.copy_dashboard(
+            dashboard_copy_source,
             {
                 "dashboard_title": "copy",
-                "json_metadata": '{"positions": {}}',
+                "json_metadata": json.dumps(
+                    {"positions": dashboard_copy_source.position}
+                ),
                 "duplicate_slices": True,
             },
         )
-
-    assert clone.viewers == [viewer]
+    db.session.expire_all()
+    assert copied.viewers == [viewer]
+    assert len(copied.slices) == 3
+    assert not {chart.id for chart in copied.slices} & {
+        chart.id for chart in dashboard_copy_source.slices
+    }
+    assert all(chart.viewers == [viewer] for chart in copied.slices)
+    assert all(chart.viewers == [] for chart in dashboard_copy_source.slices)
+    assert {subject.id for subject in dashboard_copy_source.viewers} == {12}
 
 
 def test_reset_ownership_attaches_default_viewers(app_context) -> None:
@@ -474,35 +510,38 @@ def test_legacy_explore_new_dashboard_attaches_default_viewers(app_context) -> N
     assert created["viewers"] == [viewer]
 
 
-def test_dashboard_copy_dao_resolves_creator_subjects_once(app_context) -> None:
+def test_dashboard_copy_dao_resolves_creator_subjects_once(
+    dashboard_copy_source: Dashboard,
+) -> None:
     """Both lookups are loop-invariant: N cloned charts must not mean N queries."""
     from superset.daos import dashboard as dashboard_dao
 
-    original = MagicMock()
-    original.slices = [MagicMock(), MagicMock(), MagicMock()]
-
+    viewer: Subject = _group_subject()
+    viewer.label = "creator viewers"
+    mock_user_subject: MagicMock
+    mock_viewers: MagicMock
     with (
         patch.object(dashboard_dao.security_manager, "is_editor", return_value=True),
         patch.object(dashboard_dao, "g", MagicMock(user=_user())),
-        patch.object(dashboard_dao, "db"),
-        patch.object(dashboard_dao.DashboardDAO, "set_dash_metadata"),
-        patch.object(dashboard_dao, "Dashboard", return_value=MagicMock()),
         patch(
             "superset.subjects.utils.get_user_subject", return_value=None
         ) as mock_user_subject,
         patch(
             "superset.subjects.utils.get_default_viewers_for_new_asset",
-            return_value=[_group_subject()],
+            return_value=[viewer],
         ) as mock_viewers,
     ):
-        dashboard_dao.DashboardDAO.copy_dashboard(
-            original,
+        copied: Dashboard = dashboard_dao.DashboardDAO.copy_dashboard(
+            dashboard_copy_source,
             {
                 "dashboard_title": "copy",
-                "json_metadata": '{"positions": {}}',
+                "json_metadata": json.dumps(
+                    {"positions": dashboard_copy_source.position}
+                ),
                 "duplicate_slices": True,
             },
         )
 
-    assert mock_user_subject.call_count == 1
-    assert mock_viewers.call_count == 1
+    assert len(copied.slices) == 3
+    mock_user_subject.assert_called_once_with(5)
+    mock_viewers.assert_called_once_with(5)

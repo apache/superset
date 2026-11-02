@@ -110,7 +110,10 @@ def test_get_dashboard_extra_filters_includes_native_filter_defaults(
     db.session.add_all([chart, dashboard])
     db.session.flush()
 
-    with patch("superset.charts.data.dashboard_filter_context._check_dashboard_access"):
+    with (
+        patch("superset.charts.data.dashboard_filter_context._check_dashboard_access"),
+        patch("superset.views.utils.security_manager.raise_for_access"),
+    ):
         extra_filters = get_dashboard_extra_filters(chart.id, dashboard.id)
 
     assert extra_filters == [{"col": "region", "op": "IN", "val": ["APAC"]}]
@@ -123,6 +126,7 @@ def test_get_dashboard_extra_filters_includes_native_filter_defaults(
 
     with (
         patch("superset.charts.data.dashboard_filter_context._check_dashboard_access"),
+        patch("superset.views.utils.security_manager.raise_for_access"),
         patch(
             "superset.views.utils.build_extra_filters",
             return_value=[legacy_filter],
@@ -134,3 +138,66 @@ def test_get_dashboard_extra_filters_includes_native_filter_defaults(
         legacy_filter,
         {"col": "region", "op": "IN", "val": ["APAC"]},
     ]
+
+
+def test_get_dashboard_extra_filters_denies_unauthorized_dashboard(
+    session: Session,
+) -> None:
+    """
+    A chart can legitimately be reused across multiple dashboards, so
+    chart-membership on a dashboard is not an entitlement check for that
+    dashboard. A caller who can access the chart but not the dashboard it's
+    also placed on must not have that dashboard's filter configuration
+    pulled into their request.
+    """
+    Dashboard.metadata.create_all(session.get_bind())
+
+    dataset = SqlaTable(
+        table_name="unauthorized_dash_table",
+        database=Database(
+            database_name="unauthorized_dash_db", sqlalchemy_uri="sqlite://"
+        ),
+    )
+    db.session.add(dataset)
+    db.session.flush()
+
+    chart = Slice(
+        slice_name="shared_chart",
+        datasource_id=dataset.id,
+        datasource_type="table",
+    )
+    dashboard = Dashboard(
+        dashboard_title="dashboard_caller_cant_access",
+        slices=[chart],
+        published=True,
+        json_metadata=json.dumps(
+            {
+                "default_filters": json.dumps(
+                    {"legacy-filter": {"country": ["Brazil"]}}
+                ),
+                "filter_scopes": {},
+            }
+        ),
+        position_json="{}",
+    )
+    db.session.add_all([chart, dashboard])
+    db.session.flush()
+
+    from unittest.mock import MagicMock
+
+    from superset.exceptions import SupersetSecurityException
+
+    with (
+        patch("superset.charts.data.dashboard_filter_context._check_dashboard_access"),
+        patch(
+            "superset.views.utils.security_manager.raise_for_access",
+            side_effect=SupersetSecurityException(MagicMock()),
+        ),
+        patch(
+            "superset.views.utils.build_extra_filters",
+            return_value=[{"col": "country", "op": "in", "val": ["Brazil"]}],
+        ),
+    ):
+        extra_filters = get_dashboard_extra_filters(chart.id, dashboard.id)
+
+    assert extra_filters == []

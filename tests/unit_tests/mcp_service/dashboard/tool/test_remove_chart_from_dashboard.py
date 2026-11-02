@@ -507,6 +507,50 @@ async def test_tabbed_layout_removes_all_occurrences(
 @patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
+async def test_removal_repairs_truncated_parents_on_surviving_charts(
+    mock_find_by_id: Mock,
+    mock_raise_for_editorship: Mock,
+    mock_update_cmd_cls: Mock,
+    mcp_server: object,
+) -> None:
+    """Removing a chart also repairs any pre-existing truncated ``parents``
+    on the charts that remain, so a dashboard written before this fix
+    self-heals the next time the MCP touches its layout."""
+    truncated_layout = _tabbed_layout()
+    # CHART-bbb (chart 20, survives the removal of chart 10) carries only
+    # its immediate parent, as an earlier MCP write may have persisted.
+    truncated_layout["CHART-bbb"]["parents"] = ["ROW-2"]
+
+    chart_10 = _mock_chart(id=10)
+    chart_20 = _mock_chart(id=20)
+    dashboard = _mock_dashboard(
+        slices=[chart_10, chart_20], position_json=json.dumps(truncated_layout)
+    )
+    updated_dashboard = _mock_dashboard(id=1, slices=[chart_20])
+    mock_find_by_id.side_effect = [dashboard, updated_dashboard]
+    mock_raise_for_editorship.return_value = None
+
+    mock_update_cmd = Mock()
+    mock_update_cmd.run.return_value = updated_dashboard
+    mock_update_cmd_cls.return_value = mock_update_cmd
+
+    content = await _call_remove(mcp_server, chart_id=10)
+
+    assert content["error"] is None
+    _, update_data = mock_update_cmd_cls.call_args.args
+    new_layout = json.loads(update_data["position_json"])
+    assert new_layout["CHART-bbb"]["parents"] == [
+        "ROOT_ID",
+        "TABS-1",
+        "TAB-2",
+        "ROW-2",
+    ]
+
+
+@patch("superset.commands.dashboard.update.UpdateDashboardCommand")
+@patch("superset.security_manager.raise_for_editorship")
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
 async def test_json_metadata_cleanup(
     mock_find_by_id: Mock,
     mock_raise_for_editorship: Mock,

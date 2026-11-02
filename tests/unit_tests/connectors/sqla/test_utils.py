@@ -191,6 +191,39 @@ def test_get_virtual_table_metadata_template_security_error_is_not_softened():
     assert "Template processing error" in str(exc_info.value.message)
 
 
+def test_get_virtual_table_metadata_template_error_message_is_clean():
+    """The message must be the SupersetError's own text, not str(ex)."""
+    mock_dataset = Mock(spec=SqlaTable)
+    mock_database = Mock(spec=Database)
+    mock_dataset.database = mock_database
+    mock_dataset.sql = "SELECT 1 {% if %}"
+
+    ex = SupersetSyntaxErrorException(
+        [
+            SupersetError(
+                message="Malformed template, expected 'endif'",
+                error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ]
+    )
+    ex.__cause__ = SecurityError("unrelated cause, not UndefinedError")
+    mock_template_processor = Mock()
+    mock_template_processor.process_template.side_effect = ex
+    mock_dataset.get_template_processor.return_value = mock_template_processor
+    mock_dataset.template_params_dict = {}
+
+    with pytest.raises(SupersetGenericDBErrorException) as exc_info:
+        get_virtual_table_metadata(mock_dataset)
+
+    message = str(exc_info.value.message)
+    assert message == (
+        "Template processing error: Malformed template, expected 'endif'"
+    )
+    assert "SupersetError(" not in message
+    assert "error_type=<" not in message
+
+
 def test_get_virtual_table_metadata_multiple_statements_not_allowed():
     """Test that multiple SQL statements raise security error."""
     mock_dataset = Mock(spec=SqlaTable)

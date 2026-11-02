@@ -40,6 +40,12 @@ class DatasourceType(Enum):
     Dataset = "dataset"
     SlTable = "sl_table"
     SavedQuery = "saved_query"
+    SemanticView = "semantic_view"
+
+
+DATASOURCE_TYPE_MAP = {
+    datasource_type.value: datasource_type for datasource_type in DatasourceType
+}
 
 
 UNARY_OPERATORS = ["IS NOT NULL", "IS NULL"]
@@ -67,10 +73,7 @@ class DatasourceKey:
     def __init__(self, key: str):
         id_str, type_str = key.split("__", 1)
         self.id = int(id_str)
-        # Default to Table; if type_str is 'query', then use Query.
-        self.type = DatasourceType.Table
-        if type_str == "query":
-            self.type = DatasourceType.Query
+        self.type = DATASOURCE_TYPE_MAP.get(type_str, DatasourceType.Table)
 
     def __str__(self) -> str:
         return f"{self.id}__{self.type.value}"

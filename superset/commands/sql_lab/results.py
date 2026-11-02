@@ -34,6 +34,7 @@ from superset.exceptions import (
 from superset.models.sql_lab import Query
 from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 from superset.utils import core as utils
+from superset.utils.database import warm_and_release_connection
 from superset.utils.dates import now_as_float
 from superset.views.utils import _deserialize_results_payload
 
@@ -108,6 +109,17 @@ class SqlExecutionResultsCommand(BaseCommand):
                 ),
                 status=400,
             ) from ex
+
+        # Release the DB connection back to the pool before the S3 fetch and the
+        # CPU-bound decompress/deserialize/expand work below: none of that needs
+        # the DB, and holding a connection for their duration (which can run well
+        # past this endpoint's client-side timeout for large results) is what
+        # exhausts the small per-worker SQLAlchemy pool when several large-result
+        # downloads land concurrently on the same gunicorn worker. `database` is
+        # warmed first since `_deserialize_results_payload` needs
+        # `self._query.database.db_engine_spec` later in `run()`, after the
+        # connection has been released.
+        warm_and_release_connection(self._query, "database")
 
         # Now fetch results from backend (query exists, so this is a valid request)
         read_from_results_backend_start = now_as_float()

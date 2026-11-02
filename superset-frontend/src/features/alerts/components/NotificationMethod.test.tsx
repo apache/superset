@@ -283,7 +283,7 @@ describe('NotificationMethod', () => {
     expect(screen.getByText('Email recipients')).toBeInTheDocument();
   });
 
-  test('should call onRemove when the delete button is clicked', () => {
+  test('should call onRemove when the delete button is clicked', async () => {
     render(
       <NotificationMethod
         setting={mockSetting}
@@ -298,7 +298,7 @@ describe('NotificationMethod', () => {
     );
 
     const deleteButton = document.querySelector('.delete-button');
-    if (deleteButton) userEvent.click(deleteButton);
+    if (deleteButton) await userEvent.click(deleteButton);
 
     expect(mockOnRemove).toHaveBeenCalledWith(1);
   });
@@ -899,7 +899,7 @@ describe('NotificationMethod', () => {
       />,
     );
 
-    userEvent.click(await screen.findByLabelText('sync'));
+    await userEvent.click(await screen.findByLabelText('sync'));
     fireEvent.click(await screen.findByTestId('recipients-load-options'));
 
     await waitFor(() => {
@@ -946,7 +946,7 @@ describe('NotificationMethod', () => {
       // Wait for RefreshLabel to be rendered (it may have a tooltip with the provided content)
       const refreshLabel = await waitFor(() => screen.getByLabelText('sync'));
       // Simulate a click on the RefreshLabel
-      userEvent.click(refreshLabel);
+      await userEvent.click(refreshLabel);
       // Verify that the SupersetClient.get was called indicating that updateSlackOptions executed
       await waitFor(() => {
         expect(supersetClientSpy).toHaveBeenCalled();

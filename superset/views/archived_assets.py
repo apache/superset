@@ -33,6 +33,19 @@ logger = logging.getLogger(__name__)
 _ADMITTING_RESOURCES = ("Chart", "Dashboard", "Dataset")
 
 
+def can_access_recently_archived() -> bool:
+    """Whether the current viewer can open the archived-assets page."""
+    return bool(
+        is_feature_enabled("SOFT_DELETE")
+        and getattr(g, "user", None)
+        and not g.user.is_anonymous
+        and any(
+            security_manager.can_access("can_read", resource)
+            for resource in _ADMITTING_RESOURCES
+        )
+    )
+
+
 class ArchivedAssetsView(BaseSupersetView):
     """Serves the SPA shell for the Archive (Recently-Archived) view.
 
@@ -58,9 +71,6 @@ class ArchivedAssetsView(BaseSupersetView):
             abort(404)
         if not g.user or g.user.is_anonymous:
             return redirect_to_login()
-        if not any(
-            security_manager.can_access("can_read", resource)
-            for resource in _ADMITTING_RESOURCES
-        ):
+        if not can_access_recently_archived():
             abort(403)
         return super().render_app_template()

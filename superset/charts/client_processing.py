@@ -25,6 +25,8 @@ In order to do that, we reproduce the post-processing in Python for these chart 
 """
 
 import logging
+from collections.abc import Callable
+from decimal import Decimal
 from functools import partial
 from io import BytesIO, StringIO
 from typing import Any, Optional, TYPE_CHECKING, Union
@@ -35,11 +37,14 @@ from flask import current_app
 from flask_babel import gettext as __
 
 from superset.common.chart_data import ChartDataResultFormat
+from superset.common.grouping_sets import GROUPING_MARKER_SUFFIX
+from superset.constants import SHOW_VALUES_AS_PERCENT_MODES, ShowValuesAs
 from superset.extensions import event_logger
 from superset.utils import csv, excel
 from superset.utils.core import (
     extract_dataframe_dtypes,
     get_column_names,
+    get_metric_name,
     get_metric_names,
 )
 from superset.utils.number_format import (
@@ -61,6 +66,18 @@ logger = logging.getLogger(__name__)
 # ``transformProps`` formatter selection.
 PERCENT_3_POINT = ",.3%"
 
+# The pivot renderer formats a fraction with ``usFmtPct``
+# (``react-pivottable/utilities.ts``), which is one decimal place -- not the
+# Table plugin's three.
+PERCENT_1_POINT = ",.1%"
+
+# The Excel equivalent, applied as a cell format so the value stays numeric.
+EXCEL_PERCENT_FORMAT = "0.0%"
+
+# ``VizType.TableAgGrid``. The AG Grid table plugin reuses the Table plugin's
+# column meta and formatter selection, so it shares this post-processor.
+AG_GRID_TABLE = "ag-grid-table"
+
 
 def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
     """
@@ -75,6 +92,400 @@ def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...
     return tuple(parts)
 
 
+# How a metric's rollup total is derived from its cells, mirroring
+# `additiveReducerFor` in the pivot plugin's `plugin/utilities.ts`: SUM and
+# COUNT add up, MIN takes the lowest, MAX the highest. Everything else (saved
+# metrics, adhoc SQL, AVG, ...) is non-additive and has no correct answer at
+# this layer, so it falls back to summing the cells.
+_ROLLUP_REDUCERS: dict[str, str] = {"MIN": "min", "MAX": "max"}
+DEFAULT_ROLLUP_REDUCER = "sum"
+
+
+def split_grouping_sets_levels(
+    df: pd.DataFrame,
+) -> tuple[pd.DataFrame, dict[frozenset[str], pd.DataFrame]]:
+    """
+    Separate a GROUPING SETS result into its leaf frame and rollup levels.
+
+    A pivot chart with non-additive metrics asks for every rollup level in one
+    frame, tagging each row with a ``GROUPING()`` marker per groupby column
+    (see ``common/grouping_sets.py``): ``0`` where the column is grouped at that
+    row's level, ``1`` where it has been rolled up. The rollup rows must not be
+    pivoted as ordinary rows -- their collapsed dimensions are NULL, so they
+    would add phantom rows and columns and inflate every denominator.
+
+    They are not discardable either: for a non-additive metric the database
+    rollup is the only correct total, and re-deriving one from the leaf cells
+    gives a different number (the mean of means, say, rather than the mean).
+    The chart divides by these values, so the export has to as well.
+
+    :return: the leaf frame, and each rollup level keyed by its grouped columns
+    """
+    markers = [
+        column
+        for column in df.columns
+        if isinstance(column, str) and column.endswith(GROUPING_MARKER_SUFFIX)
+    ]
+    if not markers:
+        return df, {}
+
+    grouped_of = {marker: marker[: -len(GROUPING_MARKER_SUFFIX)] for marker in markers}
+    levels: dict[frozenset[str], pd.DataFrame] = {}
+    leaf = df
+    for keys, rows_at_level in df.groupby(markers, sort=False):
+        # `groupby` yields a scalar key for a single column and a tuple beyond.
+        marker_values = keys if isinstance(keys, tuple) else (keys,)
+        grouped = frozenset(
+            grouped_of[marker]
+            for marker, rolled_up in zip(markers, marker_values, strict=True)
+            if not rolled_up
+        )
+        level = rows_at_level.drop(columns=markers).reset_index(drop=True)
+        levels[grouped] = level
+        if len(grouped) == len(markers):
+            leaf = level
+    return leaf, levels
+
+
+def get_metric_rollup_reducers(
+    metrics: list[Any], verbose_map: Optional[dict[str, Any]] = None
+) -> dict[str, str]:
+    """Map each metric's label to the reducer that rolls its cells up."""
+    reducers: dict[str, str] = {}
+    for metric in metrics:
+        reducer = DEFAULT_ROLLUP_REDUCER
+        if isinstance(metric, dict) and metric.get("expressionType") == "SIMPLE":
+            reducer = _ROLLUP_REDUCERS.get(
+                metric.get("aggregate") or "", DEFAULT_ROLLUP_REDUCER
+            )
+        reducers[get_metric_name(metric, verbose_map)] = reducer
+    return reducers
+
+
+def _collapsed_metric(present: list[Any] | set[Any]) -> Any:
+    """
+    The metric a rollup spanning `present` stands for, or `None` when `present`
+    spans more than one distinct metric.
+
+    A total that collapses the metric axis has no single meaningful value once
+    it mixes distinct metrics -- e.g. a "Total" cell combining `MAX(sales)`
+    with `MEDIAN(msrp)`. The browser change in #44657 blanks that case instead
+    of picking one arbitrarily (see ``metricAxis`` handling in
+    ``react-pivottable/utilities.ts``); mirror it here so exported/scheduled
+    values agree with what the chart shows.
+    """
+    distinct = present if isinstance(present, set) else set(present)
+    return next(iter(distinct)) if len(distinct) == 1 else None
+
+
+def _broadcast(total: pd.Series, block: pd.DataFrame, axis: int) -> pd.DataFrame:
+    """Spread a per-row (`axis` 0) or per-column (`axis` 1) total over `block`."""
+    if axis == 0:
+        spread = pd.concat([total] * len(block.columns), axis=1)
+        spread.columns = block.columns
+        return spread
+    return pd.DataFrame(
+        np.tile(total.reindex(block.columns).to_numpy(), (len(block.index), 1)),
+        index=block.index,
+        columns=block.columns,
+    )
+
+
+def _metric_of_column(column: Any, metric_level: int) -> Any:
+    """The metric a pivoted column belongs to."""
+    return column[metric_level] if isinstance(column, tuple) else column
+
+
+def _rollup_metric(column: Any, metric_level: int, metrics: set[str]) -> Any:
+    """The metric to read from a rollup record for a cell in ``column``.
+
+    A column carrying a total label instead of a metric name collapses the metric
+    axis; see ``_collapsed_metric``.
+    """
+    name = _metric_of_column(column, metric_level)
+    return name if name in metrics else _collapsed_metric(metrics)
+
+
+def _reduce(
+    data: Union[pd.DataFrame, pd.Series],
+    reducer: str,
+    axis: Optional[int] = None,
+) -> Any:
+    """Apply a rollup reducer (``sum``/``min``/``max``), skipping empty cells.
+
+    A rollup with no non-null observations stays blank:
+    ``sum`` otherwise defaults an all-NaN input to 0, treating missing values
+    as a measured zero.
+    """
+    method = getattr(data, reducer)
+    kwargs = {"min_count": 1} if reducer == "sum" else {}
+    return method(axis=axis, **kwargs) if axis is not None else method(**kwargs)
+
+
+def _rollup_index(
+    rollup_levels: dict[frozenset[str], pd.DataFrame],
+) -> Callable[[list[str]], dict[tuple[str, ...], dict[str, Any]]]:
+    """
+    Index each rollup level by its grouped dimension values, on first use.
+
+    Reshaping a level costs a `fillna` and a `to_dict` over the whole frame, so
+    it is done once per level rather than once per cell -- the difference
+    between linear and quadratic on a large pivot.
+    """
+    cache: dict[tuple[str, ...], dict[tuple[str, ...], dict[str, Any]]] = {}
+
+    def keyed(dimensions: list[str]) -> dict[tuple[str, ...], dict[str, Any]]:
+        cache_key = tuple(dimensions)
+        if cache_key not in cache:
+            level = rollup_levels.get(frozenset(dimensions))
+            cache[cache_key] = (
+                {}
+                if level is None
+                else {
+                    tuple(str(record[dimension]) for dimension in dimensions): record
+                    for record in level.fillna("SUPERSET_PANDAS_NAN").to_dict("records")
+                }
+            )
+        return cache[cache_key]
+
+    return keyed
+
+
+def _rollup_key(
+    label: Any, depth: int, metric_level: int, is_column: bool
+) -> tuple[str, ...]:
+    """The grouped dimension values a pivoted row or column label carries."""
+    parts = list(label) if isinstance(label, tuple) else [label]
+    if is_column:
+        # The column label interleaves the metric with the dimension values.
+        parts = [part for index, part in enumerate(parts) if index != metric_level]
+    return tuple(str(part) for part in parts[:depth])
+
+
+def _apply_rollup_totals(  # pylint: disable=too-many-arguments,too-many-locals
+    df: pd.DataFrame,
+    rows: list[str],
+    columns: list[str],
+    metrics: list[str],
+    rollup_levels: dict[frozenset[str], pd.DataFrame],
+    metric_level: int,
+    row_prefix_depth: dict[Any, int],
+    column_prefix_depth: dict[Any, int],
+) -> pd.DataFrame:
+    """
+    Replace inserted totals with the values the database computed.
+
+    A total grouping ``i`` row and ``j`` column dimensions is exactly the rollup
+    level over ``rows[:i] + columns[:j]``, which ``buildGroupbyCombinations``
+    requests whenever the chart displays that total. Reading it keeps the export
+    equal to the chart for a non-additive metric, where reducing the leaf cells
+    gives a different number.
+
+    A total the chart did not request keeps its leaf-derived value, so a missing
+    level degrades to the previous behaviour. A total the database returned as
+    NULL is kept as NULL, which is not the same thing -- the chart renders that
+    cell blank.
+    """
+    keyed = _rollup_index(rollup_levels)
+    metric_names = set(metrics)
+
+    def lookup(row: Any, column: Any) -> tuple[bool, Any]:
+        row_depth = row_prefix_depth.get(row, len(rows))
+        column_depth = column_prefix_depth.get(column, len(columns))
+        grouped = rows[:row_depth] + columns[:column_depth]
+        key = _rollup_key(row, row_depth, metric_level, is_column=False) + _rollup_key(
+            column, column_depth, metric_level, is_column=True
+        )
+        record = keyed(grouped).get(key)
+        if record is None:
+            return False, None
+        return True, record.get(_rollup_metric(column, metric_level, metric_names))
+
+    # Index positionally: a tuple label on a MultiIndex is ambiguous to `.loc`.
+    for column_position, column in enumerate(df.columns):
+        for row_position, row in enumerate(df.index):
+            if row not in row_prefix_depth and column not in column_prefix_depth:
+                continue  # a leaf cell, already carrying its own value
+            found, value = lookup(row, column)
+            if found:
+                df.iloc[row_position, column_position] = value
+    return df
+
+
+def _rollup_denominators(  # pylint: disable=too-many-arguments,too-many-locals
+    df: pd.DataFrame,
+    mode: str,
+    rows: list[str],
+    columns: list[str],
+    metrics: list[str],
+    rollup_levels: dict[frozenset[str], pd.DataFrame],
+    metric_level: int,
+    row_prefix_depth: dict[Any, int],
+    column_prefix_depth: dict[Any, int],
+    metrics_on_rows: bool,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Each cell's denominator, taken from the database-computed rollup levels.
+
+    A percent mode makes the chart request the level its denominator needs: for
+    "% of row" the cell's own row with the columns collapsed, for "% of column"
+    the reverse, for "% of total" both (see ``buildGroupbyCombinations``). A
+    subtotal divides by its own prefix, not by the grand total -- an "EU"
+    subtotal row divides by the ``{region}`` rollup.
+
+    The metrics layout decides which frame axis carries the displayed rows, so
+    "% of row" groups the column dimensions when metrics sit on rows.
+
+    :return: the denominators, and a mask of the cells the database resolved.
+        A resolved cell holding NULL stays NULL, where an unresolved one lets
+        the caller fall back to a leaf-derived total.
+    """
+    keyed = _rollup_index(rollup_levels)
+    metric_names = set(metrics)
+
+    def denominator(row: Any, column: Any) -> tuple[bool, Any]:
+        if mode == ShowValuesAs.PERCENT_OF_TOTAL:
+            grouped: list[str] = []
+            key: tuple[str, ...] = ()
+        else:
+            # The displayed row axis is the frame index, unless the metrics
+            # layout moved it to the columns.
+            along_index = (mode == ShowValuesAs.PERCENT_OF_ROW) != metrics_on_rows
+            if along_index:
+                depth = row_prefix_depth.get(row, len(rows))
+                grouped = rows[:depth]
+                key = _rollup_key(row, depth, metric_level, is_column=False)
+            else:
+                depth = column_prefix_depth.get(column, len(columns))
+                grouped = columns[:depth]
+                key = _rollup_key(column, depth, metric_level, is_column=True)
+        record = keyed(grouped).get(key)
+        if record is None:
+            return False, None
+        return True, record.get(_rollup_metric(column, metric_level, metric_names))
+
+    resolved = [[denominator(row, column) for column in df.columns] for row in df.index]
+    values = pd.DataFrame(
+        [[value for _, value in row] for row in resolved],
+        index=df.index,
+        columns=df.columns,
+    )
+    found = pd.DataFrame(
+        [[hit for hit, _ in row] for row in resolved],
+        index=df.index,
+        columns=df.columns,
+    )
+    return values.apply(pd.to_numeric, errors="coerce").astype(float), found
+
+
+def _apply_show_values_as(  # pylint: disable=too-many-arguments
+    df: pd.DataFrame,
+    mode: str,
+    axis: dict[str, int],
+    metrics: list[str],
+    combine_metrics: bool,
+    inserted_rows: list[Any],
+    inserted_columns: list[Any],
+    reducers: dict[str, str],
+    denominators: Optional[tuple[pd.DataFrame, pd.DataFrame]] = None,
+) -> pd.DataFrame:
+    """
+    Express each cell as a fraction of its row, column, or grand total.
+
+    Mirrors the client's ``fractionOf`` aggregator in
+    ``plugin-chart-pivot-table/src/react-pivottable/utilities.ts``. Two details
+    it inherits from there:
+
+    - Denominators are summed over leaf cells only. Totals and subtotals
+      inserted into the frame are numerators like any other cell -- a "% of
+      row" grand total row reads ``column total / grand total``, not the sum of
+      the fractions above it.
+    - A total is rolled up within a single metric, so a cell is never divided by
+      a total that mixes in another metric, and each metric uses its own
+      reducer -- a MIN/MAX metric divides by the row's minimum/maximum rather
+      than its sum. A total that combines distinct metrics stays blank; see
+      ``_collapsed_metric``.
+
+    A zero denominator yields NaN (blank) rather than infinity, matching
+    ``pandas_postprocessing.pivot``'s ``show_values_as``.
+    """
+    numeric = df.apply(pd.to_numeric, errors="coerce").astype(float)
+    is_multi_index = isinstance(df.columns, pd.MultiIndex)
+    # `combine_metrics` has already moved the metric to the lowest column level.
+    metric_level = df.columns.nlevels - 1 if combine_metrics and is_multi_index else 0
+    metric_names = set(metrics)
+    metric_of_column = [
+        key if key in metric_names else None
+        for key in df.columns.get_level_values(metric_level)
+    ]
+    leaf_rows = ~df.index.isin(inserted_rows)
+    leaf_columns = ~df.columns.isin(inserted_columns)
+
+    derived = pd.DataFrame(np.nan, index=numeric.index, columns=numeric.columns)
+    for metric in dict.fromkeys(metric_of_column):
+        selection = np.array([column == metric for column in metric_of_column])
+        # Mixed-metric numerators are blank, so the fallback cross-metric
+        # denominator cannot produce a displayed value.
+        denominator_selection = (
+            selection if metric is not None else np.ones(len(selection), dtype=bool)
+        )
+        # Derive the reducer from the columns forming the denominator, not from
+        # the numerator's own label: a total column carries a total label, but
+        # must still divide by a rollup of the metric it totals.
+        denominator_metric = _collapsed_metric(
+            [
+                column_metric
+                for column_metric, keep in zip(
+                    metric_of_column, denominator_selection, strict=True
+                )
+                if keep and column_metric is not None
+            ]
+        )
+        reducer = reducers.get(str(denominator_metric), DEFAULT_ROLLUP_REDUCER)
+        if denominator_metric is not None:
+            denominator_selection = denominator_selection & np.array(
+                [column == denominator_metric for column in metric_of_column]
+            )
+        block = numeric.loc[:, selection]
+        if mode == ShowValuesAs.PERCENT_OF_TOTAL:
+            leaf = numeric.loc[leaf_rows, leaf_columns & denominator_selection]
+            # Reduce through pandas, not numpy: a sparse pivot leaves NaN in
+            # cells whose group had no rows, and numpy would propagate that to
+            # the grand total, blanking every cell.
+            grand_total = _reduce(_reduce(leaf, reducer, axis=0), reducer)
+            group_denominator = pd.DataFrame(
+                np.nan if pd.isna(grand_total) else grand_total,
+                index=block.index,
+                columns=block.columns,
+            )
+        else:
+            summed, divided = (
+                (axis["rows"], axis["columns"])
+                if mode == ShowValuesAs.PERCENT_OF_COLUMN
+                else (axis["columns"], axis["rows"])
+            )
+            # The metric lives on the column axis, so only a rollup taken along
+            # that axis has to stay within one metric.
+            leaf = (
+                numeric.loc[:, leaf_columns & denominator_selection]
+                if summed == 1
+                else numeric.loc[leaf_rows, :]
+            )
+            total = _reduce(leaf, reducer, axis=summed)
+            group_denominator = _broadcast(total, block, divided)
+        derived.loc[:, selection] = group_denominator
+
+    denominator = derived
+    if denominators is not None:
+        # Database-computed rollups win wherever the chart requested the level.
+        # Mask on whether the level resolved, not on whether the value is null:
+        # a rollup the database returned as NULL leaves the cell blank, as the
+        # chart does, while an unrequested level falls back to the leaf total.
+        values, found = denominators
+        denominator = derived.mask(found, values)
+    return numeric / denominator.replace(0, np.nan)
+
+
 def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-statements, too-many-branches  # noqa: C901
     df: pd.DataFrame,
     rows: list[str],
@@ -87,8 +498,31 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     show_columns_total: bool = False,
     apply_metrics_on_rows: bool = False,
     metric_name_aggfunc: Optional[str] = None,
+    show_values_as: Optional[str] = None,
+    metric_rollup_reducers: Optional[dict[str, str]] = None,
+    rollup_levels: Optional[dict[frozenset[str], pd.DataFrame]] = None,
 ) -> pd.DataFrame:
+    percent_mode = (
+        show_values_as if show_values_as in SHOW_VALUES_AS_PERCENT_MODES else None
+    )
+    reducers = metric_rollup_reducers or {}
+    if percent_mode:
+        # The chart ignores `aggregateFunction` post-SIP-216: cells arrive
+        # pre-aggregated from the database and totals are per-metric rollups of
+        # them. Match that here so the totals and the percent denominators
+        # cannot disagree -- otherwise a total stops dividing by itself and the
+        # Total row/column reads something other than 100%.
+        aggfunc = "Sum"
     metric_name = __("Total (%(aggfunc)s)", aggfunc=metric_name_aggfunc or aggfunc)
+    # Labels of the total/subtotal rows and columns inserted below, so the
+    # `showValuesAs` denominators can be summed over leaf cells only.
+    inserted_rows: list[Any] = []
+    inserted_columns: list[Any] = []
+    # How many dimensions of its own axis each inserted total still groups; 0
+    # collapses the axis entirely. Together with the other axis they name the
+    # rollup level holding that total's database-computed value.
+    row_prefix_depth: dict[Any, int] = {}
+    column_prefix_depth: dict[Any, int] = {}
 
     if transpose_pivot:
         rows, columns = columns, rows
@@ -98,6 +532,11 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     # returning it
     if apply_metrics_on_rows:
         rows, columns = columns, rows
+        # The frame is transposed on the way out, which flips the axis each
+        # total was inserted on. Swap the toggles too, so `rowTotals` still
+        # means the right-hand Total column of the rendered table, whether or
+        # not there are column dimensions to group by.
+        show_rows_total, show_columns_total = show_columns_total, show_rows_total
         axis = {"columns": 0, "rows": 1}
     else:
         axis = {"columns": 1, "rows": 0}
@@ -150,16 +589,19 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
         # of metrics defined by the user
         df = df[metrics]
 
-    # compute fractions, if needed
-    if aggfunc.endswith(" as Fraction of Total"):
-        total = df.sum().sum()
-        df = df.astype(total.dtypes) / total
-    elif aggfunc.endswith(" as Fraction of Columns"):
-        total = df.sum(axis=axis["rows"])
-        df = df.astype(total.dtypes).div(total, axis=axis["columns"])
-    elif aggfunc.endswith(" as Fraction of Rows"):
-        total = df.sum(axis=axis["columns"])
-        df = df.astype(total.dtypes).div(total, axis=axis["rows"])
+    # Compute fractions, if needed. `showValuesAs` supersedes the pre-SIP-216
+    # "... as Fraction of ..." aggregate functions, and is applied after the
+    # totals below so each total divides by its own rollup, as the chart does.
+    if not percent_mode:
+        if aggfunc.endswith(" as Fraction of Total"):
+            total = df.sum().sum()
+            df = df.astype(total.dtypes) / total
+        elif aggfunc.endswith(" as Fraction of Columns"):
+            total = df.sum(axis=axis["rows"])
+            df = df.astype(total.dtypes).div(total, axis=axis["columns"])
+        elif aggfunc.endswith(" as Fraction of Rows"):
+            total = df.sum(axis=axis["columns"])
+            df = df.astype(total.dtypes).div(total, axis=axis["rows"])
 
     # convert to a MultiIndex to simplify logic
     if not isinstance(df.index, pd.MultiIndex):
@@ -167,6 +609,41 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     if not isinstance(df.columns, pd.MultiIndex):
         df.columns = pd.MultiIndex.from_tuples([(str(i),) for i in df.columns])
 
+    # Rollups follow each metric's own reducer under a percent mode, so a total
+    # still divides by itself: a MAX metric's row total is the row's maximum,
+    # and dividing that maximum by itself reads 100%.
+    totals_metric_level = df.columns.nlevels - 1 if combine_metrics else 0
+    # Single-metric totals retain their reducer. Mixed-metric totals are
+    # blanked before reduction; the fallback cannot make them meaningful.
+    cross_metric_reducer = (
+        reducers.get(metrics[0], DEFAULT_ROLLUP_REDUCER)
+        if len(set(metrics)) == 1
+        else DEFAULT_ROLLUP_REDUCER
+    )
+
+    metric_names = set(metrics)
+
+    def collapse(block: pd.DataFrame) -> tuple[Optional[pd.DataFrame], str]:
+        """Narrow a total's source columns to one metric, and pick its reducer.
+
+        Returns `(None, reducer)` when `block` spans more than one distinct
+        metric: such a total has no single meaningful value, so the caller
+        blanks it instead of summing across metrics that share no unit
+        (matches the browser change proposed in #44657).
+        """
+        present = [
+            _metric_of_column(column, totals_metric_level) for column in block.columns
+        ]
+        known = [metric for metric in present if metric in metric_names]
+        if not known:
+            return block, cross_metric_reducer
+        metric = _collapsed_metric(known)
+        if metric is None:
+            return None, DEFAULT_ROLLUP_REDUCER
+        keep = [column == metric for column in present]
+        return block.loc[:, keep], reducers.get(str(metric), DEFAULT_ROLLUP_REDUCER)
+
+    mixed_metric_totals: list[Any] = []
     if show_rows_total:
         # add subtotal for each group and overall total; we start from the
         # overall group, and iterate deeper into subgroups
@@ -187,12 +664,34 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
             subgroups = {group[:level] for group in groups}
             for subgroup in subgroups:
                 slice_ = df.columns.get_loc(subgroup)
-                subtotal = pivot_v2_aggfunc_map[aggfunc](df.iloc[:, slice_], axis=1)
+                block = df.iloc[:, slice_]
+                if aggfunc != CURRENCY_CONTEXT_AGGREGATION:
+                    # A metric column can hold non-numeric values (a literal
+                    # "NULL", say), which a reduction across columns cannot add
+                    # to a number. The row totals below already coerce; do the
+                    # same here so a total means the same thing on both axes.
+                    block = block.apply(pd.to_numeric, errors="coerce")
+                source, reducer = collapse(block)
+                mixed_metrics = (
+                    source is None and aggfunc != CURRENCY_CONTEXT_AGGREGATION
+                )
+                if mixed_metrics:
+                    subtotal = pd.Series(np.nan, index=block.index)
+                elif percent_mode:
+                    subtotal = _reduce(source, reducer, axis=1)
+                else:
+                    subtotal = summarize_frame(aggfunc, block, axis=1)
                 depth = df.columns.nlevels - len(subgroup) - 1
                 total = metric_name if level == 0 else __("Subtotal")
                 subtotal_name = tuple([*subgroup, total, *([""] * depth)])  # noqa: C409
                 # insert column after subgroup
                 df.insert(int(slice_.stop), subtotal_name, subtotal)
+                inserted_columns.append(subtotal_name)
+                if mixed_metrics:
+                    mixed_metric_totals.append(subtotal_name)
+                column_prefix_depth[subtotal_name] = (
+                    level if combine_metrics else max(0, level - 1)
+                )
 
     if rows and show_columns_total:
         # add subtotal for each group and overall total; we start from the
@@ -211,27 +710,85 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                     )
                     raise
 
-                subtotal_values = df.iloc[slice_, :]
+                # These labels were inserted above; no columns are removed
+                # before this point. Keep strict lookup to catch broken invariants.
+                subtotal_values = df.iloc[slice_, :].drop(columns=mixed_metric_totals)
                 if aggfunc != CURRENCY_CONTEXT_AGGREGATION:
                     subtotal_values = subtotal_values.apply(
                         pd.to_numeric, errors="coerce"
                     )
-                subtotal = pivot_v2_aggfunc_map[aggfunc](subtotal_values, axis=0)
+                if percent_mode:
+                    subtotal = subtotal_values.apply(
+                        lambda series: _reduce(series, collapse(series.to_frame())[1])
+                    )
+                else:
+                    subtotal = summarize_frame(aggfunc, subtotal_values, axis=0)
                 depth = groups.nlevels - len(subgroup) - 1
                 total = metric_name if level == 0 else __("Subtotal")
                 subtotal.name = tuple([*subgroup, total, *([""] * depth)])  # noqa: C409
                 # insert row after subgroup
                 df = pd.concat(
-                    [df[: slice_.stop], subtotal.to_frame().T, df[slice_.stop :]]
+                    [
+                        df[: slice_.stop],
+                        subtotal.to_frame().T.reindex(columns=df.columns),
+                        df[slice_.stop :],
+                    ]
                 )
+                inserted_rows.append(subtotal.name)
+                row_prefix_depth[subtotal.name] = level
 
-    # if we want to apply the metrics on the rows we need to pivot the
-    # dataframe back
-    if apply_metrics_on_rows:
-        df = df.T
+    # A non-additive metric's totals come from the database rollups the chart
+    # computed, in Actual Values mode as in the percent modes: reducing the
+    # already-aggregated leaf cells again (mean of means, distinct-count of
+    # counts, ...) is not the same number, and it is the number the browser
+    # shows. A total the database did not compute keeps its leaf-derived
+    # value. The currency-context pass holds sets of currency codes rather
+    # than metric values, so it keeps its leaf-derived unions.
+    if rollup_levels and aggfunc != CURRENCY_CONTEXT_AGGREGATION:
+        df = _apply_rollup_totals(
+            df,
+            rows,
+            columns,
+            metrics,
+            rollup_levels,
+            totals_metric_level,
+            row_prefix_depth,
+            column_prefix_depth,
+        )
 
-    # replace the remaining temporary placeholder string for np.nan after pivoting
+    if percent_mode:
+        df = _apply_show_values_as(
+            df,
+            percent_mode,
+            axis,
+            metrics,
+            combine_metrics,
+            inserted_rows,
+            inserted_columns,
+            reducers,
+            _rollup_denominators(
+                df,
+                percent_mode,
+                rows,
+                columns,
+                metrics,
+                rollup_levels or {},
+                totals_metric_level,
+                row_prefix_depth,
+                column_prefix_depth,
+                apply_metrics_on_rows,
+            )
+            if rollup_levels
+            else None,
+        )
+
+    # Replace placeholders before transposing, while column dtypes are intact.
     df.replace("SUPERSET_PANDAS_NAN", np.nan, inplace=True)
+    if apply_metrics_on_rows:
+        # Mixed blank columns must not coerce integer cells through float64
+        # during transposition (which would round integers above 2**53).
+        df = df.astype(object).T if mixed_metric_totals else df.T
+
     df.rename(
         index={"SUPERSET_PANDAS_NAN": np.nan},
         columns={"SUPERSET_PANDAS_NAN": np.nan},
@@ -283,6 +840,78 @@ PIVOT_AGGREGATIONS_WITHOUT_CURRENCY_CONTEXT = frozenset(
 )
 
 
+def _sample_dispersion(
+    data: Union[pd.DataFrame, pd.Series],
+    method: str,
+    axis: Optional[int] = None,
+) -> Any:
+    """
+    Sample variance/standard deviation that is 0 for a single observation.
+
+    Accepts a Series (cell aggregation) or a DataFrame reduced along ``axis``
+    (row/column summaries), mirroring how the other reducers are invoked.
+    """
+    if isinstance(data, pd.DataFrame):
+        axis = 0 if axis is None else axis
+        result = getattr(data, method)(axis=axis)
+        # A scope with zero or one non-null observations has a defined spread
+        # of 0 (as for a single-cell aggregation, or an empty one); count
+        # observations per scope so sparse pivots, where physical columns
+        # outnumber observations, agree. `<= 1` (not `== 1`) also covers the
+        # zero-observation case, which `getattr(data, method)` otherwise
+        # leaves as NaN instead of 0, unlike the Series branch below.
+        return result.mask(data.count(axis=axis) <= 1, 0)
+    return getattr(data, method)() if len(data) > 1 else 0
+
+
+def sample_variance(
+    data: Union[pd.DataFrame, pd.Series], axis: Optional[int] = None
+) -> Any:
+    """Sample variance (ddof=1), 0 for fewer than two observations."""
+    return _sample_dispersion(data, "var", axis)
+
+
+def sample_standard_deviation(
+    data: Union[pd.DataFrame, pd.Series], axis: Optional[int] = None
+) -> Any:
+    """Sample standard deviation (ddof=1), 0 for fewer than two observations."""
+    return _sample_dispersion(data, "std", axis)
+
+
+def _first_value(series: pd.Series) -> Any:
+    """First element of a series, NaN when empty."""
+    return series.iloc[0] if len(series) else np.nan
+
+
+def _last_value(series: pd.Series) -> Any:
+    """Last element of a series, NaN when empty."""
+    return series.iloc[-1] if len(series) else np.nan
+
+
+# Series-only reducers need an explicit per-row/column application when
+# summarizing a DataFrame along an axis, since they take no ``axis`` argument.
+_SERIES_ONLY_SUMMARY_REDUCERS: dict[str, Callable[[pd.Series], Any]] = {
+    "Count": pd.Series.count,
+    "Count Unique Values": pd.Series.nunique,
+    "List Unique Values": list_unique_values,
+    "First": _first_value,
+    "Last": _last_value,
+    "Count as Fraction of Total": pd.Series.count,
+    "Count as Fraction of Rows": pd.Series.count,
+    "Count as Fraction of Columns": pd.Series.count,
+}
+
+
+def summarize_frame(aggfunc: str, data: pd.DataFrame, axis: int) -> pd.Series:
+    """Reduce a DataFrame along ``axis`` with the named pivot aggregation."""
+    reducer = _SERIES_ONLY_SUMMARY_REDUCERS.get(aggfunc)
+    if reducer is None:
+        return pivot_v2_aggfunc_map[aggfunc](data, axis=axis)
+    if data.shape[1 - axis] == 0:
+        return pd.Series(dtype=object)
+    return data.apply(reducer, axis=axis)
+
+
 pivot_v2_aggfunc_map = {
     "Count": pd.Series.count,
     "Count Unique Values": pd.Series.nunique,
@@ -290,10 +919,8 @@ pivot_v2_aggfunc_map = {
     "Sum": pd.Series.sum,
     "Average": pd.Series.mean,
     "Median": pd.Series.median,
-    "Sample Variance": lambda series: pd.series.var(series) if len(series) > 1 else 0,
-    "Sample Standard Deviation": (
-        lambda series: pd.series.std(series) if len(series) > 1 else 0,
-    ),
+    "Sample Variance": sample_variance,
+    "Sample Standard Deviation": sample_standard_deviation,
     "Minimum": pd.Series.min,
     "Maximum": pd.Series.max,
     "First": lambda series: series[:1],
@@ -308,6 +935,25 @@ pivot_v2_aggfunc_map = {
 }
 
 
+def is_small_number(value: Any) -> bool:
+    """
+    Whether a cell takes the small-number format, as the browser decides it.
+
+    ``formatColumnValue`` in ``plugin-chart-table`` switches formatter when
+    ``Math.abs(value) < 1``, which only applies to numbers; booleans are not
+    numbers there.
+
+    The type check is not only about matching that: the percent metric branch
+    is the one caller that does not test ``is_numeric_dtype`` first, so a
+    percent metric column carrying a null or a text value reaches here, and
+    ``float`` would raise on both. NaN and infinity need no check of their own,
+    since ``abs`` leaves them outside the comparison just as ``Math.abs`` does.
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, float, Decimal)):
+        return False
+    return abs(float(value)) < 1
+
+
 def format_column(
     df: pd.DataFrame,
     column: Any,
@@ -316,6 +962,8 @@ def format_column(
     detected_currency: Optional[str] = None,
     currency_context: Optional[pd.Series] = None,
     fallback_to_detected: bool = True,
+    small_d3_format: Optional[str] = None,
+    small_currency: Optional[dict[str, Any]] = None,
 ) -> None:
     """
     Format a column in place when a number or currency format is configured.
@@ -324,18 +972,67 @@ def format_column(
     parallel ``currency_context`` series is present, AUTO uses each row/cell's
     contributing currencies first. Mixed context renders a neutral number;
     empty context optionally falls back to query-wide detection.
+
+    ``small_d3_format`` is the column's small-number format. The choice is per
+    cell rather than per column, matching ``formatColumnValue``: a value below
+    one in absolute value takes that format with the column config's own
+    currency, exactly what ``getSmallNumberFormatter`` builds, and every other
+    value keeps the column's normal format. An AUTO currency resolves against
+    the row's context on both paths, since the browser passes the row data to
+    either formatter.
+
+    ``small_currency`` is the column config's ``currencyFormat`` as it stands,
+    an absent one included, because the browser decides whether to build a
+    currency formatter on the object rather than on its symbol.
     """
-    if d3_format or currency.get("symbol"):
+    if small_d3_format and small_currency is not None:
+        # ``getSmallNumberFormatter`` builds a ``CurrencyFormatter`` from any
+        # ``currencyFormat`` object, and that constructor strips ``$`` from the
+        # format before the symbol is looked at, so a config whose currency was
+        # cleared still drops the ``$``. Stripping it away entirely leaves an
+        # empty format, which the browser's registry answers with its default
+        # key. Without a ``currencyFormat`` object at all the browser builds a
+        # plain number formatter, which honors the ``$``.
+        small_d3_format = small_d3_format.replace("$", "") or SMART_NUMBER
+
+    if d3_format or currency.get("symbol") or small_d3_format:
         if currency_context is None:
             resolved_currency = resolve_auto_currency(currency, detected_currency)
-            df[column] = df[column].apply(
-                partial(format_number_with_config, d3_format, resolved_currency)
+            format_value = partial(
+                format_number_with_config, d3_format, resolved_currency
             )
+            if small_d3_format:
+                format_small = partial(
+                    format_number_with_config, small_d3_format, small_currency or {}
+                )
+                df[column] = df[column].apply(
+                    lambda value: format_small(value)
+                    if is_small_number(value)
+                    else format_value(value)
+                )
+                return
+            df[column] = df[column].apply(format_value)
             return
 
         contexts = currency_context.reindex(df.index)
-        df[column] = [
-            format_number_with_config(
+
+        def format_with_context(value: Any, context: Any) -> Any:
+            if small_d3_format and is_small_number(value):
+                # ``formatValue`` hands the row's data to the small-number
+                # formatter too, so an AUTO currency there resolves against
+                # that row's contributing currencies. That formatter never
+                # sees the query-wide detection, hence no fallback to it.
+                return format_number_with_config(
+                    small_d3_format,
+                    resolve_auto_currency(
+                        small_currency or {},
+                        None,
+                        context,
+                        fallback_to_detected=False,
+                    ),
+                    value,
+                )
+            return format_number_with_config(
                 d3_format,
                 resolve_auto_currency(
                     currency,
@@ -345,6 +1042,9 @@ def format_column(
                 ),
                 value,
             )
+
+        df[column] = [
+            format_with_context(value, context)
             for value, context in zip(df[column], contexts, strict=True)
         ]
 
@@ -452,6 +1152,9 @@ def build_pivot_currency_context(
         **pivot_options,
         "aggfunc": CURRENCY_CONTEXT_AGGREGATION,
         "metric_name_aggfunc": pivot_options["aggfunc"],
+        # Cells here hold currency-code sets, not numbers, so a percent
+        # transform would coerce them away.
+        "show_values_as": None,
     }
     return pivot_df(currency_source, **currency_pivot_options)
 
@@ -519,6 +1222,39 @@ def merge_currency_formats(
     return currency_formats
 
 
+def effective_show_values_as(form_data: dict[str, Any]) -> Optional[str]:
+    """Return the ``showValuesAs`` percent mode the live chart actually renders.
+
+    A result aggregation (any ``aggregateFunction`` recognized by
+    ``RESULT_AGGREGATIONS`` on the frontend -- mirrored here by
+    ``pivot_v2_aggfunc_map``'s keys) takes over the cell/summary computation
+    on the frontend and hides the "Show values as" control in Explore (see
+    ``aggregateFunction``'s ``visibility`` in controlPanel.tsx and
+    ``resultFactory ?? fractionType`` in utilities.ts, where the result
+    aggregation always wins). Hiding the control doesn't reset its stored
+    value, so a percent choice made before switching to e.g. "Average" stays
+    persisted; every export/report path has to ignore it the same way the
+    chart does -- both when pivoting the data and when picking a cell format
+    -- rather than apply a percent transform (or a percent number format)
+    the live chart no longer shows.
+
+    An unrecognized ``aggregateFunction`` (absent, the "Metric" sentinel, a
+    stale pre-SIP-216 value this map doesn't know, or any other garbage) is
+    *not* an active result aggregation to the frontend's own
+    ``getResultAggregation`` lookup, which falls back to the metric
+    definition -- and the stored percent mode -- for anything it doesn't
+    recognize. Checking membership here instead of excluding only ``None``
+    and ``"Metric"`` keeps this in sync with that fallback, rather than
+    wrongly suppressing a percent mode the chart is still showing.
+    """
+    show_values_as = form_data.get("showValuesAs")
+    if show_values_as not in SHOW_VALUES_AS_PERCENT_MODES:
+        return None
+    if form_data.get("aggregateFunction") in pivot_v2_aggfunc_map:
+        return None
+    return show_values_as
+
+
 def pivot_table_v2(
     df: pd.DataFrame,
     form_data: dict[str, Any],
@@ -531,20 +1267,51 @@ def pivot_table_v2(
     """
     verbose_map = datasource.data["verbose_map"] if datasource else None
     metrics = get_metric_names(form_data["metrics"], verbose_map)
+    # A non-additive metric makes the chart query every rollup level at once:
+    # the leaf rows describe the table, the rest are its database-computed
+    # totals.
+    df, rollup_levels = split_grouping_sets_levels(df)
+    percent_mode = effective_show_values_as(form_data)
+    aggregate_function_raw = form_data.get("aggregateFunction")
+    # "Metric" (the new result-aggregation control's default, meaning "use the
+    # metric's own definition, no second aggregation pass") isn't a key in
+    # pivot_v2_aggfunc_map -- it never needed to be, since this backend path
+    # has no result-aggregation support yet (see #45215). Treat it, and any
+    # other value this map doesn't recognize, the same way an absent field
+    # always has been: fall back to "Sum".
+    aggregate_function = aggregate_function_raw
+    if aggregate_function not in pivot_v2_aggfunc_map:
+        aggregate_function = "Sum"
     pivot_options: dict[str, Any] = {
         "rows": get_column_names(form_data.get("groupbyRows"), verbose_map),
         "columns": get_column_names(form_data.get("groupbyColumns"), verbose_map),
         "metrics": metrics,
-        "aggfunc": form_data.get("aggregateFunction", "Sum"),
+        "aggfunc": aggregate_function,
         "transpose_pivot": bool(form_data.get("transposePivot")),
         "combine_metrics": bool(form_data.get("combineMetric")),
         "show_rows_total": bool(form_data.get("rowTotals")),
         "show_columns_total": bool(form_data.get("colTotals")),
         "apply_metrics_on_rows": form_data.get("metricsLayout") == "ROWS",
+        "show_values_as": percent_mode,
+        "metric_rollup_reducers": get_metric_rollup_reducers(
+            form_data["metrics"], verbose_map
+        ),
+        "rollup_levels": rollup_levels,
     }
 
     pivoted = pivot_df(df, **pivot_options)
     if apply_number_format:
+        if percent_mode:
+            # A ratio has no currency and ignores per-metric value formats, the
+            # same way the client skips `formattedAggregators` while a fraction
+            # is active.
+            return apply_pivot_number_formats(
+                pivoted,
+                form_data,
+                detected_currency,
+                datasource,
+                force_number_format=PERCENT_1_POINT,
+            )
         currency_context = None
         if (
             pivot_options["aggfunc"] not in PIVOT_AGGREGATIONS_WITHOUT_CURRENCY_CONTEXT
@@ -573,6 +1340,7 @@ def apply_pivot_number_formats(
     detected_currency: Optional[str] = None,
     datasource: Optional[Union["BaseDatasource", "Query"]] = None,
     currency_context: Optional[pd.DataFrame] = None,
+    force_number_format: Optional[str] = None,
 ) -> pd.DataFrame:
     """
     Apply `valueFormat`/`columnFormats` and currency config to pivot values.
@@ -580,11 +1348,20 @@ def apply_pivot_number_formats(
     The metric name is the first column level, or the last when `combineMetric`
     moves it there; in the ROWS metrics layout it is on the index instead.
     Per-metric overrides fall back to the global value format.
+
+    `force_number_format` applies one d3 format to every metric and drops the
+    currency config, for values whose configured format no longer applies.
     """
     value_format = form_data.get("valueFormat")
     column_formats = merge_column_formats(form_data, datasource)
     currency_format = get_pivot_currency_format(form_data)
     currency_formats = merge_currency_formats(form_data, datasource)
+    if force_number_format:
+        value_format = force_number_format
+        column_formats = {}
+        currency_format = {}
+        currency_formats = {}
+        currency_context = None
     metric_level = -1 if form_data.get("combineMetric") else 0
     metrics_on_rows = form_data.get("metricsLayout") == "ROWS"
 
@@ -640,6 +1417,12 @@ def table(
         df[currency_column].map(currency_context_value) if currency_column else None
     )
     column_config = form_data.get("column_config") or {}
+    # ``ColumnConfigControl`` offers the small-number format for both plugins,
+    # but the AG Grid table's cells are painted through ``valueFormatter``,
+    # which formats with the column's own formatter and never builds the
+    # small-number one the way ``formatColumnValue`` does. A report leaves that
+    # format alone rather than apply one the chart itself ignores.
+    applies_small_number_format = form_data.get("viz_type") != AG_GRID_TABLE
 
     def label_of(name: str) -> str:
         """Return the column label as it appears in ``df`` (verbose-renamed)."""
@@ -674,6 +1457,10 @@ def table(
     for column in df.columns:
         config = config_by_label.get(column) or {}
         configured_currency = config.get("currencyFormat") or {}
+        # The small-number formatter is built from this object whether or not a
+        # symbol survived in it, so an absent one has to stay distinguishable
+        # from a cleared one.
+        small_currency = config.get("currencyFormat")
         number_format = config.get("d3NumberFormat") or number_format_by_label.get(
             column
         )
@@ -682,15 +1469,45 @@ def table(
             if configured_currency.get("symbol")
             else currency_by_label.get(column) or {}
         )
+        # The small-number format has no dataset-level counterpart, and the
+        # browser pairs it with the column config's own currency rather than
+        # the resolved one, so both come straight from ``config``. A cleared
+        # Select leaves a blank string behind, which the browser treats as
+        # unset.
+        small_number_format = (
+            (config.get("d3SmallNumberFormat") or "").strip() or None
+            if applies_small_number_format
+            else None
+        )
 
         is_number = pd.api.types.is_numeric_dtype(df[column])
 
         if column in percent_metric_labels:
-            format_column(df, column, number_format or PERCENT_3_POINT, {})
+            # A percent metric's own formatter never carries a currency, but
+            # ``getSmallNumberFormatter`` still builds one from the column
+            # config, so the small-number cells need the row's context too.
+            format_column(
+                df,
+                column,
+                number_format or PERCENT_3_POINT,
+                {},
+                currency_context=row_currency_context,
+                small_d3_format=small_number_format,
+                small_currency=small_currency,
+            )
         elif (column in metric_labels and is_number) or (
-            is_number and (number_format or currency.get("symbol"))
+            is_number
+            and (number_format or currency.get("symbol") or small_number_format)
         ):
-            if not number_format and not currency.get("symbol"):
+            # Only a metric falls back to SMART_NUMBER, the way
+            # ``transformProps`` only builds a default formatter for one. A
+            # plain numeric column configured with just a small-number format
+            # keeps its other cells unformatted, as the browser does.
+            if (
+                column in metric_labels
+                and not number_format
+                and not currency.get("symbol")
+            ):
                 number_format = SMART_NUMBER
             format_column(
                 df,
@@ -700,6 +1517,8 @@ def table(
                 detected_currency,
                 row_currency_context,
                 fallback_to_detected=False,
+                small_d3_format=small_number_format,
+                small_currency=small_currency,
             )
 
     return df
@@ -718,20 +1537,29 @@ def _is_default_index_column(series: pd.Series) -> bool:
 def _read_excel_for_client_processing(
     data: bytes,
     form_data: dict[str, Any],
+    verbose_map: Optional[dict[str, str]] = None,
 ) -> pd.DataFrame:
     df = pd.read_excel(BytesIO(data))
     if len(df.columns) == 0:
         return df
 
     first_column = df.columns[0]
-    expected_columns = {
+    expected_columns: set[str] = {
         *get_column_names(form_data.get("columns")),
+        *get_column_names(form_data.get("all_columns")),
+        *get_column_names(form_data.get("groupby")),
         *get_column_names(form_data.get("groupbyRows")),
         *get_column_names(form_data.get("groupbyColumns")),
         *get_metric_names(form_data.get("metrics")),
+        *(f"%{name}" for name in get_metric_names(form_data.get("percent_metrics"))),
     }
+    # Query exports can already carry display labels rather than selection names.
+    if verbose_map:
+        expected_columns |= {
+            verbose_map.get(column, column) for column in expected_columns
+        }
 
-    if first_column in expected_columns:
+    if str(first_column) in expected_columns:
         return df
 
     if _is_default_index_column(df.iloc[:, 0]):
@@ -802,10 +1630,13 @@ def apply_client_processing(  # noqa: C901
                 decimal=decimal,
             )
         elif query["result_format"] == ChartDataResultFormat.XLSX:
-            df = _read_excel_for_client_processing(data, form_data)
+            df = _read_excel_for_client_processing(
+                data, form_data, datasource.data["verbose_map"] if datasource else None
+            )
 
-        # convert all columns to verbose (label) name
-        if datasource:
+        # Serialized exports already carry labels from QueryContextProcessor.get_data.
+        # Remapping those labels can mistake them for another column's raw name.
+        if datasource and query["result_format"] == ChartDataResultFormat.JSON:
             df.rename(columns=datasource.data["verbose_map"], inplace=True)
 
         apply_number_format = query["result_format"] == ChartDataResultFormat.JSON
@@ -862,14 +1693,17 @@ def apply_client_processing(  # noqa: C901
                 name if name is not None else "" for name in processed_df.index.names
             ]
         else:
-            processed_df.index = [
-                (
-                    " ".join(str(name) for name in index).strip()
-                    if isinstance(index, tuple)
-                    else index
-                )
-                for index in processed_df.index
-            ]
+            processed_df.index = pd.Index(
+                [
+                    (
+                        " ".join(str(name) for name in index).strip()
+                        if isinstance(index, tuple)
+                        else index
+                    )
+                    for index in processed_df.index
+                ],
+                name=processed_df.index.name,
+            )
 
         if query["result_format"] == ChartDataResultFormat.JSON:
             query["data"] = processed_df.to_dict()
@@ -886,6 +1720,15 @@ def apply_client_processing(  # noqa: C901
             excel.apply_column_types(processed_df, query["coltypes"])
             query["data"] = excel.df_to_excel(
                 processed_df,
+                # A percent mode leaves every cell a fraction. Excel can render
+                # those as percentages without turning them into text, so the
+                # workbook reads like the chart and still calculates.
+                number_format=(
+                    EXCEL_PERCENT_FORMAT
+                    if viz_type == "pivot_table_v2"
+                    and effective_show_values_as(form_data) is not None
+                    else None
+                ),
                 **{
                     **current_app.config["EXCEL_EXPORT"],
                     "index": show_default_index,

@@ -28,12 +28,15 @@ from io import BytesIO
 from typing import Any, Callable, TYPE_CHECKING
 
 import yaml
+from flask_babel import gettext as _
 
 from superset.commands.base import BaseCommand
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
+from superset.commands.exceptions import CommandInvalidError
 from superset.common.db_query_status import QueryStatus
 from superset.daos.dashboard import DashboardDAO
 from superset.exceptions import SupersetSecurityException
+from superset.utils import json
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -500,6 +503,16 @@ def _make_bytes_generator(data: bytes) -> Callable[[], bytes]:
     return lambda: data
 
 
+class ExportExampleSemanticViewError(CommandInvalidError):
+    """Example bundles cannot represent semantic-view dependencies."""
+
+    def __init__(self) -> None:
+        """Return a client error without exporting a misleading dataset mapping."""
+        super().__init__(
+            _("Example export does not support charts or filters using semantic views.")
+        )
+
+
 class ExportExampleCommand(BaseCommand):
     """Export dashboard as an example bundle with Parquet data and YAML configs.
 
@@ -531,6 +544,24 @@ class ExportExampleCommand(BaseCommand):
         self._dashboard = DashboardDAO.find_by_id(self._dashboard_id)
         if not self._dashboard:
             raise DashboardNotFoundError()
+
+        chart: Slice
+        for chart in self._dashboard.slices:
+            if chart.datasource_type == "semantic_view":
+                raise ExportExampleSemanticViewError()
+
+        metadata: dict[str, Any]
+        try:
+            metadata = json.loads(self._dashboard.json_metadata or "{}")
+        except ValueError:
+            # Match export_dashboard_yaml's handling of invalid JSON metadata.
+            return
+        native_filter: dict[str, Any]
+        target: dict[str, Any]
+        for native_filter in metadata.get("native_filter_configuration", []):
+            for target in native_filter.get("targets", []):
+                if target.get("datasourceType") == "semantic_view":
+                    raise ExportExampleSemanticViewError()
 
     def run(self) -> Iterator[tuple[str, Callable[[], bytes]]]:  # noqa: C901
         """Yield (filename, content_generator) tuples for ZIP packaging.

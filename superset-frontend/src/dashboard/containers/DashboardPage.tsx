@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
+import { createContext, FC, useEffect, useMemo, useRef } from 'react';
+import { lazyWithRetry } from 'src/utils/lazyWithRetry';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
+import useDashboardFilterSync from 'src/dashboard/useDashboardFilterSync';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import {
@@ -30,9 +32,14 @@ import {
   useDashboardCharts,
   useDashboardDatasets,
 } from 'src/hooks/apiResources';
+import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import { clearDashboardHistory } from 'src/dashboard/actions/dashboardLayout';
 import { setDatasources } from 'src/dashboard/actions/datasources';
+import {
+  provenSemanticDatasets,
+  replaceDashboardSemanticDatasets,
+} from 'src/dashboard/actions/dashboardInfo';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import {
   getAllActiveFilters,
@@ -52,6 +59,7 @@ import {
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import type { DashboardChartStates } from 'src/dashboard/types/chartState';
+import { DashboardDatasetsContext } from 'src/dashboard/contexts/DashboardDatasetsContext';
 
 import { nanoid } from 'nanoid';
 import type { ActiveFilters } from '../types';
@@ -83,7 +91,7 @@ type NativeFilterConfigEntry = Partial<Filter> & { id: string };
 
 export const DashboardPageIdContext = createContext('');
 
-const DashboardBuilder = lazy(
+const DashboardBuilder = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "DashboardContainer" */
@@ -151,6 +159,18 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   } = useDashboardDatasets(idOrSlug);
   const isDashboardHydrated = useRef(false);
 
+  const currentDashboardDatasets = useSelector(
+    (state: RootState) => state.dashboardInfo.semanticDatasets,
+  );
+  const semanticDatasetsGeneration = useSelector(
+    (state: RootState) => state.dashboardInfo.semanticDatasetsGeneration ?? 0,
+  );
+  const datasetRequest = useRef<{
+    dashboardId: number;
+    generation: number;
+  } | null>(null);
+  const previousDatasetsStatus = useRef<ResourceStatus | null>(null);
+
   const error = dashboardApiError || chartsApiError;
   // Only 404 gets a graceful not-found state; a 403 (access denied) still
   // surfaces through the error boundary.
@@ -171,6 +191,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const hydratedDashboardId = useSelector<RootState, number | undefined>(
     state => state.dashboardInfo?.id,
   );
+  useDashboardFilterSync(hydratedDashboardId === id ? id : undefined);
   const pageTitle =
     (hydratedDashboardId === id ? liveDashboardTitle : undefined) ||
     dashboard_title;
@@ -336,9 +357,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyToRender]);
 
-  // Capture original title before any effects run
-  const originalTitle = useMemo(() => document.title, []);
-
   // Update document title when dashboard title changes
   useEffect(() => {
     if (pageTitle) {
@@ -346,16 +364,13 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     }
   }, [pageTitle]);
 
-  // Restore original title on unmount
+  // Restore the app title on unmount. The title at mount is not a usable
+  // fallback: a direct page load already has the server-rendered name in it.
   useEffect(
     () => () => {
-      document.title =
-        originalTitle ||
-        theme?.brandAppName ||
-        theme?.brandLogoAlt ||
-        'Superset';
+      document.title = theme?.brandAppName || theme?.brandLogoAlt || 'Superset';
     },
-    [originalTitle, theme?.brandAppName, theme?.brandLogoAlt],
+    [theme?.brandAppName, theme?.brandLogoAlt],
   );
 
   useEffect(() => {
@@ -366,6 +381,41 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     }
     return () => {};
   }, [css]);
+
+  useEffect(() => {
+    if (dashboard?.id && hydratedDashboardId === dashboard.id) {
+      if (
+        datasetRequest.current?.dashboardId !== dashboard.id ||
+        (status === ResourceStatus.Loading &&
+          previousDatasetsStatus.current !== ResourceStatus.Loading)
+      ) {
+        datasetRequest.current = {
+          dashboardId: dashboard.id,
+          generation: semanticDatasetsGeneration,
+        };
+      }
+      previousDatasetsStatus.current = status;
+      dispatch(
+        replaceDashboardSemanticDatasets(
+          dashboard.id,
+          status === ResourceStatus.Complete && !datasetsApiError
+            ? provenSemanticDatasets(datasets)
+            : null,
+          undefined,
+          false,
+          datasetRequest.current.generation,
+        ),
+      );
+    }
+  }, [
+    dashboard?.id,
+    datasets,
+    datasetsApiError,
+    dispatch,
+    hydratedDashboardId,
+    semanticDatasetsGeneration,
+    status,
+  ]);
 
   useEffect(() => {
     if (datasetsApiError) {
@@ -422,18 +472,22 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         <>
           <SyncDashboardState dashboardPageId={dashboardPageId} />
           <DashboardPageIdContext.Provider value={dashboardPageId}>
-            <CrudThemeProvider
-              theme={reduxTheme !== undefined ? reduxTheme : dashboard?.theme}
+            <DashboardDatasetsContext.Provider
+              value={currentDashboardDatasets ?? null}
             >
-              <AutoRefreshProvider>
-                <DashboardContainer
-                  activeFilters={activeFilters as ActiveFilters}
-                  ownDataCharts={relevantDataMask}
-                >
-                  {DashboardBuilderComponent}
-                </DashboardContainer>
-              </AutoRefreshProvider>
-            </CrudThemeProvider>
+              <CrudThemeProvider
+                theme={reduxTheme !== undefined ? reduxTheme : dashboard?.theme}
+              >
+                <AutoRefreshProvider>
+                  <DashboardContainer
+                    activeFilters={activeFilters as ActiveFilters}
+                    ownDataCharts={relevantDataMask}
+                  >
+                    {DashboardBuilderComponent}
+                  </DashboardContainer>
+                </AutoRefreshProvider>
+              </CrudThemeProvider>
+            </DashboardDatasetsContext.Provider>
           </DashboardPageIdContext.Provider>
         </>
       ) : (

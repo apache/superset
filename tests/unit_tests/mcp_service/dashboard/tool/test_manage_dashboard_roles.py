@@ -69,6 +69,7 @@ def _mock_dashboard(
     dashboard.id = id
     dashboard.dashboard_title = title
     dashboard.slug = slug
+    dashboard.is_managed_externally = False
     dashboard.viewers = viewers if viewers is not None else []
     return dashboard
 
@@ -224,6 +225,7 @@ class TestManageDashboardRoles:
             id: int = 42
             dashboard_title: str = "Test Dashboard"
             slug: str = "test-slug"
+            is_managed_externally: bool = False
 
             @property
             def viewers(self) -> list[Mock]:

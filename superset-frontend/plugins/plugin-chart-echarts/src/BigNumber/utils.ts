@@ -54,14 +54,20 @@ export const getDateFormatter = (
 export function getOriginalLabel(
   metric: QueryFormMetric,
   metrics: Metric[] = [],
+  verboseMap: Record<string, string> = {},
 ): string {
   const metricLabel = typeof metric === 'string' ? metric : metric.label || '';
 
   if (isSavedMetric(metric)) {
     const metricEntry = metrics.find(m => m.metric_name === metric);
+    if (metricEntry) {
+      return metricEntry.verbose_name || metric;
+    }
+    const verboseName = Object.prototype.hasOwnProperty.call(verboseMap, metric)
+      ? verboseMap[metric]
+      : undefined;
     return (
-      metricEntry?.verbose_name ||
-      metricEntry?.metric_name ||
+      (typeof verboseName === 'string' ? verboseName : undefined) ||
       metric ||
       'Unknown Metric'
     );

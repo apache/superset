@@ -61,11 +61,11 @@ const setupCurrencySection = async () => {
 
   // Navigate to metrics tab - use findBy which has built-in waiting
   const metricButton = await screen.findByTestId('collection-tab-Metrics');
-  userEvent.click(metricButton);
+  await userEvent.click(metricButton);
 
   // Expand the metric row
   const expandToggles = await screen.findAllByLabelText(/expand row/i);
-  userEvent.click(expandToggles[0]);
+  await userEvent.click(expandToggles[0]);
 
   // Wait for currency section to be visible
   await screen.findByText('Metric currency');

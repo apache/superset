@@ -208,9 +208,75 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
   sortComparator: () => 0, // Disable frontend sorting to preserve backend order
 };
 
+/**
+ * The mapping to hand the time control's partition-pruning indicator, or `null`
+ * when this time range is not mirrored.
+ *
+ * The control renders whatever mapping it is given, so the applicability check
+ * belongs here, where the selected temporal column and the range are both in
+ * scope. Unlike an ad-hoc filter chip the control names no column of its own:
+ * the query path mirrors the time range only when the *chart's* temporal column
+ * is the mapped one (`superset/models/helpers.py`, the `granularity` and
+ * `always_filter_main_dttm` branches), and only when the range resolves to at
+ * least one bound -- `No filter` resolves to neither.
+ */
+function timeRangePartitionMapping({
+  datasource,
+  form_data: formData,
+}: ControlPanelState) {
+  const dataset = datasource as Dataset | null;
+  const mapping = dataset?.partition_filter_mapping;
+  if (
+    !mapping?.active ||
+    !mapping.mirrorable_operators?.includes('TEMPORAL_RANGE')
+  ) {
+    return null;
+  }
+  // An absent `time_range` is the same as `No filter` -- a legacy saved chart
+  // predating this control, or a render before the defaults populate, has no
+  // key at all rather than the sentinel.
+  if ((formData?.time_range ?? NO_TIME_RANGE) === NO_TIME_RANGE) {
+    return null;
+  }
+  const granularity = formData?.granularity_sqla;
+  const selectedColumn = isDefined(granularity)
+    ? getColumnLabel(granularity)
+    : undefined;
+  const mirrorsSelectedColumn = selectedColumn === mapping.mapped_column;
+  // `always_filter_main_dttm` adds a second time filter on the main datetime
+  // column even when the chart groups by another one, and that filter mirrors.
+  // The backend collects it inside the `if granularity:` branch, so with no
+  // temporal column selected the query has no such filter to mirror and the
+  // glyph would stand next to SQL that never mentions the partition column.
+  const mirrorsMainDttm = Boolean(
+    selectedColumn &&
+    dataset?.always_filter_main_dttm &&
+    dataset.main_dttm_col === mapping.mapped_column,
+  );
+  return mirrorsSelectedColumn || mirrorsMainDttm ? mapping : null;
+}
+
 const time_range: SharedControlConfig<'DateFilterControl'> = {
   type: 'DateFilterControl',
   freeForm: true,
+  // The indicator needs to know whether this filter is mirrored onto a
+  // partition column; the summary is self-contained on the datasource so this
+  // does not have to reach into `columns`.
+  mapStateToProps: state => ({
+    partitionMapping: timeRangePartitionMapping(state),
+  }),
+  // SET_FIELD_VALUE rebuilds the changed control against the *pre-action* form
+  // data, so `partitionMapping` would go stale the moment the range itself
+  // changes: the glyph would survive a switch to `No filter`, and stay hidden
+  // on the way back. Recomputing at render from the live explore state is the
+  // mechanism for that -- `ControlPanelsContainer` merges the fresh props over
+  // the control state without touching its value. `validationDependencies` is
+  // not usable here: it names *other* controls, and a control that lists itself
+  // is rebuilt by the reducer from its own superseded value.
+  shouldMapStateToProps: () => true,
+  // The chart's temporal column is the other input, and it lives on a control
+  // this one does not own, so that transition is picked up the intended way.
+  validationDependencies: ['granularity_sqla'],
   label: TIME_FILTER_LABELS.time_range,
   default: NO_TIME_RANGE, // this value is an empty filter constant so shouldn't translate it.
   description: t(
@@ -419,6 +485,25 @@ const temporal_columns_lookup: SharedControlConfig<'HiddenControl'> = {
     ),
 };
 
+const mcp_geographic: SharedControlConfig<'HiddenControl'> = {
+  type: 'HiddenControl',
+  hidden: true,
+  renderTrigger: false,
+  description: t(
+    'Marks charts created through the MCP geographic contract so Explore keeps their validation guards.',
+  ),
+};
+
+const _mcp_dashboard_time_filter_subject: SharedControlConfig<'HiddenControl'> =
+  {
+    type: 'HiddenControl',
+    hidden: true,
+    renderTrigger: false,
+    description: t(
+      'Preserves the generated dashboard-time predicate subject through Explore saves.',
+    ),
+  };
+
 const zoomable: SharedControlConfig<'CheckboxControl'> = {
   type: 'CheckboxControl',
   label: t('Data Zoom'),
@@ -467,7 +552,7 @@ const echart_options: SharedControlConfig<'JSEditorControl'> = {
   validators: [],
 };
 
-const sharedControls: Record<string, SharedControlConfig<any>> = {
+const controlConfigs = {
   metrics: dndAdhocMetricsControl,
   metric: dndAdhocMetricControl,
   datasource: datasourceControl,
@@ -510,6 +595,8 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
   zoomable,
   show_empty_columns,
   temporal_columns_lookup,
+  mcp_geographic,
+  _mcp_dashboard_time_filter_subject,
   currency_format,
   sort_by_metric,
   order_by_cols,
@@ -518,5 +605,16 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
   // Add all Matrixify controls
   ...matrixifyControls,
 };
+
+type RegisteredControl = (typeof controlConfigs)[keyof typeof controlConfigs];
+
+// Each control retains the option type accepted by its renderer. The
+// Record<string, RegisteredControl> intersection is load-bearing: a TS object
+// spread does not propagate an index signature into the inferred type, so
+// without it keyof typeof sharedControls would collapse to the literal key
+// union and SharedControlAlias (string literals in controlSetRows, e.g.
+// matrixify.tsx) would no longer type-check.
+const sharedControls: typeof controlConfigs &
+  Record<string, RegisteredControl> = controlConfigs;
 
 export default sharedControls;

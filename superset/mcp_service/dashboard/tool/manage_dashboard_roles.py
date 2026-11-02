@@ -46,6 +46,7 @@ from superset.mcp_service.dashboard.schemas import (
 from superset.mcp_service.dashboard.tool.governance_utils import (
     dashboard_url,
     find_and_authorize_dashboard,
+    managed_dashboard_refusal,
 )
 from superset.mcp_service.system.schemas import serialize_subject_object
 from superset.subjects.types import SubjectType
@@ -160,21 +161,28 @@ def _resolve_role_subjects(
         title="Manage dashboard access roles",
         readOnlyHint=False,
         destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 def manage_dashboard_roles(
     request: ManageDashboardRolesRequest, ctx: Context
 ) -> ManageDashboardRolesResponse:
     """
-    Add or remove dashboard access roles with explicit operations.
+    Dashboard access roles restrict who can view a dashboard; add or remove
+    them with explicit operations.
+
+    Externally managed dashboards refuse mutations with
+    ``managed_externally=True``; do not retry or request more permissions.
 
     Dashboard access roles restrict who can view a dashboard to members of
-    the listed roles, on top of normal Superset permissions. An empty roles
-    list means "no role restriction" — the dashboard is visible per standard
-    permissions instead. This only takes effect when the ``ENABLE_VIEWERS``
-    feature flag is enabled; the response's ``viewers_enabled`` field
-    reports whether it is, and ``warnings`` notes when a change was applied
-    but has no live effect.
+    the listed roles, on top of normal Superset permissions. Removing every
+    role only restores standard permissions if no USER- or GROUP-type
+    viewers remain on the dashboard — ``raise_for_access`` restricts access
+    whenever the ``viewers`` list is nonempty, regardless of subject type.
+    This applies regardless of the ``ENABLE_VIEWERS`` feature flag; the
+    response's ``viewers_enabled`` field reports the flag's state, and
+    ``warnings`` notes when it is disabled.
 
     Roles are the ROLE-type entries in the dashboard's Subject-based
     ``viewers`` list. Any USER- or GROUP-type viewers already on the
@@ -191,8 +199,8 @@ def manage_dashboard_roles(
     look up current roles — those remain off-limits per the server
     instructions. A request that has no effective change (e.g. "adding" a
     role that is already assigned) returns an empty ``roles`` list rather
-    than the full current set, so this tool cannot be used as a disguised
-    directory lookup.
+    than the full current set. Requesting removal of an unassigned role ID
+    is an error that includes the current role IDs.
 
     Example::
 
@@ -215,13 +223,17 @@ def manage_dashboard_roles(
         return auth_error
     assert dashboard is not None  # narrows for mypy
 
+    refusal: str | None = managed_dashboard_refusal(dashboard)
+    if refusal is not None:
+        return ManageDashboardRolesResponse(managed_externally=True, error=refusal)
+
     viewers_enabled = is_feature_enabled("ENABLE_VIEWERS")
     warnings: list[str] = []
     if not viewers_enabled:
         warnings.append(
             "The ENABLE_VIEWERS feature flag is disabled on this instance; "
-            "dashboard viewers will be stored but have no effect on access "
-            "control until it is enabled."
+            "dashboard access checks still restrict access to any nonempty "
+            "viewers list, so role changes take effect regardless."
         )
 
     current_role_ids, new_role_ids, compute_error = _compute_new_role_ids(

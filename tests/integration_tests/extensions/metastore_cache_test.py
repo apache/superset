@@ -16,8 +16,10 @@
 # under the License.
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import nullcontext
 from datetime import datetime, timedelta
+from threading import Barrier
 from typing import Any
 from uuid import UUID
 
@@ -110,6 +112,84 @@ def test_expiry(app_context: AppContext, cache: SupersetMetastoreCache) -> None:
         assert cache.get(FIRST_KEY) == SECOND_VALUE
 
     # Clean up after test as well for good measure
+    cache.delete(FIRST_KEY)
+
+
+def test_compare_and_set(
+    app_context: AppContext,
+    cache: SupersetMetastoreCache,
+) -> None:
+    """Only the caller holding the observed value may replace it."""
+
+    cache.delete(FIRST_KEY)
+
+    assert cache.compare_and_set(FIRST_KEY, FIRST_KEY_INITIAL_VALUE, None) is True
+    assert cache.compare_and_set(FIRST_KEY, SECOND_VALUE, {"wrong": "value"}) is False
+    assert cache.get(FIRST_KEY) == FIRST_KEY_INITIAL_VALUE
+    assert (
+        cache.compare_and_set(
+            FIRST_KEY,
+            FIRST_KEY_UPDATED_VALUE,
+            FIRST_KEY_INITIAL_VALUE,
+        )
+        is True
+    )
+    assert cache.get(FIRST_KEY) == FIRST_KEY_UPDATED_VALUE
+
+    cache.delete(FIRST_KEY)
+
+
+def test_compare_and_set_treats_expired_entry_as_absent(
+    app_context: AppContext,
+    cache: SupersetMetastoreCache,
+) -> None:
+    """An expired pointer cannot satisfy a stale producer's comparison."""
+
+    cache.delete(FIRST_KEY)
+    dttm = datetime(2022, 3, 18, 0, 0, 0)
+
+    with freeze_time(dttm):
+        assert cache.set(FIRST_KEY, FIRST_KEY_INITIAL_VALUE, timeout=1) is True
+
+    with freeze_time(dttm + timedelta(seconds=2)):
+        assert (
+            cache.compare_and_set(
+                FIRST_KEY,
+                FIRST_KEY_UPDATED_VALUE,
+                FIRST_KEY_INITIAL_VALUE,
+            )
+            is False
+        )
+        assert cache.compare_and_set(FIRST_KEY, SECOND_VALUE, None) is True
+        assert cache.get(FIRST_KEY) == SECOND_VALUE
+
+    cache.delete(FIRST_KEY)
+
+
+def test_compare_and_set_allows_one_concurrent_successor(
+    app_context: AppContext,
+    cache: SupersetMetastoreCache,
+) -> None:
+    """Two producers observing one value cannot both replace it."""
+
+    cache.delete(FIRST_KEY)
+    assert cache.set(FIRST_KEY, FIRST_KEY_INITIAL_VALUE) is True
+    barrier = Barrier(2)
+
+    def replace(value: str) -> bool:
+        with app_context.app.app_context():
+            barrier.wait()
+            return cache.compare_and_set(
+                FIRST_KEY,
+                value,
+                FIRST_KEY_INITIAL_VALUE,
+            )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(replace, (FIRST_KEY_UPDATED_VALUE, SECOND_VALUE)))
+
+    assert sorted(results) == [False, True]
+    assert cache.get(FIRST_KEY) in (FIRST_KEY_UPDATED_VALUE, SECOND_VALUE)
     cache.delete(FIRST_KEY)
 
 

@@ -21,7 +21,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 
 from superset import db
 from superset.daos.base import BaseDAO
@@ -30,7 +30,7 @@ from superset.key_value.exceptions import (
     KeyValueUpdateFailedError,
 )
 from superset.key_value.models import KeyValueEntry
-from superset.key_value.types import Key, KeyValueCodec, KeyValueResource
+from superset.key_value.types import Key, KeyValueCodec, KeyValueResource, RowLock
 from superset.key_value.utils import get_filter
 from superset.utils.core import get_user_id
 
@@ -42,9 +42,16 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
     def get_entry(
         resource: KeyValueResource,
         key: Key,
+        lock: RowLock | None = None,
     ) -> KeyValueEntry | None:
         filter_ = get_filter(resource, key)
-        return db.session.query(KeyValueEntry).filter_by(**filter_).first()
+        query = db.session.query(KeyValueEntry).filter_by(**filter_)
+        if lock is not None:
+            # A locking read also returns the latest committed row under
+            # REPEATABLE READ, where a plain SELECT would keep using the
+            # transaction's earlier snapshot.
+            query = lock.apply(query)
+        return query.first()
 
     @classmethod
     def get_value(
@@ -66,6 +73,33 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
             return True
 
         return False
+
+    @staticmethod
+    def consume_entry(resource: KeyValueResource, key: Key) -> bool:
+        """
+        Atomically delete an unexpired entry, returning whether this call removed it.
+
+        The delete is a single conditional ``DELETE`` whose row count decides the
+        outcome, so when several transactions race to consume the same entry
+        exactly one of them gets ``True``, on every backend: a loser either
+        blocks on the winner's row lock and then matches nothing, or matches
+        nothing outright. Use it for single-use secrets, where reading the entry
+        and then deleting it in two statements would let two callers both
+        succeed.
+        """
+        filter_ = get_filter(resource, key)
+        deleted = (
+            db.session.query(KeyValueEntry)
+            .filter_by(**filter_)
+            .filter(
+                or_(
+                    KeyValueEntry.expires_on.is_(None),
+                    KeyValueEntry.expires_on > datetime.now(),
+                )
+            )
+            .delete(synchronize_session=False)
+        )
+        return deleted == 1
 
     @staticmethod
     def delete_expired_entries(resource: KeyValueResource) -> None:

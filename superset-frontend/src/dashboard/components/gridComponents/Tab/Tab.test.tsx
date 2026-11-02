@@ -296,7 +296,7 @@ test('Drop on a tab', async () => {
   );
 });
 
-test('Edit table title', () => {
+test('Edit table title', async () => {
   const props = createProps();
   props.editMode = true;
   props.renderType = 'RENDER_TAB';
@@ -309,7 +309,7 @@ test('Edit table title', () => {
   expect(getByTestId('dragdroppable-object')).toBeInTheDocument();
 
   expect(props.updateComponents).not.toHaveBeenCalled();
-  userEvent.click(screen.getByText('🚀 Aspiring Developers'));
+  await userEvent.click(screen.getByText('🚀 Aspiring Developers'));
   expect(props.updateComponents).toHaveBeenCalled();
 });
 
@@ -374,7 +374,7 @@ test('Render tab content with no children', () => {
   expect(screen.queryByText('edit mode')).not.toBeInTheDocument();
 });
 
-test('Render tab content with no children, canEdit: true', () => {
+test('Render tab content with no children, canEdit: true', async () => {
   const props = createProps();
   props.component.children = [];
   render(<Tab {...props} />, {
@@ -387,7 +387,7 @@ test('Render tab content with no children, canEdit: true', () => {
     },
   });
   expect(screen.getByText('edit mode')).toBeVisible();
-  userEvent.click(screen.getByRole('button', { name: 'edit mode' }));
+  await userEvent.click(screen.getByRole('button', { name: 'edit mode' }));
   expect(setEditMode).toHaveBeenCalled();
 });
 
@@ -440,7 +440,7 @@ test('Render tab (with content) editMode:true', () => {
   expect(getAllByTestId('MockDroppable')).toHaveLength(3);
 });
 
-test('Should call "handleDrop" and "handleTopDropTargetDrop"', () => {
+test('Should call "handleDrop" and "handleTopDropTargetDrop"', async () => {
   const props = createProps();
   props.isFocused = true;
   props.editMode = true;
@@ -453,11 +453,11 @@ test('Should call "handleDrop" and "handleTopDropTargetDrop"', () => {
   );
 
   expect(props.handleComponentDrop).not.toHaveBeenCalled();
-  userEvent.click(getAllByTestId('MockDroppable')[0]);
+  await userEvent.click(getAllByTestId('MockDroppable')[0]);
   expect(props.handleComponentDrop).toHaveBeenCalledTimes(1);
   expect(props.onDropOnTab).not.toHaveBeenCalled();
   rerender(<Tab {...props} />);
-  userEvent.click(getAllByTestId('MockDroppable')[1]);
+  await userEvent.click(getAllByTestId('MockDroppable')[1]);
   expect(props.onDropOnTab).toHaveBeenCalledTimes(1);
   expect(props.handleComponentDrop).toHaveBeenCalledTimes(2);
 });
@@ -544,7 +544,7 @@ test('Drag to empty state, editMode: true, canEdit: true', async () => {
 
   // Click the MockDroppable button that wraps the empty state indicator (index 1)
   // This simulates dropping a component on the empty state
-  userEvent.click(mockDroppableButtons[1]);
+  await userEvent.click(mockDroppableButtons[1]);
 
   // Verify that handleComponentDrop was called with correct destination
   await waitFor(() => {

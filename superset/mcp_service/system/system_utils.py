@@ -23,12 +23,13 @@ instance metrics, dashboard breakdowns, database breakdowns, and activity summar
 """
 
 import logging
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
 from superset.mcp_service.system.schemas import (
     DashboardBreakdown,
     DatabaseBreakdown,
     FeatureAvailability,
+    InstanceInfo,
     InstanceSummary,
     PopularContent,
     RecentActivity,
@@ -223,3 +224,33 @@ def calculate_feature_availability(
     return FeatureAvailability(
         accessible_menus=accessible_menus,
     )
+
+
+def redact_data_model_metadata(result: InstanceInfo) -> InstanceInfo:
+    """Remove dataset/database counts and activity from instance overview."""
+    data = result.model_copy(deep=True)
+    data.instance_summary.total_datasets = 0
+    data.instance_summary.total_databases = 0
+    data.recent_activity.datasets_created_last_30_days = 0
+    data.recent_activity.datasets_modified_last_7_days = 0
+    data.database_breakdown.by_type = {}
+    data.data_model_metadata_redacted = True
+    return data
+
+
+# Shared by the get_instance_info tool and the instance://metadata resource so a
+# newly required InstanceInfo field only needs a calculator registered once.
+INSTANCE_INFO_METRIC_CALCULATORS: Dict[str, Callable[..., Any]] = {
+    "instance_summary": calculate_instance_summary,
+    "recent_activity": calculate_recent_activity,
+    "dashboard_breakdown": calculate_dashboard_breakdown,
+    "database_breakdown": calculate_database_breakdown,
+    "popular_content": calculate_popular_content,
+    "feature_availability": calculate_feature_availability,
+}
+
+INSTANCE_INFO_TIME_WINDOWS: Dict[str, int] = {
+    "recent": 7,
+    "monthly": 30,
+    "quarterly": 90,
+}

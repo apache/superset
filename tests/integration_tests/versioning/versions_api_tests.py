@@ -28,6 +28,8 @@ The suite runs with ``ENABLE_VERSIONING_CAPTURE=True`` (see
 autouse fixture clears the version tables around each test.
 """
 
+from collections.abc import Callable
+from typing import Any
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -35,14 +37,21 @@ import pytest
 import sqlalchemy as sa
 from sqlalchemy.engine import Connection
 from sqlalchemy.orm import Session
+from sqlalchemy_continuum import version_class
+from werkzeug.test import TestResponse
 
 from superset import db
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json
+from superset.versioning.baseline.children import CHILD_BASELINE_HANDLERS
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
+from tests.integration_tests.constants import (
+    ADMIN_USERNAME,
+    ALPHA_USERNAME,
+    GAMMA_USERNAME,
+)
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -167,13 +176,185 @@ class TestChartVersionsApi(SupersetTestCase):
         assert rv.status_code == 404, rv.data
 
     def test_list_versions_denies_unauthorized_user(self) -> None:
-        """The per-object access gate (``raise_for_access(chart=...)``) must
-        refuse a user without access — as a 403, or 404 if the object isn't
-        even visible to them."""
+        """The per-object editorship gate (``raise_for_editorship``) must
+        refuse a user who is not an editor — as a 403, or 404 if the object
+        isn't even visible to them."""
         chart_uuid = str(self._girls_chart().uuid)
         self.login(GAMMA_USERNAME)
         rv = self.client.get(f"/api/v1/chart/{chart_uuid}/versions/")
         assert rv.status_code in (403, 404), rv.data
+
+    def _births_dashboard(self) -> Dashboard:
+        # Commit first so fixture state created in this test process is
+        # visible to the request-side session (same idiom as
+        # ``_girls_chart`` and the activity suite's
+        # ``_persist_fixture_state``).
+        db.session.commit()
+        return db.session.query(Dashboard).filter(Dashboard.slug == "births").one()
+
+    def test_list_versions_denies_write_capable_non_editor_chart(self) -> None:
+        """sc-120001 pin: version history is EDIT-gated.
+
+        Alpha carries broad
+        read + datasource access — the OLD read gate admitted it — but is no
+        editor/owner of this chart, so the endpoint must refuse with 403.
+        (Reverted-gate control: with the read gate restored this test fails
+        with a 200.)"""
+        chart_uuid = str(self._girls_chart().uuid)
+        self.login(ALPHA_USERNAME)
+        rv = self.client.get(f"/api/v1/chart/{chart_uuid}/versions/")
+        assert rv.status_code == 403, rv.data
+
+    def test_list_versions_denies_write_capable_non_editor_dashboard(self) -> None:
+        """The dashboard endpoint refuses a write-capable non-editor.
+
+        This is QA TC-062/TC-066's leak, closed by the same shared edit
+        gate as the chart flavour."""
+        dashboard = self._births_dashboard()
+        self.login(ALPHA_USERNAME)
+        rv = self.client.get(f"/api/v1/dashboard/{dashboard.uuid}/versions/")
+        assert rv.status_code == 403, rv.data
+
+    def test_get_version_denies_write_capable_non_editor_chart(self) -> None:
+        """The chart get-one route runs the same edit gate before version
+        resolution.
+
+        The version uuid need not exist: the gate refuses the non-editor
+        before the snapshot is even looked up."""
+        chart_uuid = str(self._girls_chart().uuid)
+        self.login(ALPHA_USERNAME)
+        rv = self.client.get(f"/api/v1/chart/{chart_uuid}/versions/{MISSING_UUID}/")
+        assert rv.status_code == 403, rv.data
+
+    def test_get_version_denies_write_capable_non_editor_dashboard(self) -> None:
+        """The dashboard get-one route runs the same edit gate before
+        version resolution."""
+        dashboard = self._births_dashboard()
+        self.login(ALPHA_USERNAME)
+        rv = self.client.get(
+            f"/api/v1/dashboard/{dashboard.uuid}/versions/{MISSING_UUID}/"
+        )
+        assert rv.status_code == 403, rv.data
+
+    def test_list_versions_allows_object_editor(self) -> None:
+        """Object-level editorship admits (sc-120001 matrix positive case).
+
+        Gamma made an EDITOR of this one chart reads its history, while
+        remaining unable to read other charts' history (object-level,
+        not model-level can_write)."""
+        # pylint: disable=import-outside-toplevel
+        from superset import security_manager
+        from superset.subjects.utils import get_user_subject
+
+        chart = self._girls_chart()
+        chart_uuid = str(chart.uuid)
+        gamma = security_manager.find_user(GAMMA_USERNAME)
+        gamma_subject = get_user_subject(gamma.id)
+        assert gamma_subject is not None, "gamma user has no USER subject row"
+        original_editors = list(chart.editors)
+        chart.editors = [gamma_subject]
+        db.session.commit()
+        try:
+            self.login(GAMMA_USERNAME)
+            rv = self.client.get(f"/api/v1/chart/{chart_uuid}/versions/")
+            assert rv.status_code == 200, rv.data
+        finally:
+            chart = self._girls_chart()
+            chart.editors = original_editors
+            db.session.commit()
+
+    def test_editorship_gate_refuses_guest_principal(self) -> None:
+        """Guest principals never read change logs (sc-120001 / M10 pin).
+
+        An embedded guest-token principal is never an editor, and the
+        editorship gate the version endpoints run refuses it outright —
+        guests read embedded dashboards, never their change logs.
+        Deliberately pins the gate directly (guest HTTP-session plumbing
+        isn't worth the cost here); the endpoint→gate wiring is pinned
+        by the unit not-called test and the Alpha/Gamma HTTP matrix."""
+        # pylint: disable=import-outside-toplevel
+        from unittest.mock import patch as mock_patch
+
+        from superset import security_manager
+        from superset.exceptions import SupersetSecurityException
+        from superset.security.guest_token import GuestTokenResourceType
+        from superset.utils.core import override_user
+
+        dashboard = db.session.query(Dashboard).filter(Dashboard.slug == "births").one()
+        with mock_patch.dict(
+            "superset.extensions.feature_flag_manager._feature_flags",
+            EMBEDDED_SUPERSET=True,
+        ):
+            guest = security_manager.get_guest_user_from_token(
+                {
+                    "user": {},
+                    "iat": 0,
+                    "exp": 9999999999,
+                    "rls_rules": [],
+                    "resources": [
+                        {
+                            "type": GuestTokenResourceType.DASHBOARD,
+                            "id": str(dashboard.uuid),
+                        }
+                    ],
+                }
+            )
+            with override_user(guest):
+                with pytest.raises(SupersetSecurityException):
+                    security_manager.raise_for_editorship(dashboard)
+
+    def test_versions_refuse_guest_even_when_guest_role_is_editor(self) -> None:
+        """A guest is refused even when its role subject holds editorship.
+
+        The cross-model round's M10 case: without the guest deny,
+        granting a role subject editorship would open every guest holding
+        that role. Guest header auth DOES bind on this route (verified —
+        the request reaches the deny), so the pin is an exact 403: a
+        regression that deleted the deny would surface here as 200, and
+        one that broke guest auth entirely would surface as 401. The
+        deny's placement before the lookup is unit-pinned
+        (test_preflight_denies_guest_principals_outright)."""
+        # pylint: disable=import-outside-toplevel
+        from unittest.mock import patch as mock_patch
+
+        from flask import current_app
+
+        from superset import security_manager
+        from superset.security.guest_token import GuestTokenResourceType
+        from superset.subjects.utils import subjects_from_roles
+
+        dashboard = self._births_dashboard()
+        guest_role = security_manager.find_role(current_app.config["GUEST_ROLE_NAME"])
+        assert guest_role is not None
+        role_subjects = list(subjects_from_roles([guest_role]))
+        assert role_subjects, "guest role has no subject row"
+        original_editors = list(dashboard.editors)
+        dashboard.editors = original_editors + role_subjects
+        db.session.commit()
+        try:
+            with mock_patch.dict(
+                "superset.extensions.feature_flag_manager._feature_flags",
+                EMBEDDED_SUPERSET=True,
+            ):
+                token = security_manager.create_guest_access_token(
+                    user={"username": "vh_guest"},
+                    resources=[
+                        {
+                            "type": GuestTokenResourceType.DASHBOARD,
+                            "id": str(dashboard.uuid),
+                        }
+                    ],
+                    rls=[],
+                )
+                rv = self.client.get(
+                    f"/api/v1/dashboard/{dashboard.uuid}/versions/",
+                    headers={current_app.config["GUEST_TOKEN_HEADER_NAME"]: token},
+                )
+            assert rv.status_code == 403, rv.data
+        finally:
+            dashboard = self._births_dashboard()
+            dashboard.editors = original_editors
+            db.session.commit()
 
     def test_put_non_numeric_pk_does_not_500_with_capture_on(self) -> None:
         """The PUT route is ``/<pk>`` (a string); with capture on, a
@@ -350,6 +531,25 @@ class TestDatasetVersionsApi(SupersetTestCase):
                 json={"description": original},
             )
 
+    def test_list_versions_denies_write_capable_non_editor_dataset(self) -> None:
+        """The dataset endpoint refuses a write-capable non-editor.
+
+        Alpha carries all-datasource access — the flavour where
+        read-vs-edit confusion would most plausibly regress — and is
+        still refused as a non-editor."""
+        ds_uuid = str(self._dataset().uuid)
+        self.login(ALPHA_USERNAME)
+        rv = self.client.get(f"/api/v1/dataset/{ds_uuid}/versions/")
+        assert rv.status_code == 403, rv.data
+
+    def test_get_version_denies_write_capable_non_editor_dataset(self) -> None:
+        """The dataset get-one route runs the same edit gate before
+        version resolution."""
+        ds_uuid = str(self._dataset().uuid)
+        self.login(ALPHA_USERNAME)
+        rv = self.client.get(f"/api/v1/dataset/{ds_uuid}/versions/{MISSING_UUID}/")
+        assert rv.status_code == 403, rv.data
+
     def test_put_override_columns_returns_version_fields(self) -> None:
         """The ``override_columns`` save is two commits / two Continuum
         transactions (update + refresh); the PUT still returns populated
@@ -383,8 +583,14 @@ class TestDatasetVersionsApi(SupersetTestCase):
         original = dataset.description
         clear_version_tables()
         self.login(ADMIN_USERNAME)
+        baseline_children: Callable[[Session, object, int], None] = (
+            CHILD_BASELINE_HANDLERS["SqlaTable"]
+        )
+        handler_calls: list[int] = []
 
         def fail_children(session: Session, _parent: object, _tx_id: int) -> None:
+            baseline_children(session, _parent, _tx_id)
+            handler_calls.append(_tx_id)
             session.connection().execute(
                 sa.text("INSERT INTO __missing_child_shadow__ (x) VALUES (1)")
             )
@@ -394,12 +600,13 @@ class TestDatasetVersionsApi(SupersetTestCase):
                 "superset.versioning.baseline.insertion.CHILD_BASELINE_HANDLERS",
                 {"SqlaTable": fail_children},
             ):
-                rv = self.client.put(
+                rv: TestResponse = self.client.put(
                     f"/api/v1/dataset/{dataset_id}",
                     json={"description": "survives child baseline failure"},
                 )
 
             assert rv.status_code == 200, rv.data
+            assert len(handler_calls) == 1
             got = json.loads(self.client.get(f"/api/v1/dataset/{dataset_id}").data)[
                 "result"
             ]
@@ -412,45 +619,83 @@ class TestDatasetVersionsApi(SupersetTestCase):
                 ),
                 {"id": dataset_id},
             )
-            child_baselines = db.session.scalar(
-                sa.text(
-                    "SELECT count(*) FROM table_columns_version "
-                    "WHERE table_id = :id AND operation_type = 0"
-                ),
-                {"id": dataset_id},
-            )
-            metric_baselines = db.session.scalar(
-                sa.text(
-                    "SELECT count(*) FROM sql_metrics_version "
-                    "WHERE table_id = :id AND operation_type = 0"
-                ),
-                {"id": dataset_id},
-            )
             assert parent_baselines == 0
-            assert child_baselines == 0
-            assert metric_baselines == 0
-            canonical_updates = db.session.scalar(
-                sa.text(
-                    "SELECT count(*) FROM tables_version "
-                    "WHERE id = :id AND operation_type = 1 "
-                    "AND description = :description"
-                ),
-                {
-                    "id": dataset_id,
-                    "description": "survives child baseline failure",
-                },
+            canonical_transactions: list[int] = list(
+                db.session.scalars(
+                    sa.text(
+                        "SELECT transaction_id FROM tables_version "
+                        "WHERE id = :id AND operation_type = 1 "
+                        "AND description = :description"
+                    ),
+                    {
+                        "id": dataset_id,
+                        "description": "survives child baseline failure",
+                    },
+                )
             )
-            assert canonical_updates == 1
+            assert len(canonical_transactions) == 1
             assert (
                 db.session.scalar(sa.text("SELECT count(*) FROM version_transaction"))
                 == 1
             )
+            canonical_tx: int = canonical_transactions[0]
+            expected_children: dict[str, set[int]] = {}
+            live_table: sa.Table
+            shadow_table: sa.Table
+            snapshot_key: str
+            for live_table, shadow_table, snapshot_key in (
+                (
+                    TableColumn.__table__,
+                    version_class(TableColumn).__table__,
+                    "columns",
+                ),
+                (SqlMetric.__table__, version_class(SqlMetric).__table__, "metrics"),
+            ):
+                live_ids: set[int] = set(
+                    db.session.scalars(
+                        sa.select(live_table.c.id).where(
+                            live_table.c.table_id == dataset_id
+                        )
+                    )
+                )
+                captured: list[tuple[int, int, int, int | None]] = list(
+                    db.session.execute(
+                        sa.select(
+                            shadow_table.c.id,
+                            shadow_table.c.transaction_id,
+                            shadow_table.c.operation_type,
+                            shadow_table.c.end_transaction_id,
+                        ).where(shadow_table.c.table_id == dataset_id)
+                    )
+                )
+                # Reconciliation records the complete current children at the
+                # surviving update, with no rows from the rolled-back baseline.
+                assert len(captured) == len(live_ids)
+                assert {child_id for child_id, *_ in captured} == live_ids
+                assert all(
+                    tx_id == canonical_tx and operation == 0 and end_tx is None
+                    for _, tx_id, operation, end_tx in captured
+                )
+                expected_children[snapshot_key] = live_ids
+            assert expected_children["columns"]
 
             listing = json.loads(
                 self.client.get(f"/api/v1/dataset/{got['uuid']}/versions/").data
             )
             assert listing["count"] == 1
             assert listing["result"][0]["operation_type"] == "update"
+            version_uuid: str = listing["result"][0]["version_uuid"]
+            rv = self.client.get(
+                f"/api/v1/dataset/{got['uuid']}/versions/{version_uuid}/"
+            )
+            assert rv.status_code == 200, rv.data
+            snapshot: dict[str, Any] = json.loads(rv.data)["result"]
+            assert {child["id"] for child in snapshot["columns"]} == expected_children[
+                "columns"
+            ]
+            assert {child["id"] for child in snapshot["metrics"]} == expected_children[
+                "metrics"
+            ]
         finally:
             self.client.put(
                 f"/api/v1/dataset/{dataset_id}",

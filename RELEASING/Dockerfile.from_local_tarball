@@ -32,13 +32,14 @@ RUN apt-get install -y apt-transport-https apt-utils
 RUN apt-get install -y build-essential libssl-dev \
   libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev chromium zstd
 
-# Install nodejs for custom build
-# https://nodejs.org/en/download/package-manager/
+# Install nodejs for custom build, from the same image the main Dockerfile builds on
+COPY --from=node:24-trixie-slim /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:24-trixie-slim /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/npm
 RUN set -eux; \
-  curl -sL https://deb.nodesource.com/setup_20.x | bash -; \
-  apt-get install -y nodejs; \
-  node --version;
-RUN if ! which npm; then apt-get install -y npm; fi
+  ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm; \
+  ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx; \
+  node --version; \
+  npm --version;
 
 RUN mkdir -p /home/superset
 RUN chown superset /home/superset

@@ -78,7 +78,7 @@ export const useLanguageMenuItems = ({
           <i className={`flag ${languages[locale]?.flag ?? 'us'}`} />
         </span>
       ),
-      icon: <Icons.CaretDownOutlined iconSize="xs" />,
+      icon: <Icons.DownOutlined iconSize="xs" />,
       children: items,
       className: 'submenu-with-caret',
       popupClassName: 'language-picker-popup',

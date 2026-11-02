@@ -37,6 +37,11 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
+// user-event's default `delay` between simulated events relies on real
+// timers; this file uses `jest.useFakeTimers()`, so disable the delay to
+// avoid interactions hanging until the fake clock is advanced.
+const user = userEvent.setup({ delay: null });
+
 test('render timezones in correct order for daylight saving time', async () => {
   const TimezoneSelector = await loadComponent('2022-07-01');
   const onTimezoneChange = jest.fn();
@@ -51,7 +56,7 @@ test('render timezones in correct order for daylight saving time', async () => {
   await screen.findByText('GMT -04:00 (Eastern Daylight Time)');
 
   const searchInput = screen.getByRole('combobox');
-  await userEvent.click(searchInput);
+  await user.click(searchInput);
 
   // Wait for options to appear by finding one of the expected timezone texts
   await screen.findByText('GMT -11:00 (Pacific/Midway)');

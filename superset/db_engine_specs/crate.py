@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, TYPE_CHECKING
 
 from sqlalchemy import types
@@ -88,5 +88,36 @@ class CrateEngineSpec(BaseEngineSpec):
 
     @classmethod
     def alter_new_orm_column(cls, orm_col: TableColumn) -> None:
-        if orm_col.type == "TIMESTAMP":
+        if orm_col.type in {
+            "TIMESTAMP",
+            "TIMESTAMP WITHOUT TIME ZONE",
+            "TIMESTAMP WITH TIME ZONE",
+        }:
             orm_col.python_date_format = "epoch_ms"
+
+    @classmethod
+    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
+        """Decode typed timestamp results without depending on dataset metadata."""
+        data = super().fetch_data(cursor, limit)
+        # CrateDB's DBAPI description omits type codes. The HTTP result retains
+        # them: 11 = TIMESTAMP WITH TIME ZONE, 15 = WITHOUT TIME ZONE.
+        timestamp_indexes = [
+            index
+            for index, type_code in enumerate(
+                getattr(cursor, "_result", {}).get("col_types", [])
+            )
+            if type_code in (11, 15)
+        ]
+        if not timestamp_indexes:
+            return data
+        rows = []
+        for row in data:
+            values = list(row)
+            for index in timestamp_indexes:
+                value = values[index]
+                if isinstance(value, (int, float)) and not isinstance(value, bool):
+                    # UTC-naive matches Superset's datetime normalization and
+                    # avoids interpreting epoch milliseconds as nanoseconds.
+                    values[index] = datetime(1970, 1, 1) + timedelta(milliseconds=value)
+            rows.append(tuple(values))
+        return rows

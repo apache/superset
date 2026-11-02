@@ -101,6 +101,9 @@ export type DeckMultiProps = {
   onSelect: () => void;
   filterState?: FilterState;
   emitCrossFilters?: boolean;
+  // True while a dashboard auto-refresh is in flight. The chart stays mounted
+  // through it, so the layers are reloaded once it lands.
+  isRefreshing?: boolean;
 };
 
 const MultiWrapper = styled.div<{ height: number; width: number }>`
@@ -485,14 +488,19 @@ const DeckMulti = (props: DeckMultiProps) => {
       formData: QueryFormData,
       slices: ({ slice_id: number } & JsonObject)[],
       visibleLayers?: number[],
+      isRefresh = false,
     ): void => {
       loadGenerationRef.current += 1;
       const { current: generation } = loadGenerationRef;
-      setViewport(getAdjustedViewport());
-      setSubSlicesLayers({});
       setLayerErrors({});
-      // Start a fresh feature accumulation for the incremental autozoom refit.
-      layerFeaturesRef.current = {};
+      // A refresh reloads the same layers, so the current ones and their
+      // fitted viewport stay on screen until each replacement arrives.
+      if (!isRefresh) {
+        setViewport(getAdjustedViewport());
+        setSubSlicesLayers({});
+        // Start a fresh feature accumulation for the incremental autozoom refit.
+        layerFeaturesRef.current = {};
+      }
 
       let visibleDeckLayers = visibleLayers;
 
@@ -536,6 +544,7 @@ const DeckMulti = (props: DeckMultiProps) => {
 
   const prevDeckSlices = usePrevious(props.formData.deck_slices);
   const prevVisibleLayersRedux = usePrevious(visibleDeckLayersFromRedux);
+  const prevIsRefreshing = usePrevious(props.isRefreshing);
 
   const toLayerFormData = useCallback(
     (
@@ -640,8 +649,11 @@ const DeckMulti = (props: DeckMultiProps) => {
       prevVisibleLayersRedux,
       visibleDeckLayersFromRedux,
     );
+    const refreshLanded = Boolean(prevIsRefreshing) && !props.isRefreshing;
+    const isRefreshOnly =
+      refreshLanded && !deckSlicesChanged && !visibilityFilterChanged;
 
-    if (deckSlicesChanged || visibilityFilterChanged) {
+    if (deckSlicesChanged || visibilityFilterChanged || refreshLanded) {
       const sliceIds = ensureIsArray(formData.deck_slices) as number[];
       const maxSlices = getDeckMultiMaxSlices();
       if (sliceIds.length > maxSlices) {
@@ -672,7 +684,7 @@ const DeckMulti = (props: DeckMultiProps) => {
         if (fetchGenerationRef.current !== fetchGeneration) {
           return;
         }
-        loadLayers(formData, slices, visibleDeckLayersFromRedux);
+        loadLayers(formData, slices, visibleDeckLayersFromRedux, isRefreshOnly);
       });
     }
   }, [
@@ -680,6 +692,7 @@ const DeckMulti = (props: DeckMultiProps) => {
     fetchSubslices,
     prevDeckSlices,
     prevVisibleLayersRedux,
+    prevIsRefreshing,
     visibleDeckLayersFromRedux,
     props,
   ]);

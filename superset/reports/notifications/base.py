@@ -40,6 +40,7 @@ class NotificationContent:
     retry_attempt: Optional[int] = None
     retry_max_attempts: Optional[int] = None
     include_cta: bool = True  # include the call-to-action link back to Superset
+    is_editor_error: bool = False  # diagnostic email restricted to schedule editors
 
     @property
     def has_attachments(self) -> bool:

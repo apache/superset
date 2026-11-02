@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
+import { act, fireEvent, render, waitFor } from 'spec/helpers/testing-library';
 import Toast from 'src/components/MessageToasts/Toast';
 import { ToastMeta } from 'src/components/MessageToasts/types';
 import mockMessageToasts from './mockMessageToasts';
@@ -126,4 +126,36 @@ test('a link requested through the action creator survives to the rendered toast
   const link = getByTestId('toast-container').querySelector('a');
   expect(link).not.toBeNull();
   expect(link).toHaveAttribute('href', '/explore/?slice_id=1');
+});
+
+test('an action button invokes its callback and dismisses the toast', async () => {
+  const onClick = jest.fn();
+  const onCloseToast = jest.fn();
+  const { getByRole } = setup({
+    toast: { ...props.toast, action: { label: 'Undo', onClick } },
+    onCloseToast,
+  });
+  fireEvent.click(getByRole('button', { name: 'Undo' }));
+  expect(onClick).toHaveBeenCalledTimes(1);
+  await waitFor(() =>
+    expect(onCloseToast).toHaveBeenCalledWith(props.toast.id),
+  );
+});
+
+test('an actionable toast remains until it is explicitly dismissed', () => {
+  jest.useFakeTimers();
+  const onCloseToast = jest.fn();
+  setup({
+    toast: {
+      ...props.toast,
+      duration: 100,
+      action: { label: 'Undo', onClick: jest.fn() },
+    },
+    onCloseToast,
+  });
+
+  act(() => jest.advanceTimersByTime(1000));
+  act(() => jest.advanceTimersByTime(200));
+  expect(onCloseToast).not.toHaveBeenCalled();
+  jest.useRealTimers();
 });

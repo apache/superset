@@ -10,6 +10,12 @@
         "description": "Enables Table V2 (AG Grid) viz plugin"
       },
       {
+        "name": "ALERT_REPORT_DYNAMIC_EXECUTOR",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enables the per-schedule \"Run As\" fields in Alerts & Reports (SIP-209). When enabled, each alert/report records which user's credentials (RBAC, database OAuth2 tokens) are used at execution time, and alerts can specify a distinct user for the alert condition query. Admins can pick any user; non-admins are restricted to their own account. Schedules without a value keep using the ALERT_REPORTS_EXECUTORS resolution."
+      },
+      {
         "name": "ALERT_REPORT_TABS",
         "default": false,
         "lifecycle": "development",
@@ -82,6 +88,12 @@
         "description": "Try to optimize SQL queries \u2014 for now only predicate pushdown is supported"
       },
       {
+        "name": "PARTITION_FILTER_MAPPING",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Map a dataset's business column onto its physical partition column, so engines that require an explicit partition predicate can prune. Filters on the mapped column are mirrored onto the partition column at query time, so enabling this changes the SQL charts emit rather than only storing configuration."
+      },
+      {
         "name": "PRESTO_EXPAND_DATA",
         "default": false,
         "lifecycle": "development",
@@ -94,16 +106,17 @@
         "description": "Enable semantic layers and show semantic views alongside datasets"
       },
       {
+        "name": "SEMANTIC_LAYER_CONTAINMENT_CACHE",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enable Superset-owned containment caching for opted-in semantic providers. Requires shared DATA_CACHE_CONFIG and Redis-backed DISTRIBUTED_COORDINATION_CONFIG.",
+        "docs": "https://superset.apache.org/admin-docs/configuration/cache/#semantic-containment-cache"
+      },
+      {
         "name": "TABLE_V2_TIME_COMPARISON_ENABLED",
         "default": false,
         "lifecycle": "development",
         "description": "Enable Table V2 time comparison feature"
-      },
-      {
-        "name": "TAGGING_SYSTEM",
-        "default": false,
-        "lifecycle": "development",
-        "description": "Enables the tagging system for organizing assets"
       }
     ],
     "testing": [
@@ -119,6 +132,12 @@
         "default": false,
         "lifecycle": "testing",
         "description": "Enables filter functionality in Alerts and Reports"
+      },
+      {
+        "name": "ALERT_REPORTS_RETRY",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Enables automatic retry functionality for failed report executions"
       },
       {
         "name": "ALERT_REPORT_SLACK_V2",
@@ -235,6 +254,12 @@
         "docs": "https://superset.apache.org/docs/configuration/setup-ssh-tunneling"
       },
       {
+        "name": "TAGGING_SYSTEM",
+        "default": true,
+        "lifecycle": "testing",
+        "description": "Enables the tagging system for organizing assets"
+      },
+      {
         "name": "USE_ANALOGOUS_COLORS",
         "default": false,
         "lifecycle": "testing",
@@ -244,7 +269,7 @@
         "name": "VERSION_HISTORY",
         "default": true,
         "lifecycle": "testing",
-        "description": "Enables the version history panel on Explore and Dashboard pages. History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on; with capture off the panel renders empty or stale history, so the two ship with matching defaults and should be changed together."
+        "description": "Enables chart and dashboard version history panels and their supporting API endpoints. History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on; with capture off the panel renders empty or stale history, so the two ship with matching defaults and should be changed together."
       }
     ],
     "stable": [
@@ -252,7 +277,7 @@
         "name": "ALERTS_ATTACH_REPORTS",
         "default": true,
         "lifecycle": "stable",
-        "description": "When enabled, alerts send email/slack with screenshot AND link. When disabled, alerts send only link; reports still send screenshot.",
+        "description": "When enabled, alerts send email/slack with screenshot AND link. When disabled, alerts send only link; reports still send screenshot. Deprecation notice: this flag is superseded by the \"Enable attachments for alerts\" setting in the Alerts & Reports configuration UI (SIP-209). The flag is only used as a fallback while that setting is not saved.",
         "category": "runtime_config"
       },
       {

@@ -26,15 +26,22 @@ import {
 } from 'react';
 
 import { t } from '@apache-superset/core/translation';
-import { getClientErrorObject, VizType } from '@superset-ui/core';
+import {
+  getClientErrorObject,
+  isFeatureEnabled,
+  FeatureFlag,
+  VizType,
+} from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { SupersetTheme } from '@apache-superset/core/theme';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import {
   editReport,
+  fetchUISpecificReport,
   subscribeReport,
 } from 'src/features/reports/ReportModal/actions';
 import {
+  Button,
   Checkbox,
   Input,
   LabeledErrorBoundInput,
@@ -54,7 +61,9 @@ import {
   NotificationFormats,
 } from 'src/features/reports/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
+import { useAppDispatch } from 'src/views/store';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import { StyledInputContainer } from 'src/features/alerts/AlertReportModal';
 import { CreationMethod } from './HeaderReportDropdown';
 import {
@@ -132,6 +141,11 @@ function ReportModal({
     ? NotificationFormats.Text
     : NotificationFormats.PNG;
   const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
+  const bootstrapUser = getBootstrapData().user;
+  const currentUserId =
+    bootstrapUser && 'userId' in bootstrapUser
+      ? bootstrapUser.userId
+      : undefined;
   const entityName = dashboardName || chartName;
   const initialState: ReportObjectState = useMemo(
     () => ({
@@ -161,21 +175,24 @@ function ReportModal({
     initialState,
   );
   const [cronError, setCronError] = useState<CronError>();
+  const [executeAsSelf, setExecuteAsSelf] = useState(false);
 
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   // Report fetch logic
   const report = useSelector<any, ReportObject>(state => {
-    const resourceType = dashboardId
-      ? CreationMethod.Dashboards
-      : CreationMethod.Charts;
+    const isChartReport = creationMethod === CreationMethod.Charts;
     return (
-      reportSelector(state, resourceType, dashboardId || chart?.id) ||
-      EMPTY_OBJECT
+      reportSelector(
+        state,
+        isChartReport ? CreationMethod.Charts : CreationMethod.Dashboards,
+        isChartReport ? chart?.id : dashboardId,
+      ) || EMPTY_OBJECT
     );
   });
   const isEditMode = report && Object.keys(report).length;
 
   useEffect(() => {
+    setExecuteAsSelf(false);
     if (isEditMode) {
       setCurrentReport(report);
     } else {
@@ -183,24 +200,43 @@ function ReportModal({
     }
   }, [isEditMode, report]);
 
+  const formatChanged =
+    isChart &&
+    Boolean(isEditMode) &&
+    (currentReport.report_format || defaultNotificationFormat) !==
+      report.report_format;
+  const formatRequiresTakeover =
+    isFeatureEnabled(FeatureFlag.AlertReportDynamicExecutor) &&
+    formatChanged &&
+    !isUserAdmin(bootstrapUser) &&
+    (report.run_as_type !== 'fixed_user' ||
+      report.run_as?.id !== currentUserId);
+
   const onSave = async () => {
     const commonFields: Partial<ReportObject> = {
       type: 'Report',
       active: true,
       force_screenshot: false,
       custom_width: currentReport.custom_width,
-      dashboard: dashboardId,
-      chart: chart?.id,
+      // A report belongs to either a chart or a dashboard, never both. Explore can
+      // carry dashboard context even for a chart-scoped report, so send only the
+      // entity that matches the creation method; a payload with both `chart` and
+      // `dashboard` is rejected by the backend with a 422 error.
+      ...(creationMethod === CreationMethod.Charts
+        ? { chart: chart?.id }
+        : { dashboard: dashboardId }),
       name: currentReport.name,
       description: currentReport.description,
       crontab: currentReport.crontab,
       report_format: currentReport.report_format || defaultNotificationFormat,
       timezone: currentReport.timezone,
-      retry_on_failure: currentReport.retry_on_failure ?? false,
-      retry_max_attempts: currentReport.retry_max_attempts ?? 3,
-      send_failed_reports: currentReport.send_failed_reports ?? false,
-      retry_notify_owners: currentReport.retry_notify_owners ?? true,
-      retry_notify_recipients: currentReport.retry_notify_recipients ?? false,
+      ...(isFeatureEnabled(FeatureFlag.AlertReportsRetry) && {
+        retry_on_failure: currentReport.retry_on_failure ?? false,
+        retry_max_attempts: currentReport.retry_max_attempts ?? 3,
+        send_failed_reports: currentReport.send_failed_reports ?? false,
+        retry_notify_owners: currentReport.retry_notify_owners ?? true,
+        retry_notify_recipients: currentReport.retry_notify_recipients ?? false,
+      }),
     };
 
     setCurrentReport({ isSubmitting: true, error: undefined });
@@ -214,6 +250,9 @@ function ReportModal({
             ...(currentUserSubjectId === undefined
               ? {}
               : { editors: [currentUserSubjectId] }),
+            ...(formatRequiresTakeover && executeAsSelf
+              ? { run_as: currentUserId, run_as_type: 'fixed_user' as const }
+              : {}),
             recipients: [
               {
                 recipient_config_json: {
@@ -229,6 +268,24 @@ function ReportModal({
       } else {
         // Subscribe path: creation_method, editors, and recipients are set server-side.
         await dispatch(subscribeReport(commonFields as ReportObject));
+      }
+      const resourceId =
+        creationMethod === CreationMethod.Charts ? chart?.id : dashboardId;
+      if (
+        isFeatureEnabled(FeatureFlag.AlertReportDynamicExecutor) &&
+        resourceId != null
+      ) {
+        await dispatch(
+          fetchUISpecificReport({
+            userId: currentUserId,
+            filterField:
+              creationMethod === CreationMethod.Charts
+                ? 'chart_id'
+                : 'dashboard_id',
+            creationMethod,
+            resourceId,
+          }),
+        );
       }
       onHide();
     } catch (e) {
@@ -256,7 +313,10 @@ function ReportModal({
         key="submit"
         buttonStyle="primary"
         onClick={onSave}
-        disabled={!currentReport.name}
+        disabled={
+          !currentReport.name ||
+          (formatRequiresTakeover && (!executeAsSelf || currentUserId == null))
+        }
         loading={currentReport.isSubmitting}
       >
         {isEditMode ? t('Save') : t('Add')}
@@ -301,6 +361,36 @@ function ReportModal({
           ]}
         />
       </div>
+      {formatRequiresTakeover && (
+        <Alert
+          type={executeAsSelf ? 'info' : 'warning'}
+          showIcon
+          message={
+            executeAsSelf
+              ? t('Content and permissions')
+              : t('Content and recipient edits are restricted')
+          }
+          description={
+            executeAsSelf
+              ? t(
+                  'This schedule will use your permissions. You need access to its content and, for alerts, its condition query. Changes take effect when you save.',
+                )
+              : t(
+                  'You can edit the name and schedule, but changing the delivered content or recipients requires updating it to execute with your permissions. Only admins can select other users.',
+                )
+          }
+          action={
+            !executeAsSelf && (
+              <Button
+                onClick={() => setExecuteAsSelf(true)}
+                disabled={currentUserId == null}
+              >
+                {t('Execute using my permissions')}
+              </Button>
+            )
+          }
+        />
+      )}
     </>
   );
   const renderCustomWidthSection = (
@@ -478,7 +568,8 @@ function ReportModal({
         />
         {isChart && renderMessageContentSection}
         {(!isChart || !isTextBasedChart) && renderCustomWidthSection}
-        {renderErrorHandlingSection}
+        {isFeatureEnabled(FeatureFlag.AlertReportsRetry) &&
+          renderErrorHandlingSection}
       </StyledBottomSection>
       {currentReport.error && (
         <Alert

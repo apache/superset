@@ -23,6 +23,7 @@ import {
 import { t } from '@apache-superset/core/translation';
 import { LegendOrientation, LegendType } from '../types';
 import {
+  BarValueLabelPosition,
   OrientationType,
   EchartsTimeseriesSeriesType,
   EchartsTimeseriesFormData,
@@ -41,6 +42,7 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   legendOrientation: LegendOrientation.Top,
   legendType: LegendType.Scroll,
   showLegend: true,
+  showSelectorLegend: true,
   // ...DEFAULT_TITLE_FORM_DATA, // TODO: figure out why these break things for stories (e.g. Bubble Chart)
   // here are the contents of DEFAULT_TITLE_FORM_DATA:
   xAxisTitle: '',
@@ -67,6 +69,9 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   maxMarkerSize: 30,
   minMarkerSize: 5,
   minorSplitLine: false,
+  gridlines: true,
+  axisTicks: true,
+  valueAxisLabels: true,
   opacity: 0.2,
   orderDesc: true,
   rowLimit: 10000,
@@ -86,6 +91,11 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   xAxisLabelInterval: defaultXAxis.xAxisLabelInterval,
   groupby: [],
   showValue: false,
+  // Legacy charts saved before this field existed have no valueLabelPosition
+  // in form_data and must keep their pre-existing Outside End placement;
+  // Auto is opt-in via the Value label position control, not the default.
+  valueLabelPosition: BarValueLabelPosition.OutsideEnd,
+  labelPosition: 'auto',
   onlyTotal: false,
   percentageThreshold: 0,
   orientation: OrientationType.Vertical,

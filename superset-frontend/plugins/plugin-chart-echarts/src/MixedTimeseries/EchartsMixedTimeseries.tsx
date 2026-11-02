@@ -30,6 +30,7 @@ import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
 import { formatSeriesName } from '../utils/series';
+import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 
 export default function EchartsMixedTimeseries({
   height,
@@ -50,6 +51,8 @@ export default function EchartsMixedTimeseries({
   xAxis,
   refs,
   coltypeMapping,
+  onLegendStateChanged,
+  onLegendScroll,
 }: EchartsMixedTimeseriesChartTransformedProps) {
   const isFirstQuery = useCallback(
     (seriesIndex: number) => seriesIndex < seriesBreakdown,
@@ -133,7 +136,13 @@ export default function EchartsMixedTimeseries({
     ],
   );
 
+  const legendEventHandlers = useLegendEventHandlers(
+    onLegendStateChanged,
+    onLegendScroll,
+  );
+
   const eventHandlers: EventHandlers = {
+    ...legendEventHandlers,
     click: props => {
       const { seriesName, seriesIndex } = props;
       handleChange(seriesName, seriesIndex);

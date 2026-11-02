@@ -18,11 +18,13 @@ import logging
 from functools import partial
 from typing import Any, Optional
 
+from jinja2.exceptions import TemplateError
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db
 from superset.commands.explore.permalink.base import BaseExplorePermalinkCommand
 from superset.daos.key_value import KeyValueDAO
+from superset.exceptions import SupersetTemplateException
 from superset.explore.permalink.exceptions import ExplorePermalinkCreateFailedError
 from superset.explore.utils import check_access as check_chart_access
 from superset.key_value.exceptions import (
@@ -58,7 +60,10 @@ class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
         d_id, d_type = self.datasource.split("__")
         datasource_id = int(d_id)
         datasource_type = DatasourceType(d_type)
-        check_chart_access(datasource_id, self.chart_id, datasource_type)
+        try:
+            check_chart_access(datasource_id, self.chart_id, datasource_type)
+        except TemplateError as ex:
+            raise SupersetTemplateException(str(ex)) from ex
         value = {
             "chartId": self.chart_id,
             "datasourceId": datasource_id,

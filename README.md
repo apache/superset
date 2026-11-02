@@ -58,7 +58,7 @@ A modern, enterprise-ready business intelligence web application.
 
 [**Why Superset?**](#why-superset) |
 [**Supported Databases**](#supported-databases) |
-[**Release Notes**](https://github.com/apache/superset/blob/master/RELEASING/README.md#release-notes-for-recent-releases) |
+[**Release Notes**](https://github.com/apache/superset/releases) |
 [**Get Involved**](#get-involved) |
 [**Resources**](#resources) |
 [**Organizations Using Superset**](https://superset.apache.org/inTheWild)
@@ -187,10 +187,10 @@ Try out Superset's [quickstart](https://superset.apache.org/docs/quickstart/) gu
 
 ## Get Involved
 
-- Ask and answer questions on [StackOverflow](https://stackoverflow.com/questions/tagged/apache-superset) using the **apache-superset** tag
+- Ask and answer questions on [Stack Overflow](https://stackoverflow.com/questions/tagged/apache-superset) using the **apache-superset** tag
 - [Join our community's Slack](https://bit.ly/join-superset-slack)
   and please read our [Slack Community Guidelines](https://github.com/apache/superset/blob/master/CODE_OF_CONDUCT.md#slack-community-guidelines)
-- [Join our dev@superset.apache.org Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org). To join, simply send an email to [dev-subscribe@superset.apache.org](mailto:dev-subscribe@superset.apache.org)
+- [Join our dev@superset.apache.org mailing list](https://lists.apache.org/list.html?dev@superset.apache.org). To join, simply send an email to [dev-subscribe@superset.apache.org](mailto:dev-subscribe@superset.apache.org)
 - Follow us on social media:
   [X](https://x.com/apachesuperset) |
   [LinkedIn](https://www.linkedin.com/company/apache-superset) |
@@ -201,10 +201,7 @@ Try out Superset's [quickstart](https://superset.apache.org/docs/quickstart/) gu
 
 ## Contributor Guide
 
-Interested in contributing? Check out our
-[Developer Guide](https://superset.apache.org/developer-docs/)
-to find resources around contributing along with a detailed guide on
-how to set up a development environment.
+Interested in contributing? Check out our [Developer Guide](https://superset.apache.org/developer-docs/) for resources and a detailed setup guide.
 
 ## Resources
 
@@ -220,8 +217,8 @@ Understanding the Superset Points of View
 - [Understanding the Superset Semantic Layer](https://preset.io/blog/understanding-superset-semantic-layer/)
 
 - Getting Started with Superset
-  - [Superset in 2 Minutes using Docker Compose](https://superset.apache.org/docs/installation/docker-compose#installing-superset-locally-using-docker-compose)
-  - [Installing Database Drivers](https://superset.apache.org/docs/configuration/databases#installing-database-drivers)
+  - [Superset in 2 Minutes using Docker Compose](https://superset.apache.org/admin-docs/installation/docker-compose)
+  - [Installing Database Drivers](https://superset.apache.org/user-docs/databases#installing-database-drivers)
   - [Building New Database Connectors](https://preset.io/blog/building-database-connector/)
   - [Create Your First Dashboard](https://superset.apache.org/docs/using-superset/creating-your-first-dashboard/)
   - [Comprehensive Tutorial for Contributing Code to Apache Superset

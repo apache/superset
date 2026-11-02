@@ -44,6 +44,7 @@ import {
   getChartPadding,
   getColtypesMapping,
   getLegendProps,
+  getLegendScrollDataIndex,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import { defaultGrid } from '../defaults';
@@ -103,6 +104,8 @@ export default function transformProps(
     theme,
     inContextMenu,
     emitCrossFilters,
+    legendState,
+    legendIndex,
   } = chartProps;
   const refs: Refs = {};
   const { data = [] } = queriesData[0];
@@ -122,6 +125,7 @@ export default function transformProps(
     dateFormat,
     showLabels,
     showLegend,
+    showSelectorLegend,
     legendSort,
     isCircle,
     columnConfig,
@@ -131,7 +135,12 @@ export default function transformProps(
     ...DEFAULT_RADAR_FORM_DATA,
     ...formData,
   };
-  const { setDataMask = () => {}, onContextMenu } = hooks ?? {};
+  const {
+    setDataMask = () => {},
+    onContextMenu,
+    onLegendStateChanged,
+    onLegendScroll,
+  } = hooks ?? {};
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
   const denormalizedSeriesValues: SeriesNormalizedMap = {};
@@ -368,6 +377,7 @@ export default function transformProps(
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -433,7 +443,11 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
+        false,
+        legendState,
       ),
+      scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
     },
     series,
@@ -472,6 +486,8 @@ export default function transformProps(
     groupby,
     selectedValues,
     onContextMenu,
+    onLegendStateChanged,
+    onLegendScroll,
     refs,
     coltypeMapping,
   };

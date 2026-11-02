@@ -26,5 +26,6 @@ export { DuplicateDatasetModal } from './DuplicateDatasetModal';
 export { EditDatasetModal } from './EditDatasetModal';
 export { ImportDatasetModal } from './ImportDatasetModal';
 export { NativeFiltersConfigModal } from './NativeFiltersConfigModal';
+export { SaveChartModal } from './SaveChartModal';
 export { SaveDatasetModal } from './SaveDatasetModal';
 export { SaveQueryModal } from './SaveQueryModal';

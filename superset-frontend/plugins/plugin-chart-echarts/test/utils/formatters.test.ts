@@ -27,8 +27,11 @@ import {
   TimeGranularity,
 } from '@superset-ui/core';
 import {
+  coerceTemporalMs,
+  createSpacedXAxisFormatter,
   getPercentFormatter,
   getTooltipTimeFormatter,
+  getXAxisDomain,
   getXAxisFormatter,
 } from '../../src/utils/formatters';
 
@@ -348,4 +351,156 @@ test('getSmartDateFormatter SECOND grain distinguishes different seconds', () =>
   const date1 = new Date('2024-01-15T10:35:00Z');
   const date2 = new Date('2024-01-15T10:35:45Z');
   expect(formatter.format(date1)).not.toBe(formatter.format(date2));
+});
+
+test('createSpacedXAxisFormatter blanks labels that would visually collide', () => {
+  const formatter = createSpacedXAxisFormatter(
+    (value: number | string) => String(value),
+    0,
+    1000,
+    100,
+  );
+  const labels = [0, 100, 200, 300, 1000].map(value => formatter(value));
+
+  // Ticks close together at this pixel density collide with the last shown
+  // label and get blanked, until one falls far enough past it.
+  expect(labels).toEqual(['0', '', '', '300', '1000']);
+});
+
+test('createSpacedXAxisFormatter shows every label when showAllLabels bypasses the spacing check', () => {
+  const formatter = createSpacedXAxisFormatter(
+    (value: number | string) => String(value),
+    0,
+    1000,
+    100,
+    true,
+  );
+  const labels = [0, 100, 200, 300, 1000].map(value => formatter(value));
+
+  expect(labels).toEqual(['0', '100', '200', '300', '1000']);
+});
+
+test('createSpacedXAxisFormatter still dedupes identical consecutive labels when showAllLabels is set', () => {
+  // showAllLabels only bypasses density thinning; two ticks that format to
+  // literally the same text are still deduped, since that's not thinning.
+  const formatter = createSpacedXAxisFormatter(() => 'Jan', 0, 1000, 100, true);
+  const labels = [0, 100, 200].map(value => formatter(value));
+
+  expect(labels).toEqual(['Jan', '', '']);
+});
+
+describe('coerceTemporalMs', () => {
+  test('passes a number through unchanged', () => {
+    expect(coerceTemporalMs(1712361600000)).toBe(1712361600000);
+  });
+
+  test('reads a Date object via getTime', () => {
+    const date = new Date(Date.UTC(2024, 3, 6));
+    expect(coerceTemporalMs(date)).toBe(date.getTime());
+  });
+
+  test('parses a zoned ISO string as the instant it names', () => {
+    expect(coerceTemporalMs('2026-04-06T00:00:00.000Z')).toBe(
+      Date.UTC(2026, 3, 6),
+    );
+  });
+
+  test('parses a zone-less datetime string as local time, matching ECharts', () => {
+    expect(coerceTemporalMs('2026-04-06T00:00:00')).toBe(
+      new Date(2026, 3, 6, 0, 0, 0).getTime(),
+    );
+  });
+
+  test('parses a bare date string as local midnight, matching ECharts rather than native Date', () => {
+    // `new Date('2026-04-06')` is UTC, but ECharts parses it as local time.
+    // jest.config.js fixes the test TZ to America/New_York, so they disagree.
+    const localMidnight = new Date(2026, 3, 6).getTime();
+    expect(localMidnight).not.toEqual(new Date('2026-04-06').getTime());
+    expect(coerceTemporalMs('2026-04-06')).toBe(localMidnight);
+  });
+
+  test('returns NaN for an unparseable string or a nullish value', () => {
+    expect(coerceTemporalMs('not-a-date')).toBeNaN();
+    expect(coerceTemporalMs(null)).toBeNaN();
+    expect(coerceTemporalMs(undefined)).toBeNaN();
+  });
+});
+
+describe('getXAxisDomain', () => {
+  const xAxisCol = '__timestamp';
+  const t0 = Date.UTC(2024, 0, 1);
+  const t1 = Date.UTC(2024, 0, 2);
+
+  test('finds the min/max of a purely numeric column', () => {
+    expect(
+      getXAxisDomain([[{ [xAxisCol]: t0 }, { [xAxisCol]: t1 }]], xAxisCol),
+    ).toEqual([t0, t1]);
+  });
+
+  test('finds the min/max when every value is a Date object', () => {
+    // Regression: getXAxisDomain used to only recognize `typeof === 'number'`,
+    // so a column of Date objects (as MixedTimeseries/Timeseries transformProps
+    // pass through in some data-fetch paths) found no bounds at all and the
+    // grain-aware bar-width cap silently fell back to the flat 100px default.
+    expect(
+      getXAxisDomain(
+        [[{ [xAxisCol]: new Date(t0) }, { [xAxisCol]: new Date(t1) }]],
+        xAxisCol,
+      ),
+    ).toEqual([t0, t1]);
+  });
+
+  test('finds the min/max when every value is an ISO string', () => {
+    expect(
+      getXAxisDomain(
+        [
+          [
+            { [xAxisCol]: '2024-01-01T00:00:00.000Z' },
+            { [xAxisCol]: '2024-01-02T00:00:00.000Z' },
+          ],
+        ],
+        xAxisCol,
+      ),
+    ).toEqual([t0, t1]);
+  });
+
+  test('finds the min/max across a mix of numbers, Dates and ISO strings', () => {
+    // The two query result sets MixedTimeseries combines don't have to agree
+    // on representation; every row must still count toward the same domain.
+    expect(
+      getXAxisDomain(
+        [
+          [{ [xAxisCol]: t0 }],
+          [
+            { [xAxisCol]: new Date(t1) },
+            { [xAxisCol]: '2024-01-01T12:00:00.000Z' },
+          ],
+        ],
+        xAxisCol,
+      ),
+    ).toEqual([t0, t1]);
+  });
+
+  test('ignores unparseable or nullish values without affecting the real bounds', () => {
+    expect(
+      getXAxisDomain(
+        [
+          [
+            { [xAxisCol]: t0 },
+            { [xAxisCol]: 'not-a-date' },
+            { [xAxisCol]: null },
+            { [xAxisCol]: t1 },
+          ],
+        ],
+        xAxisCol,
+      ),
+    ).toEqual([t0, t1]);
+  });
+
+  test('returns [undefined, undefined] when the column has no temporal values', () => {
+    expect(getXAxisDomain([[{ other: 1 }]], xAxisCol)).toEqual([
+      undefined,
+      undefined,
+    ]);
+  });
 });

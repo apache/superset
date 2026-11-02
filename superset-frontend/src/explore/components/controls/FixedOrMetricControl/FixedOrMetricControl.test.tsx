@@ -83,7 +83,7 @@ test('renders with metric type', () => {
   expect(screen.getByText('Metric A')).toBeInTheDocument();
 });
 
-test('triggers onChange', () => {
+test('triggers onChange', async () => {
   const onChange = jest.fn();
   render(
     <FixedOrMetricControl
@@ -92,22 +92,22 @@ test('triggers onChange', () => {
       onChange={onChange}
     />,
   );
-  userEvent.click(screen.getByText('10'));
+  await userEvent.click(screen.getByText('10'));
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.type(screen.getByRole('textbox'), '20');
+  await userEvent.type(screen.getByRole('textbox'), '20');
   expect(onChange).toHaveBeenCalled();
 });
 
-test('switches control type', () => {
+test('switches control type', async () => {
   render(
     <FixedOrMetricControl
       {...createProps()}
       value={{ type: 'fix', value: 10 }}
     />,
   );
-  userEvent.click(screen.getByText('10'));
-  userEvent.click(screen.getByText('Based on a metric'));
+  await userEvent.click(screen.getByText('10'));
+  await userEvent.click(screen.getByText('Based on a metric'));
   expect(screen.getByText('metric:')).toBeInTheDocument();
-  userEvent.click(screen.getByText('Fixed'));
+  await userEvent.click(screen.getByText('Fixed'));
   expect(screen.getByText('10')).toBeInTheDocument();
 });

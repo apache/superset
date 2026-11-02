@@ -58,6 +58,44 @@ test('generates a readable time range', () => {
   expect(formatTimeRange('')).toBe('');
 });
 
+test('formatTimeRange applies an optional D3 date format to both endpoints without reinterpreting the timezone', () => {
+  // jest.config.js pins the test runner to America/New_York, so if the
+  // implementation ever parsed these naive ISO strings as local time
+  // instead of UTC, the formatted date/time below would shift.
+  expect(
+    formatTimeRange(
+      '2019-01-14T23:30:00 : 2019-01-21T08:15:00',
+      'col',
+      '%Y-%m-%d %H:%M',
+    ),
+  ).toBe('2019-01-14 23:30 ≤ col < 2019-01-21 08:15');
+
+  expect(
+    formatTimeRange(
+      '2019-01-14T01:32:10 : 2019-01-21T01:32:10',
+      'col',
+      '%d-%m-%Y %H:%M:%S',
+    ),
+  ).toBe('14-01-2019 01:32:10 ≤ col < 21-01-2019 01:32:10');
+});
+
+test('formatTimeRange preserves the -∞/∞ placeholders when a date format is set', () => {
+  expect(formatTimeRange('2019-01-14T00:00:00 : ', 'col', '%d-%m-%Y')).toBe(
+    '14-01-2019 ≤ col < ∞',
+  );
+  expect(formatTimeRange(' : 2019-01-21T00:00:00', 'col', '%d-%m-%Y')).toBe(
+    '-∞ ≤ col < 21-01-2019',
+  );
+});
+
+test('formatTimeRange leaves human-readable values untouched even when a date format is set', () => {
+  expect(formatTimeRange('Last week', 'col', '%d-%m-%Y')).toBe('Last week');
+  expect(formatTimeRange('No filter', 'col', '%d-%m-%Y')).toBe('No filter');
+  expect(formatTimeRange('Yesterday : Tomorrow', 'col', '%d-%m-%Y')).toBe(
+    'Yesterday ≤ col < Tomorrow',
+  );
+});
+
 test('returns a formatted time range from response', async () => {
   fetchMock.get('glob:*/api/v1/time_range/?q=%27Last+day%27', {
     result: [
@@ -72,6 +110,28 @@ test('returns a formatted time range from response', async () => {
   const timeRange = await fetchTimeRange('Last day', 'temporal_col');
   expect(timeRange).toEqual({
     value: '2021-04-13 ≤ temporal_col < 2021-04-14',
+  });
+});
+
+test('returns a formatted time range from response using a custom date format', async () => {
+  fetchMock.get('glob:*/api/v1/time_range/?q=%27Last+day%27', {
+    result: [
+      {
+        since: '2021-04-13T00:00:00',
+        until: '2021-04-14T00:00:00',
+        timeRange: 'Last day',
+      },
+    ],
+  });
+
+  const timeRange = await fetchTimeRange(
+    'Last day',
+    'temporal_col',
+    undefined,
+    '%d/%m/%Y',
+  );
+  expect(timeRange).toEqual({
+    value: '13/04/2021 ≤ temporal_col < 14/04/2021',
   });
 });
 

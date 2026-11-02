@@ -15,15 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 from contextlib import contextmanager
-from unittest.mock import call, patch
+from datetime import datetime
+from unittest.mock import call, patch, PropertyMock
 
 import pandas as pd
 import pytest
 from flask_appbuilder.security.sqla.models import User
+from pandas import DataFrame
 
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable
+from superset.exceptions import InvalidPostProcessingError, QueryObjectValidationError
 from superset.models.core import Database
+from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import Metric
 from superset.utils import pandas_postprocessing
 from superset.utils.core import override_user
@@ -61,9 +65,11 @@ def test_default_query_object_to_dict():
     query_object = QueryObject(row_limit=1)
     assert query_object.to_dict() == {
         "apply_fetch_values_predicate": False,
+        "cache_timeout": None,
         "columns": [],
         "extras": {},
         "filter": [],
+        "force_query": False,
         "from_dttm": None,
         "granularity": None,
         "group_others_when_limit_reached": False,
@@ -85,6 +91,138 @@ def test_default_query_object_to_dict():
         "time_compare_full_range": False,
         "to_dttm": None,
     }
+
+
+@pytest.mark.parametrize("clause", ["where", "having"])
+def test_semantic_view_rejects_custom_sql_extras(clause: str) -> None:
+    """Unsupported SQL clauses fail before semantic provider access."""
+    view: SemanticView = SemanticView(name="Orders")
+    provider_access: PropertyMock = PropertyMock(
+        side_effect=AssertionError("provider accessed before SQL extras validation")
+    )
+    query: QueryObject = QueryObject(datasource=view, extras={clause: "amount > 10"})
+
+    with patch.object(SemanticView, "implementation", provider_access):
+        with pytest.raises(
+            QueryObjectValidationError, match="SQL WHERE/HAVING.*semantic views"
+        ):
+            query.validate()
+    provider_access.assert_not_called()
+
+
+def test_exec_post_processing_rejects_unsupported_operation():
+    """
+    An unknown operation reports itself in the error message rather than failing
+    to interpolate it.
+    """
+    query_object = QueryObject(
+        row_limit=1,
+        post_processing=[{"operation": "no_such_operation"}],
+    )
+
+    with pytest.raises(InvalidPostProcessingError) as excinfo:
+        query_object.exec_post_processing(pd.DataFrame({"y": [1.0]}))
+
+    assert "no_such_operation" in excinfo.value.message
+
+
+def test_exec_post_processing_requires_an_operation():
+    query_object = QueryObject(row_limit=1, post_processing=[{"options": {}}])
+
+    with pytest.raises(InvalidPostProcessingError):
+        query_object.exec_post_processing(pd.DataFrame({"y": [1.0]}))
+
+
+def test_exec_post_processing_resample_fills_time_range():
+    """
+    `fill_time_range` is resolved into the boundaries of the queried time range
+    so the resampled series covers the whole period.
+    """
+    query_object = QueryObject(
+        row_limit=1,
+        post_processing=[
+            {
+                "operation": "resample",
+                "options": {
+                    "method": "asfreq",
+                    "rule": "1D",
+                    "fill_value": 0,
+                    "fill_time_range": True,
+                },
+            }
+        ],
+        from_dttm=datetime(2019, 1, 1),
+        to_dttm=datetime(2019, 1, 5),
+    )
+    # ``fill_time_range`` is not a ``resample()`` kwarg; it must survive
+    # ``_drop_unsupported_options`` so ``exec_post_processing`` can resolve it.
+    assert query_object.post_processing[0]["options"].get("fill_time_range") is True
+
+    df = pd.DataFrame(
+        index=pd.to_datetime(["2019-01-03"]),
+        data={"y": [1.0]},
+    )
+
+    assert query_object.exec_post_processing(df).index.equals(
+        pd.date_range("2019-01-01", "2019-01-04", freq="1D")
+    )
+
+
+def test_exec_post_processing_resample_ignores_client_time_bounds():
+    """
+    Client-supplied bounds must not override the resolved query window.
+    """
+    query_object = QueryObject(
+        row_limit=1,
+        post_processing=[
+            {
+                "operation": "resample",
+                "options": {
+                    "method": "asfreq",
+                    "rule": "1D",
+                    "fill_value": 0,
+                    "fill_time_range": True,
+                    "time_range_start": datetime(2010, 1, 1),
+                    "time_range_end": datetime(2030, 1, 1),
+                },
+            }
+        ],
+        from_dttm=datetime(2019, 1, 1),
+        to_dttm=datetime(2019, 1, 5),
+    )
+    df = pd.DataFrame(
+        index=pd.to_datetime(["2019-01-03"]),
+        data={"y": [1.0]},
+    )
+
+    assert query_object.exec_post_processing(df).index.equals(
+        pd.date_range("2019-01-01", "2019-01-04", freq="1D")
+    )
+
+
+def test_exec_post_processing_resample_without_fill_time_range():
+    """
+    Without the flag the result stays bound to the extremes of the data.
+    """
+    query_object = QueryObject(
+        row_limit=1,
+        post_processing=[
+            {
+                "operation": "resample",
+                "options": {"method": "asfreq", "rule": "1D", "fill_value": 0},
+            }
+        ],
+        from_dttm=datetime(2019, 1, 1),
+        to_dttm=datetime(2019, 1, 5),
+    )
+    df = pd.DataFrame(
+        index=pd.to_datetime(["2019-01-03"]),
+        data={"y": [1.0]},
+    )
+
+    assert query_object.exec_post_processing(df).index.equals(
+        pd.to_datetime(["2019-01-03"])
+    )
 
 
 def test_cache_key_consistent_for_query_object():
@@ -183,6 +321,33 @@ def test_cache_key_changes_for_new_query_object_same_params():
     cache_key1 = query_object1.cache_key()
     query_object2 = QueryObject(row_limit=1)
     assert query_object2.cache_key() == cache_key1
+
+
+def test_force_query_does_not_change_result_cache_identity() -> None:
+    regular: QueryObject = QueryObject(row_limit=1, force_query=False)
+    forced: QueryObject = QueryObject(row_limit=1, force_query=True)
+
+    assert regular.force_query is False
+    assert forced.force_query is True
+    assert forced.cache_key() == regular.cache_key()
+
+
+def test_force_identity_regression_kills_faulty_identity_policy() -> None:
+    class FaultyForceIdentityQueryObject(QueryObject):
+        def cache_key(self, **extra: object) -> str:
+            return f"{super().cache_key(**extra)}:{self.force_query}"
+
+    regular: FaultyForceIdentityQueryObject = FaultyForceIdentityQueryObject(
+        row_limit=1,
+        force_query=False,
+    )
+    forced: FaultyForceIdentityQueryObject = FaultyForceIdentityQueryObject(
+        row_limit=1,
+        force_query=True,
+    )
+
+    with pytest.raises(AssertionError):
+        assert forced.cache_key() == regular.cache_key()
 
 
 @patch("superset.utils.cache_keys.feature_flag_manager")
@@ -489,8 +654,6 @@ def test_exec_post_processing_extra_ops(app_context: None) -> None:
 
 def test_exec_post_processing_unknown_op_raises(app_context: None) -> None:
     """An operation not in builtins or EXTRA_PANDAS_POSTPROCESSING_OPS raises."""
-    from superset.exceptions import InvalidPostProcessingError
-
     df = pd.DataFrame({"value": [1, 2, 3]})
     query_object = QueryObject(
         row_limit=10,
@@ -501,8 +664,12 @@ def test_exec_post_processing_unknown_op_raises(app_context: None) -> None:
         "superset.common.query_object.current_app.config",
         {"EXTRA_PANDAS_POSTPROCESSING_OPS": []},
     ):
-        with pytest.raises(InvalidPostProcessingError):
+        with pytest.raises(InvalidPostProcessingError) as excinfo:
             query_object.exec_post_processing(df)
+
+    # The message names the offending operation. Guards the `%(operation)s`
+    # placeholder against regressing to a keyword the format string ignores.
+    assert "nonexistent_op" in str(excinfo.value)
 
 
 @pytest.mark.parametrize(
@@ -566,6 +733,16 @@ def test_exec_post_processing_builtin_wins_over_extra_op(app_context: None) -> N
 
     # The built-in sort ran, not the raising custom op.
     assert list(result["value"]) == [1, 2, 3]
+
+
+def test_exec_post_processing_missing_operation():
+    """
+    A post processing entry without an `operation` key is a validation error.
+    """
+    query_object = QueryObject(row_limit=1, post_processing=[{"options": {}}])
+
+    with pytest.raises(InvalidPostProcessingError):
+        query_object.exec_post_processing(DataFrame({"y": [1, 2, 3]}))
 
 
 def test_post_processing_drops_unsupported_options():
@@ -704,3 +881,51 @@ def test_post_processing_keeps_an_entry_without_an_operation():
     query_object = QueryObject(row_limit=1, post_processing=post_processing)
 
     assert query_object.post_processing == post_processing
+
+
+@pytest.mark.parametrize("operation", ["escape_separator", "unescape_separator"])
+def test_exec_post_processing_rejects_string_helpers(
+    app_context: None, operation: str
+) -> None:
+    """`escape_separator`/`unescape_separator` are str -> str helpers used by
+    `flatten`, not DataFrame post-processing operations, and must not be
+    reachable as a `post_processing` operation name."""
+    df = pd.DataFrame({"value": [1, 2, 3]})
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": operation, "options": {}}],
+    )
+
+    with pytest.raises(InvalidPostProcessingError):
+        query_object.exec_post_processing(df)
+
+
+def test_cache_key_distinguishes_bounds_without_time_range():
+    """
+    Regression for the datasource query endpoint: a caller that passes a range
+    only as a ``TEMPORAL_RANGE`` filter has no ``time_range``, and
+    ``QueryContextFactory._apply_granularity`` removes that filter once
+    ``granularity`` names its column. The resolved bounds are then the only
+    thing telling one range from another, so they have to reach the key --
+    otherwise every range collides and the second request is served the first
+    range's rows.
+    """
+    query_object1 = QueryObject(
+        from_dttm=datetime(1965, 1, 1), to_dttm=datetime(1968, 1, 1)
+    )
+    query_object2 = QueryObject(
+        from_dttm=datetime(1966, 1, 1), to_dttm=datetime(1967, 1, 1)
+    )
+
+    assert query_object1.cache_key() != query_object2.cache_key()
+
+
+def test_cache_key_ignores_bounds_when_time_range_is_set():
+    """
+    ``time_range`` stands in for the bounds, so they stay out of the key: a
+    relative range such as "Last week" keeps one key as its bounds advance.
+    """
+    query_object1 = QueryObject(time_range="Last week", from_dttm=datetime(1965, 1, 1))
+    query_object2 = QueryObject(time_range="Last week", from_dttm=datetime(1970, 1, 1))
+
+    assert query_object1.cache_key() == query_object2.cache_key()

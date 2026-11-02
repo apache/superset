@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { convertFilter } from '@superset-ui/core';
+import { convertFilter, TimeGranularity } from '@superset-ui/core';
 
 describe('convertFilter', () => {
   test('should handle unary filter', () => {
@@ -63,5 +63,23 @@ describe('convertFilter', () => {
       op: 'IN',
       val: ['boba', 'grass jelly'],
     });
+  });
+});
+
+test('convertFilter retains an adhoc timeGrain as a query filter grain', () => {
+  expect(
+    convertFilter({
+      expressionType: 'SIMPLE',
+      clause: 'WHERE',
+      subject: 'ts',
+      operator: '==',
+      comparator: '2026-08-01T00:00:00',
+      timeGrain: TimeGranularity.MONTH,
+    }),
+  ).toEqual({
+    col: 'ts',
+    op: '==',
+    val: '2026-08-01T00:00:00',
+    grain: TimeGranularity.MONTH,
   });
 });

@@ -44,17 +44,17 @@ test('should render', () => {
   expect(container).toBeInTheDocument();
 });
 
-test('should render the stacktrace', () => {
+test('should render the stacktrace', async () => {
   render(<ErrorMessageWithStackTrace {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  userEvent.click(button);
+  await userEvent.click(button);
   expect(screen.getByText('Stacktrace')).toBeInTheDocument();
 });
 
-test('should render the link', () => {
+test('should render the link', async () => {
   render(<ErrorMessageWithStackTrace {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  userEvent.click(button);
+  await userEvent.click(button);
   const link = screen.getByRole('link');
   expect(link).toHaveTextContent('Request Access');
   expect(link).toHaveAttribute('href', mockedProps.link);

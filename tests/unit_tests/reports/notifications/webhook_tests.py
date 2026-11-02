@@ -19,6 +19,7 @@
 import pandas as pd
 import pytest
 from freezegun import freeze_time
+from pytest_mock import MockerFixture
 
 from superset.reports.notifications.exceptions import (
     NotificationParamException,
@@ -121,11 +122,79 @@ def test_get_req_payload_basic(mock_header_data) -> None:
     assert payload["name"] == "Payload Name"
     assert payload["description"] == "Payload Description"
     assert payload["url"] == "http://example.com/report"
-    assert payload["text"] == "Report Text"
+    assert payload["text"] == "Contact the report owner for error details."
     assert isinstance(payload["header"], dict)
     # Optional fields from header_data
     assert payload["header"]["notification_format"] == "PNG"
     assert payload["header"]["notification_type"] == "Alert"
+
+
+@pytest.mark.parametrize("notification_type", ["Alert", "Report"])
+@pytest.mark.parametrize("notice", ["ordinary", "retry", "final"])
+@pytest.mark.parametrize("multipart", [False, True])
+def test_send_redacts_failure_diagnostics(
+    mocker: MockerFixture,
+    mock_header_data: HeaderDataType,
+    notification_type: str,
+    notice: str,
+    multipart: bool,
+) -> None:
+    """Both webhook encodings redact all failure notices for alerts and reports."""
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+
+    header = mock_header_data.copy()
+    header["notification_type"] = notification_type
+    raw_error = "Database password=private-value; SMTP recipient=private@example.com"
+    content = NotificationContent(
+        name="test report",
+        header_data=header,
+        text=raw_error,
+        retry_attempt=1 if notice == "retry" else None,
+        retry_max_attempts=3 if notice != "ordinary" else None,
+        csv=b"value\n42" if multipart else None,
+    )
+    notification = WebhookNotification(
+        ReportRecipients(
+            type=ReportRecipientType.WEBHOOK,
+            recipient_config_json='{"target": "https://example.com/webhook"}',
+        ),
+        content,
+    )
+    mocker.patch.object(notification, "_validate_webhook_url")
+    mocker.patch(
+        "superset.reports.notifications.webhook.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    requester = mocker.patch(
+        "superset.reports.notifications.webhook.get_ssrf_safe_requester"
+    ).return_value
+    requester.post.return_value.status_code = 200
+
+    notification.send()
+
+    requester.post.assert_called_once()
+    kwargs = requester.post.call_args.kwargs
+    payload = kwargs["data" if multipart else "json"]
+    assert payload["text"] == "Contact the report owner for error details."
+    assert "private-value" not in str(kwargs)
+    assert "private@example.com" not in str(kwargs)
+    assert content.text == raw_error
+
+
+@pytest.mark.parametrize("text", [None, ""])
+def test_success_payload_does_not_gain_error_text(
+    mock_header_data: HeaderDataType, text: str | None
+) -> None:
+    """Successful content retains the existing empty-text payload contract."""
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+
+    notification = WebhookNotification(
+        ReportRecipients(type=ReportRecipientType.WEBHOOK),
+        NotificationContent(name="report", header_data=mock_header_data, text=text),
+    )
+    assert notification._get_req_payload()["text"] == text
 
 
 def test_get_files_includes_all_content_types(mock_header_data) -> None:
@@ -509,94 +578,6 @@ def test_send_max_time_does_not_abandon_recovering_target(
     # would pin elapsed at 0 and pass at any ``max_time``, including a broken
     # ``max_time=1`` — this non-zero tick keeps the guard real.
     assert len(post_calls) == 3
-
-
-def test_peer_validating_connection_blocks_rebound_peer() -> None:
-    """
-    The webhook POST validates the connected peer address, so a hostname that
-    passes ``is_safe_host`` at validation time and then re-resolves to an
-    internal address by the time the connection is opened (DNS rebinding) is
-    rejected before any request bytes are sent -- mirrors the equivalent test
-    for the dataset-import data-URI fetch path.
-    """
-    from unittest.mock import MagicMock, patch
-
-    from urllib3.connection import HTTPConnection
-
-    from superset.reports.notifications.exceptions import NotificationParamException
-    from superset.reports.notifications.webhook import _PeerValidatingHTTPConnection
-
-    sock = MagicMock()
-    sock.getpeername.return_value = ("169.254.169.254", 80)
-
-    with patch.object(
-        HTTPConnection, "connect", lambda self: setattr(self, "sock", sock)
-    ):
-        conn = _PeerValidatingHTTPConnection("rebinder.example.com")
-        with pytest.raises(NotificationParamException):
-            conn.connect()
-
-
-def test_peer_validating_connection_allows_public_peer() -> None:
-    """A connection whose actual peer resolves to a public address is allowed
-    through unmodified."""
-    from unittest.mock import MagicMock, patch
-
-    from urllib3.connection import HTTPConnection
-
-    from superset.reports.notifications.webhook import _PeerValidatingHTTPConnection
-
-    sock = MagicMock()
-    sock.getpeername.return_value = ("93.184.216.34", 80)  # example.com, public
-
-    with patch.object(
-        HTTPConnection, "connect", lambda self: setattr(self, "sock", sock)
-    ):
-        conn = _PeerValidatingHTTPConnection("example.com")
-        conn.connect()  # should not raise
-
-
-def test_get_requester_returns_plain_requests_when_internal_hosts_allowed(
-    monkeypatch,
-) -> None:
-    """
-    When the operator opts into internal webhook targets via
-    ``ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS``, ``_get_requester`` must
-    return the plain ``requests`` module (no peer pinning), preserving the
-    documented escape hatch for internal automation targets.
-    """
-    import requests
-
-    from superset.reports.notifications.webhook import _get_requester
-
-    monkeypatch.setattr(
-        "superset.reports.notifications.webhook.current_app", _allow_internal_app()
-    )
-
-    assert _get_requester() is requests
-
-
-def test_get_requester_pins_peer_when_internal_hosts_disallowed(monkeypatch) -> None:
-    """
-    By default (``ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS`` unset/False),
-    ``_get_requester`` returns a session whose adapters validate the
-    connected peer address rather than the plain ``requests`` module.
-    """
-    from superset.reports.notifications.webhook import (
-        _get_requester,
-        _PeerValidatingHTTPAdapter,
-    )
-
-    class MockCurrentApp:
-        config = {"ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS": False}
-
-    monkeypatch.setattr(
-        "superset.reports.notifications.webhook.current_app", MockCurrentApp
-    )
-
-    requester = _get_requester()
-    assert isinstance(requester.get_adapter("http://x/"), _PeerValidatingHTTPAdapter)
-    assert isinstance(requester.get_adapter("https://x/"), _PeerValidatingHTTPAdapter)
 
 
 def test_send_rejects_rebound_peer_despite_passed_hostname_check(

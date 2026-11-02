@@ -57,10 +57,10 @@ const setup = (queryEditor: QueryEditor, store?: Store) =>
 
 // Renders the header and opens its "..." dropdown menu, returning the store so
 // each test can assert on the actions it dispatches.
-const openTabDropdown = () => {
+const openTabDropdown = async () => {
   const store = mockStore(initialState);
   const { getByTestId } = setup(defaultQueryEditor, store);
-  userEvent.click(getByTestId('dropdown-trigger'));
+  await userEvent.click(getByTestId('dropdown-trigger'));
   return store;
 };
 
@@ -123,7 +123,7 @@ test('renders current name for unrelated unsaved changes', () => {
 });
 
 test('should dispatch removeQueryEditor action', async () => {
-  const store = openTabDropdown();
+  const store = await openTabDropdown();
   await waitFor(() =>
     expect(screen.getByTestId('close-tab-menu-option')).toBeInTheDocument(),
   );
@@ -140,7 +140,7 @@ test('should dispatch removeQueryEditor action', async () => {
 });
 
 test('should dispatch queryEditorSetTitle action', async () => {
-  const store = openTabDropdown();
+  const store = await openTabDropdown();
   await waitFor(() =>
     expect(screen.getByTestId('rename-tab-menu-option')).toBeInTheDocument(),
   );
@@ -164,7 +164,7 @@ test('should dispatch queryEditorSetTitle action', async () => {
 });
 
 test('prefills the rename input with the current tab name', async () => {
-  openTabDropdown();
+  await openTabDropdown();
   await waitFor(() =>
     expect(screen.getByTestId('rename-tab-menu-option')).toBeInTheDocument(),
   );
@@ -175,7 +175,7 @@ test('prefills the rename input with the current tab name', async () => {
 });
 
 test('focuses the rename input when the modal opens', async () => {
-  openTabDropdown();
+  await openTabDropdown();
   await waitFor(() =>
     expect(screen.getByTestId('rename-tab-menu-option')).toBeInTheDocument(),
   );
@@ -186,7 +186,7 @@ test('focuses the rename input when the modal opens', async () => {
 });
 
 test('disables Save when the input is empty or whitespace', async () => {
-  openTabDropdown();
+  await openTabDropdown();
   await waitFor(() =>
     expect(screen.getByTestId('rename-tab-menu-option')).toBeInTheDocument(),
   );
@@ -198,7 +198,7 @@ test('disables Save when the input is empty or whitespace', async () => {
 });
 
 test('does not dispatch or dismiss on Enter when the input is empty', async () => {
-  const store = openTabDropdown();
+  const store = await openTabDropdown();
   await waitFor(() =>
     expect(screen.getByTestId('rename-tab-menu-option')).toBeInTheDocument(),
   );
@@ -218,7 +218,7 @@ test('does not dispatch or dismiss on Enter when the input is empty', async () =
 });
 
 test('does not dispatch a title change when the modal is cancelled', async () => {
-  const store = openTabDropdown();
+  const store = await openTabDropdown();
   await waitFor(() =>
     expect(screen.getByTestId('rename-tab-menu-option')).toBeInTheDocument(),
   );
@@ -232,7 +232,7 @@ test('does not dispatch a title change when the modal is cancelled', async () =>
 });
 
 test('does not dispatch a title change when dismissed with the close button', async () => {
-  const store = openTabDropdown();
+  const store = await openTabDropdown();
   await waitFor(() =>
     expect(screen.getByTestId('rename-tab-menu-option')).toBeInTheDocument(),
   );
@@ -246,7 +246,7 @@ test('does not dispatch a title change when dismissed with the close button', as
 });
 
 test('returns focus to the menu-dots trigger after the modal is cancelled', async () => {
-  openTabDropdown();
+  await openTabDropdown();
   await waitFor(() =>
     expect(screen.getByTestId('rename-tab-menu-option')).toBeInTheDocument(),
   );
@@ -261,7 +261,7 @@ test('returns focus to the menu-dots trigger after the modal is cancelled', asyn
 });
 
 test('returns focus to the menu-dots trigger after a successful rename', async () => {
-  openTabDropdown();
+  await openTabDropdown();
   await waitFor(() =>
     expect(screen.getByTestId('rename-tab-menu-option')).toBeInTheDocument(),
   );
@@ -277,7 +277,7 @@ test('returns focus to the menu-dots trigger after a successful rename', async (
 });
 
 test('should dispatch removeAllOtherQueryEditors action', async () => {
-  const store = openTabDropdown();
+  const store = await openTabDropdown();
   await waitFor(() =>
     expect(screen.getByTestId('close-tab-menu-option')).toBeInTheDocument(),
   );
@@ -299,7 +299,7 @@ test('should dispatch removeAllOtherQueryEditors action', async () => {
 });
 
 test('should dispatch cloneQueryToNewTab action', async () => {
-  const store = openTabDropdown();
+  const store = await openTabDropdown();
   await waitFor(() =>
     expect(screen.getByTestId('close-tab-menu-option')).toBeInTheDocument(),
   );
@@ -330,7 +330,7 @@ test('does not leak tab-editing keystrokes from the rename input to the surround
     { useRedux: true, store },
   );
 
-  userEvent.click(screen.getByTestId('dropdown-trigger'));
+  await userEvent.click(screen.getByTestId('dropdown-trigger'));
   await waitFor(() =>
     expect(screen.getByTestId('rename-tab-menu-option')).toBeInTheDocument(),
   );

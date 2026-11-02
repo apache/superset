@@ -37,6 +37,7 @@ export interface NativeFilterScope {
 
 /** The target of a filter is the datasource/column being filtered */
 export interface NativeFilterTarget {
+  semantic_selection_version?: string;
   datasetId: number;
   column: NativeFilterColumn;
   datasourceType?: DatasourceType;
@@ -271,5 +272,3 @@ export interface LegacyChartCustomizationItem {
   chartId?: number;
   customization: LegacyChartCustomizationConfig;
 }
-
-export default {};

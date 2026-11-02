@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one or more
+ contributor license agreements.  See the NOTICE file distributed with this
+ work for additional information regarding copyright ownership.  The ASF
+ licenses this file to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+-->
+<head>
+  <meta charset="utf-8" />
+  <title>rig: embedded dashboard</title>
+  <style>
+    :root { color-scheme: light; --bg: #fff; --fg: #1b1b1b; --muted: #666; }
+    body.dark { color-scheme: dark; --bg: #16181d; --fg: #e8e8e8; --muted: #9aa; }
+    body { margin: 0; padding: 20px; font: 14px/1.5 system-ui, sans-serif;
+           background: var(--bg); color: var(--fg); }
+    h1 { font-size: 16px; margin: 0 0 4px; }
+    .muted { color: var(--muted); }
+    .chart { margin: 16px 0; padding: 16px; border: 1px solid #8884; border-radius: 8px; }
+    .blank { color: #b00; font-weight: 600; }
+    a { color: inherit; }
+    code { font-family: ui-monospace, monospace; }
+  </style>
+</head>
+<body>
+  <h1>Embedded dashboard — <span id="page">page 1</span></h1>
+  <p class="muted">This page stands in for Superset's embedded page. It speaks
+    the same handshake as <code>superset-frontend/src/embedded/index.tsx</code>.</p>
+
+  <div class="chart">
+    <div id="content" class="blank">blank: waiting for a guest token…</div>
+    <div class="muted" id="detail"></div>
+  </div>
+
+  <p>
+    <!-- A link internal to the dashboard: a tab, a drill-down, a link in a
+         Markdown chart. It navigates this same iframe. -->
+    <a id="internal-link" href="#">go to page 2 (link internal to the dashboard)</a><br />
+    <a id="offsite-link" href="/plain">go to a page that is not the embedded one</a>
+  </p>
+
+<script type="module">
+  import Switchboard from "/vendor/switchboard.js";
+
+  const params = new URLSearchParams(location.search);
+  const page = params.get("page") || "1";
+  document.getElementById("page").textContent = `page ${page}`;
+  document.getElementById("internal-link").href =
+    `${location.pathname}?page=${Number.isNaN(+page) ? 2 : +page + 1}` +
+    (params.get("hang") ? "&hang=1" : "");
+
+  // The rig's own side channel, so the driver can see what this document
+  // experienced. It is nothing to do with the SDK's MessageChannel.
+  const report = (event, detail) =>
+    parent.postMessage({ __rig: true, page, event, detail }, "*");
+
+  let tokensReceived = 0;
+
+  function render(detail) {
+    const el = document.getElementById("content");
+    el.className = "";
+    el.textContent = `rendered with a guest token (page ${page})`;
+    document.getElementById("detail").textContent = detail;
+  }
+
+  // Mirrors the real page: everything is defined inside the port-transfer
+  // handler, and `start()` comes last.
+  window.addEventListener("message", function embeddedPageInitializer(event) {
+    const port = event.ports?.[0];
+    if (event.data?.type !== "__embedded_comms__") return;
+    if (event.data.handshake === "port transfer" && port) {
+      report("handshake");
+
+      Switchboard.init({ port, name: "superset", debug: false });
+
+      Switchboard.defineMethod("guestToken", ({ guestToken }) => {
+        tokensReceived += 1;
+        const claims = JSON.parse(atob(guestToken.split(".")[1]));
+        render(`token #${claims.serial}, exp in ${
+          claims.exp - Math.floor(Date.now() / 1000)
+        }s, ${tokensReceived} received on this port`);
+        report("guestToken", { serial: claims.serial, tokensReceived });
+      });
+
+      Switchboard.defineMethod("getActiveTabs", () => {
+        // `?hang=1` makes this page answer nothing, standing in for a reply
+        // that is still being computed when the user clicks a link.
+        if (params.get("hang")) return new Promise(() => {});
+        return [`tab-on-page-${page}`];
+      });
+
+      Switchboard.defineMethod("getScrollSize", () => {
+        if (params.get("hang")) return new Promise(() => {});
+        return { width: 800, height: 600 };
+      });
+
+      Switchboard.defineMethod("setThemeConfig", ({ themeConfig }) => {
+        report("setThemeConfig", themeConfig);
+        return { success: true };
+      });
+
+      Switchboard.defineMethod("setThemeMode", ({ mode }) => {
+        document.body.classList.toggle("dark", mode === "dark");
+        report("setThemeMode", { mode });
+        return { success: true };
+      });
+
+      Switchboard.start();
+      report("started");
+    }
+  });
+
+  // The rig drives navigation the way the dashboard itself would: this
+  // document sets its own location. The host has no other way to reach into a
+  // cross-origin frame, and neither would a real one.
+  window.addEventListener("message", (event) => {
+    if (event.data?.__rigCommand === "navigate") {
+      location.href = event.data.to;
+    }
+  });
+
+  report("loaded");
+</script>
+</body>
+</html>

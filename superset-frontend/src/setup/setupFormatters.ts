@@ -32,8 +32,8 @@ import {
   setCurrencyLocale,
   createLengthFormatter,
   createThroughputFormatter,
+  FormatLocaleDefinition,
 } from '@superset-ui/core';
-import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
 
 export default function setupFormatters(

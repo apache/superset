@@ -39,10 +39,14 @@ _BUTTON_STYLE = (
     "text-decoration:none;border-radius:4px;"
 )
 
-# Reason keys under which the export task groups charts it could not export.
-# The task classifies each omitted chart under one of these; the email renders a
-# separate, labelled section per non-empty group with its own remediation text.
+# Reason keys under which the export groups charts it could not export.
+# Each omitted chart is classified under one of these; the email and the
+# workbook's summary sheet render a labelled section per non-empty group with
+# its own remediation text.
 ERROR_NO_QUERY_CONTEXT = "no-query-context"
+# Direct downloads only: the chart's queries have no row bound known before
+# they run, so only a background export can include it.
+ERROR_UNBOUNDED = "unbounded-query"
 ERROR_GENERAL = "general-exception"
 
 
@@ -55,7 +59,7 @@ def _humanize_ttl(seconds: int) -> str:
 
     Whole hours read as "24 hours"; sub-hour and non-hour values keep their
     minutes (e.g. "1 hour 30 minutes", "15 minutes") so the stated lifetime
-    always matches the real pre-signed URL expiration.
+    always matches the link's real expiration.
     """
     hours, remainder = divmod(seconds, 3600)
     parts: list[str] = []
@@ -81,20 +85,25 @@ def build_subject(dashboard_title: str, *, success: bool) -> str:
     )
 
 
-def _errored_section(errored: dict[str, list[str]]) -> str:
-    """Render one labelled, translated sub-list per non-empty error group.
+def errored_groups(errored: dict[str, list[str]]) -> list[tuple[str, list[str]]]:
+    """Pair each non-empty error group with its translated remediation note.
 
     ``errored`` maps a reason key (see the ``ERROR_*`` constants) to the labels
-    of the charts that were omitted for that reason. Known reasons are rendered
-    first, in a stable order, each with its own remediation text; any unknown
-    reason key falls back to a generic message so nothing is silently dropped.
+    of the charts that were omitted for that reason. Known reasons come first,
+    in a stable order; an unknown reason key gets a generic note so nothing is
+    silently dropped. Shared by the email and the workbook's summary sheet.
     """
     if not errored:
-        return ""
+        return []
     notes = {
         ERROR_NO_QUERY_CONTEXT: __(
             "The following charts were omitted because they have no saved query "
             "context. To include them, open each chart in Explore and re-save."
+        ),
+        ERROR_UNBOUNDED: __(
+            "The following charts were omitted because their size cannot be "
+            "determined before they run. Ask an administrator to enable "
+            "background exports to include them."
         ),
         ERROR_GENERAL: __(
             "The following charts were omitted because an error occurred while "
@@ -102,14 +111,19 @@ def _errored_section(errored: dict[str, list[str]]) -> str:
         ),
     }
     fallback = __("The following charts could not be exported:")
-    ordered = [ERROR_NO_QUERY_CONTEXT, ERROR_GENERAL]
+    ordered = [ERROR_NO_QUERY_CONTEXT, ERROR_UNBOUNDED, ERROR_GENERAL]
     reasons = ordered + [reason for reason in errored if reason not in ordered]
+    return [
+        (str(notes.get(reason, fallback)), labels)
+        for reason in reasons
+        if (labels := errored.get(reason))
+    ]
+
+
+def _errored_section(errored: dict[str, list[str]]) -> str:
+    """Render one labelled sub-list per non-empty error group."""
     sections = []
-    for reason in reasons:
-        labels = errored.get(reason)
-        if not labels:
-            continue
-        note = notes.get(reason, fallback)
+    for note, labels in errored_groups(errored):
         items = "".join(f"<li>{escape(label)}</li>" for label in labels)
         sections.append(f"<p>{note}</p><ul>{items}</ul>")
     return "".join(sections)

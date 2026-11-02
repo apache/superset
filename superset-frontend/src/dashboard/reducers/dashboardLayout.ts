@@ -47,6 +47,25 @@ import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 import { DashboardLayout } from '../types';
 import { DropResult } from '../components/dnd/dragDroppableConfig';
 
+// Walks `children` rather than trusting `parents`, which can be stale.
+function isSelfOrDescendant(
+  layout: DashboardLayout,
+  ancestorId: string,
+  targetId: string,
+): boolean {
+  const seen = new Set<string>();
+  const stack = [ancestorId];
+  while (stack.length) {
+    const id = stack.pop() as string;
+    if (id === targetId) return true;
+    if (!seen.has(id)) {
+      seen.add(id);
+      stack.push(...(layout[id]?.children ?? []));
+    }
+  }
+  return false;
+}
+
 interface DashboardLayoutAction {
   type: string;
   payload?: {
@@ -176,6 +195,13 @@ const actionHandlers: Record<
     const { source, destination, dragging, position } = dropResult;
 
     if (!source || !destination || !dragging) return state;
+
+    // Defense in depth against the drop guard in getDropPosition: moving a
+    // component into itself or into one of its own descendants detaches the
+    // subtree and leaves a cycle that no root walk can reach or repair.
+    if (isSelfOrDescendant(state, dragging.id, destination.id)) {
+      return state;
+    }
 
     const nextEntities = reorderItem({
       entitiesMap: state,

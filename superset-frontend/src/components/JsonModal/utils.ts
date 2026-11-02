@@ -46,8 +46,16 @@ export function safeJsonObjectParse(
   }
 }
 
+// json-bigint (with storeAsString) keeps number literals longer than this as
+// strings; shorter quoted digits were strings in the source JSON
+const BIGINT_STR_MIN_LENGTH = 16;
+
 export function convertBigIntStrToNumber(value: string | number) {
-  if (typeof value === 'string' && /^"-?\d+"$/.test(value)) {
+  if (
+    typeof value === 'string' &&
+    /^"-?\d+"$/.test(value) &&
+    value.length - 2 >= BIGINT_STR_MIN_LENGTH
+  ) {
     return value.substring(1, value.length - 1);
   }
   return value;

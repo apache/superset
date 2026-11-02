@@ -37,6 +37,9 @@ import {
 import {
   legendSection,
   minorTicks,
+  axisTicks,
+  gridlines,
+  valueAxisLabels,
   richTooltipSection,
   seriesOrderSection,
   showValueSection,
@@ -44,6 +47,8 @@ import {
   xAxisBounds,
   xAxisLabelRotation,
   xAxisLabelInterval,
+  xAxisMinInterval,
+  yAxisMinInterval,
   forceMaxInterval,
 } from '../../../controls';
 
@@ -156,6 +161,9 @@ const config: ControlPanelConfig = {
         ],
         ['zoomable'],
         [minorTicks],
+        [axisTicks],
+        [gridlines],
+        [valueAxisLabels],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         [
@@ -193,12 +201,29 @@ const config: ControlPanelConfig = {
         ],
         [xAxisLabelRotation],
         [xAxisLabelInterval],
+        [
+          {
+            name: xAxisMinInterval.name,
+            config: {
+              ...xAxisMinInterval.config,
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                checkColumnType(
+                  getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+                  controls?.datasource?.datasource,
+                  [GenericDataType.Temporal, GenericDataType.Numeric],
+                ),
+              disableStash: true,
+              resetOnHide: false,
+            },
+          },
+        ],
         [forceMaxInterval],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         ['y_axis_format'],
         ['currency_format'],
+        [yAxisMinInterval],
         [
           {
             name: 'logAxis',

@@ -38,14 +38,14 @@ describe('ViewportControl', () => {
     render(<ViewportControl {...defaultProps} />);
   });
 
-  test('renders a OverlayTrigger if clicked', () => {
+  test('renders a OverlayTrigger if clicked', async () => {
     expect(screen.getByTestId('foo-header')).toBeInTheDocument(); // Presence of ControlHeader
-    userEvent.click(screen.getByText(renderedCoordinate));
+    await userEvent.click(screen.getByText(renderedCoordinate));
     expect(screen.getByText('Viewport')).toBeInTheDocument(); // Presence of Popover
   });
 
-  test('renders a Popover with 5 TextControl if clicked', () => {
-    userEvent.click(screen.getByText(renderedCoordinate));
+  test('renders a Popover with 5 TextControl if clicked', async () => {
+    await userEvent.click(screen.getByText(renderedCoordinate));
     expect(screen.queryAllByTestId('inline-name')).toHaveLength(5);
   });
 

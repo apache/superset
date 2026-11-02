@@ -17,17 +17,60 @@
  * under the License.
  */
 
+export enum TaskStatus {
+  Pending = 'pending',
+  InProgress = 'in_progress',
+  Success = 'success',
+  Failure = 'failure',
+  Aborting = 'aborting',
+  Aborted = 'aborted',
+  TimedOut = 'timed_out',
+}
+
 export interface TaskSubscriber {
-  user_id: number;
-  first_name: string;
-  last_name: string;
+  // Authenticated subscribers carry a user_id + profile; embedded guests have
+  // no ab_user, so they arrive as is_guest with an anonymized label (G1/G2/…).
+  user_id: number | null;
+  first_name?: string;
+  last_name?: string;
+  is_guest?: boolean;
+  label?: string;
   subscribed_at: string;
+}
+
+/**
+ * A prerequisite task in the dependency graph (DAG). The dependent task only
+ * runs once every prerequisite reaches a terminal SUCCESS.
+ */
+export interface TaskDependency {
+  uuid: string;
+  task_name: string | null;
+  status: TaskStatus;
 }
 
 export enum TaskScope {
   Private = 'private',
   Shared = 'shared',
   System = 'system',
+}
+
+/**
+ * Internal, debug-only task state, under `properties.private`. Present in API
+ * responses only in debug mode. Isolated namespaces so a task-specific key can
+ * never collide with a framework key or a subscription policy's bookkeeping.
+ */
+export interface TaskPrivateProperties {
+  // Framework-owned orchestration + error debug.
+  framework?: {
+    celery_task_id?: string;
+    exception_type?: string;
+    stack_trace?: string;
+    [key: string]: unknown;
+  };
+  // Freeform task-type-specific handles (e.g. cancel_query_id/cancel_database_id).
+  task?: Record<string, unknown>;
+  // Subscription-policy bookkeeping (e.g. chart-data's per-tab consumer list).
+  subscription?: Record<string, unknown>;
 }
 
 /**
@@ -44,10 +87,16 @@ export interface TaskProperties {
   progress_current: number | null;
   progress_total: number | null;
 
-  // Error info - set when task fails
+  // Consumer-facing failure reason (public). The exception class and traceback
+  // are internal debug detail under `private.framework` (debug mode only).
   error_message: string | null;
-  exception_type: string | null;
-  stack_trace: string | null;
+
+  // Dedup tracking - times a submit joined this task instead of creating a new
+  // one (a new subscriber or an existing subscriber's resubmit); 0 when unique.
+  dedupe_count: number | null;
+
+  // Internal, debug-only; absent from API responses outside debug mode.
+  private?: TaskPrivateProperties;
 }
 
 export interface Task {
@@ -56,14 +105,7 @@ export interface Task {
   task_key: string;
   task_type: string;
   task_name: string | null;
-  status:
-    | 'pending'
-    | 'in_progress'
-    | 'success'
-    | 'failure'
-    | 'aborting'
-    | 'aborted'
-    | 'timed_out';
+  status: TaskStatus;
   scope: TaskScope;
   created_on: string;
   created_on_delta_humanized?: string;
@@ -80,36 +122,38 @@ export interface Task {
     last_name: string;
   } | null;
   user_id: number | null;
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
   properties: TaskProperties;
   duration_seconds: number | null;
   subscriber_count: number;
   subscribers: TaskSubscriber[];
+  // Prerequisite tasks this task depends on (all_success DAG semantics).
+  depends_on?: TaskDependency[];
+  // Downstream tasks that depend on this task (reverse of depends_on).
+  required_by?: TaskDependency[];
 }
 
 // Derived status helpers (frontend computes these from status and properties)
 export function isTaskFinished(task: Task): boolean {
-  return ['success', 'failure', 'aborted', 'timed_out'].includes(task.status);
+  return [
+    TaskStatus.Success,
+    TaskStatus.Failure,
+    TaskStatus.Aborted,
+    TaskStatus.TimedOut,
+  ].includes(task.status);
 }
 
 export function isTaskAborting(task: Task): boolean {
-  return task.status === 'aborting';
+  return task.status === TaskStatus.Aborting;
 }
 
 export function canAbortTask(task: Task): boolean {
-  if (task.status === 'pending') return true;
-  if (task.status === 'in_progress' && task.properties.is_abortable === true)
+  if (task.status === TaskStatus.Pending) return true;
+  if (
+    task.status === TaskStatus.InProgress &&
+    task.properties.is_abortable === true
+  )
     return true;
-  if (task.status === 'aborting') return true; // Idempotent
+  if (task.status === TaskStatus.Aborting) return true; // Idempotent
   return false;
-}
-
-export enum TaskStatus {
-  Pending = 'pending',
-  InProgress = 'in_progress',
-  Success = 'success',
-  Failure = 'failure',
-  Aborting = 'aborting',
-  Aborted = 'aborted',
-  TimedOut = 'timed_out',
 }

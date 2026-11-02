@@ -21,12 +21,17 @@ from typing import Any
 from flask import current_app
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
+from sqlalchemy.exc import IntegrityError
 
+from superset import db
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.dashboard.exceptions import (
     DashboardCreateFailedError,
     DashboardInvalidError,
     DashboardSlugExistsValidationError,
+)
+from superset.commands.soft_delete_collisions import (
+    raise_for_soft_deleted_slug_collision,
 )
 from superset.commands.utils import populate_subjects
 from superset.daos.dashboard import DashboardDAO
@@ -44,6 +49,17 @@ class CreateDashboardCommand(CreateMixin, BaseCommand):
     def run(self) -> Model:
         self.validate()
         dashboard = DashboardDAO.create(attributes=self._properties)
+        # Surface the INSERT here rather than at the transaction decorator's
+        # commit, so a slug collision with a SOFT-DELETED dashboard (possible
+        # only on the full-constraint dialects; the partial-index dialects
+        # free the slot) can be translated into restore guidance. Any other
+        # integrity failure re-raises unchanged.
+        try:
+            db.session.flush()
+        except IntegrityError as ex:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            raise_for_soft_deleted_slug_collision(self._properties.get("slug"), ex)
+            raise
         # Link charts referenced in the layout to the dashboard so that
         # ``dashboard.slices`` is populated, mirroring the update path. Without
         # this, charts created through the REST API render with no definition

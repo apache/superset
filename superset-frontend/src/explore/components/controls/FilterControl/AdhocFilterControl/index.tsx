@@ -75,6 +75,7 @@ interface Datasource {
 }
 
 export interface AdhocFilterControlProps {
+  semanticSelectionVersion?: string;
   label?: ReactNode;
   name?: string;
   sections?: string[];
@@ -156,6 +157,7 @@ function AdhocFilterControl({
   onChange = () => {},
   value,
   datasource,
+  semanticSelectionVersion,
   columns = [],
   savedMetrics = [],
   selectedMetrics = [],
@@ -363,6 +365,7 @@ function AdhocFilterControl({
         sections={sections}
         operators={operators as Operators[] | undefined}
         datasource={datasource}
+        semanticSelectionVersion={semanticSelectionVersion}
         onRemoveFilter={e => {
           e.stopPropagation();
           onRemoveFilter(index);
@@ -378,6 +381,7 @@ function AdhocFilterControl({
       sections,
       operators,
       datasource,
+      semanticSelectionVersion,
       onRemoveFilter,
       moveLabel,
       onDropLabel,
@@ -392,6 +396,7 @@ function AdhocFilterControl({
         sections={sections}
         adhocFilter={new AdhocFilter({})}
         datasource={(datasource as Record<string, unknown>) || {}}
+        semanticSelectionVersion={semanticSelectionVersion}
         options={options}
         onFilterEdit={onNewFilter}
         partitionColumn={partitionColumn ?? undefined}
@@ -399,7 +404,15 @@ function AdhocFilterControl({
         {trigger}
       </AdhocFilterPopoverTrigger>
     ),
-    [operators, sections, datasource, options, onNewFilter, partitionColumn],
+    [
+      operators,
+      sections,
+      datasource,
+      semanticSelectionVersion,
+      options,
+      onNewFilter,
+      partitionColumn,
+    ],
   );
 
   return (

@@ -80,6 +80,3 @@ class SemanticViewModel(CoreModel):
     semantic_layer_uuid: UUID
     created_on: datetime | None
     changed_on: datetime | None
-
-
-__all__ = ["SemanticLayerModel", "SemanticViewModel"]

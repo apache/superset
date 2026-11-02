@@ -20,10 +20,6 @@ import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import {
-  addInfoToast,
-  addWarningToast,
-} from 'src/components/MessageToasts/actions';
-import {
   FORCE_IN_VIEW_EVENT,
   RESTORE_VIRTUALIZATION_EVENT,
 } from 'src/dashboard/constants';
@@ -126,10 +122,21 @@ function chunk<T>(items: T[], size: number): T[][] {
  * render in small batches (rather than all at once) and waits for them to
  * finish loading. Returns true if virtualization was active (caller must
  * restore it).
+ *
+ * @param addWarningToast bound via `useToasts()`/`bindActionCreators`, not the
+ *   raw action creator from `actions.ts`: this module has no dispatch of its
+ *   own, so an unbound creator would only build a Redux action object and
+ *   never render a toast. Covers the case where charts still haven't
+ *   finished loading once the overall timeout elapses.
+ * @param addInfoToast same contract as `addWarningToast`. Announces that a
+ *   multi-batch export is underway, so only the dashboard-wide export (the one
+ *   caller whose container actually holds rows) ever needs to pass it.
  */
 export async function forceLoadAllCharts(
   container: Element,
   onProgress?: (progress: ForceLoadProgress) => void,
+  addWarningToast?: (message: string) => void,
+  addInfoToast?: (message: string) => void,
 ): Promise<boolean> {
   const useVirtualization = isFeatureEnabled(
     FeatureFlag.DashboardVirtualization,
@@ -146,8 +153,8 @@ export async function forceLoadAllCharts(
       // force everything into view in a single pass, same as before batching.
       window.dispatchEvent(new Event(FORCE_IN_VIEW_EVENT));
     } else {
-      addInfoToast(
-        t('Preparing %(count)s charts for export. This may take a moment.', {
+      addInfoToast?.(
+        t('Preparing %(count)s rows for export. This may take a moment.', {
           count: rowElements.length,
         }),
       );
@@ -181,7 +188,7 @@ export async function forceLoadAllCharts(
       Math.max(0, deadline - Date.now()),
     );
     if (!allLoaded) {
-      addWarningToast(
+      addWarningToast?.(
         t('Some charts did not finish loading. The export may be incomplete.'),
       );
     }

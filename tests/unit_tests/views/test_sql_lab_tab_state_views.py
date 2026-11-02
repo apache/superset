@@ -25,10 +25,38 @@ authenticated HTTP session. Only the ownership-check logic inside the view
 methods themselves is under test here.
 """
 
+import pytest
+from flask import current_app
 from sqlalchemy.orm.session import Session
 
 from superset.models.sql_lab import Query, TabState
 from superset.views.sql_lab.views import TabStateView
+
+
+@pytest.fixture(autouse=True)
+def tab_state_tables(session: Session) -> None:
+    """``TabState`` and ``Query`` share the declarative metadata."""
+    TabState.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+
+def _add_query(
+    session: Session,
+    *,
+    client_id: str,
+    user_id: int | None,
+    sql_editor_id: str,
+    sql: str = "SELECT 1",
+) -> Query:
+    query = Query(
+        client_id=client_id,
+        database_id=1,
+        user_id=user_id,
+        sql_editor_id=sql_editor_id,
+        sql=sql,
+    )
+    session.add(query)
+    session.flush()
+    return query
 
 
 def _create_tab_state_and_query(
@@ -47,15 +75,12 @@ def _create_tab_state_and_query(
     session.add(tab_state)
     session.flush()
 
-    query = Query(
+    query = _add_query(
+        session,
         client_id=latest_query_client_id,
-        database_id=1,
         user_id=owner_id,
         sql_editor_id=str(tab_state.id),
-        sql="SELECT 1",
     )
-    session.add(query)
-    session.flush()
 
     return tab_state, query
 
@@ -71,8 +96,6 @@ def test_delete_query_rejects_update_from_non_owning_user(
     rejected before either the ``TabState`` update or the ``Query`` row
     deletion happens.
     """
-    TabState.metadata.create_all(session.get_bind())  # pylint: disable=no-member
-
     owner_id = 2
     other_user_id = 1
 
@@ -111,8 +134,6 @@ def test_put_rejects_update_from_non_owning_user(session: Session, mocker) -> No
     is included for contrast with ``delete_query`` above -- the guard exists
     elsewhere in this class, it's just missing on the ``delete_query`` path.
     """
-    TabState.metadata.create_all(session.get_bind())  # pylint: disable=no-member
-
     owner_id = 2
     other_user_id = 1
 
@@ -127,3 +148,167 @@ def test_put_rejects_update_from_non_owning_user(session: Session, mocker) -> No
     response = TabStateView.put.__wrapped__(view, tab_state.id)
 
     assert response.status_code == 403
+
+
+def test_put_ignores_columns_outside_the_allowlist(session: Session, mocker) -> None:
+    """
+    ``put`` writes only the client-updatable columns; identity columns such
+    as ``user_id`` are not accepted from the request body, so the tab state
+    stays bound to its creating user while allowed fields still apply.
+    """
+    owner_id = 2
+    tab_state, _query = _create_tab_state_and_query(
+        session, owner_id=owner_id, latest_query_client_id="owner-query-1"
+    )
+    session.commit()
+
+    mocker.patch("superset.views.sql_lab.views.get_user_id", return_value=owner_id)
+
+    view = TabStateView()
+    with current_app.test_request_context(
+        method="PUT", data={"label": '"renamed"', "user_id": "1"}
+    ):
+        TabStateView.put.__wrapped__(view, tab_state.id)
+
+    session.expire_all()
+    refreshed = session.query(TabState).filter_by(id=tab_state.id).one()
+    assert refreshed.label == "renamed"
+    assert refreshed.user_id == owner_id
+
+
+def test_put_writes_nothing_for_a_payload_of_only_denied_columns(
+    session: Session, mocker
+) -> None:
+    """
+    A payload made up entirely of non-updatable columns is accepted but
+    changes none of them, rather than erroring or falling through to a write.
+    """
+    owner_id = 2
+    tab_state, _query = _create_tab_state_and_query(
+        session, owner_id=owner_id, latest_query_client_id="owner-query-1"
+    )
+    session.commit()
+
+    mocker.patch("superset.views.sql_lab.views.get_user_id", return_value=owner_id)
+
+    view = TabStateView()
+    with current_app.test_request_context(method="PUT", data={"user_id": "1"}):
+        response = TabStateView.put.__wrapped__(view, tab_state.id)
+
+    assert response.status_code == 200
+
+    session.expire_all()
+    refreshed = session.query(TabState).filter_by(id=tab_state.id).one()
+    assert refreshed.user_id == owner_id
+    assert refreshed.label == "unrelated tab"
+
+
+def test_put_leaves_the_active_flag_to_the_activate_endpoint(
+    session: Session, mocker
+) -> None:
+    """
+    ``activate`` keeps exactly one of a user's tabs active by rewriting the
+    flag across all of their rows, so ``put`` does not accept ``active``.
+    Sending it leaves the stored flag alone while allowed fields still apply.
+    """
+    owner_id = 2
+    tab_state, _query = _create_tab_state_and_query(
+        session, owner_id=owner_id, latest_query_client_id="owner-query-1"
+    )
+    tab_state.active = False
+    session.commit()
+
+    mocker.patch("superset.views.sql_lab.views.get_user_id", return_value=owner_id)
+
+    view = TabStateView()
+    with current_app.test_request_context(
+        method="PUT", data={"active": "true", "label": '"renamed"'}
+    ):
+        TabStateView.put.__wrapped__(view, tab_state.id)
+
+    session.expire_all()
+    refreshed = session.query(TabState).filter_by(id=tab_state.id).one()
+    assert refreshed.active is False
+    assert refreshed.label == "renamed"
+
+
+def test_put_only_accepts_latest_query_id_owned_by_caller(
+    session: Session, mocker
+) -> None:
+    """
+    A ``latest_query_id`` is stored only when it references the caller's own
+    query. A client_id belonging to another user is dropped, so the tab's
+    pointer keeps referencing the caller's own query.
+    """
+    owner_id = 2
+    other_user_id = 1
+    tab_state, _query = _create_tab_state_and_query(
+        session, owner_id=owner_id, latest_query_client_id="owner-query-1"
+    )
+    _add_query(
+        session,
+        client_id="foreign-query-1",
+        user_id=other_user_id,
+        sql_editor_id="999",
+        sql="SELECT secret",
+    )
+    session.commit()
+
+    mocker.patch("superset.views.sql_lab.views.get_user_id", return_value=owner_id)
+
+    view = TabStateView()
+    with current_app.test_request_context(
+        method="PUT", data={"latest_query_id": '"foreign-query-1"'}
+    ):
+        TabStateView.put.__wrapped__(view, tab_state.id)
+
+    session.expire_all()
+    refreshed = session.query(TabState).filter_by(id=tab_state.id).one()
+    assert refreshed.latest_query_id == "owner-query-1"
+
+
+@pytest.mark.parametrize(
+    "query_owner_id,expected_status,rebound",
+    [
+        pytest.param(1, 404, False, id="another_users_query_is_left_alone"),
+        pytest.param(2, 200, True, id="own_query_is_rebound"),
+        pytest.param(None, 200, True, id="unowned_query_is_rebound"),
+    ],
+)
+def test_migrate_query_scopes_the_rebind_to_the_caller(
+    session: Session,
+    mocker,
+    query_owner_id: int | None,
+    expected_status: int,
+    rebound: bool,
+) -> None:
+    """
+    ``migrate_query`` rebinds a query to a tab only when the caller owns that
+    query or nobody does. A client_id owned by another user is left untouched
+    and the caller gets a 404 rather than a success it would apply locally.
+    """
+    owner_id = 2
+    tab_state, _query = _create_tab_state_and_query(
+        session, owner_id=owner_id, latest_query_client_id="owner-query-1"
+    )
+    _add_query(
+        session,
+        client_id="target-query",
+        user_id=query_owner_id,
+        sql_editor_id="88",
+    )
+    session.commit()
+
+    mocker.patch("superset.views.sql_lab.views.get_user_id", return_value=owner_id)
+
+    view = TabStateView()
+    with current_app.test_request_context(
+        method="POST", data={"queryId": '"target-query"'}
+    ):
+        response = TabStateView.migrate_query.__wrapped__(view, tab_state.id)
+
+    assert response.status_code == expected_status
+
+    session.expire_all()
+    target = session.query(Query).filter_by(client_id="target-query").one()
+    assert target.sql_editor_id == (str(tab_state.id) if rebound else "88")

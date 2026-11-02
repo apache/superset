@@ -528,6 +528,8 @@ def test_execute_query_raises_when_executor_user_missing(
 
     report_schedule_mock = mocker.Mock()
     report_schedule_mock.id = 1
+    report_schedule_mock.run_as_type = None
+    report_schedule_mock.run_alert_query_as_type = None
     report_schedule_mock.sql = "SELECT value FROM metrics"
     report_schedule_mock.database.backend = "sqlite"
     report_schedule_mock.database.allow_dml = False
@@ -557,9 +559,21 @@ def test_execute_query_wraps_template_rendering_error(
         "superset.commands.report.alert.jinja_context.get_template_processor",
         return_value=template_processor_mock,
     )
+    mocker.patch(
+        "superset.commands.report.alert.get_executor",
+        return_value=("fixed_user", "template_user"),
+    )
+    executor_user = mocker.Mock(is_active=True)
+    mocker.patch(
+        "superset.commands.report.alert.security_manager.find_user",
+        return_value=executor_user,
+    )
 
     report_schedule_mock = mocker.Mock()
     report_schedule_mock.id = 1
+    report_schedule_mock.run_as_type = None
+    report_schedule_mock.run_alert_query_as_type = None
+    report_schedule_mock.editors = []
     report_schedule_mock.sql = "SELECT {{ foo }} FROM metrics"
 
     command = AlertCommand(
@@ -567,5 +581,47 @@ def test_execute_query_wraps_template_rendering_error(
         execution_id=uuid4(),
     )
 
-    with pytest.raises(AlertQueryError):
+    with pytest.raises(AlertQueryError) as exc:
         command._execute_query()
+
+    assert isinstance(exc.value.__cause__, TemplateError)
+    template_processor_mock.process_template.assert_called_once_with(
+        "SELECT {{ foo }} FROM metrics"
+    )
+
+
+@pytest.mark.parametrize("allow_dml", [False, True])
+@pytest.mark.parametrize(
+    "sql, rejected_head",
+    [
+        ("PUT file:///tmp/data.csv @my_stage", "PUT"),
+        ("SELECT value FROM metrics", None),
+    ],
+)
+def test_validate_rendered_sql_client_file_transfer_gate(
+    mocker: MockerFixture,
+    allow_dml: bool,
+    sql: str,
+    rejected_head: str | None,
+) -> None:
+    """
+    A client-side file-transfer command in an alert query is rejected whether
+    or not the database allows DML: it does file I/O on the host running the
+    query rather than reading or writing table data, so `allow_dml` does not
+    govern it. An ordinary read-only query is left alone either way.
+    """
+    report_schedule_mock = mocker.Mock()
+    report_schedule_mock.database.backend = "snowflake"
+    report_schedule_mock.database.allow_dml = allow_dml
+
+    command = AlertCommand(
+        report_schedule=report_schedule_mock,
+        execution_id=uuid4(),
+    )
+
+    if rejected_head is None:
+        command._validate_rendered_sql(sql)
+        return
+
+    with pytest.raises(AlertQueryError, match=rejected_head):
+        command._validate_rendered_sql(sql)

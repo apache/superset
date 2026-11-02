@@ -18,3 +18,4 @@
  */
 export { default } from './TabsRenderer';
 export type { TabsRendererProps, TabItem, TabsComponent } from './TabsRenderer';
+export { StickyTabsOffsetContext } from './StickyTabsOffsetContext';

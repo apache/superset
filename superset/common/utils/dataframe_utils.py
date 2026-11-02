@@ -17,10 +17,15 @@
 from __future__ import annotations
 
 import datetime
+from collections.abc import Collection
 from typing import Any, Literal, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
+from pandas.api.types import infer_dtype
+
+from superset.common.chart_data import ChartDataResultType
+from superset.utils.core import get_metric_names, JS_MAX_INTEGER
 
 if TYPE_CHECKING:
     from superset.common.query_object import QueryObject
@@ -61,8 +66,13 @@ def full_outer_join_df(
 
 def df_metrics_to_num(df: pd.DataFrame, query_object: QueryObject) -> None:
     """Converting metrics to numeric when pandas.read_sql cannot"""
+    df_columns_to_num(df, query_object.metric_names)
+
+
+def df_columns_to_num(df: pd.DataFrame, columns: Collection[str]) -> None:
+    """Soft-convert the named object columns to numeric, in place."""
     for col, dtype in df.dtypes.items():
-        if dtype.type == np.object_ and col in query_object.metric_names:
+        if dtype.type == np.object_ and col in columns:
             # soft-convert a metric column to numeric only if all
             # non-null values look numeric (e.g. ClickHouse returns
             # SUM() results as strings). Leaves truly non-numeric
@@ -70,6 +80,66 @@ def df_metrics_to_num(df: pd.DataFrame, query_object: QueryObject) -> None:
             converted = pd.to_numeric(df[col], errors="coerce")
             if converted.notna().eq(df[col].notna()).all():
                 df[col] = converted
+
+
+INT64_RANGE = (-(2**63), 2**63 - 1)
+
+
+def can_keep_exact_integers(query_object: QueryObject) -> bool:
+    """
+    Whether the result of ``query_object`` may carry exact large integers.
+
+    Only plain chart queries qualify. Queries with Python-side post-processing or
+    time offsets keep the float64 normalization (a precaution: that machinery is
+    written for numeric columns), and so do requests that go through report
+    client processing (``POST_PROCESSED``), which formats the rebuilt frame on
+    numeric dtypes only. The decision reads only fields that are part of the query
+    cache key (``post_processing``, ``time_offsets`` and the per-query
+    ``result_type``), so a cached frame always has the shape its key implies.
+    """
+    return not (
+        query_object.post_processing
+        or query_object.time_offsets
+        or query_object.result_type == ChartDataResultType.POST_PROCESSED
+    )
+
+
+def lossy_integer_columns(df: pd.DataFrame, query_object: QueryObject) -> list[str]:
+    """
+    Dimension columns that ``infer_objects`` would round to float64.
+
+    These are object columns of Python integers and nulls (how
+    ``SupersetResultSet`` hands back a nullable BIGINT) holding a value beyond
+    ``JS_MAX_INTEGER`` where every value fits int64. Without nulls pandas
+    already yields an exact int64, and values outside int64 stay exact objects
+    or are left to the float64 normalization (the uint64-only range).
+
+    Only columns selected as ``columns`` and not named as a metric qualify, using
+    the labels the dataframe carries (no verbose-name mapping): a saved metric
+    comes back under its raw ``metric_name``, and metrics-only queries have none.
+    """
+    if not df.columns.is_unique:
+        return []
+    candidates = set(query_object.column_names) - set(
+        get_metric_names(query_object.metrics)
+    )
+    columns: list[str] = []
+    for col in df.columns:
+        series = df[col]
+        if (
+            col not in candidates
+            or series.dtype != object
+            or infer_dtype(series, skipna=True) != "integer"
+            or not series.isna().any()
+        ):
+            continue
+        present = [int(value) for value in series.dropna()]
+        low, high = min(present), max(present)
+        if (low < -JS_MAX_INTEGER or high > JS_MAX_INTEGER) and (
+            INT64_RANGE[0] <= low and high <= INT64_RANGE[1]
+        ):
+            columns.append(col)
+    return columns
 
 
 def is_datetime_series(series: Any) -> bool:

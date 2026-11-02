@@ -57,8 +57,9 @@ class GenerateExploreLinkResponse(BaseModel):
         description=(
             "Durable permalink key for the generated Explore URL, when one "
             "was created. Prefer this over ``form_data_key`` for sharing; it "
-            "survives cache eviction. Null on failure or when only an "
-            "ephemeral form_data key is available."
+            "survives cache eviction. Pass it to get_chart_info as "
+            "``permalink_key`` to read the configuration back. Null on failure "
+            "or when only an ephemeral form_data key is available."
         ),
     )
     form_data_key: str | None = Field(

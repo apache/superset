@@ -32,7 +32,7 @@ const StyledDiv = styled.div`
     background-color: ${theme.colorBgLayout};
     position: relative;
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr;
     grid-template-rows: auto 1fr;
     flex: 1;
     /* Special cases */
@@ -117,7 +117,7 @@ const StyledDiv = styled.div`
     ${
       isMobileConsumptionEnabled()
         ? `@media (max-width: ${theme.screenSMMax}px) {
-      [data-test='slice-header'] .header-title {
+      .slice-header .header-title {
         -webkit-line-clamp: unset;
         display: block;
         white-space: normal;

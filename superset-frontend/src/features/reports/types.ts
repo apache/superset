@@ -42,6 +42,8 @@ export interface ReportObject {
   crontab: string;
   dashboard?: number;
   chart?: number;
+  dashboard_id?: number | null;
+  chart_id?: number | null;
   description?: string;
   log_retention: number;
   name: string;
@@ -56,6 +58,8 @@ export interface ReportObject {
     },
   ];
   report_format: string;
+  run_as_type?: 'fixed_user' | null;
+  run_as?: { id: number } | null;
   timezone: string;
   type: ReportScheduleType;
   validator_config_json: {} | null;

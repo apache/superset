@@ -38,6 +38,9 @@ import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
 import {
   legendSection,
   minorTicks,
+  axisTicks,
+  gridlines,
+  valueAxisLabels,
   richTooltipSection,
   truncateXAxis,
   xAxisBounds,
@@ -198,6 +201,31 @@ function createCustomizeSection(
           description: t(
             'Whether to display the numerical values within the cells',
           ),
+        },
+      },
+    ],
+    [
+      {
+        name: `label_position${controlSuffix}`,
+        config: {
+          type: 'SelectControl',
+          freeForm: false,
+          label: t('Label Position'),
+          choices: [
+            ['auto', t('Auto')],
+            ['top', t('Top')],
+            ['inside', t('Inside')],
+            ['bottom', t('Bottom')],
+            ['left', t('Left')],
+            ['right', t('Right')],
+          ],
+          default: 'auto',
+          renderTrigger: true,
+          description: t(
+            'Position of the data label relative to the data point',
+          ),
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            Boolean(controls?.[`show_value${controlSuffix}`]?.value),
         },
       },
     ],
@@ -366,6 +394,9 @@ const config: ControlPanelConfig = {
         ...createCustomizeSection(t('Query B'), 'B'),
         ['zoomable'],
         [minorTicks],
+        [axisTicks],
+        [gridlines],
+        [valueAxisLabels],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         ['x_axis_time_format'],

@@ -45,6 +45,7 @@ logger = logging.getLogger(__name__)
         title="Open SQL Lab with context",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 def open_sql_lab_with_context(

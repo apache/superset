@@ -44,7 +44,12 @@ export default function updateComponentParentsList({
 
       if (Array.isArray(currentComponent.children)) {
         currentComponent.children.forEach(childId => {
-          if (layout[childId]) {
+          if (parentsList.includes(childId)) {
+            // A back-edge to an ancestor would recurse forever.
+            logging.warn(
+              `The component ${childId} is its own ancestor in the current layout.  Skipping this component`,
+            );
+          } else if (layout[childId]) {
             // eslint-disable-next-line no-param-reassign
             layout[childId] = {
               ...layout[childId],

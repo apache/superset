@@ -145,7 +145,7 @@ export default function ColorPickerControl({
   ...headerProps
 }: ColorPickerControlProps) {
   const categoricalScheme = getCategoricalSchemeRegistry().get();
-  const defaultPresets = categoricalScheme?.colors.slice(0, 9) || [];
+  const defaultPresets = categoricalScheme?.colors?.slice(0, 9) || [];
   const theme = useTheme();
 
   const themeColors = useMemo<Record<string, string>>(

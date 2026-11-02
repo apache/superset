@@ -44,7 +44,7 @@ test('renders a given saved metric and display SQL expression popover when hover
 
   // Grab calculator icon and mock mouse hovering over it
   const calculatorIcon = await screen.findByLabelText('calculator');
-  userEvent.hover(calculatorIcon);
+  await userEvent.hover(calculatorIcon);
   expect(await screen.findByText('SQL expression')).toBeInTheDocument();
 });
 

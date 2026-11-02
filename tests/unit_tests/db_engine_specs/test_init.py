@@ -16,6 +16,8 @@
 # under the License.
 
 
+from typing import Any
+
 import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.engine.default import DefaultDialect
@@ -135,6 +137,232 @@ def test_get_available_engine_specs_keeps_valid_third_party_dialect(
     available = get_available_engine_specs()
 
     assert available[SqliteEngineSpec] == {"valid_driver"}
+
+
+def test_get_available_engine_specs_supports_sqlalchemy_2_native_dialect(
+    mocker: MockerFixture,
+) -> None:
+    """A native SQLAlchemy 2 dialect is discovered through import_dbapi()."""
+    import sqlalchemy.dialects
+
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    class ValidDialect(DefaultDialect):
+        driver = "mysqldb"
+
+        @classmethod
+        def import_dbapi(cls) -> object:
+            return object()
+
+    mocker.patch.object(sqlalchemy.dialects, "__all__", ["mysql"])
+    mocker.patch.object(
+        sqlalchemy.dialects.registry,
+        "load",
+        return_value=ValidDialect,
+    )
+    mocker.patch(
+        "superset.db_engine_specs.load_engine_specs",
+        return_value=iter([MySQLEngineSpec]),
+    )
+    mocker.patch(
+        "superset.db_engine_specs.entry_points",
+        return_value=[],
+    )
+
+    available = get_available_engine_specs()
+
+    assert available[MySQLEngineSpec] == {"mysqldb"}
+
+
+def test_get_available_engine_specs_restores_compiler_operators(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A third-party ``sqlalchemy.dialects`` entry point that mutates SQLAlchemy's
+    shared, process-global ``compiler.OPERATORS`` mapping on import (as
+    ``sqlalchemy-monetdb`` does, in place, rather than subclassing) must not be
+    allowed to leak that change into every other dialect for the rest of the
+    process.
+
+    Regression test: enumerating a real "monetdb" entry point here (to build the
+    "available databases" list) silently changed ``!=`` rendering to ``<>`` for
+    postgres/mysql/sqlite/etc. too, for the remainder of the process.
+    """
+    from sqlalchemy.sql import compiler as sqla_compiler, operators
+
+    mocker.patch(
+        "superset.db_engine_specs.load_engine_specs",
+        return_value=iter([]),
+    )
+
+    pristine = dict(sqla_compiler.OPERATORS)
+    assert pristine[operators.ne] != " <> "
+
+    class MisbehavingDialect(DefaultDialect):
+        name = "misbehaving"
+        driver = "misbehaving_driver"
+
+    def load_and_mutate_globally() -> type[MisbehavingDialect]:
+        # Mirrors sqlalchemy-monetdb's `base.py`: grabs a reference to the
+        # shared dict (not a copy) and mutates it in place.
+        sqla_compiler.OPERATORS[operators.ne] = " <> "
+        return MisbehavingDialect
+
+    entry_point = mocker.MagicMock()
+    entry_point.name = "misbehaving"
+    entry_point.load.side_effect = load_and_mutate_globally
+    mocker.patch(
+        "superset.db_engine_specs.entry_points",
+        return_value=[entry_point],
+    )
+
+    try:
+        get_available_engine_specs()
+        assert sqla_compiler.OPERATORS[operators.ne] == pristine[operators.ne]
+    finally:
+        sqla_compiler.OPERATORS.clear()
+        sqla_compiler.OPERATORS.update(pristine)
+
+
+@pytest.mark.parametrize("rebind", [True, False], ids=["rebind", "in_place"])
+def test_get_available_engine_specs_restores_reserved_words(
+    mocker: MockerFixture,
+    rebind: bool,
+) -> None:
+    """
+    A third-party ``sqlalchemy.dialects`` entry point that replaces or extends
+    SQLAlchemy's shared ``IdentifierPreparer.reserved_words`` set on import (as
+    ``kylinpy`` does) must not change identifier quoting for other dialects.
+
+    Regression test: enumerating such an entry point made every dialect relying
+    on the generic reserved words quote ordinary column names like ``name``,
+    turning them into case-sensitive identifiers that no longer match columns
+    on case-folding databases.
+    """
+    import sqlalchemy as sa
+    from sqlalchemy.dialects import postgresql
+    from sqlalchemy.sql import compiler as sqla_compiler
+
+    mocker.patch(
+        "superset.db_engine_specs.load_engine_specs",
+        return_value=iter([]),
+    )
+
+    preparer_cls = sqla_compiler.IdentifierPreparer
+    pristine_object = preparer_cls.reserved_words
+    pristine_words = set(pristine_object)
+    assert "name" not in pristine_words
+
+    table = sa.table("t", sa.column("name"), sa.column("user"))
+    query = sa.select(table.c.name, table.c.user)
+
+    def render() -> tuple[str, str]:
+        return (
+            str(query.compile(dialect=DefaultDialect())),
+            str(query.compile(dialect=postgresql.dialect())),
+        )
+
+    expected = render()
+    assert "t.name" in expected[0]
+
+    class MisbehavingDialect(DefaultDialect):
+        name = "misbehaving"
+        driver = "misbehaving_driver"
+
+    def load_and_mutate_globally() -> type[MisbehavingDialect]:
+        if rebind:
+            # Mirrors kylinpy's ``sqla_dialect.py``: rebinds the attribute on
+            # the shared base class from inside a subclass body.
+            preparer_cls.reserved_words = {"name", "NAME"}
+        preparer_cls.reserved_words.update({"name", "__timestamp"})
+        return MisbehavingDialect
+
+    entry_point = mocker.MagicMock()
+    entry_point.name = "misbehaving"
+    entry_point.load.side_effect = load_and_mutate_globally
+    mocker.patch(
+        "superset.db_engine_specs.entry_points",
+        return_value=[entry_point],
+    )
+
+    try:
+        get_available_engine_specs()
+        assert preparer_cls.reserved_words is pristine_object
+        assert preparer_cls.reserved_words == pristine_words
+        assert sqla_compiler.RESERVED_WORDS == pristine_words
+        assert render() == expected
+    finally:
+        preparer_cls.reserved_words = pristine_object
+        pristine_object.clear()
+        pristine_object.update(pristine_words)
+
+
+def test_get_available_engine_specs_restore_never_empties_shared_state(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Restoring the shared compiler state after a misbehaving dialect loads must
+    not transiently empty ``compiler.OPERATORS`` or the shared reserved-word
+    set, since another thread may be compiling SQL at the same time.
+    """
+    from sqlalchemy.sql import compiler as sqla_compiler
+
+    mocker.patch(
+        "superset.db_engine_specs.load_engine_specs",
+        return_value=iter([]),
+    )
+
+    pristine_words = set(sqla_compiler.IdentifierPreparer.reserved_words)
+    pristine_operators = dict(sqla_compiler.OPERATORS)
+
+    class NoDropSet(set):  # type: ignore[type-arg]
+        def clear(self) -> None:
+            raise AssertionError("reserved words were emptied")
+
+        def difference_update(self, *others: Any) -> None:
+            for other in others:
+                assert not pristine_words & set(other)
+            super().difference_update(*others)
+
+    class NoDropDict(dict):  # type: ignore[type-arg]
+        def clear(self) -> None:
+            raise AssertionError("operators were emptied")
+
+        def pop(self, key: Any, *args: Any) -> Any:
+            assert key not in pristine_operators
+            return super().pop(key, *args)
+
+    words = NoDropSet(pristine_words)
+    operators = NoDropDict(pristine_operators)
+    mocker.patch.object(sqla_compiler.IdentifierPreparer, "reserved_words", words)
+    mocker.patch.object(sqla_compiler, "OPERATORS", operators)
+
+    changed_operator = next(iter(pristine_operators))
+    removed_word = next(iter(pristine_words))
+
+    class MisbehavingDialect(DefaultDialect):
+        name = "misbehaving"
+        driver = "misbehaving_driver"
+
+    def load_and_mutate_globally() -> type[MisbehavingDialect]:
+        words.add("name")
+        words.discard(removed_word)
+        operators["extra"] = " EXTRA "
+        operators[changed_operator] = " CHANGED "
+        return MisbehavingDialect
+
+    entry_point = mocker.MagicMock()
+    entry_point.name = "misbehaving"
+    entry_point.load.side_effect = load_and_mutate_globally
+    mocker.patch(
+        "superset.db_engine_specs.entry_points",
+        return_value=[entry_point],
+    )
+
+    get_available_engine_specs()
+
+    assert set(words) == pristine_words
+    assert dict(operators) == pristine_operators
 
 
 @pytest.mark.parametrize(

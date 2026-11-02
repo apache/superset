@@ -30,6 +30,17 @@ for the access-filtered subset) replace the N-call
 latency on dashboard-scope responses with many related entities
 (sqlalchemy-review W-NEW-1).
 
+**Editorship.** :func:`resolve_editorship` answers the sibling question
+for the same entity set — not "may the requester READ this?" but "may
+they EDIT it?" — so the activity decorator can withhold change detail
+(editor identity, field diffs) for related entities the requester can
+only read (sc-120470, extending the sc-120001 edit gate to related
+records). It batch-loads the live rows with ``editors`` eager-loaded
+and delegates the predicate itself to
+``security_manager.is_editor``: the guest deny, the admin grant and the
+subject-id rules live there and must not be duplicated here, where they
+would silently drift. Resolution failures and unwired kinds deny.
+
 **Inline imports.** ``_resolve_visibility`` defers the FAB-filter
 imports (``DashboardAccessFilter`` / ``ChartFilter`` /
 ``DatasourceFilter`` and ``SQLAInterface``) until call time. Same
@@ -54,7 +65,10 @@ their access-filter class.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+from sqlalchemy import select
+from sqlalchemy.orm import subqueryload
 
 from superset.extensions import db
 from superset.versioning.activity.kinds import (
@@ -65,6 +79,74 @@ from superset.versioning.activity.kinds import (
 )
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from flask_appbuilder import Model
+
+
+def resolve_editorship(
+    distinct_entities: set[tuple[str, int]],
+) -> dict[tuple[str, int], bool]:
+    """Batch-load live entities and delegate editorship to the security manager."""
+    # Avoid app-init regression: security resolution is deferred like the
+    # neighbouring access filters until versioning's model graph is ready.
+    from superset import security_manager  # pylint: disable=import-outside-toplevel
+
+    can_edit: dict[tuple[str, int], bool] = dict.fromkeys(distinct_entities, False)
+    if not distinct_entities:
+        return can_edit
+    try:
+        if security_manager.is_guest_user():
+            return can_edit
+        if security_manager.is_admin():
+            return dict.fromkeys(distinct_entities, True)
+    except Exception:  # pylint: disable=broad-except
+        # Authorization uncertainty must not expose related change detail.
+        logger.warning(
+            "activity editorship: cannot resolve principal; denying detail",
+            exc_info=True,
+        )
+        return can_edit
+
+    by_kind: dict[str, list[int]] = {}
+    for api_kind, entity_id in distinct_entities:
+        by_kind.setdefault(api_kind, []).append(entity_id)
+
+    # Reads must not flush partially populated state from a future caller.
+    with db.session.no_autoflush:
+        for api_kind, entity_ids in by_kind.items():
+            if api_kind not in NAME_COLUMN:
+                continue
+            try:
+                model_cls: type[Model] = load_live_model(NAME_COLUMN[api_kind][0])
+                resolved: dict[tuple[str, int], bool] = {}
+                for chunk in chunked_ids(entity_ids):
+                    entities: list[Model] = list(
+                        db.session.scalars(
+                            select(model_cls)
+                            .options(subqueryload(model_cls.editors))
+                            .where(
+                                model_cls.id.in_(chunk), model_cls.deleted_at.is_(None)
+                            )
+                        )
+                    )
+                    resolved.update(
+                        {
+                            (api_kind, entity.id): security_manager.is_editor(entity)
+                            for entity in entities
+                        }
+                    )
+                can_edit.update(resolved)
+            except Exception:  # pylint: disable=broad-except
+                # Unwired models, failed loads, and predicate failures all
+                # retain the default deny, including partially resolved kinds.
+                logger.warning(
+                    "activity editorship: cannot resolve kind %r; denying %d entities",
+                    api_kind,
+                    len(entity_ids),
+                    exc_info=True,
+                )
+    return can_edit
 
 
 def filter_records_by_visibility(

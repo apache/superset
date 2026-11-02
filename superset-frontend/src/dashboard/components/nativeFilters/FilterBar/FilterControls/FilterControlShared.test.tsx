@@ -26,7 +26,7 @@ test('renders DeckglLayerVisibilityTooltip with icon button', () => {
 
 test('shows tooltip content on hover for DeckglLayerVisibilityTooltip', async () => {
   render(<DeckglLayerVisibilityTooltip />);
-  userEvent.hover(screen.getByRole('button'));
+  await userEvent.hover(screen.getByRole('button'));
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toHaveTextContent(
     'Choose layers to hide from all deck.gl Multiple Layer charts in this dashboard.',

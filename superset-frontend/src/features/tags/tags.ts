@@ -33,7 +33,7 @@ export const OBJECT_TYPES = Object.freeze({
   QUERY: 'saved_query',
 });
 
-const OBJECT_TYPE_ID_MAP = {
+export const OBJECT_TYPE_ID_MAP = {
   saved_query: 1,
   chart: 2,
   dashboard: 3,

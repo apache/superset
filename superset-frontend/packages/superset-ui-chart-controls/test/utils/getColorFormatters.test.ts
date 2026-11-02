@@ -21,10 +21,13 @@ import {
   Comparator,
   getOpacity,
   round,
-  getColorFormatters,
   getColorFunction,
+  getDivergingColor,
+  BoundUnit,
+  PercentDenominator,
 } from '../../src';
 import {
+  getColorFormatters,
   getReadableTextColor,
   getNormalizedTextColor,
   getTextColorForBackground,
@@ -82,6 +85,18 @@ test('getOpacity', () => {
   expect(getOpacity(50, NaN, '100')).toEqual(1);
   expect(getOpacity(50, '75', NaN)).toEqual(1);
   expect(getOpacity(50, 75, NaN)).toEqual(1);
+});
+
+test('getDivergingColor parses string color endpoints', () => {
+  expect(
+    getDivergingColor(25, 0, 50, 100, '#ff0000', '#ffffff', '#008000'),
+  ).toEqual('#ff8080');
+});
+
+test('getDivergingColor returns the segment endpoint outright when its range has zero width', () => {
+  expect(
+    getDivergingColor(10, 10, 10, 20, '#ff0000', '#ffffff', '#008000'),
+  ).toEqual('#ffffff');
 });
 
 test('getColorFunction GREATER_THAN', () => {
@@ -735,6 +750,38 @@ test('correct column config', () => {
   expect(colorFormatters[2].getColorFromValue(100)).toEqual('#FF000087');
 });
 
+test('getColorFormatters falls back to automatic bounds for saved percentage rules when requested', () => {
+  const colorFormatters = getColorFormatters(
+    [
+      {
+        operator: Comparator.None,
+        colorScheme: '#FF0000',
+        column: 'count',
+        useGradient: true,
+        boundUnit: BoundUnit.Percent,
+        minBound: 0,
+        maxBound: 200,
+      },
+      {
+        operator: Comparator.None,
+        colorScheme: '#00FF00',
+        column: 'sum',
+        boundUnit: BoundUnit.Value,
+      },
+    ],
+    mockData,
+    undefined,
+    undefined,
+    true,
+  );
+
+  expect(colorFormatters).toHaveLength(2);
+  expect(colorFormatters[0].column).toBe('count');
+  expect(colorFormatters[0].getColorFromValue(50)).toEqual('#FF000000');
+  expect(colorFormatters[0].getColorFromValue(100)).toEqual('#FF0000FF');
+  expect(colorFormatters[1].column).toBe('sum');
+});
+
 test('undefined column config', () => {
   const colorFormatters = getColorFormatters(undefined, mockData);
   expect(colorFormatters.length).toEqual(0);
@@ -1115,4 +1162,411 @@ test('should strip alpha channel when alpha is false and colorScheme has 9 chars
 
   expect(colorFunction(100)).toEqual('#FF0000');
   expect(colorFunction(100)).toHaveLength(7);
+});
+
+test('should discard the fixed alpha of a 9-char colorScheme before applying gradient opacity', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.GreaterThan,
+      targetValue: 50,
+      colorScheme: '#FF000080',
+      useGradient: true,
+      column: 'count',
+    },
+    countValues,
+  );
+
+  expect(colorFunction(75)).toEqual('#FF000087');
+});
+
+test('getColorFunction GREATER_THAN respects manual maxBound', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.GreaterThan,
+      targetValue: 0,
+      maxBound: 100,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    [25, 50],
+  );
+  expect(colorFunction(0)).toBeUndefined();
+  expect(colorFunction(50)).toEqual('#FF000087');
+  expect(colorFunction(100)).toEqual('#FF0000FF');
+  expect(colorFunction(150)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction GREATER_THAN ignores a maxBound below its target', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.GreaterThan,
+      targetValue: 100,
+      maxBound: 90,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    [100, 150],
+  );
+  expect(colorFunction(125)).toEqual('#FF000087');
+  expect(colorFunction(150)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction LESS_THAN respects manual minBound', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.LessThan,
+      targetValue: 100,
+      minBound: 0,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    [50, 75],
+  );
+  expect(colorFunction(100)).toBeUndefined();
+  expect(colorFunction(50)).toEqual('#FF000087');
+  expect(colorFunction(0)).toEqual('#FF0000FF');
+  expect(colorFunction(-50)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction LESS_THAN ignores a minBound above its target', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.LessThan,
+      targetValue: 100,
+      minBound: 110,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    [50, 100],
+  );
+  expect(colorFunction(75)).toEqual('#FF000087');
+  expect(colorFunction(50)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction GREATER_OR_EQUAL respects manual maxBound', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.GreaterOrEqual,
+      targetValue: 0,
+      maxBound: 100,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    [25, 50],
+  );
+  expect(colorFunction(-10)).toBeUndefined();
+  expect(colorFunction(0)).toEqual('#FF00000D');
+  expect(colorFunction(50)).toEqual('#FF000087');
+  expect(colorFunction(100)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction LESS_OR_EQUAL respects manual minBound', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.LessOrEqual,
+      targetValue: 100,
+      minBound: 0,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    [50, 75],
+  );
+  expect(colorFunction(150)).toBeUndefined();
+  expect(colorFunction(100)).toEqual('#FF00000D');
+  expect(colorFunction(50)).toEqual('#FF000087');
+  expect(colorFunction(0)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction NONE respects manual minBound and maxBound', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+      minBound: 0,
+      maxBound: 200,
+    },
+    countValues,
+  );
+  expect(colorFunction(-10)).toEqual('#FF000000');
+  expect(colorFunction(0)).toEqual('#FF000000');
+  expect(colorFunction(100)).toEqual('#FF000080');
+  expect(colorFunction(200)).toEqual('#FF0000FF');
+  expect(colorFunction(250)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction NONE applies a diverging low/mid/high scale when centerValue and all three colors are set', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#000000',
+      column: 'count',
+      minBound: 0,
+      maxBound: 100,
+      centerValue: 50,
+      lowColor: { r: 255, g: 0, b: 0, a: 1 },
+      midColor: { r: 255, g: 255, b: 255, a: 1 },
+      highColor: { r: 0, g: 128, b: 0, a: 1 },
+    },
+    [10, 90],
+  );
+  expect(colorFunction(0)).toEqual('#ff0000');
+  expect(colorFunction(25)).toEqual('#ff8080');
+  expect(colorFunction(50)).toEqual('#ffffff');
+  expect(colorFunction(75)).toEqual('#80c080');
+  expect(colorFunction(100)).toEqual('#008000');
+});
+
+test('getColorFunction NONE uses the solid base color when gradient is disabled for a complete diverging config', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#000000',
+      useGradient: false,
+      column: 'count',
+      minBound: 0,
+      maxBound: 100,
+      centerValue: 50,
+      lowColor: { r: 255, g: 0, b: 0, a: 1 },
+      midColor: { r: 255, g: 255, b: 255, a: 1 },
+      highColor: { r: 0, g: 128, b: 0, a: 1 },
+    },
+    [10, 90],
+  );
+
+  expect(colorFunction(25)).toEqual('#000000');
+  expect(colorFunction(75)).toEqual('#000000');
+});
+
+test('getColorFunction NONE ignores an incomplete diverging config and falls back to colorScheme', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+      minBound: 0,
+      maxBound: 100,
+      centerValue: 50,
+      lowColor: { r: 255, g: 0, b: 0, a: 1 },
+      // midColor and highColor intentionally omitted
+    },
+    [10, 90],
+  );
+  expect(colorFunction(100)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction NONE ignores a centerValue outside the min/max range', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+      minBound: 0,
+      maxBound: 100,
+      centerValue: 150,
+      lowColor: { r: 255, g: 0, b: 0, a: 1 },
+      midColor: { r: 255, g: 255, b: 255, a: 1 },
+      highColor: { r: 0, g: 128, b: 0, a: 1 },
+    },
+    [10, 90],
+  );
+  expect(colorFunction(100)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction NONE resolves percent bounds against column sum', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+      boundUnit: BoundUnit.Percent,
+      percentDenominator: PercentDenominator.Sum,
+      minBound: 0,
+      maxBound: 100,
+    },
+    [50, 150],
+  );
+  // sum = 200, so minBound 0% -> 0, maxBound 100% -> 200 -- the same absolute
+  // range as the existing 'NONE respects manual minBound and maxBound' test
+  // above, just reached via percent-of-sum instead of typed directly.
+  expect(colorFunction(-10)).toEqual('#FF000000');
+  expect(colorFunction(0)).toEqual('#FF000000');
+  expect(colorFunction(100)).toEqual('#FF000080');
+  expect(colorFunction(200)).toEqual('#FF0000FF');
+  expect(colorFunction(250)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction NONE resolves percent bounds against column max', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+      boundUnit: BoundUnit.Percent,
+      percentDenominator: PercentDenominator.Max,
+      minBound: 0,
+      maxBound: 100,
+    },
+    [10, 40, 90],
+  );
+  // max = 90, so maxBound 100% -> 90.
+  expect(colorFunction(0)).toEqual('#FF000000');
+  expect(colorFunction(45)).toEqual('#FF000080');
+  expect(colorFunction(90)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction NONE defaults percentDenominator to column max when unset', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+      boundUnit: BoundUnit.Percent,
+      minBound: 0,
+      maxBound: 100,
+    },
+    [10, 40, 90],
+  );
+  expect(colorFunction(45)).toEqual('#FF000080');
+  expect(colorFunction(90)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction NONE ignores percentDenominator and treats bounds as absolute when boundUnit is unset', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+      percentDenominator: PercentDenominator.Sum,
+      minBound: 0,
+      maxBound: 200,
+    },
+    [50, 150],
+  );
+  // percentDenominator is present but boundUnit is not 'percent', so minBound
+  // and maxBound are used exactly as typed rather than resolved against the
+  // sum.
+  expect(colorFunction(100)).toEqual('#FF000080');
+  expect(colorFunction(200)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction NONE applies a percent-resolved centerValue to the diverging scale', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#000000',
+      column: 'count',
+      boundUnit: BoundUnit.Percent,
+      percentDenominator: PercentDenominator.Max,
+      minBound: 0,
+      maxBound: 100,
+      centerValue: 50,
+      lowColor: { r: 255, g: 0, b: 0, a: 1 },
+      midColor: { r: 255, g: 255, b: 255, a: 1 },
+      highColor: { r: 0, g: 128, b: 0, a: 1 },
+    },
+    [0, 100],
+  );
+  // max = 100, so every bound resolves to exactly the value it names. This
+  // verifies that boundUnit and percentDenominator also apply to centerValue.
+  expect(colorFunction(0)).toEqual('#ff0000');
+  expect(colorFunction(50)).toEqual('#ffffff');
+  expect(colorFunction(100)).toEqual('#008000');
+});
+
+test('getColorFunction NONE degrades percent bounds to unset when the column has no numeric values', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+      boundUnit: BoundUnit.Percent,
+      percentDenominator: PercentDenominator.Sum,
+      minBound: 0,
+      maxBound: 100,
+    },
+    [],
+  );
+  // No numeric values to sum -> both bounds resolve to unset -> the None
+  // branch's own no-manual-bound path runs Math.min/Math.max on an empty
+  // array (Infinity/-Infinity), so cutoffValue > extremeValue and every
+  // value is rejected -- the same degrade-safe "no coloring" outcome Phase
+  // 1/2 use elsewhere for invalid config shapes.
+  expect(colorFunction(0)).toBeUndefined();
+  expect(colorFunction(50)).toBeUndefined();
+});
+
+test('getColorFunction NONE falls back to automatic bounds for a non-positive column max', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+      boundUnit: BoundUnit.Percent,
+      percentDenominator: PercentDenominator.Max,
+      minBound: 0,
+      maxBound: 100,
+    },
+    [-100, -5],
+  );
+  // A negative denominator would reverse the configured 0%-100% bounds.
+  // Treating both as unset preserves an ordered, data-derived range.
+  expect(colorFunction(-100)).toEqual('#FF000000');
+  expect(colorFunction(-5)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction NONE uses the sum of magnitudes for mixed-sign values', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+      boundUnit: BoundUnit.Percent,
+      percentDenominator: PercentDenominator.Sum,
+      minBound: 0,
+      maxBound: 100,
+    },
+    [500, -499, 400, -400],
+  );
+  // The signed sum is 1, but the magnitude sum is 1799. Using the signed sum
+  // would make every positive value saturate at the upper endpoint.
+  expect(colorFunction(-400)).toEqual('#FF000000');
+  expect(colorFunction(0)).toEqual('#FF000000');
+  expect(colorFunction(899.5)).toEqual('#FF000080');
+  expect(colorFunction(1799)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction NONE keeps the running column max when a later value is smaller', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+      boundUnit: BoundUnit.Percent,
+      percentDenominator: PercentDenominator.Max,
+      minBound: 0,
+      maxBound: 100,
+    },
+    [90, 10, 40],
+  );
+  // max = 90 regardless of position in the array, so maxBound 100% -> 90.
+  expect(colorFunction(45)).toEqual('#FF000080');
+  expect(colorFunction(90)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction GREATER_THAN ignores diverging fields even when fully set', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.GreaterThan,
+      targetValue: 0,
+      colorScheme: '#FF0000',
+      column: 'count',
+      centerValue: 50,
+      lowColor: { r: 255, g: 0, b: 0, a: 1 },
+      midColor: { r: 255, g: 255, b: 255, a: 1 },
+      highColor: { r: 0, g: 128, b: 0, a: 1 },
+    },
+    [25, 100],
+  );
+  expect(colorFunction(100)).toEqual('#FF0000FF');
 });

@@ -34,13 +34,6 @@ if [ "$DEV_MODE" == "true" ]; then
 fi
 REQUIREMENTS_LOCAL="/app/docker/requirements-local.txt"
 PORT=${PORT:-8088}
-# If Cypress run – overwrite the password for admin and export env variables
-if [ "$CYPRESS_CONFIG" == "true" ]; then
-    export SUPERSET_TESTENV=true
-    export POSTGRES_DB=superset_cypress
-    export SUPERSET__SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://superset:superset@db:5432/superset_cypress
-    PORT=8081
-fi
 # Skip postgres requirements installation for workers to avoid conflicts
 if [[ "$DATABASE_DIALECT" == postgres* ]] && [ "$(whoami)" = "root" ] && [ "$1" != "worker" ] && [ "$1" != "beat" ]; then
     # older images may not have the postgres dev requirements installed

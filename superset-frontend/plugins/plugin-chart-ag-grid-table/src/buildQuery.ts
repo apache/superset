@@ -43,6 +43,11 @@ import {
 import { isEmpty } from 'lodash-es';
 import { TableChartFormData } from './types';
 import { updateTableOwnState } from './utils/externalAPIs';
+import {
+  convertAgGridFiltersToSQL,
+  type AgGridFilterModel,
+  type SQLAlchemyFilter,
+} from './utils/agGridFilterConverter';
 
 /**
  * Infer query mode from form data. If `all_columns` is set, then raw records mode,
@@ -211,6 +216,10 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
 
     const moreProps: Partial<QueryObject> = {};
     const ownState = options?.ownState ?? {};
+    // AG Grid header filters applied to a download query as structured filters
+    // (see the isDownloadQuery branch). Tracked so the totals/summary query can
+    // exclude them and keep its prior "start from pre-filter extras" behavior.
+    const agGridDownloadSimpleFilters: SQLAlchemyFilter[] = [];
     // Server pagination sizing, shared between the per-page request below and
     // the filter-change reset further down.
     const pageSize =
@@ -454,43 +463,6 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
       ];
     }
 
-    /**
-     * Helper to determine if a column is a metric (needs HAVING) or dimension (needs WHERE)
-     */
-    const isMetricColumn = (colId: string): boolean => {
-      const metricLabels = new Set(
-        (metrics || []).map(m =>
-          typeof m === 'string' ? m : getMetricLabel(m),
-        ),
-      );
-      return metricLabels.has(colId) || colId.startsWith('%');
-    };
-
-    /**
-     * Helper to classify SQL clauses into WHERE (for dimensions) and HAVING (for metrics)
-     */
-    const classifySQLClauses = (
-      sqlClauses: Record<string, string>,
-    ): { whereClause?: string; havingClause?: string } => {
-      const whereClauses: string[] = [];
-      const havingClauses: string[] = [];
-
-      Object.entries(sqlClauses).forEach(([colId, sqlClause]) => {
-        if (isMetricColumn(colId)) {
-          havingClauses.push(sqlClause);
-        } else {
-          whereClauses.push(sqlClause);
-        }
-      });
-
-      return {
-        whereClause:
-          whereClauses.length > 0 ? whereClauses.join(' AND ') : undefined,
-        havingClause:
-          havingClauses.length > 0 ? havingClauses.join(' AND ') : undefined,
-      };
-    };
-
     if (formData.server_pagination) {
       // Add search filter if search text exists
       if (ownState.searchText && ownState?.searchColumn) {
@@ -649,20 +621,57 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
         ];
       }
 
-      // Apply AG Grid filters as SQL WHERE/HAVING clauses
-      if (ownState.sqlClauses) {
-        const { whereClause, havingClause } = classifySQLClauses(
-          ownState.sqlClauses as Record<string, string>,
+      // Apply AG Grid header filters. Simple single-condition, non-metric
+      // filters are sent as structured `{ col, op, val }` filters so the
+      // backend (SQLAlchemy) quotes each identifier for the target dialect.
+      // Unlike a raw `extras.where` string, this works for column names with
+      // spaces or reserved words across ClickHouse/Postgres/MySQL/BigQuery --
+      // a raw fragment like `Destination Address Street ILIKE '%x%'` fails
+      // backend clause validation, and no fixed quote character is valid for
+      // every dialect. Compound (AND/OR) and metric (HAVING) filters remain
+      // free-form SQL, matching the live in-grid path.
+      if (ownState.agGridFilterModel) {
+        // Percent metrics (`%<label>`) and time-comparison columns
+        // (`% <label>`) are classified as metrics inside convertAgGridFiltersToSQL
+        // via a `%`-prefix check, so only the plain metric labels are needed here.
+        const metricColumns = (metrics || []).map(m =>
+          typeof m === 'string' ? m : getMetricLabel(m),
         );
+        const { simpleFilters, complexWhere, havingClause } =
+          convertAgGridFiltersToSQL(
+            ownState.agGridFilterModel as AgGridFilterModel,
+            metricColumns,
+          );
 
-        if (whereClause || havingClause) {
+        if (simpleFilters.length > 0) {
+          // Drop any placeholder TEMPORAL_RANGE filters on the same columns so
+          // an AG Grid date filter fully replaces the "No filter" default.
+          const filteredCols = new Set(simpleFilters.map(f => f.col));
+          const existingFilters = (queryObject.filters || []).filter(
+            filter =>
+              !(
+                filter &&
+                typeof filter === 'object' &&
+                typeof filter.col === 'string' &&
+                filter.op === 'TEMPORAL_RANGE' &&
+                filteredCols.has(filter.col)
+              ),
+          );
+          agGridDownloadSimpleFilters.push(...simpleFilters);
+          queryObject.filters = [
+            ...existingFilters,
+            ...simpleFilters,
+          ] as QueryObject['filters'];
+        }
+
+        if (complexWhere || havingClause) {
           queryObject.extras = {
             ...queryObject.extras,
             transpile_to_dialect: true,
-            ...(whereClause && {
+            ...(complexWhere && {
               where: queryObject.extras?.where
-                ? `${queryObject.extras.where} AND ${whereClause}`
-                : whereClause,
+                ? `${queryObject.extras.where} AND ${complexWhere}`
+                : complexWhere,
             }),
             ...(havingClause && {
               having: queryObject.extras?.having
@@ -672,6 +681,29 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
           } as QueryObjectExtras;
         }
       }
+    }
+
+    // Build the "all records" percent-metric denominator query AFTER all
+    // filter mutations (interactive group-by, search, AG Grid WHERE/HAVING)
+    // above, so its denominator reflects the same filtered result set as the
+    // main query instead of a stale pre-filter snapshot.
+    const calculationMode = formData.percent_metric_calculation || 'row_limit';
+
+    if (
+      calculationMode === 'all_records' &&
+      percentMetrics &&
+      percentMetrics.length > 0
+    ) {
+      extraQueries.push({
+        ...queryObject,
+        columns: [],
+        metrics: percentMetrics,
+        post_processing: [],
+        row_limit: 0,
+        row_offset: 0,
+        orderby: [],
+        is_timeseries: false,
+      });
     }
 
     // Create totals query AFTER all filters (including AG Grid filters) are applied
@@ -714,38 +746,34 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
           : undefined;
 
     if (showAggregateTotals || rawSummaryColumns.length > 0) {
-      // Create a copy of extras without the AG Grid WHERE clause
-      // AG Grid filters in extras.where can reference calculated columns
-      // which aren't available in the totals subquery
-      const totalsExtras = { ...queryObject.extras };
-      if (ownState.agGridComplexWhere) {
-        // Remove AG Grid WHERE clause from totals query
-        const whereClause = totalsExtras.where;
-        if (whereClause) {
-          // Remove the AG Grid filter part from the WHERE clause using string methods
-          const agGridWhere = ownState.agGridComplexWhere;
-          let newWhereClause = whereClause;
-
-          // Try to remove with " AND " before
-          newWhereClause = newWhereClause.replace(` AND ${agGridWhere}`, '');
-          // Try to remove with " AND " after
-          newWhereClause = newWhereClause.replace(`${agGridWhere} AND `, '');
-          // If it's the only clause, remove it entirely
-          if (newWhereClause === agGridWhere) {
-            newWhereClause = '';
-          }
-
-          if (newWhereClause.trim()) {
-            totalsExtras.where = newWhereClause;
-          } else {
-            delete totalsExtras.where;
-          }
-        }
+      // Start from the original, pre-filter extras (captured before any AG Grid
+      // complexWhere/havingClause fragments were merged in above) rather than
+      // trying to subtract those fragments back out of the now-combined
+      // `queryObject.extras` string. AG Grid filters can reference calculated
+      // columns that aren't available once the totals subquery drops all
+      // grouping columns (columns: []), and that applies to HAVING just as much
+      // as WHERE — starting clean avoids having to special-case each source.
+      // The structured simpleFilters are stripped separately below.
+      const totalsExtras = { ...extras };
+      if (!totalsExtras.where) {
+        delete totalsExtras.where;
+      }
+      if (!totalsExtras.having) {
+        delete totalsExtras.having;
       }
 
       extraQueries.push({
         ...queryObject,
         columns: [],
+        // Exclude AG Grid download filters here for the same reason the extras
+        // above start clean: the totals subquery drops grouping columns, so its
+        // result set is computed without the interactive AG Grid filtering.
+        filters: (queryObject.filters || []).filter(
+          filter =>
+            !agGridDownloadSimpleFilters.includes(
+              filter as unknown as SQLAlchemyFilter,
+            ),
+        ),
         ...(totalsMetrics ? { metrics: totalsMetrics } : {}),
         extras: totalsExtras, // Use extras with AG Grid WHERE removed
         row_limit: 0,

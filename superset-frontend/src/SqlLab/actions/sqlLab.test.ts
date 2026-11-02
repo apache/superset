@@ -883,6 +883,257 @@ describe('async actions', () => {
     );
   });
 
+  // The numeric prefix of a `<id>__query` datasource key is a query id, not a
+  // dataset id, so it must never be resolved through the dataset API.
+  const datasetEndpoint = 'glob:*/api/v1/dataset/*';
+  const datasourceMetadataEndpoint = 'glob:*/fetch_datasource_metadata*';
+  const queryDatasourceMetadata = {
+    name: 'My tab',
+    catalog: 'analytics_catalog',
+    schema: 'analytics',
+    database: { id: 7, backend: 'postgresql' },
+    sql: 'SELECT 1',
+  };
+  const unrelatedDataset = {
+    result: {
+      name: 'unrelated_dataset',
+      schema: 'unrelated_schema',
+      database: { id: 99 },
+      select_star: 'SELECT * FROM unrelated_dataset',
+    },
+  };
+  const generatedSql = 'SELECT a FROM (SELECT 1) AS virtual_table';
+
+  const mockQueryDatasourceLookups = ({
+    datasetWithSameId,
+    queryFound,
+    metadata = queryDatasourceMetadata,
+  }: {
+    datasetWithSameId: boolean;
+    queryFound: boolean;
+    metadata?: Record<string, unknown>;
+  }) => {
+    fetchMock.removeRoute(datasetEndpoint);
+    fetchMock.removeRoute(datasourceMetadataEndpoint);
+    fetchMock.get(datasetEndpoint, datasetWithSameId ? unrelatedDataset : 404, {
+      name: datasetEndpoint,
+    });
+    fetchMock.get(datasourceMetadataEndpoint, queryFound ? metadata : 404, {
+      name: datasourceMetadataEndpoint,
+    });
+  };
+
+  const popDatasourceQuery = (datasourceKey: string, sql?: string) => {
+    const store = mockStore(initialState);
+    return actions
+      .popDatasourceQuery(datasourceKey, sql)(
+        store.dispatch,
+        () => typedInitialState,
+        undefined,
+      )
+      .then(() => store.getActions());
+  };
+
+  afterEach(() => {
+    fetchMock.removeRoute(datasetEndpoint);
+    fetchMock.removeRoute(datasourceMetadataEndpoint);
+  });
+
+  const isDatasourceToast = (action: AnyAction) =>
+    action.type === ADD_TOAST &&
+    action.payload.toastType === ToastType.Danger &&
+    action.payload.text === "The datasource couldn't be loaded";
+
+  test('popDatasourceQuery does not look up a query datasource key as a dataset', async () => {
+    mockQueryDatasourceLookups({ datasetWithSameId: true, queryFound: true });
+
+    await popDatasourceQuery('42__query', generatedSql);
+
+    expect(
+      fetchMock.callHistory.calls(datasetEndpoint).map(call => call.url),
+    ).toEqual([]);
+  });
+
+  test('popDatasourceQuery requests the datasource metadata with the full datasource key', async () => {
+    mockQueryDatasourceLookups({ datasetWithSameId: true, queryFound: true });
+
+    await popDatasourceQuery('42__query', generatedSql);
+
+    const requests = fetchMock.callHistory
+      .calls(datasourceMetadataEndpoint)
+      .map(call => new URL(call.url));
+    expect(requests).toHaveLength(1);
+    expect(requests[0].pathname).toBe('/fetch_datasource_metadata');
+    expect(requests[0].searchParams.get('datasourceKey')).toBe('42__query');
+  });
+
+  test.each([{ datasetWithSameId: false }, { datasetWithSameId: true }])(
+    'popDatasourceQuery opens the supplied SQL on the query database, catalog and schema (dataset with the same id exists: $datasetWithSameId)',
+    async ({ datasetWithSameId }) => {
+      mockQueryDatasourceLookups({ datasetWithSameId, queryFound: true });
+
+      const dispatched = await popDatasourceQuery('42__query', generatedSql);
+
+      expect(dispatched.some(isDatasourceToast)).toBe(false);
+      expect(dispatched).toContainEqual(
+        expect.objectContaining({
+          type: actions.ADD_QUERY_EDITOR,
+          queryEditor: expect.objectContaining({
+            name: 'Query My tab',
+            dbId: 7,
+            catalog: 'analytics_catalog',
+            schema: 'analytics',
+            sql: generatedSql,
+            autorun: false,
+          }),
+        }),
+      );
+    },
+  );
+
+  test('popDatasourceQuery falls back to the SQL of the query when no SQL is supplied', async () => {
+    mockQueryDatasourceLookups({ datasetWithSameId: true, queryFound: true });
+
+    const dispatched = await popDatasourceQuery('42__query');
+
+    expect(dispatched).toContainEqual(
+      expect.objectContaining({
+        type: actions.ADD_QUERY_EDITOR,
+        queryEditor: expect.objectContaining({
+          dbId: 7,
+          catalog: 'analytics_catalog',
+          schema: 'analytics',
+          sql: 'SELECT 1',
+          autorun: false,
+        }),
+      }),
+    );
+  });
+
+  test('popDatasourceQuery shows the error toast and opens no editor when the query cannot be loaded', async () => {
+    mockQueryDatasourceLookups({ datasetWithSameId: true, queryFound: false });
+
+    const dispatched = await popDatasourceQuery('42__query', generatedSql);
+
+    expect(dispatched.some(isDatasourceToast)).toBe(true);
+    expect(
+      dispatched.some(action => action.type === actions.ADD_QUERY_EDITOR),
+    ).toBe(false);
+  });
+
+  test('popDatasourceQuery still resolves a table datasource key as a dataset id', async () => {
+    mockQueryDatasourceLookups({ datasetWithSameId: true, queryFound: true });
+    fetchMock.removeRoute(datasetEndpoint);
+    fetchMock.get(
+      datasetEndpoint,
+      {
+        result: {
+          name: 'my_dataset',
+          schema: 'public',
+          database: { id: 3 },
+          select_star: 'SELECT * FROM my_dataset',
+        },
+      },
+      { name: datasetEndpoint },
+    );
+
+    const dispatched = await popDatasourceQuery('5__table');
+
+    expect(fetchMock.callHistory.calls(datasetEndpoint)).toHaveLength(1);
+    expect(fetchMock.callHistory.calls(datasetEndpoint)[0].url).toContain(
+      '/api/v1/dataset/5?',
+    );
+    expect(
+      fetchMock.callHistory.calls(datasourceMetadataEndpoint),
+    ).toHaveLength(0);
+    expect(dispatched).toContainEqual(
+      expect.objectContaining({
+        type: actions.ADD_QUERY_EDITOR,
+        queryEditor: expect.objectContaining({
+          name: 'Query my_dataset',
+          dbId: 3,
+          schema: 'public',
+          sql: 'SELECT * FROM my_dataset',
+        }),
+      }),
+    );
+  });
+
+  test.each([
+    { datasourceKey: '5__semantic_view' },
+    { datasourceKey: '7__saved_query' },
+  ])(
+    'popDatasourceQuery shows the error toast without any lookup for the $datasourceKey datasource',
+    async ({ datasourceKey }) => {
+      mockQueryDatasourceLookups({ datasetWithSameId: true, queryFound: true });
+
+      const dispatched = await popDatasourceQuery(datasourceKey, generatedSql);
+
+      expect(fetchMock.callHistory.calls(datasetEndpoint)).toHaveLength(0);
+      expect(
+        fetchMock.callHistory.calls(datasourceMetadataEndpoint),
+      ).toHaveLength(0);
+      expect(dispatched.some(isDatasourceToast)).toBe(true);
+      expect(
+        dispatched.some(action => action.type === actions.ADD_QUERY_EDITOR),
+      ).toBe(false);
+    },
+  );
+
+  test('popDatasourceQuery still resolves a bare datasource id as a dataset id', async () => {
+    mockQueryDatasourceLookups({ datasetWithSameId: true, queryFound: true });
+
+    const dispatched = await popDatasourceQuery('5');
+
+    expect(fetchMock.callHistory.calls(datasetEndpoint)).toHaveLength(1);
+    expect(fetchMock.callHistory.calls(datasetEndpoint)[0].url).toContain(
+      '/api/v1/dataset/5?',
+    );
+    expect(dispatched).toContainEqual(
+      expect.objectContaining({
+        type: actions.ADD_QUERY_EDITOR,
+        queryEditor: expect.objectContaining({
+          name: 'Query unrelated_dataset',
+          dbId: 99,
+        }),
+      }),
+    );
+  });
+
+  test.each([
+    {
+      description: 'null',
+      metadata: { ...queryDatasourceMetadata, name: null },
+    },
+    {
+      description: 'absent',
+      metadata: {
+        catalog: 'analytics_catalog',
+        schema: 'analytics',
+        database: { id: 7, backend: 'postgresql' },
+        sql: 'SELECT 1',
+      },
+    },
+  ])(
+    'popDatasourceQuery titles the editor "Query" when the query name is $description',
+    async ({ metadata }) => {
+      mockQueryDatasourceLookups({
+        datasetWithSameId: false,
+        queryFound: true,
+        metadata,
+      });
+
+      const dispatched = await popDatasourceQuery('42__query', generatedSql);
+
+      expect(dispatched).toContainEqual(
+        expect.objectContaining({
+          type: actions.ADD_QUERY_EDITOR,
+          queryEditor: expect.objectContaining({ name: 'Query', dbId: 7 }),
+        }),
+      );
+    },
+  );
+
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('addQueryEditor', () => {
     test('creates new query editor', () => {
@@ -1090,6 +1341,13 @@ describe('async actions', () => {
     fetchMock.delete(updateTableSchemaEndpoint, {});
     fetchMock.post(updateTableSchemaEndpoint, JSON.stringify({ id: 1 }));
 
+    const getDatabaseEndpoint = /\/api\/v1\/database\/\d+$/;
+    fetchMock.get(
+      getDatabaseEndpoint,
+      { result: { id: queryEditor.dbId } },
+      { name: 'getDatabase' },
+    );
+
     const updateTableSchemaExpandedEndpoint =
       'glob:**/tableschemaview/*/expanded';
     fetchMock.post(updateTableSchemaExpandedEndpoint, {});
@@ -1105,6 +1363,9 @@ describe('async actions', () => {
       isFeatureEnabledMock.mockImplementation(
         (feature: string) => feature === 'SQLLAB_BACKEND_PERSISTENCE',
       );
+      fetchMock.modifyRoute('getDatabase', {
+        response: { result: { id: queryEditor.dbId } },
+      });
     });
 
     afterEach(() => {
@@ -2039,6 +2300,114 @@ describe('async actions', () => {
             ).toHaveLength(2);
           });
       });
+
+      test('clears a deleted database before migrating the tab state', async () => {
+        expect.assertions(7);
+
+        const oldQueryEditor = {
+          ...queryEditor,
+          dbId: 99,
+          catalog: 'deleted_catalog',
+          schema: 'deleted_schema',
+          inLocalStorage: true,
+        };
+        const staleTable = {
+          id: 'stale-table',
+          dbId: 99,
+          queryEditorId: oldQueryEditor.id,
+          inLocalStorage: true,
+        };
+        const store = mockStore({
+          sqlLab: {
+            queries: [],
+            tables: [staleTable],
+            databases: { 1: {}, 99: {} },
+          },
+        });
+        fetchMock.modifyRoute('getDatabase', {
+          response: { status: 404, body: { message: 'Not found' } },
+        });
+
+        await store.dispatch(actions.syncQueryEditor(oldQueryEditor));
+
+        const call = fetchMock.callHistory.calls(updateTabStateEndpoint)[0];
+        const formData = call.options.body as FormData;
+        const persistedQueryEditor = JSON.parse(
+          formData.get('queryEditor') as string,
+        );
+        expect(persistedQueryEditor).toMatchObject({
+          dbId: null,
+          sql: oldQueryEditor.sql,
+        });
+        expect(persistedQueryEditor).not.toHaveProperty('catalog');
+        expect(persistedQueryEditor).not.toHaveProperty('schema');
+        expect(fetchMock.callHistory.calls('getDatabase')).toHaveLength(1);
+        expect(fetchMock.callHistory.calls('getDatabase')[0].url).toMatch(
+          /\/api\/v1\/database\/99$/,
+        );
+        expect(
+          fetchMock.callHistory.calls(updateTableSchemaEndpoint),
+        ).toHaveLength(0);
+        expect(store.getActions()).toEqual([
+          {
+            type: actions.MIGRATE_QUERY_EDITOR,
+            oldQueryEditor,
+            newQueryEditor: {
+              ...oldQueryEditor,
+              dbId: undefined,
+              catalog: undefined,
+              schema: undefined,
+              tabViewId: '1',
+              inLocalStorage: false,
+              loaded: true,
+            },
+          },
+          {
+            type: actions.REMOVE_TABLES,
+            tables: [staleTable],
+          },
+        ]);
+      });
+
+      test.each([
+        { status: 400, body: { message: 'Bad request' } },
+        { status: 403, body: { message: 'Forbidden' } },
+        { status: 500, body: { message: 'Server error' } },
+        { throws: new Error('database lookup failed') },
+      ])(
+        'does not migrate when database validation fails: %o',
+        async response => {
+          const oldQueryEditor = {
+            ...queryEditor,
+            dbId: 99,
+            inLocalStorage: true,
+          };
+          const store = mockStore({
+            sqlLab: {
+              queries: [],
+              tables: [],
+              databases: { 99: {} },
+            },
+          });
+          fetchMock.modifyRoute('getDatabase', {
+            response,
+          });
+
+          await store.dispatch(actions.syncQueryEditor(oldQueryEditor));
+
+          expect(
+            fetchMock.callHistory.calls(updateTabStateEndpoint),
+          ).toHaveLength(0);
+          expect(store.getActions()).toEqual([
+            expect.objectContaining({
+              type: ADD_TOAST,
+              payload: expect.objectContaining({
+                toastType: ToastType.Warning,
+              }),
+            }),
+          ]);
+        },
+      );
     });
   });
 
@@ -2093,4 +2462,61 @@ describe('async actions', () => {
       expect(store.getActions()).toHaveLength(0);
     });
   });
+});
+
+test.each(['success', 'failed', 'timed_out'])(
+  'postStopQuery refreshes an already %s query without a toast',
+  async state => {
+    const finishedQuery = { ...queryFixture, id: queryId, state };
+    const post = jest.spyOn(SupersetClient, 'post').mockRejectedValueOnce({
+      status: 422,
+      json: async () => ({
+        message: 'Could not cancel query',
+        query: finishedQuery,
+      }),
+    });
+    const store = mockStore(initialState);
+    await store.dispatch(
+      actions.postStopQuery({ ...queryFixture, id: queryId }),
+    );
+    expect(store.getActions()).toEqual([
+      actions.refreshQueries({ [finishedQuery.id]: finishedQuery }),
+    ]);
+    post.mockRestore();
+  },
+);
+
+test('postStopQuery retains the error toast for an unsupported stop', async () => {
+  const post = jest.spyOn(SupersetClient, 'post').mockRejectedValueOnce({
+    status: 422,
+    json: async () => ({ message: 'Could not cancel query' }),
+  });
+  const store = mockStore(initialState);
+  await store.dispatch(actions.postStopQuery({ ...queryFixture, id: queryId }));
+  expect(store.getActions()).toEqual([
+    expect.objectContaining({
+      type: ADD_TOAST,
+      payload: expect.objectContaining({ toastType: ToastType.Danger }),
+    }),
+  ]);
+  post.mockRestore();
+});
+
+test('postStopQuery keeps the error toast when a target commit wins before publication', async () => {
+  const post = jest.spyOn(SupersetClient, 'post').mockRejectedValueOnce({
+    status: 422,
+    json: async () => ({
+      message: 'Could not cancel query',
+      query: { ...queryFixture, id: queryId, state: 'running' },
+    }),
+  });
+  const store = mockStore(initialState);
+  await store.dispatch(actions.postStopQuery({ ...queryFixture, id: queryId }));
+  expect(store.getActions()).toEqual([
+    expect.objectContaining({
+      type: ADD_TOAST,
+      payload: expect.objectContaining({ toastType: ToastType.Danger }),
+    }),
+  ]);
+  post.mockRestore();
 });

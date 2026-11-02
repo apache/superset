@@ -26,4 +26,3 @@ export type { NormalizeOptions } from './normalizeBackendUrls';
 
 export * from './types';
 export * from './constants';
-export { default as __hack_reexport_connection } from './types';

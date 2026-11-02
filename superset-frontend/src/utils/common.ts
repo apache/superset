@@ -27,6 +27,9 @@ import {
 // ATTENTION: If you change any constants, make sure to also change constants.py
 
 export const EMPTY_STRING = '<empty string>';
+// Keep in sync with EMPTY_FILTER_SQL_EXPRESSION in superset/constants.py.
+export const EMPTY_FILTER_SQL_EXPRESSION = '1 = 0';
+
 export const NULL_STRING = '<NULL>';
 export const TRUE_STRING = 'TRUE';
 export const FALSE_STRING = 'FALSE';

@@ -41,7 +41,7 @@ import { TIMEOUT } from '../../utils/constants';
 const DATASET_NAME = 'birth_names';
 
 testWithAssets(
-  'Handlebars formatDate helper renders a formatted date (#32960)',
+  'Handlebars formatDate helper renders a formatted date',
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 

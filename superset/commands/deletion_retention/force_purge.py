@@ -19,9 +19,10 @@
 Immediate, irreversible removal of one entity regardless of the retention
 window or whether it is currently soft-deleted or live. Runs the same cascade
 as the time-based task with ``enforce_window=False`` — identical dependent
-handling with legacy hard-delete semantics: M:N join rows hard-deleted,
-a referencing live chart's loose ``datasource_id`` left dangling (the chart is
-never modified). Idempotent: a UUID that resolves to nothing is a no-op.
+handling with hard-delete semantics: M:N join rows hard-deleted, and a
+chart on a purged dataset kept but detached (its ``datasource_id`` and
+permission fields cleared). Idempotent: a UUID that resolves to nothing is a
+no-op.
 """
 
 from __future__ import annotations
@@ -74,12 +75,14 @@ class ForcePurgeCommand:
         model_cls: type[SoftDeleteMixin] | None = None,
         require_archived: bool = False,
         require_audit: bool = False,
+        confirmed_impact_token: str | None = None,
     ) -> None:
         self._uuid: str = uuid
         self._actor: str = actor
         self._model_cls = model_cls
         self._require_archived = require_archived
         self._require_audit = require_audit
+        self._confirmed_impact_token: str | None = confirmed_impact_token
 
     def _resolve(self) -> SoftDeleteMixin | None:
         """Find the entity by UUID, visibility-filter bypassed.
@@ -164,6 +167,7 @@ class ForcePurgeCommand:
                     entity,
                     enforce_window=False,
                     require_archived=self._require_archived,
+                    confirmed_impact_token=self._confirmed_impact_token,
                 )
             # Commit AFTER the suppression block: Continuum executes its
             # pending association statements during flush/commit, so the

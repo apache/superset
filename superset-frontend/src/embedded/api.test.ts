@@ -17,6 +17,11 @@
  * under the License.
  */
 import { DataMaskStateWithId } from '@superset-ui/core';
+import {
+  DASHBOARD_GRID_CLASS,
+  FILTER_BAR_BOUNDED_CLASS,
+  FILTER_BAR_SCROLL_CLASS,
+} from 'src/dashboard/util/embeddedLayout';
 
 // Mock factories must build their own jest.fn()s: jest.mock calls are hoisted
 // above this file's declarations, so a factory closing over a const would read
@@ -152,4 +157,83 @@ test('setDataMask queues the mask until the dashboard hydrates', () => {
   expect(mockDispatch).toHaveBeenCalledWith(
     updateDataMask('NATIVE_FILTER-1', nativeFilterMask),
   );
+});
+
+// jsdom does no layout, so the geometry is stubbed. The markers are the same
+// constants the components render, so a rename breaks this fixture too.
+function layOut({
+  content,
+  frame,
+  hydrated = true,
+  gridMounted = true,
+}: {
+  content: number;
+  frame: number;
+  hydrated?: boolean;
+  gridMounted?: boolean;
+}) {
+  mockGetState.mockReturnValue(hydrated ? { dashboardInfo: { id: 1 } } : {});
+  document.body.innerHTML = `
+    <div id="app">
+      <div class="dashboard">
+        ${gridMounted ? `<div class="${DASHBOARD_GRID_CLASS}"></div>` : ''}
+      </div>
+      <div class="${FILTER_BAR_BOUNDED_CLASS}" style="max-height: 100vh">
+        <div class="${FILTER_BAR_SCROLL_CLASS}"></div>
+      </div>
+    </div>`;
+  Object.defineProperty(document.body, 'scrollHeight', {
+    configurable: true,
+    get: () => content,
+  });
+  Object.defineProperty(document.documentElement, 'clientHeight', {
+    configurable: true,
+    get: () => frame,
+  });
+}
+
+afterEach(() => {
+  document.body.innerHTML = '';
+  document.documentElement.removeAttribute('style');
+  document.body.removeAttribute('style');
+});
+
+test('getScrollSize reports the content height rather than the frame height', () => {
+  layOut({ content: 1600, frame: 2400 });
+
+  expect(embeddedApi.getScrollSize().height).toBe(1600);
+});
+
+test('getScrollSize reports the frame until the dashboard has hydrated', () => {
+  layOut({ content: 120, frame: 900, hydrated: false });
+
+  expect(embeddedApi.getScrollSize().height).toBe(900);
+});
+
+test('getScrollSize reports the frame until the grid is mounted', () => {
+  // The chrome alone has height, so height cannot stand in for "laid out".
+  layOut({ content: 120, frame: 900, gridMounted: false });
+
+  expect(embeddedApi.getScrollSize().height).toBe(900);
+});
+
+test('getScrollSize restores every style it lifts', () => {
+  layOut({ content: 1600, frame: 800 });
+  document.documentElement.style.height = '100%';
+  document.body.style.minHeight = '100vh';
+  const app = document.getElementById('app') as HTMLElement;
+  app.style.height = '100%';
+  const bar = document.querySelector(
+    `.${FILTER_BAR_BOUNDED_CLASS}`,
+  ) as HTMLElement;
+
+  embeddedApi.getScrollSize();
+
+  expect(document.documentElement.style.height).toBe('100%');
+  expect(document.documentElement.style.minHeight).toBe('');
+  expect(document.body.style.height).toBe('');
+  expect(document.body.style.minHeight).toBe('100vh');
+  expect(app.style.height).toBe('100%');
+  expect(app.style.minHeight).toBe('');
+  expect(bar.style.maxHeight).toBe('100vh');
 });

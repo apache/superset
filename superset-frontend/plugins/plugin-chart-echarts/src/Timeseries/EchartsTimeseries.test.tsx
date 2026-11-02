@@ -40,6 +40,7 @@ import {
 } from '../types';
 import EchartsTimeseries from './EchartsTimeseries';
 import {
+  BarValueLabelPosition,
   EchartsTimeseriesSeriesType,
   OrientationType,
   type EchartsTimeseriesFormData,
@@ -133,6 +134,9 @@ const defaultFormData: EchartsTimeseriesFormData & {
   metrics: [],
   minorSplitLine: false,
   minorTicks: false,
+  gridlines: true,
+  axisTicks: true,
+  valueAxisLabels: true,
   opacity: 1,
   orderDesc: false,
   rowLimit: 0,
@@ -157,6 +161,7 @@ const defaultFormData: EchartsTimeseriesFormData & {
   xAxisLabelRotation: 0,
   xAxisLabelInterval: 0,
   showValue: false,
+  valueLabelPosition: BarValueLabelPosition.Auto,
   onlyTotal: false,
   showExtraControls: true,
   percentageThreshold: 0,
@@ -167,6 +172,7 @@ const defaultFormData: EchartsTimeseriesFormData & {
   legendOrientation: LegendOrientation.Top,
   legendType: LegendType.Plain,
   showLegend: false,
+  showSelectorLegend: true,
   legendSort: null,
   xAxisTitle: '',
   xAxisTitleMargin: 40,
@@ -284,6 +290,66 @@ test('observes extra control height changes when ResizeObserver is available', a
   unmount();
 
   expect(disconnectSpy).toHaveBeenCalled();
+});
+
+test('uses the post-control body height for compact custom-legend visibility', async () => {
+  mockOffsetHeight = 40;
+  const { queryByTestId } = render(
+    <EchartsTimeseries
+      {...defaultProps}
+      height={140}
+      echartOptions={{
+        grid: { bottom: 80, containLabel: true, top: 20 },
+      }}
+      formData={{ ...defaultFormData, zoomable: true }}
+      customLegend={
+        {
+          grid: { bottom: 80, top: 20 },
+          items: Array.from({ length: 20 }, (_, index) => ({
+            color: '#123456',
+            interactive: true,
+            name: `Series ${index}`,
+            selected: true,
+          })),
+          orientation: LegendOrientation.Top,
+          showSelectors: true,
+        } as never
+      }
+    />,
+  );
+
+  await waitFor(() => {
+    expect(queryByTestId('timeseries-custom-legend')).not.toBeInTheDocument();
+    expect(getLatestHeight()).toBe(100);
+    expect(getLatestEchartProps().echartOptions.grid).toEqual({
+      bottom: 80,
+      containLabel: false,
+      top: 12,
+    });
+  });
+});
+
+test('keeps a no-legend grid within a very small post-control body', async () => {
+  mockOffsetHeight = 40;
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      height={50}
+      echartOptions={{
+        grid: { bottom: 37, containLabel: false, top: 12 },
+      }}
+      formData={{ ...defaultFormData, zoomable: true }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(getLatestHeight()).toBe(10);
+    expect(getLatestEchartProps().echartOptions.grid).toEqual({
+      bottom: 0,
+      containLabel: false,
+      top: 9,
+    });
+  });
 });
 
 test('falls back to window resize listener when ResizeObserver is unavailable', async () => {
@@ -509,6 +575,110 @@ test('does not emit duplicate cross-filter for generic axis label clicks', () =>
 
   jest.advanceTimersByTime(400);
   expect(setDataMaskMock).not.toHaveBeenCalled();
+});
+
+test('emits X-axis cross-filter from categorical axis label clicks when dimensions are set', () => {
+  const setDataMaskMock = jest.fn();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      setDataMask={setDataMaskMock}
+      groupby={['status']}
+      labelMap={{ RESOLVED: ['RESOLVED'] }}
+      formData={{
+        ...defaultFormData,
+        groupby: ['status'],
+        orientation: OrientationType.Horizontal,
+      }}
+      xAxis={{
+        label: 'category_column',
+        type: AxisType.Category,
+      }}
+    />,
+  );
+
+  const labelClickHandler = getLatestEchartProps().queryEventHandlers?.find(
+    ({ query }) => query === 'yAxis',
+  )?.handler;
+  expect(labelClickHandler).toBeDefined();
+  labelClickHandler?.({
+    targetType: 'axisLabel',
+    value: 'Product A',
+  } as unknown as ECElementEvent);
+
+  expect(setDataMaskMock).toHaveBeenCalledTimes(1);
+  expect(setDataMaskMock.mock.calls[0][0]).toEqual({
+    extraFormData: {
+      filters: [{ col: 'category_column', op: 'IN', val: ['Product A'] }],
+    },
+    filterState: {
+      label: ['Product A'],
+      value: ['Product A'],
+      selectedValues: ['Product A'],
+      crossFilterSource: 'xAxis',
+    },
+  });
+});
+
+test('does not emit dimension cross-filter for generic axis label clicks when dimensions are set', () => {
+  jest.useFakeTimers();
+  const setDataMaskMock = jest.fn();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      setDataMask={setDataMaskMock}
+      groupby={['status']}
+      labelMap={{ RESOLVED: ['RESOLVED'] }}
+      formData={{ ...defaultFormData, groupby: ['status'] }}
+      xAxis={{
+        label: 'category_column',
+        type: AxisType.Category,
+      }}
+    />,
+  );
+
+  const clickHandler = getLatestEchartProps().eventHandlers?.click;
+  expect(clickHandler).toBeDefined();
+  clickHandler?.({
+    componentType: 'xAxis',
+    name: 'Product A',
+  });
+
+  jest.advanceTimersByTime(400);
+  expect(setDataMaskMock).not.toHaveBeenCalled();
+});
+
+test('does not open context menu for axis labels when dimensions are set', async () => {
+  const onContextMenuMock = jest.fn();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      onContextMenu={onContextMenuMock}
+      groupby={['status']}
+      labelMap={{ RESOLVED: ['RESOLVED'] }}
+      formData={{ ...defaultFormData, groupby: ['status'] }}
+      xAxis={{
+        label: 'category_column',
+        type: AxisType.Category,
+      }}
+    />,
+  );
+
+  const contextMenuHandler = getLatestEchartProps().eventHandlers?.contextmenu;
+  expect(contextMenuHandler).toBeDefined();
+  await contextMenuHandler?.({
+    componentType: 'xAxis',
+    name: 'Product A',
+    event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+  });
+
+  expect(onContextMenuMock).not.toHaveBeenCalled();
 });
 
 test('keeps temporal range exclusive ends on whole-second boundaries', () => {
@@ -1049,7 +1219,7 @@ test('clears temporal X-axis cross-filter when clicking selected bucket again', 
   });
 });
 
-test('does not emit temporal X-axis label cross-filter when dimensions are set', () => {
+test('emits temporal X-axis label cross-filter when dimensions are set', () => {
   const setDataMaskMock = jest.fn();
 
   render(
@@ -1057,6 +1227,7 @@ test('does not emit temporal X-axis label cross-filter when dimensions are set',
       {...defaultProps}
       emitCrossFilters
       setDataMask={setDataMaskMock}
+      resolvedTimeGrain={TimeGranularity.MONTH}
       groupby={['country']}
       formData={{
         ...defaultFormData,
@@ -1080,7 +1251,14 @@ test('does not emit temporal X-axis label cross-filter when dimensions are set',
     value: '2021-01-01',
   } as unknown as ECElementEvent);
 
-  expect(setDataMaskMock).not.toHaveBeenCalled();
+  expect(setDataMaskMock).toHaveBeenCalledTimes(1);
+  expect(setDataMaskMock.mock.calls[0][0].extraFormData.filters).toEqual([
+    {
+      col: 'ds',
+      op: 'TEMPORAL_RANGE',
+      val: '2021-01-01T00:00:00 : 2021-02-01T00:00:00',
+    },
+  ]);
 });
 
 test('does not emit temporal X-axis cross-filter when dimensions are set', () => {

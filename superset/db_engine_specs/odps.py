@@ -32,7 +32,11 @@ from superset.databases.utils import (
     get_foreign_keys_metadata,
     get_indexes_metadata,
 )
-from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicParametersMixin,
+    DatabaseCategory,
+)
 from superset.sql.parse import Partition, SQLScript, Table
 from superset.superset_typing import ResultSetColumnType
 
@@ -64,6 +68,34 @@ class OdpsEngineSpec(BasicParametersMixin, OdpsBaseEngineSpec):
     engine = "odps"
     engine_name = "ODPS (MaxCompute)"
     default_driver = "odps"
+
+    metadata = {
+        "description": (
+            "Alibaba Cloud MaxCompute (formerly ODPS) is a fully managed, "
+            "multi-tenancy cloud data warehousing platform for large-scale "
+            "batch and streaming analytics."
+        ),
+        "homepage_url": "https://www.alibabacloud.com/product/maxcompute",
+        "categories": [
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["pyodps"],
+        "connection_string": (
+            "odps://{access_id}:{secret_access_key}@{project}/?endpoint={endpoint}"
+        ),
+        "parameters": {
+            "access_id": "Aliyun Access Key ID",
+            "secret_access_key": "Aliyun Access Key Secret",
+            "project": "MaxCompute project name",
+            "endpoint": "MaxCompute service endpoint URL",
+        },
+        "docs_url": "https://pyodps.readthedocs.io/",
+        "sqlalchemy_docs_url": (
+            "https://pyodps.readthedocs.io/en/latest/sqlalchemy.html"
+        ),
+    }
 
     @classmethod
     def get_table_metadata(

@@ -229,6 +229,22 @@ def test_get_mcp_config_respects_app_config_override() -> None:
     assert config["MCP_DISABLED_TOOLS"] == custom
 
 
+def test_get_mcp_config_structured_output_is_opt_in() -> None:
+    """Text-only results remain the default for bridge compatibility."""
+    from superset.mcp_service.mcp_config import get_mcp_config
+
+    config = get_mcp_config()
+    assert config["MCP_STRUCTURED_OUTPUT_ENABLED"] is False
+
+
+def test_get_mcp_config_respects_structured_output_override() -> None:
+    """Operators can enable outputSchema and structuredContent together."""
+    from superset.mcp_service.mcp_config import get_mcp_config
+
+    config = get_mcp_config({"MCP_STRUCTURED_OUTPUT_ENABLED": True})
+    assert config["MCP_STRUCTURED_OUTPUT_ENABLED"] is True
+
+
 def test_get_mcp_config_includes_mcp_stateless_http_key() -> None:
     """get_mcp_config must include MCP_STATELESS_HTTP in its defaults dict, like
     MCP_DEBUG and MCP_RBAC_ENABLED, so an operator override in superset_config.py
@@ -555,3 +571,12 @@ def test_create_default_mcp_auth_factory_audience_not_required_for_api_key_only(
     result = create_default_mcp_auth_factory(mock_app)
 
     assert isinstance(result, CompositeTokenVerifier)
+
+
+def test_editor_instructions_apply_to_all_editor_lists() -> None:
+    """The direct-user editor explanation is shared, not dashboard-specific."""
+    instructions = get_default_instructions()
+    assert "\nedited_by_me means direct USER editor" in instructions
+    assert "For dashboards, edited_by_me" not in instructions
+    for tool_name in ("list_charts", "list_dashboards", "list_datasets"):
+        assert tool_name + '(request={"edited_by_me": true})' in instructions

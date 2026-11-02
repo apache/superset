@@ -17,11 +17,30 @@
  * under the License.
  */
 
-import { memo, useMemo } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled, useTheme } from '@apache-superset/core/theme';
+import { FeatureFlag, isFeatureEnabled } from '../../../utils/featureFlags';
 import { MatrixifyGridCell as GridCellData } from '../../types/matrixify';
 import StatefulChart from '../StatefulChart';
+import {
+  FORCE_IN_VIEW_EVENT,
+  isForceInViewActiveForRow,
+} from './virtualizationEvents';
+
+// How far outside the viewport a cell can be before it starts loading. Keeps a
+// small buffer so charts finish loading just before the user scrolls to them.
+const LAZY_LOAD_ROOT_MARGIN = '200px 0px';
+
+// A headless browser (e.g. the server-side screenshot/report/thumbnail
+// worker) sets navigator.webdriver. In that case every cell must render
+// immediately so that captures include the full matrix regardless of scroll
+// position. This does NOT cover client-side "Download as Image/PDF", which
+// runs in the user's normal (non-headless) browser; that path instead relies
+// on FORCE_IN_VIEW_EVENT (see the effect below) to force off-screen cells to
+// mount before the capture is taken.
+const isHeadlessCapture = () =>
+  typeof window !== 'undefined' && Boolean(window.navigator?.webdriver);
 
 const CellContainer = styled.div`
   height: 100%;
@@ -75,6 +94,13 @@ const NoDataMessage = styled.div<{ theme: any }>`
   user-select: none;
 `;
 
+// Reserves the cell's space while the chart has not yet scrolled into view, so
+// the grid layout stays stable and no data query is fired for off-screen cells.
+const ChartPlaceholder = styled.div`
+  width: 100%;
+  height: 100%;
+`;
+
 interface MatrixifyGridCellProps {
   cell: GridCellData;
   rowHeight: number;
@@ -98,6 +124,80 @@ const MatrixifyGridCell = memo(
 
     // Only show label if it has content
     const showLabel = cellLabel && cellLabel.trim() !== '';
+
+    // Per-cell lazy loading: when dashboard virtualization is enabled, defer
+    // mounting the chart (and therefore its data query) until the cell scrolls
+    // into view. This prevents a large matrix from firing every cell's query at
+    // once. Disabled flag or headless capture renders immediately.
+    const containerRef = useRef<HTMLDivElement>(null);
+    const lazyLoadEnabled =
+      isFeatureEnabled(FeatureFlag.DashboardVirtualization) &&
+      !isHeadlessCapture();
+    // Latch: once a cell has entered the viewport it stays mounted, avoiding
+    // refetch churn when scrolling back and forth within the grid.
+    const [hasEnteredView, setHasEnteredView] = useState(!lazyLoadEnabled);
+
+    useEffect(() => {
+      if (hasEnteredView) {
+        return undefined;
+      }
+      const element = containerRef.current;
+      if (!element || typeof IntersectionObserver === 'undefined') {
+        // No element or no observer support: fall back to rendering eagerly.
+        setHasEnteredView(true);
+        return undefined;
+      }
+      const observer = new IntersectionObserver(
+        entries => {
+          if (entries.some(entry => entry.isIntersecting)) {
+            setHasEnteredView(true);
+            observer.disconnect();
+          }
+        },
+        { rootMargin: LAZY_LOAD_ROOT_MARGIN },
+      );
+      observer.observe(element);
+      return () => observer.disconnect();
+    }, [hasEnteredView]);
+
+    // Client-side "Download as Image/PDF" runs in the user's normal
+    // (non-headless) browser, so isHeadlessCapture() above never applies. It
+    // instead forces lazily-loaded charts to mount by dispatching
+    // FORCE_IN_VIEW_EVENT on window - optionally scoped to a batch of
+    // dashboard row ids, see src/utils/downloadUtils.ts - then waits for
+    // loading spinners to clear before capturing. Mirror the same row
+    // scoping dashboard Row.tsx uses (via the nearest ancestor
+    // [data-row-id]) so a Matrixify chart mounts in step with its own row's
+    // batch instead of dumping every deferred cell's query into whichever
+    // batch happens to fire first.
+    useEffect(() => {
+      if (!lazyLoadEnabled || hasEnteredView) {
+        return undefined;
+      }
+      const ancestorRowId =
+        containerRef.current
+          ?.closest('[data-row-id]')
+          ?.getAttribute('data-row-id') ?? null;
+      if (isForceInViewActiveForRow(ancestorRowId)) {
+        setHasEnteredView(true);
+        return undefined;
+      }
+      const handleForceInView = (event: Event) => {
+        const rowIds = (event as CustomEvent<{ rowIds?: string[] }>).detail
+          ?.rowIds;
+        if (
+          rowIds &&
+          (ancestorRowId === null || !rowIds.includes(ancestorRowId))
+        ) {
+          return;
+        }
+        setHasEnteredView(true);
+      };
+      window.addEventListener(FORCE_IN_VIEW_EVENT, handleForceInView);
+      return () => {
+        window.removeEventListener(FORCE_IN_VIEW_EVENT, handleForceInView);
+      };
+    }, [lazyLoadEnabled, hasEnteredView]);
 
     // Create enhanced hooks that merge cell filters with drill filters
     const enhancedHooks = useMemo(() => {
@@ -141,6 +241,7 @@ const MatrixifyGridCell = memo(
 
     return (
       <CellContainer
+        ref={containerRef}
         className="matrixify-cell"
         data-row={cell.row}
         data-col={cell.col}
@@ -149,16 +250,20 @@ const MatrixifyGridCell = memo(
       >
         {showLabel && <CellHeader title={cellLabel}>{cellLabel}</CellHeader>}
         <ChartWrapper>
-          <StatefulChart
-            id={cell.id}
-            formData={cell.formData}
-            width="100%"
-            height="100%"
-            enableNoResults
-            noDataComponent={MatrixNoDataComponent}
-            showLoading
-            hooks={enhancedHooks}
-          />
+          {hasEnteredView ? (
+            <StatefulChart
+              id={cell.id}
+              formData={cell.formData}
+              width="100%"
+              height="100%"
+              enableNoResults
+              noDataComponent={MatrixNoDataComponent}
+              showLoading
+              hooks={enhancedHooks}
+            />
+          ) : (
+            <ChartPlaceholder data-test="matrixify-cell-placeholder" />
+          )}
         </ChartWrapper>
       </CellContainer>
     );

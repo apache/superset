@@ -261,6 +261,66 @@ test('should return equal results when only clientView changes', () => {
   });
 });
 
+test('should strip chartState from ownState to prevent spurious re-queries', () => {
+  // Chart.tsx (dashboard) folds the AG Grid chartState (persisted separately
+  // in dashboardState.chartStates) into ownState so the chart plugin can read
+  // it on mount. That fold-in is not a query-affecting change and must not
+  // trigger a re-query when it churns, e.g. right after a user interaction.
+  const mockDataMaskWithChartState: DataMaskStateWithId = {
+    chart1: {
+      id: 'chart1',
+      ownState: {
+        pageSize: 10,
+        currentPage: 0,
+        chartState: {
+          columnState: [{ colId: 'name', width: 200 }],
+          filterModel: {},
+        },
+      },
+    },
+  };
+
+  const result = getRelevantDataMask(mockDataMaskWithChartState, 'ownState');
+
+  expect(result).toEqual({
+    chart1: {
+      pageSize: 10,
+      currentPage: 0,
+    },
+  });
+});
+
+test('should return equal results when only chartState changes', () => {
+  // chartState is refreshed on every AG Grid column/sort/filter change; if it
+  // isn't stripped, its churn is read as a chart-state change by
+  // getAffectedOwnDataCharts and re-triggers the chart's query.
+  const dataMaskBefore: DataMaskStateWithId = {
+    chart1: {
+      id: 'chart1',
+      ownState: {
+        pageSize: 10,
+        chartState: { columnState: [{ colId: 'name', width: 200 }] },
+      },
+    },
+  };
+
+  const dataMaskAfter: DataMaskStateWithId = {
+    chart1: {
+      id: 'chart1',
+      ownState: {
+        pageSize: 10,
+        chartState: { columnState: [{ colId: 'name', width: 350 }] },
+      },
+    },
+  };
+
+  const resultBefore = getRelevantDataMask(dataMaskBefore, 'ownState');
+  const resultAfter = getRelevantDataMask(dataMaskAfter, 'ownState');
+
+  expect(resultBefore).toEqual(resultAfter);
+  expect(resultBefore).toEqual({ chart1: { pageSize: 10 } });
+});
+
 test('should return extraFormData unchanged (clientView stripping only applies to ownState)', () => {
   // Verify extraFormData is passed through without modification
   const mockDataMask: DataMaskStateWithId = {

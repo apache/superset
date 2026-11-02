@@ -17,25 +17,29 @@
  * under the License.
  */
 /* eslint-disable react-hooks/rules-of-hooks */
-import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
+import {
+  ColumnMeta,
+  D3_TIME_FORMAT_DOCS,
+  D3_TIME_FORMAT_OPTIONS,
+  Metric,
+} from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
 import {
   Behavior,
   ChartDataResponseResult,
   Column,
   DatasourceType,
-  isFeatureEnabled,
-  FeatureFlag,
+  ensureIsArray,
   Filter,
   ChartCustomization,
   ChartCustomizationType,
   getChartMetadataRegistry,
   JsonResponse,
   NativeFilterType,
-  SupersetApiError,
   ClientErrorObject,
   getClientErrorObject,
   getExtensionsRegistry,
+  selectClientErrorMessage,
 } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -52,14 +56,17 @@ import {
   memo,
 } from 'react';
 import rison from 'rison';
+import { Alert } from '@apache-superset/core/components';
 import {
   PluginFilterSelectCustomizeProps,
   SelectFilterOperatorType,
 } from 'src/filters/components/Select/types';
 import { useSelector } from 'react-redux';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import { requestChartDataResolved } from 'src/components/Chart/chartAction';
+import isSemanticRange from 'src/filters/components/Range/isSemanticRange';
 import {
   Constants,
+  Button,
   FormItem,
   type FormInstance,
   Collapse,
@@ -72,10 +79,13 @@ import {
   Loading,
 } from '@superset-ui/core/components';
 import { BasicErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { Radio } from '@superset-ui/core/components/Radio';
 import Tabs from '@superset-ui/core/components/Tabs';
-import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
+import {
+  cachedSupersetGet,
+  supersetGetCache,
+} from 'src/utils/cachedSupersetGet';
 import {
   Chart,
   ChartsState,
@@ -85,7 +95,7 @@ import {
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import type AdhocFilterClass from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { useAsyncModeOverride } from 'src/utils/asyncMode';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
 import { RangeDisplayMode } from 'src/filters/components/Range/types';
 import {
@@ -93,16 +103,23 @@ import {
   mergeExtraFormData,
 } from 'src/dashboard/components/nativeFilters/utils';
 import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
+import { ChartCustomizationPlugins } from 'src/constants';
 import {
-  ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
+  filterSupportsDependencies,
   getFiltersConfigModalTestId,
 } from '../FiltersConfigModal';
-import { FilterRemoval, NativeFiltersForm } from '../types';
+import {
+  ChartCustomizationsFormItem,
+  FilterRemoval,
+  NativeFiltersForm,
+} from '../types';
 import { CollapsibleControl } from './CollapsibleControl';
-import { ColumnSelect } from './ColumnSelect';
+import { partitionedTimeRangeColumn } from './partitionedTimeRange';
+import { ColumnSelect, getDatasourceKey } from './ColumnSelect';
 import DatasetSelect from './DatasetSelect';
 import DefaultValue from './DefaultValue';
 import FilterScope from './FilterScope/FilterScope';
+import { displayControlBindingKey } from '../../useDisplayControlDatasource';
 import getControlItemsMap from './getControlItemsMap';
 import RemovedFilter from './RemovedFilter';
 import { useBackendFormUpdate, useDefaultValue } from './state';
@@ -111,10 +128,12 @@ import {
   getTimeGrainOptions,
   isValidFilterValue,
   mostUsedDataset,
+  DatasourceBinding,
   setNativeFilterFieldValues,
   shouldShowTimeRangePicker,
   useForceUpdate,
-  mapSemanticTypeToGenericDataType,
+  fetchSemanticViewStructure,
+  semanticViewDimensionsToColumns,
   doesChartMatchFilterDatasource,
 } from './utils';
 import {
@@ -161,6 +180,9 @@ const controlsOrder: ControlKey[] = [
 export const StyledFormItem = styled(FormItem)<{ expanded: boolean }>`
   width: ${({ expanded }) => (expanded ? '49%' : `${FORM_ITEM_WIDTH}px`)};
 `;
+
+/** The pre-filter a new filter on a partition-mapped dataset starts with. */
+export const PARTITIONED_DATASET_DEFAULT_TIME_RANGE = 'Last week';
 
 export const StyledRowFormItem = styled(FormItem)<{ expanded: boolean }>`
   min-width: ${({ expanded }) => (expanded ? '50%' : `${FORM_ITEM_WIDTH}px`)};
@@ -319,6 +341,8 @@ const FiltersConfigForm = (
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
   );
+  const asyncModeOverride = useAsyncModeOverride();
+  const { addDangerToast } = useToasts();
   const [undoFormValues, setUndoFormValues] = useState<Record<
     string,
     any
@@ -373,12 +397,30 @@ const FiltersConfigForm = (
     [loadedDatasets],
   );
 
+  // The datasource chosen in the form. Its type comes from the selected
+  // value's own kind, so id and type are always read from the same value; the
+  // hidden type field is the fallback for values that carry no kind.
+  const formSelection: DatasourceBinding | undefined = formFilter?.dataset
+    ?.value
+    ? {
+        id: formFilter.dataset.value,
+        type:
+          formFilter.dataset.kind === 'semantic_view'
+            ? DatasourceType.SemanticView
+            : formFilter.datasourceType || DatasourceType.Table,
+      }
+    : undefined;
+
   const showTimeRangePicker = useMemo(() => {
-    const currentDataset = Object.values(loadedDatasets).find(
-      dataset => dataset.id === formFilter?.dataset?.value,
-    );
+    // Dashboard datasources are keyed by uid (`<id>__<type>`); an id-only
+    // lookup could find a same-numbered datasource of the other type.
+    const currentDataset = formSelection
+      ? loadedDatasets[
+          displayControlBindingKey(formSelection.id, formSelection.type)
+        ]
+      : undefined;
     return shouldShowTimeRangePicker(currentDataset);
-  }, [formFilter?.dataset?.value, loadedDatasets]);
+  }, [formSelection?.id, formSelection?.type, loadedDatasets]);
 
   const itemTypeField =
     formFilter?.filterType ||
@@ -390,39 +432,53 @@ const FiltersConfigForm = (
     // @ts-expect-error
     !!nativeFilterAndCustomizationItems[itemTypeField]?.value?.datasourceCount;
 
-  const getDatasetId = () => {
-    if (isChartCustomization) {
-      if (formFilter?.dataset?.value) {
-        return formFilter.dataset.value;
-      }
-      if (customizationToEdit?.targets?.[0]?.datasetId) {
-        return customizationToEdit.targets[0].datasetId;
-      }
-      return mostUsedDataset(loadedDatasets, charts);
+  // The Dynamic Group By customization lets builders curate which columns
+  // viewers may group by via a column allowlist (stored in controlValues).
+  const isDynamicGroupBy =
+    isChartCustomization &&
+    itemTypeField === ChartCustomizationPlugins.DynamicGroupBy;
+
+  // Set when the bound datasource fails to load: the form stays unbound, with
+  // an empty, usable datasource select, until the editor chooses a datasource.
+  const [loadFailed, setLoadFailed] = useState(false);
+  // The datasource select is memoized with its first-render props and ignores
+  // later value changes; remounting it after a failure shows the cleared value.
+  const [datasetSelectKey, setDatasetSelectKey] = useState(0);
+
+  // Id and type always come from the same source: datasets and semantic views
+  // have independent id sequences, so a type taken from elsewhere would bind a
+  // different object.
+  const resolveBinding = (): DatasourceBinding | undefined => {
+    if (formSelection) {
+      return formSelection;
     }
-    return (
-      formFilter?.dataset?.value ??
-      filterToEdit?.targets?.[0]?.datasetId ??
-      mostUsedDataset(loadedDatasets, charts)
-    );
+    const savedTarget = isChartCustomization
+      ? customizationToEdit?.targets?.[0]
+      : filterToEdit?.targets?.[0];
+    // Customizations treat a legacy `0` id as unresolved; filters accept any id.
+    const savedId = isChartCustomization
+      ? savedTarget?.datasetId || undefined
+      : savedTarget?.datasetId;
+    if (savedId != null) {
+      // Targets saved before semantic views existed carry no type: they are
+      // SQL datasets.
+      return {
+        id: savedId,
+        type: savedTarget?.datasourceType || DatasourceType.Table,
+      };
+    }
+    return mostUsedDataset(loadedDatasets, charts);
   };
 
-  const datasetId = getDatasetId();
-
-  const getDatasourceType = (): DatasourceType => {
-    if (formFilter?.datasourceType) {
-      return formFilter.datasourceType;
-    }
-    if (isChartCustomization) {
-      return (
-        customizationToEdit?.targets?.[0]?.datasourceType ||
-        DatasourceType.Table
-      );
-    }
-    return filterToEdit?.targets?.[0]?.datasourceType || DatasourceType.Table;
-  };
-
-  const datasourceType = getDatasourceType();
+  const effectiveBinding = loadFailed ? undefined : resolveBinding();
+  const datasetId = effectiveBinding?.id;
+  const datasourceType = effectiveBinding?.type ?? DatasourceType.Table;
+  // The datasource select is memoized with its first-render props, so its
+  // change handler reads the live binding here rather than a stale closure.
+  const bindingRef = useRef({ datasetId, datasourceType });
+  useEffect(() => {
+    bindingRef.current = { datasetId, datasourceType };
+  }, [datasetId, datasourceType]);
 
   const formChanged = useCallback(() => {
     form.setFields([
@@ -468,13 +524,15 @@ const FiltersConfigForm = (
   const hasFilledDataset =
     !hasDataset || (datasetId && (formFilter?.column || !hasColumn));
 
-  const hasAdditionalFilters = FILTERS_WITH_ADHOC_FILTERS.includes(
-    formFilter?.filterType,
-  );
+  // Use itemTypeField, not formFilter?.filterType directly: the latter can
+  // be undefined on the first render before the antd Form hydrates (see
+  // itemTypeField's own fallback chain above), which would otherwise hide
+  // this section and the cascade-dependency section for a filter type that
+  // does support them.
+  const hasAdditionalFilters =
+    FILTERS_WITH_ADHOC_FILTERS.includes(itemTypeField);
 
-  const canDependOnOtherFilters = TYPES_SUPPORT_DEPENDENCIES.includes(
-    formFilter?.filterType,
-  );
+  const canDependOnOtherFilters = filterSupportsDependencies(itemTypeField);
 
   const isDataDirty = formFilter?.isDataDirty ?? true;
 
@@ -519,6 +577,7 @@ const FiltersConfigForm = (
         dashboardId,
         groupby: formFilter?.column,
         ...formFilter,
+        filterType: itemTypeField,
       });
       formData.extra_form_data = dependenciesDefaultValues;
 
@@ -526,50 +585,31 @@ const FiltersConfigForm = (
         defaultValueQueriesData: null,
         isDataDirty: false,
       });
-      getChartDataRequest({
-        formData,
-        force,
-      })
-        .then(({ response, json }) => {
-          if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
-            // deal with getChartDataRequest transforming the response data
-            const result = 'result' in json ? json.result[0] : json;
-
-            if (response.status === 200) {
-              setNativeFilterFieldValuesWrapper({
-                defaultValueQueriesData: [result as ChartDataResponseResult],
-              });
-            } else if (response.status === 202) {
-              waitForAsyncData(result as Parameters<typeof waitForAsyncData>[0])
-                .then((asyncResult: ChartDataResponseResult[]) => {
-                  setNativeFilterFieldValuesWrapper({
-                    defaultValueQueriesData: asyncResult,
-                  });
-                })
-                .catch((error: Response) => {
-                  getClientErrorObject(error).then(clientErrorObject => {
-                    setErrorWrapper(clientErrorObject);
-                  });
-                });
-            } else {
-              throw new Error(
-                `Received unexpected response status (${response.status}) while fetching chart data`,
-              );
-            }
-          } else {
-            setNativeFilterFieldValuesWrapper({
-              defaultValueQueriesData: json.result,
-            });
-          }
+      // Manual semantic ranges need no provider bounds, including defaults.
+      const query = isSemanticRange(formData)
+        ? Promise.resolve([{ data: [{}] }])
+        : requestChartDataResolved({
+            formData,
+            force,
+            requestParams: { async_mode_override: asyncModeOverride },
+          });
+      query
+        .then(queriesResponse => {
+          setNativeFilterFieldValuesWrapper({
+            defaultValueQueriesData:
+              queriesResponse as ChartDataResponseResult[],
+          });
         })
         .catch((error: Response) => {
           getClientErrorObject(error).then(clientErrorObject => {
-            setError(clientErrorObject);
+            setErrorWrapper(clientErrorObject);
           });
         });
     },
     [
       datasetId,
+      datasourceType,
+      itemTypeField,
       dashboardId,
       filterId,
       forceUpdate,
@@ -592,9 +632,24 @@ const FiltersConfigForm = (
   });
 
   newFormData.extra_form_data = dependenciesDefaultValues;
+  if (isDynamicGroupBy) {
+    // Lets the default-value picker offer only columns viewers can group by.
+    newFormData.groupableColumns = (
+      formFilter as Partial<ChartCustomizationsFormItem> | undefined
+    )?.groupableColumns;
+  }
 
+  const selectionsReset =
+    !!formFilter?.semantic_selection_version &&
+    formFilter.semantic_selection_version !==
+      (filterToEdit ?? customizationToEdit)?.targets?.[0]
+        ?.semantic_selection_version;
   const [hasDefaultValue, isRequired, defaultValueTooltip, setHasDefaultValue] =
-    useDefaultValue(formFilter, filterToEdit, customizationToEdit);
+    useDefaultValue(
+      formFilter,
+      selectionsReset ? undefined : filterToEdit,
+      selectionsReset ? undefined : customizationToEdit,
+    );
 
   const showDataset =
     !datasetId || datasetDetails || formFilter?.dataset?.label;
@@ -607,14 +662,87 @@ const FiltersConfigForm = (
     [filterId, form, formChanged],
   );
 
+  // The datasource the allowlist in the form was chosen for. Starts as the
+  // saved control's datasource (undefined for a new control) and follows the
+  // columns ColumnSelect loads. It lets seeding detect a dataset change on its
+  // own instead of relying on the dataset picker's reset, which is skipped when
+  // the builder switches back to the dataset they started with.
+  const allowlistDatasourceKey = useRef<string | undefined>(
+    customizationToEdit?.targets?.[0]?.datasetId != null
+      ? getDatasourceKey(
+          customizationToEdit.targets[0].datasetId,
+          customizationToEdit.targets[0].datasourceType,
+        )
+      : undefined,
+  );
+
+  // Seed a Dynamic Group By control's allowlist with every groupable column so
+  // it defaults to "all selected" (builders can then deselect to restrict).
+  // Seeds when no allowlist is set yet (a freshly created control, or a legacy
+  // control that never stored one) and whenever columns load for a different
+  // datasource than the allowlist was chosen for, because column names are
+  // dataset-specific. An existing selection for the same datasource, including
+  // a deliberately narrowed or emptied one, is never overwritten. The column
+  // names come from the same source that populates the multi-select options,
+  // so the default matches exactly what the builder can choose from.
+  //
+  // The full groupable set is also recorded in the form-only
+  // `groupableColumns` field. On save, an allowlist that still selects every
+  // groupable column collapses back to unset (see
+  // collapseFullColumnsAllowlist), so the seed never freezes a snapshot of
+  // the dataset's columns into the saved config.
+  const seedGroupByAllowlist = useCallback(
+    (columnNames: string[], datasourceKey: string) => {
+      if (!isDynamicGroupBy) {
+        return;
+      }
+      const datasourceChanged =
+        allowlistDatasourceKey.current !== undefined &&
+        allowlistDatasourceKey.current !== datasourceKey;
+      allowlistDatasourceKey.current = datasourceKey;
+      const currentControlValues =
+        form.getFieldValue(['filters', filterId, 'controlValues']) || {};
+      const shouldSeed =
+        columnNames.length > 0 &&
+        (datasourceChanged ||
+          currentControlValues.columnsAllowlist === undefined);
+      setNativeFilterFieldValues(form, filterId, {
+        groupableColumns: columnNames,
+        ...(shouldSeed
+          ? {
+              controlValues: {
+                ...currentControlValues,
+                columnsAllowlist: columnNames,
+              },
+            }
+          : {}),
+      });
+      forceUpdate();
+    },
+    [isDynamicGroupBy, form, filterId, forceUpdate],
+  );
+
+  // Allowlisted columns the loaded dataset can no longer offer (dropped, or no
+  // longer groupable). Viewers never see them, so the builder is warned.
+  const groupableColumns = (
+    formFilter as Partial<ChartCustomizationsFormItem> | undefined
+  )?.groupableColumns;
+  const unavailableAllowlistColumns =
+    isDynamicGroupBy && groupableColumns?.length
+      ? ensureIsArray<string>(
+          formFilter?.controlValues?.columnsAllowlist,
+        ).filter(column => !groupableColumns.includes(column))
+      : [];
+
   const hasPreFilter =
-    !!formFilter?.adhoc_filters ||
+    !!formFilter?.adhoc_filters?.length ||
     !!formFilter?.time_range ||
-    !!filterToEdit?.adhoc_filters?.length ||
-    !!filterToEdit?.time_range;
+    (!selectionsReset &&
+      (!!filterToEdit?.adhoc_filters?.length || !!filterToEdit?.time_range));
 
   const hasTimeGrainPreFilter = !!(
-    formFilterWithTimeGrains?.time_grains?.length || savedTimeGrains?.length
+    formFilterWithTimeGrains?.time_grains?.length ||
+    (!selectionsReset && savedTimeGrains?.length)
   );
 
   const hasEnableSingleValue =
@@ -671,6 +799,10 @@ const FiltersConfigForm = (
     filterToEdit?.controlValues?.operatorType ??
     SelectFilterOperatorType.Exact;
 
+  const currentDisplayFormat: string | undefined =
+    formFilter?.controlValues?.displayFormat ??
+    filterToEdit?.controlValues?.displayFormat;
+
   const selectedColumnIsString = useMemo(() => {
     const columnName = formFilter?.column;
     if (!columnName || !datasetDetails?.columns) return true;
@@ -689,6 +821,18 @@ const FiltersConfigForm = (
         operatorType: value,
       },
       defaultDataMask: null,
+    });
+    formChanged();
+    forceUpdate();
+  };
+
+  const onDisplayFormatChanged = (value?: string) => {
+    const previous = form.getFieldValue('filters')?.[filterId].controlValues;
+    setNativeFilterFieldValues(form, filterId, {
+      controlValues: {
+        ...previous,
+        displayFormat: value || undefined,
+      },
     });
     formChanged();
     forceUpdate();
@@ -727,10 +871,11 @@ const FiltersConfigForm = (
   const defaultToFirstItem = formFilter?.controlValues?.defaultToFirstItem;
 
   const initialDefaultValue =
+    !selectionsReset &&
     itemTypeField ===
-    (isChartCustomization
-      ? customizationToEdit?.filterType
-      : filterToEdit?.filterType)
+      (isChartCustomization
+        ? customizationToEdit?.filterType
+        : filterToEdit?.filterType)
       ? isChartCustomization
         ? customizationToEdit?.defaultDataMask
         : filterToEdit?.defaultDataMask
@@ -761,38 +906,70 @@ const FiltersConfigForm = (
   const DateFilterComponent = DateFilterControlExtension ?? DateFilterControl;
 
   useEffect(() => {
-    if (datasetId) {
-      if (datasourceType === DatasourceType.SemanticView) {
-        cachedSupersetGet({
-          endpoint: `/api/v1/semantic_view/${datasetId}/structure`,
-        })
-          .then((response: JsonResponse) => {
-            const {
-              name: svName,
-              dimensions = [],
-              metrics: svMetrics = [],
-            } = response.json?.result ?? {};
-            const columns = dimensions.map(
-              (dim: { name: string; type: string }) => {
-                const mappedType = mapSemanticTypeToGenericDataType(dim.type);
-                return {
-                  column_name: dim.name,
-                  type: dim.type,
-                  is_dttm: mappedType === GenericDataType.Temporal,
-                  filterable: true,
-                  type_generic: mappedType,
-                };
-              },
-            );
+    if (!datasetId) {
+      return undefined;
+    }
+    // Responses for a binding that is no longer current are ignored, so a
+    // slow load can never describe a different datasource.
+    let current = true;
+    // Until this binding loads, the previous datasource's details must not
+    // describe it.
+    setDatasetDetails(undefined);
+    setMetrics([]);
+    const keepTypeInStep = () => {
+      // The hidden type field registers once; keep it in step with the
+      // binding that loaded so saves and default-value queries carry it.
+      if (
+        form.getFieldValue(['filters', filterId, 'datasourceType']) !==
+        datasourceType
+      ) {
+        setNativeFilterFieldValues(form, filterId, { datasourceType });
+      }
+    };
+    const handleLoadFailure = async (
+      error: Parameters<typeof getClientErrorObject>[0],
+    ) => {
+      const message = selectClientErrorMessage(
+        await getClientErrorObject(error),
+        t('An error has occurred'),
+        { 403: t('You do not have permission to edit this dashboard') },
+      );
+      if (!current) return;
+      // Matches the column select's message, so one failure shows one toast.
+      addDangerToast(message, { noDuplicate: true });
+      setDatasetDetails(undefined);
+      setMetrics([]);
+      setNativeFilterFieldValues(form, filterId, {
+        dataset: undefined,
+        datasetInfo: undefined,
+      });
+      setLoadFailed(true);
+      setDatasetSelectKey(key => key + 1);
+    };
+    if (datasourceType === DatasourceType.SemanticView) {
+      fetchSemanticViewStructure(datasetId)
+        .then(
+          ({
+            name: svName,
+            dimensions,
+            metrics: svMetrics,
+            semantic_selection_version,
+          }) => {
+            if (!current) return;
+            const columns = semanticViewDimensionsToColumns(dimensions);
+            // The /structure wire carries no metric uuid, and this state's
+            // consumers key on metric_name/verbose_name without reading
+            // uuid — so the cast is narrowed to exactly that one absent
+            // property; every other field stays compiler-checked.
             const mappedMetrics = svMetrics.map(
               (m: { name: string; definition: string }) => ({
                 metric_name: m.name,
                 expression: m.definition,
-                verbose_name: null,
               }),
-            );
+            ) as Omit<Metric, 'uuid'>[] as Metric[];
             setMetrics(mappedMetrics);
             setDatasetDetails({
+              semantic_selection_version,
               columns,
               metrics: mappedMetrics,
               datasource_type: DatasourceType.SemanticView,
@@ -804,51 +981,93 @@ const FiltersConfigForm = (
               id: datasetId,
               table_name: svName,
             });
-          })
-          .catch((response: SupersetApiError) => {
-            addDangerToast(response.message);
-          });
-      } else {
-        cachedSupersetGet({
-          endpoint: `/api/v1/dataset/${datasetId}?q=${rison.encode({
-            columns: [
-              'columns.column_name',
-              'columns.expression',
-              'columns.filterable',
-              'columns.is_dttm',
-              'columns.type',
-              'columns.type_generic',
-              'columns.verbose_name',
-              'database.id',
-              'database.database_name',
-              'datasource_type',
-              'filter_select_enabled',
-              'id',
-              'is_sqllab_view',
-              'main_dttm_col',
-              'metrics.metric_name',
-              'metrics.verbose_name',
-              'schema',
-              'sql',
-              'table_name',
-              'time_grain_sqla',
-            ],
-          })}`,
+            keepTypeInStep();
+          },
+        )
+        .catch(handleLoadFailure);
+    } else {
+      const endpoint = `/api/v1/dataset/${datasetId}?q=${rison.encode({
+        columns: [
+          'columns.column_name',
+          'columns.expression',
+          'columns.filterable',
+          'columns.is_dttm',
+          'columns.type',
+          'columns.type_generic',
+          'columns.verbose_name',
+          'database.id',
+          'database.database_name',
+          'datasource_type',
+          'filter_select_enabled',
+          'id',
+          'is_sqllab_view',
+          'main_dttm_col',
+          'metrics.metric_name',
+          'metrics.verbose_name',
+          'partition_filter_mapping',
+          'schema',
+          'sql',
+          'table_name',
+          'time_grain_sqla',
+        ],
+      })}`;
+      cachedSupersetGet({ endpoint })
+        .then((response: JsonResponse) => {
+          if (!current) return;
+          setMetrics(response.json?.result?.metrics);
+          const dataset = response.json?.result;
+          // modify the response to fit structure expected by AdhocFilterControl
+          dataset.type = dataset.datasource_type;
+          dataset.filter_select = true;
+          setDatasetDetails(dataset);
+          keepTypeInStep();
         })
-          .then((response: JsonResponse) => {
-            setMetrics(response.json?.result?.metrics);
-            const dataset = response.json?.result;
-            // modify the response to fit structure expected by AdhocFilterControl
-            dataset.type = dataset.datasource_type;
-            dataset.filter_select = true;
-            setDatasetDetails(dataset);
-          })
-          .catch((response: SupersetApiError) => {
-            addDangerToast(response.message);
-          });
-      }
+        .catch(error => {
+          // The cache keeps rejected requests; evict so a later choice of
+          // this dataset retries instead of replaying the failure.
+          supersetGetCache.delete(endpoint);
+          return handleLoadFailure(error);
+        });
     }
+    return () => {
+      current = false;
+    };
   }, [datasetId, datasourceType]);
+
+  // A partition-mapped dataset can be large enough that listing a filter's
+  // values without a time range -- a scan of every partition -- times out, so
+  // a new filter starts with a time range on the mapped column, which is
+  // mirrored onto the partition column (see `partitionedTimeRangeColumn` for
+  // when). Applied once per dataset, so an owner who clears it is not
+  // overruled.
+  const partitionDefaultAppliedFor = useRef<number | undefined>();
+  const [partitionTimeRangeDefaulted, setPartitionTimeRangeDefaulted] =
+    useState(false);
+  useEffect(() => {
+    const mappedColumn = partitionedTimeRangeColumn(datasetDetails);
+    if (
+      filterToEdit ||
+      isChartCustomization ||
+      !hasAdditionalFilters ||
+      !datasetId ||
+      !mappedColumn ||
+      partitionDefaultAppliedFor.current === datasetId ||
+      formFilter?.time_range ||
+      formFilter?.granularity_sqla ||
+      formFilter?.adhoc_filters?.length
+    ) {
+      return;
+    }
+    partitionDefaultAppliedFor.current = datasetId;
+    setNativeFilterFieldValues(form, filterId, {
+      preFilter: true,
+      time_range: PARTITIONED_DATASET_DEFAULT_TIME_RANGE,
+      granularity_sqla: mappedColumn,
+    });
+    setPartitionTimeRangeDefaulted(true);
+    forceUpdate();
+    formChanged();
+  }, [datasetDetails]);
 
   useImperativeHandle(ref, () => ({
     changeTab(tab: 'configuration' | 'scoping') {
@@ -892,7 +1111,7 @@ const FiltersConfigForm = (
         chartDatasetUid,
         loadedDatasets,
         formFilter.dataset.value,
-        datasourceType,
+        formSelection?.type,
       );
 
       if (!matchesFilterDatasource) {
@@ -903,7 +1122,7 @@ const FiltersConfigForm = (
   }, [
     JSON.stringify(Object.values(charts).map(chart => chart.id)),
     formFilter?.dataset?.value,
-    datasourceType,
+    formSelection?.type,
     JSON.stringify(loadedDatasets),
   ]);
 
@@ -980,6 +1199,52 @@ const FiltersConfigForm = (
           forceRender: true,
           children: (
             <>
+              <FormItem
+                hidden
+                name={['filters', filterId, 'semantic_selection_version']}
+                initialValue={
+                  (filterToEdit ?? customizationToEdit)?.targets?.[0]
+                    ?.semantic_selection_version
+                }
+              />
+              {datasetDetails?.semantic_selection_version &&
+                formFilter?.semantic_selection_version !==
+                  datasetDetails.semantic_selection_version && (
+                  <Alert
+                    type="warning"
+                    message={t('Choose current semantic filter fields')}
+                    description={t(
+                      'Start field selection using current member IDs. This clears any existing field selections, pre-filters, sorting, defaults and dependencies. Saved display titles cannot be recovered automatically.',
+                    )}
+                    action={
+                      <Button
+                        onClick={() => {
+                          setNativeFilterFieldValues(form, filterId, {
+                            semantic_selection_version:
+                              datasetDetails.semantic_selection_version,
+                            column: undefined,
+                            adhoc_filters: [],
+                            time_range: undefined,
+                            time_grains: [],
+                            preFilter: false,
+                            preFilterTimegrain: false,
+                            granularity_sqla: undefined,
+                            sortMetric: null,
+                            defaultDataMask: {},
+                            dependencies: [],
+                            defaultValue: undefined,
+                            controlValues: {},
+                          });
+                          setHasDefaultValue(false);
+                          forceUpdate();
+                          formChanged();
+                        }}
+                      >
+                        {t('Start field selection')}
+                      </Button>
+                    }
+                  />
+                )}
               <StyledSettings>
                 <StyledContainer>
                   <StyledFormItem
@@ -1135,6 +1400,7 @@ const FiltersConfigForm = (
                   <StyledRowContainer justify="space-between">
                     {showDataset ? (
                       <StyledFormItem
+                        key={datasetSelectKey}
                         expanded={expanded}
                         name={['filters', filterId, 'dataset']}
                         label={<StyledLabel>{datasetLabel()}</StyledLabel>}
@@ -1183,15 +1449,35 @@ const FiltersConfigForm = (
                                 ? DatasourceType.SemanticView
                                 : DatasourceType.Table;
                             if (
-                              value.value !== datasetId ||
-                              newDatasourceType !== datasourceType
+                              value.value !== bindingRef.current.datasetId ||
+                              newDatasourceType !==
+                                bindingRef.current.datasourceType
                             ) {
+                              // An explicit choice retries a datasource
+                              // whose earlier load failed.
+                              setLoadFailed(false);
                               setNativeFilterFieldValues(form, filterId, {
                                 dataset: value,
                                 datasetInfo: value,
                                 datasourceType: newDatasourceType,
                                 defaultDataMask: null,
                                 column: null,
+                                semantic_selection_version: undefined,
+                                // Columns are dataset-specific, so clear the
+                                // Group By allowlist when the dataset changes to
+                                // avoid stale entries. Clearing it to undefined
+                                // lets seedGroupByAllowlist re-seed the default
+                                // (all groupable columns) once the new dataset's
+                                // columns load.
+                                ...(isDynamicGroupBy
+                                  ? {
+                                      controlValues: {
+                                        ...formFilter?.controlValues,
+                                        columnsAllowlist: undefined,
+                                      },
+                                      groupableColumns: undefined,
+                                    }
+                                  : {}),
                               });
                             }
                             forceUpdate();
@@ -1233,6 +1519,94 @@ const FiltersConfigForm = (
                               : FilterPanels.configuration.name,
                             children: (
                               <>
+                                {isDynamicGroupBy &&
+                                  hasDataset &&
+                                  showDataset && (
+                                    <>
+                                      {/* Registers the form-only groupableColumns
+                                        field so validateFields returns it to the
+                                        save transform. */}
+                                      <FormItem
+                                        hidden
+                                        name={[
+                                          'filters',
+                                          filterId,
+                                          'groupableColumns',
+                                        ]}
+                                      />
+                                      <StyledRowFormItem
+                                        expanded={expanded}
+                                        name={[
+                                          'filters',
+                                          filterId,
+                                          'controlValues',
+                                          'columnsAllowlist',
+                                        ]}
+                                        initialValue={
+                                          customizationToEdit?.controlValues
+                                            ?.columnsAllowlist
+                                        }
+                                        label={
+                                          <>
+                                            <StyledLabel>
+                                              {t('Groupable columns')}
+                                            </StyledLabel>
+                                            &nbsp;
+                                            <InfoTooltip
+                                              placement="top"
+                                              tooltip={t(
+                                                'Columns viewers can choose to group charts by.',
+                                              )}
+                                            />
+                                          </>
+                                        }
+                                        extra={t(
+                                          'Leave empty, or keep every column selected, to let viewers group by any groupable column, including columns added to the dataset later.',
+                                        )}
+                                        validateStatus={
+                                          unavailableAllowlistColumns.length
+                                            ? 'warning'
+                                            : undefined
+                                        }
+                                        help={
+                                          unavailableAllowlistColumns.length
+                                            ? t(
+                                                'Not in this dataset, so viewers will not see: %s',
+                                                unavailableAllowlistColumns.join(
+                                                  ', ',
+                                                ),
+                                              )
+                                            : undefined
+                                        }
+                                        data-test="groupby-columns-allowlist"
+                                      >
+                                        <ColumnSelect
+                                          mode="multiple"
+                                          allowClear
+                                          form={form}
+                                          filterId={filterId}
+                                          datasetId={datasetId}
+                                          datasourceType={datasourceType}
+                                          // Match the viewer, which offers every
+                                          // column not explicitly marked
+                                          // non-filterable (filterable can be
+                                          // null for legacy columns).
+                                          filterValues={(column: Column) =>
+                                            column?.filterable !== false
+                                          }
+                                          onColumnsLoaded={seedGroupByAllowlist}
+                                          showVerboseNames
+                                          placeholder={t(
+                                            'All groupable columns',
+                                          )}
+                                          onChange={() => {
+                                            forceUpdate();
+                                            formChanged();
+                                          }}
+                                        />
+                                      </StyledRowFormItem>
+                                    </>
+                                  )}
                                 {canDependOnOtherFilters &&
                                   (hasAvailableFilters ||
                                     dependencies.length > 0) && (
@@ -1275,6 +1649,7 @@ const FiltersConfigForm = (
                                     name={['filters', filterId, 'preFilter']}
                                   >
                                     <CollapsibleControl
+                                      key={`pre-filter-${selectionsReset}-${partitionTimeRangeDefaulted}`}
                                       initialValue={hasPreFilter}
                                       title={t('Pre-filter available values')}
                                       tooltip={t(`Add filter clauses to control the filter's source query,
@@ -1357,7 +1732,8 @@ const FiltersConfigForm = (
                                             </StyledLabel>
                                           }
                                           initialValue={
-                                            filterToEdit?.time_range ||
+                                            (!selectionsReset &&
+                                              filterToEdit?.time_range) ||
                                             t('No filter')
                                           }
                                           required={!hasAdhoc}
@@ -1387,6 +1763,17 @@ const FiltersConfigForm = (
                                       {hasTimeRange && !hasTimeDependency
                                         ? timeColumn
                                         : undefined}
+                                      {partitionTimeRangeDefaulted &&
+                                        hasTimeRange && (
+                                          <Alert
+                                            type="info"
+                                            showIcon
+                                            data-test="partitioned-dataset-time-range-default"
+                                            message={t(
+                                              'This dataset is partitioned. Listing filter values without a time range reads every partition, so a time range is set by default. Clear it to list values from all time.',
+                                            )}
+                                          />
+                                        )}
                                     </CollapsibleControl>
                                   </FormItem>
                                 )}
@@ -1404,6 +1791,7 @@ const FiltersConfigForm = (
                                       ]}
                                     >
                                       <CollapsibleControl
+                                        key={`time-grain-filter-${selectionsReset}`}
                                         initialValue={hasTimeGrainPreFilter}
                                         title={t('Pre-filter available values')}
                                         tooltip={t(
@@ -1427,7 +1815,11 @@ const FiltersConfigForm = (
                                             filterId,
                                             'time_grains',
                                           ]}
-                                          initialValue={savedTimeGrains}
+                                          initialValue={
+                                            selectionsReset
+                                              ? undefined
+                                              : savedTimeGrains
+                                          }
                                           {...getFiltersConfigModalTestId(
                                             'time-grain-allowlist',
                                           )}
@@ -1641,6 +2033,10 @@ const FiltersConfigForm = (
 
                                     <FormItem
                                       name={['filters', filterId, 'rangeType']}
+                                      hidden={
+                                        datasourceType ===
+                                        DatasourceType.SemanticView
+                                      }
                                     >
                                       <StyledRowFormItem
                                         expanded={expanded}
@@ -1817,6 +2213,44 @@ const FiltersConfigForm = (
                                       value as SelectFilterOperatorType,
                                     );
                                   }}
+                                />
+                              </StyledRowFormItem>
+                            )}
+                          {!isChartCustomization &&
+                            itemTypeField === 'filter_time' && (
+                              <StyledRowFormItem
+                                expanded={expanded}
+                                name={[
+                                  'filters',
+                                  filterId,
+                                  'controlValues',
+                                  'displayFormat',
+                                ]}
+                                initialValue={currentDisplayFormat}
+                                label={
+                                  <>
+                                    <StyledLabel>
+                                      {t('Display format')}
+                                    </StyledLabel>
+                                    &nbsp;
+                                    <InfoTooltip
+                                      placement="top"
+                                      tooltip={D3_TIME_FORMAT_DOCS}
+                                    />
+                                  </>
+                                }
+                              >
+                                <Select
+                                  allowClear
+                                  allowNewOptions
+                                  ariaLabel={t('Display format')}
+                                  options={D3_TIME_FORMAT_OPTIONS.map(
+                                    ([value, label]) => ({ value, label }),
+                                  )}
+                                  placeholder={t('Default')}
+                                  onChange={value =>
+                                    onDisplayFormatChanged(value as string)
+                                  }
                                 />
                               </StyledRowFormItem>
                             )}

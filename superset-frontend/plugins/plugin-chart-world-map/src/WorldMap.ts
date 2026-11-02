@@ -31,6 +31,7 @@ import { ColorBy } from './utils';
 
 interface WorldMapDataEntry {
   country: string;
+  sourceValue?: string;
   code: string;
   latitude: number;
   longitude: number;
@@ -97,6 +98,7 @@ const propTypes = {
   data: PropTypes.arrayOf(
     PropTypes.shape({
       country: PropTypes.string,
+      sourceValue: PropTypes.string,
       code: PropTypes.string,
       latitude: PropTypes.number,
       longitude: PropTypes.number,
@@ -187,11 +189,15 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
     mapData[d.country] = d;
   });
 
+  /** Resolve the dataset value shared by cross-filter and drill actions. */
+  const getCountryValue = (key: string) =>
+    mapData[key]?.sourceValue ??
+    (countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.code);
+
   const getCrossFilterDataMask = (source: DatamapSource) => {
     const selected = Object.values(filterState.selectedValues || {});
     const key = source.id || source.country;
-    const country =
-      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.code;
+    const country = getCountryValue(key);
 
     if (!country) {
       return undefined;
@@ -244,8 +250,7 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
     const pointerEvent = d3.event;
     pointerEvent.preventDefault();
     const key = source.id || source.country;
-    const val =
-      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.code;
+    const val = getCountryValue(key);
     let drillToDetailFilters;
     let drillByFilters;
     if (val) {

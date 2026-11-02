@@ -103,7 +103,10 @@ describe('Checkbox Component', () => {
       await asyncRender(disabledProps);
       const checkbox = screen.getByRole('checkbox');
 
-      await userEvent.click(checkbox);
+      // The checkbox is disabled via `pointer-events: none`, so a real user
+      // could never click it; explicitly opt out of user-event's pointer
+      // events check to confirm the disabled checkbox still ignores clicks.
+      await userEvent.click(checkbox, { pointerEventsCheck: 0 });
 
       expect(mockOnChange).not.toHaveBeenCalled();
     });

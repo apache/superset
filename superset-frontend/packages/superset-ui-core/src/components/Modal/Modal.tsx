@@ -23,6 +23,7 @@ import {
   useRef,
   useState,
   type ComponentType,
+  FC,
 } from 'react';
 import { isNil } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
@@ -233,6 +234,29 @@ const defaultResizableConfig = (hideFooter: boolean | undefined) => ({
   },
 });
 
+/** Merge caller overrides without dropping default resize-handle guards. */
+export function mergeResizableConfig(
+  hideFooter: boolean | undefined,
+  overrides: ModalProps['resizableConfig'] = {},
+): NonNullable<ModalProps['resizableConfig']> {
+  const defaults = defaultResizableConfig(hideFooter);
+  if (!overrides || Object.keys(overrides).length === 0) {
+    return defaults;
+  }
+  const { enable: enableOverride, ...restOverrides } = overrides;
+  return {
+    ...defaults,
+    ...restOverrides,
+    enable:
+      enableOverride === false
+        ? false
+        : {
+            ...defaults.enable,
+            ...(typeof enableOverride === 'object' ? enableOverride : {}),
+          },
+  };
+}
+
 const CustomModal = ({
   children,
   disablePrimaryButton = false,
@@ -269,7 +293,6 @@ const CustomModal = ({
   );
   const draggableRef = useRef<HTMLDivElement>(null);
   const [bounds, setBounds] = useState<DraggableBounds>({});
-  const [dragDisabled, setDragDisabled] = useState<boolean>(true);
   const theme = useTheme();
 
   const handleOnHide = () => {
@@ -331,27 +354,13 @@ const CustomModal = ({
     }
   };
 
-  const getResizableConfig = useMemo(() => {
-    if (Object.keys(resizableConfig).length === 0) {
-      return defaultResizableConfig(hideFooter);
-    }
-    return resizableConfig;
-  }, [hideFooter, resizableConfig]);
+  const getResizableConfig = useMemo(
+    () => mergeResizableConfig(hideFooter, resizableConfig),
+    [hideFooter, resizableConfig],
+  );
 
   const ModalTitle = () =>
-    draggable ? (
-      <div
-        className="draggable-trigger"
-        onMouseOver={() => dragDisabled && setDragDisabled(false)}
-        onMouseOut={() => !dragDisabled && setDragDisabled(true)}
-        onFocus={() => dragDisabled && setDragDisabled(false)}
-        onBlur={() => !dragDisabled && setDragDisabled(true)}
-      >
-        {title}
-      </div>
-    ) : (
-      <>{title}</>
-    );
+    draggable ? <div className="draggable-trigger">{title}</div> : <>{title}</>;
 
   return (
     <StyledModal
@@ -378,13 +387,19 @@ const CustomModal = ({
       modalRender={modal =>
         resizable || draggable ? (
           <Draggable
-            disabled={!draggable || dragDisabled}
             bounds={bounds ?? false}
             onStart={(event, uiData) => onDragStart(event, uiData)}
+            {...draggableConfig}
+            // `disabled` and `handle` are applied after the spread so callers
+            // can't use `draggableConfig` to re-enable dragging on a
+            // non-draggable modal or move the drag handle off the title bar.
+            // A caller opting a draggable modal out via
+            // `draggableConfig.disabled` is still honored.
+            disabled={!draggable || !!draggableConfig?.disabled}
+            handle={draggable ? '.draggable-trigger' : undefined}
             // Pass nodeRef so react-draggable does not fall back to
             // ReactDOM.findDOMNode (deprecated in React 18+ Strict Mode).
             nodeRef={draggableRef}
-            {...draggableConfig}
           >
             {resizable ? (
               <Resizable className="resizable" {...getResizableConfig}>
@@ -413,9 +428,13 @@ const CustomModal = ({
 };
 CustomModal.displayName = 'Modal';
 
-export const Modal = Object.assign(CustomModal, {
-  error: AntdModal.error,
-  warning: AntdModal.warning,
-  confirm: AntdModal.confirm,
-  useModal: AntdModal.useModal,
-});
+// The explicit type keeps the non-exported CustomModal out of the package's
+// declaration output, which TypeScript 7 rejects (TS4082).
+export const Modal: FC<ModalProps> &
+  Pick<typeof AntdModal, 'error' | 'warning' | 'confirm' | 'useModal'> =
+  Object.assign(CustomModal, {
+    error: AntdModal.error,
+    warning: AntdModal.warning,
+    confirm: AntdModal.confirm,
+    useModal: AntdModal.useModal,
+  });

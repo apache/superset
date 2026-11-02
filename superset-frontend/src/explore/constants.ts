@@ -31,6 +31,16 @@ export const AGGREGATES = {
 };
 export const AGGREGATES_OPTIONS = Object.values(AGGREGATES);
 
+// Kept in sync with LEGACY_AGGREGATION_TAG in the backend migration
+// (superset/migrations/versions/2026-09-25_00-00_141b8ada7731_tag_pivot_
+// tables_with_restored_.py), which applies this tag to a pivot_table_v2
+// chart whose orphaned `aggregateFunction` value started computing totals
+// again once result aggregation shipped. Read by LegacyAggregationAlert and
+// removed on save in saveModalActions -- kept here, rather than on either
+// of those, so neither has to import the other's heavier module tree just
+// for this string.
+export const LEGACY_AGGREGATION_TAG = 'legacy-pivot-aggregation-restored';
+
 // Human-readable labels for aggregates whose raw enum value isn't
 // self-explanatory in the UI. Aggregates absent here (AVG, COUNT, MAX,
 // MEDIAN, MIN, SUM, ...) are already clear as their raw value.
@@ -222,6 +232,12 @@ export const POPOVER_INITIAL_WIDTH = 320;
 /** The control panel's tab container, which control popovers open alongside. */
 export const CONTROL_SECTIONS_ID = 'controlSections';
 export const UNSAVED_CHART_ID = 0;
+
+export enum ExploreStandaloneMode {
+  None = 0,
+  HideNav = 1,
+  HideNavShowControls = 2,
+}
 
 export const QUERY_MODE_REQUISITES = new Set([
   'all_columns',
