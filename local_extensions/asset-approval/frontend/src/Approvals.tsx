@@ -275,9 +275,21 @@ export default function Approvals() {
     }
   };
 
+  /** A restore asks for an archived asset back, so it has no page yet. */
+  const isRestore = (row: ChangeRequest) => row.command === 'restore';
+
   const review = (row: ChangeRequest) => {
     if (row.asset_type === 'dataset') {
       setReviewing(row);
+      return;
+    }
+    if (isRestore(row)) {
+      // Sending the reviewer to the asset means sending them to a chart
+      // that is archived: Explore opens empty, says the dataset is
+      // missing, and carries no review controls, so the request could be
+      // seen and still not acted on (R3-01). Decided here instead, which
+      // is what the dataset rows already do for the same reason.
+      setApproving(row);
       return;
     }
     window.location.assign(assetUrl(row));

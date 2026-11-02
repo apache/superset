@@ -450,3 +450,28 @@ test('a refusal that arrives as a Response still says why', async () => {
 
   expect(await screen.findByText(refusal)).toBeInTheDocument();
 });
+
+test('a restore is decided here, not on a page the asset no longer has', async () => {
+  // R3-01: sending the reviewer to the asset sends them to an archived
+  // chart -- Explore opens empty, says the dataset is missing, and carries
+  // no review controls, so the request could be seen and still not acted on.
+  const navigate = jest.fn();
+  mockedUseNavigate.mockReturnValue(navigate);
+  mockedFetchList.mockResolvedValue([
+    request({
+      id: 9,
+      asset_type: 'chart',
+      asset_title: 'Genders by State',
+      can_approve: true,
+      command: 'restore',
+    }),
+  ]);
+
+  render(<Approvals />);
+
+  (await screen.findByTestId('review-action')).click();
+
+  // Decided in place, and nothing navigated away.
+  expect(await screen.findByText('Approve and publish?')).toBeInTheDocument();
+  expect(navigate).not.toHaveBeenCalled();
+});
