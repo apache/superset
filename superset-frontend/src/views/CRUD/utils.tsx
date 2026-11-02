@@ -41,6 +41,7 @@ import type {
 } from 'src/components';
 import SupersetText from 'src/utils/textUtils';
 import { findPermission } from 'src/utils/findPermission';
+import { announceChangeCaptured } from 'src/features/changeManagement/events';
 import { User } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { RecentActivity, WelcomeTable } from 'src/features/home/types';
@@ -379,9 +380,12 @@ export function handleChartDelete(
   }).then(
     ({ json }) => {
       // Captured for review: nothing was removed, so there is nothing to
-      // refresh away and "Archived" would be untrue.
+      // refresh away and "Archived" would be untrue. The row it was deleted
+      // from still has to hear about it, or its review tag stays stale
+      // until the page is reloaded.
       const reviewMessage = deleteReviewMessage(json);
       if (reviewMessage) {
+        announceChangeCaptured();
         addSuccessToast(reviewMessage);
         return;
       }
@@ -411,6 +415,7 @@ export function handleDashboardDelete(
     ({ json }) => {
       const reviewMessage = deleteReviewMessage(json);
       if (reviewMessage) {
+        announceChangeCaptured();
         addSuccessToast(reviewMessage);
         return;
       }
