@@ -1553,8 +1553,7 @@ def test_blank_titles_normalize_before_length(
         assert exc.value.errors()[0]["loc"] == (field,)
     else:
         request = model.model_validate({**payload, aliases[alias_index]: value})
-        expected = "" if model is GenerateDashboardRequest and length == 0 else None
-        assert getattr(request, field) == expected
+        assert getattr(request, field) is None
         assert request.sanitization_warnings == []
 
 

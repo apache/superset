@@ -22,6 +22,7 @@ from unittest.mock import MagicMock, PropertyMock
 
 import pyarrow as pa
 import pytest
+from flask import Flask
 from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import (
@@ -37,8 +38,11 @@ from superset.semantic_layers.models import SemanticLayer, SemanticView
 
 
 @pytest.fixture
-def semantic_layer(mocker: MockerFixture) -> SemanticLayer:
+def semantic_layer(app: Flask, mocker: MockerFixture) -> SemanticLayer:
     """Give chart-data views the registered layer required by cache keys."""
+    mocker.patch.dict(
+        app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": "integer-precision-tests"}
+    )
     mocker.patch.dict(
         "superset.semantic_layers.models.registry",
         {"fixture": MagicMock(result_cache_version=None)},

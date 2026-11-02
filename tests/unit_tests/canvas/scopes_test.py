@@ -229,6 +229,35 @@ def test_cross_filter_scopes_are_empty_while_turned_off() -> None:
     assert resolved["customizationScopes"] == {"g1": ["x1", "x2"]}
 
 
+def test_events_reach_every_node_in_the_auto_scope() -> None:
+    resolved = all_scopes(sales_view(crossFilters={"enabled": False}))
+
+    assert resolved["eventScopes"]["x1"] == ["x2", "g1"]
+    assert resolved["eventScopes"]["c1"] == ["tabs", "tab", "x1", "x2", "g1"]
+
+
+def test_event_scopes_ignore_overrides() -> None:
+    doc, _ = apply(
+        sales_view(),
+        {
+            "op": "set_scope",
+            "kind": "crossFilter",
+            "id": "x1",
+            "scope": {"mode": "global"},
+        },
+    )
+
+    rules, resolver = canvas_widget_types(), FakeResolver()
+    assert resolve_scopes(doc, rules, resolver)["eventScopes"]["x1"] == ["x2", "g1"]
+
+
+def test_event_scopes_are_optional() -> None:
+    rules, resolver = canvas_widget_types(), FakeResolver()
+    doc = normalize_definition(sales_view(), rules, resolver)
+
+    assert "eventScopes" not in resolve_scopes(doc, rules, resolver, events=False)
+
+
 def test_scope_kinds_are_set_and_merged_independently() -> None:
     doc, applied = apply(
         sales_view(),

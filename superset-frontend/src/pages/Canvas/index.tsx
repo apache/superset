@@ -33,6 +33,7 @@ import { useApiV1Resource } from 'src/hooks/apiResources';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import CanvasGrid, {
   emptyScopeValues,
+  EventValues,
   ScopeValues,
 } from 'src/features/canvas/CanvasGrid';
 import { CanvasMetadata } from 'src/features/canvas/types';
@@ -106,6 +107,7 @@ function CanvasContent({ id }: { id: number }) {
   const draft = useDraftToken();
   const { state } = useCanvasDefinition(id, draft.token);
   const [values, setValues] = useState<ScopeValues>(emptyScopeValues);
+  const [events, setEvents] = useState<EventValues>({});
   const refreshKeys = useCanvasRefresh(
     state.status === 'complete' ? state.result.definition : undefined,
   );
@@ -113,6 +115,17 @@ function CanvasContent({ id }: { id: number }) {
   const onValueChange = useCallback(
     (kind: canvasApi.ScopeKind, nodeId: string, value: unknown) => {
       setValues(previous => {
+        const next = { ...previous[kind] };
+        if (value === undefined) delete next[nodeId];
+        else next[nodeId] = value;
+        return { ...previous, [kind]: next };
+      });
+    },
+    [],
+  );
+  const onPublish = useCallback(
+    (kind: string, nodeId: string, value: unknown) => {
+      setEvents(previous => {
         const next = { ...previous[kind] };
         if (value === undefined) delete next[nodeId];
         else next[nodeId] = value;
@@ -203,6 +216,8 @@ function CanvasContent({ id }: { id: number }) {
             result={state.result}
             values={values}
             onValueChange={onValueChange}
+            events={events}
+            onPublish={onPublish}
             refreshKeys={refreshKeys}
             draftToken={draft.token}
           />

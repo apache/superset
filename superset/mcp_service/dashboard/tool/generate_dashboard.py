@@ -220,6 +220,7 @@ def generate_dashboard(  # noqa: C901
     - To add a chart to an EXISTING dashboard, use add_chart_to_existing_dashboard.
       Never use this tool as a fallback when add_chart_to_existing_dashboard fails.
     - All charts must exist and be accessible to current user
+    - Omitted, empty, or whitespace-only titles are generated from chart names.
     - Layout: by default, charts are arranged in an auto-generated 2-column
       grid. When ``position_json`` is supplied, that explicit layout is used
       instead and the auto-generated grid is skipped — use this to compose

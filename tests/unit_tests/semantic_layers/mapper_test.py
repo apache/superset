@@ -57,6 +57,7 @@ from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import QueryResult
 from superset.semantic_layers import mapper
 from superset.semantic_layers.cache import SemanticCacheOutcome
+from superset.semantic_layers.exceptions import DiscoveryTarget
 from superset.semantic_layers.mapper import (
     _coerce_scalar_filter_value,
     _convert_query_object_filter,
@@ -139,7 +140,12 @@ def test_default_resolution_exhausts_catalog_orders(
     # Inspect the real validation call's input without replacing its behavior.
     if entry == "validation":
         axis_spy: MagicMock = mocker.spy(mapper, "_get_grain_time_axis_column")
-        _validate_granularity(query, _ViewMetadata.from_view(datasource.implementation))
+        _validate_granularity(
+            query,
+            _ViewMetadata.from_view(
+                datasource.implementation, DiscoveryTarget.of(datasource)
+            ),
+        )
         if selected_grain:
             assert axis_spy.call_args.args[1]["event_time"] is raw
         else:
@@ -1388,7 +1394,13 @@ def test_sunburst_grained_level_and_cross_filter_on_semantic_view(
     [semantic_query] = map_query_object(query_object)
     grains = {dim.name: dim.grain for dim in semantic_query.dimensions}
     assert grains == {"order_date": Grains.DAY, "category": None}
-    assert {filter_.column.name for filter_ in semantic_query.filters} == {"category"}
+    assert semantic_query.filters is not None
+    filter_columns = set()
+    for filter_ in semantic_query.filters:
+        assert isinstance(filter_, Filter)
+        assert filter_.column is not None
+        filter_columns.add(filter_.column.name)
+    assert filter_columns == {"category"}
 
 
 def test_sunburst_dormant_grain_on_categorical_levels_on_semantic_view(
@@ -3893,7 +3905,11 @@ def test_validate_filters_with_valid_filters(mocker: MockerFixture) -> None:
 
     # Should not raise any error - filters are valid
     _validate_filters(
-        query_object, _ViewMetadata.from_view(query_object.datasource.implementation)
+        query_object,
+        _ViewMetadata.from_view(
+            query_object.datasource.implementation,
+            DiscoveryTarget.of(query_object.datasource),
+        ),
     )
 
 
@@ -5442,8 +5458,14 @@ def test_sunburst_semantic_drill_uses_grained_filter_variant(
     expected = Filter(
         PredicateType.WHERE, monthly, Operator.EQUALS, datetime(2026, 8, 1)
     )
+    assert semantic.filters is not None
     assert expected in semantic.filters
-    assert {f for f in semantic.filters if f.operator == Operator.EQUALS} == {expected}
+    equality_filters = set()
+    for f in semantic.filters:
+        assert isinstance(f, Filter)
+        if f.operator == Operator.EQUALS:
+            equality_filters.add(f)
+    assert equality_filters == {expected}
     if group_limit:
         assert semantic.group_limit is not None
         assert semantic.group_limit.filters is not None
