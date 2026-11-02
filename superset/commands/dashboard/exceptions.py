@@ -44,6 +44,10 @@ class DashboardInvalidError(CommandInvalidError):
     message = _("Dashboard parameters are invalid.")
 
 
+class DashboardLayoutInvalidError(DashboardInvalidError):
+    """A dashboard layout that can't be saved as the dashboard's chart list."""
+
+
 class DashboardNotFoundError(ObjectNotFoundError):
     def __init__(
         self, dashboard_id: Optional[str] = None, exception: Optional[Exception] = None

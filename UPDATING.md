@@ -26,6 +26,13 @@ assists people when migrating to a new version.
 
 ## 7.0.0
 
+- Saving a dashboard layout returns HTTP 422 if it adds a chart the user cannot
+  read: `PUT /api/v1/dashboard/<pk>`, `POST /api/v1/dashboard/` and
+  `POST /api/v1/dashboard/<id_or_slug>/copy/`. The error names the refused chart
+  IDs and nothing is saved. Charts already on the dashboard, archived ones
+  included, are not checked, nor are a copy's source charts. Remove the tile
+  from the layout, or get access to the chart, and save again.
+
 - With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
   using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and
   `CACHE_REDIS_USER`. Previously they always ran on DB 0 and without the ACL user.

@@ -1133,3 +1133,119 @@ def test_set_dash_metadata_does_not_double_remap_overlapping_ids(
 
     saved_legacy_custom = saved_metadata["chart_customization_config"][0]
     assert saved_legacy_custom["chartId"] == 2
+
+
+def _chart_positions(*charts: Slice) -> dict[str, Any]:
+    return {
+        f"CHART-{chart.id}": {
+            "type": "CHART",
+            "id": f"CHART-{chart.id}",
+            "children": [],
+            "meta": {"chartId": chart.id, "width": 4, "height": 50},
+        }
+        for chart in charts
+    }
+
+
+def test_set_dash_metadata_refuses_a_new_chart_the_caller_cannot_read(
+    session: Session,
+) -> None:
+    """A layout must not attach a chart the caller can't read: dashboard
+    membership feeds the dataset grant for dashboard viewers."""
+    import pytest
+
+    from superset.commands.dashboard.exceptions import DashboardLayoutInvalidError
+
+    dashboard, (chart1, chart2) = _make_dashboard_with_slices(session)
+    outsider = Slice(slice_name="outsider", datasource_type="table")
+    db.session.add(outsider)
+    db.session.flush()
+
+    with (
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(
+            security_manager,
+            "can_access_chart",
+            side_effect=lambda chart: chart.id != outsider.id,
+        ),
+        pytest.raises(DashboardLayoutInvalidError) as excinfo,
+    ):
+        DashboardDAO.set_dash_metadata(
+            dashboard, {"positions": _chart_positions(chart1, outsider)}
+        )
+
+    assert str(outsider.id) in str(excinfo.value.normalized_messages())
+    assert {chart.id for chart in dashboard.slices} == {chart1.id, chart2.id}
+
+
+def test_set_dash_metadata_accepts_existing_members_the_caller_cannot_read(
+    session: Session,
+) -> None:
+    """Charts already on the dashboard are accepted, so saving a dashboard the
+    caller edits keeps working even with charts they couldn't add themselves."""
+    dashboard, (chart1, chart2) = _make_dashboard_with_slices(session)
+
+    with (
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(security_manager, "can_access_chart", return_value=False),
+    ):
+        DashboardDAO.set_dash_metadata(
+            dashboard, {"positions": _chart_positions(chart1, chart2)}
+        )
+
+    assert {chart.id for chart in dashboard.slices} == {chart1.id, chart2.id}
+
+
+def test_copy_dashboard_accepts_the_source_dashboards_charts(
+    session: Session,
+) -> None:
+    """A copy keeps the source dashboard's charts even when the caller can't
+    read them, as the source dashboard already had them."""
+    dashboard, (chart1, chart2) = _make_dashboard_with_slices(session)
+    copy_data = {
+        "dashboard_title": "copied_dash",
+        "json_metadata": json.dumps({"positions": _chart_positions(chart1, chart2)}),
+    }
+
+    with (
+        patch.object(security_manager, "is_editor", return_value=True),
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(security_manager, "can_access_chart", return_value=False),
+        patch("superset.daos.dashboard.g") as mock_g,
+    ):
+        mock_g.user = None
+        copied_dash = DashboardDAO.copy_dashboard(dashboard, copy_data)
+
+    assert {chart.id for chart in copied_dash.slices} == {chart1.id, chart2.id}
+
+
+def test_update_command_refuses_an_unreadable_layout_chart_before_side_effects(
+    session: Session,
+) -> None:
+    """The update command refuses the layout in ``validate``, before ``run``
+    deactivates reports and emails their owners."""
+    import pytest
+
+    from superset.commands.dashboard.exceptions import DashboardLayoutInvalidError
+    from superset.commands.dashboard.update import UpdateDashboardCommand
+
+    dashboard, (chart1, _) = _make_dashboard_with_slices(session)
+    outsider = Slice(slice_name="outsider", datasource_type="table")
+    db.session.add(outsider)
+    db.session.flush()
+    command = UpdateDashboardCommand(
+        dashboard.id,
+        {"json_metadata": json.dumps({"positions": _chart_positions(outsider)})},
+    )
+
+    with (
+        patch.object(DashboardDAO, "find_by_id", return_value=dashboard),
+        patch.object(security_manager, "raise_for_editorship"),
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(security_manager, "can_access_chart", return_value=False),
+        patch.object(UpdateDashboardCommand, "process_tab_diff") as tab_diff,
+        pytest.raises(DashboardLayoutInvalidError),
+    ):
+        command.run()
+
+    tab_diff.assert_not_called()
