@@ -1395,6 +1395,53 @@ def test_update_move_accepts_every_secret_re_entered_unchanged(
         },
     ).run()
 
+
+CONVERTED_DATABRICKS_URI = "databricks://token:XXXXXXXXXX@host:443/default"
+CONVERTED_DATABRICKS_EXTRA = json.dumps(
+    {"engine_params": {"connect_args": {"http_path": "/legacy", "catalog": "main"}}}
+)
+
+
+def _converted_databricks_update(mocker: MockerFixture, submitted_uri: str) -> Any:
+    old_database = mocker.MagicMock(allow_multi_catalog=False)
+    old_database.sqlalchemy_uri = CONVERTED_DATABRICKS_URI
+    old_database.extra = CONVERTED_DATABRICKS_EXTRA
+    old_database.encrypted_extra = None
+    old_database.ssh_tunnel = None
+    old_database.get_default_catalog.return_value = "main"
+    old_database.id = 1
+
+    new_database = mocker.MagicMock(allow_multi_catalog=False)
+    new_database.get_default_catalog.return_value = "main"
+
+    database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    database_dao.find_by_id.return_value = old_database
+    database_dao.update.return_value = new_database
+
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand")
+    mocker.patch.object(UpdateDatabaseCommand, "_update_catalog_attribute")
+
+    UpdateDatabaseCommand(
+        1,
+        {"sqlalchemy_uri": submitted_uri, "extra": CONVERTED_DATABRICKS_EXTRA},
+    ).run()
+    return database_dao
+
+
+def test_update_converted_databricks_connection_keeps_masked_token(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Saving a converted Databricks connection from the native form rebuilds its
+    legacy settings into the URI query. The destination is unchanged, so the
+    masked token must be accepted rather than treated as a connection move.
+    """
+    database_dao = _converted_databricks_update(
+        mocker,
+        "databricks://token:XXXXXXXXXX@host:443"
+        "?catalog=main&http_path=%2Flegacy&schema=default",
+    )
+
     database_dao.update.assert_called_once()
 
 
@@ -1413,3 +1460,15 @@ def test_secrets_reused_follows_a_dotted_key_the_way_unmask_does() -> None:
         json.dumps({"a.b": PASSWORD_MASK}),
         submitted=True,
     )
+
+
+def test_update_converted_databricks_http_path_change_requires_new_token(
+    mocker: MockerFixture,
+) -> None:
+    """A different warehouse is still a destination change for a masked token."""
+    with pytest.raises(DatabaseInvalidError):
+        _converted_databricks_update(
+            mocker,
+            "databricks://token:XXXXXXXXXX@host:443"
+            "?catalog=main&http_path=%2Fother&schema=default",
+        )

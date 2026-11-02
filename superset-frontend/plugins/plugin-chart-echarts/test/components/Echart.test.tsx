@@ -18,6 +18,7 @@
  */
 import type { EChartsCoreOption } from 'echarts/core';
 import { render, waitFor } from 'spec/helpers/testing-library';
+import { createSpacedXAxisFormatter } from '../../src/utils/formatters';
 
 const setOption = jest.fn();
 const on = jest.fn();
@@ -26,6 +27,7 @@ const resize = jest.fn();
 const dispose = jest.fn();
 const dispatchAction = jest.fn();
 const getOption = jest.fn();
+const getModel = jest.fn();
 
 const mockInstance = {
   setOption,
@@ -35,6 +37,7 @@ const mockInstance = {
   dispose,
   dispatchAction,
   getOption,
+  getModel,
   getZr: () => ({ on: jest.fn(), off: jest.fn() }),
 };
 
@@ -72,6 +75,53 @@ beforeEach(() => {
   resize.mockClear();
   dispatchAction.mockClear();
   getOption.mockReset();
+  getModel.mockReset();
+});
+
+test('binds spaced labels to live axis geometry without resetting user zoom', async () => {
+  const formatter = createSpacedXAxisFormatter(String, 0, 1000, 400);
+  renderEchart({
+    xAxis: { type: 'time', axisLabel: { formatter } },
+    series: [],
+  });
+  await waitFor(() => expect(setOption).toHaveBeenCalled());
+  const renderedFormatter = setOption.mock.calls.at(-1)[0].xAxis.axisLabel
+    .formatter as typeof formatter;
+  expect(renderedFormatter.getAxisLayout?.()).toBeUndefined();
+  const getExtent = jest.fn().mockReturnValue([10, 100]);
+  const labelOptions: { customValues?: (number | string)[] } = {};
+  getModel.mockReturnValue({
+    getComponent: () => ({
+      axis: {
+        scale: { getExtent, getTicks: () => [], parse: Number },
+        getLabelModel: () => ({ option: labelOptions }),
+        getExtent: () => [400, 0],
+      },
+    }),
+  });
+  expect(renderedFormatter(10)).toBe('10');
+  expect(renderedFormatter.getAxisLayout?.()).toEqual({
+    domainMin: 10,
+    domainMax: 100,
+    plotWidthPx: 400,
+    minLabelValue: undefined,
+    maxLabelValue: undefined,
+  });
+  getExtent.mockReturnValue([900, 990]);
+  expect(renderedFormatter(900)).toBe('900');
+  getExtent.mockReturnValue([0, 1000]);
+  expect(renderedFormatter(0)).toBe('0');
+  getExtent.mockReturnValue([10, 100]);
+  labelOptions.customValues = [0, '20', 40, 200];
+  expect(renderedFormatter.getAxisLayout?.()).toEqual({
+    domainMin: 10,
+    domainMax: 100,
+    plotWidthPx: 400,
+    minLabelValue: 20,
+    maxLabelValue: 40,
+  });
+  expect(renderedFormatter(20)).toBe('20');
+  expect(setOption).toHaveBeenCalledTimes(1);
 });
 
 test('preserves user dataZoom range across setOption(notMerge)', async () => {
