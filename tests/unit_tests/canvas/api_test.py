@@ -218,6 +218,8 @@ def test_overlapping_stale_write_is_rejected(
         "revision": 3,
         "conflicts": [node_id],
         "stale": False,
+        "error_type": "CanvasRevisionConflict",
+        "currentCanvasRevision": 3,
     }
 
 
@@ -417,3 +419,91 @@ def test_schema_is_published(
     assert by_id["filterbar"]["boundsFilterScope"] is False
     assert by_id["chart"]["filterable"] is True
     assert by_id["chart"]["schemaVersion"] == 1
+
+
+@pytest.mark.parametrize(
+    (
+        "error_type",
+        "revision",
+        "canvas_changed",
+        "widgets",
+        "draft_revision",
+        "canvas_revision",
+    ),
+    [
+        ("DraftRevisionConflict", 2, False, [], 2, None),
+        ("CanvasRevisionConflict", 8, True, [], 2, 8),
+        ("WidgetRevisionConflict", 7, False, ["changed-widget"], 2, 7),
+    ],
+)
+def test_draft_conflict_response_preserves_legacy_fields_and_revision_provenance(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    error_type: str,
+    revision: int,
+    canvas_changed: bool,
+    widgets: list[str],
+    draft_revision: int,
+    canvas_revision: int | None,
+) -> None:
+    """REST keeps its status/envelope while exposing unambiguous conflicts,
+    with camelCase keys like the rest of the Canvas API."""
+    from superset.commands.canvas.exceptions import DraftConflictError
+
+    error = DraftConflictError(
+        revision,
+        canvas_changed=canvas_changed,
+        widgets=widgets,
+        draft_revision=draft_revision,
+        current_canvas_revision=canvas_revision,
+    )
+    mocker.patch(
+        "superset.canvas.api.load_draft",
+        return_value=MagicMock(token="token"),  # noqa: S106
+    )
+    command = mocker.patch("superset.canvas.api.CommitCanvasDraftCommand")
+    command.return_value.run.side_effect = error
+
+    response = client.post(
+        f"{BASE}/draft/commit",
+        json={"revision": 1},
+        headers={"X-Canvas-Draft": "token"},
+    )
+
+    expected: dict[str, Any] = {
+        "message": str(error.message),
+        "revision": revision,
+        "canvasChanged": canvas_changed,
+        "error_type": error_type,
+        "draftRevision": draft_revision,
+    }
+    if widgets:
+        expected["widgets"] = widgets
+    if canvas_revision is not None:
+        expected["currentCanvasRevision"] = canvas_revision
+    assert response.status_code == 409
+    assert response.json == expected
+
+
+@pytest.mark.parametrize("unavailable", [True, False])
+def test_draft_and_canvas_not_found_responses_remain_distinct(
+    client: Any, full_api_access: None, mocker: MockerFixture, unavailable: bool
+) -> None:
+    """Only unavailable draft tokens receive the draft recovery category."""
+    from superset.commands.canvas.exceptions import (
+        CanvasDraftNotFoundError,
+        CanvasNotFoundError,
+    )
+
+    error = CanvasDraftNotFoundError() if unavailable else CanvasNotFoundError()
+    mocker.patch("superset.canvas.api.load_draft", side_effect=error)
+
+    response = client.get(f"{BASE}/draft", headers={"X-Canvas-Draft": "token"})
+
+    assert response.status_code == 404
+    assert response.json == (
+        {"message": "Not found", "error_type": "DraftUnavailable"}
+        if unavailable
+        else {"message": "Not found"}
+    )

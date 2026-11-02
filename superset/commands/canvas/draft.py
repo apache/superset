@@ -53,7 +53,6 @@ from superset.canvas.definition.scopes import resolve_scopes
 from superset.commands.canvas.apply_ops import (
     apply_or_raise,
     ApplyCanvasOperationsCommand,
-    ApplyResult,
     placement_issues,
 )
 from superset.commands.canvas.exceptions import (
@@ -88,7 +87,8 @@ class CanvasDraft:
     # The operations applied so far that change the canvas; commit replays
     # them.
     ops: list[dict[str, Any]] = field(default_factory=list)
-    # Widgets created or changed so far, by UUID; commit saves them.
+    # Widgets created or changed so far, by UUID, including new widgets needed
+    # to replay earlier operations. Commit saves only new widgets still placed.
     widgets: dict[str, StoredWidget] = field(default_factory=dict)
 
     def resolver(self) -> PendingWidgetResolver:
@@ -205,18 +205,27 @@ class ApplyCanvasDraftOperationsCommand:
     def run(self) -> tuple[CanvasDraft, list[dict[str, Any]]]:
         draft = load_draft(self._token)
         if self._revision != draft.revision:
-            raise DraftConflictError(draft.revision)
+            raise DraftConflictError(draft.revision, draft_revision=draft.revision)
         if issues := placement_issues(self._ops, draft.resolver()):
             raise DefinitionInvalidError(
                 "The operations add widgets that cannot be placed", issues=issues
             )
-        definition, applied = apply_or_raise(draft.definition, self._ops, draft.widgets)
+        definition, applied = apply_or_raise(
+            draft.definition, self._ops, draft.widgets, keep_unplaced=True
+        )
         logged = [operation.op for operation in applied]
         draft.definition = definition
         draft.ops = [*draft.ops, *(a.op for a in applied if a.replay)]
         draft.revision += 1
         _save(draft)
         return draft, logged
+
+
+@dataclass(frozen=True)
+class CommitResult:
+    """The revision written by a commit, or observed while closing an empty draft."""
+
+    revision: int
 
 
 class CommitCanvasDraftCommand:
@@ -230,19 +239,25 @@ class CommitCanvasDraftCommand:
         self._token = token
         self._revision = revision
 
-    def run(self) -> ApplyResult | None:
+    def run(self) -> CommitResult:
         draft = load_draft(self._token)
         if self._revision != draft.revision:
-            raise DraftConflictError(draft.revision)
-        result = None
+            raise DraftConflictError(draft.revision, draft_revision=draft.revision)
         if draft.ops or draft.widgets:
-            result = ApplyCanvasOperationsCommand(
-                draft.canvas_id,
-                draft.base_revision,
-                OPERATIONS.validate_python(draft.ops),
-                strict=True,
-                widgets=draft.widgets,
-            ).run()
+            try:
+                applied = ApplyCanvasOperationsCommand(
+                    draft.canvas_id,
+                    draft.base_revision,
+                    OPERATIONS.validate_python(draft.ops),
+                    strict=True,
+                    widgets=draft.widgets,
+                ).run()
+            except DraftConflictError as ex:
+                ex.draft_revision = draft.revision
+                raise
+            result = CommitResult(applied.revision)
+        else:
+            result = CommitResult(_editable_canvas(draft.canvas_id).revision)
         DeleteCanvasDraftCommand(self._token).run()
         return result
 

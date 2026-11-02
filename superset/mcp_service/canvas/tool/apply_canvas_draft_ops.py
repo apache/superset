@@ -30,7 +30,7 @@ from superset.commands.canvas.draft import (
     ApplyCanvasDraftOperationsCommand,
     load_draft,
 )
-from superset.mcp_service.canvas.schemas import CanvasDraftResponse
+from superset.mcp_service.canvas.schemas import CanvasDraftResponse, DraftOpsInput
 from superset.mcp_service.canvas.tool.canvas_draft_common import describe, error_result
 
 
@@ -44,6 +44,7 @@ def _apply_canvas_draft_ops_impl(
     except ValidationError as ex:
         return {
             "error": "Invalid operations",
+            "error_type": "ValidationError",
             "errors": [
                 {"path": request_pointer(error["loc"]), "message": error["msg"]}
                 for error in ex.errors()
@@ -93,42 +94,36 @@ def _apply_canvas_draft_ops_impl(
     ),
 )
 def apply_canvas_draft_ops(
-    token: str, revision: int, ops: list[dict[str, Any]]
+    token: str, revision: int, ops: DraftOpsInput
 ) -> CanvasDraftResponse:
-    """Apply operations to a canvas draft, in order and atomically: on any
-    error nothing changes and the error names the operation and the path at
-    fault. Only the draft changes; ``commit_canvas_draft`` publishes it.
-    ``revision`` is the draft revision you last saw; the response carries
-    the next one.
+    """Apply operations to a canvas draft, in order and atomically. Only the
+    draft changes; ``commit_canvas_draft`` publishes it. Send the last
+    ``draft_revision`` as ``revision``; the response carries the next one. On
+    ``DraftRevisionConflict``, reload the draft before writing again.
 
-    Operations (placement ids are readable slugs; ``parent`` defaults to
-    ``"root"``):
+    On any error nothing changes, and the error names the operation and the
+    path at fault. ``ValidationError`` leaves the draft unchanged.
 
-    - ``{"op": "add", "widgetType": "<widget type>", "props": {...},
-      "layout": {...}, "parent": "<id>", "index": n, "id": "<optional id>"}``
-      adds a widget; get its props schema with ``get_widget_control_schema``.
-      A chart, table or filter becomes a saved widget (``"name"`` optional),
-      created when the draft is published. Use ``"widgetId": "<uuid>"``
-      instead of ``widgetType``/``props`` to place an existing one.
-    - ``{"op": "set_props", "id": "<id>", "props": {...}}`` replaces the
-      props of a placement's widget, on every canvas that places it.
-    - ``{"op": "place", "id": "<id>", "layout": {"col", "row", "colSpan",
-      "rowSpan"}}`` moves or resizes within the parent's grid.
+    The ``ops`` schema defines each operation; it does not express these
+    rules:
 
-    - ``{"op": "move", "id": "<id>", "parent": "<id>", "index": n}``
-      reparents or reorders.
-    - ``{"op": "remove", "id": "<id>"}`` removes a placement and its children.
-    - ``{"op": "set_scope", "kind": "filter" | "crossFilter" |
-      "customization", "id": "<id>", "scope": {"mode": "auto" | "global" |
-      "custom", "targets": [...], "exclude": [...]}}``; ``scope: null``
-      restores auto (the filter's nearest scoping container).
-    - ``{"op": "set_settings", "key": "refresh" | "colors" | "display" |
-      "crossFilters", "value": {...}}``.
+    - ``add`` takes either ``widgetType`` with ``props`` for a new widget
+      (get its props schema with ``get_widget_control_schema``) or
+      ``widgetId`` to place an existing one, never both. A new chart, table
+      or filter becomes a saved widget when the draft is published.
+    - ``set_props`` replaces all props, on every canvas that places the
+      widget after commit. Read its effective props from
+      ``get_canvas_draft``'s ``widgets`` map and send the complete
+      replacement to preserve unrelated fields.
+    - ``scope: null`` on ``set_scope`` restores auto (the filter's nearest
+      scoping container) and ``value: null`` on ``set_settings`` resets that
+      section. Both are required, so omitting one is an error, not a reset.
 
-    Grid layouts are 1-based: ``col`` runs from 1 to the grid's columns (24
-    on the root; ``grid_columns`` has each container's) and ``row`` starts
-    at 1. Leave ``col``/``row`` out to auto-place, and spans out for the
-    widget's default size. ``place`` takes the whole layout.
+    A ``layout`` is ``{"col", "row", "colSpan", "rowSpan"}`` on a 1-based
+    grid: ``col`` runs from 1 to the grid's columns (24 on the root;
+    ``grid_columns`` has each container's) and ``row`` starts at 1. Leave
+    ``col``/``row`` out to auto-place, and spans out for the widget's default
+    size. ``place`` takes the whole layout.
 
     Overlaps push the later placement (in ``children`` order) down; a
     ``place`` first moves its node ahead of whatever it lands on, so it wins

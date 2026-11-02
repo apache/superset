@@ -67,7 +67,11 @@ def test_apply_returns_conflicts_as_data() -> None:
         result = _apply_canvas_ops_impl(1, 3, [{"op": "remove", "id": "revenue-trend"}])
 
     assert result["revision"] == 7
+    assert result["current_canvas_revision"] == 7
+    assert result["error_type"] == "CanvasRevisionConflict"
     assert "error" in result
+    # The response models ignore unknown keys, so a camelCase one would vanish.
+    assert all(key.islower() for key in result)
 
 
 def test_get_canvas_is_lean_unless_resolution_is_asked_for() -> None:
@@ -389,12 +393,14 @@ def test_draft_errors_come_back_as_data() -> None:
         patch(f"{module}.CommitCanvasDraftCommand") as command,
     ):
         command.return_value.run.side_effect = DraftConflictError(
-            5, canvas_changed=True
+            5, canvas_changed=True, draft_revision=1, current_canvas_revision=5
         )
         result = _commit_canvas_draft_impl("tok", 1)
 
     assert result["canvas_changed"] is True
-    assert result["revision"] == 5
+    assert result["revision"] == result["current_canvas_revision"] == 5
+    assert result["draft_revision"] == 1
+    assert all(key.islower() for key in result)
 
 
 def test_preview_returns_the_query_to_users_who_can_view_queries() -> None:
@@ -534,8 +540,10 @@ def test_commit_returns_the_canvas_url_and_revision() -> None:
         patch(f"{module}.CanvasDAO") as dao,
     ):
         load.return_value.canvas_id = 7
+        load.return_value.base_revision = 3
         command.return_value.run.return_value = MagicMock(revision=9)
-        dao.find_by_id.return_value = MagicMock(url="/canvas/sales/")
+        # A later published write must not replace the commit's own revision.
+        dao.find_by_id.return_value = MagicMock(url="/canvas/sales/", revision=10)
         result = _commit_canvas_draft_impl("tok", 1)
 
     assert result == {"canvas_id": 7, "url": "/canvas/sales/", "canvas_revision": 9}

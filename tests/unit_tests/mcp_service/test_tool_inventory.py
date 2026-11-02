@@ -54,12 +54,16 @@ def budgeted_bytes(text: str) -> int:
 
 TOOL_BUDGETS = {
     "add_chart_to_existing_dashboard": 1_500,
-    "apply_canvas_draft_ops": 900,
+    # Includes the canonical Canvas operation grammar inlined in the input
+    # schema: 5,271 bytes, rounded up plus the standard 100-byte headroom.
+    "apply_canvas_draft_ops": 5_400,
     "commit_canvas_draft": 800,
     "create_canvas_draft": 800,
     "delete_canvas_draft": 600,
     "get_canvas_draft": 700,
-    "create_canvas": 900,
+    # Includes the same operation grammar for the optional initial operations:
+    # 5,264 bytes, rounded up plus the standard 100-byte headroom.
+    "create_canvas": 5_400,
     "get_canvas": 700,
     "get_widget_control_schema": 1_100,
     "list_canvases": 800,
