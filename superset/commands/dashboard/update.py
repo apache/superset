@@ -210,6 +210,21 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)
 
+        self._validate_layout_chart_access()
+
+    def _validate_layout_chart_access(self) -> None:
+        """Refuse a layout chart the caller cannot read before ``run``
+        deactivates reports and emails their owners."""
+        assert self._model is not None
+        json_metadata: str | None
+        positions: object
+        if json_metadata := self._properties.get("json_metadata"):
+            metadata: object = json.loads(json_metadata)
+            if isinstance(metadata, dict) and isinstance(
+                positions := metadata.get("positions"), dict
+            ):
+                DashboardDAO.validate_layout_chart_access(self._model, positions)
+
     @staticmethod
     def _send_deactivated_report_email(
         report: ReportSchedule, description: str
