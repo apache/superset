@@ -18000,7 +18000,7 @@ msgstr "Il y a eu un problème lors de la suppression des règles : %s"
 
 #, python-format
 msgid "There was an issue deleting the selected %s"
-msgstr "Il y a eu un problème lors de la suppression des %s sélectionné(e)s :%s"
+msgstr "Il y a eu un problème lors de la suppression des %s sélectionné(e)s"
 
 #, python-format
 msgid "There was an issue deleting the selected %s: %s"
