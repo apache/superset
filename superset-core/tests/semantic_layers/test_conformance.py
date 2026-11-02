@@ -82,7 +82,10 @@ def semantic_query_cases(
     month: Dimension = next(
         d for d in semantic_view.get_dimensions() if d.grain == Grains.MONTH
     )
-    total: Metric = next(iter(semantic_view.get_metrics()))
+    total: Metric = next(m for m in semantic_view.get_metrics() if m.name == "total")
+    count: Metric = next(
+        m for m in semantic_view.get_metrics() if m.name == "row_count"
+    )
     null: Filter = Filter(PredicateType.WHERE, category, Operator.IS_NULL, None)
     membership: Filter = Filter(
         PredicateType.WHERE, category, Operator.IN, frozenset({"A", "B"})
@@ -97,11 +100,14 @@ def semantic_query_cases(
     )
     return {
         "identity": (
-            SemanticQuery([total], [category], order=[(total, OrderDirection.ASC)]),
+            SemanticQuery(
+                [total, count], [category], order=[(total, OrderDirection.ASC)]
+            ),
             pa.table(
                 {
                     "category": pa.array([None, "C", "A", "B"], type=pa.string()),
                     "total": [4, 6, 7, 8],
+                    "row_count": [2, 1, 2, 1],
                 }
             ),
         ),
@@ -162,7 +168,7 @@ def semantic_capability_cases(
     category: Dimension = next(
         d for d in semantic_view.get_dimensions() if d.name == "category"
     )
-    total: Metric = next(iter(semantic_view.get_metrics()))
+    total: Metric = next(m for m in semantic_view.get_metrics() if m.name == "total")
     return {
         "ROW_OFFSET": (
             SemanticQuery(
@@ -657,6 +663,7 @@ def test_or_lane_rejects_non_host_fixture_shapes(
         ("ignore", Operator.IN),
         ("zero_rows", Operator.IN),
         ("wrong_scalar", Operator.IN),
+        ("null_count", Operator.IN),
     ],
 )
 def test_empty_membership_rejects_provider_mutations(
@@ -690,7 +697,7 @@ def test_empty_membership_rejects_provider_mutations(
     def mutated_table(query: SemanticQuery) -> SemanticResult:
         result: SemanticResult = get_table(query)
         if (
-            mutation == "wrong_scalar"
+            mutation in {"wrong_scalar", "null_count"}
             and not query.dimensions
             and any(
                 isinstance(item, Filter)
@@ -699,10 +706,17 @@ def test_empty_membership_rejects_provider_mutations(
                 for item in query.filters or set()
             )
         ):
+            column: str = "total" if mutation == "wrong_scalar" else "row_count"
+            if column not in result.results.column_names:
+                return result
+            value: int | None = 0 if mutation == "wrong_scalar" else None
+            field: pa.Field = result.results.schema.field(column)
             return replace(
                 result,
-                results=pa.Table.from_pydict(
-                    {"total": [0]}, schema=result.results.schema
+                results=result.results.set_column(
+                    result.results.schema.get_field_index(column),
+                    field,
+                    pa.array([value], type=field.type),
                 ),
             )
         if mutation == "zero_rows" and any(
@@ -714,7 +728,12 @@ def test_empty_membership_rejects_provider_mutations(
 
     monkeypatch.setattr(conformance_provider, "_predicate", mutated_predicate)
     monkeypatch.setattr(semantic_view, "get_table", mutated_table)
-    with pytest.raises(AssertionError):
+    with pytest.raises(
+        AssertionError,
+        match="row_count: a count of no rows is 0"
+        if mutation == "null_count"
+        else None,
+    ):
         SemanticProviderConformance().test_empty_membership(
             operator, semantic_view, semantic_query_cases
         )

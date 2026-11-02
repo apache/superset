@@ -109,7 +109,7 @@ class QueryView(ExampleView):
         }
 
     def get_metrics(self) -> set[Metric]:
-        """The metric's selection name differs from both ID and display label."""
+        """Metric selection names differ from IDs and display labels."""
         return {
             Metric(
                 "private-total",
@@ -118,7 +118,15 @@ class QueryView(ExampleView):
                 "SUM(amount)",
                 verbose_name="Amount",
                 aggregation=AggregationType.SUM,
-            )
+            ),
+            Metric(
+                "private-count",
+                "row_count",
+                pa.int64(),
+                "COUNT(*)",
+                verbose_name="Rows",
+                aggregation=AggregationType.COUNT,
+            ),
         }
 
     def get_table(self, query: SemanticQuery) -> SemanticResult:
