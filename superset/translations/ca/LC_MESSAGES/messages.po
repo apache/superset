@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -509,6 +509,12 @@ msgstr[1] ""
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "fa 1 dia"
+msgstr[1] ""
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
@@ -2489,6 +2495,10 @@ msgstr "S'ha produït un error mentre es carregava la informació del dashboard.
 msgid "An error occurred while loading the SQL"
 msgstr "S'ha produït un error mentre es carregava l'SQL"
 
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
+
 #, fuzzy
 msgid "An error occurred while overwriting the dataset"
 msgstr "S'ha produït un error mentre es creava la font de dades"
@@ -2876,10 +2886,6 @@ msgstr "Estàs segur que vols eliminar"
 #, python-format
 msgid "Are you sure you want to delete %s?"
 msgstr "Estàs segur que vols eliminar %s?"
-
-#, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
 
 #, python-format
 msgid "Are you sure you want to delete the selected %s?"
@@ -4168,6 +4174,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr "Escull un format numèric"
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr "Escull una font"
 
@@ -4185,9 +4194,6 @@ msgstr "Escull columnes per analitzar com a dates"
 
 msgid "Choose columns to read"
 msgstr "Escull columnes per llegir"
-
-msgid "Choose current semantic fields"
-msgstr ""
 
 msgid "Choose current semantic filter fields"
 msgstr ""
@@ -5341,6 +5347,9 @@ msgstr "Crear nou gràfic"
 msgid "Create or select schema..."
 msgstr "Crear o seleccionar esquema..."
 
+msgid "Create semantic layer"
+msgstr ""
+
 msgid "Created"
 msgstr "Creat"
 
@@ -6429,7 +6438,7 @@ msgstr "Eliminar plantilla"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -7799,6 +7808,10 @@ msgstr "Error en l'expressió jinja als filtres RLS: %(msg)s"
 #, python-format
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Error en l'expressió jinja a la clàusula WHERE: %(msg)s"
+
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
@@ -9201,6 +9214,9 @@ msgstr ""
 msgid "Guest"
 msgstr ""
 
+msgid "Guest user cannot access this query"
+msgstr ""
+
 msgid "Guest user cannot modify chart payload"
 msgstr "L'usuari convidat no pot modificar la càrrega útil del gràfic"
 
@@ -10551,6 +10567,12 @@ msgstr "Ordenar valors de filtre"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 #, fuzzy
 msgid "Loading timezones..."
 msgstr "Carregant..."
@@ -11788,6 +11810,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -13400,6 +13438,12 @@ msgstr "Proporció"
 
 msgid "Raw records"
 msgstr "Registres en brut"
+
+msgid "Re-pick fields"
+msgstr ""
+
+msgid "Re-pick fields for this chart"
+msgstr ""
 
 msgid "Rearranged layout"
 msgstr ""
@@ -15344,6 +15388,9 @@ msgstr "El gràfic no existeix"
 msgid "Semantic layer parameters are invalid."
 msgstr "Els paràmetres de la capa d'anotació són invàlids."
 
+msgid "Semantic layer setup guide"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer type"
 msgstr "Tipus de capa d'anotació"
@@ -16424,12 +16471,6 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "field selections, pre-filters, sorting, defaults and dependencies. Saved "
 "display titles cannot be recovered automatically."
-msgstr ""
-
-msgid ""
-"Start field selection using current member IDs. This clears any existing "
-"query and formatting settings. Saved display titles cannot be safely "
-"mapped to member IDs. The saved chart is unchanged until you save."
 msgstr ""
 
 msgid ""
@@ -17982,6 +18023,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr "L'informe s'ha creat"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 msgid "The report will be sent to your email at"
 msgstr "L'informe s'enviarà al teu correu electrònic a"
 
@@ -18318,6 +18365,13 @@ msgstr "Aquest dashboard s'ha desat amb èxit."
 #, fuzzy
 msgid "The user has been updated successfully."
 msgstr "Aquest dashboard s'ha desat amb èxit."
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 #, fuzzy
 msgid "The user was updated successfully"
@@ -18864,6 +18918,9 @@ msgstr ""
 "Això pot ser una adreça IP (p.ex. 127.0.0.1) o un nom de domini (p.ex. "
 "mydatabase.com)."
 
+msgid "This cannot be undone."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -18906,6 +18963,13 @@ msgid ""
 "This chart version can't be restored because the semantic view it used "
 "has been permanently deleted. Restore a version that uses an existing "
 "semantic view or dataset, or recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart was saved with an older format of field names for this "
+"semantic view, so the fields it refers to can't be confirmed. Re-pick the"
+" metrics and dimensions to keep using it. The saved chart doesn't change "
+"until you save."
 msgstr ""
 
 msgid "This chart was updated to use the restored aggregation"
@@ -19316,6 +19380,13 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
 msgstr ""
 
 msgid ""
@@ -19945,6 +20016,9 @@ msgstr "Confia en aquest URL i no tornis a preguntar"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 "Prova aplicar filtres diferents o assegurar-te que la teva font de dades "
@@ -20172,7 +20246,20 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr "No es pot carregar dashboard"
 
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
+
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 msgid ""
@@ -22343,6 +22430,9 @@ msgstr "5 segons"
 msgid "aggregate"
 msgstr "agregar"
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr "condició d'alerta"
 
@@ -22358,6 +22448,10 @@ msgstr "també copiar (duplicar) gràfics"
 msgid "ancestor"
 msgstr "antecessor"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "anotació"
 
@@ -22368,6 +22462,10 @@ msgstr "capa_anotació"
 #, fuzzy
 msgid "apple"
 msgstr "poma"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -23104,6 +23202,12 @@ msgstr ""
 
 msgid "query"
 msgstr "consulta"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "aleatori"
