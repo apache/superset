@@ -638,6 +638,13 @@ export function saveDashboardRequest(
         // offered no way to send the fix on (QA-14, R4-07). Every other
         // captured save path announces here; this one did not.
         announceChangeCaptured();
+        // The edits are stored -- as a change request rather than on the
+        // asset, but stored. Leaving the dashboard marked unsaved meant the
+        // browser warned the author their work would be lost the moment
+        // they navigated away, one line under a toast telling them it was
+        // saved.
+        dispatch(setUnsavedChanges(false));
+        dispatch(UndoActionCreators.clearHistory());
         const { text, options } = reviewRequiredToast(
           body.message as string | undefined,
           body.id as number,

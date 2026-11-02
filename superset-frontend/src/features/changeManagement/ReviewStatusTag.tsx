@@ -29,6 +29,7 @@ import { t } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { Tag } from '@superset-ui/core/components';
 import { fetchOpenByAsset } from './api';
+import { onChangeCaptured } from './events';
 import { approvalsPath } from './approvalsPath';
 import type { ChangeStatus, ReviewAssetType } from './types';
 
@@ -60,6 +61,14 @@ export function useOpenChanges(
 ): Record<string, ChangeStatus> {
   const enabled = isFeatureEnabled(FeatureFlag.ChangeManagement);
   const [open, setOpen] = useState<Record<string, ChangeStatus>>({});
+  // A list is also a place changes are made: the properties modal saves
+  // from the row it sits on. What was fetched when the list mounted is
+  // stale the moment that save is captured, so the row went on showing no
+  // tag until the page was reloaded -- the same stale-page problem the
+  // banner has, on the surface the author was actually looking at.
+  const [captured, setCaptured] = useState(0);
+
+  useEffect(() => onChangeCaptured(() => setCaptured(count => count + 1)), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,7 +87,7 @@ export function useOpenChanges(
     return () => {
       cancelled = true;
     };
-  }, [enabled, assetType]);
+  }, [enabled, assetType, captured]);
 
   return open;
 }
