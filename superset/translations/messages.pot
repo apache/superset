@@ -8745,6 +8745,9 @@ msgstr ""
 msgid "Loading semantic layers…"
 msgstr ""
 
+msgid "Loading the view shared with you…"
+msgstr ""
+
 msgid "Loading timezones..."
 msgstr ""
 
@@ -14465,6 +14468,16 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr ""
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -17049,6 +17062,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format

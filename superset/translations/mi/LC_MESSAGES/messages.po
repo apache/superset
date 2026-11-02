@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -517,6 +517,12 @@ msgstr[1] ""
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "1 rā i mua"
+msgstr[1] ""
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
@@ -2873,10 +2879,6 @@ msgid "Are you sure you want to delete %s?"
 msgstr "Kei te tino hiahia koe ki te muku i %s?"
 
 #, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-
-#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr "Kei te tino hiahia koe ki te muku i %s kua tīpakohia?"
 
@@ -4154,6 +4156,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr "Kōwhiria he hōputu tau"
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr "Kōwhiria he puna"
 
@@ -5326,6 +5331,9 @@ msgstr "Hanga kauwhata hou"
 msgid "Create or select schema..."
 msgstr "Hanga, tīpako rānei i te hanga..."
 
+msgid "Create semantic layer"
+msgstr ""
+
 msgid "Created"
 msgstr "Kua Hangaia"
 
@@ -6395,7 +6403,7 @@ msgstr "Muku tauira"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -10540,6 +10548,12 @@ msgstr "Kōmaka uara tātari"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 #, fuzzy
 msgid "Loading timezones..."
 msgstr "E uta ana..."
@@ -11781,6 +11795,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -15359,6 +15389,9 @@ msgstr "Karekau te kauwhata"
 msgid "Semantic layer parameters are invalid."
 msgstr "He muhu ngā tawhā papa tohu."
 
+msgid "Semantic layer setup guide"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer type"
 msgstr "Momo papa tohu"
@@ -18872,6 +18905,9 @@ msgstr ""
 "Ka taea e tēnei te noho hei wāhitau IP (hei tauira 127.0.0.1), hei ingoa "
 "rohe rānei (hei tauira mydatabase.com)."
 
+msgid "This cannot be undone."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -19964,6 +20000,9 @@ msgstr "Whakaaro pono ki tēnei URL, kaua anō e pātai"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 "Whakamātauhia te whakahaeretia o ngā tātari rerekē, te whakaū rānei he "
@@ -20189,6 +20228,16 @@ msgstr ""
 
 msgid "Unable to load dashboard"
 msgstr "Kāore e taea te uta i te papatohu"
+
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr ""
@@ -22357,6 +22406,9 @@ msgstr "hēkona"
 msgid "aggregate"
 msgstr "whakaarotau"
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr "āhuatanga matohi"
 
@@ -22372,6 +22424,10 @@ msgstr "tārua hoki (tārua) ngā kauwhata"
 msgid "ancestor"
 msgstr "tūpuna"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "tohu"
 
@@ -22382,6 +22438,10 @@ msgstr "papa_tohu"
 #, fuzzy
 msgid "apple"
 msgstr "āporo"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -23119,6 +23179,12 @@ msgstr ""
 
 msgid "query"
 msgstr "pātai"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "matapōkere"

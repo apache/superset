@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -533,6 +533,12 @@ msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "vor %s Tag"
 msgstr[1] "vor %s Tagen"
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%s field"
@@ -2973,12 +2979,6 @@ msgid "Are you sure you want to delete %s?"
 msgstr "Sind Sie sicher, dass Sie %s löschen möchten?"
 
 #, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-"Möchten Sie %s wirklich löschen? Dies kann nicht rückgängig gemacht "
-"werden."
-
-#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr "Möchten Sie die/das ausgewählte %s wirklich löschen?"
 
@@ -4208,6 +4208,9 @@ msgstr "Neues Passwort wählen"
 msgid "Choose a number format"
 msgstr "Wählen Sie ein Zahlenformat"
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr "Wählen Sie eine Quelle"
 
@@ -5378,6 +5381,9 @@ msgstr "Neues Diagramm erstellen"
 msgid "Create or select schema..."
 msgstr "Schema erstellen oder auswählen…"
 
+msgid "Create semantic layer"
+msgstr ""
+
 msgid "Created"
 msgstr "Erstellt"
 
@@ -6405,11 +6411,8 @@ msgstr "Element löschen"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
-"Löschen oder verschieben Sie aktive Datensätze. Um archivierte Datensätze"
-" zu entfernen, öffnen Sie „Kürzlich archiviert“ und wählen Sie „Endgültig"
-" löschen“."
 
 msgid "Delete permanently"
 msgstr "Endgültig löschen"
@@ -10443,6 +10446,12 @@ msgstr "Lade Filterwerte"
 msgid "Loading historical version · %s"
 msgstr "Historische Version wird geladen · %s"
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 msgid "Loading timezones..."
 msgstr "Lade Zeitzonen..."
 
@@ -11646,6 +11655,22 @@ msgstr "Keine gespeicherte Version zur Vorschau"
 
 msgid "No selection modes are available for this control."
 msgstr "Für dieses Steuerelement sind keine Auswahlmodi verfügbar."
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
+msgstr ""
 
 msgid "No sort (original order)"
 msgstr "Keine Sortierung (ursprüngliche Reihenfolge)"
@@ -15189,6 +15214,9 @@ msgstr "Semantische Schicht existiert nicht"
 
 msgid "Semantic layer parameters are invalid."
 msgstr "Parameter der semantischen Schicht sind ungültig."
+
+msgid "Semantic layer setup guide"
+msgstr ""
 
 msgid "Semantic layer type"
 msgstr "Semantischer Schichtentyp"
@@ -18817,6 +18845,9 @@ msgstr ""
 "Dies kann entweder eine IP-Adresse (z.B. 127.0.0.1) oder ein Domainname "
 "(z.B. mydatabase.com) sein."
 
+msgid "This cannot be undone."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -19949,6 +19980,9 @@ msgstr "Dieser URL vertrauen und nicht mehr nachfragen"
 msgid "Try a different search term"
 msgstr "Versuchen Sie einen anderen Suchbegriff"
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 "Versuchen Sie, andere Filter anzuwenden oder sicherzustellen, dass Ihre "
@@ -20166,6 +20200,16 @@ msgstr "Die Spalten der ausgewählten Tabelle konnten nicht geladen werden."
 
 msgid "Unable to load dashboard"
 msgstr "Das Dashboard kann nicht geladen werden"
+
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr "Die Konfiguration von Alarmen und Berichten konnte nicht geladen werden."
@@ -22384,6 +22428,9 @@ msgstr "wenige Sekunden"
 msgid "aggregate"
 msgstr "Aggregat"
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr "Alarmierungsbedingung"
 
@@ -22399,6 +22446,10 @@ msgstr "auch (doppelte) Diagramme kopieren"
 msgid "ancestor"
 msgstr "Vorfahr"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "Anmerkung"
 
@@ -22407,6 +22458,10 @@ msgstr "Anmerkungsebene"
 
 msgid "apple"
 msgstr "Apfel"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -23079,6 +23134,12 @@ msgstr "Abfragen"
 
 msgid "query"
 msgstr "Abfrage"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "zufällig"

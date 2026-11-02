@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -490,6 +490,11 @@ msgstr[0] ""
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "%s 天前"
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
 
 #, python-format
 msgid "%s field"
@@ -2817,10 +2822,6 @@ msgid "Are you sure you want to delete %s?"
 msgstr "确定要删除 %s 吗？"
 
 #, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-
-#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr "确实要删除选定的 %s 吗？"
 
@@ -4076,6 +4077,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr "选择一种数字格式"
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr "选择一个源"
 
@@ -5232,6 +5236,9 @@ msgstr "创建新图表"
 msgid "Create or select schema..."
 msgstr "创建或select模式..."
 
+msgid "Create semantic layer"
+msgstr ""
+
 msgid "Created"
 msgstr "已创建"
 
@@ -6284,7 +6291,7 @@ msgstr "删除项目"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -10365,6 +10372,12 @@ msgstr "正在加载筛选值"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 msgid "Loading timezones..."
 msgstr "正在加载时区..."
 
@@ -11633,6 +11646,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -15150,6 +15179,9 @@ msgstr "语义层不存在"
 msgid "Semantic layer parameters are invalid."
 msgstr "语义层参数无效。"
 
+msgid "Semantic layer setup guide"
+msgstr ""
+
 msgid "Semantic layer type"
 msgstr "语义层类型"
 
@@ -18478,6 +18510,9 @@ msgid ""
 "mydatabase.com)."
 msgstr "这可以是一个IP地址(例如127.0.0.1)或一个域名(例如mydatabase.com)。"
 
+msgid "This cannot be undone."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -19524,6 +19559,9 @@ msgstr "信任此URL且不再询问"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr "尝试应用不同的筛选器或确保您的数据源包含数据。“"
 
@@ -19748,6 +19786,16 @@ msgstr ""
 
 msgid "Unable to load dashboard"
 msgstr "无法加载看板"
+
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr ""
@@ -21828,6 +21876,9 @@ msgstr "几秒"
 msgid "aggregate"
 msgstr "合计"
 
+msgid "alert"
+msgstr ""
+
 #, fuzzy
 msgid "alert condition"
 msgstr "告警条件"
@@ -21845,6 +21896,10 @@ msgstr "同时复制图表"
 msgid "ancestor"
 msgstr "上一级"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "注释"
 
@@ -21855,6 +21910,10 @@ msgstr "注释层"
 #, fuzzy
 msgid "apple"
 msgstr "苹果"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -22643,6 +22702,12 @@ msgstr "查询"
 
 msgid "query"
 msgstr "查询"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 #, fuzzy
 msgid "random"
