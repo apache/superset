@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-02 18:16-0300\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -129,9 +129,6 @@ msgstr " novou"
 msgid " at line %(line)d"
 msgstr " na řádku %(line)d"
 
-msgid " expression which needs to adhere to the "
-msgstr " výraz, který musí dodržovat "
-
 #, fuzzy
 msgid " for details."
 msgstr "pro podrobnosti."
@@ -139,23 +136,6 @@ msgstr "pro podrobnosti."
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " poblíž '%(highlight)s'"
-
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
 
 msgid " to add calculated columns"
 msgstr " pro přidání počítaných sloupců"
@@ -9059,9 +9039,6 @@ msgstr ""
 msgid "ISO 3166-2 Codes"
 msgstr "Kódy ISO 3166-2"
 
-msgid "ISO 8601"
-msgstr "ISO 8601"
-
 msgid "ISO suffix / abbreviation"
 msgstr ""
 
@@ -10190,6 +10167,15 @@ msgstr "Seznam aktualizován"
 msgid "List view"
 msgstr "Seznam uživatelů"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Živé vykreslení"
 
@@ -10227,6 +10213,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -12890,9 +12879,6 @@ msgstr "Umístit popisky vně koláče?"
 
 msgid "Put your code here"
 msgstr "Vložte sem svůj kód"
-
-msgid "Python datetime string pattern"
-msgstr "Vzor řetězce data a času v Pythonu"
 
 msgid "Quarter"
 msgstr "Čtvrtletí"
@@ -17000,6 +16986,16 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "Vlastní vlastnost pro popisky bodů"
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -17321,8 +17317,21 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "Pro import níže uvedených databází jsou potřeba jejich hesla."
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "Vzor formátu časového razítka. Pro řetězce použijte "
+#. i18n: keep the [text](%(…)s) markdown link syntax and both
+#. placeholders unchanged; translate the link text only
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 msgid ""
 "The periodicity over which to pivot time. Each period becomes\n"
@@ -20510,6 +20519,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format

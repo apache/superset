@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-02 18:16-0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -118,9 +118,6 @@ msgstr "另存為新的"
 msgid " at line %(line)d"
 msgstr " 在第 %(line)d 行"
 
-msgid " expression which needs to adhere to the "
-msgstr " 表達式必須基於 "
-
 #, fuzzy
 msgid " for details."
 msgstr "詳細訊息"
@@ -130,23 +127,6 @@ msgstr "詳細訊息"
 #, fuzzy, python-format
 msgid " near '%(highlight)s'"
 msgstr " 在 '%(highlight)s' 附近"
-
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
 
 #, fuzzy
 msgid " to add calculated columns"
@@ -9691,9 +9671,6 @@ msgstr ""
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2 代碼"
 
-msgid "ISO 8601"
-msgstr "ISO 8601"
-
 msgid "ISO suffix / abbreviation"
 msgstr ""
 
@@ -10939,6 +10916,15 @@ msgstr "列表已更新"
 msgid "List view"
 msgstr "數字"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "實時渲染"
 
@@ -10977,6 +10963,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -13878,9 +13867,6 @@ msgstr "是否將標籤顯示在餅圖外側？"
 
 msgid "Put your code here"
 msgstr "把您的代碼放在這里"
-
-msgid "Python datetime string pattern"
-msgstr "Python 日期格式模板"
 
 msgid "Quarter"
 msgstr "季度"
@@ -18266,6 +18252,16 @@ msgstr "應用程式啟動時的地圖範圍。FIT DATA 自動設定範圍，使
 msgid "The feature property to use for point labels"
 msgstr "用於點標籤的要素屬性"
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -18582,8 +18578,21 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "匯入以下資料庫需要提供其密碼。"
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "時間戳格式的模式。供字符串使用 "
+#. i18n: keep the [text](%(…)s) markdown link syntax and both
+#. placeholders unchanged; translate the link text only
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 msgid ""
 "The periodicity over which to pivot time. Each period becomes\n"
@@ -21906,6 +21915,11 @@ msgstr "我們似乎無法解析行 %(location)s 所處的列 \"%(column_name)s\
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,

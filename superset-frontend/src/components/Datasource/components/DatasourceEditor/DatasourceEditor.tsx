@@ -70,6 +70,7 @@ import {
   Input,
   Loading,
   Row,
+  SafeMarkdown,
   Select,
   Tooltip,
   Typography,
@@ -577,6 +578,10 @@ const checkboxGenerator = (
     }}
   />
 );
+const PYTHON_DATETIME_FORMAT_URL =
+  'https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior';
+const ISO_8601_URL = 'https://en.wikipedia.org/wiki/ISO_8601';
+
 const DATA_TYPES = [
   { value: 'STRING', label: t('STRING') },
   { value: 'NUMERIC', label: t('NUMERIC') },
@@ -824,26 +829,30 @@ function ColumnCollectionTable({
                 fieldKey="python_date_format"
                 label={t('Datetime format')}
                 description={
-                  /* Note the fragmented translations may not work. */
-                  <div>
-                    {t('The pattern of timestamp format. For strings use ')}
-                    <Typography.Link href="https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior">
-                      {t('Python datetime string pattern')}
-                    </Typography.Link>
-                    {t(' expression which needs to adhere to the ')}
-                    <Typography.Link href="https://en.wikipedia.org/wiki/ISO_8601">
-                      {t('ISO 8601')}
-                    </Typography.Link>
-                    {t(` standard to ensure that the lexicographical ordering
-                      coincides with the chronological ordering. If the
-                      timestamp format does not adhere to the ISO 8601 standard
-                      you will need to define an expression and type for
-                      transforming the string into a date or timestamp. Note
-                      currently time zones are not supported. If time is stored
-                      in epoch format, put \`epoch_s\`, \`epoch_ms\` or \`epoch_us\`. If no pattern
-                      is specified we fall back to using the optional defaults on a per
-                      database/column name level via the extra parameter.`)}
-                  </div>
+                  <SafeMarkdown
+                    // i18n: keep the [text](%(…)s) markdown link syntax and both
+                    // placeholders unchanged; translate the link text only
+                    source={t(
+                      'The pattern of timestamp format. For strings use ' +
+                        '[Python datetime string pattern](%(python_url)s) ' +
+                        'expression which needs to adhere to the ' +
+                        '[ISO 8601](%(iso_url)s) standard to ensure that the ' +
+                        'lexicographical ordering coincides with the ' +
+                        'chronological ordering. If the timestamp format does ' +
+                        'not adhere to the ISO 8601 standard you will need to ' +
+                        'define an expression and type for transforming the ' +
+                        'string into a date or timestamp. Note currently time ' +
+                        'zones are not supported. If time is stored in epoch ' +
+                        'format, put `epoch_s`, `epoch_ms` or `epoch_us`. If ' +
+                        'no pattern is specified we fall back to using the ' +
+                        'optional defaults on a per database/column name ' +
+                        'level via the extra parameter.',
+                      {
+                        python_url: PYTHON_DATETIME_FORMAT_URL,
+                        iso_url: ISO_8601_URL,
+                      },
+                    )}
+                  />
                 }
                 control={
                   <TextControl
