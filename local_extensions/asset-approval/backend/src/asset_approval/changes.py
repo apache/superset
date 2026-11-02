@@ -343,6 +343,99 @@ def extra_is_only_certification(asset: Any, payload: dict[str, Any]) -> bool:
     return bool(moved) and moved <= EXEMPT_EXTRA_KEYS
 
 
+#: The one column field "Sync columns from source" can move. Everything else
+#: in a column is authored, so a save that moves any of it is a change
+#: whatever the source says.
+RESYNCABLE_COLUMN_FIELD = "type"
+
+
+def columns_only_resynced(asset: Any, payload: dict[str, Any]) -> bool:
+    """Whether the column changes only restate what the source table says.
+
+    "Sync columns from source" in the dataset editor does not write. It reads
+    the source's columns into the open dialog, and the author's Save then
+    carries them like any other edit, through the ordinary governed PUT. The
+    dedicated refresh endpoint is already exempt -- SOW 5.2: it does not
+    author a change, it re-reads what the database already says -- and this
+    is the same act performed through the dialog, so it is exempt on the same
+    grounds (S-04).
+
+    Narrow on purpose, and the narrowness is what makes it safe. The column
+    set has to be unchanged, every field other than ``type`` has to match
+    what is stored, at least one type has to have moved, and every moved type
+    has to be the type the source itself reports. A column added or dropped,
+    a verbose name, a flag, a metric: all authored, all still governed, and
+    in all of those the source is never consulted at all.
+
+    Fails closed. A source that cannot be read answers "not a resync", so an
+    unreachable database makes saves governed rather than exempt.
+    """
+    proposed = payload.get("columns")
+    if not isinstance(proposed, (list, tuple)):
+        return False
+
+    before = _by_name(getattr(asset, "columns", None), "column_name")
+    after = _by_name(proposed, "column_name")
+    if not after or set(before) != set(after):
+        return False
+
+    resynced = _types_that_moved_alone(before, after)
+    if not resynced:
+        # Nothing moved that this exemption covers, so there is nothing for
+        # it to say. Asking the source here would be a query for no reason.
+        return False
+    return _types_match_the_source(asset, resynced)
+
+
+def _types_that_moved_alone(
+    before: dict[Any, Any], after: dict[Any, Any]
+) -> dict[Any, Any] | None:
+    """The proposed types that moved, or None if anything else moved too."""
+    resynced: dict[Any, Any] = {}
+    for name, item in after.items():
+        if not isinstance(item, dict):
+            return None
+        stored = before[name]
+        for field, value in item.items():
+            if field in IGNORED_FIELDS or field == "id":
+                continue
+            was = _field_value(stored, field)
+            if field == RESYNCABLE_COLUMN_FIELD:
+                if _parsed(value) != _parsed(was):
+                    resynced[name] = value
+            elif not (_is_nothing(value) and _is_nothing(was)) and _parsed(
+                value
+            ) != _parsed(was):
+                return None
+    return resynced
+
+
+def _normalised_type(value: Any) -> str:
+    return str(value or "").strip().upper()
+
+
+def _types_match_the_source(asset: Any, resynced: dict[Any, Any]) -> bool:
+    """Whether each moved type is the one the source reports for that column."""
+    try:
+        source = {
+            column.get("name"): column.get("type")
+            for column in asset.external_metadata()
+            if isinstance(column, dict)
+        }
+    except Exception:  # pylint: disable=broad-except
+        logger.warning(
+            "could not read the source's columns for %r, so the save is "
+            "treated as authored rather than a resync",
+            getattr(asset, "table_name", asset),
+            exc_info=True,
+        )
+        return False
+    return all(
+        name in source and _normalised_type(value) == _normalised_type(source[name])
+        for name, value in resynced.items()
+    )
+
+
 #: The shape the dashboard's native-filter and chart-customization
 #: endpoints post: a diff against the stored configuration rather than the
 #: configuration itself.

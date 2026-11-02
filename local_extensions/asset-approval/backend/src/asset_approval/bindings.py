@@ -19,6 +19,7 @@ from asset_approval.changes import (
     changed_fields,
     config_diff_changes_nothing,
     EXEMPT_FIELDS,
+    columns_only_resynced,
     extra_is_only_certification,
 )
 from superset.utils import json
@@ -357,6 +358,8 @@ def _only_exempt(asset: Any, payload: dict[str, Any]) -> bool:
         return False
     if "extra" in changed and extra_is_only_certification(asset, payload):
         changed.discard("extra")
+    if "columns" in changed and columns_only_resynced(asset, payload):
+        changed.discard("columns")
     return changed <= EXEMPT_FIELDS
 
 
