@@ -104,3 +104,33 @@ def test_extra_rewritten_with_the_same_meaning_is_not_a_change() -> None:
     payload = {"extra": json.dumps({"certification": {"details": "x", "certified_by": "Risk"}})}
 
     assert bindings._only_exempt(live, payload) is False
+
+
+# ------------------------------------------- certifying beside a live request
+#
+# Certification can now apply while a request waits, which is the point of
+# the exemption. The baseline recorded with that request must therefore not
+# notice it, or the permitted edit would make the request it coexists with
+# unapprovable.
+
+
+def test_certifying_does_not_make_a_waiting_request_stale() -> None:
+    from asset_approval.changes import baseline_of, moved_since
+
+    before = _dataset(sql="SELECT 1")
+    baseline = baseline_of(before, {"sql": "SELECT 2", "extra": None})
+
+    after = _dataset(extra=_certification(), sql="SELECT 1")
+
+    assert moved_since(after, baseline) == []
+
+
+def test_a_real_edit_to_extra_still_makes_it_stale() -> None:
+    from asset_approval.changes import baseline_of, moved_since
+
+    before = _dataset()
+    baseline = baseline_of(before, {"sql": "SELECT 2", "extra": None})
+
+    after = _dataset(extra={"warning_markdown": "Do not use"})
+
+    assert moved_since(after, baseline) == ["extra"]

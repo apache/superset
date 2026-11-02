@@ -392,6 +392,19 @@ def baseline_of(asset: Any, payload: dict[str, Any]) -> dict[str, Any]:
 
 def _comparable(value: Any, field: str) -> Any:
     """One field reduced to the form the baseline comparison uses."""
+    if field == "extra":
+        # The exempt entries are stripped for the same reason
+        # ``baseline_of`` skips the exempt columns: certifying the dataset
+        # is allowed to happen while a request waits, and measuring it here
+        # would turn that permitted edit into a stale-baseline refusal of
+        # the request it coexists with.
+        # An absent blob reads as an empty one, so first certifying a
+        # dataset that had no extra at all does not read as a change
+        # from nothing to something.
+        parsed = _parsed(value) or {}
+        if isinstance(parsed, dict):
+            return {k: v for k, v in parsed.items() if k not in EXEMPT_EXTRA_KEYS}
+        return parsed
     if field in JSON_FIELDS:
         return _parsed(value)
     if field in NAMED_LIST_FIELDS:
