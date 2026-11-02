@@ -121,7 +121,8 @@ message unless Superset authored the error type. It is therefore raised as a
 `DATABASE_SECURITY_ACCESS_ERROR` with a fixed message that names nothing about the
 connection, so the viewer learns the chart's connection isn't set up for embedded
 dashboards. The administrator's explanation, naming the connection and the fix, goes
-to the server log.
+to the server log. Under `GLOBAL_ASYNC_QUERIES` the task keeps only an untyped message,
+so the viewer gets the generic error instead; the server log is the same.
 
 The connection dialog removes the ways to reach that state in the first place: the
 section is offered only when both flags are on *and* the connection uses OAuth2, a

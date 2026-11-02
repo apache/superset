@@ -208,7 +208,9 @@ the flag on, Superset refuses those viewers rather than serve them under an iden
 nobody chose for them. The viewer sees *This chart can't be shown here because its
 database connection isn't set up for embedded dashboards*, and the server log has a
 `Refused an embedded viewer's query on database connection ...` warning naming the
-connection and the fix. Logged-in users are not affected.
+connection and the fix. With `GLOBAL_ASYNC_QUERIES` on, the viewer sees the generic
+*An error occurred while fetching the data.* instead, and the warning is the same.
+Logged-in users are not affected.
 
 Update each such connection before turning the flag on, in one of two ways:
 
@@ -316,7 +318,8 @@ Understand what this grants before enabling it:
   OAuth2 client, or no applicable credential — none configured, or one that is
   incomplete — is refused with an error rather than connected as whichever account the
   connection URL carries. The viewer is told only that the chart's connection isn't
-  set up for embedded dashboards; the server log names the connection and the fix.
+  set up for embedded dashboards (with `GLOBAL_ASYNC_QUERIES` on, a generic error
+  instead); the server log names the connection and the fix.
   Deployments that leave the flag off keep their existing behaviour.
 - **Guest results are cached separately.** Queries run under the fallback credential get
   their own cache partition, distinct from every logged-in username, so an embedded

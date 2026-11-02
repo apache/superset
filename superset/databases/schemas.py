@@ -489,6 +489,27 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
                 field_name="masked_encrypted_extra",
             )
 
+        # A mask only stands in for a secret the connection has stored. Anywhere
+        # else `unmask_encrypted_extra` keeps it and saves it as the credential.
+        if any(
+            field.startswith(f"$.{EMBEDDED_CREDENTIALS_KEY}.")
+            for field in json.unrevealable_masked_fields(
+                json.loads(stored.encrypted_extra)
+                if stored and stored.encrypted_extra
+                else None,
+                encrypted_extra,
+                engine_spec.encrypted_extra_sensitive_field_paths(),
+            )
+        ):
+            raise ValidationError(
+                _(
+                    "Embedded guest credentials are invalid or incomplete. Provide "
+                    "all required fields or clear them to leave embedded viewers "
+                    "unconfigured."
+                ),
+                field_name="masked_encrypted_extra",
+            )
+
         # A credential only applies to a per-user OAuth2 connection with
         # impersonation on (`Database.embedded_fallback_applies`). Anywhere else
         # it would save and silently do nothing -- or, with impersonation off,
@@ -1239,16 +1260,23 @@ class ImportV1DatabaseSchema(Schema):
 
         masked_encrypted_extra = json.loads(data["masked_encrypted_extra"])
 
-        if existing := db.session.query(Database).filter_by(uuid=data["uuid"]).first():
-            if not self.overwrites_existing:
-                return
+        existing = db.session.query(Database).filter_by(uuid=data["uuid"]).first()
+        if existing and not self.overwrites_existing:
+            return
+
+        # The incoming URI decides the engine, and so which fields are secret: an
+        # overwrite can change it, and the stored engine's paths would miss them.
+        db_engine_spec = Database.get_db_engine_spec(
+            make_url_safe(data["sqlalchemy_uri"])
+        )
+
+        if existing:
             # Existing DB: masked values are revealed from its stored
             # encrypted_extra in import_database(). Any the stored payload has no
             # value for -- e.g. a connection promoted without its OAuth2 client or
             # embedded credential -- would otherwise be stored as the mask itself,
             # so ask for those like a new DB. Nothing is revealed onto a
             # connection the import moves, so then ask for every masked value.
-            db_engine_spec = existing.db_engine_spec
             masked_fields = json.unrevealable_masked_fields(
                 json.loads(existing.encrypted_extra)
                 if existing.encrypted_extra
@@ -1258,13 +1286,6 @@ class ImportV1DatabaseSchema(Schema):
                 db_engine_spec.encrypted_extra_sensitive_field_paths(),
             )
         else:
-            # Determine engine spec from sqlalchemy_uri to get sensitive fields
-            sqlalchemy_uri = data["sqlalchemy_uri"]
-            url = make_url_safe(sqlalchemy_uri)
-            backend = url.get_backend_name()
-            driver = url.get_driver_name()
-            db_engine_spec = get_engine_spec(backend, driver=driver)
-
             # Check if any sensitive field is still masked
             masked_fields = get_masked_fields(
                 masked_encrypted_extra,

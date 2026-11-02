@@ -33,7 +33,8 @@ assists people when migrating to a new version.
   required by the selected authentication method — is refused instead of connecting
   with the credential in the connection's own SQLAlchemy URI. The viewer sees a
   `DATABASE_SECURITY_ACCESS_ERROR` saying the chart's connection isn't set up for
-  embedded dashboards; the server log names the connection and how to fix it.
+  embedded dashboards (with `GLOBAL_ASYNC_QUERIES` on, a generic error instead); the
+  server log names the connection and how to fix it.
   **Embedded dashboards that stop loading when the flag is turned on:** any dashboard
   whose charts use a Snowflake connection with **Impersonate logged in user** on but no
   OAuth2 client (none on the connection and no `DATABASE_OAUTH2_CLIENTS` entry for

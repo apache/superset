@@ -647,6 +647,7 @@ def test_encrypted_extra_validator_rejects_non_dict_top_level_value(
         {"username": " \t ", "auth_method": "keypair", "privatekey_body": "PEM"},
         {"username": "embedded_svc", "auth_method": "keypair"},
         {"auth_method": "keypair", "privatekey_body": "-----BEGIN-----"},
+        {"username": "embedded_svc", "auth_method": "keypair", "privatekey_body": "  "},
     ],
 )
 @with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
@@ -1244,3 +1245,77 @@ def test_import_schema_asks_for_masks_an_existing_db_cannot_reveal(
     messages = str(excinfo.value.messages)
     assert "$.oauth2_client_info.secret" in messages
     assert "$.embedded_credentials.password" in messages
+
+
+@pytest.mark.parametrize(
+    "stored_credentials,refused",
+    [
+        ({"username": "embedded_svc"}, True),
+        ({"username": "embedded_svc", "password": PASSWORD_MASK}, True),
+        ({"username": "embedded_svc", "password": "stored"}, False),
+    ],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_masked_embedded_secret_needs_a_stored_value(
+    mocker: MockerFixture, stored_credentials: dict[str, str], refused: bool
+) -> None:
+    """A mask with nothing stored behind it would be saved as the credential."""
+    from superset.databases.schemas import DatabasePutSchema
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    mocker.patch.object(Database, "db_engine_spec", new=SnowflakeEngineSpec)
+    database = Database(
+        sqlalchemy_uri="snowflake://svc@account/db",
+        impersonate_user=True,
+        encrypted_extra=json.dumps({"embedded_credentials": stored_credentials}),
+    )
+    mocker.patch("superset.databases.schemas.db.session.get", return_value=database)
+    payload = {
+        "masked_encrypted_extra": json.dumps(
+            {
+                "oauth2_client_info": {"id": "client", "secret": "secret"},
+                "embedded_credentials": {
+                    "username": "embedded_svc",
+                    "password": PASSWORD_MASK,
+                },
+            }
+        ),
+    }
+
+    if not refused:
+        DatabasePutSchema(database_id=1).load(payload)
+        return
+    with pytest.raises(ValidationError, match="invalid or incomplete"):
+        DatabasePutSchema(database_id=1).load(payload)
+
+
+def test_import_schema_checks_masks_with_the_incoming_engine(
+    mock_bq_engine: None,
+    mocker: MockerFixture,
+) -> None:
+    """An overwrite moving to another engine is checked against that engine's paths."""
+    from superset.databases.schemas import ImportV1DatabaseSchema
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    existing = mocker.MagicMock()
+    existing.db_engine_spec = SqliteEngineSpec
+    existing.encrypted_extra = None
+    existing.sqlalchemy_uri = "sqlite://"
+    existing.extra = "{}"
+    mock_session = mocker.patch("superset.databases.schemas.db.session")
+    mock_session.query.return_value.filter_by.return_value.first.return_value = existing
+
+    with pytest.raises(ValidationError, match="credentials_info.private_key"):
+        ImportV1DatabaseSchema().load(
+            {
+                "database_name": "test_db",
+                "sqlalchemy_uri": "bigquery://test/",
+                "uuid": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                "masked_encrypted_extra": json.dumps(
+                    {"credentials_info": {"private_key": PASSWORD_MASK}}
+                ),
+                "extra": {},
+                "version": "1.0.0",
+            }
+        )

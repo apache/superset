@@ -392,7 +392,7 @@ def unrevealable_masked_fields(
         for field in get_masked_fields(new_payload, sensitive_fields)
         if old_payload is None
         or not any(
-            match.value and match.value != PASSWORD_MASK
+            match.value not in (None, "", PASSWORD_MASK)
             for match in parse(field).find(old_payload)
         )
     ]
