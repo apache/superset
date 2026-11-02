@@ -1211,7 +1211,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     def test_get_dashboard_charts_inherited_by_promiscuous_viewer(self):
         """A viewer of a published dashboard inherits access to its charts'
         form_data under VIEWER_PROMISCUOUS_MODE, without explicit chart grants,
-        so the dashboard can render."""
+        so the dashboard can render. The member charts carry an explicit viewer
+        list that excludes Gamma, so form_data can only come from dashboard
+        inheritance, not from the charts' own dataset-based fallback."""
         from superset.subjects.utils import get_or_create_role_subject
 
         dashboard = self.dashboards[0]
@@ -1219,7 +1221,12 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         gamma_subject = get_or_create_role_subject(
             security_manager.find_role("Gamma").id
         )
+        admin_subject = get_or_create_role_subject(
+            security_manager.find_role("Admin").id
+        )
         dashboard.viewers.append(gamma_subject)
+        for slc in dashboard.slices:
+            slc.viewers.append(admin_subject)
         db.session.commit()
         try:
             self.login(GAMMA_USERNAME)
@@ -1232,6 +1239,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 assert "form_data" in chart
         finally:
             dashboard.viewers.remove(gamma_subject)
+            for slc in dashboard.slices:
+                slc.viewers.remove(admin_subject)
             db.session.commit()
 
     @pytest.mark.usefixtures("create_dashboards")

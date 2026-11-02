@@ -410,3 +410,88 @@ def test_guest_never_inherits_via_promiscuous_viewer_helpers(
             fx.editor_published_slice
         )
         assert not security_manager._promiscuous_viewer_inherits_datasource(fx.table)
+
+
+def test_inherited_dataset_does_not_open_other_charts_or_dashboards(
+    inheritance_fixtures: SimpleNamespace, promiscuous: None
+) -> None:
+    """A dataset inherited through one dashboard grants that dataset, but not
+    every other chart or dashboard built on it: the chart and dashboard
+    fallbacks count only independently granted dataset access."""
+    from superset import security_manager
+    from superset.exceptions import SupersetSecurityException
+
+    fx = inheritance_fixtures
+    with acting_as(fx.viewer_user):
+        # Inherited through the dashboard the user views.
+        security_manager.raise_for_access(datasource=fx.table)
+        security_manager.raise_for_access(chart=fx.viewer_published_slice)
+
+        # A viewer-less chart on the same dataset, only on a dashboard the user
+        # has no role on, and that dashboard itself.
+        with pytest.raises(SupersetSecurityException):
+            security_manager.raise_for_access(chart=fx.unrelated_slice)
+        with pytest.raises(SupersetSecurityException):
+            security_manager.raise_for_access(dashboard=fx.unrelated)
+
+
+def test_chart_with_its_own_viewers_is_inherited_through_the_dashboard(
+    inheritance_fixtures: SimpleNamespace, promiscuous: None
+) -> None:
+    """A member chart whose explicit viewer list excludes the user is still
+    served to a viewer of its dashboard, through dashboard inheritance rather
+    than the chart's own access rules."""
+    from superset import security_manager
+    from superset.subjects.models import Subject
+    from superset.subjects.types import SubjectType
+
+    fx = inheritance_fixtures
+    other = Subject(
+        label="stranger", type=SubjectType.USER, user_id=fx.stranger_user.id
+    )
+    fx.session.add(other)
+    fx.viewer_published_slice.viewers = [other]
+    fx.session.flush()
+
+    with acting_as(fx.viewer_user):
+        assert not security_manager.is_viewer(fx.viewer_published_slice)
+        security_manager.raise_for_access(chart=fx.viewer_published_slice)
+
+
+def test_resolver_granted_dashboard_editor_inherits(
+    inheritance_fixtures: SimpleNamespace,
+    promiscuous: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Editorship granted by ``EXTRA_EDITORS_RESOLVER`` has no persisted rows,
+    so the SQL inheritance can't see it; the helpers check the dashboards
+    directly when a resolver is configured."""
+    from superset import security_manager
+    from superset.subjects.models import Subject
+    from superset.subjects.types import SubjectType
+
+    fx = inheritance_fixtures
+    stranger_subject = Subject(
+        label="stranger", type=SubjectType.USER, user_id=fx.stranger_user.id
+    )
+    fx.session.add(stranger_subject)
+    fx.session.flush()
+
+    with acting_as(fx.stranger_user):
+        assert not security_manager._promiscuous_viewer_inherits_chart(
+            fx.unrelated_slice
+        )
+        assert not security_manager._promiscuous_viewer_inherits_datasource(fx.table)
+
+        monkeypatch.setitem(
+            current_app.config,
+            "EXTRA_EDITORS_RESOLVER",
+            lambda resource: [stranger_subject] if resource is fx.unrelated else [],
+        )
+
+        assert security_manager.is_editor(fx.unrelated)
+        assert security_manager._promiscuous_viewer_inherits_chart(fx.unrelated_slice)
+        assert security_manager._promiscuous_viewer_inherits_datasource(fx.table)
+        assert not security_manager._promiscuous_viewer_inherits_chart(
+            fx.viewer_published_slice
+        )

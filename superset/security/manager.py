@@ -2670,16 +2670,27 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
         return self.can_access("datasource_access", layer_perm)
 
-    def can_access_datasource(self, datasource: "BaseDatasource") -> bool:
+    def can_access_datasource(
+        self,
+        datasource: "BaseDatasource",
+        *,
+        allow_dashboard_inheritance: bool = True,
+    ) -> bool:
         """
         Return True if the user can access the specified datasource, False otherwise.
 
         :param datasource: The datasource
+        :param allow_dashboard_inheritance: Whether access inherited through a
+            dashboard under ``VIEWER_PROMISCUOUS_MODE`` counts; see
+            :meth:`raise_for_access`
         :returns: Whether the user can access the datasource
         """
 
         try:
-            self.raise_for_access(datasource=datasource)
+            self.raise_for_access(
+                datasource=datasource,
+                allow_dashboard_inheritance=allow_dashboard_inheritance,
+            )
         except SupersetSecurityException:
             return False
 
@@ -2757,11 +2768,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
 
         subquery = get_inherited_slice_ids_subquery(user_id).subquery()
-        return (
+        if (
             self.session.query(subquery.c.slice_id)
             .filter(subquery.c.slice_id == chart.id)
             .first()
             is not None
+        ):
+            return True
+        # ``EXTRA_EDITORS_RESOLVER`` grants editorship in Python, which the SQL
+        # above can't see, so check the chart's dashboards directly when set.
+        return bool(current_app.config.get("EXTRA_EDITORS_RESOLVER")) and any(
+            self.is_editor(dashboard) for dashboard in chart.dashboards
         )
 
     def _promiscuous_viewer_inherits_datasource(
@@ -2790,12 +2807,33 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         subquery = get_inherited_datasource_ids_subquery(
             user_id, datasource.type
         ).subquery()
-        return (
+        if (
             self.session.query(subquery.c.datasource_id)
             .filter(subquery.c.datasource_id == datasource.id)
             .first()
             is not None
+        ):
+            return True
+        # ``EXTRA_EDITORS_RESOLVER`` grants editorship in Python, which the SQL
+        # above can't see, so check the dashboards using this datasource
+        # directly when set.
+        if not current_app.config.get("EXTRA_EDITORS_RESOLVER"):
+            return False
+        from superset.models.dashboard import Dashboard, dashboard_slices
+        from superset.models.slice import Slice
+
+        dashboards = (
+            self.session.query(Dashboard)
+            .join(dashboard_slices, dashboard_slices.c.dashboard_id == Dashboard.id)
+            .join(Slice, Slice.id == dashboard_slices.c.slice_id)
+            .filter(
+                Slice.datasource_type == datasource.type,
+                Slice.datasource_id == datasource.id,
+            )
+            .distinct()
+            .all()
         )
+        return any(self.is_editor(dashboard) for dashboard in dashboards)
 
     def _has_promiscuous_chart_access(
         self,
@@ -5448,6 +5486,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         force_dataset_match: bool = False,
         allow_query_authorship_bypass: bool = False,
         allow_editorship: bool = True,
+        allow_dashboard_inheritance: bool = True,
     ) -> None:
         """
         Raise an exception if the user cannot access the resource.
@@ -5503,6 +5542,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             catalog/schema fallthroughs, so ``schema_access`` still authorizes
             defining a dataset. Ignored when ``force_dataset_match`` is True
             (editorship is already excluded there).
+        :param allow_dashboard_inheritance: When False, datasource access a
+            dashboard editor or viewer inherits under ``VIEWER_PROMISCUOUS_MODE``
+            doesn't count. The chart and dashboard fallbacks that derive access
+            from the dataset set this to False, so a dataset inherited through
+            one dashboard doesn't open other charts or dashboards on it.
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
@@ -5973,7 +6017,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # independent of the request's ``form_data``. This is what
                 # lets ``GET /dashboard/<id>/datasets`` serve full metadata to a
                 # promiscuous viewer.
-                or self._promiscuous_viewer_inherits_datasource(datasource)
+                or (
+                    allow_dashboard_inheritance
+                    and self._promiscuous_viewer_inherits_datasource(datasource)
+                )
             ):
                 raise SupersetSecurityException(
                     self.get_datasource_access_error_object(datasource)
@@ -6043,8 +6090,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 def member_datasource_accessible() -> bool:
                     resolved: BaseDatasource | Explorable | None
                     for resolved in Slice.iter_resolved_datasources(member_slices):
+                        # Independently granted access only, so a dataset
+                        # inherited through another dashboard doesn't open
+                        # this one.
                         if resolved is not None and self.can_access_datasource(
-                            resolved
+                            resolved, allow_dashboard_inheritance=False
                         ):
                             return True
                     return False
@@ -6070,7 +6120,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # SqlaTable-only, which silently denied entitled users of
                 # semantic-view charts here.
                 chart_datasource := chart.resolved_datasource
-            ) is not None and self.can_access_datasource(chart_datasource):
+            ) is not None and self.can_access_datasource(
+                # Only independently granted dataset access: a dataset inherited
+                # through dashboard A must not open every other chart on it.
+                # Dashboard inheritance reaches charts only through
+                # ``_promiscuous_viewer_inherits_chart`` below.
+                chart_datasource,
+                allow_dashboard_inheritance=False,
+            ):
                 return
 
             # Dashboard-viewer promiscuous mode: a viewer or editor of a
