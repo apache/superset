@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -102,6 +103,18 @@ class _Filters:
         which is the rule settled for it in #43829.
         """
         return self.editors_filter is not None or self.certified_filter is True
+
+
+def _layer_uuid(col: str, value: Any) -> str:
+    """Check a semantic layer uuid, which is bound to a UUID column.
+
+    Without this a malformed value only fails at query time, as a 500.
+    """
+    try:
+        uuid.UUID(value)
+    except (AttributeError, TypeError, ValueError) as ex:
+        raise ValueError(f"Invalid value for filter column: {col}") from ex
+    return str(value)
 
 
 def _relation_id(col: str, value: Any) -> int:
@@ -403,6 +416,10 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         if value is None:
             return {}
         if col == "table_name":
+            # A name search is text; a number or list would fail in the ILIKE
+            # escaping with a 500 instead of this 400.
+            if not isinstance(value, str):
+                raise ValueError(f"Invalid value for filter column: {col}")
             return {"name_filter": value}
         if col == "sql":
             if value != "semantic_view" and not isinstance(value, bool):
@@ -416,7 +433,7 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         if col == "database":
             return {"database_id": _relation_id(col, value)}
         if col == "semantic_layer_uuid":
-            return {"semantic_layer_uuid": str(value)}
+            return {"semantic_layer_uuid": _layer_uuid(col, value)}
         return {"schema_filter": str(value)}
 
     @staticmethod

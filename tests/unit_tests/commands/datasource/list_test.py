@@ -27,6 +27,8 @@ from superset.commands.datasource.list import (
     GetCombinedDatasourceListCommand,
 )
 
+_LAYER_UUID = "123e4567-e89b-12d3-a456-426614174000"
+
 
 def test_parse_filters_semantic_view_requires_dataset_operator() -> None:
     # ``sql`` only means something with ``dataset_is_null_or_empty``; any other
@@ -354,7 +356,7 @@ def test_resolve_connection_semantic_layer_uuid_with_schema_is_empty() -> None:
     source_type = GetCombinedDatasourceListCommand._resolve_connection_source_type(
         source_type="all",
         database_id=None,
-        semantic_layer_uuid="uuid-123",
+        semantic_layer_uuid=_LAYER_UUID,
         dataset_only=True,
     )
 
@@ -366,7 +368,7 @@ def test_resolve_connection_semantic_layer_uuid_without_schema() -> None:
     source_type = GetCombinedDatasourceListCommand._resolve_connection_source_type(
         source_type="all",
         database_id=None,
-        semantic_layer_uuid="uuid-123",
+        semantic_layer_uuid=_LAYER_UUID,
         dataset_only=False,
     )
 
@@ -379,7 +381,7 @@ def test_resolve_connection_explicit_semantic_layer_ignores_schema() -> None:
     source_type = GetCombinedDatasourceListCommand._resolve_connection_source_type(
         source_type="semantic_layer",
         database_id=None,
-        semantic_layer_uuid="uuid-123",
+        semantic_layer_uuid=_LAYER_UUID,
         dataset_only=True,
     )
 
@@ -396,7 +398,7 @@ def test_run_semantic_layer_connection_with_schema_returns_empty() -> None:
     command = GetCombinedDatasourceListCommand(
         args={
             "filters": [
-                {"col": "semantic_layer_uuid", "opr": "eq", "value": "uuid-123"},
+                {"col": "semantic_layer_uuid", "opr": "eq", "value": _LAYER_UUID},
                 {"col": "schema", "opr": "eq", "value": "main"},
             ]
         },
@@ -523,7 +525,7 @@ def test_run_semantic_layer_connection_with_sql_filter_returns_empty(
     command = GetCombinedDatasourceListCommand(
         args={
             "filters": [
-                {"col": "semantic_layer_uuid", "opr": "eq", "value": "uuid-123"},
+                {"col": "semantic_layer_uuid", "opr": "eq", "value": _LAYER_UUID},
                 {
                     "col": "sql",
                     "opr": "dataset_is_null_or_empty",
@@ -549,7 +551,7 @@ def test_run_semantic_layer_connection_without_dataset_filter_lists_views() -> N
     command = GetCombinedDatasourceListCommand(
         args={
             "filters": [
-                {"col": "semantic_layer_uuid", "opr": "eq", "value": "uuid-123"},
+                {"col": "semantic_layer_uuid", "opr": "eq", "value": _LAYER_UUID},
             ]
         },
         can_read_datasets=True,
@@ -633,6 +635,13 @@ def test_parse_filters_rejects_wrong_operator_on_every_known_column(
         {"col": "database", "opr": "rel_o_m", "value": "not-an-id"},
         {"col": "database", "opr": "rel_o_m", "value": True},
         {"col": "sql", "opr": "dataset_is_null_or_empty", "value": "maybe"},
+        # A name search takes text: a number or list would fail in the ILIKE
+        # escaping with a 500 instead of the 400 promised here.
+        {"col": "table_name", "opr": "ct", "value": 5},
+        {"col": "table_name", "opr": "ct", "value": ["sales"]},
+        # The layer uuid is bound to a UUID column, which only fails at query time.
+        {"col": "semantic_layer_uuid", "opr": "eq", "value": "not-a-uuid"},
+        {"col": "semantic_layer_uuid", "opr": "eq", "value": 5},
     ],
 )
 def test_parse_filters_rejects_malformed_values_on_known_columns(
@@ -769,3 +778,14 @@ def test_run_explicit_semantic_layer_keeps_views_for_compatible_filters(
         command.run()
 
     assert build_mock.call_args.args[0] == "semantic_layer"
+
+
+def test_parse_filters_accepts_text_name_and_uuid_layer() -> None:
+    filters = GetCombinedDatasourceListCommand._parse_filters(
+        [
+            {"col": "table_name", "opr": "ct", "value": "sales"},
+            {"col": "semantic_layer_uuid", "opr": "eq", "value": _LAYER_UUID},
+        ]
+    )
+
+    assert filters == _Filters(name_filter="sales", semantic_layer_uuid=_LAYER_UUID)
