@@ -54,6 +54,7 @@ const result: CanvasDefinitionResult = {
   filterScopes: {},
   crossFilterScopes: {},
   customizationScopes: {},
+  eventScopes: {},
   placements: {},
   widgetTypes: {
     overview: 'tabs',

@@ -17449,6 +17449,10 @@
                         "definition": {
                           "type": "object"
                         },
+                        "eventScopes": {
+                          "description": "The node ids each node's events of any other kind reach: its auto scope",
+                          "type": "object"
+                        },
                         "filterScopes": {
                           "description": "The node ids each filter drives, resolved from the tree and the definition's scope overrides",
                           "type": "object"

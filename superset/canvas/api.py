@@ -553,6 +553,11 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                           customizationScopes:
                             type: object
                             description: The node ids each customization drives
+                          eventScopes:
+                            type: object
+                            description: >-
+                              The node ids each node's events of any other
+                              kind reach: its auto scope
                           placements:
                             type: object
                             description: >-

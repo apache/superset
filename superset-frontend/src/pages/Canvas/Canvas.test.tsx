@@ -60,6 +60,7 @@ const definition = (children: string[], revision = 1) => ({
     filterScopes: {},
     crossFilterScopes: {},
     customizationScopes: {},
+    eventScopes: {},
     placements: {},
     widgetTypes: {},
     gridColumns: {},
