@@ -151,7 +151,13 @@ class ImpalaEngineSpec(BaseEngineSpec):
     @classmethod
     @guard_cursor
     def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
-        """Wait for asynchronous operations using the public cursor API."""
+        """Wait for asynchronous operations using the public cursor API.
+
+        On a time limit, only cancel before abandoning locally: alerts/reports
+        have a short soft-to-hard limit gap. CancelOperation itself is not
+        bounded here; configure a driver network timeout or increase
+        ALERT_REPORTS_WORKING_TIME_OUT_LAG for Impala alerts/reports.
+        """
         try:
             if callable(getattr(cursor, "execute_async", None)):
                 from impala.error import Error
@@ -172,8 +178,8 @@ class ImpalaEngineSpec(BaseEngineSpec):
                 except Error as ex:
                     raise cls.get_dbapi_mapped_exception(ex) from ex
             return super().fetch_data(cursor, limit)
-        except TIME_LIMIT_EXCEPTIONS:
-            cls._cancel_operation_on_time_limit(cursor)
+        except TIME_LIMIT_EXCEPTIONS as ex:
+            cls._cancel_operation_on_time_limit(cursor, fetch_time_limit=ex)
             raise
 
     @classmethod
@@ -405,7 +411,11 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     @classmethod
     def _cancel_operation_on_time_limit(
-        cls, cursor: Any, query_id: int | None = None
+        cls,
+        cursor: Any,
+        query_id: int | None = None,
+        *,
+        fetch_time_limit: BaseException | None = None,
     ) -> None:
         """Cancel after a limit between RPCs, never on an interrupted transport."""
         cursor = real_cursor(cursor)
@@ -417,6 +427,18 @@ class ImpalaEngineSpec(BaseEngineSpec):
         session = getattr(cursor, "session", None)
         guard = session.service.client if session is not None else None
         if isinstance(guard, ThriftClientGuard) and guard.interrupted:
+            return
+        if fetch_time_limit is not None:
+            try:
+                # The default resets state via CloseOperation, which can block.
+                cursor.cancel_operation(reset_state=False)
+            except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
+                logger.warning("Query %s: cancel_operation() failed", query_id)
+            finally:
+                if isinstance(guard, ThriftClientGuard):
+                    guard.abandon(fetch_time_limit)
+                else:
+                    cls._abandon_cursor(cursor, query_id)
             return
         try:
             cls._cancel_operation(cursor, query_id)

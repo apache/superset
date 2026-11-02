@@ -908,9 +908,18 @@ def test_polling_limit_cancels_on_clean_transport(
             run(*args)
 
     assert raised.value is timeout
-    assert [name for name, _, _ in handler.calls][-3:] == [
-        "CancelOperation",
-        "CloseOperation",
-        "CloseSession",
-    ]
-    assert not conn.service.client.interrupted
+    if entry == "fetch_data":
+        # Finalizers and connection release must remain local after cancel-only.
+        cursor.close()
+        cursor.__del__()
+        conn.close()
+        assert handler.requests[-1] == "CancelOperation"
+        assert cursor._closed is True
+        assert conn.service.client.interrupted
+    else:
+        assert [name for name, _, _ in handler.calls][-3:] == [
+            "CancelOperation",
+            "CloseOperation",
+            "CloseSession",
+        ]
+        assert not conn.service.client.interrupted

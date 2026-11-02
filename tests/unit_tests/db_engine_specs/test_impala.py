@@ -403,7 +403,7 @@ def test_fetch_data_cancels_the_operation_on_time_limit(
     cursor.is_executing.return_value = True
     with pytest.raises(type(timeout)):
         spec.fetch_data(cursor)
-    cursor.cancel_operation.assert_called_once_with()
+    cursor.cancel_operation.assert_called_once_with(reset_state=False)
     cursor.fetchall.assert_not_called()
 
 
@@ -437,7 +437,7 @@ def test_fetch_data_preserves_time_limit_when_cancellation_times_out(
         spec.fetch_data(cursor)
 
     assert raised.value is original_timeout
-    cursor.cancel_operation.assert_called_once_with()
+    cursor.cancel_operation.assert_called_once_with(reset_state=False)
     cursor.fetchall.assert_not_called()
 
 
@@ -475,7 +475,7 @@ def test_fetch_data_cancels_on_clean_transport_row_fetch_limit(
 
     assert raised.value is timeout
     fetch.assert_called_once_with(cursor, 10)
-    cursor.cancel_operation.assert_called_once_with()
+    cursor.cancel_operation.assert_called_once_with(reset_state=False)
 
 
 @pytest.mark.parametrize("cancel_fails", [False, True])
@@ -503,9 +503,12 @@ def test_fetch_data_cancels_after_mock_fetch_limit(
             spec.fetch_data(cursor)
 
     assert raised.value is timeout
-    assert calls.mock_calls == [call.cancel_operation()]
-    cursor.close_operation.assert_called_once_with()
-    cursor.close.assert_called_once_with()
+    assert calls.mock_calls == [
+        call.cancel_operation(reset_state=False),
+        call.reset_transport(cursor, reconnect=False),
+    ]
+    cursor.close_operation.assert_not_called()
+    cursor.close.assert_not_called()
 
 
 @pytest.mark.parametrize("interrupted_rpc", ["status", "get_log"])
@@ -650,7 +653,7 @@ def test_time_limit_during_transport_reset_propagates(
             spec.fetch_data(cursor)
 
     assert raised.value is original_timeout
-    cursor.cancel_operation.assert_called_once_with()
+    cursor.cancel_operation.assert_called_once_with(reset_state=False)
     assert cursor._closed is True
 
 
@@ -690,7 +693,9 @@ def test_fetch_time_limit_preserved_when_rpc_cleanup_times_out(
             spec.fetch_data(cursor)
 
     assert raised.value is original_timeout
-    getattr(cursor, cleanup_rpc).assert_called_once_with()
+    cursor.cancel_operation.assert_called_once_with(reset_state=False)
+    cursor.close_operation.assert_not_called()
+    cursor.close.assert_not_called()
     assert cursor._closed is True
     assert clean_transport.mock_calls == [call(cursor, reconnect=False)]
 
@@ -755,3 +760,37 @@ def test_time_limit_does_not_cancel_unusable_cursor(state: str) -> None:
     cursor.cancel_operation.assert_not_called()
     cursor.close_operation.assert_not_called()
     cursor.close.assert_not_called()
+
+
+@pytest.mark.parametrize("phase", ["poll", "rows"])
+@pytest.mark.parametrize(
+    "timeout",
+    [SoftTimeLimitExceeded(), KeyboardInterrupt()],
+    ids=["soft-limit", "timer-interrupt"],
+)
+def test_fetch_limit_cancels_without_close_rpcs(
+    phase: str,
+    timeout: BaseException,
+    clean_transport: Mock,
+    app_context: None,
+    impala_errors: None,
+) -> None:
+    """Only CancelOperation may consume the soft-to-hard time-limit gap."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    cursor = Mock()
+    cursor.is_executing.return_value = phase == "poll"
+    cursor.execution_failed.return_value = False
+    with (
+        patch("superset.db_engine_specs.impala.time.sleep", side_effect=timeout),
+        patch.object(BaseEngineSpec, "fetch_data", side_effect=timeout),
+    ):
+        with pytest.raises(type(timeout)) as raised:
+            spec.fetch_data(cursor)
+
+    assert raised.value is timeout
+    cursor.cancel_operation.assert_called_once_with(reset_state=False)
+    cursor.close_operation.assert_not_called()
+    cursor.close.assert_not_called()
+    clean_transport.assert_called_once_with(cursor, reconnect=False)
+    assert cursor._closed is True
