@@ -343,8 +343,14 @@ def _raise_for_unreadable_new_charts(
             selectinload(Slice.editors),
             selectinload(Slice.viewers),
         ).filter(Slice.id.in_([chart.id for chart in candidates])).all()
+    # Access inherited through another dashboard doesn't count: it lasts only
+    # as long as that dashboard grants it, while membership here would keep it.
     denied: list[int] = sorted(
-        chart.id for chart in candidates if not security_manager.can_access_chart(chart)
+        chart.id
+        for chart in candidates
+        if not security_manager.can_access_chart(
+            chart, allow_dashboard_inheritance=False
+        )
     )
     if denied:
         raise DashboardLayoutInvalidError(

@@ -3067,14 +3067,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return True
 
-    def can_access_chart(self, chart: "Slice") -> bool:
+    def can_access_chart(
+        self,
+        chart: "Slice",
+        *,
+        allow_dashboard_inheritance: bool = True,
+    ) -> bool:
         """
         Return True if the user can access the specified chart, False otherwise.
         :param chart: The chart
+        :param allow_dashboard_inheritance: Whether access inherited through a
+            dashboard under ``VIEWER_PROMISCUOUS_MODE`` counts; see
+            :meth:`raise_for_access`
         :return: Whether the user can access the chart
         """
         try:
-            self.raise_for_access(chart=chart)
+            self.raise_for_access(
+                chart=chart, allow_dashboard_inheritance=allow_dashboard_inheritance
+            )
         except SupersetSecurityException:
             return False
 
@@ -5542,11 +5552,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             catalog/schema fallthroughs, so ``schema_access`` still authorizes
             defining a dataset. Ignored when ``force_dataset_match`` is True
             (editorship is already excluded there).
-        :param allow_dashboard_inheritance: When False, datasource access a
-            dashboard editor or viewer inherits under ``VIEWER_PROMISCUOUS_MODE``
-            doesn't count. The chart and dashboard fallbacks that derive access
-            from the dataset set this to False, so a dataset inherited through
-            one dashboard doesn't open other charts or dashboards on it.
+        :param allow_dashboard_inheritance: When False, chart and datasource
+            access a dashboard editor or viewer inherits under
+            ``VIEWER_PROMISCUOUS_MODE`` doesn't count. The chart and dashboard
+            fallbacks that derive access from the dataset set this to False, so
+            a dataset inherited through one dashboard doesn't open other charts
+            or dashboards on it, and so does the dashboard layout check, so a
+            chart readable only through one dashboard can't be attached to
+            another.
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
@@ -6135,7 +6148,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # itself, so its definition (``form_data``) can be served for
             # rendering. This is datasource-type agnostic and covers charts
             # whose datasource cannot be resolved above.
-            if self._promiscuous_viewer_inherits_chart(chart):
+            if allow_dashboard_inheritance and self._promiscuous_viewer_inherits_chart(
+                chart
+            ):
                 return
 
             # An embedded guest may access a member chart of a dashboard their

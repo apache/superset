@@ -495,3 +495,44 @@ def test_resolver_granted_dashboard_editor_inherits(
         assert not security_manager._promiscuous_viewer_inherits_chart(
             fx.viewer_published_slice
         )
+
+
+def test_chart_readable_only_through_a_dashboard_cannot_be_attached_elsewhere(
+    inheritance_fixtures: SimpleNamespace, promiscuous: None
+) -> None:
+    """A viewer reads a chart through the dashboard they view, but can't
+    attach it to a dashboard they edit: that membership would outlive the
+    viewer grant (the editor leg isn't gated on ``published``)."""
+    from superset import security_manager
+    from superset.commands.dashboard.exceptions import DashboardLayoutInvalidError
+    from superset.daos.dashboard import DashboardDAO
+    from superset.models.dashboard import Dashboard
+
+    fx = inheritance_fixtures
+    chart = fx.viewer_published_slice
+    own_dashboard = Dashboard(
+        dashboard_title="viewer's own",
+        slug="viewers-own",
+        published=False,
+        editors=list(fx.viewer_published.viewers),
+    )
+    fx.session.add(own_dashboard)
+    fx.session.flush()
+    positions = {
+        "CHART-1": {
+            "type": "CHART",
+            "id": "CHART-1",
+            "children": [],
+            "meta": {"chartId": chart.id, "width": 4, "height": 50},
+        }
+    }
+
+    with acting_as(fx.viewer_user):
+        assert security_manager.can_access_chart(chart)
+        assert not security_manager.can_access_chart(
+            chart, allow_dashboard_inheritance=False
+        )
+        with pytest.raises(DashboardLayoutInvalidError):
+            DashboardDAO.set_dash_metadata(own_dashboard, {"positions": positions})
+
+    assert own_dashboard.slices == []
