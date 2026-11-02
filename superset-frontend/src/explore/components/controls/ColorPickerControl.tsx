@@ -122,10 +122,7 @@ const getReverseThemeColorMap = (
       // Shorthand pure black/white (e.g. `colorTextBase: '#000'`) would make a
       // plain black or white pick match a base token and save the token name
       // instead of a usable color value.
-      if (
-        /^#[0-9a-f]{3,4}$/i.test(value) &&
-        PURE_BLACK_OR_WHITE.has(hex)
-      ) {
+      if (/^#[0-9a-f]{3,4}$/i.test(value) && PURE_BLACK_OR_WHITE.has(hex)) {
         return;
       }
       if (!reverseMap.has(hex)) {
