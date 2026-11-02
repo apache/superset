@@ -67,7 +67,7 @@ const buildParams = (
   initialCustomizationOrder: [],
   unsavedFiltersIds: [],
   pristineItems: {
-    capture: jest.fn(),
+    remember: jest.fn(),
     isUnchanged: jest.fn(() => false),
     reset: jest.fn(),
   },
@@ -128,7 +128,7 @@ test('hasUnsavedChanges is false when nothing changed and no removal is pending'
 const buildPristineStore = (seeded: Record<string, unknown> = {}) => {
   const values: Record<string, unknown> = { ...seeded };
   return {
-    capture: jest.fn((id: string, value: unknown) => {
+    remember: jest.fn((id: string, value: unknown) => {
       if (!(id in values)) {
         values[id] = value;
       }
@@ -182,7 +182,9 @@ test('a filter edited and put back is not saved', async () => {
     await result.current.handleSave();
   });
 
-  expect(onSave).not.toHaveBeenCalled();
+  // The modal still closes, so the author is not left pressing a dead
+  // button -- it just closes with nothing to write.
+  expect(onSave).toHaveBeenCalledWith({});
 });
 
 test('a filter that really changed is still saved, alongside one that did not', async () => {

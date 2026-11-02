@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useRef } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef } from 'react';
 import { isEqual } from 'lodash-es';
 
 /**
- * Each item as the form first held it, so a save can tell an edit from a
- * round trip.
+ * Each item as the form held it before anyone edited it, so a save can tell
+ * an edit from a round trip.
  *
  * The modal marks an item modified the moment its form is touched and never
  * un-marks it, so opening a filter, changing a field and putting it back
@@ -36,11 +36,18 @@ import { isEqual } from 'lodash-es';
  * `controlValues.operatorType`, `targets[].datasourceType`. The two shapes
  * never match, so a comparison between them never fires. Both sides have to
  * come from the form, which is what this records.
+ *
+ * `remember` overwrites rather than keeping the first value it is given. A
+ * filter's dataset and column arrive from a fetch, so the first render after
+ * the panel mounts has `targets: [{}]` and only settles a moment later;
+ * freezing that first reading made every filter look edited. The caller
+ * stops calling once the item is marked modified, so the last reading before
+ * the first edit is the one that stands.
  */
 export interface PristineItemValues {
-  /** Record how an item stood before anyone touched it. A no-op once set. */
-  capture: (id: string, value: unknown) => void;
-  /** Whether `value` is what the form first held for `id`. */
+  /** Record how an item stands while nobody has edited it yet. */
+  remember: (id: string, value: unknown) => void;
+  /** Whether `value` is what the form held before the first edit. */
   isUnchanged: (id: string, value: unknown) => boolean;
   /** Forget everything, for a reopened or reset modal. */
   reset: () => void;
@@ -49,18 +56,15 @@ export interface PristineItemValues {
 export function usePristineItemValues(): PristineItemValues {
   const pristine = useRef<Record<string, unknown>>({});
 
-  const capture = useCallback((id: string, value: unknown) => {
-    if (!(id in pristine.current)) {
-      pristine.current[id] = value;
-    }
+  const remember = useCallback((id: string, value: unknown) => {
+    pristine.current[id] = value;
   }, []);
 
   const isUnchanged = useCallback(
     (id: string, value: unknown) =>
       // An item nobody recorded is one we cannot vouch for -- a filter added
-      // in this session, or one whose form had not mounted when the snapshot
-      // was taken. Saying "changed" there keeps the save, which is the side
-      // to be wrong on.
+      // in this session, or one whose form never mounted. Saying "changed"
+      // there keeps the save, which is the side to be wrong on.
       id in pristine.current && isEqual(pristine.current[id], value),
     [],
   );
@@ -69,5 +73,32 @@ export function usePristineItemValues(): PristineItemValues {
     pristine.current = {};
   }, []);
 
-  return { capture, isUnchanged, reset };
+  return { remember, isUnchanged, reset };
+}
+
+/**
+ * How a filter's own form reports its pristine value to the modal.
+ *
+ * The modal cannot read it for itself. A filter's dataset and column arrive
+ * from a fetch, and that fetch settling re-renders the filter's form, not the
+ * modal around it -- so a reading taken from the modal is always the empty
+ * one taken a moment too early. The form is the only component that re-renders
+ * when its own fields settle, so it is the one that has to report.
+ *
+ * The modal's implementation ignores a report for an item already marked
+ * modified, which is what freezes the baseline at the last reading before the
+ * first edit.
+ */
+export const PristineItemValuesContext = createContext<(id: string) => void>(
+  () => {},
+);
+
+/** Report this item's current value while it is still untouched. */
+export function useReportPristineValue(id: string): void {
+  const report = useContext(PristineItemValuesContext);
+  // Deliberately on every render: the point is to catch the render in which
+  // the form's asynchronous fields settle, which is not otherwise signalled.
+  useEffect(() => {
+    report(id);
+  });
 }

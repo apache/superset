@@ -50,6 +50,7 @@ import {
   useCustomizationOperations,
   useModalSaveLogic,
   usePristineItemValues,
+  PristineItemValuesContext,
   filterSupportsDependencies,
 } from './hooks';
 import {
@@ -523,37 +524,28 @@ function FiltersConfigModal({
     }
   }, [currentItemId, customizationState]);
 
-  // Record each item the way the form first held it, once its panel has
-  // mounted and before anyone can have edited it, so the save can tell a real
-  // edit from a field changed and changed back. Items already marked modified
-  // are skipped: whatever they hold now is no longer pristine.
-  useEffect(() => {
-    const values = form.getFieldValue('filters') || {};
-    [
-      ...filterState.renderedIds.filter(
-        id => !filterState.changes.modified.includes(id),
-      ),
-      ...customizationState.renderedIds.filter(
-        id => !customizationState.changes.modified.includes(id),
-      ),
-    ].forEach(id => {
-      if (values[id]) {
-        pristineItems.capture(
-          id,
-          isFilterId(id)
-            ? transformFilterForSave(id, values[id])
-            : transformCustomizationForSave(id, values[id]),
-        );
-      }
-    });
-  }, [
-    form,
-    filterState.renderedIds,
-    filterState.changes.modified,
-    customizationState.renderedIds,
-    customizationState.changes.modified,
-    pristineItems,
-  ]);
+  // Keep each untouched item's value up to date, so the save can tell a real
+  // edit from a field changed and changed back. Reported by each item's own
+  // form, which is the only component that re-renders when its asynchronous
+  // fields settle. An item already marked modified is ignored, and that is
+  // what freezes the baseline at the last reading before the first edit.
+  const rememberPristineValue = useEffectEvent((id: string) => {
+    const isFilter = isFilterId(id);
+    const state = isFilter ? filterState : customizationState;
+    if (state.changes.modified.includes(id)) {
+      return;
+    }
+    const values = form.getFieldValue('filters')?.[id];
+    if (!values) {
+      return;
+    }
+    pristineItems.remember(
+      id,
+      isFilter
+        ? transformFilterForSave(id, values)
+        : transformCustomizationForSave(id, values),
+    );
+  });
 
   const handleSetErroredFilters = useCallback(
     (updater: (filters: string[]) => string[]) => {
@@ -608,6 +600,7 @@ function FiltersConfigModal({
     >
       <ErrorBoundary>
         <StyledModalBody expanded={expanded}>
+          <PristineItemValuesContext.Provider value={rememberPristineValue}>
           <BaseForm
             form={form}
             onValuesChange={handleValuesChange}
@@ -674,6 +667,7 @@ function FiltersConfigModal({
               />
             </StyledMainFlex>
           </BaseForm>
+          </PristineItemValuesContext.Provider>
         </StyledModalBody>
       </ErrorBoundary>
     </BaseModalWrapper>

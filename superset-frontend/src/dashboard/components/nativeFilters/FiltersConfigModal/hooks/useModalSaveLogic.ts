@@ -365,10 +365,14 @@ export function useModalSaveLogic({
         };
       }
 
-      if (saveChanges.filterChanges || saveChanges.customizationChanges) {
-        await onSave(saveChanges);
-        resetForm(true);
-      }
+      // Closed even when nothing is left to post. An item can be marked
+      // modified and still hold what the form opened with, so Save is
+      // reachable with an empty change set; `onSave` dispatches per change
+      // kind and then closes, so an empty one closes and writes nothing.
+      // Leaving the modal sitting there would be a worse answer than the
+      // write this avoids.
+      await onSave(saveChanges);
+      resetForm(true);
     } else {
       configFormRef.current?.changeTab?.('configuration');
     }

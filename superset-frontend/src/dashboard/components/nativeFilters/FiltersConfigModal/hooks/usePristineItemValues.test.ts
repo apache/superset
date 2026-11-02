@@ -22,24 +22,32 @@ import { usePristineItemValues } from './usePristineItemValues';
 test('an item holding what it opened with is unchanged', () => {
   const { result } = renderHook(() => usePristineItemValues());
 
-  act(() => result.current.capture('f1', { name: 'Country' }));
+  act(() => result.current.remember('f1', { name: 'Country' }));
 
   expect(result.current.isUnchanged('f1', { name: 'Country' })).toBe(true);
   expect(result.current.isUnchanged('f1', { name: 'Region' })).toBe(false);
 });
 
-test('the first capture wins, so a later edit cannot overwrite the baseline', () => {
+test('the latest reading wins, so async values fold into the baseline', () => {
+  // A filter's dataset and column arrive from a fetch, so the first reading
+  // after the panel mounts carries an empty target and only settles a moment
+  // later. Keeping that first reading made every filter look edited. The
+  // caller stops calling once the item is marked modified, which is what
+  // freezes the baseline at the last reading before the first edit.
   const { result } = renderHook(() => usePristineItemValues());
 
   act(() => {
-    result.current.capture('f1', { name: 'Country' });
-    result.current.capture('f1', { name: 'Region' });
+    result.current.remember('f1', { targets: [{}] });
+    result.current.remember('f1', { targets: [{ datasetId: 13 }] });
   });
 
-  expect(result.current.isUnchanged('f1', { name: 'Country' })).toBe(true);
+  expect(result.current.isUnchanged('f1', { targets: [{ datasetId: 13 }] })).toBe(
+    true,
+  );
+  expect(result.current.isUnchanged('f1', { targets: [{}] })).toBe(false);
 });
 
-test('an item nobody captured counts as changed', () => {
+test('an item nobody recorded counts as changed', () => {
   // A filter added in this session, or one whose form had not mounted. Both
   // have to be saved, so the answer has to be "changed".
   const { result } = renderHook(() => usePristineItemValues());
@@ -51,7 +59,7 @@ test('reset forgets everything, for a reopened modal', () => {
   const { result } = renderHook(() => usePristineItemValues());
 
   act(() => {
-    result.current.capture('f1', { name: 'Country' });
+    result.current.remember('f1', { name: 'Country' });
     result.current.reset();
   });
 

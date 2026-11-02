@@ -113,6 +113,7 @@ import {
   FilterRemoval,
   NativeFiltersForm,
 } from '../types';
+import { useReportPristineValue } from '../hooks/usePristineItemValues';
 import { CollapsibleControl } from './CollapsibleControl';
 import { ColumnSelect, getDatasourceKey } from './ColumnSelect';
 import DatasetSelect from './DatasetSelect';
@@ -360,6 +361,12 @@ const FiltersConfigForm = (
       onModifyFilter(filterId);
     }
   }, [onModifyFilter, filterId]);
+
+  // Tell the modal what this filter holds while nobody has edited it, so a
+  // save can tell a real edit from a field changed and changed back. Reported
+  // from here because the dataset and column arrive from a fetch, and that
+  // settling re-renders this form and not the modal around it.
+  useReportPristineValue(filterId);
 
   const dependencies: string[] =
     formFilter?.dependencies || filterToEdit?.cascadeParentIds || [];
