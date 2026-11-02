@@ -116,6 +116,12 @@ _Filled in as each walk runs._
 | R4-01 | Saving a draft field back to its live value is ignored and the draft keeps the old proposal | **A'.** `PUT /api/v1/dashboard/7` with the live title while a draft proposed something else → 200 and the open draft is gone. *Not reachable from the dashboard UI any more*: with the header showing the live title (NEW-2), the editor opens on live, so typing live in is a no-op and Save stays disabled | Pass on the path where it can fire |
 | QA-25 | Dataset editors/owners/description changes are never exempt, and can deadlock | **D.** Changing only the description in the dataset editor applied directly: the live description updated and no change request was created | Pass |
 
+| QA-21 | No "Changes pending" tag on a chart inside a dashboard for editors | **A''.** With a change open on one chart of a dashboard, that chart's card carries the tag and exactly one tag is on the page. The card still shows the live chart name | Pass |
+| QA-03 | Deleting an asset that has your open draft silently replaces the draft | **C'.** The archive dialog now carries a warning: "**This replaces the change waiting for review** — Only one change can be open at a time, so deleting this discards the edit that is waiting and asks a reviewer to approve the delete instead." | Pass |
+| QA-04 | A filter change refused with 409 is silently dropped: no error, the filter just disappears | **E'.** With a draft already open, renaming a filter and saving → `PUT /api/v1/dashboard/6/filters` **409**, and a danger toast: "You already have other changes open on this dashboard. Submit or discard them before making this change." *I nearly filed this as data loss: my first screenshot was nine seconds late, the toast had gone, and I read the banner describing the existing draft as a success message for the filter. Re-running it with the network log settled it.* Residual: the modal still closes on the refusal, so the author retypes the filter name | Pass, with a residual |
+| QA-07 | A change can still be approved after its author stops being an editor | **K.** Removed the author as an editor while his change waited. The request stays visible and is not auto-discarded; approving is refused **409**: "Alex Rivera no longer has edit access to this asset, so this change cannot be published as their work. Discard it, or restore their access and approve again." The live asset is untouched. Residual: `can_approve` still comes back `true`, so the approver is offered a button that will be refused — the recorded decision was to **show** them the author had lost access, and the payload does not say so | Pass, with a residual |
+| — | *Core behaviour, not ours.* Removing **yourself** from an asset's editors is accepted with 200 and silently ignored; removing someone else works. Worth knowing before anyone reports it against this epic | Noted |
+
 ## Not walked in this run
 
 Covered by the earlier passes or by the suites, and listed so the gap is explicit rather than implied:
@@ -126,5 +132,5 @@ Covered by the earlier passes or by the suites, and listed so the gap is explici
 | QA-18, QA-26, S-02, QA-13, S-06 | Walked by hand in the second pass the same day |
 | NEW-1, NEW-3, NEW-8, NEW-9, NEW-10, NEW-12 | Walked by hand when each was fixed. NEW-1 was re-checked here: no `beforeunload` warning after a captured save |
 | S-05, S-07 | Unit-tested and visible in the role table; the rows stay open for VISA's lists, not for missing code |
-| QA-03, QA-04, QA-07, QA-08, QA-09, QA-21 | **Not re-walked.** Unit-tested only. QA-08 and QA-09 need two sessions racing, which is not something a single walk can honestly reproduce |
+| QA-08, QA-09 | **Not re-walked.** Unit-tested only. Both need two sessions racing, which a single walk cannot honestly reproduce. QA-03, QA-04, QA-07 and QA-21 were walked and are recorded above |
 | QA-01, QA-06, S-09 | Environment and documentation rows, not product behaviour |
