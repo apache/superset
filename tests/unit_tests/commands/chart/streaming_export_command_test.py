@@ -20,7 +20,8 @@ from types import SimpleNamespace
 from typing import Any, Iterator
 
 import pytest
-from flask import g, has_request_context
+from flask import g
+from flask.globals import _cv_request
 from flask_appbuilder.security.sqla.models import User
 from flask_login import current_user
 from pytest_mock import MockerFixture
@@ -417,10 +418,15 @@ def test_streaming_export_runs_in_its_request_context_after_the_view_returns(
 
     # Record the request state at the moment the engine is acquired -- the
     # point where the real Database._get_sqla_engine resolves the OAuth2 token.
+    # Compare against this request's own context rather than asking whether any
+    # request context is active, so a context another test left pushed can't
+    # make this pass (or fail).
+    view_request: dict[str, Any] = {}
     seen: list[tuple[str | None, int | None, bool]] = []
 
     def fake_get_sqla_engine(*args: Any, **kwargs: Any) -> Any:
-        seen.append((get_username(), get_user_id(), has_request_context()))
+        in_view_request = _cv_request.get(None) is view_request["context"]
+        seen.append((get_username(), get_user_id(), in_view_request))
         cm = mocker.MagicMock()
         cm.__enter__.return_value = engine
         cm.__exit__.return_value = None
@@ -433,6 +439,7 @@ def test_streaming_export_runs_in_its_request_context_after_the_view_returns(
     # Like Flask's wsgi_app, the request pushes (and tears down) its own app
     # context, so nothing it put on ``g`` outlives it by accident.
     with app.app_context(), app.test_request_context("/"):
+        view_request["context"] = _cv_request.get()
         g._login_user = user
         g.user = current_user  # exactly what Flask-AppBuilder's before_request does
         assert (get_username(), get_user_id()) == ("alice", 42)
@@ -442,7 +449,7 @@ def test_streaming_export_runs_in_its_request_context_after_the_view_returns(
         stream = command.run()()
 
     # ...which is streamed once the request context is gone.
-    assert not has_request_context()
+    assert _cv_request.get(None) is not view_request["context"]
     assert "".join(stream).splitlines() == ["id", "1"]
 
     assert seen == [("alice", 42, True)]
@@ -624,9 +631,10 @@ def test_streaming_export_leaves_no_request_context_behind(
         return_value=iter(()),
     )
 
+    outer = _cv_request.get(None)
     with app.app_context(), app.test_request_context("/"):
         stream = StreamingCSVExportCommand(mocker.MagicMock()).run()()
 
-    assert not has_request_context()
+    assert _cv_request.get(None) is outer
     del stream
-    assert not has_request_context()
+    assert _cv_request.get(None) is outer
