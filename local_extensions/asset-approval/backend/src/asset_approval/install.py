@@ -9,7 +9,10 @@ That is monkeypatching and it is named as such. It works because an
 extension's backend is imported into the running app
 (``init_extensions`` -> ``eager_import``), which gives it the same reach the
 Preset shell already takes. What it costs is a binding per write path that
-breaks silently if the host moves a signature -- eighteen of them here.
+breaks silently if the host moves a signature. How many there are is not a
+number to carry in prose: it is whatever ``bindings.WRITE_PATHS`` declares,
+which is the table ``install_bindings`` drives off and ``verify_bindings``
+checks.
 
 Every wrapper has the same shape, because every call site in the host build
 has the same shape: validate first, so a caller with no rights still gets
@@ -26,8 +29,9 @@ from __future__ import annotations
 
 import functools
 import logging
+from dataclasses import dataclass
 from importlib import import_module
-from typing import Any, Callable
+from typing import Any, Callable, Iterable, Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -326,3 +330,149 @@ def _rebound(patched: Callable[..., Any], instance: Any) -> Callable[..., Any]:
 
 def patched_targets() -> list[str]:
     return list(_patched)
+
+
+@dataclass(frozen=True)
+class BindingDefect:
+    """One declared write path that is not bound the way it is declared."""
+
+    target: str
+    reason: str
+
+    def __str__(self) -> str:
+        return f"{self.target}: {self.reason}"
+
+
+@dataclass(frozen=True)
+class BindingReport:
+    """What verification found, counted against a declared denominator.
+
+    ``patched_targets()`` could not answer "is every governed write path
+    bound right now?" because it only records the ``setattr`` calls that
+    succeeded: a path nobody tried to bind, and a path rebound away
+    afterwards, both read as fine. This has a denominator -- the declared
+    table -- so a missing path is a defect rather than an absence.
+    """
+
+    declared: int
+    verified: int
+    defects: tuple[BindingDefect, ...]
+
+    @property
+    def ok(self) -> bool:
+        return not self.defects
+
+
+def _declared_paths() -> Sequence[Any]:
+    """``bindings.WRITE_PATHS``, imported late to keep the two modules apart.
+
+    ``bindings`` imports this module, so the table cannot be imported at
+    module scope here.
+    """
+    from asset_approval.bindings import WRITE_PATHS
+
+    return WRITE_PATHS
+
+
+def verify_bindings(
+    app: Any | None = None, declared: Iterable[Any] | None = None
+) -> BindingReport:
+    """Check that every declared write path is bound the way it is declared.
+
+    Reports rather than raises. A defect means some governed write is
+    unprotected, and the caller's answer to that is to withhold the promise
+    to core so writes are refused -- not to abort the import, which the host
+    logs and skips, leaving the feature on with nothing behind it (QA-12).
+
+    Three checks, the third being the one that matters:
+
+    * the target still resolves, so a class the host renamed is a defect
+      rather than a warning nobody reads;
+    * what sits on the class is the gate's wrapper and not the original,
+      and an ``EXEMPT`` path is *not* wrapped, since an exemption that
+      quietly became a gate is also a drift;
+    * no route in ``app.view_functions`` still points at a function the gate
+      replaced. This is S-01 read backwards. There the class really was
+      patched and the route was not, so every class-side check passed while
+      ``POST /datasource/save/`` wrote a reviewed dataset outright. Walking
+      the routes and matching against what we replaced would have caught it
+      at boot, which nothing could do before.
+    """
+    paths = list(_declared_paths() if declared is None else declared)
+    defects: list[BindingDefect] = []
+    verified = 0
+
+    for path in paths:
+        defect = _verify_one(path)
+        if defect is None:
+            verified += 1
+        else:
+            defects.append(defect)
+
+    defects.extend(_route_defects(app))
+
+    return BindingReport(
+        declared=len(paths), verified=verified, defects=tuple(defects)
+    )
+
+
+def _verify_one(path: Any) -> BindingDefect | None:
+    """Whether one declared path is installed as its disposition says."""
+    target = f"{path.class_name}.{path.attr}"
+    try:
+        module = import_module(path.module_path)
+    except (ImportError, AttributeError):
+        # The same pair ``_resolve`` treats as "the host has moved this",
+        # so a path reads the same here as it did when it was bound.
+        return BindingDefect(target, f"{path.module_path} is not importable")
+
+    host = getattr(module, path.class_name, None)
+    if host is None:
+        return BindingDefect(
+            target, f"{path.class_name} is not in {path.module_path}"
+        )
+
+    installed = getattr(host, path.attr, None)
+    if installed is None:
+        return BindingDefect(target, f"{path.class_name} has no {path.attr}")
+
+    gated = _already_gated(installed)
+    if path.gate is None:
+        # Declared exempt, so nothing should be wrapped. An exemption that
+        # has grown a gate refuses a write the SOW says is allowed, which is
+        # how the dataset resync became unreachable (129073).
+        if gated:
+            return BindingDefect(
+                target, "declared exempt but a gate is installed on it"
+            )
+        return None
+
+    if not gated:
+        return BindingDefect(
+            target,
+            f"declared {path.disposition} but the original is still "
+            "installed; that write path is UNGATED",
+        )
+    return None
+
+
+def _route_defects(app: Any | None) -> list[BindingDefect]:
+    """Routes still holding a function the gate replaced (the S-01 shape)."""
+    if app is None:
+        return []
+    defects: list[BindingDefect] = []
+    for endpoint, view in list(getattr(app, "view_functions", {}).items()):
+        underlying = getattr(view, "__func__", None)
+        if underlying is None:
+            continue
+        for class_name, attr, original, _patched in _method_gates:
+            if underlying is original:
+                defects.append(
+                    BindingDefect(
+                        endpoint,
+                        f"the route still points at the ungated "
+                        f"{class_name}.{attr}",
+                    )
+                )
+                break
+    return defects

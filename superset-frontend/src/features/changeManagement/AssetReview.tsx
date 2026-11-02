@@ -18,6 +18,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -33,6 +34,7 @@ import DatasetReviewModal from './DatasetReviewModal';
 import UnpublishedNotice from './UnpublishedNotice';
 import { useAssetReview } from './useAssetReview';
 import { useProposedPreview } from './useProposedPreview';
+import { afterRemovalPath } from './display';
 import {
   onAssetLocked,
   onDiscardChanges,
@@ -83,7 +85,16 @@ export interface AssetReviewProps {
   assetId?: number | null;
   /** Dashboards only: still a draft, so edits are outside the gate. */
   unpublished?: boolean;
-  /** Called after an approval lands, so the host can reload the asset. */
+  /**
+   * Called after a decision lands on an asset that still exists, so the host
+   * can reload it.
+   *
+   * Not called when the decision was to approve a delete: both hosts wire
+   * this to `window.location.reload()`, and reloading the page of an asset
+   * that has just gone is how the reviewer ended up on the removed chart's
+   * Explore page reading "Missing dataset". That case navigates instead, so
+   * the prop keeps its meaning and its signature.
+   */
   onApplied?: () => void;
   /**
    * The asset's live title, whenever it is known.
@@ -122,6 +133,7 @@ export default function AssetReview({
   const [lockedOpen, setLockedOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const { addSuccessToast, addDangerToast } = useToasts();
+  const history = useHistory();
   const preview = useProposedPreview(changeRequest);
   const [pendingRequest, setPendingRequest] = useState(false);
 
@@ -167,18 +179,28 @@ export default function AssetReview({
     }
   }, [pendingRequest, changeRequest?.status]);
 
+  /**
+   * Runs one workflow action and reports whether it landed.
+   *
+   * The boolean matters to exactly one caller: approving a delete has to
+   * navigate away afterwards, and a refusal here is caught and toasted rather
+   * than thrown, so without it the caller cannot tell a published delete from
+   * one the server turned down and would walk the reviewer off a page that is
+   * still perfectly alive.
+   */
   const run = useCallback(
     async (
       action: () => Promise<unknown>,
       message: string,
       applied = false,
-    ) => {
+    ): Promise<boolean> => {
       setBusy(true);
       try {
         await action();
         addSuccessToast(message);
         await refresh();
         if (applied) onApplied?.();
+        return true;
       } catch (error) {
         // Surface the server's own sentence. Every refusal the workflow can
         // raise already carries one written for the person reading it, so
@@ -191,6 +213,7 @@ export default function AssetReview({
         // while this page had it open, and being told so is only actionable
         // once the page is showing the version that refused (R4-04).
         await refresh();
+        return false;
       } finally {
         setBusy(false);
       }
@@ -326,16 +349,32 @@ export default function AssetReview({
         onClose={() => setApproveOpen(false)}
         onConfirm={async () => {
           setApproveOpen(false);
-          await run(
+          // An approved delete has no asset left to publish or to reload, so
+          // it gets neither the publish wording nor `onApplied`: the host
+          // wires that to a reload of the page this change has just emptied.
+          const removing = changeRequest.operation === 'delete';
+          const landed = await run(
             () =>
               approveChange(
                 changeRequest.id,
                 approveNote || undefined,
                 changeRequest.revision ?? changeRequest.changed_on,
               ),
-            t('Changes approved and published.'),
-            true,
+            removing
+              ? t(
+                  'Approved. The %s is archived, and can be restored from Recently archived.',
+                  changeRequest.asset_type,
+                )
+              : t('Changes approved and published.'),
+            !removing,
           );
+          // Only once the server has actually taken the delete. A refusal
+          // (a stale baseline, an author who lost edit access) leaves the
+          // asset where it was, and walking away from it would hide the
+          // refusal the toast just explained.
+          if (landed && removing) {
+            history.push(afterRemovalPath());
+          }
         }}
       />
 

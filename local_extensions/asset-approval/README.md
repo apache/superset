@@ -8,6 +8,63 @@ Turn it on with the `CHANGE_MANAGEMENT` feature flag. With the flag off the
 extension installs nothing: no gate, no banner, no bell, no Approvals entry,
 and Superset behaves as upstream.
 
+## Configuration
+
+Three settings, all of them in `superset_config.py`. None is declared in
+`superset/config.py` -- two are this extension's own, and the flag has no
+default entry -- and all three are read with `.get`, so a key that is
+misspelt or in the wrong file is indistinguishable from one left out.
+
+The extension therefore logs the effective value of each one at boot. Read
+those three lines before believing a setting was picked up:
+
+```text
+preset.asset-approval config: FEATURE_FLAGS['CHANGE_MANAGEMENT'] = True (set)
+preset.asset-approval config: ASSET_APPROVAL_APPROVER_ROLES = ['Admin', 'Reviewers'] (set; only these roles may approve, and an empty list means nobody)
+preset.asset-approval config: ASSET_APPROVAL_MACHINE_USER_ROLES = [] (defaulted, so no role is treated as service accounts)
+```
+
+A key beginning `ASSET_APPROVAL_` that this extension does not read is named
+in a warning on the same boot, which is how a typo such as
+`ASSET_APPROVAL_APPROVER_ROLE` shows up.
+
+| Setting | Type | Default | What it does |
+|---|---|---|---|
+| `CHANGE_MANAGEMENT`, an entry in the `FEATURE_FLAGS` dict | `bool` | absent, which reads as `False` | Turns the whole feature on. |
+| `ASSET_APPROVAL_APPROVER_ROLES` | list of role names, or `None` | `None` | Names the roles whose members may approve. |
+| `ASSET_APPROVAL_MACHINE_USER_ROLES` | list of role names, or `None` | `None` | Names the roles whose members are service accounts, which may never approve. |
+
+If a setting is absent:
+
+- **`CHANGE_MANAGEMENT`** -- nothing is reviewed. Writes apply as they do on
+  an unmodified Superset. The flag being on with the extension not loaded is
+  a different matter: every governed write is refused rather than applied
+  (QA-12).
+- **`ASSET_APPROVAL_APPROVER_ROLES`** -- whichever roles `superset init`
+  produced may approve, which on a stock install is Admin, Alpha and Gamma.
+  Nothing is granted or revoked.
+- **`ASSET_APPROVAL_MACHINE_USER_ROLES`** -- no role is treated as service
+  accounts, so every otherwise eligible account may approve.
+
+### Empty list and absent are not the same
+
+For `ASSET_APPROVAL_APPROVER_ROLES` these two are worth separating, because
+they are easy to confuse and their consequences are opposite:
+
+```python
+ASSET_APPROVAL_APPROVER_ROLES = []   # nobody may approve
+# ASSET_APPROVAL_APPROVER_ROLES     # absent: leave what `superset init` produced
+```
+
+An empty list is a decision and is applied as one: the approval right is
+taken off every builtin role, nobody is granted it, and every change then
+sits in the queue unapprovable. The extension logs an **error** saying so on
+that boot. Absent (or `None`) touches nothing.
+
+The same reading applies to a list naming only roles that have no members,
+which is the other way to arrive at the same outcome, and is logged the same
+way.
+
 ## Who may approve
 
 Three conditions, all required. None of them can be bought back by another.

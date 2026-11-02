@@ -10,7 +10,8 @@ Four steps:
    schema; it has no migration chain of its own, so a column added later is
    handled here rather than by an Alembic revision.
 2. ``review_command`` on the classes replay reads it back from.
-3. The eighteen write-path bindings (see ``bindings``).
+3. The write-path bindings, declared in ``bindings.WRITE_PATHS`` and
+   verified at install so the count cannot drift from what is bound.
 4. The REST API, the Approvals pages, and the HTTP translation of the
    gate's signals.
 
@@ -578,6 +579,84 @@ def install_views() -> None:
     # (QA-23).
 
 
+def _log_effective_configuration() -> None:
+    """Report what the three settings this extension reads resolved to.
+
+    None of them is declared in ``superset/config.py`` -- two are the
+    extension's own and core should not know about them -- and all three are
+    read with ``.get``. So an operator who writes
+    ``ASSET_APPROVAL_APPROVER_ROLE`` for the plural, or puts the key in the
+    wrong file, gets the default and is told nothing at any point. On a
+    bank's install that is believing you have narrowed who may approve when
+    you have not. The boot log is the only place that can say otherwise, so
+    it says it plainly: the effective value, and whether it was set or
+    defaulted.
+
+    "set" means what the readers mean by it. For the two role lists that is
+    ``is not None``, because ``None`` is how both of them spell "unset"; for
+    the flag it is the key being present in ``FEATURE_FLAGS``, since the
+    extension's flag has no entry in ``DEFAULT_FEATURE_FLAGS`` and absent
+    therefore reads as off.
+    """
+    from asset_approval.eligibility import MACHINE_USER_ROLES_CONFIG, machine_user_roles
+    from asset_approval.gate import FEATURE_FLAG, is_enabled
+
+    config = current_app.config
+
+    def named(key: str) -> str:
+        return f"{EXTENSION_ID} config: {key} ="
+
+    flags = config.get("FEATURE_FLAGS") or {}
+    logger.info(
+        "%s %s (%s)",
+        named(f"FEATURE_FLAGS[{FEATURE_FLAG!r}]"),
+        is_enabled(),
+        "set" if FEATURE_FLAG in flags else "defaulted, so review is off",
+    )
+
+    approvers = config.get(APPROVER_ROLES_CONFIG)
+    logger.info(
+        "%s %s (%s)",
+        named(APPROVER_ROLES_CONFIG),
+        # Normalised the way _align_approval_permission normalises it, so a
+        # name with a stray space reads back as the name actually used.
+        "unset"
+        if approvers is None
+        else sorted({str(name).strip() for name in approvers if str(name).strip()}),
+        "defaulted, so whoever `superset init` produced may approve"
+        if approvers is None
+        else "set; only these roles may approve, and an empty list means nobody",
+    )
+
+    logger.info(
+        "%s %s (%s)",
+        named(MACHINE_USER_ROLES_CONFIG),
+        sorted(machine_user_roles()),
+        "set"
+        if config.get(MACHINE_USER_ROLES_CONFIG) is not None
+        else "defaulted, so no role is treated as service accounts",
+    )
+
+    # The mistyped key this log exists for. A near miss is silently a default
+    # everywhere else, and naming it is the difference between an operator
+    # finding their typo at boot and finding it in an audit.
+    unknown = sorted(
+        key
+        for key in config
+        if key.startswith("ASSET_APPROVAL_")
+        and key not in (APPROVER_ROLES_CONFIG, MACHINE_USER_ROLES_CONFIG)
+    )
+    if unknown:
+        logger.warning(
+            "%s: %s is not read by this extension; the settings it reads are "
+            "%s and %s. Check the spelling",
+            EXTENSION_ID,
+            ", ".join(unknown),
+            APPROVER_ROLES_CONFIG,
+            MACHINE_USER_ROLES_CONFIG,
+        )
+
+
 def init() -> None:
     from asset_approval.bindings import install_bindings, install_review_commands
     from asset_approval.install import patched_targets, rebind_registered_routes
@@ -597,6 +676,18 @@ def init() -> None:
         len(patched_targets()),
         len(rebound),
     )
+    # After install_views, because the alignment it runs is what the
+    # approver-roles line describes the outcome of. Guarded like everything
+    # else here: a setting given a shape the readers cannot take (a bare
+    # number for a role list) must not turn reporting it into an outage.
+    try:
+        _log_effective_configuration()
+    except Exception:  # pylint: disable=broad-except
+        logger.warning(
+            "%s: could not report the effective configuration",
+            EXTENSION_ID,
+            exc_info=True,
+        )
 
 
 init()

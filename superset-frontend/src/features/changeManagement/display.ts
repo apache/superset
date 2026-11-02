@@ -131,6 +131,25 @@ export function assetUrl(changeRequest: ChangeRequest): string {
 }
 
 /**
+ * Where to send someone whose decision has just removed the asset they were
+ * reading (D-14).
+ *
+ * Approving a delete from the asset's own page left the reviewer standing on
+ * the removed asset's page, which renders an error naming the wrong object
+ * ("Missing dataset", for a chart that went) and offering nothing to do. The
+ * Approvals queue is the page a reviewer always has, whether or not they
+ * arrived through it, and it is where their next decision is; the asset's own
+ * list was the alternative, and loses in the common case of working a queue.
+ *
+ * Router-relative, unlike `assetUrl`: this is a `history.push` target rather
+ * than a real `href`, and the router already carries `APPLICATION_ROOT` as its
+ * basename, so prefixing it here would be a second copy of it.
+ */
+export function afterRemovalPath(): string {
+  return approvalsPath();
+}
+
+/**
  * Toast content for a write that was captured for review rather than applied.
  *
  * Surfaces that have no review banner of their own (a modal over a list, for

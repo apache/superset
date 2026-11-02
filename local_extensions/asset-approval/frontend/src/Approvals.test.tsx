@@ -451,12 +451,15 @@ test('a refusal that arrives as a Response still says why', async () => {
   expect(await screen.findByText(refusal)).toBeInTheDocument();
 });
 
-test('a restore is decided here, not on a page the asset no longer has', async () => {
+test('a change on an archived asset is decided here, not on a page it no longer has', async () => {
   // R3-01: sending the reviewer to the asset sends them to an archived
   // chart -- Explore opens empty, says the dataset is missing, and carries
   // no review controls, so the request could be seen and still not acted on.
-  const navigate = jest.fn();
-  mockedUseNavigate.mockReturnValue(navigate);
+  const assign = jest.fn();
+  Object.defineProperty(window, 'location', {
+    configurable: true,
+    value: { ...window.location, assign },
+  });
   mockedFetchList.mockResolvedValue([
     request({
       id: 9,
@@ -464,6 +467,7 @@ test('a restore is decided here, not on a page the asset no longer has', async (
       asset_title: 'Genders by State',
       can_approve: true,
       command: 'restore',
+      asset_archived: true,
     }),
   ]);
 
@@ -473,5 +477,117 @@ test('a restore is decided here, not on a page the asset no longer has', async (
 
   // Decided in place, and nothing navigated away.
   expect(await screen.findByText('Approve and publish?')).toBeInTheDocument();
-  expect(navigate).not.toHaveBeenCalled();
+  expect(assign).not.toHaveBeenCalled();
+});
+
+test('any change on an archived asset is decided here, whatever its command', async () => {
+  // The standing property R3-01's fix should have been. The first fix read
+  // the row's `command`, so only a restore avoided the dead page and every
+  // other change about an archived asset walked straight into it. The row
+  // now carries what the server knows about the asset.
+  const assign = jest.fn();
+  Object.defineProperty(window, 'location', {
+    configurable: true,
+    value: { ...window.location, assign },
+  });
+  mockedFetchList.mockResolvedValue([
+    request({
+      id: 11,
+      asset_type: 'chart',
+      asset_title: 'Genders by State',
+      can_approve: true,
+      // No command at all: an ordinary update, about an asset that has
+      // since been archived.
+      command: null,
+      asset_archived: true,
+    }),
+  ]);
+
+  render(<Approvals />);
+
+  (await screen.findByTestId('review-action')).click();
+
+  expect(await screen.findByText('Approve and publish?')).toBeInTheDocument();
+  expect(assign).not.toHaveBeenCalled();
+});
+
+test('a change on a live asset is still reviewed on the asset', async () => {
+  // The other half: the default has to keep working, or every review
+  // loses the banner and the in-place panel.
+  const assign = jest.fn();
+  Object.defineProperty(window, 'location', {
+    configurable: true,
+    value: { ...window.location, assign },
+  });
+  mockedFetchList.mockResolvedValue([
+    request({
+      id: 12,
+      asset_type: 'chart',
+      asset_id: 69,
+      can_approve: true,
+      asset_archived: false,
+    }),
+  ]);
+
+  render(<Approvals />);
+
+  (await screen.findByTestId('review-action')).click();
+
+  expect(assign).toHaveBeenCalledWith('/explore/?slice_id=69');
+});
+
+test('a row whose author has lost edit access says so before the button', async () => {
+  // QA-07: approving is refused with a 409, and the request stays
+  // approvable by decision, so `can_approve` still says yes. Without this
+  // the approver met the refusal only after pressing Approve.
+  mockedFetchList.mockResolvedValue([
+    request({
+      can_approve: true,
+      is_open: true,
+      author_can_still_edit: false,
+    }),
+  ]);
+
+  render(<Approvals />);
+
+  const note = await screen.findByTestId('author-lost-access');
+  // Names the author, so the reader knows whose access to restore.
+  expect(note.textContent).toContain('Mo Maker');
+  expect(note.textContent).toContain('no longer has edit access');
+  // Still offered: the recorded decision was to keep it approvable and
+  // show them, not to take the action away.
+  expect(screen.getByTestId('review-action')).toBeInTheDocument();
+});
+
+test('a row whose author still holds the asset carries no note', async () => {
+  mockedFetchList.mockResolvedValue([
+    request({ can_approve: true, is_open: true, author_can_still_edit: true }),
+  ]);
+
+  render(<Approvals />);
+
+  await screen.findByTestId('review-action');
+  expect(
+    screen.queryByTestId('author-lost-access'),
+  ).not.toBeInTheDocument();
+});
+
+test('a decided row does not warn about access that no longer matters', async () => {
+  // Nothing is going to be published from a closed request, so the note
+  // would be noise on the Recently decided view.
+  mockedFetchList.mockResolvedValue([
+    request({
+      status: 'approved',
+      can_approve: true,
+      is_open: false,
+      author_can_still_edit: false,
+    }),
+  ]);
+
+  render(<Approvals />);
+
+  await screen.findByTestId('review-action');
+  expect(
+    screen.queryByTestId('author-lost-access'),
+  ).not.toBeInTheDocument();
 });

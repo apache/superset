@@ -94,6 +94,20 @@ const Waiting = styled.span<{ stale: boolean }>`
   `}
 `;
 
+/**
+ * A line beside a row's action, for something the reader needs *before*
+ * they press it. Amber rather than danger: the row is still approvable, it
+ * just will not publish as things stand (QA-07).
+ */
+const ActionNote = styled.div`
+  ${({ theme }) => `
+    color: ${theme.colorWarningText};
+    font-size: ${theme.fontSizeSM}px;
+    margin-top: ${theme.sizeUnit}px;
+    max-width: 260px;
+  `}
+`;
+
 const From = styled.span`
   ${({ theme }) => `
     display: inline-flex;
@@ -218,7 +232,8 @@ export default function Approvals() {
    * A dashboard or a chart is reviewed on the asset itself, where the
    * banner and the in-place panel are. A dataset has no page of its own --
    * `assetUrl` can only offer the dataset list -- so it is reviewed here,
-   * in the dataset editor's own tabs, read-only.
+   * in the dataset editor's own tabs, read-only. Nor has an archived
+   * asset, whatever its kind, so that is decided here too (R3-01).
    */
   const act = async (run: () => Promise<unknown>) => {
     setBusy(true);
@@ -275,20 +290,22 @@ export default function Approvals() {
     }
   };
 
-  /** A restore asks for an archived asset back, so it has no page yet. */
-  const isRestore = (row: ChangeRequest) => row.command === 'restore';
-
   const review = (row: ChangeRequest) => {
     if (row.asset_type === 'dataset') {
       setReviewing(row);
       return;
     }
-    if (isRestore(row)) {
-      // Sending the reviewer to the asset means sending them to a chart
-      // that is archived: Explore opens empty, says the dataset is
+    if (row.asset_archived) {
+      // The asset is in the trash, so it has no page to review it on:
+      // Explore on an archived chart opens empty, says the dataset is
       // missing, and carries no review controls, so the request could be
       // seen and still not acted on (R3-01). Decided here instead, which
       // is what the dataset rows already do for the same reason.
+      //
+      // Driven by what the server says about the asset, not by the row's
+      // command. The first fix tested `command === 'restore'`, which is
+      // only the one case we happened to know about, and any other change
+      // about an archived asset walked into the same dead page.
       setApproving(row);
       return;
     }
@@ -345,14 +362,31 @@ export default function Approvals() {
       key: 'actions',
       render: (_: unknown, row: ChangeRequest) => {
         if (row.can_approve) {
+          // Approving is refused once the author has lost edit access,
+          // because the change publishes as their work -- and the request
+          // stays approvable by decision, so `can_approve` still says yes
+          // (QA-07). Said on the row, so the reader learns it before
+          // pressing the button rather than from the refusal afterwards.
+          const authorLostAccess =
+            row.is_open && row.author_can_still_edit === false;
           return (
-            <Button
-              buttonSize="small"
-              onClick={() => review(row)}
-              data-test="review-action"
-            >
-              {t('Review')}
-            </Button>
+            <>
+              <Button
+                buttonSize="small"
+                onClick={() => review(row)}
+                data-test="review-action"
+              >
+                {t('Review')}
+              </Button>
+              {authorLostAccess ? (
+                <ActionNote data-test="author-lost-access">
+                  {t(
+                    '%s no longer has edit access, so approving will be refused. Discard it, or restore their access.',
+                    displayName(row.author),
+                  )}
+                </ActionNote>
+              ) : null}
+            </>
           );
         }
         if (canSubmit(row)) {

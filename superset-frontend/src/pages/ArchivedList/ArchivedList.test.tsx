@@ -58,6 +58,40 @@ const datasetInfoEndpoint = 'glob:*/api/v1/dataset/_info*';
 const datasetListEndpoint = 'glob:*/api/v1/dataset/?*';
 const datasetImpactEndpoint = 'glob:*/api/v1/dataset/*/purge-impact';
 const datasetPurgeEndpoint = 'glob:*/api/v1/dataset/*/purge';
+const openChangesEndpoint = 'glob:*/api/v1/change_request/open/chart';
+/** Named so a test can swap the map a captured recovery re-reads. */
+const OPEN_CHANGES_ROUTE = 'open-changes-chart';
+
+/**
+ * What the server answers when the recovery was captured for review instead
+ * of applied: HTTP 202 with `review_required`, carrying the change request's
+ * id and the sentence written for the person reading it.
+ */
+const capturedRecovery = {
+  status: 202,
+  body: {
+    id: 77,
+    ids: [77],
+    count: 1,
+    asset_type: 'chart',
+    asset_id: 1,
+    review_required: true,
+    message: 'Recovery saved as a draft. Nothing has been recovered yet.',
+  },
+};
+
+/** Review on, every other flag off, as the environment default has it. */
+const withChangeManagement = () =>
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    (flag: string) => flag === FeatureFlag.ChangeManagement,
+  );
+
+const mockOpenChanges = (open: Record<string, string>) =>
+  fetchMock.get(
+    openChangesEndpoint,
+    { result: open },
+    { name: OPEN_CHANGES_ROUTE },
+  );
 
 const buildImpact = (overrides: Record<string, unknown> = {}) => ({
   impact_token: 'v1:reviewed-impact',
@@ -154,7 +188,10 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
 }));
 
 const mockRoutes = (
-  restoreStatus = 200,
+  // A number is the status to answer the restore with; anything else is
+  // handed to fetch-mock whole, which is how a test registers the 202 body a
+  // captured recovery answers with.
+  restoreStatus: number | Parameters<typeof fetchMock.post>[1] = 200,
   purgeResponse: Parameters<typeof fetchMock.post>[1] = {},
   impactResponse: Parameters<typeof fetchMock.get>[1] = buildPositiveImpact(),
   infoResponses: Partial<
@@ -420,6 +457,87 @@ test('restoring an already-restored row (404) surfaces an error without crashing
   expect(mockAddDangerToast).toHaveBeenCalledTimes(1);
   // The page is still functional -- the list view did not crash.
   expect(screen.getByTestId('archived-list-view')).toBeInTheDocument();
+});
+
+test('a recovery captured for review is reported as a success, not a failure', async () => {
+  // With review on, Recover creates a change request and restores nothing.
+  // The 202 the server answers with is a success the shared client resolves,
+  // so it must not be drawn as a failure -- and it must not claim the asset
+  // is back either. Before this the click said nothing at all, which is what
+  // invited a second and a third press, and a change request with each.
+  withChangeManagement();
+  mockRoutes(capturedRecovery);
+  mockOpenChanges({});
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
+
+  fireEvent.click((await screen.findAllByTestId('archived-row-restore'))[0]);
+
+  await waitFor(() => expect(mockAddSuccessToast).toHaveBeenCalledTimes(1));
+  const [text, options] = mockAddSuccessToast.mock.calls[0];
+  // The server's own sentence, through the shared captured-write toast,
+  // which also links the author to the queue the request is now in.
+  expect(text).toContain(
+    'Recovery saved as a draft. Nothing has been recovered yet.',
+  );
+  expect(text).toContain('/approvals/submitted-by-me');
+  expect(options).toMatchObject({ allowHtml: true });
+  // Nothing was restored, so neither claim may be made.
+  expect(text).not.toContain('restored successfully');
+  expect(mockAddDangerToast).not.toHaveBeenCalled();
+  // The row stays, because the asset stays archived until the recovery is
+  // approved -- and the list is not refetched to make it look otherwise.
+  expect(screen.getByText('Deleted Chart One')).toBeInTheDocument();
+  expect(fetchMock.callHistory.calls(/chart\/\?q/)).toHaveLength(1);
+});
+
+test('a captured recovery tags its own row without a reload', async () => {
+  // The columns are memoised, and the review tag is read from a map fetched
+  // when the list mounted. Without the map in the memo's dependencies the
+  // re-read lands and the row still renders the old answer, so the row the
+  // reader just acted on is the one that goes on looking untouched -- the
+  // stale-tag defect fixed on the asset lists as NEW-11.
+  withChangeManagement();
+  mockRoutes(capturedRecovery);
+  mockOpenChanges({});
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
+  await screen.findByText('Deleted Chart One');
+  expect(screen.queryByTestId('review-status-tag')).not.toBeInTheDocument();
+
+  // The request the click is about to create.
+  fetchMock.removeRoutes({ names: [OPEN_CHANGES_ROUTE] });
+  mockOpenChanges({ '1': 'draft' });
+  fireEvent.click((await screen.findAllByTestId('archived-row-restore'))[0]);
+
+  expect(await screen.findByTestId('review-status-tag')).toHaveTextContent(
+    'Changes pending',
+  );
+});
+
+test('a recovery that really happened still reports a recovery', async () => {
+  // The 202 branch must not swallow the ordinary one: with review on but
+  // nothing to capture (an exempt asset, an approved request replaying),
+  // a 200 is still "restored", the row still drops out, and the list is
+  // still refetched.
+  withChangeManagement();
+  mockRoutes();
+  mockOpenChanges({});
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
+
+  fireEvent.click((await screen.findAllByTestId('archived-row-restore'))[0]);
+
+  await waitFor(() =>
+    expect(mockAddSuccessToast.mock.calls[0][0]).toContain(
+      'Deleted Chart One restored successfully',
+    ),
+  );
+  await waitFor(() => {
+    expect(
+      fetchMock.callHistory.calls(/chart\/\?q/).length,
+    ).toBeGreaterThanOrEqual(2);
+  });
 });
 
 test('row actions are keyboard-operable (Enter restores)', async () => {

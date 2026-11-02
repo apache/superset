@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { assetUrl, changeCount, datasetChangeCount } from './display';
+import {
+  afterRemovalPath,
+  assetUrl,
+  changeCount,
+  datasetChangeCount,
+} from './display';
 import type { ChangeRequest, DatasetDetail } from './types';
 
 const mockApplicationRoot = jest.fn<string, []>(() => '');
@@ -139,5 +144,34 @@ describe('assetUrl under a subdirectory deployment', () => {
     expect(assetUrl(request({ asset_type: 'dashboard', asset_id: 3 }))).toBe(
       '/superset/dashboard/3/',
     );
+  });
+});
+
+describe('where an approved delete leaves the reviewer', () => {
+  afterEach(() => mockApplicationRoot.mockReturnValue(''));
+
+  // Approving a delete from the asset's own page left the reviewer standing
+  // on the removed asset's page, which renders "Missing dataset. The dataset
+  // linked to this chart may have been deleted": the wrong noun, and nothing
+  // to act on. The queue outlives any asset (D-14).
+  test('the landing place is the Approvals queue', () => {
+    expect(afterRemovalPath()).toBe('/approvals/');
+  });
+
+  test('it is never the page of the asset that has just gone', () => {
+    const chart = request({ asset_type: 'chart', asset_id: 9 });
+    const dashboard = request({ asset_type: 'dashboard', asset_id: 3 });
+
+    expect(afterRemovalPath()).not.toBe(assetUrl(chart));
+    expect(afterRemovalPath()).not.toBe(assetUrl(dashboard));
+  });
+
+  // Unlike `assetUrl`, this is pushed onto the router rather than used as an
+  // `href`, and the router carries the application root as its basename, so a
+  // root added here would be a second copy of it.
+  test('the application root is left to the router', () => {
+    mockApplicationRoot.mockReturnValue('/analytics');
+
+    expect(afterRemovalPath()).toBe('/approvals/');
   });
 });

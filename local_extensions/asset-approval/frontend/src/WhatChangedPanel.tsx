@@ -308,7 +308,17 @@ export default function WhatChangedPanel({
                     )}
                   </Muted>
                 ) : change.keys?.length ? (
-                  <Muted>{summarise(change.keys)}</Muted>
+                  <>
+                    <Muted>{summarise(change.keys)}</Muted>
+                    {change.added_keys ? (
+                      <Muted>
+                        {t(
+                          '%s further settings written for the first time',
+                          change.added_keys,
+                        )}
+                      </Muted>
+                    ) : null}
+                  </>
                 ) : (
                   <Tag>{t('Changed')}</Tag>
                 )

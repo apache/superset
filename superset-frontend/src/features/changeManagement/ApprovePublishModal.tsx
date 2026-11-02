@@ -45,12 +45,12 @@ export interface ApprovePublishModalProps {
 }
 
 /**
- * The one irreversible step in the workflow.
+ * The step that makes a change public.
  *
  * Everything before this is private to the editors; approving is the moment
- * viewers see it, and there is no undo beyond restoring the previous
- * version. So it is the only action that stops to ask, and it says what
- * happens to viewers rather than asking "are you sure".
+ * viewers see it, and the only way back is through another reviewed change.
+ * So it is the only action that stops to ask, and it says what happens to
+ * viewers rather than asking "are you sure".
  */
 export default function ApprovePublishModal({
   changeRequest,
@@ -116,8 +116,17 @@ export default function ApprovePublishModal({
         />
       )}
       {deleting
-        ? t(
-            'This removes the %s. It cannot be undone.',
+        ? // Said "It cannot be undone", which the product contradicts twice
+          // over: the archive confirmation on the same delete promises
+          // Recently archived, and Walk C restored an approved delete from
+          // there. This is the sentence a reviewer reads while pressing an
+          // irreversible-sounding button, so it has to be the true one. The
+          // weight stays in what viewers lose and in the restore needing its
+          // own review, not in a false claim of finality. No day count is
+          // quoted: the retention window is configurable and can be unbounded
+          // (see `archiveConfirmDescription`), which this copy cannot reach.
+          t(
+            'Viewers lose the %s straight away. It is archived rather than destroyed, so it can be restored from Recently archived, and that restore goes through review of its own.',
             changeRequest.asset_type,
           )
         : // "these 1 change" otherwise: the count reads naturally in a list

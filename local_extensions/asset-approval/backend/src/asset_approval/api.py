@@ -57,7 +57,11 @@ from asset_approval.gate import (
     is_enabled,
     RESTORE_VERSION_COMMAND,
 )
-from asset_approval.changes import changed_fields, changed_keys, layout_summary
+from asset_approval.changes import (
+    changed_fields,
+    changed_keys_by_kind,
+    layout_summary,
+)
 from asset_approval.models import ChangeRequest
 from asset_approval.replay import is_restore, load_asset
 from asset_approval.types import (
@@ -249,13 +253,7 @@ def describe_changes(
             # Still opaque as a value -- these columns are far too big to
             # show -- but say what moved inside them. "Changed" alone left
             # the reviewer nothing to decide on (129075).
-            entry: dict[str, Any] = {"field": field, "opaque": True}
-            if field == "position_json":
-                if summary := layout_summary(current, proposed):
-                    entry["layout"] = summary
-            elif keys := changed_keys(current, proposed):
-                entry["keys"] = keys
-            changes.append(entry)
+            changes.append(_opaque_entry(field, current, proposed))
             continue
         before, after = _readable(current), _readable(proposed)
         if before is None and after is None:
@@ -265,6 +263,65 @@ def describe_changes(
     return changes
 
 
+def _opaque_entry(field: str, current: Any, proposed: Any) -> dict[str, Any]:
+    """What moved inside a column too big to show.
+
+    Leads with what the author actually moved. Explore posts every control's
+    current value, so ticking one checkbox arrives carrying dozens of keys
+    the stored blob never held, nearly all of them that control's own
+    default. Naming those alongside the real edit told the reviewer "78
+    changes" and listed three settings nobody had touched, which is QA-15 on
+    the chart surface, where its dashboard fix never reached. Nothing is
+    hidden: the rest are counted and said out loud.
+    """
+    entry: dict[str, Any] = {"field": field, "opaque": True}
+    if field == "position_json":
+        if summary := layout_summary(current, proposed):
+            entry["layout"] = summary
+        return entry
+    kinds = changed_keys_by_kind(current, proposed)
+    edited = kinds["moved"] + kinds["removed"]
+    if keys := edited or kinds["added"]:
+        entry["keys"] = keys
+    if edited and kinds["added"]:
+        entry["added_keys"] = len(kinds["added"])
+    return entry
+
+
+def _is_archived(asset: Any) -> bool:
+    """Whether the live asset is in the trash.
+
+    ``deleted_at`` is how soft-deletion is recorded (``SoftDeleteMixin``),
+    and it is the same notion the visibility filter and the retention job
+    read, so an asset only reachable because ``_asset_of`` asked past that
+    filter answers True here. An asset kind without the mixin has no
+    ``deleted_at`` and is never archived.
+    """
+    return getattr(asset, "deleted_at", None) is not None
+
+
+def _author_can_still_edit(change_request: Any, asset: Any) -> bool:
+    """Whether the change's author is still an editor of the asset.
+
+    Approving replays the change as the author's work, so the approve route
+    re-asks this on the merits and refuses with 409 once the answer is no.
+    The recorded decision for QA-07 was to leave the request approvable and
+    *tell* the approver; this is the telling half, which was never built, so
+    ``can_approve`` offered a button that could only fail.
+
+    The strict check deliberately, as everywhere else in this feature: an
+    administrator is not an editor on the strength of the role alone, and
+    the note must agree with the refusal rather than with the role table.
+
+    An unverifiable answer is "yes": with no asset loaded there is nothing
+    to be an editor of, and warning of a loss of access we have not
+    established would be worse than saying nothing.
+    """
+    if asset is None or change_request.author_fk is None:
+        return True
+    return is_strict_editor(asset, change_request.author_fk)
+
+
 def serialize(change_request: ChangeRequest, asset: Any = None) -> dict[str, Any]:
     """One change request, as the UI needs it."""
     return {
@@ -272,6 +329,20 @@ def serialize(change_request: ChangeRequest, asset: Any = None) -> dict[str, Any
         "asset_type": change_request.asset_type,
         "asset_id": change_request.asset_id,
         "asset_title": _asset_title(asset) if asset is not None else None,
+        # Whether the asset has a page to send a reviewer to. An archived
+        # one does not: Explore on a soft-deleted chart opens empty, says
+        # the dataset is missing and carries no review controls, so a client
+        # must decide in place instead of navigating. Answered from the
+        # asset the server already loaded rather than guessed at from the
+        # command, which only ever covered ``restore`` and left every other
+        # change about an archived asset walking into the same dead page
+        # (R3-01).
+        "asset_archived": _is_archived(asset),
+        # Whether the author still holds edit access to the asset. Approving
+        # is refused once they do not, and ``can_approve`` stays true by
+        # decision, so the approver has to be told before they press it
+        # (QA-07).
+        "author_can_still_edit": _author_can_still_edit(change_request, asset),
         "status": change_request.status,
         "is_open": change_request.is_open,
         "note": change_request.note,

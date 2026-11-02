@@ -1,19 +1,29 @@
 """Every write path the review gate binds to, and how.
 
-One entry per path. Each closure reproduces exactly what the host build
-calls at that site; the host's own test suite
-(``tests/unit_tests/change_management``) is the contract they are checked
-against.
+``WRITE_PATHS`` is the declaration: one entry per path, naming the target,
+what the gate does with it and why. ``install_bindings`` drives off that
+table and nothing else, so the table cannot describe a binding that does
+not run, and ``install.verify_bindings`` checks the running process against
+it. Each closure reproduces exactly what the host build calls at that site;
+the host's own test suite (``tests/unit_tests/change_management``) is the
+contract they are checked against.
 
-Eighteen entries is the honest cost of having no declared seam. Each is a
-separate chance to drift from the host, and a binding that fails to resolve
-logs a warning and leaves that path UNGATED rather than failing silently --
-a gap you can see beats a gate you only believe in.
+Twenty-five entries -- twenty-four bound, one declared exempt -- is the
+honest cost of having no declared seam. The number is the table's length,
+not a figure maintained by hand: the docstrings used to say "eighteen",
+which was wrong by six, and nothing could tell because there was no
+denominator to count against. Each entry is a separate chance to drift from
+the host, and a binding that fails to resolve logs a warning and leaves that
+path UNGATED rather than failing silently -- a gap you can see beats a gate
+you only believe in. Verification now turns that gap into a withheld
+promise, so core refuses the write instead.
 """
 
 from __future__ import annotations
 
-from typing import Any
+import logging
+from dataclasses import dataclass
+from typing import Any, Callable
 
 from asset_approval.changes import (
     changed_fields,
@@ -37,8 +47,55 @@ from asset_approval.gate import (
     RESTORE_VERSION_COMMAND,
     UPSERT_EMBEDDED_COMMAND,
 )
-from asset_approval.install import gate_method, gate_run, REVIEW_COMMANDS
+from asset_approval.install import (
+    gate_method,
+    gate_run,
+    rebind_registered_routes,
+    REVIEW_COMMANDS,
+    verify_bindings,
+)
 from asset_approval.types import AssetType
+
+logger = logging.getLogger(__name__)
+
+#: What the gate does with a declared path.
+#:
+#: ``GATED``   the write is captured as a change request and applied on
+#:             approval.
+#: ``REFUSED`` the write cannot be replayed faithfully, so it is refused
+#:             outright with a message naming the reviewable route.
+#: ``EXEMPT``  the write is deliberately left unbound and applies directly.
+#:             Declared all the same, so "we chose not to gate this" is
+#:             visible next to the paths that are gated, and so verification
+#:             can tell an exemption from an oversight.
+GATED = "gated"
+REFUSED = "refused"
+EXEMPT = "exempt"
+
+
+@dataclass(frozen=True)
+class WritePath:
+    """One governed write path, and how the gate reaches it.
+
+    ``via`` is how the host exposes the write: ``"run"`` for a command,
+    whose ``run`` is wrapped, or ``"method"`` for a write that has no
+    command in the host build and can only be reached at the method the
+    API calls inline.
+    """
+
+    module_path: str
+    class_name: str
+    attr: str
+    disposition: str
+    reason: str
+    gate: Callable[..., Any] | None = None
+    via: str = "run"
+    capture: bool = False
+    validate_first: bool = True
+
+    @property
+    def target(self) -> str:
+        return f"{self.class_name}.{self.attr}"
 
 
 def _payload(command: Any) -> dict[str, Any]:
@@ -74,238 +131,95 @@ def _tell_core_the_promise_is_kept() -> None:
     register_write_gate("preset.asset-approval")
 
 
+def _app_if_any() -> Any | None:
+    """The app being booted into, when there is one.
+
+    The entrypoint imports this inside the application context, so there is.
+    The extension's own tests bind without one, and there the route half of
+    verification has nothing to look at and is skipped.
+    """
+    from flask import current_app, has_app_context
+
+    if not has_app_context():
+        return None
+    return current_app._get_current_object()  # noqa: SLF001
+
+
+def _keep_the_promise_only_if_the_gate_is_whole() -> None:
+    """Tell core the gate is here, but only once it has been checked.
+
+    The promise used to be unconditional: ``install_bindings`` said "a gate
+    is installed" before it had installed anything, and core's fail-closed
+    guard took that at face value. So a build where a binding had drifted
+    off its target served a gate with a hole in it, and the hole was exactly
+    the thing core's guard exists to refuse. That is how four rows came to
+    be marked Fixed while the write path was still open, S-01 among them.
+
+    The safe failure here is refusing writes. Withholding the promise makes
+    core answer every governed write 503 with ``CHANGE_MANAGEMENT_UNENFORCED``
+    -- loud, operator-visible, and nothing goes live unreviewed. Serving a
+    partly bound gate is the unsafe one, because it looks like it worked.
+
+    Defects are logged individually at error level; an operator reading the
+    log needs to know which path, not just that there was one.
+    """
+    report = verify_bindings(_app_if_any())
+    if report.ok:
+        _tell_core_the_promise_is_kept()
+        return
+    for defect in report.defects:
+        logger.error("asset-approval: write path NOT bound -- %s", defect)
+    logger.error(
+        "asset-approval: %d of %d declared write paths verified, %d defect(s); "
+        "the gate has NOT registered with core, so governed writes will be "
+        "refused until this is repaired",
+        report.verified,
+        report.declared,
+        len(report.defects),
+    )
+
+
 def install_bindings() -> None:
-    _tell_core_the_promise_is_kept()
-    # ---- dashboards ----------------------------------------------------
-    gate_run(
-        "superset.commands.dashboard.update",
-        "UpdateDashboardCommand",
-        _gate_dashboard_update,
-        capture=True,
-    )
-    # The native-filter and chart-customization sub-commands inherit the
-    # capture above but gate on a diff body, which folds into an open draft
-    # instead of replacing it.
-    for class_name, metadata_key in (
-        ("UpdateDashboardNativeFiltersCommand", "native_filter_configuration"),
-        ("UpdateDashboardChartCustomizationsCommand", "chart_customization_config"),
-    ):
-        gate_run(
-            "superset.commands.dashboard.update",
-            class_name,
-            _gate_config_diff(metadata_key),
-        )
-    gate_run(
-        "superset.commands.dashboard.update",
-        "UpdateDashboardColorsConfigCommand",
-        lambda c: (
-            gate_write(
-                AssetType.DASHBOARD,
-                c._model.id,
-                _payload(c),
-                command_args={
-                    COMMAND_KEY: c.review_command,
-                    "mark_updated": getattr(c, "_mark_updated", True),
-                },
-                combine=combine_key_values,
+    """Bind every path ``WRITE_PATHS`` declares, then check the result.
+
+    Driven off the table rather than written out, so the declaration and
+    what actually runs are the same thing. An ``EXEMPT`` path carries no
+    gate and is deliberately skipped here; it is in the table so that the
+    choice is visible and so verification can tell it from an oversight.
+    """
+    for path in WRITE_PATHS:
+        if path.gate is None:
+            continue
+        if path.via == "method":
+            gate_method(path.module_path, path.class_name, path.attr, path.gate)
+        else:
+            gate_run(
+                path.module_path,
+                path.class_name,
+                path.gate,
+                capture=path.capture,
+                validate_first=path.validate_first,
             )
-            if getattr(c, "_mark_updated", True)
-            else refuse_unreviewable_write(
-                "Updating dashboard colors in the background",
-                "Change colors in the dashboard's properties and save, so "
-                "the change can be reviewed.",
+
+    app = _app_if_any()
+    if app is not None:
+        # Flask-AppBuilder built its views before extensions loaded, so a
+        # route onto a gated method is already holding the ungated original
+        # (S-01). Repaired here, ahead of verification, because a route still
+        # holding an original is a defect and would otherwise withhold the
+        # promise over damage we know how to repair. The entrypoint calls
+        # this again; it is idempotent, and the repair is logged per
+        # endpoint either way.
+        rebound = rebind_registered_routes(app)
+        if rebound:
+            # Logged from here because the entrypoint's own count now reads
+            # zero: by the time it calls this, the repair has happened.
+            logger.info(
+                "asset-approval: %d route(s) rebound before verification: %s",
+                len(rebound),
+                ", ".join(rebound),
             )
-        ),
-    )
-    gate_run(
-        "superset.commands.dashboard.delete",
-        "DeleteDashboardCommand",
-        lambda c: gate_delete(
-            AssetType.DASHBOARD, [m.id for m in (c._models or [])]
-        ),
-    )
-    gate_run(
-        "superset.commands.dashboard.delete",
-        "DeleteEmbeddedDashboardCommand",
-        lambda c: gate_write(
-            AssetType.DASHBOARD,
-            c._dashboard.id,
-            {},
-            command_args={COMMAND_KEY: c.review_command},
-        ),
-    )
-    # Setting a dashboard's embedded config has no command in the host
-    # build: the API loads the dashboard and calls the DAO inline. The DAO
-    # is the only seam, so the gate reads the call's arguments directly.
-    gate_method(
-        "superset.daos.dashboard",
-        "EmbeddedDashboardDAO",
-        "upsert",
-        _gate_embedded_upsert,
-    )
-
-    # ---- charts --------------------------------------------------------
-    gate_run(
-        "superset.commands.chart.update",
-        "UpdateChartCommand",
-        lambda c: None
-        if _only_exempt(c._model, _payload(c))
-        else gate_write(
-            AssetType.CHART,
-            c._model.id,
-            _payload(c),
-            command_args={
-                "normalization_changes": getattr(c, "_normalization_changes", None)
-            },
-        ),
-        capture=True,
-    )
-    gate_run(
-        "superset.commands.chart.delete",
-        "DeleteChartCommand",
-        lambda c: gate_delete(AssetType.CHART, [m.id for m in (c._models or [])]),
-    )
-
-    # ---- datasets ------------------------------------------------------
-    gate_run(
-        "superset.commands.dataset.update",
-        "UpdateDatasetCommand",
-        lambda c: None
-        if _only_exempt(c._model, _payload(c))
-        else gate_write(
-            AssetType.DATASET,
-            c._model.id,
-            _payload(c),
-            command_args={"override_columns": getattr(c, "override_columns", False)},
-        ),
-        capture=True,
-    )
-    gate_run(
-        "superset.commands.dataset.delete",
-        "DeleteDatasetCommand",
-        lambda c: gate_delete(AssetType.DATASET, [m.id for m in (c._models or [])]),
-    )
-    # "Sync columns from source" is exempt (SOW 5.2, criterion 5): it does
-    # not author a change, it re-reads what the database already says. It
-    # was refused with a 422, which left no way to do it at all while
-    # review was on (129073). Left unbound, so it applies immediately.
-    gate_run(
-        "superset.commands.dataset.columns.delete",
-        "DeleteDatasetColumnCommand",
-        lambda c: refuse_unreviewable_write(
-            "Deleting a dataset column",
-            "Remove the column in the dataset editor and save, so the change "
-            "can be reviewed.",
-        ),
-    )
-    gate_run(
-        "superset.commands.dataset.metrics.delete",
-        "DeleteDatasetMetricCommand",
-        lambda c: refuse_unreviewable_write(
-            "Deleting a dataset metric",
-            "Remove the metric in the dataset editor and save, so the change "
-            "can be reviewed.",
-        ),
-    )
-
-    # ---- the legacy datasource save -------------------------------------
-    # `POST /datasource/save/` writes a whole datasource dict straight onto
-    # the model, with no command to bind, so a reviewed dataset could be
-    # changed outright (S-01, QA run 1). It is deprecated in favour of
-    # `PUT /api/v1/dataset/<id>`, which is gated, and nothing in the
-    # frontend calls it -- so refusing closes the hole without taking away
-    # a route anyone uses.
-    #
-    # Refused rather than captured on purpose: its body is a full datasource
-    # dict, not the dataset command's, so a captured request could not be
-    # replayed faithfully and would fail at approval instead of here.
-    gate_method(
-        "superset.views.datasource.views",
-        "Datasource",
-        "save",
-        lambda *_args, **_kwargs: refuse_unreviewable_write(
-            "Saving a dataset through the legacy endpoint",
-            "Save the dataset from its editor, or through "
-            "PUT /api/v1/dataset/<id>, so the change can be reviewed.",
-        ),
-    )
-
-    # ---- Explore's legacy save ------------------------------------------
-    # No command of its own: the view writes through the DAO inline, so the
-    # view method is the only seam before the write happens.
-    gate_method(
-        "superset.views.core",
-        "Superset",
-        "save_or_overwrite_slice",
-        _gate_legacy_slice_save,
-    )
-
-    # ---- version restore -----------------------------------------------
-    gate_run(
-        "superset.commands.version_restore",
-        "BaseRestoreVersionCommand",
-        _gate_version_restore,
-        validate_first=False,
-    )
-
-    # ---- un-archive ----------------------------------------------------
-    # The delete that archived the asset went through review; restoring it
-    # put it back in front of viewers on one editor's say-so (QA-17).
-    for module_path, class_name in (
-        ("superset.commands.dashboard.restore", "RestoreDashboardCommand"),
-        ("superset.commands.chart.restore", "RestoreChartCommand"),
-        ("superset.commands.dataset.restore", "RestoreDatasetCommand"),
-    ):
-        gate_run(module_path, class_name, _gate_restore, validate_first=False)
-
-    # ---- imports -------------------------------------------------------
-    # Bound ahead of ``run``, not inside ``_import`` where the overwrite
-    # actually happens, because every importer's ``run`` wraps its body in
-    # "import failed for an unknown reason". Refusing from inside would be
-    # swallowed by that, and the person importing would be told nothing
-    # about review. Refusing first costs the ordering the other paths have
-    # (validate, then gate): the refusal is decided before the bundle is
-    # validated, which is why the gates read the uuids out of ``contents``
-    # themselves rather than from ``_configs``, which does not exist yet.
-    # The refusal discloses only that review is on and what it collided
-    # with, which the asset's own banner already does.
-    for module_path, class_name, kind in (
-        ("superset.commands.dashboard.importers.v1", "ImportDashboardsCommand", "dashboard"),
-        ("superset.commands.chart.importers.v1", "ImportChartsCommand", "chart"),
-        ("superset.commands.dataset.importers.v1", "ImportDatasetsCommand", "dataset"),
-    ):
-        gate_run(
-            module_path,
-            class_name,
-            _import_gate(kind),
-            validate_first=False,
-        )
-    # Every importer is refused only where it would actually overwrite
-    # something: a bundle of entirely new assets is not a governed write,
-    # whatever its overwrite flag says.
-    gate_run(
-        "superset.commands.importers.v1.assets",
-        "ImportAssetsCommand",
-        _assets_import_gate,
-        validate_first=False,
-    )
-
-    # ---- dataset datetime formats --------------------------------------
-    # No command: the API detects and stores formats inline, so the view
-    # method is the only seam. Not currently served (it is absent from
-    # ``include_route_methods``), guarded for whenever it is.
-    gate_method(
-        "superset.datasets.api",
-        "DatasetRestApi",
-        "detect_datetime_formats",
-        lambda *_args, **_kwargs: refuse_unreviewable_write(
-            "Detecting and storing datetime formats",
-            "Set the formats in the dataset editor and save, so the change "
-            "can be reviewed.",
-        ),
-    )
-
-
+    _keep_the_promise_only_if_the_gate_is_whole()
 
 
 def _gate_config_diff(metadata_key: str) -> Any:
@@ -662,3 +576,383 @@ def _gate_version_restore(command: Any) -> None:
             "version_number": version_number,
         },
     )
+
+
+def _refuse_dataset_column_delete(*_args: Any, **_kwargs: Any) -> None:
+    refuse_unreviewable_write(
+        "Deleting a dataset column",
+        "Remove the column in the dataset editor and save, so the change "
+        "can be reviewed.",
+    )
+
+
+def _refuse_dataset_metric_delete(*_args: Any, **_kwargs: Any) -> None:
+    refuse_unreviewable_write(
+        "Deleting a dataset metric",
+        "Remove the metric in the dataset editor and save, so the change "
+        "can be reviewed.",
+    )
+
+
+def _refuse_legacy_datasource_save(*_args: Any, **_kwargs: Any) -> None:
+    refuse_unreviewable_write(
+        "Saving a dataset through the legacy endpoint",
+        "Save the dataset from its editor, or through "
+        "PUT /api/v1/dataset/<id>, so the change can be reviewed.",
+    )
+
+
+def _refuse_datetime_format_detection(*_args: Any, **_kwargs: Any) -> None:
+    refuse_unreviewable_write(
+        "Detecting and storing datetime formats",
+        "Set the formats in the dataset editor and save, so the change "
+        "can be reviewed.",
+    )
+
+
+def _gate_dashboard_colors(command: Any) -> None:
+    """Gate a colours change, unless nobody asked for it to be visible.
+
+    The same command runs on a background recolour, which no author made and
+    no approver could recognise; that one is refused rather than captured.
+    """
+    if not getattr(command, "_mark_updated", True):
+        refuse_unreviewable_write(
+            "Updating dashboard colors in the background",
+            "Change colors in the dashboard's properties and save, so "
+            "the change can be reviewed.",
+        )
+        return
+    gate_write(
+        AssetType.DASHBOARD,
+        command._model.id,
+        _payload(command),
+        command_args={
+            COMMAND_KEY: command.review_command,
+            "mark_updated": getattr(command, "_mark_updated", True),
+        },
+        combine=combine_key_values,
+    )
+
+
+def _gate_dashboard_delete(command: Any) -> None:
+    gate_delete(AssetType.DASHBOARD, [m.id for m in (command._models or [])])
+
+
+def _gate_embedded_delete(command: Any) -> None:
+    gate_write(
+        AssetType.DASHBOARD,
+        command._dashboard.id,
+        {},
+        command_args={COMMAND_KEY: command.review_command},
+    )
+
+
+def _gate_chart_update(command: Any) -> None:
+    if _only_exempt(command._model, _payload(command)):
+        return
+    gate_write(
+        AssetType.CHART,
+        command._model.id,
+        _payload(command),
+        command_args={
+            "normalization_changes": getattr(
+                command, "_normalization_changes", None
+            )
+        },
+    )
+
+
+def _gate_chart_delete(command: Any) -> None:
+    gate_delete(AssetType.CHART, [m.id for m in (command._models or [])])
+
+
+def _gate_dataset_update(command: Any) -> None:
+    if _only_exempt(command._model, _payload(command)):
+        return
+    gate_write(
+        AssetType.DATASET,
+        command._model.id,
+        _payload(command),
+        command_args={
+            "override_columns": getattr(command, "override_columns", False)
+        },
+    )
+
+
+def _gate_dataset_delete(command: Any) -> None:
+    gate_delete(AssetType.DATASET, [m.id for m in (command._models or [])])
+
+
+#: Every write path the gate is responsible for, and its disposition.
+#:
+#: This is the denominator. ``install_bindings`` binds exactly what is here,
+#: ``install.verify_bindings`` checks the process against it, and the promise
+#: to core is only made when that check is clean. Before the table there was
+#: no way to answer "is every governed write path bound right now?" --
+#: ``patched_targets()`` recorded the ``setattr`` calls that succeeded, so a
+#: path nobody attempted read the same as one that worked. That is the shape
+#: S-01 hid in.
+#:
+#: The reasons are kept here rather than at the call site because a reviewer
+#: asking "what is governed, and what did we decide not to govern?" should
+#: get the answer from one list.
+WRITE_PATHS: tuple[WritePath, ...] = (
+    # ---- dashboards ----------------------------------------------------
+    WritePath(
+        "superset.commands.dashboard.update",
+        "UpdateDashboardCommand",
+        "run",
+        GATED,
+        "The ordinary dashboard save. Exempt while the dashboard has never "
+        "been published, because no viewer can reach a draft (SOW 5.1).",
+        _gate_dashboard_update,
+        capture=True,
+    ),
+    WritePath(
+        "superset.commands.dashboard.update",
+        "UpdateDashboardNativeFiltersCommand",
+        "run",
+        GATED,
+        "Native filters arrive as a diff of one json_metadata list, which "
+        "folds into an open draft instead of replacing it (R4-08).",
+        _gate_config_diff("native_filter_configuration"),
+    ),
+    WritePath(
+        "superset.commands.dashboard.update",
+        "UpdateDashboardChartCustomizationsCommand",
+        "run",
+        GATED,
+        "Chart customizations arrive as a diff, as native filters do.",
+        _gate_config_diff("chart_customization_config"),
+    ),
+    WritePath(
+        "superset.commands.dashboard.update",
+        "UpdateDashboardColorsConfigCommand",
+        "run",
+        GATED,
+        "A colour change an author made is captured; the same command run "
+        "in the background is refused, having no author to attribute it to.",
+        _gate_dashboard_colors,
+    ),
+    WritePath(
+        "superset.commands.dashboard.delete",
+        "DeleteDashboardCommand",
+        "run",
+        GATED,
+        "Deleting takes the dashboard away from viewers, so it is reviewed "
+        "like any other change to what they see.",
+        _gate_dashboard_delete,
+    ),
+    WritePath(
+        "superset.commands.dashboard.delete",
+        "DeleteEmbeddedDashboardCommand",
+        "run",
+        GATED,
+        "Revoking an embedded config changes who can reach the dashboard.",
+        _gate_embedded_delete,
+    ),
+    WritePath(
+        "superset.daos.dashboard",
+        "EmbeddedDashboardDAO",
+        "upsert",
+        GATED,
+        "Embedding hands the dashboard to an audience outside Superset's "
+        "access control. No command in the host build: the API calls the "
+        "DAO inline, so the DAO is the only seam.",
+        _gate_embedded_upsert,
+        via="method",
+    ),
+    # ---- charts --------------------------------------------------------
+    WritePath(
+        "superset.commands.chart.update",
+        "UpdateChartCommand",
+        "run",
+        GATED,
+        "The ordinary chart save.",
+        _gate_chart_update,
+        capture=True,
+    ),
+    WritePath(
+        "superset.commands.chart.delete",
+        "DeleteChartCommand",
+        "run",
+        GATED,
+        "Deleting takes the chart away from viewers.",
+        _gate_chart_delete,
+    ),
+    # ---- datasets ------------------------------------------------------
+    WritePath(
+        "superset.commands.dataset.update",
+        "UpdateDatasetCommand",
+        "run",
+        GATED,
+        "The ordinary dataset save, including the editor's column and "
+        "metric edits.",
+        _gate_dataset_update,
+        capture=True,
+    ),
+    WritePath(
+        "superset.commands.dataset.delete",
+        "DeleteDatasetCommand",
+        "run",
+        GATED,
+        "Deleting a dataset breaks every chart built on it.",
+        _gate_dataset_delete,
+    ),
+    WritePath(
+        "superset.commands.dataset.columns.delete",
+        "DeleteDatasetColumnCommand",
+        "run",
+        REFUSED,
+        "A column delete on its own carries nothing an approval could "
+        "replay; the dataset editor's save is the reviewable route.",
+        _refuse_dataset_column_delete,
+    ),
+    WritePath(
+        "superset.commands.dataset.metrics.delete",
+        "DeleteDatasetMetricCommand",
+        "run",
+        REFUSED,
+        "As the column delete above.",
+        _refuse_dataset_metric_delete,
+    ),
+    WritePath(
+        "superset.commands.dataset.refresh",
+        "RefreshDatasetCommand",
+        "run",
+        EXEMPT,
+        "Sync columns from source does not author a change, it re-reads "
+        "what the database already says (SOW 5.2, criterion 5). Refusing it "
+        "left no way to do it at all while review was on (129073), so it is "
+        "deliberately unbound and applies directly.",
+    ),
+    # ---- the legacy datasource save -------------------------------------
+    WritePath(
+        "superset.views.datasource.views",
+        "Datasource",
+        "save",
+        REFUSED,
+        "POST /datasource/save/ writes a whole datasource dict onto the "
+        "model with no command to bind, so a reviewed dataset could be "
+        "changed outright (S-01). Refused rather than captured because its "
+        "body is not the dataset command's and could not be replayed. "
+        "Deprecated in favour of the gated PUT /api/v1/dataset/<id>, and "
+        "nothing in the frontend calls it. This is the path whose route "
+        "held the ungated original -- see install.rebind_registered_routes.",
+        _refuse_legacy_datasource_save,
+        via="method",
+    ),
+    # ---- Explore's legacy save ------------------------------------------
+    WritePath(
+        "superset.views.core",
+        "Superset",
+        "save_or_overwrite_slice",
+        GATED,
+        "Explore's ?action=overwrite writes through ChartDAO inline, so no "
+        "command binding sees it and a reviewed chart could be changed with "
+        "nothing held (129068). The view method is the only seam.",
+        _gate_legacy_slice_save,
+        via="method",
+    ),
+    # ---- version restore -----------------------------------------------
+    WritePath(
+        "superset.commands.version_restore",
+        "BaseRestoreVersionCommand",
+        "run",
+        GATED,
+        "Restoring republishes old content to viewers, so it is a governed "
+        "write like any other.",
+        _gate_version_restore,
+        validate_first=False,
+    ),
+    # ---- un-archive ----------------------------------------------------
+    # The delete that archived the asset went through review; restoring it
+    # put it back in front of viewers on one editor's say-so (QA-17).
+    WritePath(
+        "superset.commands.dashboard.restore",
+        "RestoreDashboardCommand",
+        "run",
+        GATED,
+        "Un-archiving puts the dashboard back in front of viewers (QA-17).",
+        _gate_restore,
+        validate_first=False,
+    ),
+    WritePath(
+        "superset.commands.chart.restore",
+        "RestoreChartCommand",
+        "run",
+        GATED,
+        "Un-archiving puts the chart back in front of viewers (QA-17).",
+        _gate_restore,
+        validate_first=False,
+    ),
+    WritePath(
+        "superset.commands.dataset.restore",
+        "RestoreDatasetCommand",
+        "run",
+        GATED,
+        "Un-archiving puts the dataset back in front of viewers (QA-17).",
+        _gate_restore,
+        validate_first=False,
+    ),
+    # ---- imports -------------------------------------------------------
+    # Bound ahead of ``run``, not inside ``_import`` where the overwrite
+    # actually happens, because every importer's ``run`` wraps its body in
+    # "import failed for an unknown reason". Refusing from inside would be
+    # swallowed by that, and the person importing would be told nothing
+    # about review. Refusing first costs the ordering the other paths have
+    # (validate, then gate), which is why the gates read the uuids out of
+    # ``contents`` themselves rather than from ``_configs``.
+    WritePath(
+        "superset.commands.dashboard.importers.v1",
+        "ImportDashboardsCommand",
+        "run",
+        REFUSED,
+        "An overwriting import replaces live dashboards with no reviewer "
+        "seeing the replacement. Scoped to the collisions the bundle really "
+        "has, so a first-time import still works (S-06).",
+        _import_gate("dashboard"),
+        validate_first=False,
+    ),
+    WritePath(
+        "superset.commands.chart.importers.v1",
+        "ImportChartsCommand",
+        "run",
+        REFUSED,
+        "As the dashboard importer above.",
+        _import_gate("chart"),
+        validate_first=False,
+    ),
+    WritePath(
+        "superset.commands.dataset.importers.v1",
+        "ImportDatasetsCommand",
+        "run",
+        REFUSED,
+        "As the dashboard importer above.",
+        _import_gate("dataset"),
+        validate_first=False,
+    ),
+    WritePath(
+        "superset.commands.importers.v1.assets",
+        "ImportAssetsCommand",
+        "run",
+        REFUSED,
+        "An asset bundle replaces everything in it, so every prefix is in "
+        "scope.",
+        _assets_import_gate,
+        validate_first=False,
+    ),
+    # ---- dataset datetime formats --------------------------------------
+    WritePath(
+        "superset.datasets.api",
+        "DatasetRestApi",
+        "detect_datetime_formats",
+        REFUSED,
+        "No command: the API detects and stores formats inline, so the view "
+        "method is the only seam. Not currently served (it is absent from "
+        "include_route_methods), bound for whenever it is.",
+        _refuse_datetime_format_detection,
+        via="method",
+    ),
+)

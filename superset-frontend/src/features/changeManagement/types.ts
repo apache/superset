@@ -44,6 +44,10 @@ export interface FieldChange {
   opaque?: boolean;
   /** For an opaque JSON column: which entries inside it moved. */
   keys?: string[];
+  /** Settings the save wrote down for the first time, nearly
+   * always a control's own default rather than an edit. Counted
+   * rather than named, so one real change is not buried. */
+  added_keys?: number;
   /** For `position_json`: how the dashboard's layout moved, in counts. */
   layout?: { added: number; removed: number; changed: number };
   before?: string | number | boolean | null;

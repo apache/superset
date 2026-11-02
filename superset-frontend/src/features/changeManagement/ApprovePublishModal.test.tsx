@@ -105,6 +105,39 @@ test('still warns when the author is unknown', async () => {
   expect(screen.getByText(/viewers will see it break/)).toBeInTheDocument();
 });
 
+// The approve dialog for a delete said "This removes the chart. It cannot be
+// undone." The archive confirmation for the same delete promises Recently
+// archived, and Walk C restored an approved delete from there, so the claim
+// was false at the one moment a reviewer needed it to be true. These pin the
+// meaning rather than the sentence: no promise of finality, and the two things
+// that are actually so.
+test('the delete wording no longer claims the delete is final', () => {
+  renderModal({ ...base, operation: 'delete' } as ChangeRequest);
+
+  expect(screen.queryByText(/cannot be undone/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/irreversible/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/permanently/i)).not.toBeInTheDocument();
+});
+
+test('the delete wording says what viewers lose and how it comes back', () => {
+  renderModal({ ...base, operation: 'delete' } as ChangeRequest);
+
+  // Still weighty: viewers lose the asset immediately, and getting it back is
+  // another reviewed change rather than an undo button.
+  expect(screen.getByText(/Viewers lose the chart/)).toBeInTheDocument();
+  expect(
+    screen.getByText(/restored from Recently archived/),
+  ).toBeInTheDocument();
+  expect(screen.getByText(/review of its own/)).toBeInTheDocument();
+});
+
+test('the delete wording is not offered for an ordinary change', () => {
+  renderModal(base);
+
+  expect(screen.queryByText(/Recently archived/)).not.toBeInTheDocument();
+  expect(screen.getByText(/Viewers see/)).toBeInTheDocument();
+});
+
 test('the warning does not replace the publish wording', async () => {
   renderModal({
     ...base,

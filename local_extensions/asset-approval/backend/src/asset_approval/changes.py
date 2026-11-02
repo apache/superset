@@ -502,6 +502,48 @@ def _modifications_already_hold(
     return True
 
 
+def changed_keys_by_kind(current: Any, proposed: Any) -> dict[str, list[str]]:
+    """Which top-level entries the author moved, and which the save added.
+
+    ``changed_keys`` answers "which entries differ", and on a chart's
+    ``params`` that is nearly all of them. Explore posts every control's
+    current value, so ticking one checkbox arrives carrying 76 keys the
+    stored blob never held, almost all of them the control's own default.
+    The reviewer was told "78 changes" and shown three names taken in
+    alphabetical order, none of which the author had touched. That is
+    QA-15 on the chart surface, where its dashboard fix never reached: a
+    checker shown noise instead of the change cannot check anything.
+
+    The split is a ranking, not a filter. Everything is still reported, so
+    a key that is genuinely new is never hidden; the panel can simply lead
+    with what moved and count what was merely written down for the first
+    time.
+
+    Returns empty lists when the shapes are not comparable as objects,
+    which is what ``changed_keys`` does and for the same reason.
+    """
+    before, after = _parsed(current), _parsed(proposed)
+    empty: dict[str, list[str]] = {"moved": [], "added": [], "removed": []}
+    if not isinstance(before, dict) or not isinstance(after, dict):
+        return empty
+    moved, added, removed = [], [], []
+    for key in set(before) | set(after):
+        was, now = _parsed(before.get(key)), _parsed(after.get(key))
+        if was == now:
+            continue
+        if key not in before:
+            added.append(key)
+        elif key not in after:
+            removed.append(key)
+        else:
+            moved.append(key)
+    return {
+        "moved": sorted(moved),
+        "added": sorted(added),
+        "removed": sorted(removed),
+    }
+
+
 def changed_keys(current: Any, proposed: Any) -> list[str]:
     """Which top-level entries differ between two JSON blobs.
 

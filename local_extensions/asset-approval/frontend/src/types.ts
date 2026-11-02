@@ -44,6 +44,10 @@ export interface FieldChange {
   opaque?: boolean;
   /** For an opaque JSON column: which entries inside it moved. */
   keys?: string[];
+  /** Settings the save wrote down for the first time, nearly
+   * always a control's own default rather than an edit. Counted
+   * rather than named, so one real change is not buried. */
+  added_keys?: number;
   /** For `position_json`: how the dashboard's layout moved, in counts. */
   layout?: { added: number; removed: number; changed: number };
   before?: string | number | boolean | null;
@@ -78,6 +82,19 @@ export interface ChangeRequest {
   asset_type: ReviewAssetType;
   asset_id: number;
   asset_title: string | null;
+  /**
+   * The asset is archived, so it has no page to review it on. The server
+   * loads the asset already and so knows; inferring it from `command`
+   * covered restores alone and sent reviewers to dead pages for everything
+   * else (R3-01).
+   */
+  asset_archived?: boolean;
+  /**
+   * The author still holds edit access to the asset. Approving is refused
+   * with 409 once they do not, while `can_approve` stays true by decision,
+   * so the row has to say so before the button is pressed (QA-07).
+   */
+  author_can_still_edit?: boolean;
   status: ChangeStatus;
   is_open: boolean;
   note: string | null;

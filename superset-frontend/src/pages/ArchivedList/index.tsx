@@ -40,6 +40,12 @@ import SubMenu from 'src/features/home/SubMenu';
 import { datasetLabel } from 'src/features/semanticLayers/label';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { recoveredToast } from 'src/utils/softDeleteCopy';
+import { isReviewRequired } from 'src/features/changeManagement/types';
+import { reviewRequiredToast } from 'src/features/changeManagement/display';
+import { announceChangeCaptured } from 'src/features/changeManagement/events';
+import ReviewStatusTag, {
+  useOpenChanges,
+} from 'src/features/changeManagement/ReviewStatusTag';
 import { findPermission } from 'src/utils/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
@@ -97,7 +103,13 @@ const TYPE_LABELS: Record<ArchivedType, () => string> = {
 
 interface ToastProps {
   addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string, options?: { allowHtml?: boolean }) => void;
+  addSuccessToast: (
+    msg: string,
+    // `duration` because the captured-write toast carries a link to the
+    // author's queue and the default few seconds is not long enough to
+    // reach it; `reviewRequiredToast` sets both.
+    options?: { allowHtml?: boolean; duration?: number },
+  ) => void;
 }
 
 /** The per-row Recover + Delete-permanently actions. */
@@ -191,6 +203,14 @@ function ArchivedListBody({
   // Restore and purge both require the selected resource's write permission.
   const canWrite = hasPerm('can_write');
 
+  // One read for the whole table, exactly as the chart, dashboard and
+  // dataset lists do it. On this page the change it finds is usually the
+  // captured recovery the reader just asked for: the row cannot drop out
+  // until that is approved, so without the tag the row looks untouched.
+  // Empty when review is off or the reader is a viewer, which renders as
+  // no tags at all.
+  const openChanges = useOpenChanges(type);
+
   // Restore is immediate (no confirm dialog). On success, refetch the full page
   // so the server-side count/pagination stays consistent and the row drops out;
   // on any error surface a danger toast and leave the row in place. List
@@ -226,11 +246,17 @@ function ArchivedListBody({
   // release. The refresh is awaited so the finally's endAction does not
   // re-enable this row's buttons while the stale row is still rendered -- a
   // keyboard user could re-activate it and get a 404 after success.
+  //
+  // `onSuccess` is handed the response body as well as the name: a gated
+  // write answers 202 rather than 200, which is a success the shared client
+  // resolves, so the body is the only thing distinguishing "it happened"
+  // from "it was captured for review". It also says whether the refresh
+  // should run at all, because a captured action moved nothing.
   const performRowAction = useCallback(
     async (
       item: ArchivedItem,
       verb: 'restore' | 'purge',
-      onSuccess: (name: string) => void,
+      onSuccess: (name: string, body: unknown) => boolean | void,
       failureMessage: (name: string, errMsg?: string) => string,
     ) => {
       const name = String(item[config.nameField] ?? '');
@@ -238,11 +264,12 @@ function ArchivedListBody({
         return;
       }
       try {
-        await SupersetClient.post({
+        const { json } = await SupersetClient.post({
           endpoint: `/api/v1/${config.resource}/${item.uuid}/${verb}`,
         });
-        onSuccess(name);
-        await refreshData();
+        if (onSuccess(name, json) !== false) {
+          await refreshData();
+        }
       } catch (error) {
         const { error: errMsg } = await getClientErrorObject(error);
         addDangerToast(failureMessage(name, errMsg));
@@ -265,13 +292,38 @@ function ArchivedListBody({
       performRowAction(
         item,
         'restore',
-        name => {
+        (name, body) => {
+          // A gated recovery was captured, not applied (202): the asset is
+          // still archived, so the row stays and "restored successfully" --
+          // with a link to an asset that is not back -- would be a lie.
+          // Pressing Recover used to say nothing at all here, which is what
+          // invited the second and third click, and the third change
+          // request with it. Same toast as every other captured write
+          // (`reviewRequiredToast`): the server's own sentence plus a link
+          // to the author's queue, and a success, because that is what a
+          // 202 is.
+          if (isReviewRequired(body)) {
+            // Nothing on the page knows the request now exists, and the
+            // row's tag is drawn from a map read when the list mounted.
+            // Tell it to re-read so the tag appears without a reload
+            // (NEW-11).
+            announceChangeCaptured();
+            const { text, options } = reviewRequiredToast(
+              body.message,
+              body.id,
+            );
+            addSuccessToast(text, options);
+            // No refetch: the list is unchanged, and refetching it would
+            // only make the untouched row look like the result of one.
+            return false;
+          }
           const { text, options } = recoveredToast(
             name,
             TYPE_LABELS[type](),
             item.url ?? item.explore_url,
           );
           addSuccessToast(text, options);
+          return true;
         },
         (name, errMsg) =>
           errMsg
@@ -437,17 +489,28 @@ function ArchivedListBody({
           // is recovered. Both audiences get told why: editors are prompted
           // to recover; readers, who cannot recover, learn the precondition.
           return (
-            <Tooltip
-              title={
-                canWrite
-                  ? t('Recover this item to open it')
-                  : t(
-                      'Archived items must be recovered before they can be opened.',
-                    )
-              }
-            >
-              <span>{name}</span>
-            </Tooltip>
+            <>
+              <Tooltip
+                title={
+                  canWrite
+                    ? t('Recover this item to open it')
+                    : t(
+                        'Archived items must be recovered before they can be opened.',
+                      )
+                }
+              >
+                <span>{name}</span>
+              </Tooltip>{' '}
+              {/* Beside the name rather than in its own column, as on the
+                  chart and dataset lists: empty for most rows most of the
+                  time, and this is the only place the row can say the
+                  recovery is waiting for a decision. */}
+              <ReviewStatusTag
+                status={openChanges[String(original.id)]}
+                assetType={type}
+                assetId={original.id}
+              />
+            </>
           );
         },
         accessor: config.nameField,
@@ -515,6 +578,12 @@ function ArchivedListBody({
       handlePurge,
       loadDatasetPurgeImpact,
       inFlight,
+      // The Name cell renders the row's review tag from this map. Left out,
+      // the columns would be memoised against the map as it stood when the
+      // list mounted, so the recovery captured from this very page would
+      // re-read the map and then render the old one anyway -- the same
+      // stale-tag defect fixed on the asset lists as NEW-11.
+      openChanges,
     ],
   );
 
