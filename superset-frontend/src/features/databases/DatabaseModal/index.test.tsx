@@ -2174,12 +2174,13 @@ test('validates fix by testing all form field types clear validation errors', ()
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dbReducer', () => {
-  test('a Secure Extra edit retires the typed embedded credential', () => {
+  test('a Secure Extra edit retires the typed Secure Extra blocks', () => {
     const typedState = {
       ...databaseFixture,
       parameters: {
         host: 'account',
         embedded_credentials: { username: 'svc', password: 'pw' },
+        oauth2_client_info: { id: 'client', secret: 'typed' },
       },
     };
     const secureExtra = dbReducer(typedState, {

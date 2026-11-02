@@ -50,13 +50,18 @@ assists people when migrating to a new version.
   per-user result; existing cached entries for such charts are effectively invalidated
   for guests. A malformed or incomplete `embedded_credentials` is rejected by
   `POST`/`PUT /api/v1/database/` and by `validate_parameters` rather than stored and
-  ignored while both embedding flags are enabled; asset import is unchanged. Validation
+  ignored while both embedding flags are enabled; this check does not apply to asset import. Validation
   uses the engine's credential rules and edited credentials rather than stale stored
   values, and rejects whitespace-only usernames. Disabling either flag preserves stored credentials without blocking unrelated edits. Restored async guest
   queries use the same credential as synchronous queries. Connection-mutator hooks
   receive the selected fallback username. Snowflake OAuth2 scope is
   configured explicitly; a role scope selects that role, and omitting it uses the
-  user's default role. Deployments that leave the fallback flag off are unaffected.
+  user's default role. Deployments that leave the fallback flag off are unaffected, except
+  that, whatever the flag, dashboard, chart and dataset exports now carry any masked
+  OAuth2 client and embedded credential blocks, and overwriting a connection from a
+  dashboard bundle merges them into its Secure Extra. A destination still on an earlier
+  release replaces its whole Secure Extra with those blocks instead, so upgrade import
+  destinations first.
   Read the limitations in the "Embedding Superset" docs before turning it on: with
   `GLOBAL_ASYNC_QUERIES` on, logged-in users' charts on a Snowflake OAuth2 connection
   run as the connection's base account (this predates the flag, which does not change

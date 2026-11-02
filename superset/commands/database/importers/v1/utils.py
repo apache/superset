@@ -98,6 +98,7 @@ def import_database(  # noqa: C901
     config: dict[str, Any],
     overwrite: bool = False,
     ignore_permissions: bool = False,
+    partial_secure_extra: bool = False,
 ) -> Database:
     can_write = ignore_permissions or security_manager.can_access(
         "can_write",
@@ -151,9 +152,6 @@ def import_database(  # noqa: C901
     # Convert masked_encrypted_extra → encrypted_extra before importing.
     # For existing DBs, reveal masked sensitive values from current encrypted_extra.
     # For new DBs, schema validation already ensured no fields are still masked.
-    # A dashboard, chart or dataset bundle carries only some of Secure Extra and
-    # keeps the rest. A database export carries all of it, so what it omits is removed.
-    partial_secure_extra = config.pop("masked_encrypted_extra_partial", False)
     if masked_encrypted_extra := config.pop("masked_encrypted_extra", None):
         # Never reveal stored encrypted_extra secrets into a config that
         # repoints the connection at a different endpoint.
@@ -172,6 +170,8 @@ def import_database(  # noqa: C901
                 new_config,
                 sensitive_fields,
             )
+            # A database export carries all of Secure Extra, so what it omits is
+            # removed. Anything else keeps what it does not carry.
             if partial_secure_extra:
                 revealed = {**old_config, **revealed}
             config["encrypted_extra"] = json.dumps(revealed)

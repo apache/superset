@@ -24,7 +24,6 @@ OEF-SECRET-14).
 """
 
 from typing import Any
-from uuid import UUID
 
 import pytest
 import yaml
@@ -115,39 +114,6 @@ def test_bundle_export_carries_secure_extra_masked(
     for content in bundle.values():
         assert "client-secret" not in content
         assert "embedded-pw" not in content
-
-
-@pytest.mark.usefixtures("snowflake_like_paths")
-def test_bundle_overwrite_import_keeps_what_the_bundle_does_not_carry(
-    mocker: MockerFixture, session: Session
-) -> None:
-    """An exported bundle says it is partial, so overwriting keeps other settings."""
-    from superset import security_manager
-    from superset.commands.database.importers.v1.utils import import_database
-    from superset.databases.schemas import ImportV1DatabaseSchema
-    from superset.models.core import Database
-
-    mocker.patch.object(security_manager, "can_access", return_value=True)
-    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
-    bundle = _export_bundle()
-    config = yaml.safe_load(bundle[_database_file(bundle)])
-    assert config["masked_encrypted_extra_partial"] is True
-
-    stored = {**SECRETS, "auth_params": {"privatekey_pass": "kept"}}
-    db.session.add(
-        Database(
-            database_name="promoted",
-            sqlalchemy_uri="sqlite://",
-            uuid=UUID(config["uuid"]),
-            encrypted_extra=json.dumps(stored),
-        )
-    )
-    db.session.flush()
-
-    config = ImportV1DatabaseSchema(overwrites_existing=True).load(config)
-    imported = import_database(config, overwrite=True)
-
-    assert json.loads(imported.encrypted_extra) == stored
 
 
 @pytest.mark.usefixtures("snowflake_like_paths")
@@ -348,3 +314,60 @@ def test_dashboard_import_overwriting_all_asks_for_unrevealable_secrets(
     with pytest.raises(CommandInvalidError) as excinfo:
         ImportDashboardsCommand(contents, overwrite=True, overwrite_all=True).run()
     assert "$.oauth2_client_info.secret" in str(excinfo.value.normalized_messages())
+
+
+@pytest.mark.usefixtures("snowflake_like_paths")
+def test_dashboard_import_overwriting_all_keeps_what_the_bundle_does_not_carry(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """Overwriting a connection from a dashboard bundle keeps its other settings."""
+    import copy
+
+    from superset import security_manager
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import (
+        chart_config,
+        dashboard_config,
+        dashboard_metadata_config,
+        database_config,
+        dataset_config,
+    )
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    mocker.patch("superset.commands.chart.importers.v1.utils.security_manager")
+    mocker.patch("superset.commands.dashboard.importers.v1.utils.security_manager")
+    Database.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+    stored = {**SECRETS, "auth_params": {"privatekey_pass": "kept"}}
+    db.session.add(
+        Database(
+            database_name="imported_database",
+            sqlalchemy_uri=database_config["sqlalchemy_uri"],
+            uuid=database_config["uuid"],
+            encrypted_extra=json.dumps(stored),
+        )
+    )
+    db.session.flush()
+
+    database = copy.deepcopy(database_config)
+    database["masked_encrypted_extra"] = json.dumps(
+        {
+            "oauth2_client_info": {
+                **SECRETS["oauth2_client_info"],
+                "secret": PASSWORD_MASK,
+            }
+        }
+    )
+    contents = {
+        "metadata.yaml": yaml.safe_dump(dashboard_metadata_config),
+        "databases/imported_database.yaml": yaml.safe_dump(database),
+        "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+        "charts/imported_chart.yaml": yaml.safe_dump(chart_config),
+        "dashboards/imported_dashboard.yaml": yaml.safe_dump(dashboard_config),
+    }
+
+    ImportDashboardsCommand(contents, overwrite=True, overwrite_all=True).run()
+
+    imported = db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+    assert json.loads(imported.encrypted_extra) == stored

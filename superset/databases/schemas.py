@@ -1153,7 +1153,6 @@ class ImportV1DatabaseSchema(Schema):
     sqlalchemy_uri = fields.String(required=True)
     password = fields.String(allow_none=True)
     encrypted_extra = fields.String(allow_none=True, validate=encrypted_extra_validator)
-    masked_encrypted_extra_partial = fields.Boolean()
     masked_encrypted_extra = fields.String(
         allow_none=False, validate=masked_encrypted_extra_validator
     )
