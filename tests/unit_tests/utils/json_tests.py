@@ -477,6 +477,8 @@ def test_redact_sensitive_leaves_empty_values_unmasked() -> None:
         ({"secret": "stored", "other": "also"}, []),
         # A stored mask is what master saved when it had nothing to reveal.
         ({"secret": PASSWORD_MASK, "other": "also"}, ["$.secret"]),
+        # reveal_sensitive restores any stored value, falsy ones included.
+        ({"secret": 0, "other": False}, []),
     ],
 )
 def test_unrevealable_masked_fields(

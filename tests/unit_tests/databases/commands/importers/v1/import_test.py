@@ -1144,3 +1144,62 @@ def test_import_database_skips_embedded_credential_check_when_flag_off(
 
     stored = json.loads(database.encrypted_extra)["embedded_credentials"]
     assert stored == half_filled
+
+
+def test_import_database_checks_masks_with_the_incoming_engine(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite moving to another engine is checked against that engine's paths.
+
+    The stored engine's paths would not list the new engine's secret, so its mask
+    would be stored as the credential.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    Database.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+
+    config = {
+        "database_name": "moved_connection",
+        "sqlalchemy_uri": "postgresql://user@host/db",
+        "uuid": "7d2c1ee7-1d83-4f57-9a8e-1a2b3c4d5e6f",
+        "version": "1.0.0",
+        "extra": {},
+    }
+    existing = import_database(copy.deepcopy(config))
+    db.session.flush()
+
+    moved = {
+        **copy.deepcopy(config),
+        "sqlalchemy_uri": "snowflake://user:new-pw@account/db",
+        "masked_encrypted_extra": json.dumps(
+            {"embedded_credentials": {"username": "u", "password": PASSWORD_MASK}}
+        ),
+    }
+    with pytest.raises(ImportFailedError, match=r"\$\.embedded_credentials\.password"):
+        import_database(moved, overwrite=True)
+
+    assert existing.encrypted_extra is None
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=True)
+def test_import_database_refuses_incomplete_credential_in_plain_encrypted_extra(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """The completeness check also covers a file with only ``encrypted_extra``."""
+    from superset.commands.database.importers.v1.utils import import_database
+
+    existing = _import_snowflake_with_stored_keypair(mocker)
+
+    config = _snowflake_config(EMBEDDED_KEYPAIR)
+    del config["masked_encrypted_extra"]
+    config["encrypted_extra"] = json.dumps({"embedded_credentials": {"username": "u"}})
+    with pytest.raises(ImportFailedError, match=r"\$\.embedded_credentials\.password"):
+        import_database(config, overwrite=True)
+
+    stored = json.loads(existing.encrypted_extra)["embedded_credentials"]
+    assert stored == EMBEDDED_KEYPAIR

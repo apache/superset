@@ -218,10 +218,10 @@ def import_database(  # noqa: C901
             config["encrypted_extra"] = masked_encrypted_extra
 
     if encrypted_extra := config.get("encrypted_extra"):
-        engine_spec = (
-            existing.db_engine_spec
-            if existing
-            else Database.get_db_engine_spec(make_url_safe(config["sqlalchemy_uri"]))
+        # The incoming URI decides the engine: an overwrite can change it, and the
+        # stored engine's rules would miss the new engine's secrets and fields.
+        engine_spec = Database.get_db_engine_spec(
+            make_url_safe(config["sqlalchemy_uri"])
         )
         payload = json.loads(encrypted_extra)
 

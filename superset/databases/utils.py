@@ -195,7 +195,7 @@ def validated_embedded_credentials(credentials: Any) -> dict[str, str] | None:
         privatekey_pass = credentials.get("privatekey_pass", "")
         if (
             not isinstance(privatekey_body, str)
-            or not privatekey_body
+            or not _is_present(privatekey_body)
             or not isinstance(privatekey_pass, str)
         ):
             return None
