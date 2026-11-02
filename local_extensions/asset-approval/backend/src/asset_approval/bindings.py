@@ -15,7 +15,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from asset_approval.changes import changed_fields, EXEMPT_FIELDS
+from asset_approval.changes import (
+    changed_fields,
+    EXEMPT_FIELDS,
+    extra_is_only_certification,
+)
 from superset.utils import json
 from asset_approval.gate import (
     COMMAND_KEY,
@@ -323,7 +327,13 @@ def _only_exempt(asset: Any, payload: dict[str, Any]) -> bool:
     exempts, on all three asset types (129073).
     """
     changed = set(changed_fields(asset, payload))
-    return bool(changed) and changed <= EXEMPT_FIELDS
+    if not changed:
+        # Nothing moved at all. The gate's own empty-change check owns that
+        # case; calling it exempt here would answer a different question.
+        return False
+    if "extra" in changed and extra_is_only_certification(asset, payload):
+        changed.discard("extra")
+    return changed <= EXEMPT_FIELDS
 
 
 def _gate_dashboard_update(command: Any) -> None:

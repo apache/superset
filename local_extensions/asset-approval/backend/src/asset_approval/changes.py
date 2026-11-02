@@ -46,6 +46,7 @@ JSON_FIELDS = frozenset(
         "query_context",
         "json_metadata",
         "position_json",
+        "extra",
     }
 )
 
@@ -209,6 +210,43 @@ EXEMPT_FIELDS = frozenset(
         "description",
     }
 )
+
+#: Entries inside a dataset's ``extra`` blob that the exemption reaches.
+#:
+#: A chart and a dashboard hold certification in columns of their own, which
+#: ``EXEMPT_FIELDS`` names. A dataset does not: its certification is a key
+#: inside ``extra``, so the same edit arrived as a change to a governed JSON
+#: column and was held for review -- on an asset that may have no second
+#: editor to release it, which is the deadlock SOW 5.2 exempts it to avoid
+#: (R4-06).
+#:
+#: Only certification. ``warning_markdown`` also lives here and does show a
+#: viewer a banner, so it stays governed.
+EXEMPT_EXTRA_KEYS = frozenset({"certification"})
+
+
+def extra_is_only_certification(asset: Any, payload: dict[str, Any]) -> bool:
+    """Whether the only thing this payload moves inside ``extra`` is the badge.
+
+    False when ``extra`` is absent, unreadable as an object either side, or
+    carries anything else -- the exemption has to be certain, and an
+    unparseable blob is not.
+    """
+    if "extra" not in payload:
+        return False
+    # A dataset that was never certified holds no ``extra`` at all, and the
+    # first certification is exactly the edit this exempts; an absent blob
+    # therefore reads as an empty one rather than as incomparable.
+    before = _parsed(getattr(asset, "extra", None)) or {}
+    after = _parsed(payload.get("extra")) or {}
+    if not isinstance(before, dict) or not isinstance(after, dict):
+        return False
+    moved = {
+        key
+        for key in set(before) | set(after)
+        if _parsed(before.get(key)) != _parsed(after.get(key))
+    }
+    return bool(moved) and moved <= EXEMPT_EXTRA_KEYS
 
 
 def changed_keys(current: Any, proposed: Any) -> list[str]:
