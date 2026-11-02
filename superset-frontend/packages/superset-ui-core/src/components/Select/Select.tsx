@@ -22,6 +22,7 @@ import {
   RefObject,
   useEffect,
   useMemo,
+  useContext,
   useState,
   useCallback,
   useRef,
@@ -31,6 +32,7 @@ import {
 } from 'react';
 
 import { t } from '@apache-superset/core/translation';
+import { ConfigProvider } from 'antd';
 import { ensureIsArray, formatNumber, usePrevious } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
 import {
@@ -48,6 +50,7 @@ import {
   handleFilterOptionHelper,
   hasOption,
   isLabeledValue,
+  isNewOption,
   isObject,
   makeQuoteAwareTokenizer,
   mapOptions,
@@ -64,6 +67,7 @@ import {
   StyledCheckOutlined,
   StyledContainer,
   StyledHeader,
+  StyledNewOptionBadge,
   StyledSelect,
   StyledStopOutlined,
 } from './styles';
@@ -150,6 +154,11 @@ const Select = forwardRef(
     ref: Ref<RefSelectProps>,
   ) => {
     const isSingleMode = mode === 'single';
+    // AntdThemeProvider can supply a context-aware container (e.g. chart
+    // fullscreen); an explicit callback below would otherwise shadow it.
+    const { getPopupContainer: configGetPopupContainer } = useContext(
+      ConfigProvider.ConfigContext,
+    );
     // antd v6 widened `showSearch` to `boolean | SearchConfig`; coerce to a
     // plain boolean for Superset's internal toggles and helpers.
     const shouldShowSearch = allowNewOptions ? true : Boolean(showSearch);
@@ -512,9 +521,10 @@ const Select = forwardRef(
         setSelectValue(array);
 
         // removes new option
-        if (option.isNewOption) {
+        if (isNewOption(option)) {
+          const targetVal = getValue(value);
           const updatedOptions = fullSelectOptions.filter(
-            option => getValue(option.value) !== getValue(value),
+            opt => getValue(opt.value) !== targetVal && opt.label !== targetVal,
           );
           setSelectOptions(updatedOptions);
           setVisibleOptions(updatedOptions);
@@ -579,7 +589,7 @@ const Select = forwardRef(
               isNewOption: true,
             };
             const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
-              opt => !opt.isNewOption || hasOption(opt.value, selectValue),
+              opt => !isNewOption(opt) || hasOption(opt.value, selectValue),
             );
             updatedOptions = newOption
               ? [newOption, ...cleanSelectOptions]
@@ -1003,7 +1013,8 @@ const Select = forwardRef(
             getPopupContainer ||
             ((triggerNode: HTMLElement) =>
               (triggerNode?.closest('.ant-modal-container') as HTMLElement) ||
-              (triggerNode.parentNode as HTMLElement))
+              configGetPopupContainer?.(triggerNode) ||
+              document.body)
           }
           headerPosition={headerPosition}
           labelInValue={labelInValue}
@@ -1054,7 +1065,18 @@ const Select = forwardRef(
             )
           }
           options={visibleOptions}
-          optionRender={option => option.label || option.value}
+          optionRender={option =>
+            isNewOption(option.data) || isNewOption(option) ? (
+              <>
+                {option.label || option.value}
+                <StyledNewOptionBadge data-test="new-option-badge">
+                  {t('New')}
+                </StyledNewOptionBadge>
+              </>
+            ) : (
+              option.label || option.value
+            )
+          }
           oneLine={oneLine}
           popupMatchSelectWidth={oneLine ? dropdownWidth : true}
           builtinPlacements={DROPDOWN_BUILTIN_PLACEMENTS}

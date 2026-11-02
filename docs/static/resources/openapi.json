@@ -27500,6 +27500,9 @@
           "401": {
             "$ref": "#/components/responses/401"
           },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
           "422": {
             "$ref": "#/components/responses/422"
           },
@@ -27555,6 +27558,9 @@
           },
           "401": {
             "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
           },
           "404": {
             "$ref": "#/components/responses/404"
@@ -35263,12 +35269,15 @@
                 "schema": {
                   "properties": {
                     "archived_count": {
-                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "description": "Archived dependents are named only to users who could restore them from Recently Archived; the others are included in inaccessible_count. The counts overlap and must not be added together.",
                       "type": "integer"
                     },
                     "dependents": {
                       "items": {
                         "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
                           "id": {
                             "type": "integer"
                           },
@@ -35288,7 +35297,8 @@
                         "required": [
                           "type",
                           "id",
-                          "name"
+                          "name",
+                          "archived"
                         ],
                         "type": "object"
                       },
@@ -35653,12 +35663,15 @@
                 "schema": {
                   "properties": {
                     "archived_count": {
-                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "description": "Archived dependents are named only to users who could restore them from Recently Archived; the others are included in inaccessible_count. The counts overlap and must not be added together.",
                       "type": "integer"
                     },
                     "dependents": {
                       "items": {
                         "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
                           "id": {
                             "type": "integer"
                           },
@@ -35678,7 +35691,8 @@
                         "required": [
                           "type",
                           "id",
-                          "name"
+                          "name",
+                          "archived"
                         ],
                         "type": "object"
                       },
@@ -35821,12 +35835,15 @@
                 "schema": {
                   "properties": {
                     "archived_count": {
-                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "description": "Archived dependents are named only to users who could restore them from Recently Archived; the others are included in inaccessible_count. The counts overlap and must not be added together.",
                       "type": "integer"
                     },
                     "dependents": {
                       "items": {
                         "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
                           "id": {
                             "type": "integer"
                           },
@@ -35846,7 +35863,8 @@
                         "required": [
                           "type",
                           "id",
-                          "name"
+                          "name",
+                          "archived"
                         ],
                         "type": "object"
                       },

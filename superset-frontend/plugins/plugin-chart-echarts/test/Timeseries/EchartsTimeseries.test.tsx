@@ -137,6 +137,7 @@ function getCustomLegend(
   return {
     items: Array.from({ length: itemCount }, (_, index) => ({
       color: `rgb(${index % 255}, 0, 0)`,
+      icon: { shape: 'box' as const, opacity: 1 },
       interactive: true,
       name: `Series ${index + 1}`,
       selected: true,

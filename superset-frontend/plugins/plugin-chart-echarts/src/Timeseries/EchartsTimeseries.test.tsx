@@ -1563,14 +1563,24 @@ test('drillBy uses the swapped data index for a horizontal time-based axis', asy
   ]);
 });
 
-const makeVerticalLegend = (
-  orientation: LegendOrientation.Left | LegendOrientation.Right,
-) =>
+const makeVerticalLegend = (orientation: LegendOrientation) =>
   ({
     grid: { bottom: 20, top: 20 },
     items: [
-      { color: '#ff0000', interactive: true, name: 'Alpha', selected: true },
-      { color: '#00ff00', interactive: true, name: 'Beta', selected: true },
+      {
+        color: '#ff0000',
+        icon: { shape: 'box', opacity: 1 },
+        interactive: true,
+        name: 'Alpha',
+        selected: true,
+      },
+      {
+        color: '#00ff00',
+        icon: { shape: 'box', opacity: 1 },
+        interactive: true,
+        name: 'Beta',
+        selected: true,
+      },
     ],
     orientation,
     showSelectors: true,

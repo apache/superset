@@ -20,9 +20,11 @@ import { render, screen } from '../../../../spec/helpers/testing-library';
 import TimeseriesLegend from '../../src/Timeseries/TimeseriesLegend';
 import { LegendOrientation } from '../../src/types';
 
+const icon = { shape: 'box' as const, opacity: 1 };
+
 const baseItems = [
-  { color: '#ff0000', interactive: true, name: 'Alpha', selected: true },
-  { color: '#00ff00', interactive: true, name: 'Beta', selected: false },
+  { color: '#ff0000', icon, interactive: true, name: 'Alpha', selected: true },
+  { color: '#00ff00', icon, interactive: true, name: 'Beta', selected: false },
 ];
 
 const baseProps = {
@@ -78,7 +80,7 @@ test('omits row-break sentinels from a vertical legend', () => {
       {...baseProps}
       items={[
         ...baseItems,
-        { color: '', interactive: false, name: '', selected: true },
+        { color: '', icon, interactive: false, name: '', selected: true },
       ]}
       maxWidth={120}
       orientation={LegendOrientation.Left}
@@ -94,7 +96,7 @@ test('keeps row-break sentinels in a horizontal legend', () => {
       {...baseProps}
       items={[
         ...baseItems,
-        { color: '', interactive: false, name: '', selected: true },
+        { color: '', icon, interactive: false, name: '', selected: true },
       ]}
       orientation={LegendOrientation.Top}
     />,

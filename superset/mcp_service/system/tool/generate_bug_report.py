@@ -41,6 +41,7 @@ from superset.mcp_service.system.schemas import (
     GenerateBugReportRequest,
     GenerateBugReportResponse,
 )
+from superset.mcp_service.utils.permissions_utils import get_user_role_names
 from superset.utils.version import get_version_metadata
 
 logger = logging.getLogger(__name__)
@@ -187,11 +188,7 @@ def _collect_user_context() -> dict[str, Any]:
         return ctx
 
     ctx["user_id"] = getattr(user, "id", None)
-    raw_roles = getattr(user, "roles", None) or []
-    try:
-        ctx["roles"] = [r.name for r in raw_roles if hasattr(r, "name")]
-    except TypeError:
-        ctx["roles"] = []
+    ctx["roles"] = get_user_role_names(user)
     return ctx
 
 
