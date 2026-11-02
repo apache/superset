@@ -95,16 +95,62 @@ LAYOUT_KEY = "positions"
 LAYOUT_COLUMN = "position_json"
 
 
+#: Entries that hold a collection of ids rather than an ordered list.
+#:
+#: Superset recomputes a dashboard's cross-filter scopes from its layout on
+#: every read, and the recomputation answers with the same chart ids in a
+#: different order. Compared literally, a save that moved only the title
+#: came back with ``chart_configuration`` and ``global_chart_configuration``
+#: differing, so the gate captured a change the author had not made and the
+#: reviewer's panel named keys they had never touched (R5-01).
+#:
+#: Sorting them rather than dropping them is the whole point. A cross-filter
+#: scope is reviewable (Visa Q3), so a chart genuinely entering or leaving
+#: one still has to read as a change; adding these to
+#: ``DERIVED_METADATA_KEYS`` would have bought the same quiet by making that
+#: edit invisible. Only the order stops counting.
+UNORDERED_ID_LISTS = frozenset(
+    {"chartsInScope", "excluded", "timed_refresh_immune_slices"}
+)
+
+
+def _sorted_ids(items: list[Any]) -> list[Any]:
+    """Sorted by a key that cannot raise on a mixed or sparse list."""
+    return sorted(items, key=lambda item: (item is None, str(item)))
+
+
+def _in_a_fixed_order(value: Any) -> Any:
+    """``value`` with its id collections sorted and the rest left alone."""
+    if isinstance(value, dict):
+        return {
+            key: (
+                _sorted_ids(item)
+                if key in UNORDERED_ID_LISTS and isinstance(item, list)
+                else _in_a_fixed_order(item)
+            )
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_in_a_fixed_order(item) for item in value]
+    return value
+
+
 def _parsed(value: Any) -> Any:
-    """A JSON string as its data, so ordering and spacing do not count."""
-    if isinstance(value, (dict, list)) or value is None:
+    """A JSON string as its data, so ordering and spacing do not count.
+
+    Order stops counting inside ``UNORDERED_ID_LISTS`` as well, which is
+    what this docstring already promised and did not deliver.
+    """
+    if isinstance(value, (dict, list)):
+        return _in_a_fixed_order(value)
+    if value is None:
         return value
     if isinstance(value, str):
         text = value.strip()
         if not text:
             return None
         try:
-            return json.loads(text)
+            return _in_a_fixed_order(json.loads(text))
         except (ValueError, TypeError):
             return value
     return value

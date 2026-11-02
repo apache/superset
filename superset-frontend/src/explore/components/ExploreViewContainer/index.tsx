@@ -1244,7 +1244,14 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
             isCollapsed ? 'col-sm-9' : 'col-sm-7',
           )}
         >
-          {isFeatureEnabled(FeatureFlag.ChangeManagement) && (
+          {/*
+            Not in a capture: see the same guard on the dashboard. A report
+            is rendered by a headless browser signed in as a real user, so
+            an editor with a draft had their review banner drawn into the
+            PNG and sent to the recipients (R5-02).
+          */}
+          {isFeatureEnabled(FeatureFlag.ChangeManagement) &&
+            props.standalone !== ExploreStandaloneMode.Report && (
             <Suspense fallback={null}>
               <AssetReview
                 assetType="chart"

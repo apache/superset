@@ -144,6 +144,13 @@ jest.mock('src/features/versionHistory/DashboardVersionHistory', () => ({
   default: () => <aside data-test="mock-dashboard-version-history" />,
 }));
 
+// The real component renders null until it has fetched a change request, so
+// mock it with a visible marker to let tests assert whether it is mounted.
+jest.mock('src/features/changeManagement/AssetReview', () => ({
+  __esModule: true,
+  default: () => <div data-test="mock-asset-review" />,
+}));
+
 jest.mock('src/dashboard/components/Header/HeadlessAutoRefresh', () => {
   const MockHeadlessAutoRefresh = () => (
     <div data-test="mock-headless-auto-refresh" />
@@ -368,6 +375,36 @@ describe('DashboardBuilder', () => {
       );
     } finally {
       rectSpy.mockRestore();
+      window.history.replaceState({}, '', originalHref);
+    }
+  });
+
+  test('mounts the review banner when change management is on', async () => {
+    window.featureFlags = { [FeatureFlag.ChangeManagement]: true };
+    try {
+      const { findByTestId } = setup();
+      expect(await findByTestId('mock-asset-review')).toBeInTheDocument();
+    } finally {
+      window.featureFlags = {};
+    }
+  });
+
+  test('leaves the review banner out of a report capture (?standalone=3)', async () => {
+    // A report or thumbnail is captured by a headless browser signed in as a
+    // real user. An editor with a draft of their own had their review banner
+    // drawn into the PNG and emailed to the recipients, who are frequently
+    // viewers, and SOW 5.5 says viewers see no workflow UI at all (R5-02).
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=3');
+    window.featureFlags = { [FeatureFlag.ChangeManagement]: true };
+    try {
+      const { findByTestId, queryByTestId } = setup();
+      // Wait for something that does render, so this is not a race that
+      // would pass before the banner had a chance to appear.
+      expect(await findByTestId('mock-dashboard-grid')).toBeInTheDocument();
+      expect(queryByTestId('mock-asset-review')).not.toBeInTheDocument();
+    } finally {
+      window.featureFlags = {};
       window.history.replaceState({}, '', originalHref);
     }
   });

@@ -1025,7 +1025,19 @@ const DashboardBuilder = () => {
         )}
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
-        {isFeatureEnabled(FeatureFlag.ChangeManagement) && (
+        {/*
+          Not in a capture. A report or thumbnail is rendered by a headless
+          browser signed in as a real user, so an editor with a draft of
+          their own had their review banner drawn into the PNG and emailed
+          to the recipients -- who are frequently viewers, and whom SOW 5.5
+          says see no workflow UI at all (R5-02).
+
+          `standalone=3` is the mode core added for exactly this
+          distinction: an automated capture rather than a live chrome-less
+          embed, where an editor looking at their own dashboard should still
+          see the banner.
+        */}
+        {isFeatureEnabled(FeatureFlag.ChangeManagement) && !isReport && (
           <Suspense fallback={null}>
             <AssetReview
               assetType="dashboard"

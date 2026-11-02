@@ -34,14 +34,14 @@
  * the Show / Type / From filters are real controls rather than four links.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { pages, theme, translation } from '@apache-superset/core';
 import { Avatar, Input, Select, Table, Tag } from 'antd';
 import { Button, useToasts } from './host';
 import {
   approveChange,
   fetchChangeRequest,
-  fetchList,
+  fetchApprovalsPage,
   refusalMessage,
   requestChanges,
   submitForReview,
@@ -123,6 +123,14 @@ const VIEWS: { value: ApprovalsView; label: string }[] = [
   { value: 'all_pending', label: t('All pending') },
 ];
 
+/**
+ * How many requests a page of the list holds.
+ *
+ * Matches the server's own default so the first load does not ask for one
+ * size and get another.
+ */
+const PAGE_SIZE = 25;
+
 const EMPTY_COPY: Record<ApprovalsView, string> = {
   for_me: t('Nothing needs you right now'),
   submitted_by_me: t('You have no changes in flight'),
@@ -173,8 +181,16 @@ export default function Approvals() {
   const subPath = pages.useSubPath();
   const navigate = pages.useNavigate();
   const [rows, setRows] = useState<ChangeRequest[]>([]);
+  const [count, setCount] = useState(0);
+  const [page, setPage] = useState(0);
+  const [authors, setAuthors] = useState<{ value: number; label: string }[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
+  // What the server is actually filtering by. The input updates on every
+  // keystroke and each change is a request, so it is held back a moment.
+  const [search, setSearch] = useState('');
   const [assetType, setAssetType] = useState<string | undefined>();
   const [author, setAuthor] = useState<number | undefined>();
   const [reviewing, setReviewing] = useState<ChangeRequest | null>(null);
@@ -192,39 +208,48 @@ export default function Approvals() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setRows(await fetchList(view));
+      const answer = await fetchApprovalsPage(view, {
+        page,
+        pageSize: PAGE_SIZE,
+        name: search,
+        assetType,
+        author,
+      });
+      setRows(answer.rows);
+      setCount(answer.count);
+      setAuthors(
+        answer.authors.map(person => ({
+          value: person.id,
+          label: displayName(person),
+        })),
+      );
     } catch {
       setRows([]);
+      setCount(0);
     } finally {
       setLoading(false);
     }
-  }, [view]);
+  }, [view, page, search, assetType, author]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  // The From options are the authors actually present, so the filter can
-  // never offer someone with nothing in this view.
-  const authors = useMemo(() => {
-    const seen = new Map<number, string>();
-    rows.forEach(row => {
-      if (row.author?.id) seen.set(row.author.id, displayName(row.author));
-    });
-    return [...seen].map(([value, label]) => ({ value, label }));
-  }, [rows]);
+  // Typing is not a page change, so the request waits for a pause in it,
+  // and the new search starts again from the first page. Any narrowing
+  // does: staying on page 4 of a result set that now has one page shows an
+  // empty list that looks broken.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(name);
+      setPage(0);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [name]);
 
-  const filtered = useMemo(
-    () =>
-      rows.filter(
-        row =>
-          (!name ||
-            (row.asset_title ?? '').toLowerCase().includes(name.toLowerCase())) &&
-          (!assetType || row.asset_type === assetType) &&
-          (!author || row.author?.id === author),
-      ),
-    [rows, name, assetType, author],
-  );
+  // The From options and the rows both arrive filtered. Narrowing in the
+  // browser would only ever narrow the page the browser is holding, which
+  // is a different question from the one the filter appears to ask.
 
   /**
    * Where a review happens.
@@ -277,7 +302,7 @@ export default function Approvals() {
   /**
    * Open the request dialog on the full record, not on the list row.
    *
-   * `fetchList` leaves out `eligible_approvers` -- the dialog's whole
+   * `fetchApprovalsPage` leaves out `eligible_approvers` -- the dialog's whole
    * "who can approve" section reads it, and an absent list is indistinguishable
    * from an empty one, so handing it a row makes it tell an author with a
    * perfectly good reviewer that nobody can approve their change.
@@ -439,9 +464,10 @@ export default function Approvals() {
             id="approvals-show"
             value={view}
             options={VIEWS}
-            onChange={next =>
-              navigate(`/${String(next).replace(/_/g, '-')}`)
-            }
+            onChange={next => {
+              setPage(0);
+              navigate(`/${String(next).replace(/_/g, '-')}`);
+            }}
             style={{ width: 200 }}
             data-test="filter-show"
           />
@@ -454,7 +480,10 @@ export default function Approvals() {
             placeholder={t('Choose...')}
             value={assetType}
             options={TYPES.map(value => ({ value, label: typeLabel(value) }))}
-            onChange={setAssetType}
+            onChange={next => {
+              setPage(0);
+              setAssetType(next as string | undefined);
+            }}
             style={{ width: 170 }}
             data-test="filter-type"
           />
@@ -467,7 +496,10 @@ export default function Approvals() {
             placeholder={t('Choose...')}
             value={author}
             options={authors}
-            onChange={setAuthor}
+            onChange={next => {
+              setPage(0);
+              setAuthor(next as number | undefined);
+            }}
             style={{ width: 200 }}
             data-test="filter-from"
           />
@@ -479,9 +511,14 @@ export default function Approvals() {
         rowKey="id"
         loading={loading}
         columns={columns}
-        dataSource={filtered}
+        dataSource={rows}
         locale={{ emptyText: EMPTY_COPY[view] }}
         pagination={{
+          current: page + 1,
+          pageSize: PAGE_SIZE,
+          total: count,
+          showSizeChanger: false,
+          onChange: next => setPage(next - 1),
           showTotal: (total, range) =>
             t('%s–%s of %s', range[0], range[1], total),
         }}

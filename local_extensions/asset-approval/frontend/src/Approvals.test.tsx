@@ -26,14 +26,20 @@
  * rather than re-testing the host.
  */
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { pages } from '@apache-superset/core';
 import Approvals from './Approvals';
-import { fetchList } from './api';
+import { fetchApprovalsPage } from './api';
 import type { ChangeRequest } from './types';
 
 jest.mock('./api', () => ({
-  fetchList: jest.fn(),
+  fetchApprovalsPage: jest.fn(),
   approveChange: jest.fn(() => Promise.resolve()),
   requestChanges: jest.fn(() => Promise.resolve()),
   // The real one: reading the server's sentence off a refusal is the
@@ -41,7 +47,18 @@ jest.mock('./api', () => ({
   refusalMessage: jest.requireActual('./api').refusalMessage,
 }));
 
-const mockedFetchList = fetchList as jest.MockedFunction<typeof fetchList>;
+const mockedFetchList = fetchApprovalsPage as jest.MockedFunction<
+  typeof fetchApprovalsPage
+>;
+
+/** The server's shape around a set of rows: it now pages and filters. */
+const asPage = (rows: ChangeRequest[]) => ({
+  rows,
+  count: rows.length,
+  authors: rows
+    .map(row => row.author)
+    .filter((person): person is NonNullable<typeof person> => !!person),
+});
 const mockedUseSubPath = pages.useSubPath as jest.MockedFunction<
   typeof pages.useSubPath
 >;
@@ -70,7 +87,7 @@ const request = (over: Partial<ChangeRequest> = {}): ChangeRequest =>
 beforeEach(() => {
   mockedUseSubPath.mockReturnValue('/');
   mockedUseNavigate.mockReturnValue(jest.fn());
-  mockedFetchList.mockResolvedValue([]);
+  mockedFetchList.mockResolvedValue(asPage([]));
 });
 
 afterEach(() => jest.clearAllMocks());
@@ -80,7 +97,10 @@ test('defaults to the view that needs the reviewer', async () => {
   // the one that answers "is anything waiting on me".
   render(<Approvals />);
 
-  await waitFor(() => expect(mockedFetchList).toHaveBeenCalledWith('for_me'));
+  await waitFor(() => expect(mockedFetchList).toHaveBeenCalledWith(
+      'for_me',
+      expect.objectContaining({ page: 0 }),
+    ));
 });
 
 test.each([
@@ -95,11 +115,14 @@ test.each([
 
   render(<Approvals />);
 
-  await waitFor(() => expect(mockedFetchList).toHaveBeenCalledWith(view));
+  await waitFor(() => expect(mockedFetchList).toHaveBeenCalledWith(
+      view,
+      expect.objectContaining({ page: 0 }),
+    ));
 });
 
 test('the list carries the columns mock 16a specifies, in order', async () => {
-  mockedFetchList.mockResolvedValue([request()]);
+  mockedFetchList.mockResolvedValue(asPage([request()]));
 
   render(<Approvals />);
 
@@ -123,7 +146,7 @@ test('the filter bar offers Name, Show, Type and From', async () => {
 test('a row the reader can approve says so, and offers the review', async () => {
   // The mock writes the status from the reader's point of view rather than
   // the record's: what this row asks of *you*.
-  mockedFetchList.mockResolvedValue([request({ can_approve: true })]);
+  mockedFetchList.mockResolvedValue(asPage([request({ can_approve: true })]));
 
   render(<Approvals />);
 
@@ -132,7 +155,7 @@ test('a row the reader can approve says so, and offers the review', async () => 
 });
 
 test('a row the reader cannot approve offers the asset instead', async () => {
-  mockedFetchList.mockResolvedValue([request({ can_approve: false })]);
+  mockedFetchList.mockResolvedValue(asPage([request({ can_approve: false })]));
 
   render(<Approvals />);
 
@@ -142,33 +165,80 @@ test('a row the reader cannot approve offers the asset instead', async () => {
 });
 
 test('a change sent back to its author reads as returned', async () => {
-  mockedFetchList.mockResolvedValue([
+  mockedFetchList.mockResolvedValue(asPage([
     request({ status: 'changes_requested', is_author: true }),
-  ]);
+  ]));
 
   render(<Approvals />);
 
   expect(await screen.findByText('Returned to you')).toBeInTheDocument();
 });
 
-test('the Name filter narrows the list without refetching', async () => {
-  mockedFetchList.mockResolvedValue([
-    request({ id: 1, asset_title: 'Q3 revenue' }),
-    request({ id: 2, asset_title: 'Ops overview' }),
-  ]);
+test('the Name filter asks the server, so it narrows the whole view', async () => {
+  // It used to filter the rows the browser was holding. Once the list is
+  // paged that is a different question from the one the filter appears to
+  // ask: it would narrow this page and leave matches on the next one
+  // unfound (R5-04).
+  jest.useFakeTimers();
+  try {
+    mockedFetchList.mockResolvedValue(asPage([
+      request({ id: 1, asset_title: 'Q3 revenue' }),
+    ]));
 
-  render(<Approvals />);
+    render(<Approvals />);
+    await screen.findByText('Q3 revenue');
 
-  await screen.findByText('Q3 revenue');
-  fireEvent.change(
-    screen.getByPlaceholderText('Type a value') as HTMLInputElement,
-    { target: { value: 'ops' } },
-  );
+    mockedFetchList.mockResolvedValue(asPage([
+      request({ id: 2, asset_title: 'Ops overview' }),
+    ]));
+    fireEvent.change(
+      screen.getByPlaceholderText('Type a value') as HTMLInputElement,
+      { target: { value: 'ops' } },
+    );
 
-  expect(screen.queryByText('Q3 revenue')).not.toBeInTheDocument();
-  expect(screen.getByText('Ops overview')).toBeInTheDocument();
-  // One request for the view; the rest is filtering what it returned.
-  expect(mockedFetchList).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+    });
+
+    await waitFor(() =>
+      expect(mockedFetchList).toHaveBeenLastCalledWith(
+        'for_me',
+        expect.objectContaining({ name: 'ops', page: 0 }),
+      ),
+    );
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('typing is held back so each keystroke is not a request', async () => {
+  jest.useFakeTimers();
+  try {
+    mockedFetchList.mockResolvedValue(asPage([request()]));
+    render(<Approvals />);
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+    });
+    const before = mockedFetchList.mock.calls.length;
+
+    const input = screen.getByPlaceholderText(
+      'Type a value',
+    ) as HTMLInputElement;
+    for (const value of ['o', 'op', 'ops']) {
+      fireEvent.change(input, { target: { value } });
+      await act(async () => {
+        jest.advanceTimersByTime(100);
+      });
+    }
+    expect(mockedFetchList.mock.calls.length).toBe(before);
+
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+    });
+    expect(mockedFetchList.mock.calls.length).toBe(before + 1);
+  } finally {
+    jest.useRealTimers();
+  }
 });
 
 test('an unknown sub-path falls back rather than asking for nothing', async () => {
@@ -176,11 +246,14 @@ test('an unknown sub-path falls back rather than asking for nothing', async () =
 
   render(<Approvals />);
 
-  await waitFor(() => expect(mockedFetchList).toHaveBeenCalledWith('for_me'));
+  await waitFor(() => expect(mockedFetchList).toHaveBeenCalledWith(
+      'for_me',
+      expect.objectContaining({ page: 0 }),
+    ));
 });
 
 test('a request is shown with everything a reviewer decides on', async () => {
-  mockedFetchList.mockResolvedValue([request()]);
+  mockedFetchList.mockResolvedValue(asPage([request()]));
 
   render(<Approvals />);
 
@@ -197,14 +270,14 @@ test('a request is shown with everything a reviewer decides on', async () => {
 });
 
 test('a decided request shows when it was decided, not how long it waited', async () => {
-  mockedFetchList.mockResolvedValue([
+  mockedFetchList.mockResolvedValue(asPage([
     request({
       status: 'approved',
       can_approve: false,
       decided_at: new Date(Date.now() - 86_400_000).toISOString(),
       review_note: 'Looks right',
     }),
-  ]);
+  ]));
 
   render(<Approvals />);
 
@@ -244,9 +317,9 @@ test('Review on a dashboard goes to the dashboard, where the panel is', async ()
     configurable: true,
     value: { ...window.location, assign },
   });
-  mockedFetchList.mockResolvedValue([
+  mockedFetchList.mockResolvedValue(asPage([
     request({ id: 9, asset_type: 'dashboard', asset_id: 4, can_approve: true }),
-  ]);
+  ]));
 
   render(<Approvals />);
 
@@ -259,7 +332,7 @@ test('Review on a dataset opens its review here, not a page of its own', async (
   // A dataset has no page in Superset -- `assetUrl` can only offer the
   // dataset list -- so the mocks review it in the dataset editor's own
   // tabs, read-only, opened from this list.
-  mockedFetchList.mockResolvedValue([
+  mockedFetchList.mockResolvedValue(asPage([
     request({
       id: 7,
       asset_type: 'dataset',
@@ -271,7 +344,7 @@ test('Review on a dataset opens its review here, not a page of its own', async (
         impact: { charts: 0, dashboards: 0 },
       },
     }),
-  ]);
+  ]));
 
   render(<Approvals />);
 
@@ -285,7 +358,7 @@ test('approving a dataset stops to ask first', async () => {
   // already confirmed; reviewing from this list did not, which left the
   // only action that cannot be undone as the only one that never asked.
   const { approveChange } = jest.requireMock('./api');
-  mockedFetchList.mockResolvedValue([
+  mockedFetchList.mockResolvedValue(asPage([
     request({
       id: 7,
       asset_type: 'dataset',
@@ -297,7 +370,7 @@ test('approving a dataset stops to ask first', async () => {
         impact: { charts: 0, dashboards: 0 },
       },
     }),
-  ]);
+  ]));
 
   render(<Approvals />);
 
@@ -331,9 +404,9 @@ test('switching view navigates instead of reloading', async () => {
 
 test('an asset with no title still identifies itself', async () => {
   // A dataset has no page of its own in Superset, so the title can be absent.
-  mockedFetchList.mockResolvedValue([
+  mockedFetchList.mockResolvedValue(asPage([
     request({ asset_title: null, asset_type: 'dataset', asset_id: 12 }),
-  ]);
+  ]));
 
   render(<Approvals />);
 
@@ -344,11 +417,11 @@ test('a request waiting too long is marked, so the queue shows its own age', asy
   // Three days is where the SOW puts "waiting too long". The styling is the
   // only thing that distinguishes it, so it is worth asserting rather than
   // trusting the eye.
-  mockedFetchList.mockResolvedValue([
+  mockedFetchList.mockResolvedValue(asPage([
     request({
       submitted_at: new Date(Date.now() - 6 * 86_400_000).toISOString(),
     }),
-  ]);
+  ]));
 
   const { container } = render(<Approvals />);
 
@@ -362,9 +435,9 @@ test('a request waiting too long is marked, so the queue shows its own age', asy
 });
 
 test('a recently submitted request is not marked', async () => {
-  mockedFetchList.mockResolvedValue([
+  mockedFetchList.mockResolvedValue(asPage([
     request({ submitted_at: new Date(Date.now() - 3600_000).toISOString() }),
-  ]);
+  ]));
 
   render(<Approvals />);
 
@@ -381,7 +454,7 @@ test('a refused approval says why, and the list re-reads', async () => {
   const refusal =
     'This change was updated after you opened it. Review the new version before approving.';
   approveChange.mockRejectedValueOnce(Object.assign(new Error(refusal)));
-  mockedFetchList.mockResolvedValue([
+  mockedFetchList.mockResolvedValue(asPage([
     request({
       id: 7,
       asset_type: 'dataset',
@@ -393,7 +466,7 @@ test('a refused approval says why, and the list re-reads', async () => {
         impact: { charts: 0, dashboards: 0 },
       },
     }),
-  ]);
+  ]));
 
   render(<Approvals />);
 
@@ -425,7 +498,7 @@ test('a refusal that arrives as a Response still says why', async () => {
     clone: () => ({ json: () => Promise.resolve(body) }),
   };
   approveChange.mockRejectedValueOnce(rejection);
-  mockedFetchList.mockResolvedValue([
+  mockedFetchList.mockResolvedValue(asPage([
     request({
       id: 7,
       asset_type: 'dataset',
@@ -437,7 +510,7 @@ test('a refusal that arrives as a Response still says why', async () => {
         impact: { charts: 0, dashboards: 0 },
       },
     }),
-  ]);
+  ]));
 
   render(<Approvals />);
 
@@ -460,7 +533,7 @@ test('a change on an archived asset is decided here, not on a page it no longer 
     configurable: true,
     value: { ...window.location, assign },
   });
-  mockedFetchList.mockResolvedValue([
+  mockedFetchList.mockResolvedValue(asPage([
     request({
       id: 9,
       asset_type: 'chart',
@@ -469,7 +542,7 @@ test('a change on an archived asset is decided here, not on a page it no longer 
       command: 'restore',
       asset_archived: true,
     }),
-  ]);
+  ]));
 
   render(<Approvals />);
 
@@ -490,7 +563,7 @@ test('any change on an archived asset is decided here, whatever its command', as
     configurable: true,
     value: { ...window.location, assign },
   });
-  mockedFetchList.mockResolvedValue([
+  mockedFetchList.mockResolvedValue(asPage([
     request({
       id: 11,
       asset_type: 'chart',
@@ -501,7 +574,7 @@ test('any change on an archived asset is decided here, whatever its command', as
       command: null,
       asset_archived: true,
     }),
-  ]);
+  ]));
 
   render(<Approvals />);
 
@@ -519,7 +592,7 @@ test('a change on a live asset is still reviewed on the asset', async () => {
     configurable: true,
     value: { ...window.location, assign },
   });
-  mockedFetchList.mockResolvedValue([
+  mockedFetchList.mockResolvedValue(asPage([
     request({
       id: 12,
       asset_type: 'chart',
@@ -527,7 +600,7 @@ test('a change on a live asset is still reviewed on the asset', async () => {
       can_approve: true,
       asset_archived: false,
     }),
-  ]);
+  ]));
 
   render(<Approvals />);
 
@@ -540,13 +613,13 @@ test('a row whose author has lost edit access says so before the button', async 
   // QA-07: approving is refused with a 409, and the request stays
   // approvable by decision, so `can_approve` still says yes. Without this
   // the approver met the refusal only after pressing Approve.
-  mockedFetchList.mockResolvedValue([
+  mockedFetchList.mockResolvedValue(asPage([
     request({
       can_approve: true,
       is_open: true,
       author_can_still_edit: false,
     }),
-  ]);
+  ]));
 
   render(<Approvals />);
 
@@ -560,9 +633,9 @@ test('a row whose author has lost edit access says so before the button', async 
 });
 
 test('a row whose author still holds the asset carries no note', async () => {
-  mockedFetchList.mockResolvedValue([
+  mockedFetchList.mockResolvedValue(asPage([
     request({ can_approve: true, is_open: true, author_can_still_edit: true }),
-  ]);
+  ]));
 
   render(<Approvals />);
 
@@ -575,14 +648,14 @@ test('a row whose author still holds the asset carries no note', async () => {
 test('a decided row does not warn about access that no longer matters', async () => {
   // Nothing is going to be published from a closed request, so the note
   // would be noise on the Recently decided view.
-  mockedFetchList.mockResolvedValue([
+  mockedFetchList.mockResolvedValue(asPage([
     request({
       status: 'approved',
       can_approve: true,
       is_open: false,
       author_can_still_edit: false,
     }),
-  ]);
+  ]));
 
   render(<Approvals />);
 

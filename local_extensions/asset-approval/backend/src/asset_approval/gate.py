@@ -617,8 +617,10 @@ def refuse_import_overwrite(asset_kind: str = "asset") -> None:
     A non-overwriting import creates new assets, which V1 does not gate at
     all (SOW 8), so it is unaffected. Nor is an overwriting import that
     happens to land on nothing: the callers in ``bindings`` decide that by
-    looking for the bundle's uuids in the database, so this is only reached
-    once a live asset really is in the way (S-06).
+    resolving the identity the import would really bind -- the bundle's
+    uuids, and the other unique keys a fresh uuid can still be matched onto
+    (R5-03) -- so this is only reached once a live asset really is in the
+    way (S-06).
     """
     if not is_enabled() or is_replaying():
         return

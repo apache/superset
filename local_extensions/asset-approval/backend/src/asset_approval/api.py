@@ -253,22 +253,39 @@ def describe_changes(
 
     current_of = _metadata_reader(asset) if kind == "colors" else None
 
+    # A dashboard save resends the whole properties payload, so most of what
+    # arrives is the field's existing value coming back unchanged. Listing
+    # those buried a one-field edit in ten rows and told the reviewer "10
+    # changes" for a renamed title, which is worse than unhelpful because it
+    # teaches them not to trust the count (QA-15).
+    #
+    # Which fields those are is the gate's question, and it is asked here
+    # rather than answered again, so the panel cannot drift from the
+    # decision. It had drifted: ``_same`` compared ``json_metadata`` as one
+    # blob, and the payload carries the layout inside it while the asset
+    # keeps the layout in a column of its own, so the two never matched. A
+    # title-only save reported "json_metadata Changed" with nothing behind
+    # it, on top of the ordering noise in the keys themselves (R5-01).
+    #
+    # A colour write is the exception: it sets keys inside json_metadata
+    # rather than columns, so there is no column for the gate to compare and
+    # the lenient per-value test is the only one that applies.
+    reported = (
+        None
+        if current_of is not None
+        else set(changed_fields(asset, change_request.payload_dict))
+    )
+
     changes = []
     for field, proposed in sorted(change_request.payload_dict.items()):
         if current_of is not None:
-            # Color writes set keys inside json_metadata, not columns.
             current = current_of(field)
+            if _same(current, proposed):
+                continue
         else:
             current = getattr(asset, field, None) if asset is not None else None
-
-        # A dashboard save resends the whole properties payload, so most of
-        # what arrives is the field's existing value coming back unchanged.
-        # Listing those as changes buried a one-field edit in ten rows and
-        # told the reviewer "10 changes" for a renamed title -- which is
-        # worse than unhelpful, because it teaches them not to trust the
-        # count. Only fields that actually differ are reported.
-        if _same(current, proposed):
-            continue
+            if field not in reported:
+                continue
 
         if field in OPAQUE_FIELDS:
             # Still opaque as a value -- these columns are far too big to
@@ -439,6 +456,66 @@ def _may_see(change_request: ChangeRequest, asset: Any, user_id: int | None) -> 
     return is_strict_editor(asset, user_id)
 
 
+#: What the Approvals list asks for at a time, and the most it may ask for.
+#: The list was unpaginated, so every request on the instance was serialized
+#: on every read (R5-04).
+DEFAULT_PAGE_SIZE = 25
+MAX_PAGE_SIZE = 100
+
+
+def _requested_page() -> tuple[int, int]:
+    """The page the caller asked for, clamped to something sane.
+
+    A missing or unreadable value reads as the first page rather than as an
+    error: this endpoint feeds the bell, and a bad query string should not
+    be able to empty it.
+    """
+
+    def _whole(name: str, default: int) -> int:
+        try:
+            return int(request.args.get(name, default))
+        except (TypeError, ValueError):
+            return default
+
+    page = max(_whole("page", 0), 0)
+    page_size = min(max(_whole("page_size", DEFAULT_PAGE_SIZE), 1), MAX_PAGE_SIZE)
+    return page, page_size
+
+
+def _authors_named(author_ids: set[int]) -> list[dict[str, Any]]:
+    """The authors behind these ids, in one query.
+
+    The From filter offers everyone with something in the current view, so
+    it needs names for authors whose rows are not on this page.
+    """
+    if not author_ids:
+        return []
+    from superset import security_manager
+
+    user_model = security_manager.user_model
+    try:
+        users = (
+            db.session.query(user_model).filter(user_model.id.in_(author_ids)).all()
+        )
+    except Exception:  # noqa: BLE001
+        # The filter's options are a convenience. The list they sit above is
+        # not, so failing to name an author must not empty it.
+        logger.warning("asset-approval: could not name the authors in this view")
+        return []
+    return [brief for user in users if (brief := _user_brief(user)) is not None]
+
+
+def _requested_author() -> int | None:
+    """The author the caller is filtering by, or ``None`` for all of them."""
+    raw = request.args.get("author")
+    if raw is None or raw == "":
+        return None
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return None
+
+
 class ChangeRequestRestApi(BaseSupersetApi):
     resource_name = "change_request"
     allow_browser_login = True
@@ -516,7 +593,21 @@ class ChangeRequestRestApi(BaseSupersetApi):
                 ChangeRequest.author_fk != user_id,
             )
 
+        # Paging needs a total order. ``decided_at`` can tie and the other
+        # views had no order at all, so rows could repeat or go missing
+        # between one page and the next.
+        query = query.order_by(ChangeRequest.id.desc())
+
+        page, page_size = _requested_page()
+        first = page * page_size
+        last = first + page_size
+        wanted_type = (request.args.get("asset_type") or "").strip() or None
+        wanted_author = _requested_author()
+        needle = (request.args.get("name") or "").strip().lower()
+
         results = []
+        author_ids: set[int] = set()
+        visible = 0
         for change_request in query.all():
             asset = _asset_of(change_request)
             if asset is None:
@@ -528,17 +619,57 @@ class ChangeRequestRestApi(BaseSupersetApi):
                     continue
             elif not _may_see(change_request, asset, user_id):
                 continue
-            # Carried per row, not just used as a filter: the list writes each
-            # status from the reader's point of view -- "Needs your review"
-            # against "Awaiting review" -- and offers Review or Open
-            # accordingly, which it cannot decide without this. It is already
-            # computed for `for_me`, and `_may_see` has loaded the same asset.
-            payload = serialize(change_request, asset)
-            payload["can_approve"] = approvable
-            payload["is_author"] = change_request.author_fk == user_id
-            results.append(payload)
 
-        return self.response(200, result=results, count=len(results))
+            # Every author with something in this view, collected before the
+            # filters narrow it. The From filter used to be built from the
+            # rows the browser happened to hold, so once the list was paged
+            # it could only offer the authors on the current page.
+            #
+            # Ids here and names once at the end: reading
+            # ``change_request.author`` per row is a query per row, which is
+            # the shape of problem this endpoint is being fixed for.
+            if change_request.author_fk is not None:
+                author_ids.add(change_request.author_fk)
+
+            # The filters are applied here rather than in SQL so that the
+            # author list above still sees the whole view, and so that a
+            # search by name can use the asset's title, which lives on the
+            # asset and not on the request.
+            if wanted_type and change_request.asset_type != wanted_type:
+                continue
+            if wanted_author is not None and change_request.author_fk != wanted_author:
+                continue
+            if needle and needle not in (_asset_title(asset) or "").lower():
+                continue
+            # Only the rows on the page the client asked for are serialized.
+            # That is where the time went: ``serialize`` diffs the request
+            # against its asset, and doing it for every row made the list
+            # take seconds once an instance had a hundred of them (R5-04).
+            #
+            # Every visible row is still counted, because the bell's number
+            # and this endpoint are the same read, and a count that stopped
+            # at the page would quietly under-report what needs review.
+            if first <= visible < last:
+                # Carried per row, not just used as a filter: the list writes
+                # each status from the reader's point of view -- "Needs your
+                # review" against "Awaiting review" -- and offers Review or
+                # Open accordingly, which it cannot decide without this. It is
+                # already computed for `for_me`, and `_may_see` has loaded the
+                # same asset.
+                payload = serialize(change_request, asset)
+                payload["can_approve"] = approvable
+                payload["is_author"] = change_request.author_fk == user_id
+                results.append(payload)
+            visible += 1
+
+        return self.response(
+            200,
+            result=results,
+            count=visible,
+            page=page,
+            page_size=page_size,
+            authors=_authors_named(author_ids),
+        )
 
     @expose("/<int:pk>", methods=("GET",))
     @protect()

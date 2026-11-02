@@ -61,6 +61,63 @@ export async function fetchList(
   return json.result ?? [];
 }
 
+/** A brief for a user, as the list's From filter needs them. */
+export type AuthorBrief = {
+  id: number;
+  username?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+};
+
+export type ApprovalsPage = {
+  rows: ChangeRequest[];
+  count: number;
+  /**
+   * Every author with something in this view, not just on this page, so
+   * the From filter can still offer someone whose rows are further down.
+   */
+  authors: AuthorBrief[];
+};
+
+/**
+ * One page of the Approvals list, filtered by the server.
+ *
+ * The list used to read every request on the instance and filter in the
+ * browser, which meant the server diffed each one against its asset on
+ * every load: about 1.3s of API and 7.3s of page at a hundred requests
+ * (R5-04). The filters go with the page because narrowing only what the
+ * browser happens to be holding is not the same question.
+ */
+export async function fetchApprovalsPage(
+  show: ApprovalsView = 'for_me',
+  options: {
+    page?: number;
+    pageSize?: number;
+    name?: string;
+    assetType?: string;
+    author?: number;
+  } = {},
+): Promise<ApprovalsPage> {
+  const params = new URLSearchParams({ show });
+  if (options.page) params.set('page', String(options.page));
+  if (options.pageSize) params.set('page_size', String(options.pageSize));
+  if (options.name) params.set('name', options.name);
+  if (options.assetType) params.set('asset_type', options.assetType);
+  if (options.author !== undefined && options.author !== null) {
+    params.set('author', String(options.author));
+  }
+  const { json } = await http.get<{
+    result?: ChangeRequest[];
+    count?: number;
+    authors?: AuthorBrief[];
+  }>({ endpoint: `${BASE}/?${params.toString()}` });
+  return {
+    rows: json.result ?? [],
+    count: json.count ?? 0,
+    authors: json.authors ?? [],
+  };
+}
+
 /**
  * Every open change on one asset kind, keyed by asset id.
  *

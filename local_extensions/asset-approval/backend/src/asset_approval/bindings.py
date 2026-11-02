@@ -419,10 +419,14 @@ def _prefix_models() -> dict[str, Any]:
     return dict(ImportAssetsCommand._MODEL_BY_PREFIX)  # noqa: SLF001
 
 
-def _bundle_uuids(
+def _bundle_configs(
     contents: dict[str, Any], prefixes: list[str]
-) -> dict[str, list[str]]:
-    """The uuids the bundle carries under each prefix, read from the archive.
+) -> dict[str, list[dict[str, Any]]]:
+    """The configs the bundle carries under each prefix, read from the archive.
+
+    Whole configs rather than just their uuids, because a uuid is not the
+    only thing an import binds an asset by -- see
+    ``_refuse_if_bundle_lands_on_a_live_asset``.
 
     Read from ``contents`` rather than from ``command._configs``: the import
     gates are bound with ``validate_first=False``, and ``validate()`` is what
@@ -434,7 +438,7 @@ def _bundle_uuids(
     """
     import yaml
 
-    found: dict[str, list[str]] = {prefix: [] for prefix in prefixes}
+    found: dict[str, list[dict[str, Any]]] = {prefix: [] for prefix in prefixes}
     for file_name, content in (contents or {}).items():
         prefix = next((p for p in found if file_name.startswith(p)), None)
         if prefix is None:
@@ -446,10 +450,37 @@ def _bundle_uuids(
             # own message. The gate declines to turn it into a refusal about
             # review.
             continue
-        uuid = config.get("uuid") if isinstance(config, dict) else None
-        if uuid:
-            found[prefix].append(str(uuid))
+        if isinstance(config, dict):
+            found[prefix].append(config)
     return found
+
+
+def _resolved_for_identity(config: dict[str, Any]) -> dict[str, Any] | None:
+    """The config as the importer will hold it when it resolves identity.
+
+    A dataset is identified by ``(database_id, table_name, schema, catalog)``,
+    but a bundle names its database by uuid and this gate runs before the
+    importer has resolved one to the other. Left unresolved, ``database_id``
+    drops out of the predicate and the check would match a table name in
+    *any* database -- refusing first-time imports that collide by name alone,
+    which is the opposite of S-06.
+
+    ``None`` means this config cannot land on an existing row at all: its
+    database is not here yet, so no dataset inside it is either.
+    """
+    from superset import db
+    from superset.models.core import Database
+
+    if "database_uuid" not in config or config.get("database_id") is not None:
+        return config
+    database_id = (
+        db.session.query(Database.id)
+        .filter_by(uuid=config["database_uuid"])
+        .scalar()
+    )
+    if database_id is None:
+        return None
+    return {**config, "database_id": database_id}
 
 
 def _refuse_if_bundle_lands_on_a_live_asset(
@@ -469,20 +500,52 @@ def _refuse_if_bundle_lands_on_a_live_asset(
     ``overwrite=True`` and had no way to reach an empty instance (S-06).
     """
     from superset import db
+    from superset.commands.importers.v1.utils import (
+        find_existing_by_import_identity,
+    )
 
     models = _prefix_models()
-    uuids_by_prefix = _bundle_uuids(getattr(command, "contents", None) or {}, prefixes)
+    configs_by_prefix = _bundle_configs(
+        getattr(command, "contents", None) or {}, prefixes
+    )
     for prefix in prefixes:
-        uuids = uuids_by_prefix.get(prefix) or []
+        configs = configs_by_prefix.get(prefix) or []
         model_cls = models.get(prefix)
-        if not uuids or model_cls is None:
+        if not configs or model_cls is None:
             continue
-        existing = (
-            db.session.query(model_cls.uuid)
+
+        uuids = [str(config["uuid"]) for config in configs if config.get("uuid")]
+        lands = bool(
+            uuids
+            and db.session.query(model_cls.uuid)
             .filter(model_cls.uuid.in_(uuids))
             .first()
+            is not None
         )
-        if existing is not None:
+
+        if not lands:
+            # A uuid miss is not proof the bundle lands on nothing. The host
+            # matches an incoming asset on a disjunction of *every* unique
+            # constraint the model declares, so a config carrying a fresh
+            # uuid is still matched-and-updated onto a live row through one
+            # of the others: a dashboard by its slug, a dataset by its
+            # table name within a database.
+            #
+            # Gating on the uuid alone therefore let exactly that import
+            # through ungated, and it replaced the live asset with nobody
+            # reviewing the replacement (R5-03). The host ships the lookup
+            # that resolves the identity it will really bind, built from the
+            # model's own constraint metadata, so the gate asks it rather
+            # than keeping a copy of the rules that can drift.
+            for config in configs:
+                resolved = _resolved_for_identity(config)
+                if resolved is None:
+                    continue
+                if find_existing_by_import_identity(model_cls, resolved) is not None:
+                    lands = True
+                    break
+
+        if lands:
             refuse_import_overwrite(
                 _KIND_BY_PREFIX.get(prefix, model_cls.__name__.lower())
             )
@@ -902,7 +965,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
     # "import failed for an unknown reason". Refusing from inside would be
     # swallowed by that, and the person importing would be told nothing
     # about review. Refusing first costs the ordering the other paths have
-    # (validate, then gate), which is why the gates read the uuids out of
+    # (validate, then gate), which is why the gates read the configs out of
     # ``contents`` themselves rather than from ``_configs``.
     WritePath(
         "superset.commands.dashboard.importers.v1",
