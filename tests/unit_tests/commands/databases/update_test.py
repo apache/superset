@@ -1396,3 +1396,20 @@ def test_update_move_accepts_every_secret_re_entered_unchanged(
     ).run()
 
     database_dao.update.assert_called_once()
+
+
+def test_secrets_reused_follows_a_dotted_key_the_way_unmask_does() -> None:
+    """
+    A top-level ``a.b`` is one key to unmask, so the guard must see it as one too.
+
+    Rendering the match to ``$.a.b`` and parsing it again looks for a nested ``b``,
+    which would let the stored secret follow the destination change.
+    """
+    from superset.commands.database.utils import encrypted_extra_secrets_reused
+
+    assert encrypted_extra_secrets_reused(
+        {"$.*"},
+        json.dumps({"a.b": "stored"}),
+        json.dumps({"a.b": PASSWORD_MASK}),
+        submitted=True,
+    )

@@ -224,6 +224,8 @@ def encrypted_extra_secrets_reused(
         return False  # malformed payloads are rejected by schema validation elsewhere
     if not isinstance(submitted_config, dict):
         return False
+    # Follow each match's own path, as `reveal_sensitive` does: rendering it to a
+    # string and parsing that again reads a dotted key as a nested one.
     return any(
         match.value == PASSWORD_MASK
         and any(old.value not in (None, "") for old in match.full_path.find(existing))
