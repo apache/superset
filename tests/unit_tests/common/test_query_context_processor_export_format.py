@@ -62,6 +62,20 @@ def _read_xlsx_column(
     return frame[column].tolist()
 
 
+def _read_xlsx_raw_cell(
+    payload: str | bytes | list[dict[str, Any]], row: int, col: int
+) -> tuple[Any, str]:
+    # Read the stored value *and* its cell type straight from the workbook, so a
+    # formatted string that XLSX re-serialization turned back into a number is
+    # distinguishable from one kept as text (openpyxl data_type "s" vs "n").
+    from openpyxl import load_workbook
+
+    assert isinstance(payload, bytes)
+    worksheet = load_workbook(io.BytesIO(payload)).active
+    cell = worksheet.cell(row=row, column=col)
+    return cell.value, cell.data_type
+
+
 # @AC-FR001-01
 @with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
 def test_csv_export_applies_configured_number_format(app_context: None) -> None:
@@ -513,3 +527,23 @@ def test_post_processed_export_formatted_by_client_processing(
     processed = apply_client_processing(result, form_data, None)
 
     assert "2,234.50" in processed["queries"][0]["data"]
+
+
+# @AC-FR002-01
+@with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
+def test_xlsx_export_keeps_configured_decimals_as_text(app_context: None) -> None:
+    # The export gate also fires for XLSX. 3.5 with ",.2f" renders to "3.50";
+    # without treating the formatted column as text, apply_column_types would
+    # coerce it back to the number 3.5 and drop the trailing zero. Read the raw
+    # cell so a re-numericized value (data_type "n", 3.5) fails the assertion.
+    processor = _make_processor(
+        ChartDataResultFormat.XLSX,
+        {"column_config": {"amount": {"d3NumberFormat": ",.2f"}}},
+    )
+    df = pd.DataFrame({"amount": [3.5]})
+
+    result = processor.get_data(df, [GenericDataType.NUMERIC])
+
+    value, data_type = _read_xlsx_raw_cell(result, row=2, col=1)
+    assert value == "3.50"
+    assert data_type == "s"

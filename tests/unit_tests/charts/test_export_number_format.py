@@ -283,3 +283,87 @@ def test_auto_currency_resolves_from_row_context() -> None:
     # The USD symbol is resolved from the row context, not dropped.
     assert "$" in value
     assert value != "1234.5"
+
+
+# @AC-FR002-01
+def test_auto_currency_uses_each_rows_own_context() -> None:
+    # With mixed per-row currencies the query-wide detection cannot resolve a
+    # single symbol, so each cell must take its own row's currency. If the row
+    # context were dropped both rows would ship bare, so asserting a distinct
+    # symbol per row fails exactly when the per-row context is lost.
+    datasource = MagicMock()
+    datasource.data = {"currency_code_column": "currency"}
+    df = pd.DataFrame({"amount": [1234.5, 1000.0], "currency": ["USD", "EUR"]})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {
+            "amount": {"d3NumberFormat": ",.2f", "currencyFormat": {"symbol": "AUTO"}}
+        },
+    }
+
+    result = apply_export_number_formats(
+        df,
+        [GenericDataType.NUMERIC, GenericDataType.STRING],
+        form_data,
+        cast(Any, datasource),
+    )
+
+    usd, eur = result["amount"].tolist()
+    assert usd.startswith("$")
+    assert "1,234.50" in usd
+    assert "€" in eur
+    assert "1,000.00" in eur
+    # The EUR row did not borrow the USD symbol (per-row context, not column-wide).
+    assert "$" not in eur
+
+
+# @AC-FR001-07
+def test_duplicate_verbose_name_formats_each_column() -> None:
+    # Two metrics can share a verbose name, so get_data renames distinct columns
+    # to the same label. A label lookup (df["Total"]) would return a two-column
+    # frame and silently skip the format; positional access formats both.
+    df = pd.DataFrame([[1.5, 2.5]], columns=["Total", "Total"])
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"Total": {"d3NumberFormat": ",.2f"}},
+    }
+
+    result = apply_export_number_formats(
+        df,
+        [GenericDataType.NUMERIC, GenericDataType.NUMERIC],
+        form_data,
+        None,
+    )
+
+    assert result.iloc[0, 0] == "1.50"
+    assert result.iloc[0, 1] == "2.50"
+
+
+# @AC-FR002-02
+def test_duplicate_verbose_name_does_not_abort_currency_export() -> None:
+    # The per-row currency path zips df[column] against the row contexts with
+    # strict=True; a duplicate label would make df["Total"] a two-column frame
+    # and raise ValueError, failing the whole export. Positional access keeps
+    # each column one-dimensional so both format against the row context.
+    datasource = MagicMock()
+    datasource.data = {"currency_code_column": "currency"}
+    df = pd.DataFrame([[1.5, 2.5, "USD"]], columns=["Total", "Total", "currency"])
+    form_data = {
+        "viz_type": "table",
+        "column_config": {
+            "Total": {"d3NumberFormat": ",.2f", "currencyFormat": {"symbol": "AUTO"}}
+        },
+    }
+
+    result = apply_export_number_formats(
+        df,
+        [GenericDataType.NUMERIC, GenericDataType.NUMERIC, GenericDataType.STRING],
+        form_data,
+        cast(Any, datasource),
+    )
+
+    first, second = result.iloc[0, 0], result.iloc[0, 1]
+    assert first.startswith("$")
+    assert "1.50" in first
+    assert second.startswith("$")
+    assert "2.50" in second

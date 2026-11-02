@@ -962,7 +962,7 @@ def is_small_number(value: Any) -> bool:
 
 def format_column(
     df: pd.DataFrame,
-    column: Any,
+    col_pos: int,
     d3_format: Optional[str],
     currency: dict[str, Any],
     detected_currency: Optional[str] = None,
@@ -973,6 +973,12 @@ def format_column(
 ) -> None:
     """
     Format a column in place when a number or currency format is configured.
+
+    The column is addressed by position (``col_pos``), not by label: two metrics
+    can share a verbose name, so ``get_data`` may rename distinct columns to the
+    same label. A label lookup (``df[label]``) would then return a two-column
+    frame and either skip the format silently or raise on ``zip(strict=True)``,
+    aborting the whole export; positional access formats each column exactly once.
 
     ``detected_currency`` represents the query-wide single currency. When a
     parallel ``currency_context`` series is present, AUTO uses each row/cell's
@@ -1002,6 +1008,7 @@ def format_column(
         small_d3_format = small_d3_format.replace("$", "") or SMART_NUMBER
 
     if d3_format or currency.get("symbol") or small_d3_format:
+        series = df.iloc[:, col_pos]
         if currency_context is None:
             resolved_currency = resolve_auto_currency(currency, detected_currency)
             format_value = partial(
@@ -1011,13 +1018,18 @@ def format_column(
                 format_small = partial(
                     format_number_with_config, small_d3_format, small_currency or {}
                 )
-                df[column] = df[column].apply(
-                    lambda value: format_small(value)
-                    if is_small_number(value)
-                    else format_value(value)
+                df.isetitem(
+                    col_pos,
+                    series.apply(
+                        lambda value: (
+                            format_small(value)
+                            if is_small_number(value)
+                            else format_value(value)
+                        )
+                    ),
                 )
                 return
-            df[column] = df[column].apply(format_value)
+            df.isetitem(col_pos, series.apply(format_value))
             return
 
         contexts = currency_context.reindex(df.index)
@@ -1049,10 +1061,13 @@ def format_column(
                 value,
             )
 
-        df[column] = [
-            format_with_context(value, context)
-            for value, context in zip(df[column], contexts, strict=True)
-        ]
+        df.isetitem(
+            col_pos,
+            [
+                format_with_context(value, context)
+                for value, context in zip(series, contexts, strict=True)
+            ],
+        )
 
 
 def get_datasource_column_formats(
@@ -1335,7 +1350,7 @@ def apply_export_number_formats(
         if coltype == GenericDataType.NUMERIC
     }
 
-    for column in df.columns:
+    for col_pos, column in enumerate(df.columns):
         if column not in numeric_columns:
             continue
 
@@ -1366,7 +1381,7 @@ def apply_export_number_formats(
             # never carries a currency, matching the Table plugin.
             format_column(
                 df,
-                column,
+                col_pos,
                 number_format or PERCENT_3_POINT,
                 {},
                 currency_context=row_currency_context,
@@ -1376,7 +1391,7 @@ def apply_export_number_formats(
         elif number_format or currency.get("symbol") or small_number_format:
             format_column(
                 df,
-                column,
+                col_pos,
                 number_format,
                 currency,
                 detected_currency,
@@ -1388,7 +1403,7 @@ def apply_export_number_formats(
         else:
             # Nothing configured: keep exact fixed-point text rather than a raw
             # float. Non-finite and non-numeric cells pass through untouched.
-            df[column] = df[column].map(_fallback_export_value)
+            df.isetitem(col_pos, df.iloc[:, col_pos].map(_fallback_export_value))
 
     return df
 
@@ -1541,7 +1556,7 @@ def apply_pivot_number_formats(
         if currency_context is not None:
             currency_context = currency_context.T
 
-    for column in df.columns:
+    for col_pos, column in enumerate(df.columns):
         metric = column[metric_level] if isinstance(column, tuple) else column
         column_currency_context = (
             currency_context[column]
@@ -1558,7 +1573,7 @@ def apply_pivot_number_formats(
             column_number_format = SMART_NUMBER
         format_column(
             df,
-            column,
+            col_pos,
             column_number_format,
             column_currency,
             detected_currency,
@@ -1625,7 +1640,7 @@ def table(
     # SMART_NUMBER, and other numeric columns are only formatted when an explicit
     # format or currency is configured. Dimension and non-numeric columns are
     # left untouched, matching the browser.
-    for column in df.columns:
+    for col_pos, column in enumerate(df.columns):
         config = config_by_label.get(column) or {}
         configured_currency = config.get("currencyFormat") or {}
         # The small-number formatter is built from this object whether or not a
@@ -1651,7 +1666,7 @@ def table(
             else None
         )
 
-        is_number = pd.api.types.is_numeric_dtype(df[column])
+        is_number = pd.api.types.is_numeric_dtype(df.iloc[:, col_pos])
 
         if column in percent_metric_labels:
             # A percent metric's own formatter never carries a currency, but
@@ -1659,7 +1674,7 @@ def table(
             # config, so the small-number cells need the row's context too.
             format_column(
                 df,
-                column,
+                col_pos,
                 number_format or PERCENT_3_POINT,
                 {},
                 currency_context=row_currency_context,
@@ -1682,7 +1697,7 @@ def table(
                 number_format = SMART_NUMBER
             format_column(
                 df,
-                column,
+                col_pos,
                 number_format,
                 currency,
                 detected_currency,
