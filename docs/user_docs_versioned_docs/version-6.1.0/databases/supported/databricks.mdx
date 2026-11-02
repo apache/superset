@@ -78,12 +78,12 @@ export const databaseInfo = {
         notes: 'Requires ODBC driver. For serverless SQL warehouses.',
       },
       {
-        name: 'databricks-dbapi (Legacy)',
-        pypi_package: 'databricks-dbapi[sqlalchemy]',
+        name: 'Field-based connection',
+        pypi_package: 'apache-superset[databricks]',
         connection_string:
-          'databricks+connector://token:{access_token}@{host}:{port}/{database}',
+          'databricks://token:{access_token}@{host}:{port}/{database}',
         is_recommended: false,
-        notes: 'Legacy connector. Use Python Connector for new deployments.',
+        notes: 'Use the dynamic form to enter connection fields individually.',
       },
     ],
   },
@@ -126,3 +126,38 @@ export const databaseInfo = {
 };
 
 <DatabasePage name="Databricks" database={databaseInfo} />
+
+
+### Upgrading legacy connections
+
+Workspaces upgrading from 6.0 with a legacy Databricks connection have their
+`databricks+connector://` URI automatically migrated to `databricks://` during
+`superset db upgrade`. The migration preserves credentials, HTTP path, catalog,
+and the rest of the URI. No API access or manual connection recreation is needed.
+
+Edit the connection to review the saved host, HTTP path, catalog, schema, and
+masked access token, or enter a replacement token. When creating a connection
+with a SQLAlchemy URI, **Connect this database using the dynamic form instead**
+opens the field-based form.
+
+Downgrading restores the old scheme on locally converted connections only when
+their URI, settings, and modification timestamp still match the migrated state.
+Imported connections carrying the conversion marker are also eligible for rollback. Connections created natively with `databricks://` are not reverted. Malformed
+`extra` settings do not block the upgrade: their text is preserved, and only the URI
+scheme changes. The migration keeps fingerprints in a bookkeeping table so these
+connections can also be safely downgraded without parsing their settings. Invalid
+settings may still need correction before the connection can execute queries.
+
+The Default Catalog field is optional. Connections converted from the legacy
+connector retain the legacy runtime default catalog when none is configured,
+so existing dataset catalogs and schema permissions remain consistent. Clearing
+a field removes its corresponding legacy `connect_args` override. Changing the
+connection destination requires re-entering the access token.
+
+The new-connection picker offers **Databricks**, not **Databricks (legacy)**.
+Existing legacy connections can still be edited with their saved form.
+
+To create a separate connection after editing one, close the edit dialog and
+choose **+ Database**. The database picker starts a new connection without
+reusing the edited connection's name or URI, even if the previous connection
+was still loading when the edit dialog was closed.

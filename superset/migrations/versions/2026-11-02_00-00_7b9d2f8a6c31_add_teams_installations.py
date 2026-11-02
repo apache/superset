@@ -17,7 +17,7 @@
 """Add Teams bot installation persistence.
 
 Revision ID: 7b9d2f8a6c31
-Revises: f72b6e9c104a
+Revises: b8f3a2c91d64
 """
 
 import sqlalchemy as sa
@@ -28,7 +28,7 @@ from sqlalchemy_utils import UUIDType
 from superset.migrations.shared.utils import create_table
 
 revision: str = "7b9d2f8a6c31"
-down_revision: str = "f72b6e9c104a"
+down_revision: str = "b8f3a2c91d64"
 
 
 def upgrade() -> None:
