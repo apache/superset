@@ -291,7 +291,7 @@ _STORED = json.dumps(
             },
             True,
         ),
-        # ...even when another field changes in the same save (sc-126869).
+        # ...even when another field changes in the same save.
         (
             {
                 "oauth2_client_info": {
@@ -303,7 +303,7 @@ _STORED = json.dumps(
             },
             True,
         ),
-        # Every secret re-entered, even with its stored value: fresh (sc-126870).
+        # Every secret re-entered, even with its stored value: fresh.
         (
             {
                 "oauth2_client_info": {"id": "client", "secret": "real-secret"},
@@ -332,6 +332,15 @@ def test_encrypted_extra_secrets_reused_when_the_payload_is_left_out() -> None:
     assert encrypted_extra_secrets_reused(_SECRETS, _STORED, None, submitted=False)
 
 
+@pytest.mark.parametrize("secret", [0, False])
+def test_encrypted_extra_secrets_reused_with_falsy_secret(secret: object) -> None:
+    """A falsy stored value is still a secret."""
+    stored = json.dumps({"oauth2_client_info": {"secret": secret}})
+    assert encrypted_extra_secrets_reused(_SECRETS, stored, None, submitted=False)
+    masked = json.dumps({"oauth2_client_info": {"secret": PASSWORD_MASK}})
+    assert encrypted_extra_secrets_reused(_SECRETS, stored, masked, submitted=True)
+
+
 @pytest.mark.parametrize("stored", [None, "", "{}", "[1]", "not json"])
 def test_encrypted_extra_secrets_reused_with_nothing_stored(stored: str | None) -> None:
     """Nothing stored means nothing can be carried over."""
@@ -340,7 +349,7 @@ def test_encrypted_extra_secrets_reused_with_nothing_stored(stored: str | None) 
 
 def test_encrypted_extra_secrets_reused_ignores_a_compact_json_mismatch() -> None:
     """
-    The stored blob's formatting is irrelevant (sc-126869, first-edit leg).
+    The stored blob's formatting is irrelevant (first edit).
 
     The dialog stores compact JSON on create; comparing serialized blobs read a
     still-masked secret as fresh because the re-serialized form differed.

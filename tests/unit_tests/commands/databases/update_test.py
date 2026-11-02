@@ -1347,7 +1347,7 @@ def test_update_move_refuses_a_masked_secret_whatever_else_changes(
     password: str | None,
 ) -> None:
     """
-    A move keeps no stored secret the submission leaves masked (sc-126869).
+    A move keeps no stored secret the submission leaves masked.
 
     The URI password is re-entered, so only the encrypted_extra check stands
     between the move and the stored secret riding along to the new account.
@@ -1372,7 +1372,7 @@ def test_update_move_accepts_every_secret_re_entered_unchanged(
     mocker: MockerFixture,
 ) -> None:
     """
-    A move with every secret re-entered goes through (sc-126870).
+    A move with every secret re-entered goes through.
 
     Re-entering the stored values unmasked to a byte-identical blob, which the
     whole-blob comparison read as reuse, refusing the move the error message asked
