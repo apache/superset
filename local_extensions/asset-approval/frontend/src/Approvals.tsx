@@ -472,7 +472,19 @@ export default function Approvals() {
           onSubmit={(note, approverId) =>
             act(() => submitForReview(submitting.id, note, approverId))
           }
-          onEditorsChanged={load}
+          onEditorsChanged={async () => {
+            // The modal holds its own copy of the request, and who may
+            // approve is computed from the editors it was fetched with.
+            // Reloading only the list left the author looking at "no one
+            // else can approve" after they had just added the person who
+            // could.
+            try {
+              setSubmitting(await fetchChangeRequest(submitting.id));
+            } catch {
+              // Keep what is on screen rather than closing over an error.
+            }
+            await load();
+          }}
         />
       ) : null}
 

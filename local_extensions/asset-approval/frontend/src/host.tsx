@@ -156,6 +156,12 @@ export function Select({
     <AntSelect
       aria-label={ariaLabel}
       style={{ width: '100%' }}
+      // Searched by what is on screen, not by the value behind it. Every
+      // picker here carries ids as values, and antd's default filter reads
+      // the value, so typing a person's name matched nothing at all and the
+      // list read as empty -- on the one dialog that tells an author to go
+      // and find a second editor.
+      optionFilterProp="label"
       {...(rest as object)}
     />
   );
