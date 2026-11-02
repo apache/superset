@@ -359,12 +359,20 @@ def test_dashboard_import_overwriting_all_keeps_what_the_bundle_does_not_carry(
             }
         }
     )
+
+    def _exported(config: dict[str, Any]) -> dict[str, Any]:
+        # Other tests' imports leave an `id` on these shared fixtures, which an
+        # exported file never has.
+        return {key: value for key, value in config.items() if key != "id"}
+
     contents = {
         "metadata.yaml": yaml.safe_dump(dashboard_metadata_config),
         "databases/imported_database.yaml": yaml.safe_dump(database),
-        "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
-        "charts/imported_chart.yaml": yaml.safe_dump(chart_config),
-        "dashboards/imported_dashboard.yaml": yaml.safe_dump(dashboard_config),
+        "datasets/imported_dataset.yaml": yaml.safe_dump(_exported(dataset_config)),
+        "charts/imported_chart.yaml": yaml.safe_dump(_exported(chart_config)),
+        "dashboards/imported_dashboard.yaml": yaml.safe_dump(
+            _exported(dashboard_config)
+        ),
     }
 
     ImportDashboardsCommand(contents, overwrite=True, overwrite_all=True).run()
