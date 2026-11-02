@@ -42,6 +42,7 @@ import {
   approveChange,
   fetchChangeRequest,
   fetchList,
+  refusalMessage,
   requestChanges,
   submitForReview,
 } from './api';
@@ -233,10 +234,7 @@ export default function Approvals() {
       // unhandled, so the dialog stayed open over a list that had not
       // moved and the reader was given no reason (R4-04). Every refusal
       // the workflow raises carries a sentence written for them.
-      addDangerToast(
-        (error as { message?: string } | null)?.message ??
-          t('Something went wrong.'),
-      );
+      addDangerToast((await refusalMessage(error)) ?? t('Something went wrong.'));
       // Re-read either way. The commonest refusal is that the request
       // moved while this page had it open, which only becomes actionable
       // once the list shows what it is now.

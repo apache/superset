@@ -36,6 +36,9 @@ jest.mock('./api', () => ({
   fetchList: jest.fn(),
   approveChange: jest.fn(() => Promise.resolve()),
   requestChanges: jest.fn(() => Promise.resolve()),
+  // The real one: reading the server's sentence off a refusal is the
+  // behaviour under test, not something to stub out.
+  refusalMessage: jest.requireActual('./api').refusalMessage,
 }));
 
 const mockedFetchList = fetchList as jest.MockedFunction<typeof fetchList>;
@@ -405,4 +408,45 @@ test('a refused approval says why, and the list re-reads', async () => {
   expect(await screen.findByText(refusal)).toBeInTheDocument();
   // ...and the list is read again, so it shows the version that refused.
   await waitFor(() => expect(mockedFetchList).toHaveBeenCalledTimes(2));
+});
+
+test('a refusal that arrives as a Response still says why', async () => {
+  // SupersetClient rejects with the Response, not an Error holding the body,
+  // so reading `message` off the rejection finds nothing. This is the shape
+  // the approve path actually sees (R4-04).
+  const { approveChange } = jest.requireMock('./api');
+  const refusal = 'The dataset changed while this review was open.';
+  // Stood up by hand rather than with `new Response`: this jsdom has no
+  // fetch types, and `clone().json()` is the whole of the contract the
+  // helper relies on.
+  const body = { message: refusal };
+  const rejection = {
+    status: 409,
+    clone: () => ({ json: () => Promise.resolve(body) }),
+  };
+  approveChange.mockRejectedValueOnce(rejection);
+  mockedFetchList.mockResolvedValue([
+    request({
+      id: 7,
+      asset_type: 'dataset',
+      asset_title: 'calls_by_queue',
+      can_approve: true,
+      dataset_detail: {
+        columns: { added: [], changed: [], removed: [] },
+        metrics: { added: [], changed: [], removed: [] },
+        impact: { charts: 0, dashboards: 0 },
+      },
+    }),
+  ]);
+
+  render(<Approvals />);
+
+  (await screen.findByTestId('review-action')).click();
+  fireEvent.click((await screen.findByText('Approve')).closest('button')!);
+  await screen.findByText('Approve and publish?');
+  fireEvent.click(
+    (await screen.findByText('Approve and publish')).closest('button')!,
+  );
+
+  expect(await screen.findByText(refusal)).toBeInTheDocument();
 });

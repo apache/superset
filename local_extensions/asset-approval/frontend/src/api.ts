@@ -84,6 +84,37 @@ export async function fetchPendingCount(): Promise<PendingCount> {
   return json.result ?? { needs_me: 0, returned: 0 };
 }
 
+/**
+ * The server's own sentence for a refusal, or null if it did not send one.
+ *
+ * Every refusal the workflow raises carries a line written for the person
+ * reading it. The host's ``http`` wraps ``SupersetClient``, which rejects
+ * with the ``Response`` rather than an ``Error`` holding that body, so
+ * reading ``message`` straight off the rejection finds nothing and the
+ * reviewer is shown a generic failure instead -- including for the refusal
+ * whose whole job is to say the change moved while they had it open, or
+ * that the asset itself did (R4-04).
+ */
+export async function refusalMessage(error: unknown): Promise<string | null> {
+  const direct = (error as { message?: unknown } | null)?.message;
+  if (typeof direct === 'string' && direct.trim()) {
+    return direct;
+  }
+  const response = error as Response | undefined;
+  if (response && typeof response.clone === 'function') {
+    try {
+      const body = await response.clone().json();
+      const message = (body as { message?: unknown } | null)?.message;
+      if (typeof message === 'string' && message.trim()) {
+        return message;
+      }
+    } catch {
+      // Not a JSON body: the caller words it itself.
+    }
+  }
+  return null;
+}
+
 async function act(
   id: number,
   action: string,
