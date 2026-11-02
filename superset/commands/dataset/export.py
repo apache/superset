@@ -23,7 +23,7 @@ from typing import Callable
 import yaml
 
 from superset.commands.export.models import ExportModelsCommand
-from superset.constants import EMBEDDED_CREDENTIALS_KEY
+from superset.constants import CARRIED_SECURE_EXTRA_KEYS
 from superset.connectors.sqla.models import SqlaTable
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.daos.dataset import DatasetDAO
@@ -35,12 +35,6 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 JSON_KEYS = {"params", "template_params", "extra"}
-
-
-# Secure Extra blocks a dashboard, chart or dataset bundle carries, so a promoted
-# dashboard keeps its OAuth2 client and embedded viewer credential. Every engine
-# masks their secrets (`BaseEngineSpec.encrypted_extra_sensitive_field_paths`).
-_CARRIED_SECURE_EXTRA_KEYS = ("oauth2_client_info", EMBEDDED_CREDENTIALS_KEY)
 
 
 def _carried_secure_extra(masked_encrypted_extra: str | None) -> str | None:
@@ -66,7 +60,7 @@ def _carried_secure_extra(masked_encrypted_extra: str | None) -> str | None:
     # client, so only blocks masked field by field travel.
     carried = {
         key: secure_extra[key]
-        for key in _CARRIED_SECURE_EXTRA_KEYS
+        for key in CARRIED_SECURE_EXTRA_KEYS
         if isinstance(secure_extra.get(key), dict) and secure_extra[key]
     }
     return json.dumps(carried) if carried else None

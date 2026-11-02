@@ -3825,6 +3825,26 @@ def _promoted_snowflake_database(credential_survived: bool) -> "Database":
     return database
 
 
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_guest_on_an_incomplete_oauth2_client_is_refused(
+    mocker: MockerFixture,
+) -> None:
+    """An incomplete client gets the refusal, not `get_oauth2_config()`'s raise."""
+    from superset.exceptions import SupersetErrorException
+
+    mocker.patch("superset.models.core.create_engine")
+    mocker.patch.dict(current_app.config, {"DATABASE_OAUTH2_CLIENTS": {}})
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+    database = _promoted_snowflake_database(credential_survived=False)
+    database.encrypted_extra = json.dumps({"oauth2_client_info": {"id": "client"}})
+
+    with pytest.raises(SupersetErrorException) as excinfo:
+        database._get_sqla_engine(nullpool=False)
+
+    assert excinfo.value.status == 400
+
+
 @pytest.mark.parametrize("credential_survived", [False, True])
 @with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
 def test_a_guest_on_a_promoted_connection_is_refused_with_an_actionable_message(
