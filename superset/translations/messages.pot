@@ -8685,6 +8685,15 @@ msgstr ""
 msgid "List view"
 msgstr ""
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr ""
 
@@ -11150,6 +11159,9 @@ msgid "Ratio"
 msgstr ""
 
 msgid "Raw records"
+msgstr ""
+
+msgid "Re-enter the access token when changing the connection destination."
 msgstr ""
 
 msgid "Re-pick fields"

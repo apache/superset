@@ -1981,18 +1981,25 @@ msgstr "告警名称"
 msgid "Alert on grace period"
 msgstr "告警宽限期"
 
+# AI-assisted translation draft (OpenAI Codex); requires human review.
+#, fuzzy
 msgid "Alert query failed the authorization check"
-msgstr ""
+msgstr "告警查询未通过授权检查"
 
+# AI-assisted translation draft (OpenAI Codex); requires human review.
+#, fuzzy
 msgid "Alert query must be a single statement"
-msgstr ""
+msgstr "告警查询必须是单条语句"
 
+# AI-assisted translation draft (OpenAI Codex); requires human review.
+#, fuzzy
 msgid "Alert query must be read-only"
-msgstr ""
+msgstr "告警查询必须为只读查询"
 
-#, python-format
+# AI-assisted translation draft (OpenAI Codex); requires human review.
+#, fuzzy, python-format
 msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
-msgstr ""
+msgstr "告警查询不得包含文件传输命令：%(commands)s"
 
 msgid "Alert query returned a non-number value."
 msgstr "告警查询返回非数字值。"
