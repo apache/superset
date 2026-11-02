@@ -420,9 +420,7 @@ class ChangeRequestRestApi(BaseSupersetApi):
 
         results = []
         for change_request in query.all():
-            asset = load_asset(
-                AssetType(change_request.asset_type), change_request.asset_id
-            )
+            asset = _asset_of(change_request)
             if asset is None:
                 continue
             # Never list a request on an asset this user has no say over.
@@ -455,9 +453,7 @@ class ChangeRequestRestApi(BaseSupersetApi):
         except ChangeRequestNotFoundError:
             return self.response_404()
 
-        asset = load_asset(
-            AssetType(change_request.asset_type), change_request.asset_id
-        )
+        asset = _asset_of(change_request)
         if asset is None:
             return self.response_404()
 
@@ -506,7 +502,7 @@ class ChangeRequestRestApi(BaseSupersetApi):
         if change_request is None:
             return self.response(200, result=None)
 
-        asset = load_asset(kind, asset_id)
+        asset = _asset_of(change_request)
         user_id = get_user_id()
         if asset is None or not _may_see(change_request, asset, user_id):
             # A viewer gets the same answer as if nothing were pending.
@@ -558,7 +554,7 @@ class ChangeRequestRestApi(BaseSupersetApi):
             )
             .all()
         ):
-            asset = load_asset(kind, change_request.asset_id)
+            asset = _asset_of(change_request)
             if asset is None:
                 continue
             if not _may_see(change_request, asset, user_id):
@@ -603,9 +599,7 @@ class ChangeRequestRestApi(BaseSupersetApi):
             )
             .all()
         ):
-            asset = load_asset(
-                AssetType(change_request.asset_type), change_request.asset_id
-            )
+            asset = _asset_of(change_request)
             if asset is not None and can_approve(change_request, asset, user_id):
                 needs_me += 1
 
@@ -735,12 +729,7 @@ class ChangeRequestRestApi(BaseSupersetApi):
         except ChangeRequestNotFoundError:
             change_request = None
         result = (
-            serialize(
-                change_request,
-                load_asset(
-                    AssetType(change_request.asset_type), change_request.asset_id
-                ),
-            )
+            serialize(change_request, _asset_of(change_request))
             if change_request
             else None
         )
@@ -777,14 +766,28 @@ def _by_key(items: Any, key: str) -> dict[str, Any]:
     return out
 
 
+def _asset_of(change_request: Any) -> Any:
+    """The asset a change request is about.
+
+    ``include_deleted`` for a restore, because the whole point of one is
+    that the asset is archived. Without it every read path -- the queue,
+    the request's own page, the per-asset lookup, the list tags, the bell
+    -- loaded nothing and dropped the row, so a restore request was
+    invisible to its own author: it could not be submitted, approved or
+    discarded, and it held the asset's one open slot for good, which
+    stopped any further change to that asset as well (R3-01).
+    """
+    return load_asset(
+        AssetType(change_request.asset_type),
+        change_request.asset_id,
+        include_deleted=is_restore(change_request),
+    )
+
+
 def _asset_for_diff(change_request: Any) -> Any:
     """The live asset a change is measured against, or None if unreadable."""
     try:
-        return load_asset(
-            AssetType(change_request.asset_type),
-            change_request.asset_id,
-            include_deleted=is_restore(change_request),
-        )
+        return _asset_of(change_request)
     except Exception:  # noqa: BLE001 -- a diff must never break the listing
         logger.warning(
             "asset-approval: could not load %s %s to diff against",

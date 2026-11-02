@@ -65,7 +65,13 @@ def requests(mocker: MockerFixture, session: Session) -> Session:
 
     mocker.patch.object(cm_api, "is_enabled", return_value=True)
     mocker.patch.object(
-        cm_api, "load_asset", side_effect=lambda kind, asset_id: MagicMock(id=asset_id)
+        cm_api,
+        "load_asset",
+        # The real one takes include_deleted, which every read path now
+        # passes so a restore can see its archived asset (R3-01).
+        side_effect=lambda kind, asset_id, include_deleted=False: MagicMock(
+            id=asset_id
+        ),
     )
     mocker.patch.object(
         cm_api,
