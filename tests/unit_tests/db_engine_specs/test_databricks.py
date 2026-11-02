@@ -2012,8 +2012,10 @@ class FakeSeaCursor:
         self.remaining_polls = 0
         self.cancelled: list[str | None] = []
         self.results_loaded: list[str | None] = []
-        # Exceptions raised by successive status polls before they succeed.
-        self.poll_errors: list[BaseException] = []
+        # Scripted outcomes of the next status polls: an exception is raised,
+        # ``None`` lets the poll report the statement's state normally.
+        self.poll_errors: list[BaseException | None] = []
+        self.polls = 0
 
     def execute_async(self, sql: str) -> None:
         self.statement_id = next(self.statement_ids)
@@ -2022,8 +2024,9 @@ class FakeSeaCursor:
         self.remaining_polls = self.pending_polls
 
     def is_query_pending(self) -> bool:
-        if self.poll_errors:
-            raise self.poll_errors.pop(0)
+        self.polls += 1
+        if self.poll_errors and (error := self.poll_errors.pop(0)) is not None:
+            raise error
         if self.remaining_polls > 0:
             self.remaining_polls -= 1
             return True
@@ -2303,13 +2306,123 @@ def test_execute_with_cursor_sea_persistent_poll_failure_cancels(
 
     spec = DatabricksPythonConnectorEngineSpec
     cursor = FakeSeaCursor(["stmt-1"], pending_polls=100)
+    # More failures than the cap, so giving up late would also be caught.
     cursor.poll_errors = [
-        RuntimeError("429 Too Many Requests") for _ in range(spec.sea_max_poll_failures)
+        RuntimeError("429 Too Many Requests")
+        for _ in range(spec.sea_max_poll_failures + 5)
     ]
     query = Query(status=QueryStatus.RUNNING)
 
     with pytest.raises(Exception, match="429 Too Many Requests"):
         spec.execute_with_cursor(cursor, "SELECT 1", query)
+
+    # Cancelled on exactly the tenth consecutive failure, not before or after.
+    assert spec.sea_max_poll_failures == 10
+    assert cursor.polls == spec.sea_max_poll_failures
+    assert cursor.cancelled == ["stmt-1"]
+    assert cursor.results_loaded == []
+
+
+def test_execute_with_cursor_sea_poll_failure_count_resets_on_success(
+    sea_session: Any,
+) -> None:
+    """
+    Only consecutive failures count toward the cap: nine failures, a successful
+    poll, then nine more failures don't cancel the statement, and its results
+    load once it finishes.
+    """
+    from superset.models.sql_lab import Query
+    from superset.utils.core import QueryStatus
+
+    spec = DatabricksPythonConnectorEngineSpec
+    almost = spec.sea_max_poll_failures - 1
+    cursor = FakeSeaCursor(["stmt-1"], pending_polls=1)
+    cursor.poll_errors = [
+        *[RuntimeError("503 Service Unavailable") for _ in range(almost)],
+        None,  # the statement is still pending
+        *[RuntimeError("503 Service Unavailable") for _ in range(almost)],
+    ]
+    query = Query(status=QueryStatus.RUNNING)
+
+    spec.execute_with_cursor(cursor, "SELECT 1", query)
+
+    # 9 failures + 1 pending poll + 9 failures + the poll that sees it finished.
+    assert cursor.polls == 2 * almost + 2
+    assert cursor.cancelled == []
+    assert cursor.results_loaded == ["stmt-1"]
+
+
+def test_execute_with_cursor_sea_soft_time_limit_during_poll_cancels(
+    sea_session: Any,
+) -> None:
+    """
+    A soft time limit hit during a status request isn't treated as a transient
+    poll failure: it cancels the statement once and propagates immediately.
+    """
+    from celery.exceptions import SoftTimeLimitExceeded
+
+    from superset.models.sql_lab import Query
+    from superset.utils.core import QueryStatus
+
+    cursor = FakeSeaCursor(["stmt-1"], pending_polls=100)
+    cursor.poll_errors = [SoftTimeLimitExceeded()]
+    query = Query(status=QueryStatus.RUNNING)
+
+    with pytest.raises(SoftTimeLimitExceeded):
+        DatabricksPythonConnectorEngineSpec.execute_with_cursor(
+            cursor, "SELECT 1", query
+        )
+
+    assert cursor.polls == 1
+    assert cursor.cancelled == ["stmt-1"]
+    assert cursor.results_loaded == []
+
+
+class RepeatableReadSession:
+    """
+    Metadata session that serves reloads from the snapshot its transaction
+    started with, as REPEATABLE READ does, until the transaction ends.
+    """
+
+    def __init__(self) -> None:
+        self.committed_status: Any = None
+        self.snapshot_status: Any = None
+
+    def commit(self) -> None:
+        self.snapshot_status = None
+
+    def refresh(self, query: Any) -> None:
+        if self.snapshot_status is None:
+            self.snapshot_status = self.committed_status or query.status
+        query.status = self.snapshot_status
+
+
+def test_execute_with_cursor_sea_sees_stop_committed_after_polling_starts(
+    mocker: MockerFixture, sea_session: Any
+) -> None:
+    """
+    A stop committed by another request after polling begins is seen and
+    cancels the live statement, even when reloads within one transaction keep
+    returning its first snapshot.
+    """
+    from superset.models.sql_lab import Query
+    from superset.utils.core import QueryStatus
+
+    session = RepeatableReadSession()
+    sea_session.session = session
+    cursor = FakeSeaCursor(["stmt-1"], pending_polls=5)
+    query = Query(status=QueryStatus.RUNNING)
+    is_query_pending = cursor.is_query_pending
+
+    def poll() -> bool:
+        if cursor.polls == 2:
+            # Another request commits the stop while the statement runs.
+            session.committed_status = QueryStatus.STOPPED
+        return is_query_pending()
+
+    mocker.patch.object(cursor, "is_query_pending", side_effect=poll)
+
+    DatabricksPythonConnectorEngineSpec.execute_with_cursor(cursor, "SELECT 1", query)
 
     assert cursor.cancelled == ["stmt-1"]
     assert cursor.results_loaded == []

@@ -1164,6 +1164,10 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
                         query.id,
                     )
                     pending = True
+                # End the read transaction before reloading, so the query
+                # isn't served from a snapshot (e.g. under REPEATABLE READ)
+                # taken before a stop was committed.
+                db.session.commit()  # pylint: disable=consider-using-transaction
                 db.session.refresh(query)
                 if cls._is_stop_requested(query):
                     if pending:
@@ -1199,6 +1203,9 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
     @staticmethod
     def _retire_cancel_query_id(query: Query) -> None:
         """Drop the cancel id of a statement that is no longer running."""
+        # Reload past the current snapshot so a stop's early-cancel flag,
+        # committed meanwhile, isn't overwritten with stale metadata.
+        db.session.commit()  # pylint: disable=consider-using-transaction
         db.session.refresh(query)
         extra = query.extra
         if extra.pop(QUERY_CANCEL_KEY, None) is not None:
