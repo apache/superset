@@ -794,6 +794,12 @@ function ChartList(props: ChartListProps) {
       saveFavoriteStatus,
       favoriteStatus,
       handleBulkChartExport,
+      // The Name cell renders the row's review tag from this map. Left
+      // out, the columns were memoised against the map as it stood when
+      // the list mounted, so a change captured from this very page -- a
+      // rename in the properties modal, the row's own Archive button --
+      // re-read the map and then rendered the old one anyway.
+      openChanges,
       openChartEditModal,
       openChartDeleteModal,
     ],

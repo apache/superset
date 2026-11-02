@@ -672,6 +672,9 @@ function DashboardList(props: DashboardListProps) {
       addSuccessToast,
       addDangerToast,
       handleBulkDashboardExport,
+      // See ChartList: the Name cell renders the row's review tag from
+      // this map, so the columns have to be rebuilt when it moves.
+      openChanges,
       openDashboardEditModal,
     ],
   );
