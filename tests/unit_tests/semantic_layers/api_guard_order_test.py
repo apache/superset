@@ -32,7 +32,7 @@ from flask_appbuilder.security.sqla.models import (
     User,
     ViewMenu,
 )
-from flask_login import AnonymousUserMixin
+from flask_login import AnonymousUserMixin, LoginManager
 from pytest_mock import MockerFixture
 from werkzeug.routing import Rule
 from werkzeug.test import TestResponse
@@ -76,13 +76,13 @@ def semantic_decision(mocker: MockerFixture) -> MagicMock:
     def resolve(name: str, default: bool) -> bool:
         return bool(decision()) if name == "SEMANTIC_LAYERS" else default
 
+    # Patch the host callback, preserving the real feature manager resolution.
     mocker.patch.object(feature_flag_manager, "_is_feature_enabled_func", resolve)
     return decision
 
 
 @pytest.fixture
 def set_principal(
-    app: SupersetApp,
     mocker: MockerFixture,
 ) -> Callable[[str, bool], None]:
     """Supply identities and grants without replacing FAB's permission checks."""
@@ -127,7 +127,10 @@ def set_principal(
             user = User(id=17, username="reader", active=True, roles=roles)
         else:
             user = AnonymousUserMixin()
-        mocker.patch.object(app.login_manager, "_request_callback", return_value=user)
+        # Replace only identity loading; keep real FAB authorization and restore
+        # the callback after each test instead of accumulating public loaders.
+        login_manager: LoginManager = security_manager.lm
+        mocker.patch.object(login_manager, "_request_callback", return_value=user)
 
     return configure
 
@@ -177,7 +180,7 @@ def test_permitted_disabled_request_never_queries_metadata(
     semantic_decision.assert_called_once_with()
 
 
-def test_route_inventory(app: SupersetApp) -> None:
+def test_every_registered_route_is_in_guard_matrix(app: SupersetApp) -> None:
     """The matrix covers every exposed method, including inherited FAB routes."""
     expected: set[tuple[str, str]] = set()
     rule: Rule
@@ -242,6 +245,8 @@ def test_permitted_structure_tracks_runtime_toggle(
     assert response.status_code == 200
     assert response.json["result"]["name"] == "orders"
     view.raise_for_access.assert_called_once_with()
+    semantic_decision.assert_called_once_with()
+    semantic_decision.reset_mock()
     query.reset_mock()
     view.reset_mock()
     semantic_decision.return_value = False
@@ -250,6 +255,7 @@ def test_permitted_structure_tracks_runtime_toggle(
     assert response.json == {"message": "Not found"}
     query.assert_not_called()
     view.raise_for_access.assert_not_called()
+    semantic_decision.assert_called_once_with()
 
 
 @pytest.mark.parametrize("kind,status", [("anonymous", 401), ("signed_in", 403)])

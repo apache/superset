@@ -56,14 +56,15 @@ FEATURE_FLAGS = {
 ## Runtime semantic-layer availability
 
 `SEMANTIC_LAYERS` defaults to `False`. Both semantic-layer APIs are registered
-at startup, and each request evaluates the active flag decision. Hosts can use
+at startup, and each permitted API request evaluates the active flag decision. Hosts can use
 `IS_FEATURE_ENABLED_FUNC` and `GET_FEATURE_FLAGS_FUNC` to supply runtime decisions;
 changing static configuration still requires a restart. Initialize permissions
 with the normal `superset init` upgrade step. Enabling the runtime flag does not
 grant permissions or require another permission sync.
 
-When disabled, semantic API routes return 404. Semantic-view queries and metadata
-return “Semantic layers are not enabled.” Saved charts remain listed, but their
+Endpoint permissions are checked before `SEMANTIC_LAYERS`: callers without access receive 401 or 403 in either state, and permitted callers receive 404 when `SEMANTIC_LAYERS` is disabled. Permission is decided per endpoint: `/connections/` accepts `can_read` on either `Database` or `SemanticLayer`. A Public-role `can_read` grant on `SemanticView` permits anonymous requests to the structure endpoint, subject to the view's datasource permissions. Enabling the flag never bypasses resource-level access checks. Automatic `OPTIONS` returns 200 with the allowed HTTP methods in either state, without executing a semantic handler or evaluating availability.
+
+When `SEMANTIC_LAYERS` is disabled, semantic-view queries and metadata return “Semantic layers are not enabled.” Saved charts remain listed, but their
 data and cached images are unavailable; dashboards omit semantic-view dataset
 metadata. Chart saves using semantic views are refused. Both fresh and cached dashboard screenshots/thumbnails return 404 if any chart
 uses a semantic view. Legacy batch warm-up records a per-chart unavailable error

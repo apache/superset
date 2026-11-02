@@ -92,18 +92,7 @@ The decorator registers the class in the semantic layers registry, making it ava
 
 ## API permissions and runtime availability
 
-The `/api/v1/semantic_layer/` and `/api/v1/semantic_view/` endpoints check
-endpoint permissions before evaluating `SEMANTIC_LAYERS`. Callers without
-access receive the same authentication or permission refusal whether the feature
-is enabled or disabled. Permitted callers receive `404` when it is disabled;
-when enabled, the handler still enforces its resource-level access checks.
-A Public-role `can_read` grant on `SemanticView` allows anonymous callers to
-reach the structure endpoint, subject to the view's datasource permissions.
-
-Availability is evaluated through the feature flag manager on each permitted
-request, so host applications can supply a runtime feature decision. Automatic
-`OPTIONS` responses report allowed HTTP methods without evaluating feature
-availability or executing a semantic handler.
+The semantic APIs check endpoint permissions before evaluating `SEMANTIC_LAYERS` through the feature flag manager. See [runtime semantic-layer availability](../../../admin_docs/configuration/feature-flags.mdx#runtime-semantic-layer-availability) for permission, Public-role, `OPTIONS`, and `IS_FEATURE_ENABLED_FUNC` behavior.
 
 ## Provider obligations and isolated tests
 

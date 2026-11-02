@@ -31,7 +31,7 @@ from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.orm import load_only, Query
 
-from superset import db, event_logger, is_feature_enabled, security_manager
+from superset import db, event_logger, security_manager
 from superset.commands.semantic_layer.create import (
     CreateSemanticLayerCommand,
     CreateSemanticViewCommand,
@@ -127,7 +127,12 @@ P = ParamSpec("P")
 def _requires_semantic_layers(
     function: Callable[P, FlaskResponse],
 ) -> Callable[P, FlaskResponse]:
-    """Check runtime availability after the endpoint's permission decorator."""
+    """Check runtime availability after the endpoint's permission decorator.
+
+    Apply to every exposed handler directly below protect/protect_read and above
+    safe, metrics, parsing, and event logging. Keep the handler in the registered
+    route matrix in api_guard_order_test.py so a missing guard fails a test.
+    """
 
     @wraps(function)
     def wrapped(*args: P.args, **kwargs: P.kwargs) -> FlaskResponse:
@@ -295,9 +300,6 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
             422:
               $ref: '#/components/responses/422'
         """
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
-
         view = db.session.query(SemanticView).filter_by(id=pk).first()
         if not view:
             return self.response_404()
@@ -406,9 +408,6 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
             422:
               $ref: '#/components/responses/422'
         """
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
-
         body = request.json or {}
         views_data = body.get("views", [])
         if refusal := _bulk_create_refusal(views_data):
@@ -613,9 +612,6 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
             422:
               $ref: '#/components/responses/422'
         """
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
-
         try:
             DeleteSemanticViewCommand(pk).run()
             return self.response(200, message="OK")
@@ -722,9 +718,6 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
             422:
               $ref: '#/components/responses/422'
         """
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
-
         item_ids: list[int] = kwargs["rison"]
         try:
             BulkDeleteSemanticViewCommand(item_ids).run()
@@ -909,9 +902,6 @@ class SemanticLayerRestApi(BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
-
         layer = SemanticLayerDAO.find_by_uuid(uuid)
         if not layer:
             return self.response_404()
@@ -978,9 +968,6 @@ class SemanticLayerRestApi(BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
-
         layer = SemanticLayerDAO.find_by_uuid(uuid)
         if not layer:
             return self.response_404()
@@ -1190,8 +1177,6 @@ class SemanticLayerRestApi(BaseSupersetApi):
             422:
               $ref: '#/components/responses/422'
         """
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
         if request.get_json(silent=True) != {}:
             return self.response_400(message="Expected an empty JSON object")
         try:
@@ -1337,9 +1322,6 @@ class SemanticLayerRestApi(BaseSupersetApi):
         filters = args.get("filters", [])
 
         source_type, name_filter = self._parse_connection_filters(filters)
-
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
 
         all_items = self._fetch_connection_items(source_type, name_filter)
 
@@ -1529,9 +1511,6 @@ class SemanticLayerRestApi(BaseSupersetApi):
             401:
               $ref: '#/components/responses/401'
         """
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
-
         layers = SemanticLayerDAO.find_all()
         result = [_serialize_layer(layer) for layer in layers]
         return self.response(200, result=result)
@@ -1561,9 +1540,6 @@ class SemanticLayerRestApi(BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
-            return self.response_404()
-
         layer = SemanticLayerDAO.find_by_uuid(uuid)
         if not layer:
             return self.response_404()
