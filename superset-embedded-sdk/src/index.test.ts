@@ -560,7 +560,7 @@ describe("embedDashboard", () => {
     describe("embedDashboard security", () => {
       it("rejects if fetchGuestToken throws an error", async () => {
         const mockFetch = vi.fn().mockRejectedValue(new Error("Invalid token"));
-        
+
         await expect(
           embedDashboard({
             id: "test-dashboard",
@@ -594,7 +594,7 @@ describe("embedDashboard", () => {
     describe("embedDashboard edge cases", () => {
       it("handles iframe navigation internally", async () => {
         const mockFetch = vi.fn().mockResolvedValue("token-1");
-        
+
         const result = await embedDashboard({
           id: "test-dashboard",
           supersetDomain: "http://localhost:8200",

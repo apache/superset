@@ -176,7 +176,7 @@ describe("guest token refresh", () => {
     expect(timing).toBeGreaterThan(MIN_REFRESH_WAIT_MS);
     expect(timing).toBe(ttl * 1000 - REFRESH_TIMING_BUFFER_MS);
 
-    
+
   });
 
   it("returns minimum wait when token expires immediately", () => {
