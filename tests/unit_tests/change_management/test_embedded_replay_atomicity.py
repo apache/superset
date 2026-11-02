@@ -35,6 +35,7 @@ property under test is about transactions rather than about embedding.
 """
 
 import inspect
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -62,9 +63,15 @@ def test_the_embedded_replay_does_not_commit(mocker: MockerFixture) -> None:
     assert result == "row"
     upsert.assert_called_once_with(dashboard, ["x.example.invalid"])
     commit.assert_not_called()
-    # The module does not import ``db`` at all any more, which is the
-    # cheapest proof that nothing in here reaches for a transaction.
+    # And it cannot: the module holds no transaction handle of its own, and
+    # nothing in its source commits. The replay does need a session -- the
+    # audit columns are stamped at flush, so the author's identity has to be
+    # applied before the request's own flush -- so this is stated as "never
+    # commits" rather than "never imports db", which is what it used to say
+    # and what a flush would have broken.
     assert not hasattr(replay, "db")
+    source = Path(replay.__file__).read_text(encoding="utf-8")
+    assert ".commit(" not in source
 
 
 @pytest.mark.parametrize(

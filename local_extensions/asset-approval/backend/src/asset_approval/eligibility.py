@@ -34,7 +34,7 @@ import logging
 from typing import Any
 
 from flask_appbuilder.security.sqla.models import Role, User
-from sqlalchemy import or_
+from sqlalchemy import false, or_
 
 from superset import db, security_manager
 from asset_approval.models import ChangeRequest
@@ -72,16 +72,24 @@ def machine_user_roles() -> set[str]:
 def is_eligible_approver(user: Any) -> bool:
     """Whether this account may ever be an approver, whatever the asset.
 
-    Two properties of the account itself: it has to be active, and it must
-    not be a service account.
+    Three properties of the account itself: it has to be active, it must
+    not be a service account, and its roles have to carry the approval
+    right.
 
     Shared by the list the request dialog shows and the check the approve
     route makes, which used to disagree. ``active`` was filtered out of the
     list and not out of the check, so a deactivated editor never appeared as
-    an option yet could still approve through the API (S-07).
+    an option yet could still approve through the API (S-07). The approval
+    right was the same mistake the other way round: ``can_approve`` read it
+    and this did not, so once an operator narrows
+    ``ASSET_APPROVAL_APPROVER_ROLES`` -- the first thing a customer does --
+    the dialog names approvers the route refuses, and an author submits into
+    a queue nobody can clear.
     """
     # A null column is not active; see ``only_eligible_accounts``.
     if not getattr(user, "active", True):
+        return False
+    if not roles_carry_approval(user):
         return False
     machine_roles = machine_user_roles()
     if not machine_roles:
@@ -145,6 +153,21 @@ def roles_that_may_approve() -> frozenset[int] | None:
     if cacheable:
         setattr(g, _APPROVER_ROLES_CACHE, answer)
     return answer
+
+
+def roles_carry_approval(user: Any) -> bool:
+    """Whether this account's roles hold the approval right.
+
+    What :func:`holds_approval_permission` asks from a user id, asked where
+    the account is already in hand. Fails open on the permission not
+    existing yet, for the reason given there.
+    """
+    role_ids = roles_that_may_approve()
+    if role_ids is None:
+        return True
+    if not role_ids:
+        return False
+    return bool(role_ids & {role.id for role in getattr(user, "roles", []) or []})
 
 
 def holds_approval_permission(user_id: int) -> bool:
@@ -269,7 +292,7 @@ def eligible_approvers(model: Any, exclude_user_id: int | None = None) -> list[U
 def only_eligible_accounts(query: Any) -> Any:
     """:func:`is_eligible_approver` as a filter on a ``User`` query.
 
-    The same two conditions, expressed in SQL so the work happens in the
+    The same conditions, expressed in SQL so the work happens in the
     database and so the list and the check cannot answer differently.
 
     A ``NULL`` ``active`` is not active. FAB writes the column when it
@@ -278,6 +301,17 @@ def only_eligible_accounts(query: Any) -> Any:
     favour. It is also what the Python predicate already said.
     """
     query = query.filter(User.active.is_(True))
+    approver_role_ids = roles_that_may_approve()
+    if approver_role_ids is not None:
+        # ``None`` means the permission does not exist on this instance yet,
+        # where every role keeps the rights it had before it was introduced.
+        # An empty set is an operator who has said nobody approves, and is
+        # answered as written rather than as "no filter".
+        query = (
+            query.filter(User.roles.any(Role.id.in_(approver_role_ids)))
+            if approver_role_ids
+            else query.filter(false())
+        )
     machine_roles = machine_user_roles()
     if machine_roles:
         query = query.filter(~User.roles.any(Role.name.in_(machine_roles)))

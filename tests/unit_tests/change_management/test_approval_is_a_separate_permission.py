@@ -179,6 +179,17 @@ def _manager(mocker: MockerFixture, roles: list[Any], pvm: Any) -> tuple[list, l
         role.permissions.remove(permission)
         revoked.append(role.name)
 
+    def find_role(name: str) -> Any:
+        return next((role for role in roles if role.name == name), None)
+
+    def add_role(name: str) -> Any:
+        # The alignment creates a role an operator named but has not built
+        # yet, so that taking the right off the builtin roles cannot leave
+        # the configuration pointing at nothing.
+        created = SimpleNamespace(name=name, permissions=[], user=[])
+        roles.append(created)
+        return created
+
     mocker.patch(
         "superset.extensions.security_manager",
         SimpleNamespace(
@@ -186,6 +197,8 @@ def _manager(mocker: MockerFixture, roles: list[Any], pvm: Any) -> tuple[list, l
             get_all_roles=lambda: roles,
             add_permission_role=add,
             del_permission_role=remove,
+            find_role=find_role,
+            add_role=add_role,
         ),
     )
     return granted, revoked
@@ -430,3 +443,81 @@ def test_nothing_to_seed_from_is_not_an_error(mocker: MockerFixture) -> None:
     entrypoint._seed_approval_permission()
 
     assert granted == []
+
+
+def test_a_named_role_that_does_not_exist_yet_is_created(
+    mocker: MockerFixture,
+) -> None:
+    """Otherwise the configuration takes the right off everyone and gives it
+    to no one.
+
+    ``get_all_roles`` only yields roles that exist, so naming a role the
+    operator has not built yet -- the obvious first move on a fresh
+    install -- revoked from Admin, Alpha and Gamma and granted to nobody.
+    ``@protect()`` then refuses every approval, with nothing in the UI to
+    say why. Found by review, not by use, which is the cheaper way round.
+    """
+    pvm = object()
+    roles = [_role("Admin", pvm), _role("Alpha", pvm), _role("Gamma", pvm)]
+    entrypoint = _configured(mocker, ["Change Approver"])
+    granted, revoked = _manager(mocker, roles, pvm)
+
+    entrypoint._align_approval_permission()
+
+    assert "Change Approver" in [role.name for role in roles]
+    assert granted == ["Change Approver"]
+    assert sorted(revoked) == ["Admin", "Alpha", "Gamma"]
+
+
+def test_the_anonymous_role_is_skipped_even_when_it_is_named(
+    mocker: MockerFixture,
+) -> None:
+    """An operator can write anything in a config file. A signed-out visitor
+    is still never an approver."""
+    pvm = object()
+    roles = [_role("Public", None), _role("Reviewers", None)]
+    entrypoint = _configured(mocker, ["Public", "Reviewers"])
+    granted, _revoked = _manager(mocker, roles, pvm)
+
+    entrypoint._align_approval_permission()
+
+    assert granted == ["Reviewers"]
+
+
+def test_the_approver_list_asks_for_the_permission_too(
+    mocker: MockerFixture,
+) -> None:
+    """The dialog and the route have to agree about who can approve.
+
+    ``can_approve`` read the approval right and ``is_eligible_approver``
+    did not. Harmless while the default grants line up; the moment an
+    operator narrows ``ASSET_APPROVAL_APPROVER_ROLES`` the request dialog
+    names an approver and the route then refuses them, and the author has
+    submitted into a queue nobody can clear. The same mistake as S-07, the
+    other way round.
+    """
+    mocker.patch.object(
+        eligibility, "roles_that_may_approve", return_value=frozenset({5})
+    )
+    mocker.patch.object(eligibility, "machine_user_roles", return_value=set())
+    may = SimpleNamespace(id=1, active=True, roles=[SimpleNamespace(id=5)])
+    may_not = SimpleNamespace(id=2, active=True, roles=[SimpleNamespace(id=9)])
+
+    assert eligibility.is_eligible_approver(may) is True
+    assert eligibility.is_eligible_approver(may_not) is False
+
+
+def test_the_approver_list_fails_open_before_the_permission_exists(
+    mocker: MockerFixture,
+) -> None:
+    """An instance that has not run ``superset init`` since this shipped
+    keeps the approvers it had, rather than losing all of them."""
+    mocker.patch.object(eligibility, "roles_that_may_approve", return_value=None)
+    mocker.patch.object(eligibility, "machine_user_roles", return_value=set())
+
+    assert (
+        eligibility.is_eligible_approver(
+            SimpleNamespace(id=1, active=True, roles=[SimpleNamespace(id=9)])
+        )
+        is True
+    )

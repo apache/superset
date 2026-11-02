@@ -123,12 +123,11 @@ def test_the_audit_stamp_is_taken_while_the_author_is_current(
             return "staged"
 
     mocker.patch.object(replay, "build_command", return_value=Command())
-    mocker.patch.object(
-        replay,
-        "db",
-        SimpleNamespace(
-            session=SimpleNamespace(flush=lambda: stamped.update(user=g.user))
-        ),
+    # Patched on ``superset.db``: the replay imports it inside the function,
+    # so that the module keeps no transaction handle of its own.
+    mocker.patch(
+        "superset.db.session.flush",
+        side_effect=lambda: stamped.update(user=g.user),
     )
 
     with bare_app.app_context():

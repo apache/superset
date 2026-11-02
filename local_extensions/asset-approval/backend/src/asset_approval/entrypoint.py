@@ -371,9 +371,33 @@ def _align_approval_permission() -> None:
             )
             return
         wanted = {str(name).strip() for name in configured if str(name).strip()}
+        # A role the operator names but has not created yet would otherwise
+        # be skipped -- ``get_all_roles`` only yields roles that exist -- so
+        # the alignment would take the right off the builtin roles and give
+        # it to nobody, and every approval would 403. Create it instead, so
+        # the configuration is at least realisable by adding members.
+        for name in sorted(wanted):
+            if security_manager.find_role(name) is None:
+                security_manager.add_role(name)
+                logger.info(
+                    "%s: created role %r, named in %s",
+                    EXTENSION_ID,
+                    name,
+                    APPROVER_ROLES_CONFIG,
+                )
         for role in security_manager.get_all_roles():
             holds = pvm in role.permissions
             if role.name in wanted and not holds:
+                if not belongs_to_the_workflow(role):
+                    logger.warning(
+                        "%s: %s names %r, which is the anonymous role; "
+                        "a signed-out visitor is never an approver, so it "
+                        "is skipped",
+                        EXTENSION_ID,
+                        APPROVER_ROLES_CONFIG,
+                        role.name,
+                    )
+                    continue
                 security_manager.add_permission_role(role, pvm)
                 logger.info(
                     "%s: granted the approval right to %r", EXTENSION_ID, role.name
@@ -383,6 +407,7 @@ def _align_approval_permission() -> None:
                 logger.info(
                     "%s: took the approval right off %r", EXTENSION_ID, role.name
                 )
+        _warn_if_nobody_can_approve(pvm)
     except Exception:  # pylint: disable=broad-except
         # Same reasoning as the page grant below: a read-only or unmigrated
         # metadata database must not stop the extension loading. The right
@@ -394,6 +419,28 @@ def _align_approval_permission() -> None:
             APPROVER_ROLES_CONFIG,
             exc_info=True,
         )
+
+
+def _warn_if_nobody_can_approve(pvm: Any) -> None:
+    """Say so, loudly, when the configuration leaves no one able to approve.
+
+    The alignment does what the operator wrote. It is still worth being told
+    that what they wrote means every change will sit in the queue for ever:
+    a role with the right and no members, or a name that matched nothing,
+    both read as a quiet outage rather than as a mistake.
+    """
+    holders = [role for role in pvm.role if belongs_to_the_workflow(role)]
+    if holders and any(getattr(role, "user", None) for role in holders):
+        return
+    logger.error(
+        "%s: after applying %s, %s. Approvals will be refused until a role "
+        "holding the approval right has members.",
+        EXTENSION_ID,
+        APPROVER_ROLES_CONFIG,
+        "no role holds the approval right"
+        if not holders
+        else "the roles holding the approval right have no members",
+    )
 
 
 def _grant_page_permission_to_the_workflow() -> None:
