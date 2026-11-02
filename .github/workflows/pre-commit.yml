@@ -182,14 +182,16 @@ jobs:
       # at that moment, which is how runs 40649064300 and 40679638770
       # failed. Restoring from the prefix instead cuts the downloads to the
       # changed packages. The month in the key and prefix resets the cache
-      # monthly so it cannot grow without bound.
+      # monthly so it cannot grow without bound. Gated on needs_frontend, not
+      # needs_node, so a run that skips npm ci never saves a near-empty
+      # ~/.npm under the exact key.
       - name: Get cache month
         id: cache_month
-        if: steps.changed_files.outputs.needs_node == 'true'
+        if: steps.changed_files.outputs.needs_frontend == 'true'
         run: echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
 
       - name: Cache npm
-        if: steps.changed_files.outputs.needs_node == 'true'
+        if: steps.changed_files.outputs.needs_frontend == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.npm
