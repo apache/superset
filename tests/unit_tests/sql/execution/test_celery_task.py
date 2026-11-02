@@ -1281,6 +1281,13 @@ def test_failed_statement_keeps_its_executed_sql(
             QueryStatusEnum.STOPPED,
             False,
         ),
+        # A stop signal for a query that was not stopped is a failure.
+        (
+            QueryStoppedException("stopped while fetching"),
+            False,
+            QueryStatusEnum.FAILED,
+            True,
+        ),
         # Any other failure keeps its diagnostics, even when a stop raced it.
         (MemoryError("out of memory"), True, QueryStatusEnum.STOPPED, True),
         (RuntimeError("syntax error"), False, QueryStatusEnum.FAILED, True),
