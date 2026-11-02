@@ -529,6 +529,36 @@ describe('DatabaseModal', () => {
     await expectFreshCreateAfterEdit('Late X');
   });
 
+  /** Fill a new dynamic-form connection without relying on saved state. */
+  const connectPostgres = async (name: string, host: string) => {
+    await userEvent.click(
+      await screen.findByRole('button', { name: /postgresql/i }),
+    );
+    fireEvent.change(
+      document.querySelector<HTMLInputElement>('input[name="database_name"]')!,
+      {
+        target: { value: name },
+      },
+    );
+    for (const [field, value] of Object.entries({
+      host,
+      port: '5432',
+      database: 'postgres',
+      username: 'testdb',
+    })) {
+      fireEvent.change(
+        document.querySelector<HTMLInputElement>(`input[name="${field}"]`)!,
+        { target: { value } },
+      );
+    }
+    fireEvent.blur(
+      document.querySelector<HTMLInputElement>('input[name="username"]')!,
+    );
+    const connect = screen.getByRole('button', { name: 'Connect' });
+    await waitFor(() => expect(connect).toBeEnabled());
+    await userEvent.click(connect);
+  };
+
   /** Check that late writes cannot populate or close a subsequent create session. */
   const expectFreshCreateAfterLateWrite = async (
     operation: 'create' | 'update',
@@ -575,37 +605,6 @@ describe('DatabaseModal', () => {
         </>
       );
     };
-    /** Fill a new dynamic-form connection without relying on saved state. */
-    const connectPostgres = async (name: string, host: string) => {
-      await userEvent.click(
-        await screen.findByRole('button', { name: /postgresql/i }),
-      );
-      fireEvent.change(
-        document.querySelector<HTMLInputElement>(
-          'input[name="database_name"]',
-        )!,
-        {
-          target: { value: name },
-        },
-      );
-      for (const [field, value] of Object.entries({
-        host,
-        port: '5432',
-        database: 'postgres',
-        username: 'testdb',
-      })) {
-        fireEvent.change(
-          document.querySelector<HTMLInputElement>(`input[name="${field}"]`)!,
-          { target: { value } },
-        );
-      }
-      fireEvent.blur(
-        document.querySelector<HTMLInputElement>('input[name="username"]')!,
-      );
-      const connect = screen.getByRole('button', { name: 'Connect' });
-      await waitFor(() => expect(connect).toBeEnabled());
-      await userEvent.click(connect);
-    };
     try {
       render(<Harness />, { useRedux: true });
       await connectPostgres('First connection', 'first.example');
@@ -639,7 +638,7 @@ describe('DatabaseModal', () => {
           name: /select a database to connect/i,
         }),
       ).toBeInTheDocument();
-      expect(onDatabaseAdd).not.toHaveBeenCalled();
+      expect(onDatabaseAdd).toHaveBeenCalledTimes(1);
       fetchMock.clearHistory();
       await connectPostgres('Second connection', 'second.example');
       expect(await screen.findByText(/step 3 of 3/i)).toBeInTheDocument();
@@ -658,6 +657,7 @@ describe('DatabaseModal', () => {
       expect(payload).not.toHaveProperty('id');
       expect(payload.database_name).toBe('Second connection');
       expect(payload.parameters.host).toBe('second.example');
+      expect(onDatabaseAdd).toHaveBeenCalledTimes(2);
     } finally {
       releaseWrite();
       resourceHook.mockImplementation(previousImplementation);
@@ -670,6 +670,113 @@ describe('DatabaseModal', () => {
 
   test('late update response after X leaves the next connection as a fresh POST', async () => {
     await expectFreshCreateAfterLateWrite('update');
+  });
+
+  /** Check that abandoning a save restores a usable picker without publishing it. */
+  const expectPickerAfterBackDuringPendingSave = async (
+    operation: 'create' | 'validation',
+  ): Promise<void> => {
+    const resourceHook = jest.spyOn(hooks, 'useSingleViewResource');
+    const previousImplementation = resourceHook.getMockImplementation()!;
+    resourceHook.mockImplementation(realUseSingleViewResource);
+    let releaseRequest: () => void = () => {};
+    const requestReady = new Promise<void>(resolve => {
+      releaseRequest = resolve;
+    });
+    let holdValidation = false;
+    fetchMock.modifyRoute('validate-params', {
+      response: async () => {
+        if (holdValidation) await requestReady;
+        return { message: 'OK' };
+      },
+    });
+    fetchMock.modifyRoute('database-connect', {
+      response: async () => {
+        if (operation === 'create') await requestReady;
+        return {
+          id: 77,
+          result: {
+            id: 77,
+            database_name: 'Abandoned connection',
+            backend: 'postgresql',
+            configuration_method: ConfigurationMethod.DynamicForm,
+          },
+        };
+      },
+    });
+    const onDatabaseAdd = jest.fn();
+    try {
+      setup({ onDatabaseAdd });
+      // Only hold save-time validation, not the field blur requests.
+      await userEvent.click(
+        await screen.findByRole('button', { name: /postgresql/i }),
+      );
+      for (const [field, value] of Object.entries({
+        database_name: 'Abandoned connection',
+        host: 'abandoned.example',
+        port: '5432',
+        database: 'postgres',
+        username: 'testdb',
+      })) {
+        fireEvent.change(
+          document.querySelector<HTMLInputElement>(`input[name="${field}"]`)!,
+          { target: { value } },
+        );
+      }
+      fireEvent.blur(
+        document.querySelector<HTMLInputElement>('input[name="username"]')!,
+      );
+      await act(async () => {
+        await fetchMock.callHistory.flush(true);
+      });
+      const validationCount = fetchMock.callHistory.calls(
+        VALIDATE_PARAMS_ENDPOINT,
+      ).length;
+      holdValidation = operation === 'validation';
+      await userEvent.click(screen.getByRole('button', { name: 'Connect' }));
+      await waitFor(() =>
+        expect(
+          fetchMock.callHistory.calls(
+            operation === 'create'
+              ? DATABASE_CONNECT_ENDPOINT
+              : VALIDATE_PARAMS_ENDPOINT,
+          ),
+        ).toHaveLength(operation === 'create' ? 1 : validationCount + 1),
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+      expect(
+        await screen.findByRole('button', { name: /postgresql/i }),
+      ).toBeInTheDocument();
+      await act(async () => {
+        releaseRequest();
+        await fetchMock.callHistory.flush(true);
+      });
+      expect(
+        screen.getByRole('heading', {
+          name: /select a database to connect/i,
+        }),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/step 3 of 3/i)).not.toBeInTheDocument();
+      expect(onDatabaseAdd).toHaveBeenCalledTimes(
+        operation === 'create' ? 1 : 0,
+      );
+      expect(
+        fetchMock.callHistory.calls(DATABASE_CONNECT_ENDPOINT),
+      ).toHaveLength(operation === 'create' ? 1 : 0);
+      await connectPostgres('Replacement connection', 'replacement.example');
+      expect(await screen.findByText(/step 3 of 3/i)).toBeInTheDocument();
+    } finally {
+      releaseRequest();
+      resourceHook.mockImplementation(previousImplementation);
+    }
+  };
+
+  test('Back during pending create restores the picker and discards abandoned modal state', async () => {
+    await expectPickerAfterBackDuringPendingSave('create');
+  });
+
+  test('Back during pending validation restores the picker and discards abandoned modal state', async () => {
+    await expectPickerAfterBackDuringPendingSave('validation');
   });
 
   test('switching edit targets loads the active target while the previous fetch is pending', async () => {

@@ -1112,9 +1112,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         true,
         shouldApplyResponse,
       );
+      // A completed server write must refresh the parent even after this session ends.
+      if (result) onDatabaseAdd?.();
       if (!shouldApplyResponse()) return;
       if (result) {
-        if (onDatabaseAdd) onDatabaseAdd();
         dbConfigExtraExtension
           ?.onSave(extraExtensionComponentState, db)
           .then(({ error }: { error: any }) => {
@@ -1139,10 +1140,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         dbToUpdate.configuration_method === ConfigurationMethod.DynamicForm, // onShow toast on SQLA Forms
         shouldApplyResponse,
       );
+      if (dbId) onDatabaseAdd?.();
       if (!shouldApplyResponse()) return;
       if (dbId) {
         setHasConnectedDb(true);
-        if (onDatabaseAdd) onDatabaseAdd();
         dbConfigExtraExtension
           ?.onSave(extraExtensionComponentState, db)
           .then(({ error }: { error: any }) => {
@@ -1372,6 +1373,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const handleBackButtonOnConnect = () => {
     databaseRequestGeneration.current += 1;
+    // An abandoned save cannot reach its own loading-state reset.
+    setLoading(false);
     handleClearValidationErrors();
     if (editNewDb) setHasConnectedDb(false);
     if (importingModal) setImportingModal(false);
