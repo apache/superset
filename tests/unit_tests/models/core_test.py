@@ -287,6 +287,25 @@ def test_dttm_sql_literal(
     assert SqlaTable(database=database).dttm_sql_literal(dttm, col) == result
 
 
+@pytest.mark.parametrize(
+    "uri",
+    [
+        "postgresql://user:pass@host:notaport/db",
+        "not a SQLAlchemy URI",
+        "uninstalled_dialect://host/db",
+    ],
+)
+def test_connection_details_allow_uri_repair(app_context: None, uri: str) -> None:
+    """Broken saved connections serialize enough information for the URI editor."""
+    from superset.databases.schemas import DatabaseConnectionSchema
+
+    database = Database(database_name="db", sqlalchemy_uri=uri, extra="{}")
+    result = DatabaseConnectionSchema().dump(database)
+    assert result["parameters"] == {}
+    assert result["parameters_schema"] == {}
+    assert result["sqlalchemy_uri"] == uri
+
+
 def test_table_column_database() -> None:
     database = Database(database_name="db")
     assert TableColumn(database=database).database is database

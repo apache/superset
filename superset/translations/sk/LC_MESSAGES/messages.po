@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -513,6 +513,13 @@ msgstr[2] ""
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "pred 1 dnem"
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
@@ -2833,10 +2840,6 @@ msgid "Are you sure you want to delete %s?"
 msgstr "Opravdu chcete zmazať %s?"
 
 #, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-
-#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr "Opravdu chcete zmazať vybrané %s?"
 
@@ -4056,6 +4059,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr "Vyberte formát čísla"
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr "Vyberte zdroj"
 
@@ -5181,6 +5187,9 @@ msgstr "Vytvoriť nový graf"
 msgid "Create or select schema..."
 msgstr "Vytvoriť alebo vybrať schéma..."
 
+msgid "Create semantic layer"
+msgstr ""
+
 msgid "Created"
 msgstr "Vytvorené"
 
@@ -6220,7 +6229,7 @@ msgstr "Zmazať položku"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -10102,6 +10111,12 @@ msgstr "Hodnoty filtra radenie"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 #, fuzzy
 msgid "Loading timezones..."
 msgstr "Načítavanie časových pásem..."
@@ -11301,6 +11316,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -14733,6 +14764,9 @@ msgstr "Graf neexistuje"
 msgid "Semantic layer parameters are invalid."
 msgstr "Parametre vrstvy anotací sú neplatné."
 
+msgid "Semantic layer setup guide"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer type"
 msgstr "Typ vrstvy anotací"
@@ -18016,6 +18050,9 @@ msgid ""
 "mydatabase.com)."
 msgstr ""
 
+msgid "This cannot be undone."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -19032,6 +19069,9 @@ msgstr "Dôverovať tejto URL adrese a viac sa nepýtať"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr "Skúste použít iné filtre alebo sa ujistete, že váš zdroj dat má data"
 
@@ -19242,6 +19282,16 @@ msgstr ""
 #, fuzzy
 msgid "Unable to load dashboard"
 msgstr "Nemožno načítať nástenku"
+
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr ""
@@ -21284,6 +21334,9 @@ msgstr "5 sekund"
 msgid "aggregate"
 msgstr "agregovať"
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr "podmienka upozornenie"
 
@@ -21299,6 +21352,10 @@ msgstr "také kopírovať (duplikovať) grafy"
 msgid "ancestor"
 msgstr ""
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "anotace"
 
@@ -21309,6 +21366,10 @@ msgstr "vrstva_anotací"
 #, fuzzy
 msgid "apple"
 msgstr "jablko"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -22028,6 +22089,12 @@ msgstr ""
 
 msgid "query"
 msgstr "dotaz"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "náhodný"

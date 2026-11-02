@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -491,6 +491,11 @@ msgstr[0] ""
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "%s gün önce"
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
 
 #, python-format
 msgid "%s field"
@@ -2828,10 +2833,6 @@ msgid "Are you sure you want to delete %s?"
 msgstr "%s’i silmek istiyor musunuz?"
 
 #, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-
-#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr "Seçilmiş   %s silmek istediğinizden emin misiniz?"
 
@@ -4049,6 +4050,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr "Bir numara format seçin"
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr "Kaynak seçin"
 
@@ -5177,6 +5181,9 @@ msgstr "Yeni grafik oluştur"
 msgid "Create or select schema..."
 msgstr "Create or select şema..."
 
+msgid "Create semantic layer"
+msgstr ""
+
 msgid "Created"
 msgstr "Oluşturuldu"
 
@@ -6221,7 +6228,7 @@ msgstr "Öğeyi sil"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -10154,6 +10161,12 @@ msgstr "Filtre değerleri yükleniyor"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 msgid "Loading timezones..."
 msgstr "Saat dilimleri yükleniyor..."
 
@@ -11375,6 +11388,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -14905,6 +14934,9 @@ msgstr "Semantik katman mevcut değil"
 msgid "Semantic layer parameters are invalid."
 msgstr "Semantik katman parametreleri geçersiz."
 
+msgid "Semantic layer setup guide"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -18373,6 +18405,9 @@ msgid ""
 "mydatabase.com)."
 msgstr "Bu bir IP adresi (e.g. 127.0.0.1) veya bir alan adı (e.g. mydatabase.com)."
 
+msgid "This cannot be undone."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -19411,6 +19446,9 @@ msgstr "Bu URL'ye güven ve bir daha sorma"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 "Farklı filtreler uygulamak veya veri kaynağınızın veri kaynağının veriye "
@@ -19630,6 +19668,16 @@ msgstr ""
 #, fuzzy
 msgid "Unable to load dashboard"
 msgstr "1 Gösterim Paneline eklendi"
+
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr ""
@@ -21751,6 +21799,9 @@ msgstr "birkaç saniye"
 msgid "aggregate"
 msgstr "Toplam"
 
+msgid "alert"
+msgstr ""
+
 #, fuzzy
 msgid "alert condition"
 msgstr "Grafik seçenekleri"
@@ -21767,6 +21818,10 @@ msgstr "Ayrıca kopya (duplicate) grafikler"
 msgid "ancestor"
 msgstr "ata"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "Annotasyon"
 
@@ -21777,6 +21832,10 @@ msgstr "Annotation layer"
 #, fuzzy
 msgid "apple"
 msgstr "elma"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "Asfreq"
@@ -22521,6 +22580,12 @@ msgstr ""
 
 msgid "query"
 msgstr "Soru"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "rastgele"

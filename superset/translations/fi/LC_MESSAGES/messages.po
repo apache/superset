@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -611,6 +611,12 @@ msgstr[1] ""
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "1 päivä sitten"
+msgstr[1] ""
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
@@ -4251,10 +4257,6 @@ msgstr "Haluatko varmasti poistaa"
 msgid "Are you sure you want to delete %s?"
 msgstr "Haluatko varmasti poistaa %s?"
 
-#, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
@@ -6297,6 +6299,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr "Valitse lukumuoto"
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -8121,6 +8126,9 @@ msgstr "Luo uusi kaavio"
 msgid "Create or select schema..."
 msgstr "Luo tai valitse skeema..."
 
+msgid "Create semantic layer"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -9877,7 +9885,7 @@ msgstr "Poista kohde"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -16307,6 +16315,12 @@ msgstr "Lajittele suodatinarvot"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -18289,6 +18303,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -23945,6 +23975,9 @@ msgstr "Kaaviota ei ole olemassa"
 msgid "Semantic layer parameters are invalid."
 msgstr "Huomautuskerroksen parametrit ovat virheelliset."
 
+msgid "Semantic layer setup guide"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -29058,6 +29091,9 @@ msgstr ""
 "Tämä voi olla joko IP-osoite (esim. 127.0.0.1) tai verkkotunnus (esim. "
 "mydatabase.com)."
 
+msgid "This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -30583,6 +30619,9 @@ msgstr "Luota tähän URL-osoitteeseen äläkä kysy uudelleen"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -30883,6 +30922,16 @@ msgstr ""
 #, fuzzy
 msgid "Unable to load dashboard"
 msgstr "Koontinäytön lataaminen epäonnistui"
+
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr ""
@@ -34166,6 +34215,9 @@ msgstr "5 sekuntia"
 msgid "aggregate"
 msgstr "aggregaatti"
 
+msgid "alert"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy
@@ -34196,6 +34248,10 @@ msgstr "kopioi myös kaaviot (monista)"
 msgid "ancestor"
 msgstr "esi-isä"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -34214,6 +34270,10 @@ msgstr "annotation_layer"
 #, fuzzy
 msgid "apple"
 msgstr "omena"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -35450,6 +35510,12 @@ msgstr ""
 #, fuzzy
 msgid "query"
 msgstr "kysely"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]

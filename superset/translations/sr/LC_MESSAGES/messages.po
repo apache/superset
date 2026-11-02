@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -562,6 +562,13 @@ msgid_plural "%s days ago"
 msgstr[0] "Пре %s дан"
 msgstr[1] "Пре %s дана"
 msgstr[2] "Пре %s дана"
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "%s field"
@@ -3306,10 +3313,6 @@ msgstr "Да ли сте сигурни да желите да обришете"
 msgid "Are you sure you want to delete %s?"
 msgstr "Да ли сте сигурни да желите да обришете %s?"
 
-#, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Are you sure you want to delete the selected %s?"
@@ -4786,6 +4789,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr "Изаберите формат броја"
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Choose a source"
 msgstr "Изаберите извор"
@@ -6122,6 +6128,9 @@ msgstr "Креирај нови графикон"
 msgid "Create or select schema..."
 msgstr "Креирај или изабери шему..."
 
+msgid "Create semantic layer"
+msgstr ""
+
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 msgid "Created"
@@ -7391,7 +7400,7 @@ msgstr "Обриши ставку"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -12081,6 +12090,12 @@ msgstr "Учитавање вредности филтера"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 # uk]
 msgid "Loading timezones..."
 msgstr "Учитавање временских зона..."
@@ -13499,6 +13514,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -17606,6 +17637,9 @@ msgstr "Семантички слој не постоји"
 msgid "Semantic layer parameters are invalid."
 msgstr "Параметри семантичког слоја су неважећи."
 
+msgid "Semantic layer setup guide"
+msgstr ""
+
 msgid "Semantic layer type"
 msgstr "Тип семантичког слоја"
 
@@ -21485,6 +21519,9 @@ msgstr ""
 "Ово може бити или IP адреса (нпр. 127.0.0.1) или име домена (нпр. "
 "mydatabase.com)."
 
+msgid "This cannot be undone."
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
@@ -22670,6 +22707,9 @@ msgstr "Веруј овом URL-у и не питај поново"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
@@ -22890,6 +22930,16 @@ msgstr ""
 # fa, ja, lv, mi, ru, sl, uk]
 msgid "Unable to load dashboard"
 msgstr "Није могуће учитати контролну таблу"
+
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr ""
@@ -25368,6 +25418,9 @@ msgstr "неколико секунди"
 msgid "aggregate"
 msgstr "агрегат"
 
+msgid "alert"
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "alert condition"
 msgstr "услов упозорења"
@@ -25388,6 +25441,10 @@ msgstr "такође копирај (дуплирај) графике"
 msgid "ancestor"
 msgstr "предак"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "annotation"
@@ -25402,6 +25459,10 @@ msgstr "слој_анотације"
 #, fuzzy
 msgid "apple"
 msgstr "jabuka"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -26239,6 +26300,12 @@ msgstr ""
 # zh_TW]
 msgid "query"
 msgstr "упит"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "random"

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -528,6 +528,14 @@ msgstr[3] ""
 #, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
 msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
@@ -2831,10 +2839,6 @@ msgid "Are you sure you want to delete %s?"
 msgstr "Певні, що бажаєте вилучити %s?"
 
 #, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-
-#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr "Певні, що бажаєте вилучити вибрані %s?"
 
@@ -4031,6 +4035,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr "Вибрати формат числа"
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr "Виберіть джерело"
 
@@ -5141,6 +5148,9 @@ msgstr "Створити нову діаграму"
 msgid "Create or select schema..."
 msgstr "Створити або вибрати схему..."
 
+msgid "Create semantic layer"
+msgstr ""
+
 msgid "Created"
 msgstr "Створено"
 
@@ -6159,7 +6169,7 @@ msgstr "Вилучити елемент"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -10040,6 +10050,12 @@ msgstr "Впорядкувати значення фільтра"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 msgid "Loading timezones..."
 msgstr "Завантаження часових поясів..."
 
@@ -11221,6 +11237,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -14639,6 +14671,9 @@ msgstr "Діаграма не існує"
 msgid "Semantic layer parameters are invalid."
 msgstr "Некоректні параметри анотаційного шару."
 
+msgid "Semantic layer setup guide"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer type"
 msgstr "Тип анотаційного шару"
@@ -17987,6 +18022,9 @@ msgstr ""
 "Це може бути або адреса IP (наприклад, 127.0.0.1), або домен (наприклад, "
 "mydatabase.com)."
 
+msgid "This cannot be undone."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -19009,6 +19047,9 @@ msgstr "Довіряти цьому URL і більше не запитуват�
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 "Спробуйте застосувати інші фільтри або переконайтесь, що у джерелі даних "
@@ -19220,6 +19261,16 @@ msgstr ""
 
 msgid "Unable to load dashboard"
 msgstr "Не вдалося завантажити звіт"
+
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr ""
@@ -21301,6 +21352,9 @@ msgstr "5 секунд"
 msgid "aggregate"
 msgstr "агрегувати"
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr "умова оповіщення"
 
@@ -21316,6 +21370,10 @@ msgstr "також зробіть копію діаграми"
 msgid "ancestor"
 msgstr "предок"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "анотація"
 
@@ -21326,6 +21384,10 @@ msgstr "шар_анотації"
 #, fuzzy
 msgid "apple"
 msgstr "яблуко"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -22038,6 +22100,12 @@ msgstr ""
 
 msgid "query"
 msgstr "запит"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "випадково"
