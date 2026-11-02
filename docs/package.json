@@ -86,7 +86,7 @@
     "oxlint": "^1.89.0",
     "oxlint-tsgolint": "^7.0.2005",
     "typescript": "7.0.2",
-    "webpack": "^5.112.1"
+    "webpack": "^5.112.2"
   },
   "browserslist": {
     "production": [
