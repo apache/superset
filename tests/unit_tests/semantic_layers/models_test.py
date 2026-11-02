@@ -2289,6 +2289,56 @@ def test_semantic_layer_rename_cascades_to_slice_perms(app: Any) -> None:
         db.session.rollback()
 
 
+def test_semantic_layer_rename_then_chart_write_keeps_slice_perm(app: Any) -> None:
+    """A chart written after a layer rename gets the view's new perm.
+
+    The rename rewrites the view and chart perms through the connection. The
+    chart's update hook then copies the perm from the view instance loaded
+    before the rename, so that instance must hold the new perm.
+    """
+    from superset.extensions import db
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    layer = SemanticLayer()
+    layer.name = "Old Write Layer"
+    layer.uuid = uuid.UUID("eeee1111-2222-3333-4444-555566667777")
+    layer.type = "test"
+
+    view = SemanticView()
+    view.name = "Write View"
+    view.semantic_layer_uuid = layer.uuid
+
+    db.session.add(layer)
+    db.session.add(view)
+    db.session.flush()
+
+    chart = Slice(
+        slice_name="On write view",
+        datasource_type=DatasourceType.SEMANTIC_VIEW,
+        datasource_id=view.id,
+        datasource_name="Write View",
+        viz_type="table",
+        params="{}",
+    )
+    db.session.add(chart)
+    db.session.flush()
+
+    try:
+        layer.name = "New Write Layer"
+        db.session.flush()
+
+        # The chart loads after the rename; the view stays loaded from before.
+        db.session.expire(chart)
+        chart.slice_name = "On write view (edited)"
+        db.session.flush()
+
+        db.session.refresh(chart)
+        assert chart.perm == f"[New Write Layer].[Write View](id:{view.id})"
+    finally:
+        db.session.rollback()
+
+
 # =============================================================================
 # build_semantic_view_query dual perm tests
 # =============================================================================

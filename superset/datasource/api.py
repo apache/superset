@@ -35,7 +35,7 @@ from superset.common.tabular_query import (
     validate_names,
     validate_query_names,
 )
-from superset.connectors.sqla.models import BaseDatasource
+from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
@@ -47,6 +47,7 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager
+from superset.models.sql_lab import Query
 from superset.semantic_layers.access import SemanticLayersDisabledError
 from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
 from superset.semantic_layers.exceptions import (
@@ -102,6 +103,18 @@ def _column_values_cache_key(
         rls=security_manager.get_rls_cache_key(datasource),
         changed_on=str(getattr(datasource, "changed_on", "")),
     )
+    # The canonical RLS key contains raw clauses, not their rendered values.
+    if isinstance(datasource, SqlaTable) and (
+        rendered_rls := datasource.get_rendered_rls_cache_key()
+    ):
+        material["rendered_rls"] = rendered_rls
+    # Executing a virtual dataset (or a SQL Lab query) also injects the RLS of
+    # the tables its SQL reads, which ``get_rls_cache_key`` does not cover.
+    # Only added when non-empty, so keys without inner rules keep their bytes.
+    if isinstance(datasource, (SqlaTable, Query)) and (
+        inner_rls := datasource.get_inner_rls_cache_key()
+    ):
+        material["inner_rls"] = inner_rls
     return "col_values:" + hash_from_dict(material)
 
 
@@ -124,8 +137,9 @@ def get_cached_column_values(
     caller (#39342).
 
     Callers must have authorized the datasource (``raise_for_access``) first:
-    the key partitions entries by effective RLS, not by user, so the cache
-    itself is not an access check. ``search`` must already be stripped, with
+    the key partitions entries by effective RLS (the datasource's own rules and
+    those of the tables its SQL reads), not by user, so the cache itself is not
+    an access check. ``search`` must already be stripped, with
     ``None`` for "no search", so equal queries produce equal keys.
 
     Returns ``(values, cache_hit)``. ``force`` skips the read and refreshes
@@ -358,18 +372,11 @@ class DatasourceRestApi(BaseSupersetApi):
         # the wrapping query per filter (#39342).
         #
         # Key fields:
-        # - ``rls`` — full RLS fingerprint via
-        #   ``security_manager.get_rls_cache_key`` (the canonical helper used
-        #   by viz.py and query_context_processor.py). This is the sole
-        #   security-isolation field — two users with identical effective
-        #   RLS share a cache entry (intentional: they would see identical
-        #   filtered values anyway), while users with different RLS, guest
-        #   sessions with different guest-token RLS, and anonymous sessions
-        #   with no RLS each get their own partition. We deliberately do
-        #   NOT include the raw user id; doing so would defeat the
-        #   intended cross-user cache sharing without adding any real
-        #   security boundary beyond what the RLS fingerprint already
-        #   provides.
+        # - ``rls`` — raw own-RLS clauses and grouping from the canonical
+        #   helper; ``rendered_rls`` adds the effective own predicates when
+        #   supported cache-varying macros occur. ``inner_rls`` binds injected
+        #   predicates to the tables read inside virtual/SQL Lab SQL.
+        #   Equal RLS scopes can share an entry without a blanket user-id key.
         # - ``changed_on`` — auto-busts cached entries when the dataset's
         #   underlying SQL is edited.
         # - ``uid`` / ``col`` / ``limit`` / ``denorm`` — basic query-shape

@@ -506,7 +506,7 @@ def _records_to_dataframe(
         return pd.DataFrame(records, columns=columns or None)
 
     if not columns:
-        columns = list(dict.fromkeys(name for row in records for name in row))
+        columns = utils.remove_duplicates(name for row in records for name in row)
         if not columns:
             return pd.DataFrame(records)
 

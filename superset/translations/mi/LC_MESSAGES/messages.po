@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -517,6 +517,12 @@ msgstr[1] ""
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "1 rā i mua"
+msgstr[1] ""
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
@@ -2477,6 +2483,10 @@ msgstr "I puta he hapa i te utanga o ngā mōhiohio papatohu."
 msgid "An error occurred while loading the SQL"
 msgstr "I puta he hapa i te utanga o te SQL"
 
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
+
 #, fuzzy
 msgid "An error occurred while overwriting the dataset"
 msgstr "I puta he hapa i te hanganga o te puna raraunga"
@@ -2864,10 +2874,6 @@ msgstr "Kei te tino hiahia koe ki te muku"
 #, python-format
 msgid "Are you sure you want to delete %s?"
 msgstr "Kei te tino hiahia koe ki te muku i %s?"
-
-#, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
 
 #, python-format
 msgid "Are you sure you want to delete the selected %s?"
@@ -4142,6 +4148,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr "Kōwhiria he hōputu tau"
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr "Kōwhiria he puna"
 
@@ -4159,9 +4168,6 @@ msgstr "Kōwhiri tīwae hei poroporo hei rā"
 
 msgid "Choose columns to read"
 msgstr "Kōwhiri tīwae hei pānui"
-
-msgid "Choose current semantic fields"
-msgstr ""
 
 msgid "Choose current semantic filter fields"
 msgstr ""
@@ -5311,6 +5317,9 @@ msgstr "Hanga kauwhata hou"
 msgid "Create or select schema..."
 msgstr "Hanga, tīpako rānei i te hanga..."
 
+msgid "Create semantic layer"
+msgstr ""
+
 msgid "Created"
 msgstr "Kua Hangaia"
 
@@ -6374,7 +6383,7 @@ msgstr "Muku tauira"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -7735,6 +7744,10 @@ msgstr "Hapa i te kīanga jinja i ngā tātari RLS: %(msg)s"
 #, python-format
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Hapa i te kīanga jinja i te rerenga WHERE: %(msg)s"
+
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
@@ -9138,6 +9151,9 @@ msgstr ""
 msgid "Guest"
 msgstr ""
 
+msgid "Guest user cannot access this query"
+msgstr ""
+
 msgid "Guest user cannot modify chart payload"
 msgstr "Kāore e taea e te kaiwhakamahi manuhiri te whakarereke i te uta kauwhata"
 
@@ -10484,6 +10500,12 @@ msgstr "Kōmaka uara tātari"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 #, fuzzy
 msgid "Loading timezones..."
 msgstr "E uta ana..."
@@ -11713,6 +11735,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -13321,6 +13359,12 @@ msgstr "Ōwehenga"
 
 msgid "Raw records"
 msgstr "Rekoata mata"
+
+msgid "Re-pick fields"
+msgstr ""
+
+msgid "Re-pick fields for this chart"
+msgstr ""
 
 msgid "Rearranged layout"
 msgstr ""
@@ -15270,6 +15314,9 @@ msgstr "Karekau te kauwhata"
 msgid "Semantic layer parameters are invalid."
 msgstr "He muhu ngā tawhā papa tohu."
 
+msgid "Semantic layer setup guide"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer type"
 msgstr "Momo papa tohu"
@@ -16342,12 +16389,6 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "field selections, pre-filters, sorting, defaults and dependencies. Saved "
 "display titles cannot be recovered automatically."
-msgstr ""
-
-msgid ""
-"Start field selection using current member IDs. This clears any existing "
-"query and formatting settings. Saved display titles cannot be safely "
-"mapped to member IDs. The saved chart is unchanged until you save."
 msgstr ""
 
 msgid ""
@@ -17887,6 +17928,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr "Kua hangaia te pūrongo"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 msgid "The report will be sent to your email at"
 msgstr "Ka tukuna te pūrongo ki tō īmēra i"
 
@@ -18220,6 +18267,13 @@ msgstr "I tiakina pai tēnei papatohu."
 #, fuzzy
 msgid "The user has been updated successfully."
 msgstr "I tiakina pai tēnei papatohu."
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 #, fuzzy
 msgid "The user was updated successfully"
@@ -18766,6 +18820,9 @@ msgstr ""
 "Ka taea e tēnei te noho hei wāhitau IP (hei tauira 127.0.0.1), hei ingoa "
 "rohe rānei (hei tauira mydatabase.com)."
 
+msgid "This cannot be undone."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -18812,6 +18869,13 @@ msgid ""
 "This chart version can't be restored because the semantic view it used "
 "has been permanently deleted. Restore a version that uses an existing "
 "semantic view or dataset, or recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart was saved with an older format of field names for this "
+"semantic view, so the fields it refers to can't be confirmed. Re-pick the"
+" metrics and dimensions to keep using it. The saved chart doesn't change "
+"until you save."
 msgstr ""
 
 msgid "This chart was updated to use the restored aggregation"
@@ -19220,6 +19284,13 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
 msgstr ""
 
 msgid ""
@@ -19844,6 +19915,9 @@ msgstr "Whakaaro pono ki tēnei URL, kaua anō e pātai"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 "Whakamātauhia te whakahaeretia o ngā tātari rerekē, te whakaū rānei he "
@@ -20070,7 +20144,20 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr "Kāore e taea te uta i te papatohu"
 
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
+
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 msgid ""
@@ -22231,6 +22318,9 @@ msgstr "hēkona"
 msgid "aggregate"
 msgstr "whakaarotau"
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr "āhuatanga matohi"
 
@@ -22246,6 +22336,10 @@ msgstr "tārua hoki (tārua) ngā kauwhata"
 msgid "ancestor"
 msgstr "tūpuna"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "tohu"
 
@@ -22256,6 +22350,10 @@ msgstr "papa_tohu"
 #, fuzzy
 msgid "apple"
 msgstr "āporo"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -22993,6 +23091,12 @@ msgstr ""
 
 msgid "query"
 msgstr "pātai"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "matapōkere"
