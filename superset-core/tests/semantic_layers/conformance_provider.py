@@ -32,6 +32,7 @@ from superset_core.semantic_layers.errors import (
 )
 from superset_core.semantic_layers.types import (
     AdhocExpression,
+    AggregationType,
     Dimension,
     Filter,
     FilterExpression,
@@ -116,6 +117,7 @@ class QueryView(ExampleView):
                 pa.int64(),
                 "SUM(amount)",
                 verbose_name="Amount",
+                aggregation=AggregationType.SUM,
             )
         }
 

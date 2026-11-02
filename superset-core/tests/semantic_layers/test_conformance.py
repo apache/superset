@@ -656,6 +656,7 @@ def test_or_lane_rejects_non_host_fixture_shapes(
         ("swap", Operator.NOT_IN),
         ("ignore", Operator.IN),
         ("zero_rows", Operator.IN),
+        ("wrong_scalar", Operator.IN),
     ],
 )
 def test_empty_membership_rejects_provider_mutations(
@@ -665,7 +666,7 @@ def test_empty_membership_rejects_provider_mutations(
     mutation: str,
     operator: Operator,
 ) -> None:
-    """Real SQLite results expose lost NULLs, inverted constants and no-row answers."""
+    """Reject lost NULLs, inverted constants, no-row answers and wrong scalars."""
     import conformance_provider
 
     predicate: Callable[[FilterExpression, list[object]], str] = (
@@ -688,6 +689,22 @@ def test_empty_membership_rejects_provider_mutations(
 
     def mutated_table(query: SemanticQuery) -> SemanticResult:
         result: SemanticResult = get_table(query)
+        if (
+            mutation == "wrong_scalar"
+            and not query.dimensions
+            and any(
+                isinstance(item, Filter)
+                and item.operator == Operator.IN
+                and item.value == frozenset()
+                for item in query.filters or set()
+            )
+        ):
+            return replace(
+                result,
+                results=pa.Table.from_pydict(
+                    {"total": [0]}, schema=result.results.schema
+                ),
+            )
         if mutation == "zero_rows" and any(
             isinstance(item, Filter) and item.value == frozenset()
             for item in query.filters or set()
