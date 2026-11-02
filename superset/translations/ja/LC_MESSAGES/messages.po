@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -475,6 +475,11 @@ msgstr[0] "%s 個のデータセットを更新しました"
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "%s 日前"
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
 
 #, python-format
 msgid "%s field"
@@ -2281,6 +2286,10 @@ msgstr "ダッシュボード情報の読み込み中にエラーが発生しま
 msgid "An error occurred while loading the SQL"
 msgstr "SQLの読み込み中にエラーが発生しました"
 
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
+
 msgid "An error occurred while overwriting the dataset"
 msgstr "データセットの上書き中にエラーが発生しました"
 
@@ -2624,10 +2633,6 @@ msgstr "削除してもよろしいですか"
 #, python-format
 msgid "Are you sure you want to delete %s?"
 msgstr "本当に %s を削除しますか？"
-
-#, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
 
 #, python-format
 msgid "Are you sure you want to delete the selected %s?"
@@ -3741,6 +3746,9 @@ msgstr "新しいパスワードを設定"
 msgid "Choose a number format"
 msgstr "数値形式を選択"
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr "ソースを選択"
 
@@ -3758,9 +3766,6 @@ msgstr "日付として解析する列を選択"
 
 msgid "Choose columns to read"
 msgstr "読み込む列を選択"
-
-msgid "Choose current semantic fields"
-msgstr "現在のセマンティックフィールドを選択"
 
 msgid "Choose current semantic filter fields"
 msgstr "現在のセマンティックフィルターフィールドを選択"
@@ -4796,6 +4801,9 @@ msgstr "新しいチャートを作成"
 msgid "Create or select schema..."
 msgstr "スキーマを作成または選択..."
 
+msgid "Create semantic layer"
+msgstr ""
+
 msgid "Created"
 msgstr "作成"
 
@@ -5723,7 +5731,7 @@ msgstr "項目を削除"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr "アクティブなデータセットを削除または移動します。アーカイブされたデータセットを削除するには、「アーカイブ」を開き、「完全に削除」を選択してください。"
 
 msgid "Delete permanently"
@@ -6915,6 +6923,10 @@ msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "WHERE句内のJinja式エラー: %(msg)s"
 
 #, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
+#, fuzzy, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr "アドホック列内のJinja式エラー: %(msg)s"
 
@@ -8155,6 +8167,9 @@ msgstr "系列の上限に達した際、残りの系列を「その他」カテ
 msgid "Guest"
 msgstr "ゲスト"
 
+msgid "Guest user cannot access this query"
+msgstr ""
+
 msgid "Guest user cannot modify chart payload"
 msgstr "ゲストユーザーはチャートのデータ(ペイロード)を変更できません"
 
@@ -9385,6 +9400,12 @@ msgstr "フィルター値を読み込み中"
 msgid "Loading historical version · %s"
 msgstr "過去のバージョンを読み込み中 · %s"
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 msgid "Loading timezones..."
 msgstr "タイムゾーンを読み込み中..."
 
@@ -10503,6 +10524,22 @@ msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr "このコントロールで利用可能な選択モードはありません。"
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
+msgstr ""
 
 msgid "No sort (original order)"
 msgstr "並べ替えなし (元の順序)"
@@ -11961,6 +11998,12 @@ msgstr "比率"
 
 msgid "Raw records"
 msgstr "未加工レコード"
+
+msgid "Re-pick fields"
+msgstr ""
+
+msgid "Re-pick fields for this chart"
+msgstr ""
 
 msgid "Rearranged layout"
 msgstr "再配置されたレイアウト"
@@ -13683,6 +13726,9 @@ msgstr "セマンティックレイヤーが存在しません"
 msgid "Semantic layer parameters are invalid."
 msgstr "セマンティックレイヤーパラメータが無効です。"
 
+msgid "Semantic layer setup guide"
+msgstr ""
+
 msgid "Semantic layer type"
 msgstr "セマンティックレイヤーの種類"
 
@@ -14611,12 +14657,6 @@ msgid ""
 "field selections, pre-filters, sorting, defaults and dependencies. Saved "
 "display titles cannot be recovered automatically."
 msgstr "現在のメンバーIDを使用してフィールド選択を開始します。これにより、既存のフィールド選択、事前フィルター、並べ替え、既定値、依存関係がクリアされます。保存された表示タイトルは自動的には復元できません。"
-
-msgid ""
-"Start field selection using current member IDs. This clears any existing "
-"query and formatting settings. Saved display titles cannot be safely "
-"mapped to member IDs. The saved chart is unchanged until you save."
-msgstr "現在のメンバーIDを使用してフィールド選択を開始します。これにより、既存のクエリと書式設定がクリアされます。保存された表示タイトルをメンバーIDに安全にマッピングすることはできません。保存するまで、保存されたチャートは変更されません。"
 
 msgid ""
 "Start with row groups collapsed when row subtotals are shown. Each group "
@@ -15929,6 +15969,12 @@ msgstr "残りの %s は「アーカイブ」に移動されます。"
 msgid "The report has been created"
 msgstr "レポートを作成しました"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 msgid "The report will be sent to your email at"
 msgstr "レポートは指定されたメールアドレスに送信されます"
 
@@ -16211,6 +16257,13 @@ msgstr "ユーザーを正常に作成しました。"
 
 msgid "The user has been updated successfully."
 msgstr "ユーザーを正常に更新しました。"
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 msgid "The user was updated successfully"
 msgstr "ユーザーを正常に更新しました"
@@ -16711,6 +16764,9 @@ msgid ""
 "mydatabase.com)."
 msgstr "これは IP アドレス (例: 127.0.0.1) またはドメイン名 (例: mydatabase.com) です。"
 
+msgid "This cannot be undone."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -16749,6 +16805,13 @@ msgid ""
 "has been permanently deleted. Restore a version that uses an existing "
 "semantic view or dataset, or recreate the chart."
 msgstr "使用されていたセマンティックビューが完全に削除されているため、このチャートバージョンは復元できません。既存のセマンティックビューまたはデータセットを使用しているバージョンを復元するか、チャートを再作成してください。"
+
+msgid ""
+"This chart was saved with an older format of field names for this "
+"semantic view, so the fields it refers to can't be confirmed. Re-pick the"
+" metrics and dimensions to keep using it. The saved chart doesn't change "
+"until you save."
+msgstr ""
 
 msgid "This chart was updated to use the restored aggregation"
 msgstr ""
@@ -17059,6 +17122,13 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
 msgstr ""
 
 msgid ""
@@ -17616,6 +17686,9 @@ msgstr "このURLを信頼して次回から確認しない"
 msgid "Try a different search term"
 msgstr "別の検索ワードを試してください"
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr "別のフィルターを試すか、データソースにデータがあるか確認してください"
 
@@ -17802,8 +17875,21 @@ msgstr "選択されたテーブルの列情報を読み込めませんでした
 msgid "Unable to load dashboard"
 msgstr "ダッシュボードを読み込めませんでした"
 
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
+
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr "アラートおよびレポートの設定を読み込めませんでした。"
+
+msgid "Unable to load the selected dataset"
+msgstr ""
 
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
@@ -19681,6 +19767,9 @@ msgstr "数秒"
 msgid "aggregate"
 msgstr "集計"
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr "アラート条件"
 
@@ -19696,6 +19785,10 @@ msgstr "チャートもコピー(複製)する"
 msgid "ancestor"
 msgstr "祖先"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "注釈"
 
@@ -19704,6 +19797,10 @@ msgstr "注釈レイヤー"
 
 msgid "apple"
 msgstr "リンゴ"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "アス周波数"
@@ -20363,6 +20460,12 @@ msgstr "クエリ"
 
 msgid "query"
 msgstr "クエリ"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "ランダム"
