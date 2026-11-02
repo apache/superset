@@ -21,6 +21,7 @@ import {
   holdFilterKeyPublish,
   isFilterKeyPublishHeld,
   releaseFilterKeyPublish,
+  subscribeFilterKeyPublishRelease,
 } from './sharedFilterStateHold';
 
 afterEach(() => {
@@ -42,4 +43,21 @@ test('holds until released, then asks for a new key exactly once', () => {
 test('releasing without a hold does not request a new key', () => {
   releaseFilterKeyPublish();
   expect(consumeNeedsNewKey()).toBe(false);
+});
+
+test('notifies subscribers only when an active hold is released', () => {
+  const listener = jest.fn();
+  const unsubscribe = subscribeFilterKeyPublishRelease(listener);
+
+  releaseFilterKeyPublish();
+  expect(listener).not.toHaveBeenCalled();
+
+  holdFilterKeyPublish();
+  releaseFilterKeyPublish();
+  expect(listener).toHaveBeenCalledTimes(1);
+
+  unsubscribe();
+  holdFilterKeyPublish();
+  releaseFilterKeyPublish();
+  expect(listener).toHaveBeenCalledTimes(1);
 });

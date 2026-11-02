@@ -879,9 +879,9 @@ test('shows the shared-view loading message while the saved filters load', async
   // Dashboard info is empty until the first hydrate, so the loading branch shows.
   renderWithUrlParam('native_filters_key', 'abc123', {});
 
-  expect(
-    await screen.findByText('Loading the view shared with you…'),
-  ).toBeInTheDocument();
+  const message = await screen.findByText('Loading the view shared with you…');
+  expect(message).toBeInTheDocument();
+  expect(message).toHaveAttribute('role', 'status');
 });
 
 test('applies the saved filter state when the request resolves', async () => {
@@ -1101,4 +1101,50 @@ test('does not hydrate a previous dashboard when the dashboard changes mid-fetch
   expect(hydrated.some(arg => 'NATIVE_FILTER-A' in (arg.dataMask ?? {}))).toBe(
     false,
   );
+});
+
+test('Try again on a permalink restores tabs, chart states and anchor like the first load', async () => {
+  const state = {
+    dataMask: { 'NATIVE_FILTER-1': { id: 'NATIVE_FILTER-1' } },
+    activeTabs: ['TAB-1'],
+    chartStates: { 5: { state: 'x' } },
+    anchor: 'CHART-5',
+  };
+  mockFetchPermalinkValue
+    .mockRejectedValueOnce(new Error('network'))
+    .mockRejectedValueOnce(new Error('network'))
+    .mockResolvedValue({ state });
+  renderWithPermalink();
+
+  await screen.findByText(FAILED_BANNER);
+  (hydrateDashboard as jest.Mock).mockClear();
+  await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+  await waitFor(() => {
+    expect(hydrateDashboard).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dataMask: state.dataMask,
+        activeTabs: state.activeTabs,
+        chartStates: state.chartStates,
+      }),
+    );
+  });
+  await waitFor(() => {
+    expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+  });
+});
+
+test('the banner goes away once the viewer changes a filter', async () => {
+  mockFetchFilterValue.mockRejectedValue(new Error('network'));
+  renderWithFilterKey();
+
+  await screen.findByText(FAILED_BANNER);
+  expect(isFilterKeyPublishHeld()).toBe(true);
+  act(() => {
+    releaseFilterKeyPublish();
+  });
+
+  await waitFor(() => {
+    expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+  });
 });

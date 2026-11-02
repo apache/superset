@@ -70,7 +70,6 @@ import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import type { DashboardChartStates } from 'src/dashboard/types/chartState';
 import { DashboardDatasetsContext } from 'src/dashboard/contexts/DashboardDatasetsContext';
 
-import { updateDataMask } from 'src/dataMask/actions';
 import {
   loadSharedFilterState,
   SharedStateResult,
@@ -78,6 +77,7 @@ import {
 import {
   holdFilterKeyPublish,
   releaseFilterKeyPublish,
+  subscribeFilterKeyPublishRelease,
 } from 'src/dashboard/util/sharedFilterStateHold';
 import { nanoid } from 'nanoid';
 import type { ActiveFilters } from '../types';
@@ -94,7 +94,6 @@ import SyncDashboardState, {
 } from '../components/SyncDashboardState';
 import { AutoRefreshProvider } from '../contexts/AutoRefreshContext';
 import {
-  DataMask,
   DataMaskStateWithId,
   Filter,
   PartialFilters,
@@ -140,6 +139,30 @@ const LoadingMessage = styled.div`
     color: ${theme.colorTextSecondary};
   `}
 `;
+
+type SharedState = {
+  dataMask: DataMaskStateWithId;
+  activeTabs?: string[] | null;
+  chartStates?: DashboardChartStates | null;
+  anchor?: string;
+};
+
+const toSharedState = (
+  source: SharedStateSource,
+  value: unknown,
+): SharedState => {
+  if (source.kind === 'filterKey') {
+    return { dataMask: (value as DataMaskStateWithId | null) ?? {} };
+  }
+  const state = (value as DashboardPermalinkValue | null)?.state;
+  if (!state) return { dataMask: {} };
+  return {
+    dataMask: state.dataMask,
+    activeTabs: state.activeTabs,
+    anchor: state.anchor,
+    chartStates: state.chartStates as DashboardChartStates | undefined,
+  };
+};
 
 const fetchSharedState = (source: SharedStateSource, signal: AbortSignal) =>
   source.kind === 'permalink'
@@ -279,6 +302,41 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     dispatch(setDatasetsStatus(status));
   }, [dispatch, status]);
 
+  const hydrateWithState = ({
+    dataMask,
+    activeTabs,
+    chartStates,
+    anchor,
+  }: SharedState) => {
+    if (!isDashboardHydrated.current) {
+      isDashboardHydrated.current = true;
+    }
+    dispatch(
+      hydrateDashboard({
+        history,
+        dashboard: dashboard!,
+        charts: charts!,
+        activeTabs: activeTabs ?? null,
+        dataMask,
+        chartStates: chartStates ?? null,
+      } as unknown as Parameters<typeof hydrateDashboard>[0]),
+    );
+    dispatch(clearDashboardHistory());
+
+    // Scroll to anchor element if specified in permalink state
+    if (anchor) {
+      // Use setTimeout to ensure the DOM has been updated after hydration
+      setTimeout(() => {
+        const element = document.getElementById(anchor);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 0);
+    }
+  };
+  const hydrateWithStateRef = useRef(hydrateWithState);
+  hydrateWithStateRef.current = hydrateWithState;
+
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
@@ -288,12 +346,11 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       const nativeFilterKeyValue = getUrlParam(URL_PARAMS.nativeFiltersKey);
       const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
 
-      let dataMask: DataMaskStateWithId = {};
       // activeTabs is initialized with undefined so that it doesn't override
       // the currently stored value when hydrating
-      let activeTabs: string[] | null | undefined;
-      let chartStates: DashboardChartStates | null | undefined;
-      let anchor: string | undefined;
+      let { dataMask, activeTabs, chartStates, anchor }: SharedState = {
+        dataMask: {},
+      };
       let notice: SharedStateNotice | null = null;
       const source: SharedStateSource | null = permalinkKey
         ? { kind: 'permalink', key: permalinkKey }
@@ -309,17 +366,10 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         if (cancelled) return null;
         setIsLoadingSharedState(false);
         if (result.status === 'ok') {
-          if (source.kind === 'permalink') {
-            const permalinkValue = result.value as DashboardPermalinkValue;
-            if (permalinkValue?.state) {
-              ({ dataMask, activeTabs, anchor } = permalinkValue.state);
-              chartStates = permalinkValue.state.chartStates as
-                | DashboardChartStates
-                | undefined;
-            }
-          } else {
-            dataMask = result.value ?? {};
-          }
+          ({ dataMask, activeTabs, chartStates, anchor } = toSharedState(
+            source,
+            result.value,
+          ));
         } else {
           notice = result.status === 'expired' ? 'expired' : 'failed';
         }
@@ -405,31 +455,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       }
 
       if (readyToRender) {
-        if (!isDashboardHydrated.current) {
-          isDashboardHydrated.current = true;
-        }
-        dispatch(
-          hydrateDashboard({
-            history,
-            dashboard: dashboard!,
-            charts: charts!,
-            activeTabs: activeTabs ?? null,
-            dataMask,
-            chartStates: chartStates ?? null,
-          } as unknown as Parameters<typeof hydrateDashboard>[0]),
-        );
-        dispatch(clearDashboardHistory());
-
-        // Scroll to anchor element if specified in permalink state
-        if (anchor) {
-          // Use setTimeout to ensure the DOM has been updated after hydration
-          setTimeout(() => {
-            const element = document.getElementById(anchor);
-            if (element) {
-              element.scrollIntoView({ behavior: 'smooth' });
-            }
-          }, 0);
-        }
+        hydrateWithState({ dataMask, activeTabs, chartStates, anchor });
       }
       return null;
     }
@@ -441,6 +467,13 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyToRender, id]);
+
+  // Once the viewer changes a filter the saved state must not be re-applied
+  // over their change, so the banner (and its Try again action) goes away.
+  useEffect(
+    () => subscribeFilterKeyPublishRelease(() => setSharedStateNotice(null)),
+    [],
+  );
 
   const retrySharedState = useCallback(async () => {
     const source = sharedStateSource.current;
@@ -459,16 +492,10 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       setSharedStateNotice(result.status === 'expired' ? 'expired' : 'failed');
       return;
     }
-    const mask =
-      source.kind === 'permalink'
-        ? (result.value as DashboardPermalinkValue)?.state?.dataMask
-        : (result.value as Record<string, DataMask> | null);
-    Object.entries(mask ?? {}).forEach(([filterId, filterMask]) => {
-      dispatch(updateDataMask(filterId, filterMask));
-    });
+    hydrateWithStateRef.current(toSharedState(source, result.value));
     releaseFilterKeyPublish();
     setSharedStateNotice(null);
-  }, [dispatch]);
+  }, []);
 
   // Update document title when dashboard title changes
   useEffect(() => {
@@ -634,7 +661,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         <>
           <Loading />
           {isLoadingSharedState && (
-            <LoadingMessage>
+            <LoadingMessage role="status">
               {t('Loading the view shared with you…')}
             </LoadingMessage>
           )}

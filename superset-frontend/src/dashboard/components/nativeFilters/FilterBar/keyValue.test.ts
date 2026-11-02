@@ -187,3 +187,18 @@ test('fetchPermalinkValue resolves the parsed payload', async () => {
     state: {},
   });
 });
+
+test('getPermalinkValue keeps the default client retries', async () => {
+  let attempts = 0;
+  fetchMock.get('glob:*/api/v1/dashboard/permalink/flaky', () => {
+    attempts += 1;
+    if (attempts === 1) throw new TypeError('network');
+    return { dashboardId: '7', state: {} };
+  });
+
+  await expect(getPermalinkValue('flaky')).resolves.toEqual({
+    dashboardId: '7',
+    state: {},
+  });
+  expect(attempts).toBe(2);
+});

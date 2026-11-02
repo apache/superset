@@ -92,7 +92,7 @@ export const fetchPermalinkValue = (key: string, signal?: AbortSignal) =>
   );
 
 export const getFilterValue = (dashId: string | number, key?: string | null) =>
-  getOnce(assembleEndpoint(dashId, key))
+  SupersetClient.get({ endpoint: assembleEndpoint(dashId, key) })
     .then(({ json }) => JSON.parse(json.value))
     .catch(err => {
       logging.error(err);
@@ -100,7 +100,9 @@ export const getFilterValue = (dashId: string | number, key?: string | null) =>
     });
 
 export const getPermalinkValue = (key: string) =>
-  fetchPermalinkValue(key).catch(err => {
-    logging.error(err);
-    return null;
-  });
+  SupersetClient.get({ endpoint: `/api/v1/dashboard/permalink/${key}` })
+    .then(({ json }) => json as DashboardPermalinkValue)
+    .catch(err => {
+      logging.error(err);
+      return null;
+    });

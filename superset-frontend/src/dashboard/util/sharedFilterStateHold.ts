@@ -23,6 +23,7 @@
 // a new key so the opened link's saved state is never overwritten.
 let held = false;
 let needsNewKey = false;
+const releaseListeners = new Set<() => void>();
 
 export const holdFilterKeyPublish = () => {
   held = true;
@@ -30,8 +31,18 @@ export const holdFilterKeyPublish = () => {
 };
 
 export const releaseFilterKeyPublish = () => {
-  if (held) needsNewKey = true;
+  if (!held) return;
+  needsNewKey = true;
   held = false;
+  releaseListeners.forEach(listener => listener());
+};
+
+/** Calls `listener` whenever an active hold is released. Returns unsubscribe. */
+export const subscribeFilterKeyPublishRelease = (listener: () => void) => {
+  releaseListeners.add(listener);
+  return () => {
+    releaseListeners.delete(listener);
+  };
 };
 
 export const isFilterKeyPublishHeld = () => held;
