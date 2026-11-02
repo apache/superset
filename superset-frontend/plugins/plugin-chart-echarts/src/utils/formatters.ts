@@ -223,6 +223,22 @@ type XAxisFormatterFn =
   | ((value: number | string) => string);
 
 /**
+ * ECharts caches a formatter's rendered labels under its `id` property, so a
+ * wrapper has to carry the wrapped formatter's id or the axis re-renders every
+ * tick on each pass. Every x-axis formatter factory below has to honour that
+ * contract, so the propagation lives here rather than being restated per
+ * factory.
+ */
+function copyFormatterId(
+  wrapper: (value: number | string) => string,
+  formatter: XAxisFormatterFn | undefined,
+): void {
+  if (typeof formatter === 'function' && 'id' in formatter) {
+    (wrapper as { id?: unknown }).id = (formatter as { id?: unknown }).id;
+  }
+}
+
+/**
  * Wraps an x-axis time formatter so that consecutive ticks that format to
  * identical text are blanked (e.g. the boundary label forced by
  * showMaxLabel duplicating the last real tick).
@@ -262,9 +278,7 @@ export function createDedupXAxisFormatter(
     lastLabel = label;
     return label;
   };
-  if (typeof xAxisFormatter === 'function' && 'id' in xAxisFormatter) {
-    (wrapper as { id?: unknown }).id = (xAxisFormatter as { id?: unknown }).id;
-  }
+  copyFormatterId(wrapper, xAxisFormatter);
   return wrapper;
 }
 
@@ -343,9 +357,7 @@ export function createSpacedXAxisFormatter(
     }
     return label;
   };
-  if (typeof xAxisFormatter === 'function' && 'id' in xAxisFormatter) {
-    (wrapper as { id?: unknown }).id = (xAxisFormatter as { id?: unknown }).id;
-  }
+  copyFormatterId(wrapper, xAxisFormatter);
   return wrapper;
 }
 
@@ -405,4 +417,33 @@ export function getXAxisDomain(
     });
   });
   return [domainMin, domainMax];
+}
+
+/**
+ * Wraps a temporal x-axis formatter so ticks that fall outside the data
+ * domain — the sub-second noise ECharts adds when it pads a time axis
+ * beyond the data extent — are floored to the second before formatting,
+ * instead of triggering smart_date's millisecond tier ('.943ms', #44698).
+ * Ticks inside the data domain are passed through untouched: a genuine
+ * sub-second timestamp is real data and keeps its precision.
+ */
+export function createPaddedExtentFloorFormatter(
+  formatter: XAxisFormatterFn | undefined,
+  domainMin: number | undefined,
+  domainMax: number | undefined,
+): (value: number | string) => string {
+  const wrapper = (value: number | string) => {
+    if (
+      typeof value === 'number' &&
+      formatter &&
+      (value < (domainMin ?? -Infinity) || value > (domainMax ?? Infinity))
+    ) {
+      return formatter(Math.floor(value / 1000) * 1000);
+    }
+    return typeof formatter === 'function'
+      ? (formatter as Function)(value)
+      : String(value);
+  };
+  copyFormatterId(wrapper, formatter);
+  return wrapper;
 }
