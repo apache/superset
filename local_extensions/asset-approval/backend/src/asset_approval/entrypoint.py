@@ -251,6 +251,31 @@ BUILTIN_ROLES = frozenset({"Admin", "Alpha", "Gamma", "sql_lab", "Public"})
 WRITE_PERMISSION = ("can_write", "ChangeRequest")
 
 
+def _anonymous_role_name() -> str:
+    """The role every signed-out visitor carries."""
+    return str(current_app.config.get("AUTH_ROLE_PUBLIC") or "Public")
+
+
+def belongs_to_the_workflow(role: Any) -> bool:
+    """Whether this role stands for people, rather than for nobody.
+
+    Everything below hands rights to "whoever already holds X". That reads
+    the permission tables, and ``PUBLIC_ROLE_LIKE`` -- a documented way to
+    let signed-out visitors see dashboards -- copies a whole role onto the
+    anonymous one. On such an instance the anonymous role held ``can_write``
+    on ChangeRequest, so it was seeded the approval right and handed the
+    Approvals page along with it.
+
+    Nothing could be approved with it: the route still needs a user id, a
+    strict editorship and an author who is somebody else, and
+    ``can_approve`` refuses a guest outright. But an approval permission
+    sitting on the anonymous role is the wrong answer to give a control
+    review, and a review queue is not a page to offer someone who has not
+    signed in.
+    """
+    return getattr(role, "name", None) != _anonymous_role_name()
+
+
 def _seed_approval_permission() -> None:
     """Hand the new approval right to whoever already had it.
 
@@ -283,6 +308,8 @@ def _seed_approval_permission() -> None:
         if approval is None or write is None or list(approval.role):
             return
         for role in list(write.role):
+            if not belongs_to_the_workflow(role):
+                continue
             security_manager.add_permission_role(role, approval)
             logger.info(
                 "%s: %r could approve through %s, so it keeps the new %s",
@@ -398,6 +425,8 @@ def _grant_page_permission_to_the_workflow() -> None:
         if workflow is None or page is None:
             return
         for role in list(workflow.role):
+            if not belongs_to_the_workflow(role):
+                continue
             if page not in role.permissions:
                 security_manager.add_permission_role(role, page)
                 logger.info(
@@ -415,6 +444,54 @@ def _grant_page_permission_to_the_workflow() -> None:
             "approvers may get 403 until it is granted",
             EXTENSION_ID,
             WORKFLOW_PERMISSION,
+            exc_info=True,
+        )
+
+
+def _take_the_workflow_off_the_anonymous_role() -> None:
+    """Revoke what an earlier boot handed the anonymous role.
+
+    The seed runs only while nobody holds the approval right, so an instance
+    that was already seeded keeps the grant on its anonymous role however
+    many times it restarts. Skipping it from now on fixes new installs and
+    leaves existing ones exactly as they were, which is the half-fix this
+    epic has been bitten by twice.
+
+    Only the two permissions this extension owns. ``can_write`` on
+    ChangeRequest reaches the anonymous role through ``PUBLIC_ROLE_LIKE`` and
+    ``superset init``, and taking it off here would be a tug of war with the
+    host on every boot.
+    """
+    from superset.constants import EXTENSION_VIEW_MENU_PREFIX
+    from superset.extensions import security_manager
+
+    from asset_approval.eligibility import APPROVAL_PERMISSION
+
+    try:
+        anonymous = security_manager.find_role(_anonymous_role_name())
+        if anonymous is None:
+            return
+        ours = [
+            security_manager.find_permission_view_menu(*APPROVAL_PERMISSION),
+            security_manager.find_permission_view_menu(
+                PAGE_PERMISSION, f"{EXTENSION_VIEW_MENU_PREFIX}{EXTENSION_ID}"
+            ),
+        ]
+        for pvm in ours:
+            if pvm is not None and pvm in anonymous.permissions:
+                security_manager.del_permission_role(anonymous, pvm)
+                logger.info(
+                    "%s: took %r off %r -- a signed-out visitor is not part "
+                    "of the review workflow",
+                    EXTENSION_ID,
+                    pvm.permission.name,
+                    anonymous.name,
+                )
+    except Exception:  # pylint: disable=broad-except
+        logger.warning(
+            "%s: could not clear the review permissions off the anonymous "
+            "role; revoke them by hand",
+            EXTENSION_ID,
             exc_info=True,
         )
 
@@ -439,6 +516,7 @@ def install_views() -> None:
     # the alignment is what a configured one asks for, and only one of them
     # ever does anything.
     _seed_approval_permission()
+    _take_the_workflow_off_the_anonymous_role()
     _align_approval_permission()
 
     # Settings -> Manage -> Change review (mock S1, mock 16c). The page is
