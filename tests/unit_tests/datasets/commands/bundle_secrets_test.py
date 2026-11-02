@@ -24,6 +24,7 @@ OEF-SECRET-14).
 """
 
 from typing import Any
+from uuid import UUID
 
 import pytest
 import yaml
@@ -114,6 +115,39 @@ def test_bundle_export_carries_secure_extra_masked(
     for content in bundle.values():
         assert "client-secret" not in content
         assert "embedded-pw" not in content
+
+
+@pytest.mark.usefixtures("snowflake_like_paths")
+def test_bundle_overwrite_import_keeps_what_the_bundle_does_not_carry(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """An exported bundle says it is partial, so overwriting keeps other settings."""
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.databases.schemas import ImportV1DatabaseSchema
+    from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    bundle = _export_bundle()
+    config = yaml.safe_load(bundle[_database_file(bundle)])
+    assert config["masked_encrypted_extra_partial"] is True
+
+    stored = {**SECRETS, "auth_params": {"privatekey_pass": "kept"}}
+    db.session.add(
+        Database(
+            database_name="promoted",
+            sqlalchemy_uri="sqlite://",
+            uuid=UUID(config["uuid"]),
+            encrypted_extra=json.dumps(stored),
+        )
+    )
+    db.session.flush()
+
+    config = ImportV1DatabaseSchema(overwrites_existing=True).load(config)
+    imported = import_database(config, overwrite=True)
+
+    assert json.loads(imported.encrypted_extra) == stored
 
 
 @pytest.mark.usefixtures("snowflake_like_paths")
