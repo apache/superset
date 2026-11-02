@@ -43,6 +43,7 @@ import {
 import {
   approveChange,
   discardChange,
+  refusalMessage,
   submitForReview,
   withdrawRequest,
 } from './api';
@@ -157,10 +158,13 @@ export default function AssetReview({
         // raise already carries one written for the person reading it, so
         // replacing them with a generic failure here would throw away the
         // only useful part.
-        const detail =
-          (error as { message?: string })?.message ??
-          t('Something went wrong.');
-        addDangerToast(detail);
+        addDangerToast(
+          (await refusalMessage(error)) ?? t('Something went wrong.'),
+        );
+        // Then re-read. The commonest refusal here is that the change moved
+        // while this page had it open, and being told so is only actionable
+        // once the page is showing the version that refused (R4-04).
+        await refresh();
       } finally {
         setBusy(false);
       }

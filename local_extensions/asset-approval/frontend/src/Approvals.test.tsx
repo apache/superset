@@ -368,3 +368,41 @@ test('a recently submitted request is not marked', async () => {
   await screen.findByText('Q3 revenue');
   expect(screen.getByText('an hour')).toBeInTheDocument();
 });
+
+test('a refused approval says why, and the list re-reads', async () => {
+  // R4-04: the rejection was not handled at all, so a refused approve left
+  // the dialog open over a list that had not moved and gave the reader no
+  // reason. The refusal the server sends for this case is the one that
+  // tells them the change moved while they had it open.
+  const { approveChange } = jest.requireMock('./api');
+  const refusal =
+    'This change was updated after you opened it. Review the new version before approving.';
+  approveChange.mockRejectedValueOnce(Object.assign(new Error(refusal)));
+  mockedFetchList.mockResolvedValue([
+    request({
+      id: 7,
+      asset_type: 'dataset',
+      asset_title: 'calls_by_queue',
+      can_approve: true,
+      dataset_detail: {
+        columns: { added: [], changed: [], removed: [] },
+        metrics: { added: [], changed: [], removed: [] },
+        impact: { charts: 0, dashboards: 0 },
+      },
+    }),
+  ]);
+
+  render(<Approvals />);
+
+  (await screen.findByTestId('review-action')).click();
+  fireEvent.click((await screen.findByText('Approve')).closest('button')!);
+  await screen.findByText('Approve and publish?');
+  fireEvent.click(
+    (await screen.findByText('Approve and publish')).closest('button')!,
+  );
+
+  // The server's own sentence reaches the reader...
+  expect(await screen.findByText(refusal)).toBeInTheDocument();
+  // ...and the list is read again, so it shows the version that refused.
+  await waitFor(() => expect(mockedFetchList).toHaveBeenCalledTimes(2));
+});

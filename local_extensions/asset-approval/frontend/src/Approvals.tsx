@@ -37,7 +37,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { pages, theme, translation } from '@apache-superset/core';
 import { Avatar, Input, Select, Table, Tag } from 'antd';
-import { Button } from './host';
+import { Button, useToasts } from './host';
 import {
   approveChange,
   fetchChangeRequest,
@@ -167,6 +167,7 @@ export default function Approvals() {
   const [approving, setApproving] = useState<ChangeRequest | null>(null);
   const [submitting, setSubmitting] = useState<ChangeRequest | null>(null);
   const [busy, setBusy] = useState(false);
+  const { addDangerToast } = useToasts();
 
   const requested = subPath.split('/')[1] ?? '';
   const view =
@@ -226,6 +227,19 @@ export default function Approvals() {
       setChangesFor(null);
       setApproving(null);
       setSubmitting(null);
+      await load();
+    } catch (error) {
+      // A refused action said nothing at all: the rejection was left
+      // unhandled, so the dialog stayed open over a list that had not
+      // moved and the reader was given no reason (R4-04). Every refusal
+      // the workflow raises carries a sentence written for them.
+      addDangerToast(
+        (error as { message?: string } | null)?.message ??
+          t('Something went wrong.'),
+      );
+      // Re-read either way. The commonest refusal is that the request
+      // moved while this page had it open, which only becomes actionable
+      // once the list shows what it is now.
       await load();
     } finally {
       setBusy(false);

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/core';
+import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import type {
   ApprovalsView,
   ChangeRequest,
@@ -78,6 +78,40 @@ export async function fetchOpenByAsset(
 export async function fetchPendingCount(): Promise<PendingCount> {
   const { json } = await SupersetClient.get({ endpoint: `${BASE}/count` });
   return (json?.result as PendingCount) ?? { needs_me: 0, returned: 0 };
+}
+
+/**
+ * The server's own sentence for a refusal, or null if it did not send one.
+ *
+ * Every refusal the workflow raises carries a line written for the person
+ * reading it. ``SupersetClient`` rejects with the ``Response``, though, not
+ * with an ``Error`` holding that body, so reading ``message`` straight off
+ * the rejection found nothing and every refusal surfaced as a generic
+ * failure -- including the one whose entire job is to tell a reviewer that
+ * the change moved while they had it open (R4-04).
+ *
+ * Tries the body's own ``message`` before the parsed ``error``, because for
+ * a status it recognises the parser can answer the status text and turn a
+ * 409 into the bare word "Conflict".
+ */
+export async function refusalMessage(error: unknown): Promise<string | null> {
+  const direct = (error as { message?: unknown } | null)?.message;
+  if (typeof direct === 'string' && direct.trim()) {
+    return direct;
+  }
+  try {
+    const parsed = await getClientErrorObject(
+      error as Parameters<typeof getClientErrorObject>[0],
+    );
+    for (const candidate of [parsed.message, parsed.error]) {
+      if (typeof candidate === 'string' && candidate.trim()) {
+        return candidate;
+      }
+    }
+  } catch {
+    // An error we cannot read is one the caller words itself.
+  }
+  return null;
 }
 
 async function act(
