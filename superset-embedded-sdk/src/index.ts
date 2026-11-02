@@ -183,14 +183,6 @@ type Connection = {
   closed: boolean;
 };
 
-/**
- * Callback to resolve permalink URLs.
- * Receives the permalink key and returns the full URL to use for the permalink.
- */
-export type ResolvePermalinkUrlFn = (params: {
-  /** The permalink key (e.g., "xyz789") */
-  key: string;
-}) => string | Promise<string>;
 
 /**
  * Callback to resolve permalink URLs.
@@ -198,7 +190,9 @@ export type ResolvePermalinkUrlFn = (params: {
  * If not provided, Superset's default URL is used.
  */
 export type ResolvePermalinkUrlFn = (params: {
-
+  /** The permalink key (e.g., "xyz789") */
+  key: string;
+}) => string | Promise<string>;
 export type EmbeddedDashboard = {
   getScrollSize: () => Promise<Size>;
   unmount: () => void;

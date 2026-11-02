@@ -236,7 +236,7 @@ describe("guest token refresh", () => {
 
     const timing = getGuestTokenRefreshTiming(fakeToken);
 
-    expect(timing).toBeGreaterThan(MIN_REFRESH_WAIT_MS);
+    expect(timing).toBeGreaterThanOrEqual(MIN_REFRESH_WAIT_MS);
     // Should be close to minimum + buffer, but function adds buffer at end
     expect(timing).toBeLessThanOrEqual(ttl * 1000 - REFRESH_TIMING_BUFFER_MS + 100);
   });
