@@ -92,7 +92,7 @@ The decorator registers the class in the semantic layers registry, making it ava
 
 ## API permissions and runtime availability
 
-The semantic APIs check endpoint permissions before evaluating `SEMANTIC_LAYERS` through the feature flag manager. See [runtime semantic-layer availability](../../../admin_docs/configuration/feature-flags.mdx#runtime-semantic-layer-availability) for permission, Public-role, `OPTIONS`, and `IS_FEATURE_ENABLED_FUNC` behavior.
+The semantic APIs check endpoint permissions before evaluating `SEMANTIC_LAYERS` through the feature flag manager. See [runtime semantic-layer availability](/admin-docs/configuration/feature-flags#runtime-semantic-layer-availability) for permission, Public-role, `OPTIONS`, and `IS_FEATURE_ENABLED_FUNC` behavior.
 
 ## Provider obligations and isolated tests
 
