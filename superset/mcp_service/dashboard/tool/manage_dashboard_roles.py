@@ -129,6 +129,34 @@ def _compute_new_role_ids(
     return current_role_ids, new_role_ids, None
 
 
+def _check_viewers_flag(
+    request: ManageDashboardRolesRequest, viewers_enabled: bool
+) -> tuple[list[str], ManageDashboardRolesResponse | None]:
+    """Apply the ``ENABLE_VIEWERS`` policy to the requested operations.
+
+    Viewers restrict access whenever the list is nonempty, flag or not. With
+    the flag off the UI cannot show or clear them, so additions are refused
+    while removals (the only way to lift such a restriction) are allowed with
+    a warning.
+    """
+    if viewers_enabled:
+        return [], None
+    if request.add_role_ids:
+        return [], ManageDashboardRolesResponse(
+            viewers_enabled=False,
+            error=(
+                "The ENABLE_VIEWERS feature flag is disabled on this instance; "
+                "roles cannot be added to a dashboard until it is enabled. "
+                "Existing roles can still be removed."
+            ),
+        )
+    return [
+        "The ENABLE_VIEWERS feature flag is disabled on this instance; "
+        "dashboard access checks still restrict access to any nonempty "
+        "viewers list, so role removals take effect regardless."
+    ], None
+
+
 def _resolve_role_subjects(
     new_role_ids: list[int],
 ) -> tuple[list["Subject"], list[int]]:
@@ -180,7 +208,9 @@ def manage_dashboard_roles(
     role only restores standard permissions if no USER- or GROUP-type
     viewers remain on the dashboard — ``raise_for_access`` restricts access
     whenever the ``viewers`` list is nonempty, regardless of subject type.
-    This applies regardless of the ``ENABLE_VIEWERS`` feature flag; the
+    This applies regardless of the ``ENABLE_VIEWERS`` feature flag. While the
+    flag is disabled, roles can only be removed: ``add_role_ids`` is rejected,
+    since the UI offers no way to see or undo the resulting restriction. The
     response's ``viewers_enabled`` field reports the flag's state, and
     ``warnings`` notes when it is disabled.
 
@@ -228,13 +258,9 @@ def manage_dashboard_roles(
         return ManageDashboardRolesResponse(managed_externally=True, error=refusal)
 
     viewers_enabled = is_feature_enabled("ENABLE_VIEWERS")
-    warnings: list[str] = []
-    if not viewers_enabled:
-        warnings.append(
-            "The ENABLE_VIEWERS feature flag is disabled on this instance; "
-            "dashboard access checks still restrict access to any nonempty "
-            "viewers list, so role changes take effect regardless."
-        )
+    warnings, flag_error = _check_viewers_flag(request, viewers_enabled)
+    if flag_error is not None:
+        return flag_error
 
     current_role_ids, new_role_ids, compute_error = _compute_new_role_ids(
         dashboard, request, viewers_enabled
