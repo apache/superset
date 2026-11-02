@@ -115,8 +115,40 @@ def _named_list_differs(current: Any, proposed: Any, key: str) -> bool:
         for field, value in after_item.items():
             if field in IGNORED_FIELDS or field == "id":
                 continue
-            if _parsed(value) != _parsed(_field_value(before_item, field)):
+            was = _field_value(before_item, field)
+            if _is_nothing(value) and _is_nothing(was):
+                continue
+            if _parsed(value) != _parsed(was):
                 return True
+    return False
+
+
+def _is_nothing(value: Any) -> bool:
+    """Whether this value says the field holds nothing at all.
+
+    A column that was never given an ``extra`` blob holds NULL, while the
+    dataset editor posts every column back with ``extra`` set to the string
+    ``"{}"``. Read literally those differ, so *every* dataset save reported
+    every column and every metric as changed: a save that edited nothing was
+    refused as a governed change, certifying a dataset was never exempt
+    because the echo dragged columns and metrics along with it, and a
+    reviewer's "What changed" always led with columns and metrics whatever
+    the author had actually edited (R4-06).
+
+    They are the same statement, so they are compared as one. Only when
+    *both* sides are empty: emptying a field that held something is a real
+    change and still reads as one.
+    """
+    if value is None:
+        return True
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return True
+        parsed = _parsed(text)
+        return isinstance(parsed, (dict, list)) and not parsed
+    if isinstance(value, (dict, list, tuple, set)):
+        return not value
     return False
 
 
@@ -136,6 +168,9 @@ def _unset_boolean(current: Any, proposed: Any) -> bool:
 
 
 def _differs(current: Any, proposed: Any, field: str) -> bool:
+    if _is_nothing(current) and _is_nothing(proposed):
+        # Two ways of saying the field is empty, not an edit to it.
+        return False
     if _unset_boolean(current, proposed):
         return bool(current) != bool(proposed)
     if field in JSON_FIELDS:
