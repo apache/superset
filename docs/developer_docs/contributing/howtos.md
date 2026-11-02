@@ -316,6 +316,28 @@ and stamps do-not-translate markers. A bare
 (`scripts/translations/check_pot_drift.py`) fails when the template's strings
 differ from what the script's extraction finds.
 
+### Keeping a sentence in one string
+
+Keep each sentence in one `t()` call. A sentence split into several calls
+around a link has a fixed word order. Translators then cannot write a
+grammatical sentence in their language.
+
+Write a link inside a sentence as a markdown link with a named placeholder
+for the URL. Render the result with `SafeMarkdown`:
+
+```tsx
+<SafeMarkdown
+  // i18n: keep the [text](%(…)s) markdown link syntax and the placeholder
+  // unchanged; translate the link text only
+  source={t('Read the [ISO 8601](%(iso_url)s) article.', {
+    iso_url: 'https://en.wikipedia.org/wiki/ISO_8601',
+  })}
+/>
+```
+
+The URL stays out of the translated string. `SafeMarkdown` sanitizes the
+result and renders backticks as code.
+
 ### Adding context for translators
 
 A translatable string arrives in a catalog with no surrounding code, so a term
