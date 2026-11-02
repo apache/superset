@@ -27,7 +27,7 @@ import { Accessor, CellValue, HeaderGroup, Row } from 'react-table';
 
 import { SortOrder } from '../Table';
 
-type TableSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
+type TableSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl' | 'xxxl';
 
 type RowWithId<T extends object> = Row<T> & { rowId: string };
 
@@ -38,6 +38,7 @@ const COLUMN_SIZE_MAP: Record<TableSize, number> = {
   lg: 100,
   xl: 150,
   xxl: 200,
+  xxxl: 360,
 };
 
 // Mirrors react-table's `Renderer<Props>` (a component, a render function,

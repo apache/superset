@@ -32,6 +32,7 @@ import {
   getFixedValue,
   getTypedFixedRadius,
 } from '../utils/metricUtils';
+import { NULL_CATEGORY_KEY } from '../../utils';
 
 interface ScatterPoint {
   position: [number, number];
@@ -155,16 +156,19 @@ function processScatterData(
       }
     }
 
-    const categoryValue = getSourceValue(categoryColumn);
-    if (categoryValue != null) {
-      scatterPoint.cat_color = String(categoryValue);
-    }
-
     scatterPoint = addPropertiesToFeature(
       scatterPoint,
       feature as DataRecord,
       excludeKeys,
     );
+
+    // Assigned after the property copy so a column named `cat_color` cannot
+    // overwrite the selected dimension's category.
+    if (categoryColumn) {
+      const categoryValue = getSourceValue(categoryColumn);
+      scatterPoint.cat_color =
+        categoryValue != null ? String(categoryValue) : NULL_CATEGORY_KEY;
+    }
     return scatterPoint;
   });
 }

@@ -317,6 +317,7 @@ export async function createDashboardFromSnapshot(
       dashboard_title: name,
       css: snapshot.css ?? '',
       json_metadata: JSON.stringify(metadata),
+      replace_metadata: true,
     },
   });
   return (json as { result: { id: number } }).result.id;

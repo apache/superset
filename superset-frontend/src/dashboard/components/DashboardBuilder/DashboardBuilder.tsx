@@ -20,7 +20,6 @@
 import cx from 'classnames';
 import {
   Suspense,
-  lazy,
   memo,
   useCallback,
   useEffect,
@@ -28,6 +27,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { lazyWithRetry } from 'src/utils/lazyWithRetry';
 import { t } from '@apache-superset/core/translation';
 import {
   addAlpha,
@@ -86,7 +86,10 @@ import {
   EMPTY_CONTAINER_Z_INDEX,
 } from 'src/dashboard/constants';
 import { selectCanRestoreDashboard } from 'src/features/versionHistory/canRestoreDashboard';
-import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
+import {
+  closeVersionHistoryPanel,
+  selectIsDashboardVersionPreviewActive,
+} from 'src/features/versionHistory/reducer';
 import { StickyTabsOffsetContext } from 'src/dashboard/components/gridComponents/TabsRenderer';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
@@ -96,10 +99,10 @@ import DashboardWrapper from './DashboardWrapper';
 
 // Lazy-loaded so deployments with the VersionHistory flag off never pay
 // the bundle cost of the feature's component graph.
-const DashboardVersionHistory = lazy(
+const DashboardVersionHistory = lazyWithRetry(
   () => import('src/features/versionHistory/DashboardVersionHistory'),
 );
-const PreviewBanner = lazy(
+const PreviewBanner = lazyWithRetry(
   () => import('src/features/versionHistory/PreviewBanner'),
 );
 
@@ -565,6 +568,11 @@ const DashboardBuilder = () => {
   const editMode = useSelector<RootState, boolean>(
     state => state.dashboardState.editMode,
   );
+  useEffect(() => {
+    if (editMode) {
+      dispatch(closeVersionHistoryPanel());
+    }
+  }, [dispatch, editMode]);
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -1063,6 +1071,7 @@ const DashboardBuilder = () => {
       {isFeatureEnabled(FeatureFlag.VersionHistory) && !isEmbedded() && (
         <VersionHistoryColumn
           data-test="dashboard-version-history-column"
+          hidden={editMode}
           topOffset={barTopOffset}
           bottomOffset={barBottomOffset}
         >

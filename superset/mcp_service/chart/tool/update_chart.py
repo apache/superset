@@ -1407,7 +1407,7 @@ async def update_chart(  # noqa: C901
                 "is_unsaved_state": not saved,
             },
             "error": None,
-            "warnings": warnings,
+            "warnings": request.sanitization_warnings + warnings,
             "form_data": _wrapped_form_data_for_response(new_form_data),
             "previews": previews,
             "preview_errors": preview_errors,

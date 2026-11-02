@@ -76,7 +76,6 @@ const sidebars = {
         'extensions/architecture',
         'extensions/dependencies',
         'extensions/contribution-types',
-        'extensions/semantic-filters',
         {
           type: 'category',
           label: 'Extension Points',
@@ -85,6 +84,7 @@ const sidebars = {
             'extensions/extension-points/sqllab',
             'extensions/extension-points/editors',
             'extensions/extension-points/chat',
+            'extensions/extension-points/semantic-layers',
           ],
         },
         'extensions/development',

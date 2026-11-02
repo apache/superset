@@ -36,10 +36,11 @@ from __future__ import annotations
 import uuid as uuid_lib
 from contextlib import contextmanager, ExitStack
 from types import SimpleNamespace
-from typing import cast, Iterator, TYPE_CHECKING
+from typing import Any, cast, Iterator, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pytest_mock import MockerFixture
 from sqlalchemy import event
 from sqlalchemy.engine import Connection, Engine, ExecutionContext
 from sqlalchemy.orm.session import Session
@@ -1137,3 +1138,141 @@ def test_guest_allowlist_allows_table_member_chart(
         ),
     ):
         sm.raise_for_access(chart=access_fixtures.table_slice)
+
+
+# -- Exclusion-hook placement --
+#
+# Placement is the behaviour: the exclusion must survive the ``is_admin()``
+# short-circuit and must not reach an embedded guest. Neither is visible to a
+# test that calls ``apply_extra_access_exclusions`` directly.
+
+
+def _dashboard_exclusion_hook(excluded_id: int) -> Any:
+    from sqlalchemy import select
+
+    from superset.models.dashboard import Dashboard
+
+    return lambda _uid: select(Dashboard.id).where(Dashboard.id == excluded_id)
+
+
+def test_dashboard_list_filter_exclusion_survives_admin(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """An admin is exactly the principal the role paths stop narrowing."""
+    from flask import current_app
+
+    from superset.dashboards.filters import DashboardAccessFilter
+    from superset.extensions import db, security_manager
+    from superset.models.dashboard import Dashboard
+
+    withheld = Dashboard(dashboard_title="withheld from admin", published=True)
+    kept = Dashboard(dashboard_title="kept for admin", published=True)
+    db.session.add_all([withheld, kept])
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "is_admin", return_value=True)
+    mocker.patch(
+        "superset.dashboards.filters.guest_embedded_dashboard_filter",
+        return_value=None,
+    )
+    mocker.patch("superset.utils.core.get_user_id", return_value=1)
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "EXTRA_ACCESS_QUERY_EXCLUSIONS": {
+                "dashboards": _dashboard_exclusion_hook(withheld.id)
+            }
+        },
+    )
+
+    flt = DashboardAccessFilter.__new__(DashboardAccessFilter)
+    titles = {
+        dash.dashboard_title for dash in flt.apply(db.session.query(Dashboard), None)
+    }
+
+    assert "withheld from admin" not in titles
+    assert "kept for admin" in titles
+
+
+def test_dashboard_list_filter_exclusion_skipped_for_embedded_guest(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """A guest token already scopes its holder to its own dashboards."""
+    from flask import current_app
+
+    from superset.dashboards.filters import DashboardAccessFilter
+    from superset.extensions import db, security_manager
+    from superset.models.dashboard import Dashboard
+
+    in_token = Dashboard(dashboard_title="in the guest token", published=True)
+    db.session.add(in_token)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "is_admin", return_value=False)
+    mocker.patch(
+        "superset.dashboards.filters.guest_embedded_dashboard_filter",
+        return_value=Dashboard.id.in_([in_token.id]),
+    )
+    mocker.patch("superset.utils.core.get_user_id", return_value=1)
+    # The hook would withhold the very dashboard the token grants.
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "EXTRA_ACCESS_QUERY_EXCLUSIONS": {
+                "dashboards": _dashboard_exclusion_hook(in_token.id)
+            }
+        },
+    )
+
+    flt = DashboardAccessFilter.__new__(DashboardAccessFilter)
+    titles = {
+        dash.dashboard_title for dash in flt.apply(db.session.query(Dashboard), None)
+    }
+
+    assert "in the guest token" in titles
+
+
+def test_dashboard_lookup_by_uuid_honours_the_exclusion(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """Withheld means withheld whichever identifier names the dashboard.
+
+    The uuid branch of ``get_by_id_or_slug`` skips ``base_filter``, so without
+    an explicit check the same dashboard was absent by id and readable by uuid.
+    """
+    from flask import current_app
+
+    from superset.commands.dashboard.exceptions import DashboardNotFoundError
+    from superset.daos.dashboard import DashboardDAO
+    from superset.extensions import db, security_manager
+    from superset.models.dashboard import Dashboard
+
+    withheld = Dashboard(dashboard_title="withheld by uuid too", published=True)
+    db.session.add(withheld)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "is_admin", return_value=True)
+    mocker.patch(
+        "superset.dashboards.filters.guest_embedded_dashboard_filter",
+        return_value=None,
+    )
+    mocker.patch("superset.utils.core.get_user_id", return_value=1)
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "EXTRA_ACCESS_QUERY_EXCLUSIONS": {
+                "dashboards": _dashboard_exclusion_hook(withheld.id)
+            }
+        },
+    )
+
+    # By id: withheld through the base filter.
+    with pytest.raises(DashboardNotFoundError):
+        DashboardDAO.get_by_id_or_slug(str(withheld.id))
+
+    # By uuid: the branch that skips the base filter must agree.
+    with pytest.raises(DashboardNotFoundError):
+        DashboardDAO.get_by_id_or_slug(str(withheld.uuid))

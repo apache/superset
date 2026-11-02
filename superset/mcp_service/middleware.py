@@ -71,6 +71,7 @@ from superset.mcp_service.utils.response_size_utils import (
     format_size_limit_error,
     get_response_size_bytes,
     INFO_TOOLS,
+    PNG_PREVIEW_TOOLS,
     RESPONSE_AWARE_SUGGESTION_TOOLS,
     string_clip_chars,
     STRING_FIELD_TRUNCATION_TOOLS,
@@ -2220,11 +2221,37 @@ class ResponseSizeGuardMiddleware(Middleware):
             else None
         )
         if (
-            tool_name == "get_chart_preview"
+            tool_name in PNG_PREVIEW_TOOLS
             and isinstance(content, dict)
             and content.get("type") == "png"
         ):
             if actual_bytes > self.png_max_bytes:
+                logger.warning(
+                    "Response blocked for %s: %d bytes exceeds png_max_bytes of %d",
+                    tool_name,
+                    actual_bytes,
+                    self.png_max_bytes,
+                )
+                # Hop off the transport loop for the metadata write, as the
+                # text-path audit does: the loop must never wait on a pooled
+                # connection that a tool worker may be holding.
+                try:
+                    await run_in_metadata_thread(
+                        event_logger.log,
+                        user_id=get_user_id(),
+                        action="mcp_response_size_exceeded",
+                        dashboard_id=None,
+                        duration_ms=None,
+                        slice_id=None,
+                        referrer=None,
+                        curated_payload={
+                            "tool": tool_name,
+                            "actual_bytes": actual_bytes,
+                            "max_bytes": self.png_max_bytes,
+                        },
+                    )
+                except Exception as log_error:  # noqa: BLE001
+                    logger.warning("Failed to log size exceeded event: %s", log_error)
                 raise ToolError(
                     f"PNG preview is {actual_bytes} bytes, exceeding the "
                     f"{self.png_max_bytes}-byte limit. Request smaller width and "

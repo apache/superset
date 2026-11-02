@@ -68,6 +68,7 @@ export interface Datasource {
   verboseMap?: {
     [key: string]: string;
   };
+  chartDisplayLabels?: Record<string, Record<string, string>>;
   currencyCodeColumn?: string;
 }
 

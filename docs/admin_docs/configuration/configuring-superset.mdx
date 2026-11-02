@@ -554,6 +554,8 @@ OAUTH_PROVIDERS = [
 
 PKCE (`S256`) is recommended for all OAuth2 flows, even when a client secret is present, as it protects against authorization code interception attacks.
 
+For a complete Keycloak example (PKCE, group-to-role mapping, access denial and single logout), see [OAuth Configuration](/admin-docs/security/oauth).
+
 ## LDAP Authentication
 
 FAB supports authenticating user credentials against an LDAP server.
@@ -866,6 +868,19 @@ SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 131072  # double the default
 ```
 
 Alternatively, split a very large dashboard into several smaller ones. Note that this check is enforced when saving layout edits in the UI; a dashboard imported from a ZIP with an oversized layout will load and render, but cannot be edited and re-saved until the limit is raised.
+
+## Semantic layer setup documentation
+
+Set `SEMANTIC_LAYER_DOCUMENTATION_URL` in `superset_config.py` to an absolute
+HTTP or HTTPS URL for your deployment's semantic layer setup guide. The New
+Semantic Layer and Add Semantic View dialogs show this optional link. It opens
+in a new tab. Leave the setting as `None` (the default) to hide the link. Invalid
+URLs and URLs with username/password userinfo are omitted from the page bootstrap
+rather than partially sanitized; the server logs a warning without the URL value.
+
+This setting does not change the main documentation menu's `DOCUMENTATION_URL`,
+install providers, grant permissions, or enable the `SEMANTIC_LAYERS` feature.
+Provider setup descriptions come from each registered provider's metadata.
 
 :::resources
 

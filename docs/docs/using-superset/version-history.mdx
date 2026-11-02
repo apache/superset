@@ -237,6 +237,14 @@ close and reopen it to see the new version.
 Selecting a version loads it into the page so you can see it before deciding
 anything.
 
+Some activity entries, such as adding a chart to a dashboard without changing
+the dashboard's saved properties, have no corresponding version snapshot.
+They remain visible in history, but cannot be previewed, restored, or opened
+as a new chart or dashboard. These rows show “No saved version to preview”
+and are not interactive. You can still expand their save group to read the
+changes. Preview and version actions are available only when a saved snapshot
+exists; the current version does not offer Restore because it is already live.
+
 <img
   src={useBaseUrl('/img/version-history/version-history-preview.jpg')}
   alt="Illustrative chart preview from an earlier build, with Restore, Open as new chart, and Close preview actions; only the First tracked save group is highlighted"
@@ -288,6 +296,9 @@ worth knowing:
   version, so restoring one from the archive later puts it back on that
   dashboard. An archived chart that was not in the version is unlinked, so
   restoring it from the archive later does not put it back on this dashboard.
+  If a chart the restore is putting back or unlinking is permanently deleted
+  while the restore runs, nothing is changed and Superset asks you to try
+  again; the retry restores the version without that chart.
 
 Restoring is offered to the same users who may edit the entity, and is withheld
 from externally managed entities, whose source of truth lives outside Superset
@@ -296,8 +307,10 @@ and would overwrite the restore on the next sync.
 ## Opening a version as something new
 
 Use the **… (actions)** menu on a save-group header to open that version as
-a new chart or dashboard. Individual field-change rows preview the version;
-they do not have separate action menus.
+a new chart or dashboard. Individual field-change rows with a saved snapshot
+select that version; selecting the current version exits a historical preview.
+Rows without a saved snapshot cannot be selected. Field-change rows do not
+have separate action menus.
 
 **Open as new** creates a brand-new chart or dashboard from the selected
 version and leaves the original untouched. This is the safer option when you
@@ -306,17 +319,27 @@ want an old state back but are not certain you want to give up the current one.
 How much of the version comes across differs by entity, because the two copy
 paths do. A new chart is built from the version itself: its name,
 visualization type, dataset, controls, query context, description, and cache
-timeout. A new dashboard is a copy of the *live* dashboard with the version's
-title, CSS, metadata, and layout applied over it — the copy endpoint accepts
-only those fields, so properties such as description, slug, certification, and
-theme come from the dashboard as it stands today, not from the version.
+timeout. A new dashboard takes its title, CSS, settings, and layout from the
+selected version. Description, slug, certification, and theme are not copied.
+Settings missing from that version use defaults rather than inheriting values
+from the live dashboard. Chart-specific settings, including expanded charts, refresh exemptions
+and cross-filter configuration, retain only charts present in the copied layout.
+When charts are duplicated, these settings refer to the new chart IDs.
+
+The version fork sends `replace_metadata: true` to the dashboard copy API, treating
+its required `json_metadata` payload as the complete settings to copy. Other copies
+(including Save as and MCP duplicate) omit this flag and merge the supplied settings
+with the source dashboard. Chart-specific settings are pruned and remapped in both
+modes. Ordinary dashboard updates still merge settings as before.
 
 When copying a dashboard **and its charts**, archived chart slots in the copy
 become placeholders saying "This archived chart was not copied." Their layout
 positions and sizes are preserved, but they do not link to the archived original.
 Restoring that original chart later therefore does not attach it to the copy.
-Live charts are still cloned. The source dashboard is unchanged, and ordinary
-dashboard saves and chart restores keep their existing reattachment behavior.
+Only live charts included in the copied layout are cloned, so opening an older
+version does not bring along charts added later. The source dashboard is unchanged,
+and ordinary dashboard saves and chart restores keep their existing reattachment
+behavior.
 This rule does not change copying a dashboard without copying its charts.
 
 Copying with charts refuses a layout slot that still references a live chart

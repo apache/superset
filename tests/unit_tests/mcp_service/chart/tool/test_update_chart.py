@@ -1077,6 +1077,7 @@ class TestUpdateChartNameOnly:
     @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
     @patch("superset.db.session")
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("sanitized", [False, True])
     async def test_name_only_update_success(
         self,
         mock_db_session,
@@ -1084,6 +1085,7 @@ class TestUpdateChartNameOnly:
         mock_update_cmd_cls,
         mock_check_access,
         mcp_server,
+        sanitized: bool,
     ):
         """Successful name-only update (identifier + chart_name, no config)."""
         mock_chart = Mock()
@@ -1110,13 +1112,18 @@ class TestUpdateChartNameOnly:
 
         request = {
             "identifier": 1,
-            "chart_name": "Renamed Chart",
+            "chart_name": "Renamed Chart <img src=x>" if sanitized else "Renamed Chart",
             "generate_preview": False,
         }
 
         async with Client(mcp) as client:
             result = await client.call_tool("update_chart", {"request": request})
 
+            if sanitized:
+                assert any(
+                    "sanitization" in warning
+                    for warning in result.structured_content["warnings"]
+                )
             assert result.structured_content["success"] is True
             assert result.structured_content["chart"]["slice_name"] == "Renamed Chart"
             assert result.structured_content["chart"]["is_unsaved_state"] is False
@@ -3451,3 +3458,53 @@ def test_big_number_rebind_does_not_inherit_saved_temporal_column() -> None:
 
     assert params["viz_type"] == "big_number_total"
     assert "granularity_sqla" not in params
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Users aged <30",
+        "Revenue <$1M",
+        "Love <3 charts",
+        "Users aged >30",
+        "Revenue\u00a0>\u00a0$1M",
+    ],
+)
+async def test_update_chart_literal_less_than_storage_round_trip(title: str) -> None:
+    """Rename persistence and the tool response use the same literal text."""
+    chart = Mock(id=1, datasource_id=10, slice_name="Old", viz_type="table", uuid="abc")
+
+    def update(_: int, payload: dict[str, Any]) -> Mock:
+        """Emulate the update command's persisted attribute mutation."""
+        chart.slice_name = payload["slice_name"]
+        return Mock(run=Mock(return_value=chart))
+
+    with (
+        patch("superset.db.session"),
+        patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart),
+        patch(
+            "superset.mcp_service.auth.check_chart_data_access",
+            return_value=DatasetValidationResult(
+                is_valid=True, dataset_id=10, dataset_name="ds", warnings=[]
+            ),
+        ),
+        patch(
+            "superset.commands.chart.update.UpdateChartCommand", side_effect=update
+        ) as command,
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "update_chart",
+                {
+                    "request": {
+                        "identifier": 1,
+                        "chart_name": title,
+                        "generate_preview": False,
+                    }
+                },
+            )
+    assert command.call_args.args[1]["slice_name"] == title
+    assert chart.slice_name == title
+    assert result.structured_content["success"] is True
+    assert result.structured_content["chart"]["slice_name"] == title

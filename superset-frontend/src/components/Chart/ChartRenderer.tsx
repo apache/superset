@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { snakeCase, cloneDeep } from 'lodash-es';
+import { snakeCase, cloneDeep, isEqual } from 'lodash-es';
 import {
   useCallback,
   useEffect,
@@ -44,8 +44,10 @@ import {
   AgGridChartState,
   ContextMenuFilters,
   DataRecordFilters,
+  isMatrixifyEnabled,
+  type MatrixifyFormData,
+  type Hooks,
 } from '@superset-ui/core';
-import type { Hooks } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
@@ -60,6 +62,7 @@ import ChartContextMenu, {
 import { handleChartDataResponse } from './chartAction';
 import { AsyncModeOverride, resolveAsyncMode } from 'src/utils/asyncMode';
 import { getTabId } from 'src/hooks/useTabId';
+import { getDisplayControlNames } from 'src/explore/controlUtils/getDisplayControlNames';
 
 // Types for filter values
 type FilterValue = string | number | boolean | null | undefined;
@@ -125,6 +128,10 @@ export interface ChartRendererProps {
   chartAlert?: string;
   chartStatus?: ChartStatus | null;
   queriesResponse?: QueryData[] | null;
+  // The form data queriesResponse was queried with, when it is known and the
+  // response can be drawn again. Without it a previous response is never
+  // drawn while a new query is in flight.
+  responseFormData?: QueryFormData;
   triggerQuery?: boolean;
   chartIsStale?: boolean;
   addFilter?: (
@@ -177,6 +184,44 @@ interface ChartHooks extends AsyncChartHooks {
   onChartStateChange?: (chartState: AgGridChartState) => void;
 }
 
+/**
+ * Whether a chart has a previous response it can stay on screen with while a
+ * new query is in flight.
+ */
+export function hasValidPreviousData(
+  queriesResponse: QueryData[] | null | undefined,
+  formData: QueryFormData,
+  vizType: string,
+): boolean {
+  // A Matrixify grid ignores the response: each cell fetches its own data when
+  // it mounts. Kept on screen, the cells would never pick up the refresh.
+  if (isMatrixifyEnabled(formData as MatrixifyFormData)) {
+    return false;
+  }
+  // A failed load leaves its errored response in the store, and the next
+  // CHART_UPDATE_STARTED clears chartAlert but not queriesResponse. Checking
+  // the response itself keeps that stale error from being drawn as chart data
+  // while the retry is in flight.
+  const hasAnyErrors = queriesResponse?.some(item => item?.error);
+  // The response of a chart that fetches its own data stays empty once it has
+  // loaded, so for those any response that landed counts as previous data.
+  const hasPreviousResponse =
+    (getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true)
+      ? (queriesResponse?.length ?? 0) > 0
+      : Array.isArray(queriesResponse);
+  return hasPreviousResponse && !hasAnyErrors;
+}
+
+// The colour settings a dashboard merges into each chart's form data. They
+// change without a new query and sit in no control panel.
+const DASHBOARD_COLOR_KEYS = [
+  'color_scheme',
+  'own_color_scheme',
+  'label_colors',
+  'shared_label_colors',
+  'map_label_colors',
+] as const;
+
 const BLANK = {};
 
 const BIG_NO_RESULT_MIN_WIDTH = 300;
@@ -211,6 +256,7 @@ function ChartRendererComponent({
     chartAlert,
     chartStatus,
     queriesResponse,
+    responseFormData,
     chartIsStale,
     ownState,
     filterState,
@@ -282,25 +328,53 @@ function ChartRendererComponent({
   const chartEnableNoResults =
     getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true;
 
-  // A failed load leaves its errored response in the store, and the next
-  // CHART_UPDATE_STARTED clears chartAlert but not queriesResponse. Checking
-  // the response itself keeps that stale error from being drawn as chart data
-  // while the retry is in flight.
-  const hasAnyErrors = queriesResponse?.some(item => item?.error);
-  // The response of a chart that fetches its own data stays empty once it has
-  // loaded, so for those any response that landed counts as previous data.
-  const hasPreviousResponse = chartEnableNoResults
-    ? (queriesResponse?.length ?? 0) > 0
-    : Array.isArray(queriesResponse);
-  const hasValidPreviousData = hasPreviousResponse && !hasAnyErrors;
-
-  // An auto-refresh keeps the chart on screen while its query is in flight.
-  // The store holds the previous response until the new one lands, so that
-  // response is what the chart renders in the meantime.
-  const isRefreshing =
+  // A dashboard keeps the chart on screen while its query is in flight, be it
+  // an auto-refresh, a manual refresh or a filter change. The store holds the
+  // previous response until the new one lands, so that response is what the
+  // chart renders in the meantime.
+  const isAutoRefreshing =
     Boolean(restProps.suppressLoadingSpinner) && chartStatus === 'loading';
+  const isRefreshing =
+    chartStatus === 'loading' &&
+    (isAutoRefreshing || source === ChartSource.Dashboard);
   const hasRenderableResults =
-    resultsReady || (isRefreshing && hasValidPreviousData);
+    resultsReady ||
+    (isRefreshing &&
+      responseFormData !== undefined &&
+      hasValidPreviousData(queriesResponse, responseFormData, vizType));
+
+  // A filter change updates formData as soon as the new query starts, so the
+  // previous response is drawn with the form data it was queried with until
+  // the new one lands. What changes without a new query always comes from the
+  // current form data: the dashboard's colours, and the controls a chart sets
+  // on itself, such as an Area chart's stack toggle or a map's viewport.
+  //
+  // A plugin transforms and redraws the chart whenever it gets a new form data
+  // object, and an ECharts chart replays its entrance animation when it does.
+  // When the chart is already drawn with the same values, as it is when a
+  // refresh starts with nothing changed, it keeps the object it has.
+  const drawnFormDataRef = useRef(currentFormData);
+  const renderedFormData = useMemo(() => {
+    let nextFormData = currentFormData;
+    if (isRefreshing && responseFormData) {
+      nextFormData = { ...responseFormData };
+      [...DASHBOARD_COLOR_KEYS, ...getDisplayControlNames(vizType)].forEach(
+        key => {
+          if (key in currentFormData) {
+            nextFormData[key] = currentFormData[key];
+          } else {
+            delete nextFormData[key];
+          }
+        },
+      );
+    }
+    return isEqual(nextFormData, drawnFormDataRef.current)
+      ? drawnFormDataRef.current
+      : nextFormData;
+  }, [isRefreshing, responseFormData, currentFormData, vizType]);
+  useEffect(() => {
+    drawnFormDataRef.current = renderedFormData;
+  }, [renderedFormData]);
 
   // Clone queriesResponse to protect against plugin mutation of Redux state.
   // Gate on `hasRenderableResults` so the deep clone doesn't run for every
@@ -434,9 +508,15 @@ function ChartRendererComponent({
     [handleOnContextMenu, state.inContextMenu],
   );
 
+  // Read through a ref so the callback, and the hooks passed to the chart,
+  // keep their identity when the form data changes. A new hooks object makes
+  // the plugin transform and redraw the chart, which a filter change would
+  // otherwise do under the spinner as soon as its query starts.
+  const dataMaskSourceRef = useRef(latestQueryFormData ?? formData);
+  dataMaskSourceRef.current = latestQueryFormData ?? formData;
   const setDataMaskCallback = useCallback(
     (dataMask: DataMask) => {
-      const sourceForm = latestQueryFormData ?? formData;
+      const sourceForm = dataMaskSourceRef.current;
       actions?.updateDataMask?.(
         chartId,
         sourceForm.datasource?.endsWith('__semantic_view')
@@ -457,7 +537,7 @@ function ChartRendererComponent({
           : dataMask,
       );
     },
-    [actions, chartId, latestQueryFormData, formData],
+    [actions, chartId],
   );
 
   // Hooks object - memoized
@@ -577,11 +657,11 @@ function ChartRendererComponent({
     ownState?.agGridFilterModel &&
     Object.keys(ownState.agGridFilterModel).length > 0;
 
-  const currentFormDataExtended = currentFormData as JsonObject;
+  const renderedFormDataExtended = renderedFormData as JsonObject;
   const bypassNoResult =
     chartEnableNoResults &&
     !(
-      currentFormDataExtended?.server_pagination &&
+      renderedFormDataExtended?.server_pagination &&
       (hasSearchText || hasAgGridFilters)
     );
 
@@ -591,7 +671,7 @@ function ChartRendererComponent({
         <ChartContextMenu
           ref={contextMenuRef}
           id={chartId}
-          formData={currentFormData as QueryFormData}
+          formData={renderedFormData as QueryFormData}
           onSelection={handleContextMenuSelected}
           onClose={handleContextMenuClosed}
         />
@@ -609,7 +689,7 @@ function ChartRendererComponent({
           annotationData={annotationData}
           datasource={datasource}
           initialValues={initialValues}
-          formData={currentFormData}
+          formData={renderedFormData}
           ownState={ownState}
           filterState={filterState}
           hooks={hooks as unknown as Parameters<typeof SuperChart>[0]['hooks']}
@@ -623,7 +703,10 @@ function ChartRendererComponent({
           legendState={state.legendState}
           enableNoResults={bypassNoResult}
           legendIndex={state.legendIndex}
-          isRefreshing={isRefreshing}
+          // Only an auto-refresh is passed on, the one refresh that shows no
+          // spinner. Plugins redraw when this flips, and a chart under the
+          // spinner should stay as it was drawn.
+          isRefreshing={isAutoRefreshing}
           {...drillToDetailProps}
         />
       </div>

@@ -25,6 +25,54 @@ import {
 } from 'spec/helpers/testing-library';
 import type { ActivityRecord, SaveGroup, VersionedEntityType } from './types';
 import SaveGroupItem, { SaveGroupItemProps } from './SaveGroupItem';
+import ActionRow from './ActionRow';
+
+test.each(['chart', 'field'])(
+  '%s activity without a snapshot is inert and explains why',
+  async kind => {
+    const record: ActivityRecord = {
+      version_uuid: null,
+      entity_kind: 'dashboard',
+      entity_uuid: 'entity-uuid',
+      entity_name: 'Dashboard',
+      entity_deleted: false,
+      entity_deletion_state: null,
+      source: 'self',
+      transaction_id: 7,
+      action_kind: null,
+      issued_at: '2026-08-31T17:46:00',
+      changed_by: null,
+      kind,
+      operation: 'add',
+      path: [],
+      from_value: null,
+      to_value: null,
+      summary: '',
+      impact: null,
+    };
+    const onPreview = jest.fn();
+    render(
+      <ActionRow
+        record={record}
+        isHighlighted={false}
+        isLast
+        onPreview={onPreview}
+      />,
+    );
+    const row = screen.getByTestId('version-history-action-row');
+    expect(row).not.toHaveAttribute('role');
+    expect(row).not.toHaveAttribute('tabindex');
+    expect(row).toHaveStyle({ cursor: 'default' });
+    expect(row).not.toHaveStyleRule('background-color', expect.any(String), {
+      target: ':hover',
+    });
+    expect(screen.getByText('No saved version to preview')).toBeVisible();
+    await userEvent.click(row);
+    fireEvent.keyDown(row, { key: 'Enter' });
+    fireEvent.keyDown(row, { key: ' ' });
+    expect(onPreview).not.toHaveBeenCalled();
+  },
+);
 
 const makeGroup = (overrides: Partial<SaveGroup> = {}): SaveGroup => ({
   type: 'group',
@@ -57,6 +105,24 @@ const renderItem = (props: Partial<SaveGroupItemProps> = {}) =>
 const groupBackground = (root: HTMLElement) =>
   getComputedStyle(within(root).getByTestId('version-history-save-group'))
     .backgroundColor;
+
+test.each<VersionedEntityType>(['chart', 'dashboard'])(
+  '%s saves without snapshots omit the creation preview and version menu',
+  entityType => {
+    renderItem({
+      entityType,
+      group: makeGroup({ versionUuid: null, creationKind: 'created' }),
+    });
+    expect(screen.getByTestId('version-history-save-group')).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: /preview/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'More actions' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
+  },
+);
 
 test('a highlighted group carries the active treatment; a resting one does not', () => {
   // Which single group is highlighted is the panel's decision (see the

@@ -21,7 +21,7 @@ from copy import deepcopy
 from typing import Any
 
 import pytest
-from fastmcp.tools.tool import Tool
+from fastmcp.tools import Tool
 from jsonschema import Draft202012Validator
 
 from superset.mcp_service.app import mcp
@@ -177,6 +177,25 @@ async def test_sql_dataset_inventory_routes_semantic_view_callers(name: str) -> 
     assert "semantic view" in description
     assert "list_metrics" in description
     assert "get_table" in description
+
+
+@pytest.mark.asyncio
+async def test_apply_dashboard_filters_delivers_rejection_policy() -> None:
+    """Keep the rejected-value policy in compact discovery and the full docstring."""
+    tool: Tool | None = await mcp.get_tool("apply_dashboard_filters")
+    assert tool is not None
+    assert tool.description is not None
+    compact: str = _create_search_result_serializer(MCP_TOOL_SEARCH_CONFIG)([tool])[0][
+        "description"
+    ]
+    # Collapse docstring line wrapping so phrases match across line breaks.
+    full = " ".join(tool.description.split())
+    description = " ".join(compact.split())
+    assert "ask before applying it" in full
+    assert "Never report a rejected filter as applied" in full
+    assert "values to offer the user" not in full
+    assert "If a value is rejected, propose the listed value" in description
+    assert "permalink" in description
 
 
 @pytest.mark.asyncio

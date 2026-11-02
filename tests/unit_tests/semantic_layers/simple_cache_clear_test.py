@@ -25,6 +25,7 @@ from uuid import uuid4
 import pytest
 from flask import Flask
 from sqlalchemy import select
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 from superset_core.semantic_layers.context import ExecutionMethod
 
@@ -403,7 +404,7 @@ def test_migration_backfills_existing_layers_and_downgrades() -> None:
     from alembic.migration import MigrationContext
     from alembic.operations import Operations
     from sqlalchemy import create_engine, text
-    from sqlalchemy.engine import Connection, Engine
+    from sqlalchemy.engine import Connection
 
     migration: Any = import_module(
         "superset.migrations.versions.2026-10-08_00-00_c179af013f48_add_semantic_layer_cache_version"
@@ -542,15 +543,18 @@ def test_web_and_task_share_metadata_keys_despite_local_credentials(
     from sqlalchemy.engine import make_url
 
     monkeypatch.setitem(app.config, "SEMANTIC_LAYER_CACHE_NAMESPACE", namespace)
-    bind: Mock = Mock()
-    bind.engine.url = make_url(
-        "postgresql+psycopg2://web:old@metadata:5432/superset?application_name=web"
-    )
+    bind: Engine = session.get_bind().engine
     view: SemanticView = SemanticView(semantic_layer=layer)
-    with patch.object(session, "get_bind", return_value=bind):
+    with patch.object(
+        bind,
+        "url",
+        make_url(
+            "postgresql+psycopg2://web:old@metadata:5432/superset?application_name=web"
+        ),
+    ):
         web_key: list[Hashable] = view.get_extra_cache_keys({})
         session.info.clear()
-        bind.engine.url = make_url(
+        bind.url = make_url(
             "postgresql://worker:new@metadata:5432/superset?application_name=celery"
         )
         monkeypatch.setitem(app.config, "SECRET_KEY", "rotated-for-task")

@@ -38,6 +38,7 @@ export function getDrillPayload(
     ...ensureIsArray(drillFilters).map(f => omit(f, 'formattedVal')),
   ];
   return {
+    viz_type: queryFormData.viz_type,
     granularity: queryObject.granularity,
     time_range: queryObject.time_range,
     filters,

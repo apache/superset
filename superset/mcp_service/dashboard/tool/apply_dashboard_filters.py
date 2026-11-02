@@ -318,7 +318,7 @@ def _unknown_values_error(
                 f"Closest matches for '{_value_label(value)}': "
                 f"{_quote_values(suggestions)}."
             )
-    if not any(suggestions for _, suggestions in unknown):
+    if not all(suggestions for _, suggestions in unknown):
         shown = sorted(candidates, key=_value_label)[:_MAX_VALUE_SUGGESTIONS]
         if not shown:
             message.append(
@@ -330,8 +330,10 @@ def _unknown_values_error(
         prefix = "Available values" if complete else "Available values include"
         message.append(f"{prefix}: {_quote_values(shown)}{total}.")
     message.append(
-        "Tell the user the value was not found and offer these values instead "
-        "of reporting the filter as applied."
+        "Tell the user the value was not found. If a listed value plausibly "
+        "means what they asked for, name it (or the few that might) and ask "
+        "whether to apply it instead of listing every value; otherwise ask "
+        "which value they want. Do not report the filter as applied."
     )
     return _FilterApplyError(" ".join(message))
 
@@ -799,12 +801,14 @@ async def apply_dashboard_filters(
 ) -> ApplyDashboardFiltersResponse:
     """
     Apply values to a dashboard's existing native filters for this user.
+    If a value is rejected, propose the listed value the user likely meant
+    and ask before applying it.
 
     Use this to answer "show me the dashboard filtered to X". It returns a
-    shareable ``/dashboard/p/<key>/`` permalink that opens the dashboard
-    with the requested values already applied. The dashboard's saved
-    configuration is NOT modified and no other viewer is affected -- to
-    add, change, or remove the filters themselves, use
+    shareable ``/dashboard/p/<key>/`` permalink. The link opens the
+    dashboard with the requested values already applied. The dashboard's
+    saved configuration is NOT modified and no other viewer is affected --
+    to add, change, or remove the filters themselves, use
     manage_native_filters instead.
 
     Target each filter by its display name (matched case-insensitively) or
@@ -813,9 +817,10 @@ async def apply_dashboard_filters(
     are supported. Supply ``values`` for a filter_select filter (an empty
     list clears it, and a single-select filter accepts at most one value;
     values are checked against readable column options and an unknown value
-    fails with values to offer the user; values that cannot be verified are
-    kept unchanged, not certified as present), ``time_range`` for a filter_time
-    filter, ``range`` as a ``[lower, upper]`` pair for a filter_range filter
+    is rejected, listing column values when available; values that cannot
+    be verified are kept unchanged, not certified as present),
+    ``time_range`` for a filter_time filter, ``range`` as a
+    ``[lower, upper]`` pair for a filter_range filter
     (either bound may be null, and ``[null, null]`` clears it), and
     ``time_grain`` as a list of at most one value for a filter_timegrain
     filter (an empty list clears it). Filters
@@ -827,12 +832,19 @@ async def apply_dashboard_filters(
     for filters the dashboard no longer defines, which are dropped. Omit the
     base key to start over. An unresolved base key fails without creating a link.
 
+    Select values are dataset-specific labels; a rejected request applies
+    nothing. Name the listed value that most plausibly means what the user
+    asked for (e.g. an abbreviation or alternate name), or the few that
+    might, and ask the user to confirm instead of repeating the whole list.
+    If none fits or none is listed, ask for the exact value. Never report a
+    rejected filter as applied.
+
     Example usage:
     ```json
     {
         "dashboard_id": 123,
         "filters": [
-            {"filter_name_or_id": "Region", "values": ["EMEA", "APAC"]},
+            {"filter_name_or_id": "Region", "values": ["Europe", "North America"]},
             {"filter_name_or_id": "Time Range", "time_range": "Last month"},
             {"filter_name_or_id": "Cost", "range": [10, 100]},
             {"filter_name_or_id": "Granularity", "time_grain": ["P1D"]}

@@ -33,7 +33,8 @@ export type Props = {
   stackTrace?: string;
 } & Omit<ClientErrorObject, 'error'>;
 
-const DEFAULT_CHART_ERROR = t('Data error');
+const DEFAULT_CHART_ERROR_DETAIL = t('Data error');
+const DEFAULT_CHART_ERROR = t('Error: %s', DEFAULT_CHART_ERROR_DETAIL);
 
 export const ChartErrorMessage: FC<Props> = ({ chartId, error, ...props }) => {
   // fetches the chart editors and adds them to the extra data of the error message

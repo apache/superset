@@ -18,7 +18,7 @@ from typing import Any
 
 from flask import current_app, g
 from flask_babel import lazy_gettext as _
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Query
 from sqlalchemy.sql.expression import cast
 from sqlalchemy.sql.sqltypes import JSON
@@ -103,5 +103,37 @@ class DatabaseUploadEnabledFilter(BaseFilter):  # pylint: disable=too-few-public
                 cast(Database.extra, JSON)["schemas_allowed_for_file_upload"]
                 is not None,
                 cast(Database.extra, JSON)["schemas_allowed_for_file_upload"] != [],
+            )
+        )
+
+
+class DatabaseOAuth2TokensUserFilter(BaseFilter):
+    """Search credential owners using the standard FAB filtering protocol."""
+
+    name = _("User")
+    arg_name = "oauth2_tokens_user"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        """Match username, full name or email without selecting token secrets."""
+        if not value:
+            return query
+        user = security_manager.user_model
+        full_name = func.trim(
+            func.coalesce(user.first_name, "") + " " + func.coalesce(user.last_name, "")
+        )
+        return query.filter(
+            self.model.user.has(
+                or_(
+                    *(
+                        column.ilike(f"%{value}%")
+                        for column in (
+                            user.username,
+                            user.first_name,
+                            user.last_name,
+                            user.email,
+                            full_name,
+                        )
+                    )
+                )
             )
         )

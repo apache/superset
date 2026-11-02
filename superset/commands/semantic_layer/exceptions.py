@@ -77,7 +77,7 @@ class SemanticViewDeleteFailedError(DeleteFailedError):
 
 
 class SemanticDeleteDependentsError(CommandException):
-    """A semantic view or layer still has live dependent assets."""
+    """A semantic view or layer still has live or archived dependent assets."""
 
     status: int = 409
 
@@ -86,17 +86,32 @@ class SemanticDeleteDependentsError(CommandException):
         total: int,
         dependents: list[dict[str, str | int]],
         inaccessible_count: int = 0,
+        archived_count: int = 0,
     ) -> None:
+        self.archived_count: int = archived_count
         self.total: int = total
         self.dependents: list[dict[str, str | int]] = dependents
         self.inaccessible_count: int = inaccessible_count
-        super().__init__(
-            ngettext(
-                "Semantic source is used by %(count)s dependent asset "
-                "and cannot be deleted.",
-                "Semantic source is used by %(count)s dependent assets "
-                "and cannot be deleted.",
-                total,
-                count=total,
-            )
+        message: str = ngettext(
+            "Semantic source is used by %(count)s dependent asset "
+            "and cannot be deleted.",
+            "Semantic source is used by %(count)s dependent assets "
+            "and cannot be deleted.",
+            total,
+            count=total,
         )
+        message += " " + _(
+            "Remove or repoint these assets before deleting the semantic source."
+        )
+        if archived_count:
+            message += " " + ngettext(
+                "%(count)s dependent asset is archived.",
+                "%(count)s dependent assets are archived.",
+                archived_count,
+                count=archived_count,
+            )
+            message += " " + _(
+                "Go to Recently Archived to restore and repoint archived assets, "
+                "or delete them permanently, or ask an admin for help."
+            )
+        super().__init__(message)

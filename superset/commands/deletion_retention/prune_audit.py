@@ -129,6 +129,7 @@ from superset.models.purge_audit_log import (
     STATUS_PENDING,
     STATUS_TARGET_ABSENT,
 )
+from superset.utils.core import remove_duplicates
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -1051,7 +1052,7 @@ def _delete_batch(
     # (sc-120493). Pairs are bounded by len(ids) <= MAX_BATCH_SIZE.
     scope_entities: list[tuple[str, str | None]] | None = None
     if needs_entity_scope:
-        scope_entities = list(dict.fromkeys((row[1], row[2]) for row in hints))
+        scope_entities = remove_duplicates((row[1], row[2]) for row in hints)
     db.session.rollback()  # pylint: disable=consider-using-transaction
     acquire_coordination_lock(db.session)
     # Locked re-check as a SELECT, then a literal-id DELETE. With the lock held

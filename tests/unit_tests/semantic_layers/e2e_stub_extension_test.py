@@ -18,7 +18,7 @@
 """The Playwright semantic stub loads as an extension and serves host queries."""
 
 from collections.abc import Callable, Iterator
-from typing import Any
+from typing import Any, TypeVar
 from uuid import uuid4
 
 import pytest
@@ -34,6 +34,7 @@ from superset_core.semantic_layers.types import (
     Filter,
     Metric,
     Operator,
+    OrFilter,
     PredicateType,
     SemanticQuery,
     SemanticResult,
@@ -67,7 +68,7 @@ def _chart_data(client: FlaskClient, filters: list[dict[str, Any]]) -> TestRespo
 
 
 def test_stub_registers_through_the_extension_loader(
-    stub_layer: type[SemanticLayer[Any, Any]],
+    stub_layer: type[Any],
 ) -> None:
     """The stub carries the extension-prefixed type that seeding code uses."""
     assert stub_layer.name == "E2E Semantic Stub"
@@ -160,14 +161,17 @@ def test_unsupported_operator_fails_loudly(
     assert "does not support" in str(response.json)
 
 
-class _OrderedFilters(set[Filter]):
+_FilterT = TypeVar("_FilterT")
+
+
+class _OrderedFilters(set[_FilterT]):
     """Exercise both legal set iteration orders without depending on hash seeds."""
 
-    def __init__(self, filters: tuple[Filter, ...]) -> None:
+    def __init__(self, filters: tuple[_FilterT, ...]) -> None:
         super().__init__(filters)
-        self._ordered: tuple[Filter, ...] = filters
+        self._ordered: tuple[_FilterT, ...] = filters
 
-    def __iter__(self) -> Iterator[Filter]:
+    def __iter__(self) -> Iterator[_FilterT]:
         return iter(self._ordered)
 
 
@@ -192,11 +196,14 @@ def test_unsupported_filter_is_rejected_even_when_other_filter_matches_no_rows(
         Operator.LIKE if invalid_kind == "operator" else Operator.EQUALS,
         "B%",
     )
-    filters: set[Filter] = _OrderedFilters(
+    ordered: tuple[Filter, ...] = (
         (invalid, empty) if invalid_first else (empty, invalid)
     )
+    filters: set[Filter] = _OrderedFilters(ordered)
     query: SemanticQuery = SemanticQuery(
-        metrics=[metric], dimensions=[dimensions["category"]], filters=filters
+        metrics=[metric],
+        dimensions=[dimensions["category"]],
+        filters=_OrderedFilters(ordered),
     )
     execute: Callable[[], SemanticResult] = {
         "values": lambda: stub_view.get_values(dimensions["category"], filters),
@@ -218,3 +225,22 @@ def test_supported_filter_can_return_an_empty_result(
     assert response.status_code == 200, response.json
     assert response.json is not None
     assert response.json["result"][0]["data"] == []
+
+
+def test_or_filter_group_is_rejected(stub_view: SemanticViewABC) -> None:
+    """The stub cannot evaluate OR groups, so it refuses instead of crashing."""
+    region: Dimension = next(d for d in stub_view.get_dimensions() if d.id == "region")
+    group: OrFilter = OrFilter(
+        frozenset(
+            {
+                Filter(PredicateType.WHERE, region, Operator.EQUALS, "East"),
+                Filter(PredicateType.WHERE, region, Operator.EQUALS, "West"),
+            }
+        )
+    )
+    query: SemanticQuery = SemanticQuery(
+        metrics=list(stub_view.get_metrics()), dimensions=[region], filters={group}
+    )
+    with pytest.raises(SemanticQueryRejectedError) as excinfo:
+        stub_view.get_table(query)
+    assert excinfo.value.code == SemanticQueryErrorCode.UNSUPPORTED_QUERY

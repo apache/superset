@@ -18,6 +18,7 @@ import io
 from datetime import datetime
 from typing import Any, Optional
 
+import numpy as np
 import pandas as pd
 
 from superset.utils.core import GenericDataType
@@ -196,6 +197,20 @@ def df_to_excel(
     return output.getvalue()
 
 
+def _large_number_as_text(value: Any) -> Any:
+    """
+    Return numbers Excel cannot hold exactly as text, everything else unchanged.
+
+    NumPy integers are boxed to Python integers first: ``abs`` of the NumPy
+    minimum would overflow and ``str`` of a rounded float would lose digits.
+    """
+    if isinstance(value, np.integer):
+        value = int(value)
+    if isinstance(value, (int, float)) and abs(value) > 10**15:
+        return str(value)
+    return value
+
+
 def apply_column_types(
     df: pd.DataFrame, column_types: list[GenericDataType]
 ) -> pd.DataFrame:
@@ -219,19 +234,23 @@ def apply_column_types(
         series = df.iloc[:, idx]
         if column_type == GenericDataType.NUMERIC:
             try:
-                # Nullable integers retain exact values alongside blank totals.
-                # Convert to object before apply, which would otherwise coerce
-                # nullable integers through float64 during scalar mapping.
-                series = pd.to_numeric(series, dtype_backend="numpy_nullable").astype(
-                    object
-                )
+                # Object columns of integers already hold exact Python (or NumPy)
+                # integers, including values beyond int64 that ``to_numeric``
+                # would round to float64 when the column has nulls: leave them.
+                if not (
+                    series.dtype == object
+                    and pd.api.types.infer_dtype(series, skipna=True) == "integer"
+                ):
+                    # Nullable integers retain exact values alongside blank
+                    # totals. Convert to object before apply, which would
+                    # otherwise coerce nullable integers through float64 during
+                    # scalar mapping.
+                    series = pd.to_numeric(
+                        series, dtype_backend="numpy_nullable"
+                    ).astype(object)
                 # if the number is too large, convert it to a string
                 # Excel does not support numbers larger than 10^15
-                series = series.apply(
-                    lambda x: (
-                        str(x) if isinstance(x, (int, float)) and abs(x) > 10**15 else x
-                    )
-                )
+                series = series.apply(_large_number_as_text)
             except ValueError:
                 series = series.astype(str)
         elif isinstance(series.dtype, pd.DatetimeTZDtype):

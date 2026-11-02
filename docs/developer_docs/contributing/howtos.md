@@ -173,6 +173,9 @@ npm run test -- --watch
 
 # Run specific test file
 npm run test -- MyComponent.test.tsx
+
+# Cap the worker pool (default is 80% of cores) on a shared or busy machine
+JEST_MAX_WORKERS=2 npm run test -- MyComponent.test.tsx
 ```
 
 ### E2E Integration Testing

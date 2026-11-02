@@ -45,6 +45,8 @@ import {
   ConditionalFormattingConfig,
   getColorFormatters,
   ColorSchemeEnum,
+  normalizeColumnConfigKeys,
+  getKnownColumnConfigKeys,
   resolveHeaderGroups,
   toTotalsAggregate,
 } from '@superset-ui/chart-controls';
@@ -428,6 +430,11 @@ const processColumns = memoizePerChart(function processColumns(
   const metricsSet = new Set(metrics);
   const percentMetricsSet = new Set(percentMetrics);
   const rawPercentMetricsSet = new Set(rawPercentMetrics);
+  const normalizedColumnConfig = normalizeColumnConfigKeys(
+    columnConfig,
+    colnames || [],
+    getKnownColumnConfigKeys(colnames || [], props.datasource),
+  );
 
   const columns: DataColumnMeta[] = (colnames || [])
     .map((key: string, originalIndex: number) => ({ key, originalIndex }))
@@ -442,7 +449,7 @@ const processColumns = memoizePerChart(function processColumns(
       // an earlier column (e.g. a percent-metric-only one) got filtered
       // out, which would otherwise shift every later column's dataType.
       const dataType = coltypes[originalIndex];
-      const config = columnConfig[key] || {};
+      const config = normalizedColumnConfig[key] || {};
       // for the purpose of presentation, only numeric values are treated as metrics
       // because users can also add things like `MAX(str_col)` as a metric.
       const isMetric = metricsSet.has(key) && isNumeric(key, records);
