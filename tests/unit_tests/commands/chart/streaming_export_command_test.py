@@ -17,16 +17,21 @@
 """Unit tests for Chart Streaming CSV Export Command."""
 
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Iterator
 
 import pytest
-from flask import g
+from flask import g, has_request_context
+from flask_appbuilder.security.sqla.models import User
 from flask_login import current_user
 from pytest_mock import MockerFixture
+from sqlalchemy.orm import Session
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 from superset.commands.chart.data.streaming_export_command import (
     StreamingCSVExportCommand,
 )
+from superset.commands.streaming_export.base import _reload_detached_acting_user
+from superset.security.guest_token import GuestUser
 from superset.utils.core import get_user_id, get_username
 
 
@@ -64,7 +69,6 @@ def test_streaming_csv_export_command_init(mocker: MockerFixture) -> None:
 
     assert command._query_context == query_context
     assert command._chunk_size == 500
-    assert command._current_app is not None
 
 
 def test_streaming_csv_export_command_default_chunk_size(
@@ -386,18 +390,17 @@ def test_streaming_export_mutation_does_not_double_apply(
     )
 
 
-def test_streaming_export_keeps_acting_user_after_request_context_ends(
+def test_streaming_export_runs_in_its_request_context_after_the_view_returns(
     app: Any,
     mocker: MockerFixture,
 ) -> None:
     """
-    Flask-AppBuilder's ``before_request`` sets ``g.user = current_user``, a
-    Flask-Login ``LocalProxy`` that resolves to ``None`` outside a request
-    context. Werkzeug iterates a streaming response body *after* the request
-    context is popped, so copying that proxy into the generator's fresh app
-    context yields a user-less ``g``: ``Database._get_sqla_engine`` then sees
-    ``hasattr(g.user, "id") is False`` and builds the engine with
-    ``access_token=None``, silently dropping the per-user OAuth2 token.
+    The WSGI server iterates a streaming body only after the view has returned and
+    the request context has been popped. The export must still run as part of
+    that request: as the acting user, which Flask-AppBuilder exposes as
+    ``g.user = current_user`` (a Flask-Login proxy that resolves to ``None``
+    outside a request), and with the request context active, since engine
+    specs such as Snowflake only use the user's OAuth2 token inside a request.
     """
     _mock_db, query_context, datasource = _setup_chart_mocks(mocker)
 
@@ -412,12 +415,12 @@ def test_streaming_export_keeps_acting_user_after_request_context_ends(
     engine = mocker.MagicMock()
     engine.connect.return_value = connection
 
-    # Record the acting user at the moment the engine is acquired -- the point
-    # where the real Database._get_sqla_engine resolves the OAuth2 access token.
-    seen: list[tuple[str | None, int | None]] = []
+    # Record the request state at the moment the engine is acquired -- the
+    # point where the real Database._get_sqla_engine resolves the OAuth2 token.
+    seen: list[tuple[str | None, int | None, bool]] = []
 
     def fake_get_sqla_engine(*args: Any, **kwargs: Any) -> Any:
-        seen.append((get_username(), get_user_id()))
+        seen.append((get_username(), get_user_id(), has_request_context()))
         cm = mocker.MagicMock()
         cm.__enter__.return_value = engine
         cm.__exit__.return_value = None
@@ -427,15 +430,203 @@ def test_streaming_export_keeps_acting_user_after_request_context_ends(
 
     user = SimpleNamespace(id=42, username="alice")
 
-    with app.test_request_context("/"):
+    # Like Flask's wsgi_app, the request pushes (and tears down) its own app
+    # context, so nothing it put on ``g`` outlives it by accident.
+    with app.app_context(), app.test_request_context("/"):
         g._login_user = user
         g.user = current_user  # exactly what Flask-AppBuilder's before_request does
         assert (get_username(), get_user_id()) == ("alice", 42)
 
+        # The view builds the response body...
         command = StreamingCSVExportCommand(query_context, chunk_size=10)
-        csv_generator_callable = command.run()
+        stream = command.run()()
 
-    # The request context is gone by the time the body is streamed.
-    list(csv_generator_callable())
+    # ...which is streamed once the request context is gone.
+    assert not has_request_context()
+    assert "".join(stream).splitlines() == ["id", "1"]
 
-    assert seen == [("alice", 42)]
+    assert seen == [("alice", 42, True)]
+
+
+def test_streaming_export_reloads_a_detached_acting_user(
+    app: Any,
+    session: Session,
+    mocker: MockerFixture,
+) -> None:
+    """
+    By the time the body is streamed, the metadata session that loaded the
+    acting user has been removed by the request teardown, and the user has
+    usually been expired by a commit (the event logger commits once the view
+    returns). Reading ``g.user.id`` to find the user's OAuth2 token would then
+    raise ``DetachedInstanceError`` unless the export loads the user again.
+    """
+    User.__table__.create(session.get_bind())
+    user = User(
+        first_name="Alice",
+        last_name="Doe",
+        username="alice",
+        email="alice@example.com",
+        active=True,
+    )
+    session.add(user)
+    session.commit()
+    user_id = user.id
+    session.expire(user)
+    session.close()
+    with pytest.raises(DetachedInstanceError):
+        _ = user.id
+
+    seen: list[tuple[str | None, int | None, str]] = []
+
+    def fake_execute_query_and_stream(
+        self: StreamingCSVExportCommand, *args: Any, **kwargs: Any
+    ) -> Iterator[str]:
+        seen.append((get_username(), get_user_id(), current_user.username))
+        yield "id\n"
+
+    mocker.patch.object(
+        StreamingCSVExportCommand,
+        "_execute_query_and_stream",
+        fake_execute_query_and_stream,
+    )
+
+    # Like Flask's wsgi_app, the request pushes (and tears down) its own app
+    # context, so nothing it put on ``g`` outlives it by accident.
+    with app.app_context(), app.test_request_context("/"):
+        g._login_user = user
+        g.user = current_user
+        stream = StreamingCSVExportCommand(mocker.MagicMock()).run()()
+
+    assert list(stream) == ["id\n"]
+    assert seen == [("alice", user_id, "alice")]
+
+
+def _detached_user(session: Session) -> User:
+    """A persisted user, detached and expired as the request teardown leaves it."""
+    User.__table__.create(session.get_bind(), checkfirst=True)
+    user = User(
+        first_name="Alice",
+        last_name="Doe",
+        username="alice",
+        email="alice@example.com",
+        active=True,
+    )
+    session.add(user)
+    session.commit()
+    session.expire(user)
+    session.close()
+    return user
+
+
+def test_streaming_export_fails_closed_when_the_acting_user_is_gone(
+    app: Any,
+    session: Session,
+    mocker: MockerFixture,
+) -> None:
+    """
+    If the acting user was deleted before the body is streamed, the export must
+    not go ahead without a user: impersonating databases would then connect with
+    the connection's own credentials.
+    """
+    user = _detached_user(session)
+    session.query(User).delete()
+    session.commit()
+
+    execute = mocker.patch.object(
+        StreamingCSVExportCommand, "_execute_query_and_stream"
+    )
+
+    with app.app_context(), app.test_request_context("/"):
+        g._login_user = user
+        g.user = current_user
+        stream = StreamingCSVExportCommand(mocker.MagicMock()).run()()
+
+    assert "".join(stream).startswith("__STREAM_ERROR__:")
+    execute.assert_not_called()
+
+
+def test_reload_detached_acting_user_leaves_other_users_alone(
+    app: Any,
+    session: Session,
+) -> None:
+    """Only a detached ORM user is reloaded; anything else on ``g.user`` stays."""
+    User.__table__.create(session.get_bind(), checkfirst=True)
+    attached = User(
+        first_name="Bob",
+        last_name="Doe",
+        username="bob",
+        email="bob@example.com",
+        active=True,
+    )
+    session.add(attached)
+    session.commit()
+
+    guest = GuestUser(
+        token={
+            "iat": 0,
+            "exp": 0,
+            "user": {"username": "guest"},
+            "resources": [],
+            "rls_rules": [],
+        },
+        roles=[],
+    )
+    for user in (attached, guest, None):
+        g.user = user
+        _reload_detached_acting_user()
+        assert g.user is user
+
+
+def test_streaming_export_commits_before_streaming_rows(mocker: MockerFixture) -> None:
+    """
+    Building the engine can refresh the user's OAuth2 token, which is only staged
+    on the session. It must be committed before the rows stream: closing the
+    session would otherwise roll it back (spending a single-use refresh token),
+    and the metadata transaction would stay open for the whole export.
+    """
+    mock_db, query_context, datasource = _setup_chart_mocks(mocker)
+    mock_session = mock_db.session.return_value.__enter__.return_value
+
+    result_proxy = mocker.MagicMock()
+    result_proxy.keys.return_value = ["id"]
+    result_proxy.fetchmany.side_effect = [[(1,)], []]
+    connection = mocker.MagicMock()
+    connection.execution_options.return_value.execute.return_value = result_proxy
+    connection.__enter__.return_value = connection
+    connection.__exit__.return_value = None
+
+    def connect() -> Any:
+        mock_session.commit.assert_called_once()
+        return connection
+
+    engine = mocker.MagicMock()
+    engine.connect.side_effect = connect
+    datasource.database.get_sqla_engine.return_value.__enter__.return_value = engine
+
+    stream = StreamingCSVExportCommand(query_context).run()()
+
+    assert "".join(stream).splitlines() == ["id", "1"]
+    mock_session.commit.assert_called_once()
+
+
+def test_streaming_export_leaves_no_request_context_behind(
+    app: Any,
+    mocker: MockerFixture,
+) -> None:
+    """
+    A body the server never iterates (the response failed after the view
+    returned, say) must not leave the request's contexts pushed on the worker
+    thread, where later requests would inherit its ``g`` and logged-in user.
+    """
+    mocker.patch.object(
+        StreamingCSVExportCommand,
+        "_execute_query_and_stream",
+        return_value=iter(()),
+    )
+
+    with app.app_context(), app.test_request_context("/"):
+        stream = StreamingCSVExportCommand(mocker.MagicMock()).run()()
+
+    assert not has_request_context()
+    del stream
+    assert not has_request_context()

@@ -24,13 +24,14 @@ import io
 import logging
 import time
 from abc import abstractmethod
-from contextlib import contextmanager
 from decimal import Decimal
 from numbers import Real
-from typing import Any, Callable, Generator, Iterable
+from typing import Any, Callable, Generator, Iterable, Iterator
 
-from flask import current_app as app, g, has_app_context
-from sqlalchemy import text
+from flask import current_app as app, g
+from flask.globals import _cv_app, _cv_request
+from sqlalchemy import inspect, text
+from sqlalchemy.orm import InstanceState
 from werkzeug.local import LocalProxy
 
 from superset import db
@@ -40,56 +41,39 @@ from superset.utils.csv import escape_value, format_decimal
 logger = logging.getLogger(__name__)
 
 
-def capture_g_context() -> dict[str, Any]:
+def _reload_detached_acting_user() -> None:
     """
-    Snapshot ``flask.g`` so a streaming generator can replay it later.
+    Load the acting user again if it is detached from the metadata session.
 
-    Values held on ``g`` may be request-bound ``LocalProxy`` objects rather
-    than plain values. The most important one is ``g.user``, which
-    Flask-AppBuilder's ``before_request`` sets to Flask-Login's
-    ``current_user``: that proxy resolves through ``has_request_context()``
-    and therefore evaluates to ``None`` once the request context is gone,
-    which is exactly the situation the generator runs in.
+    The WSGI server only iterates a streaming body after the view has
+    returned, and by then Flask has torn the request down, removing the
+    metadata session that loaded ``g.user``. Any attribute that session
+    expired (the event logger commits once the view returns), even
+    ``g.user.id``, which is how the user's OAuth2 token is looked up, would
+    then raise ``DetachedInstanceError``.
 
-    Copying such a proxy verbatim would hand the generator a ``g.user`` that
-    silently resolves to nobody, so resolve each proxy to the concrete object
-    it currently points at while the request context is still around.
-
-    Returns:
-        Dictionary of g attributes, with request-bound proxies resolved
+    The user is loaded again by primary key rather than merged, so values read
+    during the request are never written back by a later commit. Users that
+    are not ORM instances, such as embedded guest users, are left as they are.
     """
-    if not has_app_context():
-        return {}
+    user = getattr(g, "user", None)
+    if isinstance(user, LocalProxy):
+        # Flask-AppBuilder sets ``g.user`` to Flask-Login's ``current_user``.
+        user = user._get_current_object()
 
-    captured: dict[str, Any] = {}
-    for key, value in g._get_current_object().__dict__.items():
-        if isinstance(value, LocalProxy):
-            try:
-                value = value._get_current_object()
-            except RuntimeError:
-                # Nothing is bound to the proxy, so there is no value worth
-                # carrying into the generator.
-                continue
-        captured[key] = value
-    return captured
+    state = inspect(user, raiseerr=False)
+    if not isinstance(state, InstanceState) or not state.detached:
+        return
 
-
-@contextmanager
-def preserve_g_context(
-    captured_g: dict[str, Any],
-) -> Generator[None, None, None]:
-    """
-    Context manager that restores captured flask.g attributes.
-
-    This is needed for streaming responses where the generator runs in a new
-    app context but needs access to request-scoped data from the original request.
-
-    Args:
-        captured_g: Dictionary of g attributes captured by capture_g_context()
-    """
-    for key, value in captured_g.items():
-        setattr(g, key, value)
-    yield
+    reloaded = db.session.get(state.class_, state.identity)
+    if reloaded is None:
+        # Fail closed: without a user, impersonation falls back to the
+        # connection's own credentials.
+        raise RuntimeError("The user running the export no longer exists")
+    g.user = reloaded
+    if getattr(g, "_login_user", None) is user:
+        # Keep Flask-Login's ``current_user`` on the same, reloaded user.
+        g._login_user = reloaded
 
 
 def encode_csv_stream(
@@ -141,7 +125,6 @@ class BaseStreamingCSVExportCommand(BaseCommand):
             chunk_size: Number of rows to fetch per database query (default: 1000)
         """
         self._chunk_size = chunk_size
-        self._current_app = app._get_current_object()
 
     @abstractmethod
     def _get_sql_and_database(self) -> tuple[str, Any, str | None, str | None]:
@@ -338,6 +321,13 @@ class BaseStreamingCSVExportCommand(BaseCommand):
             with merged_database.get_sqla_engine(
                 catalog=catalog, schema=schema
             ) as engine:
+                # Building the engine may have refreshed the user's OAuth2
+                # token, which is only staged on the session. Commit it, as the
+                # buffered export's query logging does, instead of losing it
+                # when the session closes (a single-use refresh token would be
+                # spent), and so no metadata transaction is held open while the
+                # rows stream.
+                session.commit()  # pylint: disable=consider-using-transaction
                 with engine.connect() as connection:
                     result_proxy = connection.execution_options(
                         stream_results=True
@@ -378,41 +368,68 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                         total_time,
                     )
 
-    def run(self) -> Callable[[], Generator[str, None, None]]:
+    def run(self) -> Callable[[], Iterator[str]]:
         """
         Execute the streaming CSV export.
 
         Returns:
-            A callable that returns a generator yielding CSV data chunks as strings.
-            The callable is needed to maintain Flask app context during streaming.
+            A callable that returns an iterator yielding CSV data chunks as
+            strings. Call it while handling the request: the iterator then
+            runs the export inside that request's context, even though the
+            body is only streamed once the view has returned. Outside a
+            request, consume the iterator inside the caller's app context.
         """
         # Load all needed data while session is still active
         # to avoid DetachedInstanceError
         sql, database, catalog, schema = self._get_sql_and_database()
         limit = self._get_row_limit()
-        # Capture flask.g attributes to preserve request-scoped data
-        # when the streaming generator runs in a new app context.
-        captured_g = capture_g_context()
 
         def csv_generator() -> Generator[str, None, None]:
             """Generator that yields CSV data chunks."""
-            with self._current_app.app_context():
-                with preserve_g_context(captured_g):
-                    try:
-                        yield from self._execute_query_and_stream(
-                            sql, database, limit, catalog, schema
-                        )
-                    except Exception as e:
-                        logger.error("Error in streaming CSV generator: %s", e)
-                        import traceback
+            try:
+                _reload_detached_acting_user()
+                yield from self._execute_query_and_stream(
+                    sql, database, limit, catalog, schema
+                )
+            except Exception as e:
+                logger.error("Error in streaming CSV generator: %s", e)
+                import traceback
 
-                        logger.error("Traceback: %s", traceback.format_exc())
+                logger.error("Traceback: %s", traceback.format_exc())
 
-                        # Send error marker for frontend to detect
-                        error_marker = (
-                            "__STREAM_ERROR__:Export failed. "
-                            "Please try again in some time.\n"
-                        )
-                        yield error_marker
+                # Send error marker for frontend to detect
+                error_marker = (
+                    "__STREAM_ERROR__:Export failed. Please try again in some time.\n"
+                )
+                yield error_marker
 
-        return csv_generator
+        def stream() -> Iterator[str]:
+            """
+            Return the CSV iterator, bound to the current request if any.
+
+            The export runs inside the request it belongs to, as the buffered
+            export does, not merely inside an app context. Code on the
+            connection path depends on it: Snowflake only uses the user's
+            OAuth2 token inside a request, the OAuth2 redirect URI may be
+            built from it, and the query source passed to
+            DB_CONNECTION_MUTATOR is read from it.
+
+            The request's contexts are recorded here and pushed again only
+            while the body is iterated, as ``flask.stream_with_context`` does
+            from Flask 3.1.2. Pushing them up front, as older releases do,
+            leaves them on the worker thread when the response never reaches
+            the server (e.g. an ``after_request`` hook fails), and later
+            requests on that thread would inherit this one's ``g`` and user.
+            """
+            request_context = _cv_request.get(None)
+            if request_context is None:
+                return csv_generator()
+            app_context = _cv_app.get()
+
+            def csv_generator_in_request() -> Generator[str, None, None]:
+                with app_context, request_context:
+                    yield from csv_generator()
+
+            return csv_generator_in_request()
+
+        return stream
