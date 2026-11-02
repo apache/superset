@@ -244,7 +244,7 @@
     "@babel/register": "^7.29.7",
     "@babel/runtime": "^7.29.10",
     "@babel/runtime-corejs3": "^7.29.10",
-    "@babel/types": "^7.29.8",
+    "@babel/types": "^7.29.11",
     "@emotion/babel-plugin": "^11.13.5",
     "@emotion/jest": "^11.14.2",
     "@formatjs/intl-durationformat": "^0.11.1",
