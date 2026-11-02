@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-30 19:32+0000\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -2663,6 +2663,10 @@ msgstr "حدث خطأ أثناء تحميل معلومات لوحة المعلو
 msgid "An error occurred while loading the SQL"
 msgstr "حدث خطأ أثناء تحميل SQL"
 
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
+
 #, fuzzy
 msgid "An error occurred while overwriting the dataset"
 msgstr "حدث خطأ أثناء إنشاء مصدر البيانات"
@@ -4373,9 +4377,6 @@ msgstr "الأعمدة المراد تحليلها كتواريخ"
 #, fuzzy
 msgid "Choose columns to read"
 msgstr "عرض إجمالي الأعمدة"
-
-msgid "Choose current semantic fields"
-msgstr ""
 
 msgid "Choose current semantic filter fields"
 msgstr ""
@@ -8139,6 +8140,10 @@ msgstr "خطأ في تعبير jinja في فلاتر RLS: %(msg)s"
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "خطأ في تعبير jinja في جملة WHERE: %(msg)s"
 
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr "خطأ في تعبير jinja في جملة WHERE: %(msg)s"
@@ -9569,6 +9574,9 @@ msgstr ""
 " عرض بيانات السلاسل الزمنية غير المكتملة."
 
 msgid "Guest"
+msgstr ""
+
+msgid "Guest user cannot access this query"
 msgstr ""
 
 msgid "Guest user cannot modify chart payload"
@@ -13885,6 +13893,12 @@ msgstr "نسبة"
 msgid "Raw records"
 msgstr "السجلات الخام"
 
+msgid "Re-pick fields"
+msgstr ""
+
+msgid "Re-pick fields for this chart"
+msgstr ""
+
 msgid "Rearranged layout"
 msgstr ""
 
@@ -16959,12 +16973,6 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Start field selection using current member IDs. This clears any existing "
-"query and formatting settings. Saved display titles cannot be safely "
-"mapped to member IDs. The saved chart is unchanged until you save."
-msgstr ""
-
-msgid ""
 "Start with row groups collapsed when row subtotals are shown. Each group "
 "can still be expanded with its arrow."
 msgstr ""
@@ -18548,6 +18556,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr "تم إنشاء التقرير"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 #, fuzzy
 msgid "The report will be sent to your email at"
 msgstr "سيتم إرسال لقطة شاشة للوحة القيادة إلى بريدك الإلكتروني على"
@@ -18892,6 +18906,13 @@ msgstr "تم حفظ لوحة المعلومات هذه بنجاح."
 #, fuzzy
 msgid "The user has been updated successfully."
 msgstr "تم حفظ لوحة المعلومات هذه بنجاح."
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 #, fuzzy
 msgid "The user was updated successfully"
@@ -19492,6 +19513,13 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid ""
+"This chart was saved with an older format of field names for this "
+"semantic view, so the fields it refers to can't be confirmed. Re-pick the"
+" metrics and dimensions to keep using it. The saved chart doesn't change "
+"until you save."
+msgstr ""
+
 msgid "This chart was updated to use the restored aggregation"
 msgstr ""
 
@@ -19890,6 +19918,13 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
 msgstr ""
 
 msgid ""
@@ -20766,6 +20801,9 @@ msgid "Unable to load dashboard"
 msgstr "حدد لوحة معلومات"
 
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 msgid ""
