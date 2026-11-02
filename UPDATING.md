@@ -436,6 +436,17 @@ reattached to a reachable container by layout repair.
   loader rejects semantic bundles;
   use the chart, dashboard or assets importer instead.
 
+### Dataset timezone and `DATE` columns
+
+A dataset timezone (`"timezone"` in the dataset's extra settings) no longer
+applies to `DATE` columns, since a date has no time of day. A time filter on a
+`DATE` column keeps the selected days, and its values are shown as stored
+instead of being converted from UTC. This fixes ranges that were one day off and
+days shown at a time of day, often on the day before. The timezone still takes
+precedence over Hours offset. Columns that Superset reads as a date type are
+treated the same even if the database stores a time of day in them, such as
+Oracle `DATE`. `DATETIME` and `TIMESTAMP` columns are not affected.
+
 ### Table and AG Grid server pagination for semantic views
 
 Table and AG Grid Table charts backed by semantic views require the optional `ROW_OFFSET`

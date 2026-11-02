@@ -2070,6 +2070,7 @@ class DateColumn:
     offset: int | None = None
     time_shift: str | None = None
     timezone: str | None = None  # IANA timezone name
+    date_only: bool = False  # e.g. a DATE column, which the timezone cannot move
 
     def __hash__(self) -> int:
         return hash(self.col_label)
@@ -2084,12 +2085,14 @@ class DateColumn:
         offset: int | None,
         time_shift: str | None,
         timezone: str | None = None,
+        date_only: bool = False,
     ) -> DateColumn:
         return cls(
             timestamp_format=timestamp_format,
             offset=offset,
             time_shift=time_shift,
             timezone=timezone,
+            date_only=date_only,
             col_label=DTTM_ALIAS,
         )
 
@@ -2192,8 +2195,9 @@ def normalize_dttm_col(
                 tz = ZoneInfo(_col.timezone)
                 # Naive values are assumed to be UTC; values that already carry
                 # a timezone are converted from it directly
+                # A date has no time of day, so it is left as it is
                 series = df[_col.col_label]
-                if not series.empty and series.notna().any():
+                if not _col.date_only and not series.empty and series.notna().any():
                     df[_col.col_label] = (
                         (
                             series.dt.tz_localize("UTC")
