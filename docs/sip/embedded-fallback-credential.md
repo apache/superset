@@ -115,8 +115,8 @@ deployment which has not opted in keeps its existing behaviour.
 The connection dialog removes the ways to reach that state in the first place: the
 section is offered only when both flags are on *and* the connection uses OAuth2, a
 malformed or incomplete effective credential is rejected on save while both flags are
-enabled, and a credential saved with impersonation off raises an inline warning
-explaining that it is inactive. Form edits replace the stored credential before
+enabled, and a save with impersonation off is refused until the credential is
+cleared, because it would be inactive. Form edits replace the stored credential before
 completeness is checked. The save/test schemas and parameter-validation command use the
 engine's `validate_embedded_credentials` hook, matching query-time rules even for custom credential shapes. The default rule
 rejects whitespace-only usernames without trimming valid credential values.
