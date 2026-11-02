@@ -128,12 +128,18 @@ export default function AssetReview({
   // The live title travels with every read of the change request, so the
   // host does not have to fetch the asset again to find out that what it is
   // showing is the author's proposal rather than what is published.
+  //
+  // Not while Show changes is on. That switch hydrates the whole dashboard
+  // from the proposal, title included, and this would put the title straight
+  // back -- so the one thing the author turned the switch on to see would be
+  // the one thing it did not show.
   const liveTitle = changeRequest?.asset_title;
+  const previewing = preview.showing;
   useEffect(() => {
-    if (liveTitle && onLiveTitle) {
+    if (liveTitle && onLiveTitle && !previewing) {
       onLiveTitle(liveTitle);
     }
-  }, [liveTitle, onLiveTitle]);
+  }, [liveTitle, onLiveTitle, previewing]);
 
   // The edit header asks for review; this component owns the modal. The
   // request is held until the change the save produced has actually loaded,

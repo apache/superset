@@ -28,8 +28,9 @@ jest.mock('./useAssetReview', () => ({
 // in a page's worth of chrome.
 jest.mock('./ReviewBanner', () => () => <div data-test="banner" />);
 jest.mock('./WhatChangedPanel', () => () => null);
+const mockPreview = jest.fn();
 jest.mock('./useProposedPreview', () => ({
-  useProposedPreview: () => ({ canPreview: false, showing: false }),
+  useProposedPreview: () => mockPreview(),
 }));
 
 const changeRequest = (asset_title: string | null) =>
@@ -47,6 +48,8 @@ const changeRequest = (asset_title: string | null) =>
 
 beforeEach(() => {
   mockUseAssetReview.mockReset();
+  mockPreview.mockReset();
+  mockPreview.mockReturnValue({ canPreview: true, showing: false });
 });
 
 test('the asset’s live title is reported to the host', async () => {
@@ -83,6 +86,25 @@ test('a change request with no title reports nothing rather than an empty one', 
     changeRequest: changeRequest(null),
     refresh: jest.fn(),
   });
+  const onLiveTitle = jest.fn();
+
+  render(<AssetReview assetType="dashboard" assetId={6} onLiveTitle={onLiveTitle} />, {
+    useRedux: true,
+  });
+
+  await waitFor(() => expect(onLiveTitle).not.toHaveBeenCalled());
+});
+
+test('nothing is reported while Show changes is on', async () => {
+  // That switch hydrates the whole dashboard from the proposal, title
+  // included. Reporting the live title here would put the title straight
+  // back, so the one thing the author turned the switch on to see would be
+  // the one thing it did not show.
+  mockUseAssetReview.mockReturnValue({
+    changeRequest: changeRequest('Sales Dashboard'),
+    refresh: jest.fn(),
+  });
+  mockPreview.mockReturnValue({ canPreview: true, showing: true });
   const onLiveTitle = jest.fn();
 
   render(<AssetReview assetType="dashboard" assetId={6} onLiveTitle={onLiveTitle} />, {
