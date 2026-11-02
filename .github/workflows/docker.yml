@@ -383,7 +383,7 @@ jobs:
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
       IMAGE_TAG: apache/superset:GHA-${{ matrix.build_preset }}-${{ github.run_id }}
-      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
+      DEVELOCITY_ENABLED: ${{ github.repository == 'apache/superset' && secrets.DEVELOCITY_ACCESS_KEY != '' }}
 
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"

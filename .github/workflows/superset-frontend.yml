@@ -43,7 +43,7 @@ jobs:
     outputs:
       should-run: ${{ steps.check.outputs.frontend }}
     env:
-      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
+      DEVELOCITY_ENABLED: ${{ github.repository == 'apache/superset' && secrets.DEVELOCITY_ACCESS_KEY != '' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -104,7 +104,7 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 20
     env:
-      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
+      DEVELOCITY_ENABLED: ${{ github.repository == 'apache/superset' && secrets.DEVELOCITY_ACCESS_KEY != '' }}
     steps:
       - name: Download Docker Image Artifact
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -198,7 +198,7 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 20
     env:
-      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
+      DEVELOCITY_ENABLED: ${{ github.repository == 'apache/superset' && secrets.DEVELOCITY_ACCESS_KEY != '' }}
     steps:
       - name: Download Docker Image Artifact
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -238,7 +238,7 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 20
     env:
-      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
+      DEVELOCITY_ENABLED: ${{ github.repository == 'apache/superset' && secrets.DEVELOCITY_ACCESS_KEY != '' }}
     steps:
       - name: Download Docker Image Artifact
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -270,7 +270,7 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 25
     env:
-      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
+      DEVELOCITY_ENABLED: ${{ github.repository == 'apache/superset' && secrets.DEVELOCITY_ACCESS_KEY != '' }}
     steps:
       - name: Download Docker Image Artifact
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -315,7 +315,7 @@ jobs:
       pull-requests: write
     env:
       CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
-      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
+      DEVELOCITY_ENABLED: ${{ github.repository == 'apache/superset' && secrets.DEVELOCITY_ACCESS_KEY != '' }}
     steps:
       # Chromatic's onlyChanged (TurboSnap) needs git history to find the
       # baseline commit, hence the deeper checkout.
@@ -389,7 +389,7 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     env:
-      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
+      DEVELOCITY_ENABLED: ${{ github.repository == 'apache/superset' && secrets.DEVELOCITY_ACCESS_KEY != '' }}
     permissions:
       contents: read
       pull-requests: write

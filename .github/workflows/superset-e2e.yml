@@ -72,7 +72,7 @@ jobs:
     env:
       # A dispatch can check out a fork PR or an arbitrary ref while keeping
       # repository secrets, so never expose the Develocity key to that code
-      DEVELOCITY_ENABLED: ${{ github.event_name != 'workflow_dispatch' && secrets.DEVELOCITY_ACCESS_KEY != '' }}
+      DEVELOCITY_ENABLED: ${{ github.repository == 'apache/superset' && github.event_name != 'workflow_dispatch' && secrets.DEVELOCITY_ACCESS_KEY != '' }}
       SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
@@ -362,7 +362,7 @@ jobs:
     env:
       # A dispatch can check out a fork PR or an arbitrary ref while keeping
       # repository secrets, so never expose the Develocity key to that code
-      DEVELOCITY_ENABLED: ${{ github.event_name != 'workflow_dispatch' && secrets.DEVELOCITY_ACCESS_KEY != '' }}
+      DEVELOCITY_ENABLED: ${{ github.repository == 'apache/superset' && github.event_name != 'workflow_dispatch' && secrets.DEVELOCITY_ACCESS_KEY != '' }}
       SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config_gaq
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
