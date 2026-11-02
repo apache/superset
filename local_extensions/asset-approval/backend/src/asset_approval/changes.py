@@ -249,6 +249,63 @@ def extra_is_only_certification(asset: Any, payload: dict[str, Any]) -> bool:
     return bool(moved) and moved <= EXEMPT_EXTRA_KEYS
 
 
+#: The shape the dashboard's native-filter and chart-customization
+#: endpoints post: a diff against the stored configuration rather than the
+#: configuration itself.
+CONFIG_DIFF_KEYS = frozenset({"modified", "deleted", "reordered"})
+
+
+def config_diff_changes_nothing(
+    current: Any, diff: dict[str, Any], *, metadata_key: str
+) -> bool:
+    """Whether applying this diff would leave the configuration as it is.
+
+    Opening the filter modal and pressing Save posts every filter back as
+    "modified" whether or not any of them was touched, so a save that
+    altered nothing still created a request and locked the dashboard --
+    the same cost 129076 removed for full-state bodies, still being paid
+    on the diff ones because a diff cannot be compared with the asset
+    field by field (R4-08).
+
+    Deliberately not a re-implementation of the DAO's merge: it answers the
+    narrower question of whether any entry in the diff asks for something
+    the stored configuration does not already say. Anything it cannot read
+    counts as a change, because a gate is only allowed to be wrong in the
+    direction of capturing too much.
+    """
+    if not isinstance(diff, dict) or not set(diff) <= CONFIG_DIFF_KEYS:
+        return False
+    metadata = _parsed(current)
+    if not isinstance(metadata, dict):
+        return False
+    stored = metadata.get(metadata_key) or []
+    if not isinstance(stored, list):
+        return False
+    by_id = {
+        item.get("id"): item for item in stored if isinstance(item, dict)
+    }
+
+    if any(item_id in by_id for item_id in diff.get("deleted") or []):
+        return False
+
+    for proposed in diff.get("modified") or []:
+        if not isinstance(proposed, dict):
+            return False
+        live = by_id.get(proposed.get("id"))
+        if live is None:
+            # A filter the stored configuration has never seen.
+            return False
+        for field, value in proposed.items():
+            if _parsed(value) != _parsed(live.get(field)):
+                return False
+
+    order = diff.get("reordered") or []
+    if order and list(order) != [item.get("id") for item in stored]:
+        return False
+
+    return True
+
+
 def changed_keys(current: Any, proposed: Any) -> list[str]:
     """Which top-level entries differ between two JSON blobs.
 

@@ -17,6 +17,7 @@ from typing import Any
 
 from asset_approval.changes import (
     changed_fields,
+    config_diff_changes_nothing,
     EXEMPT_FIELDS,
     extra_is_only_certification,
 )
@@ -84,20 +85,14 @@ def install_bindings() -> None:
     # The native-filter and chart-customization sub-commands inherit the
     # capture above but gate on a diff body, which folds into an open draft
     # instead of replacing it.
-    for class_name in (
-        "UpdateDashboardNativeFiltersCommand",
-        "UpdateDashboardChartCustomizationsCommand",
+    for class_name, metadata_key in (
+        ("UpdateDashboardNativeFiltersCommand", "native_filter_configuration"),
+        ("UpdateDashboardChartCustomizationsCommand", "chart_customization_config"),
     ):
         gate_run(
             "superset.commands.dashboard.update",
             class_name,
-            lambda c: gate_write(
-                AssetType.DASHBOARD,
-                c._model.id,
-                _payload(c),
-                command_args={COMMAND_KEY: c.review_command},
-                combine=combine_config_diffs,
-            ),
+            _gate_config_diff(metadata_key),
         )
     gate_run(
         "superset.commands.dashboard.update",
@@ -310,6 +305,35 @@ def install_bindings() -> None:
     )
 
 
+
+
+def _gate_config_diff(metadata_key: str) -> Any:
+    """Gate a sub-command whose body is a diff of one ``json_metadata`` list.
+
+    A diff that asks for nothing the configuration does not already say is
+    not a change to review, and capturing it locked the dashboard over a
+    save the author never made (R4-08). The equivalent check for full-state
+    bodies lives in the gate; a diff can only be measured where the key it
+    describes is known, which is here.
+    """
+
+    def gate(command: Any) -> None:
+        payload = _payload(command)
+        if config_diff_changes_nothing(
+            getattr(command._model, "json_metadata", None),
+            payload,
+            metadata_key=metadata_key,
+        ):
+            return
+        gate_write(
+            AssetType.DASHBOARD,
+            command._model.id,
+            payload,
+            command_args={COMMAND_KEY: command.review_command},
+            combine=combine_config_diffs,
+        )
+
+    return gate
 
 
 def _only_exempt(asset: Any, payload: dict[str, Any]) -> bool:
