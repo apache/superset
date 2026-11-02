@@ -71,6 +71,30 @@ IGNORED_FIELDS = frozenset(
 )
 
 
+#: Entries inside a dashboard's ``json_metadata`` that Superset derives for
+#: itself rather than taking from the author.
+#:
+#: The label-colour maps are recomputed from whichever charts happened to
+#: render, which is why the colours command is already allowed to apply its
+#: background sync directly. Measuring them here would have the gate call a
+#: recomputation an edit.
+DERIVED_METADATA_KEYS = frozenset(
+    {
+        "shared_label_colors",
+        "map_label_colors",
+        "color_scheme_domain",
+    }
+)
+
+#: The dashboard PUT carries the layout inside ``json_metadata`` while the
+#: asset keeps it in a column of its own, so the stored metadata has no
+#: ``positions`` at all and a whole-blob comparison always differs. It is
+#: compared against the column instead, which is exact: an unchanged layout
+#: round-trips to the same thing.
+LAYOUT_KEY = "positions"
+LAYOUT_COLUMN = "position_json"
+
+
 def _parsed(value: Any) -> Any:
     """A JSON string as its data, so ordering and spacing do not count."""
     if isinstance(value, (dict, list)) or value is None:
@@ -190,6 +214,36 @@ def _differs(current: Any, proposed: Any, field: str) -> bool:
     return current != proposed
 
 
+def _metadata_differs(asset: Any, current: Any, proposed: Any) -> bool:
+    """Whether a dashboard's ``json_metadata`` really moved.
+
+    A dashboard save posts more than the author edited: the derived
+    label-colour maps, and the layout, which the stored metadata does not
+    carry. Compared as one blob every save read as a change, so a save that
+    altered nothing still created a request and locked the dashboard, a
+    reviewer's "What changed" named ``json_metadata`` whatever the author
+    had really done, and a save that put a field back to its live value
+    could never be recognised as the revert it was.
+
+    Entry by entry instead, against the place the asset actually keeps each
+    one. Everything the author can set is still compared, so a real edit to
+    any of it still reads as a change.
+    """
+    before, after = _parsed(current), _parsed(proposed)
+    if not isinstance(before, dict) or not isinstance(after, dict):
+        return before != after
+    for key in (set(before) | set(after)) - DERIVED_METADATA_KEYS:
+        was = before.get(key)
+        if key == LAYOUT_KEY and key not in before:
+            was = getattr(asset, LAYOUT_COLUMN, None)
+        now = after.get(key)
+        if _is_nothing(was) and _is_nothing(now):
+            continue
+        if _parsed(was) != _parsed(now):
+            return True
+    return False
+
+
 def changed_fields(asset: Any, payload: dict[str, Any]) -> list[str]:
     """The payload's fields that differ from what is live, in order.
 
@@ -209,7 +263,12 @@ def changed_fields(asset: Any, payload: dict[str, Any]) -> list[str]:
             changed.append(field)
             continue
         try:
-            if _differs(getattr(asset, field), proposed, field):
+            moved = (
+                _metadata_differs(asset, getattr(asset, field), proposed)
+                if field == "json_metadata"
+                else _differs(getattr(asset, field), proposed, field)
+            )
+            if moved:
                 changed.append(field)
         except Exception:  # noqa: BLE001 -- comparison must never block a write
             logger.warning(
@@ -425,21 +484,36 @@ def baseline_of(asset: Any, payload: dict[str, Any]) -> dict[str, Any]:
     return baseline
 
 
+def _blob_without(
+    value: Any, ignored: frozenset[str], *, absent_is_empty: bool = False
+) -> Any:
+    """A JSON column parsed, with some of its entries left out.
+
+    Anything that is not an object comes back as it parsed, so an
+    unreadable blob is still compared rather than quietly becoming empty.
+    """
+    parsed = _parsed(value)
+    if absent_is_empty:
+        parsed = parsed or {}
+    if isinstance(parsed, dict):
+        return {k: v for k, v in parsed.items() if k not in ignored}
+    return parsed
+
+
 def _comparable(value: Any, field: str) -> Any:
     """One field reduced to the form the baseline comparison uses."""
+    if field == "json_metadata":
+        # Without this a background colour sync -- which the gate lets
+        # through on purpose -- would move the baseline under every waiting
+        # dashboard request and make it unapprovable.
+        return _blob_without(value, DERIVED_METADATA_KEYS)
     if field == "extra":
-        # The exempt entries are stripped for the same reason
+        # The exempt entries are left out for the same reason
         # ``baseline_of`` skips the exempt columns: certifying the dataset
         # is allowed to happen while a request waits, and measuring it here
         # would turn that permitted edit into a stale-baseline refusal of
         # the request it coexists with.
-        # An absent blob reads as an empty one, so first certifying a
-        # dataset that had no extra at all does not read as a change
-        # from nothing to something.
-        parsed = _parsed(value) or {}
-        if isinstance(parsed, dict):
-            return {k: v for k, v in parsed.items() if k not in EXEMPT_EXTRA_KEYS}
-        return parsed
+        return _blob_without(value, EXEMPT_EXTRA_KEYS, absent_is_empty=True)
     if field in JSON_FIELDS:
         return _parsed(value)
     if field in NAMED_LIST_FIELDS:
