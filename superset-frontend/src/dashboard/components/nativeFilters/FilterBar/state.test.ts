@@ -160,6 +160,26 @@ test('useInitialization is true immediately when a filter requires first-load', 
   expect(result.current).toBe(true);
 });
 
+test('useInitialization does not treat a non-boolean requiredFirst as required first', () => {
+  jest.useFakeTimers();
+  mockUseSelector({
+    dashboardState: { preselectNativeFilters: {} },
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: [
+          { id: 'NATIVE_FILTER-1', name: 'F1', requiredFirst: {} },
+        ],
+      },
+    },
+    charts: {},
+  });
+
+  const { result } = renderHook(() => useInitialization());
+
+  // Falls through to the no-charts timeout instead of initializing at once.
+  expect(result.current).toBe(false);
+});
+
 test('useInitialization becomes true once every loading chart on the page finishes loading', () => {
   document.body.innerHTML =
     '<div data-ui-anchor="chart"></div><div data-ui-anchor="chart"></div>';
