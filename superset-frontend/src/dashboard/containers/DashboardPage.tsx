@@ -16,17 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createContext, FC, useEffect, useMemo, useRef } from 'react';
+import {
+  createContext,
+  FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { lazyWithRetry } from 'src/utils/lazyWithRetry';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
-import { useTheme } from '@apache-superset/core/theme';
+import { styled, useTheme } from '@apache-superset/core/theme';
+import { Alert } from '@apache-superset/core/components';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import useDashboardFilterSync from 'src/dashboard/useDashboardFilterSync';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { EmptyState, Loading } from '@superset-ui/core/components';
+import { Button, EmptyState, Loading } from '@superset-ui/core/components';
 import {
   useDashboard,
   useDashboardCharts,
@@ -53,15 +62,23 @@ import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
 import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
 import {
-  getFilterValue,
-  getPermalinkValue,
+  fetchFilterValue,
+  fetchPermalinkValue,
 } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import type { DashboardChartStates } from 'src/dashboard/types/chartState';
 import { DashboardDatasetsContext } from 'src/dashboard/contexts/DashboardDatasetsContext';
 
-import { logging } from '@apache-superset/core/utils';
+import { updateDataMask } from 'src/dataMask/actions';
+import {
+  loadSharedFilterState,
+  SharedStateResult,
+} from 'src/dashboard/util/loadSharedFilterState';
+import {
+  holdFilterKeyPublish,
+  releaseFilterKeyPublish,
+} from 'src/dashboard/util/sharedFilterStateHold';
 import { nanoid } from 'nanoid';
 import type { ActiveFilters } from '../types';
 import { RootState } from '../types';
@@ -76,7 +93,14 @@ import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
 import { AutoRefreshProvider } from '../contexts/AutoRefreshContext';
-import { Filter, PartialFilters, SupersetApiError } from '@superset-ui/core';
+import {
+  DataMask,
+  DataMaskStateWithId,
+  Filter,
+  PartialFilters,
+  SupersetApiError,
+} from '@superset-ui/core';
+import type { DashboardPermalinkValue } from 'src/dashboard/types';
 import { RoutePaths } from 'src/views/routePaths';
 import {
   parseRisonFilters,
@@ -101,9 +125,29 @@ const DashboardBuilder = lazyWithRetry(
     ),
 );
 
-// Upper bound on how long the dashboard waits for saved native filter state
-// before loading without it.
-export const NATIVE_FILTER_STATE_TIMEOUT_MS = 5000;
+type SharedStateNotice = 'failed' | 'expired';
+
+type SharedStateSource =
+  | { kind: 'permalink'; key: string }
+  | { kind: 'filterKey'; key: string; dashboardId: number };
+
+const LoadingMessage = styled.div`
+  ${({ theme }) => `
+    position: absolute;
+    left: 50%;
+    top: calc(50% + ${theme.sizeUnit * 12}px);
+    transform: translateX(-50%);
+    color: ${theme.colorTextSecondary};
+  `}
+`;
+
+const fetchSharedState = (source: SharedStateSource, signal: AbortSignal) =>
+  source.kind === 'permalink'
+    ? loadSharedFilterState(s => fetchPermalinkValue(source.key, s), signal)
+    : loadSharedFilterState(
+        s => fetchFilterValue(source.dashboardId, source.key, s),
+        signal,
+      );
 
 type PageProps = {
   idOrSlug: string;
@@ -163,6 +207,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     status,
   } = useDashboardDatasets(idOrSlug);
   const isDashboardHydrated = useRef(false);
+  const [sharedStateNotice, setSharedStateNotice] =
+    useState<SharedStateNotice | null>(null);
+  const [isLoadingSharedState, setIsLoadingSharedState] = useState(false);
+  const [isRetryingSharedState, setIsRetryingSharedState] = useState(false);
+  const sharedStateSource = useRef<SharedStateSource | null>(null);
+  const retryController = useRef<AbortController | null>(null);
 
   const currentDashboardDatasets = useSelector(
     (state: RootState) => state.dashboardInfo.semanticDatasets,
@@ -238,42 +288,45 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       const nativeFilterKeyValue = getUrlParam(URL_PARAMS.nativeFiltersKey);
       const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
 
-      let dataMask = nativeFilterKeyValue || {};
+      let dataMask: DataMaskStateWithId = {};
       // activeTabs is initialized with undefined so that it doesn't override
       // the currently stored value when hydrating
       let activeTabs: string[] | null | undefined;
       let chartStates: DashboardChartStates | null | undefined;
       let anchor: string | undefined;
-      if (permalinkKey) {
-        const permalinkValue = await getPermalinkValue(permalinkKey);
+      let notice: SharedStateNotice | null = null;
+      const source: SharedStateSource | null = permalinkKey
+        ? { kind: 'permalink', key: permalinkKey }
+        : nativeFilterKeyValue
+          ? { kind: 'filterKey', key: nativeFilterKeyValue, dashboardId: id }
+          : null;
+      sharedStateSource.current = source;
+      releaseFilterKeyPublish();
+      setSharedStateNotice(null);
+      if (source) {
+        setIsLoadingSharedState(true);
+        const result = await fetchSharedState(source, controller.signal);
         if (cancelled) return null;
-        if (permalinkValue?.state) {
-          ({ dataMask, activeTabs, anchor } = permalinkValue.state);
-          chartStates = permalinkValue.state.chartStates as
-            | DashboardChartStates
-            | undefined;
+        setIsLoadingSharedState(false);
+        if (result.status === 'ok') {
+          if (source.kind === 'permalink') {
+            const permalinkValue = result.value as DashboardPermalinkValue;
+            if (permalinkValue?.state) {
+              ({ dataMask, activeTabs, anchor } = permalinkValue.state);
+              chartStates = permalinkValue.state.chartStates as
+                | DashboardChartStates
+                | undefined;
+            }
+          } else {
+            dataMask = result.value ?? {};
+          }
+        } else {
+          notice = result.status === 'expired' ? 'expired' : 'failed';
         }
-      } else if (nativeFilterKeyValue) {
-        let timeoutId: ReturnType<typeof setTimeout> | undefined;
-        const timeout = new Promise<null>(resolve => {
-          timeoutId = setTimeout(() => {
-            logging.warn(
-              `Saved native filter state did not load within ${NATIVE_FILTER_STATE_TIMEOUT_MS}ms; loading the dashboard without it.`,
-            );
-            controller.abort();
-            resolve(null);
-          }, NATIVE_FILTER_STATE_TIMEOUT_MS);
-        });
-        try {
-          dataMask =
-            (await Promise.race([
-              getFilterValue(id, nativeFilterKeyValue, controller.signal),
-              timeout,
-            ])) ?? {};
-        } finally {
-          clearTimeout(timeoutId);
-        }
-        if (cancelled) return null;
+      }
+      if (notice) {
+        holdFilterKeyPublish();
+        setSharedStateNotice(notice);
       }
       if (isOldRison) {
         // Normalize legacy `currentState` → `filterState`. Pre-2021 URLs stored
@@ -290,7 +343,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
                 ? { ...entry, filterState: entry.currentState }
                 : entry,
             ]),
-          );
+          ) as DataMaskStateWithId;
         }
       }
 
@@ -380,13 +433,42 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       }
       return null;
     }
-    if (id) getDataMaskApplied();
+    if (id && readyToRender) getDataMaskApplied();
     return () => {
       cancelled = true;
       controller.abort();
+      retryController.current?.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyToRender, id]);
+
+  const retrySharedState = useCallback(async () => {
+    const source = sharedStateSource.current;
+    if (!source) return;
+    retryController.current?.abort();
+    const controller = new AbortController();
+    retryController.current = controller;
+    setIsRetryingSharedState(true);
+    const result: SharedStateResult<unknown> = await fetchSharedState(
+      source,
+      controller.signal,
+    );
+    if (controller.signal.aborted) return;
+    setIsRetryingSharedState(false);
+    if (result.status !== 'ok') {
+      setSharedStateNotice(result.status === 'expired' ? 'expired' : 'failed');
+      return;
+    }
+    const mask =
+      source.kind === 'permalink'
+        ? (result.value as DashboardPermalinkValue)?.state?.dataMask
+        : (result.value as Record<string, DataMask> | null);
+    Object.entries(mask ?? {}).forEach(([filterId, filterMask]) => {
+      dispatch(updateDataMask(filterId, filterMask));
+    });
+    releaseFilterKeyPublish();
+    setSharedStateNotice(null);
+  }, [dispatch]);
 
   // Update document title when dashboard title changes
   useEffect(() => {
@@ -510,6 +592,33 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
                 theme={reduxTheme !== undefined ? reduxTheme : dashboard?.theme}
               >
                 <AutoRefreshProvider>
+                  {sharedStateNotice && (
+                    <Alert
+                      type="warning"
+                      showIcon
+                      closable
+                      onClose={() => setSharedStateNotice(null)}
+                      message={
+                        sharedStateNotice === 'expired'
+                          ? t(
+                              'The filters from this link have expired, so you’re seeing the default view.',
+                            )
+                          : t(
+                              'We couldn’t load the filters from this link, so you’re seeing the default view.',
+                            )
+                      }
+                      action={
+                        sharedStateNotice === 'failed' ? (
+                          <Button
+                            loading={isRetryingSharedState}
+                            onClick={retrySharedState}
+                          >
+                            {t('Try again')}
+                          </Button>
+                        ) : undefined
+                      }
+                    />
+                  )}
                   <DashboardContainer
                     activeFilters={activeFilters as ActiveFilters}
                     ownDataCharts={relevantDataMask}
@@ -522,7 +631,14 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           </DashboardPageIdContext.Provider>
         </>
       ) : (
-        <Loading />
+        <>
+          <Loading />
+          {isLoadingSharedState && (
+            <LoadingMessage>
+              {t('Loading the view shared with you…')}
+            </LoadingMessage>
+          )}
+        </>
       )}
     </>
   );

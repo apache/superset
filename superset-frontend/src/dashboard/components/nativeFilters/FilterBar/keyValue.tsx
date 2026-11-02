@@ -66,29 +66,41 @@ export const createFilterKey = (
       return null;
     });
 
-export const getFilterValue = (
+// Single attempt with no client-side retries, so an aborted request settles
+// immediately. Callers that need retries own them.
+const getOnce = (endpoint: string, signal?: AbortSignal) =>
+  SupersetClient.get({
+    endpoint,
+    signal,
+    fetchRetryOptions: { retries: 0 },
+  });
+
+/** Rejects on any failure; a missing or expired key rejects with status 404. */
+export const fetchFilterValue = (
   dashId: string | number,
-  key?: string | null,
+  key: string,
   signal?: AbortSignal,
 ) =>
-  SupersetClient.get({
-    endpoint: assembleEndpoint(dashId, key),
-    signal,
-  })
-    .then(({ json }) => JSON.parse(json.value))
-    .catch(err => {
-      if (err?.name !== 'AbortError') {
-        logging.error(err);
-      }
-      return null;
-    });
+  getOnce(assembleEndpoint(dashId, key), signal).then(({ json }) =>
+    JSON.parse(json.value),
+  );
 
-export const getPermalinkValue = (key: string) =>
-  SupersetClient.get({
-    endpoint: `/api/v1/dashboard/permalink/${key}`,
-  })
-    .then(({ json }) => json as DashboardPermalinkValue)
+/** Rejects on any failure; a missing or expired key rejects with status 404. */
+export const fetchPermalinkValue = (key: string, signal?: AbortSignal) =>
+  getOnce(`/api/v1/dashboard/permalink/${key}`, signal).then(
+    ({ json }) => json as DashboardPermalinkValue,
+  );
+
+export const getFilterValue = (dashId: string | number, key?: string | null) =>
+  getOnce(assembleEndpoint(dashId, key))
+    .then(({ json }) => JSON.parse(json.value))
     .catch(err => {
       logging.error(err);
       return null;
     });
+
+export const getPermalinkValue = (key: string) =>
+  fetchPermalinkValue(key).catch(err => {
+    logging.error(err);
+    return null;
+  });

@@ -23,6 +23,8 @@ import {
   createFilterKey,
   getFilterValue,
   getPermalinkValue,
+  fetchFilterValue,
+  fetchPermalinkValue,
 } from './keyValue';
 
 jest.mock('@apache-superset/core/utils', () => ({
@@ -144,4 +146,44 @@ test('getPermalinkValue logs and resolves null when the request fails', async ()
 
   expect(result).toBeNull();
   expect(logging.error).toHaveBeenCalled();
+});
+
+test('fetchFilterValue rejects with the response status and does not retry', async () => {
+  fetchMock.get(
+    'glob:*/api/v1/dashboard/7/filter_state/gone',
+    { status: 404, body: {} },
+    { name: 'get-gone' },
+  );
+
+  await expect(fetchFilterValue(7, 'gone')).rejects.toMatchObject({
+    status: 404,
+  });
+  expect(fetchMock.callHistory.calls('get-gone')).toHaveLength(1);
+});
+
+test('fetchFilterValue rejects without retrying when the signal is aborted', async () => {
+  fetchMock.get(
+    'glob:*/api/v1/dashboard/7/filter_state/slow',
+    new Promise(() => {}),
+    { name: 'get-slow' },
+  );
+  const controller = new AbortController();
+
+  const request = fetchFilterValue(7, 'slow', controller.signal);
+  controller.abort();
+
+  await expect(request).rejects.toMatchObject({ name: 'AbortError' });
+  expect(fetchMock.callHistory.calls('get-slow')).toHaveLength(1);
+});
+
+test('fetchPermalinkValue resolves the parsed payload', async () => {
+  fetchMock.get('glob:*/api/v1/dashboard/permalink/pk', {
+    dashboardId: '7',
+    state: {},
+  });
+
+  await expect(fetchPermalinkValue('pk')).resolves.toEqual({
+    dashboardId: '7',
+    state: {},
+  });
 });

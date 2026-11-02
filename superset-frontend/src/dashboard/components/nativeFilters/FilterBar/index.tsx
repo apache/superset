@@ -62,6 +62,11 @@ import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CHANGE_DASHBOARD_FILTER } from 'src/logger/LogUtils';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import {
+  consumeNeedsNewKey,
+  isFilterKeyPublishHeld,
+  releaseFilterKeyPublish,
+} from 'src/dashboard/util/sharedFilterStateHold';
 import { isChartCustomization } from '../FiltersConfigModal/utils';
 import {
   checkIsApplyDisabled,
@@ -107,6 +112,7 @@ const publishDataMask = debounce(
     dataMaskSelected: DataMaskStateWithId,
     tabId,
   ) => {
+    if (isFilterKeyPublishHeld()) return;
     const { location } = history;
     const { search } = location;
     const previousParams = new URLSearchParams(search);
@@ -127,8 +133,10 @@ const publishDataMask = debounce(
     const nativeFiltersCacheKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
     const dataMask = JSON.stringify(dataMaskSelected);
 
+    const forceNewKey = consumeNeedsNewKey();
     if (
       updateKey &&
+      !forceNewKey &&
       nativeFiltersCacheKey &&
       (await updateFilterKey(
         dashboardId,
@@ -434,6 +442,7 @@ const FilterBar: FC<FiltersBarProps> = ({
   );
 
   const handleApply = useCallback(() => {
+    releaseFilterKeyPublish();
     setUpdateKey(1);
 
     const filtersToApply = getFiltersToApply(
