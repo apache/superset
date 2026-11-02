@@ -42,6 +42,10 @@ import { FILTER_BAR_TEST_ID } from './utils';
 import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 import * as dataMaskActions from 'src/dataMask/actions';
+import {
+  holdFilterKeyPublish,
+  resetFilterKeyHold,
+} from 'src/dashboard/util/sharedFilterStateHold';
 
 jest.useFakeTimers({ advanceTimers: true });
 
@@ -1745,4 +1749,104 @@ test('FilterBar drops the selected time range when cross-filtering is disabled',
   expect(screen.getByText('Time range')).toBeInTheDocument();
   expect(screen.getByText('No filter')).toBeInTheDocument();
   expect(screen.queryByText('Last week')).not.toBeInTheDocument();
+});
+
+test('FilterBar keeps the link key while a fallback hold is active, then writes a new key on Apply', async () => {
+  fetchMock.post(
+    'glob:*/api/v1/dashboard/1/filter_state*',
+    { key: 'new-key' },
+    { name: 'index-create-filter-key' },
+  );
+  fetchMock.put(
+    'glob:*/api/v1/dashboard/1/filter_state/original-key*',
+    { message: 'updated' },
+    { name: 'index-update-filter-key' },
+  );
+  // Let any debounced or in-flight publish left by an earlier test finish
+  // before the URL and call history are set up for this test.
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+  await act(async () => {
+    await Promise.resolve();
+  });
+  window.history.pushState(
+    null,
+    '',
+    '/dashboard/1/?native_filters_key=original-key',
+  );
+  fetchMock.clearHistory();
+  holdFilterKeyPublish('original-key');
+
+  const filterId = 'NATIVE_FILTER-hold-test';
+  const selectFilter = createFilter({
+    id: filterId,
+    name: 'Region',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 7, column: { name: 'region' } }],
+    defaultDataMask: { filterState: { value: null }, extraFormData: {} },
+    chartsInScope: [18],
+  });
+  const stateWithSelect = {
+    ...stateWithoutNativeFilters,
+    user: { userId: 1 },
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      filterBarOrientation: FilterBarOrientation.Vertical,
+      metadata: {
+        native_filter_configuration: [selectFilter],
+        chart_configuration: {},
+      },
+    },
+    dashboardState: {
+      ...stateWithoutNativeFilters.dashboardState,
+      activeTabs: ['ROOT_ID'],
+    },
+    dataMask: {
+      [filterId]: createDataMask(filterId, ['East'], {
+        filters: [{ col: 'region', op: 'IN', val: ['East'] }],
+      }),
+    },
+    nativeFilters: {
+      filters: { [filterId]: selectFilter },
+      filtersState: {},
+    },
+  };
+
+  renderFilterBar(createOpenedBarProps(), stateWithSelect);
+  await act(async () => {
+    jest.advanceTimersByTime(2000);
+  });
+
+  // Held: nothing is created or updated and the URL keeps the original key.
+  expect(fetchMock.callHistory.calls('index-create-filter-key')).toHaveLength(
+    0,
+  );
+  expect(fetchMock.callHistory.calls('index-update-filter-key')).toHaveLength(
+    0,
+  );
+  expect(window.location.search).toContain('native_filters_key=original-key');
+
+  // The viewer changes a filter and applies it: a new key is created and the
+  // original key's saved state is not overwritten.
+  await act(async () => {
+    await userEvent.click(screen.getByTestId(getTestId('clear-button')));
+  });
+  await act(async () => {
+    await userEvent.click(screen.getByTestId(getTestId('apply-button')));
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(2000);
+  });
+
+  await waitFor(() => {
+    expect(
+      fetchMock.callHistory.calls('index-create-filter-key').length,
+    ).toBeGreaterThanOrEqual(1);
+  });
+  expect(fetchMock.callHistory.calls('index-update-filter-key')).toHaveLength(
+    0,
+  );
+  resetFilterKeyHold();
 });

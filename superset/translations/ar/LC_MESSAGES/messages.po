@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -579,6 +579,16 @@ msgstr[5] ""
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "منذ يوم واحد"
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 msgstr[3] ""
@@ -3044,10 +3054,6 @@ msgid "Are you sure you want to delete %s?"
 msgstr "هل أنت متأكد من أنك تريد حذف %s؟"
 
 #, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-
-#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr "هل أنت متأكد من أنك تريد حذف معرف %s؟"
 
@@ -4357,6 +4363,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr "اختر تنسيق أرقام"
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr "اختر مصدرا"
 
@@ -5558,6 +5567,9 @@ msgstr "إنشاء مخطط جديد"
 msgid "Create or select schema..."
 msgstr "إنشاء مخطط أو تحديده..."
 
+msgid "Create semantic layer"
+msgstr ""
+
 msgid "Created"
 msgstr "انشاء"
 
@@ -6668,7 +6680,7 @@ msgstr "حذف القالب"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -10961,6 +10973,12 @@ msgstr "فرز قيم التصفية"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 #, fuzzy
 msgid "Loading timezones..."
 msgstr "جارٍ التحميل…"
@@ -12238,6 +12256,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -15893,6 +15927,9 @@ msgstr "الرسم البياني غير موجود"
 msgid "Semantic layer parameters are invalid."
 msgstr "معلمات طبقة التعليقات التوضيحية غير صالحة."
 
+msgid "Semantic layer setup guide"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer type"
 msgstr "نوع طبقة التعليق التوضيحي"
@@ -19469,6 +19506,9 @@ msgstr ""
 "يمكن أن يكون هذا إما عنوان IP (على سبيل المثال 127.0.0.1) أو اسم نطاق "
 "(مثل mydatabase.com)."
 
+msgid "This cannot be undone."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -20572,6 +20612,9 @@ msgstr "ثق بهذا الرابط ولا تسأل مرة أخرى"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 "حاول تطبيق عوامل تصفية مختلفة أو التأكد من أن مصدر البيانات الخاص بك "
@@ -20799,6 +20842,16 @@ msgstr ""
 #, fuzzy
 msgid "Unable to load dashboard"
 msgstr "حدد لوحة معلومات"
+
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr ""
@@ -23008,6 +23061,9 @@ msgstr "5 ثوان"
 msgid "aggregate"
 msgstr "مجموع"
 
+msgid "alert"
+msgstr ""
+
 #, fuzzy
 msgid "alert condition"
 msgstr "حالة التنبيه"
@@ -23024,6 +23080,10 @@ msgstr "قم أيضًا بنسخ المخططات (المكررة)"
 msgid "ancestor"
 msgstr "سلف"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "التعليق التوضيحي"
 
@@ -23034,6 +23094,10 @@ msgstr "طبقة التعليقات التوضيحية"
 #, fuzzy
 msgid "apple"
 msgstr "تفاحة"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "اسريق"
@@ -23794,6 +23858,12 @@ msgstr ""
 
 msgid "query"
 msgstr "استعلام"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "عشوائي"
