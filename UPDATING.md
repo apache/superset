@@ -46,7 +46,12 @@ assists people when migrating to a new version.
   queries use the same credential as synchronous queries. Connection-mutator hooks
   receive the selected fallback username. Snowflake OAuth2 scope is
   configured explicitly; a role scope selects that role, and omitting it uses the
-  user's default role. Deployments that leave the fallback flag off are unaffected.
+  user's default role. Deployments that leave the fallback flag off are unaffected, except
+  that, whatever the flag, dashboard, chart and dataset exports now carry any masked
+  OAuth2 client and embedded credential blocks, and overwriting a connection from a
+  dashboard bundle merges them into its Secure Extra. A destination still on an earlier
+  release replaces its whole Secure Extra with those blocks instead, so upgrade import
+  destinations first.
 
 - With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
   using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and

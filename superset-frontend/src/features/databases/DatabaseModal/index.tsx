@@ -52,6 +52,7 @@ import {
 } from '@superset-ui/core/components';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import isPrivateKeyField from 'src/components/ImportModal/isPrivateKeyField';
 import {
   testDatabaseConnection,
   useSingleViewResource,
@@ -566,12 +567,15 @@ export function dbReducer(
       };
       if (
         action.payload.name === 'masked_encrypted_extra' &&
-        edited.parameters?.embedded_credentials
+        edited.parameters
       ) {
-        // `onSave` copies the typed credential over Secure Extra, which would undo
-        // this later edit of it.
-        const { embedded_credentials: _typedCredentials, ...parameters } =
-          edited.parameters;
+        // `onSave` copies these typed blocks over Secure Extra, which would undo
+        // this later edit of them.
+        const {
+          embedded_credentials: _typedCredentials,
+          oauth2_client_info: _typedClientInfo,
+          ...parameters
+        } = edited.parameters;
         return { ...edited, parameters };
       }
       return edited;
@@ -1774,7 +1778,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             id={`encrypted_extra_${field.path}`}
             name={`encrypted_extra_${field.path}`}
             required
-            visibilityToggle
+            visibilityToggle={!isPrivateKeyField(field.path)}
+            renderAsTextArea={isPrivateKeyField(field.path)}
             value={encryptedExtraSecrets[fileName]?.[field.path] || ''}
             onChange={(event: ChangeEvent<HTMLInputElement>) =>
               setEncryptedExtraSecrets({

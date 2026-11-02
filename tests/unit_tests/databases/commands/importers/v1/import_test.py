@@ -382,9 +382,11 @@ def test_import_database_keeps_secure_extra_only_for_a_partial_bundle(
     config["masked_encrypted_extra"] = json.dumps(
         {"oauth2_client_info": {"id": "client", "secret": PASSWORD_MASK}}
     )
-    if partial:
-        config["masked_encrypted_extra_partial"] = True
-    encrypted = json.loads(import_database(config, overwrite=True).encrypted_extra)
+    encrypted = json.loads(
+        import_database(
+            config, overwrite=True, partial_secure_extra=partial
+        ).encrypted_extra
+    )
 
     assert encrypted["oauth2_client_info"]["secret"] == "stored"  # noqa: S105
     assert ("other_setting" in encrypted) is partial

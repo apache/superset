@@ -177,7 +177,6 @@ class ExportDatasetsCommand(ExportModelsCommand):
                     model.database.masked_encrypted_extra
                 ):
                     payload["masked_encrypted_extra"] = carried
-                    payload["masked_encrypted_extra_partial"] = True
 
                 payload["version"] = EXPORT_VERSION
 

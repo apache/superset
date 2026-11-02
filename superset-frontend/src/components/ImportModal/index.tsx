@@ -29,6 +29,7 @@ import { Button, Input, Checkbox, Modal } from '@superset-ui/core/components';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { ImportErrorAlert } from './ImportErrorAlert';
 import type { ImportModelsModalProps } from './types';
+import isPrivateKeyField from './isPrivateKeyField';
 
 const HelperMessage = styled.div`
   display: block;
@@ -352,7 +353,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
                   <span className="required">*</span>
                 </div>
                 {/* A PEM key is unusable without its newlines. */}
-                {/private_?key(_body)?$/.test(field.path) ? (
+                {isPrivateKeyField(field.path) ? (
                   <Input.TextArea
                     rows={4}
                     name={`encrypted-extra-${fileName}-${field.path}`}
