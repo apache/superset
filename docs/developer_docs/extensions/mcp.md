@@ -732,6 +732,10 @@ the probe, as for the listed dropdown, so the probe only selects among the
 options that dropdown lists.
 Templates that read the raw `filter` context variable also make search and exact
 probes unsupported, because those predicates differ from native selections.
+That includes another dataset's metric that a template renders through
+`metric('name', dataset_id)`, since the macro renders it with this query's
+context. A `metric` call without literal arguments, or one naming a dataset the
+caller cannot read or a metric that dataset lacks, is treated as reading `filter`.
 These probes are rejected before query execution. Listings, empty searches, and
 parent proposals remain supported. A dropdown never renders its own selection, so
 a proposal for a parent whose templates read `filter` is checked against that

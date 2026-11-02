@@ -2593,6 +2593,112 @@ def test_context_observation_is_off_without_template_processing(
     )
 
 
+def _macro_datasets(
+    mocker: MockerFixture, target: SqlaTable, **expressions: str
+) -> SqlaTable:
+    """Serve the target and a dataset 2 holding the given metric expressions."""
+    from superset.connectors.sqla.models import SqlMetric
+
+    other = SqlaTable(id=2, table_name="other", database=target.database)
+    other.metrics = [
+        SqlMetric(metric_name=name, expression=expression)
+        for name, expression in expressions.items()
+    ]
+    found = {target.id: target, other.id: other}
+    mocker.patch.object(
+        choices.DatasetDAO,
+        "find_by_id",
+        side_effect=lambda dataset_id, **kwargs: found.get(int(dataset_id)),
+    )
+    return other
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize(
+    ("sql", "observes"),
+    [
+        ("select {{ metric('plain', 2) }}", False),
+        ("select {{ metric('reads', 2) }}", True),
+        ("select {{ metric('reads', '2') }}", True),
+        ("select {{ metric(metric_key='reads', dataset_id=2) }}", True),
+        ("select {{ metric('nested', 2) }}", True),
+        ("select {{ metric('cycle', 2) }}", False),
+        ("select {{ metric('to_target', 2) }}", False),
+        ("select {{ metric('reads') }}", False),
+        ("select {{ metric('reads', 5) }}", False),
+        ("select {{ metric('c20', 2) }}", False),
+        ("select {{ metric('c0', 2) }}", True),
+        ("select {{ metric('broken', 2) }}", True),
+        ("select {{ metric('missing', 2) }}", True),
+        ("select {{ metric('plain', 9) }}", True),
+        ("select {{ metric(name, 2) }}", True),
+        ("select {{ metric('plain', dataset) }}", True),
+        ("select {{ metric('plain', 2, 3) }}", True),
+        ("select {{ metric(*names) }}", True),
+        ("{% set m = metric %}select {{ m('plain', 2) }}", True),
+        ("select {{ metric('plain', 2) }} {{ metric | length }}", True),
+    ],
+)
+def test_metric_macro_targets_are_scanned_as_query_templates(
+    native_query: dict[str, Any], mocker: MockerFixture, sql: str, observes: bool
+) -> None:
+    """Another dataset's metrics reached through the macro are scanned as ours."""
+    from superset.connectors.sqla.models import SqlMetric
+
+    dataset = native_query["dataset"]
+    dataset.metrics = [SqlMetric(metric_name="own", expression="country")]
+    chain = {f"c{index}": f"{{{{ metric('c{index + 1}', 2) }}}}" for index in range(60)}
+    _macro_datasets(
+        mocker,
+        dataset,
+        plain="country",
+        reads="{{ filter | length }}",
+        nested="{{ metric('plain', 2) }} + {{ metric('reads', '2') }}",
+        cycle="{{ metric('cycle', 2) }}",
+        to_target="{{ metric('own') }}",
+        broken="{{ metric(",
+        **chain,
+        c60="country",
+    )
+    dataset.sql = sql
+    conf = _filter("country")
+    assert choices._templates_observe_context(conf, dataset, {"filter"}) is observes
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize("guest", [False, True])
+@pytest.mark.parametrize("granted", [False, True])
+@pytest.mark.parametrize("expression", ["country", "{{ filter | length }}"])
+def test_metric_macro_scan_reads_only_metrics_the_macro_can_render(
+    native_query: dict[str, Any],
+    mocker: MockerFixture,
+    guest: bool,
+    granted: bool,
+    expression: str,
+) -> None:
+    """A dataset outside the caller's access fails closed whatever its metrics say."""
+    from superset import security_manager as security
+
+    dataset = native_query["dataset"]
+    other = _macro_datasets(mocker, dataset, x=expression)
+    lookups = mocker.patch.object(
+        choices.DatasetDAO,
+        "find_by_id",
+        side_effect=lambda dataset_id, **kwargs: (
+            other if granted or kwargs["skip_base_filter"] else None
+        ),
+    )
+    mocker.patch.object(security, "is_guest_user", return_value=guest)
+    mocker.patch.object(choices, "guest_user_can_access_dataset", return_value=granted)
+    dataset.sql = "select {{ metric('x', 2) }} as country"
+    observes = not granted or "filter" in expression
+    assert (
+        choices._templates_observe_context(_filter("country"), dataset, {"filter"})
+        is observes
+    )
+    lookups.assert_called_once_with(2, skip_base_filter=guest)
+
+
 @with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
 @pytest.mark.parametrize(
     ("template", "status", "reason", "values"),
@@ -2786,6 +2892,148 @@ def test_raw_filter_proposal_is_validated_against_the_listed_domain(
         reason,
         values,
     )
+
+
+_METRIC_MACRO_CHOICE_SQL = (
+    "select '{{ metric('choice', 2) }}' as country, 'EMEA' as region"
+)
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize("probe", [{"search": "Fran"}, {"exact_value": "France"}])
+def test_raw_filter_reached_through_metric_macro_blocks_probes(
+    sqlite_native_execution: dict[str, Any],
+    mocker: MockerFixture,
+    probe: dict[str, str],
+) -> None:
+    """Another dataset's metric renders with this query's raw filter context."""
+    _macro_datasets(
+        mocker,
+        sqlite_native_execution["dataset"],
+        choice="{{ 'France' if filter else 'Germany' }}",
+    )
+    sqlite_native_execution["dataset"].sql = _METRIC_MACRO_CHOICE_SQL
+    dashboard = _dashboard(_filter("country"))
+    summaries, _ = choices.discover_filter_values(
+        dashboard, _request(filter_value_requests=[{"filter_id": "country"}])
+    )
+    assert _available(summaries[0]).status == "complete"
+    assert _available(summaries[0]).values == ["Germany"]
+    sqlite_native_execution["database_reads"].reset_mock()
+
+    summaries, metadata = choices.discover_filter_values(
+        dashboard,
+        _request(filter_value_requests=[{"filter_id": "country", **probe}]),
+    )
+    available = _available(summaries[0])
+    assert (available.status, available.reason, available.values) == (
+        "unsupported",
+        "unsupported_search" if "search" in probe else "unsupported_target",
+        [],
+    )
+    assert metadata.query_count == 0
+    sqlite_native_execution["database_reads"].assert_not_called()
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize(
+    ("proposed", "validated", "status", "reason", "values"),
+    [
+        ("France", False, "unavailable", "proposal_invalid", []),
+        ("Germany", True, "complete", None, []),
+    ],
+)
+def test_metric_macro_raw_filter_proposal_is_checked_against_the_listing(
+    sqlite_native_execution: dict[str, Any],
+    mocker: MockerFixture,
+    proposed: str,
+    validated: bool,
+    status: str,
+    reason: str | None,
+    values: list[str],
+) -> None:
+    """A parent proposal never renders the metric it is validated against."""
+    _macro_datasets(
+        mocker,
+        sqlite_native_execution["dataset"],
+        choice="{{ 'France' if filter else 'Germany' }}",
+    )
+    sqlite_native_execution["dataset"].sql = _METRIC_MACRO_CHOICE_SQL
+    request = _request(
+        filter_value_requests=[{"filter_id": "region"}],
+        proposed_filter_values=[{"filter_id": "country", "values": [proposed]}],
+    )
+    summaries, metadata = choices.discover_filter_values(
+        _dashboard(_filter("country"), _filter("region", cascadeParentIds=["country"])),
+        request,
+    )
+    assert metadata.validated_proposed_filter_values == (
+        request.proposed_filter_values if validated else []
+    )
+    available = _available(summaries[0])
+    assert (available.status, available.reason, available.values) == (
+        status,
+        reason,
+        values,
+    )
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize(
+    ("sql", "own", "other"),
+    [
+        (None, None, "country"),
+        (
+            "select {{ metric('own') }} as country, region from sales",
+            "country",
+            "country",
+        ),
+        ("select {{ metric('x', 2) }} as country, region from sales", None, "country"),
+        (
+            "select {{ metric(dataset_id=2, metric_key='x') }} as country, region "
+            "from sales",
+            "country",
+            "{{ metric('own') }}",
+        ),
+    ],
+)
+@pytest.mark.parametrize("probe", [{"search": "Fran"}, {"exact_value": "France"}])
+def test_metric_macro_without_raw_filter_keeps_probes_and_proposals(
+    sqlite_native_execution: dict[str, Any],
+    mocker: MockerFixture,
+    sql: str | None,
+    own: str | None,
+    other: str,
+    probe: dict[str, str],
+) -> None:
+    """Metrics reached through the macro that never read filter stay probe-safe."""
+    from superset.connectors.sqla.models import SqlMetric
+
+    dataset = sqlite_native_execution["dataset"]
+    _macro_datasets(mocker, dataset, x=other)
+    if own is not None:
+        dataset.metrics = [SqlMetric(metric_name="own", expression=own)]
+    dataset.sql = sql
+    dashboard = _dashboard(
+        _filter("country"), _filter("region", cascadeParentIds=["country"])
+    )
+    summaries, metadata = choices.discover_filter_values(
+        dashboard,
+        _request(filter_value_requests=[{"filter_id": "country", **probe}]),
+    )
+    assert _available(summaries[0]).status == "complete"
+    assert _available(summaries[0]).values == ["France"]
+    assert metadata.query_count == 1
+
+    # US lies past a two-row listing, so only its IN predicate can validate it.
+    mocker.patch.dict(current_app.config, {"NATIVE_FILTER_DEFAULT_ROW_LIMIT": 2})
+    request = _request(
+        filter_value_requests=[{"filter_id": "region"}],
+        proposed_filter_values=[{"filter_id": "country", "values": ["US"]}],
+    )
+    summaries, metadata = choices.discover_filter_values(dashboard, request)
+    assert metadata.validated_proposed_filter_values == request.proposed_filter_values
+    assert _available(summaries[0]).values == ["Americas"]
 
 
 @with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)

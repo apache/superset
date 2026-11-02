@@ -32,7 +32,7 @@ from typing import Any, cast, Literal, TYPE_CHECKING
 
 from fastmcp.exceptions import ToolError
 from flask import current_app, g
-from jinja2 import meta, TemplateSyntaxError
+from jinja2 import meta, nodes, TemplateSyntaxError
 from jinja2.exceptions import SecurityError
 from marshmallow import ValidationError
 from pandas import DataFrame, NA
@@ -51,6 +51,7 @@ from superset.exceptions import (
     OAuth2RedirectError,
     SupersetSecurityException,
 )
+from superset.jinja_context import guest_user_can_access_dataset
 from superset.mcp_service.chart.chart_helpers import (
     build_query_dicts_from_form_data,
     merge_extra_form_data,
@@ -87,6 +88,10 @@ _PAGE_SIZE = 20
 _MAX_SAFE_INTEGER = 2**53 - 1
 # Mirrors the dashboard's extractUrlParams('regular') exclusions.
 _RESERVED_URL_PARAMS = frozenset({"standalone", "edit"})
+# Bounds the other datasets' metrics a template scan follows through ``metric``.
+_MAX_MACRO_METRICS = 50
+# Marks a ``metric`` call that a template scan cannot resolve to stored text.
+_UNRESOLVED_METRIC = object()
 logger = logging.getLogger(__name__)
 
 
@@ -720,6 +725,126 @@ def _parent_extra(context: _Discovery, filter_id: str) -> dict[str, Any]:
     return extra
 
 
+def _metric_macro_reference(call: nodes.Call) -> tuple[int | None, str] | None:
+    """Bind a literal ``metric(metric_key, dataset_id)`` call as the macro does.
+
+    Returns the dataset ID (None when the macro reads it from the request, as
+    the query's own dataset) and metric key, or None for any other call shape.
+    """
+    if call.dyn_args is not None or call.dyn_kwargs is not None or len(call.args) > 2:
+        return None
+    bound = dict(zip(("metric_key", "dataset_id"), call.args, strict=False))
+    for keyword in call.kwargs:
+        if keyword.key not in ("metric_key", "dataset_id") or keyword.key in bound:
+            return None
+        bound[keyword.key] = keyword.value
+    key = bound.get("metric_key")
+    dataset_id = bound.get("dataset_id", nodes.Const(None))
+    if (
+        not isinstance(key, nodes.Const)
+        or not isinstance(key.value, str)
+        or not isinstance(dataset_id, nodes.Const)
+    ):
+        return None
+    value = dataset_id.value
+    if not value:
+        return None, key.value
+    if type(value) is int:
+        return value, key.value
+    if isinstance(value, str) and value.isascii() and value.isdigit():
+        return int(value), key.value
+    return None
+
+
+def _metric_macro_references(
+    template: nodes.Template,
+) -> list[tuple[int | None, str]] | None:
+    """Bind every ``metric`` reference in a parsed template to a literal call.
+
+    Returns None when any reference is not such a call: an alias, an attribute
+    or a computed argument can reach any metric.
+    """
+    if "metric" not in meta.find_undeclared_variables(template):
+        return []
+    calls = [
+        call
+        for call in template.find_all(nodes.Call)
+        if isinstance(call.node, nodes.Name) and call.node.name == "metric"
+    ]
+    loads = [
+        name
+        for name in template.find_all(nodes.Name)
+        if name.name == "metric" and name.ctx == "load"
+    ]
+    if len(loads) != len(calls):
+        return None
+    references = []
+    for call in calls:
+        if (reference := _metric_macro_reference(call)) is None:
+            return None
+        references.append(reference)
+    return references
+
+
+def _metric_macro_metrics(dataset_id: int) -> dict[str, Any] | None:
+    """Read a dataset's metrics as the ``metric`` macro does, as the caller.
+
+    The macro fails to render a dataset this lookup cannot return, so a scan
+    never reads a metric that the caller's own query could not render.
+    """
+    guest = security_manager.is_guest_user()
+    found = DatasetDAO.find_by_id(dataset_id, skip_base_filter=guest)
+    if found is None or (guest and not guest_user_can_access_dataset(found)):
+        return None
+    return {metric.metric_name: metric.expression for metric in found.metrics}
+
+
+def _with_metric_macro_texts(dataset: SqlaTable, texts: list[Any]) -> Iterator[Any]:
+    """Yield the templates, then each stored metric their ``metric`` calls render.
+
+    The macro renders another dataset's metric expression with the calling
+    query's own context, so that expression reads discovery's probes as the
+    dataset's own templates do, and may call the macro again. A call without a
+    dataset ID resolves to the query's dataset, whose metrics are already among
+    the templates. A call the scan cannot resolve to stored text yields
+    ``_UNRESOLVED_METRIC`` instead.
+    """
+    yield from texts
+    env = None
+    pending = [text for text in texts if isinstance(text, str) and "metric" in text]
+    metrics: dict[int, dict[str, Any] | None] = {}
+    reached: set[tuple[int, str]] = set()
+    while pending:
+        env = env or dataset.get_template_processor().env
+        try:
+            references = _metric_macro_references(env.parse(pending.pop()))
+        except (SecurityError, TemplateSyntaxError):
+            references = None
+        if references is None:
+            yield _UNRESOLVED_METRIC
+            return
+        for dataset_id, key in references:
+            if (
+                dataset_id is None
+                or dataset_id == dataset.id
+                or (dataset_id, key) in reached
+            ):
+                continue
+            if len(reached) >= _MAX_MACRO_METRICS:
+                yield _UNRESOLVED_METRIC
+                return
+            reached.add((dataset_id, key))
+            if dataset_id not in metrics:
+                metrics[dataset_id] = _metric_macro_metrics(dataset_id)
+            expression = (metrics[dataset_id] or {}).get(key)
+            if not isinstance(expression, str):
+                yield _UNRESOLVED_METRIC
+                return
+            yield expression
+            if "metric" in expression:
+                pending.append(expression)
+
+
 def _templates_observe_context(
     conf: dict[str, Any], dataset: SqlaTable, variables: set[str]
 ) -> bool:
@@ -742,7 +867,10 @@ def _templates_observe_context(
         ),
     ]
     env = None
-    for text in texts:
+    for text in _with_metric_macro_texts(dataset, texts):
+        if text is _UNRESOLVED_METRIC:
+            # The call may render any stored metric, including one reading these.
+            return True
         if not isinstance(text, str) or not any(name in text for name in variables):
             continue
         env = env or dataset.get_template_processor().env
