@@ -122,6 +122,7 @@ export default function transformProps(
       end,
       isLast: index === binKeys.length - 1,
       label: `${startLabel} - ${endLabel}`,
+      endLabel,
     };
   });
   const xAxisData = bins.map(bin => bin.label);

@@ -20,7 +20,10 @@ import { ChartProps } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import { BarSeriesOption } from 'echarts/charts';
 import transformProps from '../../src/Histogram/transformProps';
-import { getHistogramCrossFilterKey } from '../../src/Histogram/crossFilter';
+import {
+  getHistogramCrossFilterDataMask,
+  getHistogramCrossFilterKey,
+} from '../../src/Histogram/crossFilter';
 import {
   HistogramChartProps,
   HistogramFormData,
@@ -65,6 +68,43 @@ const readChart = (props: ChartProps) => {
   };
   return { xAxis, series };
 };
+
+test('a bin keeps the formatted right edge used by the axis', () => {
+  const props = createChartProps([
+    {
+      '0 - 33.333333333333336': 4,
+      '33.333333333333336 - 66.66666666666667': 2,
+    },
+  ]);
+  const transformed = transformProps(props as HistogramChartProps);
+  const { xAxis } = transformed.echartOptions as {
+    xAxis: { data: string[] };
+  };
+  const [histogramBin] = transformed.bins;
+
+  expect(histogramBin.isLast).toBe(false);
+  expect(xAxis.data[0]).toBe(`0 - ${histogramBin.endLabel}`);
+  expect(histogramBin.endLabel).not.toBe(String(histogramBin.end));
+  expect(
+    getHistogramCrossFilterDataMask({
+      column: 'price',
+      groupby: [],
+      bin: histogramBin,
+      groupbyValues: [],
+      selectedKeys: [],
+      cumulative: true,
+    }).dataMask,
+  ).toEqual(
+    expect.objectContaining({
+      extraFormData: {
+        filters: [{ col: 'price', op: '<', val: histogramBin.end }],
+      },
+      filterState: expect.objectContaining({
+        label: `< ${histogramBin.endLabel}`,
+      }),
+    }),
+  );
+});
 
 test('transforms bin columns into an axis category and a bar series', () => {
   const { xAxis, series } = readChart(

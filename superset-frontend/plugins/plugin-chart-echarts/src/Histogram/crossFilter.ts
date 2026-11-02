@@ -35,6 +35,8 @@ export type HistogramBin = {
   /** Numpy's last bin includes its right edge. Earlier bins do not. */
   isLast: boolean;
   label: string;
+  /** Right edge in the same format as the axis label. */
+  endLabel: string;
 };
 
 const BIN_SEPARATOR = ' - ';
@@ -154,8 +156,9 @@ function groupbyFilters(
 function rangeLabel(bin: HistogramBin, cumulative: boolean): string {
   // The chip has to name the filter that was sent. A cumulative bar covers
   // every value up to its right edge, not the one bin printed on the axis.
+  // The edge text matches the axis, which rounds values such as 100 / 3.
   if (cumulative) {
-    return `${bin.isLast ? '<=' : '<'} ${bin.end}`;
+    return `${bin.isLast ? '<=' : '<'} ${bin.endLabel}`;
   }
   return bin.label;
 }

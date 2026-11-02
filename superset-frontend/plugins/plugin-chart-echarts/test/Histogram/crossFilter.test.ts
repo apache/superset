@@ -24,11 +24,17 @@ import {
   parseBinKey,
 } from '../../src/Histogram/crossFilter';
 
-const bin = (start: number, end: number, isLast = false): HistogramBin => ({
+const bin = (
+  start: number,
+  end: number,
+  isLast = false,
+  endLabel = String(end),
+): HistogramBin => ({
   start,
   end,
   isLast,
   label: `${start} - ${end}`,
+  endLabel,
 });
 
 test('parseBinKey keeps a negative left edge', () => {
@@ -88,6 +94,23 @@ test('a cumulative bin filter drops the lower bound', () => {
     { col: 'region', op: 'IN', val: ['WEST'] },
   ]);
   expect(last.filterState.label).toBe('<= 15, WEST');
+});
+
+test('a cumulative chip uses the formatted edge', () => {
+  const edge = 100 / 3;
+  const { dataMask } = getHistogramCrossFilterDataMask({
+    column: 'price',
+    groupby: [],
+    bin: bin(0, edge, false, '33.3'),
+    groupbyValues: [],
+    selectedKeys: [],
+    cumulative: true,
+  });
+
+  expect(dataMask.extraFormData.filters).toEqual([
+    { col: 'price', op: '<', val: edge },
+  ]);
+  expect(dataMask.filterState.label).toBe('< 33.3');
 });
 
 test('getHistogramCrossFilterDataMask includes the right edge of the last bin', () => {
