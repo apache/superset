@@ -442,6 +442,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const canReadLayer = findPermission('can_read', 'SemanticLayer', user?.roles);
 
   const currentSourceFilter = useMemo(() => {
+    // Without semantic layers there is no Source control, so a saved Source in
+    // the URL must not narrow the Database options to "semantic layers only".
+    if (!isFeatureEnabled(SEMANTIC_LAYERS_FLAG)) return '';
     const sourceTypeFilter = lastFetchConfig?.filters.find(
       filter => filter.id === 'source_type',
     );
@@ -533,9 +536,26 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       const sourceTypeFilter = filterValues.find(f => f.id === 'source_type');
       const databaseFilter = filterValues.find(f => f.id === 'database');
 
+      // A saved Type = Semantic View has no option without semantic layers, and
+      // the dataset API would read the string as "physical". Drop it like the
+      // connection below, and clear it from the filter state.
+      const savedSemanticType =
+        !semanticLayersEnabled &&
+        filterValues.some(
+          f =>
+            f.id === 'sql' &&
+            (f.value && typeof f.value === 'object' && 'value' in f.value
+              ? f.value.value
+              : f.value) === 'semantic_view',
+        );
+      if (savedSemanticType) {
+        filtersRef.current?.clearFilterById('sql');
+      }
+
       // Track source filter for conditional Type filter visibility
       const otherFilters = filterValues
         .filter(f => f.id !== 'source_type' && f.id !== 'database')
+        .filter(f => !(savedSemanticType && f.id === 'sql'))
         .filter(
           ({ value }) => value !== '' && value !== null && value !== undefined,
         )

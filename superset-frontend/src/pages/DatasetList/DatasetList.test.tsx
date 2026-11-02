@@ -21,6 +21,7 @@ import userEvent from '@testing-library/user-event';
 import rison from 'rison';
 import { FeatureFlag } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
+import { selectPillOption } from 'spec/helpers/testing-library';
 import {
   setupMocks,
   renderDatasetList,
@@ -766,6 +767,16 @@ test('a saved Source = Semantic layer is not sent to the dataset API when semant
   // list in an error state with no Source control to clear it.
   expect(filters.map(filter => filter.col)).not.toContain('source_type');
   expect(listRequestUrls(/source_type/)).toHaveLength(0);
+
+  // The saved Source must not leak into the Database control either: with it
+  // read as "semantic_layer" the connection dropdown would list no databases.
+  await selectPillOption('PostgreSQL', 'Database');
+  await waitFor(() => {
+    const { filters: applied = [] } = lastRequestQuery(
+      /\/api\/v1\/dataset\/\?q=/,
+    );
+    expect(applied.map(filter => filter.col)).toContain('database');
+  });
 });
 
 test('a saved semantic-layer connection is dropped when semantic layers are off', async () => {
@@ -786,4 +797,21 @@ test('a saved semantic-layer connection is dropped when semantic layers are off'
     expect(filters.map(filter => filter.col)).not.toContain('database');
   });
   expect(listRequestUrls(/semantic_layer_uuid/)).toHaveLength(0);
+});
+
+test('a saved Type = Semantic View is dropped when semantic layers are off', async () => {
+  renderDatasetList(mockAdminUser, {}, {}, [
+    "/?filters=(sql:(label:'Semantic View',value:semantic_view))",
+  ]);
+
+  await waitFor(() => {
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/).length).toBeGreaterThan(
+      0,
+    );
+  });
+  // The dataset API reads the truthy string as "physical", so the list would
+  // show physical datasets under a Type pill with no matching option.
+  const { filters = [] } = lastRequestQuery(/\/api\/v1\/dataset\/\?q=/);
+  expect(filters.map(filter => filter.col)).not.toContain('sql');
+  expect(listRequestUrls(/semantic_view/)).toHaveLength(0);
 });
