@@ -296,8 +296,9 @@ export default function SaveGroupItem({
     }
   };
 
-  // Every saved historical version is previewable without expanding its changes.
-  const showPreview = currentKnown && group.versionUuid != null && !isCurrent;
+  // Recordless groups have no change-row preview fallback if the probe fails.
+  const showPreview =
+    (currentKnown || !hasRecords) && group.versionUuid != null && !isCurrent;
 
   const visibleRecords = showAll
     ? group.records

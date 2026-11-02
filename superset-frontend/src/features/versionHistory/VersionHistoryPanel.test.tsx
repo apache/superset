@@ -393,6 +393,35 @@ test('an unavailable current-version probe explains and withholds restore', asyn
   expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
 });
 
+test.each<VersionedEntityType>(['chart', 'dashboard'])(
+  '%s starting snapshot remains previewable when the current-version probe fails',
+  async entityType => {
+    const starting = group({ records: [], creationKind: 'pre_tracking' });
+    const props = defaultProps([starting], entityType);
+    props.activity = activity([starting], {
+      newestGroup: null,
+      currentVersionStatus: 'unavailable',
+    });
+    render(<VersionHistoryPanel {...props} />);
+
+    expect(
+      screen.getByText(
+        'The current version could not be identified. Restore is temporarily unavailable.',
+      ),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Preview this version' }),
+    );
+    expect(props.onPreview).toHaveBeenCalledWith(starting);
+    await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    expect(
+      await screen.findByText(`Open as new ${entityType}`),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
+    expect(props.onRestore).not.toHaveBeenCalled();
+  },
+);
+
 test('a loading current-version probe withholds restore without an error', async () => {
   const { newest, older } = dashboardPair();
   const props = defaultProps([newest, older], 'dashboard');
