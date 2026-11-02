@@ -113,6 +113,7 @@ class SemanticProviderConformance:
             "or",
             "order_limit",
             "null_placement",
+            "null_placement_secondary",
         ],
     )
     def test_query_outputs(
@@ -164,8 +165,13 @@ class SemanticProviderConformance:
             _assert_result_equal(
                 full.results.slice(query.offset or 0, query.limit), expected
             )
-        elif case == "null_placement":
-            _assert_null_placement_witness(query, semantic_view, expected)
+        elif case in {"null_placement", "null_placement_secondary"}:
+            _assert_null_placement_witness(
+                query,
+                semantic_view,
+                expected,
+                order_index=1 if case == "null_placement_secondary" else 0,
+            )
         result: SemanticResult = semantic_view.get_table(query)
         _assert_result_equal(result.results, expected)
         assert set(result.results.column_names) == {
@@ -291,51 +297,77 @@ class SemanticProviderConformance:
 
 
 def _assert_null_placement_witness(
-    query: SemanticQuery, view: SemanticView, expected: pa.Table
+    query: SemanticQuery,
+    view: SemanticView,
+    expected: pa.Table,
+    *,
+    order_index: int = 0,
 ) -> None:
-    """Require NULL values of the first order key where its placement puts them.
+    """Require a page that observes the selected order key's NULL placement.
 
-    The host's default chronological order asks for NULL values last; a
-    provider must honor a placement on any order key, before offset and limit.
-    The page must keep different rows from the ones the opposite placement would.
+    Placement on a later key applies within ties of all preceding keys.
+    Reversing it within those ties must change which rows the page keeps.
     """
     assert query.order, "null_placement fixture requires an order"
-    first: tuple[object, ...] = query.order[0]
-    placement: NullPlacement | None = null_placement(first)
-    assert placement is not None, (
-        "null_placement fixture's first order key requires a NullPlacement"
+    assert len(query.order) > order_index, (
+        "null_placement fixture requires the selected order key"
     )
-    member: object = first[0]
+    term: tuple[object, ...] = query.order[order_index]
+    placement: NullPlacement | None = null_placement(term)
+    assert placement is not None, (
+        "null_placement fixture's selected order key requires a NullPlacement"
+    )
+    member: object = term[0]
     assert isinstance(member, Dimension), (
         "null_placement fixture must order by a selected dimension"
     )
     assert member in query.dimensions, (
         "null_placement fixture must order by a selected dimension"
     )
+    prefix: list[str] = []
+    key: object
+    for key, _ in query.order[:order_index]:
+        assert isinstance(key, (Dimension, Metric))
+        assert key in [*query.dimensions, *query.metrics]
+        prefix.append(key.name)
     assert query.limit is not None
     assert query.limit > 0
     full: pa.Table = view.get_table(replace(query, limit=None, offset=None)).results
+    rows: list[dict[str, object]] = full.to_pylist()
     values: list[object] = full.column(member.name).to_pylist()
-    nulls: list[object] = [value for value in values if value is None]
-    others: list[object] = [value for value in values if value is not None]
-    assert nulls, "null_placement fixture requires NULL values of the order key"
-    assert others, "null_placement fixture requires non-NULL values of the order key"
-    placed: list[object] = (
-        others + nulls if placement is NullPlacement.LAST else nulls + others
+    assert any(value is None for value in values), (
+        "null_placement fixture requires NULL values of the order key"
     )
-    opposite: list[object] = (
-        nulls + others if placement is NullPlacement.LAST else others + nulls
+    assert any(value is not None for value in values), (
+        "null_placement fixture requires non-NULL values of the order key"
     )
-    assert values == placed, (
+    groups: dict[tuple[object, ...], list[int]] = {}
+    index: int
+    row: dict[str, object]
+    for index, row in enumerate(rows):
+        groups.setdefault(tuple(row[name] for name in prefix), []).append(index)
+    placed: list[int] = []
+    opposite: list[int] = []
+    indices: list[int]
+    for indices in groups.values():
+        nulls: list[int] = [index for index in indices if values[index] is None]
+        others: list[int] = [index for index in indices if values[index] is not None]
+        placed.extend(
+            others + nulls if placement is NullPlacement.LAST else nulls + others
+        )
+        opposite.extend(
+            nulls + others if placement is NullPlacement.LAST else others + nulls
+        )
+    assert placed == list(range(full.num_rows)), (
         f"{member.name}: NULL values must sort {placement.value.lower()}, got {values}"
     )
     start: int = query.offset or 0
     stop: int = start + query.limit
-    assert sorted(map(repr, placed[start:stop])) != sorted(
-        map(repr, opposite[start:stop])
+    assert sorted(repr(rows[index]) for index in placed[start:stop]) != sorted(
+        repr(rows[index]) for index in opposite[start:stop]
     ), (
         "null_placement fixture's page must keep different rows "
-        "under the opposite placement"
+        "under the opposite placement within tied order prefixes"
     )
     _assert_result_equal(full.slice(start, query.limit), expected)
 

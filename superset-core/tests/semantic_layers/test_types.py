@@ -22,12 +22,14 @@ from dataclasses import asdict, astuple, replace
 import pyarrow as pa
 import pytest
 from superset_core.semantic_layers.types import (
+    AdhocExpression,
     Dimension,
     Metric,
     null_placement,
     NullPlacement,
     OrderDirection,
     OrderTerm,
+    OrderTuple,
     SemanticQuery,
 )
 
@@ -110,12 +112,14 @@ def test_metadata_defaults_are_not_shared() -> None:
     assert second.metadata == {}
 
 
-ORDER_DATE = Dimension("orders.order_date", "order_date", pa.date32())
+ORDER_DATE: Dimension = Dimension("orders.order_date", "order_date", pa.date32())
 
 
 def test_order_term_reads_like_a_plain_pair() -> None:
-    term = OrderTerm(ORDER_DATE, OrderDirection.ASC, NullPlacement.LAST)
+    term: OrderTerm = OrderTerm(ORDER_DATE, OrderDirection.ASC, NullPlacement.LAST)
 
+    member: Metric | Dimension | AdhocExpression
+    direction: OrderDirection
     member, direction = term
 
     assert (member, direction) == (ORDER_DATE, OrderDirection.ASC)
@@ -127,8 +131,8 @@ def test_order_term_reads_like_a_plain_pair() -> None:
 
 
 def test_order_term_without_placement_equals_the_plain_pair() -> None:
-    pair = (ORDER_DATE, OrderDirection.ASC)
-    term = OrderTerm(ORDER_DATE, OrderDirection.ASC)
+    pair: OrderTuple = (ORDER_DATE, OrderDirection.ASC)
+    term: OrderTerm = OrderTerm(ORDER_DATE, OrderDirection.ASC)
 
     assert term == pair
     assert pair == term
@@ -140,8 +144,8 @@ def test_order_term_without_placement_equals_the_plain_pair() -> None:
 def test_order_term_placement_distinguishes_it_from_the_plain_pair(
     nulls: NullPlacement,
 ) -> None:
-    pair = (ORDER_DATE, OrderDirection.ASC)
-    term = OrderTerm(ORDER_DATE, OrderDirection.ASC, nulls)
+    pair: OrderTuple = (ORDER_DATE, OrderDirection.ASC)
+    term: OrderTerm = OrderTerm(ORDER_DATE, OrderDirection.ASC, nulls)
 
     assert term != pair
     assert pair != term
@@ -155,9 +159,10 @@ def test_order_term_placement_distinguishes_it_from_the_plain_pair(
 
 
 def test_order_term_survives_copy_and_pickle() -> None:
-    term = OrderTerm(ORDER_DATE, OrderDirection.DESC, NullPlacement.FIRST)
-    query = SemanticQuery([], [ORDER_DATE], order=[term])
+    term: OrderTerm = OrderTerm(ORDER_DATE, OrderDirection.DESC, NullPlacement.FIRST)
+    query: SemanticQuery = SemanticQuery([], [ORDER_DATE], order=[term])
 
+    restored: OrderTuple
     for restored in (
         copy.copy(term),
         copy.deepcopy(term),
@@ -173,16 +178,18 @@ def test_order_term_survives_copy_and_pickle() -> None:
 
 def test_asdict_keeps_member_and_direction_of_an_order_term() -> None:
     """``asdict`` cannot carry the placement; it must not fail on a term."""
-    term = OrderTerm(ORDER_DATE, OrderDirection.ASC, NullPlacement.LAST)
+    term: OrderTerm = OrderTerm(ORDER_DATE, OrderDirection.ASC, NullPlacement.LAST)
 
-    order = asdict(SemanticQuery([], [ORDER_DATE], order=[term]))["order"]
+    order: list[tuple[object, OrderDirection]] = asdict(
+        SemanticQuery([], [ORDER_DATE], order=[term])
+    )["order"]
 
     assert [tuple(item) for item in order] == [(asdict(ORDER_DATE), OrderDirection.ASC)]
     assert astuple(SemanticQuery([], [ORDER_DATE], order=[term]))
 
 
 def test_order_term_is_immutable_and_validated() -> None:
-    term = OrderTerm(ORDER_DATE, OrderDirection.ASC, NullPlacement.LAST)
+    term: OrderTerm = OrderTerm(ORDER_DATE, OrderDirection.ASC, NullPlacement.LAST)
 
     with pytest.raises(AttributeError):
         term.nulls = None

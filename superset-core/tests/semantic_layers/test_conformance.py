@@ -36,6 +36,7 @@ from superset_core.semantic_layers.types import (
     Operator,
     OrderDirection,
     OrderTerm,
+    OrderTuple,
     OrFilter,
     PredicateType,
     SemanticQuery,
@@ -152,6 +153,26 @@ def semantic_query_cases(
                 [total], [category], order=[(total, OrderDirection.DESC)], limit=1
             ),
             pa.table({"category": ["B"], "total": [8]}),
+        ),
+        # January ties on the first key: its second row is NULL, not A.
+        "null_placement_secondary": (
+            SemanticQuery(
+                [total],
+                [month, category],
+                order=[
+                    OrderTerm(month, OrderDirection.ASC, NullPlacement.LAST),
+                    OrderTerm(category, OrderDirection.ASC, NullPlacement.LAST),
+                ],
+                offset=1,
+                limit=1,
+            ),
+            pa.table(
+                {
+                    "occurred": pa.array([date(2026, 1, 1)], type=pa.date32()),
+                    "category": pa.array([None], type=pa.string()),
+                    "total": [3],
+                }
+            ),
         ),
         # SQLite sorts NULL first for ASC: ignoring the placement keeps NULL, A.
         "null_placement": (
@@ -719,4 +740,92 @@ def test_null_placement_lane_rejects_a_provider_ignoring_the_placement(
     with pytest.raises(AssertionError, match="NULL values must sort last"):
         SemanticProviderConformance().test_query_outputs(
             "null_placement", semantic_view, semantic_query_cases
+        )
+
+
+@pytest.mark.parametrize(
+    ("direction", "placement"),
+    [
+        (OrderDirection.ASC, NullPlacement.LAST),
+        (OrderDirection.DESC, NullPlacement.FIRST),
+    ],
+)
+def test_secondary_null_placement_rejects_first_key_only_provider(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    monkeypatch: pytest.MonkeyPatch,
+    direction: OrderDirection,
+    placement: NullPlacement,
+) -> None:
+    """Secondary placement must select the right page within a tied prefix."""
+    query: SemanticQuery
+    expected: pa.Table
+    query, expected = semantic_query_cases["null_placement_secondary"]
+    assert query.order
+    category: Dimension = query.dimensions[1]
+    query = replace(
+        query, order=[query.order[0], OrderTerm(category, direction, placement)]
+    )
+    if placement is NullPlacement.FIRST:
+        expected = pa.table(
+            {
+                "occurred": pa.array([date(2026, 1, 1)], type=pa.date32()),
+                "category": ["A"],
+                "total": [2],
+            }
+        )
+    cases: dict[str, tuple[SemanticQuery, pa.Table]] = {
+        "null_placement_secondary": (query, expected),
+    }
+    SemanticProviderConformance().test_query_outputs(
+        "null_placement_secondary", semantic_view, cases
+    )
+    original: Callable[[SemanticQuery], SemanticResult] = semantic_view.get_table
+
+    def first_key_only(value: SemanticQuery) -> SemanticResult:
+        return original(
+            replace(
+                value,
+                order=[
+                    term if index == 0 else (term[0], term[1])
+                    for index, term in enumerate(value.order or [])
+                ],
+            )
+        )
+
+    monkeypatch.setattr(semantic_view, "get_table", first_key_only)
+    with pytest.raises(AssertionError, match="NULL values must sort"):
+        SemanticProviderConformance().test_query_outputs(
+            "null_placement_secondary", semantic_view, cases
+        )
+
+
+@pytest.mark.parametrize(
+    "mutation", ["first_key_only", "plain_pair", "whole_result", "no_tied_nulls"]
+)
+def test_secondary_null_placement_rejects_weak_fixtures(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    mutation: str,
+) -> None:
+    """A secondary witness must expose placement within a tied prefix."""
+    query: SemanticQuery
+    expected: pa.Table
+    query, expected = semantic_query_cases["null_placement_secondary"]
+    assert query.order
+    order: list[OrderTuple] = query.order
+    if mutation == "first_key_only":
+        query = replace(query, order=order[:1])
+    elif mutation == "plain_pair":
+        query = replace(query, order=[order[0], (order[1][0], order[1][1])])
+    elif mutation == "whole_result":
+        query = replace(query, limit=100, offset=None)
+    else:
+        # A category cannot be NULL and non-NULL within a tie on itself.
+        query = replace(query, order=[order[1], order[1]])
+    with pytest.raises(AssertionError, match="requires|must keep different rows"):
+        SemanticProviderConformance().test_query_outputs(
+            "null_placement_secondary",
+            semantic_view,
+            {"null_placement_secondary": (query, expected)},
         )

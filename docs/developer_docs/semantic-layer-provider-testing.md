@@ -60,7 +60,7 @@ separate integration tests.
 | `semantic_provider_class` | `(importable_module_name, class_name)` of the layer for an isolated import and static-schema check. Dependencies must already be installed. |
 
 Required query cases are `identity`, `grain`, `null`, `not_null`, `or`,
-`order_limit` and `null_placement`. Use member names distinct from private IDs
+`order_limit`, `null_placement` and `null_placement_secondary`. Use member names distinct from private IDs
 and display labels.
 For `null_placement`, order first by a selected dimension with an
 `OrderTerm(member, direction, NullPlacement.LAST)` (or `FIRST`) and a limit, and
@@ -71,6 +71,13 @@ default would keep NULL and A. The suite also checks that the unlimited result
 puts every NULL value of that member at the requested end, and compares the
 limited page with the same rows of the unlimited result, so give the order key
 distinct values and a single NULL group: tied rows may come back in either order.
+For `null_placement_secondary`, use at least two order keys, with a selected
+dimension carrying explicit NULL placement on the second key. Seed NULL and
+non-NULL values within a tie on the first key, and put the page boundary inside
+that tie so reversing only the second key's placement changes the retained rows.
+The example orders by month then category, skips January's first row and keeps
+its NULL category (total 3); dropping secondary `NULLS LAST` instead keeps A
+(total 2). The suite checks placement within each tied prefix, not globally.
 For `grain`, use a grain-bearing dimension with data whose aggregation distinguishes the selected grain from raw values. Multiple grain variants for one name are allowed, not required. When the catalog declares no grain-bearing dimension, the case skips with an explicit reason before looking up its fixture entry; such providers may omit the `grain` entry. This reports unexercised grain coverage, not a passing grain check.
 NULL and grouped-OR fixtures must select NULL and non-NULL branches observably;
 the `or` case must use the host-normalized shape: one `OrFilter` containing

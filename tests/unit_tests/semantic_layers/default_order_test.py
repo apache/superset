@@ -194,8 +194,8 @@ def test_row_count_dispatch_bypasses_the_cache(mocker: MockerFixture) -> None:
         "build_cache_configuration",
         return_value=(mocker.Mock(), mocker.Mock()),
     )
-    service.execute_provider.side_effect = lambda query, dispatch: (
-        SemanticCacheOutcome(dispatch(query), cache_hit=False)
+    service.execute_provider.side_effect = lambda query, dispatch: SemanticCacheOutcome(
+        dispatch(query), cache_hit=False
     )
     provider: Mock = mocker.Mock(return_value=EMPTY_RESULT)
     query: SemanticQuery = SemanticQuery(metrics=[SALES], dimensions=[ORDER_DATE])
@@ -433,6 +433,8 @@ def test_limited_hit_is_not_shared_between_default_and_explicit_ascending(
         "order_date": [date(2026, 1, 1), date(2026, 2, 1)],
         "total_sales": [1.0, 2.0],
     }
+    stored: SemanticQuery
+    requested: SemanticQuery
     stored, requested = (
         (explicit, unordered)
         if stored_explicit

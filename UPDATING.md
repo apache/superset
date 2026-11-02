@@ -84,7 +84,8 @@ assists people when migrating to a new version.
   provider must apply the placement (read it with `null_placement(term)`) before
   `offset` and `limit`, and keep it when it rebuilds order terms. Explicit orders
   are sent unchanged and keep the provider's own NULL placement. The provider
-  conformance kit adds a required `null_placement` query case. The semantic
+  conformance kit adds required `null_placement` and `null_placement_secondary`
+  query cases, covering the first key and a tied-prefix secondary key. The semantic
   result cache key format changes, so cached semantic results are recomputed
   once after upgrading.
 

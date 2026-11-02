@@ -34,6 +34,7 @@ from superset_core.semantic_layers.types import (
     Metric,
     null_placement,
     NullPlacement,
+    OrderDirection,
     OrderTuple,
     OrFilter,
     SemanticQuery,
@@ -213,6 +214,9 @@ def _canonical_query(query: SemanticQuery) -> Mapping[str, object]:
 def _canonical_order(order: list[OrderTuple]) -> list[Mapping[str, object]]:
     """Serialize order terms, including NULL placement when a term sets one."""
     canonical: list[Mapping[str, object]] = []
+    term: OrderTuple
+    element: Metric | Dimension | AdhocExpression
+    direction: OrderDirection
     for term in order:
         element, direction = term
         nulls: NullPlacement | None = null_placement(term)
