@@ -628,12 +628,21 @@ export function saveDashboardRequest(
         // Leave edit mode so the review banner is visible; it is the only
         // place the author can now act on what they just submitted.
         dispatch(setEditMode(false));
-        dispatch(
-          addSuccessToast(
-            (body.message as string) ??
-              t('Changes saved. Viewers still see the live version.'),
-          ),
+        // ...and tell the banner its picture of the asset is now stale.
+        // Leaving edit mode only reveals the banner; the change request
+        // this save produced did not exist when the banner loaded, so
+        // without this it went on showing the live version with no
+        // Request review beside it, and the author had to reload to find
+        // their own draft. After a reviewer had sent the change back it
+        // was worse: the banner kept saying changes were requested and
+        // offered no way to send the fix on (QA-14, R4-07). Every other
+        // captured save path announces here; this one did not.
+        announceChangeCaptured();
+        const { text, options } = reviewRequiredToast(
+          body.message as string | undefined,
+          body.id as number,
         );
+        dispatch(addSuccessToast(text, options));
         return response;
       }
 
