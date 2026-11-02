@@ -157,7 +157,11 @@ CSV_EXPORT = {"encoding": "utf-8-sig", "sep": ";", "decimal": ","}
 
 This writes `12,3400` for a database decimal value of `12.3400` and `1,25` for
 a floating-point value of `1.25`, including numeric cells in mixed object
-columns. Decimal precision and trailing zeros are preserved. Text values
+columns. Direct CSV serialization preserves Decimal precision and trailing zeros.
+CSV reports for table and pivot table charts, and pivoted CSV exports, pass
+through client-side post-processing that re-reads CSV data and infers numeric
+types. Those paths can drop trailing zeros (for example, `12.3400` becomes
+`12.34`, or `12,3400` becomes `12,34` with `decimal=","`). Text values
 such as `"1.25"` keep their contents, and spreadsheet formula protection
 still applies to strings. Streaming CSV exports use the same decimal
 separator. The default separator remains `.`.
