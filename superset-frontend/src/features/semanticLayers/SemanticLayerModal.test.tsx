@@ -280,6 +280,34 @@ test('cancels pending schema refresh when dependencies become unsatisfied', asyn
   expect(mockedPost).toHaveBeenCalledTimes(1);
 });
 
+test('Save waits for debounced schema discovery and reconciled fields', async () => {
+  mockJsonFormsChangeTriggered = true;
+  render(<SemanticLayerModal {...props} />);
+  const save = await screen.findByRole('button', { name: 'Save' });
+  await waitFor(() => expect(save).toBeEnabled());
+  let finishSchema!: (value: { json: { result: JsonSchema } }) => void;
+  mockedPost.mockReturnValueOnce(
+    new Promise(resolve => {
+      finishSchema = resolve;
+    }),
+  );
+
+  act(() => {
+    capturedOnChange!({ data: { warehouse: 'wh2' }, errors: [] });
+  });
+  expect(save).toBeDisabled();
+  fireEvent.click(save);
+  expect(SupersetClient.put).not.toHaveBeenCalled();
+
+  act(() => jest.advanceTimersByTime(501));
+  await waitFor(() => expect(mockedPost).toHaveBeenCalledTimes(2));
+  expect(save).toBeDisabled();
+  await act(async () =>
+    finishSchema({ json: { result: schemaWithExternalDeps } }),
+  );
+  await waitFor(() => expect(save).toBeEnabled());
+});
+
 test.each([
   ['debouncing', false],
   ['pending', false],
@@ -528,6 +556,9 @@ test('passes masked credentials to the provider for edit schema and preserves th
     capturedOnChange!({ data: configuration, errors: [] });
   });
   (SupersetClient.put as jest.Mock).mockResolvedValueOnce({ json: {} });
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled(),
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Save' }));
   await waitFor(() =>
     expect(SupersetClient.put).toHaveBeenCalledWith(
@@ -606,6 +637,13 @@ test.each([
     await waitFor(() => expect(capturedOnChange).not.toBeNull());
     act(() => capturedOnChange!({ data: {}, errors: [] }));
   }
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', {
+        name: mode === 'update' ? 'Save' : 'Create',
+      }),
+    ).toBeEnabled(),
+  );
   jest
     .mocked(getClientErrorObject)
     .mockImplementationOnce(
@@ -637,6 +675,9 @@ test.each([
 
 test('Save falls back when the normalized error has no message', async () => {
   await setupExampleProvider(completeCredentials);
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled(),
+  );
   (SupersetClient.put as jest.Mock).mockRejectedValueOnce(
     new Error('SECRET <root>: value_error'),
   );
@@ -652,6 +693,9 @@ test('save failure without credential fields uses neutral operation wording', as
   props.addDangerToast.mockClear();
   render(<SemanticLayerModal {...props} />);
   await waitFor(() => expect(mockedPost).toHaveBeenCalledTimes(1));
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled(),
+  );
   (SupersetClient.put as jest.Mock).mockRejectedValueOnce(new Error('SECRET'));
   fireEvent.click(screen.getByRole('button', { name: 'Save' }));
   await waitFor(() =>

@@ -1057,6 +1057,53 @@ def test_unmask_configuration_rejects_secret_reveal_with_changed_field() -> None
         )
 
 
+@pytest.mark.parametrize("as_list", [False, True])
+@pytest.mark.parametrize("change", ["none", "host", "nested", "added", "removed"])
+def test_nested_mask_requires_unchanged_configuration(
+    as_list: bool, change: str
+) -> None:
+    """Nested masks cannot reuse credentials with a changed connection destination."""
+    credential = {"token": "stored-secret", "host": "trusted.example"}
+    stored: dict[str, Any] = {
+        "host": "trusted.example",
+        "auth": [credential] if as_list else credential,
+        "region": "west",
+    }
+    submitted = deepcopy(stored)
+    auth = submitted["auth"][0] if as_list else submitted["auth"]
+    auth["token"] = PASSWORD_MASK
+    if change == "host":
+        submitted["host"] = "untrusted.example"
+    elif change == "nested":
+        auth["host"] = "untrusted.example"
+    elif change == "added":
+        submitted["proxy"] = None
+    elif change == "removed":
+        del submitted["region"]
+
+    if change == "none":
+        assert (
+            unmask_stored_configuration(json.dumps(stored), submitted, "test_provider")
+            == stored
+        )
+    else:
+        with pytest.raises(SemanticLayerInvalidError):
+            unmask_stored_configuration(json.dumps(stored), submitted, "test_provider")
+
+
+def test_nested_explicit_credential_allows_destination_change() -> None:
+    """Explicit credentials can accompany changes to nested connection fields."""
+    submitted = {"host": "new.example", "auth": {"token": "fresh-secret"}}
+    assert (
+        unmask_stored_configuration(
+            '{"host":"trusted.example","auth":{"token":"stored-secret"}}',
+            submitted,
+            "test_provider",
+        )
+        == submitted
+    )
+
+
 def test_unmask_configuration_rejects_secret_reveal_with_new_none_valued_key() -> None:
     """
     A newly introduced key with an explicit ``None`` value must be treated
