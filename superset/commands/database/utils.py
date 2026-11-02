@@ -225,8 +225,10 @@ def encrypted_extra_secrets_reused(
     if not isinstance(submitted_config, dict):
         return False
     return any(
-        is_stored(field)
-        for field in json.get_masked_fields(submitted_config, sensitive_fields)
+        match.value == PASSWORD_MASK
+        and any(old.value not in (None, "") for old in match.full_path.find(existing))
+        for field in sensitive_fields
+        for match in parse(field).find(submitted_config)
     )
 
 
