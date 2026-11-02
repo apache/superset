@@ -42,28 +42,7 @@ export type DatasourceListPage = {
 export type FetchDatasourceListOptions = {
   /** Transport to use; pass a cached variant to share responses. */
   get?: typeof SupersetClient.get;
-} & (
-  | {
-      /**
-       * Match `search` against the name exactly rather than as a substring.
-       * Only supported together with `datasetsOnly`: the combined datasource
-       * endpoint's filter parser honours only substring (`ct`) name filters
-       * and silently drops an `eq` filter, so an exact-match preload against
-       * it would resolve to an arbitrary unfiltered page.
-       */
-      exactMatch: true;
-      datasetsOnly: true;
-    }
-  | {
-      exactMatch?: false;
-      /**
-       * Query the dataset-only endpoint even when semantic layers are
-       * enabled. Used by callers that resolve a dataset by name and must not
-       * be answered with a same-named semantic view.
-       */
-      datasetsOnly?: boolean;
-    }
-);
+};
 
 /**
  * Fetches one page of datasources by name, ordered by name.
@@ -78,26 +57,12 @@ export const fetchDatasourceList = (
   search: string,
   page: number,
   pageSize: number,
-  {
-    exactMatch = false,
-    datasetsOnly = false,
-    get = SupersetClient.get,
-  }: FetchDatasourceListOptions = {},
+  { get = SupersetClient.get }: FetchDatasourceListOptions = {},
 ): Promise<DatasourceListPage> => {
-  if (exactMatch && !datasetsOnly) {
-    // Enforced at the type level too; this guards plain-JS callers.
-    throw new Error(
-      'fetchDatasourceList: exactMatch requires datasetsOnly — the combined ' +
-        'datasource endpoint only supports substring name filters.',
-    );
-  }
-  const useCombinedList =
-    !datasetsOnly && isFeatureEnabled(FeatureFlag.SemanticLayers);
+  const useCombinedList = isFeatureEnabled(FeatureFlag.SemanticLayers);
   const query = rison.encode({
     ...(useCombinedList ? {} : { columns: DATASET_LIST_COLUMNS }),
-    filters: [
-      { col: 'table_name', opr: exactMatch ? 'eq' : 'ct', value: search },
-    ],
+    filters: [{ col: 'table_name', opr: 'ct', value: search }],
     page,
     page_size: pageSize,
     order_column: 'table_name',
@@ -110,4 +75,22 @@ export const fetchDatasourceList = (
     result: response.json.result as Dataset[],
     count: response.json.count ?? 0,
   }));
+};
+
+/**
+ * Fetches a single dataset by its ID.
+ *
+ * Dataset names are only unique per database, catalog and schema, so callers
+ * that know the ID (for example right after creating a dataset) must resolve
+ * it by ID rather than by name. Rejects when the dataset does not exist or is
+ * not accessible (404).
+ */
+export const fetchDatasetById = (
+  id: number | string,
+  { get = SupersetClient.get }: { get?: typeof SupersetClient.get } = {},
+): Promise<Dataset> => {
+  const query = rison.encode({ columns: DATASET_LIST_COLUMNS });
+  return get({
+    endpoint: `/api/v1/dataset/${encodeURIComponent(String(id))}?q=${query}`,
+  }).then((response: JsonResponse) => response.json.result as Dataset);
 };
