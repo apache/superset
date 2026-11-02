@@ -216,6 +216,16 @@ SERIES_LIMIT_SUBQ_ALIAS = "series_limit"
 OFFSET_JOIN_COLUMN_SUFFIX = "__offset_join_column_"
 
 
+def is_date_column_type(
+    db_engine_spec: type["BaseEngineSpec"],
+    column_type: str | None,
+    db_extra: dict[str, Any] | None = None,
+) -> bool:
+    """Return whether a temporal column's type holds dates with no time of day."""
+    sqla_type = db_engine_spec.get_sqla_column_type(column_type, db_extra=db_extra)
+    return isinstance(sqla_type, sa.Date)
+
+
 def get_effective_hours_offset(
     db_engine_spec: type["BaseEngineSpec"],
     column_type: str | None,
@@ -223,8 +233,7 @@ def get_effective_hours_offset(
     db_extra: dict[str, Any] | None = None,
 ) -> int:
     """Return the dataset offset representable by a temporal column's type."""
-    sqla_type = db_engine_spec.get_sqla_column_type(column_type, db_extra=db_extra)
-    if isinstance(sqla_type, sa.Date):
+    if is_date_column_type(db_engine_spec, column_type, db_extra=db_extra):
         # int() deliberately truncates toward zero; // would turn -1h into -24h.
         return int(offset_hours / 24) * 24
     return offset_hours
@@ -2639,7 +2648,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 return None
 
         quotes = "\"`'"
-        for select in [e for e in visitors.iterate(qry) if isinstance(e, Select)]:
+        selects = [e for e in visitors.iterate(qry) if isinstance(e, Select)]
+        taken = column_names | {
+            col.name
+            for select in selects
+            for col in select.selected_columns
+            if isinstance(col, Label) and isinstance(col.name, str)
+        }
+        for select in selects:
             for col in select.selected_columns:
                 if not isinstance(col, Label) or not isinstance(col.name, str):
                     continue
@@ -2653,7 +2669,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 unquoted = re.sub(f"[{quotes}]", "", expression)
                 reads_it = re.search(rf"(?<![\w.]){re.escape(name)}(?!\w)", unquoted)
                 if name in column_names or reads_it:
-                    col.name = f"{name}__"
+                    col.name = self._unused_alias(name, taken)
+
+    @staticmethod
+    def _unused_alias(name: str, taken: set[str]) -> str:
+        alias = f"{name}__"
+        while alias in taken:
+            alias += "_"
+        taken.add(alias)
+        return alias
 
     def _raise_for_disallowed_sql(self, sql: str) -> None:
         """
@@ -2806,6 +2830,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         )
         return str(fmt) if fmt else None
 
+    def _is_date_only_column(self, column: str | None) -> bool:
+        """Return whether the column's type holds dates with no time of day (such
+        as ``DATE``), which the dataset timezone must not move. Reads from either
+        a column object or a dict, matching ``_python_date_format``."""
+        if not hasattr(self, "get_column") or not (col := self.get_column(column)):
+            return False
+        column_type = (
+            col.get("type") if isinstance(col, dict) else getattr(col, "type", None)
+        )
+        return is_date_column_type(
+            self.db_engine_spec, column_type, db_extra=self.db_extra
+        )
+
     def _collect_dttm_labels(
         self, query_object: QueryObject
     ) -> tuple[tuple[str, str | None], ...]:
@@ -2937,6 +2974,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 offset=0 if label in sql_shifted_temporal_labels else self.offset,
                 time_shift=query_object.time_shift,
                 timezone=dataset_timezone,
+                date_only=bool(dataset_timezone) and self._is_date_only_column(label),
                 col_label=label,
             )
             for label, fmt in labels
@@ -2951,6 +2989,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     ),
                     time_shift=query_object.time_shift,
                     timezone=dataset_timezone,
+                    date_only=bool(dataset_timezone)
+                    and self._is_date_only_column(query_object.granularity),
                 )
             )
 
@@ -5918,24 +5958,32 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         dataset_timezone = self.get_dataset_timezone()
 
         if dataset_timezone and (start_dttm or end_dttm):
+            # A DATE column holds calendar days with no time of day, so its bounds
+            # are kept as they are; the timezone still overrides Hour Offset.
+            date_only = is_date_column_type(
+                self.db_engine_spec,
+                time_col.type if time_col is not None else None,
+                db_extra=self.db_extra,
+            )
             try:
                 tz = ZoneInfo(dataset_timezone)
 
                 # The datetimes from the UI are naive (no timezone info). We
                 # interpret them as being in the dataset's configured timezone and
                 # convert them to UTC for comparison with UTC-stored data.
-                if start_dttm is not None:
-                    start_dttm = (
-                        start_dttm.replace(tzinfo=tz)
-                        .astimezone(timezone.utc)
-                        .replace(tzinfo=None)
-                    )
-                if end_dttm is not None:
-                    end_dttm = (
-                        end_dttm.replace(tzinfo=tz)
-                        .astimezone(timezone.utc)
-                        .replace(tzinfo=None)
-                    )
+                if not date_only:
+                    if start_dttm is not None:
+                        start_dttm = (
+                            start_dttm.replace(tzinfo=tz)
+                            .astimezone(timezone.utc)
+                            .replace(tzinfo=None)
+                        )
+                    if end_dttm is not None:
+                        end_dttm = (
+                            end_dttm.replace(tzinfo=tz)
+                            .astimezone(timezone.utc)
+                            .replace(tzinfo=None)
+                        )
             except (ZoneInfoNotFoundError, TypeError):
                 logger.warning(
                     "Invalid timezone %r in dataset extra; falling back to Hour "
