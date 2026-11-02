@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -505,6 +505,12 @@ msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "Hace %s día"
 msgstr[1] "Hace %s días"
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%s field"
@@ -2847,10 +2853,6 @@ msgid "Are you sure you want to delete %s?"
 msgstr "¿Está seguro de que desea eliminar %s?"
 
 #, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-
-#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr "¿Seguro que quieres eliminar el %s seleccionado?"
 
@@ -4128,6 +4130,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr "Elige un formato numérico"
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr "Elige una fuente"
 
@@ -5285,6 +5290,9 @@ msgstr "Crear nuevo gráfico"
 msgid "Create or select schema..."
 msgstr "Crear o seleccionar esquema..."
 
+msgid "Create semantic layer"
+msgstr ""
+
 msgid "Created"
 msgstr "Creado"
 
@@ -6357,7 +6365,7 @@ msgstr "Eliminar plantilla"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -10454,6 +10462,12 @@ msgstr "Ordenar valores de filtro"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 #, fuzzy
 msgid "Loading timezones..."
 msgstr "Cargando..."
@@ -11684,6 +11698,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -15236,6 +15266,9 @@ msgstr "La capa semántica no existe"
 msgid "Semantic layer parameters are invalid."
 msgstr "Los parámetros de la capa semántica no son válidos."
 
+msgid "Semantic layer setup guide"
+msgstr ""
+
 msgid "Semantic layer type"
 msgstr "Tipo de capa semántica"
 
@@ -18782,6 +18815,9 @@ msgstr ""
 "Puede ser una dirección IP (por ejemplo, 127.0.0.1) o un nombre de "
 "dominio (por ejemplo, mibasededatos.com)."
 
+msgid "This cannot be undone."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -19866,6 +19902,9 @@ msgstr "Confiar en esta URL y no volver a preguntar"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 "Intenta aplicar diferentes filtros o comprueba si tu fuente de datos "
@@ -20088,6 +20127,16 @@ msgstr ""
 #, -ERR:PROP-NOT-FOUND-
 msgid "Unable to load dashboard"
 msgstr "No se ha podido cargar el panel de control"
+
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr ""
@@ -22253,6 +22302,9 @@ msgstr "5 segundos"
 msgid "aggregate"
 msgstr "agregar"
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr "condición de la alerta"
 
@@ -22268,6 +22320,10 @@ msgstr "copiar también (duplicar) los gráficos"
 msgid "ancestor"
 msgstr "ancestro"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "anotación"
 
@@ -22278,6 +22334,10 @@ msgstr "annotation_layer"
 #, fuzzy
 msgid "apple"
 msgstr "manzana"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -23006,6 +23066,12 @@ msgstr ""
 
 msgid "query"
 msgstr "consulta"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "aleatorio"
