@@ -918,13 +918,18 @@ def pending_dependency(
     kind = AssetType(change_request.asset_type)
     if kind is AssetType.DASHBOARD:
         return _chart_on_the_dashboard_with_a_change(asset)
-    if kind is not AssetType.CHART:
-        return None
+    if kind is AssetType.CHART:
+        return _dataset_under_the_chart_with_a_change(asset)
+    return None
+
+
+def _dataset_under_the_chart_with_a_change(chart: Any) -> dict[str, Any] | None:
+    """The chart's dataset, when it has a change of its own still open."""
     # Charts can also sit on a semantic view, which has no change requests
     # of its own; ``dataset_impact`` guards the same way.
-    if getattr(asset, "datasource_type", None) != "table":
+    if getattr(chart, "datasource_type", None) != "table":
         return None
-    datasource_id = getattr(asset, "datasource_id", None)
+    datasource_id = getattr(chart, "datasource_id", None)
     if datasource_id is None:
         return None
 
@@ -937,7 +942,7 @@ def pending_dependency(
         "change_request_id": open_request.id,
         "status": open_request.status,
         "author": _user_brief(open_request.author),
-        "title": _asset_title(getattr(asset, "datasource", None)),
+        "title": _asset_title(getattr(chart, "datasource", None)),
         "count": 1,
     }
 
