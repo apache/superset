@@ -10750,7 +10750,7 @@ msgid "Max value"
 msgstr "Valor máximo"
 
 msgid "Max. features"
-msgstr "Características máx."
+msgstr "Entidades máx."
 
 msgid "Maximum"
 msgstr "Máximo"
@@ -10777,7 +10777,7 @@ msgid "Maximum folder nesting depth reached"
 msgstr "Se ha alcanzado la profundidad máxima de anidamiento de carpetas"
 
 msgid "Maximum number of features to fetch from service"
-msgstr "Número máximo de características a recuperar del servicio"
+msgstr "Número máximo de entidades que se obtienen del servicio"
 
 msgid "Maximum number of retry attempts (1–10)"
 msgstr ""
@@ -17725,7 +17725,7 @@ msgstr ""
 "poder importarlas."
 
 msgid "The pattern of timestamp format. For strings use "
-msgstr "El patrón del formato de marca de tiempo. Para cadenas, usa "
+msgstr "El patrón del formato de marca de tiempo. Para columnas de texto, usa "
 
 msgid ""
 "The periodicity over which to pivot time. Each period becomes\n"
@@ -22680,7 +22680,7 @@ msgid "formatted"
 msgstr "Fecha formateada"
 
 msgid "function type icon"
-msgstr "icono de tipo de función"
+msgstr "icono de tipo función"
 
 msgid "geohash (square)"
 msgstr "geohash (cuadrado)"
@@ -22831,9 +22831,8 @@ msgstr "metros"
 msgid "metric"
 msgstr "métrica"
 
-#, fuzzy
 msgid "metric type icon"
-msgstr "icono de tipo numérico"
+msgstr "icono de tipo métrica"
 
 msgid "min"
 msgstr "min"
@@ -22855,7 +22854,7 @@ msgid "more than {max} {name}"
 msgstr "más de {max} {name}"
 
 msgid "multi-value type icon"
-msgstr ""
+msgstr "icono de tipo multivalor"
 
 msgid "must have a value"
 msgstr "debe tener un valor"
@@ -23133,7 +23132,7 @@ msgid "string"
 msgstr "texto"
 
 msgid "string type icon"
-msgstr "icono de tipo de cadena"
+msgstr "icono de tipo texto"
 
 msgid "success"
 msgstr "correcto"
@@ -23185,7 +23184,7 @@ msgid "theme"
 msgstr "tema"
 
 msgid "timestamp"
-msgstr "fecha y hora"
+msgstr "marca de tiempo"
 
 msgid "to"
 msgstr "a"
