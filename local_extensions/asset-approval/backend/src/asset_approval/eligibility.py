@@ -16,9 +16,22 @@
 # under the License.
 """Who may approve a change.
 
-SOW 5.4: any *other* editor of the asset may approve it, given access, edit
-permission for that asset type, and the approval permission. The submitter
-may not, and neither may anyone who touched the draft.
+**Editorship of the asset is the control.** Any *other* editor may approve,
+given access and edit permission for that asset type. The submitter may
+not, and neither may anyone who touched the draft.
+
+Approving is deliberately not a role-level grant. The mockups settled this:
+the right belongs to the asset's collaborators, so it travels with the
+asset rather than with a role, and an operator cannot hand it out or take
+it away centrally. A role gate layered on top could only ever subtract --
+it would silently stop a legitimate editor approving, which is a deadlock
+rather than a control. S-05 asked for a separate approval permission and
+one was built; it is removed again here because it contradicted the
+decision the mockups record.
+
+Service accounts are still excluded, and that is not the same thing: it is
+a denylist that stops certain accounts counting as approvers at all, not a
+grant of the right (S-07).
 
 Visa Q1 / SOW 9.3: **no admin bypass in V1**. An administrator who is not an
 editor of the asset cannot approve it. That is why nothing here calls
@@ -34,7 +47,7 @@ import logging
 from typing import Any
 
 from flask_appbuilder.security.sqla.models import Role, User
-from sqlalchemy import false, or_
+from sqlalchemy import or_
 
 from superset import db, security_manager
 from asset_approval.models import ChangeRequest
@@ -42,12 +55,6 @@ from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 
 logger = logging.getLogger(__name__)
-
-#: The permission that separates approving from editing (SOW 5.4, S-05).
-#: FAB creates it from ``ChangeRequestRestApi.method_permission_name``, which
-#: maps ``approve`` and ``request_changes`` to it and leaves ``submit``,
-#: ``withdraw`` and ``discard`` on ``can_write``.
-APPROVAL_PERMISSION = ("can_approve", "ChangeRequest")
 
 #: Config key naming the roles whose members are service accounts. Superset
 #: has no notion of a machine user, so the instance names one: whichever role
@@ -72,24 +79,17 @@ def machine_user_roles() -> set[str]:
 def is_eligible_approver(user: Any) -> bool:
     """Whether this account may ever be an approver, whatever the asset.
 
-    Three properties of the account itself: it has to be active, it must
-    not be a service account, and its roles have to carry the approval
-    right.
+    Two properties of the account itself: it has to be active, and it must
+    not be a service account. Whether it may approve a *particular* change
+    is editorship of that asset, which :func:`can_approve` asks.
 
     Shared by the list the request dialog shows and the check the approve
     route makes, which used to disagree. ``active`` was filtered out of the
     list and not out of the check, so a deactivated editor never appeared as
-    an option yet could still approve through the API (S-07). The approval
-    right was the same mistake the other way round: ``can_approve`` read it
-    and this did not, so once an operator narrows
-    ``ASSET_APPROVAL_APPROVER_ROLES`` -- the first thing a customer does --
-    the dialog names approvers the route refuses, and an author submits into
-    a queue nobody can clear.
+    an option yet could still approve through the API (S-07).
     """
     # A null column is not active; see ``only_eligible_accounts``.
     if not getattr(user, "active", True):
-        return False
-    if not roles_carry_approval(user):
         return False
     machine_roles = machine_user_roles()
     if not machine_roles:
@@ -116,83 +116,6 @@ def load_user(user_id: int) -> Any | None:
         return user
     return security_manager.get_user_by_id(user_id)
 
-
-#: Where the roles holding the approval right are cached for a request.
-_APPROVER_ROLES_CACHE = "asset_approval_approver_role_ids"
-
-#: Tells "not cached" apart from a cached ``None``.
-_UNCACHED = object()
-
-
-def roles_that_may_approve() -> frozenset[int] | None:
-    """Ids of the roles holding the approval right, ``None`` if it is absent.
-
-    Cached for the request. ``can_approve`` is asked once per row when the
-    Approvals page lists what is waiting, so without this each row cost a
-    permission lookup. Only inside a request, where a grant cannot
-    meaningfully change underneath the answer; a CLI or a replay reads it
-    fresh and leaves nothing behind for the next caller.
-    """
-    from flask import (  # pylint: disable=import-outside-toplevel
-        g,
-        has_request_context,
-    )
-
-    from superset.extensions import (  # pylint: disable=import-outside-toplevel
-        security_manager,
-    )
-
-    cacheable = has_request_context()
-    if cacheable:
-        cached = g.get(_APPROVER_ROLES_CACHE, _UNCACHED)
-        if cached is not _UNCACHED:
-            return cached  # type: ignore[no-any-return]
-
-    pvm = security_manager.find_permission_view_menu(*APPROVAL_PERMISSION)
-    answer = None if pvm is None else frozenset(role.id for role in pvm.role)
-    if cacheable:
-        setattr(g, _APPROVER_ROLES_CACHE, answer)
-    return answer
-
-
-def roles_carry_approval(user: Any) -> bool:
-    """Whether this account's roles hold the approval right.
-
-    What :func:`holds_approval_permission` asks from a user id, asked where
-    the account is already in hand. Fails open on the permission not
-    existing yet, for the reason given there.
-    """
-    role_ids = roles_that_may_approve()
-    if role_ids is None:
-        return True
-    if not role_ids:
-        return False
-    return bool(role_ids & {role.id for role in getattr(user, "roles", []) or []})
-
-
-def holds_approval_permission(user_id: int) -> bool:
-    """Whether this user's roles carry the approval right at all.
-
-    The REST routes enforce this themselves, through the permission mapping.
-    It is re-checked here because the same answer drives the UI: a role
-    without the right must not be told that a change "needs your review",
-    offered an Approve button, or counted in the bell. What the API
-    advertises and what it would allow have to come from one place.
-
-    Fails open on one case only -- the permission not existing yet, on an
-    instance that has not run ``superset init`` since this shipped. There
-    every role keeps exactly the approval rights it had before the
-    permission was introduced, rather than the feature quietly stopping.
-    """
-    role_ids = roles_that_may_approve()
-    if role_ids is None:
-        return True
-    if not role_ids:
-        return False
-    user = load_user(user_id)
-    if user is None:
-        return False
-    return bool(role_ids & {role.id for role in user.roles})
 
 
 def asset_editor_subject_ids(model: Any) -> set[int]:
@@ -242,8 +165,8 @@ def can_approve(
     user = load_user(user_id)
     if user is None or not is_eligible_approver(user):
         return False
-    if not holds_approval_permission(user_id):
-        return False
+    # And then the control itself: a *second editor* of this asset. Not a
+    # role, by decision -- see the module docstring.
     return is_strict_editor(model, user_id)
 
 
@@ -301,17 +224,6 @@ def only_eligible_accounts(query: Any) -> Any:
     favour. It is also what the Python predicate already said.
     """
     query = query.filter(User.active.is_(True))
-    approver_role_ids = roles_that_may_approve()
-    if approver_role_ids is not None:
-        # ``None`` means the permission does not exist on this instance yet,
-        # where every role keeps the rights it had before it was introduced.
-        # An empty set is an operator who has said nobody approves, and is
-        # answered as written rather than as "no filter".
-        query = (
-            query.filter(User.roles.any(Role.id.in_(approver_role_ids)))
-            if approver_role_ids
-            else query.filter(false())
-        )
     machine_roles = machine_user_roles()
     if machine_roles:
         query = query.filter(~User.roles.any(Role.name.in_(machine_roles)))

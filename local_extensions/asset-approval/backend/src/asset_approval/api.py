@@ -427,13 +427,15 @@ class ChangeRequestRestApi(BaseSupersetApi):
         "pending_count": "read",
         "enabled": "read",
         "submit": "write",
-        # The two reviewer actions carry a permission of their own, so an
-        # operator can say who may approve without also deciding who may
-        # submit, withdraw or discard (SOW 5.4, S-05). FAB creates
-        # ``can_approve`` on ChangeRequest from this mapping; see
-        # ``entrypoint._align_approval_permission`` for who holds it.
-        "approve": "approve",
-        "request_changes": "approve",
+        # The reviewer actions sit on ``can_write`` like the rest. Who may
+        # approve is not a role: it is whoever else edits the asset, which
+        # ``eligibility.can_approve`` decides per change request. S-05 asked
+        # for a separate permission and one was built; it was removed again
+        # because it contradicted the mockups, and because a role gate on
+        # top of editorship can only ever stop a legitimate editor
+        # approving.
+        "approve": "write",
+        "request_changes": "write",
         # Author and editor actions. ``withdraw`` is the author's own
         # (lifecycle.withdraw), and SOW 5.3 lets any editor ``discard`` so
         # one abandoned draft cannot block an asset.

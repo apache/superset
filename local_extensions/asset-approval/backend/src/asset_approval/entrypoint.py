@@ -236,20 +236,6 @@ PAGE_PERMISSION = "can_review"
 #: The permission that has always decided who belongs in the workflow.
 WORKFLOW_PERMISSION = ("can_read", "ChangeRequest")
 
-#: Config key naming the roles whose members may approve a change. Absent, or
-#: ``None``, leaves whatever ``superset init``'s own role sync produced, which
-#: is the behaviour the instance already had.
-APPROVER_ROLES_CONFIG = "ASSET_APPROVAL_APPROVER_ROLES"
-
-#: The roles ``sync_role_definitions`` rebuilds on every ``superset init``.
-#: Only these have the approval right taken back off them when it is not in
-#: the configured list: a role an operator created is theirs, and nothing
-#: here should revoke a grant they made deliberately.
-BUILTIN_ROLES = frozenset({"Admin", "Alpha", "Gamma", "sql_lab", "Public"})
-
-
-#: What covered approving before it was a right of its own.
-WRITE_PERMISSION = ("can_write", "ChangeRequest")
 
 
 def _anonymous_role_name() -> str:
@@ -277,171 +263,7 @@ def belongs_to_the_workflow(role: Any) -> bool:
     return getattr(role, "name", None) != _anonymous_role_name()
 
 
-def _seed_approval_permission() -> None:
-    """Hand the new approval right to whoever already had it.
 
-    Until the split, approving was covered by ``can_write`` on ChangeRequest.
-    FAB creates ``can_approve`` when the API is registered but grants it to
-    nobody: the grants come from ``superset init``'s role sync, which an
-    operator runs on upgrade and not on every restart.
-
-    In between, nothing holds the permission -- and ``@protect()`` denies a
-    permission no role holds, so every approver would get 403. A new
-    permission must not become an outage, which is the same reason
-    ``holds_approval_permission`` fails open when the permission is absent
-    altogether; the route cannot be made to fail open, so the grant has to
-    exist instead.
-
-    Only runs while nothing holds the right, so a later revoke is not undone,
-    and not at all once ``ASSET_APPROVAL_APPROVER_ROLES`` is set -- there the
-    operator has said who may approve, and an empty list means nobody.
-    """
-    from superset.extensions import security_manager
-
-    from asset_approval.eligibility import APPROVAL_PERMISSION
-
-    if current_app.config.get(APPROVER_ROLES_CONFIG) is not None:
-        return
-
-    try:
-        approval = security_manager.find_permission_view_menu(*APPROVAL_PERMISSION)
-        write = security_manager.find_permission_view_menu(*WRITE_PERMISSION)
-        if approval is None or write is None or list(approval.role):
-            return
-        for role in list(write.role):
-            if not belongs_to_the_workflow(role):
-                continue
-            security_manager.add_permission_role(role, approval)
-            logger.info(
-                "%s: %r could approve through %s, so it keeps the new %s",
-                EXTENSION_ID,
-                role.name,
-                WRITE_PERMISSION[0],
-                APPROVAL_PERMISSION[0],
-            )
-    except Exception:  # pylint: disable=broad-except
-        logger.warning(
-            "%s: could not seed %s from %s; approvers may get 403 until "
-            "`superset init` runs",
-            EXTENSION_ID,
-            APPROVAL_PERMISSION[0],
-            WRITE_PERMISSION[0],
-            exc_info=True,
-        )
-
-
-def _align_approval_permission() -> None:
-    """Make the approval right match the operator's written decision.
-
-    FAB creates ``can_approve`` on ChangeRequest from the route mapping, and
-    ``superset init``'s role sync then hands it to Admin, Alpha and Gamma --
-    the denylist's default, and exactly the set that already held
-    ``can_write``. So on an instance that configures nothing, who can approve
-    does not change: this only makes the right nameable, where before it was
-    folded into ``can_write`` along with submit, withdraw and discard (S-05).
-
-    ``ASSET_APPROVAL_APPROVER_ROLES`` is how an instance says otherwise. Given
-    a list of role names, the permission is granted to those roles and taken
-    back off the builtin roles that are not in it. Re-run on every boot
-    because that is also the only way a deliberate revoke survives: the next
-    ``superset init`` rebuilds the builtin roles from the denylist and would
-    otherwise hand the right straight back.
-
-    Holding the permission is necessary and not sufficient. An approver still
-    has to be a strict editor of the asset and not its author
-    (:mod:`asset_approval.eligibility`), and there is still no administrator
-    bypass in V1 (Visa Q1, SOW 9.3).
-    """
-    from superset.extensions import security_manager
-
-    from asset_approval.eligibility import APPROVAL_PERMISSION
-
-    configured = current_app.config.get(APPROVER_ROLES_CONFIG)
-    if configured is None:
-        return
-
-    try:
-        pvm = security_manager.find_permission_view_menu(*APPROVAL_PERMISSION)
-        if pvm is None:
-            logger.warning(
-                "%s: %s on %s does not exist yet, so %s cannot be applied; "
-                "run `superset init`",
-                EXTENSION_ID,
-                *APPROVAL_PERMISSION,
-                APPROVER_ROLES_CONFIG,
-            )
-            return
-        wanted = {str(name).strip() for name in configured if str(name).strip()}
-        # A role the operator names but has not created yet would otherwise
-        # be skipped -- ``get_all_roles`` only yields roles that exist -- so
-        # the alignment would take the right off the builtin roles and give
-        # it to nobody, and every approval would 403. Create it instead, so
-        # the configuration is at least realisable by adding members.
-        for name in sorted(wanted):
-            if security_manager.find_role(name) is None:
-                security_manager.add_role(name)
-                logger.info(
-                    "%s: created role %r, named in %s",
-                    EXTENSION_ID,
-                    name,
-                    APPROVER_ROLES_CONFIG,
-                )
-        for role in security_manager.get_all_roles():
-            holds = pvm in role.permissions
-            if role.name in wanted and not holds:
-                if not belongs_to_the_workflow(role):
-                    logger.warning(
-                        "%s: %s names %r, which is the anonymous role; "
-                        "a signed-out visitor is never an approver, so it "
-                        "is skipped",
-                        EXTENSION_ID,
-                        APPROVER_ROLES_CONFIG,
-                        role.name,
-                    )
-                    continue
-                security_manager.add_permission_role(role, pvm)
-                logger.info(
-                    "%s: granted the approval right to %r", EXTENSION_ID, role.name
-                )
-            elif role.name not in wanted and holds and role.name in BUILTIN_ROLES:
-                security_manager.del_permission_role(role, pvm)
-                logger.info(
-                    "%s: took the approval right off %r", EXTENSION_ID, role.name
-                )
-        _warn_if_nobody_can_approve(pvm)
-    except Exception:  # pylint: disable=broad-except
-        # Same reasoning as the page grant below: a read-only or unmigrated
-        # metadata database must not stop the extension loading. The right
-        # stays as the last successful sync left it, which is a documented
-        # state rather than an outage.
-        logger.warning(
-            "%s: could not apply %s; who may approve is unchanged",
-            EXTENSION_ID,
-            APPROVER_ROLES_CONFIG,
-            exc_info=True,
-        )
-
-
-def _warn_if_nobody_can_approve(pvm: Any) -> None:
-    """Say so, loudly, when the configuration leaves no one able to approve.
-
-    The alignment does what the operator wrote. It is still worth being told
-    that what they wrote means every change will sit in the queue for ever:
-    a role with the right and no members, or a name that matched nothing,
-    both read as a quiet outage rather than as a mistake.
-    """
-    holders = [role for role in pvm.role if belongs_to_the_workflow(role)]
-    if holders and any(getattr(role, "user", None) for role in holders):
-        return
-    logger.error(
-        "%s: after applying %s, %s. Approvals will be refused until a role "
-        "holding the approval right has members.",
-        EXTENSION_ID,
-        APPROVER_ROLES_CONFIG,
-        "no role holds the approval right"
-        if not holders
-        else "the roles holding the approval right have no members",
-    )
 
 
 def _grant_page_permission_to_the_workflow() -> None:
@@ -505,22 +327,28 @@ def _take_the_workflow_off_the_anonymous_role() -> None:
     leaves existing ones exactly as they were, which is the half-fix this
     epic has been bitten by twice.
 
-    Only the two permissions this extension owns. ``can_write`` on
-    ChangeRequest reaches the anonymous role through ``PUBLIC_ROLE_LIKE`` and
-    ``superset init``, and taking it off here would be a tug of war with the
-    host on every boot.
+    Only the permissions this extension owns. ``can_write`` on ChangeRequest
+    reaches the anonymous role through ``PUBLIC_ROLE_LIKE`` and ``superset
+    init``, and taking it off here would be a tug of war with the host on
+    every boot.
+
+    ``can_approve`` is in the list because an instance that ran the
+    short-lived build where approving was a role-level right may still carry
+    the row. Approving is editorship now, so nothing reads it; leaving a
+    dead approval permission sitting on the anonymous role is exactly the
+    sort of thing a control review asks about.
     """
     from superset.constants import EXTENSION_VIEW_MENU_PREFIX
     from superset.extensions import security_manager
-
-    from asset_approval.eligibility import APPROVAL_PERMISSION
 
     try:
         anonymous = security_manager.find_role(_anonymous_role_name())
         if anonymous is None:
             return
         ours = [
-            security_manager.find_permission_view_menu(*APPROVAL_PERMISSION),
+            security_manager.find_permission_view_menu(
+                "can_approve", "ChangeRequest"
+            ),
             security_manager.find_permission_view_menu(
                 PAGE_PERMISSION, f"{EXTENSION_VIEW_MENU_PREFIX}{EXTENSION_ID}"
             ),
@@ -559,13 +387,7 @@ def install_views() -> None:
 
     appbuilder.add_api(ChangeRequestRestApi)
     _grant_page_permission_to_the_workflow()
-    # Both after add_api, which is what creates ``can_approve`` in the first
-    # place. Seed before align: the seed is what an upgraded instance needs,
-    # the alignment is what a configured one asks for, and only one of them
-    # ever does anything.
-    _seed_approval_permission()
     _take_the_workflow_off_the_anonymous_role()
-    _align_approval_permission()
 
     # Settings -> Manage -> Change review (mock S1, mock 16c). The page is
     # read-only, but an administrator still has to be able to find out
@@ -587,16 +409,16 @@ def _log_effective_configuration() -> None:
     read with ``.get``. So an operator who writes
     ``ASSET_APPROVAL_APPROVER_ROLE`` for the plural, or puts the key in the
     wrong file, gets the default and is told nothing at any point. On a
-    bank's install that is believing you have narrowed who may approve when
-    you have not. The boot log is the only place that can say otherwise, so
-    it says it plainly: the effective value, and whether it was set or
-    defaulted.
+    bank's install that is believing you have excluded your service accounts
+    when you have not. The boot log is the only place that can say
+    otherwise, so it says it plainly: the effective value, and whether it
+    was set or defaulted.
 
-    "set" means what the readers mean by it. For the two role lists that is
-    ``is not None``, because ``None`` is how both of them spell "unset"; for
-    the flag it is the key being present in ``FEATURE_FLAGS``, since the
-    extension's flag has no entry in ``DEFAULT_FEATURE_FLAGS`` and absent
-    therefore reads as off.
+    "set" means what the reader means by it. For the role list that is
+    ``is not None``, because ``None`` is how it spells "unset"; for the flag
+    it is the key being present in ``FEATURE_FLAGS``, since the extension's
+    flag has no entry in ``DEFAULT_FEATURE_FLAGS`` and absent therefore
+    reads as off.
     """
     from asset_approval.eligibility import MACHINE_USER_ROLES_CONFIG, machine_user_roles
     from asset_approval.gate import FEATURE_FLAG, is_enabled
@@ -612,20 +434,6 @@ def _log_effective_configuration() -> None:
         named(f"FEATURE_FLAGS[{FEATURE_FLAG!r}]"),
         is_enabled(),
         "set" if FEATURE_FLAG in flags else "defaulted, so review is off",
-    )
-
-    approvers = config.get(APPROVER_ROLES_CONFIG)
-    logger.info(
-        "%s %s (%s)",
-        named(APPROVER_ROLES_CONFIG),
-        # Normalised the way _align_approval_permission normalises it, so a
-        # name with a stray space reads back as the name actually used.
-        "unset"
-        if approvers is None
-        else sorted({str(name).strip() for name in approvers if str(name).strip()}),
-        "defaulted, so whoever `superset init` produced may approve"
-        if approvers is None
-        else "set; only these roles may approve, and an empty list means nobody",
     )
 
     logger.info(
@@ -644,15 +452,14 @@ def _log_effective_configuration() -> None:
         key
         for key in config
         if key.startswith("ASSET_APPROVAL_")
-        and key not in (APPROVER_ROLES_CONFIG, MACHINE_USER_ROLES_CONFIG)
+        and key != MACHINE_USER_ROLES_CONFIG
     )
     if unknown:
         logger.warning(
-            "%s: %s is not read by this extension; the settings it reads are "
-            "%s and %s. Check the spelling",
+            "%s: %s is not read by this extension; the only setting it reads "
+            "is %s. Check the spelling",
             EXTENSION_ID,
             ", ".join(unknown),
-            APPROVER_ROLES_CONFIG,
             MACHINE_USER_ROLES_CONFIG,
         )
 

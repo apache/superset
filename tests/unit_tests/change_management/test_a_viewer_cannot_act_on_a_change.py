@@ -85,9 +85,6 @@ def viewer(mocker: MockerFixture) -> Any:
         "asset_approval.eligibility.is_strict_editor", return_value=False
     )
     mocker.patch(
-        "asset_approval.eligibility.holds_approval_permission", return_value=True
-    )
-    mocker.patch(
         "asset_approval.eligibility.is_eligible_approver", return_value=True
     )
     mocker.patch(

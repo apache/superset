@@ -147,7 +147,6 @@ def _approver(mocker: MockerFixture, user: Any) -> None:
         eligibility, "security_manager", SimpleNamespace(is_guest_user=lambda: False)
     )
     mocker.patch.object(eligibility, "is_strict_editor", return_value=True)
-    mocker.patch.object(eligibility, "holds_approval_permission", return_value=True)
     mocker.patch.object(eligibility, "load_user", return_value=user)
 
 

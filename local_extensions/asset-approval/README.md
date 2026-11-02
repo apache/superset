@@ -20,18 +20,16 @@ those three lines before believing a setting was picked up:
 
 ```text
 preset.asset-approval config: FEATURE_FLAGS['CHANGE_MANAGEMENT'] = True (set)
-preset.asset-approval config: ASSET_APPROVAL_APPROVER_ROLES = ['Admin', 'Reviewers'] (set; only these roles may approve, and an empty list means nobody)
 preset.asset-approval config: ASSET_APPROVAL_MACHINE_USER_ROLES = [] (defaulted, so no role is treated as service accounts)
 ```
 
 A key beginning `ASSET_APPROVAL_` that this extension does not read is named
 in a warning on the same boot, which is how a typo such as
-`ASSET_APPROVAL_APPROVER_ROLE` shows up.
+`ASSET_APPROVAL_MACHINE_USER_ROLE` shows up.
 
 | Setting | Type | Default | What it does |
 |---|---|---|---|
 | `CHANGE_MANAGEMENT`, an entry in the `FEATURE_FLAGS` dict | `bool` | absent, which reads as `False` | Turns the whole feature on. |
-| `ASSET_APPROVAL_APPROVER_ROLES` | list of role names, or `None` | `None` | Names the roles whose members may approve. |
 | `ASSET_APPROVAL_MACHINE_USER_ROLES` | list of role names, or `None` | `None` | Names the roles whose members are service accounts, which may never approve. |
 
 If a setting is absent:
@@ -40,30 +38,30 @@ If a setting is absent:
   an unmodified Superset. The flag being on with the extension not loaded is
   a different matter: every governed write is refused rather than applied
   (QA-12).
-- **`ASSET_APPROVAL_APPROVER_ROLES`** -- whichever roles `superset init`
-  produced may approve, which on a stock install is Admin, Alpha and Gamma.
-  Nothing is granted or revoked.
 - **`ASSET_APPROVAL_MACHINE_USER_ROLES`** -- no role is treated as service
   accounts, so every otherwise eligible account may approve.
 
-### Empty list and absent are not the same
+### Who may approve is not configured here
 
-For `ASSET_APPROVAL_APPROVER_ROLES` these two are worth separating, because
-they are easy to confuse and their consequences are opposite:
+There is deliberately no setting for it. Approving a change belongs to the
+*other editors of that asset*, so the right travels with the asset rather
+than with a role, and no central list grants or revokes it. Add someone as
+an editor of a dashboard and they can approve changes to that dashboard,
+and to nothing else.
 
-```python
-ASSET_APPROVAL_APPROVER_ROLES = []   # nobody may approve
-# ASSET_APPROVAL_APPROVER_ROLES     # absent: leave what `superset init` produced
-```
+A grantable `can_approve` permission did exist briefly, read from a
+`ASSET_APPROVAL_APPROVER_ROLES` setting. It was removed. A role gate on top
+of editorship can only ever subtract, so its sole effect is to stop a
+legitimate editor approving, which is a deadlock rather than a control. If
+QA raises S-05 ("no separate approval permission") again, the answer is
+this section and
+`tests/unit_tests/change_management/test_approval_is_editorship_not_a_role.py`,
+not a rebuild.
 
-An empty list is a decision and is applied as one: the approval right is
-taken off every builtin role, nobody is granted it, and every change then
-sits in the queue unapprovable. The extension logs an **error** saying so on
-that boot. Absent (or `None`) touches nothing.
+`ASSET_APPROVAL_MACHINE_USER_ROLES` is not the same thing and remains. It
+is a denylist: it stops the named roles' members counting as approvers at
+all. It never grants the right to anyone.
 
-The same reading applies to a list naming only roles that have no members,
-which is the other way to arrive at the same outcome, and is logged the same
-way.
 
 ## Who may approve
 
@@ -77,53 +75,36 @@ Three conditions, all required. None of them can be bought back by another.
    There is deliberately **no administrator bypass in V1** (Visa Q1,
    SOW 9.3): an administrator who is not an editor of the asset cannot
    approve a change to it.
-3. **The approval permission**, `can_approve` on `ChangeRequest`.
+That is the whole of it. There is no third condition and no role to grant:
+approving travels with the asset, not with the person's role.
 
 The account itself also has to be one a person uses: **active**, and not a
 **service account**.
 
-### How the approval right is identified
+### Why there is no approval permission to grant
 
-The right is a FAB permission like any other, created from the REST API's
-route mapping: `approve` and `request_changes` carry `can_approve`, while
-`submit`, `withdraw` and `discard` stay on `can_write`. Before that split,
-one permission covered all five, so an operator could not say who may
-approve without also saying who may submit (S-05).
+A grantable `can_approve` permission on `ChangeRequest` existed briefly, set
+from an `ASSET_APPROVAL_APPROVER_ROLES` list, and was removed.
 
-FAB permissions are rows, not schema, so nothing here needs a migration. The
-permission appears after the next `superset init`.
+It could only ever subtract. Editorship already decides, so a role gate on
+top of it has exactly one effect: stopping an editor who should be able to
+approve. That is a deadlock, not a control, and it was not hypothetical.
+While the permission existed, the approve route consulted it and the list of
+possible approvers did not, so narrowing the roles would have named an
+approver in the request dialog and then refused them at the route, leaving a
+change nobody could clear.
 
-**Default.** `superset init`'s role sync grants `can_approve` to Admin, Alpha
-and Gamma, which is exactly the set that already held `can_write` on
-`ChangeRequest`. An instance that configures nothing therefore keeps the
-approval rights it already had.
+The reviewer actions therefore sit on `can_write` alongside `submit`,
+`withdraw` and `discard`. That is what `@protect()` enforces on the route;
+the decision that matters is `eligibility.can_approve`, per change request.
 
-**On upgrade, before `superset init`.** FAB creates the permission when the
-API registers but grants it to nobody, and a route's `@protect()` denies a
-permission no role holds. So between a restart and the next role sync every
-approver would get a 403. The extension closes that: while nothing holds
-`can_approve`, it grants it to the roles holding `can_write` on
-`ChangeRequest` -- whoever could approve before the split. It does not run
-once any role holds the right, so a revoke is not undone, and not at all once
-`ASSET_APPROVAL_APPROVER_ROLES` is set, where an empty list means nobody.
+S-05 was raised as "no separate approval permission". The answer is that
+this is deliberate. See
+`tests/unit_tests/change_management/test_approval_is_editorship_not_a_role.py`,
+which fails if anyone rebuilds it.
 
-**Naming the roles.** Set `ASSET_APPROVAL_APPROVER_ROLES` in
-`superset_config.py` to a list of role names:
-
-```python
-ASSET_APPROVAL_APPROVER_ROLES = ["Admin", "Reviewers"]
-```
-
-On every boot the extension grants `can_approve` to those roles and takes it
-back off the **builtin** roles that are not listed (Admin, Alpha, Gamma,
-sql_lab, Public). Roles an operator created are left alone, including ones
-holding the right: a grant they made deliberately is theirs.
-
-It runs on every boot rather than once because `superset init` rebuilds the
-builtin roles from the security manager's denylist. Without the re-assertion
-a revoke would be handed straight back the next time an operator ran it.
-
-Leave the setting unset, or set it to `None`, and nothing is touched.
+**To change who can approve a given asset, change its editors.** That is the
+only lever, and it is per asset by design.
 
 ### How a machine user is identified
 
