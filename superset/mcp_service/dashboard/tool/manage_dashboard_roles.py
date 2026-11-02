@@ -209,8 +209,8 @@ def manage_dashboard_roles(
     This applies regardless of the ``ENABLE_VIEWERS`` feature flag. While the
     flag is disabled, roles can only be removed: adding a role not already
     assigned is rejected, since the UI offers no way to see or undo the
-    resulting restriction. The response's ``viewers_enabled`` field reports the flag's state, and
-    ``warnings`` notes when it is disabled.
+    resulting restriction. The response's ``viewers_enabled`` field reports
+    the flag's state, and ``warnings`` notes when it is disabled.
 
     Roles are the ROLE-type entries in the dashboard's Subject-based
     ``viewers`` list. Any USER- or GROUP-type viewers already on the
