@@ -581,13 +581,30 @@ def test_import_chart_preserves_existing_query_context(
     """
     FR-006 / INV-3: an imported chart that already carries a query_context is
     left untouched — synthesis is non-destructive (absent-guard).
+
+    The chart is a *derivable* viz (``table`` with metrics/groupby) carrying a
+    deliberately distinctive context, so synthesis WOULD produce one here if the
+    absent-guard were removed; the assertion then fails instead of silently
+    passing (as it would for a non-derivable viz that synthesis never touches).
     """
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     config = copy.deepcopy(chart_config)
     config["datasource_id"] = 1
     config["datasource_type"] = "table"
-    original_query_context = config["query_context"]
+    config["viz_type"] = "table"
+    config["params"]["viz_type"] = "table"
+    config["params"]["metrics"] = ["count"]
+    config["params"]["groupby"] = ["name"]
+    # A sentinel context the synthesizer would never emit, so an overwrite shows.
+    original_query_context = json.dumps(
+        {
+            "datasource": {"id": 1, "type": "table"},
+            "queries": [{"metrics": ["sentinel_preserved"]}],
+            "form_data": {"viz_type": "table"},
+        }
+    )
+    config["query_context"] = original_query_context
 
     chart = import_chart(config)
 

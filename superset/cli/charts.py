@@ -90,9 +90,9 @@ def backfill_query_context(
 
     Repairs charts imported before the import-time synthesis landed (issue
     #33615): each chart with ``query_context IS NULL`` gets a context derived
-    from its ``params`` + datasource — authoritatively via the frontend
-    ``buildQuery`` (V8) when available, else the pure-Python generic derivation.
-    Non-derivable charts are left untouched (never a fabricated context).
+    from its ``params`` + datasource via the canonical server-side form-data
+    builder. Charts whose viz type the builder does not map, or that carry
+    dashboard-context filters, are left untouched (never a fabricated context).
     """
     # Imported lazily so the module imports cleanly without an app context.
     from superset.extensions import db

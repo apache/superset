@@ -121,3 +121,50 @@ def test_bind_slice_id_sets_local_id_in_embedded_form_data() -> None:
     context: dict[str, Any] = {"form_data": {"viz_type": "table"}, "queries": [{}]}
     assert bind_slice_id(context, 4242) is context
     assert context["form_data"]["slice_id"] == 4242
+
+
+def test_build_config_preserves_bound_temporal_range(app_context: None) -> None:
+    """
+    End-to-end through ``build_query_context_config``: a bound ``TEMPORAL_RANGE``
+    adhoc filter with no top-level ``time_range`` keeps its range and gets no
+    query-level ``time_range`` sentinel. Removing the ``_preserve_...`` call from
+    ``build_query_context_config`` reinstates ``"No filter"`` and fails this.
+    """
+    params = {
+        "viz_type": "table",
+        "metrics": ["count"],
+        "groupby": ["name"],
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "clause": "WHERE",
+                "subject": "ds",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "2020-01-01 : 2020-02-01",
+            }
+        ],
+    }
+
+    context = build_query_context_config(params, "table", 1, "table")
+
+    assert context is not None
+    query = context["queries"][0]
+    assert "time_range" not in query
+    temporal = [f for f in query.get("filters", []) if f.get("op") == "TEMPORAL_RANGE"]
+    assert temporal
+    assert temporal[0]["val"] == "2020-01-01 : 2020-02-01"
+
+
+def test_build_config_keeps_explicit_top_level_time_range(app_context: None) -> None:
+    """Control: an explicit top-level ``time_range`` is never stripped."""
+    params = {
+        "viz_type": "table",
+        "metrics": ["count"],
+        "groupby": ["name"],
+        "time_range": "2021-01-01 : 2021-02-01",
+    }
+
+    context = build_query_context_config(params, "table", 1, "table")
+
+    assert context is not None
+    assert context["queries"][0]["time_range"] == "2021-01-01 : 2021-02-01"
