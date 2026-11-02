@@ -85,6 +85,15 @@ export interface AssetReviewProps {
   unpublished?: boolean;
   /** Called after an approval lands, so the host can reload the asset. */
   onApplied?: () => void;
+  /**
+   * The asset's live title, whenever it is known.
+   *
+   * A host that lets the author edit the title in place keeps showing the
+   * proposed one after a captured save, while the banner beside it says
+   * viewers and author are both on the live version. This is how the host
+   * learns what the live version is actually called.
+   */
+  onLiveTitle?: (title: string) => void;
 }
 
 /**
@@ -100,6 +109,7 @@ export default function AssetReview({
   assetId,
   unpublished = false,
   onApplied,
+  onLiveTitle,
 }: AssetReviewProps) {
   const { changeRequest, refresh } = useAssetReview(assetType, assetId);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -114,6 +124,16 @@ export default function AssetReview({
   const { addSuccessToast, addDangerToast } = useToasts();
   const preview = useProposedPreview(changeRequest);
   const [pendingRequest, setPendingRequest] = useState(false);
+
+  // The live title travels with every read of the change request, so the
+  // host does not have to fetch the asset again to find out that what it is
+  // showing is the author's proposal rather than what is published.
+  const liveTitle = changeRequest?.asset_title;
+  useEffect(() => {
+    if (liveTitle && onLiveTitle) {
+      onLiveTitle(liveTitle);
+    }
+  }, [liveTitle, onLiveTitle]);
 
   // The edit header asks for review; this component owns the modal. The
   // request is held until the change the save produced has actually loaded,

@@ -59,15 +59,18 @@ import {
 import {
   setDirectPathToChild,
   setEditMode,
+  setUnsavedChanges,
 } from 'src/dashboard/actions/dashboardState';
 import {
   deleteTopLevelTabs,
   handleComponentDrop,
   clearDashboardHistory,
+  updateDashboardTitle,
 } from 'src/dashboard/actions/dashboardLayout';
 import { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
 import {
   DASHBOARD_GRID_ID,
+  DASHBOARD_HEADER_ID,
   DASHBOARD_ROOT_DEPTH,
   DASHBOARD_ROOT_ID,
   DashboardStandaloneMode,
@@ -651,6 +654,36 @@ const DashboardBuilder = () => {
     [dispatch],
   );
 
+  // A captured save leaves the author's proposed title in the header while
+  // the banner underneath says they and viewers are both on the live
+  // version, so the screen contradicts itself. The review banner knows what
+  // the live version is called; put the header back to it.
+  //
+  // Not while editing: the author may be part-way through typing a new
+  // title, and the banner re-reads whenever a change is captured.
+  const showLiveTitle = useCallback(
+    (title: string) => {
+      if (editMode) {
+        return;
+      }
+      if (dashboardLayout[DASHBOARD_HEADER_ID]?.meta?.text !== title) {
+        // `updateDashboardTitle`, not `dashboardTitleChanged`: the layout
+        // reducer is wrapped in a filter that only lets tracked layout
+        // actions through, and DASHBOARD_TITLE_CHANGED is not one of them,
+        // so dispatching it here changes nothing at all.
+        dispatch(updateDashboardTitle(title));
+        // That action is tracked and marks the dashboard unsaved, neither of
+        // which is true here: nothing was edited, the header was put back to
+        // what the server already holds. Left alone it offered an Undo for a
+        // change the author did not make, and warned them on the way out
+        // that work would be lost.
+        dispatch(clearDashboardHistory());
+        dispatch(setUnsavedChanges(false));
+      }
+    },
+    [dispatch, editMode, dashboardLayout],
+  );
+
   const headerRef = useRef<HTMLDivElement>(null);
   const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
   const rootChildId = dashboardRoot?.children[0];
@@ -999,6 +1032,7 @@ const DashboardBuilder = () => {
               assetId={Number(dashboardId)}
               unpublished={dashboardUnpublished}
               onApplied={() => window.location.reload()}
+              onLiveTitle={showLiveTitle}
             />
           </Suspense>
         )}
