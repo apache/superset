@@ -221,7 +221,7 @@ class UpdateSemanticLayerCommand(BaseCommand):
         if "configuration" in self._properties:
             try:
                 unchanged: bool = json.dumps(
-                    json.loads(self._model.configuration or "{}"), sort_keys=True
+                    json.loads(self._model.configuration), sort_keys=True
                 ) == json.dumps(
                     json.loads(self._properties["configuration"]), sort_keys=True
                 )

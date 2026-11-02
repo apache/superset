@@ -98,6 +98,8 @@ def test_save_rotates_only_changed_configuration(
         ('{ "b": 2, "a": {"x": 1} }', {"a": {"x": 1}, "b": 2}, 0),
         ('{"value": true}', {"value": 1}, 1),
         ("invalid JSON", {"value": "repaired"}, 1),
+        (None, {}, 1),
+        ("", {}, 1),
         ('{"items": [1, 2]}', {"items": [2, 1]}, 1),
     ],
 )
@@ -105,13 +107,15 @@ def test_save_compares_configuration_content(
     app: Flask,
     session: Session,
     layer: SemanticLayer,
-    stored: str,
+    stored: str | None,
     submitted: dict[str, Any],
     expected: int,
 ) -> None:
     """Ignore JSON formatting/key order, but preserve scalar types and list order."""
     layer.configuration = stored
     session.commit()
+    session.expire_all()
+    assert layer.configuration == stored
     command: UpdateSemanticLayerCommand = UpdateSemanticLayerCommand(
         str(layer.uuid), {"configuration": submitted}
     )
@@ -120,6 +124,8 @@ def test_save_compares_configuration_content(
         command.run()
     session.expire_all()
     assert session.get(SemanticLayer, layer.uuid).cache_version == expected
+    if stored is None or stored == "":
+        assert layer.configuration == "{}"
 
 
 def test_noop_save_preserves_a_concurrent_configuration_change(
