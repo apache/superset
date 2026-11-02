@@ -152,23 +152,29 @@ class ImpalaEngineSpec(BaseEngineSpec):
     @guard_cursor
     def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
         """Wait for asynchronous operations using the public cursor API."""
-        if callable(getattr(cursor, "execute_async", None)):
-            from impala.error import Error
+        try:
+            if callable(getattr(cursor, "execute_async", None)):
+                from impala.error import Error
 
-            deadline = time.monotonic() + app.config["SQLLAB_TIMEOUT"]
-            try:
-                while cursor.is_executing():
-                    if time.monotonic() >= deadline:
-                        cls._cancel_operation(cursor)
-                        raise TimeoutError("Timed out waiting for the Impala operation")
-                    time.sleep(0.1)
-                if cursor.execution_failed():
-                    # Fetching surfaces the driver's detailed asynchronous error,
-                    # including errors on statements that produce no result set.
-                    cursor.fetchall()
-            except Error as ex:
-                raise cls.get_dbapi_mapped_exception(ex) from ex
-        return super().fetch_data(cursor, limit)
+                deadline = time.monotonic() + app.config["SQLLAB_TIMEOUT"]
+                try:
+                    while cursor.is_executing():
+                        if time.monotonic() >= deadline:
+                            cls._cancel_operation(cursor)
+                            raise TimeoutError(
+                                "Timed out waiting for the Impala operation"
+                            )
+                        time.sleep(0.1)
+                    if cursor.execution_failed():
+                        # Fetching surfaces the driver's detailed asynchronous error,
+                        # including errors on statements that produce no result set.
+                        cursor.fetchall()
+                except Error as ex:
+                    raise cls.get_dbapi_mapped_exception(ex) from ex
+            return super().fetch_data(cursor, limit)
+        except TIME_LIMIT_EXCEPTIONS:
+            cls._cancel_operation_on_time_limit(cursor)
+            raise
 
     @classmethod
     def register_engine_events(cls, engine: Engine) -> None:
@@ -218,7 +224,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
             cursor._last_operation.client = guard  # pylint: disable=protected-access
         guard.register(service, cls._abandon_service)
         guard.register(cursor, cls._abandon_cursor)
-        return guard.abandon
+        return guard.on_time_limit
 
     @classmethod
     def _abandon_cursor(cls, cursor: Any, query_id: int | None = None) -> None:
@@ -390,11 +396,33 @@ class ImpalaEngineSpec(BaseEngineSpec):
             except Exception as ex:  # pylint: disable=broad-except
                 logger.warning("Query %s: %s() failed", query_id, name)
                 if not cls._is_error_reply(ex):
-                    if on_error := cls.prepare_cursor(cursor):
-                        on_error(ex)
+                    if cls.prepare_cursor(cursor) is not None:
+                        guard = real_cursor(cursor).session.service.client
+                        guard.abandon(ex)
                     else:
                         cls._abandon_cursor(cursor, query_id)
                     return
+
+    @classmethod
+    def _cancel_operation_on_time_limit(
+        cls, cursor: Any, query_id: int | None = None
+    ) -> None:
+        """Cancel after a limit between RPCs, never on an interrupted transport."""
+        cursor = real_cursor(cursor)
+        if (
+            getattr(cursor, "_superset_abandoned", False) is True
+            or getattr(cursor, "_closed", False) is True
+        ):
+            return
+        session = getattr(cursor, "session", None)
+        guard = session.service.client if session is not None else None
+        if isinstance(guard, ThriftClientGuard) and guard.interrupted:
+            return
+        try:
+            cls._cancel_operation(cursor, query_id)
+        except TIME_LIMIT_EXCEPTIONS:
+            # Cleanup abandons its interrupted transport; preserve the first limit.
+            logger.warning("Query %s: time limit during cancellation", query_id)
 
     @classmethod
     @guard_cursor
@@ -455,6 +483,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
                 time.sleep(sleep_interval)
                 status = cursor.status()
         except TIME_LIMIT_EXCEPTIONS:
+            cls._cancel_operation_on_time_limit(cursor, query_id)
             raise
         except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
             logger.debug("Call to status() failed ")

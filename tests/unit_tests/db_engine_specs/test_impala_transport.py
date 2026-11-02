@@ -875,3 +875,42 @@ def test_driver_close_timeout_prevents_transport_reopen(
     conn.close()
     assert raised.value is timeout
     assert handler.requests[-1] == "CloseOperation", handler.requests
+
+
+@pytest.mark.parametrize("timeout", TIMEOUTS)
+@pytest.mark.parametrize("entry", ["handle_cursor", "fetch_data"])
+@pytest.mark.parametrize(
+    "state",
+    [ttypes.TOperationState.PENDING_STATE, ttypes.TOperationState.RUNNING_STATE],
+    ids=["pending", "running"],
+)
+def test_polling_limit_cancels_on_clean_transport(
+    timeout: Exception,
+    entry: str,
+    state: int,
+    hs2_connection: tuple[str, FakeHiveServer2, Any],
+    app_context: None,
+) -> None:
+    """A limit between complete RPCs must cancel and release the operation."""
+    _, handler, conn = hs2_connection
+    handler.state = state
+    spec.prepare_connection(conn)
+    cursor = conn.cursor()
+    cursor.execute_async("SELECT 1")
+    query = Mock(id=1, extra={}, status="running", progress=0)
+    run = getattr(spec, entry)
+    args = (cursor, query) if entry == "handle_cursor" else (cursor,)
+    with (
+        patch("superset.db_engine_specs.impala.db"),
+        patch("superset.db_engine_specs.impala.time.sleep", side_effect=timeout),
+    ):
+        with pytest.raises(type(timeout)) as raised:
+            run(*args)
+
+    assert raised.value is timeout
+    assert [name for name, _, _ in handler.calls][-3:] == [
+        "CancelOperation",
+        "CloseOperation",
+        "CloseSession",
+    ]
+    assert not conn.service.client.interrupted

@@ -348,7 +348,7 @@ def test_pending_operation_polls_with_backoff() -> None:
 
 
 @pytest.mark.parametrize("state", ["PENDING_STATE", "RUNNING_STATE"])
-def test_soft_time_limit_abandons_the_operation(state: str) -> None:
+def test_soft_time_limit_cancels_the_operation(state: str) -> None:
     """
     The soft time limit firing while the loop polls cancels the operation and
     propagates, so SQL Lab marks the query timed out instead of waiting on it.
@@ -369,11 +369,9 @@ def test_soft_time_limit_abandons_the_operation(state: str) -> None:
     ):
         with pytest.raises(SoftTimeLimitExceeded):
             ImpalaEngineSpec.handle_cursor(cursor, query)
-    cursor.cancel_operation.assert_not_called()
-    cursor.close_operation.assert_not_called()
-    cursor.close.assert_not_called()
-
-    assert cursor._closed is True
+    cursor.cancel_operation.assert_called_once_with()
+    cursor.close_operation.assert_called_once_with()
+    cursor.close.assert_called_once_with()
 
 
 @pytest.mark.parametrize("method", ["cancel_operation", "close_operation", "close"])
@@ -472,7 +470,7 @@ def _sync_timeout() -> SupersetTimeoutException:
 
 
 @pytest.mark.parametrize("state", ["PENDING_STATE", "RUNNING_STATE"])
-def test_sync_timeout_abandons_the_operation(state: str) -> None:
+def test_sync_timeout_cancels_the_operation(state: str) -> None:
     """
     The synchronous ``SQLLAB_TIMEOUT`` firing while the loop polls must cancel the
     operation and propagate, rather than being swallowed so the Run keeps waiting
@@ -492,17 +490,15 @@ def test_sync_timeout_abandons_the_operation(state: str) -> None:
     ):
         with pytest.raises(SupersetTimeoutException):
             ImpalaEngineSpec.handle_cursor(cursor, query)
-    cursor.cancel_operation.assert_not_called()
-    cursor.close_operation.assert_not_called()
-    cursor.close.assert_not_called()
-
-    assert cursor._closed is True
+    cursor.cancel_operation.assert_called_once_with()
+    cursor.close_operation.assert_called_once_with()
+    cursor.close.assert_called_once_with()
 
 
 @pytest.mark.parametrize(
     "timeout", [SoftTimeLimitExceeded(), _sync_timeout()], ids=["async", "sync"]
 )
-def test_timeout_during_progress_log_abandons_the_operation(
+def test_timeout_during_progress_log_cancels_the_operation(
     timeout: Exception,
 ) -> None:
     """
@@ -526,11 +522,9 @@ def test_timeout_during_progress_log_abandons_the_operation(
         with pytest.raises(type(timeout)):
             ImpalaEngineSpec.handle_cursor(cursor, query)
     sleep.assert_not_called()
-    cursor.cancel_operation.assert_not_called()
-    cursor.close_operation.assert_not_called()
-    cursor.close.assert_not_called()
-
-    assert cursor._closed is True
+    cursor.cancel_operation.assert_called_once_with()
+    cursor.close_operation.assert_called_once_with()
+    cursor.close.assert_called_once_with()
 
 
 def test_status_failure_still_ends_polling_without_raising() -> None:
@@ -544,7 +538,7 @@ def test_status_failure_still_ends_polling_without_raising() -> None:
     cursor.cancel_operation.assert_not_called()
 
 
-def test_sync_timeout_fails_the_run_and_abandons_the_operation(
+def test_sync_timeout_fails_the_run_and_cancels_the_operation(
     mocker: MockerFixture, app_context: None
 ) -> None:
     """A synchronous timeout during polling ends the Run with the timeout message."""
@@ -573,7 +567,7 @@ def test_sync_timeout_fails_the_run_and_abandons_the_operation(
     with pytest.raises(SqlLabException, match="exceeded the 30 seconds timeout"):
         execute_query(query, cursor)
 
-    cursor.cancel_operation.assert_not_called()
+    cursor.cancel_operation.assert_called_once_with()
+    cursor.close_operation.assert_called_once_with()
+    cursor.close.assert_called_once_with()
     cursor.fetchall.assert_not_called()
-
-    assert cursor._closed is True

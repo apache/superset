@@ -243,7 +243,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         connection = cursor._connection  # pylint: disable=protected-access
         cls.prepare_connection(connection)
         connection._client.register(cursor, cls._abandon_cursor)  # pylint: disable=protected-access
-        return connection._client.abandon  # pylint: disable=protected-access
+        return connection._client.on_time_limit  # pylint: disable=protected-access
 
     @staticmethod
     def _abandon_connection(connection: Any) -> None:

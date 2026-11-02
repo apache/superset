@@ -52,6 +52,14 @@ class ThriftClientGuard:
         ] = {}
         self._exception: BaseException | None = None
 
+    @property
+    def interrupted(self) -> bool:
+        """Whether an RPC was interrupted and the client can no longer be reused."""
+        return self._exception is not None
+
+    def on_time_limit(self, _exception: BaseException) -> None:
+        """Leave clean transports usable; interrupted RPCs abandon themselves."""
+
     def register(self, target: Any, abandon: Callable[[Any], None]) -> None:
         """Track a real cursor or connection without extending its lifetime."""
         key = id(target)

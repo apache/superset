@@ -839,11 +839,13 @@ cleanup. Superset abandons the affected Impala or Hive cursor and connection
 before driver exception handlers run: subsequent cancellation, close, and
 finalizer calls send no RPCs on that transport. The socket is dropped locally;
 cleanup failures are logged without replacing the original time-limit exception.
-No reconnect or cancellation is attempted after a signal-based limit. Configure
+No reconnect or cancellation is attempted after an interrupted RPC. Configure
 server-side query and session timeouts to release an abandoned operation.
-The local Impala polling deadline and an explicit Stop still request cancellation
-when the transport has not been interrupted; an incomplete cleanup reply also
-abandons the transport rather than attempting another cleanup RPC.
+A time limit between RPCs leaves the transport usable: Impala requests cancellation
+and releases the operation, and Hive retains its normal session cleanup.
+The local Impala polling deadline and an explicit Stop also request cancellation
+when the transport has not been interrupted; an incomplete cleanup reply abandons
+the transport rather than attempting another cleanup RPC.
 
 ## SQL Lab Query History Pruning
 

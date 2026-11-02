@@ -431,10 +431,9 @@ def test_handle_cursor_propagates_time_limits(timeout: Exception) -> None:
         with pytest.raises(type(timeout)):
             HiveEngineSpec.handle_cursor(cursor, query)
     cursor.fetch_logs.assert_called_once_with()
-    # The interrupted reply may be partly unread: the cursor's close() sends no
-    # CloseOperation, and the connection's CloseSession fails before writing.
-    assert cursor._operationHandle is None
-    cursor._connection._transport.close.assert_called_once_with()
+    # Mock methods do not interrupt a guarded RPC, so cleanup remains enabled.
+    assert cursor._operationHandle is not None
+    cursor._connection._transport.close.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -450,10 +449,10 @@ def test_handle_cursor_propagates_time_limits(timeout: Exception) -> None:
     ids=["async", "sync"],
 )
 @pytest.mark.parametrize("interrupted", ["poll", "fetch"])
-def test_fetch_data_abandons_the_cursor_on_time_limits(
+def test_fetch_data_preserves_clean_cursor_on_time_limits(
     interrupted: str, timeout: Exception
 ) -> None:
-    """A time limit while fetching sends no cleanup RPC on the transport."""
+    """A limit outside a guarded RPC leaves normal cleanup enabled."""
     from superset.db_engine_specs.base import BaseEngineSpec
     from superset.db_engine_specs.hive import HiveEngineSpec
 
@@ -477,6 +476,6 @@ def test_fetch_data_abandons_the_cursor_on_time_limits(
             HiveEngineSpec.fetch_data(cursor)
 
     assert raised.value is timeout
-    assert cursor._operationHandle is None
-    cursor._connection._transport.close.assert_called_once_with()
+    assert cursor._operationHandle is not None
+    cursor._connection._transport.close.assert_not_called()
     cursor.close.assert_not_called()

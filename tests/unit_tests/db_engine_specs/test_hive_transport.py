@@ -299,3 +299,22 @@ def test_sqlalchemy_ping_abandons_before_dialect_cursor_cleanup(
         engine.dispose()
     assert raised.value is timeout
     assert handler.requests[-1] == "ExecuteStatement", handler.requests
+
+
+@pytest.mark.parametrize("timeout", TIMEOUTS)
+def test_limit_between_rpcs_preserves_session_cleanup(
+    timeout: Exception, hive_connection: tuple[Any, Any]
+) -> None:
+    """A clean transport must still send CloseOperation and CloseSession."""
+    handler, conn = hive_connection
+    HiveEngineSpec.prepare_connection(conn)
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1", async_=True)
+    with pytest.raises(type(timeout)) as raised, closing(cursor):
+        with HiveEngineSpec.cursor_context(cursor):
+            raise timeout
+    conn.close()
+
+    assert raised.value is timeout
+    assert handler.requests[-2:] == ["CloseOperation", "CloseSession"]
+    assert not conn._client.interrupted

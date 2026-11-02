@@ -2085,7 +2085,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def prepare_cursor(cls, cursor: Any) -> Callable[[BaseException], None] | None:
-        """Install safeguards and return the driver's timeout-abandon callback."""
+        """Install safeguards and return the driver's time-limit callback."""
         return None
 
     @classmethod
