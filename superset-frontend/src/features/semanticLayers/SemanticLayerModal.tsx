@@ -524,6 +524,7 @@ export default function SemanticLayerModal({
     if (isTypeStep) {
       handleStepAdvance();
     } else {
+      if (loading || saving || clearing || refreshingSchema) return;
       // Trigger validation UI and submit only from explicit save action.
       setValidationMode('ValidateAndShow');
       if (errorsRef.current.length === 0) {
@@ -637,7 +638,13 @@ export default function SemanticLayerModal({
       saveDisabled={
         isTypeStep
           ? !selectedType || typeStatus !== 'success' || loading
-          : loading || saving || clearing || !name.trim() || hasErrors || requiredActionPending
+          : loading ||
+            saving ||
+            clearing ||
+            refreshingSchema ||
+            !name.trim() ||
+            hasErrors ||
+            requiredActionPending
       }
       saveText={isTypeStep ? undefined : isEditMode ? t('Save') : t('Create')}
       saveLoading={saving}
@@ -740,11 +747,16 @@ export default function SemanticLayerModal({
                   <ModalFormField key={action.id} label={action.label}>
                     <Button
                       buttonStyle="secondary"
-                      disabled={action.status === 'connected' || runningActionId !== null}
+                      disabled={
+                        action.status === 'connected' ||
+                        runningActionId !== null
+                      }
                       loading={runningActionId === action.id}
                       onClick={() => handleConfigurationAction(action)}
                     >
-                      {action.status === 'connected' ? t('Connected') : action.label}
+                      {action.status === 'connected'
+                        ? t('Connected')
+                        : action.label}
                     </Button>
                     {action.message && <div>{action.message}</div>}
                   </ModalFormField>

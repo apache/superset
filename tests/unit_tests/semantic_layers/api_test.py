@@ -3854,6 +3854,7 @@ def test_layer_validation_does_not_expose_secrets(
         return Configuration.model_validate(configuration)
 
     provider.__name__ = "ValidationTestProvider"
+    provider.get_configuration_schema.return_value = Configuration.model_json_schema()
     provider.configuration_class.model_validate.configure_mock(
         side_effect=validate_provider
     )
@@ -3866,7 +3867,11 @@ def test_layer_validation_does_not_expose_secrets(
         "configuration": {
             "auth": {
                 "kind": "invalid" if failure == "discriminator" else "password",
-                "password": PASSWORD_MASK if operation == "update" else secret,
+                "password": (
+                    PASSWORD_MASK
+                    if operation == "update" and failure != "discriminator"
+                    else secret
+                ),
             }
         },
     }
@@ -3994,13 +3999,15 @@ def test_put_rejects_empty_or_reordered_masked_configuration(
 
 @SEMANTIC_LAYERS_APP
 @pytest.mark.parametrize("guess", ["wrong-guess", "stored-token"])
+@pytest.mark.parametrize("reuse_password", [False, True])
 def test_put_masked_list_secret_replacements_are_not_an_equality_oracle(
     client: FlaskClient,
     full_api_access: None,
     mocker: MockerFixture,
     guess: str,
+    reuse_password: bool,
 ) -> None:
-    """Wrong and right guesses both replace secrets, without an identity signal."""
+    """Secret guesses have identical outcomes for masked and explicit updates."""
     layer: MagicMock = MagicMock()
     layer.configure_mock(
         type="oracle_test",
@@ -4038,14 +4045,32 @@ def test_put_masked_list_secret_replacements_are_not_an_equality_oracle(
         f"/api/v1/semantic_layer/{layer.uuid}",
         json={
             "configuration": {
-                "accounts": [{"host": "a", "password": PASSWORD_MASK, "token": guess}]
+                "accounts": [
+                    {
+                        "host": "a",
+                        "password": PASSWORD_MASK
+                        if reuse_password
+                        else "explicit-password",
+                        "token": guess,
+                    }
+                ]
             }
         },
     )
+    if reuse_password:
+        assert response.status_code == 422
+        provider.configuration_class.model_validate.assert_not_called()
+        dao.update.assert_not_called()
+        assert response.json["message"] == (
+            "This update changes the configuration while reusing a stored "
+            "secret value (a masked field). Provide the real value for any "
+            "masked field to confirm a configuration change."
+        )
+        return
     assert response.status_code == 200
     assert response.json == {"result": {"uuid": str(layer.uuid)}}
     provider.configuration_class.model_validate.assert_called_once_with(
-        {"accounts": [{"host": "a", "password": "stored-password", "token": guess}]}
+        {"accounts": [{"host": "a", "password": "explicit-password", "token": guess}]}
     )
     dao.update.assert_called_once()
 

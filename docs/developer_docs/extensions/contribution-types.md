@@ -323,3 +323,9 @@ Action POST responses contain `result.redirect_url` and a host-generated
 `result.tab_id`. Both the configuration modal and the generic OAuth error UI
 use the same completion listener. No access or refresh token is returned in
 these responses.
+
+Editing a stored connection can reuse masked credentials only when its
+configuration remains unchanged. This also applies to credentials nested in
+objects or lists. Supply explicit credentials when changing other connection
+fields. The configuration modal waits for dependent field discovery before
+enabling Save.
