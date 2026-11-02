@@ -129,6 +129,8 @@ class _Discovery:
     normalized_masks: set[str] = field(default_factory=set)
     url_params: dict[str, str] = field(default_factory=dict)
     force: bool = False
+    # Other datasets' metrics this caller's template scans read, by dataset ID.
+    macro_metrics: dict[int, dict[str, Any] | None] = field(default_factory=dict)
 
 
 def _check_budget(context: _Discovery) -> None:
@@ -799,7 +801,11 @@ def _metric_macro_metrics(dataset_id: int) -> dict[str, Any] | None:
     return {metric.metric_name: metric.expression for metric in found.metrics}
 
 
-def _with_metric_macro_texts(dataset: SqlaTable, texts: list[Any]) -> Iterator[Any]:
+def _with_metric_macro_texts(
+    dataset: SqlaTable,
+    texts: list[Any],
+    metrics: dict[int, dict[str, Any] | None] | None = None,
+) -> Iterator[Any]:
     """Yield the templates, then each stored metric their ``metric`` calls render.
 
     The macro renders another dataset's metric expression with the calling
@@ -807,12 +813,13 @@ def _with_metric_macro_texts(dataset: SqlaTable, texts: list[Any]) -> Iterator[A
     dataset's own templates do, and may call the macro again. A call without a
     dataset ID resolves to the query's dataset, whose metrics are already among
     the templates. A call the scan cannot resolve to stored text yields
-    ``_UNRESOLVED_METRIC`` instead.
+    ``_UNRESOLVED_METRIC`` instead. ``metrics`` keeps lookups by dataset ID, so
+    scans sharing it read each dataset once.
     """
     yield from texts
     env = None
     pending = [text for text in texts if isinstance(text, str) and "metric" in text]
-    metrics: dict[int, dict[str, Any] | None] = {}
+    metrics = {} if metrics is None else metrics
     reached: set[tuple[int, str]] = set()
     while pending:
         env = env or dataset.get_template_processor().env
@@ -846,7 +853,10 @@ def _with_metric_macro_texts(dataset: SqlaTable, texts: list[Any]) -> Iterator[A
 
 
 def _templates_observe_context(
-    conf: dict[str, Any], dataset: SqlaTable, variables: set[str]
+    conf: dict[str, Any],
+    dataset: SqlaTable,
+    variables: set[str],
+    metrics: dict[int, dict[str, Any] | None] | None = None,
 ) -> bool:
     """Whether rendered dropdown templates could read the given context names."""
     if not is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
@@ -867,7 +877,7 @@ def _templates_observe_context(
         ),
     ]
     env = None
-    for text in _with_metric_macro_texts(dataset, texts):
+    for text in _with_metric_macro_texts(dataset, texts, metrics):
         if text is _UNRESOLVED_METRIC:
             # The call may render any stored metric, including one reading these.
             return True
@@ -977,7 +987,9 @@ def _native_query(  # noqa: C901
     if (
         proposal is None
         and (item.search or "exact_value" in item.model_fields_set)
-        and _templates_observe_context(conf, target.dataset, {"filter"})
+        and _templates_observe_context(
+            conf, target.dataset, {"filter"}, context.macro_metrics
+        )
     ):
         # Raw filter access bypasses macro bookkeeping and exposes probes that
         # differ from native selections. _run lists the domain for proposals.
@@ -1057,8 +1069,9 @@ def _native_query(  # noqa: C901
     loaded_query.extras["preserve_literal_values"] = True
     if loaded_query.row_limit != limit:
         raise _DiscoveryUnavailableError("query_budget")
-    # Jinja macros (url_param, get_time_filter, filter_values) read the request
-    # form data, as on the chart data API, during validation and execution.
+    # Jinja macros (url_param, get_time_filter, filter_values) read this form
+    # data, as on the chart data API. It omits discovery's literal probe, which
+    # only the query's own templates see, through ``filter``.
     _set_dropdown_form_data(query_context, target.dataset.id)
     command = ChartDataCommand(query_context)
     _check_budget(context)
@@ -1206,7 +1219,7 @@ def _run(  # noqa: C901
     # filter list would render a proposal's IN predicate, so they check it
     # against the listed options instead.
     listed = proposal is not None and _templates_observe_context(
-        conf, target.dataset, {"filter"}
+        conf, target.dataset, {"filter"}, context.macro_metrics
     )
     probe = None if listed else proposal
     command, limit = _native_query(context, conf, target, item, probe)

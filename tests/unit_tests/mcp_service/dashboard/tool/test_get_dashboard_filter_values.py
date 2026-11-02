@@ -2700,6 +2700,41 @@ def test_metric_macro_scan_reads_only_metrics_the_macro_can_render(
 
 
 @with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_metric_macro_scans_read_each_dataset_once_per_call(
+    native_query: dict[str, Any], mocker: MockerFixture
+) -> None:
+    """Every probe and proposal in a call reuses the metrics its scans read."""
+    dataset = native_query["dataset"]
+    other = _macro_datasets(mocker, dataset, x="country")
+    found = {dataset.id: dataset, other.id: other}
+    lookups = mocker.patch.object(
+        choices.DatasetDAO,
+        "find_by_id",
+        side_effect=lambda dataset_id, **kwargs: found.get(int(dataset_id)),
+    )
+    dataset.sql = "select * from sales where {{ metric('x', 2) }} is not null"
+    dataset.columns.append(TableColumn(column_name="city", type="VARCHAR"))
+    native_query["rows"][:] = [{"country": "a", "city": "a"}]
+    request = _request(
+        filter_value_requests=[
+            {"filter_id": "country", "search": "a"},
+            {"filter_id": "city", "search": "a"},
+        ],
+        proposed_filter_values=[{"filter_id": "country", "values": ["a"]}],
+    )
+    summaries, metadata = choices.discover_filter_values(
+        _dashboard(_filter("country"), _filter("city", cascadeParentIds=["country"])),
+        request,
+    )
+    assert metadata.validated_proposed_filter_values == request.proposed_filter_values
+    assert [_available(summary).status for summary in summaries] == [
+        "complete",
+        "complete",
+    ]
+    assert [call.args[0] for call in lookups.call_args_list].count(2) == 1
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
 @pytest.mark.parametrize(
     ("template", "status", "reason", "values"),
     [
