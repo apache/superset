@@ -394,15 +394,20 @@ def _drop_a_fully_reverted_draft(asset_type: AssetType, asset_id: int) -> None:
         return
     if existing.command_args.get(COMMAND_KEY):
         return
-    _discard_request(existing.id)
+    _discard_request(existing.id, author_id)
 
 
-def _discard_request(change_request_id: int) -> None:
+def _discard_request(change_request_id: int, decided_by: int) -> None:
     """Close a request and free the asset's slot, on its own connection.
 
     The same connection discipline ``_insert_request`` explains: the gate's
     bookkeeping has to settle whether or not the caller's transaction does.
+
+    Recorded the way ``lifecycle.discard`` records one, so a request closed
+    this way reads no differently in the author's history from one they
+    closed through the banner.
     """
+    now = datetime.now(timezone.utc)
     table = ChangeRequest.__table__
     with db.engine.begin() as connection:
         connection.execute(
@@ -411,8 +416,9 @@ def _discard_request(change_request_id: int) -> None:
             .values(
                 status=ChangeStatus.DISCARDED.value,
                 active_slot=None,
-                decided_at=datetime.now(timezone.utc),
-                changed_on=datetime.now(timezone.utc),
+                reviewer_fk=decided_by,
+                decided_at=now,
+                changed_on=now,
             )
         )
 

@@ -74,7 +74,7 @@ def test_the_authors_own_fully_reverted_draft_is_discarded(
 
     _save_the_live_name()
 
-    discard.assert_called_once_with(7)
+    discard.assert_called_once_with(7, AUTHOR)
 
 
 def test_the_write_is_still_let_through(
