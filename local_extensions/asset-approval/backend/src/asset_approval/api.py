@@ -749,8 +749,20 @@ class ChangeRequestRestApi(BaseSupersetApi):
 
 #: Column and metric fields worth comparing. The rest are bookkeeping that
 #: a reviewer deciding about a dataset definition does not need.
-COLUMN_FIELDS = ("type", "expression", "description", "is_dttm", "filterable", "groupby")
-METRIC_FIELDS = ("expression", "metric_type", "description", "d3format", "verbose_name")
+#: ``verbose_name`` leads both lists because it is the label the dataset
+#: shows everywhere a person meets it. Leaving it out of the columns meant a
+#: proposal that renamed a column reported nothing changed, and the reviewer
+#: approved a relabelling they were never shown (R4-05).
+COLUMN_FIELDS = (
+    "verbose_name",
+    "type",
+    "expression",
+    "description",
+    "is_dttm",
+    "filterable",
+    "groupby",
+)
+METRIC_FIELDS = ("verbose_name", "expression", "metric_type", "description", "d3format")
 
 
 def _by_key(items: Any, key: str) -> dict[str, Any]:
@@ -796,22 +808,64 @@ def _diff_named(
     dataset: they care that `revenue` changed, not that row 7 did.
     """
     before, after = _by_key(current, key), _by_key(proposed, key)
-    added = [{"name": n} for n in sorted(set(after) - set(before))]
-    removed = [{"name": n} for n in sorted(set(before) - set(after))]
+    added = [
+        {"name": n, "fields": _stated(after[n], fields, arriving=True)}
+        for n in sorted(set(after) - set(before))
+    ]
+    removed = [
+        {"name": n, "fields": _stated(before[n], fields, arriving=False)}
+        for n in sorted(set(before) - set(after))
+    ]
     changed = []
     for name in sorted(set(before) & set(after)):
+        # Only the fields the proposal actually carries. A dataset body may
+        # describe a column by the few keys it is changing, and reading an
+        # absent key as ``None`` reported every other field as cleared --
+        # burying the one real edit under a column of invented ones.
+        stated = _states(after[name], fields)
         deltas = [
             {
                 "field": f,
                 "before": _field_of(before[name], f),
                 "after": _field_of(after[name], f),
             }
-            for f in fields
+            for f in stated
             if _field_of(before[name], f) != _field_of(after[name], f)
         ]
         if deltas:
             changed.append({"name": name, "fields": deltas})
     return {"added": added, "changed": changed, "removed": removed}
+
+
+def _states(item: Any, fields: tuple[str, ...]) -> tuple[str, ...]:
+    """The compared fields this proposal has an opinion about."""
+    if isinstance(item, dict):
+        return tuple(f for f in fields if f in item)
+    return fields
+
+
+def _stated(item: Any, fields: tuple[str, ...], arriving: bool) -> list[dict[str, Any]]:
+    """What an added or removed entry actually says, field by field.
+
+    A name on its own tells a reviewer that a metric arrived but not what it
+    computes, so the one thing worth deciding about -- its expression -- was
+    the one thing missing (R4-05). Carried in the same shape the changed
+    entries use, so the panel renders all three the same way: an arrival has
+    no "before", a departure has no "after".
+    """
+    stated = []
+    for field in _states(item, fields):
+        value = _field_of(item, field)
+        if value in (None, ""):
+            continue
+        stated.append(
+            {
+                "field": field,
+                "before": None if arriving else value,
+                "after": value if arriving else None,
+            }
+        )
+    return stated
 
 
 def dataset_impact(asset: Any) -> dict[str, int]:

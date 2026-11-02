@@ -18,7 +18,7 @@ import { Tag, styled, t, tn } from './host';
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { DatasetDetail, NamedDiff } from './types';
+import type { DatasetDetail, NamedDelta, NamedDiff } from './types';
 
 const Block = styled.div`
   ${({ theme }) => `
@@ -90,6 +90,27 @@ function show(value: unknown): string {
   return String(value);
 }
 
+function Entry({
+  tag,
+  color,
+  item,
+}: {
+  tag: string;
+  color: string;
+  item: NamedDelta;
+}) {
+  return (
+    <div>
+      <Tag color={color}>{tag}</Tag> <Name>{item.name}</Name>
+      {(item.fields ?? []).map(f => (
+        <Delta key={f.field}>
+          {f.field}: <Was>{show(f.before)}</Was> → <Now>{show(f.after)}</Now>
+        </Delta>
+      ))}
+    </div>
+  );
+}
+
 function DiffList({ title, diff }: { title: string; diff?: NamedDiff }) {
   if (!diff) return null;
   const { added, changed, removed } = diff;
@@ -98,24 +119,28 @@ function DiffList({ title, diff }: { title: string; diff?: NamedDiff }) {
     <Block>
       <Label>{title}</Label>
       {added.map(item => (
-        <div key={`a-${item.name}`}>
-          <Tag color="green">{t('Added')}</Tag> <Name>{item.name}</Name>
-        </div>
+        <Entry
+          key={`a-${item.name}`}
+          tag={t('Added')}
+          color="green"
+          item={item}
+        />
       ))}
       {removed.map(item => (
-        <div key={`r-${item.name}`}>
-          <Tag color="red">{t('Removed')}</Tag> <Name>{item.name}</Name>
-        </div>
+        <Entry
+          key={`r-${item.name}`}
+          tag={t('Removed')}
+          color="red"
+          item={item}
+        />
       ))}
       {changed.map(item => (
-        <div key={`c-${item.name}`}>
-          <Tag color="orange">{t('Changed')}</Tag> <Name>{item.name}</Name>
-          {(item.fields ?? []).map(f => (
-            <Delta key={f.field}>
-              {f.field}: <Was>{show(f.before)}</Was> → <Now>{show(f.after)}</Now>
-            </Delta>
-          ))}
-        </div>
+        <Entry
+          key={`c-${item.name}`}
+          tag={t('Changed')}
+          color="orange"
+          item={item}
+        />
       ))}
     </Block>
   );
