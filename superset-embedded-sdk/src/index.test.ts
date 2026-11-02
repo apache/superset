@@ -19,7 +19,7 @@
 
 // @vitest-environment jsdom
 
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, test, vi } from "vitest";
 import { Switchboard } from "@superset-ui/switchboard";
 import { embedDashboard, PortClosedError } from "./index";
 
@@ -541,13 +541,6 @@ describe("embedDashboard", () => {
     // === ADDITIONAL TEST SUITES ===
 
     describe("embedDashboard happy path", () => {
-      beforeEach(() => {
-        mockSwitchboard = makeMockSwitchboard();
-        switchboards = [mockSwitchboard];
-        ports = [{ close: vi.fn() }];
-        getImpls = [() => ({ type: "handshake" })];
-      });
-
       it("successfully embeds dashboard with valid token", async () => {
         const mockFetch = vi.fn().mockResolvedValue("valid-jwt-token");
 
@@ -565,9 +558,9 @@ describe("embedDashboard", () => {
     });
 
     describe("embedDashboard security", () => {
-      it("rejects fake guest token", async () => {
-        const mockFetch = vi.fn().mockResolvedValue("invalid-token");
-
+      it("rejects if fetchGuestToken throws an error", async () => {
+        const mockFetch = vi.fn().mockRejectedValue(new Error("Invalid token"));
+        
         await expect(
           embedDashboard({
             id: "test-dashboard",
@@ -575,15 +568,15 @@ describe("embedDashboard", () => {
             mountPoint,
             fetchGuestToken: mockFetch,
           })
-        ).rejects.toThrow();
+        ).rejects.toThrow("Invalid token");
       });
 
-      it("handles token expiration gracefully", async () => {
+      it("handles token expiration gracefully on refresh", async () => {
         let callCount = 0;
         const mockFetch = vi.fn().mockImplementation(() => {
           callCount++;
-          if (callCount === 1) return Promise.reject(new Error("Token expired"));
-          return Promise.resolve("new-valid-token");
+          if (callCount === 1) return Promise.resolve("valid-initial-token");
+          return Promise.reject(new Error("Token expired on refresh"));
         });
 
         const result = await embedDashboard({
@@ -601,7 +594,7 @@ describe("embedDashboard", () => {
     describe("embedDashboard edge cases", () => {
       it("handles iframe navigation internally", async () => {
         const mockFetch = vi.fn().mockResolvedValue("token-1");
-
+        
         const result = await embedDashboard({
           id: "test-dashboard",
           supersetDomain: "http://localhost:8200",
@@ -626,5 +619,5 @@ describe("embedDashboard", () => {
 
         expect(true).toBe(true);
       });
-    });
-  });
+    }); // Menutup edge cases
+}); // Menutup describe("embedDashboard") utama
