@@ -77,6 +77,7 @@ from superset.utils import json
 from superset.utils.core import apply_max_row_limit, FilterOperator, GenericDataType
 
 if TYPE_CHECKING:
+    from superset.common.query_context import QueryContext
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.models.dashboard import Dashboard
 
@@ -755,6 +756,22 @@ def _templates_observe_context(
     return False
 
 
+def _set_dropdown_form_data(query_context: QueryContext, dataset_id: int) -> None:
+    """Expose the dropdown's form data to Jinja, without discovery's own probe.
+
+    Saved dropdown predicates, RLS on a virtual dataset's underlying tables and
+    ``dataset`` macro SQL render in their own template processors, which read
+    filters only from this form data and report no macro use back. Leaving the
+    literal target predicates out lets those templates render as for the listed
+    dropdown, while the predicates still filter the query's rows. The query's
+    own templates receive them as ``filter``, which the probe guards cover.
+    """
+    set_query_context_form_data(query_context, dataset_id, "table")
+    for query in g.form_data["queries"]:
+        native = [f for f in query["filters"] if not f.get("is_literal")]
+        query["filter"] = query["filters"] = native
+
+
 def _native_query(  # noqa: C901
     context: _Discovery,
     conf: dict[str, Any],
@@ -914,7 +931,7 @@ def _native_query(  # noqa: C901
         raise _DiscoveryUnavailableError("query_budget")
     # Jinja macros (url_param, get_time_filter, filter_values) read the request
     # form data, as on the chart data API, during validation and execution.
-    set_query_context_form_data(query_context, target.dataset.id, "table")
+    _set_dropdown_form_data(query_context, target.dataset.id)
     command = ChartDataCommand(query_context)
     _check_budget(context)
     command.validate()

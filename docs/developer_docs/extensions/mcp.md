@@ -720,12 +720,16 @@ inherited parent time ranges, and the native filter row limit as `row_limit`
 metric, as on the dashboard. For a numeric target whose templates read `metrics`
 or call the `metric` macro, discovery cannot tell SQL NULL from NaN in float
 results, so it omits those options and reports `truncated/invalid_scalar`.
-When that SQL reads the target column
+When that SQL, or another template of the dataset's own query (a calculated
+column, metric, or the dataset's row-level security), reads the target column
 through a filter macro such as `get_filters`, the macro receives discovery's own
 probe without its literal semantics, so search returns
 `unsupported/unsupported_search`, exact probes return
 `unsupported/unsupported_target`, and proposals for that column are not
-validated.
+validated. Saved dropdown predicates, row-level security on a virtual dataset's
+underlying tables, and SQL included through the `dataset` macro render without
+the probe, as for the listed dropdown, so the probe only selects among the
+options that dropdown lists.
 Templates that read the raw `filter` context variable also make search and exact
 probes unsupported, because those predicates differ from native selections.
 These probes are rejected before query execution. Listings, empty searches, and

@@ -2936,6 +2936,228 @@ def test_proposal_consumed_by_jinja_filter_macro_is_not_validated(
     assert meta.validated_proposed_filter_values == []
 
 
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize(
+    "sql",
+    [
+        _SWALLOWED_COUNTRY_SQL,
+        "select * from sales where 1 = 1 {% if filter_values('country') %}{% endif %}",
+    ],
+)
+@pytest.mark.parametrize(
+    "probe",
+    [
+        {"search": "Fran"},
+        {"exact_value": "Atlantis"},
+        {"exact_value": ""},
+        {"exact_value": None},
+        {"proposal": ["France"]},
+    ],
+)
+def test_query_filter_macros_still_receive_every_probe(
+    sqlite_native_execution: dict[str, Any], sql: str, probe: dict[str, Any]
+) -> None:
+    """The query's own macros read probes from its filters, not the form data."""
+    sqlite_native_execution["dataset"].sql = sql
+    dashboard = _dashboard(
+        _filter("country"), _filter("region", cascadeParentIds=["country"])
+    )
+    if "proposal" in probe:
+        _, meta = choices.discover_filter_values(
+            dashboard,
+            _request(
+                filter_value_requests=[{"filter_id": "region"}],
+                proposed_filter_values=[
+                    {"filter_id": "country", "values": probe["proposal"]}
+                ],
+            ),
+        )
+        assert meta.validated_proposed_filter_values == []
+        return
+    summaries, _ = choices.discover_filter_values(
+        dashboard, _request(filter_value_requests=[{"filter_id": "country", **probe}])
+    )
+    assert _available(summaries[0]).status == "unsupported"
+    assert _available(summaries[0]).reason == (
+        "unsupported_search" if "search" in probe else "unsupported_target"
+    )
+
+
+# Each template renders in a processor of its own, outside the dropdown query's.
+_SEPARATE_TEMPLATE_SOURCES = [
+    "saved_predicate",
+    "underlying_rls",
+    "dataset_macro",
+    "metric_dataset_macro",
+]
+_LISTS_ONLY_FRANCE = (
+    "{% if filter_values('country') %}1 = 1{% else %}country = 'France'{% endif %}"
+)
+_ECHOES_COUNTRY = (
+    "{% if filter_values('country') %}country IN "
+    "{{ filter_values('country') | where_in }}{% else %}1 = 1{% endif %}"
+)
+
+
+def _render_separately(
+    execution: dict[str, Any], mocker: MockerFixture, source: str, template: str
+) -> dict[str, Any]:
+    """Install a country dropdown predicate in a separately rendered template."""
+    from types import SimpleNamespace
+
+    from superset.connectors.sqla.models import SqlMetric
+
+    dataset = execution["dataset"]
+    conf = _filter("country", cascadeParentIds=["region"])
+    if source == "saved_predicate":
+        conf["adhoc_filters"] = [
+            {"expressionType": "SQL", "clause": "WHERE", "sqlExpression": template}
+        ]
+    elif source == "underlying_rls":
+        dataset.table_name = "sales_view"
+        dataset.sql = "select * from sales"
+        table = SqlaTable(id=6, table_name="sales", database=dataset.database)
+        mocker.patch(
+            "superset.utils.rls.find_datasets",
+            side_effect=lambda ref, *args, **kwargs: (
+                [table] if ref.table == "sales" else []
+            ),
+        )
+        mocker.patch(
+            "superset.security_manager.get_rls_filters",
+            side_effect=lambda rls_table: (
+                [SimpleNamespace(clause=template, group_key=None)]
+                if rls_table is table
+                else []
+            ),
+        )
+    else:
+        nested = SqlaTable(id=2, table_name="nested", database=dataset.database)
+        nested.sql = f"select * from sales where {template}"  # noqa: S608
+        nested.columns = [
+            TableColumn(column_name=name, type=kind)
+            for name, kind in [
+                ("region", "VARCHAR"),
+                ("country", "VARCHAR"),
+                ("enabled", "BOOLEAN"),
+            ]
+        ]
+        gate = SqlaTable(id=3, table_name="gate", database=dataset.database)
+        gate.metrics = [
+            SqlMetric(
+                metric_name="gate",
+                expression="country in (select country from {{ dataset(2) }})",
+            )
+        ]
+        dataset.sql = (
+            "select * from {{ dataset(2) }}"
+            if source == "dataset_macro"
+            else "select * from sales where {{ metric('gate', 3) }}"
+        )
+        by_id = {dataset.id: dataset, 2: nested, 3: gate}
+        mocker.patch.object(
+            choices.DatasetDAO,
+            "find_by_id",
+            side_effect=lambda dataset_id, **kwargs: by_id[dataset_id],
+        )
+    return conf
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize("source", _SEPARATE_TEMPLATE_SOURCES)
+@pytest.mark.parametrize(
+    ("template", "probe", "expected"),
+    [
+        (_ECHOES_COUNTRY, {}, ["France", "Germany", "Old", "US"]),
+        (_ECHOES_COUNTRY, {"search": "Fran"}, ["France"]),
+        (_ECHOES_COUNTRY, {"exact_value": "Germany"}, ["Germany"]),
+        (_LISTS_ONLY_FRANCE, {}, ["France"]),
+        (_LISTS_ONLY_FRANCE, {"search": "an"}, ["France"]),
+        (_LISTS_ONLY_FRANCE, {"exact_value": "Germany"}, []),
+        (_LISTS_ONLY_FRANCE, {"exact_value": "France"}, ["France"]),
+    ],
+)
+def test_separately_rendered_templates_probe_the_listed_dropdown(
+    sqlite_native_execution: dict[str, Any],
+    mocker: MockerFixture,
+    source: str,
+    template: str,
+    probe: dict[str, Any],
+    expected: list[str],
+) -> None:
+    """Templates that report no macro use render as for the listing, not the probe."""
+    conf = _render_separately(sqlite_native_execution, mocker, source, template)
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(_filter(), conf),
+        _request(filter_value_requests=[{"filter_id": "country", **probe}]),
+    )
+    assert _available(summaries[0]).status == "complete"
+    assert _available(summaries[0]).values == expected
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize("source", _SEPARATE_TEMPLATE_SOURCES)
+@pytest.mark.parametrize(
+    ("values", "validated"), [(["France"], True), (["Germany"], False)]
+)
+def test_separately_rendered_templates_validate_proposals_against_the_listing(
+    sqlite_native_execution: dict[str, Any],
+    mocker: MockerFixture,
+    source: str,
+    values: list[str],
+    validated: bool,
+) -> None:
+    """A proposal is a member only if the dropdown lists it without the proposal."""
+    conf = _render_separately(
+        sqlite_native_execution, mocker, source, _LISTS_ONLY_FRANCE
+    )
+    request = _request(
+        filter_value_requests=[{"filter_id": "enabled"}],
+        proposed_filter_values=[{"filter_id": "country", "values": values}],
+    )
+    _, meta = choices.discover_filter_values(
+        _dashboard(_filter(), conf, _filter("enabled", cascadeParentIds=["country"])),
+        request,
+    )
+    assert meta.validated_proposed_filter_values == (
+        request.proposed_filter_values if validated else []
+    )
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize("source", _SEPARATE_TEMPLATE_SOURCES)
+@pytest.mark.parametrize(
+    ("probe", "expected"),
+    [
+        ({}, ["France", "Germany", "Old"]),
+        ({"search": "an"}, ["France", "Germany"]),
+        ({"exact_value": "Old"}, ["Old"]),
+    ],
+)
+def test_separately_rendered_templates_still_receive_parent_selections(
+    sqlite_native_execution: dict[str, Any],
+    mocker: MockerFixture,
+    source: str,
+    probe: dict[str, Any],
+    expected: list[str],
+) -> None:
+    """Only discovery's own probe is withheld; parent selections render as usual."""
+    conf = _render_separately(
+        sqlite_native_execution,
+        mocker,
+        source,
+        "{% if filter_values('region') %}region IN "
+        "{{ filter_values('region') | where_in }}{% else %}1 = 0{% endif %}",
+    )
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(_filter(), conf),
+        _request(filter_value_requests=[{"filter_id": "country", **probe}]),
+        snapshot_state={"dataMask": {"region": _mask(["EMEA"])}},
+    )
+    assert _available(summaries[0]).status == "complete"
+    assert _available(summaries[0]).values == expected
+
+
 def test_parent_sentinel_selection_matches_dashboard_null_coercion(
     sqlite_native_execution: dict[str, Any],
 ) -> None:
