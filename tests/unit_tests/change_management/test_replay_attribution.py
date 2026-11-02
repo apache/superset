@@ -100,3 +100,39 @@ def test_a_failing_replay_still_restores_the_approver(
         with pytest.raises(RuntimeError):
             replay.apply_change(_request(SimpleNamespace(id=7)))
         assert g.user is approver
+
+
+def test_the_audit_stamp_is_taken_while_the_author_is_current(
+    bare_app: Flask, mocker: MockerFixture
+) -> None:
+    """Running as the author is not enough; the stamp has to land in time.
+
+    The audit columns are filled at flush, and a command that only stages
+    its work leaves that flush to the request -- by which point the override
+    is gone. An approved delete was recorded as "Archived by Priya Shah"
+    when Alex had asked for it. The same mistake as QA-16, one layer down,
+    and found by walking a delete rather than by any test.
+    """
+    author = SimpleNamespace(id=7, username="alex")
+    approver = SimpleNamespace(id=9, username="priya")
+    stamped: dict[str, Any] = {}
+
+    class Command:
+        def run(self) -> str:
+            # Stages only: no flush of its own, like DeleteChartCommand.
+            return "staged"
+
+    mocker.patch.object(replay, "build_command", return_value=Command())
+    mocker.patch.object(
+        replay,
+        "db",
+        SimpleNamespace(
+            session=SimpleNamespace(flush=lambda: stamped.update(user=g.user))
+        ),
+    )
+
+    with bare_app.app_context():
+        g.user = approver
+        replay.apply_change(_request(author))
+
+    assert stamped["user"] is author

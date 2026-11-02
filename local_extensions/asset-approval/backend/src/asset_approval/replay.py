@@ -48,6 +48,7 @@ from asset_approval.gate import (
     UPSERT_EMBEDDED_COMMAND,
 )
 from asset_approval.changes import EXEMPT_FIELDS
+from superset import db
 from superset.utils.core import override_user
 from asset_approval.models import ChangeRequest
 from asset_approval.types import AssetType, Operation
@@ -365,4 +366,13 @@ def apply_change(change_request: ChangeRequest) -> Model:
     """
     command = build_command(change_request)
     with replaying(), override_user(change_request.author):
-        return command.run()
+        result = command.run()
+        # The audit columns are filled at flush time from whoever is current,
+        # and a command that only stages its work leaves that flush to the
+        # request -- by which point the override is gone and the approver's
+        # name is on the author's work. An approved delete was recorded as
+        # "Archived by Priya Shah" when Alex had asked for it; the same
+        # mistake QA-16 fixed for version history, one layer down. Flushing
+        # here takes the stamp while the author is still the current user.
+        db.session.flush()
+        return result
