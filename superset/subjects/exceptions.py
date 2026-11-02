@@ -26,14 +26,7 @@ class SubjectsNotFoundValidationError(ValidationError):
 
 
 class ViewersDisabledValidationError(ValidationError):
-    """Viewers cannot be added while ``ENABLE_VIEWERS`` is off.
-
-    A non-empty ``viewers`` list is enforced by ``raise_for_access`` and the
-    list filters regardless of the flag, so accepting new viewers while the
-    feature is hidden from the UI would restrict the asset in a way admins
-    cannot see or undo there. Removing viewers stays allowed so stale
-    assignments can be cleared.
-    """
+    """Viewers cannot be added while ``ENABLE_VIEWERS`` is off."""
 
     status = 422
 

@@ -132,13 +132,7 @@ def _compute_new_role_ids(
 def _check_viewers_flag(
     request: ManageDashboardRolesRequest, viewers_enabled: bool
 ) -> tuple[list[str], ManageDashboardRolesResponse | None]:
-    """Apply the ``ENABLE_VIEWERS`` policy to the requested operations.
-
-    Viewers restrict access whenever the list is nonempty, flag or not. With
-    the flag off the UI cannot show or clear them, so additions are refused
-    while removals (the only way to lift such a restriction) are allowed with
-    a warning.
-    """
+    """Refuse role additions while ``ENABLE_VIEWERS`` is off; allow removals."""
     if viewers_enabled:
         return [], None
     if request.add_role_ids:
