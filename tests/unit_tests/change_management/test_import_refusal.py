@@ -271,3 +271,22 @@ def test_import_api_answers_refusal_with_422(
 
     assert response.status_code == 422
     assert response.json["message"].startswith(REFUSAL.format(kind=kind))
+
+
+def test_the_refusal_says_something_the_importer_can_act_on() -> None:
+    """S-06: it used to point at a switch that does not exist.
+
+    "Ask an administrator to turn review off for this import" named nothing
+    real -- the Change review page is read-only and the flag behind it is
+    global and needs a restart. A refusal that sends someone to look for a
+    control nobody has is worse than one that simply says no.
+    """
+    from asset_approval.exceptions import ImportOverwriteRefusedError
+
+    message = str(ImportOverwriteRefusedError("dashboard"))
+
+    assert "turn review off" not in message
+    assert "administrator" not in message
+    # What is left has to be doable, and has to say how narrow the refusal is.
+    assert "in Superset" in message
+    assert "only creates new assets is unaffected" in message

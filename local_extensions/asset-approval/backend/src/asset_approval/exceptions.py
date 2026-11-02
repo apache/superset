@@ -312,6 +312,13 @@ class ImportOverwriteRefusedError(ChangeManagementException):
     The importers re-raise this unchanged rather than folding it into their
     generic "import failed" error, so the person importing is told why and
     what to do instead.
+
+    What it tells them has to be something they can actually do. It used to
+    offer "ask an administrator to turn review off for this import", and no
+    such switch exists: the Change review page is read-only, and the feature
+    flag behind it is global and needs a restart, so it is neither per-import
+    nor anything an administrator can reach. An instruction that cannot be
+    followed is worse than a plain refusal (S-06).
     """
 
     status = 422
@@ -320,9 +327,10 @@ class ImportOverwriteRefusedError(ChangeManagementException):
         self.asset_kind = asset_kind
         super().__init__(
             "Importing over an existing "
-            f"{asset_kind} needs review, which imports do not support yet. "
-            "Import without overwriting, or ask an administrator to turn "
-            "review off for this import."
+            f"{asset_kind} needs review, and an import cannot be reviewed "
+            f"yet. Make the change to the {asset_kind} in Superset instead, "
+            "where it will go through review. An import that only creates "
+            "new assets is unaffected."
         )
 
 

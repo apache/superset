@@ -527,8 +527,15 @@ function FiltersConfigModal({
   // Keep each untouched item's value up to date, so the save can tell a real
   // edit from a field changed and changed back. Reported by each item's own
   // form, which is the only component that re-renders when its asynchronous
-  // fields settle. An item already marked modified is ignored, and that is
-  // what freezes the baseline at the last reading before the first edit.
+  // fields settle.
+  //
+  // What stops is what matters: the baseline has to freeze at the last
+  // reading before the author's first edit. "Marked modified" is too late to
+  // freeze on -- the filter name input debounces for half a second, so the
+  // form already holds the new name while the item is still unmarked, and
+  // the baseline would be refreshed to the edit and the rename dropped.
+  // Antd's own touched flag moves with the keystroke and is only set by a
+  // person typing, never by the form seeding itself, so that is the signal.
   const rememberPristineValue = useEffectEvent((id: string) => {
     const isFilter = isFilterId(id);
     const state = isFilter ? filterState : customizationState;
@@ -537,6 +544,16 @@ function FiltersConfigModal({
     }
     const values = form.getFieldValue('filters')?.[id];
     if (!values) {
+      return;
+    }
+    // A nested field's path is its array of keys. Typed through a cast
+    // because this build does not re-export antd's `NamePath`, so the
+    // single-argument overload is the one inference reaches for.
+    const anyFieldTouched = form.isFieldsTouched as (
+      paths: string[][],
+    ) => boolean;
+    const fields = Object.keys(values).map(field => ['filters', id, field]);
+    if (fields.length && anyFieldTouched(fields)) {
       return;
     }
     pristineItems.remember(
