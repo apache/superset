@@ -36,6 +36,7 @@ export interface PartitionMappingDatasource {
   partition_column?: string | null;
   partition_mapped_column?: string | null;
   partition_value_transform_default?: string | null;
+  supports_partition_filter_mapping?: boolean;
   /**
    * The dataset's columns *as saved*. `DatasourceEditor` never writes
    * `columns` back onto its `datasource` state -- the props-sync effect

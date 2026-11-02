@@ -34,6 +34,7 @@ import { useDebouncedCommit } from './useDebouncedCommit';
 import { usePartitionMappingPreview } from './usePartitionMappingPreview';
 import {
   defaultTransformFor,
+  IDENTITY_TRANSFORM,
   partitionRowState,
   previewOperatorFor,
   sampleValuesFor,
@@ -89,13 +90,43 @@ export default function PartitionMappingSection({
   const isMonotonic = Boolean(item?.partition_transform_is_monotonic);
   const isTemporal = Boolean(item?.is_dttm);
 
+  // One commit per edit, in this order. `onChange` first: CollectionTable
+  // rebuilds the column record from a snapshot taken at its own last render, so
+  // the functional `setDatabaseColumns` behind `onMonotonicChange` has to land
+  // on top of it. Reversed, that snapshot wipes the flag straight back out.
+  const commitTransform = (next: string) => {
+    const nextTransform = next || null;
+    if (nextTransform !== (value ?? null)) {
+      onChange?.(nextTransform);
+    }
+    // Monotonicity is a property of the expression, so the identity `:value` --
+    // which provably preserves ordering -- is auto-declared, and moving off it
+    // clears that auto-declaration again. A flag the owner ticked by hand on a
+    // transform of their own is left alone: they asserted it, and fixing a typo
+    // in `unix_timestamp(:value)` is not a retraction.
+    const isIdentity = nextTransform === IDENTITY_TRANSFORM;
+    const wasIdentity = (value ?? '') === IDENTITY_TRANSFORM;
+    if (isIdentity && !isMonotonic) {
+      onMonotonicChange(columnName, true);
+    } else if (!isIdentity && wasIdentity && isMonotonic) {
+      onMonotonicChange(columnName, false);
+    }
+  };
+
   // The editor's commit path echoes the value back several renders later, so an
   // input driven straight off `value` loses whatever is typed in the meantime.
   const {
     value: transform,
     onChange: onTransformChange,
     flush: flushTransform,
-  } = useDebouncedCommit(value, (next: string) => onChange?.(next || null));
+  } = useDebouncedCommit(value, commitTransform);
+  // Clearing the override does not switch mapping off when a default datetime
+  // column exists: `resolveMappedColumn` falls back to `main_dttm_col`, so the
+  // mapping moves there. Say so, rather than calling it "Remove mapping". On the
+  // default column's own row there is nothing to move back to.
+  const returnsToDefault = Boolean(
+    datasource.main_dttm_col && datasource.main_dttm_col !== columnName,
+  );
 
   const { preview, loading } = usePartitionMappingPreview({
     datasetId: datasource.id,
@@ -259,9 +290,11 @@ export default function PartitionMappingSection({
           // The engine's own default where it applies, as `defaultTransformFor`
           // decides it: on an epoch or formatted-text column a
           // `unix_timestamp(:value)` hint reads as the answer and is rejected.
+          // The identity fallback is no hint at all, so it shows the prompt.
           placeholder={
-            defaultTransformFor(datasource, item) ||
-            t('A SQL expression using :value')
+            defaultTransformFor(datasource, item) === IDENTITY_TRANSFORM
+              ? t('A SQL expression using :value')
+              : defaultTransformFor(datasource, item)
           }
           aria-label={t('Value transform')}
           data-test="partition-value-transform"
@@ -380,15 +413,30 @@ export default function PartitionMappingSection({
         />
       )}
 
-      <Flex justify="flex-end">
+      <Flex vertical align="flex-end" gap={theme.sizeUnit}>
         <Button
           buttonStyle="link"
           onClick={onRemoveMapping}
           icon={<Icons.DeleteOutlined iconColor={theme.colorError} />}
           data-test="remove-partition-mapping"
         >
-          <Typography.Text type="danger">{t('Remove mapping')}</Typography.Text>
+          <Typography.Text type="danger">
+            {returnsToDefault
+              ? t('Reset to default datetime column')
+              : t('Remove mapping')}
+          </Typography.Text>
         </Button>
+        {returnsToDefault && (
+          <Typography.Text
+            type="secondary"
+            data-test="remove-partition-mapping-helper"
+          >
+            {t(
+              'The mapping returns to the default datetime column (%(column)s).',
+              { column: datasource.main_dttm_col },
+            )}
+          </Typography.Text>
+        )}
       </Flex>
     </Flex>
   );

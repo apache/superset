@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from datetime import date, datetime
 from decimal import Decimal
@@ -85,6 +86,8 @@ from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.models.core import Database
 from superset.sql.parse import SQLStatement
 from superset.utils.core import FilterOperator, GenericDataType, override_user
+
+pytestmark = pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
 
 
 @pytest.fixture(autouse=True)
@@ -542,6 +545,67 @@ def test_resolve_returns_the_mapping_when_everything_lines_up(app: Flask) -> Non
     assert mapping.mapped_column == "event_time"
     assert mapping.value_transform == "unix_timestamp(:value)"
     assert mapping.is_monotonic is True
+
+
+def test_resolve_declines_an_engine_without_partition_mapping_support(
+    app: Flask, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    The editor hides partition mapping on an engine that does not advertise
+    support, so a mapping stored there -- configured before the gate, imported,
+    or left behind by a database change -- must not mirror anything either.
+    """
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    monkeypatch.setattr(SqliteEngineSpec, "supports_partition_filter_mapping", False)
+
+    with app.app_context():
+        assert resolve_partition_mapping(_mapped_table()) is None
+
+
+def test_a_mapping_suppressed_by_the_engine_gate_is_logged_once(
+    app: Flask, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """
+    A stored mapping the engine gate ignores is invisible in the UI, so it is
+    logged -- once, not on every query that resolves it.
+    """
+    from superset.connectors.sqla import partition_mapping
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    monkeypatch.setattr(SqliteEngineSpec, "supports_partition_filter_mapping", False)
+    partition_mapping._warn_mapping_suppressed.cache_clear()
+    table = _mapped_table()
+
+    with app.app_context(), caplog.at_level(logging.WARNING):
+        resolve_partition_mapping(table)
+        resolve_partition_mapping(table)
+
+    messages = [
+        record.getMessage()
+        for record in caplog.records
+        if "Ignoring partition filter mapping" in record.getMessage()
+    ]
+    assert len(messages) == 1
+    assert "dt_epoch" in messages[0]
+    assert "sqlite" in messages[0]
+
+
+def test_the_engine_gate_does_not_log_without_a_stored_mapping(
+    app: Flask, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    from superset.connectors.sqla import partition_mapping
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    monkeypatch.setattr(SqliteEngineSpec, "supports_partition_filter_mapping", False)
+    partition_mapping._warn_mapping_suppressed.cache_clear()
+    table = _mapped_table()
+    table.partition_column = None
+
+    with app.app_context(), caplog.at_level(logging.WARNING):
+        assert partition_mapping.partition_mapping_supported(table) is False
+
+    assert "Ignoring partition filter mapping" not in caplog.text
 
 
 def test_effective_mapped_column_follows_main_dttm_col(app: Flask) -> None:
@@ -2598,6 +2662,7 @@ def _mirror_temporal(
         )
 
 
+@pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
 @pytest.mark.parametrize(
     "uri, partition_type, probed, literal",
     [
@@ -2678,6 +2743,7 @@ def test_a_temporal_probe_result_is_written_as_the_engines_own_literal(
     assert not re.search(r"(?:[<>=]|IN \() ?'", rendered)
 
 
+@pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
 def test_a_trino_date_mirror_is_the_predicate_the_engine_accepts(app: Flask) -> None:
     """The whole predicate, as View query shows it on Trino."""
     table = _temporal_partition_table("trino://localhost:8080/hive", "DATE")
@@ -2730,6 +2796,7 @@ def test_a_timestamp_the_engine_writes_in_full_still_mirrors(app: Flask) -> None
     assert "'2026-01-01 12:30:15'" in _render_predicate(table, predicates[0])
 
 
+@pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
 def test_a_date_key_takes_a_timestamp_floored_to_its_own_day(app: Flask) -> None:
     """
     Flooring to the day is the column's own resolution, so a `DATE` key takes a
@@ -2746,6 +2813,7 @@ def test_a_date_key_takes_a_timestamp_floored_to_its_own_day(app: Flask) -> None
     assert "part <= DATE '2026-01-01'" in _render_predicate(table, predicates[0])
 
 
+@pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
 def test_an_oracle_date_key_is_not_floored_to_its_day(app: Flask) -> None:
     """
     An Oracle ``DATE`` keeps the time of day -- its SQLAlchemy dialect makes
@@ -2770,6 +2838,7 @@ def test_an_oracle_date_key_is_not_floored_to_its_day(app: Flask) -> None:
     assert type_errors
 
 
+@pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
 def test_an_oracle_date_key_still_takes_an_exact_midnight(app: Flask) -> None:
     """Not a refusal of Oracle: an answer at midnight loses nothing to the
     day-only literal, so it still mirrors."""
@@ -2786,6 +2855,7 @@ def test_an_oracle_date_key_still_takes_an_exact_midnight(app: Flask) -> None:
     )
 
 
+@pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
 def test_a_dialect_whose_type_names_are_a_list_does_not_break_the_chart(
     app: Flask,
 ) -> None:
