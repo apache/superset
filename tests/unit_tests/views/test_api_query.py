@@ -97,6 +97,8 @@ def test_query_valid_query_context_reaches_factory(
         {"datasource": {"type": "table"}, "queries": []},
         {"datasource": {"id": 1, "type": "bogus"}, "queries": []},
         {"datasource": {"id": 1, "type": None}, "queries": []},
+        {"datasource": {"id": 1, "type": "view"}, "queries": []},
+        {"datasource": {"id": 1, "type": "table"}, "queries": [], "form_data": "x"},
         {"datasource": {"id": 1, "type": "table"}, "queries": {"a": 1}},
         {"datasource": {"id": 1, "type": "table"}, "queries": ["not-an-object"]},
     ],
@@ -112,6 +114,8 @@ def test_query_valid_query_context_reaches_factory(
         "datasource_missing_id",
         "datasource_invalid_type",
         "datasource_null_type",
+        "datasource_unsupported_type",
+        "form_data_string",
         "queries_object",
         "queries_non_object_item",
     ],
@@ -128,3 +132,4 @@ def test_query_returns_400_for_malformed_query_context_shape(
     response = client.post(QUERY_URL, data={"query_context": json.dumps(query_context)})
 
     assert response.status_code == 400, response.get_data(as_text=True)
+    assert "query_context is invalid" in response.get_data(as_text=True)

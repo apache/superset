@@ -32,11 +32,11 @@ from superset.commands.chart.exceptions import (
     TimeRangeParseFailError,
 )
 from superset.daos.chart import ChartDAO
+from superset.daos.datasource import DatasourceDAO
 from superset.exceptions import QueryObjectValidationError
 from superset.legacy import update_time_range
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
-from superset.utils.core import DatasourceType
 from superset.utils.date_parser import get_since_until
 from superset.utils.error_sanitization import redact_sensitive_query_fields
 from superset.views.base import api, BaseSupersetView
@@ -184,12 +184,20 @@ class Api(BaseSupersetView):
             not isinstance(datasource, dict)
             or "id" not in datasource
             or not isinstance(datasource.get("type"), str)
-            or datasource["type"] not in {member.value for member in DatasourceType}
+            or datasource["type"] not in DatasourceDAO.sources
         ):
             raise QueryObjectValidationError(
                 _(
                     "query_context is invalid: %(details)s",
                     details="datasource must be an object with an id and a valid type",
+                )
+            )
+        form_data = params.get("form_data")
+        if form_data is not None and not isinstance(form_data, dict):
+            raise QueryObjectValidationError(
+                _(
+                    "query_context is invalid: %(details)s",
+                    details="form_data must be an object",
                 )
             )
         queries = params["queries"]
