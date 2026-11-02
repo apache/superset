@@ -2174,6 +2174,28 @@ test('validates fix by testing all form field types clear validation errors', ()
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dbReducer', () => {
+  test('a Secure Extra edit retires the typed embedded credential', () => {
+    const typedState = {
+      ...databaseFixture,
+      parameters: {
+        host: 'account',
+        embedded_credentials: { username: 'svc', password: 'pw' },
+      },
+    };
+    const secureExtra = dbReducer(typedState, {
+      type: ActionType.EditorChange,
+      payload: { name: 'masked_encrypted_extra', json: '{}' },
+    });
+    expect(secureExtra?.masked_encrypted_extra).toEqual('{}');
+    expect(secureExtra?.parameters).toEqual({ host: 'account' });
+
+    const otherEditor = dbReducer(typedState, {
+      type: ActionType.EditorChange,
+      payload: { name: 'server_cert', json: 'cert' },
+    });
+    expect(otherEditor?.parameters).toEqual(typedState.parameters);
+  });
+
   test('it will reset state to null', () => {
     const action: DBReducerActionType = { type: ActionType.Reset };
     const currentState = dbReducer(databaseFixture, action);

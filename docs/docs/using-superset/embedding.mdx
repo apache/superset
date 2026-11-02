@@ -299,7 +299,8 @@ is otherwise disabled.
 - **Turning off Impersonate logged in user moves embedded viewers onto the base
   account.** The credential applies only while impersonation is on. With it off,
   embedded viewers query under the connection's own credential, and so do logged-in
-  users, who also stop signing in through OAuth2.
+  users, who also stop signing in through OAuth2. A save with impersonation off is
+  refused while **Embedded guest credentials** are set, so clear them first.
 
 Understand what this grants before enabling it:
 

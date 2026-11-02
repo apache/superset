@@ -46,11 +46,6 @@ PASSWORD_MASK = "X" * 10
 # store a credential the dialog could never render or edit.
 EMBEDDED_CREDENTIALS_KEY = "embedded_credentials"
 
-# Secure Extra blocks a dashboard, chart or dataset bundle carries, so a promoted
-# dashboard keeps its OAuth2 client and embedded viewer credential. Every engine
-# masks their secrets (`BaseEngineSpec.encrypted_extra_sensitive_field_paths`).
-CARRIED_SECURE_EXTRA_KEYS = ("oauth2_client_info", EMBEDDED_CREDENTIALS_KEY)
-
 # ``python_date_format`` values that mark an integer column as a Unix epoch,
 # mapped to the number of units per second. The pandas resolution is the
 # suffix after ``epoch_`` (``s``/``ms``/``us``).
