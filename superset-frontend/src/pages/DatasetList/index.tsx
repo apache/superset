@@ -82,6 +82,7 @@ import {
   deletedToast,
   deleteFailedToast,
 } from 'src/utils/softDeleteCopy';
+import { announceChangeCaptured } from 'src/features/changeManagement/events';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import Subject from 'src/types/Subject';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -1444,6 +1445,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         // and don't claim it was archived.
         const reviewMessage = deleteReviewMessage(json);
         if (reviewMessage) {
+          // The delete became a draft on this very page, so the row's
+          // review tag is already stale. Every save path announces this;
+          // the delete paths did not, and the row showed nothing until a
+          // reload.
+          announceChangeCaptured();
           addSuccessToast(reviewMessage);
           return;
         }

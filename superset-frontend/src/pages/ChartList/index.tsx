@@ -50,6 +50,7 @@ import {
   deleteActionLabel,
   deleteReviewMessage,
 } from 'src/utils/softDeleteCopy';
+import { announceChangeCaptured } from 'src/features/changeManagement/events';
 import {
   ActionButton,
   ConfirmStatusChange,
@@ -437,6 +438,11 @@ function ChartList(props: ChartListProps) {
       ({ json = {} }) => {
         const reviewMessage = deleteReviewMessage(json);
         if (reviewMessage) {
+          // The delete became a draft on this very page, so the row's
+          // review tag is already stale. Every save path announces this;
+          // the delete paths did not, and the row showed nothing until a
+          // reload.
+          announceChangeCaptured();
           addSuccessToast(reviewMessage);
           return;
         }
