@@ -265,37 +265,14 @@ export function useModalSaveLogic({
         ]),
       ];
 
-      const touched =
-        allModified.length && filterState.changes.deleted.length
-          ? allModified.filter(id => !filterState.changes.deleted.includes(id))
-          : allModified;
-
-      // A filter is marked modified the moment its form is touched and is
-      // never un-marked, so opening a filter, editing a field and putting it
-      // back still posts it as a change. Comparing what would be sent with
-      // what the same transform makes of the loaded filter drops those: both
-      // sides go through transformFilterForSave, so this is like for like and
-      // not a guess about which keys the stored config happens to carry.
-      //
-      // Worth doing on its own account -- nobody wants a write that writes
-      // the same bytes -- and necessary under change management, where each
-      // one put an empty draft in front of an approver and locked the
-      // dashboard behind it (R4-08).
-      const reallyModified = touched.filter(id => {
-        const loaded = updatedFilterConfigMap[id];
-        if (!loaded) {
-          return true; // created in this modal: there is nothing to compare
-        }
-        const proposed = transformFilterForSave(
-          id,
-          mergedValues.filters?.[id] || loaded,
-        );
-        return !isEqual(proposed, transformFilterForSave(id, loaded));
-      });
-
       const actualChanges = {
         ...filterState.changes,
-        modified: reallyModified,
+        modified:
+          allModified.length && filterState.changes.deleted.length
+            ? allModified.filter(
+                id => !filterState.changes.deleted.includes(id),
+              )
+            : allModified,
         reordered:
           filterState.changes.reordered.length &&
           !isEqual(filterState.changes.reordered, initialFilterOrder)
