@@ -121,6 +121,53 @@ Both pages also declare `featureFlag: CHANGE_MANAGEMENT`. With the flag off
 the page does not exist: the host answers 404 and leaves it out of the menu,
 for an administrator as much as anyone else (QA-23).
 
+## What is not reviewed
+
+A write reaches the gate and is let through again in three cases.
+
+**Changes SOW 5.2 exempts**: the editors, viewers and owners lists, tags,
+the description, and the certification. None of them alters what a viewer
+sees on the asset. The editors list matters most: SOW 5.4 tells an author
+with no eligible approver to add another editor so they can submit, and
+gating that edit would mean needing an approver in order to get one.
+
+The exemption is per write, not per field, and it is measured against the
+live asset rather than against which keys the body carries. A properties
+dialog posts every field it shows, so editing only the editors list still
+arrives with the title alongside; what counts is which of them actually
+differ. A payload carrying an exempt change *and* a governed one is
+governed.
+
+Certification is one rule with two homes. A chart and a dashboard keep it
+in columns of their own; a dataset keeps it inside `extra`, so a change
+there is exempt when certification is the only entry in the blob that
+moved. Anything else in `extra`, `warning_markdown` included, is governed.
+
+**A save that changes nothing.** Re-saving an untouched asset used to
+create a request and lock the asset behind an empty diff, both paid for a
+write that was going to be a no-op anyway (129076). The comparison is by
+meaning rather than by spelling, since Superset round-trips `params`,
+`json_metadata`, `position_json` and `extra` through `json.dumps` and a
+re-save produces a byte-different string with the same content.
+
+The dashboard's native-filter and chart-customization endpoints post a
+diff of the configuration rather than the configuration itself, so they
+are measured differently: a diff that asks for nothing the stored
+configuration does not already say is let through. Opening the filter
+modal and pressing Save posts every filter back as modified whether or not
+one was touched, so without this each such save locked the dashboard
+(R4-08).
+
+**A save that undoes your own draft.** A save leaving the asset exactly as
+it is, made by the author of the asset's open request, closes that request:
+what it says is that the draft now proposes nothing. Without it the author
+was answered 200 and told nothing while their draft went on proposing the
+text they believed they had reverted, and an approver could still publish
+it (R4-01). Only their own request, and only one the asset's main update
+replays -- a native-filter or colours draft describes an operation that
+body cannot speak for. A partial revert still differs from the live asset,
+so it folds into the draft as any other edit does.
+
 ## Imports
 
 An import that would overwrite a governed asset is refused rather than held
