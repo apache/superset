@@ -132,6 +132,8 @@ export interface PendingDependency {
   status: string;
   author?: UserBrief | null;
   title?: string | null;
+  /** How many are waiting; the named one is the oldest of them. */
+  count?: number;
 }
 
 /**

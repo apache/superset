@@ -906,11 +906,19 @@ def pending_dependency(
     asset, so a cross-asset ordering is a wider change than this is. The
     approver is told and decides.
 
+    A dashboard is warned about the same way, about the charts on it: a
+    dashboard approved while one of its charts has a change of its own
+    waiting publishes the dashboard around a chart the approver has not
+    seen, and nothing said so either (R4-03).
+
     ``None`` when there is nothing to say, which is the common case.
     """
-    if AssetType(change_request.asset_type) is not AssetType.CHART:
-        return None
     if asset is None:
+        return None
+    kind = AssetType(change_request.asset_type)
+    if kind is AssetType.DASHBOARD:
+        return _chart_on_the_dashboard_with_a_change(asset)
+    if kind is not AssetType.CHART:
         return None
     # Charts can also sit on a semantic view, which has no change requests
     # of its own; ``dataset_impact`` guards the same way.
@@ -930,6 +938,46 @@ def pending_dependency(
         "status": open_request.status,
         "author": _user_brief(open_request.author),
         "title": _asset_title(getattr(asset, "datasource", None)),
+        "count": 1,
+    }
+
+
+def _chart_on_the_dashboard_with_a_change(dashboard: Any) -> dict[str, Any] | None:
+    """A chart on this dashboard that is itself waiting for a decision.
+
+    One of them, with a count: the approver needs to know the dashboard is
+    not the whole picture and who to ask, not a roll call. The oldest
+    request is named, because that is the one most likely to be forgotten.
+    """
+    chart_ids = [
+        chart.id for chart in (getattr(dashboard, "slices", None) or []) if chart.id
+    ]
+    if not chart_ids:
+        return None
+
+    waiting = (
+        db.session.query(ChangeRequest)
+        .filter(
+            ChangeRequest.asset_type == AssetType.CHART.value,
+            ChangeRequest.asset_id.in_(chart_ids),
+            ChangeRequest.status.in_([status.value for status in OPEN_STATUSES]),
+        )
+        .order_by(ChangeRequest.created_on)
+        .all()
+    )
+    if not waiting:
+        return None
+
+    oldest = waiting[0]
+    charts = {chart.id: chart for chart in (dashboard.slices or [])}
+    return {
+        "asset_type": AssetType.CHART.value,
+        "asset_id": oldest.asset_id,
+        "change_request_id": oldest.id,
+        "status": oldest.status,
+        "author": _user_brief(oldest.author),
+        "title": _asset_title(charts.get(oldest.asset_id)),
+        "count": len(waiting),
     }
 
 

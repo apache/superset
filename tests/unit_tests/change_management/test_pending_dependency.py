@@ -140,3 +140,110 @@ def test_one_lookup_at_most(open_dataset_change: Any) -> None:
     api.pending_dependency(_chart_request(), _chart())
 
     assert open_dataset_change.call_count == 1
+
+
+# ------------------------------------------------ a dashboard and its charts
+#
+# R4-03: a dashboard approved while one of the charts on it has a change of
+# its own waiting publishes the dashboard around a chart the approver never
+# saw. The warning the chart/dataset pair gets did not reach this pair.
+
+
+def _dashboard_request() -> SimpleNamespace:
+    return SimpleNamespace(id=2, asset_type="dashboard", asset_id=8)
+
+
+def _dashboard(*charts: Any) -> Any:
+    return SimpleNamespace(id=8, slices=list(charts))
+
+
+def _slice(id_: int, name: str) -> SimpleNamespace:
+    return SimpleNamespace(id=id_, slice_name=name)
+
+
+def _waiting(asset_id: int, request_id: int) -> SimpleNamespace:
+    return SimpleNamespace(
+        id=request_id,
+        asset_id=asset_id,
+        status="pending",
+        author=SimpleNamespace(
+            id=7, username="alex", first_name="Alex", last_name="Diaz"
+        ),
+    )
+
+
+@pytest.fixture
+def charts_waiting(mocker: MockerFixture) -> Any:
+    """Whatever the test hands back from the open-request query."""
+
+    def _install(*requests: Any) -> Any:
+        query = mocker.MagicMock()
+        query.filter.return_value = query
+        query.order_by.return_value = query
+        query.all.return_value = list(requests)
+        session = mocker.MagicMock()
+        session.query.return_value = query
+        return mocker.patch.object(
+            api, "db", mocker.MagicMock(session=session)
+        )
+
+    return _install
+
+
+def test_a_dashboard_whose_chart_has_a_change_waiting_is_flagged(
+    charts_waiting: Any,
+) -> None:
+    charts_waiting(_waiting(asset_id=31, request_id=55))
+
+    found = api.pending_dependency(
+        _dashboard_request(), _dashboard(_slice(31, "Revenue"))
+    )
+
+    assert found is not None
+    assert found["asset_type"] == "chart"
+    assert found["asset_id"] == 31
+    assert found["change_request_id"] == 55
+    assert found["count"] == 1
+    assert found["title"] == "Revenue"
+
+
+def test_the_oldest_waiting_chart_is_named_and_the_rest_counted(
+    charts_waiting: Any,
+) -> None:
+    charts_waiting(_waiting(31, 55), _waiting(32, 56), _waiting(33, 57))
+
+    found = api.pending_dependency(
+        _dashboard_request(),
+        _dashboard(_slice(31, "Revenue"), _slice(32, "Costs"), _slice(33, "Margin")),
+    )
+
+    assert found["asset_id"] == 31
+    assert found["count"] == 3
+
+
+def test_a_dashboard_whose_charts_are_all_settled_says_nothing(
+    charts_waiting: Any,
+) -> None:
+    charts_waiting()
+
+    assert (
+        api.pending_dependency(_dashboard_request(), _dashboard(_slice(31, "Revenue")))
+        is None
+    )
+
+
+def test_a_dashboard_with_no_charts_is_not_queried(mocker: MockerFixture) -> None:
+    db = mocker.patch.object(api, "db", mocker.MagicMock())
+
+    assert api.pending_dependency(_dashboard_request(), _dashboard()) is None
+    db.session.query.assert_not_called()
+
+
+def test_a_dashboard_that_could_not_be_loaded_says_nothing() -> None:
+    assert api.pending_dependency(_dashboard_request(), None) is None
+
+
+def test_a_dataset_change_has_no_dependency_of_its_own() -> None:
+    request = SimpleNamespace(id=3, asset_type="dataset", asset_id=5)
+
+    assert api.pending_dependency(request, SimpleNamespace(id=5)) is None

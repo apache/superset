@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { Modal } from '@superset-ui/core/components';
 import { styled } from '@apache-superset/core/theme';
@@ -84,16 +84,34 @@ export default function ApprovePublishModal({
           type="warning"
           showIcon
           data-test="pending-dependency-warning"
-          message={t('The dataset this chart uses has a change waiting')}
+          message={
+            dependency.asset_type === 'chart'
+              ? tn(
+                  'A chart on this dashboard has a change waiting',
+                  '%s charts on this dashboard have changes waiting',
+                  dependency.count ?? 1,
+                  dependency.count ?? 1,
+                )
+              : t('The dataset this chart uses has a change waiting')
+          }
           description={
-            heldBy
-              ? t(
-                  'Approving this chart first publishes it against the dataset as it is now. If it relies on the change %s has waiting, viewers will see it break. Decide the dataset change first, or check with them.',
-                  heldBy,
-                )
-              : t(
-                  'Approving this chart first publishes it against the dataset as it is now. If it relies on the dataset change still waiting, viewers will see it break. Decide the dataset change first.',
-                )
+            dependency.asset_type === 'chart'
+              ? heldBy
+                ? t(
+                    'Approving this dashboard publishes it around the charts as they are now, not as %s has proposed. Decide the chart change first, or check with them.',
+                    heldBy,
+                  )
+                : t(
+                    'Approving this dashboard publishes it around the charts as they are now, not as proposed. Decide the chart change first.',
+                  )
+              : heldBy
+                ? t(
+                    'Approving this chart first publishes it against the dataset as it is now. If it relies on the change %s has waiting, viewers will see it break. Decide the dataset change first, or check with them.',
+                    heldBy,
+                  )
+                : t(
+                    'Approving this chart first publishes it against the dataset as it is now. If it relies on the dataset change still waiting, viewers will see it break. Decide the dataset change first.',
+                  )
           }
         />
       )}
