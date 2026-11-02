@@ -1,5 +1,5 @@
 ---
-title: Guideline on AI-assisted PR
+title: Guideline on AI-assisted PRs
 sidebar_position: 3
 ---
 
