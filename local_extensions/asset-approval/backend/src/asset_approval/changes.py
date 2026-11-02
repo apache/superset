@@ -544,7 +544,15 @@ def moved_since(asset: Any, baseline: dict[str, Any]) -> list[str]:
     moved = []
     for field, was in baseline.items():
         try:
-            if _comparable(getattr(asset, field, None), field) != was:
+            now = _comparable(getattr(asset, field, None), field)
+            if _is_nothing(now) and _is_nothing(was):
+                # The same two spellings of empty that ``changed_fields``
+                # reconciles. Without this an unrelated exempt save that
+                # wrote "" where the baseline had None left the waiting
+                # request unapprovable, and the refusal named a field
+                # nobody had touched.
+                continue
+            if now != was:
                 moved.append(field)
         except Exception:  # noqa: BLE001
             logger.warning(

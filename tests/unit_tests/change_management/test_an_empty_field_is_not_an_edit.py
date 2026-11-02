@@ -138,3 +138,30 @@ def test_a_blob_that_is_not_empty_is_not_mistaken_for_empty() -> None:
     live = _dataset(extra=json.dumps({"certification": {"certified_by": "Risk"}}))
 
     assert changed_fields(live, {"extra": "{}"}) == ["extra"]
+
+
+# ------------------------------------------------------- and in the baseline
+#
+# The baseline a waiting request carries has to reconcile the same two
+# spellings of empty. An unrelated exempt save that wrote "" where the
+# baseline had None left the request unapprovable, and the refusal named a
+# field nobody had touched.
+
+
+def test_an_empty_spelling_change_does_not_strand_a_waiting_request() -> None:
+    from asset_approval.changes import baseline_of, moved_since
+
+    before = _dataset(sql=None)
+    baseline = baseline_of(before, {"sql": "SELECT 1"})
+
+    assert moved_since(_dataset(sql=""), baseline) == []
+    assert moved_since(_dataset(sql=None), baseline) == []
+
+
+def test_the_asset_really_moving_still_strands_it() -> None:
+    from asset_approval.changes import baseline_of, moved_since
+
+    before = _dataset(sql=None)
+    baseline = baseline_of(before, {"sql": "SELECT 1"})
+
+    assert moved_since(_dataset(sql="SELECT 2"), baseline) == ["sql"]
