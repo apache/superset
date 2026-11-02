@@ -181,15 +181,21 @@ jobs:
       # cdn.sheetjs.com), exposing the install to any registry/CDN outage
       # at that moment, which is how runs 40649064300 and 40679638770
       # failed. Restoring from the prefix instead cuts the downloads to the
-      # changed packages.
+      # changed packages. The month in the key and prefix resets the cache
+      # monthly so it cannot grow without bound.
+      - name: Get cache month
+        id: cache_month
+        if: steps.changed_files.outputs.needs_node == 'true'
+        run: echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+
       - name: Cache npm
         if: steps.changed_files.outputs.needs_node == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.npm
-          key: npm-v1-${{ runner.os }}-${{ hashFiles('superset-frontend/package-lock.json') }}
+          key: npm-v1-${{ runner.os }}-${{ steps.cache_month.outputs.month }}-${{ hashFiles('superset-frontend/package-lock.json') }}
           restore-keys: |
-            npm-v1-${{ runner.os }}-
+            npm-v1-${{ runner.os }}-${{ steps.cache_month.outputs.month }}-
 
       - name: Install Frontend Dependencies
         if: steps.changed_files.outputs.needs_frontend == 'true'
