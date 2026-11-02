@@ -268,6 +268,11 @@ def gate_write(
                 exc_info=True,
             )
         if live is not None and is_empty_change(live, payload):
+            # Nothing to capture -- but the author may just have typed
+            # their own draft back to what is live, and the draft would
+            # otherwise go on proposing the text they thought they had
+            # undone (R4-01).
+            _drop_a_fully_reverted_draft(asset_type, asset_id)
             return
 
     author_id = get_user_id()
@@ -354,6 +359,62 @@ def _serialized(
     base: dict[str, Any] | None = None,
 ) -> str:
     return ChangeRequest.serialize_payload(payload, command_args, base)
+
+
+def _drop_a_fully_reverted_draft(asset_type: AssetType, asset_id: int) -> None:
+    """Close the author's own draft once they have undone all of it.
+
+    This write leaves the asset exactly as it is, so for anyone else it is
+    a no-op. For the author of the asset's open request it is the last
+    edit of several, and what it says is that the draft now proposes
+    nothing: every field is back to the live value. Leaving it open told
+    the author they had reverted while an approver could still publish the
+    original proposal (R4-01).
+
+    Only ever the author's own, and only a draft replayed by the asset's
+    main update -- a native-filter or colours draft describes an operation
+    this body cannot speak for, so it is left alone. Anything unreadable
+    leaves the request as it was: failing to tidy up is survivable, and
+    discarding the wrong draft is not.
+    """
+    author_id = get_user_id()
+    if author_id is None:
+        return
+    try:
+        existing = find_open_request(asset_type, asset_id)
+    except Exception:  # noqa: BLE001
+        logger.warning(
+            "asset-approval: could not look up the open request on %s %s",
+            asset_type.value,
+            asset_id,
+            exc_info=True,
+        )
+        return
+    if existing is None or existing.author_fk != author_id:
+        return
+    if existing.command_args.get(COMMAND_KEY):
+        return
+    _discard_request(existing.id)
+
+
+def _discard_request(change_request_id: int) -> None:
+    """Close a request and free the asset's slot, on its own connection.
+
+    The same connection discipline ``_insert_request`` explains: the gate's
+    bookkeeping has to settle whether or not the caller's transaction does.
+    """
+    table = ChangeRequest.__table__
+    with db.engine.begin() as connection:
+        connection.execute(
+            table.update()
+            .where(table.c.id == change_request_id)
+            .values(
+                status=ChangeStatus.DISCARDED.value,
+                active_slot=None,
+                decided_at=datetime.now(timezone.utc),
+                changed_on=datetime.now(timezone.utc),
+            )
+        )
 
 
 def _insert_request(
