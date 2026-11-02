@@ -130,7 +130,7 @@ type SharedStateSource =
   | { kind: 'permalink'; key: string }
   | { kind: 'filterKey'; key: string; dashboardId: number };
 
-const LoadingMessage = styled.div`
+const LoadingMessage = styled.output`
   ${({ theme }) => `
     position: absolute;
     left: 50%;
@@ -661,7 +661,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         <>
           <Loading />
           {isLoadingSharedState && (
-            <LoadingMessage role="status">
+            <LoadingMessage>
               {t('Loading the view shared with you…')}
             </LoadingMessage>
           )}

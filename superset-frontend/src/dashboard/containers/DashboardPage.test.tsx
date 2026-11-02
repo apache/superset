@@ -881,7 +881,8 @@ test('shows the shared-view loading message while the saved filters load', async
 
   const message = await screen.findByText('Loading the view shared with you…');
   expect(message).toBeInTheDocument();
-  expect(message).toHaveAttribute('role', 'status');
+  // <output> carries the implicit status role for screen readers.
+  expect(message.tagName).toBe('OUTPUT');
 });
 
 test('applies the saved filter state when the request resolves', async () => {
