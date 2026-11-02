@@ -49,6 +49,7 @@ import {
   useFilterOperations,
   useCustomizationOperations,
   useModalSaveLogic,
+  usePristineItemValues,
   filterSupportsDependencies,
 } from './hooks';
 import {
@@ -59,6 +60,10 @@ import {
   transformDividerId,
   isDivider,
 } from './utils';
+import {
+  transformFilterForSave,
+  transformCustomizationForSave,
+} from './transformers';
 import { ConfigModalContent } from './ConfigModalContent';
 import ConfigModalSidebar from './ConfigModalSidebar';
 
@@ -212,10 +217,13 @@ function FiltersConfigModal({
     [filterState, customizationState],
   );
 
+  const pristineItems = usePristineItemValues();
+
   const resetForm = useCallback(
     (isSaving = false) => {
       filterState.resetState();
       customizationState.resetState();
+      pristineItems.reset();
       setSaveAlertVisible(false);
 
       const resetItemId = filterIds[0] ?? chartCustomizationIds[0] ?? '';
@@ -246,6 +254,7 @@ function FiltersConfigModal({
       initialCustomizationOrder,
       filterState,
       customizationState,
+      pristineItems,
     ],
   );
 
@@ -271,6 +280,7 @@ function FiltersConfigModal({
     initialFilterOrder,
     initialCustomizationOrder,
     unsavedFiltersIds,
+    pristineItems,
     currentItemId,
     setActiveItem,
     onSave,
@@ -512,6 +522,38 @@ function FiltersConfigModal({
       customizationState.addToRendered(currentItemId);
     }
   }, [currentItemId, customizationState]);
+
+  // Record each item the way the form first held it, once its panel has
+  // mounted and before anyone can have edited it, so the save can tell a real
+  // edit from a field changed and changed back. Items already marked modified
+  // are skipped: whatever they hold now is no longer pristine.
+  useEffect(() => {
+    const values = form.getFieldValue('filters') || {};
+    [
+      ...filterState.renderedIds.filter(
+        id => !filterState.changes.modified.includes(id),
+      ),
+      ...customizationState.renderedIds.filter(
+        id => !customizationState.changes.modified.includes(id),
+      ),
+    ].forEach(id => {
+      if (values[id]) {
+        pristineItems.capture(
+          id,
+          isFilterId(id)
+            ? transformFilterForSave(id, values[id])
+            : transformCustomizationForSave(id, values[id]),
+        );
+      }
+    });
+  }, [
+    form,
+    filterState.renderedIds,
+    filterState.changes.modified,
+    customizationState.renderedIds,
+    customizationState.changes.modified,
+    pristineItems,
+  ]);
 
   const handleSetErroredFilters = useCallback(
     (updater: (filters: string[]) => string[]) => {
