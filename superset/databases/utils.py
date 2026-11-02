@@ -214,19 +214,24 @@ def validated_embedded_credentials(credentials: Any) -> dict[str, str] | None:
 def embedded_credentials_incomplete(
     value: Any,
     validate_credentials: Callable[[Any], dict[str, str] | None],
+    *,
+    accept_json_string: bool = True,
 ) -> bool:
     """
     Is an embedded credential malformed or incomplete for its engine?
 
     Absent and entirely blank values pass -- they mean "no credential configured".
     Accepts the value as a dict or as the JSON string the connection dialog posts.
+    Saving passes ``accept_json_string=False``: the value is stored as sent, and a
+    string is refused at query time however complete the JSON inside it.
     Use the engine's query-time validator when the connection is known, keeping
     authoring checks consistent with engine-specific credential shapes.
     """
     if value is None or value == "":
         return False
 
-    if isinstance(value, str):
+    is_string = isinstance(value, str)
+    if is_string:
         try:
             value = json.loads(value)
         except json.JSONDecodeError:
@@ -243,5 +248,8 @@ def embedded_credentials_incomplete(
         _is_present(field) for key, field in value.items() if key != "auth_method"
     ):
         return False
+
+    if is_string and not accept_json_string:
+        return True
 
     return validate_credentials(value) is None

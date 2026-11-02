@@ -1073,7 +1073,18 @@ def test_partial_update_uses_the_stored_engine_credential_validator(
     validator.assert_called_once_with({"token": "t"})
 
 
-@pytest.mark.parametrize("credentials", ["not json", "[]", "42", [], False, 0])
+@pytest.mark.parametrize(
+    "credentials",
+    [
+        "not json",
+        "[]",
+        "42",
+        [],
+        False,
+        0,
+        '{"username": "embedded_svc", "password": "pw"}',
+    ],
+)
 @with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
 def test_api_rejects_malformed_embedded_credentials(credentials: Any) -> None:
     """Valid outer JSON must not hide a malformed credential value."""
@@ -1288,6 +1299,37 @@ def test_masked_embedded_secret_needs_a_stored_value(
         return
     with pytest.raises(ValidationError, match="invalid or incomplete"):
         DatabasePutSchema(database_id=1).load(payload)
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_test_connection_leaves_masks_to_the_command() -> None:
+    """
+    The schema has no `database_id` to reveal a mask with, and saves nothing, so
+    testing a saved connection must not refuse the mask the dialog sends back.
+    """
+    from superset.databases.schemas import (
+        DatabasePostSchema,
+        DatabaseTestConnectionSchema,
+    )
+
+    payload = {
+        "database_name": "test_db",
+        "sqlalchemy_uri": "snowflake://svc@account/db",
+        "impersonate_user": True,
+        "masked_encrypted_extra": json.dumps(
+            {
+                "oauth2_client_info": _CLIENT,
+                "embedded_credentials": {
+                    "username": "embedded_svc",
+                    "password": PASSWORD_MASK,
+                },
+            }
+        ),
+    }
+
+    DatabaseTestConnectionSchema().load(payload)
+    with pytest.raises(ValidationError, match="invalid or incomplete"):
+        DatabasePostSchema().load(payload)
 
 
 def test_import_schema_checks_masks_with_the_incoming_engine(

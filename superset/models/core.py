@@ -796,6 +796,22 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         effective_username = self.get_impersonation_username(sqlalchemy_url)
 
         embedded_fallback = self.embedded_fallback_applies()
+        # Ahead of `get_oauth2_config()`, which raises on an incomplete client.
+        if self.embedded_guest_missing_oauth2_client():
+            # Impersonating a guest here would run on whatever identity the engine
+            # derives from the URL -- for Snowflake, the base account, with no error
+            # or warning.
+            self._refuse_embedded_guest(
+                '"Impersonate logged in user" is turned on but the connection has '
+                "no usable OAuth2 client information, so there is no identity to "
+                'serve embedded viewers under. Either turn off "Impersonate logged '
+                'in user" on the connection, which serves embedded viewers under '
+                "the connection's own credential, or configure OAuth2 client "
+                "information (on the connection or in DATABASE_OAUTH2_CLIENTS) and "
+                "add embedded guest credentials. An imported connection can also "
+                "arrive in this state when its OAuth2 and embedded guest settings "
+                "were not carried over."
+            )
         # Embedded guests do not use OAuth2 tokens or redirect URLs, including when
         # a worker restores their identity without a request context.
         oauth2_config = None if embedded_fallback else self.get_oauth2_config()
@@ -852,21 +868,6 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             # Hooks must receive the selected connection identity, not the
             # username claim supplied by the guest token.
             effective_username = sqlalchemy_url.username
-        elif self.embedded_guest_missing_oauth2_client():
-            # Impersonating a guest here would run on whatever identity the engine
-            # derives from the URL -- for Snowflake, the base account, with no error
-            # or warning.
-            self._refuse_embedded_guest(
-                '"Impersonate logged in user" is turned on but the connection has '
-                "no usable OAuth2 client information, so there is no identity to "
-                'serve embedded viewers under. Either turn off "Impersonate logged '
-                'in user" on the connection, which serves embedded viewers under '
-                "the connection's own credential, or configure OAuth2 client "
-                "information (on the connection or in DATABASE_OAUTH2_CLIENTS) and "
-                "add embedded guest credentials. An imported connection can also "
-                "arrive in this state when its OAuth2 and embedded guest settings "
-                "were not carried over."
-            )
         elif self.impersonate_user:
             sqlalchemy_url, engine_kwargs = self.db_engine_spec.impersonate_user(
                 self,

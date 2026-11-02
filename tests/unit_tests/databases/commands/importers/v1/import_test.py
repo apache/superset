@@ -17,6 +17,7 @@
 # pylint: disable=unused-argument, import-outside-toplevel, invalid-name
 
 import copy
+from typing import Any
 
 import pytest
 from flask import current_app
@@ -342,6 +343,60 @@ def test_import_database_with_masked_encrypted_extra_existing_db(
         "-----BEGIN PRIVATE KEY-----\nMyPriVaTeKeY\n-----END PRIVATE KEY-----\n"
     )
     assert encrypted["credentials_info"]["private_key"] != PASSWORD_MASK
+
+
+@pytest.mark.parametrize(
+    ("bundle", "keeps_other_settings"),
+    [
+        # What a dashboard, chart or dataset export carries.
+        (
+            {"embedded_credentials": {"username": "svc", "password": PASSWORD_MASK}},
+            True,
+        ),
+        # What a database export carries.
+        (
+            {
+                "embedded_credentials": {"username": "svc", "password": PASSWORD_MASK},
+                "credentials_info": {"project_id": "updated"},
+            },
+            False,
+        ),
+    ],
+)
+def test_import_database_keeps_secure_extra_a_bundle_does_not_carry(
+    mocker: MockerFixture,
+    session: Session,
+    bundle: dict[str, Any],
+    keeps_other_settings: bool,
+) -> None:
+    """Only a bundle limited to the carried blocks merges into the stored value."""
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import (
+        database_config_with_masked_encrypted_extra,
+    )
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    Database.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config_with_masked_encrypted_extra)
+    config["masked_encrypted_extra"] = json.dumps(
+        {
+            "other_setting": "kept",
+            "embedded_credentials": {"username": "svc", "password": "stored"},
+        }
+    )
+    import_database(config)
+    db.session.flush()
+
+    config = copy.deepcopy(database_config_with_masked_encrypted_extra)
+    config["masked_encrypted_extra"] = json.dumps(bundle)
+    encrypted = json.loads(import_database(config, overwrite=True).encrypted_extra)
+
+    assert encrypted["embedded_credentials"]["password"] == "stored"  # noqa: S105
+    assert ("other_setting" in encrypted) is keeps_other_settings
 
 
 def test_import_database_existing_no_overwrite_backfills_permissions(

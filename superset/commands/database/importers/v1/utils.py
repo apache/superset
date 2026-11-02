@@ -28,7 +28,7 @@ from superset.commands.database.utils import (
     ssh_tunnel_rebind_unsafe,
 )
 from superset.commands.exceptions import ImportFailedError
-from superset.constants import PASSWORD_MASK
+from superset.constants import CARRIED_SECURE_EXTRA_KEYS, PASSWORD_MASK
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
@@ -169,6 +169,10 @@ def import_database(  # noqa: C901
                 new_config,
                 sensitive_fields,
             )
+            # A dashboard, chart or dataset bundle carries only these blocks, so the
+            # rest of the stored Secure Extra stays. A database export carries it all.
+            if set(new_config) <= set(CARRIED_SECURE_EXTRA_KEYS):
+                revealed = {**old_config, **revealed}
             config["encrypted_extra"] = json.dumps(revealed)
         else:
             config["encrypted_extra"] = masked_encrypted_extra

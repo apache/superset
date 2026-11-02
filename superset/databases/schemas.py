@@ -368,6 +368,8 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
     """
 
     database_id: int | None = None
+    # A saved mask would become the credential, so saving needs a secret behind it.
+    masks_need_stored_secret = True
 
     engine = fields.String(
         allow_none=True, metadata={"description": "SQLAlchemy engine to use"}
@@ -479,6 +481,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
         if embedded_credentials_incomplete(
             credentials,
             engine_spec.validate_embedded_credentials,
+            accept_json_string=False,
         ):
             raise ValidationError(
                 _(
@@ -491,7 +494,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
 
         # A mask only stands in for a secret the connection has stored. Anywhere
         # else `unmask_encrypted_extra` keeps it and saves it as the credential.
-        if any(
+        if self.masks_need_stored_secret and any(
             field.startswith(f"$.{EMBEDDED_CREDENTIALS_KEY}.")
             for field in json.unrevealable_masked_fields(
                 json.loads(stored.encrypted_extra)
@@ -826,6 +829,10 @@ class DatabasePutSchema(DatabaseParametersSchemaMixin, Schema):
 
 
 class DatabaseTestConnectionSchema(DatabaseParametersSchemaMixin, Schema):
+    # Saves nothing, and `TestConnectionDatabaseCommand` finds the connection by name
+    # to unmask, which this schema has no `database_id` to do.
+    masks_need_stored_secret = False
+
     rename_encrypted_extra = pre_load(rename_encrypted_extra)
 
     database_name = fields.String(
