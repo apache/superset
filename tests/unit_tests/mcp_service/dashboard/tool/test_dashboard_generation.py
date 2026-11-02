@@ -20,13 +20,17 @@ Unit tests for dashboard generation MCP tools
 """
 
 import logging
+from collections.abc import Iterator
 from datetime import datetime
+from functools import partial
 from importlib import import_module
 from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.client.client import CallToolResult
 
+from superset import security_manager
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 from superset.mcp_service.dashboard.constants import generate_id
@@ -41,6 +45,7 @@ from superset.mcp_service.dashboard.tool.generate_dashboard import (
     _generate_title_from_charts,
 )
 from superset.models.dashboard import Dashboard as _RealDashboard
+from superset.security.manager import SupersetSecurityManager
 from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
@@ -71,17 +76,20 @@ def mock_auth():
 
 
 @pytest.fixture(autouse=True)
-def mock_chart_access():
-    """Mock chart dataset validation so tests don't hit real security manager."""
-    with patch(
-        "superset.mcp_service.auth.check_chart_data_access",
-        return_value=DatasetValidationResult(
-            is_valid=True,
-            dataset_id=1,
-            dataset_name="test_dataset",
-            warnings=[],
-            error=None,
+def mock_chart_access() -> Iterator[None]:
+    """Allow chart and data access by default for dashboard-focused tests."""
+    with (
+        patch(
+            "superset.mcp_service.auth.check_chart_data_access",
+            return_value=DatasetValidationResult(
+                is_valid=True,
+                dataset_id=1,
+                dataset_name="test_dataset",
+                warnings=[],
+                error=None,
+            ),
         ),
+        patch("superset.security_manager.can_access_chart", return_value=True),
     ):
         yield
 
@@ -158,6 +166,7 @@ def _setup_generate_dashboard_mocks(
 
     mock_query = Mock()
     mock_filter = Mock()
+    mock_query.options.return_value = mock_query
     mock_query.filter.return_value = mock_filter
     mock_query.filter_by.return_value = mock_filter
     mock_filter.order_by.return_value = mock_filter
@@ -194,6 +203,66 @@ def _setup_generate_dashboard_mocks(
 
 class TestGenerateDashboard:
     """Tests for generate_dashboard MCP tool."""
+
+    @pytest.mark.parametrize(
+        ("restricted", "datasource_granted"),
+        [(True, False), (True, True), (False, True)],
+    )
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_requires_chart_access(
+        self,
+        mock_session: Mock,
+        mock_find: Mock,
+        mock_dashboard_cls: Mock,
+        mcp_server: object,
+        restricted: bool,
+        datasource_granted: bool,
+    ) -> None:
+        """Datasource-only readers cannot link viewer-restricted charts."""
+        chart: Mock = _mock_chart()
+        chart.configure_mock(
+            viewers=[Mock(id=99)] if restricted else [],
+            resolved_datasource=Mock(),
+            dashboards=[],
+        )
+        _setup_generate_dashboard_mocks(
+            mock_session, mock_find, mock_dashboard_cls, [chart], _mock_dashboard()
+        )
+        with (
+            patch.object(security_manager, "is_admin", return_value=False),
+            patch.object(security_manager, "is_editor", return_value=False),
+            patch.object(security_manager, "is_viewer", return_value=False),
+            patch.object(security_manager, "is_guest_user", return_value=False),
+            patch.object(
+                security_manager,
+                "can_access_datasource",
+                return_value=datasource_granted,
+            ),
+            patch.object(
+                security_manager,
+                "can_access_chart",
+                side_effect=partial(
+                    SupersetSecurityManager.can_access_chart, security_manager
+                ),
+            ),
+        ):
+            async with Client(mcp_server) as client:
+                result: CallToolResult = await client.call_tool(
+                    "generate_dashboard", {"request": {"chart_ids": [1]}}
+                )
+        if restricted:
+            assert result.structured_content["error"] == (
+                "You don't have permission to access chart 1."
+            )
+            assert result.structured_content["dashboard"] is None
+            mock_session.add.assert_not_called()
+            mock_dashboard_cls.assert_not_called()
+        else:
+            assert result.structured_content["error"] is None
+            mock_session.commit.assert_called()
 
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -280,6 +349,7 @@ class TestGenerateDashboard:
         """Test error handling when some charts don't exist."""
         mock_query = Mock()
         mock_filter = Mock()
+        mock_query.options.return_value = mock_query
         mock_query.filter.return_value = mock_filter
         mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = [_mock_chart(id=1)]
@@ -309,6 +379,7 @@ class TestGenerateDashboard:
 
         mock_query = Mock()
         mock_filter = Mock()
+        mock_query.options.return_value = mock_query
         mock_query.filter.return_value = mock_filter
         mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = charts
@@ -464,6 +535,7 @@ class TestGenerateDashboard:
 
         mock_query = Mock()
         mock_filter = Mock()
+        mock_query.options.return_value = mock_query
         mock_query.filter.return_value = mock_filter
         mock_query.filter_by.return_value = mock_filter
         mock_filter.order_by.return_value = mock_filter
@@ -511,6 +583,7 @@ class TestGenerateDashboard:
 
         mock_query = Mock()
         mock_filter = Mock()
+        mock_query.options.return_value = mock_query
         mock_query.filter.return_value = mock_filter
         mock_query.filter_by.return_value = mock_filter
         mock_filter.order_by.return_value = mock_filter
@@ -570,6 +643,7 @@ class TestGenerateDashboard:
 
         mock_query = Mock()
         mock_filter = Mock()
+        mock_query.options.return_value = mock_query
         mock_query.filter.return_value = mock_filter
         mock_query.filter_by.return_value = mock_filter
         mock_filter.order_by.return_value = mock_filter
