@@ -20,12 +20,49 @@ import pytest
 
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.models.slice import Slice
+from superset.utils import json
 
 
 @pytest.fixture(autouse=True)
 def mock_security_manager():
     with patch("superset.commands.chart.warm_up_cache.security_manager"):
         yield
+
+
+@pytest.mark.parametrize("explicit_filters", [False, True])
+def test_warmup_filters_cannot_reintroduce_private_literal_mode(
+    explicit_filters: bool,
+) -> None:
+    """Post-factory filters retain ordinary coercion for metadata and explicit input."""
+    predicate = {"col": "country", "op": "IN", "val": "France", "is_literal": True}
+    ordinary = {"col": "city", "op": "IN", "val": ["Paris"]}
+    saved = {"col": "region", "op": "IN", "val": ["EMEA"]}
+    query = Mock(filter=[saved])
+    context = Mock(queries=[query])
+    chart = Slice(id=123, slice_name="Countries")
+    with (
+        patch.object(chart, "get_query_context", return_value=context),
+        patch(
+            "superset.commands.chart.warm_up_cache.get_dashboard_extra_filters",
+            return_value=[predicate, ordinary],
+        ),
+        patch("superset.commands.chart.warm_up_cache.ChartDataCommand") as command,
+    ):
+        command.return_value.run.return_value = {"queries": []}
+        ChartWarmUpCacheCommand(
+            chart, 42, json.dumps([predicate, ordinary]) if explicit_filters else None
+        )._warm_up_non_legacy_cache(chart)
+    assert query.filter == [
+        {"col": "country", "op": "IN", "val": "France"},
+        ordinary,
+        saved,
+    ]
+    assert predicate["is_literal"] is True
+    assert query.filter[2] is saved
+    if not explicit_filters:
+        assert query.filter[1] is ordinary
+    command.return_value.validate.assert_called_once()
+    command.return_value.run.assert_called_once()
 
 
 @patch("superset.commands.chart.warm_up_cache.get_dashboard_extra_filters")
@@ -67,6 +104,9 @@ def test_prepends_dashboard_filters_to_non_legacy_chart(
 
         # VALIDATE: Dashboard filters precede the chart's saved filters
         assert mock_query.filter == [legacy_filter, native_filter, chart_filter]
+        assert mock_query.filter[0] is legacy_filter
+        assert mock_query.filter[1] is native_filter
+        assert mock_query.filter[2] is chart_filter
 
         # VALIDATE: get_dashboard_extra_filters was called correctly
         mock_get_dashboard_filters.assert_called_once_with(123, 42)
