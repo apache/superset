@@ -21,7 +21,6 @@ import { logging } from '@apache-superset/core/utils';
 import {
   updateFilterKey,
   createFilterKey,
-  getFilterValue,
   getPermalinkValue,
   fetchFilterValue,
   fetchPermalinkValue,
@@ -98,28 +97,6 @@ test('createFilterKey logs and resolves null when the request fails', async () =
   fetchMock.post('glob:*/api/v1/dashboard/7/filter_state', 500);
 
   const result = await createFilterKey(7, '{"a":1}');
-
-  expect(result).toBeNull();
-  expect(logging.error).toHaveBeenCalled();
-});
-
-test('getFilterValue GETs the keyed filter_state and parses the stringified value', async () => {
-  fetchMock.get(
-    'glob:*/api/v1/dashboard/7/filter_state/some-key',
-    { value: '{"b":2}' },
-    { name: 'get-filter-value' },
-  );
-
-  const result = await getFilterValue(7, 'some-key');
-
-  expect(fetchMock.callHistory.calls('get-filter-value')).toHaveLength(1);
-  expect(result).toEqual({ b: 2 });
-});
-
-test('getFilterValue logs and resolves null when the request fails', async () => {
-  fetchMock.get('glob:*/api/v1/dashboard/7/filter_state/some-key', 404);
-
-  const result = await getFilterValue(7, 'some-key');
 
   expect(result).toBeNull();
   expect(logging.error).toHaveBeenCalled();

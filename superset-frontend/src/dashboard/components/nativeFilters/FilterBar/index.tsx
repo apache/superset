@@ -63,8 +63,8 @@ import { LOG_ACTIONS_CHANGE_DASHBOARD_FILTER } from 'src/logger/LogUtils';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
-  consumeNeedsNewKey,
   isFilterKeyPublishHeld,
+  isProtectedFilterKey,
   releaseFilterKeyPublish,
 } from 'src/dashboard/util/sharedFilterStateHold';
 import { isChartCustomization } from '../FiltersConfigModal/utils';
@@ -133,11 +133,12 @@ const publishDataMask = debounce(
     const nativeFiltersCacheKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
     const dataMask = JSON.stringify(dataMaskSelected);
 
-    const forceNewKey = consumeNeedsNewKey();
+    // The key of a shared link whose state could not be loaded is never
+    // updated in place; a new key is created so the link keeps its state.
     if (
       updateKey &&
-      !forceNewKey &&
       nativeFiltersCacheKey &&
+      !isProtectedFilterKey(nativeFiltersCacheKey) &&
       (await updateFilterKey(
         dashboardId,
         dataMask,

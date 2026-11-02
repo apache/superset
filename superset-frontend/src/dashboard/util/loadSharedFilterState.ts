@@ -18,14 +18,16 @@
  */
 import { logging } from '@apache-superset/core/utils';
 
-// Upper bound on a single attempt to load shared filter state.
-export const SHARED_STATE_ATTEMPT_TIMEOUT_MS = 3000;
+// Upper bound on a single attempt to load shared filter state. Generous
+// enough for a slow but healthy metastore read; the retry restarts from zero.
+export const SHARED_STATE_ATTEMPT_TIMEOUT_MS = 6000;
 export const SHARED_STATE_MAX_ATTEMPTS = 2;
 export const SHARED_STATE_RETRY_DELAY_MS = 500;
 
 export type SharedStateResult<T> =
   | { status: 'ok'; value: T }
-  // The key no longer exists (404); retrying cannot help.
+  // The key no longer exists (404) or its stored value cannot be read;
+  // retrying cannot help.
   | { status: 'expired' }
   // Every attempt timed out or errored.
   | { status: 'failed' }
@@ -78,7 +80,11 @@ export async function loadSharedFilterState<T>(
       if (outcome !== 'timeout') return { status: 'ok', value: outcome.value };
     } catch (err) {
       if (signal.aborted) return { status: 'cancelled' };
-      if ((err as { status?: number })?.status === 404) {
+      if (
+        (err as { status?: number })?.status === 404 ||
+        // The stored value is not valid JSON: it will never load.
+        err instanceof SyntaxError
+      ) {
         return { status: 'expired' };
       }
     } finally {

@@ -59,6 +59,7 @@ import {
 import {
   isFilterKeyPublishHeld,
   releaseFilterKeyPublish,
+  resetFilterKeyHold,
 } from 'src/dashboard/util/sharedFilterStateHold';
 import DashboardPage from './DashboardPage';
 
@@ -871,7 +872,7 @@ const renderWithPermalink = () => renderWithUrlParam('permalink_key', 'perma');
 const neverResolves = () => new Promise(() => {});
 
 afterEach(() => {
-  releaseFilterKeyPublish();
+  resetFilterKeyHold();
 });
 
 test('shows the shared-view loading message while the saved filters load', async () => {
@@ -1148,4 +1149,37 @@ test('the banner goes away once the viewer changes a filter', async () => {
   await waitFor(() => {
     expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
   });
+});
+
+test('switching dashboards mid-retry does not leave Try again stuck loading', async () => {
+  mockFetchFilterValue.mockRejectedValue(new Error('network'));
+  const { rerender } = renderWithFilterKey();
+  await screen.findByText(FAILED_BANNER);
+
+  // Try again stalls; then the page moves on to another dashboard that also
+  // falls back. Its Try again button must not be stuck in the loading state.
+  mockFetchFilterValue.mockReturnValueOnce(neverResolves());
+  await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /Try again/ })).toHaveClass(
+      'ant-btn-loading',
+    ),
+  );
+
+  mockFetchFilterValue.mockRejectedValue(new Error('network'));
+  mockUseDashboard.mockReturnValue({
+    result: { ...mockDashboard, id: 2 },
+    error: null,
+  });
+  rerender(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="2" />
+    </Suspense>,
+  );
+
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /Try again/ })).not.toHaveClass(
+      'ant-btn-loading',
+    ),
+  );
 });

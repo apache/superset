@@ -14401,6 +14401,11 @@ msgid "The feature property to use for point labels"
 msgstr ""
 
 msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
 "The filters from this link have expired, so you’re seeing the default "
 "view."
 msgstr ""

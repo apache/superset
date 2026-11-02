@@ -19,22 +19,30 @@
 
 // While held, the dashboard keeps the filter key from the opened link in the
 // URL instead of replacing it with a key for the fallback (default) filters.
-// The hold ends when the viewer changes a filter; the next publish then creates
-// a new key so the opened link's saved state is never overwritten.
+// The hold ends when the viewer changes a filter. The opened link's key stays
+// protected after that: publishes never update it, they create a new key, so
+// the saved state behind the link is never overwritten even when two publishes
+// overlap and the URL still carries the original key.
 let held = false;
-let needsNewKey = false;
+let protectedKey: string | null = null;
 const releaseListeners = new Set<() => void>();
 
-export const holdFilterKeyPublish = () => {
+export const holdFilterKeyPublish = (key: string) => {
   held = true;
-  needsNewKey = false;
+  protectedKey = key;
 };
 
+/** Ends an active hold because the viewer changed a filter. */
 export const releaseFilterKeyPublish = () => {
   if (!held) return;
-  needsNewKey = true;
   held = false;
   releaseListeners.forEach(listener => listener());
+};
+
+/** Clears the hold and key protection, e.g. when another dashboard loads. */
+export const resetFilterKeyHold = () => {
+  held = false;
+  protectedKey = null;
 };
 
 /** Calls `listener` whenever an active hold is released. Returns unsubscribe. */
@@ -47,9 +55,6 @@ export const subscribeFilterKeyPublishRelease = (listener: () => void) => {
 
 export const isFilterKeyPublishHeld = () => held;
 
-/** Returns true once after a release, then resets. */
-export const consumeNeedsNewKey = () => {
-  const value = needsNewKey;
-  needsNewKey = false;
-  return value;
-};
+/** True for the key of the opened link whose saved state must not change. */
+export const isProtectedFilterKey = (key: string | null | undefined) =>
+  key != null && key === protectedKey;

@@ -43,9 +43,8 @@ import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 import * as dataMaskActions from 'src/dataMask/actions';
 import {
-  consumeNeedsNewKey,
   holdFilterKeyPublish,
-  releaseFilterKeyPublish,
+  resetFilterKeyHold,
 } from 'src/dashboard/util/sharedFilterStateHold';
 
 jest.useFakeTimers({ advanceTimers: true });
@@ -1777,8 +1776,7 @@ test('FilterBar keeps the link key while a fallback hold is active, then writes 
     '/dashboard/1/?native_filters_key=original-key',
   );
   fetchMock.clearHistory();
-  consumeNeedsNewKey();
-  holdFilterKeyPublish();
+  holdFilterKeyPublish('original-key');
 
   const filterId = 'NATIVE_FILTER-hold-test';
   const selectFilter = createFilter({
@@ -1850,5 +1848,5 @@ test('FilterBar keeps the link key while a fallback hold is active, then writes 
   expect(fetchMock.callHistory.calls('index-update-filter-key')).toHaveLength(
     0,
   );
-  releaseFilterKeyPublish();
+  resetFilterKeyHold();
 });

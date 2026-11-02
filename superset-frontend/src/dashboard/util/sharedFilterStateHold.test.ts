@@ -17,32 +17,42 @@
  * under the License.
  */
 import {
-  consumeNeedsNewKey,
   holdFilterKeyPublish,
   isFilterKeyPublishHeld,
+  isProtectedFilterKey,
   releaseFilterKeyPublish,
+  resetFilterKeyHold,
   subscribeFilterKeyPublishRelease,
 } from './sharedFilterStateHold';
 
 afterEach(() => {
-  releaseFilterKeyPublish();
-  consumeNeedsNewKey();
+  resetFilterKeyHold();
 });
 
-test('holds until released, then asks for a new key exactly once', () => {
-  holdFilterKeyPublish();
+test('holds until released and keeps protecting the original key', () => {
+  holdFilterKeyPublish('original');
   expect(isFilterKeyPublishHeld()).toBe(true);
-  expect(consumeNeedsNewKey()).toBe(false);
+  expect(isProtectedFilterKey('original')).toBe(true);
+  expect(isProtectedFilterKey('other')).toBe(false);
 
   releaseFilterKeyPublish();
   expect(isFilterKeyPublishHeld()).toBe(false);
-  expect(consumeNeedsNewKey()).toBe(true);
-  expect(consumeNeedsNewKey()).toBe(false);
+  // Overlapping publishes may still see the original key in the URL; it must
+  // never be updated, only replaced by a new key.
+  expect(isProtectedFilterKey('original')).toBe(true);
 });
 
-test('releasing without a hold does not request a new key', () => {
-  releaseFilterKeyPublish();
-  expect(consumeNeedsNewKey()).toBe(false);
+test('reset clears both the hold and the protection', () => {
+  holdFilterKeyPublish('original');
+  resetFilterKeyHold();
+  expect(isFilterKeyPublishHeld()).toBe(false);
+  expect(isProtectedFilterKey('original')).toBe(false);
+});
+
+test('nothing is protected without a hold', () => {
+  expect(isProtectedFilterKey('any')).toBe(false);
+  expect(isProtectedFilterKey(null)).toBe(false);
+  expect(isProtectedFilterKey(undefined)).toBe(false);
 });
 
 test('notifies subscribers only when an active hold is released', () => {
@@ -52,12 +62,12 @@ test('notifies subscribers only when an active hold is released', () => {
   releaseFilterKeyPublish();
   expect(listener).not.toHaveBeenCalled();
 
-  holdFilterKeyPublish();
+  holdFilterKeyPublish('k');
   releaseFilterKeyPublish();
   expect(listener).toHaveBeenCalledTimes(1);
 
   unsubscribe();
-  holdFilterKeyPublish();
+  holdFilterKeyPublish('k');
   releaseFilterKeyPublish();
   expect(listener).toHaveBeenCalledTimes(1);
 });

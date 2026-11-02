@@ -76,7 +76,7 @@ import {
 } from 'src/dashboard/util/loadSharedFilterState';
 import {
   holdFilterKeyPublish,
-  releaseFilterKeyPublish,
+  resetFilterKeyHold,
   subscribeFilterKeyPublishRelease,
 } from 'src/dashboard/util/sharedFilterStateHold';
 import { nanoid } from 'nanoid';
@@ -358,8 +358,13 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           ? { kind: 'filterKey', key: nativeFilterKeyValue, dashboardId: id }
           : null;
       sharedStateSource.current = source;
-      releaseFilterKeyPublish();
+      // A new load (first render or another dashboard) starts clean: no hold
+      // from a previous link, no banner, and no stale loading/retry flags left
+      // by a cancelled load.
+      resetFilterKeyHold();
       setSharedStateNotice(null);
+      setIsLoadingSharedState(false);
+      setIsRetryingSharedState(false);
       if (source) {
         setIsLoadingSharedState(true);
         const result = await fetchSharedState(source, controller.signal);
@@ -374,8 +379,8 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           notice = result.status === 'expired' ? 'expired' : 'failed';
         }
       }
-      if (notice) {
-        holdFilterKeyPublish();
+      if (notice && source) {
+        holdFilterKeyPublish(source.key);
         setSharedStateNotice(notice);
       }
       if (isOldRison) {
@@ -493,7 +498,8 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       return;
     }
     hydrateWithStateRef.current(toSharedState(source, result.value));
-    releaseFilterKeyPublish();
+    // The saved state is applied now, so the link's key may be updated again.
+    resetFilterKeyHold();
     setSharedStateNotice(null);
   }, []);
 

@@ -82,6 +82,21 @@ test('does not retry a 404 and reports the key as expired', async () => {
   expect(warn).not.toHaveBeenCalled();
 });
 
+test('does not retry an unreadable stored value and reports it as expired', async () => {
+  const fetcher = jest
+    .fn()
+    .mockRejectedValue(new SyntaxError('Unexpected token'));
+
+  const result = await loadSharedFilterState(
+    fetcher,
+    new AbortController().signal,
+  );
+
+  expect(result).toEqual({ status: 'expired' });
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(warn).not.toHaveBeenCalled();
+});
+
 test('fails and warns once after every attempt times out', async () => {
   const fetcher = jest.fn().mockReturnValue(new Promise(() => {}));
 
