@@ -546,6 +546,77 @@ def test_encrypted_extra_sensitive_field_paths_from_dict(
     assert DictFieldsSpec.encrypted_extra_sensitive_field_paths() == expected_result
 
 
+def test_encrypted_extra_sensitive_field_labels_default() -> None:
+    """
+    The base spec labels the catch-all path generically and the OAuth2 secret
+    by its last path segment.
+    """
+    assert BaseEngineSpec.encrypted_extra_sensitive_field_labels() == {
+        "$.*": "Encrypted Extra",
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+
+
+def test_encrypted_extra_sensitive_field_labels_from_set() -> None:
+    """
+    A spec declaring a set of paths gets the last path segment as the label.
+    """
+
+    class SetFieldsSpec(BaseEngineSpec):
+        encrypted_extra_sensitive_fields = {"$.a.b"}
+
+    labels = SetFieldsSpec.encrypted_extra_sensitive_field_labels()
+    assert labels == {
+        "$.a.b": "b",
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+    assert list(labels) == sorted(labels)
+
+
+def test_encrypted_extra_sensitive_field_labels_from_dict() -> None:
+    """
+    A spec declaring a dict keeps its labels, and the keys are sorted by path.
+    """
+
+    class DictFieldsSpec(BaseEngineSpec):
+        encrypted_extra_sensitive_fields = {"$.z": "Zed", "$.a.b": "Bee"}
+
+    labels = DictFieldsSpec.encrypted_extra_sensitive_field_labels()
+    assert labels == {
+        "$.a.b": "Bee",
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+        "$.z": "Zed",
+    }
+    assert list(labels) == sorted(labels)
+
+
+def test_encrypted_extra_sensitive_field_labels_declared_oauth2_secret_wins() -> None:
+    """
+    A label declared for the OAuth2 client secret overrides the default one.
+    """
+
+    class DeclaredSpec(BaseEngineSpec):
+        encrypted_extra_sensitive_fields = {
+            "$.oauth2_client_info.secret": "Client Secret"
+        }
+
+    assert DeclaredSpec.encrypted_extra_sensitive_field_labels() == {
+        "$.oauth2_client_info.secret": "Client Secret"
+    }
+
+
+def test_get_public_information_includes_sensitive_field_labels() -> None:
+    """
+    The engine information carries the sensitive fields so a client can render
+    one input per stored secret before any value is revealed.
+    """
+    information = BaseEngineSpec.get_public_information()
+    assert (
+        information["encrypted_extra_sensitive_fields"]
+        == BaseEngineSpec.encrypted_extra_sensitive_field_labels()
+    )
+
+
 def test_impersonate_user_backwards_compatible(mocker: MockerFixture) -> None:
     """
     Test that the `impersonate_user` method calls the original methods it replaced.

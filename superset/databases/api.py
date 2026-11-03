@@ -386,6 +386,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             "id": pk,
             "result": database_connection_schema.dump(database, many=False),
         }
+        # editors get the sensitive fields stored for this database, not the
+        # engine's declared patterns
+        if database and (information := response["result"].get("engine_information")):
+            information["encrypted_extra_sensitive_fields"] = (
+                database.stored_sensitive_fields()
+            )
         try:
             if database and database.ssh_tunnel:
                 # Mask credential fields explicitly at the API boundary so read
@@ -2052,6 +2058,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                             disable_ssh_tunneling:
                               description: Whether the engine supports SSH Tunnels
                               type: boolean
+                            encrypted_extra_sensitive_fields:
+                              description: >-
+                                JSONPath of each sensitive encrypted_extra field
+                                and its label
+                              type: object
+                              additionalProperties:
+                                type: string
             400:
               $ref: '#/components/responses/400'
             500:

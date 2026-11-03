@@ -3317,6 +3317,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return json.dumps(new_config)
 
     @classmethod
+    def encrypted_extra_sensitive_field_labels(cls) -> dict[str, str]:
+        """
+        Map each sensitive `encrypted_extra` JSONPath to its human label, sorted
+        by path. Paths without a declared label use their last segment, except
+        the OAuth2 client secret, which gets a readable default.
+        """
+        declared = {
+            "$.oauth2_client_info.secret": "OAuth2 client secret",
+            **(
+                cls.encrypted_extra_sensitive_fields
+                if isinstance(cls.encrypted_extra_sensitive_fields, dict)
+                else {}
+            ),
+        }
+        return {
+            path: declared.get(path, path.rsplit(".", 1)[-1])
+            for path in sorted(cls.encrypted_extra_sensitive_field_paths())
+        }
+
+    @classmethod
     def encrypted_extra_hints(
         cls, encrypted_extra: str | None, length: int
     ) -> list[dict[str, Any]]:
@@ -3339,11 +3359,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if not isinstance(config, dict):
             return []
 
-        labels = (
-            cls.encrypted_extra_sensitive_fields
-            if isinstance(cls.encrypted_extra_sensitive_fields, dict)
-            else {}
-        )
+        labels = cls.encrypted_extra_sensitive_field_labels()
         return [
             {**hint, "label": labels.get(hint["path"], hint["path"].rsplit(".", 1)[-1])}
             for hint in get_sensitive_field_hints(
@@ -3394,6 +3410,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_oauth2": cls.supports_oauth2,
             "supports_schemas": cls.supports_schemas,
             "supports_offset": cls.supports_offset,
+            "encrypted_extra_sensitive_fields": (
+                cls.encrypted_extra_sensitive_field_labels()
+            ),
             "identifier_quote": {
                 "start": cls.identifier_quote_start,
                 "end": cls.identifier_quote_end,

@@ -291,3 +291,20 @@ def test_encrypted_extra_hints() -> None:
             "length": 24,
         },
     ]
+
+
+def test_encrypted_extra_sensitive_field_labels() -> None:
+    """
+    Druid publishes its JWT and password fields, plus the OAuth2 secret.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    assert DruidEngineSpec.encrypted_extra_sensitive_field_labels() == {
+        "$.connect_args.jwt": "JWT Token",
+        "$.connect_args.password": "Password",
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+    assert (
+        DruidEngineSpec.get_public_information()["encrypted_extra_sensitive_fields"]
+        == DruidEngineSpec.encrypted_extra_sensitive_field_labels()
+    )

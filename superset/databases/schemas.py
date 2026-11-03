@@ -1290,6 +1290,18 @@ class EngineInformationSchema(Schema):
             "description": "Characters used to quote identifiers for this dialect"
         },
     )
+    encrypted_extra_sensitive_fields = fields.Dict(
+        keys=fields.String(),
+        values=fields.String(),
+        metadata={
+            "description": (
+                "JSONPath of each sensitive encrypted_extra field and its label. "
+                "On the database GET and on `available`: the engine's declared "
+                "patterns. On `/connection`: the fields present in the stored "
+                "encrypted_extra."
+            )
+        },
+    )
 
 
 class DatabaseConnectionSchema(Schema):
