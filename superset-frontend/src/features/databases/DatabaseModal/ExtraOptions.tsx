@@ -41,6 +41,20 @@ import {
   no_margin_bottom,
 } from './styles';
 import { DatabaseObject, ExtraJson } from '../types';
+import { useCommonConf } from '../state';
+import SecureExtraHints, {
+  resolveMaskedSecretFields,
+} from './SecureExtraHints';
+
+// Whether a Secure extra value parses as JSON.
+const isValidJson = (value: string | undefined) => {
+  try {
+    JSON.parse(value ?? '');
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 const ExtraOptions = ({
   db,
@@ -50,6 +64,7 @@ const ExtraOptions = ({
   onExtraInputChange,
   onExtraEditorChange,
   extraExtension,
+  secretsGeneration = 0,
 }: {
   db: DatabaseObject | null;
   onInputChange: (
@@ -62,6 +77,8 @@ const ExtraOptions = ({
   ) => void;
   onExtraEditorChange: Function;
   extraExtension: DatabaseConnectionExtension | undefined;
+  // Bumped after each save, so revealed endings never outlive the stored values.
+  secretsGeneration?: number;
 }) => {
   const onExtraInputChangeNonNegative = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -124,6 +141,30 @@ const ExtraOptions = ({
   const engineParamsAnnotations = useJsonValidation(engineParamsValue, {
     errorPrefix: 'Invalid engine parameters JSON',
   });
+
+  // One field per masked secret at a declared path of a saved database. While
+  // the editor holds JSON that does not parse, as mid-edit, the fields of the
+  // last valid JSON stay, so a revealed ending is not dropped and refetched.
+  const conf = useCommonConf();
+  const hintChars = conf?.ENCRYPTED_EXTRA_HINT_CHARS ?? 0;
+  const secureExtra = db?.masked_encrypted_extra;
+  const [lastValidSecureExtra, setLastValidSecureExtra] = useState(secureExtra);
+  const secureExtraIsValid = isValidJson(secureExtra);
+  if (secureExtraIsValid && secureExtra !== lastValidSecureExtra) {
+    setLastValidSecureExtra(secureExtra);
+  }
+  const resolvedSecureExtra = secureExtraIsValid
+    ? secureExtra
+    : lastValidSecureExtra;
+  const secretFields =
+    typeof db?.id === 'number' &&
+    hintChars > 0 &&
+    resolvedSecureExtra?.includes('XXXXXXXXXX')
+      ? resolveMaskedSecretFields(
+          resolvedSecureExtra,
+          db.engine_information?.encrypted_extra_sensitive_fields ?? {},
+        )
+      : [];
 
   const theme = useTheme();
   const ExtraExtensionComponent = extraExtension?.component;
@@ -612,6 +653,17 @@ const ExtraOptions = ({
                   </div>
                 </div>
               </StyledInputContainer>
+              {typeof db?.id === 'number' && secretFields.length > 0 && (
+                <SecureExtraHints
+                  // A different database or a save remounts, so no revealed hint
+                  // survives.
+                  key={`${db.id}:${secretsGeneration}`}
+                  databaseId={db.id}
+                  fields={secretFields}
+                  // The server reveals an ending only for values 4x as long.
+                  minLength={4 * hintChars}
+                />
+              )}
               <StyledInputContainer>
                 <div className="control-label">{t('Root certificate')}</div>
                 <div className="input-container">

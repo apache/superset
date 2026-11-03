@@ -280,7 +280,8 @@ ENCRYPTED_EXTRA_HINT_CHARS = 5
 
 The default, `0`, turns the feature off. When it is above zero, the ending of
 each secret stored at a sensitive path of the engine can be requested from the
-endpoint below.
+endpoint below. The database edit modal then shows one field per masked secret,
+with an eye that reveals its ending on request.
 
 - At most 25% of a value is ever revealed: a value shorter than four times the
   configured number of characters reveals nothing, and its length is not
