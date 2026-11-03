@@ -365,6 +365,39 @@ def test_per_user_caching_off_shares_column_values_cache_key(
     assert alice_key == bob_key
 
 
+@pytest.mark.parametrize(
+    "cache_setting",
+    ["CACHE_QUERY_BY_USER", "CACHE_IMPERSONATION", "per_user_caching"],
+)
+def test_anonymous_user_shares_column_values_cache_key(
+    virtual_dataset: SqlaTable, mocker: MockerFixture, cache_setting: str
+) -> None:
+    """Anonymous requests keep the connection-account key under per-user caching."""
+    from flask_login import AnonymousUserMixin
+
+    from superset import feature_flag_manager
+    from superset.utils.core import override_user
+
+    with override_user(AnonymousUserMixin()):
+        shared_key = _key(virtual_dataset)
+        if cache_setting == "per_user_caching":
+            virtual_dataset.database.extra = '{"per_user_caching": true}'
+        else:
+            mocker.patch.object(
+                feature_flag_manager,
+                "get_feature_flags",
+                return_value={
+                    **feature_flag_manager.get_feature_flags(),
+                    cache_setting: True,
+                },
+            )
+            virtual_dataset.database.impersonate_user = (
+                cache_setting == "CACHE_IMPERSONATION"
+            )
+
+        assert _key(virtual_dataset) == shared_key
+
+
 @with_feature_flags(CACHE_QUERY_BY_USER=True)
 def test_per_user_column_values_never_served_across_users(
     virtual_dataset: SqlaTable, data_cache: SimpleCache, mocker: MockerFixture
