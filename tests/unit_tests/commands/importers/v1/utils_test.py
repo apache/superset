@@ -43,7 +43,7 @@ class TestConvertTemporalColumns:
 
         frame = pd.DataFrame({"ts": ["01/02/2020", "05/03/2020", "13/02/2020"]})
         original = frame.copy()
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="doesn't match format"):
             _convert_temporal_columns(frame, {"ts": DateTime()})
         pd.testing.assert_frame_equal(frame, original)
 

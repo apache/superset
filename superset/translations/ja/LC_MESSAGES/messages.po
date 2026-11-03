@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -459,6 +459,11 @@ msgstr[0] ""
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "%s 日前"
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
 
 #, python-format
 msgid "%s field"
@@ -2590,10 +2595,6 @@ msgid "Are you sure you want to delete %s?"
 msgstr "本当に %s を削除しますか？"
 
 #, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-
-#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr "選択した %s を削除してもよろしいですか？"
 
@@ -3704,6 +3705,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr "数値形式を選択"
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr "ソースを選択"
 
@@ -4748,6 +4752,9 @@ msgstr "新しいチャートを作成"
 msgid "Create or select schema..."
 msgstr "スキーマを作成または選択..."
 
+msgid "Create semantic layer"
+msgstr ""
+
 msgid "Created"
 msgstr "作成"
 
@@ -5675,7 +5682,7 @@ msgstr "項目を削除"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -9337,6 +9344,12 @@ msgstr "フィルター値を読み込み中"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 msgid "Loading timezones..."
 msgstr "タイムゾーンを読み込み中..."
 
@@ -10450,6 +10463,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -13632,6 +13661,9 @@ msgstr "セマンティックレイヤーが存在しません"
 msgid "Semantic layer parameters are invalid."
 msgstr "セマンティックレイヤーパラメータが無効です。"
 
+msgid "Semantic layer setup guide"
+msgstr ""
+
 msgid "Semantic layer type"
 msgstr "セマンティックレイヤーの種類"
 
@@ -16662,6 +16694,9 @@ msgid ""
 "mydatabase.com)."
 msgstr "これは IP アドレス (例: 127.0.0.1) またはドメイン名 (例: mydatabase.com) です。"
 
+msgid "This cannot be undone."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -17578,6 +17613,9 @@ msgstr "このURLを信頼して次回から確認しない"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr "別のフィルターを試すか、データソースにデータがあるか確認してください"
 
@@ -17763,6 +17801,16 @@ msgstr ""
 
 msgid "Unable to load dashboard"
 msgstr "ダッシュボードを読み込めませんでした"
+
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr ""
@@ -19644,6 +19692,9 @@ msgstr "数秒"
 msgid "aggregate"
 msgstr "集計"
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr "アラート条件"
 
@@ -19659,6 +19710,10 @@ msgstr "チャートもコピー(複製)する"
 msgid "ancestor"
 msgstr "祖先"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "注釈"
 
@@ -19667,6 +19722,10 @@ msgstr "注釈レイヤー"
 
 msgid "apple"
 msgstr "リンゴ"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "アス周波数"
@@ -20326,6 +20385,12 @@ msgstr "クエリ"
 
 msgid "query"
 msgstr "クエリ"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "ランダム"
