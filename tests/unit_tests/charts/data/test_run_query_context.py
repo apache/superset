@@ -133,14 +133,28 @@ def test_can_export_data_follows_granular_flag(
     mocks["security_manager"].can_access.assert_called_once_with(perm, "Superset")
 
 
-def test_can_export_dashboard_needs_access_and_export_permission(
+def test_can_export_dashboard_with_access_and_export_permission(
     mocks: dict[str, mock.MagicMock],
 ) -> None:
     mocks["security_manager"].can_access.return_value = True
     assert can_export_dashboard(5) is True
+    mocks["DashboardDAO"].find_by_id.assert_called_once_with(5)
+    mocks["security_manager"].raise_for_access.assert_called_once_with(
+        dashboard=mocks["DashboardDAO"].find_by_id.return_value
+    )
     mocks["security_manager"].can_access.assert_called_with("can_export", "Dashboard")
+
+
+def test_can_export_dashboard_without_export_permission(
+    mocks: dict[str, mock.MagicMock],
+) -> None:
     mocks["security_manager"].can_access.return_value = False
     assert can_export_dashboard(5) is False
+
+
+def test_can_export_dashboard_without_dashboard_access(
+    mocks: dict[str, mock.MagicMock],
+) -> None:
     mocks["security_manager"].can_access.return_value = True
     mocks["security_manager"].raise_for_access.side_effect = _denied()
     assert can_export_dashboard(5) is False
