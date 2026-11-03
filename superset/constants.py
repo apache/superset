@@ -202,6 +202,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "delete_object": "write",
     "copy_dash": "write",
     "get_connection": "write",
+    "encrypted_extra_hints": "write",
     "upload_metadata": "upload",
     "slack_channels": "write",
     "put_filters": "write",

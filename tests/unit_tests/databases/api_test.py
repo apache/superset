@@ -456,6 +456,339 @@ def test_database_connection(
     }
 
 
+JWT_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzZXJ2aWNlIn0.c2lnbmF0dXJlabcde"  # noqa: S105
+
+
+def add_druid_database(session: Session, encrypted_extra: str) -> None:
+    """
+    Store a Druid database with the given ``encrypted_extra``.
+    """
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel._session = session
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    db.session.add(
+        Database(
+            database_name="my_druid",
+            sqlalchemy_uri="druid://localhost:8082/druid/v2/sql/",
+            encrypted_extra=encrypted_extra,
+        )
+    )
+    db.session.commit()
+
+
+def test_encrypted_extra_hints(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    The endpoint returns a hint per sensitive field and never the value itself.
+    """
+    add_druid_database(
+        session,
+        json.dumps(
+            {
+                "connect_args": {
+                    "scheme": "https",
+                    "jwt": JWT_TOKEN,
+                    "password": "hunter2",
+                }
+            }
+        ),
+    )
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    event_log = mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    response = client.get("/api/v1/database/1/encrypted_extra_hints/")
+
+    assert response.status_code == 200
+    assert response.json == {
+        "result": [
+            {
+                "path": "$.connect_args.jwt",
+                "label": "JWT Token",
+                "suffix": "abcde",
+            },
+            {
+                "path": "$.connect_args.password",
+                "label": "Password",
+                "suffix": None,
+            },
+        ]
+    }
+    assert all(
+        set(hint) == {"path", "label", "suffix"} for hint in response.json["result"]
+    )
+    assert JWT_TOKEN.encode() not in response.data
+    assert b"hunter2" not in response.data
+
+    event_log.assert_called_once()
+    assert event_log.call_args.args[1] == "DatabaseRestApi.encrypted_extra_hints"
+    assert event_log.call_args.kwargs["records"][0]["pk"] == 1
+    assert JWT_TOKEN not in str(event_log.call_args)
+    assert "hunter2" not in str(event_log.call_args)
+
+
+def test_encrypted_extra_hints_only_declared_keys(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Keys outside path, label and suffix never reach the response, not even a
+    length.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": JWT_TOKEN}}))
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch.object(
+        DruidEngineSpec,
+        "encrypted_extra_hints",
+        return_value=[
+            {
+                "path": "$.connect_args.jwt",
+                "label": "JWT Token",
+                "suffix": "abcde",
+                "length": len(JWT_TOKEN),
+                "value": JWT_TOKEN,
+            }
+        ],
+    )
+
+    response = client.get("/api/v1/database/1/encrypted_extra_hints/")
+
+    assert response.status_code == 200
+    assert response.json == {
+        "result": [
+            {
+                "path": "$.connect_args.jwt",
+                "label": "JWT Token",
+                "suffix": "abcde",
+            }
+        ]
+    }
+
+
+@pytest.mark.parametrize("hint_chars", [0, -3])
+def test_encrypted_extra_hints_disabled(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    hint_chars: int,
+) -> None:
+    """
+    No hints are returned when ``ENCRYPTED_EXTRA_HINT_CHARS`` is 0 or negative.
+    """
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": JWT_TOKEN}}))
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": hint_chars})
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    response = client.get("/api/v1/database/1/encrypted_extra_hints/")
+
+    assert response.status_code == 200
+    assert response.json == {"result": []}
+
+
+@pytest.mark.parametrize(
+    "encrypted_extra",
+    ["null", "[]", "{}", '{"connect_args": {"jwt": '],
+)
+def test_encrypted_extra_hints_malformed(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    encrypted_extra: str,
+) -> None:
+    """
+    An unusable ``encrypted_extra`` yields no hints instead of an error.
+    """
+    add_druid_database(session, encrypted_extra)
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    response = client.get("/api/v1/database/1/encrypted_extra_hints/")
+
+    assert response.status_code == 200
+    assert response.json == {"result": []}
+
+
+@pytest.mark.parametrize("database_id", [0, 2])
+def test_encrypted_extra_hints_not_found(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    database_id: int,
+) -> None:
+    """
+    An unknown database id returns a JSON 404 and logs only the id.
+    """
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": JWT_TOKEN}}))
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    event_log = mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    response = client.get(f"/api/v1/database/{database_id}/encrypted_extra_hints/")
+
+    assert response.status_code == 404
+    assert response.json == {"message": "Not found"}
+    event_log.assert_called_once()
+    assert event_log.call_args.kwargs["records"][0]["pk"] == database_id
+    assert JWT_TOKEN not in str(event_log.call_args)
+    assert "abcde" not in str(event_log.call_args)
+
+
+@pytest.mark.parametrize("database_id", ["-1", "abc"])
+def test_encrypted_extra_hints_invalid_id(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    database_id: str,
+) -> None:
+    """
+    A negative or non-integer id does not match the route.
+    """
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": JWT_TOKEN}}))
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    event_log = mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    response = client.get(f"/api/v1/database/{database_id}/encrypted_extra_hints/")
+
+    assert response.status_code == 404
+    assert JWT_TOKEN.encode() not in response.data
+    event_log.assert_not_called()
+
+
+def test_encrypted_extra_hints_requires_write(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    A user who can read databases but not write them gets a 403.
+    """
+    from superset import security_manager
+
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": JWT_TOKEN}}))
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    def can_read_only(permission_name: str, view_name: str) -> bool:
+        return permission_name != "can_write"
+
+    mocker.patch.object(security_manager, "is_item_public", side_effect=can_read_only)
+    has_access = mocker.patch.object(
+        security_manager, "has_access", side_effect=can_read_only
+    )
+
+    event_log = mocker.patch("superset.utils.log.DBEventLogger.log")
+    response = client.get("/api/v1/database/1/encrypted_extra_hints/")
+
+    assert response.status_code == 403
+    assert JWT_TOKEN.encode() not in response.data
+    has_access.assert_any_call("can_write", "Database")
+    event_log.assert_not_called()
+
+
+def test_encrypted_extra_hints_requires_login(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+) -> None:
+    """
+    An anonymous request gets a 401 and leaves no event log row.
+    """
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": JWT_TOKEN}}))
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    event_log = mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    response = client.get("/api/v1/database/1/encrypted_extra_hints/")
+
+    assert response.status_code == 401
+    assert JWT_TOKEN.encode() not in response.data
+    assert b"abcde" not in response.data
+    event_log.assert_not_called()
+
+
+def test_encrypted_extra_hints_ignores_query_params(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    The hint length comes only from the server config, never from the request,
+    and the audit row records the database id without the request parameters.
+    """
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": JWT_TOKEN}}))
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    event_log = mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    response = client.get(
+        "/api/v1/database/1/encrypted_extra_hints/",
+        query_string={"length": "500", "path": "$.connect_args.jwt"},
+    )
+
+    assert response.status_code == 200
+    assert response.json == {
+        "result": [
+            {
+                "path": "$.connect_args.jwt",
+                "label": "JWT Token",
+                "suffix": "abcde",
+            }
+        ]
+    }
+    assert JWT_TOKEN.encode() not in response.data
+    assert event_log.call_args.kwargs["records"] == [
+        {
+            "path": "/api/v1/database/1/encrypted_extra_hints/",
+            "url_rule": "/api/v1/database/<int:pk>/encrypted_extra_hints/",
+            "object_ref": "DatabaseRestApi.encrypted_extra_hints",
+            "pk": 1,
+        }
+    ]
+    assert event_log.call_args.kwargs["curated_payload"] == {}
+    assert event_log.call_args.kwargs["database_id"] == 1
+    assert event_log.call_args.kwargs["engine"] == "druid"
+
+
+def test_encrypted_extra_hints_accepts_string_config(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    A length configured as a string, as from an environment variable, still works.
+    """
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": JWT_TOKEN}}))
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": "5"})
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    response = client.get("/api/v1/database/1/encrypted_extra_hints/")
+
+    assert response.status_code == 200
+    assert response.json["result"][0]["suffix"] == "abcde"
+
+
 @pytest.mark.parametrize("full_payload", [False, True])
 @pytest.mark.parametrize("change", [None, "password", "database_name"])
 @pytest.mark.parametrize("with_tunnel", [False, True])
