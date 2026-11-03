@@ -1,0 +1,112 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""
+Export API for superset-core.
+
+Provides dependency-injected functions that will be replaced by host
+implementations during initialization.
+
+Usage:
+    from superset_core.exports.export import can_export_data, run_query_context
+
+    if can_export_data():
+        results = run_query_context(payload)
+"""
+
+from collections.abc import Iterator
+from contextlib import AbstractContextManager
+from typing import Any
+
+from superset_core.exports.types import (
+    ChartQueryResult,
+    ChartResult,
+)
+
+
+def run_query_context(payload: dict[str, Any]) -> list[ChartQueryResult]:
+    """
+    Run a chart query context as the current user.
+
+    Does not check the export permission; callers must call
+    ``can_export_data()`` first.
+
+    :param payload: The query context payload, as sent to ``/api/v1/chart/data``.
+    :returns: One result per query in the payload.
+    """
+    raise NotImplementedError("Function will be replaced during initialization")
+
+
+def iter_dashboard_chart_results(
+    dashboard_id: int, active_data_mask: dict[str, Any]
+) -> Iterator[ChartResult]:
+    """
+    Yield the results of each chart on a dashboard, with filters applied.
+
+    A chart that cannot be queried yields a result with ``skipped_reason`` set
+    instead of raising. Callers must check ``can_export_dashboard()`` first.
+
+    :param dashboard_id: The dashboard ID.
+    :param active_data_mask: The dashboard's active filter state, keyed by filter ID.
+    :returns: An iterator of per-chart results.
+    """
+    raise NotImplementedError("Function will be replaced during initialization")
+
+
+def build_tab_name(raw: str, used: set[str], max_len: int) -> str:
+    """
+    Build a sheet tab name that is unique among ``used`` and within ``max_len``.
+
+    Uniqueness is case-insensitive; a collision gets a ``~N`` suffix.
+
+    :param raw: The desired name.
+    :param used: Names already taken.
+    :param max_len: The maximum name length.
+    :returns: The tab name.
+    """
+    raise NotImplementedError("Function will be replaced during initialization")
+
+
+def can_export_data() -> bool:
+    """
+    Check whether the current user may export chart data.
+
+    :returns: True if the user holds the export permission.
+    """
+    raise NotImplementedError("Function will be replaced during initialization")
+
+
+def can_export_dashboard(dashboard_id: int) -> bool:
+    """
+    Check whether the current user may export a dashboard.
+
+    :param dashboard_id: The dashboard ID.
+    :returns: True if the user may export data and access the dashboard.
+    """
+    raise NotImplementedError("Function will be replaced during initialization")
+
+
+def as_user(user_id: int) -> AbstractContextManager[None]:
+    """
+    Run the enclosed block as the given user.
+
+    Background tasks use this because the task framework does not set a user.
+
+    :param user_id: The ID of the user to act as.
+    :returns: A context manager that restores the previous user on exit.
+    """
+    raise NotImplementedError("Function will be replaced during initialization")
