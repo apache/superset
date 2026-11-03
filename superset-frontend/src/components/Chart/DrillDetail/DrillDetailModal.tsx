@@ -166,6 +166,7 @@ export default function DrillDetailModal({
         formData={formData}
         initialFilters={initialFilters}
         dataset={dataset}
+        chartName={chartName}
       />
     </Modal>
   );

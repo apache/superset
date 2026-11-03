@@ -54,9 +54,10 @@ import {
   LOG_ACTIONS_FURTHER_DRILL_BY,
 } from 'src/logger/LogUtils';
 import { findPermission } from 'src/utils/findPermission';
-import { exportChart } from 'src/explore/exploreUtils';
+import { buildV1ChartDataPayload, exportChart } from 'src/explore/exploreUtils';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { useAsyncModeOverride } from 'src/utils/asyncMode';
+import { ChartDownloadProvider } from 'src/components/ExtensionMenuItems';
 import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
 import { ContextMenuItem } from '../ChartContextMenu/ChartContextMenu';
@@ -511,93 +512,116 @@ export default function DrillByModal({
   }, [addDangerToast, asyncModeOverride, drilledFormData]);
   const { metadataBar } = useDatasetMetadataBar({ dataset });
 
+  // drilledFormData drops slice_name, so the original chart's name comes from
+  // formData.
+  const originalChartName: string = formData.slice_name ?? t('Untitled chart');
+  const downloadContext = useMemo(
+    () => ({
+      getPayload: async () => ({
+        ...(await buildV1ChartDataPayload({
+          formData: drilledFormData,
+          resultFormat: 'json',
+          resultType: 'full',
+        })),
+      }),
+      chartName: originalChartName,
+      canDownload,
+    }),
+    [drilledFormData, originalChartName, canDownload],
+  );
+
   return (
-    <Modal
-      css={css`
-        .ant-modal-footer {
-          border-top: none;
-        }
-      `}
-      show
-      onHide={onHideModal ?? (() => null)}
-      name={t('Drill by: %s', chartName)}
-      title={t('Drill by: %s', chartName)}
-      footer={<ModalFooter formData={drilledFormData} />}
-      responsive
-      resizable
-      resizableConfig={{
-        minHeight: theme.sizeUnit * 128,
-        minWidth: theme.sizeUnit * 128,
-        defaultSize: {
-          width: 'auto',
-          height: '80vh',
-        },
-      }}
-      draggable
-      destroyOnHidden
-      maskClosable={false}
+    <ChartDownloadProvider
+      location="chart.drillBy.download"
+      context={downloadContext}
     >
-      <Flex
-        vertical
-        gap={theme.sizeUnit}
+      <Modal
         css={css`
-          height: 100%;
+          .ant-modal-footer {
+            border-top: none;
+          }
         `}
+        show
+        onHide={onHideModal ?? (() => null)}
+        name={t('Drill by: %s', chartName)}
+        title={t('Drill by: %s', chartName)}
+        footer={<ModalFooter formData={drilledFormData} />}
+        responsive
+        resizable
+        resizableConfig={{
+          minHeight: theme.sizeUnit * 128,
+          minWidth: theme.sizeUnit * 128,
+          defaultSize: {
+            width: 'auto',
+            height: '80vh',
+          },
+        }}
+        draggable
+        destroyOnHidden
+        maskClosable={false}
       >
-        {metadataBar}
-        <Breadcrumb
+        <Flex
+          vertical
+          gap={theme.sizeUnit}
           css={css`
-            margin-bottom: ${theme.sizeUnit * 2}px;
+            height: 100%;
           `}
-          items={breadcrumbItems}
-          itemRender={(route, _, routes, paths) => {
-            const isLastElement = routes.indexOf(route) === routes.length - 1;
-            return isLastElement ? (
-              <span data-test="drill-by-breadcrumb-item">
-                {route.title}
-                {paths}
-              </span>
-            ) : (
-              <button
-                type="button"
-                data-test="drill-by-breadcrumb-item"
-                onClick={route.onClick}
-                css={css`
-                  appearance: none;
-                  border: none;
-                  background: none;
-                  padding: 0;
-                  font: inherit;
-                  cursor: pointer;
-                `}
-              >
-                {route.title}
-              </button>
-            );
-          }}
-        />
-        {displayModeToggle}
-        {isChartDataLoading && <Loading />}
-        {!isChartDataLoading && !chartDataResult && (
-          <Alert
-            type="error"
-            message={t('There was an error loading the chart data')}
+        >
+          {metadataBar}
+          <Breadcrumb
+            css={css`
+              margin-bottom: ${theme.sizeUnit * 2}px;
+            `}
+            items={breadcrumbItems}
+            itemRender={(route, _, routes, paths) => {
+              const isLastElement = routes.indexOf(route) === routes.length - 1;
+              return isLastElement ? (
+                <span data-test="drill-by-breadcrumb-item">
+                  {route.title}
+                  {paths}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  data-test="drill-by-breadcrumb-item"
+                  onClick={route.onClick}
+                  css={css`
+                    appearance: none;
+                    border: none;
+                    background: none;
+                    padding: 0;
+                    font: inherit;
+                    cursor: pointer;
+                  `}
+                >
+                  {route.title}
+                </button>
+              );
+            }}
           />
-        )}
-        {drillByDisplayMode === DrillByType.Chart && chartDataResult && (
-          <DrillByChart
-            dataset={dataset}
-            formData={drilledFormData}
-            result={chartDataResult}
-            onContextMenu={onContextMenu}
-            inContextMenu={inContextMenu}
-          />
-        )}
-        {drillByDisplayMode === DrillByType.Table &&
-          chartDataResult &&
-          resultsTable}
-        {contextMenu}
-      </Flex>
-    </Modal>
+          {displayModeToggle}
+          {isChartDataLoading && <Loading />}
+          {!isChartDataLoading && !chartDataResult && (
+            <Alert
+              type="error"
+              message={t('There was an error loading the chart data')}
+            />
+          )}
+          {drillByDisplayMode === DrillByType.Chart && chartDataResult && (
+            <DrillByChart
+              dataset={dataset}
+              formData={drilledFormData}
+              result={chartDataResult}
+              onContextMenu={onContextMenu}
+              inContextMenu={inContextMenu}
+            />
+          )}
+          {drillByDisplayMode === DrillByType.Table &&
+            chartDataResult &&
+            resultsTable}
+          {contextMenu}
+        </Flex>
+      </Modal>
+    </ChartDownloadProvider>
   );
 }
