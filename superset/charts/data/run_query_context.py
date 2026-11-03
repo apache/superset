@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from marshmallow import ValidationError
 from superset_core.exports.types import ChartQueryResult, GenericDataType
 
 from superset import is_feature_enabled, security_manager
@@ -58,6 +59,7 @@ def run_query_context(payload: dict[str, Any]) -> list[ChartQueryResult]:
     Run a chart-data payload as the current user, always as JSON rows.
 
     :raises SupersetSecurityException: If the user may not access the datasource
+    :raises ValidationError: If the payload is malformed
     :raises ValueError: If a result type carries no row data
     """
     if unsupported := sorted(_requested_result_types(payload) - ROW_RESULT_TYPES):
@@ -71,7 +73,12 @@ def run_query_context(payload: dict[str, Any]) -> list[ChartQueryResult]:
     schema.query_context_factory = QueryContextFactory(
         authorize_semantic_before_metadata=True
     )
-    query_context = schema.load(payload)
+    try:
+        query_context = schema.load(payload)
+    except KeyError as ex:
+        raise ValidationError("Request is incorrect") from ex
+    except ValueError as ex:
+        raise ValidationError(str(ex)) from ex
 
     command = ChartDataCommand(query_context)
     command.validate()
