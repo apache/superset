@@ -84,6 +84,10 @@ def _coerce_float_cell(value: Any) -> Any:
     return str(number) if abs(number) > _MAX_EXCEL_INT else number
 
 
+# Room for a one-character name and its ``~N`` collision marker.
+MIN_SHEET_NAME_LEN = 4
+
+
 def sanitize_sheet_name(
     raw: str,
     used: set[str],
@@ -104,8 +108,14 @@ def sanitize_sheet_name(
     :param max_len: Maximum name length, including any ``~N`` suffix
     :param excel_rules: Apply Excel's forbidden-character and "History" rules
     :returns: A sanitized, unique sheet name no longer than ``max_len``
+    :raises ValueError: If ``max_len`` is below ``MIN_SHEET_NAME_LEN``, or no
+        unique name fits in it
     """
-    name = _INVALID_SHEET_CHARS_RE.sub("_", raw or "") if excel_rules else raw or ""
+    if max_len < MIN_SHEET_NAME_LEN:
+        raise ValueError(
+            f"max_len must be at least {MIN_SHEET_NAME_LEN}, got {max_len}"
+        )
+    name = _INVALID_SHEET_CHARS_RE.sub("_", raw or "") if excel_rules else (raw or "")
     name = name.strip().strip("'").strip()
     if not name:
         name = "Sheet"
@@ -120,6 +130,8 @@ def sanitize_sheet_name(
     suffix = 2
     while True:
         marker = f"~{suffix}"
+        if len(marker) > max_len:
+            raise ValueError(f"No unique sheet name fits in {max_len} characters")
         candidate = name[: max_len - len(marker)] + marker
         if candidate.lower() not in used:
             used.add(candidate.lower())
