@@ -10730,6 +10730,8 @@ msgstr "Temă locală setată la \"%s\""
 msgid "Locate the chart"
 msgstr "Localizează graficul"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr "Jurnal"
 

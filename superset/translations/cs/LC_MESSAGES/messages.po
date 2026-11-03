@@ -10250,6 +10250,8 @@ msgstr "Lokalní téma nastaveno na \"%s\""
 msgid "Locate the chart"
 msgstr "Najít graf"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "log"

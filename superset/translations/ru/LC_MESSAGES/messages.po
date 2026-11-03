@@ -9920,6 +9920,8 @@ msgstr "Локальная тема переключена на \"%s\""
 msgid "Locate the chart"
 msgstr "Найти диаграмму"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr "Журнал"
 

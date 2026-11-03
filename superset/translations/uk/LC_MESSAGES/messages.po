@@ -10075,6 +10075,8 @@ msgstr "Місцева тема - «%s»"
 msgid "Locate the chart"
 msgstr "Знайти діаграму"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr "Журнал"
 
