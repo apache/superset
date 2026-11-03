@@ -272,6 +272,32 @@ def belongs_to_the_workflow(role: Any) -> bool:
 WORKFLOW_ROLES = ("Alpha", "Gamma")
 
 
+def _may_write_permissions() -> bool:
+    """Whether this boot may provision permissions at all.
+
+    ``EXTENSIONS_SYNC_PAGE_PERMISSIONS`` is the host's switch for exactly
+    this: an operator who provisions permissions out of band, or whose
+    metadata database is not writable at boot, turns it off. The host's page
+    helper honours it, and both of this extension's provisioning steps now
+    do too -- creating the review API's permissions, and handing the
+    Approvals page to whoever may read a change request.
+
+    Revoking is not provisioning: ``_take_the_workflow_off_the_anonymous
+    _role`` still runs, because taking a stray grant off the anonymous role
+    is protective and leaving it in place is the thing a control review
+    objects to.
+    """
+    if not current_app.config.get("EXTENSIONS_SYNC_PAGE_PERMISSIONS", True):
+        logger.info(
+            "%s: EXTENSIONS_SYNC_PAGE_PERMISSIONS is off, so permissions are "
+            "left to the operator; `superset init` is needed for review to "
+            "be reachable",
+            EXTENSION_ID,
+        )
+        return False
+    return True
+
+
 def _workflow_role_names() -> tuple[str, ...]:
     """The roles to seed, with the administrator under its configured name.
 
@@ -333,28 +359,21 @@ def _ensure_the_api_permissions_exist() -> None:
     role does, the arrangement is the operator's: narrowing it to one role,
     or moving it to a role of their own, survives every restart.
 
-    The one case it cannot read is a revocation from *every* role, which is
+    Two cases it cannot read. A revocation from *every* role is
     indistinguishable from never having been created, so the next boot seeds
-    it again. An operator who means to switch the review API off has
-    ``CHANGE_MANAGEMENT`` and ``EXTENSIONS_SYNC_PAGE_PERMISSIONS`` for that,
-    and both are honoured above.
+    it again. And a seed that failed partway -- Admin granted, Alpha not --
+    looks like somebody holding it, so the missing grants are never retried;
+    the warning below is the only sign, which is why it is a warning.
 
-    ``EXTENSIONS_SYNC_PAGE_PERMISSIONS`` turns the whole thing off, because
-    that is the switch an operator uses to say an extension may not write
-    permissions at boot -- they provision them out of band, or the metadata
-    database is not writable then. The host's page helper checks it, and an
-    earlier version of this function did not, so setting it bought the
-    pages' silence and not the API's.
+    ``EXTENSIONS_SYNC_PAGE_PERMISSIONS`` turns this off: see
+    ``_may_write_permissions``. It stops the seeding rather than switching
+    the API off, so permissions already granted stay granted, and
+    ``superset init`` becomes necessary again for a fresh install.
     """
     from superset import db
     from superset.extensions import security_manager
 
-    if not current_app.config.get("EXTENSIONS_SYNC_PAGE_PERMISSIONS", True):
-        logger.info(
-            "%s: EXTENSIONS_SYNC_PAGE_PERMISSIONS is off, so the review "
-            "API's permissions are left to the operator",
-            EXTENSION_ID,
-        )
+    if not _may_write_permissions():
         return
 
     for name in _api_permissions():
@@ -443,6 +462,9 @@ def _grant_page_permission_to_the_workflow() -> None:
     """
     from superset.constants import EXTENSION_VIEW_MENU_PREFIX
     from superset.extensions import security_manager
+
+    if not _may_write_permissions():
+        return
 
     try:
         workflow = security_manager.find_permission_view_menu(*WORKFLOW_PERMISSION)

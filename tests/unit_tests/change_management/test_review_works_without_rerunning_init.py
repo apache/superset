@@ -77,7 +77,10 @@ def manager(mocker: MockerFixture) -> Any:
         created.append((permission, view_menu))
         return pvms.setdefault(permission, _Pvm())
 
+    grants: list[tuple[str, int]] = []
+
     def granted(role: _Role, pvm: _Pvm) -> None:
+        grants.append((role.name, id(pvm)))
         role.permissions.append(pvm)
         pvm.role.append(role)
 
@@ -91,7 +94,7 @@ def manager(mocker: MockerFixture) -> Any:
     mocker.patch.object(
         _entrypoint(), "_anonymous_role_name", return_value="Public"
     )
-    return SimpleNamespace(created=created, pvms=pvms, roles=roles)
+    return SimpleNamespace(created=created, pvms=pvms, roles=roles, grants=grants)
 
 
 def test_the_permissions_are_derived_from_the_routes() -> None:
@@ -221,20 +224,28 @@ def test_the_page_grant_runs_after_the_permissions_exist(
     assert order == ["create", "grant page"]
 
 
-def test_every_protected_route_s_permission_is_created(mocker: MockerFixture) -> None:
-    """The set has to cover what ``@protect`` will actually demand.
+def test_no_route_falls_back_to_a_permission_nobody_created() -> None:
+    """Every exposed route has to be in the mapping the names come from.
 
-    Asserting the two names alone would not notice a route added under a
-    third, which is how a 403 reappears on one endpoint only.
+    This is the failure that matters and the one a tautology cannot see.
+    ``_api_permissions`` reads ``method_permission_name``, so comparing it
+    against that same mapping can never fail. What can fail is a route
+    added without an entry in it: FAB then derives a permission from the
+    method name, nothing creates it, and that one endpoint answers 403
+    while the rest work.
     """
     from asset_approval.api import ChangeRequestRestApi
 
-    wanted = {
-        f"can_{name}"
-        for name in ChangeRequestRestApi.method_permission_name.values()
+    exposed = {
+        name
+        for name in dir(ChangeRequestRestApi)
+        if hasattr(getattr(ChangeRequestRestApi, name, None), "_urls")
     }
+    assert exposed, "found no @expose'd routes, so this test proves nothing"
 
-    assert set(_entrypoint()._api_permissions()) == wanted
+    unmapped = exposed - set(ChangeRequestRestApi.method_permission_name)
+
+    assert unmapped == set()
 
 
 def test_the_operator_can_turn_the_seeding_off(
@@ -272,19 +283,73 @@ def test_a_renamed_administrator_role_is_still_seeded(
     assert len(manager.roles["Overlord"].permissions) == 2
 
 
-def test_a_second_boot_grants_nothing_further(manager: Any) -> None:
-    """Every worker runs this, and so does every restart."""
+def test_a_second_boot_writes_nothing(manager: Any) -> None:
+    """Every worker runs this, and so does every restart.
+
+    Counted on the writes rather than the end state, because re-granting
+    what is already held changes nothing to compare.
+
+    Two checks stop it independently -- "does any real role already hold
+    this" before the loop, and ``pvm in role.permissions`` inside it -- and
+    removing either one on its own leaves this passing. That redundancy is
+    deliberate, so the pin for the outer check is
+    ``test_a_permission_somebody_already_holds_is_left_alone``, which does
+    fail without it.
+    """
     entrypoint = _entrypoint()
     entrypoint._ensure_the_api_permissions_exist()
-    held = {
-        name: list(role.permissions) for name, role in manager.roles.items()
-    }
+    first = len(manager.grants)
+    assert first == 6, "two permissions across three roles"
 
     entrypoint._ensure_the_api_permissions_exist()
 
-    assert {
-        name: list(role.permissions) for name, role in manager.roles.items()
-    } == held
+    assert len(manager.grants) == first
+
+
+def test_the_page_grant_is_covered_by_the_same_opt_out(
+    mocker: MockerFixture,
+) -> None:
+    """It hands the Approvals page to a role, which is provisioning too.
+
+    Gating only the API's permissions bought the pages' silence and not the
+    page grant's, so an operator who turned the setting off still had an
+    extension writing permissions at boot.
+    """
+    from flask import current_app
+
+    entrypoint = _entrypoint()
+    granted = mocker.Mock()
+    # A workflow permission that a real role holds, and a page permission it
+    # does not, which is the state where the grant would actually fire. With
+    # an empty `role` list the loop body never runs and this could not fail.
+    workflow, page = _Pvm(), _Pvm()
+    workflow.role.append(_Role("Gamma"))
+    mocker.patch(
+        "superset.extensions.security_manager",
+        SimpleNamespace(
+            find_permission_view_menu=lambda permission, _view: (
+                page if permission == entrypoint.PAGE_PERMISSION else workflow
+            ),
+            add_permission_role=granted,
+        ),
+    )
+    mocker.patch.object(
+        entrypoint, "_anonymous_role_name", return_value="Public"
+    )
+
+    # Without the opt-out it grants, which is what makes the assertion below
+    # mean something.
+    entrypoint._grant_page_permission_to_the_workflow()
+    assert granted.call_count == 1
+
+    granted.reset_mock()
+    mocker.patch.dict(
+        current_app.config, {"EXTENSIONS_SYNC_PAGE_PERMISSIONS": False}
+    )
+
+    entrypoint._grant_page_permission_to_the_workflow()
+
+    granted.assert_not_called()
 
 
 def test_a_revocation_from_every_role_is_seeded_again(manager: Any) -> None:

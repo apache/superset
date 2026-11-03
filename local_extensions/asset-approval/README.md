@@ -42,6 +42,15 @@ and enabling, then restart.
 Note for custom roles: `superset init` and the seeding above both cover
 Admin, Alpha and Gamma. A role of your own needs `can_read` and `can_write`
 on `ChangeRequest` granted by hand, or its holders get the same silent 403.
+The administrator is whatever `AUTH_ROLE_ADMIN` names, not necessarily
+`Admin`.
+
+If you set `EXTENSIONS_SYNC_PAGE_PERMISSIONS = False`, none of the seeding
+above happens: that setting is how you tell an extension not to write
+permissions at boot, and it covers both the review API's permissions and
+the Approvals page grant. On such an instance `superset init` is required
+after installing, and a restart after it. Revoking still runs, so a stray
+grant on the anonymous role is removed either way.
 
 ## Configuration
 

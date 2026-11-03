@@ -122,3 +122,12 @@ test('it replaces rather than pushes, so back does not return to the stale URL',
 
   expect(replace).toHaveBeenCalledTimes(1);
 });
+
+test('an empty slice_id reloads rather than opening an empty Explore', () => {
+  // `searchParams.has` is true for `?slice_id=`, so the key would have been
+  // dropped and the GET left with nothing to fall through to.
+  at('http://localhost:8088/explore/?form_data_key=abc&slice_id=');
+
+  expect(reload).toHaveBeenCalledTimes(1);
+  expect(replace).not.toHaveBeenCalled();
+});

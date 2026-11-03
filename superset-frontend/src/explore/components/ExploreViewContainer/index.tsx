@@ -140,9 +140,11 @@ export function reloadOnTheApprovedChart(): void {
   // URL carries a fragment, so it would not reload at all -- which is what
   // the plain reload this replaced always did. Without a slice_id, dropping
   // the key would reload an empty Explore rather than the approved chart.
+  // `has` is not enough for slice_id: `?slice_id=` satisfies it and still
+  // leaves the GET nothing to fall through to.
   if (
     !url.searchParams.has('form_data_key') ||
-    !url.searchParams.has('slice_id')
+    !url.searchParams.get('slice_id')
   ) {
     window.location.reload();
     return;
