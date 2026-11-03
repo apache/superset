@@ -64,7 +64,7 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchModuleError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapper, relationship
-from sqlalchemy.pool import NullPool
+from sqlalchemy.pool import NullPool, QueuePool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
 from superset_core.common.models import Database as CoreDatabase
@@ -1742,16 +1742,19 @@ def _evict_engine_cache(
     URL/kwargs changes already produce a new cache key, so stale engines are
     never served to callers.  Eviction reclaims memory (old engines for a
     renamed host or rotated password would otherwise linger in _ENGINE_CACHE
-    until the process restarted) and disposes the evicted engines so that the
-    connections their pools hold idle are closed. Some databases, such as
+    until the process restarted). Engines on a ``QueuePool`` are also disposed,
+    which closes the connections their pool holds idle. Some databases, such as
     DuckDB, allow only one configuration per database file per process, so an
     idle connection kept by an engine with the previous settings would block
     opening the edited ones.
 
-    Disposal is not deterministic for connections checked out at that moment:
-    they stay on the engine's previous pool and are released when it is. It runs
-    after the cache lock is released, and a failure to dispose never interrupts
-    the update or delete.
+    Engines on pools whose disposal also closes checked-out connections
+    (``StaticPool``, ``SingletonThreadPool``) are not disposed, so that a query
+    running at that moment is not broken: their connection is released when the
+    engine is garbage collected. Connections of a ``QueuePool`` that are checked
+    out stay on its previous pool and are not released deterministically.
+    Disposal runs after the cache lock is released, and a failure to dispose
+    never interrupts the update or delete.
     """
     if target.id is None:
         return
@@ -1759,6 +1762,8 @@ def _evict_engine_cache(
         stale = [k for k in _ENGINE_CACHE if k[0] == target.id]
         evicted = [_ENGINE_CACHE.pop(k) for k in stale]
     for engine in evicted:
+        if not isinstance(engine.pool, QueuePool):
+            continue
         try:
             engine.dispose()
         except Exception:  # pylint: disable=broad-except
