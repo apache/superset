@@ -22,6 +22,7 @@ Install ``apache-superset-core[testing]`` for pytest support; importing the
 provider SDK itself does not require pytest.
 """
 
+from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
 from typing import NoReturn, TypeVar
@@ -333,7 +334,6 @@ def _assert_null_placement_witness(
     assert query.limit is not None
     assert query.limit > 0
     full: pa.Table = view.get_table(replace(query, limit=None, offset=None)).results
-    rows: list[dict[str, object]] = full.to_pylist()
     values: list[object] = full.column(member.name).to_pylist()
     assert any(value is None for value in values), (
         "null_placement fixture requires NULL values of the order key"
@@ -341,11 +341,15 @@ def _assert_null_placement_witness(
     assert any(value is not None for value in values), (
         "null_placement fixture requires non-NULL values of the order key"
     )
-    groups: dict[tuple[object, ...], list[int]] = {}
+    # Arrow scalars keep nested prefix values hashable, including across chunks.
+    order_values: list[tuple[pa.Scalar, ...]] = [
+        tuple(full.column(name)[index] for name in [*prefix, member.name])
+        for index in range(full.num_rows)
+    ]
+    groups: dict[tuple[pa.Scalar, ...], list[int]] = {}
     index: int
-    row: dict[str, object]
-    for index, row in enumerate(rows):
-        groups.setdefault(tuple(row[name] for name in prefix), []).append(index)
+    for index in range(full.num_rows):
+        groups.setdefault(order_values[index][:-1], []).append(index)
     placed: list[int] = []
     opposite: list[int] = []
     indices: list[int]
@@ -363,8 +367,9 @@ def _assert_null_placement_witness(
     )
     start: int = query.offset or 0
     stop: int = start + query.limit
-    assert sorted(repr(rows[index]) for index in placed[start:stop]) != sorted(
-        repr(rows[index]) for index in opposite[start:stop]
+    # Payload differences within an unordered key tie cannot distinguish pages.
+    assert Counter(order_values[index] for index in placed[start:stop]) != Counter(
+        order_values[index] for index in opposite[start:stop]
     ), (
         "null_placement fixture's page must keep different rows "
         "under the opposite placement within tied order prefixes"

@@ -25,7 +25,10 @@ from typing import TYPE_CHECKING
 import pyarrow as pa
 import pytest
 from superset_core.semantic_layers.errors import SemanticResultCompletenessReason
-from superset_core.semantic_layers.testing import SemanticProviderConformance
+from superset_core.semantic_layers.testing import (
+    _assert_null_placement_witness,
+    SemanticProviderConformance,
+)
 from superset_core.semantic_layers.types import (
     Dimension,
     Filter,
@@ -828,4 +831,96 @@ def test_secondary_null_placement_rejects_weak_fixtures(
             "null_placement_secondary",
             semantic_view,
             {"null_placement_secondary": (query, expected)},
+        )
+
+
+@pytest.mark.parametrize("prefix_kind", ["struct", "list"])
+def test_secondary_null_placement_accepts_nested_prefix_across_chunks(
+    semantic_view: "QueryView",
+    monkeypatch: pytest.MonkeyPatch,
+    prefix_kind: str,
+) -> None:
+    """Nested Arrow prefixes retain equal tie groups across chunk boundaries."""
+    prefix_type: pa.DataType = (
+        pa.struct([("key", pa.int64())])
+        if prefix_kind == "struct"
+        else pa.list_(pa.int64())
+    )
+    first: object = {"key": 1} if prefix_kind == "struct" else [1]
+    second: object = {"key": 2} if prefix_kind == "struct" else [2]
+    prefix: Dimension = Dimension("prefix", "prefix", prefix_type)
+    category: Dimension = Dimension("category", "category", pa.string())
+    prefix_column: pa.ChunkedArray = pa.chunked_array(
+        [
+            pa.array([first], type=prefix_type),
+            pa.array([first, second], type=prefix_type),
+        ]
+    )
+    assert prefix_column[0] == prefix_column[1]
+    assert hash(prefix_column[0]) == hash(prefix_column[1])
+    assert len({prefix_column[0], prefix_column[1]}) == 1
+    full: pa.Table = pa.table(
+        {
+            "prefix": prefix_column,
+            "category": pa.array(["A", None, "A"], type=pa.string()),
+        }
+    )
+    query: SemanticQuery = SemanticQuery(
+        [],
+        [prefix, category],
+        order=[
+            (prefix, OrderDirection.ASC),
+            OrderTerm(category, OrderDirection.ASC, NullPlacement.LAST),
+        ],
+        offset=1,
+        limit=1,
+    )
+
+    def full_result(_: SemanticQuery) -> SemanticResult:
+        """Return the controlled unlimited witness result."""
+        return SemanticResult(requests=[], results=full)
+
+    monkeypatch.setattr(semantic_view, "get_table", full_result)
+    _assert_null_placement_witness(
+        query, semantic_view, full.slice(1, 1), order_index=1
+    )
+
+
+@pytest.mark.parametrize("secondary", [False, True])
+def test_null_placement_rejects_a_page_distinguished_only_by_unordered_ties(
+    semantic_view: "QueryView",
+    monkeypatch: pytest.MonkeyPatch,
+    secondary: bool,
+) -> None:
+    """Different payloads inside a NULL tie cannot prove different page membership."""
+    category: Dimension = Dimension("category", "category", pa.string())
+    payload: Dimension = Dimension("payload", "payload", pa.string())
+    prefix: Dimension = Dimension("prefix", "prefix", pa.int64())
+    full: pa.Table = pa.table(
+        {
+            "prefix": [1, 1, 1],
+            "category": pa.array(["A", None, None], type=pa.string()),
+            "payload": ["x", "y", "z"],
+        }
+    )
+    term: OrderTerm = OrderTerm(category, OrderDirection.ASC, NullPlacement.LAST)
+    query: SemanticQuery = SemanticQuery(
+        [],
+        [prefix, category, payload],
+        order=[(prefix, OrderDirection.ASC), term] if secondary else [term],
+        offset=1,
+        limit=1,
+    )
+
+    def full_result(_: SemanticQuery) -> SemanticResult:
+        """Return the controlled unlimited witness result."""
+        return SemanticResult(requests=[], results=full)
+
+    monkeypatch.setattr(semantic_view, "get_table", full_result)
+    with pytest.raises(AssertionError, match="must keep different rows"):
+        _assert_null_placement_witness(
+            query,
+            semantic_view,
+            full.slice(1, 1),
+            order_index=1 if secondary else 0,
         )
