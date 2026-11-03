@@ -19,12 +19,12 @@
 import {
   DataRecord,
   DTTM_ALIAS,
+  tooltipMarker,
   truncateLabel,
   TooltipTruncationMode,
   ValueFormatter,
 } from '@superset-ui/core';
 import type { OptionName, SeriesOption } from 'echarts/types/src/util/types';
-import type { TooltipMarker } from 'echarts/types/src/util/format';
 import {
   ForecastSeriesContext,
   ForecastSeriesEnum,
@@ -81,14 +81,11 @@ export const extractForecastValuesFromTooltipParams = (
 ): Record<string, ForecastValue> => {
   const values: Record<string, ForecastValue> = {};
   params.forEach(param => {
-    const { marker, seriesId, value, color } = param;
+    const { seriesId, value, color } = param;
     const context = extractForecastSeriesContext(seriesId);
     const numericValue = isHorizontal ? value[0] : value[1];
     if (typeof numericValue === 'number') {
-      if (!(context.name in values))
-        values[context.name] = {
-          marker: marker || '',
-        };
+      if (!(context.name in values)) values[context.name] = {};
       const forecastValues = values[context.name];
       forecastValues.color = color;
       if (context.type === ForecastSeriesEnum.Observation)
@@ -110,17 +107,20 @@ export const formatForecastTooltipSeries = ({
   forecastTrend,
   forecastLower,
   forecastUpper,
-  marker,
+  color,
+  symbol,
   formatter,
   truncation = 'end',
 }: ForecastValue & {
   seriesName: string;
-  marker: TooltipMarker;
+  symbol?: string;
   formatter: ValueFormatter;
   truncation?: TooltipTruncationMode;
 }): string[] => {
-  // Truncate before sanitizing and before the marker is prepended: slicing a
-  // string that already contains markup would cut into the marker's tag.
+  // The marker is built here rather than taken from ECharts: the sanitizer
+  // blanks ECharts' own box marker. Truncate before prepending it, since
+  // slicing a string that already contains markup would cut into the tag.
+  const marker = tooltipMarker(color, symbol);
   const name = `${marker}${sanitizeHtml(truncateLabel(seriesName, truncation))}`;
   let value = typeof observation === 'number' ? formatter(observation) : '';
   // Use finite-number checks rather than truthiness so that legitimate

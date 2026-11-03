@@ -256,6 +256,7 @@ def test_column_suggestions_version_gate_precedes_cache(
     app: Flask = Flask(__name__)
     app.config["FILTER_SELECT_ROW_LIMIT"] = 100
     app.config["SQL_MAX_ROW"] = 1000
+    app.config["HASH_ALGORITHM"] = "sha256"
     datasource: MagicMock = MagicMock(
         type=datasource_type, uid="1", normalize_columns=False, changed_on="fixed"
     )

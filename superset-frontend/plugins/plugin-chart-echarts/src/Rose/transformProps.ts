@@ -23,10 +23,10 @@ import {
   getNumberFormatter,
   getTimeFormatter,
   QueryFormMetric,
-  sanitizeHtml,
 } from '@superset-ui/core';
 import type { EChartsCoreOption } from 'echarts/core';
 import { Refs } from '../types';
+import { sanitizeHtml as escapeHtml } from '../utils/series';
 import transformData, { RoseEntry } from './transformData';
 import {
   EchartsRoseChartProps,
@@ -133,12 +133,12 @@ export default function transformProps(
         )};margin-right:5px"></span>`;
         const emphasis =
           entry.seriesName === highlightSeries ? 'font-weight:bold' : '';
-        return `<div style="${emphasis}">${marker}${sanitizeHtml(entry.seriesName)}: ${format(
-          entry.value,
+        return `<div style="${emphasis}">${marker}${escapeHtml(entry.seriesName)}: ${escapeHtml(
+          format(entry.value),
         )}</div>`;
       })
       .join('');
-    return `<div><b>${period.label}</b></div>${rows}`;
+    return `<div><b>${escapeHtml(period.label)}</b></div>${rows}`;
   };
 
   const echartOptions: EChartsCoreOption = {
@@ -180,7 +180,7 @@ export default function transformProps(
                 e => e.seriesName === params.seriesName,
               );
               if (!period || !entry) return '';
-              return `<div><b>${period.label}</b></div>${sanitizeHtml(params.seriesName)}: ${format(entry.value)}`;
+              return `<div><b>${escapeHtml(period.label)}</b></div>${escapeHtml(params.seriesName)}: ${escapeHtml(format(entry.value))}`;
             },
           }),
     },

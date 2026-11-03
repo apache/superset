@@ -24,6 +24,7 @@ import { apiDeleteDataset } from '../api/dataset';
 import { apiDeleteTheme } from '../api/theme';
 import { apiDeleteDatabase } from '../api/database';
 import { apiDeleteSavedQuery } from '../api/savedQuery';
+import { apiDeleteSemanticLayer } from '../api/semanticLayer';
 
 /**
  * Test asset tracker for automatic cleanup after each test.
@@ -36,6 +37,8 @@ export interface TestAssets {
   trackTheme(id: number): void;
   trackDatabase(id: number): void;
   trackSavedQuery(id: number): void;
+  /** Semantic layers are keyed by UUID; deleting one deletes its views. */
+  trackSemanticLayer(uuid: string): void;
 }
 
 const EXPECTED_CLEANUP_STATUSES = new Set([200, 202, 204, 404]);
@@ -49,6 +52,7 @@ export const test = base.extend<{ testAssets: TestAssets }>({
     const themeIds = new Set<number>();
     const databaseIds = new Set<number>();
     const savedQueryIds = new Set<number>();
+    const semanticLayerUuids = new Set<string>();
 
     await use({
       trackDashboard: id => dashboardIds.add(id),
@@ -57,9 +61,10 @@ export const test = base.extend<{ testAssets: TestAssets }>({
       trackTheme: id => themeIds.add(id),
       trackDatabase: id => databaseIds.add(id),
       trackSavedQuery: id => savedQueryIds.add(id),
+      trackSemanticLayer: uuid => semanticLayerUuids.add(uuid),
     });
 
-    // Cleanup order: saved queries → dashboards → charts → datasets → themes → databases (respects FK dependencies)
+    // Cleanup order: saved queries → dashboards → charts → datasets → semantic layers → themes → databases (respects FK dependencies)
     // Saved queries have no FK dependents, so they can be cleaned up first
     await Promise.all(
       [...savedQueryIds].map(id =>
@@ -127,6 +132,24 @@ export const test = base.extend<{ testAssets: TestAssets }>({
           .catch(error => {
             console.warn(
               `[testAssets] Failed to cleanup dataset ${id}:`,
+              error,
+            );
+          }),
+      ),
+    );
+    await Promise.all(
+      [...semanticLayerUuids].map(uuid =>
+        apiDeleteSemanticLayer(page, uuid, { failOnStatusCode: false })
+          .then(response => {
+            if (!EXPECTED_CLEANUP_STATUSES.has(response.status())) {
+              console.warn(
+                `[testAssets] Unexpected status ${response.status()} cleaning up semantic layer ${uuid}`,
+              );
+            }
+          })
+          .catch(error => {
+            console.warn(
+              `[testAssets] Failed to cleanup semantic layer ${uuid}:`,
               error,
             );
           }),

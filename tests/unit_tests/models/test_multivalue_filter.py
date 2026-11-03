@@ -272,3 +272,141 @@ def test_in_on_array_parses_literals(mocker: MockerFixture, app: Flask) -> None:
             ],
         )
     assert "skills in (array('driver'), array('cook'))" in sql
+
+
+@pytest.mark.parametrize(
+    "flt, negated_sql",
+    [
+        pytest.param(
+            {
+                "col": "skills",
+                "op": FilterOperator.NOT_EQUALS.value,
+                "val": "['Driver', 'Cook']",
+            },
+            "skills != array('driver', 'cook')",
+            id="not-equals",
+        ),
+        pytest.param(
+            {
+                "col": "skills",
+                "op": FilterOperator.NOT_EQUALS.value,
+                "val": "Driver",
+            },
+            "skills != array('driver')",
+            id="not-equals-plain-value",
+        ),
+        pytest.param(
+            {
+                "col": "skills",
+                "op": FilterOperator.NOT_EQUALS.value,
+                "val": "[]",
+            },
+            "skills != array()",
+            id="not-equals-empty-array",
+        ),
+        pytest.param(
+            {
+                "col": "scores",
+                "op": FilterOperator.NOT_EQUALS.value,
+                "val": "[0]",
+            },
+            "scores != array(0)",
+            id="not-equals-zero-element",
+        ),
+        pytest.param(
+            {
+                "col": "skills",
+                "op": FilterOperator.NOT_IN.value,
+                "val": ["['Driver']", "['Cook']"],
+            },
+            "skills not in (array('driver'), array('cook'))",
+            id="not-in",
+        ),
+        # Raw (non-string) values: the array literal comes from ``val`` itself,
+        # never from the scalar operand, which would collapse ``[]`` to NULL and
+        # ``[0]`` to the falsy ``0``. Every one of these is a real array.
+        pytest.param(
+            {"col": "skills", "op": FilterOperator.NOT_EQUALS.value, "val": []},
+            "skills != array()",
+            id="not-equals-raw-empty-list",
+        ),
+        pytest.param(
+            {"col": "scores", "op": FilterOperator.NOT_EQUALS.value, "val": [0]},
+            "scores != array(0)",
+            id="not-equals-raw-zero-list",
+        ),
+        pytest.param(
+            {"col": "skills", "op": FilterOperator.NOT_EQUALS.value, "val": [None]},
+            "skills != array(null)",
+            id="not-equals-raw-null-element",
+        ),
+        pytest.param(
+            {"col": "skills", "op": FilterOperator.NOT_IN.value, "val": [[]]},
+            "skills not in (array())",
+            id="not-in-raw-empty-array",
+        ),
+        pytest.param(
+            {"col": "scores", "op": FilterOperator.NOT_IN.value, "val": [[0]]},
+            "scores not in (array(0))",
+            id="not-in-raw-zero-array",
+        ),
+        pytest.param(
+            {"col": "scores", "op": FilterOperator.NOT_IN.value, "val": [0]},
+            "scores not in (array(0))",
+            id="not-in-raw-zero-candidate",
+        ),
+        pytest.param(
+            {"col": "skills", "op": FilterOperator.NOT_IN.value, "val": []},
+            "skills not in (",
+            id="not-in-raw-empty-candidate-list",
+        ),
+    ],
+)
+def test_negated_whole_array_filter_keeps_null_arrays(
+    mocker: MockerFixture, app: Flask, flt: dict[str, Any], negated_sql: str
+) -> None:
+    """
+    Whole-array ``!=`` and ``NOT IN`` only exclude the arrays they name, so a
+    row whose array column is NULL is kept. These are compile-level checks: an
+    array comparison cannot run on SQLite, and array elements (not the arrays
+    themselves) are the only nullable part of a ClickHouse array, so this is
+    defensive coverage of the same policy as the scalar operators.
+    """
+    dataset = _make_dataset(mocker)
+    _clickhouse(mocker, dataset)
+    with app.test_request_context():
+        sql = _sql(dataset, [flt])
+    assert negated_sql in sql
+    assert f"{flt['col']} is null" in sql
+
+
+@pytest.mark.parametrize(
+    "flt",
+    [
+        pytest.param(
+            {"col": "skills", "op": FilterOperator.EQUALS.value, "val": "['Driver']"},
+            id="equals",
+        ),
+        pytest.param(
+            {"col": "skills", "op": FilterOperator.IN.value, "val": ["['Driver']"]},
+            id="in",
+        ),
+        pytest.param(
+            {
+                "col": "skills",
+                "op": FilterOperator.CONTAINS_ANY.value,
+                "val": ["Driver"],
+            },
+            id="contains-any",
+        ),
+    ],
+)
+def test_non_negated_whole_array_filter_has_no_null_check(
+    mocker: MockerFixture, app: Flask, flt: dict[str, Any]
+) -> None:
+    """Operators that are not negations do not gain a NULL check."""
+    dataset = _make_dataset(mocker)
+    _clickhouse(mocker, dataset)
+    with app.test_request_context():
+        sql = _sql(dataset, [flt])
+    assert "is null" not in sql

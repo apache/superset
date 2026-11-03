@@ -14,12 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import codecs
 from unittest.mock import MagicMock, patch
 
 import pytest
+from flask import Flask
 
 
-def _build_response(filename: str | None):
+def _build_response(filename: str | None, chunks: list[str] | None = None):
     from superset.charts.data.api import ChartDataRestApi
 
     api = ChartDataRestApi.__new__(ChartDataRestApi)
@@ -29,7 +31,7 @@ def _build_response(filename: str | None):
         "superset.charts.data.api.StreamingCSVExportCommand"
     ) as mock_command_cls:
         mock_command = mock_command_cls.return_value
-        mock_command.run.return_value = lambda: iter([b"a,b\n"])
+        mock_command.run.return_value = lambda: iter(chunks or ["a,b\n"])
         return api._create_streaming_csv_response(result, filename=filename)
 
 
@@ -57,3 +59,15 @@ def test_blank_filename_falls_back_to_default() -> None:
     response = _build_response("...")
     disposition = response.headers["Content-Disposition"]
     assert 'filename="export.csv"' in disposition
+
+
+def test_streamed_body_uses_csv_export_encoding(app: Flask) -> None:
+    """The streamed body honors CSV_EXPORT encoding, writing the BOM once."""
+    chunks = ["name;city\r\n", "Müller;Köln\r\n"]
+
+    with patch.dict(app.config, {"CSV_EXPORT": {"encoding": "utf-8-sig"}}):
+        response = _build_response("export.csv", chunks)
+        body = b"".join(response.iter_encoded())
+
+    assert response.headers["Content-Type"] == "text/csv; charset=utf-8-sig"
+    assert body == codecs.BOM_UTF8 + "".join(chunks).encode("utf-8")

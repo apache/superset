@@ -19,8 +19,11 @@
 
 import type { MouseEventHandler } from 'react';
 
+export type CacheSource = 'result' | 'semantic';
+
 export interface CacheLabelProps {
   onClick?: MouseEventHandler<HTMLElement>;
   cachedTimestamp?: string;
+  cacheSource?: CacheSource;
   className?: string;
 }

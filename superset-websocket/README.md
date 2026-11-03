@@ -258,6 +258,31 @@ when `REALTIME_CHANNEL_PREFIX=tenant-a:`. Set a per-deployment prefix to keep
 deployments that share one Redis/Valkey from cross-delivering realtime nudges
 (Redis pub/sub is not scoped by DB number).
 
+### Redis / Valkey connection modes
+
+The `redis` object (or the `REDIS_*` environment variables) supports the same
+modes as the Python coordination backend: a standalone server, or Redis/Sentinel,
+each optionally over TLS. Redis Cluster is not supported by either side.
+
+| Setting                          | Environment variable       | Notes                                                                 |
+| -------------------------------- | -------------------------- | --------------------------------------------------------------------- |
+| `host`, `port`, `db`             | `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB` | Standalone server (ignored in Sentinel mode)               |
+| `username`, `password`           | `REDIS_USERNAME`, `REDIS_PASSWORD`     | Authenticate against the (resolved) master                 |
+| `ssl`                            | `REDIS_SSL`                | Enable TLS to the server                                              |
+| `sslCaCerts`                     | `REDIS_SSL_CA_CERTS`       | Path to a PEM CA bundle, trusted **in addition to** the public CAs    |
+| `sslCertfile`, `sslKeyfile`      | `REDIS_SSL_CERTFILE`, `REDIS_SSL_KEYFILE` | Client certificate and key (mutual TLS)             |
+| `sslCertReqs`                    | `REDIS_SSL_CERT_REQS`      | `required` (default), `optional` or `none`; only `none` skips verification |
+| `validateHostname`               | `REDIS_VALIDATE_HOSTNAME`  | Check the server certificate's hostname (default `true`)              |
+| `sentinels`                      | `REDIS_SENTINELS`          | Enables Sentinel mode. JSON: `[{"host": "s1", "port": 26379}]`; env: `s1:26379,s2:26379` |
+| `sentinelMaster`                 | `REDIS_SENTINEL_MASTER`    | Master name; required when `sentinels` is set                         |
+| `sentinelPassword`               | `REDIS_SENTINEL_PASSWORD`  | Password for the sentinel nodes themselves                            |
+
+With no `sslCaCerts`, the server certificate is validated against the public CA
+roots bundled with Node, so a certificate from a public CA works with just
+`ssl: true`. In Sentinel mode TLS applies to the resolved master; the sentinel
+nodes are contacted in plaintext, matching the Python backend. The server follows
+failovers by re-resolving the master through the sentinels.
+
 ## StatsD monitoring
 
 The application is tracking a couple of metrics with `statsd` using the [hot-shots](https://www.npmjs.com/package/hot-shots) library, such as the number of connected clients and the number of failed attempts to send a message to a client.

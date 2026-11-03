@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Map as MapLibreMap } from 'react-map-gl/maplibre';
 import { Map as MapboxMap } from 'react-map-gl/mapbox';
 import * as maplibregl from 'maplibre-gl';
@@ -37,7 +37,7 @@ import './MapLibre.css';
 // `import.meta.url`, which our (non-ESM-output) webpack bundle rewrites to
 // a build-time path that doesn't match maplibre's `^https?:` check, so
 // `WORKER_URL` silently resolves to `''` and no worker gets created. Point
-// it at the copy CopyPlugin emits alongside the rest of our static assets
+// it at output.copy emits alongside the rest of our static assets
 // (see webpack.config.js) instead, using the runtime-configurable public
 // path so this also works behind a reverse-proxy / APPLICATION_ROOT
 // prefix. This must run before the first MapLibre map mounts.
@@ -53,6 +53,17 @@ interface Viewport {
   latitude: number;
   zoom: number;
 }
+
+type Bounds = [[number, number], [number, number]];
+
+const sameBounds = (a?: Bounds, b?: Bounds) =>
+  a === b ||
+  (!!a &&
+    !!b &&
+    a[0][0] === b[0][0] &&
+    a[0][1] === b[0][1] &&
+    a[1][0] === b[1][0] &&
+    a[1][1] === b[1][1]);
 
 interface Clusterer {
   getClusters(bbox: number[], zoom: number): GeoJSONLocation[];
@@ -79,7 +90,7 @@ interface MapLibreProps {
   pointRadiusUnit?: string;
   renderWhileDragging?: boolean;
   rgb?: (string | number)[];
-  bounds?: [[number, number], [number, number]]; // May be undefined for empty datasets
+  bounds?: Bounds; // May be undefined for empty datasets
   viewportLongitude?: number;
   viewportLatitude?: number;
   viewportZoom?: number;
@@ -116,8 +127,7 @@ function MapLibre({
       };
     }
     return { latitude: 0, longitude: 0, zoom: 1 };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [bounds, width, height]);
 
   const mergeViewportWithProps = useCallback(
     (fitBounds: Viewport, base: Viewport = fitBounds): Viewport => ({
@@ -146,6 +156,21 @@ function MapLibre({
     // Only re-run when the viewport-override props change
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewportLongitude, viewportLatitude, viewportZoom]);
+
+  const fittedBounds = useRef(bounds);
+
+  useEffect(() => {
+    if (sameBounds(bounds, fittedBounds.current)) {
+      return;
+    }
+    fittedBounds.current = bounds;
+    // A dashboard auto-refresh keeps the chart mounted and swaps in new
+    // data, so the map refits to the new rows here. Viewport overrides
+    // still take precedence over the fitted values.
+    setViewport(previous =>
+      mergeViewportWithProps(computeFitBounds(), previous),
+    );
+  }, [bounds, computeFitBounds, mergeViewportWithProps]);
 
   const handleMove = useCallback(
     (evt: {

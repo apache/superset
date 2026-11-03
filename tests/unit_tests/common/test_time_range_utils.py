@@ -22,7 +22,34 @@ import pytest
 from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
     get_since_until_from_time_range,
+    get_time_range_from_filters,
 )
+from superset.constants import NO_TIME_RANGE
+
+
+@pytest.mark.parametrize("invalid_value", [None, 42, True, [], ["2001 : 2002"], {}])
+def test_time_range_selection_ignores_non_string_values(invalid_value: object) -> None:
+    """Malformed temporal values cannot replace a valid range or reach parsing."""
+    filters: list[dict[str, object]] = [
+        {"col": "dttm", "op": "TEMPORAL_RANGE", "val": invalid_value},
+    ]
+    assert get_time_range_from_filters(None, filters, ["dttm"]) == NO_TIME_RANGE
+    filters.append({"col": "other", "op": "TEMPORAL_RANGE", "val": "2001 : 2002"})
+    selected: str = get_time_range_from_filters(None, filters, ["dttm"])
+    assert get_since_until_from_time_range(selected) == (
+        datetime(2001, 1, 1),
+        datetime(2002, 1, 1),
+    )
+
+
+def test_time_range_selection_ignores_missing_value() -> None:
+    """An omitted temporal value has the same selection semantics as None."""
+    assert (
+        get_time_range_from_filters(
+            None, [{"col": "dttm", "op": "TEMPORAL_RANGE"}], ["dttm"]
+        )
+        == NO_TIME_RANGE
+    )
 
 
 def test__get_since_until_from_time_range():

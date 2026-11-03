@@ -19,11 +19,17 @@
 import gzip
 import io
 import logging
+import lzma
+import struct
+import zipfile
+import zlib
+from typing import Any, Callable
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 from marshmallow.exceptions import ValidationError
+from pandas.errors import OutOfBoundsDatetime
 from sqlalchemy.orm import Session
 
 
@@ -40,10 +46,12 @@ class TestConvertTemporalColumns:
         _convert_temporal_columns(df, {"ts": DateTime()})
         assert pd.api.types.is_datetime64_any_dtype(df["ts"])
 
-    def test_out_of_bounds_coerced_to_nat(self) -> None:
+    def test_far_future_date_strings_convert_successfully(self) -> None:
         """
-        Dates beyond ~2262-04-11 overflow pandas' int64 nanosecond limit.
-        load_data() must coerce them to NaT and warn, not raise.
+        Dates beyond ~2262-04-11 overflow pandas' int64 *nanosecond* limit, but
+        pandas 3's wider non-nanosecond datetime64 dtypes (e.g. ``datetime64[us]``)
+        represent a string date like this correctly instead of needing the
+        OutOfBoundsDatetime/NaT fallback below.
         """
         from sqlalchemy import DateTime
 
@@ -52,6 +60,28 @@ class TestConvertTemporalColumns:
         )
 
         df = pd.DataFrame({"ts": ["3118-01-01"]})
+        with patch(
+            "superset.commands.dataset.importers.v1.utils.logger"
+        ) as mock_logger:
+            _convert_temporal_columns(df, {"ts": DateTime()})
+
+        assert df["ts"].iloc[0] == pd.Timestamp("3118-01-01")
+        mock_logger.warning.assert_not_called()
+
+    def test_out_of_bounds_numeric_epoch_coerced_to_nat(self) -> None:
+        """
+        A numeric (epoch) value is always interpreted in nanosecond units, so --
+        unlike a far-future date *string* -- it can still overflow regardless of
+        pandas 3's wider datetime64 resolutions. load_data() must coerce such a
+        value to NaT and warn, not raise.
+        """
+        from sqlalchemy import DateTime
+
+        from superset.commands.dataset.importers.v1.utils import (
+            _convert_temporal_columns,
+        )
+
+        df = pd.DataFrame({"ts": [10**30]})
         with patch(
             "superset.commands.dataset.importers.v1.utils.logger"
         ) as mock_logger:
@@ -107,6 +137,14 @@ class TestConvertTemporalColumns:
         """
         The warning count reflects only net-new NaTs from coercion,
         not nulls that were already present in the source data.
+
+        Nothing a real driver hands back can still trigger pandas 3's
+        OutOfBoundsDatetime for both the whole-column *and* the row-level
+        fallback conversion (pandas 3's wider datetime64 resolutions parse a
+        far-future date string directly; see
+        ``test_far_future_date_strings_convert_successfully``), so
+        ``to_datetime`` is faked here to force both code paths and isolate
+        this test from that pandas-version-specific date-range behavior.
         """
         from sqlalchemy import DateTime
 
@@ -114,10 +152,22 @@ class TestConvertTemporalColumns:
             _convert_temporal_columns,
         )
 
-        df = pd.DataFrame({"ts": [None, "3118-01-01", "3119-06-01"]})
-        with patch(
-            "superset.commands.dataset.importers.v1.utils.logger"
-        ) as mock_logger:
+        real_to_datetime = pd.to_datetime
+        oob_markers = {"oob1", "oob2"}
+
+        def fake_to_datetime(value: Any) -> Any:
+            if isinstance(value, pd.Series) or value in oob_markers:
+                raise OutOfBoundsDatetime("forced for test")
+            return real_to_datetime(value)
+
+        df = pd.DataFrame({"ts": [None, "oob1", "oob2"]})
+        with (
+            patch("superset.commands.dataset.importers.v1.utils.logger") as mock_logger,
+            patch(
+                "superset.commands.dataset.importers.v1.utils.pd.to_datetime",
+                side_effect=fake_to_datetime,
+            ),
+        ):
             _convert_temporal_columns(df, {"ts": DateTime()})
 
         call_args = mock_logger.warning.call_args[0]
@@ -605,3 +655,231 @@ class TestDatabaseConnectionIdentityUnchanged:
         assert not database_connection_identity_unchanged(
             "postgresql://user:XXXXXXXXXX@host1:5432/db", None
         )
+
+
+def _make_bundle() -> bytes:
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as bundle:
+        bundle.writestr("bundle/metadata.yaml", "version: 1.0.0\n")
+    return buf.getvalue()
+
+
+def test_open_import_bundle_valid_zip() -> None:
+    """A valid ZIP is opened and its contents are readable."""
+    from superset.commands.importers.v1.utils import (
+        get_contents_from_bundle,
+        open_import_bundle,
+    )
+
+    with open_import_bundle(io.BytesIO(_make_bundle())) as bundle:
+        contents = get_contents_from_bundle(bundle)
+
+    assert contents == {"metadata.yaml": "version: 1.0.0\n"}
+
+
+def test_open_import_bundle_corrupt_central_directory() -> None:
+    """
+    A ZIP with a corrupt central directory passes ``is_zipfile`` but fails to
+    open; it must raise ``IncorrectFormatError`` instead of ``BadZipFile``.
+    """
+    from superset.commands.importers.exceptions import IncorrectFormatError
+    from superset.commands.importers.v1.utils import open_import_bundle
+
+    corrupt = io.BytesIO(_make_bundle().replace(b"PK\x01\x02", b"XXXX"))
+    assert zipfile.is_zipfile(corrupt)
+
+    with pytest.raises(IncorrectFormatError) as excinfo:
+        with open_import_bundle(corrupt):
+            pass
+
+    assert excinfo.value.message == "Invalid or corrupted ZIP file"
+    assert isinstance(excinfo.value.__cause__, zipfile.BadZipFile)
+
+
+def test_open_import_bundle_bad_member() -> None:
+    """``BadZipFile`` raised while reading members is also converted."""
+    from superset.commands.importers.exceptions import IncorrectFormatError
+    from superset.commands.importers.v1.utils import open_import_bundle
+
+    with pytest.raises(IncorrectFormatError):
+        with open_import_bundle(io.BytesIO(_make_bundle())):
+            raise zipfile.BadZipFile("Bad CRC-32 for file 'bundle/metadata.yaml'")
+
+
+def _make_compressed_bundle(compression: int = zipfile.ZIP_DEFLATED) -> bytearray:
+    """Build a single-member bundle large enough to be compressed."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", compression=compression) as bundle:
+        bundle.writestr("bundle/metadata.yaml", "version: 1.0.0\n" * 20)
+    return bytearray(buf.getvalue())
+
+
+def _member_data_offset(data: bytearray) -> int:
+    """Return the offset of the first member's data, after its local header."""
+    name_length, extra_length = struct.unpack("<HH", data[26:30])
+    return 30 + name_length + extra_length
+
+
+def _corrupt_deflate() -> bytes:
+    data = _make_compressed_bundle(zipfile.ZIP_DEFLATED)
+    # 0xFF starts a deflate block with the reserved (invalid) block type
+    data[_member_data_offset(data)] = 0xFF
+    return bytes(data)
+
+
+def _unsupported_compression() -> bytes:
+    data = _make_compressed_bundle(zipfile.ZIP_DEFLATED)
+    central_directory = data.find(b"PK\x01\x02")
+    # 99 (AES) is a compression method ``zipfile`` does not implement
+    data[8:10] = struct.pack("<H", 99)
+    data[central_directory + 10 : central_directory + 12] = struct.pack("<H", 99)
+    return bytes(data)
+
+
+def _encrypted_member() -> bytes:
+    data = _make_compressed_bundle(zipfile.ZIP_DEFLATED)
+    central_directory = data.find(b"PK\x01\x02")
+    # bit 0 of the general purpose flags marks the member as encrypted
+    data[6] |= 0x01
+    data[central_directory + 8] |= 0x01
+    return bytes(data)
+
+
+def _corrupt_bzip2() -> bytes:
+    data = _make_compressed_bundle(zipfile.ZIP_BZIP2)
+    data[_member_data_offset(data) + 4] ^= 0xFF
+    return bytes(data)
+
+
+def _corrupt_lzma() -> bytes:
+    data = _make_compressed_bundle(zipfile.ZIP_LZMA)
+    offset = _member_data_offset(data)
+    data[offset + 4 : offset + 12] = b"\xff" * 8
+    return bytes(data)
+
+
+@pytest.mark.parametrize(
+    "make_bundle, cause",
+    [
+        (_corrupt_deflate, zlib.error),
+        (_unsupported_compression, NotImplementedError),
+        (_encrypted_member, RuntimeError),
+        (_corrupt_bzip2, OSError),
+        (_corrupt_lzma, lzma.LZMAError),
+    ],
+    ids=["corrupt-deflate", "unsupported-compression", "encrypted", "bzip2", "lzma"],
+)
+def test_open_import_bundle_corrupt_member(
+    make_bundle: Callable[[], bytes],
+    cause: type[Exception],
+) -> None:
+    """
+    A ZIP whose central directory is intact but whose member cannot be read
+    passes ``is_zipfile`` and opens fine; reading the member must raise
+    ``IncorrectFormatError`` instead of the underlying decompression error.
+    """
+    from superset.commands.importers.exceptions import IncorrectFormatError
+    from superset.commands.importers.v1.utils import (
+        get_contents_from_bundle,
+        open_import_bundle,
+    )
+
+    corrupt = io.BytesIO(make_bundle())
+    assert zipfile.is_zipfile(corrupt)
+
+    with pytest.raises(IncorrectFormatError) as excinfo:
+        with open_import_bundle(corrupt) as bundle:
+            get_contents_from_bundle(bundle)
+
+    assert excinfo.value.message == "Invalid or corrupted ZIP file"
+    assert isinstance(excinfo.value.__cause__, cause)
+
+
+def _make_oversized_member_bundle() -> bytes:
+    """A bundle whose single member exceeds a lowered ZIPPED_FILE_MAX_SIZE."""
+    return _make_bundle()
+
+
+def _make_oversized_total_bundle() -> bytes:
+    """A bundle whose members together exceed a lowered ZIP_FILE_MAX_TOTAL_SIZE."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as bundle:
+        bundle.writestr("bundle/metadata.yaml", "version: 1.0.0\n")
+        bundle.writestr("bundle/databases/db.yaml", "version: 1.0.0\n")
+    return buf.getvalue()
+
+
+def _make_high_ratio_bundle() -> bytes:
+    """A bundle whose compress ratio exceeds the default ZIP_FILE_MAX_COMPRESS_RATIO."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
+        bundle.writestr("bundle/metadata.yaml", "0" * 1024 * 1024)
+    return buf.getvalue()
+
+
+@pytest.mark.parametrize(
+    "make_bundle, config, message",
+    [
+        (
+            _make_oversized_member_bundle,
+            {"ZIPPED_FILE_MAX_SIZE": 10},
+            "Found file with size above allowed threshold",
+        ),
+        (
+            _make_oversized_total_bundle,
+            {"ZIP_FILE_MAX_TOTAL_SIZE": 20},
+            "Found total uncompressed size above allowed threshold",
+        ),
+        (
+            _make_high_ratio_bundle,
+            {},
+            "Zip compress ratio above allowed threshold",
+        ),
+    ],
+    ids=["member-size", "total-size", "compress-ratio"],
+)
+def test_get_contents_from_bundle_unsafe_zip(
+    app: Any,
+    make_bundle: Callable[[], bytes],
+    config: dict[str, Any],
+    message: str,
+) -> None:
+    """
+    A bundle that fails the ZIP safety checks is bad user input and must raise
+    ``IncorrectFormatError`` (422) instead of a bare ``SupersetException`` (500).
+    """
+    from superset.commands.importers.exceptions import IncorrectFormatError
+    from superset.commands.importers.v1.utils import get_contents_from_bundle
+    from superset.exceptions import SupersetException
+
+    with patch.dict(app.config, config):
+        with zipfile.ZipFile(io.BytesIO(make_bundle())) as bundle:
+            with pytest.raises(IncorrectFormatError) as excinfo:
+                get_contents_from_bundle(bundle)
+
+    assert excinfo.value.status == 422
+    assert excinfo.value.message == message
+    assert isinstance(excinfo.value.__cause__, SupersetException)
+
+
+def test_get_contents_from_bundle_non_utf8_member() -> None:
+    """
+    A config member that is not valid UTF-8 must raise ``IncorrectFormatError``
+    instead of a raw ``UnicodeDecodeError``.
+    """
+    from superset.commands.importers.exceptions import IncorrectFormatError
+    from superset.commands.importers.v1.utils import (
+        get_contents_from_bundle,
+        open_import_bundle,
+    )
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as bundle:
+        bundle.writestr("bundle/metadata.yaml", b"\xff\xfe\x00bad")
+
+    with pytest.raises(IncorrectFormatError) as excinfo:
+        with open_import_bundle(io.BytesIO(buf.getvalue())) as bundle:
+            get_contents_from_bundle(bundle)
+
+    assert excinfo.value.message == "File metadata.yaml is not valid UTF-8"
+    assert isinstance(excinfo.value.__cause__, UnicodeDecodeError)

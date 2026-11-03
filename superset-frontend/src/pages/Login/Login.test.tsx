@@ -126,6 +126,45 @@ test('should call ensureAppRoot for login endpoint on DB auth', () => {
   expect(mockEnsureAppRoot).toHaveBeenCalledWith('/login/');
 });
 
+test('links to password recovery when the backend enables it', () => {
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        ...defaultBootstrapData.common.conf,
+        PASSWORD_RECOVERY_ENABLED: true,
+      },
+    },
+  });
+  render(<Login />, { useRedux: true });
+  expect(screen.getByTestId('forgot-password-link')).toHaveAttribute(
+    'href',
+    '/login/forgot_password/',
+  );
+});
+
+test.each([
+  ['the backend does not enable it', 1, false],
+  ['the deployment uses LDAP', 2, true],
+])(
+  'hides the password recovery link when %s',
+  (_, authType, recoveryEnabled) => {
+    mockGetBootstrapData.mockReturnValue({
+      common: {
+        conf: {
+          ...defaultBootstrapData.common.conf,
+          AUTH_TYPE: authType,
+          PASSWORD_RECOVERY_ENABLED: recoveryEnabled,
+        },
+      },
+    });
+    render(<Login />, { useRedux: true });
+    expect(screen.getByTestId('login-button')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('forgot-password-link'),
+    ).not.toBeInTheDocument();
+  },
+);
+
 // --- OAuth tests ---
 
 test('should render OAuth provider buttons when AUTH_TYPE is OAuth', () => {

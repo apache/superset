@@ -116,6 +116,8 @@ import {
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
   createSpacedXAxisFormatter,
+  getBoundaryTimeFormatter,
+  getZoomLabelOptions,
   getTooltipTimeFormatter,
   getXAxisDomain,
   getXAxisFormatter,
@@ -204,9 +206,11 @@ export default function transformProps(
     minorTicks,
     gridlines,
     axisTicks,
+    valueAxisLabels,
     seriesType,
     seriesTypeB,
     showLegend,
+    showSelectorLegend,
     showValue,
     showValueB,
     labelPosition,
@@ -761,18 +765,24 @@ export default function transformProps(
   // spacing check below (which blanks labels that would otherwise visually
   // collide) has to be bypassed too, not just ECharts' own hideOverlap.
   const showAllLabels = xAxisLabelInterval === '0';
+  const xAxisDomain = getXAxisDomain(
+    [
+      rebasedDataA as Record<string, unknown>[],
+      rebasedDataB as Record<string, unknown>[],
+    ],
+    xAxisLabel,
+  );
+  const boundaryFormatter = getBoundaryTimeFormatter(
+    xAxisTimeFormat,
+    resolvedTimeGrain,
+  );
   const deduplicatedFormatter = showMaxLabel
     ? createSpacedXAxisFormatter(
         xAxisFormatter,
-        ...getXAxisDomain(
-          [
-            rebasedDataA as Record<string, unknown>[],
-            rebasedDataB as Record<string, unknown>[],
-          ],
-          xAxisLabel,
-        ),
+        ...xAxisDomain,
         Math.max(width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft, 0),
         showAllLabels,
+        boundaryFormatter,
       )
     : xAxisFormatter;
 
@@ -822,6 +832,7 @@ export default function transformProps(
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -959,6 +970,7 @@ export default function transformProps(
         splitLine: { show: gridlines },
         minorSplitLine: { show: minorSplitLine },
         axisLabel: {
+          show: valueAxisLabels,
           formatter: getYAxisFormatter(
             metrics,
             !!contributionMode,
@@ -983,6 +995,7 @@ export default function transformProps(
         splitLine: { show: false },
         minorSplitLine: { show: minorSplitLine },
         axisLabel: {
+          show: valueAxisLabels,
           formatter: getYAxisFormatter(
             metricsB,
             !!contributionMode,
@@ -1079,6 +1092,7 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
         zoomable,
         legendState,
         chartPadding,
@@ -1108,6 +1122,9 @@ export default function transformProps(
             start: TIMESERIES_CONSTANTS.dataZoomStart,
             end: TIMESERIES_CONSTANTS.dataZoomEnd,
             bottom: TIMESERIES_CONSTANTS.zoomBottom,
+            ...(xAxisType === AxisType.Time
+              ? getZoomLabelOptions(width, xAxisDomain, boundaryFormatter)
+              : {}),
           },
         ]
       : [],

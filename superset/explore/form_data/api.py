@@ -33,6 +33,7 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.exceptions import SupersetTemplateException
 from superset.explore.form_data.schemas import FormDataPostSchema, FormDataPutSchema
 from superset.extensions import event_logger
+from superset.semantic_layers.access import SemanticLayersDisabledError
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -111,7 +112,7 @@ class ExploreFormDataRestApi(BaseSupersetApi):
             return self.response(403, message=str(ex))
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
-        except SupersetTemplateException as ex:
+        except (SupersetTemplateException, SemanticLayersDisabledError) as ex:
             return self.response(ex.status, message=str(ex))
 
     @expose("/form_data/<string:key>", methods=("PUT",))
@@ -186,7 +187,7 @@ class ExploreFormDataRestApi(BaseSupersetApi):
             return self.response(403, message=str(ex))
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
-        except SupersetTemplateException as ex:
+        except (SupersetTemplateException, SemanticLayersDisabledError) as ex:
             return self.response(ex.status, message=str(ex))
 
     @expose("/form_data/<string:key>", methods=("GET",))
@@ -239,7 +240,7 @@ class ExploreFormDataRestApi(BaseSupersetApi):
             return self.response(403, message=str(ex))
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
-        except SupersetTemplateException as ex:
+        except (SupersetTemplateException, SemanticLayersDisabledError) as ex:
             return self.response(ex.status, message=str(ex))
 
     @expose("/form_data/<string:key>", methods=("DELETE",))
@@ -298,5 +299,5 @@ class ExploreFormDataRestApi(BaseSupersetApi):
             return self.response(403, message=str(ex))
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
-        except SupersetTemplateException as ex:
+        except (SupersetTemplateException, SemanticLayersDisabledError) as ex:
             return self.response(ex.status, message=str(ex))

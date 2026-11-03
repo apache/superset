@@ -15,6 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Callable
+from functools import partial
+
 import pytest
 
 from superset.mcp_service.chart.schemas import ChartError
@@ -27,6 +30,7 @@ from superset.mcp_service.utils.sanitization import (
     _strip_html_tags,
     sanitize_filter_value,
     sanitize_user_input,
+    sanitize_user_input_with_changes,
 )
 
 # --- _strip_html_tags tests ---
@@ -740,3 +744,354 @@ def test_escape_like_empty_string():
     from superset.mcp_service.utils.sanitization import escape_like
 
     assert escape_like("") == ""
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "javascript:alert(1)",
+        "vbscript:msgbox(1)",
+        "See javascript: alert(1)",
+        "See vbscript: msgbox(1)",
+        "data:text/html,payload",
+        "data:,payload",
+        "data:;base64,cGF5bG9hZA==",
+        "data: text/html,payload",
+        "data: ,payload",
+        "data: payload",
+        "See data:text/html,payload",
+        '"data:text/html,payload"',
+        "(data:text/html,payload)",
+        "See data: text/html,payload",
+        "See data: %74ext%2fhtml,payload",
+        "See data: te\txt/html,payload",
+        "See data: text/html ;base64,cGF5bG9hZA==",
+        "JaVaScRiPt:alert(1)",
+        "d&#97;ta:text/html,payload",
+        "da\u200bta:text/html,payload",
+        "java&#8203;script:alert(1)",
+        "See data:\u00a0text/html,payload",
+        "See data:\u3000image/svg+xml;base64,cGF5bG9hZA==",
+        "See data: text&sol;html,payload",
+        "See data: ;base64,cGF5bG9hZA==",
+        "See data:  ,payload",
+        "See data: Jira, then data: text/html,payload",
+    ],
+)
+def test_url_scheme_payloads_remain_rejected(value: str) -> None:
+    """Keep URL payloads blocked at token boundaries and after decoding."""
+    with pytest.raises(ValueError, match="malicious URL scheme"):
+        sanitize_user_input(value, "Title")
+    with pytest.raises(ValueError, match="malicious URL scheme"):
+        sanitize_filter_value(value)
+
+
+@pytest.mark.parametrize(
+    "sanitize",
+    [sanitize_filter_value, partial(sanitize_user_input, field_name="Title")],
+)
+@pytest.mark.parametrize("whitespace", [" ", "\t", "\n", "\u00a0", "\u3000", "&#9;"])
+@pytest.mark.parametrize("media_type", ["text", "html", "x-test", "text\u200b"])
+def test_data_url_with_invalid_media_type_is_rejected(
+    sanitize: Callable[[str], object], whitespace: str, media_type: str
+) -> None:
+    """Browsers load invalid MIME types as text/plain rather than rejecting URLs."""
+    value = f"Inspect data:{whitespace}{media_type},URL_PROBE"
+    with pytest.raises(ValueError, match="malicious URL scheme"):
+        sanitize(value)
+
+
+def test_markdown_data_url_with_invalid_media_type_is_rejected() -> None:
+    """A Markdown link can retain a data URL with an invalid MIME type."""
+    with pytest.raises(ValueError, match="malicious URL scheme"):
+        sanitize_user_input("[open](data: text,URL_PROBE)", "Title")
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "[DEMO] Service Desk - Executive Summary "
+        "(substitute data: Jira support tickets)",
+        "Source data: support tickets and issue records",
+    ],
+)
+def test_sanitizer_accepts_data_in_prose(value: str) -> None:
+    """A comma-free prose label after "data:" is not a data URL."""
+    assert sanitize_user_input(value, "Title") == value
+
+
+@pytest.mark.parametrize(
+    "sanitize",
+    [sanitize_filter_value, partial(sanitize_user_input, field_name="Title")],
+)
+@pytest.mark.parametrize(
+    "value",
+    [
+        "Source data: issue records, support tickets",
+        "substitute data: Jira, support",
+    ],
+)
+def test_comma_bearing_data_label_is_rejected(
+    sanitize: Callable[[str], object], value: str
+) -> None:
+    """Comma-bearing labels are ambiguous with browser-loadable data URLs."""
+    with pytest.raises(ValueError, match="malicious URL scheme"):
+        sanitize(value)
+
+
+@pytest.mark.parametrize("filter_value", [False, True])
+def test_repeated_data_labels_without_comma_are_preserved(filter_value: bool) -> None:
+    """Long comma-free prose must not trigger repeated suffix scans."""
+    value = "Source " + "data: records " * 4000
+    if filter_value:
+        assert sanitize_filter_value(value, max_length=60000) == value.strip()
+    else:
+        assert sanitize_user_input(value, "Title", max_length=60000) == value.strip()
+
+
+@pytest.mark.parametrize(
+    "sanitize",
+    [partial(sanitize_user_input, field_name="title"), sanitize_filter_value],
+)
+@pytest.mark.parametrize(
+    "control", ["\t", "\n", "\r", "\t\n\r", "&#9;", "&#10;", "&#13;"]
+)
+@pytest.mark.parametrize(
+    "scheme,payload",
+    [("javascript", "alert(1)"), ("vbscript", "msgbox(1)"), ("data", "text/html,x")],
+)
+def test_url_scheme_with_embedded_controls_is_rejected(
+    sanitize: Callable[[str], object], control: str, scheme: str, payload: str
+) -> None:
+    """Reject URL-parser-stripped controls at every scheme split, including colon."""
+    for position in range(1, len(scheme) + 1):
+        value = scheme[:position] + control + scheme[position:] + ":" + payload
+        with pytest.raises(ValueError, match="malicious URL scheme"):
+            sanitize(value)
+
+
+@pytest.mark.parametrize(
+    "sanitize",
+    [partial(sanitize_user_input, field_name="title"), sanitize_filter_value],
+)
+@pytest.mark.parametrize("separator", ["\t", "\n", "\r", "\r\n"])
+@pytest.mark.parametrize(
+    "payload",
+    [
+        "javascript:alert(1)",
+        "vbscript:msgbox(1)",
+        "data:text/html,x",
+        "da\tta:text/html,x",
+        "java\nscript:alert(1)",
+    ],
+)
+def test_url_scheme_after_control_separator_is_rejected(
+    sanitize: Callable[[str], object], separator: str, payload: str
+) -> None:
+    """A scheme stays a separate word after a tab or line break."""
+    with pytest.raises(ValueError, match="malicious URL scheme"):
+        sanitize("Notes" + separator + payload)
+
+
+@pytest.mark.parametrize(
+    "sanitize",
+    [partial(sanitize_user_input, field_name="title"), sanitize_filter_value],
+)
+@pytest.mark.parametrize("separator", ["\t", "\n", "\r\n"])
+def test_data_label_followed_by_control_whitespace_is_preserved(
+    sanitize: Callable[[str], object], separator: str
+) -> None:
+    """Whitespace after a comma-free data: label may be a tab or line break."""
+    value = f"Substitute data:{separator}Jira support tickets"
+    assert sanitize(value) == value.replace("\r\n", "\n")
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "Users aged <30",
+        "Revenue <$1M",
+        "Love <3 charts",
+        "5 < 10",
+        "A < B",
+        "A <",
+        "A <> B",
+        "Users aged >30",
+        "Revenue\u00a0>\u00a0$1M",
+    ],
+)
+def test_strip_html_tags_preserves_non_tag_less_than(value: str) -> None:
+    """Preserve display text without decoding tag-opening brackets."""
+    assert _strip_html_tags(value) == value
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "&lt;</b>script>alert(1)",
+        "&lt;&#8203;script>alert(1)",
+        "&lt;</b>img src=x onerror=alert(1)",
+    ],
+)
+def test_strip_html_tags_does_not_reconstruct_tag_openers(value: str) -> None:
+    """Removed tags or invisible characters must not reveal raw markup."""
+    result = _strip_html_tags(value)
+    assert "<script" not in result
+    assert "<img" not in result
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "&lt;<b></b>script&gt;alert(1)",
+        "&lt;&#8203;script&gt;alert(1)",
+        "&amp;lt;</script>click= <b>📈",
+        "&#x3c;&#x3c;</b>x",
+    ],
+)
+def test_sanitize_user_input_rejects_reconstructed_tag_text(value: str) -> None:
+    """Tag-shaped text left after stripping is rejected, never stored."""
+    with pytest.raises(ValueError, match="malicious HTML"):
+        sanitize_user_input(value, "Title")
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "Users aged <30",
+        "Revenue <$1M",
+        "A <> B",
+        "a << b",
+        "Weekly <img src=x>KPIs",
+        "Q3 <b>revenue</b> &amp; costs",
+        "&lt;3 charts",
+    ],
+)
+def test_sanitize_user_input_is_stable_on_resubmission(value: str) -> None:
+    """Sanitizing a stored value again leaves it unchanged."""
+    once = sanitize_user_input(value, "Title")
+    assert once is not None
+    assert sanitize_user_input(once, "Title") == once
+
+
+@pytest.mark.parametrize(
+    "sanitize",
+    [
+        partial(sanitize_user_input, field_name="Title"),
+        partial(sanitize_user_input_with_changes, field_name="Title"),
+        sanitize_filter_value,
+    ],
+)
+@pytest.mark.parametrize(
+    "value",
+    [
+        "Weekly &am<b></b>p;lt;b&amp;gt;KPIs",
+        "Weekly &l<b></b>t;b&gt;KPIs",
+        "Weekly &#x<b></b>3c;b&gt;KPIs",
+        "Weekly &co<b></b>py; KPIs",
+        "Weekly &am&#8203;p;lt;b&amp;gt;KPIs",
+    ],
+)
+def test_reject_entities_reconstructed_by_removal(
+    sanitize: Callable[[str], object], value: str
+) -> None:
+    """Do not store text whose rebuilt entities change on resubmission."""
+    with pytest.raises(ValueError, match="malicious HTML"):
+        sanitize(value)
+
+
+@pytest.mark.parametrize(
+    "value", ["Q3 <ſcript src=//example.invalid/x.js", 'x <Kbd title="y']
+)
+def test_strip_html_tags_keeps_casefolding_tag_openers_escaped(value: str) -> None:
+    """Case conversion must not turn a restored bracket into an HTML tag."""
+    result = _strip_html_tags(value)
+    assert "<" not in result
+    assert "&lt;" in result
+
+
+@pytest.mark.parametrize("value", [">5", "Users\u00a0>30"])
+def test_filter_value_preserves_greater_than_and_nbsp(value: str) -> None:
+    """Text comparisons must not gain entity semicolons rejected as shell syntax."""
+    assert sanitize_filter_value(value) == value
+
+
+@pytest.mark.parametrize("whitespace", ["\t", "\n", "\r", "\v", "\f", "\x85"])
+@pytest.mark.parametrize(
+    "sanitize",
+    [_strip_html_tags, partial(sanitize_user_input, field_name="title")],
+)
+def test_control_whitespace_keeps_less_than_escaped(
+    sanitize: Callable[[str], str], whitespace: str
+) -> None:
+    """All sanitization entry points keep control-separated brackets inert."""
+    from superset.utils.file import sanitize_title
+
+    result = sanitize(f"Q3 <{whitespace}!channel>")
+    assert "<" not in sanitize_title(result)
+
+
+@pytest.mark.parametrize("value", ["A <\t", "A <\n\u00a0", "A <\u00a0 10"])
+def test_strip_html_tags_preserves_safe_comparison_whitespace(value: str) -> None:
+    """Trailing whitespace and visible comparison spacing cannot join controls."""
+    assert _strip_html_tags(value) == value
+
+
+@pytest.mark.parametrize("whitespace", ["\t", "\n", "\r"])
+def test_filter_rejects_control_separated_slack_markup(whitespace: str) -> None:
+    """Escaped control-separated brackets retain the filter shell-character gate."""
+    with pytest.raises(ValueError, match="shell"):
+        sanitize_filter_value(f"Q3 <{whitespace}!channel>")
+
+
+@pytest.mark.parametrize("whitespace", ["\t", "\n", "\r", "&#9;", "&#10;", "&#13;"])
+def test_control_whitespace_warning_wrapper_keeps_slack_markup_inert(
+    whitespace: str,
+) -> None:
+    """The warning wrapper must persist the escaped result, not the raw title."""
+    from superset.utils.file import sanitize_title
+
+    result, changed = sanitize_user_input_with_changes(
+        f"Q3 <{whitespace}!channel>", field_name="title"
+    )
+    assert result is not None
+    assert sanitize_title(result) == "Q3 &lt;!channel>"
+    assert changed is True
+
+
+@pytest.mark.parametrize(
+    "sanitize", [sanitize_user_input, sanitize_user_input_with_changes]
+)
+@pytest.mark.parametrize("limit", [100, 200, 250, 255, 500, 1000, 5000])
+@pytest.mark.parametrize(
+    "wrapper",
+    [
+        ("<b>", "</b>"),
+        ("<b> ", " </b>"),
+        ("<b>&#32;", "&#32;</b>"),
+        ("<b>\u00a0", "\u00a0</b>"),
+        ("", "&#8203;"),
+        ("", "&amp;"),
+    ],
+)
+def test_sanitized_length_budget(
+    sanitize: Callable[..., object], limit: int, wrapper: tuple[str, str]
+) -> None:
+    """Tag removal, Unicode removal and entity decoding precede the text cap."""
+    prefix, suffix = wrapper
+    text = "x" * (limit - (1 if suffix == "&amp;" else 0))
+    expected = text + ("&" if suffix == "&amp;" else "")
+    result = sanitize(prefix + text + suffix, "Text", max_length=limit)
+    assert result == (
+        (expected, True) if sanitize is sanitize_user_input_with_changes else expected
+    )
+
+
+def test_raw_sanitization_input_is_bounded_before_html_parsing() -> None:
+    """Keep a separate resource bound even if all markup would be stripped."""
+    from unittest.mock import patch
+
+    with patch("superset.mcp_service.utils.sanitization._strip_html_tags") as strip:
+        with pytest.raises(ValueError, match="10000"):
+            sanitize_user_input("<b></b>" * 1429, "Text", max_length=250)
+    strip.assert_not_called()

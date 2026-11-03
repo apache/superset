@@ -18,6 +18,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from superset.commands.chart.exceptions import (
     ChartForbiddenError,
     ChartNotFoundError,
@@ -25,6 +27,8 @@ from superset.commands.chart.exceptions import (
 )
 from superset.commands.version_restore import BaseRestoreVersionCommand
 from superset.models.slice import Slice
+from superset.versioning.queries import resolve_version
+from superset.versioning.restore import lock_snapshot_datasource
 
 
 class RestoreChartVersionCommand(BaseRestoreVersionCommand):
@@ -42,3 +46,16 @@ class RestoreChartVersionCommand(BaseRestoreVersionCommand):
     not_found_exc = ChartNotFoundError
     forbidden_exc = ChartForbiddenError
     failed_exc = ChartUpdateFailedError
+
+    def _lock_dependencies(self, entity: Any) -> None:
+        """Lock the version's datasource before the chart row.
+
+        A datasource rename locks the datasource and then its charts, so the
+        restore takes the same order to avoid a deadlock. The chart lock that
+        follows re-reads and revalidates the chart as before.
+        """
+        snapshot: tuple[int, int] | None = resolve_version(
+            Slice, self._uuid, self._version_uuid, entity=entity
+        )
+        if snapshot is not None:
+            lock_snapshot_datasource(Slice, entity, snapshot[1])

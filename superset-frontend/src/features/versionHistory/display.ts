@@ -391,11 +391,35 @@ export function relatedRollupHeadline(
 }
 
 /**
+ * Neutral "<entity> updated" sentence for a related row, as whole sentences
+ * so translators can inflect each noun.
+ */
+function relatedUpdatedHeadline(record: ActivityRecord): string {
+  const name = entityDisplayName(record);
+  switch (record.entity_kind) {
+    case 'dataset':
+      return t('Dataset updated: %s', name);
+    case 'chart':
+      return t('Chart updated: %s', name);
+    case 'dashboard':
+      return t('Dashboard updated: %s', name);
+    default:
+      return t('Item updated: %s', name);
+  }
+}
+
+/**
  * Text for a `source='related'` row. The server renders `summary`
  * ("Dataset metric changed: Sales"); when a dashboard-path dataset
  * change affects multiple charts, prefer the impact-aware phrasing.
+ * `records` are all the records rolled into the row, `record` first: when their summaries
+ * differ (several kinds of change), the first record's verb would describe
+ * only part of the save, so the headline stays neutral.
  */
-export function relatedHeadline(record: ActivityRecord): string {
+export function relatedHeadline(
+  record: ActivityRecord,
+  records: ActivityRecord[] = [record],
+): string {
   const chartCount = record.impact?.charts ?? 0;
   if (record.entity_kind === 'dataset' && chartCount > 1) {
     // tn even though this branch only runs for counts above one: English has
@@ -409,8 +433,43 @@ export function relatedHeadline(record: ActivityRecord): string {
       entityDisplayName(record),
     );
   }
+  // Distinct summaries rather than kinds: a tombstoned entity's records all
+  // carry the same redacted summary and must keep it, not gain a name.
+  const spansSeveralChanges =
+    new Set(records.map(item => item.summary)).size > 1;
+  if (!record.entity_deleted && spansSeveralChanges) {
+    return relatedUpdatedHeadline(record);
+  }
   // One whole sentence rather than t('Item') interpolated into t('%s updated'):
   // a translator given the fragments separately cannot inflect the noun for
   // the sentence it lands in, and many languages require that.
   return record.summary || t('Item updated: %s', entityDisplayName(record));
+}
+
+/**
+ * The one save group that carries the "you are here" highlight, if any.
+ *
+ * A historical preview takes it. Otherwise the live group takes it, unless
+ * the "Current version" section is shown: per the design, that section then
+ * marks the current state, and the live group is a dated row like any other.
+ */
+export function selectHighlightedTransactionId({
+  previewedTransactionId,
+  currentTransactionId,
+  currentShownInSection,
+}: {
+  previewedTransactionId: number | null;
+  currentTransactionId: number | null;
+  currentShownInSection: boolean;
+}): number | null {
+  if (
+    previewedTransactionId != null &&
+    previewedTransactionId !== currentTransactionId
+  ) {
+    return previewedTransactionId;
+  }
+  if (currentShownInSection) {
+    return null;
+  }
+  return currentTransactionId;
 }

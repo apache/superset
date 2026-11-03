@@ -53,6 +53,7 @@ def _make_query_mock() -> MagicMock:
     """Return a minimal Query mock that satisfies handle_query_error."""
     query = MagicMock()
     query.status = "running"
+    query.extra = {}
     query.end_time = None
     query.tmp_table_name = "tmp"
     query.error_message = None
@@ -78,6 +79,7 @@ def test_legacy_handle_query_error_payload_includes_stacktrace_when_enabled() ->
     config = {"TROUBLESHOOTING_LINK": None, "SHOW_STACKTRACE": True}
     with (
         patch("superset.sql_lab.db") as mock_db,
+        patch("superset.sql.execution.utils.db", mock_db),
         patch("superset.sql_lab.app") as mock_app,
     ):
         mock_app.config = config
@@ -117,6 +119,7 @@ def test_legacy_handle_query_error_payload_omits_stacktrace_when_disabled() -> N
     config = {"TROUBLESHOOTING_LINK": None, "SHOW_STACKTRACE": False}
     with (
         patch("superset.sql_lab.db") as mock_db,
+        patch("superset.sql.execution.utils.db", mock_db),
         patch("superset.sql_lab.app") as mock_app,
     ):
         mock_app.config = config
@@ -197,7 +200,11 @@ def test_new_handle_query_error_payload_includes_stacktrace_when_enabled() -> No
     query = _make_query_mock()
     config = {"TROUBLESHOOTING_LINK": None, "SHOW_STACKTRACE": True}
 
-    with patch.object(ct, "db") as mock_db, patch.object(ct, "app") as mock_app:
+    with (
+        patch.object(ct, "db") as mock_db,
+        patch("superset.sql.execution.utils.db", mock_db),
+        patch.object(ct, "app") as mock_app,
+    ):
         mock_app.config = config
         mock_db.session = MagicMock()
 
@@ -206,6 +213,7 @@ def test_new_handle_query_error_payload_includes_stacktrace_when_enabled() -> No
         except RuntimeError as ex:
             payload = ct._handle_query_error(ex, query)
 
+    assert payload["status"] == "failed"
     assert "stacktrace" in payload, (
         "_handle_query_error must include 'stacktrace' in the returned payload "
         "when SHOW_STACKTRACE=True (regression for #28248). "
@@ -234,7 +242,11 @@ def test_new_handle_query_error_payload_omits_stacktrace_when_disabled() -> None
     query = _make_query_mock()
     config = {"TROUBLESHOOTING_LINK": None, "SHOW_STACKTRACE": False}
 
-    with patch.object(ct, "db") as mock_db, patch.object(ct, "app") as mock_app:
+    with (
+        patch.object(ct, "db") as mock_db,
+        patch("superset.sql.execution.utils.db", mock_db),
+        patch.object(ct, "app") as mock_app,
+    ):
         mock_app.config = config
         mock_db.session = MagicMock()
 
@@ -243,6 +255,7 @@ def test_new_handle_query_error_payload_omits_stacktrace_when_disabled() -> None
         except RuntimeError as ex:
             payload = ct._handle_query_error(ex, query)
 
+    assert payload["status"] == "failed"
     assert "stacktrace" not in payload, (
         "_handle_query_error must NOT include 'stacktrace' when SHOW_STACKTRACE=False "
         "to avoid exposing internal details to unprivileged users. "

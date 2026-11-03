@@ -67,7 +67,7 @@ def get_chart_configs_resource() -> str:
                 "x": {"name": "category", "label": "Category"},
                 "y": [{"name": "sales", "aggregate": "SUM", "label": "Total Sales"}],
                 "x_axis": {"title": "Product Categories"},
-                "y_axis": {"title": "Revenue ($)", "format": "$,.0f"},
+                "y_axis": {"title": "Revenue", "format": ",.0f"},
             },
             "use_cases": ["Category comparison", "Rankings"],
         },
@@ -124,7 +124,7 @@ def get_chart_configs_resource() -> str:
                     }
                 ],
                 "group_by": [{"name": "campaign_type", "label": "Campaign"}],
-                "x_axis": {"format": "$,.0f"},
+                "x_axis": {"format": ",.0f"},
                 "y_axis": {"format": ".2%"},
             },
             "use_cases": ["Correlation analysis", "Outlier detection"],
@@ -164,6 +164,44 @@ def get_chart_configs_resource() -> str:
                 "time_grain": "P1W",
             },
             "use_cases": ["Volume trends", "Channel attribution"],
+        },
+    }
+
+    # Bullet chart examples
+    bullet_chart_configs = {
+        "attainment_against_targets": {
+            "description": (
+                "Revenue attainment against qualitative thresholds and a plan marker"
+            ),
+            "config": {
+                "chart_type": "bullet",
+                "metric": {
+                    "name": "revenue",
+                    "aggregate": "SUM",
+                    "label": "Revenue",
+                },
+                "ranges": [100000, 250000, 500000],
+                "range_labels": ["Minimum", "Target", "Stretch"],
+                "markers": [300000],
+                "marker_labels": ["Plan"],
+                "show_labels": True,
+                "y_axis_format": ",.0f",
+            },
+            "use_cases": ["Goal attainment", "KPI target comparison"],
+        },
+        "regional_attainment": {
+            "description": "One bullet row per region using a saved metric",
+            "config": {
+                "chart_type": "bullet",
+                "metric": {"name": "attainment", "saved_metric": True},
+                "dimensions": [{"name": "region"}],
+                "marker_lines": [1],
+                "marker_line_labels": ["Goal"],
+                "show_legend": True,
+                "y_axis_format": ".0%",
+                "row_limit": 100,
+            },
+            "use_cases": ["Regional scorecards", "Progress by team"],
         },
     }
 
@@ -230,6 +268,51 @@ def get_chart_configs_resource() -> str:
         },
     }
 
+    sunburst_chart_configs = {
+        "hierarchical_revenue": {
+            "description": "Nested revenue from region to country to product",
+            "config": {
+                "chart_type": "sunburst",
+                "hierarchy": [
+                    {"name": "region"},
+                    {"name": "country"},
+                    {"name": "product"},
+                ],
+                "metric": {
+                    "name": "revenue",
+                    "aggregate": "SUM",
+                    "label": "Revenue",
+                },
+                "show_labels": True,
+                "show_labels_threshold": 3,
+                "sort_by_metric": True,
+            },
+            "use_cases": [
+                "Hierarchical part-to-whole analysis",
+                "Drilling from broad categories to nested contributors",
+            ],
+        },
+        "ratio_colored_hierarchy": {
+            "description": (
+                "Arc size from a primary metric and sequential color from a "
+                "secondary-to-primary ratio"
+            ),
+            "config": {
+                "chart_type": "sunburst",
+                "hierarchy": [{"name": "division"}, {"name": "product_line"}],
+                "metric": {"name": "sales", "aggregate": "SUM"},
+                "secondary_metric": {"name": "profit", "aggregate": "SUM"},
+                "linear_color_scheme": "superset_seq_1",
+                "number_format": ",.0f",
+                "show_total": True,
+            },
+            "use_cases": [
+                "Comparing magnitude and performance in one hierarchy",
+                "Finding high-volume branches with weak secondary ratios",
+            ],
+        },
+    }
+
     gantt_chart_configs = {
         "project_schedule": {
             "description": "Task intervals grouped by owner",
@@ -279,7 +362,6 @@ def get_chart_configs_resource() -> str:
             ],
         }
 
-    # Gauge configs
     gauge_configs = {
         "attainment_gauge": {
             "description": "Gauge with a target range and formatted value",
@@ -304,7 +386,11 @@ def get_chart_configs_resource() -> str:
             "Limit Y-axis metrics to 3-5 maximum for readability",
             "Use group_by to split data into series for comparison",
             "Use stacked=true for bar/area charts showing composition",
-            "Configure axis format for readability ($,.0f for currency, .2% for pct)",
+            (
+                "Use readable axis formats (,.0f for numbers, .2% for pct). "
+                "Use currency formatting only when user instructions or source "
+                "metadata establish the currency."
+            ),
             "Use orientation='horizontal' for bar charts with long category names",
         ],
         "table_charts": [
@@ -312,6 +398,12 @@ def get_chart_configs_resource() -> str:
             "Use meaningful labels different from raw column names",
             "Apply sort_by to highlight important data",
             "Use ag-grid-table viz_type for large interactive datasets",
+        ],
+        "bullet_charts": [
+            "Use one numeric metric; COUNT/COUNT_DISTINCT work for text columns",
+            "Use dimensions only when separate bullet rows are meaningful",
+            "Keep range/marker labels aligned one-for-one with their values",
+            "Use marker_lines for hard targets and markers for point comparisons",
         ],
         "interactive_pivots": [
             "Use rows for AG Grid row groups and columns for pivot labels",
@@ -330,6 +422,14 @@ def get_chart_configs_resource() -> str:
             "Use an aggregate, saved metric, or SQL metric that returns finite numbers",
             "Set min_val/max_val and aligned intervals for a stable shared scale",
         ],
+        "sunburst_charts": [
+            "Order hierarchy from broad/root categories to narrow/leaf categories",
+            "Use unique physical columns for every hierarchy level",
+            "Use secondary_metric when its ratio to the primary metric should drive "
+            "a sequential color scale; omit it for categorical colors",
+            "Keep row_limit and hierarchy cardinality bounded for readable rings",
+            "Use show_labels_threshold to suppress labels on very small arcs",
+        ],
         "general": [
             "Always verify column names with get_dataset_info before charting",
             "Set temporal_column when dashboard time filters should use a column "
@@ -342,10 +442,32 @@ def get_chart_configs_resource() -> str:
 
     resource_data = {
         "xy_chart_configs": xy_chart_configs,
+        "bullet_chart_configs": bullet_chart_configs,
         "table_chart_configs": table_chart_configs,
+        "sunburst_chart_configs": sunburst_chart_configs,
         "interactive_pivot_configs": interactive_pivot_configs,
         "gantt_chart_configs": gantt_chart_configs,
         "gauge_configs": gauge_configs,
+        "geographic_configs": {
+            "regional_choropleth": {
+                "chart_type": "country_map",
+                "country": "usa",
+                "region_format": "abbreviation",
+                "entity": {"name": "state"},
+                "metric": {"name": "sales", "aggregate": "SUM"},
+            },
+            "country_choropleth": {
+                "chart_type": "world_map",
+                "country_format": "cca2",
+                "entity": {"name": "country"},
+                "metric": {"name": "sales", "aggregate": "SUM"},
+            },
+            "geographic_points": {
+                "chart_type": "deck_scatter",
+                "latitude": {"name": "latitude"},
+                "longitude": {"name": "longitude"},
+            },
+        },
         "best_practices": best_practices,
         "usage_notes": [
             "All examples are valid ChartConfig objects that pass validation",

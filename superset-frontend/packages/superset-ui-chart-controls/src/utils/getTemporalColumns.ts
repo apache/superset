@@ -42,12 +42,12 @@ export function getTemporalColumns(
 
   if (isDataset(datasource)) {
     rv.temporalColumns = ensureIsArray(datasource.columns).filter(
-      c => c.is_dttm,
+      (c: ColumnMeta) => c.is_dttm,
     );
   }
   if (isQueryResponse(datasource)) {
     rv.temporalColumns = ensureIsArray(datasource.columns).filter(
-      c => c.is_dttm,
+      (c: QueryColumn) => c.is_dttm,
     );
   }
 

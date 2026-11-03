@@ -28,7 +28,7 @@ import {
   ControlStateMapping,
   Dataset,
 } from '@superset-ui/chart-controls';
-import { omit, pick } from 'lodash-es';
+import { isEqual, omit, pick } from 'lodash-es';
 import { DYNAMIC_PLUGIN_CONTROLS_READY } from 'src/components/Chart/chartAction';
 import { getControlsState } from 'src/explore/store';
 import {
@@ -155,9 +155,11 @@ interface SetStashFormDataAction {
   isHidden: boolean;
 }
 
-// Editor can be either a number (subject ID) or an object with value/label
-// This handles both Slice format (number[]) and select control format ({value, label}[])
-type EditorItem = number | { value: number; label: string };
+// Editors arrive as subject IDs, select options, or API subject responses.
+type EditorItem =
+  | number
+  | { value: number; label: string }
+  | { id: number; label: string };
 
 interface SliceUpdatedAction {
   type: typeof actions.SLICE_UPDATED;
@@ -445,17 +447,22 @@ export default function exploreReducer(
           const rerenderControl = (
             newState.controls as Record<string, ControlState>
           )[rerenderControlName];
+          const updatedControl = getControlStateFromControlConfig(
+            rerenderControl as Parameters<
+              typeof getControlStateFromControlConfig
+            >[0],
+            newState as Parameters<typeof getControlStateFromControlConfig>[1],
+            rerenderControl?.value,
+          );
           rerenderedControls[rerenderControlName] = {
-            ...getControlStateFromControlConfig(
-              rerenderControl as Parameters<
-                typeof getControlStateFromControlConfig
-              >[0],
-              newState as Parameters<
-                typeof getControlStateFromControlConfig
-              >[1],
-              rerenderControl?.value,
-            ),
+            ...updatedControl,
           } as ExtendedControlState;
+          if (
+            updatedControl &&
+            !isEqual(updatedControl.value, rerenderControl?.value)
+          ) {
+            new_form_data[rerenderControlName] = updatedControl.value;
+          }
         });
       }
 
@@ -487,7 +494,14 @@ export default function exploreReducer(
       >;
       const dependantControls = Object.entries(controlsTyped)
         .filter(
-          ([, item]) =>
+          ([key, item]) =>
+            // A control is never its own dependant. Rebuilding one here uses
+            // the value held *before* this action, so a control that named
+            // itself would overwrite the value this action just set -- the
+            // control and `form_data` would then disagree for the rest of the
+            // session, and the query is built from the controls. Recomputing a
+            // control's own derived props belongs in `shouldMapStateToProps`.
+            key !== controlName &&
             Array.isArray(item?.validationDependencies) &&
             item.validationDependencies.includes(controlName),
         )
@@ -637,9 +651,10 @@ export default function exploreReducer(
     },
     [actions.SLICE_UPDATED]() {
       const typedAction = action as SliceUpdatedAction;
-      // Handle editors that can be either number[] or Array<{value, label}>
-      const getEditorId = (editor: EditorItem): number =>
-        typeof editor === 'number' ? editor : editor.value;
+      const getEditorId = (editor: EditorItem): number => {
+        if (typeof editor === 'number') return editor;
+        return 'value' in editor ? editor.value : editor.id;
+      };
       const getEditorLabel = (editor: EditorItem): string | null =>
         typeof editor === 'number' ? null : editor.label;
       return {

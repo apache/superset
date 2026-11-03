@@ -22,8 +22,8 @@ import { skipUnlessFeatureEnabled } from '../../helpers/featureFlags';
 import { DashboardPage } from '../../pages/DashboardPage';
 import { createTestDashboard } from './dashboard-test-helpers';
 
-// The default theme's screenXLMax is 1599. Computed positioning assertions
-// below also verify that each viewport exercises its intended branch.
+// Widths either side of the default theme's screenXLMax (1599): the panel
+// must open the same way on both.
 for (const width of [1920, 1280]) {
   testWithAssets(
     `history preserves closed dashboard height and header access at ${width}px`,
@@ -104,19 +104,30 @@ for (const width of [1920, 1280]) {
         .getByRole('menuitem', { name: 'View version history' })
         .click();
       await expect(panel).toBeVisible();
-      await expect(column).toHaveCSS(
-        'position',
-        width === 1920 ? 'sticky' : 'absolute',
+      // One layout at every width: an overlay anchored in the content cell
+      // that adds no width to the page and leaves no strip beside the header.
+      await expect(column).toHaveCSS('position', 'absolute');
+      await expect(column).toHaveCSS('grid-column-start', '2');
+      await expect(panel).toHaveCSS('position', 'sticky');
+      const open = await measure();
+      expect(Math.abs(open.gridHeight - closed.gridHeight)).toBeLessThanOrEqual(
+        1,
       );
-      if (width === 1280) {
-        await expect(column).toHaveCSS('grid-column-start', '2');
-        await expect(panel).toHaveCSS('position', 'sticky');
-        const open = await measure();
-        expect(
-          Math.abs(open.gridHeight - closed.gridHeight),
-        ).toBeLessThanOrEqual(1);
-        expect(open.documentWidth).toBeLessThanOrEqual(width + 1);
-      }
+      expect(open.documentWidth).toBeLessThanOrEqual(width + 1);
+      // The panel's right edge is the header's: nothing beside the header.
+      const rightEdges = await page.evaluate(() => {
+        const right = (testId: string) =>
+          document
+            .querySelector(`[data-test="${testId}"]`)
+            ?.getBoundingClientRect().right ?? NaN;
+        return {
+          header: right('dashboard-header-wrapper'),
+          column: right('dashboard-version-history-column'),
+        };
+      });
+      expect(
+        Math.abs(rightEdges.column - rightEdges.header),
+      ).toBeLessThanOrEqual(1);
 
       // Bring the sticky dashboard header to the top of its scrollport; its
       // measured height, not the global navigation, is the panel's offset.

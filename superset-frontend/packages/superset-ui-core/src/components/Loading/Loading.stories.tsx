@@ -18,6 +18,7 @@
  */
 import type { LoadingProps, PositionOption, SizeOption } from './types';
 import { Loading } from '.';
+import { Fragment } from 'react';
 
 export default {
   title: 'Components/Loading',
@@ -82,7 +83,7 @@ export const SizeAndOpacityShowcase = () => (
       </div>
 
       {SIZES.map(size => (
-        <>
+        <Fragment key={size}>
           <div key={`${size}-label`} style={{ fontWeight: 'bold' }}>
             {size.toUpperCase()} (
             {size === 's' ? '40px' : size === 'm' ? '70px' : '100px'})
@@ -115,7 +116,7 @@ export const SizeAndOpacityShowcase = () => (
             {size === 'm' && 'Explore pages, medium content'}
             {size === 'l' && 'Main loading, full pages'}
           </div>
-        </>
+        </Fragment>
       ))}
     </div>
   </div>

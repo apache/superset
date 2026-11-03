@@ -23,7 +23,7 @@ from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 import yaml
@@ -35,7 +35,7 @@ from superset.mcp_service.chart.chart_helpers import (
 )
 from superset.mcp_service.chart.chart_utils import (
     map_gantt_config,
-    merge_chart_form_data,
+    merge_form_data_for_update,
     merge_gantt_ui_config,
     validate_gantt_form_data,
 )
@@ -837,6 +837,41 @@ def test_query_fields_and_query_context_shape_match_frontend() -> None:
     assert query["row_limit"] == 321
 
 
+def test_saved_column_objects_become_semantic_query_names() -> None:
+    """Saved Gantt references remain queryable after a semantic-view rebind."""
+    form_data: dict[str, Any] = {
+        "viz_type": "gantt_chart",
+        "start_time": {"column_name": "start_time"},
+        "end_time": {"column_name": "end_time"},
+        "y_axis": {"column_name": "task"},
+        "series": {"column_name": "owner"},
+        "tooltip_columns": [{"column_name": "project"}],
+    }
+    expected_columns: list[str] = [
+        "start_time",
+        "end_time",
+        "task",
+        "owner",
+        "project",
+    ]
+
+    columns: list[Any]
+    series_columns: list[Any]
+    columns, _, _, series_columns = resolve_gantt_query_fields(form_data)
+
+    assert columns == expected_columns
+    assert series_columns == ["owner"]
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="semantic_view",
+    ):
+        query: dict[str, Any] = build_query_dicts_from_form_data(
+            form_data, 7, "semantic_view"
+        )[0]
+    assert query["columns"] == expected_columns
+    assert query["series_columns"] == ["owner"]
+
+
 def test_saved_query_fallback_rejects_malformed_native_order() -> None:
     form_data = {
         "viz_type": "gantt_chart",
@@ -1153,6 +1188,9 @@ def test_update_chart_preview_maps_gantt_semantic_normalization_to_error() -> No
         patch.object(
             update_chart_preview_module, "_find_dataset", return_value=dataset
         ),
+        patch.object(
+            update_chart_preview_module, "has_dataset_access", return_value=True
+        ),
         patch.object(update_chart_preview_module, "generate_explore_link") as link,
     ):
         result = asyncio.run(
@@ -1362,6 +1400,7 @@ def test_cached_update_chart_preview_preserves_or_replaces_temporal_binding(
     }
     previous = {
         "viz_type": "gantt_chart",
+        "datasource": "1__table",
         "adhoc_filters": [old_binding, unrelated],
         "_mcp_dashboard_time_filter_subject": "Start_Time",
         "series": "Owner",
@@ -1756,6 +1795,8 @@ def test_saved_and_unsaved_gantt_preview_return_the_same_structured_error() -> N
         id=1,
         slice_name="Schedule",
         viz_type="gantt_chart",
+        datasource_id=1,
+        datasource_type="table",
         params=__import__("json").dumps(form_data),
     )
     strategy = VegaLitePreviewStrategy(
@@ -1766,7 +1807,7 @@ def test_saved_and_unsaved_gantt_preview_return_the_same_structured_error() -> N
         patch(
             "superset.mcp_service.chart.tool.get_chart_preview."
             "build_query_context_from_form_data",
-            return_value=object(),
+            return_value=MagicMock(),
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"
@@ -1834,7 +1875,7 @@ def test_saved_and_unsaved_gantt_previews_fail_on_embedded_query_errors(
         patch(
             "superset.mcp_service.chart.tool.get_chart_preview."
             "build_query_context_from_form_data",
-            return_value=object(),
+            return_value=MagicMock(),
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"
@@ -1849,7 +1890,7 @@ def test_saved_and_unsaved_gantt_previews_fail_on_embedded_query_errors(
         patch(
             "superset.mcp_service.chart.chart_helpers."
             "build_query_context_from_form_data",
-            return_value=object(),
+            return_value=MagicMock(),
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"
@@ -1878,7 +1919,7 @@ def test_valid_empty_query_result_stays_a_successful_empty_gantt_preview() -> No
         patch(
             "superset.mcp_service.chart.chart_helpers."
             "build_query_context_from_form_data",
-            return_value=object(),
+            return_value=MagicMock(),
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"
@@ -1905,7 +1946,7 @@ def test_valid_empty_query_result_stays_a_successful_empty_gantt_preview() -> No
         patch(
             "superset.mcp_service.chart.tool.get_chart_preview."
             "build_query_context_from_form_data",
-            return_value=object(),
+            return_value=MagicMock(),
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"
@@ -1931,7 +1972,7 @@ def test_query_failure_detection_applies_without_changing_valid_table_preview() 
         patch(
             "superset.mcp_service.chart.chart_helpers."
             "build_query_context_from_form_data",
-            return_value=object(),
+            return_value=MagicMock(),
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"
@@ -2130,6 +2171,7 @@ def test_update_chart_preview_rejects_cached_series_colliding_with_new_category(
     )
     previous = {
         "viz_type": "gantt_chart",
+        "datasource": "1__table",
         "start_time": "Start_Time",
         "end_time": "End_Time",
         "y_axis": "Task",
@@ -2144,6 +2186,9 @@ def test_update_chart_preview_rejects_cached_series_colliding_with_new_category(
         ),
         patch.object(
             update_chart_preview_module, "_find_dataset", return_value=dataset
+        ),
+        patch.object(
+            update_chart_preview_module, "has_dataset_access", return_value=True
         ),
         patch.object(
             update_chart_preview_module,
@@ -2383,7 +2428,7 @@ def test_gantt_update_preview_matches_would_be_persisted_state(
     preview_state = {
         key: value
         for key, value in preview.items()
-        if key not in {"datasource", "slice_id", "slice_name"}
+        if key not in {"datasource", "slice_name"}
     }
     assert preview_state == persisted
 
@@ -2616,8 +2661,11 @@ def _gantt_partial_update_states(
     assert isinstance(preview, dict)
     assert isinstance(payload, dict)
     persisted = __import__("json").loads(payload["params"])
-    cached = merge_chart_form_data(
-        existing, map_gantt_config(config), config, dataset_rebind=dataset_rebind
+    cached_patch = map_gantt_config(config)
+    if not dataset_rebind:
+        merge_gantt_ui_config(existing, cached_patch)
+    cached = merge_form_data_for_update(
+        existing, cached_patch, config, dataset_rebind=dataset_rebind
     )
     return [preview, persisted, cached]
 

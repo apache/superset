@@ -22,6 +22,8 @@ import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterCon
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { OptionSortType } from 'src/explore/types';
 import { useGetTimeRangeLabel } from 'src/explore/components/controls/FilterControl/utils';
+import { isMirroredFilter } from 'src/explore/components/PartitionPruningIndicator';
+import type { PartitionFilterMapping } from '@superset-ui/chart-controls';
 import OptionWrapper from './OptionWrapper';
 import { datasetLabelLower } from 'src/features/semanticLayers/label';
 
@@ -31,6 +33,7 @@ export interface DndAdhocFilterOptionProps {
   onClickClose: (index: number) => void;
   onShiftOptions: (dragIndex: number, hoverIndex: number) => void;
   options: OptionSortType[];
+  semanticSelectionVersion?: string;
   datasource: Record<string, any>;
   partitionColumn?: string;
   index: number;
@@ -40,6 +43,7 @@ export default function DndAdhocFilterOption({
   adhocFilter,
   options,
   datasource,
+  semanticSelectionVersion,
   onFilterEdit,
   onShiftOptions,
   onClickClose,
@@ -48,12 +52,24 @@ export default function DndAdhocFilterOption({
 }: DndAdhocFilterOptionProps) {
   const { actualTimeRange, title } = useGetTimeRangeLabel(adhocFilter);
 
+  // Note `partitionColumn` above is the unrelated Presto `latest_partition`
+  // feature. This is the dataset's partition filter mapping, carried on the
+  // datasource as a self-contained summary.
+  const partitionMapping = datasource?.partition_filter_mapping as
+    | PartitionFilterMapping
+    | null
+    | undefined;
+  // Naming the mapped column is not enough: the operator and the value decide
+  // whether the query actually carries a partition predicate.
+  const isMirrored = isMirroredFilter(partitionMapping, adhocFilter);
+
   return (
     <AdhocFilterPopoverTrigger
       key={index}
       adhocFilter={adhocFilter}
       options={options}
       datasource={datasource}
+      semanticSelectionVersion={semanticSelectionVersion}
       onFilterEdit={onFilterEdit}
       partitionColumn={partitionColumn}
     >
@@ -67,6 +83,7 @@ export default function DndAdhocFilterOption({
         type={DndItemType.FilterOption}
         withCaret
         isExtra={adhocFilter.isExtra}
+        partitionMapping={isMirrored ? partitionMapping : undefined}
         datasourceWarningMessage={
           adhocFilter.datasourceWarning
             ? t(

@@ -47,6 +47,8 @@ app.db
 *.egg-info/
 changelog.sh
 dist
+# The E2E semantic stub is a LOCAL_EXTENSIONS bundle, which must sit in dist/.
+!tests/e2e_extensions/semantic_stub/dist/
 dump.rdb
 env
 venv*

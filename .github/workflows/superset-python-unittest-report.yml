@@ -34,7 +34,7 @@ jobs:
       - name: Download JUnit results
         id: download
         continue-on-error: true
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           # merge-multiple is intentionally omitted: each matrix leg's
           # artifact (junit-results-current, junit-results-next) uses the
@@ -51,7 +51,7 @@ jobs:
         id: download-event
         if: steps.download.outcome == 'success'
         continue-on-error: true
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: "Event File"
           path: event
@@ -60,7 +60,7 @@ jobs:
 
       - name: Publish test results
         if: steps.download.outcome == 'success' && steps.download-event.outcome == 'success'
-        uses: EnricoMi/publish-unit-test-result-action@d0a4676d0e0b938bc201470d88276b7c74c712b3 # v2.24.0
+        uses: EnricoMi/publish-unit-test-result-action@7622c5bf3d112a72ab4fa3951c2aa5723d8ab92d # v2.25.0
         with:
           commit: ${{ github.event.workflow_run.head_sha }}
           event_file: event/event.json

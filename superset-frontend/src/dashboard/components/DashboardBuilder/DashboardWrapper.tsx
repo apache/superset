@@ -32,7 +32,7 @@ const StyledDiv = styled.div`
     background-color: ${theme.colorBgLayout};
     position: relative;
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr;
     grid-template-rows: auto 1fr;
     flex: 1;
     /* Special cases */

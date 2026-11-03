@@ -172,3 +172,56 @@ def test_report_execution_log_filter_non_admin_scoped_to_log_fk(
     (filter_expr,) = query.filter.call_args[0]
     assert filter_expr.left.table is ReportExecutionLog.__table__
     assert filter_expr.left.name == "report_schedule_id"
+
+
+# -- Report target related-field filters --
+#
+# A scheduled report renders as the deployment's configured executor rather
+# than as its author, so the assets selectable as a report target can be a
+# subset of the assets the author may read. These filters express that by
+# reading their own exclusion key, and inherit every other rule.
+
+
+@patch("superset.reports.filters.apply_extra_access_exclusions")
+def test_report_target_chart_filter_uses_its_own_exclusion_key(
+    mock_exclusions: MagicMock,
+) -> None:
+    from superset.charts.filters import ChartFilter
+    from superset.reports.filters import ReportTargetChartFilter
+
+    query = MagicMock()
+    # Deliberately a different object: returning ``query`` unchanged would let a
+    # dropped ``query = ...`` assignment pass this test while excluded targets
+    # reappeared in the picker.
+    narrowed = MagicMock(name="narrowed_query")
+    mock_exclusions.return_value = narrowed
+
+    with patch.object(ChartFilter, "apply", return_value="delegated") as mock_parent:
+        f = ReportTargetChartFilter("id", MagicMock())
+        assert f.apply(query, None) == "delegated"
+
+    # The ordinary "charts" key must not be what narrows a report target list.
+    assert mock_exclusions.call_args.args[1] == "report_target_charts"
+    # ...and the parent's rules run on the *narrowed* query, not the original.
+    mock_parent.assert_called_once_with(narrowed, None)
+
+
+@patch("superset.reports.filters.apply_extra_access_exclusions")
+def test_report_target_dashboard_filter_uses_its_own_exclusion_key(
+    mock_exclusions: MagicMock,
+) -> None:
+    from superset.dashboards.filters import DashboardAccessFilter
+    from superset.reports.filters import ReportTargetDashboardFilter
+
+    query = MagicMock()
+    narrowed = MagicMock(name="narrowed_query")
+    mock_exclusions.return_value = narrowed
+
+    with patch.object(
+        DashboardAccessFilter, "apply", return_value="delegated"
+    ) as mock_parent:
+        f = ReportTargetDashboardFilter("id", MagicMock())
+        assert f.apply(query, None) == "delegated"
+
+    assert mock_exclusions.call_args.args[1] == "report_target_dashboards"
+    mock_parent.assert_called_once_with(narrowed, None)

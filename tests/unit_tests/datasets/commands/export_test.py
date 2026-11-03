@@ -216,6 +216,8 @@ folders:
     - uuid: 00000000-0000-0000-0000-000000000005
       type: column
       name: profit
+partition_column: null
+partition_mapped_column: null
 uuid: {payload["uuid"]}
 metrics:
 - metric_name: cnt
@@ -244,6 +246,8 @@ columns:
   datetime_format: null
   extra:
     certified_by: User
+  partition_value_transform: null
+  partition_transform_is_monotonic: false
   uuid: 00000000-0000-0000-0000-000000000005
 - column_name: ds
   verbose_name: null
@@ -258,6 +262,8 @@ columns:
   python_date_format: null
   datetime_format: null
   extra: null
+  partition_value_transform: null
+  partition_transform_is_monotonic: false
   uuid: 00000000-0000-0000-0000-000000000006
 - column_name: user_id
   verbose_name: null
@@ -272,6 +278,8 @@ columns:
   python_date_format: null
   datetime_format: null
   extra: null
+  partition_value_transform: null
+  partition_transform_is_monotonic: false
   uuid: 00000000-0000-0000-0000-000000000007
 - column_name: revenue
   verbose_name: null
@@ -286,6 +294,8 @@ columns:
   python_date_format: null
   datetime_format: null
   extra: null
+  partition_value_transform: null
+  partition_transform_is_monotonic: false
   uuid: 00000000-0000-0000-0000-000000000008
 - column_name: expenses
   verbose_name: null
@@ -300,6 +310,8 @@ columns:
   python_date_format: null
   datetime_format: null
   extra: null
+  partition_value_transform: null
+  partition_transform_is_monotonic: false
   uuid: 00000000-0000-0000-0000-000000000009
 version: 1.0.0
 database_uuid: {database.uuid}

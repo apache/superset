@@ -571,3 +571,12 @@ def test_create_default_mcp_auth_factory_audience_not_required_for_api_key_only(
     result = create_default_mcp_auth_factory(mock_app)
 
     assert isinstance(result, CompositeTokenVerifier)
+
+
+def test_editor_instructions_apply_to_all_editor_lists() -> None:
+    """The direct-user editor explanation is shared, not dashboard-specific."""
+    instructions = get_default_instructions()
+    assert "\nedited_by_me means direct USER editor" in instructions
+    assert "For dashboards, edited_by_me" not in instructions
+    for tool_name in ("list_charts", "list_dashboards", "list_datasets"):
+        assert tool_name + '(request={"edited_by_me": true})' in instructions

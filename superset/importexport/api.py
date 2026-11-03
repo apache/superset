@@ -27,15 +27,22 @@ from superset.commands.importers.exceptions import (
     NoValidFilesFoundError,
 )
 from superset.commands.importers.v1.assets import ImportAssetsCommand
-from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.importers.v1.utils import (
+    get_contents_from_bundle,
+    open_import_bundle,
+)
 from superset.extensions import event_logger
-from superset.utils import json
 from superset.utils.core import (
     parse_boolean_string,
     send_export_zip,
     write_zip_entry,
 )
-from superset.views.base_api import BaseSupersetApi, requires_form_data, statsd_metrics
+from superset.views.base_api import (
+    BaseSupersetApi,
+    parse_json_form_field,
+    requires_form_data,
+    statsd_metrics,
+)
 
 
 class ImportExportRestApi(BaseSupersetApi):
@@ -186,7 +193,7 @@ class ImportExportRestApi(BaseSupersetApi):
         if not is_zipfile(upload):
             raise IncorrectFormatError("Not a ZIP file")
 
-        with ZipFile(upload) as bundle:
+        with open_import_bundle(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
         if not contents:
@@ -196,31 +203,13 @@ class ImportExportRestApi(BaseSupersetApi):
         # endpoint always overwrote existing assets.
         overwrite = parse_boolean_string(request.form.get("overwrite", "true"))
 
-        passwords = (
-            json.loads(request.form["passwords"])
-            if "passwords" in request.form
-            else None
+        passwords = parse_json_form_field("passwords")
+        ssh_tunnel_passwords = parse_json_form_field("ssh_tunnel_passwords")
+        ssh_tunnel_private_keys = parse_json_form_field("ssh_tunnel_private_keys")
+        ssh_tunnel_priv_key_passwords = parse_json_form_field(
+            "ssh_tunnel_private_key_passwords"
         )
-        ssh_tunnel_passwords = (
-            json.loads(request.form["ssh_tunnel_passwords"])
-            if "ssh_tunnel_passwords" in request.form
-            else None
-        )
-        ssh_tunnel_private_keys = (
-            json.loads(request.form["ssh_tunnel_private_keys"])
-            if "ssh_tunnel_private_keys" in request.form
-            else None
-        )
-        ssh_tunnel_priv_key_passwords = (
-            json.loads(request.form["ssh_tunnel_private_key_passwords"])
-            if "ssh_tunnel_private_key_passwords" in request.form
-            else None
-        )
-        encrypted_extra_secrets = (
-            json.loads(request.form["encrypted_extra_secrets"])
-            if "encrypted_extra_secrets" in request.form
-            else None
-        )
+        encrypted_extra_secrets = parse_json_form_field("encrypted_extra_secrets")
 
         command = ImportAssetsCommand(
             contents,

@@ -123,6 +123,7 @@ export default function transformProps(
     legendType,
     legendSort,
     showValue,
+    showSelectorLegend,
     xAxisLabelRotation,
   }: EchartsButterflyChartProps['formData'] = {
     ...DEFAULT_FORM_DATA,
@@ -254,6 +255,7 @@ export default function transformProps(
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -286,6 +288,7 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
         false,
         legendState,
       ),

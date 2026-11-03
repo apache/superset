@@ -64,7 +64,11 @@ import {
 } from 'src/components';
 import handleResourceExport from 'src/utils/export';
 import {
-  archiveConfirmDescription,
+  archiveConfirmContent,
+  archiveToastContent,
+  rememberArchivedType,
+  ToastContent,
+  archiveTitle,
   deleteActionLabel,
 } from 'src/utils/softDeleteCopy';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
@@ -105,7 +109,7 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 
 interface DashboardListProps {
   addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
+  addSuccessToast: (msg: string, options?: ToastContent['options']) => void;
   user?: UserWithPermissionsAndRoles;
 }
 
@@ -356,11 +360,14 @@ function DashboardList(props: DashboardListProps) {
     }).then(
       ({ json = {} }) => {
         refreshData();
-        addSuccessToast(
-          softDelete
-            ? t('Archived %s item(s)', dashboardsToDelete.length)
-            : json.message,
-        );
+        rememberArchivedType('dashboard');
+        const toast: ToastContent = softDelete
+          ? archiveToastContent(
+              t('Archived %s item(s)', dashboardsToDelete.length),
+              'dashboard',
+            )
+          : { text: json.message };
+        addSuccessToast(toast.text, toast.options);
       },
       createErrorHandler(errMsg =>
         addDangerToast(
@@ -396,7 +403,7 @@ function DashboardList(props: DashboardListProps) {
         Header: '',
         id: 'id',
         disableSortBy: true,
-        size: 'xs',
+        size: 'sm',
         hidden: !user?.userId,
       },
       {
@@ -428,6 +435,7 @@ function DashboardList(props: DashboardListProps) {
         ),
         Header: t('Name'),
         accessor: 'dashboard_title',
+        size: 'xxxl',
         id: 'dashboard_title',
       },
       {
@@ -564,14 +572,12 @@ function DashboardList(props: DashboardListProps) {
                   recoverable={softDelete}
                   title={
                     softDelete
-                      ? t('Archive %(name)s?', {
-                          name: original.dashboard_title,
-                        })
+                      ? archiveTitle(original.dashboard_title)
                       : t('Please confirm')
                   }
                   description={
                     softDelete ? (
-                      archiveConfirmDescription(t('dashboard'))
+                      archiveConfirmContent('dashboard', t('dashboard'))
                     ) : (
                       <>
                         {t('Are you sure you want to delete')}{' '}
@@ -587,9 +593,13 @@ function DashboardList(props: DashboardListProps) {
                       tooltip={
                         allowEdit
                           ? deleteActionLabel()
-                          : t(
-                              'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
-                            )
+                          : softDelete
+                            ? t(
+                                'You must be a dashboard editor in order to archive. Please reach out to a dashboard editor to request modifications or edit access.',
+                              )
+                            : t(
+                                'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
+                              )
                       }
                       placement="bottom"
                       icon={
@@ -895,7 +905,7 @@ function DashboardList(props: DashboardListProps) {
         }
         description={
           softDelete
-            ? archiveConfirmDescription(t('dashboards'), true)
+            ? archiveConfirmContent('dashboard', t('dashboards'), true)
             : t('Are you sure you want to delete the selected dashboards?')
         }
         onConfirm={handleBulkDashboardDelete}
@@ -931,11 +941,16 @@ function DashboardList(props: DashboardListProps) {
               )}
               {dashboardToDelete && (
                 <DeleteModal
+                  recoverable={softDelete}
                   description={
-                    <>
-                      {t('Are you sure you want to delete')}{' '}
-                      <b>{dashboardToDelete.dashboard_title}</b>?
-                    </>
+                    softDelete ? (
+                      archiveConfirmContent('dashboard', t('dashboard'))
+                    ) : (
+                      <>
+                        {t('Are you sure you want to delete')}{' '}
+                        <b>{dashboardToDelete.dashboard_title}</b>?
+                      </>
+                    )
                   }
                   onConfirm={() => {
                     handleDashboardDelete(
@@ -950,7 +965,11 @@ function DashboardList(props: DashboardListProps) {
                   }}
                   onHide={() => setDashboardToDelete(null)}
                   open={!!dashboardToDelete}
-                  title={t('Please confirm')}
+                  title={
+                    softDelete
+                      ? archiveTitle(dashboardToDelete.dashboard_title)
+                      : t('Please confirm')
+                  }
                 />
               )}
               <ListView<Dashboard>

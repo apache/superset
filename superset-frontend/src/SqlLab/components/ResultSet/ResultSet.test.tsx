@@ -93,12 +93,13 @@ jest.mock('src/components/StreamingExportModal/useStreamingExport', () => ({
   }),
 }));
 
-jest.mock(
-  'react-virtualized-auto-sizer',
-  () =>
-    ({ children }: { children: (params: { height: number }) => ReactChild }) =>
-      children({ height: 500 }),
-);
+jest.mock('react-virtualized-auto-sizer', () => ({
+  AutoSizer: ({
+    renderProp,
+  }: {
+    renderProp: (params: { height: number }) => ReactChild;
+  }) => renderProp({ height: 500 }),
+}));
 const applicationRootMock = jest.spyOn(getBootstrapData, 'applicationRoot');
 
 const mockedProps = {

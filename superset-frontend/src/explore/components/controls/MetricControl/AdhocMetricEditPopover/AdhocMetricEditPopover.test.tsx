@@ -474,7 +474,7 @@ test('disables saved metrics absent from a verified compatibility result', async
     },
   });
 
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('combobox', { name: 'Select saved metrics' }),
   );
 
@@ -500,7 +500,7 @@ test('keeps every saved metric enabled after a failed compatibility request', as
     },
   });
 
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('combobox', { name: 'Select saved metrics' }),
   );
 

@@ -19,6 +19,7 @@
 import React from 'react';
 import databaseData from '../../data/databases.json';
 import type { DatabaseData } from './types';
+import DatabaseLogo from './DatabaseLogo';
 
 const typedData = databaseData as DatabaseData;
 
@@ -35,6 +36,7 @@ const databases = Object.entries(typedData.databases)
   .map(([name, db]) => ({
     name,
     logo: db.documentation.logo!,
+    logoDark: db.documentation.logo_dark,
     docPath: `/user-docs/databases/supported/${name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
@@ -54,15 +56,16 @@ export default function DatabaseLogoWall(): React.JSX.Element {
         maxWidth: 900,
       }}
     >
-      {databases.map(({ name, logo, docPath }) => (
+      {databases.map(({ name, logo, logoDark, docPath }) => (
         <a
           key={name}
           href={docPath}
           title={name}
           style={{ display: 'inline-flex', alignItems: 'center', height: 40 }}
         >
-          <img
-            src={`/img/databases/${logo}`}
+          <DatabaseLogo
+            logo={logo}
+            logoDark={logoDark}
             alt={name}
             className="database-logo"
             style={{ height: 36, maxWidth: 120 }}

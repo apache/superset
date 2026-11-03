@@ -18,6 +18,7 @@
  * under the License.
  */
 import { SetDataMaskHook } from '@superset-ui/core';
+import type { TotalsAggregate } from '@superset-ui/chart-controls';
 import { SortByItem } from '../types';
 
 export interface ClientViewColumn {
@@ -40,6 +41,7 @@ interface TableOwnState {
   sortBy?: SortByItem[];
   rawSummaryColumns?: string[];
   totalsRequested?: boolean;
+  totalsAggregate?: TotalsAggregate;
   clientView?: ClientViewSnapshot;
 }
 

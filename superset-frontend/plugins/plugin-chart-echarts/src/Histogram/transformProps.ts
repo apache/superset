@@ -27,6 +27,7 @@ import {
   getColumnLabel,
   getValueFormatter,
   tooltipHtml,
+  tooltipMarker,
 } from '@superset-ui/core';
 import { HistogramChartProps, HistogramTransformedProps } from './types';
 import { LegendOrientation, LegendType, Refs } from '../types';
@@ -58,6 +59,7 @@ export default function transformProps(
     groupby = [],
     normalize,
     showLegend,
+    showSelectorLegend,
     showValue,
     sliceId,
     xAxisFormat,
@@ -123,8 +125,11 @@ export default function transformProps(
   const tooltipFormatter = (params: CallbackDataParams[]) => {
     const title = params[0].name;
     const rows = params.map(param => {
-      const { marker, seriesName, value } = param;
-      return [`${marker}${seriesName}`, yAxisFormatter.format(value as number)];
+      const { color, seriesName, value } = param;
+      return [
+        `${tooltipMarker(color)}${seriesName}`,
+        yAxisFormatter.format(value as number),
+      ];
     });
     if (groupby.length > 0) {
       const total = params.reduce(
@@ -185,6 +190,7 @@ export default function transformProps(
         LegendOrientation.Top,
         showLegend,
         theme,
+        showSelectorLegend,
         false,
         legendState,
       ),

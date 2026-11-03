@@ -108,14 +108,17 @@ def init_frontend_deps(frontend_dir: Path) -> None:
     """
     node_modules = frontend_dir / "node_modules"
     if not node_modules.exists():
+        # The published @apache-superset/core still pins react/react-dom peers to
+        # ^17.0.2, while scaffolded extensions target the host's actual ^18.3.0 --
+        # a plain install hits ERESOLVE until core's peer range is widened.
         package_lock = frontend_dir / "package-lock.json"
         if package_lock.exists():
             click.secho("⚙️  node_modules not found, running `npm ci`…", fg="cyan")
-            npm_command = ["npm", "ci"]
+            npm_command = ["npm", "ci", "--legacy-peer-deps"]
             error_msg = "❌ `npm ci` failed. Aborting."
         else:
             click.secho("⚙️  node_modules not found, running `npm i`…", fg="cyan")
-            npm_command = ["npm", "i"]
+            npm_command = ["npm", "i", "--legacy-peer-deps"]
             error_msg = "❌ `npm i` failed. Aborting."
 
         validate_npm()

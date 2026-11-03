@@ -20,6 +20,8 @@ import { act, render } from '@testing-library/react';
 import {
   CategoricalColorNamespace,
   getLabelsColorMap,
+  getNumberFormatterRegistry,
+  NumberFormatter,
 } from '@superset-ui/core';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import EchartsRose from '../../src/Rose/EchartsRose';
@@ -183,4 +185,41 @@ test('clicking a different period while drilled returns to the rose view', () =>
     lastEchartCall().eventHandlers.click({ dataIndex: 1 });
   });
   expect(lastEchartCall().echartOptions).toBe(ROSE_ECHART_OPTIONS);
+});
+
+test('drilled Rose tooltips preserve literal series and period text', () => {
+  const name = 'Love <3 charts & <img src=x>';
+  const label = 'Users <30 & <b>period</b>';
+  const value = '<b>30</b>';
+  const numberFormat = 'drilled-rose-tooltip-markup';
+  getNumberFormatterRegistry().registerValue(
+    numberFormat,
+    new NumberFormatter({ id: numberFormat, formatFunc: () => value }),
+  );
+  renderRose({
+    ...baseProps,
+    seriesNames: [name],
+    numberFormat,
+    periods: [
+      {
+        time: 1,
+        label,
+        entries: [{ seriesName: name, value: 30, increment: 1 }],
+      },
+    ],
+  });
+  act(() => {
+    lastEchartCall().eventHandlers.click({ dataIndex: 0 });
+  });
+  const html = lastEchartCall().echartOptions.tooltip.formatter({
+    name,
+    value: 30,
+    percent: 100,
+  });
+  getNumberFormatterRegistry().remove(numberFormat);
+  const element = document.createElement('div');
+  element.innerHTML = html;
+  expect(element.textContent).toBe(`${label}${name}: ${value} (100%)`);
+  expect(element.querySelector('img')).toBeNull();
+  expect(element.querySelectorAll('b')).toHaveLength(1);
 });

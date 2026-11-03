@@ -222,15 +222,15 @@
     "jsx-a11y/tabindex-no-positive": "error",
 
     // === TypeScript rules ===
-    "@typescript-eslint/ban-ts-comment": "off",
-    "@typescript-eslint/ban-types": "off",
-    "@typescript-eslint/no-empty-function": "off",
-    "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-use-before-define": "error",
-    "@typescript-eslint/no-non-null-assertion": "off",
-    "@typescript-eslint/explicit-function-return-type": "off",
-    "@typescript-eslint/explicit-module-boundary-types": "off",
-    "@typescript-eslint/no-unused-vars": [
+    "typescript/ban-ts-comment": "off",
+    "typescript/ban-types": "off",
+    "typescript/no-empty-function": "off",
+    "typescript/no-explicit-any": "off",
+    "typescript/no-use-before-define": "error",
+    "typescript/no-non-null-assertion": "off",
+    "typescript/explicit-function-return-type": "off",
+    "typescript/explicit-module-boundary-types": "off",
+    "typescript/no-unused-vars": [
       "error",
       {
         "argsIgnorePattern": "^_",
@@ -238,7 +238,7 @@
         "caughtErrors": "none"
       }
     ],
-    "@typescript-eslint/prefer-optional-chain": "error",
+    "typescript/prefer-optional-chain": "error",
 
     // === Unicorn rules (bonus coverage) ===
     "unicorn/no-new-array": "error",

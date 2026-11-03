@@ -43,6 +43,7 @@ import {
   FeatureFlag,
   isDefined,
   SupersetClient,
+  getClientErrorObject,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
@@ -136,6 +137,7 @@ export type ColumnType =
   | MetricColumnType;
 
 export interface Props {
+  semanticSelectionVersion?: string;
   adhocFilter: AdhocFilter;
   onChange: (filter: AdhocFilter) => void;
   options: ColumnType[];
@@ -403,6 +405,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   const [loadedOptionCount, setLoadedOptionCount] = useState(0);
   const [optionsTruncated, setOptionsTruncated] = useState(false);
   const [suggestionsUnavailable, setSuggestionsUnavailable] = useState(false);
+  const [suggestionsError, setSuggestionsError] = useState<string>();
   const [suggestionsDisabled, setSuggestionsDisabled] = useState(false);
   // Identity of the newest suggestions request. A slow response that loses
   // the race -- a failing fetch resolving after a newer search succeeded, or
@@ -550,15 +553,21 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     // does not exist. Each note is only shown when it applies.
     helperText: suggestionsDisabled
       ? t('Suggestions are unavailable for this view. Enter a value manually.')
-      : suggestionsUnavailable
-        ? t('Suggestions could not be loaded. You can still type a value.')
-        : optionsTruncated
-          ? t(
-              'Only the first %s values are listed. Type to search all of them, ' +
-                'or enter a value that is not listed.',
-              loadedOptionCount,
-            )
-          : undefined,
+      : suggestionsError ||
+        (suggestionsUnavailable
+          ? t('Suggestions could not be loaded. You can still type a value.')
+          : optionsTruncated
+            ? props.datasource?.type === 'semantic_view'
+              ? t(
+                  'Only the first %s values are listed. Enter a value manually if it is not listed.',
+                  loadedOptionCount,
+                )
+              : t(
+                  'Only the first %s values are listed. Type to search all of them, ' +
+                    'or enter a value that is not listed.',
+                  loadedOptionCount,
+                )
+            : undefined),
     mode:
       operatorId && MULTI_OPERATORS.has(operatorId as Operators)
         ? ('multiple' as const)
@@ -602,6 +611,11 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   // `props.datasource`, whose identity the parent does not guarantee.
   const datasourceType = props.datasource?.type;
   const datasourceId = props.datasource?.id;
+  // This marker belongs to the selections, never to freshly fetched metadata.
+  const selectionVersion =
+    datasourceType === 'semantic_view' && !props.adhocFilter.isExtra
+      ? props.semanticSelectionVersion
+      : undefined;
 
   const loadComparatorOptions = useCallback(
     async (search: string): Promise<SelectOptionsTypePage> => {
@@ -620,6 +634,9 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
       }
       if (search) {
         params.set('q', search);
+      }
+      if (selectionVersion) {
+        params.set('semantic_selection_version', selectionVersion);
       }
       const query = params.toString();
 
@@ -659,6 +676,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
             isDefined(json.limit) && data.length >= json.limit,
           );
           setSuggestionsUnavailable(false);
+          setSuggestionsError(undefined);
         }
 
         // The count has to exceed what was returned. AsyncSelect treats
@@ -668,12 +686,20 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
         // replace. Pagination is held off by COMPARATOR_PAGE_SIZE instead.
         return { data, totalCount: data.length + 1 };
       } catch (error) {
+        const rejected =
+          datasourceType === 'semantic_view' &&
+          error instanceof Response &&
+          error.status === 400;
+        const guidance = rejected
+          ? (await getClientErrorObject(error)).error
+          : undefined;
         if (isCurrent()) {
+          setSuggestionsError(guidance || undefined);
           setLoadedOptionCount(0);
           setOptionsTruncated(false);
           // The empty page keeps the dropdown, and with it the value the
           // user types, in place; the note says why the page is empty.
-          setSuggestionsUnavailable(isSuggestionsOutage(error));
+          setSuggestionsUnavailable(rejected || isSuggestionsOutage(error));
         }
         // The count has to exceed the page: an empty page reported as
         // complete (0 >= 0) makes AsyncSelect serve every later search from
@@ -686,6 +712,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
       canSuggestComparatorValues,
       datasourceType,
       datasourceId,
+      selectionVersion,
       arrayElements,
     ],
   );
@@ -702,8 +729,15 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     // previous column must not resurface the note after this reset.
     comparatorRequestRef.current += 1;
     setSuggestionsUnavailable(false);
+    setSuggestionsError(undefined);
     setSuggestionsDisabled(false);
-  }, [subjectString, arrayElements]);
+  }, [
+    subjectString,
+    arrayElements,
+    datasourceType,
+    datasourceId,
+    selectionVersion,
+  ]);
 
   useEffect(() => {
     if (isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)) {
@@ -809,6 +843,12 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
             }
           >
             <SelectWithLabel
+              key={JSON.stringify([
+                datasourceType,
+                datasourceId,
+                subjectString,
+                selectionVersion,
+              ])}
               ref={comparatorSelectRef}
               css={css`
                 margin-top: ${theme.marginXS}px;

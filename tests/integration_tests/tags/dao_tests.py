@@ -22,7 +22,8 @@ from superset import db
 from superset.daos.tag import TagDAO
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.tags.models import ObjectType, Tag, TaggedObject
+from superset.models.sql_lab import SavedQuery
+from superset.tags.models import ObjectType, Tag, TaggedObject, TagType
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.tags import (
@@ -336,3 +337,94 @@ class TestTagsDAO(SupersetTestCase):
             .first()
         )
         assert tagged_object is None
+
+    @pytest.mark.usefixtures("with_tagging_system_feature")
+    def test_tagged_object_cleanup_on_dashboard_delete(self):
+        """Deleting a tagged dashboard cleans up its tagged_object rows.
+
+        Regression guard for ObjectUpdater.after_delete, the one part of the
+        old auto-tagging event-listener machinery still registered: unlike
+        editor:/type:/favorited_by: generation (removed, see TagType's
+        docstring), this cleanup applies to every tag on the object -- custom
+        tags included -- and nothing else removes these rows, since
+        TaggedObject.object_id carries no foreign key (see its column
+        comment).
+        """
+        dashboard = Dashboard(
+            dashboard_title="tag cleanup test", slug="tag-cleanup-test"
+        )
+        db.session.add(dashboard)
+        db.session.commit()
+        dashboard_id = dashboard.id
+
+        tag = self.insert_tag(name="cleanup_test_tag", tag_type=TagType.custom)
+        self.insert_tagged_object(
+            tag_id=tag.id, object_id=dashboard_id, object_type=ObjectType.dashboard
+        )
+
+        def tagged_object_count() -> int:
+            return (
+                db.session.query(TaggedObject)
+                .filter(
+                    TaggedObject.object_type == ObjectType.dashboard.name,
+                    TaggedObject.object_id == dashboard_id,
+                )
+                .count()
+            )
+
+        assert tagged_object_count() == 1
+
+        db.session.delete(dashboard)
+        db.session.commit()
+
+        assert tagged_object_count() == 0
+
+        db.session.delete(tag)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("with_tagging_system_feature")
+    def test_tagged_object_cleanup_on_chart_delete(self):
+        self._assert_tagged_object_cleanup_on_delete(ObjectType.chart)
+
+    @pytest.mark.usefixtures("with_tagging_system_feature")
+    def test_tagged_object_cleanup_on_saved_query_delete(self):
+        self._assert_tagged_object_cleanup_on_delete(ObjectType.query)
+
+    def _assert_tagged_object_cleanup_on_delete(self, object_type):
+        """Deleting a tagged chart or saved query cleans up its tagged_object
+        rows, guarding the delete listeners registered for those models."""
+        obj = (
+            Slice(slice_name="tag cleanup chart", viz_type="table")
+            if object_type == ObjectType.chart
+            else SavedQuery(label="tag cleanup query", sql="SELECT 1")
+        )
+        db.session.add(obj)
+        db.session.commit()
+        object_id = obj.id
+
+        tag = self.insert_tag(
+            name=f"cleanup_test_tag_{object_type.name}", tag_type=TagType.custom
+        )
+        self.insert_tagged_object(
+            tag_id=tag.id, object_id=object_id, object_type=object_type
+        )
+
+        def tagged_object_count() -> int:
+            return (
+                db.session.query(TaggedObject)
+                .filter(
+                    TaggedObject.object_type == object_type.name,
+                    TaggedObject.object_id == object_id,
+                )
+                .count()
+            )
+
+        assert tagged_object_count() == 1
+
+        db.session.delete(obj)
+        db.session.commit()
+
+        assert tagged_object_count() == 0
+
+        db.session.delete(tag)
+        db.session.commit()

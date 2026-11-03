@@ -26,12 +26,14 @@ from flask_appbuilder.api import (
     safe,
 )
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from marshmallow import ValidationError
 
 from superset import db, event_logger
+from superset.common.db_query_status import QueryStatus
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.query import QueryDAO
 from superset.databases.filters import DatabaseFilter
-from superset.exceptions import SupersetException
+from superset.exceptions import SupersetCancelQueryException, SupersetException
 from superset.models.sql_lab import Query
 from superset.queries.filters import QueryFilter
 from superset.queries.schemas import (
@@ -275,12 +277,24 @@ class QueryRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
+            422:
+              description: >
+                Query already finished or target transaction committed;
+                includes the recorded query
             500:
               $ref: '#/components/responses/500'
         """
         try:
             body = self.stop_query_schema.load(request.json)
-            QueryDAO.stop_query(body["client_id"])
+            query = QueryDAO.stop_query(body["client_id"])
+            if query.status != QueryStatus.STOPPED:
+                return self.response(
+                    SupersetCancelQueryException.status,
+                    message="Could not cancel query",
+                    query=query.to_dict(),
+                )
             return self.response(200, result="OK")
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
