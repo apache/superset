@@ -66,6 +66,29 @@ def test_sheet_name_strips_surrounding_apostrophes() -> None:
     assert sanitize_sheet_name("'quoted'", set()) == "quoted"
 
 
+def test_sheet_name_custom_length_cap() -> None:
+    assert len(sanitize_sheet_name("x" * 150, set(), max_len=100)) == 100
+
+
+def test_sheet_name_dedupe_marker_respects_custom_cap() -> None:
+    used: set[str] = set()
+    sanitize_sheet_name("A" * 120, used, max_len=100)
+    second = sanitize_sheet_name("a" * 120, used, max_len=100)
+    assert second.endswith("~2")
+    assert len(second) == 100
+
+
+def test_sheet_name_without_excel_rules_keeps_chars_and_history() -> None:
+    assert (
+        sanitize_sheet_name("Q1: [EU]/US", set(), max_len=100, excel_rules=False)
+        == "Q1: [EU]/US"
+    )
+    assert (
+        sanitize_sheet_name("History", set(), max_len=100, excel_rules=False)
+        == "History"
+    )
+
+
 # --- _sanitize_cell ---
 
 
