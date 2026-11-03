@@ -119,9 +119,8 @@ class HiveEngineSpec(PrestoEngineSpec):
     supports_dynamic_schema = True
     supports_cross_catalog_queries = False
 
-    # Epoch-integer partition keys are the common Hive layout, and the
-    # one-argument form takes the bound being mirrored rather than "now".
-    partition_value_transform_default = "unix_timestamp(:value)"
+    # A numeric key does not reveal its bucket size or timezone.
+    partition_value_transform_default = None
     # Explicitly opt out (overriding the inherited PrestoEngineSpec value):
     # Hive/Spark's GROUPING SETS + GROUPING() marker semantics have not been
     # verified against this query pattern, so fall back to one query per

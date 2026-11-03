@@ -340,6 +340,11 @@ export function defaultTransformFor(
 const NUMERIC_TYPE_RE =
   /INT|NUMERIC|DECIMAL|DOUBLE|FLOAT|REAL|NUMBER|BIGNUMERIC/i;
 
+/** Whether a declared column type holds numbers rather than strings. */
+export function isNumericType(type: string | null | undefined): boolean {
+  return Boolean(type && NUMERIC_TYPE_RE.test(type));
+}
+
 /**
  * The sample instant, 2026-01-15 10:47:23 UTC, in each epoch representation.
  *
