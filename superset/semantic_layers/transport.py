@@ -235,9 +235,12 @@ class HostProviderTransport(ProviderTransport):
         consume: Callable[[int], None] | None,
     ) -> bytes:
         body: BytesIO = BytesIO()
+        read_chunk: Callable[..., bytes] = getattr(
+            response.raw, "read1", response.raw.read
+        )
         while True:
             bound.remaining()
-            chunk: bytes = response.raw.read1(_CHUNK_BYTES, decode_content=False)
+            chunk: bytes = read_chunk(_CHUNK_BYTES, decode_content=False)
             bound.remaining()  # Shutdown can look like EOF; refuse partial bytes.
             if not chunk:
                 return body.getvalue()

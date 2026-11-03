@@ -774,6 +774,37 @@ def test_bounded_body_is_read_through_the_checked_connection(
     assert seen == [f"POST /q public.example.test:{port}"]
 
 
+def test_bounded_body_supports_urllib3_without_read1() -> None:
+    class RawWithoutRead1:
+        def __init__(self, body: bytes) -> None:
+            self.stream: BytesIO = BytesIO(body)
+            self.read_sizes: list[int] = []
+
+        def read(self, amt: int, decode_content: bool = False) -> bytes:
+            assert decode_content is False
+            self.read_sizes.append(amt)
+            return self.stream.read(amt)
+
+    raw: RawWithoutRead1 = RawWithoutRead1(b"response body")
+    response: Mock = Mock(raw=raw)
+    bound: semantic_layer_http._Deadline = semantic_layer_http._Deadline(
+        time.monotonic() + 2
+    )
+
+    assert (
+        semantic_layer_http.HostProviderTransport._read_body(response, bound, 32, None)
+        == b"response body"
+    )
+    assert raw.read_sizes == [semantic_layer_http._CHUNK_BYTES] * 2
+
+    oversized: RawWithoutRead1 = RawWithoutRead1(b"too many bytes")
+    with pytest.raises(ProviderRequestError, match="byte budget"):
+        semantic_layer_http.HostProviderTransport._read_body(
+            Mock(raw=oversized), bound, 4, None
+        )
+    assert oversized.read_sizes == [semantic_layer_http._CHUNK_BYTES]
+
+
 def test_bounded_body_is_refused_past_its_byte_cap(
     public_tls: tuple[ssl.SSLContext, list[str]],
 ) -> None:
