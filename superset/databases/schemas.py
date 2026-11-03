@@ -897,6 +897,32 @@ class CatalogsResponseSchema(Schema):
     )
 
 
+class EncryptedExtraHintSchema(Schema):
+    path = fields.String(
+        required=True,
+        metadata={"description": "JSONPath of the masked field"},
+    )
+    label = fields.String(
+        required=True,
+        metadata={"description": "Human readable name of the masked field"},
+    )
+    suffix = fields.String(
+        allow_none=True,
+        metadata={
+            "description": "Last characters of the stored value, null when the "
+            "value is too short to reveal any"
+        },
+    )
+    length = fields.Integer(
+        required=True,
+        metadata={"description": "Length of the stored value"},
+    )
+
+
+class EncryptedExtraHintsResponseSchema(Schema):
+    result = fields.List(fields.Nested(EncryptedExtraHintSchema))
+
+
 class DatabaseTablesResponse(Schema):
     extra = fields.Dict(
         metadata={"description": "Extra data used to specify column metadata"}
