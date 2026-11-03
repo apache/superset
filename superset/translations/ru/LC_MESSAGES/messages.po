@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -514,6 +514,13 @@ msgid_plural "%s days ago"
 msgstr[0] "%s день назад"
 msgstr[1] "%s дня назад"
 msgstr[2] "%s дней назад"
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "%s field"
@@ -2396,6 +2403,10 @@ msgstr "Произошла ошибка при загрузке информац
 msgid "An error occurred while loading the SQL"
 msgstr "Произошла ошибка при загрузке SQL"
 
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
+
 msgid "An error occurred while overwriting the dataset"
 msgstr "Произошла ошибка при перезаписи датасета"
 
@@ -2764,10 +2775,6 @@ msgstr "Вы уверены, что хотите удалить"
 #, python-format
 msgid "Are you sure you want to delete %s?"
 msgstr "Вы уверены, что хотите удалить %s?"
-
-#, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
 
 #, python-format
 msgid "Are you sure you want to delete the selected %s?"
@@ -3961,6 +3968,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr "Выберите числовой формат"
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr "Выберите источник"
 
@@ -3978,9 +3988,6 @@ msgstr "Выберите столбцы, которые должны быть и
 
 msgid "Choose columns to read"
 msgstr "Выберите столбцы для чтения"
-
-msgid "Choose current semantic fields"
-msgstr ""
 
 msgid "Choose current semantic filter fields"
 msgstr ""
@@ -5059,6 +5066,9 @@ msgstr "Создать диаграмму"
 msgid "Create or select schema..."
 msgstr "Создать или выбрать схему..."
 
+msgid "Create semantic layer"
+msgstr ""
+
 msgid "Created"
 msgstr "Создано"
 
@@ -6054,7 +6064,7 @@ msgstr "Удалить элемент"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -7327,6 +7337,10 @@ msgstr "Ошибка в Jinja-выражении в фильтрах RLS: %(msg)
 #, python-format
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Ошибка в Jinja-выражении в операторе WHERE: %(msg)s"
+
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
 
 #, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
@@ -8617,6 +8631,9 @@ msgstr ""
 msgid "Guest"
 msgstr ""
 
+msgid "Guest user cannot access this query"
+msgstr ""
+
 msgid "Guest user cannot modify chart payload"
 msgstr "Гость не может изменять данные диаграммы"
 
@@ -9878,6 +9895,12 @@ msgstr "Загрузка значений"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 msgid "Loading timezones..."
 msgstr "Загрузка часовых поясов..."
 
@@ -11045,6 +11068,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12579,6 +12618,12 @@ msgstr "Отношение"
 
 msgid "Raw records"
 msgstr "Сырые записи"
+
+msgid "Re-pick fields"
+msgstr ""
+
+msgid "Re-pick fields for this chart"
+msgstr ""
 
 msgid "Rearranged layout"
 msgstr ""
@@ -14368,6 +14413,9 @@ msgstr "Слой аннотаций не существует"
 msgid "Semantic layer parameters are invalid."
 msgstr "Некорректные параметры слоя аннотаций"
 
+msgid "Semantic layer setup guide"
+msgstr ""
+
 msgid "Semantic layer type"
 msgstr "Тип слоя аннотации"
 
@@ -15348,12 +15396,6 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "field selections, pre-filters, sorting, defaults and dependencies. Saved "
 "display titles cannot be recovered automatically."
-msgstr ""
-
-msgid ""
-"Start field selection using current member IDs. This clears any existing "
-"query and formatting settings. Saved display titles cannot be safely "
-"mapped to member IDs. The saved chart is unchanged until you save."
 msgstr ""
 
 msgid ""
@@ -16807,6 +16849,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr "Рассылка создана"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 msgid "The report will be sent to your email at"
 msgstr "Отчет будет отправлен на ваш email"
 
@@ -17127,6 +17175,13 @@ msgstr "Пользователь создан."
 
 msgid "The user has been updated successfully."
 msgstr "Пользователь обновлен."
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 msgid "The user was updated successfully"
 msgstr "Пользователь обновлен"
@@ -17645,6 +17700,9 @@ msgid ""
 "mydatabase.com)."
 msgstr "IP-адрес (например, 127.0.0.1) или доменное имя (например, mydatabase.com)"
 
+msgid "This cannot be undone."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -17690,6 +17748,13 @@ msgid ""
 "This chart version can't be restored because the semantic view it used "
 "has been permanently deleted. Restore a version that uses an existing "
 "semantic view or dataset, or recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart was saved with an older format of field names for this "
+"semantic view, so the fields it refers to can't be confirmed. Re-pick the"
+" metrics and dimensions to keep using it. The saved chart doesn't change "
+"until you save."
 msgstr ""
 
 msgid "This chart was updated to use the restored aggregation"
@@ -18046,6 +18111,13 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
 msgstr ""
 
 msgid ""
@@ -18641,6 +18713,9 @@ msgstr "Доверять этому URL и больше не спрашиват�
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 "Попробуйте использовать другие фильтры или убедитесь, что в вашем "
@@ -18847,7 +18922,20 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr "Не удалось загрузить дашборд"
 
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
+
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 msgid ""
@@ -20900,6 +20988,9 @@ msgstr "несколько секунд"
 msgid "aggregate"
 msgstr "агрегатная функция"
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr "условие оповещения"
 
@@ -20915,6 +21006,10 @@ msgstr "скопировать (дублировать) диаграммы"
 msgid "ancestor"
 msgstr "предок"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "аннотация"
 
@@ -20923,6 +21018,10 @@ msgstr "слой_аннотации"
 
 msgid "apple"
 msgstr "яблоко"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "asfreq (без изменения)"
@@ -21599,6 +21698,12 @@ msgstr ""
 
 msgid "query"
 msgstr "запрос"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "случайно"

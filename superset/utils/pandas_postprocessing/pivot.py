@@ -404,8 +404,9 @@ def pivot(  # pylint: disable=too-many-arguments  # noqa: C901
         df = _apply_show_values_as(df, percent_mode)
 
     if combine_value_with_metric:
-        # dropna=False preserves restored all-NaN metric rows that would otherwise
-        # be silently dropped by stack's default dropna=True behavior.
-        df = df.stack(level=0, dropna=False).unstack()
+        # stack() no longer introduces rows of NA values to drop (pandas >=2.1's
+        # "future" stack implementation, the only one since pandas 3.0), so the
+        # restored all-NaN metric rows are preserved without a dropna= argument.
+        df = df.stack(level=0).unstack()
 
     return df

@@ -36,7 +36,7 @@ from superset import security_manager
 from superset.app import SupersetApp
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object_factory import QueryObjectFactory
-from superset.extensions import appbuilder, feature_flag_manager
+from superset.extensions import appbuilder, csrf, feature_flag_manager
 from superset.initialization import SupersetAppInitializer
 
 
@@ -170,6 +170,11 @@ def build_app(config_overrides: dict[str, Any] | None = None) -> SupersetApp:
     # registered it.
     appbuilder.baseviews = []
     appbuilder.menu = Menu()
+    # ``superset.extensions.csrf`` is a singleton too, and accumulates the CSRF
+    # exemptions of every app built here; reset them so one test's config (e.g.
+    # FAB_API_KEY_ENABLED) can't leak exempt blueprints into later tests.
+    csrf._exempt_views = set()  # noqa: SLF001
+    csrf._exempt_blueprints = set()  # noqa: SLF001
 
     app_initializer = SupersetAppInitializer(app)
     app_initializer.init_app()
