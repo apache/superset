@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createContext, useContext, useMemo, useRef } from "react";
-import type { menus } from "@apache-superset/core";
-import { logging } from "@apache-superset/core/utils";
-import type { MenuItem } from "@superset-ui/core/components/Menu";
-import { commands, useMenu } from "src/core";
+import { createContext, useContext, useMemo, useRef } from 'react';
+import type { menus } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
+import type { MenuItem } from '@superset-ui/core/components/Menu';
+import { commands, useMenu } from 'src/core';
 
 type ChartDownloadLocation = menus.ChartDownloadLocation;
 type DashboardDownloadLocation = menus.DashboardDownloadLocation;
@@ -47,7 +47,7 @@ export function useExtensionMenuItems(
 
   return useMemo(() => {
     const items: MenuItem[] = [];
-    (menu ?? []).forEach((item) => {
+    (menu ?? []).forEach(item => {
       const command = commands.getCommand(item.command);
       if (!command) {
         return;
@@ -59,7 +59,7 @@ export function useExtensionMenuItems(
         onClick: () => {
           Promise.resolve(
             commands.executeCommand(item.command, latest.current.context),
-          ).catch((error) =>
+          ).catch(error =>
             logging.error(`Extension command "${item.command}" failed`, error),
           );
           latest.current.onItemClick?.();
@@ -92,7 +92,7 @@ export const ChartDownloadProvider: React.FC<
 const NO_ITEMS: MenuItem[] = [];
 const NO_CONTEXT: ChartDownloadContext = {
   getPayload: async () => ({}),
-  chartName: "",
+  chartName: '',
   canDownload: false,
 };
 
@@ -100,7 +100,7 @@ const NO_CONTEXT: ChartDownloadContext = {
 export function useChartDownloadItems(): MenuItem[] {
   const provided = useContext(ChartDownloadCtx);
   const items = useExtensionMenuItems(
-    provided?.location ?? "explore.chart.download",
+    provided?.location ?? 'explore.chart.download',
     provided?.context ?? NO_CONTEXT,
   );
   return provided ? items : NO_ITEMS;

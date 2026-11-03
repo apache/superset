@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook, act } from "@testing-library/react";
-import { logging } from "@apache-superset/core/utils";
-import type { common } from "@apache-superset/core";
-import type { MenuItem, MenuItemType } from "@superset-ui/core/components/Menu";
-import { commands, menus } from "src/core";
+import { renderHook, act } from '@testing-library/react';
+import { logging } from '@apache-superset/core/utils';
+import type { common } from '@apache-superset/core';
+import type { MenuItem, MenuItemType } from '@superset-ui/core/components/Menu';
+import { commands, menus } from 'src/core';
 import {
   useExtensionMenuItems,
   ChartDownloadProvider,
   useChartDownloadItems,
-} from ".";
+} from '.';
 
 const ctx = {
   getPayload: async () => ({}),
-  chartName: "Sales",
+  chartName: 'Sales',
   canDownload: true,
 };
 
@@ -48,34 +48,34 @@ const register = (
     menus.registerMenuItem(
       { view: location, command: id },
       location,
-      "primary",
+      'primary',
     ),
   );
 };
 
 afterEach(() => {
-  disposables.forEach((d) => d.dispose());
+  disposables.forEach(d => d.dispose());
   disposables = [];
   jest.restoreAllMocks();
 });
 
-test("returns no items when nothing is registered", () => {
+test('returns no items when nothing is registered', () => {
   const { result } = renderHook(() =>
-    useExtensionMenuItems("explore.chart.download", ctx),
+    useExtensionMenuItems('explore.chart.download', ctx),
   );
   expect(result.current).toEqual([]);
 });
 
-test("maps a registered item to a menu item that runs the command with the context", async () => {
+test('maps a registered item to a menu item that runs the command with the context', async () => {
   const run = jest.fn();
-  register("ext.gs", "Export to Google Sheets", "explore.chart.download", run);
+  register('ext.gs', 'Export to Google Sheets', 'explore.chart.download', run);
   const { result } = renderHook(() =>
-    useExtensionMenuItems("explore.chart.download", ctx),
+    useExtensionMenuItems('explore.chart.download', ctx),
   );
   expect(result.current).toEqual([
     expect.objectContaining({
-      key: "ext:ext.gs",
-      label: "Export to Google Sheets",
+      key: 'ext:ext.gs',
+      label: 'Export to Google Sheets',
       disabled: false,
     }),
   ]);
@@ -83,66 +83,66 @@ test("maps a registered item to a menu item that runs the command with the conte
   expect(run).toHaveBeenCalledWith(ctx);
 });
 
-test("items registered after first render appear", () => {
+test('items registered after first render appear', () => {
   const { result } = renderHook(() =>
-    useExtensionMenuItems("dashboard.download", {
+    useExtensionMenuItems('dashboard.download', {
       dashboardId: 1,
-      dashboardTitle: "D",
+      dashboardTitle: 'D',
       activeDataMask: {},
       canDownload: true,
     }),
   );
   expect(result.current).toEqual([]);
   act(() => {
-    register("ext.late", "Late", "dashboard.download");
+    register('ext.late', 'Late', 'dashboard.download');
   });
   expect(result.current).toHaveLength(1);
 });
 
-test("disabled without download permission", () => {
-  register("ext.denied", "Denied", "explore.chart.download");
+test('disabled without download permission', () => {
+  register('ext.denied', 'Denied', 'explore.chart.download');
   const { result } = renderHook(() =>
-    useExtensionMenuItems("explore.chart.download", {
+    useExtensionMenuItems('explore.chart.download', {
       ...ctx,
       canDownload: false,
     }),
   );
   expect(result.current).toEqual([
-    expect.objectContaining({ key: "ext:ext.denied", disabled: true }),
+    expect.objectContaining({ key: 'ext:ext.denied', disabled: true }),
   ]);
 });
 
-test("click uses the latest context, not the one from the first render", async () => {
+test('click uses the latest context, not the one from the first render', async () => {
   const run = jest.fn();
-  register("ext.fresh", "Fresh", "explore.chart.download", run);
+  register('ext.fresh', 'Fresh', 'explore.chart.download', run);
   const { result, rerender } = renderHook(
-    ({ c }) => useExtensionMenuItems("explore.chart.download", c),
+    ({ c }) => useExtensionMenuItems('explore.chart.download', c),
     { initialProps: { c: ctx } },
   );
   const first = result.current;
-  const newer = { ...ctx, chartName: "Renamed" };
+  const newer = { ...ctx, chartName: 'Renamed' };
   rerender({ c: newer });
   expect(result.current).toBe(first);
   await act(async () => click(result.current[0]));
   expect(run).toHaveBeenCalledWith(newer);
 });
 
-test("onItemClick runs after the command starts", async () => {
+test('onItemClick runs after the command starts', async () => {
   const run = jest.fn();
   const onItemClick = jest.fn();
-  register("ext.close", "Close", "explore.chart.download", run);
+  register('ext.close', 'Close', 'explore.chart.download', run);
   const { result } = renderHook(() =>
-    useExtensionMenuItems("explore.chart.download", ctx, { onItemClick }),
+    useExtensionMenuItems('explore.chart.download', ctx, { onItemClick }),
   );
   await act(async () => click(result.current[0]));
   expect(run).toHaveBeenCalled();
   expect(onItemClick).toHaveBeenCalledTimes(1);
 });
 
-test("disabled state follows canDownload changes", () => {
-  register("ext.toggle", "Toggle", "explore.chart.download");
+test('disabled state follows canDownload changes', () => {
+  register('ext.toggle', 'Toggle', 'explore.chart.download');
   const { result, rerender } = renderHook(
-    ({ c }) => useExtensionMenuItems("explore.chart.download", c),
+    ({ c }) => useExtensionMenuItems('explore.chart.download', c),
     { initialProps: { c: ctx } },
   );
   expect(result.current[0]).toEqual(
@@ -154,21 +154,21 @@ test("disabled state follows canDownload changes", () => {
   );
 });
 
-test("a rejecting command is caught and logged", async () => {
-  const log = jest.spyOn(logging, "error").mockImplementation(() => {});
-  register("ext.bad", "Bad", "explore.chart.download", () =>
-    Promise.reject(new Error("x")),
+test('a rejecting command is caught and logged', async () => {
+  const log = jest.spyOn(logging, 'error').mockImplementation(() => {});
+  register('ext.bad', 'Bad', 'explore.chart.download', () =>
+    Promise.reject(new Error('x')),
   );
   const { result } = renderHook(() =>
-    useExtensionMenuItems("explore.chart.download", ctx),
+    useExtensionMenuItems('explore.chart.download', ctx),
   );
   await act(async () => click(result.current[0]));
   expect(log).toHaveBeenCalled();
 });
 
-test("useChartDownloadItems reads the provider and is empty without one", () => {
+test('useChartDownloadItems reads the provider and is empty without one', () => {
   expect(renderHook(() => useChartDownloadItems()).result.current).toEqual([]);
-  register("ext.drill", "Drill", "chart.drillBy.download");
+  register('ext.drill', 'Drill', 'chart.drillBy.download');
   const { result } = renderHook(() => useChartDownloadItems(), {
     wrapper: ({ children }) => (
       <ChartDownloadProvider location="chart.drillBy.download" context={ctx}>

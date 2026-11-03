@@ -22,19 +22,19 @@
  * {@link ChartDownloadContext}.
  */
 export type ChartDownloadLocation =
-  | "explore.chart.download"
-  | "explore.chart.download.pivoted"
-  | "explore.standalone.download"
-  | "dashboard.chart.download"
-  | "dashboard.chart.download.pivoted"
-  | "chart.drillDetail.download"
-  | "chart.drillBy.download";
+  | 'explore.chart.download'
+  | 'explore.chart.download.pivoted'
+  | 'explore.standalone.download'
+  | 'dashboard.chart.download'
+  | 'dashboard.chart.download.pivoted'
+  | 'chart.drillDetail.download'
+  | 'chart.drillBy.download';
 
 /**
  * Dashboard download menus that accept extension items. Each command receives
  * a {@link DashboardDownloadContext}.
  */
-export type DashboardDownloadLocation = "dashboard.download";
+export type DashboardDownloadLocation = 'dashboard.download';
 
 /**
  * Argument passed to commands contributed to a {@link ChartDownloadLocation}.
