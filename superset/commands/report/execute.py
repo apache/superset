@@ -116,6 +116,7 @@ from superset.utils.core import (
     apply_max_row_limit,
     get_user,
     HeaderDataType,
+    override_query_log_context,
     override_user,
 )
 from superset.utils.csv import (
@@ -1334,6 +1335,12 @@ class BaseReportState:
 
         return query_context
 
+    def _get_chart_data_url(self) -> str:
+        return get_url_path(
+            "ChartDataRestApi.data",
+            form_data=json.dumps({"slice_id": self._report_schedule.chart_id}),
+        )
+
     @staticmethod
     def _post_chart_data(
         chart_url: str,
@@ -1441,7 +1448,7 @@ class BaseReportState:
                     )
             else:
                 request_payload = self._get_chart_data_request_payload(result_format)
-                url = get_url_path("ChartDataRestApi.data")
+                url = self._get_chart_data_url()
                 endpoint = "/api/v1/chart/data"
 
                 def fetch(timeout: float | None) -> bytes | None:
@@ -1540,7 +1547,7 @@ class BaseReportState:
                 request_payload: dict[str, Any] = self._get_chart_data_request_payload(
                     ChartDataResultFormat.JSON, form_data=form_data or None
                 )
-                url = get_url_path("ChartDataRestApi.data")
+                url = self._get_chart_data_url()
                 dataframe = chart_data_to_dataframe(
                     self._post_chart_data(
                         chart_url=url,
@@ -2784,7 +2791,10 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             user, username = get_executor_user(self._model)
 
             start_time: datetime = naive_utcnow()
-            with override_user(user):
+            with (
+                override_user(user),
+                override_query_log_context({"report_id": self._model.id}),
+            ):
                 # Pre-commit any permalink rows before the state machine's
                 # @transaction() opens. When called inside a transaction,
                 # CreateDashboardPermalinkCommand only flushes (not commits),
