@@ -59,3 +59,21 @@ class ChartResult:
     chart_name: str
     queries: list[ChartQueryResult]
     skipped_reason: SkipReason | None
+
+
+@dataclass(frozen=True)
+class AppliedFilter:
+    """Dashboard filter in effect, labeled for display."""
+
+    name: str
+    display_value: str
+
+
+@dataclass(frozen=True)
+class DashboardExportInfo:
+    """Dashboard metadata that accompanies an export."""
+
+    title: str
+    permalink_url: str
+    applied_filters: list[AppliedFilter]
+    chart_urls: dict[int, str]

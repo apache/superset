@@ -34,6 +34,7 @@ Import them from `superset_core.exports.export`.
 | --- | --- |
 | `run_query_context(payload: dict[str, Any]) -> list[ChartQueryResult]` | Runs a chart query context, as sent to `/api/v1/chart/data`, as the current user. |
 | `iter_dashboard_chart_results(dashboard_id: int, active_data_mask: dict[str, Any]) -> Iterator[ChartResult]` | Yields the result of each chart on a dashboard, with the active filters applied. |
+| `describe_dashboard_export(dashboard_id: int, active_data_mask: dict[str, Any]) -> DashboardExportInfo` | Returns the title, links and applied filters that accompany a dashboard export. |
 | `build_tab_name(raw: str, used: set[str], max_len: int) -> str` | Returns a sheet tab name within `max_len` that is unique case-insensitively. Pass one `used` set for the whole spreadsheet, empty or holding lowercased names. Each call adds the lowercased name it returns. A collision gets a `~N` suffix. `max_len` must be at least 4, or a `ValueError` is raised. |
 | `can_export_data() -> bool` | Checks that the current user holds the export permission. |
 | `can_export_dashboard(dashboard_id: int) -> bool` | Checks that the current user holds the dashboard export permission and can access the dashboard. It does not check the data export permission. |
@@ -51,6 +52,8 @@ Import them from `superset_core.exports.types`. All are frozen dataclasses excep
 
 - `ChartQueryResult`: `colnames`, `coltypes` (a list of `GenericDataType`) and `data` (a list of row dicts) for one query.
 - `ChartResult`: `chart_id`, `chart_name`, `queries` (a list of `ChartQueryResult`) and `skipped_reason`.
+- `DashboardExportInfo`: `title`, `permalink_url`, `applied_filters` and `chart_urls` (chart ID to URL).
+- `AppliedFilter`: a filter `name` and its `display_value`.
 - `GenericDataType`: `NUMERIC`, `STRING`, `TEMPORAL`, `BOOLEAN` or `MULTI_VALUE`.
 - `SkipReason`: `no-query-context`, `unbounded-query` or `general-exception`. `iter_dashboard_chart_results` never returns `unbounded-query`; only Superset's own Excel export planning sets it.
 
@@ -64,7 +67,12 @@ The host raises its own exception classes, which extensions cannot import. Catch
 | --- | --- |
 | `run_query_context` | A security exception (HTTP 403 semantics) when the user may not access the datasource. A marshmallow `ValidationError` for a malformed payload, and a `ValueError` for a result type without rows. A query-failure exception when the query is invalid, fails in the database or cannot be loaded from the cache. |
 | `iter_dashboard_chart_results` | Nothing for a failing chart, which yields a skipped result instead. A missing dashboard, or one the user cannot access, yields no results. A Celery soft time limit propagates. |
+| `describe_dashboard_export` | A not-found exception (HTTP 404 semantics) for a missing dashboard, and a security exception (HTTP 403 semantics) when the user cannot access it. |
 | `as_user` | A `ValueError` on entry when no user has the given ID. |
+
+`applied_filters` from `describe_dashboard_export` lists the dashboard's native filters only, by their configured names. Cross-filters are not included, because exports do not apply them.
+
+URLs from `describe_dashboard_export` resolve inside Celery workers, so they are safe to use in background tasks.
 
 ## Permissions
 
