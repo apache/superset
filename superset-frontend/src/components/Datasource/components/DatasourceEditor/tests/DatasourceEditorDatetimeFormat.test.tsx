@@ -53,17 +53,19 @@ const OLD_FRAGMENTS = [
   'ISO 8601',
 ];
 
-const EXPECTED_TEXT =
-  'The pattern of timestamp format. For strings use Python datetime string ' +
-  'pattern expression which needs to adhere to the ISO 8601 standard to ' +
-  'ensure that the lexicographical ordering coincides with the ' +
-  'chronological ordering. If the timestamp format does not adhere to the ' +
-  'ISO 8601 standard you will need to define an expression and type for ' +
-  'transforming the string into a date or timestamp. Note currently time ' +
-  'zones are not supported. If time is stored in epoch format, put ' +
-  'epoch_s, epoch_ms or epoch_us. If no pattern is specified we fall back ' +
-  'to using the optional defaults on a per database/column name level via ' +
-  'the extra parameter.';
+const URLS: Record<string, string> = {
+  python_url: PYTHON_URL,
+  iso_url: ISO_URL,
+};
+const LINK = /\[([^\]]+)\]\(%\((\w+)\)s\)/g;
+const CODE = /`([^`]+)`/g;
+
+// The sentence msgid holds both URL placeholders. Reading it from the t()
+// calls keeps the tests independent of the English wording.
+const sentenceMsgid = () =>
+  [...new Set(jest.mocked(t).mock.calls.map(([msgid]) => msgid))].filter(
+    msgid => msgid.includes('%(python_url)s') && msgid.includes('%(iso_url)s'),
+  );
 
 const normalize = (text: string | null) =>
   (text ?? '').replace(/\s+/g, ' ').trim();
@@ -89,6 +91,8 @@ const openFirstColumn = async () => {
 
 test('datetime format description renders as one sentence with Python 3 and ISO 8601 links', async () => {
   await openFirstColumn();
+  const [msgid] = sentenceMsgid();
+  expect(msgid).toBeDefined();
 
   const label = (await screen.findAllByText('Datetime format'))[0];
   const infoIcon = label.parentElement?.querySelector(
@@ -97,18 +101,26 @@ test('datetime format description renders as one sentence with Python 3 and ISO 
   expect(infoIcon).toBeTruthy();
   await userEvent.hover(infoIcon as Element);
 
-  const pythonLink = await screen.findByRole('link', {
-    name: 'Python datetime string pattern',
-  });
-  const tooltip = pythonLink.closest('[role="tooltip"]') as HTMLElement;
+  const links = [...msgid.matchAll(LINK)];
+  expect(links.map(([, , name]) => name).sort()).toEqual(
+    Object.keys(URLS).sort(),
+  );
+  const firstLink = await screen.findByRole('link', { name: links[0][1] });
+  const tooltip = firstLink.closest('[role="tooltip"]') as HTMLElement;
   expect(tooltip).toBeTruthy();
 
-  expect(normalize(tooltip.textContent)).toBe(EXPECTED_TEXT);
-  expect(pythonLink).toHaveAttribute('href', PYTHON_URL);
-  expect(
-    within(tooltip).getByRole('link', { name: 'ISO 8601' }),
-  ).toHaveAttribute('href', ISO_URL);
-  expect(within(tooltip).getByText('epoch_s').tagName).toBe('CODE');
+  // The whole sentence renders: link text and code text, without markup.
+  const rendered = msgid.replace(LINK, '$1').replace(CODE, '$1');
+  expect(normalize(tooltip.textContent)).toBe(normalize(rendered));
+  links.forEach(([, text, name]) =>
+    expect(within(tooltip).getByRole('link', { name: text })).toHaveAttribute(
+      'href',
+      URLS[name],
+    ),
+  );
+  [...msgid.matchAll(CODE)].forEach(([, code]) =>
+    expect(within(tooltip).getByText(code).tagName).toBe('CODE'),
+  );
 });
 
 test('datetime format description is translated with one t() call', async () => {
@@ -116,11 +128,8 @@ test('datetime format description is translated with one t() call', async () => 
   await screen.findAllByText('Datetime format');
 
   const msgids = new Set(jest.mocked(t).mock.calls.map(([msgid]) => msgid));
-  const sentences = [...msgids].filter(
-    msgid => msgid.includes('%(python_url)s') && msgid.includes('%(iso_url)s'),
-  );
 
-  expect(sentences).toHaveLength(1);
+  expect(sentenceMsgid()).toHaveLength(1);
   OLD_FRAGMENTS.forEach(fragment => expect(msgids.has(fragment)).toBe(false));
   expect(
     [...msgids].some(msgid => msgid.startsWith(' standard to ensure')),
