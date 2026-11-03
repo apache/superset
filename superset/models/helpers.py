@@ -597,14 +597,15 @@ def _is_temporal_column(col: Optional["TableColumn"]) -> bool:
     """
     Whether the engine compares ``col`` as a date or timestamp.
 
-    By generic type rather than the ``is_dttm`` flag, as
-    `ExploreMixin._engine_literal_resolution` reads it.
+    By generic type rather than the ``is_dttm`` flag alone, as
+    `ExploreMixin._engine_literal_resolution` reads it -- and not on a column
+    stored as text, which that flag can also mark. There the engine compares
+    the text with the text, so nothing is cast to an instant.
     """
-    return (
-        col is not None
-        and bool(col.type)
-        and col.type_generic == GenericDataType.TEMPORAL
-    )
+    if col is None or not col.type or col.type_generic != GenericDataType.TEMPORAL:
+        return False
+    stored = col.db_engine_spec.get_column_spec(col.type, db_extra=col.db_extra)
+    return stored is None or stored.generic_type != GenericDataType.STRING
 
 
 def _instant_from_filter_value(value: Any) -> Optional[datetime]:
