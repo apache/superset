@@ -947,7 +947,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @category: runtime_config
     "CSS_TEMPLATES": True,
     # Subject-based viewer access control for dashboards and charts.
-    # When enabled, resources can have explicit viewer Subject assignments.
+    # When enabled, viewers can be assigned through the UI and API. A non-empty
+    # viewers list is always enforced, even when this flag is off (legacy
+    # DASHBOARD_RBAC roles are migrated into viewers); turning the flag off only
+    # blocks adding new viewers, while existing ones can still be removed.
     # @lifecycle: testing
     # @category: security
     "ENABLE_VIEWERS": False,
@@ -1298,6 +1301,15 @@ _THEME_DEFAULT_BASE: Theme = {
         # Editor selection color (for SQL Lab text highlighting)
         "colorEditorSelection": "#fff5cf",
     },
+    # Per-component token overrides. Tooltip text renders at the small font
+    # size rather than Ant Design's global ``fontSize`` so tooltips stay
+    # visually subordinate to the content they annotate.
+    "components": {
+        "Tooltip": {
+            "fontSize": 12,
+            "lineHeight": 1.6,
+        },
+    },
     "algorithm": "default",
 }
 
@@ -1432,6 +1444,15 @@ THUMBNAIL_ERROR_CACHE_TTL = int(timedelta(days=1).total_seconds())
 # How long to treat a COMPUTING cache entry as an active lease before considering
 # the worker stuck.  Should exceed the task soft_time_limit (300 s) by a margin.
 THUMBNAIL_COMPUTING_CACHE_TTL = int(timedelta(seconds=360).total_seconds())
+# Refresh threshold for UPDATED dashboard screenshots requested by the on-demand
+# endpoint or dashboard thumbnails refreshed by compute-thumbnails without --force.
+# Chart screenshots and card-list thumbnail endpoints do not use this check.
+# Images the cache backend still holds remain servable during refresh and error
+# backoff: this triggers recomputation, not image expiry. Defaults to match
+# THUMBNAIL_CACHE_CONFIG's CACHE_DEFAULT_TIMEOUT (7 days), so an evicting backend
+# (e.g. Redis) drops an image as it turns stale. Set to 0 or None to disable this
+# check; cache backend expiry and eviction still apply.
+THUMBNAIL_UPDATED_CACHE_TTL = int(timedelta(days=7).total_seconds())
 
 # Cache warmup user — must be set explicitly before enabling the cache-warmup
 # Celery task. Intentionally defaults to None so operators pick a dedicated
@@ -2997,6 +3018,10 @@ BUG_REPORT_ICON = None  # Recommended size: 16x16
 DOCUMENTATION_URL = None
 DOCUMENTATION_TEXT = "Documentation"
 DOCUMENTATION_ICON = None  # Recommended size: 16x16
+
+# Optional setup guide shown in the semantic layer and semantic view dialogs.
+# Use an absolute HTTP(S) URL; unset deployments show no setup-guide link.
+SEMANTIC_LAYER_DOCUMENTATION_URL: str | None = None
 
 # What is the Last N days relative in the time selector to:
 # 'today' means it is midnight (00:00:00) in the local timezone

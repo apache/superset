@@ -47,6 +47,7 @@ import { MenuItem } from '@superset-ui/core/components/Menu';
 import { usePermissions } from 'src/hooks/usePermissions';
 import { Dropdown } from '@superset-ui/core/components';
 import { updateDataMask } from 'src/dataMask/actions';
+import { releaseFilterKeyPublish } from 'src/dashboard/util/sharedFilterStateHold';
 import DrillByModal from 'src/components/Chart/DrillBy/DrillByModal';
 import { useDatasetDrillInfo } from 'src/hooks/apiResources/datasets';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
@@ -355,6 +356,7 @@ const ChartContextMenu = (
         disabled: isCrossFilterDisabled,
         onClick: () => {
           if (filters?.crossFilter) {
+            releaseFilterKeyPublish();
             dispatch(updateDataMask(id, filters.crossFilter.dataMask));
           }
         },
