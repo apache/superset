@@ -22,7 +22,9 @@ import logging
 import re
 import time
 from collections import defaultdict
-from collections.abc import Set as AbstractSet
+from collections.abc import Iterator, Set as AbstractSet
+from contextlib import contextmanager
+from contextvars import ContextVar
 from math import ceil
 from types import SimpleNamespace
 from typing import (
@@ -136,6 +138,14 @@ if TYPE_CHECKING:
     from superset.semantic_layers.models import SemanticLayer, SemanticView
 
 logger = logging.getLogger(__name__)
+
+# Set while a check must count only independently granted access, not access a
+# dashboard editor or viewer inherits under ``VIEWER_PROMISCUOUS_MODE``. A
+# context variable rather than a ``raise_for_access`` argument, so operator
+# overrides of the access methods keep their signatures.
+_DASHBOARD_INHERITANCE_DISABLED: ContextVar[bool] = ContextVar(
+    "dashboard_inheritance_disabled", default=False
+)
 
 
 def get_conf() -> Any:
@@ -2670,32 +2680,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
         return self.can_access("datasource_access", layer_perm)
 
-    def can_access_datasource(
-        self,
-        datasource: "BaseDatasource",
-        *,
-        allow_dashboard_inheritance: bool = True,
-    ) -> bool:
+    def can_access_datasource(self, datasource: "BaseDatasource") -> bool:
         """
         Return True if the user can access the specified datasource, False otherwise.
 
         :param datasource: The datasource
-        :param allow_dashboard_inheritance: Whether access inherited through a
-            dashboard under ``VIEWER_PROMISCUOUS_MODE`` counts; see
-            :meth:`raise_for_access`
         :returns: Whether the user can access the datasource
         """
 
         try:
-            if allow_dashboard_inheritance:
-                self.raise_for_access(datasource=datasource)
-            else:
-                # Passed only when set, so an operator's in-place replacement
-                # of ``raise_for_access`` with the older signature keeps
-                # working on the default path.
-                self.raise_for_access(
-                    datasource=datasource, allow_dashboard_inheritance=False
-                )
+            self.raise_for_access(datasource=datasource)
         except SupersetSecurityException:
             return False
 
@@ -2752,6 +2746,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             dashboard
         ) and dashboard.has_member_datasource(datasource)
 
+    @contextmanager
+    def dashboard_inheritance_disabled(self) -> Iterator[None]:
+        """Count only independently granted access inside the block.
+
+        Chart and datasource access a dashboard editor or viewer inherits under
+        ``VIEWER_PROMISCUOUS_MODE`` lasts only as long as the dashboard grants
+        it. Checks whose result would outlive that grant (attaching a chart to
+        another dashboard, or the chart and dashboard fallbacks that derive
+        access from a dataset) run inside this block.
+        """
+        token = _DASHBOARD_INHERITANCE_DISABLED.set(True)
+        try:
+            yield
+        finally:
+            _DASHBOARD_INHERITANCE_DISABLED.reset(token)
+
     def _promiscuous_viewer_inherits_chart(self, chart: "Slice") -> bool:
         """Return True if the current user inherits access to ``chart`` as an
         editor or viewer of a dashboard the chart belongs to, under
@@ -2764,7 +2774,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset import is_feature_enabled
         from superset.subjects.utils import get_inherited_slice_ids_subquery
 
-        if not (
+        if _DASHBOARD_INHERITANCE_DISABLED.get() or not (
             is_feature_enabled("ENABLE_VIEWERS")
             and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
             and not self.is_guest_user()
@@ -2801,7 +2811,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset import is_feature_enabled
         from superset.subjects.utils import get_inherited_datasource_ids_subquery
 
-        if not (
+        if _DASHBOARD_INHERITANCE_DISABLED.get() or not (
             is_feature_enabled("ENABLE_VIEWERS")
             and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
             and not self.is_guest_user()
@@ -3072,26 +3082,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return True
 
-    def can_access_chart(
-        self,
-        chart: "Slice",
-        *,
-        allow_dashboard_inheritance: bool = True,
-    ) -> bool:
+    def can_access_chart(self, chart: "Slice") -> bool:
         """
         Return True if the user can access the specified chart, False otherwise.
         :param chart: The chart
-        :param allow_dashboard_inheritance: Whether access inherited through a
-            dashboard under ``VIEWER_PROMISCUOUS_MODE`` counts; see
-            :meth:`raise_for_access`
         :return: Whether the user can access the chart
         """
         try:
-            if allow_dashboard_inheritance:
-                self.raise_for_access(chart=chart)
-            else:
-                # Passed only when set; see ``can_access_datasource``.
-                self.raise_for_access(chart=chart, allow_dashboard_inheritance=False)
+            self.raise_for_access(chart=chart)
         except SupersetSecurityException:
             return False
 
@@ -5503,7 +5501,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         force_dataset_match: bool = False,
         allow_query_authorship_bypass: bool = False,
         allow_editorship: bool = True,
-        allow_dashboard_inheritance: bool = True,
     ) -> None:
         """
         Raise an exception if the user cannot access the resource.
@@ -5559,14 +5556,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             catalog/schema fallthroughs, so ``schema_access`` still authorizes
             defining a dataset. Ignored when ``force_dataset_match`` is True
             (editorship is already excluded there).
-        :param allow_dashboard_inheritance: When False, chart and datasource
-            access a dashboard editor or viewer inherits under
-            ``VIEWER_PROMISCUOUS_MODE`` doesn't count. The chart and dashboard
-            fallbacks that derive access from the dataset set this to False, so
-            a dataset inherited through one dashboard doesn't open other charts
-            or dashboards on it, and so does the dashboard layout check, so a
-            chart readable only through one dashboard can't be attached to
-            another.
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
@@ -6037,10 +6026,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # independent of the request's ``form_data``. This is what
                 # lets ``GET /dashboard/<id>/datasets`` serve full metadata to a
                 # promiscuous viewer.
-                or (
-                    allow_dashboard_inheritance
-                    and self._promiscuous_viewer_inherits_datasource(datasource)
-                )
+                or self._promiscuous_viewer_inherits_datasource(datasource)
             ):
                 raise SupersetSecurityException(
                     self.get_datasource_access_error_object(datasource)
@@ -6109,14 +6095,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
                 def member_datasource_accessible() -> bool:
                     resolved: BaseDatasource | Explorable | None
-                    for resolved in Slice.iter_resolved_datasources(member_slices):
-                        # Independently granted access only, so a dataset
-                        # inherited through another dashboard doesn't open
-                        # this one.
-                        if resolved is not None and self.can_access_datasource(
-                            resolved, allow_dashboard_inheritance=False
-                        ):
-                            return True
+                    # Independently granted access only, so a dataset inherited
+                    # through another dashboard doesn't open this one.
+                    with self.dashboard_inheritance_disabled():
+                        for resolved in Slice.iter_resolved_datasources(member_slices):
+                            if resolved is not None and self.can_access_datasource(
+                                resolved
+                            ):
+                                return True
                     return False
 
                 if dashboard.published and (
@@ -6140,24 +6126,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # SqlaTable-only, which silently denied entitled users of
                 # semantic-view charts here.
                 chart_datasource := chart.resolved_datasource
-            ) is not None and self.can_access_datasource(
+            ) is not None:
                 # Only independently granted dataset access: a dataset inherited
                 # through dashboard A must not open every other chart on it.
                 # Dashboard inheritance reaches charts only through
                 # ``_promiscuous_viewer_inherits_chart`` below.
-                chart_datasource,
-                allow_dashboard_inheritance=False,
-            ):
-                return
+                with self.dashboard_inheritance_disabled():
+                    if self.can_access_datasource(chart_datasource):
+                        return
 
             # Dashboard-viewer promiscuous mode: a viewer or editor of a
             # dashboard the chart belongs to inherits access to the chart
             # itself, so its definition (``form_data``) can be served for
             # rendering. This is datasource-type agnostic and covers charts
             # whose datasource cannot be resolved above.
-            if allow_dashboard_inheritance and self._promiscuous_viewer_inherits_chart(
-                chart
-            ):
+            if self._promiscuous_viewer_inherits_chart(chart):
                 return
 
             # An embedded guest may access a member chart of a dashboard their

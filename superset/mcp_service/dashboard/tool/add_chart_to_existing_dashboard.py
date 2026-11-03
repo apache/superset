@@ -261,7 +261,14 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
                     ),
                 )
 
-            if not security_manager.can_access_chart(new_chart):
+            from superset.mcp_service.auth import check_chart_data_access
+
+            # The dashboard keeps the chart after the caller loses any other
+            # dashboard, so access inherited through one doesn't count.
+            with security_manager.dashboard_inheritance_disabled():
+                chart_readable = security_manager.can_access_chart(new_chart)
+                validation = check_chart_data_access(new_chart)
+            if not chart_readable:
                 return AddChartToDashboardResponse(
                     dashboard=None,
                     dashboard_url=None,
@@ -276,9 +283,6 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
             # check_chart_data_access is the centralized data-level
             # permission check that complements the class-level RBAC
             # enforced by mcp_auth_hook.
-            from superset.mcp_service.auth import check_chart_data_access
-
-            validation = check_chart_data_access(new_chart)
             if not validation.is_valid:
                 return AddChartToDashboardResponse(
                     dashboard=None,

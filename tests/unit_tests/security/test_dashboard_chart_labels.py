@@ -170,7 +170,7 @@ def test_chart_labels_keep_full_check_without_denied_datasource_hint(
         assert manager.can_access_dashboard_chart_labels(
             dashboard, chart, datasource_access=datasource_access
         )
-        check.assert_called_once_with(table, allow_dashboard_inheritance=False)
+        check.assert_called_once_with(table)
 
 
 @pytest.mark.parametrize("bypass_grants_access", [False, True])
@@ -204,4 +204,4 @@ def test_chart_labels_preserve_configured_access_bypass(
         if bypass_grants_access:
             check.assert_not_called()
         else:
-            check.assert_called_once_with(table, allow_dashboard_inheritance=False)
+            check.assert_called_once_with(table)

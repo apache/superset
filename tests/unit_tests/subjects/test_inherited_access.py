@@ -32,7 +32,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from types import SimpleNamespace
-from typing import Iterator
+from typing import Any, Iterator
 
 import pytest
 from flask import current_app, g
@@ -319,26 +319,116 @@ def test_editor_inherits_access_to_unpublished_dashboard(
 def test_viewer_inherits_published_dashboard_only(
     inheritance_fixtures: SimpleNamespace, promiscuous: None
 ) -> None:
-    """A viewer inherits a published dashboard but not an unpublished one."""
+    """A viewer inherits a published dashboard's charts and their dataset, but
+    nothing beyond that dashboard.
+
+    The inherited dataset doesn't open other charts or dashboards built on it,
+    and a chart readable only through the dashboard can't be attached to
+    another dashboard the viewer edits, where it would outlive the grant (the
+    editors leg isn't gated on ``published``).
+    """
     from superset import security_manager
+    from superset.commands.dashboard.exceptions import DashboardLayoutInvalidError
+    from superset.daos.dashboard import DashboardDAO
+    from superset.exceptions import SupersetSecurityException
+    from superset.models.dashboard import Dashboard
+    from superset.subjects.models import Subject
+    from superset.subjects.types import SubjectType
 
     fx = inheritance_fixtures
+    chart = fx.viewer_published_slice
+    # An explicit viewer list that excludes the user, so the chart is reached
+    # only through dashboard inheritance, not the chart's own access rules.
+    chart.viewers = [
+        Subject(label="stranger", type=SubjectType.USER, user_id=fx.stranger_user.id)
+    ]
+    own_dashboard = Dashboard(
+        dashboard_title="viewer's own",
+        slug="viewers-own",
+        published=False,
+        editors=list(fx.viewer_published.viewers),
+    )
+    fx.session.add(own_dashboard)
+    fx.session.flush()
+
     with acting_as(fx.viewer_user):
         assert security_manager.can_inherit_access_via_dashboard(fx.viewer_published)
         assert not security_manager.can_inherit_access_via_dashboard(fx.viewer_draft)
 
+        assert not security_manager.is_viewer(chart)
+        security_manager.raise_for_access(chart=chart)
+        security_manager.raise_for_access(datasource=fx.table)
+        with pytest.raises(SupersetSecurityException):
+            security_manager.raise_for_access(chart=fx.viewer_draft_slice)
+
+        # A viewer-less chart on the same dataset, only on a dashboard the
+        # user has no role on, and that dashboard itself.
+        with pytest.raises(SupersetSecurityException):
+            security_manager.raise_for_access(chart=fx.unrelated_slice)
+        with pytest.raises(SupersetSecurityException):
+            security_manager.raise_for_access(dashboard=fx.unrelated)
+
+        with security_manager.dashboard_inheritance_disabled():
+            assert not security_manager.can_access_chart(chart)
+        assert security_manager.can_access_chart(chart)
+        with pytest.raises(DashboardLayoutInvalidError):
+            DashboardDAO.set_dash_metadata(
+                own_dashboard,
+                {
+                    "positions": {
+                        "CHART-1": {
+                            "type": "CHART",
+                            "id": "CHART-1",
+                            "children": [],
+                            "meta": {"chartId": chart.id, "width": 4, "height": 50},
+                        }
+                    }
+                },
+            )
+    assert own_dashboard.slices == []
+
 
 def test_stranger_inherits_nothing(
-    inheritance_fixtures: SimpleNamespace, promiscuous: None
+    inheritance_fixtures: SimpleNamespace,
+    promiscuous: None,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A user with no editor/viewer grant inherits no dashboard access."""
+    """A user with no editor/viewer grant inherits no dashboard access, until
+    ``EXTRA_EDITORS_RESOLVER`` makes them an editor. Resolver editorship has no
+    persisted rows, so the SQL inheritance can't see it and the helpers check
+    the dashboards directly when a resolver is configured."""
     from superset import security_manager
+    from superset.subjects.models import Subject
+    from superset.subjects.types import SubjectType
 
     fx = inheritance_fixtures
+    stranger_subject = Subject(
+        label="stranger", type=SubjectType.USER, user_id=fx.stranger_user.id
+    )
+    fx.session.add(stranger_subject)
+    fx.session.flush()
+
     with acting_as(fx.stranger_user):
         assert not security_manager.can_inherit_access_via_dashboard(fx.unrelated)
         assert not security_manager.can_inherit_access_via_dashboard(
             fx.editor_published
+        )
+        assert not security_manager._promiscuous_viewer_inherits_chart(
+            fx.unrelated_slice
+        )
+        assert not security_manager._promiscuous_viewer_inherits_datasource(fx.table)
+
+        monkeypatch.setitem(
+            current_app.config,
+            "EXTRA_EDITORS_RESOLVER",
+            lambda resource: [stranger_subject] if resource is fx.unrelated else [],
+        )
+
+        assert security_manager.is_editor(fx.unrelated)
+        assert security_manager._promiscuous_viewer_inherits_chart(fx.unrelated_slice)
+        assert security_manager._promiscuous_viewer_inherits_datasource(fx.table)
+        assert not security_manager._promiscuous_viewer_inherits_chart(
+            fx.viewer_published_slice
         )
 
 
@@ -412,127 +502,72 @@ def test_guest_never_inherits_via_promiscuous_viewer_helpers(
         assert not security_manager._promiscuous_viewer_inherits_datasource(fx.table)
 
 
-def test_inherited_dataset_does_not_open_other_charts_or_dashboards(
-    inheritance_fixtures: SimpleNamespace, promiscuous: None
+def test_operator_override_with_the_original_signature_keeps_working(
+    inheritance_fixtures: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A dataset inherited through one dashboard grants that dataset, but not
-    every other chart or dashboard built on it: the chart and dashboard
-    fallbacks count only independently granted dataset access."""
-    from superset import security_manager
-    from superset.exceptions import SupersetSecurityException
+    """Internal checks call ``raise_for_access`` with its original arguments, so
+    an operator override that has that signature and delegates to the stock
+    method still serves an ordinary chart check, even with viewers off."""
+    from unittest.mock import patch
 
-    fx = inheritance_fixtures
-    with acting_as(fx.viewer_user):
-        # Inherited through the dashboard the user views.
-        security_manager.raise_for_access(datasource=fx.table)
-        security_manager.raise_for_access(chart=fx.viewer_published_slice)
+    from superset import feature_flag_manager, security_manager
+    from superset.security.manager import SupersetSecurityManager
 
-        # A viewer-less chart on the same dataset, only on a dashboard the user
-        # has no role on, and that dashboard itself.
-        with pytest.raises(SupersetSecurityException):
-            security_manager.raise_for_access(chart=fx.unrelated_slice)
-        with pytest.raises(SupersetSecurityException):
-            security_manager.raise_for_access(dashboard=fx.unrelated)
-
-
-def test_chart_with_its_own_viewers_is_inherited_through_the_dashboard(
-    inheritance_fixtures: SimpleNamespace, promiscuous: None
-) -> None:
-    """A member chart whose explicit viewer list excludes the user is still
-    served to a viewer of its dashboard, through dashboard inheritance rather
-    than the chart's own access rules."""
-    from superset import security_manager
-    from superset.subjects.models import Subject
-    from superset.subjects.types import SubjectType
-
-    fx = inheritance_fixtures
-    other = Subject(
-        label="stranger", type=SubjectType.USER, user_id=fx.stranger_user.id
+    monkeypatch.setitem(
+        feature_flag_manager._feature_flags,  # pylint: disable=protected-access
+        "ENABLE_VIEWERS",
+        False,
     )
-    fx.session.add(other)
-    fx.viewer_published_slice.viewers = [other]
+    stock = SupersetSecurityManager.raise_for_access
+
+    def raise_for_access(  # pylint: disable=too-many-arguments
+        self: SupersetSecurityManager,
+        dashboard: Any = None,
+        chart: Any = None,
+        database: Any = None,
+        datasource: Any = None,
+        query: Any = None,
+        query_context: Any = None,
+        table: Any = None,
+        sql: Any = None,
+        catalog: Any = None,
+        schema: Any = None,
+        template_params: Any = None,
+        force_dataset_match: bool = False,
+        allow_query_authorship_bypass: bool = False,
+        allow_editorship: bool = True,
+    ) -> None:
+        stock(
+            self,
+            dashboard=dashboard,
+            chart=chart,
+            database=database,
+            datasource=datasource,
+            query=query,
+            query_context=query_context,
+            table=table,
+            sql=sql,
+            catalog=catalog,
+            schema=schema,
+            template_params=template_params,
+            force_dataset_match=force_dataset_match,
+            allow_query_authorship_bypass=allow_query_authorship_bypass,
+            allow_editorship=allow_editorship,
+        )
+
+    from flask_appbuilder.security.sqla.models import Role
+
+    fx = inheritance_fixtures
+    grant = security_manager.add_permission_view_menu(
+        "datasource_access", fx.table.perm
+    )
+    fx.stranger_user.roles = [Role(name="dataset reader", permissions=[grant])]
     fx.session.flush()
 
-    with acting_as(fx.viewer_user):
-        assert not security_manager.is_viewer(fx.viewer_published_slice)
-        security_manager.raise_for_access(chart=fx.viewer_published_slice)
-
-
-def test_resolver_granted_dashboard_editor_inherits(
-    inheritance_fixtures: SimpleNamespace,
-    promiscuous: None,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Editorship granted by ``EXTRA_EDITORS_RESOLVER`` has no persisted rows,
-    so the SQL inheritance can't see it; the helpers check the dashboards
-    directly when a resolver is configured."""
-    from superset import security_manager
-    from superset.subjects.models import Subject
-    from superset.subjects.types import SubjectType
-
-    fx = inheritance_fixtures
-    stranger_subject = Subject(
-        label="stranger", type=SubjectType.USER, user_id=fx.stranger_user.id
-    )
-    fx.session.add(stranger_subject)
-    fx.session.flush()
-
-    with acting_as(fx.stranger_user):
-        assert not security_manager._promiscuous_viewer_inherits_chart(
-            fx.unrelated_slice
-        )
-        assert not security_manager._promiscuous_viewer_inherits_datasource(fx.table)
-
-        monkeypatch.setitem(
-            current_app.config,
-            "EXTRA_EDITORS_RESOLVER",
-            lambda resource: [stranger_subject] if resource is fx.unrelated else [],
-        )
-
-        assert security_manager.is_editor(fx.unrelated)
-        assert security_manager._promiscuous_viewer_inherits_chart(fx.unrelated_slice)
-        assert security_manager._promiscuous_viewer_inherits_datasource(fx.table)
-        assert not security_manager._promiscuous_viewer_inherits_chart(
-            fx.viewer_published_slice
-        )
-
-
-def test_chart_readable_only_through_a_dashboard_cannot_be_attached_elsewhere(
-    inheritance_fixtures: SimpleNamespace, promiscuous: None
-) -> None:
-    """A viewer reads a chart through the dashboard they view, but can't
-    attach it to a dashboard they edit: that membership would outlive the
-    viewer grant (the editor leg isn't gated on ``published``)."""
-    from superset import security_manager
-    from superset.commands.dashboard.exceptions import DashboardLayoutInvalidError
-    from superset.daos.dashboard import DashboardDAO
-    from superset.models.dashboard import Dashboard
-
-    fx = inheritance_fixtures
-    chart = fx.viewer_published_slice
-    own_dashboard = Dashboard(
-        dashboard_title="viewer's own",
-        slug="viewers-own",
-        published=False,
-        editors=list(fx.viewer_published.viewers),
-    )
-    fx.session.add(own_dashboard)
-    fx.session.flush()
-    positions = {
-        "CHART-1": {
-            "type": "CHART",
-            "id": "CHART-1",
-            "children": [],
-            "meta": {"chartId": chart.id, "width": 4, "height": 50},
-        }
-    }
-
-    with acting_as(fx.viewer_user):
-        assert security_manager.can_access_chart(chart)
-        assert not security_manager.can_access_chart(
-            chart, allow_dashboard_inheritance=False
-        )
-        with pytest.raises(DashboardLayoutInvalidError):
-            DashboardDAO.set_dash_metadata(own_dashboard, {"positions": positions})
-
-    assert own_dashboard.slices == []
+    with (
+        acting_as(fx.stranger_user),
+        patch.object(SupersetSecurityManager, "raise_for_access", raise_for_access),
+    ):
+        # The chart has no viewers, so access comes from the dataset grant
+        # through the chart fallback.
+        assert security_manager.can_access_chart(fx.unrelated_slice)
