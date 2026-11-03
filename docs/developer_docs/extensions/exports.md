@@ -41,6 +41,8 @@ Import them from `superset_core.exports.export`.
 
 `active_data_mask` is the dashboard's active filter state, keyed by filter ID.
 
+`run_query_context` always returns JSON rows and ignores the payload's `result_format`. Its `result_type` must be `full` (the default), `results`, `post_processed`, `samples` or `drill_detail`; types that return no rows, such as `query` or `columns`, raise a `ValueError`.
+
 ## Result types
 
 Import them from `superset_core.exports.types`. All are frozen dataclasses except the enums.
