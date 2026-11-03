@@ -2296,7 +2296,18 @@ class TestGetChartDataSynthesizedContextApi(BaseTestChartDataApi):
         )
 
         # --- RED anchor: equivalent row data to the saved baseline (FR-002) ---
-        assert imported["result"][0]["data"] == baseline["result"][0]["data"]
+        # Compared order-insensitively: the synthesized context sorts by the
+        # metric (order_desc), while the hand-saved baseline leaves orderby
+        # empty, so the two return the same rows in a different order. FR-002 is
+        # about row-data equivalence, not row ordering, so the per-row sums must
+        # still match exactly.
+        imported_rows = sorted(
+            imported["result"][0]["data"], key=lambda row: row["gender"]
+        )
+        baseline_rows = sorted(
+            baseline["result"][0]["data"], key=lambda row: row["gender"]
+        )
+        assert imported_rows == baseline_rows
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_synthesized_context_datasource_fidelity(self):
