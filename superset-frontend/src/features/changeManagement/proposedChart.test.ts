@@ -59,13 +59,30 @@ test('the preview is queried as an unsaved chart', () => {
   expect(formData?.slice_id).toBe(0);
 });
 
-test('a rename from Explore does not count as a new chart', () => {
-  // The case that made this a `changed_fields` question. Explore's Save
-  // posts every control on every save, so a rename's captured body carries
-  // `params` in full and byte-identical to what is stored. Verified on a
-  // running instance: changed_fields ['slice_name'], proposed carrying
-  // params, viz_type, datasource_id and datasource_type.
+test('a rename that carries nothing else does not count as a new chart', () => {
+  // A rename through the properties modal or the REST API sends
+  // `slice_name` alone, and that is the case this answers. It is narrower
+  // than "a rename": see the next test.
   expect(hasProposedChart(['slice_name'])).toBe(false);
+});
+
+test('a rename from Explore is still offered the switch, and should not be', () => {
+  // The known boundary, recorded here so the suite stops implying it is
+  // closed. Explore's Save posts every control's current value, so a
+  // rename-only save moves `params` for real. Measured on a running
+  // instance, chart 1: 32 keys the stored chart never held were added, 8
+  // the current viz type has no control for were dropped, and `viewport`
+  // came back at a different float precision. The server therefore reports
+  // `params` and `query_context` alongside `slice_name`, this returns true,
+  // and the reviewer turns the switch on to find the chart unchanged.
+  //
+  // Asserted as `true` deliberately: it is what the code does. Closing it
+  // needs the live form data normalised the way Explore normalises it
+  // before posting -- it also migrates `time_range` into `adhoc_filters`,
+  // so even a non-map rename moves a key the chart already had.
+  expect(hasProposedChart(['params', 'query_context', 'slice_name'])).toBe(
+    true,
+  );
 });
 
 test.each([

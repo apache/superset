@@ -36,17 +36,37 @@ export const CHART_DRAWING_FIELDS = [
  * Is there a different chart in this change, or only a different label on
  * the same one?
  *
- * Asked of ``changed_fields`` rather than of the payload, because the two
- * do not agree and the payload is the misleading one. Explore's Save posts
- * every control's current value on every save, so the captured body of a
- * *rename* still carries ``params`` in full -- byte-identical to what is
- * stored. Keying on "is ``params`` present" therefore offered a preview of
- * a chart that was not changing, which is the live chart on screen under a
- * label saying it is the proposal: the exact failure the preview exists to
- * avoid.
+ * Asked of ``changed_fields`` rather than of the payload, because the
+ * payload cannot answer it: Explore's Save posts every control's current
+ * value, so a rename's captured body carries ``params`` in full, and
+ * keying on "is ``params`` present" offered the switch on every chart save
+ * whatever it touched.
  *
  * ``changed_fields`` is computed on the server against the live asset
- * (``changes.py:changed_fields``), so it says what actually moved.
+ * (``changes.py:changed_fields``). That is enough to tell a rename made
+ * through the properties modal or the REST API -- which send ``slice_name``
+ * alone -- from a change to the drawing.
+ *
+ * It is **not** enough for a rename made through Explore's own Save
+ * dialog, and this is the known boundary of the switch. Measured against a
+ * running instance: a rename-only Explore save on a deck.gl chart posted a
+ * ``params`` blob holding 32 keys the stored chart never had, dropped 8
+ * the current viz type has no control for, and re-emitted ``viewport`` at
+ * full float precision. ``params`` therefore differs from the live value
+ * for real, ``changed_fields`` reports it, and the switch is offered for a
+ * change that draws the same chart. Nor is this only a map problem --
+ * Explore also migrates ``time_range`` into ``adhoc_filters`` on save, so a
+ * key the chart already had moves on an ordinary rename too.
+ *
+ * What the reviewer gets in that case is still truthful: approving really
+ * does publish that blob, and the panel names ``slice_name`` as what
+ * changed. They simply turn the switch on and watch nothing move.
+ *
+ * Closing it needs the live form data put through the same normalisation
+ * Explore applies before posting, so the two can be compared on equal
+ * terms. That is the same shape as QA-15 on the chart surface and belongs
+ * with it. Until then the switch means "there is a proposal to look at",
+ * not "it looks different".
  */
 export function hasProposedChart(changedFields: string[] | undefined): boolean {
   return (changedFields ?? []).some(field =>

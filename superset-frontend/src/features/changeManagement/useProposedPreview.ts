@@ -112,11 +112,12 @@ export function useProposedPreview(changeRequest: ChangeRequest | null) {
     // have their own payload shapes, so those fall back to "What changed".
     !changeRequest.command &&
     (changeRequest.asset_type === 'dashboard' ||
-      // Asked of `changed_fields`, not of the payload. Explore's Save posts
-      // every control on every save, so a rename's captured body still
-      // carries `params` byte-identical to what is stored -- and keying on
-      // that offered a preview of a chart that was not changing, which is
-      // the live chart on screen labelled as the proposal.
+      // Asked of `changed_fields`, not of the payload: Explore's Save posts
+      // every control on every save, so keying on "is `params` present"
+      // offered the switch on every chart save whatever it touched. This
+      // catches a rename that carries `slice_name` alone; it does not catch
+      // one made through Explore, which moves `params` for real. See
+      // `proposedChart.ts` for what was measured and what closing it needs.
       (isChart && hasProposedChart(changeRequest.changed_fields)));
 
   // Named here so the preview can say which decision comes first. A chart

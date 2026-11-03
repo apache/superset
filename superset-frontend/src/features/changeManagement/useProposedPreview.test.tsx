@@ -69,9 +69,11 @@ test('can preview a chart whose change carries the controls', () => {
   expect(setup(chartRequest).result.current.canPreview).toBe(true);
 });
 
-test('cannot preview a chart change that only renames it', () => {
-  // Explore's Save still posts `params` on a rename, so the payload cannot
-  // answer this and `changed_fields` has to.
+test('cannot preview a change that carries only a new name', () => {
+  // A rename through the properties modal or the REST API sends
+  // `slice_name` alone. A rename through Explore does not -- it posts every
+  // control, so `params` moves too and the switch is offered. That boundary
+  // is asserted in `proposedChart.test.ts`; this covers the narrow case.
   expect(
     setup({ ...chartRequest, changed_fields: ['slice_name'] }).result.current
       .canPreview,
