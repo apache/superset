@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -453,6 +453,12 @@ msgstr[1] ""
 #, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -1116,6 +1122,9 @@ msgid "A new chart will be created."
 msgstr ""
 
 msgid "A new dashboard will be created."
+msgstr ""
+
+msgid "A partition key must be a whole number within the 64-bit range."
 msgstr ""
 
 #, python-format
@@ -2222,6 +2231,10 @@ msgstr ""
 msgid "An error occurred while loading the SQL"
 msgstr ""
 
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
+
 msgid "An error occurred while overwriting the dataset"
 msgstr ""
 
@@ -2564,10 +2577,6 @@ msgstr ""
 
 #, python-format
 msgid "Are you sure you want to delete %s?"
-msgstr ""
-
-#, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
 msgstr ""
 
 #, python-format
@@ -3649,6 +3658,11 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
+msgstr ""
+
 msgid "Child label position"
 msgstr ""
 
@@ -3677,6 +3691,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr ""
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr ""
 
@@ -3693,9 +3710,6 @@ msgid "Choose columns to be parsed as dates"
 msgstr ""
 
 msgid "Choose columns to read"
-msgstr ""
-
-msgid "Choose current semantic fields"
 msgstr ""
 
 msgid "Choose current semantic filter fields"
@@ -4553,6 +4567,12 @@ msgstr ""
 msgid "Corner Radius"
 msgstr ""
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr ""
 
@@ -4721,6 +4741,9 @@ msgid "Create new chart"
 msgstr ""
 
 msgid "Create or select schema..."
+msgstr ""
+
+msgid "Create semantic layer"
 msgstr ""
 
 msgid "Created"
@@ -5170,6 +5193,12 @@ msgid "Data refreshed"
 msgstr ""
 
 msgid "Data type"
+msgstr ""
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
 msgstr ""
 
 msgid "DataFrame include at least one series"
@@ -5653,7 +5682,7 @@ msgstr ""
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -6723,6 +6752,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr ""
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr ""
 
@@ -6738,7 +6770,13 @@ msgstr ""
 msgid "Enter minimum and maximum values for the range filter"
 msgstr ""
 
+msgid "Enter one to three existing partition keys."
+msgstr ""
+
 msgid "Enter report name"
+msgstr ""
+
+msgid "Enter stored epoch partition keys, not timestamps"
 msgstr ""
 
 msgid ""
@@ -6853,6 +6891,10 @@ msgstr ""
 
 #, python-format
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
+msgstr ""
+
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
 msgstr ""
 
 #, python-format
@@ -7009,6 +7051,12 @@ msgstr ""
 
 #, python-format
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
+
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
 msgstr ""
 
 msgid "Exit edit mode"
@@ -7192,6 +7240,9 @@ msgid "Expression"
 msgstr ""
 
 msgid "Expression cannot be empty"
+msgstr ""
+
+msgid "Expression evaluated — data not checked"
 msgstr ""
 
 #, python-format
@@ -7648,6 +7699,16 @@ msgid ""
 "can prune partitions."
 msgstr ""
 
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but with this"
+" transform they are not mirrored."
+msgstr ""
+
 msgid "Filters on this column are mirrored onto the partition column."
 msgstr ""
 
@@ -8085,6 +8146,9 @@ msgid ""
 msgstr ""
 
 msgid "Guest"
+msgstr ""
+
+msgid "Guest user cannot access this query"
 msgstr ""
 
 msgid "Guest user cannot modify chart payload"
@@ -9309,6 +9373,12 @@ msgstr ""
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 msgid "Loading timezones..."
 msgstr ""
 
@@ -9562,6 +9632,12 @@ msgstr ""
 
 msgid "Match type"
 msgstr ""
+
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Matrixify"
 msgstr ""
@@ -10276,6 +10352,12 @@ msgstr ""
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
+msgstr ""
+
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 
@@ -10424,6 +10506,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -11177,6 +11275,12 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
+msgstr ""
+
+msgid "Partition mismatch found"
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -11874,7 +11978,19 @@ msgstr ""
 msgid "Ratio"
 msgstr ""
 
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
+
 msgid "Raw records"
+msgstr ""
+
+msgid "Re-pick fields"
+msgstr ""
+
+msgid "Re-pick fields for this chart"
 msgstr ""
 
 msgid "Rearranged layout"
@@ -12882,6 +12998,9 @@ msgstr ""
 msgid "Save query"
 msgstr ""
 
+msgid "Save the dataset before validating against data."
+msgstr ""
+
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
 "saved columns, and this mapping uses one that has not been saved yet."
@@ -13591,6 +13710,9 @@ msgid "Semantic layer does not exist"
 msgstr ""
 
 msgid "Semantic layer parameters are invalid."
+msgstr ""
+
+msgid "Semantic layer setup guide"
 msgstr ""
 
 msgid "Semantic layer type"
@@ -14426,6 +14548,10 @@ msgstr ""
 msgid "Source location"
 msgstr ""
 
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
+
 msgid "Sparkline"
 msgstr ""
 
@@ -14519,12 +14645,6 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "field selections, pre-filters, sorting, defaults and dependencies. Saved "
 "display titles cannot be recovered automatically."
-msgstr ""
-
-msgid ""
-"Start field selection using current member IDs. This clears any existing "
-"query and formatting settings. Saved display titles cannot be safely "
-"mapped to member IDs. The saved chart is unchanged until you save."
 msgstr ""
 
 msgid ""
@@ -15801,6 +15921,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr ""
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 msgid "The report will be sent to your email at"
 msgstr ""
 
@@ -16024,6 +16150,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -16031,6 +16160,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -16076,6 +16208,13 @@ msgid "The user has been created successfully."
 msgstr ""
 
 msgid "The user has been updated successfully."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
 msgstr ""
 
 msgid "The user was updated successfully"
@@ -16575,6 +16714,9 @@ msgid ""
 "mydatabase.com)."
 msgstr ""
 
+msgid "This cannot be undone."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -16612,6 +16754,13 @@ msgid ""
 "This chart version can't be restored because the semantic view it used "
 "has been permanently deleted. Restore a version that uses an existing "
 "semantic view or dataset, or recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart was saved with an older format of field names for this "
+"semantic view, so the fields it refers to can't be confirmed. Re-pick the"
+" metrics and dimensions to keep using it. The saved chart doesn't change "
+"until you save."
 msgstr ""
 
 msgid "This chart was updated to use the restored aggregation"
@@ -16911,6 +17060,13 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
 msgstr ""
 
 msgid ""
@@ -17465,6 +17621,9 @@ msgstr ""
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 
@@ -17645,7 +17804,20 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr ""
 
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
+
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 msgid ""
@@ -18089,10 +18261,10 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr ""
 
-msgid "Valid"
+msgid "Valid SQL expression"
 msgstr ""
 
-msgid "Valid SQL expression"
+msgid "Validate against data"
 msgstr ""
 
 msgid "Validate query"
@@ -18106,6 +18278,9 @@ msgid "Validating connectivity for %s"
 msgstr ""
 
 msgid "Validating..."
+msgstr ""
+
+msgid "Validation inconclusive"
 msgstr ""
 
 msgid "Value"
@@ -19500,6 +19675,9 @@ msgstr ""
 msgid "aggregate"
 msgstr ""
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr ""
 
@@ -19515,6 +19693,10 @@ msgstr ""
 msgid "ancestor"
 msgstr ""
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr ""
 
@@ -19522,6 +19704,10 @@ msgid "annotation_layer"
 msgstr ""
 
 msgid "apple"
+msgstr ""
+
+#, python-format
+msgid "archived %s"
 msgstr ""
 
 msgid "asfreq"
@@ -20175,6 +20361,12 @@ msgid "queries"
 msgstr ""
 
 msgid "query"
+msgstr ""
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
 msgstr ""
 
 msgid "random"
