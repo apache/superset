@@ -109,6 +109,18 @@ Dataset time-range bounds already pass through Superset's timezone/hour-offset a
 before mirroring. Do not convert those bounds from the dataset timezone a second time.
 The added partition predicate remains visible in **View query**.
 
+The transform belongs to the column it was written for, so moving the mapping clears it.
+That happens when you change the default datetime column, move the mapping to another
+column, or clear the partition column. The editor asks for confirmation first. **Cancel**
+leaves everything as it was. Selecting the old column again does not restore the transform.
+
+The editor says filters will be mirrored only once the engine has confirmed the transform.
+That confirmation comes from a preview or from the last stored check. Until then, it says
+pruning has not been confirmed. A new dashboard filter on a mapped dataset starts with a
+*Last week* time range only after that same confirmation.
+The confirmation means the engine could evaluate the transform, not that it matches your
+data; use **Validate against data** for that.
+
 ### Validate against stored data
 
 The automatic preview reports **Expression evaluated — data not checked**. This means
