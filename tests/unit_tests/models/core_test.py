@@ -39,7 +39,7 @@ from sqlalchemy import (
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm.session import Session
-from sqlalchemy.pool import QueuePool
+from sqlalchemy.pool import QueuePool, SingletonThreadPool, StaticPool
 from sqlalchemy.sql import Select
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
@@ -784,12 +784,17 @@ def test_engine_cache_eviction_survives_dispose_failure() -> None:
         _evict_engine_cache,
     )
 
-    failing, healthy, other = MagicMock(), MagicMock(), MagicMock()
+    failing, healthy, other, shared = (
+        MagicMock(pool=MagicMock(spec=QueuePool)) for _ in range(4)
+    )
     failing.dispose.side_effect = RuntimeError("boom")
+    # A single shared connection would be closed under its users by disposal.
+    shared.pool = MagicMock(spec=StaticPool)
     with _ENGINE_CACHE_LOCK:
         _ENGINE_CACHE.clear()
         _ENGINE_CACHE[(1, "postgresql://old-host/db", "")] = failing
         _ENGINE_CACHE[(1, "postgresql://new-host/db", "")] = healthy
+        _ENGINE_CACHE[(1, "postgresql://shared-host/db", "")] = shared
         _ENGINE_CACHE[(2, "postgresql://other/db", "")] = other
 
     db_instance = MagicMock()
@@ -799,9 +804,40 @@ def test_engine_cache_eviction_survives_dispose_failure() -> None:
 
         failing.dispose.assert_called_once()
         healthy.dispose.assert_called_once()
+        shared.dispose.assert_not_called()
         other.dispose.assert_not_called()
     finally:
         _ENGINE_CACHE.clear()
+
+
+@pytest.mark.parametrize("poolclass", [StaticPool, SingletonThreadPool])
+def test_engine_cache_eviction_keeps_checked_out_connection_usable(
+    poolclass: type,
+) -> None:
+    """
+    Disposing a ``StaticPool`` or ``SingletonThreadPool`` closes its connections
+    even while they are checked out, which would break a query that is running
+    when the database is edited. Those engines are evicted without being
+    disposed.
+    """
+    from unittest.mock import MagicMock
+
+    from superset.models.core import _ENGINE_CACHE, _evict_engine_cache
+
+    engine = create_engine("sqlite://", poolclass=poolclass)
+    _ENGINE_CACHE.clear()
+    _ENGINE_CACHE[(1, "sqlite://", "")] = engine
+    try:
+        with engine.connect() as connection:
+            db_instance = MagicMock()
+            db_instance.id = 1
+            _evict_engine_cache(mapper=None, connection=None, target=db_instance)
+
+            assert _ENGINE_CACHE == {}
+            assert connection.execute(select(1)).scalar() == 1
+    finally:
+        _ENGINE_CACHE.clear()
+        engine.dispose()
 
 
 @pytest.fixture
