@@ -18,6 +18,8 @@
  */
 
 import type { toasts as toastsApi } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
+import { openInNewTab } from 'src/utils/navigationUtils';
 import { store } from 'src/views/store';
 import {
   addToast,
@@ -38,7 +40,11 @@ const show = (
     ? {
         label: String(link.label),
         onClick: () => {
-          window.open(link.href, '_blank', 'noopener,noreferrer');
+          try {
+            openInNewTab(link.href);
+          } catch (error) {
+            logging.error('Refused to open toast link', link.href, error);
+          }
         },
       }
     : undefined;

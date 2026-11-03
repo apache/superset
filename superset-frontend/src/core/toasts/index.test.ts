@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { logging } from '@apache-superset/core/utils';
 import { store } from 'src/views/store';
 import { ToastMeta, ToastType } from 'src/components/MessageToasts/types';
 import { toasts } from './index';
@@ -48,8 +49,35 @@ test('link becomes an action that opens the url in a new tab', () => {
   expect(open).toHaveBeenCalledWith(
     'https://docs.google.com/x',
     '_blank',
-    'noopener,noreferrer',
+    'noopener noreferrer',
   );
+  open.mockRestore();
+});
+
+test('a link that fails the navigation guard is refused and logged', () => {
+  const open = jest.spyOn(window, 'open').mockImplementation(() => null);
+  const error = jest.spyOn(logging, 'error').mockImplementation(() => {});
+  const id = toasts.addSuccessToast('Sent', {
+    link: { href: 'https://user:secret@example.com/x', label: 'Open' },
+  });
+  const toast = state().find(t => t.id === id)!;
+  expect(() => toast.action!.onClick()).not.toThrow();
+  expect(open).not.toHaveBeenCalled();
+  expect(error).toHaveBeenCalled();
+  open.mockRestore();
+  error.mockRestore();
+});
+
+test('a javascript: link is never opened as a script url', () => {
+  const open = jest.spyOn(window, 'open').mockImplementation(() => null);
+  const id = toasts.addSuccessToast('Sent', {
+    link: { href: 'javascript:alert(1)', label: 'Open' },
+  });
+  const toast = state().find(t => t.id === id)!;
+  expect(() => toast.action!.onClick()).not.toThrow();
+  open.mock.calls.forEach(([url]) => {
+    expect(String(url)).not.toMatch(/^javascript:/i);
+  });
   open.mockRestore();
 });
 
