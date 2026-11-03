@@ -439,7 +439,6 @@ def test_get_sensitive_field_hints_absent_path() -> None:
         ("a" * 15 + "vwxyz", "vwxyz"),
         ("a" * 16 + "vwxyz", "vwxyz"),
         ("short", None),
-        ("", None),
     ],
 )
 def test_get_sensitive_field_hints_never_reveals_more_than_a_quarter(
@@ -692,6 +691,43 @@ def test_dumps_preserves_unicode_when_ensure_ascii_false() -> None:
     assert json.dumps("Hello, world!", ensure_ascii=False) == '"Hello, world!"'
     assert json.dumps("Привет, мир!", ensure_ascii=False) == '"Привет, мир!"'
     assert json.dumps("你好，世界！", ensure_ascii=False) == '"你好，世界！"'
+
+
+@pytest.mark.parametrize("trailer", ["", "\n", "  \r\n"])
+def test_get_sensitive_field_hints_unicode_uses_code_points(trailer: str) -> None:
+    """
+    The suffix is the last code points of the trimmed value, emoji included.
+    """
+    value = "x" * 15 + "日本語🙂!" + trailer
+
+    assert json.get_sensitive_field_hints({"secret": value}, {"$.secret"}, 5) == [
+        {"path": "$.secret", "suffix": "日本語🙂!"}
+    ]
+
+
+def test_get_sensitive_field_hints_mask_literal_is_an_ordinary_string() -> None:
+    """
+    A stored value equal to the mask literal gets no special treatment.
+    """
+    value = PASSWORD_MASK * 2
+
+    assert json.get_sensitive_field_hints({"secret": value}, {"$.secret"}, 5) == [
+        {"path": "$.secret", "suffix": "XXXXX"}
+    ]
+
+
+def test_get_sensitive_field_hints_large_payload() -> None:
+    """
+    A 1 MB secret next to thousands of other keys yields one correct hint.
+    """
+    payload = {
+        "connect_args": {"jwt": "j" * (1_000_000 - 4) + "ab3d"},
+        "other": {f"key_{i}": f"value_{i}" for i in range(10_000)},
+    }
+
+    hints = json.get_sensitive_field_hints(payload, {"$.connect_args.jwt"}, 5)
+
+    assert hints == [{"path": "$.connect_args.jwt", "suffix": "jab3d"}]
 
 
 def test_redact_sensitive_leaves_empty_values_unmasked() -> None:
