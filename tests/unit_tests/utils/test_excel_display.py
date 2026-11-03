@@ -22,6 +22,7 @@ from openpyxl import load_workbook, Workbook
 
 from superset.utils.excel_display import (
     apply_column_display,
+    attach_datasource_formats,
     d3_number_to_excel,
     d3_time_to_excel,
     ExcelColumnDisplay,
@@ -73,6 +74,61 @@ def test_styles_from_table_form_data_generated_config() -> None:
     assert styles["revenue"].alignment == "right"
     assert styles["when"].number_format == "yyyy-mm-dd"
     assert "ignored" not in styles
+
+
+def test_styles_from_table_form_data_uses_datasource_formats() -> None:
+    """Dataset columnFormats/currencyFormats apply when column_config is empty."""
+    styles = styles_from_table_form_data(
+        ["revenue", "qty"],
+        {
+            "columnFormats": {"revenue": ",.2f"},
+            "currencyFormats": {
+                "revenue": {"symbol": "EUR", "symbolPosition": "prefix"}
+            },
+        },
+    )
+    assert styles["revenue"].number_format == '"€"#,##0.00'
+    assert "qty" not in styles
+
+
+def test_styles_from_table_form_data_column_config_overrides_dataset() -> None:
+    """Explore column_config wins over datasource-level d3 formats."""
+    styles = styles_from_table_form_data(
+        ["revenue"],
+        {
+            "column_config": {"revenue": {"d3NumberFormat": ",.0f"}},
+            "columnFormats": {"revenue": ",.2f"},
+        },
+    )
+    assert styles["revenue"].number_format == "#,##0"
+
+
+def test_styles_from_table_form_data_verbose_dataset_format() -> None:
+    """Formats keyed by the physical column still match a verbose header."""
+    styles = styles_from_table_form_data(
+        ["Revenue"],
+        {"column_formats": {"sales": ",.1f"}},
+        verbose_map={"sales": "Revenue"},
+    )
+    assert styles["Revenue"].number_format == "#,##0.0"
+
+
+def test_attach_datasource_formats_fills_omitted_chart_maps() -> None:
+    """Dataset maps are copied only when the chart payload left them empty."""
+    merged = attach_datasource_formats(
+        {"viz_type": "table"},
+        {
+            "column_formats": {"sales": ",.2f"},
+            "currency_formats": {"sales": {"symbol": "USD"}},
+        },
+    )
+    assert merged["columnFormats"] == {"sales": ",.2f"}
+    assert merged["currencyFormats"] == {"sales": {"symbol": "USD"}}
+    unchanged = attach_datasource_formats(
+        {"columnFormats": {"sales": ".0f"}},
+        {"column_formats": {"sales": ",.2f"}},
+    )
+    assert unchanged["columnFormats"] == {"sales": ".0f"}
 
 
 def test_styles_from_pivot_form_data_matches_flattened_metric() -> None:

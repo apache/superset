@@ -145,23 +145,84 @@ def _currency_excel_format(number_body: str, currency: Mapping[str, Any] | None)
     return f"{quoted}{number_body}"
 
 
+def attach_datasource_formats(
+    form_data: Mapping[str, Any],
+    datasource_data: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Copy dataset number/currency formats when the chart payload omitted them."""
+    merged = dict(form_data)
+    if not datasource_data:
+        return merged
+    if not merged.get("columnFormats") and not merged.get("column_formats"):
+        column_formats = datasource_data.get("column_formats") or datasource_data.get(
+            "columnFormats"
+        )
+        if column_formats:
+            merged["columnFormats"] = column_formats
+    if not merged.get("currencyFormats") and not merged.get("currency_formats"):
+        currency_formats = datasource_data.get(
+            "currency_formats"
+        ) or datasource_data.get("currencyFormats")
+        if currency_formats:
+            merged["currencyFormats"] = currency_formats
+    return merged
+
+
+def _header_aliases(header: str, verbose_map: Mapping[str, Any] | None) -> list[str]:
+    """Raw and verbose names so dataset formats still match renamed headers."""
+    aliases = [header]
+    if not verbose_map:
+        return aliases
+    verbose = verbose_map.get(header)
+    if verbose is not None and str(verbose) not in aliases:
+        aliases.append(str(verbose))
+    for raw, label in verbose_map.items():
+        if str(label) == header and str(raw) not in aliases:
+            aliases.append(str(raw))
+    return aliases
+
+
+def _first_mapped_value(mapping: Mapping[str, Any], aliases: list[str]) -> Any | None:
+    """Return the first alias present in ``mapping``, else None."""
+    for name in aliases:
+        if name in mapping:
+            return mapping[name]
+    return None
+
+
 def styles_from_table_form_data(
     column_headers: list[Any],
     form_data: Mapping[str, Any],
+    verbose_map: Mapping[str, Any] | None = None,
 ) -> dict[str, ExcelColumnDisplay]:
-    """Build header → display map from Table ``column_config``."""
+    """Build header → display map from Table ``column_config`` and dataset formats."""
     column_config = form_data.get("column_config") or {}
     if not isinstance(column_config, dict):
-        return {}
+        column_config = {}
+    column_formats = form_data.get("columnFormats") or form_data.get("column_formats")
+    if not isinstance(column_formats, dict):
+        column_formats = {}
+    currency_formats = form_data.get("currencyFormats") or form_data.get(
+        "currency_formats"
+    )
+    if not isinstance(currency_formats, dict):
+        currency_formats = {}
+    verbose_map = verbose_map or (
+        form_data.get("verbose_map")
+        if isinstance(form_data.get("verbose_map"), dict)
+        else None
+    )
 
     styles: dict[str, ExcelColumnDisplay] = {}
-    header_set = {str(header) for header in column_headers}
-    for name, config in column_config.items():
-        if not isinstance(config, dict):
-            continue
-        header = str(name)
-        if header not in header_set:
-            continue
+    for header_value in column_headers:
+        header = str(header_value)
+        aliases = _header_aliases(header, verbose_map)
+        config: dict[str, Any] = {}
+        for name in aliases:
+            candidate = column_config.get(name)
+            if isinstance(candidate, dict):
+                config = candidate
+                break
         alignment = config.get("horizontalAlign")
         alignment = (
             alignment.lower()
@@ -169,9 +230,14 @@ def styles_from_table_form_data(
             else None
         )
         currency = config.get("currencyFormat")
-        currency = currency if isinstance(currency, dict) else None
+        if not isinstance(currency, dict) or not currency.get("symbol"):
+            saved_currency = _first_mapped_value(currency_formats, aliases)
+            currency = saved_currency if isinstance(saved_currency, dict) else None
+        d3_number = config.get("d3NumberFormat") or _first_mapped_value(
+            column_formats, aliases
+        )
         number_format = d3_number_to_excel(
-            config.get("d3NumberFormat"), currency
+            d3_number if isinstance(d3_number, str) else None, currency
         ) or d3_time_to_excel(config.get("d3TimeFormat"))
         if number_format or alignment:
             styles[header] = ExcelColumnDisplay(

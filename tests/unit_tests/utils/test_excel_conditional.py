@@ -42,6 +42,7 @@ def _cf_rules(sheet: Worksheet) -> list[tuple[str, Any]]:
 
 
 def _workbook_with_sales(*values: float) -> bytes:
+    """Build a two-column sheet: numeric ``sales`` plus a text ``region``."""
     workbook = Workbook()
     sheet = workbook.active
     sheet["A1"] = "sales"
@@ -207,11 +208,13 @@ def test_value_matches_rule_comparators(
 
 
 def test_returns_original_bytes_when_nothing_to_apply() -> None:
+    """Empty rules and no cell bars leave the workbook bytes unchanged."""
     raw = _workbook_with_sales(10)
     assert apply_conditional_formatting(raw, []) is raw
 
 
 def test_missing_column_does_not_add_rules() -> None:
+    """A rule for a header that is not on the sheet is a no-op."""
     styled = apply_conditional_formatting(
         _workbook_with_sales(10),
         [{"column": "missing", "operator": ">", "targetValue": 1}],
@@ -220,6 +223,7 @@ def test_missing_column_does_not_add_rules() -> None:
 
 
 def test_range_operator_writes_formula_rule() -> None:
+    """Between-style operators become an Excel formula on the data range."""
     styled = apply_conditional_formatting(
         _workbook_with_sales(5),
         [
@@ -242,6 +246,7 @@ def test_range_operator_writes_formula_rule() -> None:
 
 
 def test_text_color_cell_is_uses_font_not_fill() -> None:
+    """TEXT_COLOR CellIs rules stamp font color and leave fill empty."""
     styled = apply_conditional_formatting(
         _workbook_with_sales(12),
         [
@@ -263,6 +268,7 @@ def test_text_color_cell_is_uses_font_not_fill() -> None:
 
 
 def test_pivot_sum_header_matches_rule_column() -> None:
+    """Rules keyed by ``sales`` still match a Pivot ``SUM(sales)`` header."""
     workbook = Workbook()
     sheet = workbook.active
     sheet["A1"] = "SUM(sales)"
@@ -286,6 +292,7 @@ def test_pivot_sum_header_matches_rule_column() -> None:
 
 
 def test_cell_bar_range_operator_covers_contiguous_matches() -> None:
+    """CELL_BAR plus a between operator covers only the matching run of cells."""
     styled = apply_conditional_formatting(
         _workbook_with_sales(1, 5, 15),
         [
@@ -308,6 +315,7 @@ def test_cell_bar_range_operator_covers_contiguous_matches() -> None:
 
 
 def test_cell_bar_without_operator_covers_full_column() -> None:
+    """CELL_BAR with no comparator paints the whole numeric column."""
     styled = apply_conditional_formatting(
         _workbook_with_sales(12.5, 5, 20),
         [
@@ -328,6 +336,7 @@ def test_cell_bar_without_operator_covers_full_column() -> None:
 
 
 def test_color_scale_without_bounds_uses_min_max() -> None:
+    """Operator None without bounds uses Excel min/max, not num cfvo with val=None."""
     styled = apply_conditional_formatting(
         _workbook_with_sales(10),
         [{"column": "sales", "operator": None, "colorScheme": "success"}],
@@ -338,7 +347,34 @@ def test_color_scale_without_bounds_uses_min_max() -> None:
         if rule.type == "colorScale"
     )
     assert scale.colorScale.cfvo[0].type == "min"
+    assert scale.colorScale.cfvo[0].val is None
     assert scale.colorScale.cfvo[1].type == "max"
+    assert scale.colorScale.cfvo[1].val is None
+
+
+def test_color_scale_invalid_bound_does_not_emit_num_none() -> None:
+    """A non-numeric maxBound falls back to max instead of type=num val=None."""
+    styled = apply_conditional_formatting(
+        _workbook_with_sales(10),
+        [
+            {
+                "column": "sales",
+                "operator": None,
+                "colorScheme": "success",
+                "minBound": 0,
+                "maxBound": "abc",
+            }
+        ],
+    )
+    scale = next(
+        rule
+        for _, rule in _cf_rules(load_workbook(io.BytesIO(styled)).active)
+        if rule.type == "colorScale"
+    )
+    assert scale.colorScale.cfvo[0].type == "num"
+    assert float(scale.colorScale.cfvo[0].val) == 0
+    assert scale.colorScale.cfvo[1].type == "max"
+    assert scale.colorScale.cfvo[1].val is None
 
 
 def test_polish_explore_xlsx_table_cf_on_xlsxwriter_workbook() -> None:
@@ -381,6 +417,7 @@ def test_polish_explore_xlsx_table_cf_on_xlsxwriter_workbook() -> None:
 
 
 def test_polish_explore_xlsx_default_cell_bars_on_xlsxwriter() -> None:
+    """xlsxwriter Table downloads get data bars on numeric columns only."""
     df = pd.DataFrame({"sales": [10, 20], "region": ["west", "east"]})
     polished = polish_explore_xlsx(
         df_to_excel(df, index=False),
@@ -397,6 +434,7 @@ def test_polish_explore_xlsx_default_cell_bars_on_xlsxwriter() -> None:
 
 
 def test_polish_explore_xlsx_skips_unrelated_viz() -> None:
+    """Non Table/Pivot viz types leave the workbook bytes untouched."""
     df = pd.DataFrame({"sales": [10]})
     raw = df_to_excel(df, index=False)
     assert (

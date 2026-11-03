@@ -421,10 +421,10 @@ def _apply_rule(
             cell_range,
             ColorScaleRule(
                 start_type=start_type,
-                start_value=min_bound,
+                start_value=min_bound if start_type == "num" else None,
                 start_color=_SCALE_LOW,
                 end_type=end_type,
-                end_value=max_bound,
+                end_value=max_bound if end_type == "num" else None,
                 end_color=rgb,
             ),
         )
@@ -504,7 +504,9 @@ def polish_explore_xlsx(
     if not skip_display:
         headers = [str(column) for column in df.columns]
         if viz_type == "table":
-            styles = styles_from_table_form_data(headers, form_data)
+            styles = styles_from_table_form_data(
+                headers, form_data, verbose_map=verbose_map
+            )
         else:
             styles = styles_from_pivot_form_data(headers, form_data)
         workbook_bytes = apply_column_display(
