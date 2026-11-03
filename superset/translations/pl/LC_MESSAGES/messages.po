@@ -3275,6 +3275,9 @@ msgstr "Orientacja słupków"
 msgid "Base"
 msgstr "Podstawa"
 
+msgid "Base chart title"
+msgstr ""
+
 #, fuzzy
 msgid "Base exponent"
 msgstr "Port bazy danych"
@@ -3303,6 +3306,9 @@ msgstr "Styl mapy warstwy podstawowej. Zobacz dokumentację Mapbox: %s"
 #, fuzzy
 msgid "Base slope"
 msgstr "Podstawowe nachylenie"
+
+msgid "Base title"
+msgstr ""
 
 #, fuzzy
 msgid "Base width"
@@ -4262,6 +4268,9 @@ msgstr "Wybierz bazę danych..."
 msgid "Choose a delimiter"
 msgstr "Wybierz separator"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 msgid "Choose a metric for right axis"
 msgstr "Wybierz miarę dla prawej osi"
 
@@ -5073,6 +5082,9 @@ msgstr "Skonfiguruj automatyczne odświeżanie pulpitu"
 #, fuzzy
 msgid "Configure caching and performance settings"
 msgstr "Skonfiguruj ustawienia buforowania i wydajności"
+
+msgid "Configure chart title"
+msgstr ""
 
 msgid "Configure custom time range"
 msgstr "Skonfiguruj niestandardowy zakres czasowy"
@@ -7954,6 +7966,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Czy wypełniać obiekty"
 
+msgid "Enter a title template."
+msgstr ""
+
 #, fuzzy
 msgid "Enter alert name"
 msgstr "Wprowadź nazwę alertu"
@@ -8250,6 +8265,9 @@ msgid "Example"
 msgstr "Przykład"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 msgid "Examples"
@@ -10053,6 +10071,9 @@ msgstr "Ukryj warstwę"
 #, fuzzy
 msgid "Insert Layer title"
 msgstr "Wstaw tytuł warstwy"
+
+msgid "Insert token"
+msgstr ""
 
 #, fuzzy
 msgid "Inside"
@@ -12242,6 +12263,9 @@ msgstr "Nie znaleziono pasujących rekordów"
 #, fuzzy
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Do tego dashboardu nie dodano żadnych filtrów."
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No partition column is set."
 msgstr ""
@@ -15164,6 +15188,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Zapisz zapytanie"
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
 "saved columns, and this mapping uses one that has not been saved yet."
@@ -18032,6 +18059,11 @@ msgid "The background color of the charts."
 msgstr "Dodaj nazwę wykresu"
 
 msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
+msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
 msgstr ""
@@ -20649,6 +20681,9 @@ msgstr "Tytuł jest wymagany"
 msgid "Title or Slug"
 msgstr "Tytuł lub skrót"
 
+msgid "Title template"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -21418,6 +21453,10 @@ msgstr "Ustaw interwał automatycznego odświeżania"
 msgid "Update chart"
 msgstr "Aktualizuj wykres"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 #, fuzzy
 msgid "Updating chart was stopped"
 msgstr "Aktualizacja wykresu została zatrzymana"
@@ -21516,6 +21555,9 @@ msgstr ""
 "Użyj składni Handlebars, aby tworzyć niestandardowe podpowiedzi. Dostępne"
 " zmienne są oparte na wyborze zawartości podpowiedzi powyżej."
 
+msgid "Use a dynamic title"
+msgstr ""
+
 msgid "Use a log scale"
 msgstr "Użyj skali logarytmicznej"
 
@@ -21587,6 +21629,9 @@ msgstr "Skorzystaj z tej sekcji, jeśli chcesz zapytać o wiersze atomowe"
 
 msgid "Use this to define a static color for all circles"
 msgstr "Użyj tego, aby zdefiniować stały kolor dla wszystkich okręgów"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 msgid ""
 "Used internally to identify the plugin. Should be set to the package name"
@@ -23299,6 +23344,9 @@ msgstr "obszar powiększenia"
 
 msgid "Zoom level of the map"
 msgstr "Poziom powiększenia mapy"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 #, fuzzy
 msgid "[ untitled dashboard ]"

@@ -109,6 +109,74 @@ def test_file_content_replaces_dataset_id_with_uuid_in_display_controls():
     assert customizations[1]["targets"] == []
 
 
+def test_export_import_preserves_dynamic_titles_for_repeated_chart() -> None:
+    """Exported layout titles survive importing under a different chart ID."""
+    from superset.commands.dashboard.export import ExportDashboardsCommand
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    chart_uuid = str(uuid.uuid4())
+    dashboard = _make_mock_dashboard(
+        {
+            "native_filter_configuration": [
+                {
+                    "id": "country-filter",
+                    "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                }
+            ],
+        }
+    )
+    exported = dashboard.export_to_dict.return_value
+    position = json.loads(exported["position_json"])
+    position["GRID_ID"]["children"] = ["CHART-first", "CHART-second"]
+    titles = [
+        {
+            "template": "{{chart_title}} in {{country}}",
+            "tokenMappings": {"country": "country-filter"},
+        },
+        {
+            "template": "Comparison for {{country}}",
+            "tokenMappings": {"country": "country-filter"},
+        },
+    ]
+    for key, title, base in zip(
+        ["CHART-first", "CHART-second"], titles, ["Revenue", "Comparison"], strict=True
+    ):
+        position[key] = {
+            "id": key,
+            "type": "CHART",
+            "meta": {
+                "chartId": 101,
+                "uuid": chart_uuid,
+                "sliceNameOverride": base,
+                "dynamicTitle": title,
+            },
+        }
+    exported["position_json"] = json.dumps(position)
+
+    with (
+        patch(
+            "superset.commands.dashboard.export.DatasetDAO.find_by_ids", return_value=[]
+        ),
+        patch(
+            "superset.commands.dashboard.export.feature_flag_manager.is_feature_enabled",
+            return_value=False,
+        ),
+    ):
+        config = yaml.safe_load(ExportDashboardsCommand._file_content(dashboard))
+    # Exercise the real export serialization and importer ID-remapping boundary.
+    imported = update_id_refs(config, {chart_uuid: 202}, {})
+    for key, title, base in zip(
+        ["CHART-first", "CHART-second"], titles, ["Revenue", "Comparison"], strict=True
+    ):
+        meta = imported["position"][key]["meta"]
+        assert meta["chartId"] == 202
+        assert meta["dynamicTitle"] == title
+        assert meta["sliceNameOverride"] == base
+    assert (
+        imported["metadata"]["native_filter_configuration"][0]["id"] == "country-filter"
+    )
+
+
 def test_file_content_batches_dataset_lookup_across_targets():
     """
     Regression test: dataset lookups must go through a single batched

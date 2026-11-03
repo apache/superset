@@ -152,7 +152,7 @@ const getQueryFilterMetadata = (
         : queryResponse?.rejected_filters) || [],
   );
 
-const getAppliedColumns = (chart: any): Set<string> =>
+export const getAppliedColumns = (chart: unknown): Set<string> =>
   new Set(
     getQueryFilterMetadata(chart, 'applied_filters').map(
       (filter: any) => filter.column,
@@ -199,7 +199,7 @@ export const getAppliedColumnsWithFallback = (
   return new Set<string>();
 };
 
-const getRejectedColumns = (chart: any): Set<string> =>
+export const getRejectedColumns = (chart: unknown): Set<string> =>
   new Set(
     getQueryFilterMetadata(chart, 'rejected_filters').map((filter: any) =>
       getColumnLabel(filter.column),

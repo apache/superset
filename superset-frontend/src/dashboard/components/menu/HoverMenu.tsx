@@ -36,6 +36,10 @@ const HoverStyleOverrides = styled.div`
     position: absolute;
     z-index: ${HOVER_MENU_Z_INDEX};
     font-size: ${({ theme }) => theme.fontSize};
+
+    &:focus-within {
+      opacity: 1;
+    }
   }
 
   .hover-menu--left {

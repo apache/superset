@@ -289,6 +289,11 @@ export type Charts = { [key: number]: Chart };
 type ComponentTypesKeys = keyof typeof componentTypes;
 export type ComponentType = (typeof componentTypes)[ComponentTypesKeys];
 
+export type DynamicTitleConfig = {
+  template: string;
+  tokenMappings: Record<string, string>;
+};
+
 export type LayoutItemMeta = {
   chartId?: number;
   defaultText?: string;
@@ -296,6 +301,7 @@ export type LayoutItemMeta = {
   placeholder?: string;
   sliceName?: string;
   sliceNameOverride?: string;
+  dynamicTitle?: DynamicTitleConfig;
   text?: string;
   uuid?: string;
   width?: number;

@@ -3048,6 +3048,9 @@ msgstr "Направление столбцов"
 msgid "Base"
 msgstr "Базовый"
 
+msgid "Base chart title"
+msgstr ""
+
 msgid "Base exponent"
 msgstr "Базовая экспонента"
 
@@ -3070,6 +3073,9 @@ msgstr "Стиль базового слоя карты. Подробнее в �
 
 msgid "Base slope"
 msgstr "Базовый наклон"
+
+msgid "Base title"
+msgstr ""
 
 msgid "Base width"
 msgstr "Базовая ширина"
@@ -3959,6 +3965,9 @@ msgstr "Выберите базу данных..."
 msgid "Choose a delimiter"
 msgstr "Выберите разделитель"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 msgid "Choose a metric for right axis"
 msgstr "Выберите меру для правой оси"
 
@@ -4671,6 +4680,9 @@ msgstr "Настройка автоматического обновления �
 
 msgid "Configure caching and performance settings"
 msgstr "Настройка кэширования и производительности"
+
+msgid "Configure chart title"
+msgstr ""
 
 msgid "Configure custom time range"
 msgstr "Установить пользовательский временной интервал"
@@ -7206,6 +7218,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Введите часть имени объекта"
 
+msgid "Enter a title template."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Введите имя оповещения"
 
@@ -7455,6 +7470,9 @@ msgid "Example"
 msgstr "Пример"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 msgid "Examples"
@@ -9021,6 +9039,9 @@ msgstr "Введите URL слоя"
 
 msgid "Insert Layer title"
 msgstr "Введите название слоя"
+
+msgid "Insert token"
+msgstr ""
 
 msgid "Inside"
 msgstr "Внутри"
@@ -11013,6 +11034,9 @@ msgstr "Совпадений не найдено"
 
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "На этот дашборд не добавлена ни одна диаграмма deck.gl."
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No partition column is set."
 msgstr ""
@@ -13660,6 +13684,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Сохранить запрос"
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
 "saved columns, and this mapping uses one that has not been saved yet."
@@ -16116,6 +16143,11 @@ msgid "The background color of the charts."
 msgstr "Цвет фона диаграмм."
 
 msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
+msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
 msgstr ""
@@ -18489,6 +18521,9 @@ msgstr "Название обязательно"
 msgid "Title or Slug"
 msgstr "Название или читаемый URL"
 
+msgid "Title template"
+msgstr ""
+
 msgid ""
 "To begin using your Google Sheets, you need to create a database first. "
 "Databases are used as a way to identify your data so that it can be "
@@ -19172,6 +19207,10 @@ msgstr "Настроить автообновление"
 msgid "Update chart"
 msgstr "Обновить диаграмму"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 msgid "Updating chart was stopped"
 msgstr "Обновление диаграммы остановлено"
 
@@ -19253,6 +19292,9 @@ msgstr ""
 "всплывающих подсказок. Доступные переменные основаны на выбранном выше "
 "содержимом подсказок."
 
+msgid "Use a dynamic title"
+msgstr ""
+
 msgid "Use a log scale"
 msgstr "Использовать логарифмическую шкалу"
 
@@ -19320,6 +19362,9 @@ msgstr "Используйте эту секцию для получения н�
 # перевод, близкий к тексту, будет выглядеть плохо.
 msgid "Use this to define a static color for all circles"
 msgstr "Используйте, чтобы задать фиксированный цвет визуализации"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 msgid ""
 "Used internally to identify the plugin. Should be set to the package name"
@@ -20893,6 +20938,9 @@ msgstr "Уровень масштабирования"
 
 msgid "Zoom level of the map"
 msgstr "Уровень масштабирования карты"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 msgid "[ untitled dashboard ]"
 msgstr "[ безымянный дашборд ]"
