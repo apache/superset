@@ -23,6 +23,8 @@ on:
     - tests/unit_tests/commands/importers/v1/utils_test.py
     - superset/models/helpers.py
     - tests/unit_tests/models/helpers_test.py
+    - superset/tasks/cron_util.py
+    - tests/unit_tests/tasks/test_cron_util.py
     - superset/superset_typing.py
     - tests/unit_tests/db_engine_specs/test_base.py
     - superset/extensions/metadb.py
@@ -88,7 +90,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install application and focused test dependencies
       run: >-
-        python -m pip install -e ./superset-core -e . pytest==7.4.4 pytest-mock freezegun parameterized responses rich prophet
+        python -m pip install -e ./superset-core -e . pytest==7.4.4 pytest-mock freezegun parameterized responses rich prophet sqlalchemy-bigquery
     - name: Check dependency consistency
       run: python -m pip check
     - name: Configure metadata directory
@@ -114,6 +116,7 @@ jobs:
                 'tests/unit_tests/utils/test_date_parsing.py',
                 'tests/unit_tests/commands/importers/v1/utils_test.py',
                 'tests/unit_tests/models/helpers_test.py',
+                'tests/unit_tests/tasks/test_cron_util.py',
                 'tests/unit_tests/db_engine_specs/test_base.py::test_resolve_column_type_prefers_cursor_type',
                 'tests/unit_tests/db_engine_specs/test_base.py::test_fetch_data_no_result_set',
                 'tests/unit_tests/db_engine_specs/test_base.py::test_fetch_data_with_result_set',

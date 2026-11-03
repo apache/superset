@@ -71,6 +71,30 @@ def test_pivot_combine_preserves_column_pairs(drop_missing_columns, columns):
     )
 
 
+@pytest.mark.parametrize("columns", [["category"], ["category", "country"]])
+def test_pivot_combine_preserves_null_categories(columns: list[str]) -> None:
+    frame = DataFrame(
+        {
+            "row": ["a", "b"],
+            "category": [1.0, np.nan],
+            "country": ["AU", "US"],
+            "m1": [1, 2],
+            "m2": [3, 4],
+        }
+    )
+    options = {
+        "index": ["row"],
+        "columns": columns,
+        "aggregates": {metric: {"operator": "sum"} for metric in ["m1", "m2"]},
+    }
+    expected = pivot(df=frame.copy(), **options)
+    expected.columns = expected.columns.reorder_levels([*range(1, len(columns) + 1), 0])
+    actual = pivot(df=frame.copy(), combine_value_with_metric=True, **options)
+    pd.testing.assert_frame_equal(
+        actual, expected.sort_index(axis=1, sort_remaining=False)
+    )
+
+
 def test_pivot_combine_keeps_totals_last() -> None:
     frame = DataFrame(
         {

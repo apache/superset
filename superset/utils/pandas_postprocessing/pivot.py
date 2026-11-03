@@ -404,15 +404,14 @@ def pivot(  # pylint: disable=too-many-arguments  # noqa: C901
         df = _apply_show_values_as(df, percent_mode)
 
     if combine_value_with_metric and isinstance(df.columns, pd.MultiIndex):
+        category_codes = list(zip(*df.columns.codes[1:], strict=False))
         category_order = {
             category: position
-            for position, category in enumerate(
-                dict.fromkeys(column[1:] for column in df.columns)
-            )
+            for position, category in enumerate(dict.fromkeys(category_codes))
         }
         positions = sorted(
             range(len(df.columns)),
-            key=lambda position: category_order[df.columns[position][1:]],
+            key=lambda position: category_order[category_codes[position]],
         )
         df = df.iloc[:, positions].reorder_levels(
             [*range(1, df.columns.nlevels), 0], axis=1
