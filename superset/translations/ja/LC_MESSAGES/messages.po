@@ -193,29 +193,29 @@ msgstr "「%s」がシステムの既定テーマに設定されました"
 msgid "% calculation"
 msgstr "% 計算"
 
-#, no-python-format
+#, python-format
 msgid "% of"
-msgstr "に対する割合(%)"
+msgstr ""
 
-#, no-python-format
+#, python-format
 msgid "% of column"
-msgstr "列に対する割合(%)"
+msgstr ""
 
-#, no-python-format
+#, python-format
 msgid "% of column total"
-msgstr "列の合計に対する割合(%)"
+msgstr ""
 
-#, no-python-format
+#, python-format
 msgid "% of grand total"
-msgstr "総合計に対する割合(%)"
+msgstr ""
 
 #, no-python-format
 msgid "% of parent"
 msgstr "親に対する割合(%)"
 
-#, no-python-format
+#, python-format
 msgid "% of row total"
-msgstr "行の合計に対する割合(%)"
+msgstr ""
 
 #, no-python-format
 msgid "% of total"
@@ -1648,11 +1648,11 @@ msgstr "追加済み"
 
 #, python-format
 msgid "Added %s '%s'"
-msgstr "%s 『%s』を追加しました"
+msgstr "%s 「%s」を追加しました"
 
 #, python-format
 msgid "Added '%s' dimension"
-msgstr "ディメンション『%s』を追加しました"
+msgstr "ディメンション「%s」を追加しました"
 
 #, fuzzy, python-format
 msgid "Added 1 new column to the dataset"
@@ -1671,7 +1671,7 @@ msgstr "フィルターを追加しました"
 
 #, python-format
 msgid "Added filter on '%s'"
-msgstr "『%s』にフィルターを追加しました"
+msgstr "「%s」にフィルターを追加しました"
 
 #, python-format
 msgid "Added to 1 dashboard"
@@ -11071,14 +11071,14 @@ msgstr "データ列の任意の名称。"
 msgid "Optional warning about use of this metric"
 msgstr "このメトリックの使用に関する任意の警告メッセージ"
 
-#, no-python-format
+#, python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
 " it and High color above it, instead of a single color fading in and out."
 " For % of column with Column sum, the resolved center must still fall "
 "inside the color range; otherwise the rule uses its single color."
-msgstr "任意。「低い値の色」「中間値の色」「高い値の色」と設定することで、単色のフェードイン/アウトではなく、この値の中間色から低い値の色、高い値の色へグラデーションで色が分岐します。「列に対する割合(%)」と「列の合計」を組み合わせた場合、解決された中心がカラー範囲内に収まっている必要があります。そうでない場合、ルールは単一の色を使用します。"
+msgstr ""
 
 msgid "Options"
 msgstr "オプション"
@@ -18421,16 +18421,15 @@ msgid ""
 " a different percentage. Existing percentage rules use the automatic data"
 " range while Server pagination is enabled."
 msgstr ""
-"「値」: 下部の色付けに使用する正確な数値を入力します。サーバー側のページネーションが有効な場合、各ページで割合の計算結果が異なるため「列に対する割合(%)」は使用できません。サーバー側のページネーション有効時は、既存の割合ルールに自動データ範囲が使用されます。"
+""
 
-#, no-python-format
+#, python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "
 "keeps working as the data changes. Column sum adds the absolute values so"
 " positive and negative values do not cancel each other out."
 msgstr ""
-"「値」: 下部の色付けに使用する正確な数値を入力します。「列に対する割合(%)」: 下部で選択した列の最大値または合計値に対するパーセンテージを入力すると、データが変更されてもルールが維持されます。列の合計値は絶対値を加算するため、正と負の値が相殺されません。"
 
 msgid "Values"
 msgstr "値"
