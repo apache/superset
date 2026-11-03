@@ -403,6 +403,215 @@ def test_get_masked_fields(
     assert sorted(masked) == sorted(expected_result)
 
 
+def test_get_sensitive_field_hints_nested_path() -> None:
+    """
+    The trailing characters and the length are returned for a nested path.
+    """
+    payload = {"connect_args": {"scheme": "https", "jwt": "a" * 40 + "ab3d"}}
+
+    assert json.get_sensitive_field_hints(payload, {"$.connect_args.jwt"}, 4) == [
+        {"path": "$.connect_args.jwt", "suffix": "ab3d", "length": 44}
+    ]
+
+
+def test_get_sensitive_field_hints_ignores_non_sensitive_fields() -> None:
+    """
+    Only the declared sensitive paths are hinted, however long other values are.
+    """
+    payload = {"connect_args": {"scheme": "https" * 50, "jwt": "x" * 40 + "wxyz"}}
+
+    hints = json.get_sensitive_field_hints(payload, {"$.connect_args.jwt"}, 4)
+
+    assert [hint["path"] for hint in hints] == ["$.connect_args.jwt"]
+
+
+def test_get_sensitive_field_hints_absent_path() -> None:
+    """
+    A declared path missing from the payload is not listed.
+    """
+    assert json.get_sensitive_field_hints({"a": "b"}, {"$.connect_args.jwt"}, 4) == []
+
+
+@pytest.mark.parametrize(
+    "value,suffix",
+    [
+        ("a" * 19, None),
+        ("a" * 15 + "vwxyz", "vwxyz"),
+        ("a" * 16 + "vwxyz", "vwxyz"),
+        ("short", None),
+        ("", None),
+    ],
+)
+def test_get_sensitive_field_hints_never_reveals_more_than_a_quarter(
+    value: str, suffix: str | None
+) -> None:
+    """
+    Values shorter than four times the hint length get no suffix, only a length.
+    """
+    hints = json.get_sensitive_field_hints({"secret": value}, {"$.secret"}, 5)
+
+    assert hints == [{"path": "$.secret", "suffix": suffix, "length": len(value)}]
+
+
+def test_get_sensitive_field_hints_boundary_is_four_times_length() -> None:
+    """
+    Exactly four times the hint length is the shortest value that gets a suffix.
+    """
+    below = json.get_sensitive_field_hints({"s": "a" * 7}, {"$.s"}, 2)
+    exact = json.get_sensitive_field_hints({"s": "a" * 6 + "zy"}, {"$.s"}, 2)
+
+    assert below[0]["suffix"] is None
+    assert exact[0]["suffix"] == "zy"
+    assert exact[0]["length"] == 8
+
+
+@pytest.mark.parametrize("value", [None, 12345, True, 1.5, {"nested": "v" * 40}])
+def test_get_sensitive_field_hints_skips_non_string_values(value: Any) -> None:
+    """
+    Only strings are hinted; any other type is skipped without raising.
+    """
+    assert json.get_sensitive_field_hints({"secret": value}, {"$.secret"}, 4) == []
+
+
+def test_get_sensitive_field_hints_wildcard_expands_per_match() -> None:
+    """
+    A wildcard path yields one hint per match, with the concrete path rendered.
+    """
+    payload = {
+        "primary": {"secret": "p" * 20 + "1111"},
+        "replica": {"secret": "r" * 20 + "2222"},
+        "other": {"secret": 7},
+    }
+
+    assert json.get_sensitive_field_hints(payload, {"$.*.secret"}, 4) == [
+        {"path": "$.primary.secret", "suffix": "1111", "length": 24},
+        {"path": "$.replica.secret", "suffix": "2222", "length": 24},
+    ]
+
+
+def test_get_sensitive_field_hints_trims_whitespace() -> None:
+    """
+    Whitespace is stripped before the length and the suffix are computed.
+    """
+    value = "\n  " + "a" * 20 + "ab3d" + "  \r\n"
+
+    assert json.get_sensitive_field_hints({"secret": value}, {"$.secret"}, 4) == [
+        {"path": "$.secret", "suffix": "ab3d", "length": 24}
+    ]
+
+
+def test_get_sensitive_field_hints_whitespace_only_value() -> None:
+    """
+    A blank value has length zero and never a suffix.
+    """
+    assert json.get_sensitive_field_hints({"secret": "   "}, {"$.secret"}, 4) == [
+        {"path": "$.secret", "suffix": None, "length": 0}
+    ]
+
+
+def test_get_sensitive_field_hints_empty_sensitive_fields() -> None:
+    """
+    No sensitive paths means no hints.
+    """
+    assert json.get_sensitive_field_hints({"secret": "a" * 40}, set(), 4) == []
+
+
+@pytest.mark.parametrize("length", [0, -1])
+def test_get_sensitive_field_hints_non_positive_length(length: int) -> None:
+    """
+    A non-positive hint length yields nothing instead of leaking the whole value.
+    """
+    assert json.get_sensitive_field_hints({"s": "a" * 40}, {"$.s"}, length) == []
+
+
+def test_get_sensitive_field_hints_sorted_and_deduplicated() -> None:
+    """
+    Hints are ordered by path, and overlapping expressions list a path once.
+    """
+    payload = {"b": "b" * 20, "a": "a" * 20}
+
+    hints = json.get_sensitive_field_hints(payload, {"$.b", "$.*", "$.a"}, 4)
+
+    assert [hint["path"] for hint in hints] == ["$.a", "$.b"]
+
+
+def _pem(ending: str, newline: str = "\n", size: int = 1_523) -> str:
+    """
+    A private key in PEM format whose base64 body has ``size`` characters and ends
+    with ``ending``, split into 64-character lines joined by ``newline``.
+    """
+    filler = "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7"
+    body = (filler * (size // len(filler) + 1))[: size - len(ending)] + ending
+    lines = [body[i : i + 64] for i in range(0, len(body), 64)]
+    return newline.join(
+        ["-----BEGIN PRIVATE KEY-----", *lines, "-----END PRIVATE KEY-----", ""]
+    )
+
+
+def test_get_sensitive_field_hints_pem_suffix_comes_from_the_body() -> None:
+    """
+    A PEM key reveals the end of its base64 body, not the fixed footer dashes.
+    """
+    pem = _pem("Ab3dE")
+
+    hints = json.get_sensitive_field_hints({"key": pem}, {"$.key"}, 5)
+
+    assert len(pem.strip()) == 1_600
+    assert hints == [{"path": "$.key", "suffix": "Ab3dE", "length": 1_600}]
+
+
+@pytest.mark.parametrize("newline", ["\\n", "\r\n", "\\r\\n"])
+def test_get_sensitive_field_hints_pem_with_newline_escapes(newline: str) -> None:
+    """
+    Escaped or CRLF line breaks give the same suffix as real newlines.
+    """
+    pem = _pem("Ab3dE", newline=newline)
+
+    assert json.get_sensitive_field_hints({"key": pem}, {"$.key"}, 5) == [
+        {"path": "$.key", "suffix": "Ab3dE", "length": len(pem.strip())}
+    ]
+
+
+def test_get_sensitive_field_hints_pem_rotation_changes_suffix() -> None:
+    """
+    Two keys that differ only in their body get different suffixes.
+    """
+    payload = {"old": _pem("Ab3dE"), "new": _pem("Zy9xW")}
+
+    hints = json.get_sensitive_field_hints(payload, {"$.old", "$.new"}, 5)
+
+    assert [hint["suffix"] for hint in hints] == ["Zy9xW", "Ab3dE"]
+
+
+def test_get_sensitive_field_hints_short_pem_body() -> None:
+    """
+    A PEM body shorter than four times the hint length reveals nothing, even though
+    the whole value with its header and footer is long enough.
+    """
+    pem = _pem("Ab3dE", size=19)
+
+    assert json.get_sensitive_field_hints({"key": pem}, {"$.key"}, 5) == [
+        {"path": "$.key", "suffix": None, "length": len(pem.strip())}
+    ]
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "token-----" + "a" * 20 + "-----",
+        "-----BEGIN PRIVATE KEY-----" + "a" * 20 + "-----END PUBLIC KEY-----",
+        "prefix -----BEGIN PRIVATE KEY-----" + "a" * 20 + "-----END PRIVATE KEY-----",
+    ],
+)
+def test_get_sensitive_field_hints_dashes_are_not_a_pem(value: str) -> None:
+    """
+    A value that only contains dashes, or is not a single PEM block, is plain text.
+    """
+    assert json.get_sensitive_field_hints({"key": value}, {"$.key"}, 5) == [
+        {"path": "$.key", "suffix": value[-5:], "length": len(value)}
+    ]
+
+
 def test_reveal_sensitive_missing_in_old_payload() -> None:
     """
     Test that a masked value with no counterpart in the old payload is passed

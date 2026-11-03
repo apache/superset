@@ -2057,3 +2057,69 @@ def test_expand_nested_columns_default_returns_input() -> None:
     ]
 
     assert BaseEngineSpec.expand_nested_columns(object(), columns) is columns
+
+
+def test_encrypted_extra_hints_disabled_or_unusable_input() -> None:
+    """
+    No hints are produced for a missing or malformed value, or a length of zero.
+    """
+    secret = json.dumps({"connect_args": {"jwt": "j" * 40}})
+
+    assert DruidEngineSpec.encrypted_extra_hints(None, 4) == []
+    assert DruidEngineSpec.encrypted_extra_hints("{not json", 4) == []
+    assert DruidEngineSpec.encrypted_extra_hints(secret, 0) == []
+    assert DruidEngineSpec.encrypted_extra_hints(secret, -1) == []
+
+
+def test_encrypted_extra_hints_bigquery_private_key() -> None:
+    """
+    A service account key in PEM format is hinted by the end of its base64 body.
+    """
+    body = "MIIEvQIBADANBgkqhkiG9w0BAQEFAASC" * 50 + "Ab3dE"
+    lines = [body[i : i + 64] for i in range(0, len(body), 64)]
+    private_key = "\n".join(
+        ["-----BEGIN PRIVATE KEY-----", *lines, "-----END PRIVATE KEY-----", ""]
+    )
+    config = json.dumps(
+        {"credentials_info": {"type": "service_account", "private_key": private_key}}
+    )
+
+    assert BigQueryEngineSpec.encrypted_extra_hints(config, 5) == [
+        {
+            "path": "$.credentials_info.private_key",
+            "label": "Service Account Private Key",
+            "suffix": "Ab3dE",
+            "length": len(private_key.strip()),
+        }
+    ]
+
+
+def test_encrypted_extra_hints_non_object_json() -> None:
+    """
+    Valid JSON that is not an object yields no hints.
+    """
+    assert DruidEngineSpec.encrypted_extra_hints("[1, 2]", 4) == []
+    assert DruidEngineSpec.encrypted_extra_hints('"text"', 4) == []
+
+
+def test_encrypted_extra_hints_label_falls_back_to_last_path_segment(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Specs that declare their sensitive fields as a set get the field name as label.
+    """
+    mocker.patch.object(
+        BaseEngineSpec,
+        "encrypted_extra_sensitive_fields",
+        {"$.credentials.token"},
+    )
+    config = json.dumps({"credentials": {"token": "t" * 20 + "ab3d"}})
+
+    assert BaseEngineSpec.encrypted_extra_hints(config, 4) == [
+        {
+            "path": "$.credentials.token",
+            "label": "token",
+            "suffix": "ab3d",
+            "length": 24,
+        }
+    ]

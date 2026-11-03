@@ -17,6 +17,7 @@
 import copy
 import decimal
 import logging
+import re
 import uuid
 from datetime import date, datetime, time, timedelta
 from typing import Any, Callable, Dict, Optional, Union
@@ -360,6 +361,66 @@ def get_masked_fields(
                 # `Child` paths in parentheses when stringified).
                 masked.append(f"$.{_render_jsonpath(match.full_path)}")
     return masked
+
+
+# A single PEM block, possibly wrapped in newline escapes left over from JSON.
+_PEM_BLOCK = re.compile(
+    r"(?:\\[rn])*-----BEGIN ([A-Z]+(?: [A-Z]+)*)-----(.+)-----END \1-----(?:\\[rn])*",
+    re.DOTALL,
+)
+_PEM_LINE_BREAKS = re.compile(r"\s|\\[rn]")
+
+
+def _pem_body(value: str) -> str | None:
+    """
+    Return the base64 body of a PEM block without line breaks, or ``None``.
+
+    Every PEM value ends with the same ``-----END <label>-----`` footer, so only
+    the body tells two keys apart.
+    """
+    if match := _PEM_BLOCK.fullmatch(value):
+        return _PEM_LINE_BREAKS.sub("", match.group(2))
+    return None
+
+
+def get_sensitive_field_hints(
+    payload: dict[str, Any],
+    sensitive_fields: set[str],
+    length: int,
+) -> list[dict[str, Any]]:
+    """
+    Returns a hint for each string value found at a sensitive path.
+
+    A hint holds the path, the length of the trimmed value and, when the value is at
+    least ``4 * length`` characters long, its last ``length`` characters. That caps
+    what is revealed at 25% of the value; shorter values only report their length.
+    For a PEM block, the suffix and the cap apply to its base64 body.
+
+    :param payload: The payload to inspect
+    :param sensitive_fields: The set of fields to hint, as JSONPath expressions
+    :param length: The number of trailing characters to reveal; ``<= 0`` disables hints
+    :returns: Hints sorted by path, as ``{"path", "suffix", "length"}`` dicts
+    """
+    if length <= 0:
+        return []
+
+    hints: dict[str, dict[str, Any]] = {}
+    for json_path in sensitive_fields:
+        for match in parse(json_path).find(payload):
+            if not isinstance(match.value, str):
+                continue
+            path = f"$.{_render_jsonpath(match.full_path)}"
+            value = match.value.strip()
+            body = _pem_body(value)
+            revealable = value if body is None else body
+            hints[path] = {
+                "path": path,
+                "suffix": (
+                    revealable[-length:] if len(revealable) >= 4 * length else None
+                ),
+                "length": len(value),
+            }
+    return [hints[path] for path in sorted(hints)]
 
 
 def set_masked_fields(
