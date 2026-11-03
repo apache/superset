@@ -3695,11 +3695,11 @@
             "notes": "Requires ODBC driver. For serverless SQL warehouses."
           },
           {
-            "name": "databricks-dbapi (Legacy)",
-            "pypi_package": "databricks-dbapi[sqlalchemy]",
-            "connection_string": "databricks+connector://token:{access_token}@{host}:{port}/{database}",
+            "name": "Field-based connection",
+            "pypi_package": "apache-superset[databricks]",
+            "connection_string": "databricks://token:{access_token}@{host}:{port}/{database}",
             "is_recommended": false,
-            "notes": "Legacy connector. Use Python Connector for new deployments."
+            "notes": "Use the dynamic form to enter connection fields individually."
           }
         ],
         "category": "Cloud Data Warehouses"
@@ -3779,7 +3779,7 @@
       "max_score": 201,
       "documentation": {
         "pypi_packages": [],
-        "connection_string": "databricks+connector://token:{access_token}@{host}:{port}/{database_name}",
+        "connection_string": "databricks://token:{access_token}@{host}:{port}/{database_name}",
         "category": "Cloud Data Warehouses"
       },
       "engine": "databricks",
