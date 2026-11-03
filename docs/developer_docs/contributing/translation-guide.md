@@ -51,9 +51,9 @@ In every translated string, keep the placeholders `%s`, `%(name)s` and `{name}`
 exactly as they are. A wrong placeholder can cause an error in the UI.
 
 Some strings contain markdown links, for example `[ISO 8601](%(iso_url)s)`.
-Translate the text in the square brackets. Keep the brackets, the parentheses
-and the placeholder as they are. Keep text in backticks, such as `epoch_s`, as
-it is.
+Translate the whole string, including the text in the square brackets. Keep
+the brackets, the parentheses and the placeholder as they are. Keep text in
+backticks, such as `epoch_s`, as it is.
 
 ## Terms that mean two things
 

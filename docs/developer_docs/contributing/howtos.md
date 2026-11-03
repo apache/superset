@@ -322,13 +322,14 @@ Keep each sentence in one `t()` call. A sentence split into several calls
 around a link has a fixed word order. Translators then cannot write a
 grammatical sentence in their language.
 
-Write a link inside a sentence as a markdown link with a named placeholder
-for the URL. Render the result with `SafeMarkdown`:
+For a link inside help text or a tooltip, write the link as a markdown link
+with a named placeholder for the URL. Render the result with `SafeMarkdown`
+from `@superset-ui/core/components`:
 
 ```tsx
 <SafeMarkdown
-  // i18n: keep the [text](%(…)s) markdown link syntax and the placeholder
-  // unchanged; translate the link text only
+  // i18n: translate the whole sentence, including the link text; keep the
+  // [text](%(…)s) link syntax and the placeholder unchanged
   source={t('Read the [ISO 8601](%(iso_url)s) article.', {
     iso_url: 'https://en.wikipedia.org/wiki/ISO_8601',
   })}
@@ -336,7 +337,13 @@ for the URL. Render the result with `SafeMarkdown`:
 ```
 
 The URL stays out of the translated string. `SafeMarkdown` sanitizes the
-result and renders backticks as code.
+result and renders backticks as code. Check its limits before you use it:
+
+- It wraps the text in a paragraph, so it does not fit inside an inline label
+  or a button.
+- It renders nothing until its markdown libraries load.
+- Its sanitizer removes the `target` attribute, so its links open in the same
+  tab.
 
 ### Adding context for translators
 
