@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import importlib.util
+import inspect
 from collections.abc import Iterator
 from typing import Any
 
@@ -106,3 +108,35 @@ def test_as_user_unknown_user_raises(app_context: None, mocker: MockerFixture) -
     with pytest.raises(ValueError, match="does not exist"):
         with api.as_user(404):
             pass
+
+
+def _stub_functions() -> dict[str, Any]:
+    """Load a fresh copy of the stub module, untouched by any earlier injection."""
+    spec = importlib.util.find_spec(api.__name__)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return {
+        name: value
+        for name, value in vars(module).items()
+        if inspect.isfunction(value)
+        and not name.startswith("_")
+        and value.__module__ == api.__name__
+    }
+
+
+def test_injection_leaves_no_public_stub(app_context: None) -> None:
+    stubs = _stub_functions()
+    assert set(stubs) == set(_STUB_NAMES)
+    for stub in stubs.values():
+        arguments = [None] * len(inspect.signature(stub).parameters)
+        with pytest.raises(NotImplementedError):
+            stub(*arguments)
+
+    inject_export_implementations()
+
+    still_stubbed = [
+        name for name in stubs if getattr(api, name).__module__ == api.__name__
+    ]
+    assert still_stubbed == []
