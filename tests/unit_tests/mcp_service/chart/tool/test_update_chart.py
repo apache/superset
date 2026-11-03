@@ -155,6 +155,7 @@ async def test_complete_semantic_table_reselection(
         UpdateChartRequest(
             identifier=12,
             view_id=9 if source_rebind else (7 if explicit_source else None),
+            chart_name="Renamed",
             config=TableChartConfig.model_validate(
                 {
                     "columns": [{"name": "member_id"}],
@@ -185,6 +186,10 @@ async def test_complete_semantic_table_reselection(
     assert candidate["all_columns"] == ["member_id"]
     assert candidate["datasource"] == target.form_data_datasource
     assert candidate["viz_type"] == viz_type
+    if preview_mode:
+        assert candidate["slice_name"] == "Renamed"
+    else:
+        assert write.call_args.args[1]["slice_name"] == "Renamed"
     assert json.loads(chart.params) == existing
 
 
@@ -313,6 +318,8 @@ async def test_semantic_reselection_refuses_before_publication(
     assert response.error is not None
     if case != "metadata_failure":
         assert "Explore" in response.error.details
+    if case == "source_only":
+        assert "no reselection supplied" in response.error.details
     assert compile_query.called is (
         case
         in {

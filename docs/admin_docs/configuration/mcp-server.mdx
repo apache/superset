@@ -2422,7 +2422,9 @@ save the chart.”
 Renaming a chart or using `add_columns` does not upgrade its selection marker.
 Ordinary partial updates on the same source with a current marker keep their
 existing behavior. Changing the source requires fresh target selections even if
-the two sources use the same marker string. A preview is a snapshot, not a lease:
+the two sources use the same marker string. On versioned providers, a source-only
+rebind without a complete table config is refused as “no reselection supplied”;
+retry with complete selections or reselect in Explore. A preview is a snapshot, not a lease:
 a concurrent saved-chart change can cause a direct update to refuse and require
 a reload. Providers without a selection-version contract and physical datasets
 do not receive an invented marker.

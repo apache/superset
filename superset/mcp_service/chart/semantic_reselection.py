@@ -185,6 +185,8 @@ def prove_table_reselection(
     candidate: dict[str, Any],
 ) -> str | None:
     """Return an incomplete category, or None for a fully repicked table."""
+    if original is None:
+        return "no reselection supplied"
     if not isinstance(original, TableChartConfig) or not isinstance(
         resolved, TableChartConfig
     ):

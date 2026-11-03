@@ -18,7 +18,7 @@
 
 from pathlib import Path
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 import sqlalchemy as sa
@@ -29,6 +29,27 @@ from sqlalchemy.orm import Session
 from superset.commands.chart.exceptions import ChartUpdateFailedError
 from superset.commands.chart.update import ChartUpdateBasis, UpdateChartCommand
 from superset.models.slice import Slice
+
+
+def test_basis_fence_rechecks_exact_values_after_database_match(
+    mocker: MockerFixture,
+) -> None:
+    """A case-insensitive database match cannot certify a case-only rename."""
+    chart: Slice = Slice(slice_name="Original", viz_type="table")
+    basis: ChartUpdateBasis = ChartUpdateBasis.from_chart(chart)
+    chart.slice_name = "original"
+    session: MagicMock = MagicMock()
+    session.execute.return_value.rowcount = 1
+    query: MagicMock = session.query.return_value
+    query.options.return_value = query
+    query.populate_existing.return_value = query
+    query.filter.return_value = query
+    query.with_for_update.return_value = query
+    query.one_or_none.return_value = chart
+    mocker.patch("superset.commands.chart.update.db", Mock(session=session))
+    command: UpdateChartCommand = UpdateChartCommand(123, {}, expected_basis=basis)
+    with pytest.raises(ChartUpdateFailedError, match="reload"):
+        command._fence_expected_basis()
 
 
 @pytest.mark.parametrize(
@@ -162,7 +183,24 @@ def test_basis_fence_is_a_noop(
             sa.select(sa.func.count()).select_from(versions)
         ).scalar_one()
         with app.app_context():
+            statements: list[str] = []
+
+            def record_statement(
+                connection: Any,
+                cursor: Any,
+                statement: str,
+                parameters: Any,
+                context: Any,
+                executemany: bool,
+            ) -> None:
+                """Observe the fence's statements without setup or assertion queries."""
+                statements.append(statement)
+
+            sa.event.listen(engine, "before_cursor_execute", record_statement)
             command._fence_expected_basis()
+            sa.event.remove(engine, "before_cursor_execute", record_statement)
+            assert len(statements) == 2
+            assert not any("DISTINCT" in statement.upper() for statement in statements)
             session.commit()
         after: Any = session.execute(sa.select(Slice.__table__)).one()
         assert tuple(after) == tuple(before)

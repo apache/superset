@@ -1414,6 +1414,9 @@ async def update_chart(  # noqa: C901
                     )
                     if target_error is not None:
                         return _finalize_response(target_error)
+                # Save payloads keep the name outside params; previews cache it inside.
+                if prepared_payload is not None and "slice_name" in prepared_payload:
+                    preview_or_error["slice_name"] = prepared_payload["slice_name"]
                 explore_url, form_data_key, warnings = _create_preview_url(
                     chart,
                     preview_or_error,
