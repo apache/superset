@@ -104,7 +104,9 @@ def _refuse_incomplete_embedded_credentials(
 
     credentials = encrypted_extra.get(EMBEDDED_CREDENTIALS_KEY)
     if not embedded_credentials_incomplete(
-        credentials, engine_spec.validate_embedded_credentials
+        credentials,
+        engine_spec.validate_embedded_credentials,
+        accept_json_string=False,
     ):
         return
 
@@ -230,13 +232,12 @@ def import_database(  # noqa: C901
         )
         payload = json.loads(encrypted_extra)
 
-        # Never store a mask as if it were the secret: the schema asks for any
-        # value that cannot be revealed, so one left here is a bug, not input.
-        if masked_encrypted_extra and (
-            still_masked := json.get_masked_fields(
-                payload,
-                engine_spec.encrypted_extra_sensitive_field_paths(),
-            )
+        # Never store a mask as if it were the secret. The schema asks for any value
+        # that cannot be revealed. A plain `encrypted_extra` skips it, and a connection
+        # already storing a mask exports that way, since masking it changes nothing.
+        if still_masked := json.get_masked_fields(
+            payload,
+            engine_spec.encrypted_extra_sensitive_field_paths(),
         ):
             raise ImportFailedError(
                 "Must provide value for masked_encrypted_extra field: "
