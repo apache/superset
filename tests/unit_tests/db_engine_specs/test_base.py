@@ -2123,3 +2123,13 @@ def test_encrypted_extra_hints_label_falls_back_to_last_path_segment(
             "length": 24,
         }
     ]
+
+
+@pytest.mark.parametrize(
+    "encrypted_extra", ["null", "[]", "42", '"str"', "{}", "{oops"]
+)
+def test_encrypted_extra_hints_unexpected_json(encrypted_extra: str) -> None:
+    """
+    JSON that is not an object with sensitive fields yields no hints and no error.
+    """
+    assert DruidEngineSpec.encrypted_extra_hints(encrypted_extra, 5) == []
