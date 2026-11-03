@@ -2211,6 +2211,67 @@ def test_a_partial_entry_keeps_the_stored_templated_expression(
 
 
 @with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_override_entry_keeps_the_stored_template_of_its_name(
+    mocker: MockerFixture,
+) -> None:
+    """
+    `override_columns` matches by name, so an entry with no `id` and no
+    `expression` still leaves the stored Jinja on that row.
+    """
+    command = _mapping_command(
+        mocker,
+        "unix_timestamp(:value)",
+        partition_expression="{{ 'dt_' ~ 'epoch' }}",
+    )
+    command.override_columns = True
+    command._properties = {
+        "columns": [
+            {
+                "column_name": "event_time",
+                "partition_value_transform": "unix_timestamp(:value)",
+            },
+            {"column_name": "dt_epoch"},
+        ]
+    }
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_override_entry_ignores_a_stale_id(mocker: MockerFixture) -> None:
+    """
+    `override_columns` never matches on the payload's `id`: a renamed column
+    is inserted fresh, so the expression stored under that `id` does not follow.
+    """
+    command = _mapping_command(
+        mocker,
+        "unix_timestamp(:value)",
+        partition_expression="{{ 'dt_' ~ 'epoch' }}",
+    )
+    command.override_columns = True
+    _, partition_column = cast(Any, command._model).columns
+    partition_column.id = 2
+    command._properties = {
+        "partition_column": "dt_renamed",
+        "columns": [
+            {
+                "column_name": "event_time",
+                "partition_value_transform": "unix_timestamp(:value)",
+            },
+            {"id": 2, "column_name": "dt_renamed"},
+        ],
+    }
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
 def test_an_explicit_null_expression_clears_the_stored_template(
     mocker: MockerFixture,
 ) -> None:

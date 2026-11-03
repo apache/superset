@@ -627,27 +627,31 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         still has to be validated against the transform already stored, and
         against the expression of the column it now names.
 
-        A payload entry that carries an `id` but omits the attribute leaves the
-        stored value in place (`DatasetDAO._upsert_columns` only sets the keys
-        it is given), so that stored value is the one to validate. An explicit
-        `None` is a clear.
+        An entry that omits the attribute keeps whatever the row it writes to
+        already holds: `DatasetDAO.update_columns` only sets the keys it is given.
+        Which row that is depends on the write. `_upsert_columns` goes by `id`
+        and treats an entry without one as new; `_override_columns` goes by
+        `column_name` and ignores the `id`. An explicit `None` is a clear.
         """
         if not column_name:
             return None
         model = cast(SqlaTable, self._model)
+        stored_key, stored_value = "column_name", column_name
         if columns is not None:
-            for column in columns:
-                if column.get("column_name") != column_name:
-                    continue
-                if attribute in column or "id" not in column:
-                    return column.get(attribute)
-                for existing in model.columns:
-                    if existing.id == column["id"]:
-                        return getattr(existing, attribute)
+            entry = next(
+                (col for col in columns if col.get("column_name") == column_name),
+                None,
+            )
+            if entry is None:
                 return None
-            return None
+            if attribute in entry:
+                return entry[attribute]
+            if not self.override_columns:
+                if "id" not in entry:
+                    return None
+                stored_key, stored_value = "id", entry["id"]
         for existing in model.columns:
-            if existing.column_name == column_name:
+            if getattr(existing, stored_key) == stored_value:
                 return getattr(existing, attribute)
         return None
 
