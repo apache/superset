@@ -2425,6 +2425,16 @@ def test_encrypted_extra_hints_label_falls_back_to_last_path_segment(
     ]
 
 
+@pytest.mark.parametrize(
+    "encrypted_extra", ["null", "[]", "42", '"str"', "{}", "{oops"]
+)
+def test_encrypted_extra_hints_unexpected_json(encrypted_extra: str) -> None:
+    """
+    JSON that is not an object with sensitive fields yields no hints and no error.
+    """
+    assert DruidEngineSpec.encrypted_extra_hints(encrypted_extra, 5) == []
+
+
 def test_get_catalog_reference_schema() -> None:
     """
     An engine that doesn't say which schema a catalog gives a table named without
