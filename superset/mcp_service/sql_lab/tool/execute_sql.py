@@ -353,6 +353,7 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
     if result.status != QueryStatus.SUCCESS:
         return ExecuteSqlResponse(
             success=False,
+            query_id=result.query_id,
             error=result.error_message,
             error_type=result.status.value,
         )
@@ -423,6 +424,7 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
 
     return ExecuteSqlResponse(
         success=True,
+        query_id=result.query_id,
         rows=rows,
         columns=columns,
         row_count=row_count,

@@ -186,11 +186,11 @@
       "compact_description_chars": 76,
       "description_chars": 76,
       "entry_bytes": {
-        "structured": 6301,
+        "structured": 6438,
         "text_only": 2032
       },
       "input_schema_bytes": 1701,
-      "output_schema_bytes": 4253
+      "output_schema_bytes": 4390
     },
     "find_users": {
       "annotations": {

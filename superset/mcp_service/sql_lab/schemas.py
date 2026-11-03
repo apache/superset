@@ -179,6 +179,10 @@ class ExecuteSqlResponse(BaseModel):
     """Response schema for SQL execution results."""
 
     success: bool = Field(..., description="Whether query executed successfully")
+    query_id: int | None = Field(
+        None,
+        description="Query history ID of this run; null for dry runs",
+    )
     rows: JsonSafeRows | None = Field(
         None,
         description=(

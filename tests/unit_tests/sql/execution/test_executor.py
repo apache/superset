@@ -734,6 +734,50 @@ def test_execute_timeout(
     assert result.error_message is not None
 
 
+def test_execute_timeout_records_query(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """A timed-out run is finished as timed out in query history."""
+    from superset.errors import ErrorLevel, SupersetErrorType
+    from superset.exceptions import SupersetTimeoutException
+    from superset.sql.execution.executor import SQLExecutor
+
+    mock_conn = MagicMock()
+    mock_conn.__enter__ = MagicMock(
+        side_effect=SupersetTimeoutException(
+            error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+            message="Query timed out",
+            level=ErrorLevel.ERROR,
+        )
+    )
+    mock_conn.__exit__ = MagicMock(return_value=False)
+    mocker.patch.object(database, "get_raw_connection", return_value=mock_conn)
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 1,
+            "SQL_MAX_ROW": None,
+            "QUERY_LOGGER": None,
+        },
+    )
+    mock_query = MagicMock(id=123, status="running", end_time=None)
+    mocker.patch.object(SQLExecutor, "_create_query_record", return_value=mock_query)
+    commit = mocker.patch(
+        "superset.sql.execution.utils.commit_query_unless_stopped",
+        return_value=True,
+    )
+
+    result = database.execute("SELECT * FROM large_table")
+
+    assert result.status == QueryStatus.TIMED_OUT
+    assert result.query_id == 123
+    assert mock_query.status == QueryStatus.TIMED_OUT.value
+    assert mock_query.error_message == "Query exceeded the timeout limit"
+    assert mock_query.end_time is not None
+    commit.assert_called_once_with(mock_query)
+
+
 def test_execute_custom_timeout(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
