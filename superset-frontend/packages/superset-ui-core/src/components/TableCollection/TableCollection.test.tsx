@@ -863,6 +863,12 @@ test('the scroll fade is decorative and never takes clicks or focus', () => {
       { target: `${edge} .ant-table-content` },
     ),
   );
+  // The fade is 44px wide at each edge.
+  expect(wrapper).toHaveStyleRule(
+    'mask-image',
+    expect.stringContaining('#000 calc(100% - 44px)'),
+    { target: '[data-overflow-end] .ant-table-content' },
+  );
 });
 
 test('fades only the edges with more columns beyond them', () => {

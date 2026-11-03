@@ -167,7 +167,7 @@ function useScrollOverflow(
 }
 
 // Width of the scroll fade at each edge of a managed table.
-const SCROLL_FADE_WIDTH = 28;
+const SCROLL_FADE_WIDTH = 44;
 
 // Mask over antd's scroll container: opaque except for a fade to transparent
 // at each edge with more columns beyond it. The left fade starts after the
