@@ -71,12 +71,13 @@ update_chart_module = importlib.import_module(
 @pytest.mark.parametrize("preview_mode", [False, True])
 @pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
 @pytest.mark.parametrize("row_filter", [False, True])
+@pytest.mark.parametrize("saved_predicate", [None, "where", "having", "adhoc_filters"])
 @pytest.mark.parametrize("explicit_source", [False, True])
 @pytest.mark.parametrize(
     "saved_version,source_rebind",
     [(None, False), ("older-format", False), ("target-v1", True), (None, True)],
 )
-async def test_complete_semantic_table_reselection(
+async def test_semantic_table_reselection_filter_intent(
     mocker: MockerFixture,
     preview_mode: bool,
     viz_type: str,
@@ -84,16 +85,28 @@ async def test_complete_semantic_table_reselection(
     source_rebind: bool,
     row_filter: bool,
     explicit_source: bool,
+    saved_predicate: str | None,
 ) -> None:
-    """Fresh complete selections get the target marker before compilation."""
+    """Certify complete selections only when saved predicate removal is explicit."""
     existing: dict[str, Any] = {
         "viz_type": viz_type,
         "datasource": "7__semantic_view",
         "all_columns": ["legacy_label"],
         "query_mode": "raw",
         "semantic_selection_version": saved_version,
-        "having": "legacy_label > 10",
     }
+    if saved_predicate is not None:
+        existing[saved_predicate] = (
+            [
+                {
+                    "clause": "HAVING",
+                    "expressionType": "SQL",
+                    "sqlExpression": "legacy_label > 10",
+                }
+            ]
+            if saved_predicate == "adhoc_filters"
+            else "legacy_label > 10"
+        )
     chart: Mock = Mock(
         id=12,
         uuid=None,
@@ -146,6 +159,7 @@ async def test_complete_semantic_table_reselection(
                 else []
             )
             assert not query["extras"].get("having")
+            assert not query["extras"].get("where")
         return CompileResult(success=True)
 
     mocker.patch.object(
@@ -176,6 +190,14 @@ async def test_complete_semantic_table_reselection(
             report_progress=AsyncMock(),
         ),
     )
+    if row_filter and saved_predicate is not None:
+        assert not response.success
+        assert response.error is not None
+        assert "saved WHERE/HAVING predicates" in response.error.details
+        write.assert_not_called()
+        preview.assert_not_called()
+        assert json.loads(chart.params) == existing
+        return
     assert response.success, response.error
     candidate: dict[str, Any] = (
         preview.call_args.args[1]

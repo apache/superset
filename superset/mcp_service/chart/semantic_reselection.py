@@ -178,6 +178,16 @@ def _unverified_control(
     return None
 
 
+def _has_saved_predicates(state: dict[str, Any]) -> bool:
+    """Recognize predicate aliases without treating replacement as a clear."""
+    for key in _FILTER_KEYS:
+        value: Any = state.get(key)
+        empty: str | list[Any] = "" if key in {"where", "having"} else []
+        if value is not None and value != empty:
+            return True
+    return False
+
+
 def prove_table_reselection(
     original: ChartConfig | None,
     resolved: ChartConfig | None,
@@ -197,6 +207,8 @@ def prove_table_reselection(
         return "columns"
     if "filters" not in original.model_fields_set or original.filters is None:
         return "filters"
+    if original.filters != [] and _has_saved_predicates(existing):
+        return "saved WHERE/HAVING predicates"
     # Original presence, not equality or post-normalization fields_set, is proof.
     if "sort_by" not in original.model_fields_set or original.sort_by is None:
         if existing.get("order_by_cols") not in (None, []):

@@ -2412,6 +2412,11 @@ columns using the target view's member IDs and explicitly supply `filters`
 Certification applies only when the final merged query contains no unverified
 retained selections; sending `config` alone is not enough.
 
+Only an explicit `filters: []` authorizes clearing saved WHERE/HAVING predicate
+aliases, including legacy and adhoc filters. A non-empty filter replacement that
+would discard those unclassified predicates is refused; reselect in Explore, or
+explicitly clear filters if removing the saved constraints is intended.
+
 If native controls, temporal bindings, external filters, secondary queries or
 unsupported plugin state cannot be verified, the update refuses without changing
 the saved chart. The error names the incomplete category and directs you to

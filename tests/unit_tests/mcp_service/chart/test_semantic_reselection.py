@@ -142,6 +142,67 @@ def test_plugin_restored_percent_metric_refuses() -> None:
     assert prove_table_reselection(config, config, existing, candidate) is not None
 
 
+@pytest.mark.parametrize(
+    "key", ["where", "having", "filters", "extra_filters", "adhoc_filters"]
+)
+@pytest.mark.parametrize(
+    "saved_value", ["legacy predicate", False, 0, {"unknown": True}]
+)
+def test_nonempty_replacement_does_not_clear_saved_predicates(
+    key: str, saved_value: Any
+) -> None:
+    """Even malformed aliases cannot disappear under a fresh non-empty filter list."""
+    config: TableChartConfig = TableChartConfig.model_validate(
+        {
+            "columns": [{"name": "member_id"}],
+            "filters": [{"column": "member_id", "op": "=", "value": "selected"}],
+        }
+    )
+    existing: dict[str, Any]
+    candidate: dict[str, Any]
+    existing, candidate = _candidate({}, config)
+    existing[key] = saved_value
+    assert prove_table_reselection(config, config, existing, candidate) == (
+        "saved WHERE/HAVING predicates"
+    )
+
+
+@pytest.mark.parametrize(
+    "saved",
+    [
+        {},
+        {
+            "where": "",
+            "having": "",
+            "adhoc_filters": [],
+            "filters": [],
+            "extra_filters": [],
+        },
+        {
+            "where": None,
+            "having": None,
+            "adhoc_filters": None,
+            "filters": None,
+            "extra_filters": None,
+        },
+    ],
+)
+def test_nonempty_filters_without_saved_predicates_can_be_certified(
+    saved: dict[str, Any],
+) -> None:
+    """Known neutral aliases do not prevent genuine fresh filter selection."""
+    config: TableChartConfig = TableChartConfig.model_validate(
+        {
+            "columns": [{"name": "member_id"}],
+            "filters": [{"column": "member_id", "op": "=", "value": "selected"}],
+        }
+    )
+    existing: dict[str, Any]
+    candidate: dict[str, Any]
+    existing, candidate = _candidate(saved, config)
+    assert prove_table_reselection(config, config, existing, candidate) is None
+
+
 def test_disappearing_rebind_control_is_not_a_clear() -> None:
     """A source rebind's scrub cannot manufacture explicit reset intent."""
     config: TableChartConfig = TableChartConfig(
