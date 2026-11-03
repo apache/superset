@@ -74,7 +74,7 @@ test('maps a registered item to a menu item that runs the command with the conte
   );
   expect(result.current).toEqual([
     expect.objectContaining({
-      key: 'ext:ext.gs',
+      key: 'ext:explore.chart.download:ext.gs',
       label: 'Export to Google Sheets',
       disabled: false,
     }),
@@ -108,7 +108,10 @@ test('disabled without download permission', () => {
     }),
   );
   expect(result.current).toEqual([
-    expect.objectContaining({ key: 'ext:ext.denied', disabled: true }),
+    expect.objectContaining({
+      key: 'ext:explore.chart.download:ext.denied',
+      disabled: true,
+    }),
   ]);
 });
 
@@ -177,4 +180,20 @@ test('useChartDownloadItems reads the provider and is empty without one', () => 
     ),
   });
   expect(result.current).toHaveLength(1);
+});
+
+test('key is qualified by location so a command at two locations does not collide', () => {
+  register('ext.both', 'Both', 'explore.chart.download');
+  register('ext.both', 'Both', 'explore.chart.download.pivoted');
+  const plain = renderHook(() =>
+    useExtensionMenuItems('explore.chart.download', ctx),
+  );
+  const pivoted = renderHook(() =>
+    useExtensionMenuItems('explore.chart.download.pivoted', ctx),
+  );
+  const plainKey = (plain.result.current[0] as MenuItemType).key;
+  const pivotedKey = (pivoted.result.current[0] as MenuItemType).key;
+  expect(plainKey).toContain('explore.chart.download:');
+  expect(pivotedKey).toBe('ext:explore.chart.download.pivoted:ext.both');
+  expect(plainKey).not.toBe(pivotedKey);
 });

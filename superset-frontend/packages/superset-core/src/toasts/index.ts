@@ -39,7 +39,7 @@
 export interface ToastOptions {
   /** A link shown on the toast; it opens in a new tab. */
   link?: { href: string; label: string };
-  /** Time in milliseconds before the toast closes; `0` keeps it until closed. Defaults to 8000. */
+  /** Time in milliseconds before the toast closes; `0` keeps it until closed. Defaults to 8000. Ignored when `link` is set; link toasts stay until closed. */
   duration?: number;
 }
 

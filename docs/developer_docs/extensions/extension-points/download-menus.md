@@ -39,7 +39,7 @@ Register a menu item at one of these locations with `menus.registerMenuItem`, us
 | `dashboard.chart.download.pivoted` | Dashboard, chart menu | After "Export to Pivoted Excel" |
 | `chart.drillDetail.download` | Drill to detail pane | After "Export to Excel" |
 | `chart.drillBy.download` | Drill by modal | After "Export to Excel" |
-| `dashboard.download` | Dashboard download menu | After "Export Data to Excel" |
+| `dashboard.download` | Dashboard download menu | After the Excel export entries |
 
 The pivoted locations appear only where the chart offers "Export to Pivoted Excel". For those locations, `getPayload()` returns the query for the post-processed (pivoted) result.
 
