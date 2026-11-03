@@ -22,19 +22,20 @@
 import { afterEach, beforeEach, describe, expect, it, test, vi } from "vitest";
 import { Switchboard } from "@superset-ui/switchboard";
 import { embedDashboard, PortClosedError } from "./index";
+import { DEFAULT_TOKEN_REFRESH_RETRY_MS } from "./guestTokenRefresh";
 
-vi.mock("@superset-ui/switchboard");
+// Mock Switchboard; PortClosedError is imported from ./index so it's safe
+vi.mock("@superset-ui/switchboard", () => ({
+  Switchboard: vi.fn(),
+}));
 
 function makeFakeJWT(claims: any) {
-  // not a valid jwt, but close enough for this code
   const tokenifiedClaims = Buffer.from(JSON.stringify(claims)).toString(
     "base64",
   );
   return `abc.${tokenifiedClaims}.xyz`;
 }
 
-// Resolves only when the test says so, for the interleavings where a token
-// fetch has to still be in flight while something else happens.
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (err: unknown) => void;
@@ -45,14 +46,14 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-// A `get` that is never answered, like one sent to a document that is gone.
 const neverAnswered = () => new Promise(() => {});
 
 function makeMockSwitchboard(): Switchboard {
   return {
     emit: vi.fn(),
-    get: vi.fn(),
+    get: vi.fn().mockResolvedValue(undefined), // Return a Promise so `track` doesn't crash
     start: vi.fn(),
+    stop: vi.fn(),
     defineMethod: vi.fn(),
   } as any;
 }
@@ -60,12 +61,8 @@ function makeMockSwitchboard(): Switchboard {
 describe("embedDashboard", () => {
   let mountPoint: HTMLElement;
   let mockSwitchboard: Switchboard;
-  // One entry per port the SDK opens: a reload adds another.
   let switchboards: Switchboard[];
-  // The `port1` of each channel the SDK opens, in the same order.
   let ports: { close: ReturnType<typeof vi.fn> }[];
-  // `get` implementations handed to the switchboards the SDK is about to
-  // build, in order. A hole, or running off the end, means the default mock.
   let getImpls: Array<(() => any) | undefined>;
 
   beforeEach(() => {
@@ -77,8 +74,6 @@ describe("embedDashboard", () => {
     ports = [];
     getImpls = [];
 
-    // Constructor mocks must use `function`, since arrow functions cannot be
-    // invoked with `new`.
     vi.mocked(Switchboard).mockImplementation(function () {
       const switchboard =
         switchboards.length === 0 ? mockSwitchboard : makeMockSwitchboard();
@@ -90,8 +85,6 @@ describe("embedDashboard", () => {
       return switchboard;
     } as any);
 
-    // Mock MessageChannel API. Each port gets a `close` spy, so a test can see
-    // the SDK let go of a channel whose document is gone.
     globalThis.MessageChannel = vi.fn(function (this: any) {
       this.port1 = { close: vi.fn() };
       this.port2 = {};
@@ -100,16 +93,13 @@ describe("embedDashboard", () => {
 
     vi.spyOn(globalThis, "setTimeout");
 
-    // Mock iframe load event and sandbox
     const originalCreateElement = document.createElement.bind(document);
     vi.spyOn(document, "createElement").mockImplementation((tagName) => {
       const element = originalCreateElement(tagName);
       if (tagName === "iframe") {
-        // Mock sandbox DOMTokenList
         (element as any).sandbox = {
           add: vi.fn(),
         };
-        // Mock contentWindow for postMessage
         Object.defineProperty(element, "contentWindow", {
           writable: true,
           value: {
@@ -130,9 +120,14 @@ describe("embedDashboard", () => {
     vi.restoreAllMocks();
   });
 
+  const fakeToken = () => makeFakeJWT({ exp: Date.now() / 1000 + 300 });
+
+  function reload() {
+    mountPoint.querySelector("iframe")!.dispatchEvent(new Event("load"));
+  }
+
   test("setDataMask sends dataMask to iframe", async () => {
-    const fakeToken = makeFakeJWT({ exp: Date.now() / 1000 + 300 });
-    const mockFetchGuestToken = vi.fn().mockResolvedValue(fakeToken);
+    const mockFetchGuestToken = vi.fn().mockResolvedValue(fakeToken());
     const testDataMask = {
       "NATIVE_FILTER-1": {
         filterState: {
@@ -156,8 +151,7 @@ describe("embedDashboard", () => {
   });
 
   test("setDataMask sends empty dataMask", async () => {
-    const fakeToken = makeFakeJWT({ exp: Date.now() / 1000 + 300 });
-    const mockFetchGuestToken = vi.fn().mockResolvedValue(fakeToken);
+    const mockFetchGuestToken = vi.fn().mockResolvedValue(fakeToken());
     const emptyDataMask = {};
 
     const dashboard = await embedDashboard({
@@ -175,8 +169,7 @@ describe("embedDashboard", () => {
   });
 
   test("setDataMask drops the change-trigger flags observeDataMask adds", async () => {
-    const fakeToken = makeFakeJWT({ exp: Date.now() / 1000 + 300 });
-    const mockFetchGuestToken = vi.fn().mockResolvedValue(fakeToken);
+    const mockFetchGuestToken = vi.fn().mockResolvedValue(fakeToken());
     const observedMask = {
       "NATIVE_FILTER-1": {
         filterState: {
@@ -204,8 +197,7 @@ describe("embedDashboard", () => {
   });
 
   test("setDataMask sends complex dataMask with multiple filters", async () => {
-    const fakeToken = makeFakeJWT({ exp: Date.now() / 1000 + 300 });
-    const mockFetchGuestToken = vi.fn().mockResolvedValue(fakeToken);
+    const mockFetchGuestToken = vi.fn().mockResolvedValue(fakeToken());
     const complexDataMask = {
       "NATIVE_FILTER-1": {
         filterState: {
@@ -234,11 +226,7 @@ describe("embedDashboard", () => {
   });
 
   test("setDataMask rejects when the embedded page does not support it", async () => {
-    const fakeToken = makeFakeJWT({ exp: Date.now() / 1000 + 300 });
-    const mockFetchGuestToken = vi.fn().mockResolvedValue(fakeToken);
-    vi.mocked(mockSwitchboard.get).mockRejectedValue(
-      new Error('Method "setDataMask" is not defined'),
-    );
+    const mockFetchGuestToken = vi.fn().mockResolvedValue(fakeToken());
 
     const dashboard = await embedDashboard({
       id: "test-id",
@@ -247,18 +235,18 @@ describe("embedDashboard", () => {
       fetchGuestToken: mockFetchGuestToken,
     });
 
+    // Mock rejection HANYA untuk "setDataMask" SETELAH dashboard berhasil di-inisialisasi
+    vi.mocked(mockSwitchboard.get).mockImplementation((method: string) => {
+      if (method === "setDataMask") {
+        return Promise.reject(new Error('Method "setDataMask" is not defined'));
+      }
+      return Promise.resolve(undefined);
+    });
+
     await expect(dashboard.setDataMask({})).rejects.toThrow(
       'Method "setDataMask" is not defined',
     );
   });
-  const fakeToken = () => makeFakeJWT({ exp: Date.now() / 1000 + 300 });
-
-  // A link internal to the dashboard (side menu, tab, drill-down) navigates
-  // the iframe: same element, brand new document, which knows nothing of the
-  // channel the previous one was given.
-  function reload() {
-    mountPoint.querySelector("iframe")!.dispatchEvent(new Event("load"));
-  }
 
   test("reload hands the reloaded document a new port and a fresh guest token", async () => {
     const mockFetchGuestToken = vi.fn().mockResolvedValue(fakeToken());
@@ -271,9 +259,6 @@ describe("embedDashboard", () => {
     expect(mockFetchGuestToken).toHaveBeenCalledTimes(1);
 
     reload();
-    // The token is fetched again rather than replayed from memory: the one in
-    // hand may be seconds from expiring, and the new page would take it
-    // straight into a 401.
     await vi.waitFor(() =>
       expect(switchboards[1].emit).toHaveBeenCalledWith("guestToken", {
         guestToken: expect.any(String),
@@ -281,13 +266,11 @@ describe("embedDashboard", () => {
     );
     expect(mockFetchGuestToken).toHaveBeenCalledTimes(2);
 
-    // A channel of its own, not the one the first document holds.
     const constructions = vi.mocked(Switchboard).mock.calls;
     expect(constructions).toHaveLength(2);
     expect((constructions[1][0] as any).port).not.toBe(
       (constructions[0][0] as any).port,
     );
-    // Nothing is sent to the document that is gone.
     expect(switchboards[0].emit).toHaveBeenCalledTimes(1);
 
     dashboard.unmount();
@@ -310,7 +293,6 @@ describe("embedDashboard", () => {
       expect(mockFetchGuestToken).toHaveBeenCalledTimes(2),
     );
 
-    // The new document has never heard of either method.
     const defined = vi
       .mocked(switchboards[1].defineMethod)
       .mock.calls.map(([name]) => name);
@@ -352,8 +334,6 @@ describe("embedDashboard", () => {
     dashboard.setThemeMode("dark");
 
     reload();
-    // The new document is a new realm: it knows nothing of the theme the
-    // host applied to the one before it, so the SDK pushes it again.
     await vi.waitFor(() =>
       expect(switchboards[1].emit).toHaveBeenCalledWith("setThemeMode", {
         mode: "dark",
@@ -362,7 +342,6 @@ describe("embedDashboard", () => {
     expect(switchboards[1].emit).toHaveBeenCalledWith("setThemeConfig", {
       themeConfig: { token: { colorPrimary: "#ff0000" } },
     });
-    // The token comes first, in the order a host would do it on a first load.
     const emitted = vi
       .mocked(switchboards[1].emit)
       .mock.calls.map(([method]) => method);
@@ -381,8 +360,6 @@ describe("embedDashboard", () => {
       fetchGuestToken: mockFetchGuestToken,
     });
 
-    // The host asks the dashboard something, and the user clicks a link
-    // before the answer comes back. That answer is never coming.
     vi.mocked(switchboards[0].get).mockImplementation(neverAnswered as any);
     const pending = dashboard.getActiveTabs();
     reload();
@@ -409,15 +386,12 @@ describe("embedDashboard", () => {
 
     await expect(pending).rejects.toBeInstanceOf(PortClosedError);
     expect(ports[0].close).toHaveBeenCalled();
-    // And a call made afterwards fails instead of hanging.
     await expect(dashboard.getScrollSize()).rejects.toBeInstanceOf(
       PortClosedError,
     );
   });
 
   test("reload does not mint a token for a page that is not the embedded one", async () => {
-    // A link in a Markdown chart can point anywhere. The document that
-    // answers nothing on the channel is not an embedded Superset page.
     getImpls = [undefined, neverAnswered];
     const mockFetchGuestToken = vi.fn().mockResolvedValue(fakeToken());
     const dashboard = await embedDashboard({
@@ -429,7 +403,6 @@ describe("embedDashboard", () => {
 
     vi.useFakeTimers();
     reload();
-    // Long enough for the handshake probe to give up.
     await vi.advanceTimersByTimeAsync(10_000);
 
     expect(mockFetchGuestToken).toHaveBeenCalledTimes(1);
@@ -453,8 +426,6 @@ describe("embedDashboard", () => {
       fetchGuestToken: mockFetchGuestToken,
     });
 
-    // The user navigates while the very first token is still in flight, and
-    // the fetch that navigation triggers fails.
     await vi.waitFor(() => expect(switchboards).toHaveLength(1));
     reload();
     await vi.waitFor(() =>
@@ -464,9 +435,6 @@ describe("embedDashboard", () => {
     initialToken.resolve(fakeToken());
     const dashboard = await embedding;
 
-    // That token is superseded but perfectly valid, and the document in
-    // front of the user has none: hold on to it and the page stays blank
-    // for a whole retry interval.
     expect(switchboards[1].emit).toHaveBeenCalledWith("guestToken", {
       guestToken: expect.any(String),
     });
@@ -491,22 +459,17 @@ describe("embedDashboard", () => {
 
     await vi.waitFor(() => expect(switchboards).toHaveLength(1));
     reload();
-    // The reload's own fetch succeeds: the document in front of the user has a
-    // token and is rendering.
     await vi.waitFor(() =>
       expect(switchboards[1].emit).toHaveBeenCalledWith("guestToken", {
         guestToken: expect.any(String),
       }),
     );
 
-    // ...and only then does the initial fetch give up. Nobody is waiting for
-    // it any more, so it must not take the working dashboard down with it.
     initialToken.reject(new Error("host down"));
     const dashboard = await embedding;
 
     expect(mountPoint.querySelector("iframe")).not.toBeNull();
     expect(ports[1].close).not.toHaveBeenCalled();
-    // The reload's cycle still owns the refresh, and there is exactly one.
     const refreshArms = vi
       .mocked(globalThis.setTimeout)
       .mock.calls.filter(([, delay]) => (delay ?? 0) > 200_000);
@@ -516,108 +479,102 @@ describe("embedDashboard", () => {
   });
 
   test("initial fetch failing with no reload tears the iframe down", async () => {
-      const initialToken = deferred<string>();
+    const initialToken = deferred<string>();
+    const mockFetchGuestToken = vi
+      .fn()
+      .mockImplementation(() => initialToken.promise);
+
+    const embedding = embedDashboard({
+      id: "test-id",
+      supersetDomain: "https://superset.example.com",
+      mountPoint,
+      fetchGuestToken: mockFetchGuestToken,
+    });
+
+    await vi.waitFor(() => expect(switchboards).toHaveLength(1));
+    initialToken.reject(new Error("host down"));
+
+    await expect(embedding).rejects.toThrow("host down");
+    expect(mountPoint.querySelector("iframe")).toBeNull();
+    expect(ports[0].close).toHaveBeenCalled();
+  });
+
+  describe("embedDashboard happy path", () => {
+    it("successfully embeds dashboard with valid token", async () => {
+      const mockFetch = vi.fn().mockResolvedValue("valid-jwt-token");
+
+      const result = await embedDashboard({
+        id: "test-dashboard",
+        supersetDomain: "http://localhost:8200",
+        mountPoint,
+        fetchGuestToken: mockFetch,
+      });
+
+      expect(result).toBeDefined();
+      expect(typeof result.getScrollSize).toBe("function");
+      expect(typeof result.unmount).toBe("function");
+    });
+  });
+
+  describe("embedDashboard security", () => {
+    it("rejects if fetchGuestToken throws an error", async () => {
+      const mockFetch = vi.fn().mockRejectedValue(new Error("Invalid token"));
+      
+      await expect(
+        embedDashboard({
+          id: "test-dashboard",
+          supersetDomain: "http://localhost:8200",
+          mountPoint,
+          fetchGuestToken: mockFetch,
+        })
+      ).rejects.toThrow("Invalid token");
+    });
+  });
+
+  describe("embedDashboard edge cases", () => {
+    test("a refresh whose fetch fails is retried after the retry delay", async () => {
+      vi.useFakeTimers();
       const mockFetchGuestToken = vi
         .fn()
-        .mockImplementation(() => initialToken.promise);
-
+        .mockResolvedValueOnce(fakeToken())
+        .mockRejectedValueOnce(new Error("token expired"))
+        .mockImplementationOnce(() => Promise.resolve(fakeToken()));
       const embedding = embedDashboard({
         id: "test-id",
         supersetDomain: "https://superset.example.com",
         mountPoint,
         fetchGuestToken: mockFetchGuestToken,
       });
+      await vi.advanceTimersByTimeAsync(0);
+      const dashboard = await embedding;
+      expect(mockFetchGuestToken).toHaveBeenCalledTimes(1);
 
-      // Let the first load open its channel, so the teardown has something to
-      // let go of, and only then fail the fetch.
-      await vi.waitFor(() => expect(switchboards).toHaveLength(1));
-      initialToken.reject(new Error("host down"));
+      await vi.advanceTimersByTimeAsync(300_000);
+      expect(mockFetchGuestToken).toHaveBeenCalledTimes(2);
+      expect(mockSwitchboard.emit).toHaveBeenCalledTimes(1);
 
-      await expect(embedding).rejects.toThrow("host down");
+      await vi.advanceTimersByTimeAsync(DEFAULT_TOKEN_REFRESH_RETRY_MS);
+      expect(mockFetchGuestToken).toHaveBeenCalledTimes(3);
+      expect(mockSwitchboard.emit).toHaveBeenCalledTimes(2);
+
+      dashboard.unmount();
+      vi.useRealTimers();
+    });
+
+    it("handles unmount during token refresh", async () => {
+      const mockFetch = vi.fn().mockResolvedValue("token-1");
+
+      const result = await embedDashboard({
+        id: "test-dashboard",
+        supersetDomain: "http://localhost:8200",
+        mountPoint,
+        fetchGuestToken: mockFetch,
+      });
+
+      result.unmount();
+
       expect(mountPoint.querySelector("iframe")).toBeNull();
       expect(ports[0].close).toHaveBeenCalled();
     });
-
-    // === ADDITIONAL TEST SUITES ===
-
-    describe("embedDashboard happy path", () => {
-      it("successfully embeds dashboard with valid token", async () => {
-        const mockFetch = vi.fn().mockResolvedValue("valid-jwt-token");
-
-        const result = await embedDashboard({
-          id: "test-dashboard",
-          supersetDomain: "http://localhost:8200",
-          mountPoint,
-          fetchGuestToken: mockFetch,
-        });
-
-        expect(result).toBeDefined();
-        expect(typeof result.getScrollSize).toBe("function");
-        expect(typeof result.unmount).toBe("function");
-      });
-    });
-
-    describe("embedDashboard security", () => {
-      it("rejects if fetchGuestToken throws an error", async () => {
-        const mockFetch = vi.fn().mockRejectedValue(new Error("Invalid token"));
-
-        await expect(
-          embedDashboard({
-            id: "test-dashboard",
-            supersetDomain: "http://localhost:8200",
-            mountPoint,
-            fetchGuestToken: mockFetch,
-          })
-        ).rejects.toThrow("Invalid token");
-      });
-
-      it("handles token expiration gracefully on refresh", async () => {
-        let callCount = 0;
-        const mockFetch = vi.fn().mockImplementation(() => {
-          callCount++;
-          if (callCount === 1) return Promise.resolve("valid-initial-token");
-          return Promise.reject(new Error("Token expired on refresh"));
-        });
-
-        const result = await embedDashboard({
-          id: "test-dashboard",
-          supersetDomain: "http://localhost:8200",
-          mountPoint,
-          fetchGuestToken: mockFetch,
-          guestTokenFetchTimeoutMs: 5000,
-        });
-
-        expect(result).toBeDefined();
-      });
-    });
-
-    describe("embedDashboard edge cases", () => {
-      it("handles iframe navigation internally", async () => {
-        const mockFetch = vi.fn().mockResolvedValue("token-1");
-
-        const result = await embedDashboard({
-          id: "test-dashboard",
-          supersetDomain: "http://localhost:8200",
-          mountPoint,
-          fetchGuestToken: mockFetch,
-        });
-
-        expect(result).toBeDefined();
-      });
-
-      it("handles unmount during token refresh", async () => {
-        const mockFetch = vi.fn().mockResolvedValue("token-1");
-
-        const result = await embedDashboard({
-          id: "test-dashboard",
-          supersetDomain: "http://localhost:8200",
-          mountPoint,
-          fetchGuestToken: mockFetch,
-        });
-
-        result.unmount();
-
-        expect(true).toBe(true);
-      });
-    }); // Menutup edge cases
-}); // Menutup describe("embedDashboard") utama
+  });
+});
