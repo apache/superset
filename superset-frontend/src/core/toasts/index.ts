@@ -36,7 +36,7 @@ const show = (
   const link = options?.link;
   const action = link
     ? {
-        label: link.label,
+        label: String(link.label),
         onClick: () => {
           window.open(link.href, '_blank', 'noopener,noreferrer');
         },
@@ -44,7 +44,7 @@ const show = (
     : undefined;
   const toast = addToast({
     toastType,
-    text,
+    text: String(text),
     duration: options?.duration ?? DEFAULT_DURATION,
     allowHtml: false,
     action,

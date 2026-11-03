@@ -70,3 +70,8 @@ test('text is not rendered as html, even if extra options are passed', () => {
   const id = toasts.addInfoToast('<b>x</b>', { allowHtml: true } as never);
   expect(state().find(t => t.id === id)!.allowHtml).toBe(false);
 });
+
+test('non-string text renders as its string form', () => {
+  const id = toasts.addDangerToast(new Error('boom') as unknown as string);
+  expect(state().find(t => t.id === id)!.text).toBe('Error: boom');
+});

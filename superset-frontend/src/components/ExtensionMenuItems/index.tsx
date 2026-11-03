@@ -20,7 +20,8 @@ import { createContext, useContext, useMemo, useRef } from 'react';
 import type { menus } from '@apache-superset/core';
 import { logging } from '@apache-superset/core/utils';
 import type { MenuItem } from '@superset-ui/core/components/Menu';
-import { commands, useMenu } from 'src/core';
+import { commands } from 'src/core/commands';
+import { useMenu } from 'src/core/menus';
 
 type ChartDownloadLocation = menus.ChartDownloadLocation;
 type DashboardDownloadLocation = menus.DashboardDownloadLocation;
@@ -53,7 +54,7 @@ export function useExtensionMenuItems(
         return;
       }
       items.push({
-        key: `ext:${command.id}`,
+        key: `ext:${location}:${command.id}`,
         label: command.title,
         disabled: !canDownload,
         onClick: () => {
@@ -67,7 +68,7 @@ export function useExtensionMenuItems(
       });
     });
     return items;
-  }, [menu, canDownload]);
+  }, [menu, canDownload, location]);
 }
 
 interface ChartDownloadProviderValue {
