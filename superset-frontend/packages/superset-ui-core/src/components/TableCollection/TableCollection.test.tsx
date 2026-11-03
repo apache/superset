@@ -358,3 +358,66 @@ test('should highlight every row for which isRowHighlighted returns true', () =>
   const highlightedRows = container.querySelectorAll('.table-row-highlighted');
   expect(highlightedRows).toHaveLength(2);
 });
+
+test('should only mark the clicked header as sorted when columns have no explicit id', () => {
+  // Columns authored without an `id` (identified only by their string
+  // `accessor`, as several real ListView pages do) used to all collapse
+  // onto the same Ant Design sorter key, so clicking one header's sort
+  // control marked every header as sorted.
+  const idlessColumns = [
+    { Header: 'Alpha', accessor: 'alpha' },
+    { Header: 'Beta', accessor: 'beta' },
+  ];
+  const data = [
+    { alpha: 'A1', beta: 'B1' },
+    { alpha: 'A2', beta: 'B2' },
+  ];
+
+  const { result } = renderHook(() =>
+    // @ts-expect-error
+    useTable({ columns: idlessColumns, data }),
+  );
+  const idlessTableHook = result.current;
+
+  render(
+    <TableCollection
+      {...defaultProps}
+      // The raw, author-authored column config — the same shape ListView
+      // passes through, with no `id` set — rather than react-table's own
+      // `columns` instances, which backfill `id` from the string `accessor`
+      // and would mask the bug this test guards against.
+      columns={idlessColumns}
+      headerGroups={idlessTableHook.headerGroups}
+      rows={idlessTableHook.rows}
+      prepareRow={idlessTableHook.prepareRow}
+    />,
+  );
+
+  const alphaHeader = screen.getAllByText('Alpha')[0].closest('th');
+  const betaHeader = screen.getAllByText('Beta')[0].closest('th');
+
+  fireEvent.click(screen.getAllByText('Alpha')[0]);
+
+  // Ant Design only sets `aria-sort` on the header that is actually sorted.
+  expect(alphaHeader?.getAttribute('aria-sort')).toBe('ascending');
+  expect(betaHeader?.getAttribute('aria-sort')).toBeNull();
+});
+
+test('should render a static Cell node alongside an ordinary accessor value', () => {
+  const columnsWithStaticCell = [
+    ...defaultProps.columns,
+    {
+      id: 'staticCol',
+      Header: 'Static Column',
+      Cell: <span>Static</span>,
+    },
+  ];
+
+  render(<TableCollection {...defaultProps} columns={columnsWithStaticCell} />);
+
+  // A static `Cell` node renders as-is for every row...
+  expect(screen.getAllByText('Static').length).toBeGreaterThan(0);
+  // ...while a sibling column without a `Cell` still renders its ordinary
+  // accessor value, confirming the static branch doesn't swallow it.
+  expect(screen.getByText('Line 01 - Col 01')).toBeVisible();
+});

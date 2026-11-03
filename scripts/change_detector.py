@@ -46,16 +46,39 @@ PATTERNS = {
         r"^docker-compose-image-tag\.yml$",
         r"^tests/",
         r"^superset/",
+        r"^superset-core/",
         r"^scripts/",
         r"^setup\.py",
         r"^pyproject\.toml$",
         r"^requirements/.+\.txt",
         r"^pyproject\.toml",
         r"^.pylintrc",
+        # See the note in "frontend": setup-backend/change-detector are this
+        # group's own setup.
+        r"^\.github/actions/",
     ],
     "frontend": [
         r"^\.github/workflows/.*(bashlib|frontend|e2e)",
+        # Composite actions are shared setup, matched by nothing else. Listed
+        # under "python" too -- setup-backend is a backend action, so gating it
+        # on "frontend" alone would skip the Python jobs whose setup changed.
+        r"^\.github/actions/",
         r"^superset-frontend/",
+    ],
+    # Scopes the semantic-cache coordination job (real Redis/Sentinel services)
+    # to changes that can affect it, instead of every python-touching PR.
+    "semantic-layers": [
+        r"^\.github/workflows/superset-python-integrationtest\.yml$",
+        r"^\.github/actions/change-detector/",
+        r"^scripts/change_detector\.py$",
+        r"^superset/semantic_layers/",
+        # The owner-token lease operations the job exercises against real
+        # Redis/Sentinel live outside the semantic_layers package.
+        r"^superset/coordination/cache_backend\.py$",
+        r"^superset/utils/cache_manager\.py$",
+        r"^superset-core/src/superset_core/semantic_layers/",
+        r"^tests/unit_tests/semantic_layers/",
+        r"^tests/integration_tests/semantic_layers/",
     ],
     "docker": [
         r"^Dockerfile$",

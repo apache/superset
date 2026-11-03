@@ -17,8 +17,10 @@
 # isort:skip_file
 import copy
 import time
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 import pytest
+from sqlalchemy import func, select
 
 import tests.integration_tests.test_app  # pylint: disable=unused-import  # noqa: F401
 from superset import db, security_manager
@@ -26,7 +28,10 @@ from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.utils import json
 from superset.daos.dashboard import DashboardDAO
+from superset.commands.dashboard.exceptions import DashboardInvalidError
 from superset.models.dashboard import Dashboard
+from superset.models.helpers import skip_visibility_filter
+from superset.models.slice import Slice
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,  # noqa: F401
@@ -221,3 +226,116 @@ class TestDashboardDAO(SupersetTestCase):
             db.session.delete(slc)
         db.session.delete(dash)
         db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.daos.dashboard.g")
+    @patch("superset.security.manager.g")
+    def test_copy_dashboard_duplicate_slices_with_hard_deleted_chart(
+        self, mock_sm_g: MagicMock, mock_g: MagicMock
+    ) -> None:
+        """Repair absent chart slots before remapping the surviving chart clones."""
+        mock_g.user = mock_sm_g.user = security_manager.find_user("admin")
+        original_dash: Dashboard = (
+            db.session.query(Dashboard).filter_by(slug="world_health").one()
+        )
+        original_id: int = original_dash.id
+        original_positions: str = original_dash.position_json
+        original_metadata: str = original_dash.json_metadata
+        original_slice_ids: set[int] = {slc.id for slc in original_dash.slices}
+        metadata: dict[str, Any] = json.loads(original_metadata)
+        positions: dict[str, Any] = original_dash.position
+        live_node_key: str = next(
+            key
+            for key, node in positions.items()
+            if isinstance(node, dict) and node.get("type") == "CHART"
+        )
+        with skip_visibility_filter(db.session, Slice):
+            missing_id: int = (
+                db.session.scalar(select(func.max(Slice.id))) or 0
+            ) + 1000
+        missing_node: dict[str, Any] = {
+            "id": "CHART-hard-deleted",
+            "type": "CHART",
+            "parents": ["ROOT_ID", "GRID_ID", "ROW-hard-deleted"],
+            "children": [],
+            "meta": {"chartId": missing_id, "width": 6, "height": 42},
+        }
+        positions["ROW-hard-deleted"] = {
+            "id": "ROW-hard-deleted",
+            "type": "ROW",
+            "parents": ["ROOT_ID", "GRID_ID"],
+            "children": [missing_node["id"]],
+        }
+        positions["GRID_ID"]["children"].append("ROW-hard-deleted")
+        positions[missing_node["id"]] = copy.deepcopy(missing_node)
+        metadata["positions"] = positions
+        dash_data: dict[str, Any] = {
+            "dashboard_title": "copied dash with missing chart",
+            "json_metadata": json.dumps(metadata),
+            "duplicate_slices": True,
+        }
+        dash: Dashboard | None = None
+        try:
+            dash = DashboardDAO.copy_dashboard(original_dash, dash_data)
+            copied_positions: dict[str, Any] = dash.position
+            clones: dict[int, Slice] = {slc.id: slc for slc in dash.slices}
+            live_meta: dict[str, Any] = copied_positions[live_node_key]["meta"]
+            assert live_meta["chartId"] in clones
+            assert live_meta["chartId"] not in original_slice_ids
+            assert live_meta["uuid"] == str(clones[live_meta["chartId"]].uuid)
+            repaired: dict[str, Any] = copied_positions[missing_node["id"]]
+            assert repaired["type"] == "MARKDOWN"
+            assert repaired["id"] == missing_node["id"]
+            assert repaired["parents"] == missing_node["parents"]
+            assert repaired["children"] == missing_node["children"]
+            assert repaired["meta"]["width"] == 6
+            assert repaired["meta"]["height"] == 42
+            assert copied_positions["ROW-hard-deleted"] == positions["ROW-hard-deleted"]
+            assert all(
+                node.get("meta", {}).get("chartId") is not None
+                for node in copied_positions.values()
+                if isinstance(node, dict) and node.get("type") == "CHART"
+            )
+            assert len(clones) == len(original_slice_ids)
+            assert set(clones).isdisjoint(original_slice_ids | {missing_id})
+            db.session.flush()
+            db.session.expire(original_dash)
+            source: Dashboard = (
+                db.session.query(Dashboard).filter_by(id=original_id).one()
+            )
+            assert source.position_json == original_positions
+            assert source.json_metadata == original_metadata
+        finally:
+            # The copy is flushed but never committed. Roll it back rather
+            # than generating CREATE and DELETE association versions in the
+            # same Continuum transaction during fixture cleanup.
+            db.session.rollback()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.daos.dashboard.g")
+    @patch("superset.security.manager.g")
+    def test_copy_dashboard_duplicate_slices_rejects_malformed_chart(
+        self, mock_sm_g: MagicMock, mock_g: MagicMock
+    ) -> None:
+        """Keep rejecting chart nodes whose original chart ID is unusable."""
+        mock_g.user = mock_sm_g.user = security_manager.find_user("admin")
+        original_dash: Dashboard = (
+            db.session.query(Dashboard).filter_by(slug="world_health").one()
+        )
+        metadata: dict[str, Any] = json.loads(original_dash.json_metadata)
+        metadata["positions"] = original_dash.position
+        metadata["positions"]["CHART-malformed"] = {
+            "id": "CHART-malformed",
+            "type": "CHART",
+            "meta": {"chartId": "unreadable"},
+        }
+        dash_data: dict[str, Any] = {
+            "dashboard_title": "malformed copy",
+            "json_metadata": json.dumps(metadata),
+            "duplicate_slices": True,
+        }
+        try:
+            with pytest.raises(DashboardInvalidError):
+                DashboardDAO.copy_dashboard(original_dash, dash_data)
+        finally:
+            db.session.rollback()

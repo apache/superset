@@ -245,3 +245,116 @@ def test_require_mysql_tls_connects_with_verified_tls(
         cipher = conn.execute(text("SHOW STATUS LIKE 'Ssl_cipher'")).fetchone()
         assert cipher is not None
         assert cipher[1], "connection succeeded but is not actually using TLS"
+
+
+@pytest.mark.parametrize("isolation_level", ["REPEATABLE READ", "READ COMMITTED"])
+@pytest.mark.parametrize("winner", ["stop", "worker"])
+def test_stop_at_target_commit_is_serialized(
+    mysql_container: MySqlContainer,
+    monkeypatch: pytest.MonkeyPatch,
+    winner: str,
+    isolation_level: str,
+) -> None:
+    """MySQL locking reads serialize Stop with the target commit under RR and RC."""
+    from concurrent.futures import ThreadPoolExecutor, TimeoutError
+    from threading import Event
+
+    from sqlalchemy.orm import scoped_session, sessionmaker
+
+    from superset.constants import QUERY_TARGET_COMMITTED_KEY
+    from superset.extensions import db
+    from superset.models.sql_lab import Query
+    from superset.sql.execution.utils import (
+        commit_target_transaction,
+        set_query_stopped,
+    )
+
+    engine = create_engine(
+        URL.create(
+            "mysql+pymysql",
+            username=mysql_container.username,
+            password=mysql_container.password,
+            host=_tcp_host(mysql_container),
+            port=int(mysql_container.get_exposed_port(mysql_container.port)),
+            database=mysql_container.dbname,
+        )
+    )
+    with engine.begin() as connection:
+        connection.execute(
+            text("CREATE TABLE IF NOT EXISTS dbs (id INTEGER PRIMARY KEY)")
+        )
+        connection.execute(
+            text("CREATE TABLE IF NOT EXISTS ab_user (id INTEGER PRIMARY KEY)")
+        )
+        connection.execute(text("INSERT IGNORE INTO dbs VALUES (1)"))
+    Query.__table__.create(engine, checkfirst=True)
+    sessions = scoped_session(
+        sessionmaker(bind=engine.execution_options(isolation_level=isolation_level))
+    )
+    monkeypatch.setattr(db, "session", sessions)
+    sessions.add(
+        Query(
+            id=126,
+            client_id="commit-stop",
+            database_id=1,
+            status="running",
+            sql="SELECT 1",
+        )
+    )
+    sessions.commit()
+    committing = Event()
+    release = Event()
+    stopping = Event()
+
+    def target_commit() -> None:
+        """Keep the target commit pending while Stop attempts its guarded write."""
+        committing.set()
+        assert release.wait(10)
+
+    def work() -> bool:
+        """Hold the metadata lock across the target commit."""
+        try:
+            return commit_target_transaction(sessions.get(Query, 126), target_commit)
+        finally:
+            sessions.remove()
+
+    def stop() -> bool:
+        """Read the row before the worker commits its target-committed marker."""
+        try:
+            query = sessions.get(Query, 126)
+            stopping.set()
+            accepted = set_query_stopped(query, 1234.5)
+            sessions.commit()
+            return accepted
+        finally:
+            sessions.remove()
+
+    try:
+        if winner == "stop":
+            assert stop() is True
+            assert work() is False
+            assert not committing.is_set()
+        else:
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                worker = pool.submit(work)
+                try:
+                    assert committing.wait(10)
+                    stopper = pool.submit(stop)
+                    assert stopping.wait(10)
+                    with pytest.raises(TimeoutError):
+                        stopper.result(timeout=0.2)
+                finally:
+                    release.set()
+                assert worker.result(timeout=10) is True
+                assert stopper.result(timeout=10) is False
+        sessions.expire_all()
+        query = sessions.get(Query, 126)
+        assert query.status == ("stopped" if winner == "stop" else "running")
+        assert bool(query.extra.get(QUERY_TARGET_COMMITTED_KEY)) is (winner == "worker")
+    finally:
+        release.set()
+        sessions.rollback()
+        sessions.query(Query).filter_by(id=126).delete()
+        sessions.commit()
+        sessions.remove()
+        engine.dispose()

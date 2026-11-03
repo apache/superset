@@ -44,6 +44,8 @@ import {
   ConditionalFormattingConfig,
   getColorFormatters,
   ColorSchemeEnum,
+  normalizeColumnConfigKeys,
+  getKnownColumnConfigKeys,
   resolveHeaderGroups,
 } from '@superset-ui/chart-controls';
 
@@ -237,6 +239,11 @@ const processColumns = memoizeOne(function processColumns(
   const columnsByName = new Map(
     (props.datasource.columns ?? []).map(col => [col.column_name, col]),
   );
+  const normalizedColumnConfig = normalizeColumnConfigKeys(
+    columnConfig,
+    colnames || [],
+    getKnownColumnConfigKeys(colnames || [], props.datasource),
+  );
 
   const columns: DataColumnMeta[] = (colnames || [])
     .filter(
@@ -246,7 +253,7 @@ const processColumns = memoizeOne(function processColumns(
     )
     .map((key: string, i) => {
       const dataType = coltypes[i];
-      const config = columnConfig[key] || {};
+      const config = normalizedColumnConfig[key] || {};
       // for the purpose of presentation, only numeric values are treated as metrics
       // because users can also add things like `MAX(str_col)` as a metric.
       const isFilterable = columnsByName.get(key)?.filterable;

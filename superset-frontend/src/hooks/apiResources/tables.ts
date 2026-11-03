@@ -109,7 +109,7 @@ const tableApi = api.injectEndpoints({
         // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
         urlParams: {
           force: forceRefresh,
-          schema_name: schema ? encodeURIComponent(schema) : '',
+          schema_name: schema || '',
           ...(catalog && { catalog_name: catalog }),
         },
         transformResponse: ({ json }: QueryResponse) => ({
@@ -117,8 +117,9 @@ const tableApi = api.injectEndpoints({
           hasMore: json.count > json.result.length,
         }),
       }),
-      serializeQueryArgs: ({ queryArgs: { dbId, schema } }) => ({
+      serializeQueryArgs: ({ queryArgs: { dbId, catalog, schema } }) => ({
         dbId,
+        catalog,
         schema,
       }),
     }),

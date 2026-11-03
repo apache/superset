@@ -128,19 +128,18 @@ export class EditDatasetModal extends Modal {
 
   /**
    * Gets the description Ace Editor component (Settings tab).
-   * The Description button and ace-editor are in the same form item.
+   * The Description label and ace-editor are in the same form item.
    */
   private get descriptionEditor(): AceEditor {
     // Use tabpanel role with name "Settings" for more reliable lookup
     const settingsPanel = this.element.getByRole('tabpanel', {
       name: 'Settings',
     });
-    // Find the form item that contains the Description button
+    // Find the form item that contains the Description label
     const descriptionFormItem = settingsPanel
       .locator('.ant-form-item')
       .filter({
-        has: this.page.getByRole('button', {
-          name: 'Description',
+        has: this.page.getByText('Description', {
           exact: true,
         }),
       })

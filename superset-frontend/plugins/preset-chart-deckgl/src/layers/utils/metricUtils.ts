@@ -118,3 +118,20 @@ export function getFixedValue(
 
   return undefined;
 }
+
+/**
+ * Typed MCP compatibility reads a bare numeric-string radius as a fixed size.
+ * Native charts interpret every bare string as a saved metric name.
+ */
+export function getTypedFixedRadius(formData: {
+  mcp_geographic?: boolean;
+  point_radius_fixed?: unknown;
+}): number | null {
+  const { mcp_geographic, point_radius_fixed } = formData;
+  return mcp_geographic &&
+    typeof point_radius_fixed === 'string' &&
+    point_radius_fixed.trim() !== '' &&
+    Number.isFinite(Number(point_radius_fixed))
+    ? Number(point_radius_fixed)
+    : null;
+}

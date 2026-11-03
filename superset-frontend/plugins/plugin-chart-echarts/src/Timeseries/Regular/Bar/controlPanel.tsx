@@ -42,6 +42,7 @@ import {
   minorTicks,
   axisTicks,
   gridlines,
+  valueAxisLabels,
   richTooltipSection,
   seriesOrderSection,
   showValueSectionWithoutStream,
@@ -49,6 +50,8 @@ import {
   xAxisBounds,
   xAxisLabelRotation,
   xAxisLabelInterval,
+  xAxisMinInterval,
+  yAxisMinInterval,
   forceMaxInterval,
   colorByPrimaryAxisSection,
 } from '../../../controls';
@@ -226,6 +229,19 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
     ],
     [
       {
+        name: xAxisMinInterval.name,
+        config: {
+          ...xAxisMinInterval.config,
+          label: t('Minimum Interval'),
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            isXAxis ? isVertical(controls) : isHorizontal(controls),
+          disableStash: true,
+          resetOnHide: false,
+        },
+      },
+    ],
+    [
+      {
         name: 'y_axis_format',
         config: {
           ...sharedControls.y_axis_format,
@@ -238,6 +254,19 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
       },
     ],
     ['currency_format'],
+    [
+      {
+        name: yAxisMinInterval.name,
+        config: {
+          ...yAxisMinInterval.config,
+          label: t('Minimum Interval'),
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            isXAxis ? isHorizontal(controls) : isVertical(controls),
+          disableStash: true,
+          resetOnHide: false,
+        },
+      },
+    ],
     [
       {
         name: 'logAxis',
@@ -393,6 +422,7 @@ const config: ControlPanelConfig = {
         [minorTicks],
         [axisTicks],
         [gridlines],
+        [valueAxisLabels],
         ['zoomable'],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],

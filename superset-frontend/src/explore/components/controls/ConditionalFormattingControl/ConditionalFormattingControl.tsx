@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled, css } from '@apache-superset/core/theme';
 import { Comparator } from '@superset-ui/chart-controls';
@@ -81,12 +81,18 @@ const ConditionalFormattingControl = ({
 }: ConditionalFormattingControlProps) => {
   const [conditionalFormattingConfigs, setConditionalFormattingConfigs] =
     useState<ConditionalFormattingConfig[]>(value ?? []);
+  // Report formatters only once they differ from what the control mounted
+  // with. Echoing the mounted value back would make an untouched chart look
+  // edited (e.g. writing [] in version history), and a stale echo could
+  // overwrite a value the parent supplies later.
+  const initialConfigs = useRef(conditionalFormattingConfigs);
+  const isUntouched = conditionalFormattingConfigs === initialConfigs.current;
 
   useEffect(() => {
-    if (onChange) {
+    if (onChange && !isUntouched) {
       onChange(conditionalFormattingConfigs);
     }
-  }, [conditionalFormattingConfigs, onChange]);
+  }, [conditionalFormattingConfigs, isUntouched, onChange]);
 
   useEffect(() => {
     if (removeIrrelevantConditions) {

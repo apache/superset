@@ -25,6 +25,13 @@ import { AnnotationData } from './AnnotationLayer';
  */
 export type DataRecordValue = number | string | boolean | Date | null | bigint;
 
+/**
+ * Semantic containment-cache provenance of one query: HIT when every semantic
+ * query behind it (main plus time offsets) was served from containment, MISS
+ * when none was, MIXED when only some were.
+ */
+export type SemanticCacheStatus = 'HIT' | 'MISS' | 'MIXED';
+
 export interface DataRecord {
   [key: string]: DataRecordValue;
 }
@@ -73,6 +80,7 @@ export interface ChartDataResponseResult {
   coltypes: GenericDataType[];
   error: string | null;
   is_cached: boolean;
+  semantic_cache_status?: SemanticCacheStatus | null;
   query: string;
   rowcount: number;
   sql_rowcount: number;

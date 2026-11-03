@@ -22,7 +22,9 @@ import {
   QueryObject,
   TimeGranularity,
 } from '@superset-ui/core';
+import { ControlPanelsContainerProps } from '@superset-ui/chart-controls';
 import buildQuery from '../../src/plugin/buildQuery';
+import controlPanel from '../../src/plugin/controlPanel';
 import { PivotTableQueryFormData } from '../../src/types';
 
 // buildQuery attaches `grouping_sets` (one entry per rollup level) to the
@@ -65,6 +67,53 @@ const formData: PivotTableQueryFormData = {
   temporal_columns_lookup: { col1: true },
   currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
 };
+
+test('semantic pivot drops a saved series limit without changing SQL pivots', () => {
+  const semanticQuery = buildQuery({
+    ...formData,
+    datasource: '5__semantic_view',
+    series_limit: 2,
+  }).queries[0];
+  const sqlQuery = buildQuery({ ...formData, series_limit: 2 }).queries[0];
+
+  expect(semanticQuery.series_limit).toBe(0);
+  expect(sqlQuery.series_limit).toBe(2);
+});
+
+test('pivot hides the Series limit control for semantic views', () => {
+  const control = controlPanel.controlPanelSections
+    .flatMap(section => section?.controlSetRows ?? [])
+    .flat()
+    .find(
+      item =>
+        item !== null &&
+        typeof item === 'object' &&
+        'name' in item &&
+        item.name === 'series_limit',
+    );
+  if (!control || typeof control === 'string' || !('config' in control)) {
+    throw new Error('Series limit control is missing');
+  }
+  if (!control.config.visibility) {
+    throw new Error('Series limit visibility is missing');
+  }
+  const controlProps: ControlPanelsContainerProps = {
+    actions: { setDatasource: jest.fn() },
+    controls: {},
+    exportState: {},
+    form_data: formData,
+  };
+  expect(
+    control.config.visibility(
+      {
+        ...controlProps,
+        form_data: { ...formData, datasource: '5__semantic_view' },
+      },
+      {},
+    ),
+  ).toBe(false);
+  expect(control.config.visibility(controlProps, {})).toBe(true);
+});
 
 test('additive metrics use the fast-path: a single full-detail query', () => {
   const { queries } = buildQuery({
@@ -177,4 +226,25 @@ test('should not omit extras.time_grain_sqla from queryContext so dashboards app
   // Single GROUPING SETS query: the sole query carries the full column set.
   const query = queryContext.queries[queryContext.queries.length - 1];
   expect(query.extras?.time_grain_sqla).toEqual(TimeGranularity.QUARTER);
+});
+
+test.each(['Average', 'Median', 'Count Unique Values'])(
+  'result aggregation (%s) queries leaf detail without database rollups',
+  aggregateFunction => {
+    const queryContext = buildQuery({ ...formData, aggregateFunction });
+    const query = queryContext.queries[queryContext.queries.length - 1];
+    expect(query).not.toHaveProperty('grouping_sets');
+  },
+);
+
+test('an unrecognized aggregateFunction value falls back to database rollups', () => {
+  // Covers both "Metric" (the control's explicit default) and any other
+  // value that isn't one of RESULT_AGGREGATIONS -- e.g. a stale form_data
+  // value from a chart saved against an older version of the control.
+  const queryContext = buildQuery({
+    ...formData,
+    aggregateFunction: 'Metric',
+  });
+  const query = queryContext.queries[queryContext.queries.length - 1];
+  expect(query).toHaveProperty('grouping_sets');
 });

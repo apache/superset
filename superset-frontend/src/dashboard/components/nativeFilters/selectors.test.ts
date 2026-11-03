@@ -24,7 +24,31 @@ import {
   getCrossFilterIndicator,
   IndicatorStatus,
   selectNativeIndicatorsForChart,
+  selectChartCrossFilters,
 } from './selectors';
+
+test('a SQL chart cross-filter rejected by a semantic chart remains Incompatible', () => {
+  const result = selectChartCrossFilters(
+    {
+      17: {
+        id: '17',
+        extraFormData: { filters: [{ col: 'country', op: 'IN', val: ['US'] }] },
+        filterState: { value: ['US'], label: 'US' },
+      },
+    },
+    73,
+    [],
+    { 17: { id: 17, crossFilters: { scope: 'global', chartsInScope: [73] } } },
+    new Set(),
+    new Set(['country']),
+  );
+  expect(result).toEqual([
+    expect.objectContaining({
+      column: 'country',
+      status: IndicatorStatus.Incompatible,
+    }),
+  ]);
+});
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getCrossFilterIndicator', () => {
@@ -625,4 +649,51 @@ test('selectNativeIndicatorsForChart marks rejected filters from later query res
       value: '25',
     },
   ]);
+});
+
+test('selectNativeIndicatorsForChart leaves an unset filter Unset when its column is rejected', () => {
+  type Args = Parameters<typeof selectNativeIndicatorsForChart>;
+  const chartId = 654;
+  const nativeFilters = {
+    withValue: {
+      id: 'withValue',
+      name: 'Country',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [chartId],
+      targets: [{ column: { name: 'country' } }],
+    },
+    withoutValue: {
+      id: 'withoutValue',
+      name: 'Country (unset)',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [chartId],
+      targets: [{ column: { name: 'country' } }],
+    },
+  } as unknown as Args[0];
+  const dataMask = {
+    withValue: {
+      id: 'withValue',
+      filterState: { value: 'US' },
+      extraFormData: {},
+    },
+    withoutValue: { id: 'withoutValue', filterState: {}, extraFormData: {} },
+  } as unknown as Args[1];
+  const chart = {
+    queriesResponse: [{ rejected_filters: [{ column: 'country' }] }],
+  } as unknown as Args[3];
+
+  const statuses = Object.fromEntries(
+    selectNativeIndicatorsForChart(
+      nativeFilters,
+      dataMask,
+      chartId,
+      chart,
+      [],
+    ).map(indicator => [indicator.path?.[0], indicator.status]),
+  );
+
+  expect(statuses).toEqual({
+    withValue: IndicatorStatus.Incompatible,
+    withoutValue: IndicatorStatus.Unset,
+  });
 });

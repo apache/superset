@@ -54,6 +54,7 @@ import LastQueriedLabel from 'src/components/LastQueriedLabel';
 import { DataTablesPane } from '../DataTablesPane';
 import { ChartPills } from '../ChartPills';
 import { ExploreAlert } from '../ExploreAlert';
+import { LegacyAggregationAlert } from '../LegacyAggregationAlert';
 import useResizeDetectorByObserver from './useResizeDetectorByObserver';
 import StandaloneDownloadControl from './StandaloneDownloadControl';
 
@@ -383,6 +384,9 @@ const ExploreChartPanel = ({
           padding-top: ${theme.sizeUnit * 2}px;
         `}
       >
+        {vizType === 'pivot_table_v2' && (
+          <LegacyAggregationAlert sliceId={slice?.slice_id} />
+        )}
         {showAlertBanner && (
           <ExploreAlert
             title={
@@ -471,6 +475,8 @@ const ExploreChartPanel = ({
       </div>
     ),
     [
+      vizType,
+      slice?.slice_id,
       showAlertBanner,
       errorMessage,
       onQuery,

@@ -22,6 +22,7 @@ import type { AnyAction } from 'redux';
 import type { ThunkAction, ThunkDispatch } from 'redux-thunk';
 import type { QueryColumn, SupersetError } from '@superset-ui/core';
 import {
+  DatasourceType,
   FeatureFlag,
   SupersetClient,
   isFeatureEnabled,
@@ -603,6 +604,12 @@ export function reRunQuery(query: Query): SqlLabThunkAction {
   };
 }
 
+export function refreshQueries(
+  alteredQueries: Record<string, Query>,
+): SqlLabAction {
+  return { type: REFRESH_QUERIES, alteredQueries };
+}
+
 export function postStopQuery(
   query: Query,
 ): SqlLabThunkAction<Promise<unknown>> {
@@ -614,7 +621,25 @@ export function postStopQuery(
     })
       .then(() => dispatch(stopQuery(query)))
       .then(() => dispatch(addSuccessToast(t('Query was stopped.'))))
-      .catch(() => dispatch(addDangerToast(t('Failed to stop query.'))));
+      .catch(async (response: Response) => {
+        if (response.status === 422) {
+          const payload: { query?: Query } = await response
+            .json()
+            .catch(() => ({}));
+          const finishedQuery = payload.query;
+          if (
+            finishedQuery &&
+            finishedQuery.id === query.id &&
+            ['success', 'failed', 'timed_out'].includes(
+              finishedQuery.state ?? '',
+            )
+          ) {
+            dispatch(refreshQueries({ [query.id]: finishedQuery }));
+            return;
+          }
+        }
+        dispatch(addDangerToast(t('Failed to stop query.')));
+      });
   };
 }
 
@@ -1519,12 +1544,6 @@ export function removeTables(
   };
 }
 
-export function refreshQueries(
-  alteredQueries: Record<string, Query>,
-): SqlLabAction {
-  return { type: REFRESH_QUERIES, alteredQueries };
-}
-
 export function setUserOffline(offline: boolean): SqlLabAction {
   return { type: SET_USER_OFFLINE, offline };
 }
@@ -1643,7 +1662,40 @@ export function popDatasourceQuery(
 ): SqlLabThunkAction<Promise<unknown>> {
   return function (dispatch: AppDispatch) {
     const QUERY_TEXT = t('Query');
-    const datasetId = datasourceKey.split('__')[0];
+    const [datasetId, datasourceType] = datasourceKey.split('__');
+
+    // The id of a `query` datasource is a SQL Lab query id, not a dataset id.
+    if (datasourceType === DatasourceType.Query) {
+      return SupersetClient.get({
+        endpoint: `/fetch_datasource_metadata?datasourceKey=${encodeURIComponent(datasourceKey)}`,
+      })
+        .then(({ json }) =>
+          dispatch(
+            addQueryEditor({
+              name: json.name ? `${QUERY_TEXT} ${json.name}` : QUERY_TEXT,
+              dbId: json.database.id,
+              catalog: json.catalog,
+              schema: json.schema,
+              autorun: false,
+              sql: sql || json.sql,
+            }),
+          ),
+        )
+        .catch(() =>
+          dispatch(addDangerToast(t("The datasource couldn't be loaded"))),
+        );
+    }
+
+    // Only tables are looked up as datasets; other typed keys (for example
+    // semantic views) have no dataset to open an editor from.
+    if (
+      datasourceType !== undefined &&
+      datasourceType !== DatasourceType.Table
+    ) {
+      return Promise.resolve(
+        dispatch(addDangerToast(t("The datasource couldn't be loaded"))),
+      );
+    }
 
     const queryParams = rison.encode({
       keys: ['none'],

@@ -84,15 +84,17 @@ const ControlPopover: FC<PopoverProps> = ({
   getPopupContainer,
   getVisibilityRatio = getElementVisibilityRatio,
   open: visibleProp,
+  defaultOpen,
+  onOpenChange,
   destroyOnHidden = false,
   placement: initialPlacement = 'right',
   autoAdjustOverflow,
   ...props
 }) => {
+  const isControlled = visibleProp !== undefined;
   const triggerElementRef = useRef<HTMLElement>();
-  const [visible, setVisible] = useState(
-    visibleProp === undefined ? props.defaultOpen : visibleProp,
-  );
+  const [uncontrolledVisible, setUncontrolledVisible] = useState(!!defaultOpen);
+  const visible = isControlled ? !!visibleProp : uncontrolledVisible;
   const [placement, setPlacement] =
     React.useState<TooltipPlacement>(initialPlacement);
 
@@ -145,23 +147,24 @@ const ControlPopover: FC<PopoverProps> = ({
 
   const handleOnVisibleChange = useCallback(
     (visible: boolean | undefined) => {
-      if (visible === undefined) {
-        changeContainerScrollStatus(visible);
+      if (!isControlled) {
+        setUncontrolledVisible(!!visible);
       }
-      setVisible(!!visible);
-      props.onOpenChange?.(!!visible);
+      onOpenChange?.(!!visible);
     },
-    [props, changeContainerScrollStatus],
+    [isControlled, onOpenChange],
   );
 
   const handleDocumentKeyDownListener = useCallback(
     (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setVisible(false);
-        props.onOpenChange?.(false);
+        if (!isControlled) {
+          setUncontrolledVisible(false);
+        }
+        onOpenChange?.(false);
       }
     },
-    [props],
+    [isControlled, onOpenChange],
   );
   const handleAfterOpenChange = useCallback(
     (open: boolean) => {
@@ -173,15 +176,13 @@ const ControlPopover: FC<PopoverProps> = ({
   );
 
   useEffect(() => {
-    if (visibleProp !== undefined) {
-      setVisible(!!visibleProp);
+    if (!visible) {
+      return undefined;
     }
-  }, [visibleProp]);
-
-  useEffect(() => {
-    if (visible !== undefined) {
-      changeContainerScrollStatus(visible);
-    }
+    changeContainerScrollStatus(true);
+    return () => {
+      changeContainerScrollStatus(false);
+    };
   }, [visible, changeContainerScrollStatus]);
 
   useEffect(() => {

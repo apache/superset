@@ -23,6 +23,7 @@ import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import { logging } from '@apache-superset/core/utils';
 import type { ECElementEvent } from 'echarts/types/src/util/types';
 import EchartsTimeseries from '../../src/Timeseries/EchartsTimeseries';
+import { DEFAULT_FORM_DATA } from '../../src/Timeseries/constants';
 import {
   OrientationType,
   TimeseriesChartTransformedProps,
@@ -136,6 +137,7 @@ function getCustomLegend(
   return {
     items: Array.from({ length: itemCount }, (_, index) => ({
       color: `rgb(${index % 255}, 0, 0)`,
+      icon: { shape: 'box' as const, opacity: 1 },
       interactive: true,
       name: `Series ${index + 1}`,
       selected: true,
@@ -523,6 +525,7 @@ test('emits TEMPORAL_RANGE cross-filter from time axis label click on day bucket
           val: '2021-01-01T00:00:00 : 2021-01-02T00:00:00',
         },
       ],
+      time_range: '2021-01-01T00:00:00 : 2021-01-02T00:00:00',
     },
     filterState: {
       label: ['2021-01-01T00:00:00 : 2021-01-02T00:00:00'],
@@ -569,6 +572,11 @@ test('emits upper-exclusive TEMPORAL_RANGE from time point click on month bucket
       val: '2021-01-01T00:00:00 : 2021-02-01T00:00:00',
     },
   ]);
+  // Target charts' own TEMPORAL_RANGE filters are rewritten from time_range on
+  // the backend, so the clicked bucket must be sent as time_range as well.
+  expect(setDataMask.mock.calls[0][0].extraFormData.time_range).toBe(
+    '2021-01-01T00:00:00 : 2021-02-01T00:00:00',
+  );
 });
 
 test('uses resolved time grain for temporal point-click cross-filter', () => {
@@ -891,3 +899,42 @@ test('context menu cross-filter is available for a temporal bar point', async ()
     },
   ]);
 });
+
+test.each([undefined, 'PT6H' as TimeGranularity])(
+  'temporal drill by compares a naive ISO datetime for grain %s',
+  async grain => {
+    const onContextMenu = jest.fn();
+    renderTimeseries({
+      onContextMenu,
+      groupby: [],
+      formData: {
+        ...DEFAULT_FORM_DATA,
+        datasource: '1__table',
+        viz_type: 'echarts_timeseries_line',
+        metric: 'count',
+        groupby: [],
+        granularitySqla: 'ds',
+        timeGrainSqla: grain,
+      },
+      xAxis: { label: DTTM_ALIAS, type: AxisType.Time },
+    });
+    const raw = Date.UTC(2024, 9, 7, 6);
+    await getLatestEchartProps().eventHandlers?.contextmenu?.({
+      componentType: 'series',
+      seriesName: 'Sales',
+      data: [raw, 100],
+      name: '2024-10-07',
+      event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+    });
+    // Drill by writes adhoc x-axis comparators straight into SQL, where an
+    // epoch integer would not compare with a timestamp.
+    expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
+      {
+        col: 'ds',
+        op: '==',
+        val: '2024-10-07T06:00:00',
+        formattedVal: expect.any(String),
+      },
+    ]);
+  },
+);

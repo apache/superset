@@ -164,6 +164,18 @@ class ExecuteSqlCommand(BaseCommand):
             self._query_dao.update(
                 query, {"limit": self._execution_context.query.limit}
             )
+            # Commit now, before dispatch. The async executor below hands off to
+            # a Celery worker that re-fetches this query on its own connection
+            # (`get_query` in superset/sql_lab.py); under READ COMMITTED that
+            # worker only sees the limit recomputed just above once it is
+            # committed. `@transaction()` on `run()` only commits after this
+            # whole method returns, which is too late: `.delay()` can hand the
+            # task to an already-idle worker before that commit lands, so the
+            # worker reads back the row's limit as it was at creation time (the
+            # raw dropdown value from `create_query()`) instead of the smaller
+            # value just computed from the query's own SQL LIMIT. Same race and
+            # fix as apache/superset#40070.
+            db.session.commit()  # pylint: disable=consider-using-transaction
             return self._sql_json_executor.execute(
                 self._execution_context, rendered_query, self._log_params
             )

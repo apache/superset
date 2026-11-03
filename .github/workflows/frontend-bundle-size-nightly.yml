@@ -25,6 +25,9 @@ permissions:
 
 jobs:
   refresh-baseline:
+    # The nightly baseline is only consumed by upstream pull requests; forks
+    # and mirrors can still start it manually.
+    if: github.event_name != 'schedule' || github.repository == 'apache/superset'
     runs-on: ubuntu-26.04
     timeout-minutes: 30
     env:
@@ -89,7 +92,7 @@ jobs:
           -v ${{ github.workspace }}/superset/static/assets:/app/superset/static/assets \
           --rm $TAG \
           bash -c \
-          "npm i && BUNDLE_SIZE_STATS=true BUNDLE_ANALYZER=true npm run build -- --json=bundle-stats/stats.json"
+          "BUNDLE_SIZE_STATS=true BUNDLE_ANALYZER=true npm run build -- --json=bundle-stats/stats.json"
 
       - name: Summarize bundle size
         run: |

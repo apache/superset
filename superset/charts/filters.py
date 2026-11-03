@@ -37,6 +37,7 @@ from superset.subjects.models import chart_editors
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.utils.core import get_user_id
 from superset.utils.filters import (
+    apply_extra_access_exclusions,
     get_dataset_access_filters,
     guest_embedded_dashboard_filter,
     semantic_layer_grant_clause,
@@ -123,6 +124,13 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         if (guest_dashboards := guest_embedded_dashboard_filter()) is not None:
             return query.filter(self.model.dashboards.any(guest_dashboards))
 
+        # Applied before the short-circuit below: an exclusion has to hold for
+        # principals who can reach every dataset, since those are exactly the
+        # ones the role paths stop narrowing. Guests are excepted above --
+        # their token already scopes them, and withholding here would strip
+        # charts from a dashboard they were legitimately granted.
+        query = apply_extra_access_exclusions(query, "charts", Slice.id)
+
         if security_manager.can_access_all_datasources():
             return query
 
@@ -167,12 +175,10 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             # unrelated table sharing its numeric id) and kept outer so
             # charts on other datasource types survive into the access
             # filter — their access matches through the perm columns
-            # denormalized onto Slice by ``set_related_perm``. ORM deletion
-            # of a table dataset removes its datasource_access PVM, but
-            # schema/catalog grants survive and can match a retained chart's
-            # denormalized schema_perm/catalog_perm. The list can include
-            # that orphan; the datasource-based object gate denies it
-            # (accepted edge, shared with the dashboard filter).
+            # denormalized onto Slice by ``set_related_perm``. Deleting or
+            # purging a table dataset clears its charts' denormalized perm
+            # columns, so a surviving schema/catalog grant cannot list such
+            # an orphan; the datasource-based object gate denies it too.
             .join(table_alias, table_backed_slice_join(table_alias), isouter=True)
             .join(
                 models.Database,

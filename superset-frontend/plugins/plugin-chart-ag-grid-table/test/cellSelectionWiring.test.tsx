@@ -76,6 +76,65 @@ test('interactive table selects the cell on click (text selection disabled) and 
   expect(typeof captured.props?.onCellKeyDown).toBe('function');
 });
 
+test('a JSON control click skips cross-filtering and a text click still applies it', async () => {
+  const setDataMask = jest.fn();
+  const renderWithMask = () => {
+    captured.props = undefined;
+    render(
+      ProviderWrapper({
+        children: (
+          <AgGridTableChart
+            {...transformProps(testData.basic)}
+            emitCrossFilters
+            filters={{ name: ['Ada'] }}
+            setDataMask={setDataMask}
+            slice_id={1}
+          />
+        ),
+      }),
+    );
+  };
+  renderWithMask();
+  await waitFor(() => expect(captured.props?.onCellClicked).toBeDefined());
+
+  const onCellClicked = captured.props?.onCellClicked as (event: {
+    column: { getColId: () => string; getColDef: () => { context?: object } };
+    node: { setSelected: (selected: boolean) => void };
+    api: { getSelectedNodes: () => unknown[] };
+    value: string;
+    event?: { target?: EventTarget | null; detail?: number } | null;
+  }) => void;
+
+  const node = { setSelected: jest.fn() };
+  const untoggleEvent = {
+    column: {
+      getColId: () => 'name',
+      getColDef: () => ({ context: {} }),
+    },
+    node,
+    api: { getSelectedNodes: () => [node] },
+    value: 'Ada',
+  };
+
+  onCellClicked({
+    ...untoggleEvent,
+    event: { target: document.createElement('span'), detail: 1 },
+  });
+  expect(setDataMask).toHaveBeenCalledTimes(1);
+  setDataMask.mockClear();
+
+  const action = document.createElement('button');
+  action.setAttribute('data-json-cell-action', 'true');
+  onCellClicked({ ...untoggleEvent, event: { target: action, detail: 1 } });
+  expect(setDataMask).not.toHaveBeenCalled();
+
+  onCellClicked({
+    ...untoggleEvent,
+    event: { target: document.createElement('span') },
+  });
+  expect(setDataMask).toHaveBeenCalledTimes(1);
+});
+
 test('the wired onCellKeyDown copies the focused cell value on Ctrl/Cmd+C', async () => {
   const writeText = jest.fn().mockResolvedValue(undefined);
   Object.defineProperty(navigator, 'clipboard', {
@@ -96,4 +155,33 @@ test('the wired onCellKeyDown copies the focused cell value on Ctrl/Cmd+C', asyn
   });
 
   expect(writeText).toHaveBeenCalledWith('2,871');
+});
+
+test('Enter on a focused JSON cell opens the dialog', async () => {
+  renderChart();
+  await waitFor(() => expect(captured.props?.onCellKeyDown).toBeDefined());
+
+  const cell = document.createElement('div');
+  cell.className = 'ag-cell';
+  const open = document.createElement('button');
+  open.setAttribute('data-json-cell-open', '');
+  const onClick = jest.fn();
+  open.addEventListener('click', onClick);
+  cell.appendChild(open);
+  document.body.appendChild(cell);
+
+  const preventDefault = jest.fn();
+  captured.props?.onCellKeyDown({
+    event: { key: 'Enter', target: cell, preventDefault },
+  });
+  expect(onClick).toHaveBeenCalledTimes(1);
+  expect(preventDefault).toHaveBeenCalledTimes(1);
+
+  const plain = document.createElement('div');
+  plain.className = 'ag-cell';
+  captured.props?.onCellKeyDown({
+    event: { key: 'Enter', target: plain, preventDefault },
+  });
+  expect(onClick).toHaveBeenCalledTimes(1);
+  cell.remove();
 });

@@ -84,6 +84,73 @@ test('mergeCustomEChartOptions replaces arrays entirely', () => {
   ]);
 });
 
+test('mergeCustomEChartOptions merges a series object into every series', () => {
+  const base = {
+    series: [
+      { name: 'A', type: 'bar', data: [1, 2], itemStyle: { color: '#111' } },
+      { name: 'B', type: 'line', data: [3, 4] },
+    ],
+  };
+  const custom: CustomEChartOptions = {
+    series: {
+      itemStyle: { borderType: 'dashed', decal: { symbol: 'rect' } },
+    },
+  };
+
+  const result = mergeCustomEChartOptions(base, custom);
+
+  expect(result.series).toEqual([
+    {
+      name: 'A',
+      type: 'bar',
+      data: [1, 2],
+      itemStyle: {
+        color: '#111',
+        borderType: 'dashed',
+        decal: { symbol: 'rect' },
+      },
+    },
+    {
+      name: 'B',
+      type: 'line',
+      data: [3, 4],
+      itemStyle: { borderType: 'dashed', decal: { symbol: 'rect' } },
+    },
+  ]);
+});
+
+test('mergeCustomEChartOptions keeps series names and ids when merging a series object', () => {
+  const base = {
+    series: [
+      { id: 'a', name: 'A', type: 'line' },
+      { id: 'b', name: 'B', type: 'line' },
+    ],
+  };
+  const custom: CustomEChartOptions = {
+    series: { id: 'x', name: 'X', lineStyle: { type: 'dashed' } },
+  };
+
+  const result = mergeCustomEChartOptions(base, custom);
+
+  expect(result.series).toEqual([
+    { id: 'a', name: 'A', type: 'line', lineStyle: { type: 'dashed' } },
+    { id: 'b', name: 'B', type: 'line', lineStyle: { type: 'dashed' } },
+  ]);
+});
+
+test('mergeCustomEChartOptions replaces other arrays with an object', () => {
+  const base = {
+    dataZoom: [{ type: 'inside' }, { type: 'slider' }],
+  };
+  const custom: CustomEChartOptions = {
+    dataZoom: { type: 'slider', bottom: 10 },
+  };
+
+  const result = mergeCustomEChartOptions(base, custom);
+
+  expect(result.dataZoom).toEqual({ type: 'slider', bottom: 10 });
+});
+
 test('mergeCustomEChartOptions does not mutate original base object', () => {
   const base = {
     title: { text: 'Original' },

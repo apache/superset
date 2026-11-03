@@ -103,7 +103,10 @@ from superset.commands.importers.exceptions import (
     IncorrectFormatError,
     NoValidFilesFoundError,
 )
-from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.importers.v1.utils import (
+    get_contents_from_bundle,
+    open_import_bundle,
+)
 from superset.commands.purge import SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
@@ -113,8 +116,12 @@ from superset.exceptions import (
 from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
 from superset.security.manager import (
-    get_extra_editor_subject_ids,
-    get_extra_editors_by_pk,
+    attach_extra_editors,
+    attach_extra_editors_to_rows,
+)
+from superset.semantic_layers.access import (
+    is_semantic_image_unavailable,
+    SemanticLayersDisabledError,
 )
 from superset.semantic_layers.import_export import SemanticReferenceError
 from superset.subjects.filters import (
@@ -129,7 +136,6 @@ from superset.utils.screenshots import (
     ChartScreenshot,
     DEFAULT_CHART_WINDOW_SIZE,
     ScreenshotCachePayload,
-    StatusValues,
 )
 from superset.utils.urls import get_url_path
 from superset.versioning.api_helpers import (
@@ -143,6 +149,7 @@ from superset.versioning.etag import set_version_etag
 from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    parse_json_form_field,
     RelatedFieldFilter,
     requires_form_data,
     requires_json,
@@ -482,8 +489,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             result = self.chart_get_response_schema.dump(dash)
             if resolver := current_app.config.get("EXTRA_OWNERS_RESOLVER"):
                 result["extra_owners"] = resolver(dash)
-            if current_app.config.get("EXTRA_EDITORS_RESOLVER"):
-                result["extra_editors"] = get_extra_editor_subject_ids(dash)
+            attach_extra_editors(result, dash)
 
             return set_version_etag(
                 self.response(200, result=result),
@@ -495,11 +501,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     def pre_get_list(self, data: dict[str, Any]) -> None:
         """Attach ``extra_editors`` to each row, matching the single-object GET."""
         super().pre_get_list(data)
-        ids = data.get("ids", [])
-        extra_editors_by_id = get_extra_editors_by_pk(Slice, ids)
-        for row, row_id in zip(data.get("result", []), ids, strict=False):
-            if row_id in extra_editors_by_id:
-                row["extra_editors"] = extra_editors_by_id[row_id]
+        attach_extra_editors_to_rows(data, Slice)
 
     @expose("/", methods=("GET",))
     @protect()
@@ -1187,6 +1189,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         chart = cast(Slice, self.datamodel.get(pk, self._base_filters))
         if not chart:
             return self.response_404()
+        if is_semantic_image_unavailable(chart):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         chart_url = get_url_path("Superset.slice", slice_id=chart.id)
         screenshot_obj = ChartScreenshot(chart_url, chart.digest)
@@ -1208,9 +1212,21 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 task_status=cache_payload.get_status(),
             )
 
-        if cache_payload.should_trigger_task(force, expected_scope=f"chart:{chart.id}"):
+        if cache_payload.should_trigger_task(
+            force,
+            expected_scope=f"chart:{chart.id}",
+            check_updated_staleness=screenshot_obj.supports_updated_staleness,
+        ):
             logger.info("Triggering screenshot ASYNC")
-            screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
+            if force:
+                # A forced capture stays unavailable until its replacement renders,
+                # so polling image_url cannot mistake the previous image for success.
+                cache_payload.pending()
+                cache_payload.set_scope(f"chart:{chart.id}")
+                screenshot_obj.cache.set(cache_key, cache_payload.to_dict())
+            # Leave force-less retries untouched: the worker must still see the
+            # expired state and retain its last-good image if rendering fails.
+            # Pre-writing fresh COMPUTING would make the worker skip the render.
             cache_chart_thumbnail.delay(
                 current_user=get_current_user(),
                 chart_id=chart.id,
@@ -1268,6 +1284,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
         if not chart:
             return self.response_404()
+        if is_semantic_image_unavailable(chart):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         if cache_payload := ChartScreenshot.get_from_cache_key(digest):
             # The digest is caller-supplied and cache entries are shared
@@ -1276,16 +1294,23 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             # serve its image under a different, merely-accessible `pk`.
             if cache_payload.get_scope() != f"chart:{chart.id}":
                 return self.response_404()
-            if cache_payload.status == StatusValues.UPDATED:
-                try:
-                    image = cache_payload.get_image()
-                except ScreenshotImageNotAvailableException:
-                    return self.response_404()
-                return Response(
-                    FileWrapper(image),
-                    mimetype="image/png",
-                    direct_passthrough=True,
-                )
+            # Serve whenever a valid image is present instead of gating on
+            # status == UPDATED. A failed retry leaves the entry in an
+            # ERROR/COMPUTING backoff while still carrying the retained last-good
+            # image; requiring UPDATED here would 404 that image for up to a day.
+            # get_from_cache_key validates whatever image is present regardless of
+            # status (see ScreenshotCachePayload.get_invalid_image_reason), so a
+            # corrupt/blank retained image is rejected as a cache miss and only
+            # genuinely valid bytes reach this point.
+            try:
+                image = cache_payload.get_image()
+            except ScreenshotImageNotAvailableException:
+                return self.response_404()
+            return Response(
+                FileWrapper(image),
+                mimetype="image/png",
+                direct_passthrough=True,
+            )
         return self.response_404()
 
     @expose("/<pk>/thumbnail/<digest>/", methods=("GET",))
@@ -1339,6 +1364,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         chart = cast(Slice, self.datamodel.get(pk, self._base_filters))
         if not chart:
             return self.response_404()
+        if is_semantic_image_unavailable(chart):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         current_user = get_current_user()
         if chart.digest != digest:
@@ -1355,12 +1382,15 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             screenshot_obj.get_from_cache_key(cache_key) or ScreenshotCachePayload()
         )
 
+        # No check_updated_staleness here on purpose: this high-traffic card-list
+        # thumbnail path must never opt into updated-staleness recompute.
         if cache_payload.should_trigger_task():
             self.incr_stats("async", self.thumbnail.__name__)
             logger.info(
                 "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
             )
-            screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
+            # Preserve a last-good image through retries. The worker rechecks the
+            # expired state and discards retained bytes if their scope differs.
             cache_chart_thumbnail.delay(
                 current_user=current_user,
                 chart_id=chart.id,
@@ -1645,7 +1675,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 body.get("extra_filters"),
             ).run()
             return self.response(200, result=[result])
-        except CommandException as ex:
+        except (CommandException, SemanticLayersDisabledError) as ex:
             return self.response(ex.status, message=ex.message)
 
     @expose("/import/", methods=("POST",))
@@ -1740,32 +1770,18 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             return self.response_400()
         if not is_zipfile(upload):
             raise IncorrectFormatError("Not a ZIP file")
-        with ZipFile(upload) as bundle:
+        with open_import_bundle(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
         if not contents:
             raise NoValidFilesFoundError()
 
-        passwords = (
-            json.loads(request.form["passwords"])
-            if "passwords" in request.form
-            else None
-        )
+        passwords = parse_json_form_field("passwords")
         overwrite = request.form.get("overwrite") == "true"
-        ssh_tunnel_passwords = (
-            json.loads(request.form["ssh_tunnel_passwords"])
-            if "ssh_tunnel_passwords" in request.form
-            else None
-        )
-        ssh_tunnel_private_keys = (
-            json.loads(request.form["ssh_tunnel_private_keys"])
-            if "ssh_tunnel_private_keys" in request.form
-            else None
-        )
-        ssh_tunnel_priv_key_passwords = (
-            json.loads(request.form["ssh_tunnel_private_key_passwords"])
-            if "ssh_tunnel_private_key_passwords" in request.form
-            else None
+        ssh_tunnel_passwords = parse_json_form_field("ssh_tunnel_passwords")
+        ssh_tunnel_private_keys = parse_json_form_field("ssh_tunnel_private_keys")
+        ssh_tunnel_priv_key_passwords = parse_json_form_field(
+            "ssh_tunnel_private_key_passwords"
         )
 
         command = ImportChartsCommand(

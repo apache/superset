@@ -17,6 +17,8 @@
 
 from unittest.mock import patch
 
+from flask_babel.speaklater import LazyString
+
 from superset.semantic_layers import labels
 
 
@@ -50,3 +52,14 @@ def test_labels_feature_flag_on() -> None:
         assert labels.databases_label() == "Data connections"
         assert labels.databases_label_lower() == "data connections"
         assert labels.database_connections_menu_label() == "Data Connections"
+
+
+def test_menu_label_evaluates_flag_when_rendered() -> None:
+    """A registered menu object follows a same-process feature flip."""
+    with patch("superset.feature_flag_manager.is_feature_enabled", return_value=False):
+        label: LazyString = labels.database_connections_menu_label()
+        assert str(label) == "Database Connections"
+    with patch("superset.feature_flag_manager.is_feature_enabled", return_value=True):
+        assert str(label) == "Data Connections"
+    with patch("superset.feature_flag_manager.is_feature_enabled", return_value=False):
+        assert str(label) == "Database Connections"

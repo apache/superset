@@ -21,9 +21,11 @@ import copy
 import functools
 import logging
 import os
+import re
 import traceback
 from datetime import datetime
 from typing import Any, Callable, cast
+from urllib.parse import SplitResult, urlsplit
 
 from flask import (
     abort,
@@ -64,6 +66,7 @@ from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.extensions import cache_manager
 from superset.models.core import Theme as ThemeModel
 from superset.reports.models import ReportRecipientType
+from superset.security import password_recovery
 from superset.superset_typing import FlaskResponse
 from superset.themes.types import Theme, ThemeMode
 from superset.themes.utils import (
@@ -80,6 +83,7 @@ from superset.websocket.permissions import can_access_realtime_notifications
 from .utils import bootstrap_user_data, get_config_value
 
 FRONTEND_CONF_KEYS = (
+    "SEMANTIC_LAYER_DOCUMENTATION_URL",
     "AUTH_ROLE_ADMIN",
     "SUPERSET_WEBSERVER_TIMEOUT",
     "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT",
@@ -122,6 +126,7 @@ FRONTEND_CONF_KEYS = (
     "ALERT_REPORTS_DEFAULT_CRON_VALUE",
     "ALERT_REPORTS_DEFAULT_RETENTION",
     "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT",
+    "ALERT_REPORTS_RUN_AS_TOOLTIP",
     "NATIVE_FILTER_DEFAULT_ROW_LIMIT",
     "SUPERSET_CLIENT_RETRY_ATTEMPTS",
     "SUPERSET_CLIENT_RETRY_DELAY",
@@ -292,6 +297,9 @@ def get_environment_tag() -> dict[str, Any]:
 
 
 def menu_data(user: User) -> dict[str, Any]:
+    # The archived view inherits BaseSupersetView from this module.
+    from superset.views.archived_assets import can_access_recently_archived
+
     languages = {
         lang: {**appbuilder.languages[lang], "url": appbuilder.get_url_for_locale(lang)}
         for lang in appbuilder.languages
@@ -323,6 +331,7 @@ def menu_data(user: User) -> dict[str, Any]:
         },
         "environment_tag": get_environment_tag(),
         "navbar_right": {
+            "can_access_recently_archived": can_access_recently_archived(),
             # show the watermark if the default app icon has been overridden
             "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
             "bug_report_url": app.config["BUG_REPORT_URL"],
@@ -508,9 +517,33 @@ def _get_user_subject_id(user_id: int | None) -> int | None:
 def _get_frontend_config_value(key: str) -> Any:
     """Get frontend config value, converting sets to lists for JSON compatibility."""
     val = app.config.get(key)
+    if key == "SEMANTIC_LAYER_DOCUMENTATION_URL":
+        return _semantic_layer_documentation_url(val)
     if isinstance(val, set):
         return list(val)
     return val
+
+
+def _semantic_layer_documentation_url(value: object) -> str | None:
+    """Expose only absolute HTTP(S) setup links without URL credentials."""
+    if value is None:
+        return None
+    if isinstance(value, str) and value and not re.search(r"[\s\x00-\x1f\x7f]", value):
+        try:
+            parsed: SplitResult = urlsplit(value)
+            port: int | None = parsed.port
+            if (
+                parsed.scheme.lower() in ("http", "https")
+                and parsed.hostname
+                and parsed.username is None
+                and parsed.password is None
+                and (port is None or port > 0)
+            ):
+                return value
+        except ValueError:
+            pass
+    logger.warning("Dropped invalid SEMANTIC_LAYER_DOCUMENTATION_URL")
+    return None
 
 
 def _soft_delete_conf() -> dict[str, Any]:
@@ -613,6 +646,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         frontend_config["RECAPTCHA_PUBLIC_KEY"] = recaptcha_public_key
 
     frontend_config["AUTH_TYPE"] = auth_type
+    frontend_config["PASSWORD_RECOVERY_ENABLED"] = password_recovery.is_enabled()
     if auth_type == AUTH_OAUTH:
         oauth_providers = []
         for provider in appbuilder.sm.oauth_providers:

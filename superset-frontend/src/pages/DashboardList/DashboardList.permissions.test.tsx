@@ -17,7 +17,13 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
@@ -136,7 +142,11 @@ const renderDashboardListWithPermissions = (
 const renderWithPermissions = async (
   permissions = PERMISSIONS.ADMIN,
   userId: number | undefined = 1,
-  featureFlags: { tagging?: boolean; cardView?: boolean } = {},
+  featureFlags: {
+    tagging?: boolean;
+    cardView?: boolean;
+    softDelete?: boolean;
+  } = {},
 ) => {
   (
     isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
@@ -144,6 +154,7 @@ const renderWithPermissions = async (
     if (feature === 'TAGGING_SYSTEM') return featureFlags.tagging === true;
     if (feature === 'LISTVIEWS_DEFAULT_CARD_VIEW')
       return featureFlags.cardView === true;
+    if (feature === 'SOFT_DELETE') return featureFlags.softDelete === true;
     return false;
   });
 
@@ -255,6 +266,25 @@ describe('DashboardList - Permission-based UI Tests', () => {
 
     expect(screen.getByTitle('Actions')).toBeInTheDocument();
   });
+
+  test.each([
+    [true, 'archive'],
+    [false, 'delete'],
+  ])(
+    'soft delete %s uses the dashboard row permission hint for %s',
+    async (enabled, verb) => {
+      await renderWithPermissions(PERMISSIONS.WRITE_ONLY, 9, {
+        softDelete: enabled,
+      });
+      const row = (
+        await screen.findByText(mockDashboards[0].dashboard_title)
+      ).closest('tr');
+      fireEvent.mouseOver(within(row!).getByTestId('dashboard-row-delete'));
+      expect(await screen.findByRole('tooltip')).toHaveTextContent(
+        `You must be a dashboard editor in order to ${verb}.`,
+      );
+    },
+  );
 
   test('shows Tags column when TAGGING_SYSTEM feature flag is enabled', async () => {
     await renderWithPermissions(PERMISSIONS.ADMIN, 1, { tagging: true });

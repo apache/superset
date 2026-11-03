@@ -68,9 +68,6 @@ SESSION_REDIS = Redis(
     ssl=os.environ.get('REDIS_SSL_ENABLED', 'True').lower() == 'true',
     ssl_cert_reqs='required' # Or another appropriate SSL setting
 )
-
-# 4. Ensure the session cookie is signed for integrity
-SESSION_USE_SIGNER = True
 ```
 
 #### **Configure Session Lifetime and Cookie Security Flags**

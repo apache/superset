@@ -28,6 +28,7 @@ import {
   VizType,
   ChartDataResponseResult,
   TimeGranularity,
+  SMART_DATE_ID,
   TooltipTruncationMode,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -119,6 +120,7 @@ const formData: EchartsMixedTimeseriesFormData = {
   minorTicks: false,
   gridlines: true,
   axisTicks: true,
+  valueAxisLabels: true,
   opacity: 0,
   opacityB: 0,
   orderDesc: false,
@@ -129,6 +131,7 @@ const formData: EchartsMixedTimeseriesFormData = {
   legendOrientation: LegendOrientation.Top,
   legendType: LegendType.Scroll,
   showLegend: false,
+  showSelectorLegend: false,
   showValue: false,
   showValueB: false,
   stack: true,
@@ -1023,7 +1026,6 @@ test('tooltip resolves per-metric formats through the display-keyed label map', 
   const html = formatter({
     value: [599616000000, 0.5],
     seriesId: 'sum__num, boy',
-    marker: '',
     color: '#333',
   });
 
@@ -1085,7 +1087,6 @@ test('tooltip resolves per-metric formats for secondary-query series', () => {
   const html = formatter({
     value: [599616000000, 2.5],
     seriesId: 'count__num, boy',
-    marker: '',
     color: '#333',
   });
 
@@ -1568,7 +1569,7 @@ test('y-axis title position: non-Left sets nameLocation to end', () => {
 
 describe('EchartsMixedTimeseries tooltip truncation', () => {
   const longSeriesName = 'prod-us-east-1-service-checkout-latency-p99';
-  const marker = '<span style="background-color:#1f77b4;"></span>';
+  const color = '#1f77b4';
 
   const buildTooltip = (tooltipTruncation?: TooltipTruncationMode) => {
     const chartProps = createEchartsTimeseriesTestChartProps<
@@ -1593,7 +1594,7 @@ describe('EchartsMixedTimeseries tooltip truncation', () => {
       seriesId: longSeriesName,
       seriesName: longSeriesName,
       value: [599616000000, 1],
-      marker,
+      color,
     });
   };
 
@@ -1613,7 +1614,7 @@ describe('EchartsMixedTimeseries tooltip truncation', () => {
     const html = buildTooltip('start');
     expect(html).not.toContain('prod-us-east');
     expect(html).toContain('latency-p99');
-    expect(html).toContain('background-color:#1f77b4');
+    expect(html.replace(/\s/g, '')).toContain('style="color:#1f77b4;');
   });
 
   test('keeps both ends when truncating the middle', () => {
@@ -1787,6 +1788,20 @@ test('hides the ticks on the x axis and both y axes', () => {
   expect(yAxis[1].axisTick.show).toBe(false);
 });
 
+test('hides the labels on both value axes', () => {
+  const { yAxis } = transformWithChrome({ valueAxisLabels: false });
+
+  expect(yAxis[0].axisLabel.show).toBe(false);
+  expect(yAxis[1].axisLabel.show).toBe(false);
+});
+
+test('shows the labels on both value axes when enabled', () => {
+  const { yAxis } = transformWithChrome({ valueAxisLabels: true });
+
+  expect(yAxis[0].axisLabel.show).toBe(true);
+  expect(yAxis[1].axisLabel.show).toBe(true);
+});
+
 test('should apply a dashed lineStyle to derived (time comparison) series only', () => {
   const queryAData = createTestQueryData(
     [
@@ -1952,3 +1967,48 @@ test('converts xAxisLabelInterval string "0" to number 0', () => {
   // "All" must also disable hideOverlap so ECharts never drops a label.
   expect(xAxis.axisLabel.hideOverlap).toBe(false);
 });
+
+test.each([SMART_DATE_ID, '%d/%m/%Y'])(
+  '#45489 Mixed Timeseries gives boundaries standalone dates (%s)',
+  xAxisTimeFormat => {
+    const min = Date.UTC(2014, 2, 5);
+    const max = Date.UTC(2026, 7, 17);
+    const query = createTestQueryData(
+      [min, max].map(ds => ({ ds, metric: 1 })),
+      {
+        colnames: ['ds', 'metric'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        label_map: { ds: ['ds'], metric: ['metric'] },
+      },
+    );
+    const { echartOptions } = transformProps(
+      createEchartsTimeseriesTestChartProps<
+        EchartsMixedTimeseriesFormData,
+        EchartsMixedTimeseriesProps
+      >({
+        ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+        width: 1200,
+        defaultQueriesData: [query, query],
+        queriesData: [query, query],
+        formData: {
+          ...formData,
+          metrics: ['metric'],
+          metricsB: ['metric'],
+          groupby: [],
+          groupbyB: [],
+          timeGrainSqla: TimeGranularity.DAY,
+          xAxisTimeFormat,
+        },
+      }),
+    );
+    const axis = echartOptions.xAxis as {
+      axisLabel: { formatter: (value: number) => string };
+    };
+    expect(axis.axisLabel.formatter(min)).toBe(
+      xAxisTimeFormat === SMART_DATE_ID ? 'Wed 5 Mar 2014' : '05/03/2014',
+    );
+    expect(axis.axisLabel.formatter(max)).toBe(
+      xAxisTimeFormat === SMART_DATE_ID ? 'Mon 17 Aug 2026' : '17/08/2026',
+    );
+  },
+);

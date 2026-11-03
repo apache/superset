@@ -29,6 +29,7 @@ import { FeatureFlag, VizType, isFeatureEnabled } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { DEFAULT_COMMON_BOOTSTRAP_DATA } from 'src/constants';
 import type { BootstrapData } from 'src/types/bootstrapTypes';
+import type { ReportsState } from './reducer';
 import ReportModal from '.';
 
 const bootstrapData = (
@@ -57,7 +58,7 @@ const mockedGetBootstrapData = getBootstrapData as jest.MockedFunction<
 >;
 
 const REPORT_ENDPOINT = 'glob:*/api/v1/report*';
-fetchMock.get(REPORT_ENDPOINT, {});
+fetchMock.get(REPORT_ENDPOINT, {}, { name: 'report-list' });
 
 const NOOP = () => {};
 
@@ -519,6 +520,282 @@ test('edit mode preserves the fetched report_format on save', async () => {
   expect(body.report_format).toBe('XLSX');
 
   fetchMock.removeRoute('put-report-44');
+});
+
+test('changing a legacy chart subscription format requires an explicit takeover', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    featureFlag =>
+      featureFlag === FeatureFlag.AlertReports ||
+      featureFlag === FeatureFlag.AlertReportDynamicExecutor,
+  );
+  mockedGetBootstrapData.mockReturnValue({
+    ...bootstrapData(),
+    user: {
+      firstName: 'Chart',
+      lastName: 'Subscriber',
+      username: 'subscriber',
+      isActive: true,
+      isAnonymous: false,
+      userId: 7,
+      roles: {},
+      permissions: {},
+      groups: [],
+    },
+  });
+  const existingReport = {
+    id: 44,
+    chart_id: 96,
+    creation_method: 'charts',
+    crontab: '0 12 * * 1',
+    name: 'Existing Chart Report',
+    report_format: 'PNG',
+    run_as_type: null,
+    run_as: null,
+  };
+  const store = createStore(
+    { reports: { charts: { 96: existingReport } } },
+    reducerIndex,
+  );
+  fetchMock.put(
+    'glob:*/api/v1/report/44',
+    { id: 44, result: {} },
+    {
+      name: 'put-chart-format',
+    },
+  );
+  render(
+    <ReportModal
+      {...defaultProps}
+      dashboardId={undefined}
+      chart={{ id: 96, sliceFormData: { viz_type: VizType.Line } }}
+      creationMethod="charts"
+    />,
+    { useRedux: true, store },
+  );
+
+  const save = screen.getByRole('button', { name: 'Save' });
+  expect(save).toBeEnabled();
+  await userEvent.click(
+    screen.getByRole('radio', { name: 'Formatted CSV attached in email' }),
+  );
+  expect(save).toBeDisabled();
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Execute using my permissions' }),
+  );
+  expect(save).toBeEnabled();
+  await userEvent.click(save);
+
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls('put-chart-format')).toHaveLength(1);
+  });
+  const body = JSON.parse(
+    fetchMock.callHistory.calls('put-chart-format')[0].options.body as string,
+  );
+  expect(body.report_format).toBe('CSV');
+  expect(body.run_as).toBe(7);
+  expect(body.run_as_type).toBe('fixed_user');
+  fetchMock.removeRoute('put-chart-format');
+});
+
+test('unchanged chart subscription format needs no takeover', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    featureFlag =>
+      featureFlag === FeatureFlag.AlertReports ||
+      featureFlag === FeatureFlag.AlertReportDynamicExecutor,
+  );
+  const store = createStore(
+    {
+      reports: {
+        charts: {
+          96: {
+            id: 44,
+            chart_id: 96,
+            creation_method: 'charts',
+            crontab: '0 12 * * 1',
+            name: 'Existing Chart Report',
+            report_format: 'PNG',
+            run_as_type: null,
+            run_as: null,
+          },
+        },
+      },
+    },
+    reducerIndex,
+  );
+  fetchMock.put(
+    'glob:*/api/v1/report/44',
+    { id: 44, result: {} },
+    {
+      name: 'put-chart-metadata',
+    },
+  );
+  render(
+    <ReportModal
+      {...defaultProps}
+      dashboardId={undefined}
+      chart={{ id: 96, sliceFormData: { viz_type: VizType.Line } }}
+      creationMethod="charts"
+    />,
+    { useRedux: true, store },
+  );
+
+  expect(
+    screen.queryByRole('button', { name: 'Execute using my permissions' }),
+  ).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls('put-chart-metadata')).toHaveLength(1);
+  });
+  const body = JSON.parse(
+    fetchMock.callHistory.calls('put-chart-metadata')[0].options.body as string,
+  );
+  expect(body.run_as).toBeUndefined();
+  expect(body.run_as_type).toBeUndefined();
+  fetchMock.removeRoute('put-chart-metadata');
+});
+
+test('changing a chart subscription format needs no takeover when it runs as the owner', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    featureFlag =>
+      featureFlag === FeatureFlag.AlertReports ||
+      featureFlag === FeatureFlag.AlertReportDynamicExecutor,
+  );
+  mockedGetBootstrapData.mockReturnValue({
+    ...bootstrapData(),
+    user: {
+      firstName: 'Chart',
+      lastName: 'Subscriber',
+      username: 'subscriber',
+      isActive: true,
+      isAnonymous: false,
+      userId: 7,
+      roles: {},
+      permissions: {},
+      groups: [],
+    },
+  });
+  const store = createStore(
+    {
+      reports: {
+        charts: {
+          96: {
+            id: 44,
+            chart_id: 96,
+            creation_method: 'charts',
+            crontab: '0 12 * * 1',
+            name: 'Existing Chart Report',
+            report_format: 'PNG',
+            run_as_type: 'fixed_user',
+            run_as: { id: 7 },
+          },
+        },
+      },
+    },
+    reducerIndex,
+  );
+  fetchMock.put(
+    'glob:*/api/v1/report/44',
+    { id: 44, result: {} },
+    {
+      name: 'put-chart-self',
+    },
+  );
+  render(
+    <ReportModal
+      {...defaultProps}
+      dashboardId={undefined}
+      chart={{ id: 96, sliceFormData: { viz_type: VizType.Line } }}
+      creationMethod="charts"
+    />,
+    { useRedux: true, store },
+  );
+
+  await userEvent.click(
+    screen.getByRole('radio', { name: 'Formatted CSV attached in email' }),
+  );
+  expect(
+    screen.queryByRole('button', { name: 'Execute using my permissions' }),
+  ).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls('put-chart-self')).toHaveLength(1);
+  });
+  const body = JSON.parse(
+    fetchMock.callHistory.calls('put-chart-self')[0].options.body as string,
+  );
+  expect(body.report_format).toBe('CSV');
+  expect(body.run_as).toBeUndefined();
+  fetchMock.removeRoute('put-chart-self');
+});
+
+test('new subscription refreshes its server-defaulted executor before format edits', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    featureFlag =>
+      featureFlag === FeatureFlag.AlertReports ||
+      featureFlag === FeatureFlag.AlertReportDynamicExecutor,
+  );
+  mockedGetBootstrapData.mockReturnValue({
+    ...bootstrapData(),
+    user: {
+      firstName: 'Chart',
+      lastName: 'Subscriber',
+      username: 'subscriber',
+      isActive: true,
+      isAnonymous: false,
+      userId: 7,
+      roles: {},
+      permissions: {},
+      groups: [],
+    },
+  });
+  fetchMock.post(
+    'glob:*/api/v1/report/subscribe',
+    {
+      id: 44,
+      result: { chart: 96, creation_method: 'charts', report_format: 'PNG' },
+    },
+    { name: 'post-chart-subscribe' },
+  );
+  fetchMock.modifyRoute('report-list', {
+    response: {
+      result: [
+        {
+          id: 44,
+          chart_id: 96,
+          creation_method: 'charts',
+          name: 'Weekly Report',
+          report_format: 'PNG',
+          run_as_type: 'fixed_user',
+          run_as: { id: 7 },
+        },
+      ],
+    },
+  });
+  const store = createStore({}, reducerIndex);
+  render(
+    <ReportModal
+      {...defaultProps}
+      dashboardId={undefined}
+      chart={{ id: 96, sliceFormData: { viz_type: VizType.Line } }}
+      creationMethod="charts"
+    />,
+    { useRedux: true, store },
+  );
+
+  await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+  await waitFor(() => {
+    const state = store.getState() as unknown as { reports: ReportsState };
+    expect(state.reports.charts?.[96].run_as).toEqual({ id: 7 });
+  });
+  await userEvent.click(
+    screen.getByRole('radio', { name: 'Formatted CSV attached in email' }),
+  );
+  expect(
+    screen.queryByRole('button', { name: 'Execute using my permissions' }),
+  ).not.toBeInTheDocument();
+
+  fetchMock.modifyRoute('report-list', { response: {} });
+  fetchMock.removeRoute('post-chart-subscribe');
 });
 
 test('edit mode does not fall back to user id when subject id is unavailable', async () => {

@@ -69,6 +69,7 @@ def _mock_dashboard(
     dashboard.id = id
     dashboard.dashboard_title = title
     dashboard.slug = slug
+    dashboard.is_managed_externally = False
     dashboard.editors = (
         editors if editors is not None else [_mock_subject(100, 1, "admin")]
     )

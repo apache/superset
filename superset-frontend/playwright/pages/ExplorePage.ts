@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Page, Locator } from '@playwright/test';
+import { Download, Page, Locator } from '@playwright/test';
 import { TIMEOUT } from '../utils/constants';
 import { AgGrid } from '../components/core/AgGrid';
 import { Button, Menu } from '../components/core';
@@ -246,5 +246,26 @@ export class ExplorePage {
   async openDashboardsSubmenu(): Promise<Locator> {
     await this.openActionsMenu();
     return this.actionsMenu().openSubmenu('On dashboards');
+  }
+
+  /**
+   * Selects an item under the actions menu's
+   * Data Export Options > Export All Data submenu and returns the resulting
+   * browser download.
+   *
+   * @param itemText - The export item to select (e.g., "Export screenshot (jpeg)")
+   */
+  async downloadFromExportAllData(itemText: string): Promise<Download> {
+    await this.openActionsMenu();
+    const dataExportPopup = await this.actionsMenu().openSubmenu(
+      'Data Export Options',
+      { itemText: 'Export All Data' },
+    );
+    const downloadPromise = this.page.waitForEvent('download');
+    await new Menu(this.page, dataExportPopup).selectSubmenuItem(
+      'Export All Data',
+      itemText,
+    );
+    return downloadPromise;
   }
 }

@@ -36,21 +36,31 @@ export default class NumberFormatterRegistry extends RegistryWithDefaultKey<
       overwritePolicy: OverwritePolicy.Warn,
     });
 
-    this.registerValue(
-      NumberFormats.SMART_NUMBER,
-      createSmartNumberFormatter(),
-    );
-    this.registerValue(
-      NumberFormats.SMART_NUMBER_SIGNED,
-      createSmartNumberFormatter({ signed: true }),
-    );
-    this.setDefaultKey(NumberFormats.SMART_NUMBER);
     this.d3Format = DEFAULT_D3_FORMAT;
+    this.registerSmartNumberFormatters();
+    this.setDefaultKey(NumberFormats.SMART_NUMBER);
   }
 
   setD3Format(d3Format: Partial<FormatLocaleDefinition>) {
     this.d3Format = { ...DEFAULT_D3_FORMAT, ...d3Format };
+    // The adaptive formatters are registered up front, so they would keep the
+    // locale they were built with; rebuild them to follow the new one.
+    this.remove(NumberFormats.SMART_NUMBER).remove(
+      NumberFormats.SMART_NUMBER_SIGNED,
+    );
+    this.registerSmartNumberFormatters();
     return this;
+  }
+
+  private registerSmartNumberFormatters() {
+    this.registerValue(
+      NumberFormats.SMART_NUMBER,
+      createSmartNumberFormatter({ locale: this.d3Format }),
+    );
+    this.registerValue(
+      NumberFormats.SMART_NUMBER_SIGNED,
+      createSmartNumberFormatter({ signed: true, locale: this.d3Format }),
+    );
   }
 
   get(formatterId?: string) {

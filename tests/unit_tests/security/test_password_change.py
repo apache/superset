@@ -22,6 +22,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask
+from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 
 from superset.security.password_change import (
     _get_user_attribute,
@@ -126,6 +127,9 @@ def test_enforcement_exempts_health_blueprint(
         app.app_context(),
         app.test_client() as client,
         patch.object(app.login_manager, "_user_callback", return_value=user),
+        # Whether the profile-page redirect target itself is reachable is not
+        # under test here, only that health routes stay exempt either way.
+        patch.object(type(appbuilder.sm), "has_access", return_value=True),
         patch(
             "superset.security.password_change._get_user_attribute",
             return_value=UserAttribute(user_id=user.id, password_must_change=True),
@@ -279,6 +283,14 @@ def enforcement_app() -> Flask:
     def index() -> str:  # pylint: disable=unused-variable
         return "index"
 
+    # Stand in for the real appbuilder/security manager: defaults to "the
+    # user can reach the profile page", which most tests in this module
+    # assume. Tests exercising the no-access fallback override
+    # `has_access.return_value` directly.
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.has_access.return_value = True
+    app.appbuilder.sm.auth_view = None
+
     register_password_change_enforcement(app)
     return app
 
@@ -312,6 +324,38 @@ def test_enforcement_redirects_to_profile_page(enforcement_app: Flask) -> None:
     assert resp.status_code == 302
     assert resp.headers["Location"].endswith("/user_info/")
     mock_url_for.assert_called_once_with("UserInfoView.list")
+
+
+def test_enforcement_skips_unreachable_profile_page_falls_back_to_logout(
+    enforcement_app: Flask,
+) -> None:
+    # A role without `can_read` on `user` (any custom role not based on
+    # Admin/Alpha/Gamma) can't reach `UserInfoView.list`: redirecting there
+    # anyway would hit FAB's own access-denied redirect (to login), which,
+    # since the user is already authenticated, bounces to the index, which
+    # re-runs this hook and redirects back to the profile page — an infinite
+    # loop. The hook must recognize that up front and go straight to the
+    # logout fallback instead.
+    enforcement_app.appbuilder.sm.has_access.return_value = False
+    with (
+        patch(
+            "superset.security.password_change.password_change_required",
+            return_value=True,
+        ),
+        patch(
+            "superset.security.password_change.url_for",
+            return_value="/logout",
+        ) as mock_url_for,
+        patch("superset.security.password_change.flash") as mock_flash,
+    ):
+        resp = enforcement_app.test_client().get("/")
+    assert resp.status_code == 302
+    assert resp.headers["Location"].endswith("/logout")
+    mock_url_for.assert_called_once_with("AuthDBView.logout")
+    enforcement_app.appbuilder.sm.has_access.assert_called_with("can_read", "user")
+    assert any(
+        "does not have access" in call.args[0] for call in mock_flash.call_args_list
+    )
 
 
 def test_enforcement_falls_back_to_exempt_logout_not_index(
@@ -363,3 +407,22 @@ def test_enforcement_no_resolvable_target_returns_error_not_loop(
         resp = enforcement_app.test_client().get("/")
     assert resp.status_code == 503
     assert "Location" not in resp.headers
+
+
+def test_enforcement_remote_user_without_profile_access_returns_terminal_403(
+    enforcement_app: Flask,
+) -> None:
+    # Under AUTH_REMOTE_USER a logout redirect cannot help: the unchanged
+    # REMOTE_USER header re-authenticates the user at once and the request
+    # loops. A flagged user without profile access must get a terminal
+    # explanatory response instead of a redirect.
+    enforcement_app.config["AUTH_TYPE"] = AUTH_REMOTE_USER
+    enforcement_app.appbuilder.sm.has_access.return_value = False
+    with patch(
+        "superset.security.password_change.password_change_required",
+        return_value=True,
+    ):
+        resp = enforcement_app.test_client().get("/")
+    assert resp.status_code == 403
+    assert "Location" not in resp.headers
+    assert "does not have access" in resp.get_data(as_text=True)

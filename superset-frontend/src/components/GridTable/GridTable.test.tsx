@@ -16,9 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
-import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
+import { render, waitFor } from 'spec/helpers/testing-library';
+import { supersetTheme } from '@apache-superset/core/theme';
+import {
+  setupAGGridModules,
+  type AgGridContainerElement,
+} from '@superset-ui/core/components/ThemedAgGridReact';
 import { GridTable } from '.';
+
+// Jest renders the `css` prop as a plain attribute, so record the styles
+// GridTable builds instead of reading them from the DOM.
+jest.mock('@apache-superset/core/theme', () => {
+  const actual = jest.requireActual('@apache-superset/core/theme');
+  return { ...actual, css: jest.fn(actual.css) };
+});
 
 const mockedProps = {
   queryId: 'abc',
@@ -47,6 +58,23 @@ test('renders a grid with 3 Table rows', () => {
   });
 });
 
+test('sets an opaque grid background so rows do not show through the sticky header', async () => {
+  const { container } = render(<GridTable {...mockedProps} />);
+  const gridContainer = container.querySelector<AgGridContainerElement>(
+    '[data-themed-ag-grid]',
+  );
+  await waitFor(() => expect(gridContainer?._agGridApi).toBeDefined());
+
+  // ag-grid paints its sticky header container with the data background,
+  // which derives from the backgroundColor param.
+  const theme = gridContainer!._agGridApi!.getGridOption(
+    'theme',
+  ) as unknown as { _getParamsCss: () => string };
+  expect(theme._getParamsCss()).toContain(
+    `--ag-background-color: var(--ag-inherited-background-color, ${supersetTheme.colorBgContainer});`,
+  );
+});
+
 test('sorts strings correctly', () => {
   const stringProps = {
     ...mockedProps,
@@ -63,4 +91,18 @@ test('sorts strings correctly', () => {
 
   // Original order
   expect(container).toHaveTextContent(['Bravo', 'Alpha', 'Charlie'].join(''));
+});
+
+test('clips multi-line cell values at the cell so they do not overlap the rows below', () => {
+  const { css } = jest.requireMock('@apache-superset/core/theme');
+  css.mockClear();
+  render(<GridTable {...mockedProps} />);
+
+  const gridStyles = css.mock.results
+    .map(({ value }: { value: { styles: string } }) => value.styles)
+    .find((styles: string) => styles.includes('.ag-cell-value'));
+
+  // The cell has the fixed row height; the inner value span grows to fit its
+  // lines, so the clip has to be on the cell itself.
+  expect(gridStyles).toMatch(/\.ag-cell\s*\{\s*overflow:\s*hidden;/);
 });

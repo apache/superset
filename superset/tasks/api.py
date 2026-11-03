@@ -23,6 +23,7 @@ from uuid import UUID
 from flask import request, Response
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from superset_core.tasks.types import TaskStatus
 
 from superset.commands.tasks.cancel import CancelTaskCommand
 from superset.commands.tasks.exceptions import (
@@ -35,6 +36,7 @@ from superset.commands.tasks.exceptions import (
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
 from superset.models.tasks import Task
+from superset.tasks.async_queries import CHART_QUERY_TASK
 from superset.tasks.filters import TaskFilter
 from superset.tasks.schemas import (
     openapi_spec_methods_override,
@@ -44,6 +46,7 @@ from superset.tasks.schemas import (
     TaskStatusChangesResponseSchema,
     TaskStatusResponseSchema,
 )
+from superset.utils.error_sanitization import sanitize_error_message
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -247,6 +250,9 @@ class TaskRestApi(BaseSupersetModelRestApi):
                       status:
                         type: string
                         description: Current status of the task
+                      error_message:
+                        type: string
+                        description: Sanitized failure detail for a terminal chart query
             401:
               $ref: '#/components/responses/401'
             403:
@@ -258,10 +264,25 @@ class TaskRestApi(BaseSupersetModelRestApi):
 
         try:
             uuid = UUID(task_uuid)
-            status = TaskDAO.get_status(uuid)
+            status: str | None = TaskDAO.get_status(uuid)
 
             if status is None:
                 return self.response_404()
+
+            if status in {
+                TaskStatus.FAILURE.value,
+                TaskStatus.ABORTED.value,
+                TaskStatus.TIMED_OUT.value,
+            }:
+                task: Task | None = TaskDAO.find_one_or_none(uuid=uuid)
+                if task is not None and task.task_type == CHART_QUERY_TASK:
+                    message: object = task.properties_dict.get("error_message")
+                    if isinstance(message, str) and message:
+                        return self.response(
+                            200,
+                            status=status,
+                            error_message=sanitize_error_message(message),
+                        )
 
             return self.response(200, status=status)
         except (ValueError, TypeError):
