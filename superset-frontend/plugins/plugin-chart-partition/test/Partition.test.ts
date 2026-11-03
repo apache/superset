@@ -20,7 +20,7 @@ import Partition from '../src/Partition';
 
 const CHART_WIDTH = 400;
 const CHART_HEIGHT = 300;
-const TOOLTIP_WIDTH = 120;
+const DEFAULT_TOOLTIP_WIDTH = 120;
 const TOOLTIP_OFFSET = 15;
 
 const props = {
@@ -51,10 +51,12 @@ const props = {
 };
 
 let container: HTMLDivElement;
+let tooltipWidth = DEFAULT_TOOLTIP_WIDTH;
 let rectSpy: jest.SpyInstance;
 let offsetWidthSpy: jest.SpyInstance;
 
 beforeEach(() => {
+  tooltipWidth = DEFAULT_TOOLTIP_WIDTH;
   container = document.createElement('div');
   document.body.appendChild(container);
   // jsdom performs no layout: give the container a fixed box so the
@@ -63,7 +65,7 @@ beforeEach(() => {
     .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
     .mockImplementation(function getRect(this: HTMLElement) {
       const isTooltip = this.classList.contains('partition-tooltip');
-      const width = isTooltip ? TOOLTIP_WIDTH : CHART_WIDTH;
+      const width = isTooltip ? tooltipWidth : CHART_WIDTH;
 
       return {
         x: 0,
@@ -81,7 +83,7 @@ beforeEach(() => {
     .spyOn(HTMLElement.prototype, 'offsetWidth', 'get')
     .mockImplementation(function getOffsetWidth(this: HTMLElement) {
       return this.classList.contains('partition-tooltip')
-        ? TOOLTIP_WIDTH
+        ? tooltipWidth
         : CHART_WIDTH;
     });
 });
@@ -114,7 +116,14 @@ test('keeps the tooltip inside the chart when hovering near the right edge', () 
   const tooltip = hoverAt(cursorX, 100);
 
   const left = parseFloat(tooltip.style.left);
-  expect(left + TOOLTIP_WIDTH).toBeLessThanOrEqual(CHART_WIDTH);
+  expect(left + tooltipWidth).toBeLessThanOrEqual(CHART_WIDTH);
   // shifted to the left of the cursor rather than overlapping it
-  expect(left + TOOLTIP_WIDTH).toBeLessThanOrEqual(cursorX);
+  expect(left + tooltipWidth).toBeLessThanOrEqual(cursorX);
+});
+
+test('clamps the tooltip to the chart origin when it is wider than the chart', () => {
+  tooltipWidth = CHART_WIDTH + 100;
+  const tooltip = hoverAt(CHART_WIDTH / 2, 100);
+
+  expect(parseFloat(tooltip.style.left)).toBe(0);
 });

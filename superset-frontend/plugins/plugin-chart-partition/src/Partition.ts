@@ -30,6 +30,9 @@ import {
   sanitizeHtml,
 } from '@superset-ui/core';
 
+// Horizontal gap, in px, between the cursor and the tooltip.
+const TOOLTIP_OFFSET = 15;
+
 interface PartitionDataNode {
   // A plain string for the metric row and the first grouping level;
   // an array of the full ancestor path (e.g. ["a", "a.1", "a.1.1"])
@@ -373,9 +376,9 @@ function Icicle(element: HTMLElement, props: IcicleProps): void {
       // chart's right edge, where the chart container clips it.
       const tipWidth = tip.node().offsetWidth;
       const left =
-        tipX + 15 + tipWidth > width
-          ? Math.max(0, tipX - 15 - tipWidth)
-          : tipX + 15;
+        tipX + TOOLTIP_OFFSET + tipWidth > width
+          ? Math.max(0, tipX - TOOLTIP_OFFSET - tipWidth)
+          : tipX + TOOLTIP_OFFSET;
       tip.style('left', `${left}px`).style('top', `${tipY}px`);
     }
 
