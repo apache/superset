@@ -226,7 +226,14 @@ class HiveEngineSpec(PrestoEngineSpec):
     def register_engine_events(cls, engine: Engine) -> None:
         """Guard raw connections used outside SQL Lab, including dialect pings."""
         super().register_engine_events(engine)
-        guard_engine_connections(engine, cls.prepare_connection)
+        guard_engine_connections(
+            engine,
+            cls.prepare_connection,
+            lambda connection: (
+                connection._client.interrupted  # pylint: disable=protected-access
+                or getattr(connection, "_superset_abandoned", False) is True
+            ),
+        )
 
     @classmethod
     def prepare_connection(cls, connection: Any) -> None:

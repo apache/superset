@@ -27,6 +27,7 @@ from typing import Any, cast, TypeVar
 
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
+from sqlalchemy.pool import ConnectionPoolEntry
 
 from superset.db_engine_specs.base import TIME_LIMIT_EXCEPTIONS
 
@@ -140,11 +141,21 @@ def guard_cursor_factory(connection: Any, prepare: Callable[[Any], object]) -> N
     connection._superset_cursor_guard = True  # pylint: disable=protected-access
 
 
-def guard_engine_connections(engine: Engine, prepare: Callable[[Any], None]) -> None:
-    """Guard DB-API connections before dialect initialization and direct SQL use."""
+def guard_engine_connections(
+    engine: Engine,
+    prepare: Callable[[Any], None],
+    is_abandoned: Callable[[Any], bool],
+) -> None:
+    """Guard new DB-API connections and discard abandoned ones on pool return."""
 
     def on_connect(connection: Any, _record: Any) -> None:
         """Prepare a new connection before other SQLAlchemy connect listeners."""
         prepare(connection)
 
+    def on_checkin(connection: Any, record: ConnectionPoolEntry) -> None:
+        """Do not offer a latched client or locally dropped transport for reuse."""
+        if connection is not None and is_abandoned(connection):
+            record.invalidate()
+
     event.listen(engine, "connect", on_connect, insert=True)
+    event.listen(engine, "checkin", on_checkin)

@@ -849,6 +849,9 @@ gap. The cancellation RPC itself is not bounded by this handler. Configure a dri
 network timeout or increase `ALERT_REPORTS_WORKING_TIME_OUT_LAG` for Impala
 alerts/reports. SQL Lab's execution-status polling retains full operation/session
 cleanup after cancellation.
+Abandoned Impala and Hive connections are invalidated when returned to a
+SQLAlchemy pool, so later checkouts open a fresh connection rather than replaying
+the previous time limit or reusing a locally dropped transport.
 The local Impala polling deadline and an explicit Stop also request cancellation
 when the transport has not been interrupted; an incomplete cleanup reply abandons
 the transport rather than attempting another cleanup RPC.

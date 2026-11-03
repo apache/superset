@@ -186,7 +186,14 @@ class ImpalaEngineSpec(BaseEngineSpec):
     def register_engine_events(cls, engine: Engine) -> None:
         """Guard raw connections used outside SQL Lab, including dialect pings."""
         super().register_engine_events(engine)
-        guard_engine_connections(engine, cls.prepare_connection)
+        guard_engine_connections(
+            engine,
+            cls.prepare_connection,
+            lambda connection: (
+                connection.service.client.interrupted
+                or getattr(connection.service, "_superset_abandoned", False) is True
+            ),
+        )
 
     @classmethod
     def prepare_connection(cls, connection: Any) -> None:
@@ -200,6 +207,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
     @staticmethod
     def _abandon_service(service: Any) -> None:
         """Make connection close local-only and non-fatal after interruption."""
+        service._superset_abandoned = True  # pylint: disable=protected-access
         transport = service.client._iprot.trans
         # impyla opens a closed transport before looking up the RPC method.
         # Reject that open too, including inside the driver's own close().
@@ -242,6 +250,8 @@ class ImpalaEngineSpec(BaseEngineSpec):
         ):
             return
         cursor._superset_abandoned = True  # pylint: disable=protected-access
+        if (session := getattr(cursor, "session", None)) is not None:
+            session.service._superset_abandoned = True  # pylint: disable=protected-access
         # ``HiveServer2Cursor.close()``, which callers reach through
         # ``closing()``, and its finalizer send CloseOperation and CloseSession.
         # Both skip a cursor already marked closed. Wrappers such as SQL Lab's

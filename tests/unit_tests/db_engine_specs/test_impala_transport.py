@@ -30,7 +30,7 @@ import socket
 import struct
 import threading
 from collections.abc import Iterator
-from contextlib import closing
+from contextlib import closing, contextmanager, ExitStack
 from dataclasses import dataclass, field
 from typing import Any
 from unittest.mock import Mock, patch
@@ -233,9 +233,17 @@ def hs2_connection(
     request: pytest.FixtureRequest,
 ) -> Iterator[tuple[str, FakeHiveServer2, Any]]:
     """An impyla connection to a local HiveServer2 over each transport."""
+    with hs2_connection_for_mode(request.param) as connection:
+        yield connection
+
+
+@contextmanager
+def hs2_connection_for_mode(
+    mode: str,
+) -> Iterator[tuple[str, FakeHiveServer2, Any]]:
+    """Serve a real driver connection, including replacements made by a pool."""
     from impala.dbapi import connect
 
-    mode = request.param
     handler = FakeHiveServer2()
     if mode == "http":
         server = THttpServer.THttpServer(
@@ -923,3 +931,127 @@ def test_polling_limit_cancels_on_clean_transport(
             "CloseSession",
         ]
         assert not conn.service.client.interrupted
+
+
+@pytest.mark.parametrize("mode", ["binary", "sasl", "http"])
+@pytest.mark.parametrize("timeout", TIMEOUTS)
+@pytest.mark.parametrize(
+    "abandonment",
+    [
+        "fetch",
+        "poll",
+        "cancel_failure",
+        "execute",
+        "metadata",
+        "direct_guard",
+        "local_cursor",
+    ],
+)
+def test_pooled_connection_is_replaced_after_abandonment(
+    mode: str, timeout: Exception, abandonment: str, app_context: None
+) -> None:
+    """A second query must use a fresh connection after every abandonment path."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.pool import QueuePool
+
+    connections: list[Any] = []
+    handlers: list[FakeHiveServer2] = []
+    with ExitStack() as stack:
+
+        def connect() -> Any:
+            """Open each pooled DB-API connection against a local HS2 server."""
+            _, handler, connection = stack.enter_context(hs2_connection_for_mode(mode))
+            handlers.append(handler)
+            connections.append(connection)
+            return connection
+
+        engine = create_engine(
+            "impala://",
+            creator=connect,
+            poolclass=QueuePool,
+            pool_size=1,
+            max_overflow=0,
+        )
+        spec.register_engine_events(engine)
+        try:
+            with closing(engine.raw_connection()) as raw:
+                cursor = raw.cursor()
+                cursor.execute_async("SELECT 1")
+                query = Mock(id=1, extra={}, status="running", progress=0)
+
+                def abandon() -> None:
+                    """Make the client unusable through the driver or engine spec."""
+                    if abandonment == "fetch":
+                        with patch(
+                            "superset.db_engine_specs.impala.time.sleep",
+                            side_effect=timeout,
+                        ):
+                            spec.fetch_data(cursor)
+                    elif abandonment == "direct_guard":
+                        connections[0].service.client.abandon(timeout)
+                    elif abandonment == "local_cursor":
+                        spec._abandon_cursor(cursor)
+                    elif abandonment == "cancel_failure":
+                        _interrupt_after_header(
+                            cursor,
+                            "CancelOperation",
+                            TProtocol.TProtocolException(message="bad reply"),
+                        )
+                        spec._cancel_operation(cursor)
+                    else:
+                        reply = {
+                            "poll": "GetOperationStatus",
+                            "execute": "ExecuteStatement",
+                            "metadata": "GetResultSetMetadata",
+                        }[abandonment]
+                        _interrupt_after_header(cursor, reply, timeout)
+                        with patch("superset.db_engine_specs.impala.db"):
+                            if abandonment == "poll":
+                                spec.handle_cursor(cursor, query)
+                            elif abandonment == "execute":
+                                spec.execute(cursor, "SELECT interrupted", Mock())
+                            else:
+                                _ = cursor.description
+                    raise timeout
+
+                with pytest.raises(type(timeout)) as raised:
+                    abandon()
+                assert raised.value is timeout
+                requests_after_limit = list(handlers[0].requests)
+
+            with closing(engine.raw_connection()) as raw:
+                assert raw.driver_connection is not connections[0]
+                with closing(raw.cursor()) as cursor:
+                    cursor.execute_async("SELECT 2")
+
+            assert len(connections) == 2
+            assert handlers[0].requests == requests_after_limit
+            assert "ExecuteStatement" in handlers[1].requests
+        finally:
+            engine.dispose()
+
+
+def test_pool_reuses_healthy_impala_connections(
+    hs2_connection: tuple[str, FakeHiveServer2, Any],
+) -> None:
+    """Pool-return cleanup must retain a connection whose client is still usable."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.pool import QueuePool
+
+    _, handler, conn = hs2_connection
+    creator = Mock(return_value=conn)
+    engine = create_engine(
+        "impala://", creator=creator, poolclass=QueuePool, pool_size=1, max_overflow=0
+    )
+    spec.register_engine_events(engine)
+    try:
+        for _ in range(2):
+            with (
+                closing(engine.raw_connection()) as raw,
+                closing(raw.cursor()) as cursor,
+            ):
+                cursor.execute_async("SELECT 1")
+        creator.assert_called_once_with()
+        assert handler.requests.count("ExecuteStatement") == 2
+    finally:
+        engine.dispose()
