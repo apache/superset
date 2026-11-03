@@ -1519,13 +1519,18 @@ test('regression #37921: multi-metric Query A with groupby does not duplicate fi
 // a single-metric query with dimensions, as in defaultQueryRows (#38190).
 function getSeriesNamesPerQuery(
   formDataOverrides: Partial<EchartsMixedTimeseriesFormData>,
-  queryBData = createTestQueryData(defaultQueryRows, {
-    label_map: defaultLabelMap,
-  }),
+  {
+    queryAData = createTestQueryData(defaultQueryRows, {
+      label_map: defaultLabelMap,
+    }),
+    queryBData = createTestQueryData(defaultQueryRows, {
+      label_map: defaultLabelMap,
+    }),
+  }: {
+    queryAData?: ChartDataResponseResult;
+    queryBData?: ChartDataResponseResult;
+  } = {},
 ) {
-  const queryAData = createTestQueryData(defaultQueryRows, {
-    label_map: defaultLabelMap,
-  });
   const chartProps = createEchartsTimeseriesTestChartProps<
     EchartsMixedTimeseriesFormData,
     EchartsMixedTimeseriesProps
@@ -1556,7 +1561,7 @@ test('truncate metric renders dimension-only series names when the queries do no
   );
   const { transformed, namesA, namesB } = getSeriesNamesPerQuery(
     { groupbyB: ['state'], truncateMetric: true, truncateMetricB: true },
-    stateQueryData,
+    { queryBData: stateQueryData },
   );
 
   expect(namesA).toEqual(['boy', 'girl']);
@@ -1603,11 +1608,105 @@ test('truncate metric applies to each query on its own', () => {
   );
   const { namesA, namesB } = getSeriesNamesPerQuery(
     { metricsB: ['avg__num'], truncateMetric: true, truncateMetricB: false },
-    untruncatedQueryData,
+    { queryBData: untruncatedQueryData },
   );
 
   expect(namesA).toEqual(['boy', 'girl']);
   expect(namesB).toEqual(['avg__num, boy', 'avg__num, girl']);
+});
+
+test('truncate metric keeps the metric on both queries when they share only some series names', () => {
+  const queryAData = createTestQueryData(
+    [
+      { CA: 1, NY: 2, ds: 599616000000 },
+      { CA: 3, NY: 4, ds: 599916000000 },
+    ],
+    { label_map: { ds: ['ds'], CA: ['CA'], NY: ['NY'] } },
+  );
+  const queryBData = createTestQueryData(
+    [
+      { NY: 5, TX: 6, ds: 599616000000 },
+      { NY: 7, TX: 8, ds: 599916000000 },
+    ],
+    { label_map: { ds: ['ds'], NY: ['NY'], TX: ['TX'] } },
+  );
+  const { namesA, namesB } = getSeriesNamesPerQuery(
+    {
+      groupby: ['state'],
+      groupbyB: ['state'],
+      metricsB: ['avg__num'],
+      truncateMetric: true,
+      truncateMetricB: true,
+    },
+    { queryAData, queryBData },
+  );
+
+  expect(namesA).toEqual(['sum__num, CA', 'sum__num, NY']);
+  expect(namesB).toEqual(['avg__num, NY', 'avg__num, TX']);
+});
+
+// With time comparison the backend keeps the metric and renames the comparison
+// columns to their offsets, so a truncated query renders those names as the
+// regular Timeseries chart does.
+const timeComparisonQueryData = createTestQueryData(
+  [
+    {
+      'sum__num, boy': 1,
+      'sum__num, girl': 2,
+      '1 year ago, boy': 3,
+      '1 year ago, girl': 4,
+      ds: 599616000000,
+    },
+    {
+      'sum__num, boy': 5,
+      'sum__num, girl': 6,
+      '1 year ago, boy': 7,
+      '1 year ago, girl': 8,
+      ds: 599916000000,
+    },
+  ],
+  {
+    label_map: {
+      ds: ['ds'],
+      'sum__num, boy': ['sum__num', 'boy'],
+      'sum__num, girl': ['sum__num', 'girl'],
+      '1 year ago, boy': ['1 year ago', 'boy'],
+      '1 year ago, girl': ['1 year ago', 'girl'],
+    },
+  },
+);
+const timeComparisonFormData = {
+  time_compare: ['1 year ago'],
+  comparison_type: ComparisonType.Values,
+  truncateMetric: true,
+  truncateMetricB: false,
+};
+
+test('truncate metric renders time comparison series names as the backend returns them', () => {
+  const { namesA } = getSeriesNamesPerQuery(timeComparisonFormData, {
+    queryAData: timeComparisonQueryData,
+  });
+
+  expect(namesA).toEqual([
+    '1 year ago, boy',
+    '1 year ago, girl',
+    'sum__num, boy',
+    'sum__num, girl',
+  ]);
+});
+
+test('truncate metric appends the query identifier to time comparison series names', () => {
+  const { namesA } = getSeriesNamesPerQuery(
+    { ...timeComparisonFormData, showQueryIdentifiers: true },
+    { queryAData: timeComparisonQueryData },
+  );
+
+  expect(namesA).toEqual([
+    '1 year ago, boy (Query A)',
+    '1 year ago, girl (Query A)',
+    'sum__num, boy (Query A)',
+    'sum__num, girl (Query A)',
+  ]);
 });
 
 test('y-axis title position: Left sets nameLocation to middle', () => {
