@@ -49,6 +49,9 @@ export interface SliceHeaderControlsProps {
   exportPivotCSV?: (sliceId: number) => void;
   exportFullCSV?: (sliceId: number) => void;
   exportXLSX?: (sliceId: number) => void;
+  getExportPayload?: (
+    resultType: 'full' | 'post_processed',
+  ) => Promise<JsonObject>;
   exportFullXLSX?: (sliceId: number) => void;
   handleToggleFullSize: () => void;
 

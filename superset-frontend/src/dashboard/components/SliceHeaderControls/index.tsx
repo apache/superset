@@ -50,6 +50,7 @@ import {
   Button,
   ModalTrigger,
 } from '@superset-ui/core/components';
+import { useExtensionMenuItems } from 'src/components/ExtensionMenuItems';
 import { useShareMenuItems } from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
@@ -138,6 +139,9 @@ export interface SliceHeaderControlsProps {
   exportFullCSV?: (sliceId: number) => void;
   exportXLSX?: (sliceId: number) => void;
   exportFullXLSX?: (sliceId: number) => void;
+  getExportPayload?: (
+    resultType: 'full' | 'post_processed',
+  ) => Promise<JsonObject>;
   handleToggleFullSize: () => void;
   exportPivotExcel?: (tableSelector: string, sliceName: string) => void;
 
@@ -461,6 +465,28 @@ const SliceHeaderControls = (
     slice.viz_type === VizType.Table || slice.viz_type === VizType.TableAgGrid;
   const isPivotTable = slice.viz_type === VizType.PivotTable;
   const isImageOnlyExport = isImageOnlyExportViz(slice.viz_type);
+  const canDownload = !!props.supersetCanDownload;
+  const { getExportPayload } = props;
+  const getPayloadFor = (resultType: 'full' | 'post_processed') => () =>
+    getExportPayload
+      ? getExportPayload(resultType)
+      : Promise.reject(new Error(t('Export is not available for this chart')));
+  const extensionDownloadItems = useExtensionMenuItems(
+    'dashboard.chart.download',
+    {
+      getPayload: getPayloadFor('full'),
+      chartName: slice.slice_name,
+      canDownload,
+    },
+  );
+  const extensionPivotedDownloadItems = useExtensionMenuItems(
+    'dashboard.chart.download.pivoted',
+    {
+      getPayload: getPayloadFor('post_processed'),
+      chartName: slice.slice_name,
+      canDownload,
+    },
+  );
   const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
     (extendedDayjs.utc(itemCachedDttm) as any).fromNow(),
   );
@@ -701,6 +727,7 @@ const SliceHeaderControls = (
                 label: t('Export to Pivoted Excel'),
                 icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
               },
+              ...extensionPivotedDownloadItems,
             ]
           : []),
         ...(isImageOnlyExport
@@ -711,6 +738,7 @@ const SliceHeaderControls = (
                 label: t('Export to Excel'),
                 icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
               },
+              ...extensionDownloadItems,
             ]),
         ...(isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
         props.supersetCanDownload &&

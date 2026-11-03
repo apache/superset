@@ -160,6 +160,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       logEvent,
       exportCSV = () => ({}),
       exportXLSX = () => ({}),
+      getExportPayload,
       editMode = false,
       annotationQuery = {},
       annotationError = {},
@@ -409,6 +410,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   exportPivotCSV={exportPivotCSV}
                   exportFullCSV={exportFullCSV}
                   exportXLSX={exportXLSX}
+                  getExportPayload={getExportPayload}
                   exportFullXLSX={exportFullXLSX}
                   supersetCanExplore={supersetCanExplore}
                   supersetCanShare={supersetCanShare}
