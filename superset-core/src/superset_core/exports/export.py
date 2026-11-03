@@ -43,10 +43,14 @@ def run_query_context(payload: dict[str, Any]) -> list[ChartQueryResult]:
     Run a chart query context as the current user.
 
     Does not check the export permission; callers must call
-    ``can_export_data()`` first.
+    ``can_export_data()`` first. Results are always JSON rows: the payload's
+    ``result_format`` is ignored, and ``result_type`` must be ``full``,
+    ``results``, ``post_processed``, ``samples`` or ``drill_detail``.
 
     :param payload: The query context payload, as sent to ``/api/v1/chart/data``.
     :returns: One result per query in the payload.
+    :raises ValueError: If the payload asks for a result type with no rows,
+        such as ``query`` or ``columns``.
     """
     raise NotImplementedError("Function will be replaced during initialization")
 

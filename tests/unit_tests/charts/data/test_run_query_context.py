@@ -147,3 +147,54 @@ def test_can_export_dashboard_missing_dashboard(
 ) -> None:
     mocks["DashboardDAO"].find_by_id.return_value = None
     assert can_export_dashboard(5) is False
+
+
+def test_forces_json_on_a_copy_of_the_payload(
+    mocks: dict[str, mock.MagicMock],
+) -> None:
+    payload = {"queries": [{}], "result_format": "csv"}
+    run_query_context(payload)
+    schema = mocks["ChartDataQueryContextSchema"].return_value
+    assert schema.load.call_args.args[0]["result_format"] == "json"
+    assert payload["result_format"] == "csv"
+
+
+@pytest.mark.parametrize(
+    "result_type",
+    [
+        ChartDataResultType.QUERY,
+        ChartDataResultType.COLUMNS,
+        ChartDataResultType.TIMEGRAINS,
+    ],
+)
+def test_rejects_result_types_without_rows(
+    mocks: dict[str, mock.MagicMock], result_type: ChartDataResultType
+) -> None:
+    with pytest.raises(ValueError, match=result_type.value):
+        run_query_context({"queries": [{}], "result_type": result_type.value})
+    mocks["ChartDataQueryContextSchema"].return_value.load.assert_not_called()
+    mocks["ChartDataCommand"].assert_not_called()
+
+
+def test_rejects_a_query_level_result_type_without_rows(
+    mocks: dict[str, mock.MagicMock],
+) -> None:
+    with pytest.raises(ValueError, match="query"):
+        run_query_context({"queries": [{"result_type": "query"}]})
+
+
+@pytest.mark.parametrize(
+    "result_type",
+    [
+        ChartDataResultType.FULL,
+        ChartDataResultType.RESULTS,
+        ChartDataResultType.POST_PROCESSED,
+        ChartDataResultType.SAMPLES,
+        ChartDataResultType.DRILL_DETAIL,
+    ],
+)
+def test_accepts_result_types_with_rows(
+    mocks: dict[str, mock.MagicMock], result_type: ChartDataResultType
+) -> None:
+    payload = {"queries": [{"result_type": result_type.value}]}
+    assert run_query_context({**payload, "result_type": result_type.value}) == []

@@ -27,18 +27,46 @@ from superset import is_feature_enabled, security_manager
 from superset.charts.client_processing import apply_client_processing
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.commands.chart.data.get_data_command import ChartDataCommand
-from superset.common.chart_data import ChartDataResultType
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
 from superset.daos.dashboard import DashboardDAO
 from superset.exceptions import SupersetSecurityException
 
+# Result types whose queries return rows; the rest return SQL or metadata.
+ROW_RESULT_TYPES = frozenset(
+    {
+        ChartDataResultType.FULL,
+        ChartDataResultType.RESULTS,
+        ChartDataResultType.POST_PROCESSED,
+        ChartDataResultType.SAMPLES,
+        ChartDataResultType.DRILL_DETAIL,
+    }
+)
+
+
+def _requested_result_types(payload: dict[str, Any]) -> set[str]:
+    """Collect the context-level and per-query result types a payload asks for."""
+    requested = {str(payload.get("result_type") or ChartDataResultType.FULL)}
+    for query in payload.get("queries") or []:
+        if isinstance(query, dict) and query.get("result_type"):
+            requested.add(str(query["result_type"]))
+    return requested
+
 
 def run_query_context(payload: dict[str, Any]) -> list[ChartQueryResult]:
     """
-    Run a chart-data payload as the current user.
+    Run a chart-data payload as the current user, always as JSON rows.
 
     :raises SupersetSecurityException: If the user may not access the datasource
+    :raises ValueError: If a result type carries no row data
     """
+    if unsupported := sorted(_requested_result_types(payload) - ROW_RESULT_TYPES):
+        raise ValueError(
+            f"Result type {', '.join(unsupported)} returns no rows; use one of "
+            f"{', '.join(sorted(ROW_RESULT_TYPES))}"
+        )
+    # Rows are read from JSON results, whatever format the payload asks for.
+    payload = {**payload, "result_format": ChartDataResultFormat.JSON}
     schema: ChartDataQueryContextSchema = ChartDataQueryContextSchema()
     schema.query_context_factory = QueryContextFactory(
         authorize_semantic_before_metadata=True
