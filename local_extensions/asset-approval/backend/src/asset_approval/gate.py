@@ -397,6 +397,16 @@ def _drop_a_fully_reverted_draft(asset_type: AssetType, asset_id: int) -> None:
     this body cannot speak for, so it is left alone. Anything unreadable
     leaves the request as it was: failing to tidy up is survivable, and
     discarding the wrong draft is not.
+
+    A **draft**, and nothing further on. The name said so and the guards
+    did not: ``find_open_request`` returns ``PENDING`` and
+    ``CHANGES_REQUESTED`` alike, so an ordinary save that happened to
+    change nothing closed a request the author had already submitted. That
+    answered 200 with no mention of review, recorded the author as the
+    reviewer of their own change, and emptied the approver's queue with
+    nothing said to either of them. Undoing your own draft is yours to do;
+    a submitted change belongs to the review, and withdrawing it is a
+    transition with its own name.
     """
     author_id = get_user_id()
     if author_id is None:
@@ -412,6 +422,8 @@ def _drop_a_fully_reverted_draft(asset_type: AssetType, asset_id: int) -> None:
         )
         return
     if existing is None or existing.author_fk != author_id:
+        return
+    if ChangeStatus(existing.status) is not ChangeStatus.DRAFT:
         return
     if existing.command_args.get(COMMAND_KEY):
         return
@@ -480,27 +492,100 @@ def _insert_request(
         "changed_by_fk": author_id,
     }
     table = ChangeRequest.__table__
-    with db.engine.begin() as connection:
-        try:
+    try:
+        with db.engine.begin() as connection:
             result = connection.execute(insert(table).values(**values))
-        except IntegrityError as ex:
-            # Lost the race for the asset's open slot. The unique constraint
-            # is the real guard; the lookup above is only a nicer message.
-            raise AssetLockedError(asset_type.value, asset_id) from ex
-        inserted = result.inserted_primary_key
-        if inserted is not None and inserted[0] is not None:
-            return int(inserted[0])
-        # Backends that do not return the generated key: read it back on the
-        # same connection, inside the same transaction.
-        return int(
-            connection.execute(
-                select(table.c.id).where(
-                    table.c.asset_type == asset_type.value,
-                    table.c.asset_id == asset_id,
-                    table.c.active_slot == OPEN_SLOT,
-                )
-            ).scalar_one()
+            inserted = result.inserted_primary_key
+            if inserted is not None and inserted[0] is not None:
+                return int(inserted[0])
+            # Backends that do not return the generated key: read it back
+            # on the same connection, inside the same transaction.
+            return int(
+                connection.execute(
+                    select(table.c.id).where(
+                        table.c.asset_type == asset_type.value,
+                        table.c.asset_id == asset_id,
+                        table.c.active_slot == OPEN_SLOT,
+                    )
+                ).scalar_one()
+            )
+    except IntegrityError as ex:
+        # Lost the race for the asset's open slot. The unique constraint is
+        # the real guard; the lookup in ``gate_write`` is only a nicer
+        # message, and between the two another write got there first.
+        #
+        # Settled outside the ``with``: the insert broke that transaction,
+        # so nothing further can be read on it.
+        return _lost_the_slot(
+            asset_type,
+            asset_id,
+            payload,
+            author_id,
+            note,
+            command_args,
+            operation,
+            base,
+            ex,
         )
+
+
+def _lost_the_slot(
+    asset_type: AssetType,
+    asset_id: int,
+    payload: dict[str, Any],
+    author_id: int,
+    note: str | None,
+    command_args: dict[str, Any] | None,
+    operation: Operation,
+    base: dict[str, Any] | None,
+    cause: IntegrityError,
+) -> int:
+    """Someone else reached the asset's open slot first. Who, and so what.
+
+    The commonest way here is not two people: it is one author whose Save
+    fired twice, and both halves of that race used to come back as *"another
+    editor already has changes open"* -- an accusation about a colleague who
+    does not exist -- with the losing payload dropped. Doing it in sequence
+    folds, so doing it at once should too.
+
+    Same author, same command: fold, exactly as the sequential path does.
+    One caveat written down rather than hidden: the fold here replaces the
+    payload instead of merging it, so two *diff* bodies racing (native
+    filters, chart customizations) keep the later one alone. That is a
+    narrower loss than refusing, and the window is a genuine tie.
+    """
+    try:
+        holder = find_open_request(asset_type, asset_id)
+    except Exception:  # noqa: BLE001 -- the refusal matters more than the name
+        holder = None
+
+    if holder is None:
+        # It was taken and released again between the insert and this read.
+        # Nothing to fold into and nobody to name.
+        raise AssetLockedError(asset_type.value, asset_id) from cause
+
+    if holder.author_fk != author_id:
+        raise AssetLockedError(
+            asset_type.value,
+            asset_id,
+            _display_name(holder.author),
+        ) from cause
+
+    kind = (command_args or {}).get(COMMAND_KEY)
+    if holder.command_args.get(COMMAND_KEY) != kind:
+        raise AssetLockedError(
+            asset_type.value,
+            asset_id,
+            message=(
+                f"You already have other changes open on this "
+                f"{asset_type.value}. Submit or discard them before "
+                "making this change."
+            ),
+        ) from cause
+
+    return _update_own_request(
+        holder.id, payload, note, command_args, operation, base=base
+    )
 
 
 def _update_own_request(

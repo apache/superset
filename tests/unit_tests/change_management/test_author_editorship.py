@@ -127,9 +127,13 @@ def test_the_refusal_names_the_author_and_what_to_do(
 
     message = str(caught.value)
     assert "Alex Diaz" in message
-    assert "edit access" in message
+    assert "is not an editor of this asset" in message
     # The approver is told what they can do about it, not just refused.
     assert "Discard" in message
+    # Present tense on purpose. This check cannot see history, and an
+    # administrator authoring a change on an asset they do not edit lands
+    # here having never had access to lose.
+    assert "no longer" not in message
 
 
 def test_the_refusal_is_a_conflict_not_a_server_error() -> None:
@@ -140,4 +144,4 @@ def test_the_refusal_is_a_conflict_not_a_server_error() -> None:
 
 
 def test_the_refusal_reads_without_a_name() -> None:
-    assert "The author no longer has" in str(AuthorNoLongerEditorError(None))
+    assert "The author is not an editor" in str(AuthorNoLongerEditorError(None))

@@ -134,11 +134,20 @@ class AssetLockedError(ChangeManagementException):
         self.asset_type = asset_type
         self.asset_id = asset_id
         self.author = author
-        who = author or "another editor"
+        # Without a name, say that the asset is held and stop there. The
+        # old fallback read "another editor already has changes open",
+        # which names a colleague this code has not identified and, in the
+        # commonest case -- one author whose Save fired twice -- does not
+        # have.
         super().__init__(
             message
-            or f"{who} already has changes open on this {asset_type}. "
-            "Only one set of changes can be open at a time."
+            or (
+                f"{author} already has changes open on this {asset_type}. "
+                "Only one set of changes can be open at a time."
+                if author
+                else f"This {asset_type} already has changes open. "
+                "Only one set of changes can be open at a time."
+            )
         )
 
 
@@ -280,10 +289,15 @@ class AuthorNoLongerEditorError(ChangeManagementException):
 
     def __init__(self, author: str | None = None) -> None:
         self.author = author
-        who = f"{author} no longer has" if author else "The author no longer has"
+        # "no longer" asserted a history this check cannot see. The author
+        # may have lost access, or may never have had it -- an administrator
+        # authoring a change on an asset they do not edit reaches exactly
+        # this refusal, and was told their access had been taken away. The
+        # present tense is true either way.
+        who = f"{author} is not" if author else "The author is not"
         super().__init__(
-            f"{who} edit access to this asset, so this change cannot be "
-            "published as their work. Discard it, or restore their access "
+            f"{who} an editor of this asset, so this change cannot be "
+            "published as their work. Discard it, or add them as an editor "
             "and approve again."
         )
 

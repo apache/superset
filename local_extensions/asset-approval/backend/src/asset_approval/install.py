@@ -28,8 +28,11 @@ what that contribution has to be able to express.
 from __future__ import annotations
 
 import functools
+import inspect
 import logging
+from copy import deepcopy
 from dataclasses import dataclass
+from functools import lru_cache
 from importlib import import_module
 from typing import Any, Callable, Iterable, Sequence
 
@@ -100,6 +103,25 @@ def _already_gated(func: Any) -> bool:
     return bool(getattr(func, "__asset_approval_gate__", False))
 
 
+@lru_cache(maxsize=None)
+def _revalidates_on_the_class(command_cls: type) -> bool:
+    """Whether this command's ``run`` calls ``super().validate()``.
+
+    An instance attribute shadows ``self.validate()`` and nothing else.
+    ``super().validate()`` resolves on the MRO, walks straight past the
+    shadow, and validates a second time -- which is only a problem because
+    validating is not idempotent.
+
+    Read off the source rather than kept as a list of class names, so a
+    command that starts doing this is covered the day it does.
+    """
+    try:
+        source = inspect.getsource(command_cls.run)
+    except (OSError, TypeError):  # a C function, or no source on disk
+        return False
+    return "super().validate()" in source
+
+
 def _validate_once(command: Any) -> None:
     """Validate ahead of the gate, and let the host's own call stand down.
 
@@ -117,7 +139,28 @@ def _validate_once(command: Any) -> None:
     then proceeds on exactly the state its own call would have left.
     Commands are built per request and run once, so shadowing the method
     on the instance ends with the object.
+
+    Two commands defeat that shadow by calling ``super().validate()`` --
+    the native-filter and chart-customization updates. For them the second
+    pass read the first pass's output and handed already-resolved
+    ``Subject`` objects back to the resolver, so an author who opened the
+    filter modal and saved without editing anything got a 422 and a
+    ``can't adapt type 'Subject'`` in the log. Nothing was lost, because
+    the write was a no-op either way, but the author was shown an error
+    for doing nothing. They are given back the request they arrived with
+    instead, and allowed to validate again from it: wasteful, and correct,
+    which is the trade the fallback below already accepts.
     """
+    if _revalidates_on_the_class(type(command)):
+        try:
+            untouched = deepcopy(getattr(command, "_properties", None))
+        except Exception:  # noqa: BLE001 -- not copyable, so not restorable
+            untouched = None
+        command.validate()
+        if untouched is not None:
+            command._properties = untouched
+        return
+
     result = command.validate()
 
     def already_validated(*_args: Any, **_kwargs: Any) -> Any:

@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+from uuid import UUID
 
 from superset.utils import json
 
@@ -69,6 +70,22 @@ IGNORED_FIELDS = frozenset(
         "changed_by_fk",
     }
 )
+
+#: What a named thing *is*, rather than what it says. ``uuid`` belongs
+#: beside ``id``, and its absence was a real defect: the stored payload is
+#: JSON, so its ``uuid`` arrives as a ``str`` while the live ORM row holds
+#: a ``uuid.UUID``, and those two never compare equal. Every dataset
+#: change therefore reported ``columns`` and ``metrics`` as changed
+#: whatever the author had really edited -- a pure SQL rewrite came back
+#: with ``changed_fields`` naming all three, while the same payload's own
+#: ``dataset_detail`` said nothing had moved in either list.
+#:
+#: Capture was never wrong, which is why no test caught it: the gate
+#: compares the in-memory command body, where ``uuid`` is still a ``UUID``
+#: on both sides. Only the read-back, which re-parses the stored JSON,
+#: could see the mismatch -- so the reviewer was shown the noise and the
+#: author never was.
+IDENTITY_FIELDS = frozenset({"id", "uuid"})
 
 
 #: Entries inside a dashboard's ``json_metadata`` that Superset derives for
@@ -145,6 +162,12 @@ def _parsed(value: Any) -> Any:
         return _in_a_fixed_order(value)
     if value is None:
         return value
+    # A UUID and its own string are one value written two ways: the stored
+    # payload carries the string, the live row the object. Compared as
+    # they arrive they differ, which is how an untouched column read as
+    # edited -- see ``IDENTITY_FIELDS``.
+    if isinstance(value, UUID):
+        return str(value)
     if isinstance(value, str):
         text = value.strip()
         if not text:
@@ -183,7 +206,7 @@ def _named_list_differs(current: Any, proposed: Any, key: str) -> bool:
                 return True
             continue
         for field, value in after_item.items():
-            if field in IGNORED_FIELDS or field == "id":
+            if field in IGNORED_FIELDS or field in IDENTITY_FIELDS:
                 continue
             was = _field_value(before_item, field)
             if _is_nothing(value) and _is_nothing(was):
@@ -443,7 +466,7 @@ def _types_that_moved_alone(
             return None
         stored = before[name]
         for field, value in item.items():
-            if field in IGNORED_FIELDS or field == "id":
+            if field in IGNORED_FIELDS or field in IDENTITY_FIELDS:
                 continue
             was = _field_value(stored, field)
             if field == RESYNCABLE_COLUMN_FIELD:

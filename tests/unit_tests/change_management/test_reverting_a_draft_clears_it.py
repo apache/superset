@@ -30,7 +30,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from asset_approval import gate
-from asset_approval.types import AssetType, Operation
+from asset_approval.types import AssetType, ChangeStatus, Operation
 from pytest_mock import MockerFixture
 
 AUTHOR = 5
@@ -53,10 +53,15 @@ def discard(mocker: MockerFixture) -> MagicMock:
     return mocker.patch.object(gate, "_discard_request")
 
 
-def _draft(author_fk: int = AUTHOR, **command_args: Any) -> SimpleNamespace:
+def _draft(
+    author_fk: int = AUTHOR,
+    status: str = ChangeStatus.DRAFT.value,
+    **command_args: Any,
+) -> SimpleNamespace:
     return SimpleNamespace(
         id=7,
         author_fk=author_fk,
+        status=status,
         operation=Operation.UPDATE.value,
         command_args=command_args,
         payload_dict={"slice_name": "Tree DRAFT"},
@@ -156,6 +161,37 @@ def test_a_failed_lookup_leaves_the_draft_as_it_was(
     live: SimpleNamespace, discard: MagicMock, mocker: MockerFixture
 ) -> None:
     mocker.patch.object(gate, "find_open_request", side_effect=RuntimeError("no db"))
+
+    _save_the_live_name()
+
+    discard.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "status",
+    [ChangeStatus.PENDING.value, ChangeStatus.CHANGES_REQUESTED.value],
+)
+def test_a_submitted_change_survives_its_authors_no_op_save(
+    live: SimpleNamespace,
+    discard: MagicMock,
+    mocker: MockerFixture,
+    status: str,
+) -> None:
+    """Undoing a draft is the author's to do. Undoing a *review* is not.
+
+    ``find_open_request`` returns every open status, so without a status
+    check this helper reached past the draft it is named for. An author who
+    had already submitted, then pressed Save with nothing edited, got 200
+    and no mention of review while the request was discarded, recorded
+    against them as its own reviewer, and taken out of the approver's queue
+    with nothing said to either of them.
+
+    Withdrawing a submitted change is a transition with its own name, and
+    this is not it.
+    """
+    mocker.patch.object(
+        gate, "find_open_request", return_value=_draft(status=status)
+    )
 
     _save_the_live_name()
 
