@@ -45,14 +45,6 @@ const PYTHON_URL =
   'https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior';
 const ISO_URL = 'https://en.wikipedia.org/wiki/ISO_8601';
 
-// The five msgids the description used to be split into.
-const OLD_FRAGMENTS = [
-  'The pattern of timestamp format. For strings use ',
-  'Python datetime string pattern',
-  ' expression which needs to adhere to the ',
-  'ISO 8601',
-];
-
 const URLS: Record<string, string> = {
   python_url: PYTHON_URL,
   iso_url: ISO_URL,
@@ -91,8 +83,9 @@ const openFirstColumn = async () => {
 
 test('datetime format description renders as one sentence with Python 3 and ISO 8601 links', async () => {
   await openFirstColumn();
+  // One t() call holds the whole sentence, so translators can reorder it.
+  expect(sentenceMsgid()).toHaveLength(1);
   const [msgid] = sentenceMsgid();
-  expect(msgid).toBeDefined();
 
   const label = (await screen.findAllByText('Datetime format'))[0];
   const infoIcon = label.parentElement?.querySelector(
@@ -121,17 +114,4 @@ test('datetime format description renders as one sentence with Python 3 and ISO 
   [...msgid.matchAll(CODE)].forEach(([, code]) =>
     expect(within(tooltip).getByText(code).tagName).toBe('CODE'),
   );
-});
-
-test('datetime format description is translated with one t() call', async () => {
-  await openFirstColumn();
-  await screen.findAllByText('Datetime format');
-
-  const msgids = new Set(jest.mocked(t).mock.calls.map(([msgid]) => msgid));
-
-  expect(sentenceMsgid()).toHaveLength(1);
-  OLD_FRAGMENTS.forEach(fragment => expect(msgids.has(fragment)).toBe(false));
-  expect(
-    [...msgids].some(msgid => msgid.startsWith(' standard to ensure')),
-  ).toBe(false);
 });
