@@ -32,7 +32,7 @@ import type { editors } from '@apache-superset/core';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { shallowEqual, useSelector } from 'react-redux';
 import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
-import { AutoSizer } from 'react-virtualized-auto-sizer';
+import AutoSizer from 'react-virtualized-auto-sizer';
 import { t } from '@apache-superset/core/translation';
 import {
   FeatureFlag,
@@ -990,8 +990,8 @@ const SqlEditor: FC<Props> = ({
           )}
           {queryEditor.isDataset && renderDatasetWarning()}
           <div className="sql-container">
-            <AutoSizer
-              renderProp={({ height }) =>
+            <AutoSizer>
+              {({ height }) =>
                 isActive && (
                   <EditorWrapper
                     autocomplete={autocompleteEnabled}
@@ -1004,7 +1004,7 @@ const SqlEditor: FC<Props> = ({
                   />
                 )
               }
-            />
+            </AutoSizer>
           </div>
           {SqlFormExtension && (
             <SqlFormExtension

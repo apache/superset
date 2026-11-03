@@ -42,11 +42,12 @@ jest.mock('src/components/FilterableTable', () => ({
   ),
 }));
 jest.mock('react-virtualized-auto-sizer', () => ({
-  AutoSizer: ({
-    renderProp,
+  __esModule: true,
+  default: ({
+    children,
   }: {
-    renderProp: (params: { height: number }) => ReactChild;
-  }) => renderProp({ height: 500 }),
+    children: (params: { height: number }) => ReactChild;
+  }) => children({ height: 500 }),
 }));
 jest.mock('@superset-ui/core/components/IconTooltip', () => ({
   IconTooltip: ({

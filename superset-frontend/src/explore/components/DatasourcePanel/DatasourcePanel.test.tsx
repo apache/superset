@@ -43,11 +43,12 @@ import {
 import { FoldersEditorItemType } from 'src/components/Datasource/types';
 
 jest.mock('react-virtualized-auto-sizer', () => ({
-  AutoSizer: ({
-    renderProp,
+  __esModule: true,
+  default: ({
+    children,
   }: {
-    renderProp: (params: { height: number }) => ReactChild;
-  }) => renderProp({ height: 500 }),
+    children: (params: { height: number }) => ReactChild;
+  }) => children({ height: 500 }),
 }));
 
 const datasource: IDatasource = {

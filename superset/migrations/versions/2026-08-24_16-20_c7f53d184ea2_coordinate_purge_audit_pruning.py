@@ -49,10 +49,20 @@ def upgrade() -> None:
         sa.column("id", UUIDType(binary=True)),
         sa.column("lock_version", sa.Integer()),
     )
-    op.bulk_insert(
-        coordination_table,
-        [{"id": _SENTINEL_ID, "lock_version": 0}],
+    # create_table() is a no-op when the table already exists (for example
+    # after a rolled-back upgrade or metadata create_all). The sentinel row
+    # may already be present in that case; skip the insert so upgrade can
+    # proceed.
+    existing = (
+        op.get_bind()
+        .execute(sa.select(coordination_table.c.id).limit(1))
+        .first()
     )
+    if existing is None:
+        op.bulk_insert(
+            coordination_table,
+            [{"id": _SENTINEL_ID, "lock_version": 0}],
+        )
 
 
 def downgrade() -> None:

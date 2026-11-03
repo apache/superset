@@ -21,11 +21,12 @@ import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import JSEditorControl from 'src/explore/components/controls/JSEditorControl';
 
 jest.mock('react-virtualized-auto-sizer', () => ({
-  AutoSizer: ({
-    renderProp,
+  __esModule: true,
+  default: ({
+    children,
   }: {
-    renderProp: (params: { width: number; height: number }) => ReactNode;
-  }) => renderProp({ width: 500, height: 250 }),
+    children: (params: { width: number; height: number }) => ReactNode;
+  }) => children({ width: 500, height: 250 }),
 }));
 
 jest.mock('src/core/editors', () => ({
