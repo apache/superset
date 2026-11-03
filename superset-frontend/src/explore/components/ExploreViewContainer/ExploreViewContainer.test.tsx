@@ -25,6 +25,7 @@ import {
   getChartMetadataRegistry,
   ChartMetadata,
   VizType,
+  FeatureFlag,
 } from '@superset-ui/core';
 import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
 import { URL_PARAMS } from 'src/constants';
@@ -46,7 +47,7 @@ import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as chartActions from 'src/components/Chart/chartAction';
 import * as datasourceActions from 'src/dashboard/actions/datasources';
 import type { ExplorePageState } from 'src/explore/types';
-import ExploreViewContainer from '.';
+import ExploreViewContainer, { reloadOnTheApprovedChart } from '.';
 
 jest.doMock('@superset-ui/core', () => ({
   __esModule: true,
@@ -209,6 +210,19 @@ jest.mock('../DatasourcePanel', () => ({
 jest.mock('../ExploreChartHeader', () => ({
   __esModule: true,
   default: () => <div data-test="explore-chart-header" />,
+}));
+
+// Captures the props the review banner is mounted with. Without this the
+// `onApplied` wiring is untested: every test of the handler itself calls the
+// exported function directly, so reverting the one line that wires it up
+// left them all green.
+const assetReviewProps: Record<string, unknown>[] = [];
+jest.mock('src/features/changeManagement/AssetReview', () => ({
+  __esModule: true,
+  default: (props: Record<string, unknown>) => {
+    assetReviewProps.push(props);
+    return null;
+  },
 }));
 
 jest.mock('../SaveModal', () => ({
@@ -1730,5 +1744,25 @@ test('does not request datasource metadata when an unrelated control changes', (
     expect(fetchMetadataSpy).not.toHaveBeenCalled();
   } finally {
     getChartControlPanelRegistry().remove('table');
+  }
+});
+
+test('approving a chart change reloads onto the approved chart', async () => {
+  // The reload has to drop the cached `form_data_key`: it holds the
+  // pre-approval form data, and the explore GET lets a cached key override
+  // the slice's own params, so a plain reload came back as the old chart
+  // (sc-131032). This asserts the handler is actually wired, not just that
+  // it works when called.
+  window.featureFlags = { [FeatureFlag.ChangeManagement]: true };
+  assetReviewProps.length = 0;
+  try {
+    renderWithRouter();
+
+    await waitFor(() => expect(assetReviewProps.length).toBeGreaterThan(0));
+    const mounted = assetReviewProps.find(p => p.assetType === 'chart');
+    expect(mounted).toBeDefined();
+    expect(mounted?.onApplied).toBe(reloadOnTheApprovedChart);
+  } finally {
+    window.featureFlags = {};
   }
 });

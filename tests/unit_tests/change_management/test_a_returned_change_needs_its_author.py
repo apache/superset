@@ -152,10 +152,27 @@ def test_the_count_matches_what_the_bell_counts(
 ) -> None:
     """Mock 16c: the Approvals count matches the bell.
 
-    The bell's total is reviews-waiting-on-me plus changes-returned-to-me,
-    which for this fixture is row 1 plus row 2.
+    Both endpoints are asked, rather than a literal being asserted against
+    one of them. The literal version of this test could not have failed for
+    the thing it is named after, since the drift it guards is between the
+    two numbers.
     """
-    assert _view(client, "for_me")["count"] == 2
+    page = _view(client, "for_me")["count"]
+
+    counted = client.get("/api/v1/change_request/count")
+    assert counted.status_code == 200
+    bell = counted.json["result"]
+
+    assert page == bell["needs_me"] + bell["returned"]
+
+
+def test_the_two_numbers_are_the_two_kinds_of_work(
+    client: Any, full_api_access: None, requests: Session
+) -> None:
+    """And that the parity above is not two zeros agreeing."""
+    bell = client.get("/api/v1/change_request/count").json["result"]
+
+    assert bell == {"needs_me": 1, "returned": 1}
 
 
 def test_submitted_by_me_is_unchanged(

@@ -147,3 +147,19 @@ test('a dashboard change does not get chart control labels', () => {
 
   expect(screen.getByText(/groupby, color_scheme/)).toBeInTheDocument();
 });
+
+test('only a chart gets chart control labels', () => {
+  // A dataset's params could carry a viz_type-shaped blob; keying on the
+  // field name alone would relabel keys that are not Explore controls.
+  getControls.mockReturnValue({ groupby: { label: 'Dimensions' } });
+
+  show(
+    request({
+      asset_type: 'dataset',
+      changes: [{ field: 'params', opaque: true, keys: ['groupby'] }],
+    } as Partial<ChangeRequest>),
+  );
+
+  expect(screen.getByText(/groupby/)).toBeInTheDocument();
+  expect(getControls).not.toHaveBeenCalled();
+});

@@ -134,6 +134,19 @@ const ExploreVersionHistory = lazyWithRetry(
  */
 export function reloadOnTheApprovedChart(): void {
   const url = new URL(window.location.href);
+  // Only worth rewriting the URL if there is a key to drop and a slice_id
+  // to fall through to. Without the key there is nothing stale to escape,
+  // and `replace` to the same URL is a same-document navigation when the
+  // URL carries a fragment, so it would not reload at all -- which is what
+  // the plain reload this replaced always did. Without a slice_id, dropping
+  // the key would reload an empty Explore rather than the approved chart.
+  if (
+    !url.searchParams.has('form_data_key') ||
+    !url.searchParams.has('slice_id')
+  ) {
+    window.location.reload();
+    return;
+  }
   url.searchParams.delete('form_data_key');
   window.location.replace(url.toString());
 }

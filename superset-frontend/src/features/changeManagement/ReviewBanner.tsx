@@ -215,14 +215,21 @@ export default function ReviewBanner({
         };
       }
 
-      // Otherwise the live asset is on screen. An absent `showChanges` used
-      // to be read as "no preview needed, so they must be looking at their
-      // draft". That holds for a dashboard, whose author keeps editing in
-      // place, and is simply false for a chart: `canPreview` is
-      // dashboard-only, and after a held save Explore reloads the live
-      // slice, so the author was told they were viewing changes that were
-      // nowhere on screen (sc-131032). Without a preview there is also no
+      // Otherwise the live asset is on screen, and an absent `showChanges`
+      // means there is no in-place preview to turn on, so there is also no
       // switch to point them at.
+      //
+      // It used to be read the other way -- no preview needed, so the author
+      // must already be looking at their draft -- which was observed false
+      // for a chart: `canPreview` requires a dashboard, and after a held
+      // save Explore reloads the live slice, so the author was told they
+      // were viewing changes that were nowhere on screen (sc-131032).
+      //
+      // `canPreview` is also false for a dataset and for a dashboard's
+      // command-type changes (filters, colours, customization), which this
+      // branch therefore covers too. Only the chart case was checked
+      // against a running instance; for the others this wording is at worst
+      // no less true than the claim it replaces.
       return {
         type: 'info',
         message: showChanges

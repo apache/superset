@@ -40,7 +40,7 @@ const original = window.location;
 beforeAll(() => {
   Object.defineProperty(window, 'location', {
     writable: true,
-    value: { ...original, replace } as unknown as Location,
+    value: { ...original, replace, reload } as unknown as Location,
   });
 });
 
@@ -51,11 +51,20 @@ afterAll(() => {
   });
 });
 
-beforeEach(() => replace.mockClear());
+beforeEach(() => {
+  replace.mockClear();
+  reload.mockClear();
+});
 
-const reloadFrom = (href: string): string => {
+const reload = jest.fn();
+
+const at = (href: string): void => {
   (window.location as unknown as { href: string }).href = href;
   reloadOnTheApprovedChart();
+};
+
+const reloadFrom = (href: string): string => {
+  at(href);
   return replace.mock.calls[0][0] as string;
 };
 
@@ -82,10 +91,30 @@ test('every other parameter is left alone', () => {
   expect(params.has('form_data_key')).toBe(false);
 });
 
-test('a URL that never had the key is reloaded unchanged', () => {
-  const next = reloadFrom('http://localhost:8088/explore/?slice_id=7');
+test('a URL that never had the key is reloaded, not re-navigated', () => {
+  // `replace` to the same URL does not reload when the URL has a fragment:
+  // that is a same-document navigation. The plain reload this replaced
+  // always reloaded, so with nothing to drop we must still reload.
+  at('http://localhost:8088/explore/?slice_id=7');
 
-  expect(new URL(next).searchParams.get('slice_id')).toBe('7');
+  expect(reload).toHaveBeenCalledTimes(1);
+  expect(replace).not.toHaveBeenCalled();
+});
+
+test('a URL with a fragment and no key still reloads', () => {
+  at('http://localhost:8088/explore/?slice_id=7#panel');
+
+  expect(reload).toHaveBeenCalledTimes(1);
+  expect(replace).not.toHaveBeenCalled();
+});
+
+test('a key with no slice_id reloads rather than opening an empty Explore', () => {
+  // Dropping the key is only safe because the GET falls through to
+  // slice_id. With no slice_id there is nothing to fall through to.
+  at('http://localhost:8088/explore/?form_data_key=abc');
+
+  expect(reload).toHaveBeenCalledTimes(1);
+  expect(replace).not.toHaveBeenCalled();
 });
 
 test('it replaces rather than pushes, so back does not return to the stale URL', () => {

@@ -156,9 +156,10 @@ def test_a_permission_somebody_already_holds_is_left_alone(
 def test_a_permission_held_only_by_the_anonymous_role_is_still_seeded(
     manager: Any,
 ) -> None:
-    """That is not an operator's arrangement, it is the bug in
-    ``belongs_to_the_workflow``: the anonymous role holding it does not mean
-    anybody who can sign in does."""
+    """That is not an operator's arrangement, which is what
+    ``belongs_to_the_workflow`` is there to tell apart: the anonymous role
+    holding a permission does not mean anybody who can sign in does, so the
+    real roles still have to be seeded."""
     stray = _Pvm()
     manager.pvms["can_read"] = stray
     public = manager.roles["Public"]
@@ -184,17 +185,124 @@ def test_a_database_that_cannot_be_written_does_not_stop_the_extension(
     _entrypoint()._ensure_the_api_permissions_exist()
 
 
-def test_the_page_grant_runs_after_the_permissions_exist() -> None:
+def test_the_page_grant_runs_after_the_permissions_exist(
+    mocker: MockerFixture,
+) -> None:
     """Ordering is the whole point of where the call sits.
 
     ``_grant_page_permission_to_the_workflow`` reads ``can_read`` on
     ChangeRequest to decide who belongs in the workflow. Called first it
     finds nothing and returns silently, so the Approvals page stays
     Admin-only as well.
-    """
-    import inspect
 
-    source = inspect.getsource(_entrypoint().install_views)
-    assert source.index("_ensure_the_api_permissions_exist") < source.index(
-        "_grant_page_permission_to_the_workflow"
+    Asserted on the calls rather than on the source text, which a comment
+    naming either function would have satisfied.
+    """
+    entrypoint = _entrypoint()
+    order: list[str] = []
+    mocker.patch.object(
+        entrypoint,
+        "_ensure_the_api_permissions_exist",
+        side_effect=lambda: order.append("create"),
     )
+    mocker.patch.object(
+        entrypoint,
+        "_grant_page_permission_to_the_workflow",
+        side_effect=lambda: order.append("grant page"),
+    )
+    mocker.patch.object(
+        entrypoint, "_take_the_workflow_off_the_anonymous_role", return_value=None
+    )
+    mocker.patch("superset.extensions.appbuilder.add_api", return_value=None)
+    mocker.patch("superset.extensions.appbuilder.add_view", return_value=None)
+
+    entrypoint.install_views()
+
+    assert order == ["create", "grant page"]
+
+
+def test_every_protected_route_s_permission_is_created(mocker: MockerFixture) -> None:
+    """The set has to cover what ``@protect`` will actually demand.
+
+    Asserting the two names alone would not notice a route added under a
+    third, which is how a 403 reappears on one endpoint only.
+    """
+    from asset_approval.api import ChangeRequestRestApi
+
+    wanted = {
+        f"can_{name}"
+        for name in ChangeRequestRestApi.method_permission_name.values()
+    }
+
+    assert set(_entrypoint()._api_permissions()) == wanted
+
+
+def test_the_operator_can_turn_the_seeding_off(
+    manager: Any, mocker: MockerFixture
+) -> None:
+    """``EXTENSIONS_SYNC_PAGE_PERMISSIONS`` is how an operator says an
+    extension may not write permissions at boot -- they provision them out
+    of band, or the metadata database is not writable then. The host's page
+    helper honours it, and this must too."""
+    from flask import current_app
+
+    mocker.patch.dict(
+        current_app.config, {"EXTENSIONS_SYNC_PAGE_PERMISSIONS": False}
+    )
+
+    _entrypoint()._ensure_the_api_permissions_exist()
+
+    assert manager.created == []
+    assert manager.roles["Admin"].permissions == []
+
+
+def test_a_renamed_administrator_role_is_still_seeded(
+    manager: Any, mocker: MockerFixture
+) -> None:
+    """``AUTH_ROLE_ADMIN`` renames it, and the host reads that rather than
+    assuming "Admin". Hardcoding the name skipped the grant silently."""
+    from flask import current_app
+
+    manager.roles["Overlord"] = manager.roles.pop("Admin")
+    manager.roles["Overlord"].name = "Overlord"
+    mocker.patch.dict(current_app.config, {"AUTH_ROLE_ADMIN": "Overlord"})
+
+    _entrypoint()._ensure_the_api_permissions_exist()
+
+    assert len(manager.roles["Overlord"].permissions) == 2
+
+
+def test_a_second_boot_grants_nothing_further(manager: Any) -> None:
+    """Every worker runs this, and so does every restart."""
+    entrypoint = _entrypoint()
+    entrypoint._ensure_the_api_permissions_exist()
+    held = {
+        name: list(role.permissions) for name, role in manager.roles.items()
+    }
+
+    entrypoint._ensure_the_api_permissions_exist()
+
+    assert {
+        name: list(role.permissions) for name, role in manager.roles.items()
+    } == held
+
+
+def test_a_revocation_from_every_role_is_seeded_again(manager: Any) -> None:
+    """The limit of the "leave the operator's arrangement alone" rule.
+
+    Holding nothing is what a fresh install looks like, so this cannot tell
+    the two apart and seeds again. Documented rather than fixed: an operator
+    who means to switch the API off has the feature flag and
+    ``EXTENSIONS_SYNC_PAGE_PERMISSIONS``, and a narrowing to one role -- the
+    thing they are actually likely to do -- is respected.
+    """
+    entrypoint = _entrypoint()
+    entrypoint._ensure_the_api_permissions_exist()
+    for role in manager.roles.values():
+        role.permissions.clear()
+    for pvm in manager.pvms.values():
+        pvm.role.clear()
+
+    entrypoint._ensure_the_api_permissions_exist()
+
+    assert len(manager.roles["Admin"].permissions) == 2

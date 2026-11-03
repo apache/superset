@@ -144,7 +144,15 @@ export default function NotificationBell() {
         fetchList('for_me'),
         fetchList('submitted_by_me'),
       ]);
-      setItems(forMe);
+      // `for_me` also carries the reader's own returned changes now, because
+      // a change sent back is waiting on its author and the Approvals page
+      // has to show it (sc-131033). They have a group of their own below,
+      // so without this they appear in both -- and under "Needs your
+      // review" a returned change reads as the reader waiting on
+      // themselves.
+      setItems(
+        forMe.filter(c => !(c.is_author && c.status === 'changes_requested')),
+      );
       setReturned(mine.filter(c => c.status === 'changes_requested'));
     } catch {
       setItems([]);

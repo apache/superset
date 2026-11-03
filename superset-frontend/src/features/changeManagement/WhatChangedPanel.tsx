@@ -194,6 +194,13 @@ const fieldLabel = (field: string): string => FIELD_LABELS[field] ?? field;
  * `url_params` and friends -- keeps its raw name, as it does there.
  */
 function controlLabels(changeRequest: ChangeRequest): Record<string, string> {
+  // A chart's params, and nothing else. Keying only on the field name left
+  // this reachable by anything that happens to carry a `params` string with
+  // a `viz_type` in it, which would relabel keys that are not Explore
+  // controls at all.
+  if (changeRequest.asset_type !== 'chart') {
+    return {};
+  }
   const params = changeRequest.proposed?.params;
   if (typeof params !== 'string') {
     return {};

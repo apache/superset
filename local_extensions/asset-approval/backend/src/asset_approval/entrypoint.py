@@ -267,9 +267,20 @@ def belongs_to_the_workflow(role: Any) -> bool:
 
 
 #: The roles the host's own ``sync_role_definitions`` puts the review API's
-#: permissions on. The anonymous role is deliberately absent: see
-#: ``belongs_to_the_workflow``.
-WORKFLOW_ROLES = ("Admin", "Alpha", "Gamma")
+#: permissions on, beside the administrator. The anonymous role is
+#: deliberately absent: see ``belongs_to_the_workflow``.
+WORKFLOW_ROLES = ("Alpha", "Gamma")
+
+
+def _workflow_role_names() -> tuple[str, ...]:
+    """The roles to seed, with the administrator under its configured name.
+
+    ``AUTH_ROLE_ADMIN`` renames the administrator, and the host reads it
+    rather than assuming "Admin". Hardcoding the name here skipped the grant
+    on such an instance without saying so.
+    """
+    admin = str(current_app.config.get("AUTH_ROLE_ADMIN") or "Admin")
+    return (admin, *WORKFLOW_ROLES)
 
 
 def _api_permissions() -> list[str]:
@@ -319,10 +330,32 @@ def _ensure_the_api_permissions_exist() -> None:
     permission an operator or a later version had added.
 
     Seeding a role happens only while nobody holds the permission. Once any
-    role does, the arrangement is the operator's and a deliberate revocation
-    must survive the next restart.
+    role does, the arrangement is the operator's: narrowing it to one role,
+    or moving it to a role of their own, survives every restart.
+
+    The one case it cannot read is a revocation from *every* role, which is
+    indistinguishable from never having been created, so the next boot seeds
+    it again. An operator who means to switch the review API off has
+    ``CHANGE_MANAGEMENT`` and ``EXTENSIONS_SYNC_PAGE_PERMISSIONS`` for that,
+    and both are honoured above.
+
+    ``EXTENSIONS_SYNC_PAGE_PERMISSIONS`` turns the whole thing off, because
+    that is the switch an operator uses to say an extension may not write
+    permissions at boot -- they provision them out of band, or the metadata
+    database is not writable then. The host's page helper checks it, and an
+    earlier version of this function did not, so setting it bought the
+    pages' silence and not the API's.
     """
+    from superset import db
     from superset.extensions import security_manager
+
+    if not current_app.config.get("EXTENSIONS_SYNC_PAGE_PERMISSIONS", True):
+        logger.info(
+            "%s: EXTENSIONS_SYNC_PAGE_PERMISSIONS is off, so the review "
+            "API's permissions are left to the operator",
+            EXTENSION_ID,
+        )
+        return
 
     for name in _api_permissions():
         try:
@@ -334,23 +367,52 @@ def _ensure_the_api_permissions_exist() -> None:
                 continue
             if any(belongs_to_the_workflow(role) for role in pvm.role):
                 continue
-            for role_name in WORKFLOW_ROLES:
+            for role_name in _workflow_role_names():
                 role = security_manager.find_role(role_name)
                 if role is None or pvm in role.permissions:
                     continue
                 security_manager.add_permission_role(role, pvm)
-                logger.info(
-                    "%s: granted %r on %s to %r",
-                    EXTENSION_ID,
-                    name,
-                    WORKFLOW_PERMISSION[1],
-                    role_name,
-                )
+                # Checked rather than assumed: ``add_permission_role``
+                # swallows its own failures and rolls back, so logging
+                # "granted" on the strength of having called it reported a
+                # grant that a lost race or a failed commit had undone --
+                # and this log is how an operator confirms the seeding ran.
+                if pvm in role.permissions:
+                    logger.info(
+                        "%s: granted %r on %s to %r",
+                        EXTENSION_ID,
+                        name,
+                        WORKFLOW_PERMISSION[1],
+                        role_name,
+                    )
+                else:
+                    logger.warning(
+                        "%s: could not grant %r on %s to %r; another worker "
+                        "may hold it, or the write was rolled back",
+                        EXTENSION_ID,
+                        name,
+                        WORKFLOW_PERMISSION[1],
+                        role_name,
+                    )
         except Exception:  # pylint: disable=broad-except
             # A read-only or unmigrated metadata database must not stop the
             # extension loading. Review is then unreachable until
             # ``superset init`` runs, which is the behaviour this replaces
             # rather than a regression.
+            #
+            # Rolled back first: a failed statement leaves the session
+            # unusable, and everything after this would then fail for a
+            # reason that has nothing to do with its own work.
+            try:
+                db.session.rollback()
+            except Exception:  # pylint: disable=broad-except
+                # Nothing left to do about it, and the warning below is the
+                # message that matters to an operator.
+                logger.debug(
+                    "%s: rollback after a failed permission write also failed",
+                    EXTENSION_ID,
+                    exc_info=True,
+                )
             logger.warning(
                 "%s: could not ensure %r on %s; review stays unreachable "
                 "until `superset init` runs",
