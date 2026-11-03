@@ -439,6 +439,7 @@ def test_get_sensitive_field_hints_absent_path() -> None:
         ("a" * 15 + "vwxyz", "vwxyz"),
         ("a" * 16 + "vwxyz", "vwxyz"),
         ("short", None),
+        ("", None),
     ],
 )
 def test_get_sensitive_field_hints_never_reveals_more_than_a_quarter(
@@ -642,6 +643,83 @@ def test_get_sensitive_field_hints_dashes_are_not_a_pem(value: str) -> None:
     assert json.get_sensitive_field_hints({"key": value}, {"$.key"}, 5) == [
         {"path": "$.key", "suffix": value[-5:]}
     ]
+
+
+def test_get_sensitive_field_paths_dotted_path() -> None:
+    """
+    A declared nested path is listed when it holds a string.
+    """
+    payload = {"connect_args": {"scheme": "https", "jwt": "token"}}
+
+    assert json.get_sensitive_field_paths(payload, {"$.connect_args.jwt"}) == [
+        "$.connect_args.jwt"
+    ]
+
+
+def test_get_sensitive_field_paths_wildcard_keeps_only_strings() -> None:
+    """
+    A top-level wildcard lists the string keys only, sorted by path.
+    """
+    payload = {
+        "b_token": "x",
+        "connect_args": {"timeout": 5},
+        "a_key": "y",
+        "port": 3,
+        "flag": True,
+        "nothing": None,
+        "items": ["z"],
+    }
+
+    assert json.get_sensitive_field_paths(payload, {"$.*"}) == ["$.a_key", "$.b_token"]
+
+
+def test_get_sensitive_field_paths_nested_wildcard() -> None:
+    """
+    A wildcard in the middle of a path yields one concrete path per string match.
+    """
+    payload = {
+        "replica": {"secret": "r"},
+        "primary": {"secret": "p"},
+        "other": {"secret": 7},
+    }
+
+    assert json.get_sensitive_field_paths(payload, {"$.*.secret"}) == [
+        "$.primary.secret",
+        "$.replica.secret",
+    ]
+
+
+def test_get_sensitive_field_paths_declared_leaf_under_an_object() -> None:
+    """
+    The wildcard skips an object, while a declared leaf inside it is listed.
+    """
+    payload = {"api_key": "x", "oauth2_client_info": {"id": "i", "secret": "s"}}
+
+    assert json.get_sensitive_field_paths(
+        payload, {"$.*", "$.oauth2_client_info.secret"}
+    ) == ["$.api_key", "$.oauth2_client_info.secret"]
+
+
+@pytest.mark.parametrize("payload", [None, [], ["a", "b"], "text", 42, {}])
+def test_get_sensitive_field_paths_malformed_payload(payload: Any) -> None:
+    """
+    Anything but a non-empty object yields no paths and no error.
+    """
+    assert json.get_sensitive_field_paths(payload, {"$.*", "$.a.b"}) == []
+
+
+def test_get_sensitive_field_hints_agree_with_paths() -> None:
+    """
+    Hints are produced for exactly the paths the path helper lists.
+    """
+    payload = {"api_key": "k" * 24, "connect_args": {"timeout": 5}, "n": 1}
+    fields = {"$.*", "$.connect_args.jwt"}
+
+    hints = json.get_sensitive_field_hints(payload, fields, 4)
+
+    assert [hint["path"] for hint in hints] == json.get_sensitive_field_paths(
+        payload, fields
+    )
 
 
 def test_reveal_sensitive_missing_in_old_payload() -> None:

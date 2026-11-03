@@ -7873,6 +7873,13 @@
             "description": "SSH tunnel is not available to the database",
             "type": "boolean"
           },
+          "encrypted_extra_sensitive_fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "JSONPath of each sensitive encrypted_extra field and its label. On the database GET and on `available`: the engine's declared patterns. On `/connection`: the fields present in the stored encrypted_extra.",
+            "type": "object"
+          },
           "identifier_quote": {
             "allOf": [
               {
@@ -22609,6 +22616,13 @@
                           "disable_ssh_tunneling": {
                             "description": "Whether the engine supports SSH Tunnels",
                             "type": "boolean"
+                          },
+                          "encrypted_extra_sensitive_fields": {
+                            "additionalProperties": {
+                              "type": "string"
+                            },
+                            "description": "JSONPath of each sensitive encrypted_extra field and its label",
+                            "type": "object"
                           },
                           "supports_file_upload": {
                             "description": "Whether the engine supports file uploads",

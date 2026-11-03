@@ -1547,7 +1547,7 @@ def test_encrypted_extra_hints_oauth2_client_secret() -> None:
     assert PrestoEngineSpec.encrypted_extra_hints(config, 4) == [
         {
             "path": "$.oauth2_client_info.secret",
-            "label": "secret",
+            "label": "OAuth2 client secret",
             "suffix": "ab3d",
         }
     ]

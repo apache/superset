@@ -338,6 +338,11 @@ def test_database_connection(
             "engine_information": {
                 "oauth2_enabled": False,
                 "disable_ssh_tunneling": True,
+                "encrypted_extra_sensitive_fields": {
+                    "$.service_account_info.private_key": (
+                        "Service Account Private Key"
+                    ),
+                },
                 "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
                 "supports_oauth2": True,
@@ -435,6 +440,19 @@ def test_database_connection(
             "engine_information": {
                 "oauth2_enabled": False,
                 "disable_ssh_tunneling": True,
+                "encrypted_extra_sensitive_fields": {
+                    "$.embedded_credentials.password": "Embedded guest password",
+                    "$.embedded_credentials.privatekey_body": (
+                        "Embedded guest private key (PEM)"
+                    ),
+                    "$.embedded_credentials.privatekey_pass": (
+                        "Embedded guest private key passphrase"
+                    ),
+                    "$.oauth2_client_info.secret": "OAuth2 Client Secret",
+                    "$.service_account_info.private_key": (
+                        "Service Account Private Key"
+                    ),
+                },
                 "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
                 "supports_oauth2": True,
@@ -3714,3 +3732,95 @@ def test_available_keeps_azure_synapse_on_uri_form(
     databases = {db["name"]: db for db in response.json["databases"]}
     assert "parameters" not in databases["Azure Synapse"]
     assert ("parameters" in databases["Microsoft SQL Server"]) is ("pymssql" in drivers)
+
+
+def test_available_includes_sensitive_field_labels(
+    mocker: MockerFixture,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """The engine information lists the stored-secret fields of each engine."""
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    mocker.patch(
+        "superset.databases.api.get_available_engine_specs",
+        return_value={DruidEngineSpec: {"pydruid"}},
+    )
+    response = client.get("/api/v1/database/available/")
+    assert response.status_code == 200
+    information = response.json["databases"][0]["engine_information"]
+    assert information["encrypted_extra_sensitive_fields"] == {
+        "$.connect_args.jwt": "JWT Token",
+        "$.connect_args.password": "Password",
+        "$.embedded_credentials.password": "Embedded guest password",
+        "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",
+        "$.embedded_credentials.privatekey_pass": (
+            "Embedded guest private key passphrase"
+        ),
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+
+
+def test_connection_lists_stored_sensitive_fields(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    The connection endpoint lists the sensitive fields stored for the database,
+    while the plain GET and the list keep the engine's declared patterns.
+    """
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel._session = session
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    db.session.add(
+        Database(
+            database_name="my_database",
+            sqlalchemy_uri="sqlite://",
+            encrypted_extra=json.dumps(
+                {
+                    "api_key": "x",
+                    "connect_args": {"timeout": 5},
+                    "oauth2_client_info": {"secret": "s"},
+                }
+            ),
+        )
+    )
+    db.session.commit()
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    declared = {
+        "$.*": "Encrypted Extra",
+        "$.embedded_credentials.password": "Embedded guest password",
+        "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",
+        "$.embedded_credentials.privatekey_pass": (
+            "Embedded guest private key passphrase"
+        ),
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+
+    response = client.get("/api/v1/database/1/connection")
+    assert response.status_code == 200
+    information = response.json["result"]["engine_information"]
+    assert information["encrypted_extra_sensitive_fields"] == {
+        "$.api_key": "api_key",
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+
+    response = client.get("/api/v1/database/1")
+    assert response.status_code == 200
+    fields = response.json["result"]["engine_information"][
+        "encrypted_extra_sensitive_fields"
+    ]
+    assert fields == declared
+    assert "$.api_key" not in fields
+
+    response = client.get("/api/v1/database/")
+    assert response.status_code == 200
+    fields = response.json["result"][0]["engine_information"][
+        "encrypted_extra_sensitive_fields"
+    ]
+    assert fields == declared

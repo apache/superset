@@ -289,3 +289,26 @@ def test_encrypted_extra_hints() -> None:
             "suffix": "9z8y",
         },
     ]
+
+
+def test_encrypted_extra_sensitive_field_labels() -> None:
+    """
+    Druid publishes its JWT and password fields, plus the secrets every engine
+    adds.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    assert DruidEngineSpec.encrypted_extra_sensitive_field_labels() == {
+        "$.connect_args.jwt": "JWT Token",
+        "$.connect_args.password": "Password",
+        "$.embedded_credentials.password": "Embedded guest password",
+        "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",
+        "$.embedded_credentials.privatekey_pass": (
+            "Embedded guest private key passphrase"
+        ),
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+    assert (
+        DruidEngineSpec.get_public_information()["encrypted_extra_sensitive_fields"]
+        == DruidEngineSpec.encrypted_extra_sensitive_field_labels()
+    )
