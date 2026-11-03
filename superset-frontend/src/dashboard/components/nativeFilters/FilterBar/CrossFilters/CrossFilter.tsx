@@ -24,6 +24,7 @@ import { useDispatch } from 'react-redux';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { updateDataMask } from 'src/dataMask/actions';
+import { releaseFilterKeyPublish } from 'src/dashboard/util/sharedFilterStateHold';
 import CrossFilterTag from './CrossFilterTag';
 import CrossFilterTitle from './CrossFilterTitle';
 
@@ -46,6 +47,7 @@ const CrossFilter = (props: {
   );
 
   const handleRemoveCrossFilter = (chartId: number) => {
+    releaseFilterKeyPublish();
     dispatch(
       updateDataMask(chartId, {
         extraFormData: {
