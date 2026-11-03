@@ -82,7 +82,11 @@ class CreateChartCommand(CreateMixin, BaseCommand):
             validate_chart_datasource_type(datasource_type)
             datasource = get_datasource_by_id(datasource_id, datasource_type)
             self._properties["datasource_name"] = datasource.name
-            security_manager.raise_for_access(datasource=datasource)
+            # The new chart's editor keeps querying its dataset, so access
+            # inherited through a dashboard, which lasts only as long as the
+            # dashboard grants it, doesn't count here.
+            with security_manager.dashboard_inheritance_disabled():
+                security_manager.raise_for_access(datasource=datasource)
         except SupersetSecurityException as ex:
             raise ChartForbiddenError() from ex
         except ValidationError as ex:

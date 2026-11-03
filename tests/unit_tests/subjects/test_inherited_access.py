@@ -322,16 +322,22 @@ def test_viewer_inherits_published_dashboard_only(
     """A viewer inherits a published dashboard's charts and their dataset, but
     nothing beyond that dashboard.
 
-    The inherited dataset doesn't open other charts or dashboards built on it,
-    and a chart readable only through the dashboard can't be attached to
-    another dashboard the viewer edits, where it would outlive the grant (the
-    editors leg isn't gated on ``published``).
+    The inherited dataset doesn't open other charts or dashboards built on it.
+    Nor can the viewer turn the grant into lasting access: a chart readable
+    only through the dashboard can't be attached to another dashboard they edit
+    (the editors leg isn't gated on ``published``), and the inherited dataset
+    can't back a chart they create or repoint, whose editor they would remain.
     """
     from superset import security_manager
+    from superset.commands.chart.create import CreateChartCommand
+    from superset.commands.chart.exceptions import ChartForbiddenError
+    from superset.commands.chart.update import UpdateChartCommand
     from superset.commands.dashboard.exceptions import DashboardLayoutInvalidError
+    from superset.connectors.sqla.models import SqlaTable
     from superset.daos.dashboard import DashboardDAO
     from superset.exceptions import SupersetSecurityException
     from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
     from superset.subjects.models import Subject
     from superset.subjects.types import SubjectType
 
@@ -348,7 +354,17 @@ def test_viewer_inherits_published_dashboard_only(
         published=False,
         editors=list(fx.viewer_published.viewers),
     )
-    fx.session.add(own_dashboard)
+    other_table = SqlaTable(
+        id=2, table_name="other", database_id=10, perm="[examples].[other](id:2)"
+    )
+    own_chart = Slice(
+        slice_name="viewer's own chart",
+        datasource_id=2,
+        datasource_type="table",
+        viz_type="table",
+        editors=list(fx.viewer_published.viewers),
+    )
+    fx.session.add_all([own_dashboard, other_table, own_chart])
     fx.session.flush()
 
     with acting_as(fx.viewer_user):
@@ -385,6 +401,20 @@ def test_viewer_inherits_published_dashboard_only(
                     }
                 },
             )
+
+        with pytest.raises(ChartForbiddenError):
+            CreateChartCommand(
+                {
+                    "slice_name": "new chart",
+                    "datasource_id": fx.table.id,
+                    "datasource_type": "table",
+                    "viz_type": "table",
+                }
+            ).validate()
+        with pytest.raises(ChartForbiddenError):
+            UpdateChartCommand(
+                own_chart.id, {"datasource_id": fx.table.id, "datasource_type": "table"}
+            ).validate()
     assert own_dashboard.slices == []
 
 
