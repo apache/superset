@@ -3375,6 +3375,9 @@ msgstr ""
 msgid "Check out this dashboard: "
 msgstr ""
 
+msgid "Check the value transform →"
+msgstr ""
+
 msgid "Check to force date partitions to have the same height"
 msgstr ""
 
@@ -5578,6 +5581,12 @@ msgstr ""
 msgid "Discard"
 msgstr ""
 
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
+
 msgid "Display Name"
 msgstr ""
 
@@ -7170,6 +7179,9 @@ msgid "Filters on the mapped column are mirrored onto this column so the engine 
 msgstr ""
 
 msgid "Filters on this column are mapped onto the partition column, but are not mirrored."
+msgstr ""
+
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
 msgstr ""
 
 msgid "Filters on this column are mapped onto the partition field, but with this transform they are not mirrored."
@@ -10521,6 +10533,10 @@ msgid "Partition keys must be whole numbers within the 64-bit range, up to three
 msgstr ""
 
 msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid "Partition pruning on %(mapped)s has not been confirmed. Preview its value transform to check it."
 msgstr ""
 
 msgid "Partitions whose height to parent height proportions are below this value are pruned"
@@ -15432,6 +15448,10 @@ msgid "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. 
 msgstr ""
 
 msgid "This cannot be undone."
+msgstr ""
+
+#, python-format
+msgid "This change discards the value transform on %s. Once you save, filters on %s will no longer be applied to the partition column, so charts on this dataset can scan every partition and time out. Selecting %s again will not restore the transform."
 msgstr ""
 
 msgid "This chart applies cross-filters to charts whose datasets contain columns with the same name."
