@@ -74,7 +74,8 @@ def build_tab_name(raw: str, used: set[str], max_len: int) -> str:
     Uniqueness is case-insensitive; a collision gets a ``~N`` suffix.
 
     :param raw: The desired name.
-    :param used: Names already taken.
+    :param used: Lowercased names already taken. Share one set across calls;
+        each call adds the name it returns.
     :param max_len: The maximum name length.
     :returns: The tab name.
     """
