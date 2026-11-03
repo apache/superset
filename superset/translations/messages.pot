@@ -16855,6 +16855,9 @@ msgstr ""
 msgid "Viewers"
 msgstr ""
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid "Viewers is a list of subjects who can view the dashboard. If no viewers are defined, the dashboard is accessible to all users with appropriate datasource permissions."
 msgstr ""
 
