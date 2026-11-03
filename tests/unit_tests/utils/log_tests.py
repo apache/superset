@@ -216,7 +216,7 @@ def test_redact_request_payload_masks_secrets_at_any_depth() -> None:
 
     assert redacted["database_name"] == "warehouse"
     assert redacted["sqlalchemy_uri"] == (
-        f"snowflake://svc:{PASSWORD_MASK}@account/DB?role=R"
+        f"snowflake://svc:{PASSWORD_MASK}@account/DB?role={PASSWORD_MASK}"
     )
     assert redacted["masked_encrypted_extra"] == PASSWORD_MASK
     assert redacted["parameters"] == {
@@ -255,6 +255,63 @@ def test_redact_request_payload_keeps_uris_without_a_password(
     }
 
 
+@pytest.mark.parametrize(
+    "uri,expected",
+    [
+        (
+            "duckdb:///md:db?motherduck_token=query-secret",
+            f"duckdb:///md:db?motherduck_token={PASSWORD_MASK}",
+        ),
+        (
+            "kusto+https://host/db?azure_ad_client_secret=query-secret&charset=utf8",
+            "kusto+https://host/db?"
+            f"azure_ad_client_secret={PASSWORD_MASK}&charset={PASSWORD_MASK}",
+        ),
+        # An engine's secret parameter is not a name this module can enumerate.
+        (
+            "someengine://host/db?not_a_known_name=query-secret",
+            f"someengine://host/db?not_a_known_name={PASSWORD_MASK}",
+        ),
+        (
+            "trino://host/db?access_token=query-secret&access_token=query-secret",
+            f"trino://host/db?access_token={PASSWORD_MASK}",
+        ),
+        (
+            "postgresql://user:query-secret@host/db?sslpassword=query-secret",
+            f"postgresql://user:{PASSWORD_MASK}@host/db?sslpassword={PASSWORD_MASK}",
+        ),
+        # An unencoded "@" in the password leaves part of it in the parsed host.
+        ("postgresql://user:query@secret@host/db", PASSWORD_MASK),
+        ({"nested": "query-secret"}, PASSWORD_MASK),
+        (["query-secret"], PASSWORD_MASK),
+    ],
+)
+def test_redact_request_payload_masks_uri_secrets_outside_the_password(
+    uri: Any, expected: str
+) -> None:
+    """A URI can carry a credential in its query string, and fails closed."""
+    assert redact_request_payload({"sqlalchemy_uri": uri}) == {
+        "sqlalchemy_uri": expected
+    }
+
+
+def test_redact_request_payload_masks_query_values_in_parameters() -> None:
+    """The form's ``parameters.query`` becomes the URI's query string."""
+    redacted = redact_request_payload(
+        {
+            "parameters": {
+                "host": "warehouse",
+                "query": {"azure_ad_client_secret": "query-secret", "app": "bi"},
+            }
+        }
+    )
+
+    assert redacted["parameters"] == {
+        "host": "warehouse",
+        "query": {"azure_ad_client_secret": PASSWORD_MASK, "app": PASSWORD_MASK},
+    }
+
+
 def test_redact_request_payload_leaves_empty_secrets_alone() -> None:
     """An empty value has nothing to hide and is kept as sent."""
     payload: dict[str, Any] = {
@@ -283,3 +340,17 @@ def test_collect_request_payload_never_carries_a_typed_secret() -> None:
     assert payload["database_name"] == "warehouse"
     assert "typed-pw" not in json.dumps(payload)
     assert "typed-base-pw" not in json.dumps(payload)
+
+
+def test_collect_request_payload_masks_a_credential_in_a_uri_query() -> None:
+    """A secret in the URI's query string does not reach the event log."""
+    body = {"sqlalchemy_uri": "duckdb:///md:db?motherduck_token=typed-token"}
+    with current_app.test_request_context(
+        "/api/v1/database/test_connection/", method="POST", json=body
+    ):
+        payload = collect_request_payload()
+
+    assert "typed-token" not in json.dumps(payload)
+    assert payload["sqlalchemy_uri"] == (
+        f"duckdb:///md:db?motherduck_token={PASSWORD_MASK}"
+    )

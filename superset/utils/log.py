@@ -157,19 +157,47 @@ SENSITIVE_PAYLOAD_KEYS = frozenset(
 
 
 def _redact_uri(uri: Any) -> Any:
-    """Mask the password of a SQLAlchemy URI, keeping the rest readable."""
+    """
+    Mask the secrets of a SQLAlchemy URI, keeping the rest readable.
+
+    Every query value is masked, not just the known secret names: engines take
+    credentials there (``motherduck_token``, ``azure_ad_client_secret``) under
+    names of their own, so a list of them would leak the next one. Anything that
+    can't be taken apart with certainty is masked whole.
+    """
     # Prevent circular import.
     from superset.databases.utils import make_url_safe
 
-    if not isinstance(uri, str) or not uri:
+    if uri in (None, ""):
         return uri
+    if not isinstance(uri, str):
+        return PASSWORD_MASK
     try:
         url = make_url_safe(uri)
+        # An unencoded "@" in a password ends the parsed password early, leaving
+        # the rest of it in the host.
+        if url.host and "@" in url.host:
+            return PASSWORD_MASK
+        if url.password is None and not url.query:
+            return uri
+        if url.password is not None:
+            url = url.set(password=PASSWORD_MASK)
+        return url.set(query=dict.fromkeys(url.query, PASSWORD_MASK)).render_as_string(
+            hide_password=False
+        )
     except Exception:  # pylint: disable=broad-except
-        return PASSWORD_MASK  # unparseable: it may still hold a credential
-    if url.password is None:
-        return uri
-    return url.set(password=PASSWORD_MASK).render_as_string(hide_password=False)
+        return PASSWORD_MASK  # the exception could quote the URI, so it isn't logged
+
+
+def _redact_parameters(parameters: dict[Any, Any]) -> dict[Any, Any]:
+    """Mask a database form's ``parameters``, whose ``query`` builds the URI's."""
+    redacted = redact_request_payload(parameters)
+    query = parameters.get("query")
+    if isinstance(query, dict):
+        redacted["query"] = dict.fromkeys(query, PASSWORD_MASK)
+    elif query:
+        redacted["query"] = PASSWORD_MASK
+    return redacted
 
 
 def redact_request_payload(value: Any) -> Any:
@@ -177,8 +205,9 @@ def redact_request_payload(value: Any) -> Any:
     Mask secrets in a request payload before it is logged.
 
     Values under a ``SENSITIVE_PAYLOAD_KEYS`` key are replaced whole, at any
-    depth, and a ``sqlalchemy_uri`` keeps everything but its password. Empty
-    values are left as they are, since there is nothing to hide.
+    depth. A ``sqlalchemy_uri`` keeps everything but its password and query
+    values, and a ``parameters.query`` keeps only its keys. Empty values are
+    left as they are, since there is nothing to hide.
     """
     if isinstance(value, dict):
         redacted: dict[Any, Any] = {}
@@ -187,6 +216,8 @@ def redact_request_payload(value: Any) -> Any:
                 redacted[key] = PASSWORD_MASK
             elif key == "sqlalchemy_uri":
                 redacted[key] = _redact_uri(item)
+            elif key == "parameters" and isinstance(item, dict):
+                redacted[key] = _redact_parameters(item)
             else:
                 redacted[key] = redact_request_payload(item)
         return redacted
