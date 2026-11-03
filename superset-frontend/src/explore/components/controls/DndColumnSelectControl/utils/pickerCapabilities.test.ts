@@ -31,16 +31,16 @@ test('semantic view without the adhoc-expressions feature is Saved-only', () => 
   });
 });
 
-test('semantic view declaring the adhoc-expressions feature keeps existing modes', () => {
+test('semantic view declaring the reserved adhoc-expressions feature is Saved-only', () => {
   expect(
     getColumnPickerCapabilities({
       type: 'semantic_view',
       semantic_view_features: ['ADHOC_COLUMN_EXPRESSIONS'],
     }),
   ).toEqual({
-    dimensionClassification: 'expression',
-    disabledModes: ['sqlExpression'],
-    showCompatibilityFailure: false,
+    dimensionClassification: 'saved',
+    disabledModes: ['simple', 'sqlExpression'],
+    showCompatibilityFailure: true,
   });
 });
 
@@ -65,17 +65,17 @@ test('unknown feature strings are ignored', () => {
       ],
     }),
   ).toEqual({
-    dimensionClassification: 'expression',
-    disabledModes: ['sqlExpression'],
-    showCompatibilityFailure: false,
+    dimensionClassification: 'saved',
+    disabledModes: ['simple', 'sqlExpression'],
+    showCompatibilityFailure: true,
   });
 });
 
-test('semantic view without feature metadata keeps existing semantic-view behavior', () => {
+test('semantic view without feature metadata is Saved-only', () => {
   expect(getColumnPickerCapabilities({ type: 'semantic_view' })).toEqual({
-    dimensionClassification: 'expression',
-    disabledModes: ['sqlExpression'],
-    showCompatibilityFailure: false,
+    dimensionClassification: 'saved',
+    disabledModes: ['simple', 'sqlExpression'],
+    showCompatibilityFailure: true,
   });
 });
 

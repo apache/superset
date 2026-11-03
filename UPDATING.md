@@ -24,6 +24,9 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic-view column pickers only offer saved dimensions, including for older metadata without feature declarations. `ADHOC_COLUMN_EXPRESSIONS` remains importable but is reserved and grants no capability. Providers must use recognized SDK enum members; raw-string declarations are ignored. SQL dataset expression controls are unchanged.
+
+
 - Dashboard and chart `viewers` can no longer be added through the API or the MCP
   `manage_dashboard_roles` tool while the `ENABLE_VIEWERS` feature flag is off; such
   requests are rejected with a 422. Enforcement of existing viewers is unchanged (a

@@ -669,7 +669,7 @@ test('saved-only semantic view disables Simple and Custom SQL modes in the picke
   );
 });
 
-test('semantic view declaring adhoc expressions keeps existing modes in the picker', async () => {
+test('semantic view declaring adhoc expressions uses Saved-only modes in the picker', async () => {
   render(
     <DndColumnSelect {...defaultProps} options={SEMANTIC_OPTIONS} value={[]} />,
     {
@@ -684,11 +684,11 @@ test('semantic view declaring adhoc expressions keeps existing modes in the pick
     expect(screen.getByRole('tab', { name: 'Simple' })).toBeInTheDocument();
   });
 
-  expect(screen.getByRole('tab', { name: 'Simple' })).toHaveAttribute(
+  expect(screen.getByRole('tab', { name: 'Saved' })).toHaveAttribute(
     'aria-selected',
     'true',
   );
-  expect(screen.getByRole('tab', { name: 'Simple' })).not.toHaveAttribute(
+  expect(screen.getByRole('tab', { name: 'Simple' })).toHaveAttribute(
     'aria-disabled',
     'true',
   );
