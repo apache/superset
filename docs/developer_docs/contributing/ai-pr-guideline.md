@@ -42,4 +42,5 @@ To that end, before submitting a PR, make sure:
 6. You get pre-commit checks passing before a committer reviews
 7. If you are using AI, also use that AI to conduct an adversarial review of your code and address anything it finds
 8. You write in your own voice in the PR, at least a few sentences. If you then want to include AI text, that can follow, with a clear disclaimer like "Here's the AI summary of the changes, I reviewed this and agree with it:"
+
 If your PR does not indicate you've done these things, it may be tagged as lacks-human-authorship and closed.
