@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- The Mixed Chart honors **Truncate Metric** (checked by default) on queries
+  with dimensions: series names show only the dimension values, as in the
+  Timeseries charts, unless both queries would render a series under the same
+  name with the query identifiers hidden. Saved Mixed Charts with a group by
+  render shorter series names; uncheck **Truncate Metric** to keep the metric in
+  them.
+
 - Dashboard and chart `viewers` can no longer be added through the API or the MCP
   `manage_dashboard_roles` tool while the `ENABLE_VIEWERS` feature flag is off; such
   requests are rejected with a 422. Enforcement of existing viewers is unchanged (a
