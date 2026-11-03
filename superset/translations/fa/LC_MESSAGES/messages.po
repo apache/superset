@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 17:24-0700\n"
+"POT-Creation-Date: 2026-11-03 09:25-0800\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -8601,6 +8601,9 @@ msgstr ""
 msgid "Guest"
 msgstr ""
 
+msgid "Guest user cannot access this query"
+msgstr ""
+
 msgid "Guest user cannot modify chart payload"
 msgstr "کاربر مهمان نمی‌تواند بارگذاری نمودار را تغییر دهد"
 
@@ -15878,6 +15881,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "پارامترهای الگو"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Template processing error: %(error)s"
 msgstr "خطای تجزیه: %(error)s"
@@ -21474,6 +21480,12 @@ msgstr ""
 
 msgid "query"
 msgstr "کوئری"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "تصادفی"

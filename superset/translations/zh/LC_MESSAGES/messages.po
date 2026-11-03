@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-29 17:24-0700\n"
+"POT-Creation-Date: 2026-11-03 09:25-0800\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -8335,6 +8335,9 @@ msgstr "当达到系列数量限制时，将剩余系列归入\"其他\"类别�
 msgid "Guest"
 msgstr ""
 
+msgid "Guest user cannot access this query"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Guest user cannot modify chart payload"
@@ -15453,6 +15456,9 @@ msgstr "单元格标题的模板。使用Handlebars模板语法（一种流行�
 msgid "Template parameters"
 msgstr "模板参数"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Template processing error: %(error)s"
 msgstr "错误：%(error)s"
@@ -20806,6 +20812,12 @@ msgstr "查询"
 
 msgid "query"
 msgstr "查询"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 #, fuzzy
 msgid "random"

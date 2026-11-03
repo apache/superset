@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 17:24-0700\n"
+"POT-Creation-Date: 2026-11-03 09:25-0800\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -8188,6 +8188,9 @@ msgstr ""
 msgid "Guest"
 msgstr ""
 
+msgid "Guest user cannot access this query"
+msgstr ""
+
 msgid "Guest user cannot modify chart payload"
 msgstr "Hostující používateľ nemôže upravovať data grafu"
 
@@ -15031,6 +15034,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "Parametre šablony"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Template processing error: %(error)s"
 msgstr "Chyba pri vykonanie šablony: %(error)s"
@@ -20251,6 +20257,12 @@ msgstr ""
 
 msgid "query"
 msgstr "dotaz"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "náhodný"

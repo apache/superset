@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 17:24-0700\n"
+"POT-Creation-Date: 2026-11-03 09:25-0800\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -8037,6 +8037,9 @@ msgstr ""
 msgid "Guest"
 msgstr ""
 
+msgid "Guest user cannot access this query"
+msgstr ""
+
 msgid "Guest user cannot modify chart payload"
 msgstr "விருந்தினர் பயனர் சார்ட் தரவை மாற்ற முடியாது"
 
@@ -14612,6 +14615,9 @@ msgstr "செல் தலைப்புகளுக்கான டெம்�
 msgid "Template parameters"
 msgstr "டெம்ப்ளேட் அளவுருக்கள்"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, python-format
 msgid "Template processing error: %(error)s"
 msgstr "டெம்ப்ளேட் செயலாக்க பிழை: %(error)s"
@@ -19616,6 +19622,12 @@ msgstr "வினவல்கள் (Queries)"
 
 msgid "query"
 msgstr "வினவல்"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "சீரற்ற (random)"

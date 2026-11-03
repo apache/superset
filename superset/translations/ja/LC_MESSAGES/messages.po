@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 17:24-0700\n"
+"POT-Creation-Date: 2026-11-03 09:25-0800\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -7477,6 +7477,9 @@ msgstr "系列の上限に達した際、残りの系列を「その他」カテ
 msgid "Guest"
 msgstr ""
 
+msgid "Guest user cannot access this query"
+msgstr ""
+
 msgid "Guest user cannot modify chart payload"
 msgstr "ゲストユーザーはチャートのデータ(ペイロード)を変更できません"
 
@@ -13841,6 +13844,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "テンプレートパラメータ"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, python-format
 msgid "Template processing error: %(error)s"
 msgstr "テンプレート処理エラー: %(error)s"
@@ -18573,6 +18579,12 @@ msgstr "クエリ"
 
 msgid "query"
 msgstr "クエリ"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "ランダム"
