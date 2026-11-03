@@ -114,6 +114,7 @@ import {
   NativeFiltersForm,
 } from '../types';
 import { CollapsibleControl } from './CollapsibleControl';
+import { partitionedTimeRangeColumn } from './partitionedTimeRange';
 import { ColumnSelect, getDatasourceKey } from './ColumnSelect';
 import DatasetSelect from './DatasetSelect';
 import DefaultValue from './DefaultValue';
@@ -179,6 +180,9 @@ const controlsOrder: ControlKey[] = [
 export const StyledFormItem = styled(FormItem)<{ expanded: boolean }>`
   width: ${({ expanded }) => (expanded ? '49%' : `${FORM_ITEM_WIDTH}px`)};
 `;
+
+/** The pre-filter a new filter on a partition-mapped dataset starts with. */
+export const PARTITIONED_DATASET_DEFAULT_TIME_RANGE = 'Last week';
 
 export const StyledRowFormItem = styled(FormItem)<{ expanded: boolean }>`
   min-width: ${({ expanded }) => (expanded ? '50%' : `${FORM_ITEM_WIDTH}px`)};
@@ -1000,6 +1004,7 @@ const FiltersConfigForm = (
           'main_dttm_col',
           'metrics.metric_name',
           'metrics.verbose_name',
+          'partition_filter_mapping',
           'schema',
           'sql',
           'table_name',
@@ -1028,6 +1033,41 @@ const FiltersConfigForm = (
       current = false;
     };
   }, [datasetId, datasourceType]);
+
+  // A partition-mapped dataset can be large enough that listing a filter's
+  // values without a time range -- a scan of every partition -- times out, so
+  // a new filter starts with a time range on the mapped column, which is
+  // mirrored onto the partition column (see `partitionedTimeRangeColumn` for
+  // when). Applied once per dataset, so an owner who clears it is not
+  // overruled.
+  const partitionDefaultAppliedFor = useRef<number | undefined>();
+  const [partitionTimeRangeDefaulted, setPartitionTimeRangeDefaulted] =
+    useState(false);
+  useEffect(() => {
+    const mappedColumn = partitionedTimeRangeColumn(datasetDetails);
+    if (
+      filterToEdit ||
+      isChartCustomization ||
+      !hasAdditionalFilters ||
+      !datasetId ||
+      !mappedColumn ||
+      partitionDefaultAppliedFor.current === datasetId ||
+      formFilter?.time_range ||
+      formFilter?.granularity_sqla ||
+      formFilter?.adhoc_filters?.length
+    ) {
+      return;
+    }
+    partitionDefaultAppliedFor.current = datasetId;
+    setNativeFilterFieldValues(form, filterId, {
+      preFilter: true,
+      time_range: PARTITIONED_DATASET_DEFAULT_TIME_RANGE,
+      granularity_sqla: mappedColumn,
+    });
+    setPartitionTimeRangeDefaulted(true);
+    forceUpdate();
+    formChanged();
+  }, [datasetDetails]);
 
   useImperativeHandle(ref, () => ({
     changeTab(tab: 'configuration' | 'scoping') {
@@ -1609,7 +1649,7 @@ const FiltersConfigForm = (
                                     name={['filters', filterId, 'preFilter']}
                                   >
                                     <CollapsibleControl
-                                      key={`pre-filter-${selectionsReset}`}
+                                      key={`pre-filter-${selectionsReset}-${partitionTimeRangeDefaulted}`}
                                       initialValue={hasPreFilter}
                                       title={t('Pre-filter available values')}
                                       tooltip={t(`Add filter clauses to control the filter's source query,
@@ -1723,6 +1763,17 @@ const FiltersConfigForm = (
                                       {hasTimeRange && !hasTimeDependency
                                         ? timeColumn
                                         : undefined}
+                                      {partitionTimeRangeDefaulted &&
+                                        hasTimeRange && (
+                                          <Alert
+                                            type="info"
+                                            showIcon
+                                            data-test="partitioned-dataset-time-range-default"
+                                            message={t(
+                                              'This dataset is partitioned. Listing filter values without a time range reads every partition, so a time range is set by default. Clear it to list values from all time.',
+                                            )}
+                                          />
+                                        )}
                                     </CollapsibleControl>
                                   </FormItem>
                                 )}

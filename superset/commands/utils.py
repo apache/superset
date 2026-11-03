@@ -17,13 +17,14 @@
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Sequence
 from typing import Any, Optional, TYPE_CHECKING
 
 from flask import current_app, has_app_context
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
-from superset import security_manager
+from superset import is_feature_enabled, security_manager
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
     TagForbiddenError,
@@ -33,10 +34,16 @@ from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound
 from superset.daos.tag import TagDAO
 from superset.exceptions import SupersetSecurityException
-from superset.subjects.exceptions import SubjectsNotFoundValidationError
+from superset.subjects.exceptions import (
+    SubjectsNotFoundValidationError,
+    ViewersDisabledValidationError,
+)
 from superset.subjects.models import Subject
+from superset.subjects.types import SubjectReference
 from superset.subjects.utils import (
     get_default_viewers_for_new_asset,
+    get_or_create_group_subject,
+    get_or_create_role_subject,
     get_or_create_user_subject as get_user_subject,
     get_subject,
     get_user_subject_ids,
@@ -98,7 +105,7 @@ def raise_if_managed_externally(model: Any, forbidden_exc: type[Exception]) -> N
 
 
 def populate_subject_list(
-    subject_ids: list[int] | None,
+    subject_ids: Sequence[SubjectReference] | None,
     default_to_user: bool,
     ensure_no_lockout: bool = False,
     field_name: str = "subjects",
@@ -123,28 +130,40 @@ def populate_subject_list(
             return [user_subject] if user_subject else []
         return []
 
+    # Resolve typed references before applying lockout checks. A user ID must
+    # never fall back to the Subject with the same numeric primary key.
+    for reference in subject_ids:
+        if not isinstance(reference, dict):
+            subject = get_subject(reference)
+        else:
+            resolver = {
+                "user": get_user_subject,
+                "role": get_or_create_role_subject,
+                "group": get_or_create_group_subject,
+                "subject": get_subject,
+            }.get(reference["type"])
+            subject = resolver(reference["id"]) if resolver else None
+        if not subject:
+            raise SubjectsNotFoundValidationError(field_name)
+        subjects.append(subject)
+
+    resolved_ids = {subject.id for subject in subjects}
     if ensure_no_lockout and not security_manager.is_admin() and user_id:
         user_subject = get_user_subject(user_id)
         if (
             user_subject
-            and user_subject.id not in subject_ids
+            and user_subject.id not in resolved_ids
             and not _has_extra_editors_resolver()
         ):
             user_subject_ids = set(get_user_subject_ids(user_id))
-            if not (user_subject_ids & set(subject_ids)):
-                subjects.append(user_subject)
-
-    for sid in subject_ids:
-        subject = get_subject(sid)
-        if not subject:
-            raise SubjectsNotFoundValidationError(field_name)
-        subjects.append(subject)
+            if not (user_subject_ids & resolved_ids):
+                subjects.insert(0, user_subject)
     return subjects
 
 
 def compute_subject_list(
     current_subjects: list[Subject] | None,
-    new_subject_ids: list[int] | None,
+    new_subject_ids: Sequence[SubjectReference] | None,
     ensure_no_lockout: bool = False,
     field_name: str = "subjects",
 ) -> list[Subject]:
@@ -168,6 +187,29 @@ def compute_subject_list(
         ensure_no_lockout=ensure_no_lockout,
         field_name=field_name,
     )
+
+
+def raise_if_adding_viewers_while_disabled(
+    new_viewers: list[Subject],
+    current_viewers: list[Subject] | None = None,
+) -> None:
+    """
+    Reject viewer additions while ``ENABLE_VIEWERS`` is off.
+
+    Viewers are enforced whenever the relationship is non-empty, independent of
+    the flag, but the flag hides them from the UI. Allowing writes while it is
+    off lets an API client lock a dashboard or chart down in a way admins can
+    neither see nor undo in the UI. Removing viewers (or re-sending the current
+    list) remains allowed so stale assignments can always be cleared.
+
+    :raises ViewersDisabledValidationError: when the flag is off and
+        *new_viewers* contains a subject not already in *current_viewers*
+    """
+    if is_feature_enabled("ENABLE_VIEWERS"):
+        return
+    current_ids = {subject.id for subject in current_viewers or []}
+    if any(subject.id not in current_ids for subject in new_viewers):
+        raise ViewersDisabledValidationError()
 
 
 def populate_subjects(
@@ -197,11 +239,13 @@ def populate_subjects(
 
     if properties.get("viewers") is not None:
         try:
-            properties["viewers"] = populate_subject_list(
+            viewers = populate_subject_list(
                 properties["viewers"],
                 default_to_user=False,
                 field_name="viewers",
             )
+            raise_if_adding_viewers_while_disabled(viewers)
+            properties["viewers"] = viewers
         except ValidationError as ex:
             exceptions.append(ex)
     elif default_viewers := get_default_viewers_for_new_asset(get_user_id()):
@@ -233,11 +277,14 @@ def compute_subjects(
 
     if include_viewers and hasattr(model, "viewers"):
         try:
-            properties["viewers"] = compute_subject_list(
+            viewers = compute_subject_list(
                 model.viewers,
                 properties.get("viewers"),
                 field_name="viewers",
             )
+            if properties.get("viewers") is not None:
+                raise_if_adding_viewers_while_disabled(viewers, model.viewers)
+            properties["viewers"] = viewers
         except ValidationError as ex:
             exceptions.append(ex)
 
