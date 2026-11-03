@@ -19095,6 +19095,9 @@ msgid ""
 msgstr ""
 
 #, python-format
+msgid "This filter isn't applied to any charts yet"
+msgstr ""
+
 msgid "This filter might be incompatible with current %s"
 msgstr "Puede que este filtro sea incompatible con el %s actual"
 

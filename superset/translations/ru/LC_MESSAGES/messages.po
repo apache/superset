@@ -17961,6 +17961,9 @@ msgid ""
 msgstr ""
 
 #, fuzzy, python-format
+msgid "This filter isn't applied to any charts yet"
+msgstr ""
+
 msgid "This filter might be incompatible with current %s"
 msgstr "Этот фильтр может быть несовместим с этим %s"
 

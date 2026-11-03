@@ -18590,6 +18590,9 @@ msgid ""
 msgstr ""
 
 #, python-format
+msgid "This filter isn't applied to any charts yet"
+msgstr ""
+
 msgid "This filter might be incompatible with current %s"
 msgstr ""
 
