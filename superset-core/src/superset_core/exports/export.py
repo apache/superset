@@ -86,9 +86,10 @@ def build_tab_name(raw: str, used: set[str], max_len: int) -> str:
 
     :param raw: The desired name.
     :param used: Lowercased names already taken. Share one set across calls;
-        each call adds the name it returns.
-    :param max_len: The maximum name length.
+        each call adds the lowercased name it returns.
+    :param max_len: The maximum name length, at least 4.
     :returns: The tab name.
+    :raises ValueError: If ``max_len`` is below 4, or no unique name fits in it.
     """
     raise NotImplementedError("Function will be replaced during initialization")
 
@@ -106,8 +107,12 @@ def can_export_dashboard(dashboard_id: int) -> bool:
     """
     Check whether the current user may export a dashboard.
 
+    Does not check the data export permission; callers also need
+    ``can_export_data()``.
+
     :param dashboard_id: The dashboard ID.
-    :returns: True if the user may export data and access the dashboard.
+    :returns: True if the user holds the dashboard export permission and can
+        access the dashboard; False if the dashboard does not exist.
     """
     raise NotImplementedError("Function will be replaced during initialization")
 
@@ -118,7 +123,8 @@ def as_user(user_id: int) -> AbstractContextManager[None]:
 
     Background tasks use this because the task framework does not set a user.
 
-    :param user_id: The ID of the user to act as.
+    :param user_id: The ID of the user to act as: the requester's ID, recorded
+        server-side when the request is made. Never pass a client-supplied value.
     :returns: A context manager that restores the previous user on exit.
     :raises ValueError: On entry, if no user has the given ID.
     """

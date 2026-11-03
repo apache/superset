@@ -34,10 +34,10 @@ Import them from `superset_core.exports.export`.
 | --- | --- |
 | `run_query_context(payload: dict[str, Any]) -> list[ChartQueryResult]` | Runs a chart query context, as sent to `/api/v1/chart/data`, as the current user. |
 | `iter_dashboard_chart_results(dashboard_id: int, active_data_mask: dict[str, Any]) -> Iterator[ChartResult]` | Yields the result of each chart on a dashboard, with the active filters applied. |
-| `build_tab_name(raw: str, used: set[str], max_len: int) -> str` | Returns a sheet tab name within `max_len` that is unique case-insensitively. Pass one `used` set for the whole spreadsheet, empty or holding lowercased names. Each call adds the lowercased name it returns. A collision gets a `~N` suffix. |
+| `build_tab_name(raw: str, used: set[str], max_len: int) -> str` | Returns a sheet tab name within `max_len` that is unique case-insensitively. Pass one `used` set for the whole spreadsheet, empty or holding lowercased names. Each call adds the lowercased name it returns. A collision gets a `~N` suffix. `max_len` must be at least 4, or a `ValueError` is raised. |
 | `can_export_data() -> bool` | Checks that the current user holds the export permission. |
-| `can_export_dashboard(dashboard_id: int) -> bool` | Checks that the current user may export data and access the dashboard. |
-| `as_user(user_id: int) -> AbstractContextManager[None]` | Runs the enclosed block as the given user. |
+| `can_export_dashboard(dashboard_id: int) -> bool` | Checks that the current user holds the dashboard export permission and can access the dashboard. It does not check the data export permission. |
+| `as_user(user_id: int) -> AbstractContextManager[None]` | Runs the enclosed block as the given user. Pass the requester's ID, recorded server-side when the request is made, never a client-supplied value. |
 
 `active_data_mask` is the dashboard's active filter state, keyed by filter ID.
 
@@ -52,7 +52,7 @@ Import them from `superset_core.exports.types`. All are frozen dataclasses excep
 - `ChartQueryResult`: `colnames`, `coltypes` (a list of `GenericDataType`) and `data` (a list of row dicts) for one query.
 - `ChartResult`: `chart_id`, `chart_name`, `queries` (a list of `ChartQueryResult`) and `skipped_reason`.
 - `GenericDataType`: `NUMERIC`, `STRING`, `TEMPORAL`, `BOOLEAN` or `MULTI_VALUE`.
-- `SkipReason`: `no-query-context`, `unbounded-query` or `general-exception`.
+- `SkipReason`: `no-query-context`, `unbounded-query` or `general-exception`. `iter_dashboard_chart_results` never returns `unbounded-query`; only Superset's own Excel export planning sets it.
 
 `iter_dashboard_chart_results` does not raise when a single chart fails. It yields a `ChartResult` with `skipped_reason` set and an empty `queries` list, then continues with the next chart. A Celery soft timeout is the exception and propagates to the caller.
 
@@ -71,7 +71,7 @@ The host raises its own exception classes, which extensions cannot import. Catch
 `run_query_context` and `iter_dashboard_chart_results` check data access: the datasource, row-level security and dashboard membership. They do not check the export permission. Your extension must check it:
 
 - Call `can_export_data()` before `run_query_context`.
-- Call `can_export_dashboard(dashboard_id)` before any dashboard export. It covers the export permission and dashboard access.
+- Call both `can_export_data()` and `can_export_dashboard(dashboard_id)` before any dashboard export. `can_export_dashboard` covers the dashboard export permission and dashboard access, not the data export permission.
 
 Return a 403 from your endpoint when the check fails.
 
@@ -87,7 +87,7 @@ with as_user(user_id):
         ...
 ```
 
-Check `can_export_dashboard` before queuing the task, and again inside `as_user` if the task may run long after the request.
+Take `user_id` from the request's authenticated user and store it with the task; never accept it from the client. Check `can_export_data` and `can_export_dashboard` before queuing the task, and again inside `as_user` if the task may run long after the request.
 
 ## Example
 
