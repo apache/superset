@@ -923,7 +923,8 @@ export const useExploreAdditionalActionsMenu = (
           );
         },
       },
-      ...extensionExportItems,
+      // Image-only charts offer no data exports, so extensions get no items.
+      ...(imageOnlyExport ? [] : extensionExportItems),
     );
 
     const currentViewChildren = [
