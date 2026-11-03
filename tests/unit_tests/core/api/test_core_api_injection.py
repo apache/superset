@@ -30,6 +30,7 @@ from superset.core.api.core_api_injection import inject_export_implementations
 _STUB_NAMES = (
     "run_query_context",
     "iter_dashboard_chart_results",
+    "describe_dashboard_export",
     "build_tab_name",
     "can_export_data",
     "can_export_dashboard",
@@ -54,11 +55,13 @@ def test_injection_replaces_every_stub(app_context: None) -> None:
     from superset.dashboards.excel_export.chart_results import (
         iter_dashboard_chart_results,
     )
+    from superset.dashboards.export_info import describe_dashboard_export
 
     inject_export_implementations()
 
     assert api.run_query_context is run_query_context
     assert api.iter_dashboard_chart_results is iter_dashboard_chart_results
+    assert api.describe_dashboard_export is describe_dashboard_export
     assert api.can_export_data is can_export_data
     assert api.can_export_dashboard is can_export_dashboard
     assert api.build_tab_name("History", set(), 100) == "History"

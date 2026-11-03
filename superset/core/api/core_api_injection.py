@@ -179,6 +179,7 @@ def inject_export_implementations() -> None:
     from superset.dashboards.excel_export.chart_results import (
         iter_dashboard_chart_results,
     )
+    from superset.dashboards.export_info import describe_dashboard_export
     from superset.utils.core import override_user
     from superset.utils.excel_streaming import sanitize_sheet_name
 
@@ -198,6 +199,7 @@ def inject_export_implementations() -> None:
 
     core_export_module.run_query_context = run_query_context
     core_export_module.iter_dashboard_chart_results = iter_dashboard_chart_results
+    core_export_module.describe_dashboard_export = describe_dashboard_export
     core_export_module.can_export_data = can_export_data
     core_export_module.can_export_dashboard = can_export_dashboard
     core_export_module.build_tab_name = build_tab_name

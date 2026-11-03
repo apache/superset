@@ -35,6 +35,7 @@ from typing import Any
 from superset_core.exports.types import (
     ChartQueryResult,
     ChartResult,
+    DashboardExportInfo,
 )
 
 
@@ -74,6 +75,25 @@ def iter_dashboard_chart_results(
     :param dashboard_id: The dashboard ID.
     :param active_data_mask: The dashboard's active filter state, keyed by filter ID.
     :returns: An iterator of per-chart results.
+    """
+    raise NotImplementedError("Function will be replaced during initialization")
+
+
+def describe_dashboard_export(
+    dashboard_id: int, active_data_mask: dict[str, Any]
+) -> DashboardExportInfo:
+    """
+    Describe the dashboard for an export: title, links and applied filters.
+
+    ``applied_filters`` lists the dashboard's native filters only. Cross-filters
+    are left out because exports do not apply them.
+
+    :param dashboard_id: The dashboard ID.
+    :param active_data_mask: The dashboard's active filter state, keyed by filter ID.
+    :returns: The dashboard export metadata.
+    :raises Exception: A not-found exception (HTTP 404 semantics) if the
+        dashboard does not exist, or a security exception (HTTP 403 semantics)
+        if the user cannot access it.
     """
     raise NotImplementedError("Function will be replaced during initialization")
 

@@ -25,6 +25,7 @@ from superset_core.exports.types import ChartResult, GenericDataType, SkipReason
     [
         ("run_query_context", ({},)),
         ("iter_dashboard_chart_results", (1, {})),
+        ("describe_dashboard_export", (1, {})),
         ("build_tab_name", ("x", set(), 100)),
         ("can_export_data", ()),
         ("can_export_dashboard", (1,)),
