@@ -23,16 +23,18 @@ whatever the token's username claim is, so the task renders as that guest.
 # pylint: disable=redefined-outer-name
 
 from typing import Any, cast
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, PropertyMock
 from uuid import uuid4
 
 import pytest
 from flask import g
 from flask_appbuilder.security.sqla.models import Role
 from pytest_mock import MockerFixture
+from sqlalchemy import text
 
 from superset import security_manager
 from superset.extensions import feature_flag_manager
+from superset.models.dashboard import Dashboard
 from superset.security.guest_token import (
     GuestToken,
     GuestTokenResourceType,
@@ -113,6 +115,34 @@ def request_key_lookup(mocker: MockerFixture, screenshot_task: MagicMock) -> Mag
     )
 
 
+@pytest.fixture
+def real_digest(mocker: MockerFixture, request_key_lookup: MagicMock) -> None:
+    """
+    Serve a real dashboard so ``dashboard.digest`` is computed rather than
+    stubbed. Only the datasource, whose rules are resolved from the guest, is a
+    stand-in.
+    """
+    datasource = MagicMock(id=3, is_rls_supported=True)
+    datasource.get_sqla_row_level_filters.side_effect = lambda: [
+        text(rule["clause"])
+        for rule in security_manager.get_guest_rls_filters(datasource)
+    ]
+    mocker.patch.object(
+        Dashboard, "datasources", new_callable=PropertyMock, return_value={datasource}
+    )
+    mocker.patch.object(security_manager, "prefetch_rls_filters", return_value=None)
+    mocker.patch(
+        "flask_appbuilder.models.sqla.interface.SQLAInterface.get"
+    ).return_value = Dashboard(
+        id=DASHBOARD_ID,
+        dashboard_title="Embedded dashboard",
+        slices=[],
+        position_json="{}",
+        css="",
+        json_metadata="{}",
+    )
+
+
 def _guest_token(
     username: str,
     attributes: dict[str, Any] | None = None,
@@ -189,6 +219,36 @@ def test_screenshot_request_key_differs_for_guests_with_different_rls_without_di
     )
 
     assert first != second
+
+
+@pytest.mark.parametrize("username", USERNAMES, ids=USERNAME_IDS)
+def test_screenshot_request_key_with_real_digest_separates_guests_by_rls(
+    client: Any, request_key_lookup: MagicMock, real_digest: None, username: str
+) -> None:
+    other_rls: list[GuestTokenRlsRule] = [{"dataset": "3", "clause": "region = 'US'"}]
+
+    first = _request_key(client, request_key_lookup, _guest_token(username))
+    again = _request_key(client, request_key_lookup, _guest_token(username))
+    other = _request_key(
+        client, request_key_lookup, _guest_token(username, rls=other_rls)
+    )
+
+    assert first == again
+    assert first != other
+
+
+@pytest.mark.parametrize("username", USERNAMES, ids=USERNAME_IDS)
+def test_screenshot_request_key_with_real_digest_separates_guests_by_attributes(
+    client: Any, request_key_lookup: MagicMock, real_digest: None, username: str
+) -> None:
+    first = _request_key(
+        client, request_key_lookup, _guest_token(username, {"tenant": "a"})
+    )
+    other = _request_key(
+        client, request_key_lookup, _guest_token(username, {"tenant": "b"})
+    )
+
+    assert first != other
 
 
 @pytest.mark.parametrize("username", USERNAMES, ids=USERNAME_IDS)
