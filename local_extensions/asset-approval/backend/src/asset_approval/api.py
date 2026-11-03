@@ -58,6 +58,7 @@ from asset_approval.gate import (
     RESTORE_VERSION_COMMAND,
 )
 from asset_approval.changes import (
+    DERIVED_METADATA_KEYS,
     changed_fields,
     changed_keys_by_kind,
     layout_summary,
@@ -322,6 +323,19 @@ def _opaque_entry(field: str, current: Any, proposed: Any) -> dict[str, Any]:
             entry["layout"] = summary
         return entry
     kinds = changed_keys_by_kind(current, proposed)
+    if field == "json_metadata":
+        # The gate ignores these: Superset recomputes them on every read, so
+        # they move on their own and no author sets them. Naming them here
+        # told a reviewer that a dashboard save had changed
+        # `map_label_colors` and `shared_label_colors`, which nobody had
+        # touched, while saying nothing about what actually moved (129075).
+        #
+        # Read from the same set the gate uses rather than listed again, so
+        # the two cannot drift apart -- which is exactly how they had.
+        kinds = {
+            kind: [key for key in keys if key not in DERIVED_METADATA_KEYS]
+            for kind, keys in kinds.items()
+        }
     edited = kinds["moved"] + kinds["removed"]
     if keys := edited or kinds["added"]:
         entry["keys"] = keys

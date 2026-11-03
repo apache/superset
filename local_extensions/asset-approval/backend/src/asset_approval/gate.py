@@ -296,6 +296,8 @@ def gate_write(
             _display_name(existing.author),
         )
 
+    replaced_delete = False
+    left_review = False
     if existing is not None:
         kind = (command_args or {}).get(COMMAND_KEY)
         existing_kind = existing.command_args.get(COMMAND_KEY)
@@ -314,6 +316,23 @@ def gate_write(
             )
         if combine is not None and Operation(existing.operation) is operation:
             payload = combine(existing.payload_dict, payload)
+        # Read before the fold overwrites them. A save that takes the place
+        # of a delete, or that pulls a submitted request back out of review,
+        # has to say so: the delete direction already did, and this one left
+        # the author with "Changes updated in your existing draft" while
+        # their submitted delete was discarded and the approver's queued
+        # item vanished (129078).
+        # ``getattr``: a request is also folded into from paths that hand
+        # this a partial stand-in for the row, and neither answer is worth
+        # failing a write over.
+        replaced_delete = (
+            Operation(getattr(existing, "operation", Operation.UPDATE.value))
+            is Operation.DELETE
+        )
+        left_review = (
+            ChangeStatus(getattr(existing, "status", ChangeStatus.DRAFT.value))
+            is ChangeStatus.PENDING
+        )
         change_request_id = _update_own_request(
             existing.id, payload, note, command_args, operation, base=base
         )
@@ -335,6 +354,8 @@ def gate_write(
         asset_id,
         operation=operation.value,
         updated_existing=existing is not None,
+        replaced_delete=existing is not None and replaced_delete,
+        left_review=existing is not None and left_review,
     )
 
 

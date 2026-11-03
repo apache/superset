@@ -70,6 +70,8 @@ class ChangeRequestCreated(ChangeManagementException):
         operation: str = "update",
         updated_existing: bool = False,
         replaced_edit: bool = False,
+        replaced_delete: bool = False,
+        left_review: bool = False,
     ):
         self.change_request_id = change_request_id
         self.asset_type = asset_type
@@ -92,6 +94,14 @@ class ChangeRequestCreated(ChangeManagementException):
         #: that the delete was captured, and the edit disappeared without
         #: anything saying so (QA-03).
         self.replaced_edit = replaced_edit
+        #: This save took the place of a delete the author had waiting. The
+        #: mirror of ``replaced_edit``, and the direction that stayed silent
+        #: (129078).
+        self.replaced_delete = replaced_delete
+        #: The request it folded into had been submitted, so this save has
+        #: pulled it back out of review and the approver's queued item is
+        #: gone.
+        self.left_review = left_review
         super().__init__(
             f"Changes to {count} {asset_type}(s) were held for review as "
             f"drafts. Request review on each when you are ready."

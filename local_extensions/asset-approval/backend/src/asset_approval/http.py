@@ -49,6 +49,14 @@ DELETE_MESSAGE = (
     "Delete saved as a draft. Nothing has been removed. Request review when "
     "you are ready."
 )
+UPDATED_REPLACED_DELETE_MESSAGE = (
+    "Changes saved in place of the delete you had waiting, which is no "
+    "longer requested. Request review when you are ready."
+)
+UPDATED_LEFT_REVIEW_MESSAGE = (
+    "Changes updated in your draft, which has been taken back out of "
+    "review. Request review again when you are ready."
+)
 DELETE_REPLACED_MESSAGE = (
     "Delete saved as a draft. Nothing has been removed, and it replaced the "
     "edit you had waiting. Request review when you are ready."
@@ -81,6 +89,15 @@ def captured_message(ex: ChangeRequestCreated) -> str:
         # with nothing in the answer to show for it (QA-03).
         return DELETE_REPLACED_MESSAGE if ex.replaced_edit else DELETE_MESSAGE
     if ex.updated_existing:
+        # The mirror of DELETE_REPLACED_MESSAGE above. A save that takes the
+        # place of a delete discards a different request, and one that folds
+        # into a submitted request pulls it out of review and empties the
+        # approver's queue. Both used to answer "Changes updated in your
+        # existing draft", which describes neither (129078).
+        if ex.replaced_delete:
+            return UPDATED_REPLACED_DELETE_MESSAGE
+        if ex.left_review:
+            return UPDATED_LEFT_REVIEW_MESSAGE
         # A second save by the same author folds into the draft they already
         # have. "Changes saved" again reads as though a new one was made
         # and leaves them looking for it (QA-11).
