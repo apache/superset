@@ -51,6 +51,8 @@ from superset.utils.core import GenericDataType
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
+    from sqlalchemy.engine.reflection import Inspector
+
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 
@@ -622,6 +624,30 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             },
         ],
     }
+
+    @classmethod
+    def get_table_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: str | None,
+    ) -> set[str]:
+        """
+        Get all the real table names within the specified schema.
+
+        The clickhouse-connect dialect's `get_table_names` runs `SHOW TABLES`, which
+        includes views, and since clickhouse-connect 1.10.1 its `get_view_names`
+        returns them too; without this, every view is listed twice.
+
+        :param database: The database to inspect
+        :param inspector: The SQLAlchemy inspector
+        :param schema: The schema to inspect
+        :returns: The physical table names
+        """
+
+        return super().get_table_names(
+            database, inspector, schema
+        ) - cls.get_view_names(database, inspector, schema)
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
