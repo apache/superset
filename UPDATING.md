@@ -53,12 +53,20 @@ assists people when migrating to a new version.
   release replaces its whole Secure Extra with those blocks instead, so upgrade import
   destinations first.
 
+- Dashboard and chart `viewers` can no longer be added through the API or the MCP
+  `manage_dashboard_roles` tool while the `ENABLE_VIEWERS` feature flag is off; such
+  requests are rejected with a 422. Enforcement of existing viewers is unchanged (a
+  non-empty viewers list restricts access regardless of the flag), and removing
+  viewers remains possible so stale assignments can be cleared.
+
 - With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
   using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and
   `CACHE_REDIS_USER`. Previously they always ran on DB 0 and without the ACL user.
   If `CACHE_REDIS_DB` is not 0, coordination state (task state, locks and streams)
   moves to that DB: avoid running old and new versions side by side, and drain
   in-flight tasks before upgrading.
+
+- Partition filter mapping no longer suggests bare `unix_timestamp(:value)` on Hive/Impala-family engines. Existing temporal-to-numeric mappings using that expression, or any transform that answers raw epoch instants in seconds through nanoseconds (for example `CAST(unix_timestamp(:value) AS BIGINT)` or `utc_to_unix_micros(:value)`, from a timestamp column or a text one in any common layout), stop pruning to prevent incorrect counts on hour/day epoch keys; this includes keys that really store raw epoch instants. Replace it with the expression that populates the partition key, including rounding and timezone. The dataset editor can explicitly compare a candidate against sampled rows from selected numeric partitions; a sample match is not a guarantee for the entire dataset.
 
 - Refreshing a dataset's columns from its source (the "Sync columns from
   source" button, `PUT /api/v1/dataset/<id>?override_columns=true`, or

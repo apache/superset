@@ -947,7 +947,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @category: runtime_config
     "CSS_TEMPLATES": True,
     # Subject-based viewer access control for dashboards and charts.
-    # When enabled, resources can have explicit viewer Subject assignments.
+    # When enabled, viewers can be assigned through the UI and API. A non-empty
+    # viewers list is always enforced, even when this flag is off (legacy
+    # DASHBOARD_RBAC roles are migrated into viewers); turning the flag off only
+    # blocks adding new viewers, while existing ones can still be removed.
     # @lifecycle: testing
     # @category: security
     "ENABLE_VIEWERS": False,
