@@ -211,3 +211,14 @@ def test_load_errors_raise_validation_error(
     mocks["ChartDataQueryContextSchema"].return_value.load.side_effect = error
     with pytest.raises(ValidationError, match=message):
         run_query_context({"queries": [{}]})
+
+
+@pytest.mark.parametrize("payload_extra", [{}, {"form_data": None}])
+def test_post_processed_without_form_data_passes_empty_dict(
+    mocks: dict[str, mock.MagicMock], payload_extra: dict[str, Any]
+) -> None:
+    mocks[
+        "ChartDataQueryContextSchema"
+    ].return_value.load.return_value.result_type = ChartDataResultType.POST_PROCESSED
+    run_query_context({"queries": [{}], **payload_extra})
+    assert mocks["apply_client_processing"].call_args.args[1] == {}

@@ -86,7 +86,7 @@ def run_query_context(payload: dict[str, Any]) -> list[ChartQueryResult]:
 
     if query_context.result_type == ChartDataResultType.POST_PROCESSED:
         result = apply_client_processing(
-            result, payload.get("form_data"), query_context.datasource
+            result, payload.get("form_data") or {}, query_context.datasource
         )
 
     return [
