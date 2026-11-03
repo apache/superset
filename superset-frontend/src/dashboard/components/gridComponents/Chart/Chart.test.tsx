@@ -17,7 +17,15 @@
  * under the License.
  */
 import { useEffect } from 'react';
-import { act, fireEvent, render } from 'spec/helpers/testing-library';
+import {
+  act,
+  createStore,
+  fireEvent,
+  render,
+} from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
+import { updateDataMask } from 'src/dataMask/actions';
+import type { DataMask } from '@superset-ui/core';
 import {
   DatasourceType,
   FeatureFlag,
@@ -1284,11 +1292,15 @@ test('passes the form data of the last request to ChartContainer next to the cur
   );
 });
 
-test('dashboard chart download: getExportPayload builds the payload at call time from dashboard form data and ownState', async () => {
+test('dashboard chart download: getPayload reflects ownState changed after the chart loaded', async () => {
   const payload = { result_format: 'json', result_type: 'full' };
   const buildPayload = jest
     .spyOn(exploreUtils, 'buildV1ChartDataPayload')
-    .mockResolvedValue(payload as any);
+    .mockResolvedValue(
+      payload as unknown as Awaited<
+        ReturnType<typeof exploreUtils.buildV1ChartDataPayload>
+      >,
+    );
   const run = jest.fn();
   const disposables: common.Disposable[] = [
     commands.registerCommand(
@@ -1302,21 +1314,36 @@ test('dashboard chart download: getExportPayload builds the payload at call time
     ),
   ];
   try {
-    const { getByRole, findByText } = setup(
-      {},
+    const store = createStore(
       {
+        ...defaultState,
         dashboardInfo: {
           ...defaultState.dashboardInfo,
           superset_can_download: true,
         },
-        dataMask: { [queryId]: { ownState: { currentPage: 3 } } },
+        dataMask: { [queryId]: { ownState: { currentPage: 1 } } },
       },
+      reducerIndex,
     );
+    const { getByRole, findByText } = render(<Chart {...props} />, {
+      store,
+      useRouter: true,
+    });
     fireEvent.click(getByRole('button', { name: 'More Options' }));
     fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
-    fireEvent.click(await findByText('Export to Google Sheets'));
-    expect(run).toHaveBeenCalledTimes(1);
+    const item = await findByText('Export to Google Sheets');
     expect(buildPayload).not.toHaveBeenCalled();
+
+    act(() => {
+      store.dispatch(
+        updateDataMask(queryId, {
+          id: queryId,
+          ownState: { currentPage: 7 },
+        } as DataMask),
+      );
+    });
+    fireEvent.click(item);
+    expect(run).toHaveBeenCalledTimes(1);
 
     const ctx = run.mock.calls[0][0] as {
       getPayload: () => Promise<unknown>;
@@ -1325,7 +1352,7 @@ test('dashboard chart download: getExportPayload builds the payload at call time
     expect(buildPayload).toHaveBeenCalledWith(
       expect.objectContaining({
         formData: expect.objectContaining({ dashboardId: 111 }),
-        ownState: expect.objectContaining({ currentPage: 3 }),
+        ownState: expect.objectContaining({ currentPage: 7 }),
         resultType: 'full',
         resultFormat: 'json',
       }),
