@@ -1796,7 +1796,15 @@ def test_public_information_exposes_the_partition_mapping_capability() -> None:
 
     hive = HiveEngineSpec.get_public_information()
     assert hive["supports_partition_filter_mapping"] is True
-    assert hive["partition_value_transform_default"] == "unix_timestamp(:value)"
+    assert hive["partition_value_transform_default"] is None
+
+    class EngineWithDefault(BaseEngineSpec):
+        partition_value_transform_default = "bucket(:value)"
+
+    assert (
+        EngineWithDefault.get_public_information()["partition_value_transform_default"]
+        == "bucket(:value)"
+    )
 
 
 def _parameters(encryption: bool) -> BasicParametersType:

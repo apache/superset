@@ -720,6 +720,8 @@ test('designating a partition column leaves its filterable and groupby flags alo
   });
 });
 
+const ENGINE_TRANSFORM_DEFAULT = 'floor(unix_timestamp(:value) / 3600)';
+
 const DATABASES = [
   {
     id: 1,
@@ -727,7 +729,9 @@ const DATABASES = [
     backend: 'hive',
     engine_information: {
       supports_partition_filter_mapping: true,
-      partition_value_transform_default: 'unix_timestamp(:value)',
+      // Hive itself ships no default; the fixture supplies one so the tests can
+      // follow an engine's default across a database switch.
+      partition_value_transform_default: ENGINE_TRANSFORM_DEFAULT,
     },
   },
   {
@@ -809,12 +813,11 @@ test('switching to a database whose engine supports it offers partition mapping'
   expect(await showsPartitionSection()).toBe(true);
 });
 
-test('switching from Postgres to Hive pre-fills the Hive transform on a temporal column', async () => {
+test('switching databases pre-fills the new engine transform default on a temporal column', async () => {
   // The section showing is not enough: if the switch dropped the engine's
-  // default, Postgres -> Hive would offer the controls but pre-fill nothing,
-  // and the owner would get no hint that Hive's partition keys want
-  // `unix_timestamp(:value)`. So the mapping is moved onto `ds`, a DATETIME
-  // column, after the switch, and the transform it arrives with is asserted.
+  // default, the editor would offer the controls but pre-fill nothing. So the
+  // mapping is moved onto `ds`, a DATETIME column, after the switch, and the
+  // transform it arrives with is asserted.
   const props = await renderWithDatabases(false, {
     main_dttm_col: 'ds',
     partition_column: 'num',
@@ -835,15 +838,15 @@ test('switching from Postgres to Hive pre-fills the Hive transform on a temporal
 
   await waitFor(() => {
     expect(columnNamed(lastSavedColumns(props), 'ds')).toMatchObject({
-      partition_value_transform: 'unix_timestamp(:value)',
+      partition_value_transform: ENGINE_TRANSFORM_DEFAULT,
     });
   });
 });
 
 test('switching from Hive to Postgres clears the engine capability and default', async () => {
   // The reverse direction: what the editor emits for the dataset has to stop
-  // carrying Hive's capability and transform default, or a later mapping move
-  // would pre-fill Hive syntax that does not parse on Postgres.
+  // carrying the old engine's capability and transform default, or a later
+  // mapping move would pre-fill syntax that does not parse on Postgres.
   const props = await renderWithDatabases(true);
 
   await selectOption(
