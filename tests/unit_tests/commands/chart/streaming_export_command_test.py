@@ -675,6 +675,44 @@ def test_streaming_export_does_not_leave_its_contexts_on_the_thread_mid_stream(
     assert _cv_request.get(None) is outer
 
 
+def test_streaming_export_read_in_part_before_the_request_ends(
+    app: Any,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Reading part of the body while the request is still being handled (from an
+    ``after_request`` hook, say) must not stop Flask from popping the request's
+    contexts, and the rest of the body must still stream inside that request.
+    """
+    view_request: dict[str, Any] = {}
+    seen: list[bool] = []
+
+    def fake_execute_query_and_stream(
+        self: StreamingCSVExportCommand, *args: Any, **kwargs: Any
+    ) -> Iterator[str]:
+        seen.append(_cv_request.get(None) is view_request["context"])
+        yield "id\n"
+        seen.append(_cv_request.get(None) is view_request["context"])
+        yield "1\n"
+
+    mocker.patch.object(
+        StreamingCSVExportCommand,
+        "_execute_query_and_stream",
+        fake_execute_query_and_stream,
+    )
+
+    outer = _cv_request.get(None)
+    with app.app_context(), app.test_request_context("/"):
+        view_request["context"] = _cv_request.get()
+        stream = StreamingCSVExportCommand(mocker.MagicMock()).run()()
+        assert next(stream) == "id\n"
+
+    assert _cv_request.get(None) is outer
+    assert list(stream) == ["1\n"]
+    assert seen == [True, True]
+    assert _cv_request.get(None) is outer
+
+
 def test_reload_if_detached_keeps_changes_made_meanwhile(
     app: Any,
     session: Session,

@@ -446,6 +446,12 @@ class BaseStreamingCSVExportCommand(BaseCommand):
             app_context = _cv_app.get()
 
             def in_request() -> Generator[str, None, None]:
+                if _cv_request.get(None) is request_context:
+                    # Pulled while the request is still being handled: its
+                    # contexts are already active, and pushing them again here
+                    # would leave a token Flask's own pop can't reset.
+                    yield from csv_generator()
+                    return
                 with app_context, request_context:
                     yield from csv_generator()
 
