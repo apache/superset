@@ -1515,6 +1515,101 @@ test('regression #37921: multi-metric Query A with groupby does not duplicate fi
   }
 });
 
+// With "Truncate Metric", the backend returns dimension-only column names for
+// a single-metric query with dimensions, as in defaultQueryRows (#38190).
+function getSeriesNamesPerQuery(
+  formDataOverrides: Partial<EchartsMixedTimeseriesFormData>,
+  queryBData = createTestQueryData(defaultQueryRows, {
+    label_map: defaultLabelMap,
+  }),
+) {
+  const queryAData = createTestQueryData(defaultQueryRows, {
+    label_map: defaultLabelMap,
+  });
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [queryAData, queryBData],
+    formData: { ...formData, ...formDataOverrides },
+    queriesData: [queryAData, queryBData],
+  });
+  const transformed = transformProps(chartProps);
+  const names = (transformed.echartOptions.series as SeriesOption[]).map(
+    series => String(series.name),
+  );
+  return {
+    transformed,
+    namesA: names.slice(0, transformed.seriesBreakdown).sort(),
+    namesB: names.slice(transformed.seriesBreakdown).sort(),
+  };
+}
+
+test('truncate metric renders dimension-only series names when the queries do not share them', () => {
+  const stateQueryData = createTestQueryData(
+    [
+      { CA: 5, NY: 6, ds: 599616000000 },
+      { CA: 7, NY: 8, ds: 599916000000 },
+    ],
+    { label_map: { ds: ['ds'], CA: ['CA'], NY: ['NY'] } },
+  );
+  const { transformed, namesA, namesB } = getSeriesNamesPerQuery(
+    { groupbyB: ['state'], truncateMetric: true, truncateMetricB: true },
+    stateQueryData,
+  );
+
+  expect(namesA).toEqual(['boy', 'girl']);
+  expect(namesB).toEqual(['CA', 'NY']);
+  expect(transformed.labelMap).toEqual({ boy: ['boy'], girl: ['girl'] });
+  expect(transformed.labelMapB).toEqual({ CA: ['CA'], NY: ['NY'] });
+});
+
+test('truncate metric keeps only the query identifiers when they are shown', () => {
+  const { namesA, namesB } = getSeriesNamesPerQuery({
+    showQueryIdentifiers: true,
+    truncateMetric: true,
+    truncateMetricB: true,
+  });
+
+  expect(namesA).toEqual(['boy (Query A)', 'girl (Query A)']);
+  expect(namesB).toEqual(['boy (Query B)', 'girl (Query B)']);
+});
+
+test('truncate metric keeps the metric when both queries would render the same series names', () => {
+  const { namesA, namesB } = getSeriesNamesPerQuery({
+    metricsB: ['avg__num'],
+    truncateMetric: true,
+    truncateMetricB: true,
+  });
+
+  expect(namesA).toEqual(['sum__num, boy', 'sum__num, girl']);
+  expect(namesB).toEqual(['avg__num, boy', 'avg__num, girl']);
+});
+
+test('truncate metric applies to each query on its own', () => {
+  const untruncatedQueryData = createTestQueryData(
+    [
+      { 'avg__num, boy': 1, 'avg__num, girl': 2, ds: 599616000000 },
+      { 'avg__num, boy': 3, 'avg__num, girl': 4, ds: 599916000000 },
+    ],
+    {
+      label_map: {
+        ds: ['ds'],
+        'avg__num, boy': ['avg__num', 'boy'],
+        'avg__num, girl': ['avg__num', 'girl'],
+      },
+    },
+  );
+  const { namesA, namesB } = getSeriesNamesPerQuery(
+    { metricsB: ['avg__num'], truncateMetric: true, truncateMetricB: false },
+    untruncatedQueryData,
+  );
+
+  expect(namesA).toEqual(['boy', 'girl']);
+  expect(namesB).toEqual(['avg__num, boy', 'avg__num, girl']);
+});
+
 test('y-axis title position: Left sets nameLocation to middle', () => {
   const chartProps = createEchartsTimeseriesTestChartProps<
     EchartsMixedTimeseriesFormData,
