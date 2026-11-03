@@ -36,6 +36,7 @@ from superset.commands.semantic_layer.update import (
 )
 from superset.constants import PASSWORD_MASK
 from superset.exceptions import SupersetSecurityException
+from superset.utils import json
 
 
 @pytest.fixture(autouse=True)
