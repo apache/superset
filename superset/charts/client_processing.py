@@ -1492,7 +1492,15 @@ def holds_only_numbers(series: pd.Series) -> bool:
     object column, which has no value to disqualify it.
     """
     for value in series:
-        if value is None or pd.isna(value):
+        if value is None:
+            continue
+        # A list or an array is ruled out before ``pd.isna`` is asked about it,
+        # because the answer comes back elementwise and more than one element
+        # has no single truth value. ``typeof`` calls such a cell an object,
+        # which is not a number either way.
+        if pd.api.types.is_list_like(value):
+            return False
+        if pd.isna(value):
             continue
         if isinstance(value, bool) or isinstance(value, np.bool_):
             return False
@@ -1628,9 +1636,16 @@ def derive_comparison_columns(
             # offset column carries that prefix too, so appending the offset to
             # the name already in the frame finds either kind.
             companion = f"{name}__{suffix}"
+            # An offset column holding anything but numbers cannot be
+            # subtracted from the metric, so it is read as absent, which is
+            # the zero the browser's ``|| 0`` already gives a comparison value
+            # that is not there. The two columns are one metric over two
+            # windows, so a query cannot really return them with different
+            # types, but the arithmetic below raises rather than coerces the
+            # way JavaScript would, and a report must not fail over it.
             comparison = (
                 df[companion].map(comparison_value)
-                if companion in df.columns
+                if companion in df.columns and holds_only_numbers(df[companion])
                 else pd.Series(0, index=df.index)
             )
             ratios = pd.Series(

@@ -6298,3 +6298,61 @@ def test_pivot_mixed_str_int_big_integer_dimension(apply_number_format: bool) ->
         "Total (Sum)": "15",
     }
     assert unformatted["big"].tolist() == df["big"].tolist()
+
+
+def test_table_keeps_a_metric_holding_arrays() -> None:
+    """
+    A metric whose cells are arrays becomes a plain column, like a text one.
+
+    `typeof` calls an array an object, so `isMetric` is false and the column
+    survives through `processComparisonColumns`' plain-column branch. The
+    length matters on the Python side alone: `pd.isna` answers a list
+    elementwise, and asking a multi-element answer for its truth value raises,
+    so the container has to be ruled out before the null test rather than by
+    it.
+    """
+    df = pd.DataFrame(
+        {
+            "m": [100, 200],
+            "marr": [[1, 2], [3, 4]],
+            "mone": [[1], [3]],
+            "m__P1D": [80, 160],
+        }
+    )
+    form_data = comparison_form_data(metrics=["m", "marr", "mone"])
+
+    formatted = table(df, form_data)
+
+    assert formatted.columns.tolist() == ["Main m", "# m", "△ m", "% m", "marr", "mone"]
+    assert formatted["marr"].tolist() == [[1, 2], [3, 4]]
+    assert formatted["mone"].tolist() == [[1], [3]]
+
+
+@pytest.mark.parametrize(
+    "companion",
+    [
+        pytest.param([[1, 2], [3, 4]], id="arrays"),
+        pytest.param(["a", "b"], id="text"),
+        pytest.param([True, False], id="booleans"),
+    ],
+)
+def test_table_reads_an_unusable_comparison_column_as_absent(
+    companion: list[Any],
+) -> None:
+    """
+    An offset column that is not all numbers compares as zero.
+
+    Subtracting it raises in Python where JavaScript would coerce, and the two
+    columns are one metric over two windows so a query cannot really return
+    them with different types. Reading it as absent reuses the zero the
+    browser gives a comparison value that is not there, and keeps a report
+    from failing over a shape that cannot be rendered either way.
+    """
+    df = pd.DataFrame({"m": [1.0, 2.0], "m__P1D": companion})
+
+    formatted = table(df, comparison_form_data())
+
+    assert formatted.columns.tolist() == ["Main m", "# m", "△ m", "% m"]
+    assert formatted["# m"].tolist() == ["0", "0"]
+    assert formatted["△ m"].tolist() == ["1", "2"]
+    assert formatted["% m"].tolist() == ["100.000%", "100.000%"]
