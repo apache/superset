@@ -39,11 +39,14 @@ from superset_core.semantic_layers.errors import (
 from superset_core.semantic_layers.layer import SemanticLayer
 from superset_core.semantic_layers.types import (
     AdhocExpression,
+    AggregationType,
     Dimension,
     Filter,
+    FilterExpression,
     Metric,
     Operator,
     OrFilter,
+    PredicateType,
     SemanticQuery,
     SemanticResult,
 )
@@ -88,6 +91,7 @@ class SemanticProviderConformance:
 
     Query fixtures seed discriminating data and provide independent expected
     Arrow tables for identity, grain, NULL, grouped OR, and order-before-limit.
+    Empty IN/NOT IN cases are derived from the identity fixture.
     Error fixtures call real provider methods against controlled backend outcomes.
     See the provider author guide for every fixture and the limits of this suite.
     """
@@ -153,6 +157,100 @@ class SemanticProviderConformance:
         assert set(result.results.column_names) == {
             d.name for d in query.dimensions
         } | {m.name for m in query.metrics}
+
+    @pytest.mark.parametrize("operator", [Operator.IN, Operator.NOT_IN])
+    def test_empty_membership(
+        self,
+        operator: Operator,
+        semantic_view: SemanticView,
+        semantic_query_cases: Mapping[str, tuple[SemanticQuery, pa.Table]],
+    ) -> None:
+        """Empty IN is FALSE and empty NOT IN is TRUE where the filter sits.
+
+        Derived from the ``identity`` case. The filtered member is the one with a
+        NULL group, so an empty NOT IN that drops NULL rows fails.
+        """
+        query: SemanticQuery
+        expected: pa.Table
+        query, expected = semantic_query_cases["identity"]
+        dimension: Dimension | None = next(
+            (d for d in query.dimensions if expected.column(d.name).null_count),
+            None,
+        )
+        assert dimension is not None, (
+            "identity fixture requires a NULL group to witness empty NOT IN"
+        )
+        empty: Filter = Filter(PredicateType.WHERE, dimension, operator, frozenset())
+        filters: set[FilterExpression] = set(query.filters or set())
+        grouped: SemanticResult = semantic_view.get_table(
+            replace(query, filters={*filters, empty})
+        )
+        _assert_result_equal(
+            grouped.results,
+            expected if operator == Operator.NOT_IN else expected.slice(0, 0),
+        )
+        if not query.metrics:
+            return
+        # Without grouping, SQL still aggregates zero input rows into one row.
+        # Keep the fixture's other fields, such as its selection identity version.
+        ungrouped: SemanticQuery = replace(
+            query,
+            dimensions=[],
+            filters={*filters, empty},
+            order=None,
+            limit=None,
+            offset=None,
+            group_limit=None,
+        )
+        actual: pa.Table = semantic_view.get_table(ungrouped).results
+        if operator == Operator.NOT_IN:
+            unfiltered: SemanticQuery = replace(ungrouped, filters=filters or None)
+            _assert_result_equal(actual, semantic_view.get_table(unfiltered).results)
+            return
+        assert actual.num_rows == 1, (
+            "an ungrouped aggregate over an empty IN returns one row"
+        )
+        metric: Metric
+        for metric in query.metrics:
+            value: object = actual.column(metric.name)[0].as_py()
+            if metric.aggregation in _COUNTS:
+                assert value == 0, f"{metric.name}: a count of no rows is 0"
+            elif metric.aggregation in _NULL_WHEN_EMPTY:
+                assert value is None, f"{metric.name}: aggregate of no rows is NULL"
+
+    @pytest.mark.parametrize("operator", [Operator.IN, Operator.NOT_IN])
+    def test_empty_membership_in_or_group(
+        self,
+        operator: Operator,
+        semantic_view: SemanticView,
+        semantic_query_cases: Mapping[str, tuple[SemanticQuery, pa.Table]],
+    ) -> None:
+        """Inside an OR group, empty IN is a FALSE leaf and empty NOT IN a TRUE one.
+
+        Derived from the ``or`` case: a FALSE leaf leaves the group unchanged, and
+        a TRUE leaf makes the group match every row, as if it were removed.
+        """
+        query: SemanticQuery
+        expected: pa.Table
+        query, expected = semantic_query_cases["or"]
+        _assert_normalized_or_witness(query)
+        group: OrFilter = next(
+            item for item in query.filters or set() if isinstance(item, OrFilter)
+        )
+        leaf: Filter = next(iter(group.filters))
+        empty: Filter = replace(leaf, operator=operator, value=frozenset())
+        others: set[FilterExpression] = set(query.filters or set()) - {group}
+        widened: SemanticQuery = replace(
+            query, filters={*others, OrFilter(group.filters | {empty})}
+        )
+        actual: pa.Table = semantic_view.get_table(widened).results
+        if operator == Operator.IN:
+            _assert_result_equal(actual, expected)
+            return
+        without_group: pa.Table = semantic_view.get_table(
+            replace(query, filters=others or None)
+        ).results
+        _assert_result_equal(actual, without_group)
 
     @pytest.mark.parametrize("method", ["get_table", "get_values", "get_row_count"])
     @pytest.mark.parametrize("kind", ["refusal", "fault", "incomplete", "unverified"])
@@ -270,6 +368,19 @@ class SemanticProviderConformance:
             check=False,
         )
         assert completed.returncode == 0, completed.stdout + completed.stderr
+
+
+_COUNTS: frozenset[AggregationType] = frozenset(
+    {AggregationType.COUNT, AggregationType.COUNT_DISTINCT}
+)
+_NULL_WHEN_EMPTY: frozenset[AggregationType] = frozenset(
+    {
+        AggregationType.SUM,
+        AggregationType.MIN,
+        AggregationType.MAX,
+        AggregationType.AVG,
+    }
+)
 
 
 def _assert_normalized_or_witness(query: SemanticQuery) -> None:

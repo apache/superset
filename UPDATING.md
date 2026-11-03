@@ -24,12 +24,31 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic-view filters with an empty IN or NOT IN selection no longer fail with a
+  query validation error. They follow SQL semantics where the filter sits: an
+  empty IN matches no rows (grouped charts return no rows; an ungrouped total
+  returns one row, for example a count of 0), and an empty NOT IN matches every
+  row, including NULLs. Dataset charts still reject an empty selection. Semantic
+  provider adapters receive the empty `frozenset` and must render a constant or an
+  equivalent native predicate, never an empty SQL list; upgrade provider adapters
+  before, or together with, the host. The SDK conformance kit adds
+  `test_empty_membership` and `test_empty_membership_in_or_group`, derived from
+  the existing `identity` and `or` fixtures.
+
+- Dashboard and chart `viewers` can no longer be added through the API or the MCP
+  `manage_dashboard_roles` tool while the `ENABLE_VIEWERS` feature flag is off; such
+  requests are rejected with a 422. Enforcement of existing viewers is unchanged (a
+  non-empty viewers list restricts access regardless of the flag), and removing
+  viewers remains possible so stale assignments can be cleared.
+
 - With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
   using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and
   `CACHE_REDIS_USER`. Previously they always ran on DB 0 and without the ACL user.
   If `CACHE_REDIS_DB` is not 0, coordination state (task state, locks and streams)
   moves to that DB: avoid running old and new versions side by side, and drain
   in-flight tasks before upgrading.
+
+- Partition filter mapping no longer suggests bare `unix_timestamp(:value)` on Hive/Impala-family engines. Existing temporal-to-numeric mappings using that expression, or any transform that answers raw epoch instants in seconds through nanoseconds (for example `CAST(unix_timestamp(:value) AS BIGINT)` or `utc_to_unix_micros(:value)`, from a timestamp column or a text one in any common layout), stop pruning to prevent incorrect counts on hour/day epoch keys; this includes keys that really store raw epoch instants. Replace it with the expression that populates the partition key, including rounding and timezone. The dataset editor can explicitly compare a candidate against sampled rows from selected numeric partitions; a sample match is not a guarantee for the entire dataset.
 
 - Refreshing a dataset's columns from its source (the "Sync columns from
   source" button, `PUT /api/v1/dataset/<id>?override_columns=true`, or
@@ -184,8 +203,8 @@ assists people when migrating to a new version.
   omitted. Update provider adapters before, or together with, the host/SDK
   upgrade. Adapters must narrow `SemanticQuery.filters` and `GroupLimit.filters`
   members (`Filter | OrFilter`) before reading leaf attributes; `get_values`
-  remains `set[Filter] | None`. Empty membership and invalid NULL comparison
-  operands return query validation errors. Semantic result keys include a
+  remains `set[Filter] | None`. Invalid NULL comparison operands return query
+  validation errors. Semantic result keys include a
   filter-protocol version, and chart-backed annotation results also receive a new
   cache discriminator: expect a one-time cold cache after upgrading. See the
   [semantic filter contract](docs/developer_docs/extensions/semantic-filters.md)
@@ -589,7 +608,7 @@ the switch is on.
 `get_chart_data` returns `AccessDenied` when a query is refused for access, and
 `ValidationError` when a semantic layer provider rejects the query or Superset's
 query validation rejects it while it runs (for example, a semantic view refusing
-an empty `IN` filter), matching the chart-data API's 403 and 400. These were previously
+a comparison filter with a missing operand), matching the chart-data API's 403 and 400. These were previously
 reported as `DataError`.
 Clients that matched on `DataError` for these cases should handle the new types.
 On the saved-chart path these errors also no longer emit an error-level MCP log
