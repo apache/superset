@@ -57,7 +57,11 @@ from superset.tasks.utils import (
     floored_status_cursor,
     SUBSCRIPTION_PRIVATE_NAMESPACE,
 )
-from superset.utils.core import override_user
+from superset.utils.core import (
+    get_query_log_context,
+    override_query_log_context,
+    override_user,
+)
 
 if TYPE_CHECKING:
     from superset_core.tasks.models import Task as CoreTask
@@ -437,6 +441,7 @@ def execute_chart_query(
     guest_token: "GuestToken | None" = None,
     requires_totals: bool = False,
     is_totals_prerequisite: bool = False,
+    query_log_context: dict[str, Any] | None = None,
 ) -> None:
     """Execute a single chart-data query and cache it under its query_cache_key.
 
@@ -450,7 +455,10 @@ def execute_chart_query(
     """
     from superset.charts.data.form_data import set_query_context_form_data
 
-    with override_user(_resolve_user(user_id, guest_token), force=False):
+    with (
+        override_user(_resolve_user(user_id, guest_token), force=False),
+        override_query_log_context(query_log_context),
+    ):
         query_context = load_serialized_query(serialized_query)
         # Re-establish ``g.form_data`` from the serialized payload. There is no
         # request context in the worker, and Jinja helpers (``filter_values``,
@@ -569,6 +577,11 @@ def submit_chart_data_query_tasks(
     # helper so it can't sit after a same-second change under the metastore's
     # ``changed_on`` precision (see floored_status_cursor).
     poll_cursor = floored_status_cursor()
+    query_log_context = (
+        get_query_log_context()
+        if current_app.config["QUERY_LOG_COMMENT_FUNC"]
+        else None
+    )
 
     queries = query_context.queries
     # Contribution queries normalize against a shared totals row. Identify the coupling
@@ -623,6 +636,7 @@ def submit_chart_data_query_tasks(
             guest_token,
             _needs_prerequisite_totals(index),
             **({"is_totals_prerequisite": True} if is_totals_prerequisite else {}),
+            **({"query_log_context": query_log_context} if query_log_context else {}),
             options=TaskOptions(
                 task_key=task_key,
                 task_name=_task_name(index),
