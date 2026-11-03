@@ -33,6 +33,7 @@ from flask.testing import FlaskClient
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
+from werkzeug.test import TestResponse
 
 from superset import db
 from superset.commands.database.uploaders.base import UploadCommand
@@ -3059,11 +3060,11 @@ def test_available_databricks_includes_dynamic_form(
         return_value={DatabricksPythonConnectorEngineSpec: {"databricks"}},
     )
 
-    response = client.get("/api/v1/database/available/")
+    response: TestResponse = client.get("/api/v1/database/available/")
 
     assert response.status_code == 200
     assert response.json is not None
-    entry = response.json["databases"][0]
+    entry: dict[str, Any] = response.json["databases"][0]
     assert entry["engine"] == "databricks"
     assert entry["available_drivers"] == ["databricks"]
     assert entry["default_driver"] == "databricks"
