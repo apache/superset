@@ -2211,6 +2211,37 @@ def test_a_partial_entry_keeps_the_stored_templated_expression(
 
 
 @with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_renamed_partial_entry_keeps_the_stored_template_of_its_id(
+    mocker: MockerFixture,
+) -> None:
+    """
+    `_upsert_columns` writes by `id`, so a rename in the same request carries
+    the stored Jinja to the new name, where looking it up by name finds nothing.
+    """
+    command = _mapping_command(
+        mocker,
+        "unix_timestamp(:value)",
+        partition_expression="{{ 'dt_' ~ 'epoch' }}",
+    )
+    mapped_column, partition_column = cast(Any, command._model).columns
+    mapped_column.id = 1
+    partition_column.id = 2
+    command._properties = {
+        "partition_column": "dt_renamed",
+        "columns": [
+            {"id": 1, "column_name": "event_time"},
+            {"id": 2, "column_name": "dt_renamed"},
+        ],
+    }
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
+    assert "Jinja" in str(exceptions[0])
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
 def test_an_override_entry_keeps_the_stored_template_of_its_name(
     mocker: MockerFixture,
 ) -> None:
