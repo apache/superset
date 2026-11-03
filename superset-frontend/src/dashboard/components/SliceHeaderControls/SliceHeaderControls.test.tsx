@@ -22,6 +22,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import { FeatureFlag, VizType, getExtensionsRegistry } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
@@ -30,7 +31,13 @@ import downloadAsImage from 'src/utils/downloadAsImage';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 import { chart } from 'src/components/Chart/chartReducer';
+import { commands, menus } from 'src/core';
+import type { common } from '@apache-superset/core';
 
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({ common: { conf: {} } })),
+}));
 jest.mock('src/utils/cachedSupersetGet');
 jest.mock('src/explore/components/DataTablesPane', () => ({
   ResultsPaneOnDashboard: ({
@@ -1201,4 +1208,160 @@ test('A Big Number chart offers image exports only, without CSV, Excel or PDF', 
   expect(screen.queryByText('Export to .CSV')).not.toBeInTheDocument();
   expect(screen.queryByText('Export to Excel')).not.toBeInTheDocument();
   expect(screen.queryByText('Export as PDF')).not.toBeInTheDocument();
+});
+
+const extensionDisposables: common.Disposable[] = [];
+
+const registerItem = (
+  location: Parameters<typeof menus.registerMenuItem>[1],
+  id: string,
+  title: string,
+  run: (...args: unknown[]) => unknown = jest.fn(),
+) => {
+  extensionDisposables.push(
+    commands.registerCommand({ id, title }, run),
+    menus.registerMenuItem(
+      { view: location, command: id },
+      location,
+      'primary',
+    ),
+  );
+};
+
+afterEach(() => {
+  extensionDisposables.splice(0).forEach(d => d.dispose());
+});
+
+const openDownloadSubmenu = async (labelInSubmenu: string) => {
+  await openMenu();
+  await userEvent.hover(screen.getByText('Download'));
+  const item = await screen.findByText(labelInSubmenu);
+  return item.closest('[role="menu"]') as HTMLElement;
+};
+
+const submenuLabels = (submenu: HTMLElement) =>
+  within(submenu)
+    .getAllByRole('menuitem')
+    .map(item => item.textContent);
+
+test('dashboard chart: contributed item follows Export to Excel and gets the dashboard-scoped payload', async () => {
+  const run = jest.fn();
+  registerItem(
+    'dashboard.chart.download',
+    'ext.gs',
+    'Export to Google Sheets',
+    run,
+  );
+  const getExportPayload = jest.fn().mockResolvedValue({
+    result_format: 'json',
+    form_data: { dashboardId: 9 },
+  });
+  renderWrapper({ ...createProps(), getExportPayload });
+  const submenu = await openDownloadSubmenu('Export to Excel');
+  const labels = submenuLabels(submenu);
+  expect(labels.indexOf('Export to Google Sheets')).toBe(
+    labels.indexOf('Export to Excel') + 1,
+  );
+
+  await userEvent.click(screen.getByText('Export to Google Sheets'));
+  const ctx = run.mock.calls[0][0] as {
+    chartName: string;
+    canDownload: boolean;
+    getPayload: () => Promise<Record<string, unknown>>;
+  };
+  expect(ctx.chartName).toBe('Vaccine Candidates per Country & Stage');
+  expect(ctx.canDownload).toBe(true);
+  expect(await ctx.getPayload()).toEqual(
+    expect.objectContaining({ form_data: { dashboardId: 9 } }),
+  );
+  expect(getExportPayload).toHaveBeenCalledWith('full');
+});
+
+test('dashboard chart: pivoted item follows Export to Pivoted Excel for pivot tables and requests post_processed', async () => {
+  const run = jest.fn();
+  registerItem(
+    'dashboard.chart.download.pivoted',
+    'ext.gs.pivoted',
+    'Export pivoted to Google Sheets',
+    run,
+  );
+  const getExportPayload = jest.fn().mockResolvedValue({});
+  const { unmount } = renderWrapper({
+    ...createProps(VizType.PivotTable),
+    getExportPayload,
+  });
+  const submenu = await openDownloadSubmenu('Export to Pivoted Excel');
+  const labels = submenuLabels(submenu);
+  expect(labels.indexOf('Export pivoted to Google Sheets')).toBe(
+    labels.indexOf('Export to Pivoted Excel') + 1,
+  );
+
+  await userEvent.click(screen.getByText('Export pivoted to Google Sheets'));
+  const ctx = run.mock.calls[0][0] as {
+    getPayload: () => Promise<Record<string, unknown>>;
+  };
+  await ctx.getPayload();
+  expect(getExportPayload).toHaveBeenCalledWith('post_processed');
+  unmount();
+
+  renderWrapper({ ...createProps(VizType.Table), getExportPayload });
+  await openDownloadSubmenu('Export to Excel');
+  expect(
+    screen.queryByText('Export pivoted to Google Sheets'),
+  ).not.toBeInTheDocument();
+});
+
+test('dashboard chart: no contributed items for image-only charts', async () => {
+  registerItem('dashboard.chart.download', 'ext.gs', 'Export to Google Sheets');
+  renderWrapper({
+    ...createProps(VizType.BigNumberTotal),
+    getExportPayload: jest.fn(),
+  });
+  const submenu = await openDownloadSubmenu('Export screenshot (jpeg)');
+  expect(within(submenu).queryByText('Export to .CSV')).not.toBeInTheDocument();
+  expect(
+    within(submenu).queryByText('Export to Excel'),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText('Export to Google Sheets')).not.toBeInTheDocument();
+});
+
+test('dashboard chart: no Download submenu and no items without supersetCanDownload', async () => {
+  registerItem('dashboard.chart.download', 'ext.gs', 'Export to Google Sheets');
+  renderWrapper({
+    ...createProps(),
+    supersetCanDownload: false,
+    getExportPayload: jest.fn(),
+  });
+  await openMenu();
+  expect(screen.queryByText('Download')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export to Google Sheets')).not.toBeInTheDocument();
+});
+
+test('dashboard chart: clicking a contributed item closes the menu', async () => {
+  registerItem('dashboard.chart.download', 'ext.gs', 'Export to Google Sheets');
+  renderWrapper({ ...createProps(), getExportPayload: jest.fn() });
+  await openDownloadSubmenu('Export to Excel');
+  await userEvent.click(screen.getByText('Export to Google Sheets'));
+  await waitFor(() =>
+    expect(screen.queryByText('Export to Google Sheets')).not.toBeVisible(),
+  );
+});
+
+test('dashboard chart: getPayload rejects when the chart provides no payload builder', async () => {
+  const run = jest.fn();
+  registerItem(
+    'dashboard.chart.download',
+    'ext.gs',
+    'Export to Google Sheets',
+    run,
+  );
+  renderWrapper(createProps());
+  await openDownloadSubmenu('Export to Excel');
+  await userEvent.click(screen.getByText('Export to Google Sheets'));
+  const ctx = run.mock.calls[0][0] as {
+    getPayload: () => Promise<Record<string, unknown>>;
+  };
+  await expect(ctx.getPayload()).rejects.toThrow(
+    'Export is not available for this chart',
+  );
 });

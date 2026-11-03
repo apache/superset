@@ -25,6 +25,8 @@ import {
   VizType,
 } from '@superset-ui/core';
 import * as redux from 'redux';
+import { commands, menus } from 'src/core';
+import type { common } from '@apache-superset/core';
 
 import * as exploreUtils from 'src/explore/exploreUtils';
 import * as chartStateConverter from '../../../util/chartStateConverter';
@@ -1286,4 +1288,56 @@ test('passes the form data of the last request to ChartContainer next to the cur
   expect(capturedChartContainerProps.formData).toEqual(
     expect.objectContaining({ groupby: ['region'] }),
   );
+});
+
+test('dashboard chart download: getExportPayload builds the payload at call time from dashboard form data and ownState', async () => {
+  const payload = { result_format: 'json', result_type: 'full' };
+  const buildPayload = jest
+    .spyOn(exploreUtils, 'buildV1ChartDataPayload')
+    .mockResolvedValue(payload as any);
+  const run = jest.fn();
+  const disposables: common.Disposable[] = [
+    commands.registerCommand(
+      { id: 'ext.gs', title: 'Export to Google Sheets' },
+      run,
+    ),
+    menus.registerMenuItem(
+      { view: 'dashboard.chart.download', command: 'ext.gs' },
+      'dashboard.chart.download',
+      'primary',
+    ),
+  ];
+  try {
+    const { getByRole, findByText } = setup(
+      {},
+      {
+        dashboardInfo: {
+          ...defaultState.dashboardInfo,
+          superset_can_download: true,
+        },
+        dataMask: { [queryId]: { ownState: { currentPage: 3 } } },
+      },
+    );
+    fireEvent.click(getByRole('button', { name: 'More Options' }));
+    fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+    fireEvent.click(await findByText('Export to Google Sheets'));
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(buildPayload).not.toHaveBeenCalled();
+
+    const ctx = run.mock.calls[0][0] as {
+      getPayload: () => Promise<unknown>;
+    };
+    await expect(ctx.getPayload()).resolves.toBe(payload);
+    expect(buildPayload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        formData: expect.objectContaining({ dashboardId: 111 }),
+        ownState: expect.objectContaining({ currentPage: 3 }),
+        resultType: 'full',
+        resultFormat: 'json',
+      }),
+    );
+  } finally {
+    disposables.forEach(d => d.dispose());
+    buildPayload.mockRestore();
+  }
 });
