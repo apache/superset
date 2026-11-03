@@ -56,7 +56,7 @@ interface ToastOptions {
 ```
 
 - `text` is always rendered as plain text, never as HTML.
-- `link` adds a button with the given `label`. Clicking it opens `href` in a new tab with `noopener` and `noreferrer`. Only `http(s)`, relative, `ftp:`, `mailto:` and `tel:` URLs are opened; any other URL is refused and logged.
+- `link` adds a button with the given `label`. Clicking it opens `href` in a new tab with `noopener` and `noreferrer`. The URL goes through Superset's navigation guard: absolute URLs must use `http(s)`, `ftp:`, `mailto:` or `tel:`, other values are treated as paths within Superset, and URLs the guard rejects (for example ones with embedded credentials) are logged instead of opened.
 - `duration` is the time in milliseconds before the toast closes. The default is 8000. `0` keeps the toast until the user closes it.
 - A toast with a `link` never closes on its own, so that keyboard and assistive-technology users are not raced. `duration` is ignored when `link` is set.
 

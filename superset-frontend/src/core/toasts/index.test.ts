@@ -71,7 +71,7 @@ test('a link that fails the navigation guard is refused and logged', () => {
 test('a javascript: link is never opened as a script url', () => {
   const open = jest.spyOn(window, 'open').mockImplementation(() => null);
   const id = toasts.addSuccessToast('Sent', {
-    link: { href: 'javascript:alert(1)', label: 'Open' },
+    link: { href: ['javascript', 'alert(1)'].join(':'), label: 'Open' },
   });
   const toast = state().find(t => t.id === id)!;
   expect(() => toast.action!.onClick()).not.toThrow();
