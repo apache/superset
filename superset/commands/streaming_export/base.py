@@ -27,7 +27,7 @@ from abc import abstractmethod
 from contextvars import copy_context
 from decimal import Decimal
 from numbers import Real
-from typing import Any, Callable, Generator, Iterable, Iterator
+from typing import Any, Callable, Generator, Iterable, Iterator, TypeVar
 
 from flask import current_app as app, g
 from flask.globals import _cv_app, _cv_request
@@ -41,36 +41,51 @@ from superset.utils.csv import escape_value, format_decimal
 
 logger = logging.getLogger(__name__)
 
+_T = TypeVar("_T")
 
-def _reload_detached_acting_user() -> None:
+
+def _reload_if_detached(instance: _T) -> _T:
     """
-    Load the acting user again if it is detached from the metadata session.
+    Return ``instance`` loaded again by primary key if it is a detached ORM
+    instance, otherwise ``instance`` itself.
 
     The WSGI server only iterates a streaming body after the view has
     returned, and by then Flask has torn the request down, removing the
-    metadata session that loaded ``g.user``. Any attribute that session
-    expired (the event logger commits once the view returns), even
-    ``g.user.id``, which is how the user's OAuth2 token is looked up, would
-    then raise ``DetachedInstanceError``.
+    metadata session that loaded the instance. Any attribute that session
+    expired (the event logger commits once the view returns), even the
+    primary key, would then raise ``DetachedInstanceError``.
 
-    The user is loaded again by primary key rather than merged, so values read
-    during the request are never written back by a later commit. Users that
-    are not ORM instances, such as embedded guest users, are left as they are.
+    Reloading rather than merging means values read during the request are
+    never written back over changes made since, by the commit that follows
+    building the engine.
+    """
+    state = inspect(instance, raiseerr=False)
+    if not isinstance(state, InstanceState) or not state.detached:
+        return instance
+
+    reloaded = db.session.get(state.class_, state.identity)
+    if reloaded is None:
+        # Fail closed: e.g. without the acting user, impersonation would fall
+        # back to the connection's own credentials.
+        raise RuntimeError(f"{state.class_.__name__} {state.identity} no longer exists")
+    return reloaded
+
+
+def _reload_detached_acting_user() -> None:
+    """
+    Point ``g.user`` at the acting user loaded again if it was detached.
+
+    Users that are not ORM instances, such as embedded guest users, are left
+    as they are.
     """
     user = getattr(g, "user", None)
     if isinstance(user, LocalProxy):
         # Flask-AppBuilder sets ``g.user`` to Flask-Login's ``current_user``.
         user = user._get_current_object()
 
-    state = inspect(user, raiseerr=False)
-    if not isinstance(state, InstanceState) or not state.detached:
+    reloaded = _reload_if_detached(user)
+    if reloaded is user:
         return
-
-    reloaded = db.session.get(state.class_, state.identity)
-    if reloaded is None:
-        # Fail closed: without a user, impersonation falls back to the
-        # connection's own credentials.
-        raise RuntimeError("The user running the export no longer exists")
     g.user = reloaded
     if getattr(g, "_login_user", None) is user:
         # Keep Flask-Login's ``current_user`` on the same, reloaded user.
@@ -302,8 +317,9 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         decimal_separator = csv_export_config.get("decimal", ".")
 
         with db.session() as session:
-            # Merge database to prevent DetachedInstanceError
-            merged_database = session.merge(database)
+            # Load the database again rather than merging it, see
+            # _reload_if_detached.
+            merged_database = _reload_if_detached(database)
 
             # `is_split=True` mirrors the non-streaming download path exactly:
             # Database.get_df() -> _execute_sql_with_mutation_and_logging()
@@ -378,7 +394,9 @@ class BaseStreamingCSVExportCommand(BaseCommand):
             strings. Call it while handling the request: the iterator then
             runs the export inside that request's context, even though the
             body is only streamed once the view has returned. Outside a
-            request, consume the iterator inside the caller's app context.
+            request, consume the iterator inside the caller's app context;
+            it then runs as the caller's ``g.user`` (set it with
+            ``override_user``).
         """
         # Load all needed data while session is still active
         # to avoid DetachedInstanceError

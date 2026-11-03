@@ -25,13 +25,17 @@ from flask.globals import _cv_request
 from flask_appbuilder.security.sqla.models import User
 from flask_login import current_user
 from pytest_mock import MockerFixture
+from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import DetachedInstanceError
 
 from superset.commands.chart.data.streaming_export_command import (
     StreamingCSVExportCommand,
 )
-from superset.commands.streaming_export.base import _reload_detached_acting_user
+from superset.commands.streaming_export.base import (
+    _reload_detached_acting_user,
+    _reload_if_detached,
+)
 from superset.security.guest_token import GuestUser
 from superset.utils.core import get_user_id, get_username
 
@@ -467,19 +471,8 @@ def test_streaming_export_reloads_a_detached_acting_user(
     returns). Reading ``g.user.id`` to find the user's OAuth2 token would then
     raise ``DetachedInstanceError`` unless the export loads the user again.
     """
-    User.__table__.create(session.get_bind())
-    user = User(
-        first_name="Alice",
-        last_name="Doe",
-        username="alice",
-        email="alice@example.com",
-        active=True,
-    )
-    session.add(user)
-    session.commit()
-    user_id = user.id
-    session.expire(user)
-    session.close()
+    user = _detached_user(session)
+    user_id = inspect(user).identity[0]
     with pytest.raises(DetachedInstanceError):
         _ = user.id
 
@@ -508,8 +501,11 @@ def test_streaming_export_reloads_a_detached_acting_user(
     assert seen == [("alice", user_id, "alice")]
 
 
-def _detached_user(session: Session) -> User:
-    """A persisted user, detached and expired as the request teardown leaves it."""
+def _detached_user(session: Session, expired: bool = True) -> User:
+    """
+    A persisted user, detached as the request teardown leaves it: expired too
+    when the event logger committed after the view, loaded when nothing did.
+    """
     User.__table__.create(session.get_bind(), checkfirst=True)
     user = User(
         first_name="Alice",
@@ -520,7 +516,10 @@ def _detached_user(session: Session) -> User:
     )
     session.add(user)
     session.commit()
-    session.expire(user)
+    if expired:
+        session.expire(user)
+    else:
+        session.refresh(user)
     session.close()
     return user
 
@@ -621,9 +620,11 @@ def test_streaming_export_leaves_no_request_context_behind(
     mocker: MockerFixture,
 ) -> None:
     """
-    A body the server never iterates (the response failed after the view
-    returned, say) must not leave the request's contexts pushed on the worker
-    thread, where later requests would inherit its ``g`` and logged-in user.
+    Building the body must not push the request's contexts: a body the server
+    never iterates (the response failed after the view returned, say) would
+    leave them on the worker thread, where later requests would inherit its
+    ``g`` and logged-in user. Flask < 3.1.2's ``stream_with_context`` pushes
+    them as soon as the body is built.
     """
     mocker.patch.object(
         StreamingCSVExportCommand,
@@ -672,3 +673,30 @@ def test_streaming_export_does_not_leave_its_contexts_on_the_thread_mid_stream(
     assert _cv_request.get(None) is outer is not view_request
     assert list(stream) == ["1\n"]
     assert _cv_request.get(None) is outer
+
+
+def test_reload_if_detached_keeps_changes_made_meanwhile(
+    app: Any,
+    session: Session,
+) -> None:
+    """
+    An instance the request loaded is reloaded rather than merged, so the
+    export's commit can't write the values it read during the request back
+    over a change made since (an admin editing the connection, say).
+    """
+    user = _detached_user(session, expired=False)
+    assert user.email == "alice@example.com"
+    session.query(User).filter_by(username="alice").update(
+        {"email": "changed@example.com"}
+    )
+    session.commit()
+
+    reloaded = _reload_if_detached(user)
+    session.commit()
+
+    assert reloaded is not user
+    assert reloaded.email == "changed@example.com"
+    assert (
+        session.query(User.email).filter_by(username="alice").scalar()
+        == "changed@example.com"
+    )

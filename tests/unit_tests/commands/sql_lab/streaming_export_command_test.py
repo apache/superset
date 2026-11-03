@@ -417,7 +417,9 @@ def test_error_handling_yields_error_marker(mocker, mock_query):
     mock_db_base = mocker.patch("superset.commands.streaming_export.base.db")
     mock_session = MagicMock()
     mock_db_base.session.return_value.__enter__.return_value = mock_session
-    mock_session.merge.side_effect = Exception("Database connection failed")
+    mock_query.database.get_sqla_engine.side_effect = Exception(
+        "Database connection failed"
+    )
 
     mock_db_sqllab = mocker.patch(
         "superset.commands.sql_lab.streaming_export_command.db"
