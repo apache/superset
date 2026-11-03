@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""A restore request can be seen by the person who made it (R3-01).
+"""A restore request can be seen by the person who made it (R3-01, NEW-12).
 
 Found walking the delete flow by hand: an approved delete archives the
 chart, Recover this item answers 202 and makes a request -- and then the

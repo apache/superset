@@ -21,7 +21,7 @@ while it is a draft no viewer can reach it. The exemption has to be keyed
 on *never published* rather than *not published right now*: the Draft flag
 is one an editor sets themselves, so reading it live let them unpublish,
 edit under the exemption, and publish again, showing the approver nothing
-but the flag (QA-18).
+but the flag (QA-18, and the laundering route specifically is QA-18a).
 """
 
 from types import SimpleNamespace

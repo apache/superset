@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""A signed-out visitor is not part of the review workflow.
+"""A signed-out visitor is not part of the review workflow (NEW-6).
 
 Both grants in the entrypoint hand rights to "whoever already holds X", read
 off the permission tables. ``PUBLIC_ROLE_LIKE`` -- Superset's documented way

@@ -24,6 +24,11 @@ nothing was refused as a governed change, certifying a dataset was never
 exempt because the echo dragged columns and metrics along, a reviewer's
 "What changed" always led with columns and metrics, and an author could not
 make an exempt-only dataset edit at all.
+
+Filed as R4-06, as NEW-4 and as NEW-8 -- one defect reached from three
+directions -- certifying a dataset, and saving the editor with nothing
+touched. NEW-7 was filed beside them for a normalised column ``type`` and
+does not reproduce: the cause was this, not the type.
 """
 
 from types import SimpleNamespace

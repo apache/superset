@@ -22,6 +22,10 @@ anyway. Three entries inside ``json_metadata`` account for it, and the
 author set none of them -- the two derived label-colour maps, which Superset
 recomputes from whichever charts rendered, and the layout, which the stored
 metadata does not carry at all because the asset keeps it in its own column.
+
+This is NEW-5, and NEW-2 sits next to it: the header kept showing the
+proposed title after a captured save, so the author was told nothing had
+reached viewers while looking at the proposal.
 """
 
 from types import SimpleNamespace
