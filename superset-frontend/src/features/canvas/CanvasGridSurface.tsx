@@ -25,12 +25,15 @@
  * gets the same grid with no handles. Dragging never covers the widget's own
  * surface, so a filter or chart underneath stays clickable.
  *
- * While a gesture is live the widget follows the pointer and a dashed outline
- * marks the cells it would take; releasing persists exactly those cells.
+ * While a move is live the widget follows the pointer and a dashed outline
+ * marks the cells it would take. A resize has no outline: the widget itself
+ * takes the size, so the answer is the thing being pointed at. Either way,
+ * releasing persists exactly what was shown.
  */
 
 import {
   PointerEvent as ReactPointerEvent,
+  MouseEvent as ReactMouseEvent,
   KeyboardEvent as ReactKeyboardEvent,
   ReactNode,
   useCallback,
@@ -44,6 +47,7 @@ import { Icons } from '@superset-ui/core/components';
 import {
   columnWidth,
   GridMetrics,
+  type GridDelta,
   gridDelta,
   movedPlacement,
   NO_DELTA,
@@ -62,6 +66,7 @@ import {
 } from './resolveGrid';
 import { useCanvasDrag } from './useCanvasDrag';
 import { CanvasWidgetChromeContext } from './widgetChrome';
+import { useCanvasSelection } from './useCanvasSelection';
 import type { GridLayout, GridPlacement, SpanConstraints } from './types';
 
 type GestureKind = 'move' | 'resize';
@@ -130,6 +135,14 @@ interface Gesture {
 /** Pixels of travel before a press on a widget body becomes a drag. */
 const DRAG_THRESHOLD = 4;
 
+/** What each arrow key asks for, in whole cells. */
+const ARROW_STEPS: Record<string, GridDelta> = {
+  ArrowLeft: { cols: -1, rows: 0 },
+  ArrowRight: { cols: 1, rows: 0 },
+  ArrowUp: { cols: 0, rows: -1 },
+  ArrowDown: { cols: 0, rows: 1 },
+};
+
 /**
  * Presses already claimed by a grid, so one that bubbles through nested grids
  * starts exactly one gesture: the innermost grid's.
@@ -137,22 +150,47 @@ const DRAG_THRESHOLD = 4;
 const claimedPresses = new WeakSet<Event>();
 
 /**
- * Controls that handle press-and-drag themselves, so a press on one must not
- * also move the widget: a filter's slider, a form control, a link, a handle
- * for reordering something inside a widget. `data-canvas-no-drag` lets a
- * widget opt anything else out.
+ * Controls whose press and whose click are both their own: a form control, a
+ * slider, a link, a button. Pressing one is about the control, and so is
+ * clicking it -- neither moves the widget holding it, and neither selects it.
  */
-const OWN_GESTURE = [
+const CONTROLS = [
   'input',
   'textarea',
   'select',
   'button',
   'a[href]',
   '[role="slider"]',
-  '[role="button"]',
-  '[role="scrollbar"]',
+  /*
+   * A button inside the widget, but never the widget's own press surface,
+   * which is itself a button so it can be selected and reached by keyboard.
+   * `closest` would match it from any press within it -- and `contains`
+   * counts an element as containing itself -- so without the exclusion every
+   * press on a body would be read as a control's and body drag would quietly
+   * stop working, leaving only the handles.
+   */
+  '[role="button"]:not([data-canvas-selectable])',
   '[contenteditable=""]',
   '[contenteditable="true"]',
+  '[role="scrollbar"]',
+];
+
+/** A control's click is its own, so it is not also a selection. */
+const OWN_CLICK = CONTROLS.join(',');
+
+/**
+ * What a press must not be read as a drag on, which is the controls plus two
+ * more: something the page itself drags, and anything a widget has opted out
+ * with `data-canvas-no-drag`.
+ *
+ * Wider than `OWN_CLICK` on purpose. A chart marks itself, because its click
+ * target is a pixel on a canvas element with nothing for a selector to match
+ * -- but its body *is* the whole widget, so if the marker also stopped it
+ * being selected there would be nowhere left to click. A widget that means to
+ * consume the click as well stops the click itself.
+ */
+const OWN_GESTURE = [
+  ...CONTROLS,
   '[draggable="true"]',
   '[data-canvas-no-drag]',
 ].join(',');
@@ -181,11 +219,20 @@ const onScrollbar = (
   );
 };
 
-/** Whether something inside the widget owns this press, so the grid doesn't. */
-const ownsPress = (event: ReactPointerEvent<HTMLElement>): boolean => {
+/**
+ * Whether something inside the widget owns this event, so the grid doesn't.
+ *
+ * `selector` says which question is being asked: `OWN_GESTURE` for a press
+ * that must not become a drag, `OWN_CLICK` for a click that must not become a
+ * selection. They are not the same set.
+ */
+const ownedBy = (
+  event: ReactMouseEvent<HTMLElement>,
+  selector: string,
+): boolean => {
   const { target } = event;
   if (!(target instanceof Element)) return false;
-  const owner = target.closest(OWN_GESTURE);
+  const owner = target.closest(selector);
   // Bounded to this widget: a control that happens to sit above the grid in
   // the page isn't what the press landed on.
   return (
@@ -212,8 +259,35 @@ const travelled = (
   dy: clientY - gesture.startY - (top - gesture.startTop),
 });
 
+/**
+ * What an empty container shows instead of nothing.
+ *
+ * A container with no children is a box of blank space: it accepts a drop
+ * anywhere inside it, and says so nowhere. Absolute rather than a grid cell,
+ * so it covers the container's whole area however many rows that is.
+ */
+const EmptyDrop = styled.div<{ $active: boolean }>`
+  ${({ theme, $active }) => css`
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: ${theme.borderRadius}px;
+    border: 1px dashed
+      ${$active ? theme.colorPrimary : theme.colorBorderSecondary};
+    background: ${$active ? theme.colorPrimaryBg : 'transparent'};
+    color: ${$active ? theme.colorPrimary : theme.colorTextTertiary};
+    transition: background ${theme.motionDurationMid};
+  `}
+`;
+
 const Grid = styled.div<GridMetrics & { heldHeight?: number; $fill?: boolean }>`
   display: grid;
+  /* So an empty container's invitation can cover it. Safe: the handles and a
+     widget's controls anchor to their own cell, which is positioned. */
+  position: relative;
   /*
    * Inside a container, the grid takes the room the container has left after
    * its own chrome, rather than only the rows its children fill. That is what
@@ -320,8 +394,11 @@ const DropPreview = styled.div<{ placement: GridPlacement }>`
  * `:hover` matches every ancestor, so a container would otherwise light up
  * alongside whichever of its children the pointer is actually over.
  */
-const Interactive = styled.div<{ showBounds?: boolean }>`
-  ${({ theme, showBounds }) => css`
+const Interactive = styled.div<{
+  showBounds?: boolean;
+  $destination?: boolean;
+}>`
+  ${({ theme, showBounds, $destination }) => css`
     height: 100%;
     position: relative;
     border-radius: ${theme.borderRadius}px;
@@ -335,9 +412,35 @@ const Interactive = styled.div<{ showBounds?: boolean }>`
        * included. A drop target you cannot see is one you cannot aim at, and
        * revealing a widget only once the pointer is near it tells you where
        * it is just as you arrive.
+       *
+       * The container the widget would land in says so louder: "where could
+       * this go" and "where is it going" are different questions, and the
+       * second one has one answer.
        */
-        box-shadow: 0 0 0 1px ${theme.colorBorderSecondary};
+        box-shadow: ${
+          $destination
+            ? `0 0 0 2px ${theme.colorPrimary}`
+            : `0 0 0 1px ${theme.colorBorderSecondary}`
+        };
       `
+    }
+
+    /*
+     * Selected is the same as hovered, for as long as it is selected: the
+     * grip, the four corners and the widget's own controls stay where they
+     * can be seen and aimed at, rather than only while the pointer happens
+     * to be over them.
+     */
+    &[aria-pressed='true'] > .canvas-handle {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Chrome is only made visible, never clickable as a whole: the layer is
+       transparent to the pointer on purpose, and what it holds takes its own
+       presses. */
+    &[aria-pressed='true'] > .canvas-chrome {
+      opacity: 1;
     }
 
     /* Direct children only: hovering a container must not reveal the
@@ -570,6 +673,28 @@ function WidgetBody({
   );
 }
 
+/**
+ * The mark on the selected widget.
+ *
+ * A sibling of the content rather than an outline on the box around it: the
+ * content sets `isolation: isolate`, so anything it stacks internally paints
+ * after its parent's outline, and a chart's canvas or a table's sticky header
+ * would draw straight over it. An inset shadow takes no space, so selecting a
+ * widget moves nothing on screen.
+ */
+const Selected = styled.div<{ depth: number }>`
+  ${({ theme, depth }) => css`
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: ${theme.borderRadius}px;
+    box-shadow: inset 0 0 0 2px ${theme.colorPrimary};
+    /* The same ladder the handles climb, so the innermost selection wins a
+       shared edge. */
+    z-index: ${3 + depth};
+  `}
+`;
+
 const Grip = styled.button<{ depth: number; offset: number }>`
   ${({ theme, depth, offset }) => css`
     position: absolute;
@@ -649,8 +774,8 @@ const ResizeCorner = styled.button<{
         ${north ? 'top' : 'bottom'}: ${theme.sizeUnit / 2}px;
         width: ${theme.sizeUnit * 2}px;
         height: ${theme.sizeUnit * 2}px;
-        border-${west ? 'left' : 'right'}: 2px solid ${theme.colorTextTertiary};
-        border-${north ? 'top' : 'bottom'}: 2px solid ${theme.colorTextTertiary};
+        border-${west ? 'left' : 'right'}: 2px solid ${theme.colorIcon};
+        border-${north ? 'top' : 'bottom'}: 2px solid ${theme.colorIcon};
       }
     `;
   }}
@@ -700,6 +825,8 @@ export interface CanvasGridSurfaceProps {
   parentId: string;
   /** Whether a child holds a grid of its own, and so is bounded, not scrolled. */
   isContainer?: (nodeId: string) => boolean;
+  /** What to call a widget out loud, for the selection's accessible name. */
+  labelOf?: (nodeId: string) => string;
   onPlace: (nodeId: string, placement: GridPlacement) => void;
   /**
    * Persist two widgets exchanging places, which is what a drop landing
@@ -736,6 +863,7 @@ export default function CanvasGridSurface({
   depth,
   parentId,
   isContainer = () => false,
+  labelOf = nodeId => nodeId,
   onPlace,
   onSwap,
   onMove,
@@ -743,6 +871,7 @@ export default function CanvasGridSurface({
 }: CanvasGridSurfaceProps) {
   const theme = useTheme();
   const drag = useCanvasDrag();
+  const selection = useCanvasSelection();
   const [measureGrid, width] = useElementWidth();
   // Registered so a gesture anywhere on the canvas can find this grid under
   // the pointer, and so this one can find the others.
@@ -938,7 +1067,7 @@ export default function CanvasGridSurface({
       }
       // Only a deferred press is checked. A handle press is unambiguous, and
       // a handle is itself a button, so checking it would reject every one.
-      if (!armed && ownsPress(event)) return;
+      if (!armed && ownedBy(event, OWN_GESTURE)) return;
       // One gesture at a time. A second finger on another handle also reports
       // button 0, and letting it replace the live gesture would strand the
       // first pointer: its move and up events fail the pointerId guards, so
@@ -954,9 +1083,12 @@ export default function CanvasGridSurface({
       claimedPresses.add(event.nativeEvent);
       // Pin where every grid is, before any preview starts moving them: a
       // container has to stay where the user is aiming rather than being
-      // pushed along with the rest of its grid. At the press, because a
-      // handle gesture is already armed by its first move.
+      // pushed along with the rest of its grid. At the press, because that is
+      // the last moment the targets are where the user aimed.
       drag.freeze();
+      // A handle press is a drag from the start; a press on the body is a
+      // click until it travels, and says so at the threshold instead.
+      if (armed) drag.arm();
       // Where the grid sits now, so later moves can tell scrolling apart from
       // pointer travel.
       const box = grid.current?.getBoundingClientRect();
@@ -1043,11 +1175,16 @@ export default function CanvasGridSurface({
           event.clientY - current.startY,
         ) >= DRAG_THRESHOLD;
       if (!armed) return;
-      if (!current.armed && current.capture.isConnected) {
-        // It is a drag after all, so take the pointer from here on. Capturing
-        // on the press instead would retarget the release and the click after
-        // it, and the widget's own controls would never fire.
-        current.capture.setPointerCapture(current.pointerId);
+      if (!current.armed) {
+        // It is a drag after all. The canvas is told here rather than at the
+        // press, so a plain click does not flash every widget's edges.
+        drag.arm();
+        if (current.capture.isConnected) {
+          // Take the pointer from here on. Capturing on the press instead
+          // would retarget the release and the click after it, and the
+          // widget's own controls would never fire.
+          current.capture.setPointerCapture(current.pointerId);
+        }
       }
       update({
         ...current,
@@ -1170,25 +1307,21 @@ export default function CanvasGridSurface({
   }, [editable, placements, childIds, update]);
 
   /**
-   * Arrow keys do what dragging that handle does, one cell at a time, so the
-   * layout is reachable without a pointer: the grip moves the widget, the
-   * resize corner resizes it.
+   * One cell of movement or resizing, as a key press asks for it.
+   *
+   * The same clamping a drag goes through, so a nudge can no more produce a
+   * layout the server rejects than a drop can. Shared by the handles and by
+   * the selection, which both offer the arrow keys.
    */
-  const onKeyDown =
-    (nodeId: string, kind: GestureKind, corner: ResizeCorner = 'se') =>
-    (event: ReactKeyboardEvent<HTMLButtonElement>) => {
-      const steps: Record<string, [number, number]> = {
-        ArrowLeft: [-1, 0],
-        ArrowRight: [1, 0],
-        ArrowUp: [0, -1],
-        ArrowDown: [0, 1],
-      };
-      const step = steps[event.key];
-      if (!step) return;
-      event.preventDefault();
+  const nudge = useCallback(
+    (
+      nodeId: string,
+      kind: GestureKind,
+      corner: ResizeCorner,
+      delta: GridDelta,
+    ) => {
       const placement = placements[nodeId];
       if (!placement) return;
-      const delta = { cols: step[0], rows: step[1] };
       commit(
         nodeId,
         kind === 'move'
@@ -1203,6 +1336,87 @@ export default function CanvasGridSurface({
         placement,
         kind,
       );
+    },
+    [placements, commit, columns, constraints],
+  );
+
+  /**
+   * Clicking a widget selects it.
+   *
+   * The innermost one: a click inside a group is about the widget it landed
+   * on, and the group is selected by clicking its own space instead. A press
+   * a control owns selects nothing -- pressing a filter's dropdown is about
+   * the filter, not about the widget holding it.
+   */
+  const selectOnClick =
+    (nodeId: string) => (event: ReactMouseEvent<HTMLElement>) => {
+      // A widget's modal renders in a portal outside this subtree, and React
+      // routes its clicks through here: without this, clicking inside "View
+      // query" selects the widget behind it.
+      if (
+        !(event.target instanceof Node) ||
+        !event.currentTarget.contains(event.target)
+      ) {
+        return;
+      }
+      if (ownedBy(event, OWN_CLICK)) return;
+      event.stopPropagation();
+      selection.select(nodeId);
+    };
+
+  /**
+   * The keyboard on the widget itself: Enter or Space selects, Escape lets
+   * go, and once it is selected the arrows move it -- with Shift, resize it.
+   *
+   * Which means the layout is reachable without first finding a handle that
+   * is only 16px across and only appears on hover.
+   */
+  const keysOnWidget =
+    (nodeId: string, selected: boolean) =>
+    (event: ReactKeyboardEvent<HTMLElement>) => {
+      // Only keys pressed on the widget itself. The handles answer the arrows
+      // too and do not stop them bubbling, so without this one press would
+      // commit twice; and a widget's own field or dropdown must keep its
+      // arrows.
+      if (event.target !== event.currentTarget) return;
+      // Leaves every shortcut to whoever owns it -- Cmd/Ctrl+Z to the toolbar.
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        selection.select(nodeId);
+        return;
+      }
+      if (event.key === 'Escape') {
+        // Focus stays where it is, so Tab carries on from here.
+        event.preventDefault();
+        selection.select(undefined);
+        return;
+      }
+      const step = ARROW_STEPS[event.key];
+      // Selected, not merely focused: tabbing through a canvas would
+      // otherwise rearrange it on the way past.
+      if (!step || !selected) return;
+      // A nudge resolves against the stored placement while a live gesture
+      // resolves against the one it was grabbed at; interleaving them would
+      // persist a rectangle nobody saw.
+      if (live.current) return;
+      // Or the page scrolls under the widget instead.
+      event.preventDefault();
+      nudge(nodeId, event.shiftKey ? 'resize' : 'move', 'se', step);
+    };
+
+  /**
+   * Arrow keys do what dragging that handle does, one cell at a time, so the
+   * layout is reachable without a pointer: the grip moves the widget, the
+   * resize corner resizes it.
+   */
+  const onKeyDown =
+    (nodeId: string, kind: GestureKind, corner: ResizeCorner = 'se') =>
+    (event: ReactKeyboardEvent<HTMLButtonElement>) => {
+      const step = ARROW_STEPS[event.key];
+      if (!step) return;
+      event.preventDefault();
+      nudge(nodeId, kind, corner, step);
     };
 
   const preview = gesture?.armed
@@ -1285,8 +1499,25 @@ export default function CanvasGridSurface({
       rowUnit={rowUnit}
       heldHeight={gesture?.heldHeight}
       $fill={depth > 0}
+      // The root grid's own space is the canvas's background: a click that
+      // reaches it is a click on nothing, and lets the selection go. Only the
+      // root -- a click on a container's empty space is a click on that
+      // container, and selects it.
+      {...(depth === 0 && editable
+        ? {
+            onClick: (event: ReactMouseEvent<HTMLElement>) => {
+              if (event.target === event.currentTarget) selection.select();
+            },
+          }
+        : {})}
       data-test="canvas-grid-surface"
     >
+      {/* Nothing here yet, and nowhere to aim: say where the space is. */}
+      {editable && childIds.length === 0 && (
+        <EmptyDrop $active={drag.dragging} data-test="canvas-empty-drop">
+          {t('Drop a widget here')}
+        </EmptyDrop>
+      )}
       {/* The widget is arriving from another grid: show where it lands. */}
       {arriving && (
         <DropPreview
@@ -1298,15 +1529,23 @@ export default function CanvasGridSurface({
       {!leaving &&
         preview &&
         gesture &&
+        gesture.kind === 'move' &&
         !samePlacement(preview, gesture.origin) && (
           <DropPreview placement={preview} data-test="canvas-drop-preview" />
         )}
       {childIds.map(childId => {
         const dragging = gesture?.armed && gesture.nodeId === childId;
         // Neighbours follow the previewed layout, so they move aside while
-        // the pointer is still down. The widget being dragged stays anchored
-        // where it was grabbed, and the pointer offset below moves it.
-        const placed = dragging ? placements[childId] : shown[childId];
+        // the pointer is still down.
+        //
+        // A widget being *moved* stays in the cells it was grabbed from,
+        // because the pointer offset below is what carries it; placing it
+        // where it would land as well would move it twice. One being
+        // *resized* has no such offset, so it takes the previewed size
+        // directly and grows and shrinks under the hand -- which is the
+        // thing a resize is asking to see.
+        const carried = dragging && gesture?.kind === 'move';
+        const placed = carried ? placements[childId] : shown[childId];
         // Rows plus the gaps between them: how tall this widget renders.
         const extent = placed
           ? placed.rowSpan * rowUnit + (placed.rowSpan - 1) * gap
@@ -1319,23 +1558,45 @@ export default function CanvasGridSurface({
           extent,
           stepsAside(depth, columns, placed),
         );
+        const selectable = editable && Boolean(placements[childId]);
+        const selected = selection.selectedId === childId;
+        // The container this drag would land in. Its own box, not the grid
+        // inside it: the box is what the drop is tested against, and a
+        // group's grid is that box less the title above it.
+        const destination = landing?.parentId === childId;
         return (
           <GridItem
             key={childId}
-            placement={dragging && gesture ? gesture.origin : placed}
-            dragging={dragging && gesture?.kind === 'move'}
-            data-dragging={
-              dragging && gesture?.kind === 'move' ? 'true' : undefined
-            }
-            offset={dragging ? { x: gesture.dx, y: gesture.dy } : undefined}
+            placement={carried && gesture ? gesture.origin : placed}
+            dragging={carried}
+            data-dragging={carried ? 'true' : undefined}
+            offset={carried ? { x: gesture.dx, y: gesture.dy } : undefined}
             data-test="canvas-node"
             data-node-id={childId}
           >
             <Interactive
               className="canvas-interactive"
               showBounds={drag.dragging}
-              {...(editable && placements[childId]
-                ? { onPointerDown: begin(childId, 'move', false) }
+              $destination={destination}
+              data-destination={destination ? 'true' : undefined}
+              {...(selectable
+                ? {
+                    onPointerDown: begin(childId, 'move', false),
+                    onClick: selectOnClick(childId),
+                    // The press surface is a button so it can be selected and
+                    // reached by keyboard; `data-canvas-selectable` keeps it
+                    // out of the controls a press belongs to (see
+                    // `OWN_GESTURE`), and the nested handles are the a11y
+                    // price of that, as they are on any card whose whole face
+                    // is clickable.
+                    'data-canvas-selectable': true,
+                    // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
+                    role: 'button',
+                    tabIndex: 0,
+                    'aria-pressed': selected,
+                    'aria-label': labelOf(childId),
+                    onKeyDown: keysOnWidget(childId, selected),
+                  }
                 : {})}
             >
               <WidgetBody
@@ -1378,6 +1639,9 @@ export default function CanvasGridSurface({
                     />
                   ))}
                 </>
+              )}
+              {selected && (
+                <Selected depth={depth} data-test="canvas-selected" />
               )}
             </Interactive>
           </GridItem>

@@ -114,10 +114,21 @@ export interface CanvasDrag {
    * began, the targets stay where the user aimed.
    */
   freeze: () => void;
+  /**
+   * Says a gesture has become a drag, which is a later moment than `freeze`.
+   *
+   * Boxes are pinned at the press, because a press is the last instant the
+   * targets are where the user aimed. Whether the press is a drag at all is
+   * not known until it travels: a press on a widget's body is a click until
+   * it passes the threshold. Reporting a drag from the press instead would
+   * flash every widget's edges, and open every container's clipping, on a
+   * plain click.
+   */
+  arm: () => void;
   /** Lets the grids move again. */
   release: () => void;
   /**
-   * Whether a gesture is running anywhere on the canvas, so every widget can
+   * Whether a drag is running anywhere on the canvas, so every widget can
    * show its edges while one is: a drop target you cannot see is one you
    * cannot aim at, and waiting until the pointer is near a widget tells you
    * where it is only once you are already there.
@@ -143,6 +154,7 @@ export interface CanvasDrag {
 const NOT_DRAGGING: CanvasDrag = {
   register: () => () => {},
   freeze: () => {},
+  arm: () => {},
   release: () => {},
   dragging: false,
   gridAt: () => undefined,
@@ -213,8 +225,9 @@ export function CanvasDragProvider({ children }: { children: ReactNode }) {
       });
     });
     pinned.current = { base: base.parentId, boxes };
-    setDragging(true);
   }, [rootGrid]);
+
+  const arm = useCallback(() => setDragging(true), []);
 
   const release = useCallback(() => {
     pinned.current = undefined;
@@ -288,13 +301,14 @@ export function CanvasDragProvider({ children }: { children: ReactNode }) {
     () => ({
       register,
       freeze,
+      arm,
       release,
       dragging,
       gridAt,
       landing,
       setLanding,
     }),
-    [register, freeze, release, dragging, gridAt, landing],
+    [register, freeze, arm, release, dragging, gridAt, landing],
   );
   return (
     <CanvasDragContext.Provider value={value}>

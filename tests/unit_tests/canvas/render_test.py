@@ -69,10 +69,11 @@ def test_layouts_carry_what_placement_is_resolved_from() -> None:
     The stored layouts, which are not recoverable from ``placements``.
 
     An auto-placed node has no stored ``col``/``row`` at all, and a node that
-    collided has its pushed-down ``row`` written back to its layout. A client
-    previewing a drag resolves from these, so it has to be told them: resolving
-    from the rectangles instead would make an auto-placed node look pinned, and
-    a pushed node look like it was still where the user last asked for it.
+    collided has the ``col``/``row`` it settled on written back to its layout.
+    A client previewing a drag resolves from these, so it has to be told them:
+    resolving from the rectangles instead would make an auto-placed node look
+    pinned, and a displaced node look like it was still where the user last
+    asked for it.
     """
     rules, resolver = canvas_widget_types(), FakeResolver()
     definition = normalize_definition(
@@ -91,17 +92,18 @@ def test_layouts_carry_what_placement_is_resolved_from() -> None:
 
     context = render_context(definition, rules, resolver)
 
-    # `fixed` asked for row 1 and was pushed to row 2 by `auto`.
+    # `fixed` asked for col 1 and `auto` was already there, so it moved aside
+    # into the free half of the same row.
     assert context["placements"]["fixed"] == {
-        "col": 1,
-        "row": 2,
+        "col": 9,
+        "row": 1,
         "colSpan": 8,
         "rowSpan": 1,
     }
     assert context["layouts"] == {
         "auto": {"colSpan": 8},
         # The pushed row, not the row 1 that was asked for.
-        "fixed": {"col": 1, "row": 2, "colSpan": 8},
+        "fixed": {"col": 9, "row": 1, "colSpan": 8},
     }
 
 

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 16:39+0200\n"
+"POT-Creation-Date: 2026-10-31 01:20+0200\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -6605,6 +6605,9 @@ msgstr[1] "Spalten/Metriken hierhin ziehen oder klicken"
 
 msgid "Drop a temporal column here or click"
 msgstr "Legen Sie hier eine Spalte ab oder klicken Sie"
+
+msgid "Drop a widget here"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "Spalten/Metriken hierhin ziehen und ablegen oder klicken"

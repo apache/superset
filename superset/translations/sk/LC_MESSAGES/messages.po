@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 16:39+0200\n"
+"POT-Creation-Date: 2026-10-31 01:20+0200\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -6737,6 +6737,9 @@ msgstr[2] "Přetáhnete sem stĺpce/metriky alebo kliknete"
 
 msgid "Drop a temporal column here or click"
 msgstr "Přetáhnete sem časový stĺpec alebo kliknete"
+
+msgid "Drop a widget here"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "Přetáhnete sem stĺpce/metriky alebo kliknete"

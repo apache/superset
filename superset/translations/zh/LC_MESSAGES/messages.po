@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-29 16:39+0200\n"
+"POT-Creation-Date: 2026-10-31 01:20+0200\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -6720,6 +6720,9 @@ msgstr[0] "将列/指标放在此处或单击"
 #, fuzzy
 msgid "Drop a temporal column here or click"
 msgstr "将时间列拖放到此处或单击"
+
+msgid "Drop a widget here"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "将列/指标拖放到此处或单击"

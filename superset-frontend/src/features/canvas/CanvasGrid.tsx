@@ -199,6 +199,8 @@ export default function CanvasGrid({
       gap={gap}
       rowUnit={rowUnit}
       isContainer={nodeId => gridColumns[nodeId] !== undefined}
+      // What the widget is, rather than its id: the id is a slug nobody chose.
+      labelOf={nodeId => widgetTypes[nodeId] ?? nodeId}
       placements={placements}
       layouts={layouts}
       constraints={layoutConstraints}

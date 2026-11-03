@@ -31,8 +31,10 @@
  *
  * Children resolve in reading order:
  *
- * - An explicitly placed child (`col`/`row` set) keeps its column, and is
- *   pushed straight down until it clears anything resolved before it.
+ * - An explicitly placed child (`col`/`row` set) that overlaps something
+ *   resolved before it moves aside: along its own row while there is room to
+ *   its right, and only down once the row is full, back at the column it
+ *   asked for.
  * - An auto-placed child (`col`/`row` omitted) takes the first free slot that
  *   fits its span, scanning from a cursor that only moves forward.
  *
@@ -78,14 +80,20 @@ export function resolveGrid(
     let rect: GridPlacement;
 
     if (layout.col !== undefined && layout.col !== null) {
-      rect = {
-        col: layout.col,
-        row: layout.row as number,
-        colSpan,
-        rowSpan,
-      };
+      const home = layout.col;
+      rect = { col: home, row: layout.row as number, colSpan, rowSpan };
       while (!clear(rect, occupied)) {
-        rect = { ...rect, row: rect.row + 1 };
+        if (rect.col + colSpan - 1 < columns) {
+          // Room beside it on this row: a widget dropped on the left half of
+          // a row slides its neighbour into the free right half, rather than
+          // sending it to a row of its own and leaving that half empty.
+          rect = { ...rect, col: rect.col + 1 };
+        } else {
+          // The row is full to the right, so down it goes -- back at the
+          // column it asked for, since the next row is clear of everything
+          // placed so far.
+          rect = { ...rect, col: home, row: rect.row + 1 };
+        }
       }
     } else {
       let row = cursorRow;

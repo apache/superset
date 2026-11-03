@@ -29,6 +29,10 @@ import { useDraftActions } from './useDraftActions';
 import { useDraftHistory } from './useDraftHistory';
 import { useStartDraft } from './useStartDraft';
 import { useCanvasLayout } from './useCanvasLayout';
+import {
+  CanvasSelectionContext,
+  useCanvasSelectionState,
+} from './useCanvasSelection';
 import { CanvasDefinitionResult } from './types';
 
 interface CanvasBodyProps {
@@ -108,6 +112,13 @@ export default function CanvasBody({
   // after that read would be replayed by nothing. The single place this
   // policy is decided.
   const editable = result.canEdit && Boolean(draftToken) && !committing;
+  // Held here rather than in the grid: `editable` and the placements are
+  // already here, and this is above the toolbar as well as the canvas, so an
+  // action on the selected widget has somewhere to live later.
+  const selection = useCanvasSelectionState({
+    editable,
+    placements: layout.placements,
+  });
   const toolbar = (
     <CanvasToolbar
       canEdit={result.canEdit}
@@ -126,7 +137,7 @@ export default function CanvasBody({
     />
   );
   return (
-    <>
+    <CanvasSelectionContext.Provider value={selection}>
       {toolbarSlot ? createPortal(toolbar, toolbarSlot) : toolbar}
       {draftToken && <DraftBanner />}
       {isEmpty ? (
@@ -148,6 +159,6 @@ export default function CanvasBody({
           draftToken={draftToken}
         />
       )}
-    </>
+    </CanvasSelectionContext.Provider>
   );
 }

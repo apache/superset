@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 16:39+0200\n"
+"POT-Creation-Date: 2026-10-31 01:20+0200\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -7137,6 +7137,9 @@ msgstr[1] ""
 
 msgid "Drop a temporal column here or click"
 msgstr "Colocar uma coluna temporal aqui ou clique"
+
+msgid "Drop a widget here"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "Colocar colunas/métricas aqui ou clique"

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-29 16:39+0200\n"
+"POT-Creation-Date: 2026-10-31 01:20+0200\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -6650,6 +6650,9 @@ msgstr[3] "Перетягніть стовпець/показник сюди а�
 
 msgid "Drop a temporal column here or click"
 msgstr "Перетягніть часовий стовпець сюди або натисніть"
+
+msgid "Drop a widget here"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "Перетягніть стовпці/показники сюди або натисніть"

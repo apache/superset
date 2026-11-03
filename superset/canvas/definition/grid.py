@@ -19,9 +19,14 @@ Grid placement shared by the root and grid containers.
 
 Children are resolved in reading order (their order in ``children``):
 
-- An explicitly placed child (``col``/``row`` set) keeps its column. If it
-  overlaps a child resolved before it, it is pushed straight down until clear,
-  and the pushed ``row`` is written back to its layout.
+- An explicitly placed child (``col``/``row`` set) that overlaps a child
+  resolved before it moves aside: along its own row while there is room to its
+  right, and only down once the row is full, back at the column it asked for.
+  Where it settles is written back to its layout.
+
+  Sideways first because a row usually has room in it. Pushing straight down
+  sent a neighbour to a row of its own while the space beside it stayed empty,
+  so dropping one widget beside another took a drop and then a drag back.
 - An auto-placed child (``col``/``row`` omitted) takes the first free slot that
   fits its span, scanning row by row from a cursor that only moves forward.
   Its layout keeps ``col``/``row`` omitted.
@@ -74,7 +79,7 @@ def resolve_grid(
     Resolve placement for children in reading order.
 
     Returns the resolved rectangles and the layouts to store, where explicitly
-    placed children that collided carry their pushed-down ``row``.
+    placed children that collided carry the ``col``/``row`` they settled on.
     """
     occupied: set[tuple[int, int]] = set()
     cursor_row, cursor_col = 1, 1
@@ -86,10 +91,21 @@ def resolve_grid(
         row_span = layout.get("rowSpan") or 1
 
         if layout.get("col") is not None:
-            rect = Rect(layout["col"], layout["row"], col_span, row_span)
+            home = layout["col"]
+            rect = Rect(home, layout["row"], col_span, row_span)
             while rect.cells() & occupied:
-                rect = Rect(rect.col, rect.row + 1, col_span, row_span)
-            stored.append({**layout, "row": rect.row})
+                if rect.col + col_span - 1 < columns:
+                    # Room beside it on this row: a widget dropped on the left
+                    # half of a row should slide its neighbour into the free
+                    # right half, not send it to a row of its own and leave
+                    # that half empty.
+                    rect = Rect(rect.col + 1, rect.row, col_span, row_span)
+                else:
+                    # The row is full to the right, so down it goes -- back at
+                    # the column it asked for, since nothing on the next row
+                    # is in its way yet.
+                    rect = Rect(home, rect.row + 1, col_span, row_span)
+            stored.append({**layout, "col": rect.col, "row": rect.row})
         else:
             row, col = cursor_row, cursor_col
             while True:

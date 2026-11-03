@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 16:39+0200\n"
+"POT-Creation-Date: 2026-10-31 01:20+0200\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -6885,6 +6885,9 @@ msgstr[1] "Taka ngā tīwae/ine ki konei, pāwhiri rānei"
 
 msgid "Drop a temporal column here or click"
 msgstr "Tukua tētahi tīwae wā ki konei, pāwhiria rānei"
+
+msgid "Drop a widget here"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "Tukua ngā tīwae/ine ki konei, pāwhiria rānei"

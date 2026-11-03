@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 16:39+0200\n"
+"POT-Creation-Date: 2026-10-31 01:20+0200\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: pl\n"
@@ -7206,6 +7206,9 @@ msgstr[1] "Upuść kolumny/metryki tutaj lub kliknij"
 #, fuzzy
 msgid "Drop a temporal column here or click"
 msgstr "Upuść kolumnę czasową tutaj lub kliknij"
+
+msgid "Drop a widget here"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "Upuść kolumny/metryki tutaj lub kliknij"

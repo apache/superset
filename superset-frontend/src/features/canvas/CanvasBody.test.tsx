@@ -283,3 +283,52 @@ test('a layout write that does not land says so where the user is looking', asyn
 
   await waitFor(() => expect(mockToasts.addDangerToast).toHaveBeenCalled());
 });
+
+/** The widget's own press surface, which is what carries the selection. */
+const widgetBody = (nodeId: string) =>
+  document.querySelector(
+    `[data-node-id="${nodeId}"] .canvas-interactive`,
+  ) as HTMLElement;
+
+test('the canvas is what holds the selection, and a publish lets it go', async () => {
+  // The grid draws the selection but does not own it: it is a fact about one
+  // person looking at one screen, so it is held out here beside the canvas.
+  // Without this nothing notices if the two are never connected.
+  let finishCommit: () => void = () => {};
+  const held = new Promise<Response>(resolve => {
+    finishCommit = () =>
+      resolve(
+        new Response(JSON.stringify({ result: { revision: 1 } }), {
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+  });
+  fetchMock.post(commitEndpoint, () => held);
+
+  renderBody();
+
+  fireEvent.click(widgetBody('kpi'));
+
+  expect(widgetBody('kpi')).toHaveAttribute('aria-pressed', 'true');
+
+  // Publishing stops the editing, so there is nothing left to be working on.
+  fireEvent.click(publishButton());
+
+  await waitFor(() =>
+    expect(
+      document.querySelector('[data-test="canvas-selected"]'),
+    ).not.toBeInTheDocument(),
+  );
+
+  finishCommit();
+});
+
+test('the published canvas has nothing to select', () => {
+  // Permission alone does not make it selectable: changes are made in a plan,
+  // and an outline on a read-only canvas would mean nothing.
+  renderPublished();
+
+  fireEvent.click(widgetBody('kpi'));
+
+  expect(widgetBody('kpi')).not.toHaveAttribute('aria-pressed');
+});

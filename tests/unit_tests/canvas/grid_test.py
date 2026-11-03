@@ -39,7 +39,14 @@ def test_missing_spans_default_to_full_width_and_one_row() -> None:
     assert rects == [Rect(1, 1, 12, 1), Rect(1, 2, 12, 1)]
 
 
-def test_explicit_collision_is_pushed_down_and_stored() -> None:
+def test_an_explicit_collision_slides_along_the_row_and_is_stored() -> None:
+    """
+    Aside, not down, while the row has room for it.
+
+    Pushing it down would send it to a row of its own and leave the space
+    beside it empty, so dropping one widget beside another took a drop and
+    then a drag back.
+    """
     rects, stored = resolve_grid(
         [
             {"col": 1, "row": 1, "colSpan": 12, "rowSpan": 3},
@@ -48,8 +55,22 @@ def test_explicit_collision_is_pushed_down_and_stored() -> None:
         24,
     )
 
-    assert rects[1] == Rect(7, 4, 12, 2)
-    assert stored[1] == {"col": 7, "row": 4, "colSpan": 12, "rowSpan": 2}
+    assert rects[1] == Rect(13, 2, 12, 2)
+    assert stored[1] == {"col": 13, "row": 2, "colSpan": 12, "rowSpan": 2}
+
+
+def test_an_explicit_collision_goes_down_once_the_row_is_full() -> None:
+    """And back to the column it asked for, since that row is clear."""
+    rects, stored = resolve_grid(
+        [
+            {"col": 1, "row": 1, "colSpan": 24, "rowSpan": 4},
+            {"col": 1, "row": 1, "colSpan": 24, "rowSpan": 4},
+        ],
+        24,
+    )
+
+    assert rects[1] == Rect(1, 5, 24, 4)
+    assert stored[1] == {"col": 1, "row": 5, "colSpan": 24, "rowSpan": 4}
 
 
 def test_auto_placement_skips_explicitly_occupied_cells() -> None:

@@ -288,8 +288,10 @@ test('a side-by-side drop goes ahead of the sibling to its right', () => {
   );
 
   expect(preview.right).toEqual({ col: 1, row: 1, colSpan: 12, rowSpan: 4 });
-  // `left` lost its spot and is pushed down rather than sideways.
-  expect(preview.left).toEqual({ col: 1, row: 5, colSpan: 12, rowSpan: 4 });
+  // `left` lost its spot, and the row still has room in it, so it takes the
+  // half the dropped widget came from rather than a row of its own. The two
+  // of them have exchanged places without either changing size.
+  expect(preview.left).toEqual({ col: 13, row: 1, colSpan: 12, rowSpan: 4 });
 });
 
 test('a widget swapped into a narrower slot is pulled back onto the grid', () => {

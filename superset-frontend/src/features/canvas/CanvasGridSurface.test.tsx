@@ -23,6 +23,10 @@ import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import CanvasGridSurface from './CanvasGridSurface';
 import { CanvasWidgetChromeContext } from './widgetChrome';
 import { CanvasDragProvider } from './useCanvasDrag';
+import {
+  CanvasSelectionContext,
+  useCanvasSelectionState,
+} from './useCanvasSelection';
 import { RESIZE_CORNERS } from './gridGeometry';
 import type { GridPlacement, SpanConstraints } from './types';
 
@@ -1322,8 +1326,9 @@ test('a resize does not unclip the containers around it', () => {
     clientY: ROW_PITCH,
   });
 
-  // Really resizing -- the outline is up -- but nothing is marked as dragged.
-  expect(screen.getByTestId('canvas-drop-preview')).toBeInTheDocument();
+  // Really resizing -- the widget has taken the new size -- but nothing is
+  // marked as dragged.
+  expect(getComputedStyle(item as HTMLElement).gridColumn).toBe('1/span 9');
   expect(item).not.toHaveAttribute('data-dragging');
 
   pointer(corner, 'pointerup', { clientX: COL_PITCH * 3, clientY: ROW_PITCH });
@@ -1651,6 +1656,34 @@ test('every widget shows its edges while a drag is running', () => {
   expect(edges('trend')).toBe('');
 });
 
+test('a press that turns out to be a click shows nobody any edges', () => {
+  // The boxes are pinned at the press, because that is the last moment the
+  // targets are where the user aimed -- but a press on a widget's body is a
+  // click until it travels. Calling it a drag at the press flashed every
+  // widget's edges, and opened every container's clipping, on a plain click.
+  const onPlace = renderSurface();
+  const edges = (nodeId: string) =>
+    getComputedStyle(
+      onPlace.container.querySelector(
+        `[data-node-id="${nodeId}"] .canvas-interactive`,
+      ) as HTMLElement,
+    ).boxShadow;
+  const body = widgetBody(onPlace.container, 'kpi');
+
+  pointer(body, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+
+  expect(edges('trend')).toBe('');
+
+  // Past the threshold it is a drag after all, and now everyone shows them.
+  pointer(body, 'pointermove', { clientX: COL_PITCH * 4, clientY: 0 });
+
+  expect(edges('trend')).not.toBe('');
+
+  pointer(body, 'pointerup', { clientX: COL_PITCH * 4, clientY: 0 });
+
+  expect(edges('trend')).toBe('');
+});
+
 test('a resize that grows over a neighbour is not an offer to trade places', () => {
   // Exchanging places is what a *move* onto a widget means. Growing a widget
   // until it covers its neighbour is a resize, and the neighbour should be
@@ -1677,4 +1710,299 @@ test('a resize that grows over a neighbour is not an offer to trade places', () 
     colSpan: 6,
     rowSpan: 12,
   });
+});
+
+/**
+ * A surface with a real selection around it.
+ *
+ * The bare `surface()` above deliberately has none -- a grid rendered without
+ * a canvas sees the inert default -- so the selection tests bring their own.
+ */
+function Selectable({
+  onPlace,
+  renderNode,
+}: {
+  onPlace?: jest.Mock;
+  renderNode?: (nodeId: string) => ReactNode;
+}) {
+  const selection = useCanvasSelectionState({
+    editable: true,
+    placements,
+  });
+  return (
+    <CanvasSelectionContext.Provider value={selection}>
+      {surface(
+        placements,
+        true,
+        onPlace ?? jest.fn(),
+        {},
+        Object.keys(placements),
+        renderNode,
+      )}
+    </CanvasSelectionContext.Provider>
+  );
+}
+
+const pressed = (container: HTMLElement, nodeId: string) =>
+  widgetBody(container, nodeId).getAttribute('aria-pressed');
+
+test('clicking a widget selects it, and clicking the canvas lets it go', () => {
+  const { container } = render(<Selectable />);
+
+  fireEvent.click(widgetBody(container, 'kpi'));
+
+  expect(pressed(container, 'kpi')).toBe('true');
+  expect(pressed(container, 'trend')).toBe('false');
+  expect(
+    container.querySelector('[data-test="canvas-selected"]'),
+  ).toBeInTheDocument();
+
+  // The grid's own space is the canvas's background: a click there is a click
+  // on nothing.
+  fireEvent.click(
+    container.querySelector('[data-test="canvas-grid-surface"]') as HTMLElement,
+  );
+
+  expect(pressed(container, 'kpi')).toBe('false');
+});
+
+test('a drag is not a click, so it selects nothing on the way past', () => {
+  const onPlace = jest.fn();
+  const { container } = render(<Selectable onPlace={onPlace} />);
+
+  drag(widgetBody(container, 'kpi'), COL_PITCH * 4, 0);
+
+  expect(onPlace).toHaveBeenCalled();
+  expect(pressed(container, 'kpi')).toBe('false');
+});
+
+test('a press a control owns selects nothing', () => {
+  // Pressing a filter's dropdown is about the filter, not about the widget
+  // holding it.
+  const { container } = render(
+    <Selectable
+      renderNode={nodeId =>
+        nodeId === 'kpi' ? <button type="button">Pick</button> : <div />
+      }
+    />,
+  );
+
+  fireEvent.click(screen.getByRole('button', { name: 'Pick' }));
+
+  expect(pressed(container, 'kpi')).toBe('false');
+});
+
+test("a click inside a widget's modal selects nothing behind it", () => {
+  // It renders in a portal outside this subtree, and React routes its clicks
+  // through the widget's own handler regardless.
+  const { container } = render(
+    <Selectable
+      renderNode={nodeId =>
+        nodeId === 'kpi'
+          ? createPortal(
+              <button type="button">In the modal</button>,
+              document.body,
+            )
+          : null
+      }
+    />,
+  );
+
+  fireEvent.click(screen.getByRole('button', { name: 'In the modal' }));
+
+  expect(pressed(container, 'kpi')).toBe('false');
+});
+
+test('arrow keys move the selected widget, Shift resizes it', () => {
+  const onPlace = jest.fn();
+  const { container } = render(<Selectable onPlace={onPlace} />);
+  const body = widgetBody(container, 'kpi');
+
+  // Nothing selected yet, so the arrows are not about this widget.
+  fireEvent.keyDown(body, { key: 'ArrowRight' });
+  expect(onPlace).not.toHaveBeenCalled();
+
+  fireEvent.keyDown(body, { key: 'Enter' });
+  expect(pressed(container, 'kpi')).toBe('true');
+
+  fireEvent.keyDown(body, { key: 'ArrowRight' });
+  expect(onPlace).toHaveBeenCalledWith('kpi', {
+    col: 2,
+    row: 1,
+    colSpan: 6,
+    rowSpan: 4,
+  });
+
+  fireEvent.keyDown(body, { key: 'ArrowDown', shiftKey: true });
+  expect(onPlace).toHaveBeenLastCalledWith('kpi', {
+    col: 1,
+    row: 1,
+    colSpan: 6,
+    rowSpan: 5,
+  });
+
+  fireEvent.keyDown(body, { key: 'Escape' });
+  expect(pressed(container, 'kpi')).toBe('false');
+});
+
+test('an arrow on the grip commits once, not once per handler', () => {
+  // The grip answers the arrows too and does not stop them bubbling, so the
+  // widget's own handler has to ignore what it did not receive directly.
+  const onPlace = jest.fn();
+  const { container } = render(<Selectable onPlace={onPlace} />);
+  // Selected, or the widget's own handler would decline anyway and the
+  // double commit could not show itself.
+  fireEvent.keyDown(widgetBody(container, 'kpi'), { key: 'Enter' });
+
+  fireEvent.keyDown(handles('Move widget')[0], { key: 'ArrowRight' });
+
+  expect(onPlace).toHaveBeenCalledTimes(1);
+});
+
+test("a widget's own field keeps its arrow keys", () => {
+  const onPlace = jest.fn();
+  const { container } = render(
+    <Selectable
+      onPlace={onPlace}
+      renderNode={nodeId => (nodeId === 'kpi' ? <input /> : <div />)}
+    />,
+  );
+  fireEvent.keyDown(widgetBody(container, 'kpi'), { key: 'Enter' });
+
+  fireEvent.keyDown(screen.getByRole('textbox'), { key: 'ArrowRight' });
+
+  expect(onPlace).not.toHaveBeenCalled();
+});
+
+test('a shortcut with a modifier belongs to whoever owns it', () => {
+  // Cmd/Ctrl+Z is the toolbar's; the widget must not read it as a nudge.
+  const onPlace = jest.fn();
+  const { container } = render(<Selectable onPlace={onPlace} />);
+  const body = widgetBody(container, 'kpi');
+  fireEvent.keyDown(body, { key: 'Enter' });
+
+  fireEvent.keyDown(body, { key: 'ArrowRight', metaKey: true });
+
+  expect(onPlace).not.toHaveBeenCalled();
+});
+
+test('content that takes its own presses is still a thing you can select', () => {
+  // The two layers answer different questions. A chart marks itself so the
+  // canvas never reads a press on it as a drag -- its click target is a pixel
+  // on a canvas element, with nothing for a selector to match. But its body
+  // is the whole widget, so if the marker also made it unselectable there
+  // would be nowhere left to click to select it.
+  const onPlace = jest.fn();
+  const { container } = render(
+    <Selectable
+      onPlace={onPlace}
+      renderNode={nodeId =>
+        nodeId === 'kpi' ? (
+          <div data-canvas-no-drag aria-label="chart kpi" />
+        ) : (
+          <div />
+        )
+      }
+    />,
+  );
+  const chart = screen.getByLabelText('chart kpi');
+
+  pointer(chart, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(chart, 'pointermove', { clientX: COL_PITCH * 4, clientY: 0 });
+  pointer(chart, 'pointerup', { clientX: COL_PITCH * 4, clientY: 0 });
+
+  expect(onPlace).not.toHaveBeenCalled();
+
+  fireEvent.click(chart);
+
+  expect(pressed(container, 'kpi')).toBe('true');
+});
+
+test('content that consumes a click keeps the selection from moving', () => {
+  // The second layer: a widget that turns a click into something of its own
+  // -- a cross-filter, say -- stops it, and the canvas never hears it.
+  const { container } = render(
+    <Selectable
+      renderNode={nodeId =>
+        nodeId === 'kpi' ? (
+          // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
+          <div
+            data-canvas-no-drag
+            aria-label="chart kpi"
+            onClick={event => event.stopPropagation()}
+          />
+        ) : (
+          <div />
+        )
+      }
+    />,
+  );
+
+  fireEvent.click(screen.getByLabelText('chart kpi'));
+
+  expect(pressed(container, 'kpi')).toBe('false');
+});
+
+test('an empty container says where its space is, and only while editing', () => {
+  // A container with no children is a box of blank space: it takes a drop
+  // anywhere inside it and advertises that nowhere.
+  const { container, rerender } = render(surface({}, true, jest.fn(), {}, []));
+
+  const hint = () => container.querySelector('[data-test="canvas-empty-drop"]');
+  expect(hint()).toBeInTheDocument();
+  expect(hint()).toHaveTextContent('Drop a widget here');
+
+  rerender(surface({}, false, jest.fn(), {}, []));
+
+  // On a published canvas there is nothing to drop, so nothing to say.
+  expect(hint()).not.toBeInTheDocument();
+});
+
+test('a container with widgets in it offers no such invitation', () => {
+  const onPlace = renderSurface();
+
+  expect(
+    onPlace.container.querySelector('[data-test="canvas-empty-drop"]'),
+  ).not.toBeInTheDocument();
+});
+
+test('a resize changes the widget itself, not a box drawn beside it', () => {
+  // A resize is asking to see a size. Leaving the widget at the size it was
+  // and drawing the answer as a dashed rectangle makes you read the outline
+  // and imagine the result, when the result is the thing you are pointing at.
+  const onPlace = renderSurface();
+  const corner = corners(onPlace.container, 'se')[0];
+  const item = onPlace.container.querySelector(
+    '[data-node-id="kpi"]',
+  ) as HTMLElement;
+
+  expect(getComputedStyle(item).gridColumn).toBe('1/span 6');
+
+  pointer(corner, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(corner, 'pointermove', { clientX: COL_PITCH * 3, clientY: 0 });
+
+  expect(getComputedStyle(item).gridColumn).toBe('1/span 9');
+  // And no second outline of the same cells drawn over it.
+  expect(screen.queryByTestId('canvas-drop-preview')).not.toBeInTheDocument();
+
+  pointer(corner, 'pointerup', { clientX: COL_PITCH * 3, clientY: 0 });
+});
+
+test('a move still carries the widget rather than re-placing it', () => {
+  // The pointer offset is what moves it, so taking the previewed cells too
+  // would move it twice -- and the dashed outline is what answers "where
+  // would this land" for a gesture whose widget is in the air.
+  const onPlace = renderSurface();
+  const handle = handles('Move widget')[0];
+  const item = onPlace.container.querySelector(
+    '[data-node-id="kpi"]',
+  ) as HTMLElement;
+
+  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(handle, 'pointermove', { clientX: COL_PITCH * 4, clientY: 0 });
+
+  expect(getComputedStyle(item).gridColumn).toBe('1/span 6');
+  expect(screen.getByTestId('canvas-drop-preview')).toBeInTheDocument();
+
+  pointer(handle, 'pointerup', { clientX: COL_PITCH * 4, clientY: 0 });
 });

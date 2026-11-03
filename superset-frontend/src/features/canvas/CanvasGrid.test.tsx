@@ -503,6 +503,83 @@ test('a widget dragged out of a group moves into the grid it was dropped on', ()
   );
 });
 
+test('the container a drag would land in says so, and only it', () => {
+  // Every widget shows its edges while a drag runs, which answers "where
+  // could this go". The one the widget is actually going to has to answer a
+  // different question, and only one widget can answer it.
+  const { container } = render(
+    <CanvasGrid
+      canvasId={7}
+      result={result}
+      values={emptyScopeValues()}
+      onValueChange={jest.fn()}
+      layout={layoutWith(result, { place: jest.fn(), move: jest.fn() })}
+      editable
+    />,
+  );
+
+  const rect = (top: number, bottom: number) => ({
+    configurable: true,
+    value: () => ({
+      left: 0,
+      top,
+      right: 1000,
+      bottom,
+      width: 1000,
+      height: bottom - top,
+      x: 0,
+      y: top,
+      toJSON: () => ({}),
+    }),
+  });
+  const grids = container.querySelectorAll('[data-test="canvas-grid-surface"]');
+  const [root, inner] = Array.from(grids) as HTMLElement[];
+  Object.defineProperty(root, 'getBoundingClientRect', rect(0, 800));
+  Object.defineProperty(inner, 'getBoundingClientRect', rect(200, 400));
+  Object.defineProperty(
+    container.querySelector('[data-node-id="g"]') as HTMLElement,
+    'getBoundingClientRect',
+    rect(200, 400),
+  );
+
+  const handle = container.querySelector(
+    '[data-node-id="lost"] [data-test="canvas-drag-handle"]',
+  ) as HTMLElement;
+  const marked = () =>
+    Array.from(container.querySelectorAll('[data-destination="true"]')).map(
+      node => node.closest('[data-node-id]')?.getAttribute('data-node-id'),
+    );
+
+  fireEvent(
+    handle,
+    new TestPointerEvent('pointerdown', {
+      button: 0,
+      clientX: 100,
+      clientY: 700,
+    }),
+  );
+  expect(marked()).toEqual([]);
+
+  // Up into the group's band.
+  fireEvent(
+    handle,
+    new TestPointerEvent('pointermove', { clientX: 100, clientY: 300 }),
+  );
+
+  expect(marked()).toEqual(['g']);
+  // And one drop preview, in the destination, not one per grid.
+  expect(
+    container.querySelectorAll('[data-test="canvas-drop-preview"]'),
+  ).toHaveLength(1);
+
+  fireEvent(
+    handle,
+    new TestPointerEvent('pointerup', { clientX: 100, clientY: 300 }),
+  );
+
+  expect(marked()).toEqual([]);
+});
+
 test('a group dragged across its own footprint is not moved into itself', () => {
   // The grid under the pointer is the innermost one, and while a container is
   // still over the place it started, that is its own. Asking the server to

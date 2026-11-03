@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 16:39+0200\n"
+"POT-Creation-Date: 2026-10-31 01:20+0200\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -6634,6 +6634,9 @@ msgstr[2] "Ievelciet kolonnas/metrikas šeit vai noklikšķiniet"
 
 msgid "Drop a temporal column here or click"
 msgstr "Nometiet laika kolonnu šeit vai noklikšķiniet"
+
+msgid "Drop a widget here"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "Nometiet kolonnas/rādītājus šeit vai noklikšķiniet"

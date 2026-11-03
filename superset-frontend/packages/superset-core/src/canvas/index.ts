@@ -101,6 +101,14 @@ export interface CanvasWidgetProps {
   /**
    * For cross-filter sources: publish a cross-filter, or clear it with
    * `undefined`. Ignored while cross-filters are turned off.
+   *
+   * A renderer that turns a raw click into one of these owes the canvas two
+   * things while a canvas is being arranged, because the same press would
+   * otherwise move the widget and the same click would select it: mark the
+   * element `data-canvas-no-drag`, and stop the click from propagating. The
+   * marker is a DOM attribute rather than a prop because a chart's click
+   * lands on a pixel of a canvas element, with nothing for a selector to
+   * match otherwise.
    */
   setCrossFilter: (value: unknown) => void;
   /** Whether cross-filters are turned on for this canvas. */

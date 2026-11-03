@@ -571,17 +571,20 @@ def test_a_container_grows_to_fit_a_child_pushed_down() -> None:
         add(
             "group", id="kpis", layout={"col": 1, "row": 1, "colSpan": 24, "rowSpan": 4}
         ),
+        # The group is 12 columns wide, and each child fills it: there is no
+        # room beside them, so a collision can only be resolved downwards --
+        # which is what makes this a test of the container growing.
         add(
             "chart-1",
             id="a",
             parent="kpis",
-            layout={"col": 1, "row": 1, "colSpan": 6, "rowSpan": 4},
+            layout={"col": 1, "row": 1, "colSpan": 12, "rowSpan": 4},
         ),
         add(
             "chart-2",
             id="b",
             parent="kpis",
-            layout={"col": 7, "row": 1, "colSpan": 6, "rowSpan": 4},
+            layout={"col": 1, "row": 5, "colSpan": 12, "rowSpan": 4},
         ),
         add(
             "chart-3",
@@ -595,7 +598,7 @@ def test_a_container_grows_to_fit_a_child_pushed_down() -> None:
         {
             "op": "place",
             "id": "b",
-            "layout": {"col": 1, "row": 1, "colSpan": 6, "rowSpan": 4},
+            "layout": {"col": 1, "row": 1, "colSpan": 12, "rowSpan": 4},
         },
     )
 
