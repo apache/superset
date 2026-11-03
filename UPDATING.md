@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- The Mixed Chart honors **Truncate Metric** (checked by default) on queries
+  with dimensions: series names show only the dimension values, as in the
+  Timeseries charts, unless both queries would render a series under the same
+  name with the query identifiers hidden. Saved Mixed Charts with a group by
+  render shorter series names; uncheck **Truncate Metric** to keep the metric in
+  them.
+
 - With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
   using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and
   `CACHE_REDIS_USER`. Previously they always ran on DB 0 and without the ACL user.
