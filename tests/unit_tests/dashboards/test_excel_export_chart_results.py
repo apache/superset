@@ -142,3 +142,30 @@ def test_iterator_yields_every_chart_in_layout_order_and_continues_after_a_skip(
         (1, SkipReason.GENERAL),
         (2, None),
     ]
+
+
+def test_iterator_yields_earlier_results_then_propagates_a_timeout(
+    mocks: dict[str, Any],
+) -> None:
+    mocks["get_charts_in_layout_order"].return_value = [_chart(1, "a"), _chart(2, "b")]
+    mocks["run_query_context"].side_effect = [[], SoftTimeLimitExceeded()]
+    results = iter_dashboard_chart_results(9, {})
+
+    assert next(results) == ChartResult(1, "a", [], None)
+    with pytest.raises(SoftTimeLimitExceeded):
+        next(results)
+
+
+def test_iterator_yields_nothing_for_a_missing_dashboard(
+    mocks: dict[str, Any],
+) -> None:
+    mocks["DashboardDAO"].find_by_id.return_value = None
+    assert list(iter_dashboard_chart_results(9, {})) == []
+    mocks["get_charts_in_layout_order"].assert_not_called()
+
+
+def test_resolution_failure_is_general_skip(mocks: dict[str, Any]) -> None:
+    mocks["resolve_query_context"].side_effect = ValueError("bad params")
+    result = chart_result(_chart(7, "x"), 1, {})
+    assert result == ChartResult(7, "x", [], SkipReason.GENERAL)
+    mocks["run_query_context"].assert_not_called()
