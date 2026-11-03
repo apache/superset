@@ -31,7 +31,11 @@ import {
   useStreamingExport,
 } from 'src/components/StreamingExportModal';
 import { DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
-import { exportChart, getChartKey } from 'src/explore/exploreUtils';
+import {
+  buildV1ChartDataPayload,
+  exportChart,
+  getChartKey,
+} from 'src/explore/exploreUtils';
 import { ChartState } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
 
@@ -256,6 +260,18 @@ export const useExploreDataExport = ({
     return null;
   }, [canDownloadCSV, latestQueryFormData, ownState, handleExportError]);
 
+  // Builds at call time so extensions get the chart's latest form data.
+  const getExportPayload = useCallback(
+    (resultType: 'full' | 'post_processed'): Promise<JsonObject> =>
+      buildV1ChartDataPayload({
+        formData: latestQueryFormData as QueryFormData,
+        resultFormat: 'json',
+        resultType,
+        ownState,
+      }) as Promise<JsonObject>,
+    [latestQueryFormData, ownState],
+  );
+
   const streamingExportState: StreamingExportState = {
     isVisible: isStreamingModalVisible,
     progress,
@@ -269,6 +285,7 @@ export const useExploreDataExport = ({
     exportCSVPivoted,
     exportJson,
     exportExcel,
+    getExportPayload,
     handleExportError,
     streamingExportState,
   };
