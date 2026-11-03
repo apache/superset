@@ -2240,24 +2240,7 @@ def evaluate_transform(
             seen.add(key)
             distinct.append(value)
 
-    # Every value is one column of a single SELECT, and engines cap the select
-    # list: PostgreSQL refuses a 1,665th entry outright. Declining a filter that
-    # wide costs little pruning -- it spans that many partitions anyway -- and
-    # spares the warehouse a statement it would refuse on every chart load.
-    max_values = app.config.get("PARTITION_TRANSFORM_PROBE_MAX_VALUES", 1000)
-    if max_values and len(distinct) > max_values:
-        _count("declined.too_many_values")
-        logger.warning(
-            "A filter has %d distinct values, more than the %d a partition "
-            "transform probe evaluates; this query will not prune",
-            len(distinct),
-            max_values,
-        )
-        if errors is not None:
-            errors.append(
-                f"{len(distinct)} distinct values exceed "
-                f"PARTITION_TRANSFORM_PROBE_MAX_VALUES ({max_values})"
-            )
+    if _exceeds_probe_cap(distinct, errors):
         return None
 
     # The value side of the premise `probe_sql_is_evaluable` checks on the
@@ -2300,6 +2283,33 @@ def evaluate_transform(
         zip((_hashable(value) for value in distinct), cached, strict=False)
     )
     return [evaluated[_hashable(value)] for value in values]
+
+
+def _exceeds_probe_cap(distinct: list[Any], errors: list[str] | None) -> bool:
+    """
+    Whether a filter has more distinct values than one probe may evaluate.
+
+    Every value is one column of a single SELECT, and engines cap the select
+    list: PostgreSQL refuses a 1,665th entry outright. Declining a filter that
+    wide costs little pruning -- it spans that many partitions anyway -- and
+    spares the warehouse a statement it would refuse on every chart load.
+    """
+    max_values = app.config.get("PARTITION_TRANSFORM_PROBE_MAX_VALUES", 1000)
+    if not max_values or len(distinct) <= max_values:
+        return False
+    _count("declined.too_many_values")
+    logger.warning(
+        "A filter has %d distinct values, more than the %d a partition "
+        "transform probe evaluates; this query will not prune",
+        len(distinct),
+        max_values,
+    )
+    if errors is not None:
+        errors.append(
+            f"{len(distinct)} distinct values exceed "
+            f"PARTITION_TRANSFORM_PROBE_MAX_VALUES ({max_values})"
+        )
+    return True
 
 
 def _fresh_probe_values(
@@ -2451,6 +2461,7 @@ def _probe(
     # still finds can only have come from a value.
     stripped = strip_comments(transform, database.backend)
     if stripped is None:
+        _count("declined.unreadable_transform")
         logger.warning(
             "Partition transform could not be read with its comments removed; "
             "queries will not prune"

@@ -24,7 +24,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from importlib import import_module
 from typing import Any, cast
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import call, MagicMock, patch, PropertyMock
 
 import pandas as pd
 import pytest
@@ -2226,6 +2226,34 @@ def test_a_zero_failure_timeout_retries_every_failure(
         assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) == [42]
 
 
+def test_a_fresh_probe_ignores_and_leaves_the_failure_memory(app: Flask) -> None:
+    """
+    Data validation asks for what the engine answers now. A remembered failure
+    must not stand in for that answer, and a failure it sees must not stop the
+    next chart from probing.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=[
+            RuntimeError("connection reset"),
+            pd.DataFrame([[42]], columns=["v0"]),
+            RuntimeError("connection reset"),
+            pd.DataFrame([[43]], columns=["v0"]),
+        ]
+    )
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) is None
+        assert evaluate_transform(
+            database, None, None, "lower(:value)", ["x"], fresh=True
+        ) == [42]
+        assert (
+            evaluate_transform(database, None, None, "lower(:value)", ["y"], fresh=True)
+            is None
+        )
+        assert evaluate_transform(database, None, None, "lower(:value)", ["y"]) == [43]
+
+
 def test_a_filter_wider_than_the_probe_cap_is_not_probed(
     app: Flask, mocker: MockerFixture
 ) -> None:
@@ -2339,6 +2367,28 @@ def test_the_probe_reports_its_outcome_and_latency(
     ]
     stats.timing.assert_called_once()
     assert stats.timing.call_args.args[0] == "partition_mapping.probe.latency_ms"
+
+
+def test_a_transform_unreadable_without_comments_is_counted_as_declined(
+    app: Flask, mocker: MockerFixture
+) -> None:
+    stats = mocker.patch(
+        "superset.connectors.sqla.partition_mapping.stats_logger_manager"
+    ).instance
+    mocker.patch(
+        "superset.connectors.sqla.partition_mapping.strip_comments",
+        return_value=None,
+    )
+    database = _database_returning([1])
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) is None
+
+    assert (
+        call("partition_mapping.probe.declined.unreadable_transform")
+        in stats.incr.call_args_list
+    )
+    assert _probe(database).call_count == 0
 
 
 def test_a_broken_stats_logger_does_not_cost_the_probe(
