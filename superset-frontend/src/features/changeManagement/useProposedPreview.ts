@@ -16,10 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useStore } from 'react-redux';
 import { useHistory } from 'react-router-dom';
-import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
+import {
+  DataMaskStateWithId,
+  JsonObject,
+  QueryFormData,
+} from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
@@ -29,6 +33,9 @@ import {
   type DashboardHydrationData,
 } from 'src/features/versionHistory/api';
 import { resolveSnapshotCharts } from 'src/features/versionHistory/useDashboardVersionPreview';
+import { announceProposedChart } from './events';
+import { displayName } from './types';
+import { hasProposedChart, proposedChartFormData } from './proposedChart';
 import type { ChangeRequest } from './types';
 
 /** Payload keys that map onto hydration fields rather than straight across. */
@@ -71,10 +78,19 @@ function overlay(
  * out which charts a given layout needs, and hydrateDashboard swaps the page
  * without unmounting it. Turning the switch off re-hydrates the live copy
  * cached on the way in, so a reviewer always lands back on what viewers see.
+ *
+ * A chart takes the other route. There is no hydration to do -- the proposal
+ * is one chart's worth of controls -- and writing it into Explore's controls
+ * would leave a reviewer's session looking like an edit of their own. So the
+ * form data is handed to Explore, which draws it beside the live controls
+ * and in place of the live chart (129075).
  */
 export function useProposedPreview(changeRequest: ChangeRequest | null) {
   const dispatch = useDispatch();
-  const store = useStore<{ dataMask: DataMaskStateWithId }>();
+  const store = useStore<{
+    dataMask: DataMaskStateWithId;
+    explore?: { form_data?: QueryFormData };
+  }>();
   const history = useHistory();
   const { addDangerToast } = useToasts();
   const [showing, setShowing] = useState(false);
@@ -86,20 +102,72 @@ export function useProposedPreview(changeRequest: ChangeRequest | null) {
   // of the data than the one they were looking at.
   const liveMaskRef = useRef<DataMaskStateWithId>({});
 
+  const isChart = changeRequest?.asset_type === 'chart';
+
   const canPreview =
     !!changeRequest &&
-    changeRequest.asset_type === 'dashboard' &&
     changeRequest.operation === 'update' &&
-    // Only the main dashboard update carries a body that can be laid over the
-    // dashboard. Filter, colour and customization changes (command set) have
-    // their own payload shapes, so those fall back to "What changed".
-    !changeRequest.command;
+    // Only the main dashboard/chart update carries a body that can be laid
+    // over the asset. Filter, colour and customization changes (command set)
+    // have their own payload shapes, so those fall back to "What changed".
+    !changeRequest.command &&
+    (changeRequest.asset_type === 'dashboard' ||
+      // Asked of `changed_fields`, not of the payload. Explore's Save posts
+      // every control on every save, so a rename's captured body still
+      // carries `params` byte-identical to what is stored -- and keying on
+      // that offered a preview of a chart that was not changing, which is
+      // the live chart on screen labelled as the proposal.
+      (isChart && hasProposedChart(changeRequest.changed_fields)));
+
+  // Named here so the preview can say which decision comes first. A chart
+  // approved against a dataset whose own change is still open publishes
+  // against columns that do not exist yet, and viewers see it break (QA-09).
+  const pending = changeRequest?.pending_dependency;
+  // Memoized: it is read inside `apply`, and a fresh object every render
+  // would rebuild that callback on every render with it.
+  const dependency = useMemo(
+    () =>
+      pending && pending.asset_type === 'dataset'
+        ? {
+            title: pending.title ?? null,
+            author: displayName(pending.author) || null,
+          }
+        : null,
+    [pending],
+  );
 
   const apply = useCallback(
     async (next: boolean) => {
       if (!changeRequest || busy) return;
       setBusy(true);
       try {
+        if (isChart) {
+          // Nothing to fetch and nothing to hydrate: the captured body
+          // carries the whole visualization, so the only work is composing
+          // it against the live chart and handing it over.
+          if (next) {
+            const proposed = proposedChartFormData(
+              store.getState().explore?.form_data,
+              changeRequest.proposed as JsonObject,
+            );
+            if (!proposed) {
+              throw new Error('no proposed chart in this change');
+            }
+            announceProposedChart({
+              previewable: true,
+              formData: proposed,
+              pendingDataset: dependency,
+            });
+          } else {
+            announceProposedChart({
+              previewable: true,
+              formData: null,
+              pendingDataset: dependency,
+            });
+          }
+          setShowing(next);
+          return;
+        }
         if (next) {
           if (!Object.keys(liveMaskRef.current).length) {
             liveMaskRef.current = store.getState().dataMask ?? {};
@@ -157,7 +225,88 @@ export function useProposedPreview(changeRequest: ChangeRequest | null) {
         setBusy(false);
       }
     },
-    [addDangerToast, busy, changeRequest, dispatch, history, store],
+    [
+      addDangerToast,
+      busy,
+      changeRequest,
+      dependency,
+      dispatch,
+      history,
+      isChart,
+      store,
+    ],
+  );
+
+  /**
+   * Tell Explore what to draw, and stop telling it when there is nothing.
+   *
+   * Keyed on the change itself, not only on the switch, because the switch
+   * can outlive the change. ``AssetReview`` calls this hook before it
+   * decides whether to render anything, so when the change request goes
+   * away the banner and the switch disappear while this hook stays mounted.
+   * A reviewer whose decision was refused -- the commonest way that
+   * happens, since the refusal path re-reads and finds the change gone --
+   * was left on a proposal with no switch to turn off and no banner
+   * explaining it, until they reloaded by hand.
+   *
+   * The key carries the revision too, so an author re-saving under a
+   * reviewer drops the preview back to live rather than leaving a stale
+   * picture on screen that the reviewer might then approve.
+   */
+  const previewKey = isChart
+    ? `${changeRequest?.id ?? ''}:${changeRequest?.revision ?? changeRequest?.changed_on ?? ''}`
+    : '';
+  const lastKeyRef = useRef(previewKey);
+  useEffect(() => {
+    // Deliberately not guarded on `isChart`: the change going away is the
+    // case this exists for, and by then `isChart` is false too. The key is
+    // the empty string whenever there is no chart change, so a dashboard
+    // never sees it move and never gets a spurious reset.
+    if (lastKeyRef.current !== previewKey) {
+      lastKeyRef.current = previewKey;
+      setShowing(false);
+    }
+  }, [previewKey]);
+
+  const previewable = isChart && canPreview;
+
+  /**
+   * Explore is told the whole state, every time any of it moves.
+   *
+   * One announcement rather than several, because they share a channel: an
+   * effect that announced "nothing" in its cleanup ran that cleanup on
+   * every dependency change, not only on unmount, so an author re-saving
+   * made the notice blink out and back while the reviewer was reading it.
+   *
+   * The form data itself is announced by ``apply``, which is the only place
+   * that composes it; this effect covers the two states that need no
+   * composition.
+   */
+  useEffect(() => {
+    // Not guarded on `isChart`. The change going away is the case this
+    // exists for, and by then `isChart` is false too, so a guard here would
+    // leave Explore drawing a proposal that no longer exists. On a
+    // dashboard page Explore is not mounted and the announcement is a
+    // no-op.
+    if (!previewable) {
+      announceProposedChart({ previewable: false, formData: null });
+    } else if (!showing) {
+      announceProposedChart({
+        previewable: true,
+        formData: null,
+        pendingDataset: dependency,
+      });
+    }
+    // `dependency` is rebuilt on every render; `previewKey` is what actually
+    // tracks the change it is derived from.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewable, showing, previewKey]);
+
+  // Unmount only. Whatever Explore was left showing, it is not ours to keep
+  // once this component goes.
+  useEffect(
+    () => () => announceProposedChart({ previewable: false, formData: null }),
+    [],
   );
 
   return { canPreview, showing, busy, toggle: apply };

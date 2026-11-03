@@ -104,6 +104,11 @@ import {
 import { Slice } from 'src/types/Chart';
 import { User } from 'src/types/bootstrapTypes';
 import { selectIsChartVersionPreviewActive } from 'src/features/versionHistory/reducer';
+import {
+  onProposedChart,
+  REVIEW_PANEL_SLOT,
+  type ProposedChartState,
+} from 'src/features/changeManagement/events';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
@@ -159,6 +164,69 @@ const AssetReview = lazyWithRetry(
 const ChartVersionPreview = lazyWithRetry(
   () => import('src/features/versionHistory/ChartVersionPreview'),
 );
+const ProposedChartPreview = lazyWithRetry(
+  () => import('src/features/changeManagement/ProposedChartPreview'),
+);
+const ChartVersionNotice = lazyWithRetry(
+  () => import('src/features/changeManagement/ChartVersionNotice'),
+);
+
+/**
+ * Where the review panel docks.
+ *
+ * Without a slot the panel falls back to `position: fixed; right: 0` and
+ * lies over the page: it clipped the banner's own "Show changes" label to
+ * "Show cha", hid "What changed" and "Open live version" entirely while
+ * leaving them focusable (WCAG 2.4.11), and covered the right fifth of the
+ * chart the reviewer was deciding on. Docked, the chart column simply gets
+ * narrower.
+ *
+ * Same shape as the version-history panel beside it, including the
+ * narrow-screen fallback, so the two behave alike.
+ */
+/**
+ * Says what the frozen columns are, while a preview is on screen.
+ *
+ * Explore's promise is that the controls describe the chart in front of
+ * you, and a preview breaks it: the proposal is a line chart while the
+ * chart-type pill beside it still reads "Bar Chart", and the Series limit
+ * control still shows the live 25 next to a chart drawn with 5. Greyed out
+ * with no caption, the likeliest reading is "these are the settings of what
+ * I am looking at", which is the opposite of the truth.
+ *
+ * Worded for both previews. Version history puts a historical version in
+ * the same place, where "the proposal" would be wrong.
+ *
+ * Outside the `inert` wrapper deliberately: content inside it is skipped by
+ * assistive technology, so a caption in there would be invisible to exactly
+ * the users who cannot see the grey.
+ */
+const FrozenColumnNote = styled.div`
+  ${({ theme }) => `
+    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 4}px;
+    color: ${theme.colorTextTertiary};
+    font-size: ${theme.fontSizeSM}px;
+  `}
+`;
+
+const ReviewPanelHost = styled.div`
+  ${({ theme }) => `
+    height: 100%;
+    flex-shrink: 0;
+    &:empty {
+      display: none;
+    }
+    @media (max-width: ${theme.screenXL}px) {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      height: auto;
+      z-index: 20;
+      box-shadow: ${theme.boxShadow};
+    }
+  `}
+`;
 
 const ExplorePanelContainer = styled.div`
   ${({ theme }) => css`
@@ -478,6 +546,27 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   const isChartVersionPreviewActive = useSelector(
     selectIsChartVersionPreviewActive,
   );
+  /**
+   * The proposed chart a reviewer has turned "Show changes" on for, if any.
+   *
+   * Held here rather than in the store because it belongs to this page's
+   * session and nothing else reads it: the review banner announces it, this
+   * draws it, and it is gone when either unmounts.
+   */
+  const [chartVersion, setChartVersion] = useState<ProposedChartState>({
+    previewable: false,
+    formData: null,
+  });
+  useEffect(() => onProposedChart(setChartVersion), []);
+  const proposedChart = chartVersion.formData as QueryFormData | null;
+  /**
+   * Either preview has taken the chart panel over, so the controls beside it
+   * no longer describe what is on screen. Both are greyed and made inert for
+   * the same reason, and Run is blocked, because a query fired from controls
+   * that do not match the chart would quietly replace the preview with a
+   * third thing that is neither the live chart nor the proposal.
+   */
+  const isPreviewActive = isChartVersionPreviewActive || !!proposedChart;
 
   const theme = useTheme();
 
@@ -595,7 +684,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   const isChartLoading = props.chart.chartStatus === 'loading';
 
   const onQuery = useCallback(() => {
-    if (isChartVersionPreviewActive) {
+    if (isPreviewActive) {
       return;
     }
     props.actions.setForceQuery(false);
@@ -622,7 +711,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     props.actions,
     props.chart.id,
     props.form_data,
-    isChartVersionPreviewActive,
+    isPreviewActive,
   ]);
 
   const handleKeydown = useCallback(
@@ -1170,13 +1259,18 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
               onClick={toggleCollapse}
             />
           </div>
+          {isPreviewActive && (
+            <FrozenColumnNote>
+              {t('Frozen while a preview is on screen')}
+            </FrozenColumnNote>
+          )}
           <div
             data-test="explore-datasource-gate"
-            aria-disabled={isChartVersionPreviewActive}
+            aria-disabled={isPreviewActive}
             css={css`
               height: 100%;
               ${
-                isChartVersionPreviewActive
+                isPreviewActive
                   ? `
                   pointer-events: none;
                   opacity: 0.5;
@@ -1184,7 +1278,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
                   : ''
               }
             `}
-            {...(isChartVersionPreviewActive ? { inert: '' } : {})}
+            {...(isPreviewActive ? { inert: '' } : {})}
           >
             {/* eslint-disable @typescript-eslint/no-explicit-any -- DataSourcePanel uses narrower types that are compatible at runtime */}
             <DataSourcePanel
@@ -1240,13 +1334,18 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           enable={{ right: true }}
           className="col-sm-3 explore-column controls-column"
         >
+          {isPreviewActive && (
+            <FrozenColumnNote>
+              {t('Live chart settings · not the version on screen')}
+            </FrozenColumnNote>
+          )}
           <div
             data-test="explore-controls-gate"
-            aria-disabled={isChartVersionPreviewActive}
+            aria-disabled={isPreviewActive}
             css={css`
               height: 100%;
               ${
-                isChartVersionPreviewActive
+                isPreviewActive
                   ? `
                   pointer-events: none;
                   opacity: 0.5;
@@ -1255,7 +1354,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
               }
             `}
             // inert blocks keyboard focus too; React 18 needs the spread form
-            {...(isChartVersionPreviewActive ? { inert: '' } : {})}
+            {...(isPreviewActive ? { inert: '' } : {})}
           >
             <ConnectedControlPanelsContainer
               exploreState={props.exploreState}
@@ -1297,14 +1396,32 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
               />
             </Suspense>
           )}
+          {/* Version history wins if both are somehow on: it is a full
+              takeover opened from its own panel, while Show changes is a
+              switch on a banner that is still on screen underneath. */}
+          {!isChartVersionPreviewActive && chartVersion.previewable && (
+            <Suspense fallback={null}>
+              <ChartVersionNotice proposed={!!proposedChart} />
+            </Suspense>
+          )}
           {isChartVersionPreviewActive ? (
             <Suspense fallback={null}>
               <ChartVersionPreview />
+            </Suspense>
+          ) : proposedChart ? (
+            <Suspense fallback={null}>
+              <ProposedChartPreview
+                formData={proposedChart}
+                pendingDataset={chartVersion.pendingDataset}
+              />
             </Suspense>
           ) : (
             renderChartContainer()
           )}
         </div>
+        {isFeatureEnabled(FeatureFlag.ChangeManagement) && (
+          <ReviewPanelHost id={REVIEW_PANEL_SLOT} />
+        )}
         {isFeatureEnabled(FeatureFlag.VersionHistory) && (
           <Suspense fallback={null}>
             <ExploreVersionHistory />

@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { JsonObject } from '@superset-ui/core';
+
 /**
  * A one-hop signal from an asset's edit header to its review banner.
  *
@@ -110,6 +112,61 @@ export function announceDiscardChanges(): void {
 export function onDiscardChanges(handler: () => void): () => void {
   window.addEventListener(DISCARD_CHANGES_EVENT, handler);
   return () => window.removeEventListener(DISCARD_CHANGES_EVENT, handler);
+}
+
+/**
+ * What Explore should show in the chart column, and what to call it.
+ *
+ * Three states, not two. ``previewable`` false means no chart change is
+ * open, or the one that is open does not change the drawing, so Explore
+ * says nothing at all. ``previewable`` true with no form data is the live
+ * chart, labelled as the live chart -- the state that used to be silent,
+ * which is how a reviewer could look at the old chart and approve without
+ * anything on screen contradicting them. With form data it is the
+ * proposal.
+ *
+ * Same one-hop shape as the signals above, and for the same reason: the
+ * switch belongs to the review banner, which is mounted inside Explore's
+ * content column, while the thing that has to be swapped is the chart
+ * panel beside it.
+ *
+ * The dashboard half of this feature re-hydrates the page instead, because
+ * a dashboard proposal is a layout and a dashboard already knows how to
+ * draw one. A chart proposal is a set of controls, and Explore's controls
+ * are the author's working copy rather than a renderer, so the proposal is
+ * drawn beside them instead of written into them.
+ */
+export interface ProposedChartState {
+  /** Whether this page has a chart change whose drawing can be previewed. */
+  previewable: boolean;
+  /** The proposed chart, or null while the live one is on screen. */
+  formData: JsonObject | null;
+  /**
+   * A change still open on the dataset this chart is built on, if any. The
+   * preview queries the *live* dataset, so a proposal written against
+   * columns that are themselves awaiting review will fail or mislead, and
+   * the reviewer needs to be told which of the two to decide first.
+   */
+  pendingDataset?: { title?: string | null; author?: string | null } | null;
+}
+
+export const PROPOSED_CHART_EVENT = 'superset:change-management:proposed-chart';
+
+const NOTHING: ProposedChartState = { previewable: false, formData: null };
+
+export function announceProposedChart(state: ProposedChartState): void {
+  window.dispatchEvent(
+    new CustomEvent(PROPOSED_CHART_EVENT, { detail: state }),
+  );
+}
+
+export function onProposedChart(
+  handler: (state: ProposedChartState) => void,
+): () => void {
+  const listener = (event: Event) =>
+    handler((event as CustomEvent<ProposedChartState>).detail ?? NOTHING);
+  window.addEventListener(PROPOSED_CHART_EVENT, listener);
+  return () => window.removeEventListener(PROPOSED_CHART_EVENT, listener);
 }
 
 /**

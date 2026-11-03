@@ -16,12 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
 /**
- * @fileoverview What the author's banner claims is on screen.
+ * @fileoverview What the banner claims is on screen.
  *
  * SOW 5.5: an author with an unsubmitted draft sees the live asset until
  * they turn Show changes on. The banner used to say "Viewing your changes"
  * regardless, which is the opposite of the truth before the switch is
  * flipped (QA-19).
+ *
+ * The reviewer's line had the same fault for longer and more quietly: it
+ * read the same with the switch on and off, so the one persistent
+ * statement at the top of the page could not be used to tell the two
+ * apart. Approving is not gated on having looked, so the expensive mistake
+ * is a reviewer deciding on the live chart without ever flipping it.
  */
 import { render, screen } from 'spec/helpers/testing-library';
 import ReviewBanner from './ReviewBanner';
@@ -90,4 +96,55 @@ test('with the preview off it does point at the switch', () => {
   show({ showing: false });
 
   expect(screen.getByText(/turn on Show changes/)).toBeInTheDocument();
+});
+
+const pending = {
+  id: 2,
+  asset_type: 'chart',
+  asset_id: 9,
+  status: 'pending',
+  can_approve: true,
+  is_author: false,
+  author: { id: 3, first_name: 'Priya', last_name: 'Shah' },
+  changed_fields: ['params'],
+  submitted_at: new Date().toISOString(),
+  changed_on: new Date().toISOString(),
+  note: null,
+} as unknown as ChangeRequest;
+
+const showReviewer = (showing: boolean) =>
+  render(
+    <ReviewBanner
+      changeRequest={pending}
+      onShowWhatChanged={() => {}}
+      onRequestReview={() => {}}
+      showChanges={{ showing, busy: false, toggle: () => {} }}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+test('the reviewer is told they are on the live version', () => {
+  showReviewer(false);
+
+  expect(
+    screen.getByText(/Priya Shah proposed .* you are seeing the live version/),
+  ).toBeInTheDocument();
+});
+
+test('the reviewer is told when they are on the proposal', () => {
+  showReviewer(true);
+
+  expect(
+    screen.getByText(/Priya Shah proposed .* you are seeing the proposal/),
+  ).toBeInTheDocument();
+});
+
+test("the reviewer's banner is not the same in both states", () => {
+  // The structural half. The two assertions above would both pass against a
+  // single string containing either phrase, and the bug was that one string
+  // served both states.
+  const off = showReviewer(false).container.textContent;
+  const on = showReviewer(true).container.textContent;
+
+  expect(off).not.toEqual(on);
 });

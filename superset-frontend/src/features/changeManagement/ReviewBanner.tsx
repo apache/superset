@@ -147,11 +147,23 @@ export default function ReviewBanner({
       if (canApprove) {
         return {
           type: 'info',
-          message: t(
-            'Reviewing changes from %s · %s',
-            author,
-            changeCount(changeRequest),
-          ),
+          // Which version is on screen, not just whose change it is. The
+          // reviewer's line used to read the same with the switch on and
+          // off, so the one persistent statement at the top of the page
+          // could not be used to tell the two apart -- and the costly
+          // mistake is the quiet one: approving the live chart without
+          // ever having turned the switch on.
+          message: showChanges?.showing
+            ? t(
+                '%s proposed %s · you are seeing the proposal',
+                author,
+                changeCount(changeRequest),
+              )
+            : t(
+                '%s proposed %s · you are seeing the live version',
+                author,
+                changeCount(changeRequest),
+              ),
           // Approve and Request changes live in the review panel's
           // footer, beside the list of what they apply to (mocks 9, 10).
           // Deciding from the banner meant deciding above a list you had
