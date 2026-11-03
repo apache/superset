@@ -32,7 +32,26 @@ from superset.commands.canvas.exceptions import (
     CanvasNotFoundError,
     DefinitionConflictError,
     DefinitionInvalidError,
+    DraftConflictError,
 )
+
+# How MCP results, which are snake_case, name the keys of a REST error body.
+# The body's ``widgets`` lists changed widgets, while a draft result's
+# ``widgets`` holds the saved widgets its placements use.
+_RESULT_KEYS = {
+    "message": "error",
+    "canvasChanged": "canvas_changed",
+    "widgets": "changed_widgets",
+    "draftRevision": "draft_revision",
+    "currentCanvasRevision": "current_canvas_revision",
+}
+
+
+def payload_result(
+    ex: DefinitionConflictError | DefinitionInvalidError | DraftConflictError,
+) -> dict[str, Any]:
+    """The tool result for a command error that has a REST error body."""
+    return {_RESULT_KEYS.get(key, key): value for key, value in ex.to_payload().items()}
 
 
 def _apply_canvas_ops_impl(
@@ -45,6 +64,7 @@ def _apply_canvas_ops_impl(
     except ValidationError as ex:
         return {
             "error": "Invalid operations",
+            "error_type": "ValidationError",
             "errors": [
                 {"path": request_pointer(error["loc"]), "message": error["msg"]}
                 for error in ex.errors()
@@ -61,6 +81,5 @@ def _apply_canvas_ops_impl(
     except DefinitionVersionError as ex:
         return {"error": str(ex)}
     except (DefinitionConflictError, DefinitionInvalidError) as ex:
-        payload = ex.to_payload()
-        return {"error": payload.pop("message"), **payload}
+        return payload_result(ex)
     return {"revision": result.revision, "ops": result.ops}

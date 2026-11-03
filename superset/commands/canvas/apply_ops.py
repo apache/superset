@@ -113,17 +113,22 @@ def apply_or_raise(
     ops: list[Operation],
     pending: dict[str, StoredWidget] | None = None,
     first_index: int = 0,
+    *,
+    keep_unplaced: bool = False,
 ) -> tuple[dict[str, Any], list[AppliedOperation]]:
     """
     Apply ``ops`` to a copy of ``definition``, as one atomic batch; widgets
-    they create or change are added to ``pending``.
+    they create or change are added to ``pending``. Drafts keep unplaced new
+    widgets privately so their complete operation history remains replayable.
 
     ``first_index`` is where these operations start in the caller's own list,
     so an error reported against a slice still names the operation the caller
     sent.
     """
     try:
-        return apply_operations(definition, ops, pending=pending)
+        return apply_operations(
+            definition, ops, pending=pending, keep_unplaced=keep_unplaced
+        )
     except OperationError as ex:
         raise DefinitionInvalidError(
             str(ex),
@@ -213,7 +218,9 @@ class ApplyCanvasOperationsCommand(BaseCommand):
         canvas = CanvasDAO.lock(self._canvas_id)
         current = canvas.revision
         if self._strict and self._base_revision != current:
-            raise DraftConflictError(current, canvas_changed=True)
+            raise DraftConflictError(
+                current, canvas_changed=True, current_canvas_revision=current
+            )
         if self._base_revision != current:
             self._check_overlap(current, named_touches(self._ops))
 
@@ -310,7 +317,11 @@ def save_widgets(pending: dict[str, StoredWidget], canvas: Canvas) -> None:
         row.schema_version = widget.schema_version
         row.revision = widget.revision + 1
     if changed:
-        raise DraftConflictError(canvas.revision, widgets=sorted(changed))
+        raise DraftConflictError(
+            canvas.revision,
+            widgets=sorted(changed),
+            current_canvas_revision=canvas.revision,
+        )
     db.session.flush()
 
 

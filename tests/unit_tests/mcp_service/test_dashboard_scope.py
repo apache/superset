@@ -523,7 +523,6 @@ def _dataset_query(
         "subject": "dataset 'orders'",
         "columns": {"client", "region", "ds", "other_ds"},
         "temporal_columns": {"ds", "other_ds"},
-        "main_dttm_col": "ds",
         "filters": [],
         "time_range": None,
         "time_column": None,
@@ -563,13 +562,101 @@ def test_dataset_query_refuses_what_it_cannot_apply(
         _dataset_query(constraints, **overrides)
 
 
-def test_dataset_query_refuses_a_scope_clause_superset_would_drop() -> None:
-    """QueryContextFactory drops filters on the granularity column."""
-    constraints = DashboardConstraints(
-        ({"col": "ds", "op": ">=", "val": "2024-01-01"},), None, None
+def test_dataset_query_keeps_a_scope_clause_on_the_time_column() -> None:
+    """QueryContextFactory replaces only the TEMPORAL_RANGE on the granularity
+    column, so a dashboard comparison on that column is kept, not refused."""
+    clause = {"col": "ds", "op": ">=", "val": "2024-01-01"}
+    constraints = DashboardConstraints((clause,), None, None)
+    filters, time_range, time_column = _dataset_query(
+        constraints, time_range="Last year"
     )
-    with pytest.raises(MCPDashboardScopeError, match="would be dropped"):
-        _dataset_query(constraints, time_range="Last year")
+    assert filters == [clause]
+    assert time_range == "Last year"
+    assert time_column is None
+
+
+@pytest.mark.parametrize("tool_name", ["query_dataset", "get_table"])
+@pytest.mark.parametrize(
+    "dashboard_filters",
+    [[{"col": "order_date", "op": "==", "val": 1064966400000}], [CLIENT_A]],
+    ids=["dashboard-temporal-column", "caller-only-temporal-column"],
+)
+def test_dataset_query_refuses_a_clause_on_a_non_time_temporal_column(
+    tool_name: str,
+    dashboard_filters: list[dict[str, Any]],
+) -> None:
+    """Refuse a swap that discards a caller range, with or without a scope clause."""
+    dataset = _dataset(main_dttm_col="ship_date")
+    dataset.columns.extend(
+        [_column("ship_date", is_dttm=True), _column("order_date", is_dttm=True)]
+    )
+    fields = {
+        "dataset_id": 3,
+        "metrics": ["count"],
+        "time_column": "ship_date",
+        "filters": [{"col": "order_date", "op": "TEMPORAL_RANGE", "val": "Last year"}],
+    }
+    request = (
+        QueryDatasetRequest.model_validate({**fields, "columns": ["client"]})
+        if tool_name == "query_dataset"
+        else GetTableRequest.model_validate({**fields, "dimensions": ["client"]})
+    )
+    with (
+        scope_header(encode(scope_payload({"11": {"filters": dashboard_filters}}))),
+        dashboard([11]),
+        patch(
+            "superset.mcp_service.dataset.dataset_utils.resolve_dataset",
+            return_value=dataset,
+        ),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        pytest.raises(
+            MCPDashboardScopeError, match="'order_date'.*would be dropped"
+        ) as excinfo,
+    ):
+        _rewrite(tool_name, request)
+    assert "the query's time column is 'ship_date' instead." in str(excinfo.value)
+    assert "No query was run." in str(excinfo.value)
+
+
+@pytest.mark.parametrize("scope_op", ["==", "TEMPORAL_RANGE", "unrelated"])
+@pytest.mark.parametrize(
+    ("time_column", "time_range", "model_temporal_columns"),
+    [
+        ("order_date", None, ["order_date"]),
+        ("ship_date", "Last month", ["order_date"]),
+        ("ship_date", None, ["order_date", "ship_date"]),
+        (None, None, ["order_date"]),
+    ],
+)
+def test_dataset_query_keeps_scope_clauses_with_safe_temporal_bindings(
+    scope_op: str,
+    time_column: str | None,
+    time_range: str | None,
+    model_temporal_columns: list[str],
+) -> None:
+    """Keep dashboard comparisons and ranges unless granularity drops the column."""
+    clause: dict[str, Any]
+    if scope_op == "unrelated":
+        clause = CLIENT_A
+    else:
+        clause = {
+            "col": "order_date",
+            "op": scope_op,
+            "val": "Last year" if scope_op == "TEMPORAL_RANGE" else 1064966400000,
+        }
+    model_filters = [
+        {"col": column, "op": "TEMPORAL_RANGE", "val": "Last year"}
+        for column in model_temporal_columns
+    ]
+    result = _dataset_query(
+        DashboardConstraints((clause,), None, None),
+        columns={"client", "order_date", "ship_date"},
+        temporal_columns={"order_date", "ship_date"},
+        filters=model_filters,
+        time_column=time_column,
+        time_range=time_range,
+    )
+    assert result == ([*model_filters, clause], time_range, time_column)
 
 
 # ---------------------------------------------------------------------------

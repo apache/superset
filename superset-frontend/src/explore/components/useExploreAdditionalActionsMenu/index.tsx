@@ -49,6 +49,7 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
+import isImageOnlyExportViz from 'src/utils/isImageOnlyExportViz';
 import { getChartPermalink } from 'src/utils/urlUtils';
 import copyTextToClipboard from 'src/utils/copy';
 import { useHeaderReportMenuItems } from 'src/features/reports/ReportModal/HeaderReportDropdown';
@@ -155,6 +156,19 @@ const MENU_KEYS = {
 };
 
 const VIZ_TYPES_PIVOTABLE = [VizType.PivotTable];
+
+// Data and PDF exports, dropped from the menu of image-only charts (see isImageOnlyExportViz).
+const DATA_AND_PDF_EXPORT_KEYS: string[] = [
+  MENU_KEYS.EXPORT_TO_CSV,
+  MENU_KEYS.EXPORT_TO_CSV_PIVOTED,
+  MENU_KEYS.EXPORT_TO_JSON,
+  MENU_KEYS.EXPORT_TO_XLSX,
+  MENU_KEYS.EXPORT_ALL_PDF,
+  MENU_KEYS.EXPORT_CURRENT_TO_CSV,
+  MENU_KEYS.EXPORT_CURRENT_TO_JSON,
+  MENU_KEYS.EXPORT_CURRENT_XLSX,
+  MENU_KEYS.EXPORT_CURRENT_PDF,
+];
 
 const CHART_EXPORT_SELECTOR = '.panel-body .chart-container';
 
@@ -475,6 +489,7 @@ export const useExploreAdditionalActionsMenu = (
 
   const showDashboardSearch = (dashboards?.length ?? 0) > SEARCH_THRESHOLD;
   const vizType = latestQueryFormData?.viz_type;
+  const imageOnlyExport = isImageOnlyExportViz(vizType);
   const meta = vizType ? getChartMetadataRegistry().get(vizType) : undefined;
 
   // Detect if the chart plugin exposes the export-current-view behavior
@@ -1034,7 +1049,11 @@ export const useExploreAdditionalActionsMenu = (
           key: MENU_KEYS.EXPORT_ALL_DATA_GROUP,
           type: 'submenu' as const,
           label: t('Export All Data'),
-          children: allDataChildren,
+          children: imageOnlyExport
+            ? allDataChildren.filter(
+                item => !DATA_AND_PDF_EXPORT_KEYS.includes(item.key),
+              )
+            : allDataChildren,
         },
         ...(hasExportCurrentView
           ? [
@@ -1042,7 +1061,11 @@ export const useExploreAdditionalActionsMenu = (
                 key: MENU_KEYS.EXPORT_CURRENT_VIEW_GROUP,
                 type: 'submenu' as const,
                 label: t('Export Current View'),
-                children: currentViewChildren,
+                children: imageOnlyExport
+                  ? currentViewChildren.filter(
+                      item => !DATA_AND_PDF_EXPORT_KEYS.includes(item.key),
+                    )
+                  : currentViewChildren,
               },
             ]
           : []),

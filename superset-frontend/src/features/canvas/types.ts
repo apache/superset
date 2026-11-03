@@ -103,6 +103,8 @@ export interface CanvasDefinitionResult {
   crossFilterScopes: Record<string, string[]>;
   /** Customization node id -> node ids it drives. */
   customizationScopes: Record<string, string[]>;
+  /** Node id -> node ids its events of any other kind reach. */
+  eventScopes: Record<string, string[]>;
   /** Resolved grid placement of every node on a grid. */
   placements: Record<string, GridPlacement>;
   /**

@@ -51,6 +51,18 @@ export interface FilterValue {
   value: unknown;
 }
 
+/**
+ * A value published under a kind of the publisher's choosing, as it reaches
+ * the widgets in the publisher's auto scope.
+ */
+export interface CanvasEvent {
+  /** The kind it was published under, e.g. `acme.highlight`. */
+  kind: string;
+  /** The node id of the publisher. */
+  sourceNodeId: string;
+  value: unknown;
+}
+
 /** Colors shared by every widget on a canvas. */
 export interface CanvasColors {
   /** Categorical color scheme; the default scheme when unset. */
@@ -115,6 +127,18 @@ export interface CanvasWidgetProps {
   crossFiltersEnabled: boolean;
   /** For customization widgets: publish the value, or clear it. */
   setCustomizationValue: (value: unknown) => void;
+  /**
+   * Events of any kind published by the nodes whose auto scope includes this
+   * node; a node's latest value per kind.
+   */
+  events: CanvasEvent[];
+  /**
+   * Publish a value under any kind other than a {@link ScopeKind}, or clear it
+   * with `undefined`. It reaches every widget in this node's auto scope.
+   * Namespace the kind, e.g. `acme.highlight`; the scope kinds have their own
+   * setters and are ignored here.
+   */
+  publish: (kind: string, value: unknown) => void;
   /** Colors shared across the canvas. */
   colors: CanvasColors;
   /** Whether to show when the widget's data was last refreshed. */

@@ -220,3 +220,13 @@ def test_permalink_state_schema_still_rejects_non_string_entries() -> None:
     with pytest.raises(ValidationError) as exc_info:
         schema.load({"activeTabs": ["TAB-abc", 42]})
     assert "activeTabs" in exc_info.value.messages
+
+
+@pytest.mark.parametrize("replace_metadata", [None, False, True])
+def test_dashboard_copy_replace_metadata_opt_in(replace_metadata: bool | None) -> None:
+    payload: dict[str, object] = {"json_metadata": "{}"}
+    if replace_metadata is not None:
+        payload["replace_metadata"] = replace_metadata
+    assert DashboardCopySchema().load(payload)["replace_metadata"] is bool(
+        replace_metadata
+    )

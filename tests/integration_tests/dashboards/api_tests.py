@@ -19,7 +19,7 @@
 
 import uuid
 from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from datetime import datetime, timedelta
 from io import BytesIO
 from time import sleep, time as now_epoch
@@ -61,6 +61,7 @@ from superset.exceptions import (
 )
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
 from superset.models.dashboard import Dashboard, dashboard_slices
+from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
@@ -6121,6 +6122,10 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             if keep_first
             else {}
         )
+        chart_count: int = db.session.query(Slice).count()
+        orphan_count: int = (
+            db.session.query(Slice).filter(~Slice.dashboards.any()).count()
+        )
         self.login(ADMIN_USERNAME)
         copied_id: int | None = None
         try:
@@ -6139,6 +6144,13 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             expected: set[str] = {"copy-subset-first"} if keep_first else set()
             assert {chart.slice_name for chart in copied.slices} == expected
             assert {chart.id for chart in dashboard.slices} == source_members
+            assert db.session.query(Slice).count() == chart_count + (
+                len(expected) if duplicate_slices else 0
+            )
+            assert (
+                db.session.query(Slice).filter(~Slice.dashboards.any()).count()
+                == orphan_count
+            )
         finally:
             db.session.rollback()
             if copied_id is not None:
@@ -6150,6 +6162,497 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 Slice.slice_name.in_(["copy-subset-first", "copy-subset-second"])
             ):
                 db.session.delete(chart)
+            db.session.commit()
+
+    @contextmanager
+    def _layout_access_fixture(self) -> Iterator[dict[str, int]]:
+        """A dashboard Gamma edits, whose member chart Gamma cannot read,
+        plus a chart Gamma owns, an unrelated chart Gamma cannot read, a
+        chart Gamma reads through a granted dataset but does not edit, a
+        viewer-restricted chart on that dataset, and an archived member."""
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.helpers import skip_visibility_filter
+
+        admin: User = self.get_user(ADMIN_USERNAME)
+        gamma: User = self.get_user(GAMMA_USERNAME)
+        datasets: list[SqlaTable] = (
+            db.session.query(SqlaTable).order_by(SqlaTable.id).limit(2).all()
+        )
+        dataset_id: int = datasets[0].id
+        granted: SqlaTable = datasets[1]
+        self.grant_role_access_to_table(granted, "Gamma")
+        readable: Slice = self.insert_chart(
+            "layout-access-readable", [admin.id], granted.id
+        )
+        restricted: Slice = self.insert_chart(
+            "layout-access-restricted", [admin.id], granted.id
+        )
+        restricted.viewers = [
+            db.session.query(Subject)
+            .filter_by(user_id=admin.id, type=SubjectType.USER)
+            .one()
+        ]
+        member: Slice = self.insert_chart(
+            "layout-access-member", [admin.id], dataset_id
+        )
+        archived: Slice = self.insert_chart(
+            "layout-access-archived", [admin.id], dataset_id
+        )
+        own: Slice = self.insert_chart("layout-access-own", [gamma.id], dataset_id)
+        foreign: Slice = self.insert_chart(
+            "layout-access-foreign", [admin.id], dataset_id
+        )
+        dashboard: Dashboard = self.insert_dashboard(
+            "layout-access", None, [gamma.id], slices=[member, archived]
+        )
+        ids: dict[str, int] = {
+            "dashboard": dashboard.id,
+            "member": member.id,
+            "archived": archived.id,
+            "own": own.id,
+            "foreign": foreign.id,
+            "readable": readable.id,
+            "restricted": restricted.id,
+        }
+        archived.deleted_at = datetime.now()
+        db.session.commit()
+        try:
+            yield ids
+        finally:
+            db.session.rollback()
+            self.revoke_role_access_to_table("Gamma", granted)
+            with skip_visibility_filter(db.session, Slice):
+                for dash in db.session.query(Dashboard).filter(
+                    Dashboard.dashboard_title.like("layout-access%")
+                ):
+                    db.session.delete(dash)
+                for chart in db.session.query(Slice).filter(
+                    Slice.slice_name.like("layout-access-%")
+                ):
+                    db.session.delete(chart)
+            db.session.commit()
+
+    @staticmethod
+    def _chart_layout(*chart_ids: int) -> dict[str, Any]:
+        return {
+            f"CHART-{chart_id}": {
+                "id": f"CHART-{chart_id}",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": chart_id, "width": 4, "height": 50},
+            }
+            for chart_id in chart_ids
+        }
+
+    @parameterized.expand(
+        [
+            ("existing_and_own", ("member", "archived", "own"), 200),
+            ("readable_not_edited", ("member", "archived", "readable"), 200),
+            ("unreadable_new_chart", ("member", "archived", "foreign"), 422),
+            ("restricted_viewers", ("member", "archived", "restricted"), 422),
+        ]
+    )
+    def test_update_dashboard_layout_chart_access(
+        self, case: str, layout: tuple[str, ...], status: int
+    ) -> None:
+        """PUT links a layout chart only if it is already a member or the
+        caller can read it."""
+        with self._layout_access_fixture() as ids:
+            self.login(GAMMA_USERNAME)
+            positions: dict[str, Any] = self._chart_layout(*(ids[k] for k in layout))
+            rv: TestResponse = self.client.put(
+                f"/api/v1/dashboard/{ids['dashboard']}",
+                json={"json_metadata": json.dumps({"positions": positions})},
+            )
+            assert rv.status_code == status, rv.data
+            if case == "restricted_viewers":
+                assert rv.json["message"]["json_metadata"] == [
+                    "The layout references charts that are not available: "
+                    f"{ids['restricted']}"
+                ]
+            expected: set[str] = (
+                set(layout) if status == 200 else {"member", "archived"}
+            )
+            assert self._member_names(ids) == expected
+
+    @parameterized.expand(
+        [
+            ("source_members", ("member", "archived"), 200),
+            ("own_chart", ("own",), 200),
+            ("readable_not_edited", ("readable",), 200),
+            ("unreadable_new_chart", ("member", "foreign"), 422),
+            ("restricted_viewers", ("member", "restricted"), 422),
+        ]
+    )
+    def test_copy_dashboard_layout_chart_access(
+        self, case: str, layout: tuple[str, ...], status: int
+    ) -> None:
+        """A copy links a layout chart only if the source has it or the
+        caller can read it."""
+        with self._layout_access_fixture() as ids:
+            self.login(GAMMA_USERNAME)
+            positions: dict[str, Any] = self._chart_layout(*(ids[k] for k in layout))
+            rv: TestResponse = self.client.post(
+                f"/api/v1/dashboard/{ids['dashboard']}/copy/",
+                json={
+                    "dashboard_title": "layout-access-copy",
+                    "json_metadata": json.dumps({"positions": positions}),
+                },
+            )
+            assert rv.status_code == status, rv.data
+            if case == "restricted_viewers":
+                assert rv.json["message"]["json_metadata"] == [
+                    "The layout references charts that are not available: "
+                    f"{ids['restricted']}"
+                ]
+                assert self._member_names(ids) == {"member", "archived"}
+            copies: int = (
+                db.session.query(Dashboard)
+                .filter(Dashboard.dashboard_title == "layout-access-copy")
+                .count()
+            )
+            assert copies == (1 if status == 200 else 0)
+            if status == 200:
+                copied_ids: dict[str, int] = {
+                    **ids,
+                    "dashboard": rv.json["result"]["id"],
+                }
+                assert self._member_names(copied_ids) == set(layout)
+
+    @patch.object(UpdateDashboardCommand, "_send_deactivated_report_email")
+    def test_update_dashboard_layout_chart_access_rejects_before_side_effects(
+        self, send_email: MagicMock
+    ) -> None:
+        """PUT refuses an unreadable layout chart before it deactivates the
+        reports on a removed tab or native filter, or emails their owners."""
+        with self._layout_access_fixture() as ids:
+            dashboard: Dashboard = db.session.get(Dashboard, ids["dashboard"])
+            stored_metadata: str = json.dumps(
+                {"native_filter_configuration": [{"id": "NATIVE_FILTER-kept"}]}
+            )
+            stored_position: str = json.dumps(
+                {
+                    "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["TABS"]},
+                    "TABS": {"id": "TABS", "type": "TABS", "children": ["TAB-kept"]},
+                    "TAB-kept": {"id": "TAB-kept", "type": "TAB", "children": []},
+                }
+            )
+            dashboard.json_metadata = stored_metadata
+            dashboard.position_json = stored_position
+            report: ReportSchedule = ReportSchedule(
+                type=ReportScheduleType.REPORT,
+                name="layout-access-report",
+                crontab="0 9 * * *",
+                dashboard=dashboard,
+                extra=json.dumps(
+                    {
+                        "dashboard": {
+                            "activeTabs": ["TAB-kept"],
+                            "nativeFilters": [{"nativeFilterId": "NATIVE_FILTER-kept"}],
+                        }
+                    }
+                ),
+            )
+            db.session.add(report)
+            db.session.commit()
+            report_id: int = report.id
+            try:
+                self.login(GAMMA_USERNAME)
+                positions: dict[str, Any] = self._chart_layout(
+                    ids["member"], ids["archived"], ids["foreign"]
+                )
+                rv: TestResponse = self.client.put(
+                    f"/api/v1/dashboard/{ids['dashboard']}",
+                    json={
+                        "position_json": json.dumps(positions),
+                        "json_metadata": json.dumps(
+                            {"positions": positions, "native_filter_configuration": []}
+                        ),
+                    },
+                )
+                assert rv.status_code == 422, rv.data
+                send_email.assert_not_called()
+                assert self._member_names(ids) == {"member", "archived"}
+                dashboard = db.session.get(Dashboard, ids["dashboard"])
+                assert dashboard.json_metadata == stored_metadata
+                assert dashboard.position_json == stored_position
+                assert db.session.get(ReportSchedule, report_id).active is True
+            finally:
+                db.session.rollback()
+                db.session.delete(db.session.get(ReportSchedule, report_id))
+                db.session.commit()
+
+    @parameterized.expand(
+        [
+            ("own_chart", ("own",), 201),
+            ("readable_not_edited", ("readable",), 201),
+            ("unreadable_chart", ("own", "foreign"), 422),
+        ]
+    )
+    def test_create_dashboard_layout_chart_access(
+        self, case: str, layout: tuple[str, ...], status: int
+    ) -> None:
+        """POST links a layout chart only if the caller can read it."""
+        with self._layout_access_fixture() as ids:
+            self.login(GAMMA_USERNAME)
+            positions: dict[str, Any] = self._chart_layout(*(ids[k] for k in layout))
+            rv: TestResponse = self.client.post(
+                "/api/v1/dashboard/",
+                json={
+                    "dashboard_title": "layout-access-new",
+                    "json_metadata": json.dumps({"positions": positions}),
+                },
+            )
+            assert rv.status_code == status, rv.data
+            created: list[Dashboard] = (
+                db.session.query(Dashboard)
+                .filter(Dashboard.dashboard_title == "layout-access-new")
+                .all()
+            )
+            assert len(created) == (1 if status == 201 else 0)
+            if status == 201:
+                assert self._member_names({**ids, "dashboard": created[0].id}) == set(
+                    layout
+                )
+
+    @parameterized.expand([("string", str), ("float", float)])
+    def test_update_dashboard_layout_chart_access_coerced_ids(
+        self, case: str, coerce: type
+    ) -> None:
+        """A foreign chart ID sent as a string or a float is refused like an
+        integer one."""
+        with self._layout_access_fixture() as ids:
+            self.login(GAMMA_USERNAME)
+            positions: dict[str, Any] = self._chart_layout(
+                ids["member"], ids["archived"]
+            )
+            positions["CHART-foreign"] = {
+                "id": "CHART-foreign",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": coerce(ids["foreign"]), "width": 4, "height": 50},
+            }
+            rv: TestResponse = self.client.put(
+                f"/api/v1/dashboard/{ids['dashboard']}",
+                json={"json_metadata": json.dumps({"positions": positions})},
+            )
+            assert rv.status_code == 422, rv.data
+            # Refused by the access check, not as a malformed node.
+            assert rv.json["message"]["json_metadata"] == [
+                f"The layout references charts that are not available: {ids['foreign']}"
+            ]
+            assert self._member_names(ids) == {"member", "archived"}
+
+    @parameterized.expand([("readable_clones", False), ("chart_reads_denied", True)])
+    def test_copy_dashboard_duplicate_slices_layout_chart_access(
+        self, case: str, deny_chart_reads: bool
+    ) -> None:
+        """A copy with ``duplicate_slices`` links the clones of the source's
+        charts, even ones the caller cannot read in the source.
+
+        The caller edits every clone, so the access check passes them anyway.
+        Denying every chart read shows the clones are accepted as the copy's
+        own charts rather than through the caller's access.
+        """
+        with self._layout_access_fixture() as ids:
+            self.login(GAMMA_USERNAME)
+            positions: dict[str, Any] = self._chart_layout(ids["member"])
+            with (
+                patch(
+                    "superset.daos.dashboard.security_manager.can_access_chart",
+                    return_value=False,
+                )
+                if deny_chart_reads
+                else nullcontext()
+            ):
+                rv: TestResponse = self.client.post(
+                    f"/api/v1/dashboard/{ids['dashboard']}/copy/",
+                    json={
+                        "dashboard_title": "layout-access-copy",
+                        "duplicate_slices": True,
+                        "json_metadata": json.dumps({"positions": positions}),
+                    },
+                )
+            assert rv.status_code == 200, rv.data
+            db.session.expire_all()
+            copied: Dashboard = db.session.get(Dashboard, rv.json["result"]["id"])
+            assert [chart.slice_name for chart in copied.slices] == [
+                "layout-access-member"
+            ]
+            assert copied.slices[0].id != ids["member"]
+            assert self._member_names(ids) == {"member", "archived"}
+
+    def test_update_dashboard_layout_detached_chart(self) -> None:
+        """A chart detached from the dashboard but still in its stored layout
+        is a new chart to the next layout save.
+
+        Only ``dashboard_slices`` rows count as membership, so the tile
+        neither keeps the chart a member nor lets a save re-attach it: a
+        caller who cannot read the chart gets a 422 until the tile is
+        removed, and a caller who can read it re-attaches it.
+        """
+        with self._layout_access_fixture() as ids:
+            self.login(ADMIN_USERNAME)
+            rv: TestResponse = self.client.put(
+                f"/api/v1/chart/{ids['member']}", json={"dashboards": []}
+            )
+            assert rv.status_code == 200, rv.data
+            assert self._member_names(ids) == {"archived"}
+
+            stale: dict[str, Any] = {
+                "json_metadata": json.dumps(
+                    {"positions": self._chart_layout(ids["member"], ids["archived"])}
+                )
+            }
+            trimmed: dict[str, Any] = {
+                "json_metadata": json.dumps(
+                    {"positions": self._chart_layout(ids["archived"])}
+                )
+            }
+            self.logout()
+            self.login(GAMMA_USERNAME)
+            rv = self.client.put(f"/api/v1/dashboard/{ids['dashboard']}", json=stale)
+            assert rv.status_code == 422, rv.data
+            assert str(ids["member"]) in rv.json["message"]["json_metadata"][0]
+            assert self._member_names(ids) == {"archived"}
+
+            rv = self.client.put(f"/api/v1/dashboard/{ids['dashboard']}", json=trimmed)
+            assert rv.status_code == 200, rv.data
+            assert self._member_names(ids) == {"archived"}
+
+            self.logout()
+            self.login(ADMIN_USERNAME)
+            rv = self.client.put(f"/api/v1/dashboard/{ids['dashboard']}", json=stale)
+            assert rv.status_code == 200, rv.data
+            assert self._member_names(ids) == {"member", "archived"}
+
+    def test_update_dashboard_layout_chart_access_keeps_archived_member(
+        self,
+    ) -> None:
+        """An archived member that no layout slot represents is kept without
+        passing the access check, while new charts are still checked."""
+        with self._layout_access_fixture() as ids:
+            self.login(GAMMA_USERNAME)
+            rv: TestResponse = self.client.put(
+                f"/api/v1/dashboard/{ids['dashboard']}",
+                json={
+                    "json_metadata": json.dumps(
+                        {
+                            "positions": self._chart_layout(
+                                ids["member"], ids["readable"], ids["foreign"]
+                            )
+                        }
+                    )
+                },
+            )
+            assert rv.status_code == 422, rv.data
+            assert rv.json["message"]["json_metadata"] == [
+                f"The layout references charts that are not available: {ids['foreign']}"
+            ]
+            assert self._member_names(ids) == {"member", "archived"}
+
+            rv = self.client.put(
+                f"/api/v1/dashboard/{ids['dashboard']}",
+                json={
+                    "json_metadata": json.dumps(
+                        {
+                            "positions": self._chart_layout(
+                                ids["member"], ids["readable"]
+                            )
+                        }
+                    )
+                },
+            )
+            assert rv.status_code == 200, rv.data
+            assert self._member_names(ids) == {"member", "archived", "readable"}
+
+    @staticmethod
+    def _member_names(ids: dict[str, int]) -> set[str]:
+        """Fixture names of *ids*' dashboard's members, archived included."""
+        names: dict[int, str] = {v: k for k, v in ids.items() if k != "dashboard"}
+        db.session.expire_all()
+        return {
+            names[row[0]]
+            for row in db.session.query(dashboard_slices.c.slice_id).filter(
+                dashboard_slices.c.dashboard_id == ids["dashboard"]
+            )
+        }
+
+    @parameterized.expand([("default", None), ("merge", False), ("replace", True)])
+    def test_copy_dashboard_metadata_comes_from_snapshot(
+        self, case: str, replace_metadata: bool | None
+    ) -> None:
+        """Only an explicit replacement opts out of source metadata inheritance."""
+        from superset.connectors.sqla.models import SqlaTable
+
+        admin: User = self.get_user(ADMIN_USERNAME)
+        dataset_id: int = (
+            db.session.query(SqlaTable.id).order_by(SqlaTable.id).first()[0]
+        )
+        first: Slice = self.insert_chart("snapshot-first", [admin.id], dataset_id)
+        second: Slice = self.insert_chart("snapshot-second", [admin.id], dataset_id)
+        dashboard: Dashboard = self.insert_dashboard(
+            "snapshot-source", None, [admin.id], slices=[first, second]
+        )
+        dashboard.json_metadata = json.dumps(
+            {"live_only": "absent from snapshot", "refresh_frequency": 900}
+        )
+        db.session.commit()
+        source_metadata: str = dashboard.json_metadata
+        self.login(ADMIN_USERNAME)
+        copied_id: int | None = None
+        try:
+            response: TestResponse = self.client.post(
+                f"/api/v1/dashboard/{dashboard.id}/copy/",
+                json={
+                    "dashboard_title": "snapshot-copy",
+                    **(
+                        {"replace_metadata": replace_metadata}
+                        if replace_metadata is not None
+                        else {}
+                    ),
+                    "json_metadata": json.dumps(
+                        {
+                            "positions": {
+                                "CHART-first": {
+                                    "type": "CHART",
+                                    "meta": {"chartId": first.id},
+                                }
+                            },
+                            "color_scheme": "supersetColors",
+                            "expanded_slices": {
+                                str(first.id): True,
+                                str(second.id): True,
+                            },
+                            "timed_refresh_immune_slices": [first.id, second.id],
+                            "chart_configuration": {
+                                str(first.id): {"id": first.id},
+                                str(second.id): {"id": second.id},
+                            },
+                        }
+                    ),
+                },
+            )
+            assert response.status_code == 200, response.data
+            copied_id = response.json["result"]["id"]
+            db.session.expire_all()
+            copied: Dashboard = db.session.get(Dashboard, copied_id)
+            metadata: dict[str, Any] = copied.params_dict
+            assert ("live_only" not in metadata) is bool(replace_metadata)
+            assert metadata["refresh_frequency"] == (0 if replace_metadata else 900)
+            assert metadata["color_scheme"] == "supersetColors"
+            assert metadata["expanded_slices"] == {str(first.id): True}
+            assert metadata["timed_refresh_immune_slices"] == [first.id]
+            assert metadata["chart_configuration"] == {str(first.id): {"id": first.id}}
+            assert {chart.id for chart in copied.slices} == {first.id}
+            assert dashboard.json_metadata == source_metadata
+        finally:
+            db.session.rollback()
+            if copied_id is not None:
+                db.session.delete(db.session.get(Dashboard, copied_id))
+            db.session.delete(dashboard)
+            db.session.delete(first)
+            db.session.delete(second)
             db.session.commit()
 
     def test_copy_dashboard_logs_database_error(self) -> None:

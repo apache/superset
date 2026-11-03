@@ -395,6 +395,14 @@ DASHBOARD_DATASET_INACCESSIBLE_FIELDS = (
     "main_dttm_col",
     "granularity_sqla",
     "time_grain_sqla",
+    # The partition filter mapping names two of the dataset's columns and
+    # carries the raw value transform in `evaluated_transform`, so it is the
+    # same class of disclosure as `columns` and `main_dttm_col` above. Only the
+    # dataset editor and Explore's pruning indicator read it; nothing in the
+    # dashboard does, so dropping it costs a caller in this branch nothing.
+    "partition_column",
+    "partition_mapped_column",
+    "partition_filter_mapping",
 )
 
 
@@ -3410,6 +3418,10 @@ class DashboardRestApi(
         ---
         post:
           summary: Create a copy of an existing dashboard
+          description: >-
+            Settings merge with the source by default. Set replace_metadata to true
+            to use json_metadata as complete settings, as for a version fork.
+            Chart-specific settings are pruned and remapped in both modes.
           parameters:
           - in: path
             schema:

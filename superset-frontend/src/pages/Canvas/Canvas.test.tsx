@@ -66,6 +66,7 @@ const definition = (children: string[], revision = 1, canEdit = false) => ({
     filterScopes: {},
     crossFilterScopes: {},
     customizationScopes: {},
+    eventScopes: {},
     placements: {},
     layouts: {},
     childOrder: { root: children },

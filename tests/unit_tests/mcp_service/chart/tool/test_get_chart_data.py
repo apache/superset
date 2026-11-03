@@ -21,6 +21,7 @@ Tests for the get_chart_data request schema and chart type fallback handling.
 
 import asyncio
 import importlib
+import logging
 from contextlib import nullcontext
 from datetime import datetime, time as dt_time, timezone
 from decimal import Decimal
@@ -37,8 +38,10 @@ from dateutil import tz as dateutil_tz
 from fastmcp import Client
 from psycopg2.extras import NumericRange
 
+from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.common.db_query_status import QueryStatus
 from superset.dataframe import df_to_records
+from superset.exceptions import SupersetException
 from superset.mcp_service.chart.chart_helpers import (
     rejected_requested_filter_columns,
     requested_filter_columns,
@@ -4037,6 +4040,64 @@ async def test_saved_chart_query_error_keeps_api_category(
 
     assert data["error_type"] == error_type
     assert message in data["error"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "make_error,expected_level",
+    [
+        pytest.param(
+            lambda: ChartDataQueryFailedError(
+                'Error: SQL compilation error: invalid identifier "dealer_name"'
+            ),
+            logging.WARNING,
+            id="query-failed-warning",
+        ),
+        pytest.param(
+            lambda: SupersetException("unexpected service failure"),
+            logging.ERROR,
+            id="superset-exception-error",
+        ),
+        pytest.param(
+            lambda: ValueError("unexpected value failure"),
+            logging.ERROR,
+            id="value-error-error",
+        ),
+    ],
+)
+async def test_saved_chart_data_error_log_level(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    make_error: Callable[[], Exception],
+    expected_level: int,
+) -> None:
+    """Database query failures log at WARNING; other failures stay at ERROR."""
+    routing: TestOAuthErrorRouting = TestOAuthErrorRouting()
+    routing._patch_query_path(monkeypatch, routing._make_chart(), make_error())
+    monkeypatch.setattr(
+        importlib.import_module("superset.commands.chart.data.get_data_command"),
+        "ChartDataCommand",
+        _raising_command("run", make_error()),
+    )
+
+    with caplog.at_level(
+        logging.WARNING, logger="superset.mcp_service.chart.tool.get_chart_data"
+    ):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 1}}
+            )
+            data: dict[str, Any] = json.loads(result.content[0].text)
+
+    assert data["error_type"] == "DataError"
+    levels = {
+        record.levelno
+        for record in caplog.records
+        if record.name == "superset.mcp_service.chart.tool.get_chart_data"
+    }
+    assert levels == {expected_level}
 
 
 @pytest.mark.asyncio

@@ -22,7 +22,7 @@ import type { canvas as canvasApi } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
 import { EmptyState } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import CanvasGrid, { ScopeValues } from './CanvasGrid';
+import CanvasGrid, { EventValues, ScopeValues } from './CanvasGrid';
 import DraftBanner from './DraftBanner';
 import CanvasToolbar from './CanvasToolbar';
 import { useDraftActions } from './useDraftActions';
@@ -45,6 +45,10 @@ interface CanvasBodyProps {
     nodeId: string,
     value: unknown,
   ) => void;
+  /** Values published under kinds other than the three scope kinds. */
+  events?: EventValues;
+  /** Records a value a widget published, for the nodes its scope reaches. */
+  onPublish?: (kind: string, nodeId: string, value: unknown) => void;
   refreshKeys: Record<string, number>;
   /** Set while a draft is open; layout writes then go to the draft. */
   draftToken?: string;
@@ -75,6 +79,8 @@ export default function CanvasBody({
   reload,
   values,
   onValueChange,
+  events,
+  onPublish,
   refreshKeys,
   draftToken,
   onDraftOpened,
@@ -152,6 +158,8 @@ export default function CanvasBody({
           result={result}
           values={values}
           onValueChange={onValueChange}
+          events={events}
+          onPublish={onPublish}
           refreshKeys={refreshKeys}
           layout={layout}
           editable={editable}

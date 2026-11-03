@@ -37,7 +37,17 @@ export const emptyScopeValues = (): ScopeValues => ({
   customization: {},
 });
 
+/** Current values published under other kinds, by kind, by node id. */
+export type EventValues = Record<string, Record<string, unknown>>;
+
+const SCOPE_KINDS: ReadonlySet<string> = new Set<canvasApi.ScopeKind>([
+  'filter',
+  'crossFilter',
+  'customization',
+]);
+
 const NO_VALUES: canvasApi.FilterValue[] = [];
+const NO_EVENTS: canvasApi.CanvasEvent[] = [];
 
 /** The key the root grid's child order is reported under. */
 const ROOT_NODE_ID = 'root';
@@ -60,6 +70,26 @@ function valuesByNode(
   return byNode;
 }
 
+function eventsByNode(
+  scopes: Record<string, string[]>,
+  events: EventValues,
+): Record<string, canvasApi.CanvasEvent[]> {
+  const byNode: Record<string, canvasApi.CanvasEvent[]> = {};
+  Object.entries(events).forEach(([kind, values]) => {
+    Object.entries(valuesByNode(scopes, values)).forEach(
+      ([nodeId, reaching]) => {
+        reaching.forEach(({ filterNodeId, value }) => {
+          (byNode[nodeId] ??= []).push({
+            kind,
+            sourceNodeId: filterNodeId,
+            value,
+          });
+        });
+      },
+    );
+  });
+  return byNode;
+}
 const Stack = styled.div`
   ${({ theme }) => css`
     display: flex;
@@ -93,6 +123,8 @@ export interface CanvasGridProps {
     nodeId: string,
     value: unknown,
   ) => void;
+  events?: EventValues;
+  onPublish?: (kind: string, nodeId: string, value: unknown) => void;
   /** Per node, how many automatic refreshes have reached it. */
   refreshKeys?: Record<string, number>;
   /** Placements to render and the write path drag and resize commit through. */
@@ -117,13 +149,21 @@ export default function CanvasGrid({
   result,
   values,
   onValueChange,
+  events = {},
+  onPublish,
   refreshKeys = {},
   layout,
   editable,
   draftToken,
 }: CanvasGridProps) {
   const getRenderer = useWidgetRenderers();
-  const { definition, widgetTypes, gridColumns, widgets = {} } = result;
+  const {
+    definition,
+    widgetTypes,
+    gridColumns,
+    eventScopes,
+    widgets = {},
+  } = result;
   // Span limits come from the layout rather than the fetched definition: a
   // container's row minimum follows the rows its children occupy, so a write
   // that moves a child moves the minimum with it.
@@ -180,6 +220,10 @@ export default function CanvasGrid({
   const customizationsByNode = useMemo(
     () => valuesByNode(customizationScopes, values.customization),
     [customizationScopes, values.customization],
+  );
+  const publishedByNode = useMemo(
+    () => eventsByNode(eventScopes, events),
+    [eventScopes, events],
   );
 
   // How deeply a grid is nested, so its handles can sit clear of the handles
@@ -272,6 +316,10 @@ export default function CanvasGrid({
           setCustomizationValue={value =>
             onValueChange('customization', nodeId, value)
           }
+          events={publishedByNode[nodeId] ?? NO_EVENTS}
+          publish={(kind, value) => {
+            if (!SCOPE_KINDS.has(kind)) onPublish?.(kind, nodeId, value);
+          }}
           colors={sharedColors}
           showTimestamp={display.showTimestamps}
           refreshKey={refreshKeys[nodeId] ?? 0}

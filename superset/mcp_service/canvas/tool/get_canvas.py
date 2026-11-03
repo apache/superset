@@ -49,7 +49,7 @@ def _get_canvas_impl(canvas_id: int | str, include_resolved: bool) -> dict[str, 
     if context["widgets"]:
         result["widgets"] = context["widgets"]
     if include_resolved:
-        result.update(resolve_scopes(definition))
+        result.update(resolve_scopes(definition, events=False))
         result.update(context)
     return result
 

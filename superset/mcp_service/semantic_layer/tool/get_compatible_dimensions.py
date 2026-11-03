@@ -45,6 +45,7 @@ from superset.semantic_layers.access import (
     is_semantic_layers_enabled,
     SemanticLayersDisabledError,
 )
+from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
 
 logger = logging.getLogger(__name__)
 
@@ -270,14 +271,17 @@ async def _resolve_compatible_dimensions(
             source="external",
         )
 
+    except AmbiguousDimensionError as exc:
+        return SemanticLayerError.create(error=str(exc), error_type="ValidationError")
     except Exception as exc:
         logger.exception(
             "Unexpected error in get_compatible_dimensions: %s: %s",
             type(exc).__name__,
             str(exc),
         )
-        await ctx.error("Unexpected error: %s: %s" % (type(exc).__name__, str(exc)))
+        message: str = "Unable to retrieve compatible dimensions."
+        await ctx.error(message)
         return SemanticLayerError.create(
-            error=f"Internal error in get_compatible_dimensions: {exc}",
+            error=message,
             error_type="InternalError",
         )

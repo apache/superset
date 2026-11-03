@@ -27,6 +27,9 @@ exclude nodes from an auto or global scope.
 Only filterable widgets are ever driven, and nodes whose widget or type no
 longer resolves are skipped. Cross-filter scopes are empty while cross-filters
 are turned off in the canvas settings.
+
+Events of any other kind, which any node may publish, reach every resolved
+node in the publisher's auto scope; they take no overrides.
 """
 
 from __future__ import annotations
@@ -60,6 +63,7 @@ SCOPE_RESULT_KEYS = {
     "crossFilter": "crossFilterScopes",
     "customization": "customizationScopes",
 }
+EVENT_SCOPES_KEY = "eventScopes"
 
 
 def _reading_order(canvas: dict[str, Any], start: str) -> list[str]:
@@ -77,10 +81,12 @@ def resolve_scopes(
     canvas: dict[str, Any],
     widget_types: WidgetTypes | None = None,
     resolver: WidgetResolver | None = None,
+    events: bool = True,
 ) -> dict[str, dict[str, list[str]]]:
     """
     Map each kind's response key (``filterScopes``, ``crossFilterScopes``,
-    ``customizationScopes``) to ``{node id: driven node ids}``, in reading order.
+    ``customizationScopes`` and, with ``events``, ``eventScopes``) to
+    ``{node id: driven node ids}``, in reading order.
     """
     nodes = canvas["nodes"]
     node_types = placement_types(
@@ -126,6 +132,17 @@ def resolve_scopes(
             scopes[node_id] = [
                 n for n in candidates if n in filterable and n != node_id
             ]
+    if events:
+        resolved[EVENT_SCOPES_KEY] = {
+            node_id: [
+                n
+                for n in _reading_order(
+                    canvas, _scope_boundary(node_id, parents, node_types)
+                )
+                if n in node_types and n != node_id
+            ]
+            for node_id in node_types
+        }
     return resolved
 
 

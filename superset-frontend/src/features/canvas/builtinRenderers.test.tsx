@@ -54,6 +54,7 @@ const result: CanvasDefinitionResult = {
   filterScopes: {},
   crossFilterScopes: {},
   customizationScopes: {},
+  eventScopes: {},
   placements: {},
   layouts: {},
   childOrder: { root: ['overview', 'kpis'] },

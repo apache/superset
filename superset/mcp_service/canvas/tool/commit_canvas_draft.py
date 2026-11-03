@@ -40,7 +40,7 @@ def _commit_canvas_draft_impl(token: str, revision: int) -> dict[str, Any]:
     return {
         "canvas_id": draft.canvas_id,
         "url": canvas.url if canvas else None,
-        "canvas_revision": result.revision if result else draft.base_revision,
+        "canvas_revision": result.revision,
     }
 
 
@@ -57,11 +57,19 @@ def _commit_canvas_draft_impl(token: str, revision: int) -> dict[str, Any]:
     ),
 )
 def commit_canvas_draft(token: str, revision: int) -> CanvasDraftResponse:
-    """Publish a canvas draft: its changes land on the canvas as one revision
-    and the draft is deleted. Returns the canvas ``url`` and its new
-    ``canvas_revision``. Rejected (``canvas_changed``) if the canvas
-    changed since the draft started; start a new draft then. Only commit
-    when the person asks you to publish.
+    """Publish a canvas draft and delete it. Call this only when the person
+    asks to publish. On ``CanvasRevisionConflict`` or ``WidgetRevisionConflict``,
+    start a fresh draft; on ``DraftRevisionConflict``, reload the draft.
+
+    Returns the canvas ``url`` and ``canvas_revision`` observed by the command.
+    An empty draft (one with no accepted operations) closes without a published
+    write or revision increment, even if the canvas changed.
+
+    A mutating commit returns the ``error_type`` ``CanvasRevisionConflict`` if
+    the canvas changed, or ``WidgetRevisionConflict`` if a shared widget
+    changed. Widget conflicts can have ``canvas_changed=false``.
+    ``DraftUnavailable`` means the token cannot be used. No conflict publishes
+    partial changes.
     """
     return CanvasDraftResponse.model_validate(
         _commit_canvas_draft_impl(token, revision)

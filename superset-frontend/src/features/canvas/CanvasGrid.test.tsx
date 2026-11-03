@@ -19,7 +19,11 @@
 import type { canvas as canvasApi } from '@apache-superset/core';
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import { canvas } from 'src/core';
-import CanvasGrid, { emptyScopeValues, ScopeValues } from './CanvasGrid';
+import CanvasGrid, {
+  emptyScopeValues,
+  EventValues,
+  ScopeValues,
+} from './CanvasGrid';
 import { CanvasDefinitionResult, CanvasSettings } from './types';
 import type { CanvasLayout } from './useCanvasLayout';
 
@@ -58,6 +62,7 @@ const result: CanvasDefinitionResult = {
   filterScopes: { f: ['c1'] },
   crossFilterScopes: { odd: ['c1'] },
   customizationScopes: {},
+  eventScopes: { odd: ['c1'] },
   placements: {
     f: { col: 1, row: 1, colSpan: 24, rowSpan: 1 },
     g: { col: 1, row: 2, colSpan: 24, rowSpan: 4 },
@@ -95,6 +100,7 @@ const Chart = ({
   props,
   filters,
   crossFilters,
+  events,
   colors,
   showTimestamp,
   refreshKey,
@@ -102,13 +108,25 @@ const Chart = ({
   <div>
     <span>{`chart ${props?.title} filters=${JSON.stringify(filters)}`}</span>
     <span>{`cross=${JSON.stringify(crossFilters)}`}</span>
+    <span>{`events=${JSON.stringify(events)}`}</span>
     <span>{`colors=${colors.scheme} timestamp=${showTimestamp} refresh=${refreshKey}`}</span>
   </div>
 );
-const CrossSource = ({ setCrossFilter }: canvasApi.CanvasWidgetProps) => (
-  <button type="button" onClick={() => setCrossFilter('France')}>
-    cross filter
-  </button>
+const CrossSource = ({
+  setCrossFilter,
+  publish,
+}: canvasApi.CanvasWidgetProps) => (
+  <>
+    <button type="button" onClick={() => setCrossFilter('France')}>
+      cross filter
+    </button>
+    <button type="button" onClick={() => publish('acme.highlight', 'France')}>
+      highlight
+    </button>
+    <button type="button" onClick={() => publish('filter', 'France')}>
+      publish filter
+    </button>
+  </>
 );
 const Filter = ({ setFilterValue }: canvasApi.CanvasWidgetProps) => (
   <button type="button" onClick={() => setFilterValue('EMEA')}>
@@ -159,6 +177,8 @@ const renderGrid = (
   gridResult: CanvasDefinitionResult = result,
   place = jest.fn(),
   editable = false,
+  events: EventValues = {},
+  onPublish = jest.fn(),
 ) =>
   render(
     <CanvasGrid
@@ -166,6 +186,8 @@ const renderGrid = (
       result={gridResult}
       values={values}
       onValueChange={onValueChange}
+      events={events}
+      onPublish={onPublish}
       refreshKeys={{ c1: 2 }}
       layout={layoutOf(gridResult, place)}
       editable={editable}
@@ -884,4 +906,45 @@ test('a container stays aimable while the grid around it reflows', () => {
   // Aimed at where the group was, so that is where it lands.
   expect(move).toHaveBeenCalledTimes(1);
   expect(move.mock.calls[0][1]).toBe('g');
+});
+
+test('events of any kind reach the nodes in the publisher auto scope', () => {
+  const onValueChange = jest.fn();
+  const onPublish = jest.fn();
+  renderGrid(
+    emptyScopeValues(),
+    onValueChange,
+    result,
+    jest.fn(),
+    false,
+    { 'acme.highlight': { odd: 'France' } },
+    onPublish,
+  );
+
+  expect(
+    screen.getByText(
+      'events=[{"kind":"acme.highlight","sourceNodeId":"odd","value":"France"}]',
+    ),
+  ).toBeInTheDocument();
+  screen.getByRole('button', { name: 'highlight' }).click();
+  expect(onPublish).toHaveBeenCalledWith('acme.highlight', 'odd', 'France');
+});
+
+test('publishing a scope kind on the generic bus does nothing', () => {
+  const onValueChange = jest.fn();
+  const onPublish = jest.fn();
+  renderGrid(
+    emptyScopeValues(),
+    onValueChange,
+    result,
+    jest.fn(),
+    false,
+    {},
+    onPublish,
+  );
+
+  screen.getByRole('button', { name: 'publish filter' }).click();
+
+  expect(onPublish).not.toHaveBeenCalled();
+  expect(onValueChange).not.toHaveBeenCalled();
 });

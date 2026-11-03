@@ -59,9 +59,11 @@ def _get_canvas_draft_impl(token: str, include_resolved: bool) -> dict[str, Any]
     ),
 )
 def get_canvas_draft(token: str, include_resolved: bool = False) -> CanvasDraftResponse:
-    """Read a canvas draft: its definition, its revision and the canvas
-    revision it started from. ``include_resolved`` adds resolved grid
-    positions and filter scopes, as on ``get_canvas``.
+    """Read a canvas draft: its definition, effective ``widgets`` props,
+    ``draft_revision`` and the canvas revision it started from. Send
+    ``draft_revision`` as ``revision`` with the next draft write.
+    ``include_resolved`` adds resolved grid positions and filter scopes,
+    as on ``get_canvas``.
     """
     return CanvasDraftResponse.model_validate(
         _get_canvas_draft_impl(token, include_resolved)

@@ -54,7 +54,6 @@ from superset.commands.canvas.apply_ops import (
     apply_batches,
     apply_or_raise,
     ApplyCanvasOperationsCommand,
-    ApplyResult,
     placement_issues,
 )
 from superset.commands.canvas.exceptions import (
@@ -96,7 +95,8 @@ class CanvasDraft:
     # resolves at the wrong boundaries and lays the canvas out differently
     # from the plan that was approved.
     ops: list[list[dict[str, Any]]] = field(default_factory=list)
-    # Widgets created or changed so far, by UUID; commit saves them.
+    # Widgets created or changed so far, by UUID, including new widgets needed
+    # to replay earlier operations. Commit saves only new widgets still placed.
     widgets: dict[str, StoredWidget] = field(default_factory=dict)
     # What ``widgets`` held after each group in ``ops``, so undo can put it
     # back. It cannot be replayed: ``add`` rewrites its own logged operation,
@@ -278,12 +278,14 @@ class ApplyCanvasDraftOperationsCommand:
     def run(self) -> tuple[CanvasDraft, list[dict[str, Any]]]:
         draft = load_draft(self._token)
         if self._revision != draft.revision:
-            raise DraftConflictError(draft.revision)
+            raise DraftConflictError(draft.revision, draft_revision=draft.revision)
         if issues := placement_issues(self._ops, draft.resolver()):
             raise DefinitionInvalidError(
                 "The operations add widgets that cannot be placed", issues=issues
             )
-        definition, applied = apply_or_raise(draft.definition, self._ops, draft.widgets)
+        definition, applied = apply_or_raise(
+            draft.definition, self._ops, draft.widgets, keep_unplaced=True
+        )
         logged = [operation.op for operation in applied]
         draft.definition = definition
         # One group per request, so the replay resolves where this did, and
@@ -301,6 +303,13 @@ class ApplyCanvasDraftOperationsCommand:
         draft.revision += 1
         _save(draft)
         return draft, logged
+
+
+@dataclass(frozen=True)
+class CommitResult:
+    """The revision written by a commit, or observed while closing an empty draft."""
+
+    revision: int
 
 
 class RewindCanvasDraftCommand:
@@ -378,26 +387,32 @@ class CommitCanvasDraftCommand:
         self._token = token
         self._revision = revision
 
-    def run(self) -> ApplyResult | None:
+    def run(self) -> CommitResult:
         draft = load_draft(self._token)
         if self._revision != draft.revision:
-            raise DraftConflictError(draft.revision)
-        result = None
+            raise DraftConflictError(draft.revision, draft_revision=draft.revision)
         if draft.ops or draft.widgets:
             batches = [OPERATIONS.validate_python(group) for group in draft.ops]
-            result = ApplyCanvasOperationsCommand(
-                draft.canvas_id,
-                draft.base_revision,
-                [op for batch in batches for op in batch],
-                strict=True,
-                widgets=draft.widgets,
-                # Replayed a request at a time, resolving layout once per
-                # request as the draft did. Replaying the whole log as one
-                # batch, or an operation at a time, resolves at boundaries the
-                # draft never used and lays the canvas out differently from
-                # the plan that was approved.
-                batches=batches,
-            ).run()
+            try:
+                applied = ApplyCanvasOperationsCommand(
+                    draft.canvas_id,
+                    draft.base_revision,
+                    [op for batch in batches for op in batch],
+                    strict=True,
+                    widgets=draft.widgets,
+                    # Replayed a request at a time, resolving layout once per
+                    # request as the draft did. Replaying the whole log as one
+                    # batch, or an operation at a time, resolves at boundaries
+                    # the draft never used and lays the canvas out differently
+                    # from the plan that was approved.
+                    batches=batches,
+                ).run()
+            except DraftConflictError as ex:
+                ex.draft_revision = draft.revision
+                raise
+            result = CommitResult(applied.revision)
+        else:
+            result = CommitResult(_editable_canvas(draft.canvas_id).revision)
         DeleteCanvasDraftCommand(self._token).run()
         return result
 
