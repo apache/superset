@@ -108,7 +108,11 @@ from superset.superset_typing import (
 from superset.utils import core as utils, json
 from superset.utils.core import ColumnSpec, GenericDataType, QuerySource
 from superset.utils.hashing import hash_from_str
-from superset.utils.json import redact_sensitive, reveal_sensitive
+from superset.utils.json import (
+    get_sensitive_field_hints,
+    redact_sensitive,
+    reveal_sensitive,
+)
 from superset.utils.network import (
     get_ssrf_safe_requester,
     is_hostname_valid,
@@ -3481,6 +3485,43 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
 
         return json.dumps(new_config)
+
+    @classmethod
+    def encrypted_extra_hints(
+        cls, encrypted_extra: str | None, length: int
+    ) -> list[dict[str, Any]]:
+        """
+        Hints for the sensitive fields of `encrypted_extra`.
+
+        Each hint has the field `path`, a human `label` and the last `length`
+        characters of the stored value as `suffix` (``None`` when the value is too
+        short to reveal any). Returns an empty list when `encrypted_extra` is
+        missing or malformed, or when `length` is not positive.
+        """
+        if encrypted_extra is None or length <= 0:
+            return []
+
+        try:
+            config = json.loads(encrypted_extra)
+        except (TypeError, json.JSONDecodeError):
+            return []
+
+        if not isinstance(config, dict):
+            return []
+
+        labels = (
+            cls.encrypted_extra_sensitive_fields
+            if isinstance(cls.encrypted_extra_sensitive_fields, dict)
+            else {}
+        )
+        return [
+            {**hint, "label": labels.get(hint["path"], hint["path"].rsplit(".", 1)[-1])}
+            for hint in get_sensitive_field_hints(
+                config,
+                cls.encrypted_extra_sensitive_field_paths(),
+                length,
+            )
+        ]
 
     @classmethod
     def get_connection_identity(cls, uri: URL, connect_args: dict[str, Any]) -> URL:
