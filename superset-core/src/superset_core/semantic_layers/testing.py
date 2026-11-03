@@ -46,6 +46,8 @@ from superset_core.semantic_layers.types import (
     null_placement,
     NullPlacement,
     Operator,
+    OrderTerm,
+    OrderTuple,
     OrFilter,
     SemanticQuery,
     SemanticResult,
@@ -313,7 +315,7 @@ def _assert_null_placement_witness(
     assert len(query.order) > order_index, (
         "null_placement fixture requires the selected order key"
     )
-    term: tuple[object, ...] = query.order[order_index]
+    term: OrderTuple = query.order[order_index]
     placement: NullPlacement | None = null_placement(term)
     assert placement is not None, (
         "null_placement fixture's selected order key requires a NullPlacement"
@@ -325,12 +327,12 @@ def _assert_null_placement_witness(
     assert member in query.dimensions, (
         "null_placement fixture must order by a selected dimension"
     )
-    prefix: list[str] = []
+    order_names: list[str] = []
     key: object
-    for key, _ in query.order[:order_index]:
+    for key, _ in query.order:
         assert isinstance(key, (Dimension, Metric))
         assert key in [*query.dimensions, *query.metrics]
-        prefix.append(key.name)
+        order_names.append(key.name)
     assert query.limit is not None
     assert query.limit > 0
     full: pa.Table = view.get_table(replace(query, limit=None, offset=None)).results
@@ -343,13 +345,13 @@ def _assert_null_placement_witness(
     )
     # Arrow scalars keep nested prefix values hashable, including across chunks.
     order_values: list[tuple[pa.Scalar, ...]] = [
-        tuple(full.column(name)[index] for name in [*prefix, member.name])
+        tuple(full.column(name)[index] for name in order_names)
         for index in range(full.num_rows)
     ]
     groups: dict[tuple[pa.Scalar, ...], list[int]] = {}
     index: int
     for index in range(full.num_rows):
-        groups.setdefault(order_values[index][:-1], []).append(index)
+        groups.setdefault(order_values[index][:order_index], []).append(index)
     placed: list[int] = []
     opposite: list[int] = []
     indices: list[int]
@@ -375,6 +377,20 @@ def _assert_null_placement_witness(
         "under the opposite placement within tied order prefixes"
     )
     _assert_result_equal(full.slice(start, query.limit), expected)
+    reversed_order: list[OrderTuple] = list(query.order)
+    reversed_order[order_index] = OrderTerm(
+        member,
+        term[1],
+        NullPlacement.FIRST if placement is NullPlacement.LAST else NullPlacement.LAST,
+    )
+    reversed_page: pa.Table = view.get_table(
+        replace(query, order=reversed_order)
+    ).results
+    # Compare every declared key; payload order inside a complete key tie is free.
+    _assert_result_equal(
+        reversed_page.select(order_names),
+        full.take(opposite).slice(start, query.limit).select(order_names),
+    )
 
 
 def _assert_normalized_or_witness(query: SemanticQuery) -> None:

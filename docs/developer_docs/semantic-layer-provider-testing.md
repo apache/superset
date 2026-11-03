@@ -78,8 +78,12 @@ that tie so reversing only the second key's placement changes the retained rows.
 The example orders by month then category, skips January's first row and keeps
 its NULL category (total 3); dropping secondary `NULLS LAST` instead keeps A
 (total 2). The suite checks placement within each tied prefix, not globally. The page must
-differ in its prefix/key values, rather than only in payloads of rows tied on
-those keys: rows within an unordered NULL tie may appear in either order.
+differ in its complete declared order-key values, rather than only in unordered
+payloads. A trailing key can break a NULL tie and distinguish the pages. Select
+all witness order keys so the suite can observe them. The suite also executes
+the same page with only the tested key's placement reversed, checking every
+order-key value against the reversed unlimited result; a provider cannot pass
+merely because its default placement matches the fixture.
 For `grain`, use a grain-bearing dimension with data whose aggregation distinguishes the selected grain from raw values. Multiple grain variants for one name are allowed, not required. When the catalog declares no grain-bearing dimension, the case skips with an explicit reason before looking up its fixture entry; such providers may omit the `grain` entry. This reports unexercised grain coverage, not a passing grain check.
 NULL and grouped-OR fixtures must select NULL and non-NULL branches observably;
 the `or` case must use the host-normalized shape: one `OrFilter` containing

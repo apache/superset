@@ -876,9 +876,12 @@ def test_secondary_null_placement_accepts_nested_prefix_across_chunks(
         limit=1,
     )
 
-    def full_result(_: SemanticQuery) -> SemanticResult:
-        """Return the controlled unlimited witness result."""
-        return SemanticResult(requests=[], results=full)
+    def full_result(value: SemanticQuery) -> SemanticResult:
+        """Serve the known original and reversed nested-prefix results."""
+        result: pa.Table = (
+            full if value.limit is None else full.take([1, 0, 2]).slice(1, 1)
+        )
+        return SemanticResult(requests=[], results=result)
 
     monkeypatch.setattr(semantic_view, "get_table", full_result)
     _assert_null_placement_witness(
@@ -924,3 +927,94 @@ def test_null_placement_rejects_a_page_distinguished_only_by_unordered_ties(
             full.slice(1, 1),
             order_index=1 if secondary else 0,
         )
+
+
+@pytest.mark.parametrize("secondary", [False, True])
+def test_null_placement_accepts_a_trailing_key_breaking_null_ties(
+    semantic_view: "QueryView",
+    monkeypatch: pytest.MonkeyPatch,
+    secondary: bool,
+) -> None:
+    """A declared trailing key can distinguish pages within a NULL tie."""
+    prefix: Dimension = Dimension("prefix", "prefix", pa.int64())
+    category: Dimension = Dimension("category", "category", pa.string())
+    payload: Dimension = Dimension("payload", "payload", pa.string())
+    full: pa.Table = pa.table(
+        {
+            "prefix": [1, 1, 1],
+            "category": pa.array(["A", None, None], type=pa.string()),
+            "payload": ["x", "y", "z"],
+        }
+    )
+    term: OrderTerm = OrderTerm(category, OrderDirection.ASC, NullPlacement.LAST)
+    order: list[OrderTuple] = [term, (payload, OrderDirection.ASC)]
+    if secondary:
+        order.insert(0, (prefix, OrderDirection.ASC))
+    query: SemanticQuery = SemanticQuery(
+        [],
+        [prefix, category, payload],
+        order=order,
+        offset=1,
+        limit=1,
+    )
+
+    def get_table(value: SemanticQuery) -> SemanticResult:
+        """Serve independently specified original and reversed fixture orders."""
+        if value.limit is None:
+            return SemanticResult(requests=[], results=full)
+        reversed_rows: pa.Table = full.take([1, 2, 0])
+        return SemanticResult(requests=[], results=reversed_rows.slice(1, 1))
+
+    monkeypatch.setattr(semantic_view, "get_table", get_table)
+    _assert_null_placement_witness(
+        query,
+        semantic_view,
+        full.slice(1, 1),
+        order_index=1 if secondary else 0,
+    )
+
+
+@pytest.mark.parametrize("case", ["null_placement", "null_placement_secondary"])
+def test_nulls_first_fixture_detects_a_provider_dropping_all_placements(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    monkeypatch: pytest.MonkeyPatch,
+    case: str,
+) -> None:
+    """Both required lanes exercise the opposite of SQLite's default placement."""
+    query: SemanticQuery
+    expected: pa.Table
+    query, expected = semantic_query_cases[case]
+    assert query.order
+    order: list[OrderTuple] = [
+        OrderTerm(term[0], term[1], NullPlacement.FIRST) for term in query.order
+    ]
+    query = replace(query, order=order)
+    if case == "null_placement":
+        expected = pa.table(
+            {
+                "category": pa.array([None, "A"], type=pa.string()),
+                "total": [4, 7],
+            }
+        )
+    else:
+        expected = pa.table(
+            {
+                "occurred": pa.array([date(2026, 1, 1)], type=pa.date32()),
+                "category": ["A"],
+                "total": [2],
+            }
+        )
+    cases: dict[str, tuple[SemanticQuery, pa.Table]] = {case: (query, expected)}
+    SemanticProviderConformance().test_query_outputs(case, semantic_view, cases)
+    original: Callable[[SemanticQuery], SemanticResult] = semantic_view.get_table
+
+    def drop_placements(value: SemanticQuery) -> SemanticResult:
+        """Keep members/directions but remove placement metadata on every key."""
+        return original(
+            replace(value, order=[(term[0], term[1]) for term in value.order or []])
+        )
+
+    monkeypatch.setattr(semantic_view, "get_table", drop_placements)
+    with pytest.raises(AssertionError):
+        SemanticProviderConformance().test_query_outputs(case, semantic_view, cases)
