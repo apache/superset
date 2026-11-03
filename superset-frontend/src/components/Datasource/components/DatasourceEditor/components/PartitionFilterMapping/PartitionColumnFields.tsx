@@ -276,13 +276,17 @@ export default function PartitionColumnFields({
                 </Typography.Text>
               )}
               <Typography.Text type="secondary">
-                {isActive
+                {isConfirmed
                   ? t(
                       'Filters on this column are mirrored onto the partition column.',
                     )
-                  : t(
-                      'Filters on this column are mapped onto the partition column, but are not mirrored.',
-                    )}
+                  : isActive
+                    ? t(
+                        'Filters on this column are mapped onto the partition column, but mirroring has not been confirmed.',
+                      )
+                    : t(
+                        'Filters on this column are mapped onto the partition column, but are not mirrored.',
+                      )}
                 {differentColumnTarget && (
                   <>
                     {' '}

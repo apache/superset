@@ -8453,6 +8453,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgstr ""
+
 msgid ""
 "Filters on this column are mapped onto the partition field, but with this"
 " transform they are not mirrored."

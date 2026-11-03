@@ -263,6 +263,36 @@ test('a mapping nothing has judged yet says so rather than promising a mirror', 
     screen.queryByText(/will automatically apply an equivalent filter to/),
   ).not.toBeInTheDocument();
   expect(screen.queryByText(/scan every partition/)).not.toBeInTheDocument();
+  // The helper line above that warning must not state the mirror as fact.
+  expect(
+    screen.queryByText(/Filters on this column are mirrored/),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.getByText(/mirroring has not been confirmed/),
+  ).toBeInTheDocument();
+});
+
+test('the helper line states the mirror as fact once the verdict confirms it', () => {
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      columns={MAPPED_COLUMNS}
+      allColumns={MAPPED_COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+      previewMirrors
+    />,
+  );
+
+  expect(
+    screen.getByText(/Filters on this column are mirrored/),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText(/mirroring has not been confirmed/),
+  ).not.toBeInTheDocument();
 });
 
 test('no partition column means no "maps to partition" at all', () => {
