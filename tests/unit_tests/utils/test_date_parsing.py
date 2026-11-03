@@ -47,8 +47,35 @@ def test_normalize_mixed_offsets(
         frame,
         (DateColumn("date", timestamp_format=timestamp_format, timezone=timezone),),
     )
-    expected = [pd.Timestamp("2024-10-27T02:30:00")] * 2 + [pd.NaT, pd.NaT]
+    expected = (
+        [pd.Timestamp("2024-10-27T02:30:00")] * 2
+        if timezone
+        else [
+            pd.Timestamp("2024-10-27T00:30:00Z"),
+            pd.Timestamp("2024-10-27T01:30:00Z"),
+        ]
+    ) + [pd.NaT, pd.NaT]
     assert frame["date"].tolist() == expected
+
+
+@pytest.mark.parametrize("timestamp_format", [None, "%Y-%m-%dT%H:%M:%S%z"])
+def test_normalize_mixed_offsets_preserves_chart_instants(
+    timestamp_format: str | None,
+) -> None:
+    values = ["2024-10-27T02:30:00+02:00", "2024-10-27T02:30:00+01:00"]
+    normalized = []
+    for selected in ([values[0]], values):
+        frame = pd.DataFrame({"date": selected})
+        normalize_dttm_col(
+            frame, (DateColumn("date", timestamp_format=timestamp_format),)
+        )
+        normalized.append([datetime_to_epoch(value) for value in frame["date"]])
+
+    expected = [
+        datetime_to_epoch(pd.Timestamp("2024-10-27T00:30:00Z")),
+        datetime_to_epoch(pd.Timestamp("2024-10-27T01:30:00Z")),
+    ]
+    assert normalized == [expected[:1], expected]
 
 
 def capture_warnings(func, *args, **kwargs):

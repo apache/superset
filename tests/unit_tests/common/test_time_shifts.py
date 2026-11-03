@@ -874,6 +874,10 @@ def test_normalized_dst_offsets_match_day_comparison(
     )
 
     assert result["B"].tolist() == [5, 6]
+    assert result["ds"].tolist() == [
+        Timestamp("2024-03-09T17:00:00Z"),
+        Timestamp("2024-03-10T16:00:00Z"),
+    ]
 
 
 def test_temporal_physical_column_honors_explicit_false(monkeypatch) -> None:

@@ -13,6 +13,7 @@ on:
     - superset/result_set.py
     - superset/common/utils/dataframe_utils.py
     - tests/unit_tests/common/test_dataframe_utils.py
+    - tests/unit_tests/common/test_time_shifts.py
     - superset/utils/core.py
     - tests/unit_tests/utils/test_date_parsing.py
     - superset/utils/pandas_postprocessing/**
@@ -113,6 +114,7 @@ jobs:
                 'tests/unit_tests/pandas_postprocessing',
                 'tests/unit_tests/result_set_test.py',
                 'tests/unit_tests/common/test_dataframe_utils.py',
+                'tests/unit_tests/common/test_time_shifts.py::test_normalized_dst_offsets_match_day_comparison',
                 'tests/unit_tests/utils/test_date_parsing.py',
                 'tests/unit_tests/commands/importers/v1/utils_test.py',
                 'tests/unit_tests/models/helpers_test.py',
@@ -121,6 +123,7 @@ jobs:
                 'tests/unit_tests/db_engine_specs/test_base.py::test_fetch_data_no_result_set',
                 'tests/unit_tests/db_engine_specs/test_base.py::test_fetch_data_with_result_set',
                 'tests/unit_tests/extensions/test_sqlalchemy.py::test_superset_joins_with_limit_drops_fanout_matches',
+                'tests/unit_tests/extensions/test_sqlalchemy.py::test_on_connect_preserves_deferred_fetch_context',
                 'tests/unit_tests/docker_app_dependencies_test.py',
                 'tests/unit_tests/docker_compose_image_tag_test.py',
                 'tests/unit_tests/scripts/docker_release_target_test.py',

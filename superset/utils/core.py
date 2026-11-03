@@ -2108,7 +2108,7 @@ def _parse_mixed_timezone_column(
     return series.apply(
         lambda value: pd.to_datetime(
             value, format=timestamp_format, errors="coerce", exact=False
-        ).tz_localize(None)
+        )
         if pd.notna(value)
         else pd.NaT
     )
