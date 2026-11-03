@@ -36,6 +36,7 @@ from sqlalchemy.dialects import mysql, postgresql
 from superset.config import DISALLOWED_SQL_FUNCTIONS
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.connectors.sqla.partition_mapping import (
+    _LOCAL_PROBE_CACHE,
     _mirror_verdict_cache_key,
     _placeholder_is_bindable,
     _probe_cache_key,
@@ -2254,6 +2255,75 @@ def test_a_fresh_probe_ignores_and_leaves_the_failure_memory(app: Flask) -> None
         assert evaluate_transform(database, None, None, "lower(:value)", ["y"]) == [43]
 
 
+def test_text_forms_crossing_the_probe_cap_decline_rather_than_read_as_refused(
+    app: Flask, mocker: MockerFixture
+) -> None:
+    """
+    The typed values fit under the cap and their text forms take the probe over
+    it. That is not the engine refusing the text, so the weaker check
+    `TEXT_REFUSED` selects must not replace the comparison that was never run.
+    """
+    mocker.patch.dict(app.config, {"PARTITION_TRANSFORM_PROBE_MAX_VALUES": 3})
+    database = _database_returning([1, 2])
+    errors: list[str] = []
+    text_answers: list[tuple[int, Any]] = []
+
+    with app.app_context():
+        assert (
+            evaluate_transform(
+                database,
+                None,
+                None,
+                "lower(:value)",
+                [datetime(2026, 1, 12, 6, 30), datetime(2026, 1, 13, 6, 30)],
+                errors=errors,
+                text_answers=text_answers,
+            )
+            is None
+        )
+
+    assert _probe(database).call_count == 0
+    assert text_answers == []
+    assert errors == [
+        "4 distinct values exceed PARTITION_TRANSFORM_PROBE_MAX_VALUES (3)"
+    ]
+
+
+def test_the_probe_cap_counts_every_filter_of_the_query(
+    app: Flask, mocker: MockerFixture
+) -> None:
+    """
+    `build_mirrored_predicates` hands one probe every request of the query, so
+    the cap is on that probe's distinct inputs, not on each filter's values.
+    """
+    mocker.patch.dict(app.config, {"PARTITION_TRANSFORM_PROBE_MAX_VALUES": 3})
+    table = _mapped_table()
+    database = _database_returning([1, 2, 3, 4])
+    table.database = database
+    errors: list[str] = []
+
+    with app.app_context():
+        mapping = resolve_partition_mapping(table)
+        assert mapping is not None
+        assert (
+            build_mirrored_predicates(
+                table,
+                mapping,
+                [
+                    (FilterOperator.IN, ["a", "b"]),
+                    (FilterOperator.IN, ["c", "d"]),
+                ],
+                errors=errors,
+            )
+            == []
+        )
+
+    assert _probe(database).call_count == 0
+    assert errors == [
+        "4 distinct values exceed PARTITION_TRANSFORM_PROBE_MAX_VALUES (3)"
+    ]
+
+
 def test_a_filter_wider_than_the_probe_cap_is_not_probed(
     app: Flask, mocker: MockerFixture
 ) -> None:
@@ -2318,6 +2388,57 @@ def test_a_probe_runs_under_its_own_timeout(app: Flask, mocker: MockerFixture) -
 
     assert timeout.call_args.kwargs["seconds"] == 7
     assert errors == ["Partition transform probe exceeded 7s"]
+
+
+def test_a_null_primary_cache_falls_back_to_the_data_cache(app: Flask) -> None:
+    """
+    A deployment that configures only `DATA_CACHE_CONFIG` keeps its probe results
+    there, shared between workers, rather than in each process's fallback.
+    """
+    from flask_caching import Cache
+
+    from superset.extensions import cache_manager
+
+    null = Cache(config={"CACHE_TYPE": "NullCache"})
+    null.init_app(app)
+    data = Cache(config={"CACHE_TYPE": "SimpleCache"})
+    data.init_app(app)
+    database = _database_returning([1767225600])
+
+    with patch.object(cache_manager, "_cache", null):
+        with patch.object(cache_manager, "_data_cache", data):
+            with app.app_context():
+                for _ in range(2):
+                    assert evaluate_transform(
+                        database, None, None, "unix_timestamp(:value)", ["x"]
+                    ) == [1767225600]
+                    _LOCAL_PROBE_CACHE.clear()
+
+    _probe(database).assert_called_once()
+
+
+def test_a_usable_primary_cache_is_preferred_over_the_data_cache(app: Flask) -> None:
+    from flask_caching import Cache
+
+    from superset.extensions import cache_manager
+
+    primary = Cache(config={"CACHE_TYPE": "SimpleCache"})
+    primary.init_app(app)
+    data = MagicMock(wraps=Cache(config={"CACHE_TYPE": "NullCache"}))
+    data.cache = MagicMock()
+    database = _database_returning([1767225600])
+
+    with patch.object(cache_manager, "_cache", primary):
+        with patch.object(cache_manager, "_data_cache", data):
+            with app.app_context():
+                for _ in range(2):
+                    assert evaluate_transform(
+                        database, None, None, "unix_timestamp(:value)", ["x"]
+                    ) == [1767225600]
+
+    _probe(database).assert_called_once()
+    data.get.assert_not_called()
+    data.set.assert_not_called()
 
 
 def test_a_null_cache_falls_back_to_a_local_one(app: Flask) -> None:

@@ -2159,12 +2159,20 @@ def _evaluate_with_text_forms(
         if isinstance(value, date) and not is_unmirrorable(value)
     ]
     if indexes:
+        with_text = values + [_as_filter_text(values[index]) for index in indexes]
+        # Declined here because the fallback below is for an engine that refused
+        # the text. These forms were never sent, and reading that as a refusal
+        # swaps the comparison between them for `_is_bucket_of`, which a
+        # transform answering the day for a timestamp and the hour for its text
+        # passes, mirroring a range that excludes matching rows.
+        if _exceeds_probe_cap(_distinct_values(with_text), errors):
+            return True, None
         combined = evaluate_transform(
             database,
             catalog,
             schema,
             transform,
-            values + [_as_filter_text(values[index]) for index in indexes],
+            with_text,
             errors=errors,
             fresh=fresh,
         )
@@ -2232,13 +2240,7 @@ def evaluate_transform(
             return result
 
     # Dedupe so a 200-value `IN` list costs one column, not 200.
-    distinct: list[Any] = []
-    seen: set[Any] = set()
-    for value in values:
-        key = _hashable(value)
-        if key not in seen:
-            seen.add(key)
-            distinct.append(value)
+    distinct = _distinct_values(values)
 
     if _exceeds_probe_cap(distinct, errors):
         return None
@@ -2285,22 +2287,34 @@ def evaluate_transform(
     return [evaluated[_hashable(value)] for value in values]
 
 
+def _distinct_values(values: list[Any]) -> list[Any]:
+    distinct: list[Any] = []
+    seen: set[Any] = set()
+    for value in values:
+        key = _hashable(value)
+        if key not in seen:
+            seen.add(key)
+            distinct.append(value)
+    return distinct
+
+
 def _exceeds_probe_cap(distinct: list[Any], errors: list[str] | None) -> bool:
     """
-    Whether a filter has more distinct values than one probe may evaluate.
+    Whether a probe has more distinct inputs than it may evaluate.
 
-    Every value is one column of a single SELECT, and engines cap the select
-    list: PostgreSQL refuses a 1,665th entry outright. Declining a filter that
-    wide costs little pruning -- it spans that many partitions anyway -- and
-    spares the warehouse a statement it would refuse on every chart load.
+    Every input is one column of a single SELECT, and engines cap the select
+    list: PostgreSQL refuses a 1,665th entry outright. A query has one probe,
+    holding every filter's values and each timestamp's text form too. Declining
+    one that wide costs little pruning -- it spans that many partitions anyway
+    -- and spares the warehouse a statement it would refuse on every chart load.
     """
     max_values = app.config.get("PARTITION_TRANSFORM_PROBE_MAX_VALUES", 1000)
     if not max_values or len(distinct) <= max_values:
         return False
     _count("declined.too_many_values")
     logger.warning(
-        "A filter has %d distinct values, more than the %d a partition "
-        "transform probe evaluates; this query will not prune",
+        "A partition transform probe has %d distinct inputs, more than the %d "
+        "it may evaluate; this query will not prune",
         len(distinct),
         max_values,
     )

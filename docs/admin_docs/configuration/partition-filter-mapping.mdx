@@ -342,10 +342,13 @@ still correct, it just scans more partitions. A failure is remembered for
 database always rejects is not re-run on every chart load, and a transient error costs
 minutes of pruning rather than a day.
 
-The evaluation is bounded. Every distinct filter value is one column of a single `SELECT`,
-and engines cap the select list — PostgreSQL refuses more than 1,664 entries — so a filter
-with more than `PARTITION_TRANSFORM_PROBE_MAX_VALUES` distinct values (1,000 by default) is
-not evaluated and its query does not prune. An evaluation that runs longer than
+The evaluation is bounded. Every distinct input is one column of a single `SELECT`, and
+engines cap the select list — PostgreSQL refuses more than 1,664 entries — so an evaluation
+with more than `PARTITION_TRANSFORM_PROBE_MAX_VALUES` distinct inputs (1,000 by default) is
+not run and none of the query's mirrored predicates apply. The cap is on the whole
+evaluation, not on each filter: a query evaluates the values of all its mirrored filters
+together, so two filters with 600 distinct values each exceed the default, and each
+timestamp counts twice because it is also evaluated as text. An evaluation that runs longer than
 `PARTITION_TRANSFORM_PROBE_TIMEOUT` (10 seconds) is abandoned the same way. That timeout is
 best effort: like Superset's other query timeouts it is enforced with `SIGALRM`, so only in
 a worker that serves requests on its main thread.
@@ -409,7 +412,7 @@ column resolved back to it.
 |---|---|---|
 | `PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT` | 24 hours | How long an evaluated transform stays cached |
 | `PARTITION_TRANSFORM_PROBE_FAILURE_CACHE_TIMEOUT` | 5 minutes | How long a failed evaluation is remembered before the database is asked again; 0 retries on every query |
-| `PARTITION_TRANSFORM_PROBE_MAX_VALUES` | 1,000 | Most distinct filter values one evaluation covers; a wider filter does not prune. 0 for no cap |
+| `PARTITION_TRANSFORM_PROBE_MAX_VALUES` | 1,000 | Most distinct inputs one evaluation covers, across all of a query's mirrored filters, with each timestamp counted twice; a wider query does not prune. 0 for no cap |
 | `PARTITION_TRANSFORM_PROBE_TIMEOUT` | 10 seconds | How long one evaluation may run before it is abandoned; 0 to disable |
 | `PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT` | 30 | Per-user, per-dataset preview requests per minute; the editor's preview panel runs a real query |
 

@@ -445,9 +445,11 @@ PARTITION_TRANSFORM_PROBE_FAILURE_CACHE_TIMEOUT = int(
     timedelta(minutes=5).total_seconds()
 )
 
-# Most distinct filter values one probe evaluates. Each value is one column of a
-# single SELECT, and engines cap the select list (PostgreSQL at 1,664); a wider
-# filter is not probed and its query does not prune. Set to 0 for no cap.
+# Most distinct inputs one probe evaluates. A chart query has one probe, holding
+# the values of all its mirrored filters, and each timestamp counts twice because
+# it is also asked as text. Each input is one column of a single SELECT, and engines
+# cap the select list (PostgreSQL at 1,664); a wider probe is not run and the query
+# does not prune. Set to 0 for no cap.
 PARTITION_TRANSFORM_PROBE_MAX_VALUES = 1000
 
 # Seconds a probe may run before it is abandoned and the query does not prune.
