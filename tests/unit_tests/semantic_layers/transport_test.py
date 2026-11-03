@@ -815,6 +815,7 @@ def test_bounded_body_rejects_short_urllib3_1_response() -> None:
         time.monotonic() + 2
     )
 
+    raised: pytest.ExceptionInfo[ProviderRequestError]
     with pytest.raises(ProviderRequestError) as raised:
         semantic_layer_http.HostProviderTransport._read_body(response, bound, 100, None)
 
@@ -834,6 +835,7 @@ def test_bounded_body_rejects_malformed_content_length(content_length: str) -> N
         time.monotonic() + 2
     )
 
+    raised: pytest.ExceptionInfo[ProviderRequestError]
     with pytest.raises(ProviderRequestError) as raised:
         semantic_layer_http.HostProviderTransport._read_body(response, bound, 100, None)
 
