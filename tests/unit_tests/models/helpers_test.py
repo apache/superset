@@ -115,7 +115,7 @@ def test_build_like_predicate_is_case_insensitive_and_escaped() -> None:
 
     from superset.models.helpers import build_like_predicate
 
-    predicate = build_like_predicate(sa.column("c"), "50%")
+    predicate = build_like_predicate(sa.column("c", sa.String()), "50%")
 
     # The search term is lower-cased for a case-insensitive match, and the
     # user's ``%`` wildcard is neutralized (autoescape) rather than matching
@@ -141,6 +141,174 @@ def test_build_like_predicate_is_case_insensitive_and_escaped() -> None:
             dialect=BigQueryDialect(),
             compile_kwargs={"literal_binds": True},
         )
+    )
+    assert "ESCAPE" not in bigquery_sql
+
+
+@pytest.mark.parametrize("engine_name", ["mssql", "sybase", "custom_mssql"])
+def test_native_like_predicate_escapes_sqlserver_subclass_brackets(
+    engine_name: str,
+) -> None:
+    """Bracket wildcard escaping follows engine inheritance, including Sybase."""
+    import sqlalchemy as sa
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.db_engine_specs.sybase import SybaseEngineSpec
+    from superset.models.helpers import build_native_like_predicate
+
+    class CustomMssqlEngineSpec(MssqlEngineSpec):
+        """Represent an operator-provided SQL Server derivative."""
+
+        engine = "custom_mssql"
+
+    spec = {
+        "mssql": MssqlEngineSpec,
+        "sybase": SybaseEngineSpec,
+        "custom_mssql": CustomMssqlEngineSpec,
+    }[engine_name]
+    predicate = build_native_like_predicate(sa.column("name"), "[a-c][", spec)
+    compiled = predicate.compile(dialect=sa.dialects.registry.load("mssql")())
+    assert "%/[a-c]/[%" in compiled.params.values()
+    assert "ESCAPE '/'" in str(compiled)
+
+
+@pytest.mark.parametrize(
+    ("operator", "value"),
+    [
+        ("IN", "Alice"),
+        ("IN", []),
+        ("IN", [["Alice"]]),
+        ("NOT IN", {"name": "Alice"}),
+        ("==", ["Alice"]),
+        ("==", {"name": "Alice"}),
+        ("ILIKE", ["Alice"]),
+        ("==", float("inf")),
+    ],
+)
+def test_malformed_internal_literal_predicates_raise_validation_error(
+    database: Database, operator: str, value: Any
+) -> None:
+    """Private malformed predicates fail validation before SQL compilation."""
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        table_name="t",
+        columns=[TableColumn(column_name="b", type="TEXT")],
+    )
+    with pytest.raises(QueryObjectValidationError, match="Literal"):
+        table.get_sqla_query(
+            columns=["b"],
+            metrics=[],
+            extras={},
+            filter=[{"col": "b", "op": operator, "val": value, "is_literal": True}],
+            granularity=None,
+            is_timeseries=False,
+            orderby=[],
+        )
+
+
+def test_schema_bypassing_query_context_keeps_ordinary_chart_sql(
+    database: Database, mocker: MockerFixture
+) -> None:
+    """The legacy query endpoint and stored contexts cannot activate private flags."""
+    from superset.common.query_context_factory import QueryContextFactory
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        id=7,
+        database=database,
+        table_name="t",
+        columns=[TableColumn(column_name="b", type="TEXT")],
+    )
+    factory = QueryContextFactory()
+    mocker.patch.object(factory, "_convert_to_model", return_value=table)
+    context = factory.create(
+        datasource={"id": 7, "type": "table"},
+        queries=[
+            {
+                "columns": ["b"],
+                "metrics": [],
+                "filters": [
+                    {"col": "b", "op": "IN", "val": "Alice", "is_literal": True}
+                ],
+                "extras": {"preserve_literal_values": True},
+            }
+        ],
+    )
+    query = context.queries[0]
+    assert "is_literal" not in query.filter[0]
+    assert "preserve_literal_values" not in query.extras
+    built = table.get_sqla_query(
+        columns=query.columns,
+        metrics=query.metrics,
+        filter=query.filter,
+        extras=query.extras,
+        granularity=None,
+        is_timeseries=False,
+        orderby=[],
+    )
+    ordinary = table.get_sqla_query(
+        columns=["b"],
+        metrics=[],
+        filter=[{"col": "b", "op": "IN", "val": "Alice"}],
+        extras={},
+        granularity=None,
+        is_timeseries=False,
+        orderby=[],
+    )
+    assert str(built.sqla_query) == str(ordinary.sqla_query)
+    assert built.sqla_query.compile().params == ordinary.sqla_query.compile().params
+
+
+def test_build_like_predicate_casts_non_text_columns() -> None:
+    import sqlalchemy as sa
+    from sqlalchemy_bigquery import BigQueryDialect
+
+    from superset.models.helpers import build_like_predicate
+
+    postgres = sa.dialects.registry.load("postgresql")()
+
+    def compile_sql(predicate: sa.ColumnElement, dialect: sa.engine.Dialect) -> str:
+        return str(
+            predicate.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+        )
+
+    for column_type in (sa.Numeric(), sa.Integer()):
+        sql = compile_sql(
+            build_like_predicate(sa.column("n", column_type), "0"), postgres
+        )
+        assert "lower(CAST(n AS VARCHAR))" in sql
+
+    # String columns are left untouched: no CAST is introduced.
+    text_sql = compile_sql(
+        build_like_predicate(sa.column("s", sa.String()), "a"), postgres
+    )
+    assert "lower(s)" in text_sql
+    assert "CAST" not in text_sql
+
+    # Untyped expressions (e.g. calculated columns) are cast as well.
+    untyped_sql = compile_sql(
+        build_like_predicate(sa.literal_column("upper(s)"), "a"), postgres
+    )
+    assert "lower(CAST(upper(s) AS VARCHAR))" in untyped_sql
+
+    # Dialects that need a length or a unicode type get one.
+    oracle_sql = compile_sql(
+        build_like_predicate(sa.column("n", sa.Numeric()), "0"),
+        sa.dialects.registry.load("oracle")(),
+    )
+    assert "CAST(n AS VARCHAR2(4000 CHAR))" in oracle_sql
+    mssql_sql = compile_sql(
+        build_like_predicate(sa.column("n", sa.Numeric()), "0"),
+        sa.dialects.registry.load("mssql")(),
+    )
+    assert "CAST(n AS NVARCHAR(max))" in mssql_sql
+
+    # BigQuery still has no ESCAPE clause for a non-text column.
+    bigquery_sql = compile_sql(
+        build_like_predicate(sa.column("n", sa.Numeric()), "0"), BigQueryDialect()
     )
     assert "ESCAPE" not in bigquery_sql
 

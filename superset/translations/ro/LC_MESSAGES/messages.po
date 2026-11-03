@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -543,6 +543,13 @@ msgid_plural "%s days ago"
 msgstr[0] "acum %s zi"
 msgstr[1] "acum %s zile"
 msgstr[2] "acum %s de zile"
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "%s field"
@@ -2977,10 +2984,6 @@ msgid "Are you sure you want to delete %s?"
 msgstr "Sigur doriți să ștergeți %s?"
 
 #, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-
-#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr "Sigur doriți să ștergeți %s-ul selectat?"
 
@@ -4240,6 +4243,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr "Alege un format de număr"
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr "Alege o sursă"
 
@@ -5412,6 +5418,9 @@ msgstr "Creează grafic nou"
 msgid "Create or select schema..."
 msgstr "Creează sau selectează schemă..."
 
+msgid "Create semantic layer"
+msgstr ""
+
 msgid "Created"
 msgstr "Creat"
 
@@ -6524,7 +6533,7 @@ msgstr "Șterge elementul"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -10693,6 +10702,12 @@ msgstr "Se încarcă valorile filtrului"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # lv, ru, sr, sr_Latn, uk]
 #, fuzzy
@@ -11951,6 +11966,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -15553,6 +15584,9 @@ msgstr "Stratul semantic nu există"
 msgid "Semantic layer parameters are invalid."
 msgstr "Parametrii stratului semantic sunt invalizi."
 
+msgid "Semantic layer setup guide"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
 #, fuzzy
@@ -19092,6 +19126,9 @@ msgstr ""
 "Acesta poate fi fie o adresă IP (de ex. 127.0.0.1), fie un nume de "
 "domeniu (de ex. mydatabase.com)."
 
+msgid "This cannot be undone."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -20184,6 +20221,9 @@ msgstr "Aveți încredere în acest URL și nu mai întrebați"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 "Încercați aplicarea unor filtre diferite sau asigurați-vă că sursa dvs. "
@@ -20409,6 +20449,16 @@ msgstr ""
 
 msgid "Unable to load dashboard"
 msgstr "Nu se poate încărca panoul de control"
+
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr ""
@@ -22602,6 +22652,9 @@ msgstr "câteva secunde"
 msgid "aggregate"
 msgstr "agregare"
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr "condiție alertă"
 
@@ -22617,6 +22670,10 @@ msgstr "de asemenea, copiază (duplică) graficele"
 msgid "ancestor"
 msgstr "strămoș"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "adnotare"
 
@@ -22627,6 +22684,10 @@ msgstr "strat_adnotare"
 #, fuzzy
 msgid "apple"
 msgstr "măr"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -23377,6 +23438,12 @@ msgstr ""
 
 msgid "query"
 msgstr "interogare"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "aleator"
