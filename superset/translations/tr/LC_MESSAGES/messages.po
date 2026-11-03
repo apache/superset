@@ -847,7 +847,7 @@ msgstr "Yüzde 10/90"
 
 #. do-not-translate
 msgid "10000"
-msgstr "10000 10000 10000 10000"
+msgstr ""
 
 msgid "104 weeks"
 msgstr "104 hafta"
@@ -5462,7 +5462,7 @@ msgstr "ARA"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "SİL"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -6998,7 +6998,7 @@ msgstr "ECharts Seçenekleri (JS nesne değişmezleri)"
 
 #. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
-msgstr "EMAIL REPORTS CTA"
+msgstr ""
 
 msgid "ERROR"
 msgstr "HATA"
@@ -8876,8 +8876,9 @@ msgstr "Guest user, grafik ücretload değiştiremez"
 msgid "HTTP Path"
 msgstr "HTTP Path"
 
+#. do-not-translate
 msgid "Handlebars"
-msgstr "Tutbarlar"
+msgstr ""
 
 msgid "Handlebars Template"
 msgstr "Tutbarlar Şablon"
@@ -11036,7 +11037,7 @@ msgstr "N/A"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "Grup değil"
+msgstr ""
 
 msgid "NOV"
 msgstr "KAS"
@@ -11717,7 +11718,7 @@ msgstr "VEYA"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "GENEL"
+msgstr ""
 
 msgid "October"
 msgstr "Ekim"
@@ -16319,7 +16320,7 @@ msgstr "TABLOLAR"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "TEMPORAL RANGE"
+msgstr ""
 
 msgid "THU"
 msgstr "PER"
@@ -21872,7 +21873,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "Kurun"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -21970,9 +21971,8 @@ msgid "create dataset from SQL query"
 msgstr "SQL sorgusundan veriseti oluştur"
 
 #. do-not-translate
-#, fuzzy
 msgid "crontab"
-msgstr "sayı"
+msgstr ""
 
 msgid "css"
 msgstr "css"
@@ -22052,7 +22052,7 @@ msgstr "Güverte.gl Contour"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "Güverte.gl Geojson"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "Güverte.gl Grid"
@@ -22173,7 +22173,7 @@ msgstr "giriş girişleri"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "hata message"
+msgstr ""
 
 msgid "every"
 msgstr "her"
@@ -22542,7 +22542,7 @@ msgstr "permalink durumu bulunamadı"
 
 #. do-not-translate
 msgid "pivoted_xlsx"
-msgstr "1."
+msgstr ""
 
 msgid "pixels"
 msgstr "piksel"
@@ -22634,7 +22634,7 @@ msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"
-msgstr "şema1,schema2"
+msgstr ""
 
 msgid "seconds"
 msgstr "saniye"
@@ -22710,7 +22710,7 @@ msgstr "Toplam özet"
 
 #. do-not-translate
 msgid "superset.example.com"
-msgstr "süperset.ornek.com"
+msgstr ""
 
 #, python-format
 msgid "syntax error at position %(position)d."
@@ -22844,7 +22844,7 @@ msgstr "yıl"
 
 #. do-not-translate
 msgid "your-project-1234-a1"
-msgstr "Projeniz-1234-a1"
+msgstr ""
 
 msgid "zoom area"
 msgstr "zoom alanı"

@@ -8109,6 +8109,7 @@ msgstr ""
 msgid "HTTP Path"
 msgstr ""
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr ""
 
