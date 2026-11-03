@@ -33,9 +33,12 @@ export const FilterStyledIcon = styled.div`
   right: 0;
 `;
 
-export const VerticalFilterControlTitle = styled.h4`
+export const VerticalFilterControlTitle = styled.h4<{
+  isOutOfScope?: boolean;
+}>`
   font-size: ${({ theme }) => theme.fontSizeSM}px;
-  color: ${({ theme }) => theme.colorText};
+  color: ${({ theme, isOutOfScope }) =>
+    isOutOfScope ? theme.colorTextDisabled : theme.colorText};
   overflow-wrap: anywhere;
 `;
 
@@ -206,6 +209,10 @@ const StyledInfoCircleOutlined = styled(Icons.InfoCircleOutlined)`
   padding-left: ${({ theme }) => theme.sizeUnit}px;
 `;
 
+const StyledWarningOutlined = styled(Icons.WarningOutlined)`
+  padding-left: ${({ theme }) => theme.sizeUnit}px;
+`;
+
 export const RequiredFieldIndicator = () => (
   <span
     css={(theme: SupersetTheme) => ({
@@ -241,6 +248,22 @@ export const DescriptionToolTip = ({
           for the linter's suggested <button> tag. */}
       {/* eslint-disable-next-line jsx-a11y/prefer-tag-over-role */}
       <StyledInfoCircleOutlined className="text-muted" role="button" />
+    </Tooltip>
+  </ToolTipContainer>
+);
+
+export const OutOfScopeFilterToolTip = () => (
+  <ToolTipContainer>
+    <Tooltip
+      title={t("This filter isn't applied to any charts yet")}
+      placement="right"
+    >
+      <StyledWarningOutlined
+        className="text-muted"
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
+        role="button"
+        data-test="out-of-scope-filter-tooltip-icon"
+      />
     </Tooltip>
   </ToolTipContainer>
 );

@@ -29,6 +29,10 @@ import FilterControl from './FilterControl';
 
 jest.mock('src/dashboard/components/nativeFilters/state', () => ({
   useIsFilterInScope: () => () => false,
+  isFilterWithoutScope: (filter: Filter) =>
+    Array.isArray(filter.chartsInScope) &&
+    filter.chartsInScope.length === 0 &&
+    !filter.scope?.rootPath?.length,
 }));
 
 jest.mock('../Vertical', () => {
@@ -122,4 +126,21 @@ test('marks an enableEmptyFilter filter as required', () => {
     />,
   );
   expect(screen.getByText('*')).toBeInTheDocument();
+});
+
+test('shows a warning for a filter without a selected scope', () => {
+  render(
+    <FilterControl
+      filter={{
+        ...nativeFilter,
+        chartsInScope: [],
+        scope: { rootPath: [], excluded: [] },
+      }}
+      onFilterSelectionChange={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.getByTestId('out-of-scope-filter-tooltip-icon'),
+  ).toBeInTheDocument();
 });

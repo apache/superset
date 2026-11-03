@@ -32,11 +32,12 @@ import { FilterCard } from '../../FilterCard';
 import { FilterBarScrollContext } from '../Vertical';
 import { FilterControlProps } from './types';
 import { FilterCardPlacement } from '../../FilterCard/types';
-import { useIsFilterInScope } from '../../state';
+import { isFilterWithoutScope, useIsFilterInScope } from '../../state';
 import {
   FilterStyledIcon,
   RequiredFieldIndicator,
   DescriptionToolTip,
+  OutOfScopeFilterToolTip,
   DeckglLayerVisibilityTooltip,
   useFilterControlDisplay,
 } from './FilterControlShared';
@@ -67,6 +68,7 @@ const FilterControl = ({
   const validateStatus = isMissingRequiredValue ? 'error' : undefined;
   const isRequired = !!filter.controlValues?.enableEmptyFilter;
   const inverseSelection = !!filter.controlValues?.inverseSelection;
+  const isOutOfScope = isFilterWithoutScope(filter);
 
   const {
     FilterControlContainer,
@@ -81,10 +83,12 @@ const FilterControl = ({
         <FilterControlTitle
           id={`filter-name-${filter.id}`}
           data-test="filter-control-name"
+          isOutOfScope={isOutOfScope}
         >
           {name}
         </FilterControlTitle>
         {isRequired && <RequiredFieldIndicator />}
+        {isOutOfScope && <OutOfScopeFilterToolTip />}
         {filter.filterType === 'filter_select' &&
           filter.controlValues?.multiSelect && (
             <DescriptionToolTip
@@ -112,6 +116,7 @@ const FilterControl = ({
       filter.filterType,
       filter.controlValues?.multiSelect,
       icon,
+      isOutOfScope,
     ],
   );
 
