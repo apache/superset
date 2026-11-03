@@ -3938,6 +3938,9 @@ msgstr "இந்தச் சார்ட்டைப் பாருங்க�
 msgid "Check out this dashboard: "
 msgstr "இந்தத் டேஷ்போர்டைப் பாருங்கள்: "
 
+msgid "Check the value transform →"
+msgstr ""
+
 msgid "Check to force date partitions to have the same height"
 msgstr ""
 "தேதிப் பிரிவுகள் (date partitions) ஒரே உயரத்தைக் கொண்டிருக்கச் "
@@ -6470,6 +6473,12 @@ msgstr "இந்தத் தரவுத்தளத்திற்கான �
 
 msgid "Discard"
 msgstr "கைவிடு (Discard)"
+
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
 
 msgid "Display Name"
 msgstr "காட்சிப் பெயர்"
@@ -11920,6 +11929,12 @@ msgid "Partition keys must be whole numbers within the 64-bit range, up to three
 msgstr ""
 
 msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
 msgstr ""
 
 msgid ""
@@ -17616,6 +17631,14 @@ msgid ""
 msgstr "இது IP முகவரி (உதாரணமாக 127.0.0.1) அல்லது டொமைன் பெயராக இருக்கலாம்."
 
 msgid "This cannot be undone."
+msgstr ""
+
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
 msgstr ""
 
 msgid ""

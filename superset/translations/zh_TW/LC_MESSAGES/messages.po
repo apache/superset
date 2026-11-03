@@ -4233,6 +4233,9 @@ msgstr "看看這張圖表："
 msgid "Check out this dashboard: "
 msgstr "查看此看板："
 
+msgid "Check the value transform →"
+msgstr ""
+
 msgid "Check to force date partitions to have the same height"
 msgstr "選中以强制日期分區具有相同的高度"
 
@@ -7012,6 +7015,12 @@ msgstr "這個數據集没有返回預覽數據"
 #, fuzzy
 msgid "Discard"
 msgstr "取消"
+
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
 
 msgid "Display Name"
 msgstr "顯示名稱"
@@ -13252,6 +13261,12 @@ msgid "Partition keys must be whole numbers within the 64-bit range, up to three
 msgstr ""
 
 msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
 msgstr ""
 
 msgid ""
@@ -19668,6 +19683,14 @@ msgid ""
 msgstr "這可以是一個 IP 地址(例如 127.0.0.1)或一個域名(例如 mydatabase.com)。"
 
 msgid "This cannot be undone."
+msgstr ""
+
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
 msgstr ""
 
 msgid ""
