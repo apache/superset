@@ -4376,6 +4376,10 @@ msgstr ""
 msgid "Could not load metadata for this configuration; showing the default form. See the server logs for details."
 msgstr ""
 
+#, python-format
+msgid "Could not load the stored secrets: %s"
+msgstr ""
+
 msgid "Could not parse the CSS to convert @import rules. Check for syntax errors and try again."
 msgstr ""
 
@@ -6339,6 +6343,10 @@ msgid "End date must be after start date"
 msgstr ""
 
 msgid "Ends With"
+msgstr ""
+
+#, python-format
+msgid "Ends with %s."
 msgstr ""
 
 #, python-format
@@ -9859,6 +9867,9 @@ msgstr ""
 msgid "No description available."
 msgstr ""
 
+msgid "No ending is available for this secret."
+msgstr ""
+
 msgid "No entities have this tag currently assigned"
 msgstr ""
 
@@ -10354,6 +10365,10 @@ msgid "Only single queries supported"
 msgstr ""
 
 msgid "Only the default catalog is supported for this connection"
+msgstr ""
+
+#, python-format
+msgid "Only the ending of secrets with at least %s characters is shown."
 msgstr ""
 
 #, python-format
@@ -13949,6 +13964,10 @@ msgstr ""
 msgid "Storage key exceeds the maximum allowed length of %(max_length)d characters."
 msgstr ""
 
+#, python-format
+msgid "Stored at %s. Edits to Secure extra above are not reflected until saved."
+msgstr ""
+
 msgid "Stream"
 msgstr ""
 
@@ -14656,6 +14675,9 @@ msgid "The duration of time in seconds before the cache is invalidated. Set to -
 msgstr ""
 
 msgid "The encoding format of the lines"
+msgstr ""
+
+msgid "The ending is hidden because the secret is too short."
 msgstr ""
 
 msgid "The engine_params object gets unpacked into the sqlalchemy.create_engine call."
@@ -16247,6 +16269,9 @@ msgstr ""
 
 #, python-format
 msgid "Too many views in one request: %(count)s provided, at most %(limit)s allowed."
+msgstr ""
+
+msgid "Too short to show safely"
 msgstr ""
 
 msgid "Tool Panel"
