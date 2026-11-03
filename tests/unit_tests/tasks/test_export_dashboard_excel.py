@@ -39,6 +39,8 @@ from superset.utils import json
 MODULE = "superset.tasks.export_dashboard_excel"
 # Workbook building is shared by queued and direct exports.
 WORKBOOK_MODULE = "superset.dashboards.excel_export.workbook"
+CHART_RESULTS_MODULE = "superset.dashboards.excel_export.chart_results"
+RUN_QUERY_CONTEXT_MODULE = "superset.charts.data.run_query_context"
 STORAGE_MODULE = "superset.dashboards.excel_export.storage"
 
 # export_dashboard_excel always receives a real uuid4 job_id in production (the
@@ -116,9 +118,9 @@ def mocks() -> Iterator[dict[str, Any]]:
                 (MODULE, "mark_export_failed"),
                 (MODULE, "mark_export_running"),
                 (WORKBOOK_MODULE, "get_charts_in_layout_order"),
-                (WORKBOOK_MODULE, "get_dashboard_filter_context"),
-                (WORKBOOK_MODULE, "ChartDataQueryContextSchema"),
-                (WORKBOOK_MODULE, "ChartDataCommand"),
+                (CHART_RESULTS_MODULE, "get_dashboard_filter_context"),
+                (RUN_QUERY_CONTEXT_MODULE, "ChartDataQueryContextSchema"),
+                (RUN_QUERY_CONTEXT_MODULE, "ChartDataCommand"),
                 (WORKBOOK_MODULE, "render_chart_image"),
             )
         }
@@ -412,7 +414,7 @@ def _builder_hook(builder: Any) -> Iterator[None]:
     }.__getitem__
     # The task, workbook, and storage check all read configuration.
     with ExitStack() as stack:
-        for module in (MODULE, WORKBOOK_MODULE, STORAGE_MODULE):
+        for module in (MODULE, WORKBOOK_MODULE, CHART_RESULTS_MODULE, STORAGE_MODULE):
             stack.enter_context(mock.patch(f"{module}.current_app", fake_app))
         yield
 
