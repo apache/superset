@@ -44,6 +44,11 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
+# How long the executor waits, once the task's work has ended, for abort
+# handlers that an abort, timeout or self-fence is still running on another
+# thread. Handlers still running after that leave the task FAILURE.
+ABORT_HANDLERS_WAIT_SECONDS = 30
+
 
 class TaskContext(CoreTaskContext):
     """
@@ -72,6 +77,8 @@ class TaskContext(CoreTaskContext):
         self._abort_listener: "SignalListener | None" = None
         self._abort_detected = False
         self._abort_handlers_completed = False
+        # Set once the abort handlers have run, whichever thread ran them.
+        self._abort_handlers_done = threading.Event()
         self._execution_completed = False  # Set by executor after task work completes
         # Elects one abort trigger across the listener/timeout/fence threads so
         # abort handlers run exactly once.
@@ -562,6 +569,7 @@ class TaskContext(CoreTaskContext):
         abort_failures = [f for f in self._handler_failures if f[0] == "abort"]
         if not abort_failures:
             self._abort_handlers_completed = True
+        self._abort_handlers_done.set()
 
     def _write_handler_failures_to_db(self) -> None:
         """
@@ -889,14 +897,37 @@ class TaskContext(CoreTaskContext):
         self._fence_triggered = True
         self._abort_locally(error_message)
 
+    def _wait_for_abort_handlers(self) -> None:
+        """Wait for abort handlers that another thread is running.
+
+        An abort, timeout or self-fence runs the abort handlers on its own
+        thread, and a handler can let the task's work end before it returns,
+        for example by flagging the work to stop before it cancels a query over
+        a new connection. Waiting lets cleanup handlers run after the abort
+        handlers, and the executor read their outcome rather than a run still
+        in progress. Bounded by ``ABORT_HANDLERS_WAIT_SECONDS``.
+
+        Called after ``mark_execution_completed``, when no abort can be elected
+        any more, so if none was elected by then, no handler is running.
+        """
+        with self._abort_lock:
+            elected = self._abort_detected
+        if elected and not self._abort_handlers_done.wait(ABORT_HANDLERS_WAIT_SECONDS):
+            logger.warning(
+                "Abort handlers for task %s still running after %d seconds",
+                self._task_uuid,
+                ABORT_HANDLERS_WAIT_SECONDS,
+            )
+
     def _run_cleanup(self) -> None:
         """
         Run cleanup handlers (called by executor in finally block).
 
         This runs:
         1. Flushes any pending throttled updates to ensure final state is persisted
-        2. Abort handlers if task was aborting/aborted (but not yet detected)
-        3. All cleanup handlers (always)
+        2. Waits for abort handlers still running on another thread
+        3. Abort handlers if task was aborting/aborted (but not yet detected)
+        4. All cleanup handlers (always)
 
         All handler failures (abort + cleanup) are collected and written to DB
         as a unified error record at the end.
@@ -908,6 +939,7 @@ class TaskContext(CoreTaskContext):
                 self._write_to_db()
                 self._has_pending_updates = False
 
+        self._wait_for_abort_handlers()
         self.stop_abort_polling()
         self.stop_timeout_timer()
 

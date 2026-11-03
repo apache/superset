@@ -230,7 +230,7 @@ def my_task() -> None:
     # ... task logic
 ```
 
-Multiple handlers of the same type execute in LIFO order (last registered runs first). Abort handlers run first when abort is detected, then cleanup handlers run when the task ends.
+Multiple handlers of the same type execute in LIFO order (last registered runs first). Abort handlers run first when abort is detected, then cleanup handlers run when the task ends. If the task ends while its abort handlers are still running, for example after a handler sets a stop flag and before it finishes cancelling a query, the framework waits up to 30 seconds for them before it runs cleanup handlers and sets the final status.
 
 #### Best-Effort Execution
 
@@ -388,7 +388,7 @@ The timeout timer starts when the task begins executing (status changes to `IN_P
 
 1. **With an abort handler registered:** The task transitions to `ABORTING`, abort handlers run, then cleanup handlers run. The final status depends on handler execution:
    - If handlers complete successfully → `TIMED_OUT` status
-   - If handlers throw an exception → `FAILURE` status
+   - If handlers throw an exception, or are still running 30 seconds after the task ends → `FAILURE` status
 
 2. **Without an abort handler:** The framework cannot forcibly terminate the task. A warning is logged, and the task continues running. The Task List UI shows a warning indicator (⚠️) in the Details column to alert users that the timeout cannot be enforced.
 

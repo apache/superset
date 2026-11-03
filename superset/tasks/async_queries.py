@@ -229,6 +229,11 @@ def _get_dependency_cache_key() -> str:
     raise SupersetException("Prerequisite task did not publish a cache key")
 
 
+# ``_QueryCancellation._persisted_id`` after a failed write: the metastore keeps
+# the old id until any later write of the task persists the new one.
+_UNKNOWN_PERSISTED_ID = object()
+
+
 class _QueryCancellation:
     """Cancel the warehouse operation a chart-data task is running when it aborts.
 
@@ -260,7 +265,8 @@ class _QueryCancellation:
 
     The handle is also persisted for the orphan reaper, and replaced or cleared
     as the running operation changes, so the reaper never cancels an operation
-    the task is done with.
+    the task is done with. After a failed write, the next id is written even if
+    it matches the last one written.
     """
 
     def __init__(self, database: "Database") -> None:
@@ -275,7 +281,8 @@ class _QueryCancellation:
         self._abort_requested = False
         # Worker thread only.
         self._registered = False
-        self._persisted_id: str | None = None
+        # The id last written, or _UNKNOWN_PERSISTED_ID after a failed write.
+        self._persisted_id: object = None
 
     def __call__(self, cursor: Any, database: "Database", phase: CursorPhase) -> None:
         own = database.id == self._database.id
@@ -351,7 +358,10 @@ class _QueryCancellation:
                 self._persisted_id = cancel_id
             except Exception:  # noqa: BLE001 pylint: disable=broad-except
                 # Only the orphan reaper reads the persisted handle; the abort
-                # handler uses the in-memory one.
+                # handler uses the in-memory one. The next publish writes even
+                # to clear the id, since a later write of the task would persist
+                # this one from the property cache.
+                self._persisted_id = _UNKNOWN_PERSISTED_ID
                 logger.warning("Failed to persist the cancel id", exc_info=True)
         return abort_requested
 

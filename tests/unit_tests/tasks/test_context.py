@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Unit tests for TaskContext.update_task throttling behavior."""
+"""Unit tests for TaskContext writes and cleanup."""
 
+import threading
 from unittest.mock import MagicMock, Mock, patch
 from uuid import UUID
 
@@ -116,3 +117,60 @@ def test_persist_cancellation_writes_immediately_and_flushes_pending_updates(
     ctx.persist_cancellation(7, None)
     assert write.call_count == 3
     assert ctx._properties_cache["private"]["task"]["cancel_query_id"] is None
+
+
+def _abort_on_another_thread(
+    ctx: TaskContext,
+) -> tuple[threading.Thread, threading.Event]:
+    """Run ``ctx``'s abort handlers on another thread, as an abort, timeout or
+    self-fence does, and return once they are running, with the event that lets
+    them return.
+
+    The handler stands in for one that flags the task's work to stop, then
+    cancels its query over a new connection: the work can end before it returns.
+    """
+    cancelling, cancelled = threading.Event(), threading.Event()
+
+    def handle_abort() -> None:
+        cancelling.set()
+        cancelled.wait(5)
+
+    ctx._abort_handlers.append(handle_abort)
+    thread = threading.Thread(target=ctx._on_abort_detected)
+    thread.start()
+    assert cancelling.wait(5)
+    # As the executor does once the task's work has ended.
+    ctx.mark_execution_completed()
+    return thread, cancelled
+
+
+def test_cleanup_waits_for_abort_handlers_running_on_another_thread(
+    context,
+) -> None:
+    ctx, _ = context
+    cleaned_up_while_aborting: list[bool] = []
+    thread, cancelled = _abort_on_another_thread(ctx)
+    ctx.on_cleanup(
+        lambda: cleaned_up_while_aborting.append(not ctx._abort_handlers_done.is_set())
+    )
+    threading.Timer(0.1, cancelled.set).start()
+
+    ctx._run_cleanup()
+
+    # The executor reads this next: TIMED_OUT or ABORTED, not FAILURE.
+    assert ctx.abort_handlers_completed is True
+    assert cleaned_up_while_aborting == [False]
+    thread.join()
+
+
+def test_cleanup_waits_for_abort_handlers_for_a_bounded_time(context) -> None:
+    ctx, _ = context
+    thread, cancelled = _abort_on_another_thread(ctx)
+
+    with patch("superset.tasks.context.ABORT_HANDLERS_WAIT_SECONDS", 0.05):
+        ctx._run_cleanup()
+
+    # Still running: the executor finalizes the task FAILURE.
+    assert ctx.abort_handlers_completed is False
+    cancelled.set()
+    thread.join()

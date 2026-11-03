@@ -18,6 +18,7 @@
 
 import copy
 import sqlite3
+import threading
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import datetime
@@ -710,6 +711,82 @@ def test_impala_capture_failure_leaves_no_stale_handle(
     # The first statement's id was retired: nothing stale is cancelled or reaped.
     cancel.assert_not_called()
     assert _persisted(writes) == [first.cancel_id, None]
+
+
+def test_impala_handle_is_cleared_after_a_failed_write(
+    mocker: MockerFixture, task_context: tuple[TaskContext, list[dict[str, Any]]]
+) -> None:
+    """A failed write leaves the id in the task's property cache, which its next
+    write persists, so releasing the cursor still writes the cleared handle."""
+    from superset.tasks.async_queries import _capture_query_cancellation
+
+    ctx, writes = task_context
+    impala = _FakeImpala()
+    database = _impala_database(mocker, impala)
+    write_to_db = ctx._write_to_db
+    failed: list[str] = []
+
+    def fail_the_first_handle_write() -> None:
+        handle = (ctx._properties_cache.get("private") or {}).get("task") or {}
+        if handle.get("cancel_query_id") and not failed:
+            failed.append(handle["cancel_query_id"])
+            raise RuntimeError("metastore unavailable")
+        write_to_db()
+
+    mocker.patch.object(ctx, "_write_to_db", side_effect=fail_the_first_handle_write)
+
+    with _capture_query_cancellation(_chart_query(database)):
+        database.get_df("SELECT 1 AS one")
+    # The task's next write, such as the one that publishes its cache key.
+    ctx.update_task(payload={"cache_key": "key"}, immediate=True)
+
+    _, select = impala.operations
+    assert failed == [select.cancel_id]
+    assert _persisted(writes) == [None, None]
+
+
+def test_impala_timeout_outcome_is_read_after_its_cancel_returns(
+    mocker: MockerFixture, task_context: tuple[TaskContext, list[dict[str, Any]]]
+) -> None:
+    """The worker stops once a timeout is accepted, which can be before the timer
+    thread's cancel returns. The executor reads the abort handler's outcome after
+    cleanup, which waits for it, so the task ends TIMED_OUT rather than FAILURE.
+    """
+    from superset.tasks.async_queries import _capture_query_cancellation
+
+    ctx, _ = task_context
+    mocker.patch("superset.commands.tasks.update.UpdateTaskCommand")
+    impala = _FakeImpala()
+    database = _impala_database(mocker, impala)
+    cancelling, cancelled = threading.Event(), threading.Event()
+
+    def slow_cancel(*args: Any) -> bool:
+        cancelling.set()
+        return cancelled.wait(5)
+
+    cancel = mocker.patch(
+        "superset.tasks.async_queries.cancel_chart_query", side_effect=slow_cancel
+    )
+
+    def time_out() -> None:
+        ctx.start_timeout_timer(0)
+        # The timer thread is cancelling the statement, which then finishes.
+        assert cancelling.wait(5)
+
+    impala.while_fetching[1] = time_out
+
+    with pytest.raises(ChartQueryAbortedError):
+        with _capture_query_cancellation(_chart_query(database)):
+            database.get_df("SELECT 1 AS a;\nSELECT 2 AS b")
+    # As the executor does once the task's work has raised.
+    ctx.mark_execution_completed()
+    threading.Timer(0.1, cancelled.set).start()
+    ctx._run_cleanup()
+
+    _, first = impala.operations  # the second statement was never submitted
+    cancel.assert_called_once_with(database, first.cancel_id, ANY)
+    assert ctx.timeout_triggered is True
+    assert ctx.abort_handlers_completed is True
 
 
 def _postgres_database(
