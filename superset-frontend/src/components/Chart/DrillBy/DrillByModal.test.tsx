@@ -31,6 +31,8 @@ import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import mockState from 'spec/fixtures/mockState';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
+import { commands, menus } from 'src/core';
+import type { common } from '@apache-superset/core';
 import DrillByModal, { DrillByModalProps } from './DrillByModal';
 
 setupAGGridModules();
@@ -622,5 +624,57 @@ describe('Table view with pagination', () => {
         formData: expect.objectContaining({ slice_id: 0 }),
       }),
     );
+  });
+
+  test('contributed item gets the drilled payload and the original chart name', async () => {
+    const run = jest.fn();
+    const disposables: common.Disposable[] = [
+      commands.registerCommand(
+        { id: 'ext.gs', title: 'Export to Google Sheets' },
+        run,
+      ),
+      menus.registerMenuItem(
+        { view: 'chart.drillBy.download', command: 'ext.gs' },
+        'chart.drillBy.download',
+        'primary',
+      ),
+    ];
+    try {
+      await renderModal({
+        column: { column_name: 'state', verbose_name: null },
+        drillByConfig: {
+          filters: [{ col: 'gender', op: '==', val: 'boy' }],
+          groupbyFieldName: 'groupby',
+        },
+      });
+      const tableRadio = await screen.findByRole('radio', { name: /table/i });
+      await userEvent.click(tableRadio.closest('label') ?? tableRadio);
+      await waitFor(() =>
+        expect(
+          screen.getByTestId('drill-by-results-table'),
+        ).toBeInTheDocument(),
+      );
+      await userEvent.click(
+        await screen.findByRole('button', { name: 'Download' }),
+      );
+      await userEvent.click(await screen.findByText('Export to Google Sheets'));
+
+      expect(run).toHaveBeenCalledTimes(1);
+      const ctx = run.mock.calls[0][0] as {
+        getPayload: () => Promise<{
+          result_type: string;
+          result_format: string;
+          queries: { columns: unknown[] }[];
+        }>;
+        chartName: string;
+      };
+      expect(ctx.chartName).toBe(chartName);
+      const payload = await ctx.getPayload();
+      expect(payload.result_type).toBe('full');
+      expect(payload.result_format).toBe('json');
+      expect(JSON.stringify(payload.queries[0])).toContain('state');
+    } finally {
+      disposables.forEach(d => d.dispose());
+    }
   });
 });
