@@ -43,6 +43,8 @@ Import them from `superset_core.exports.export`.
 
 `run_query_context` always returns JSON rows and ignores the payload's `result_format`. Its `result_type` must be `full` (the default), `results`, `post_processed`, `samples` or `drill_detail`; types that return no rows, such as `query` or `columns`, raise a `ValueError`.
 
+With `post_processed`, the rows are the table the chart displays, such as a pivot table. Hierarchical column names are joined with spaces. The row labels come first, in a column with a blank (`""`) name; a table without row labels has no such column. `colnames` and `coltypes` describe these rows.
+
 ## Result types
 
 Import them from `superset_core.exports.types`. All are frozen dataclasses except the enums.

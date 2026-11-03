@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import pandas as pd
 from marshmallow import ValidationError
 from superset_core.exports.types import ChartQueryResult, GenericDataType
 
@@ -32,6 +33,7 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.common.query_context_factory import QueryContextFactory
 from superset.daos.dashboard import DashboardDAO
 from superset.exceptions import SupersetSecurityException
+from superset.utils.core import extract_dataframe_dtypes
 
 # Result types whose queries return rows; the rest return SQL or metadata.
 ROW_RESULT_TYPES = frozenset(
@@ -43,6 +45,9 @@ ROW_RESULT_TYPES = frozenset(
         ChartDataResultType.DRILL_DETAIL,
     }
 )
+
+# Header of the row-label column; blank, like the unnamed index in a CSV export.
+ROW_LABEL_COLUMN = ""
 
 
 def _requested_result_types(payload: dict[str, Any]) -> set[str]:
@@ -60,6 +65,48 @@ def _coltype(value: Any) -> GenericDataType:
         return GenericDataType(value)
     except ValueError:
         return GenericDataType.STRING
+
+
+def _flatten_label(label: Any) -> str:
+    """Join a hierarchical label the way client processing flattens tuples."""
+    if isinstance(label, tuple):
+        return " ".join(str(part) for part in label).strip()
+    return str(label)
+
+
+def post_processed_rows(query: dict[str, Any]) -> dict[str, Any]:
+    """
+    Return ``query`` with post-processed JSON data rebuilt as row records.
+
+    Client processing serializes its frame as ``{column: {row label: value}}``
+    and drops the index names, so the row labels become a leading
+    ``ROW_LABEL_COLUMN`` unless they are the default ``0..n-1`` positions.
+    ``colnames`` and ``coltypes`` are recomputed to describe the rows.
+    """
+    data = query.get("data")
+    if not isinstance(data, dict):
+        return query
+
+    df = pd.DataFrame.from_dict(data)
+    df.columns = [_flatten_label(column) for column in df.columns]
+    if df.index.tolist() == list(range(len(df))):
+        df = df.reset_index(drop=True)
+    else:
+        df.insert(
+            0,
+            ROW_LABEL_COLUMN,
+            [_flatten_label(label) for label in df.index],
+            allow_duplicates=True,
+        )
+        df = df.reset_index(drop=True)
+
+    rows = df.astype(object).where(df.notna(), None)
+    return {
+        **query,
+        "colnames": list(df.columns),
+        "coltypes": extract_dataframe_dtypes(df),
+        "data": rows.to_dict("records"),
+    }
 
 
 def run_query_context(payload: dict[str, Any]) -> list[ChartQueryResult]:
@@ -96,6 +143,10 @@ def run_query_context(payload: dict[str, Any]) -> list[ChartQueryResult]:
         result = apply_client_processing(
             result, payload.get("form_data") or {}, query_context.datasource
         )
+        result = {
+            **result,
+            "queries": [post_processed_rows(query) for query in result["queries"]],
+        }
 
     return [
         ChartQueryResult(
