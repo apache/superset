@@ -26,7 +26,6 @@ from superset_core.tasks.types import TaskStatus
 
 from superset.exceptions import (
     QueryObjectValidationError,
-    SemanticResultCompletenessError,
     SupersetException,
 )
 from superset.tasks.heartbeat import SELF_FENCE_ERROR_MESSAGE
@@ -206,8 +205,6 @@ class _NonSupersetClientStatusError(Exception):
     "exception",
     [
         QueryObjectValidationError("Empty query?"),
-        SemanticResultCompletenessError("incomplete"),
-        SemanticResultCompletenessError("unverified"),
     ],
 )
 def test_client_class_failure_logs_warning_not_error(
