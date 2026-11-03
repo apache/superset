@@ -759,3 +759,182 @@ test('only managed tables clip wrapping header titles', () => {
   const unmanaged = renderLayoutTable(1000, wrapName);
   expect(headerStyle(unmanaged.table).textOverflow).not.toBe('ellipsis');
 });
+
+// jsdom has no layout: stub the scroll metrics antd's scroll container would
+// report. Other elements keep jsdom's zeros.
+function mockScrollMetrics(metrics: {
+  scrollWidth: number;
+  clientWidth: number;
+  scrollLeft?: number;
+}) {
+  const state = { scrollLeft: 0, ...metrics };
+  const isScroller = (element: HTMLElement) =>
+    element.matches('.ant-table-content, .ant-table-body');
+  (['scrollWidth', 'clientWidth', 'scrollLeft'] as const).forEach(key =>
+    jest.spyOn(HTMLElement.prototype, key, 'get').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      return isScroller(this) ? state[key] : 0;
+    }),
+  );
+  return state;
+}
+
+const scrollContainer = (table: HTMLElement) =>
+  table.closest<HTMLElement>('.ant-table-content, .ant-table-body')!;
+
+// The managed wrapper around the antd table, which carries the frozen width.
+const findManagedWrapper = () =>
+  screen
+    .getByTestId('listview-table')
+    .closest<HTMLElement>('[style*="--list-view-frozen-width"]');
+const tableParent = () => findManagedWrapper()!;
+
+const overflowEdges = (wrapper: HTMLElement) => ({
+  start: wrapper.hasAttribute('data-overflow-start'),
+  end: wrapper.hasAttribute('data-overflow-end'),
+});
+
+// The declarations of the style rule for `selector` below the wrapper's class
+// (duck-typed: jsdom's CSSOM rules aren't instances of the window classes).
+function styleRule(wrapper: HTMLElement, selector: string, media?: string) {
+  const wrapperSelector = `.${wrapper.classList[0]}${selector}`;
+  const rules: CSSRule[] = Array.from(document.styleSheets).flatMap(sheet =>
+    Array.from(sheet.cssRules),
+  );
+  const scoped = media
+    ? rules
+        .filter(rule => (rule as CSSMediaRule).media?.mediaText === media)
+        .flatMap(rule => Array.from((rule as CSSMediaRule).cssRules))
+    : rules;
+  const rule = scoped.find(candidate =>
+    (candidate as CSSStyleRule).selectorText
+      ?.split(',')
+      .some(part => part.trim() === wrapperSelector),
+  ) as CSSStyleRule | undefined;
+  return rule?.style;
+}
+
+test('hints at more columns to the right of a scrolling table', () => {
+  // Minimums are 908px in an 800px container.
+  mockScrollMetrics({ scrollWidth: 908, clientWidth: 800 });
+  renderLayoutTable(800, { managedColumnWidths: true }, scrollingColumns);
+  expect(overflowEdges(tableParent())).toEqual({ start: false, end: true });
+});
+
+test('hints at both edges mid-scroll and only the start at the end', () => {
+  const metrics = mockScrollMetrics({ scrollWidth: 908, clientWidth: 800 });
+  const { table } = renderLayoutTable(
+    800,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  const wrapper = tableParent();
+  metrics.scrollLeft = 50;
+  fireEvent.scroll(scrollContainer(table));
+  expect(overflowEdges(wrapper)).toEqual({ start: true, end: true });
+  metrics.scrollLeft = 108;
+  fireEvent.scroll(scrollContainer(table));
+  expect(overflowEdges(wrapper)).toEqual({ start: true, end: false });
+  metrics.scrollLeft = 0;
+  fireEvent.scroll(scrollContainer(table));
+  expect(overflowEdges(wrapper)).toEqual({ start: false, end: true });
+});
+
+test('shows no scroll fade when the table fits', () => {
+  mockScrollMetrics({ scrollWidth: 1200, clientWidth: 1200 });
+  renderLayoutTable(1200, { managedColumnWidths: true }, scrollingColumns);
+  expect(overflowEdges(tableParent())).toEqual({ start: false, end: false });
+});
+
+test('the scroll fade is decorative and never takes clicks or focus', () => {
+  mockScrollMetrics({ scrollWidth: 908, clientWidth: 800 });
+  renderLayoutTable(800, { managedColumnWidths: true }, scrollingColumns);
+  const wrapper = tableParent();
+  // A CSS mask on the scroll container: no extra node, tab stop or
+  // accessible text, and hit-testing is unchanged.
+  expect(wrapper.children).toHaveLength(1);
+  expect(wrapper).not.toHaveAttribute('tabindex');
+  expect(wrapper).not.toHaveAttribute('role');
+  ['[data-overflow-start]', '[data-overflow-end]'].forEach(edge =>
+    expect(wrapper).toHaveStyleRule(
+      'mask-image',
+      expect.stringContaining('var(--list-view-fade-end)'),
+      { target: `${edge} .ant-table-content` },
+    ),
+  );
+});
+
+test('fades only the edges with more columns beyond them', () => {
+  renderLayoutTable(800, { managedColumnWidths: true }, scrollingColumns);
+  const wrapper = tableParent();
+  const fadeAlpha = (selector: string, edge: 'start' | 'end') =>
+    styleRule(wrapper, selector)?.getPropertyValue(`--list-view-fade-${edge}`);
+  // Fully opaque by default; the overflow flags turn an edge transparent.
+  expect(fadeAlpha('', 'start')).toBe('1');
+  expect(fadeAlpha('', 'end')).toBe('1');
+  expect(fadeAlpha('[data-overflow-start]', 'start')).toBe('0');
+  expect(fadeAlpha('[data-overflow-end]', 'end')).toBe('0');
+});
+
+test('drops the scroll fade while keyboard focus is in the table', () => {
+  renderLayoutTable(800, { managedColumnWidths: true }, scrollingColumns);
+  const focused = styleRule(tableParent(), ':has(:focus-visible)');
+  expect(focused?.getPropertyValue('--list-view-fade-start')).toBe('1');
+  expect(focused?.getPropertyValue('--list-view-fade-end')).toBe('1');
+});
+
+test('starts the left scroll fade after the frozen columns', () => {
+  mockScrollMetrics({ scrollWidth: 908, clientWidth: 800 });
+  const frozen = renderLayoutTable(
+    800,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  const frozenWidth = () =>
+    tableParent().style.getPropertyValue('--list-view-frozen-width');
+  // Favorite + title are frozen: 48 + 320.
+  expect(frozenWidth()).toBe('368px');
+  // The left fade starts at the frozen edge; the frozen cells stay opaque.
+  expect(tableParent()).toHaveStyleRule(
+    'mask-image',
+    expect.stringContaining(
+      'rgba(0, 0, 0, var(--list-view-fade-start)) var(--list-view-frozen-width, 0px)',
+    ),
+    { target: '[data-overflow-start] .ant-table-content' },
+  );
+  frozen.unmount();
+  // 368px of 700px is over half, so nothing is frozen.
+  renderLayoutTable(700, { managedColumnWidths: true }, scrollingColumns);
+  expect(frozenWidth()).toBe('0px');
+});
+
+test('unmanaged tables render no scroll fade', () => {
+  mockScrollMetrics({ scrollWidth: 908, clientWidth: 800 });
+  const { container, table } = renderLayoutTable(800, {}, scrollingColumns);
+  fireEvent.scroll(scrollContainer(table));
+  expect(
+    container.querySelector('[data-overflow-start], [data-overflow-end]'),
+  ).toBeNull();
+  expect(findManagedWrapper()).toBeNull();
+});
+
+test('removes the scroll listener on unmount', () => {
+  const add = jest.spyOn(HTMLElement.prototype, 'addEventListener');
+  const remove = jest.spyOn(HTMLElement.prototype, 'removeEventListener');
+  mockScrollMetrics({ scrollWidth: 908, clientWidth: 800 });
+  const { unmount } = renderLayoutTable(
+    800,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  const wrapper = tableParent();
+  const added = add.mock.calls
+    .map((call, index) => [add.mock.contexts[index] as unknown, call] as const)
+    .filter(([context, [type]]) => context === wrapper && type === 'scroll');
+  expect(added).toHaveLength(1);
+  const [, [, listener, options]] = added[0];
+  expect(options).toEqual({ capture: true, passive: true });
+  unmount();
+  expect(remove).toHaveBeenCalledWith('scroll', listener, { capture: true });
+});

@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  CSSProperties,
   FocusEvent,
   HTMLAttributes,
   memo,
@@ -123,6 +124,105 @@ function useContainerWidth(
   }, [ref, enabled]);
   return width;
 }
+
+/**
+ * Tracks whether the table inside `ref`'s element can scroll further toward
+ * its start or end edge. Re-measured on every scroll of antd's scroll
+ * container (a capturing listener, since scroll events don't bubble) and
+ * whenever `measureKey` changes, e.g. after the container or table resizes.
+ */
+function useScrollOverflow(
+  ref: { current: HTMLElement | null },
+  enabled: boolean,
+  measureKey: unknown,
+) {
+  const [overflowStart, setOverflowStart] = useState(false);
+  const [overflowEnd, setOverflowEnd] = useState(false);
+  const measure = useCallback(() => {
+    const scroller = ref.current?.querySelector<HTMLElement>(
+      '.ant-table-content, .ant-table-body',
+    );
+    const maxScroll = scroller
+      ? scroller.scrollWidth - scroller.clientWidth
+      : 0;
+    // scrollLeft is negative in right-to-left layouts.
+    const scrolled = scroller ? Math.abs(scroller.scrollLeft) : 0;
+    setOverflowStart(maxScroll > 1 && scrolled > 0);
+    setOverflowEnd(maxScroll > 1 && scrolled < maxScroll - 1);
+  }, [ref]);
+  useLayoutEffect(() => {
+    if (enabled) measure();
+  }, [enabled, measure, measureKey]);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!enabled || !element) return undefined;
+    element.addEventListener('scroll', measure, {
+      capture: true,
+      passive: true,
+    });
+    return () =>
+      element.removeEventListener('scroll', measure, { capture: true });
+  }, [ref, enabled, measure]);
+  return { overflowStart, overflowEnd };
+}
+
+// Width of the scroll fade at each edge of a managed table.
+const SCROLL_FADE_WIDTH = 28;
+
+// Mask over antd's scroll container: opaque except for a fade to transparent
+// at each edge with more columns beyond it. The left fade starts after the
+// frozen columns, which stay opaque. Only alpha matters in a mask, so the
+// fade works with any theme and any row background.
+const scrollFadeMask = `linear-gradient(
+  to right,
+  #000 var(--list-view-frozen-width, 0px),
+  rgba(0, 0, 0, var(--list-view-fade-start)) var(--list-view-frozen-width, 0px),
+  #000 calc(var(--list-view-frozen-width, 0px) + ${SCROLL_FADE_WIDTH}px),
+  #000 calc(100% - ${SCROLL_FADE_WIDTH}px),
+  rgba(0, 0, 0, var(--list-view-fade-end)) 100%
+)`;
+
+/**
+ * Wraps managed tables. When more columns are scrolled out of view on a side,
+ * the table content fades out toward that edge. The fade is a CSS mask on the
+ * scroll container, so it adds no DOM node or tab stop, keeps layout and
+ * hit-testing unchanged, and browsers without mask support show no fade.
+ * While keyboard focus is in the table the fades are dropped, so a focused
+ * cell next to an edge is never faded.
+ */
+const ManagedTableWrapper = styled.div`
+  --list-view-fade-start: 1;
+  --list-view-fade-end: 1;
+
+  &[data-overflow-start] {
+    --list-view-fade-start: 0;
+  }
+
+  &[data-overflow-end] {
+    --list-view-fade-end: 0;
+  }
+
+  &:has(:focus-visible) {
+    --list-view-fade-start: 1;
+    --list-view-fade-end: 1;
+  }
+
+  &[data-overflow-start] .ant-table-header,
+  &[data-overflow-start] .ant-table-content,
+  &[data-overflow-start] .ant-table-body,
+  &[data-overflow-end] .ant-table-header,
+  &[data-overflow-end] .ant-table-content,
+  &[data-overflow-end] .ant-table-body {
+    -webkit-mask-image: ${scrollFadeMask};
+    mask-image: ${scrollFadeMask};
+  }
+
+  /* The fade replaces antd's edge shadows. */
+  & .ant-table-wrapper .ant-table .ant-table-container::before,
+  & .ant-table-wrapper .ant-table .ant-table-container::after {
+    display: none;
+  }
+`;
 
 const StyledTable = styled(Table)<{
   isPaginationSticky?: boolean;
@@ -310,6 +410,11 @@ function TableCollection<T extends object>({
   ]);
 
   const frozenWidth = columnLayout?.frozenWidth ?? 0;
+  const { overflowStart, overflowEnd } = useScrollOverflow(
+    containerRef,
+    managedColumnWidths,
+    columnLayout,
+  );
 
   const mappedColumns = useMemo(
     () =>
@@ -544,9 +649,19 @@ function TableCollection<T extends object>({
 
   if (!managedColumnWidths) return table;
   return (
-    <div ref={containerRef} onFocus={handleFocus}>
+    <ManagedTableWrapper
+      ref={containerRef}
+      onFocus={handleFocus}
+      data-overflow-start={overflowStart || undefined}
+      data-overflow-end={overflowEnd || undefined}
+      style={
+        {
+          '--list-view-frozen-width': `${frozenWidth}px`,
+        } as CSSProperties
+      }
+    >
       {table}
-    </div>
+    </ManagedTableWrapper>
   );
 }
 
