@@ -24,12 +24,15 @@ import pytest
 from marshmallow import ValidationError
 from superset_core.exports.types import ChartQueryResult, GenericDataType
 
+from superset.charts.client_processing import apply_client_processing
 from superset.charts.data.run_query_context import (
     can_export_dashboard,
     can_export_data,
+    post_processed_rows,
+    ROW_LABEL_COLUMN,
     run_query_context,
 )
-from superset.common.chart_data import ChartDataResultType
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.exceptions import SupersetSecurityException
 
 
@@ -231,5 +234,131 @@ def test_unknown_coltype_maps_to_string(mocks: dict[str, mock.MagicMock]) -> Non
     assert run_query_context({"queries": [{}]}) == [
         ChartQueryResult(
             ["a", "b"], [GenericDataType.STRING, GenericDataType.NUMERIC], []
+        )
+    ]
+
+
+_SALES = [
+    {"state": "CA", "gender": "boy", "num": 10},
+    {"state": "CA", "gender": "girl", "num": 5},
+    {"state": "NY", "gender": "boy", "num": 3},
+]
+
+
+def _post_process(form_data: dict[str, Any]) -> dict[str, Any]:
+    result = {
+        "queries": [{"result_format": ChartDataResultFormat.JSON, "data": list(_SALES)}]
+    }
+    return apply_client_processing(result, form_data)["queries"][0]
+
+
+def _pivot_form_data(rows: list[str], columns: list[str]) -> dict[str, Any]:
+    return {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": rows,
+        "groupbyColumns": columns,
+        "metrics": ["num"],
+        "metricsLayout": "COLUMNS",
+        "aggregateFunction": "Sum",
+        "rowTotals": True,
+        "colTotals": True,
+    }
+
+
+def test_post_processed_pivot_becomes_rows_with_row_labels() -> None:
+    query = post_processed_rows(_post_process(_pivot_form_data(["state"], ["gender"])))
+
+    assert query["colnames"] == [
+        ROW_LABEL_COLUMN,
+        "num boy",
+        "num girl",
+        "num Subtotal",
+        "Total (Sum)",
+    ]
+    assert all(isinstance(name, str) for name in query["colnames"])
+    assert len(query["coltypes"]) == len(query["colnames"])
+    assert [row[ROW_LABEL_COLUMN] for row in query["data"]] == [
+        "CA",
+        "NY",
+        "Total (Sum)",
+    ]
+    assert query["data"][0] == {
+        ROW_LABEL_COLUMN: "CA",
+        "num boy": "10",
+        "num girl": "5",
+        "num Subtotal": "15",
+        "Total (Sum)": "15",
+    }
+
+
+def test_post_processed_pivot_joins_multi_level_row_labels() -> None:
+    query = post_processed_rows(
+        _post_process(_pivot_form_data(["state", "gender"], []))
+    )
+
+    assert query["colnames"] == [ROW_LABEL_COLUMN, "num", "Total (Sum)"]
+    assert [row[ROW_LABEL_COLUMN] for row in query["data"]] == [
+        "CA boy",
+        "CA girl",
+        "CA Subtotal",
+        "NY boy",
+        "NY Subtotal",
+        "Total (Sum)",
+    ]
+
+
+def test_post_processed_table_drops_default_positions() -> None:
+    query = post_processed_rows(_post_process({"viz_type": "table"}))
+
+    assert query["colnames"] == ["state", "gender", "num"]
+    assert query["data"] == _SALES
+    assert query["coltypes"] == [
+        GenericDataType.STRING,
+        GenericDataType.STRING,
+        GenericDataType.NUMERIC,
+    ]
+
+
+def test_post_processed_rows_leaves_row_data_alone() -> None:
+    query = {"colnames": ["a"], "coltypes": [0], "data": [{"a": 1}]}
+    assert post_processed_rows(query) is query
+
+
+def test_post_processed_rows_flattens_tuple_columns_and_fills_gaps() -> None:
+    query = post_processed_rows(
+        {"data": {("m", "x"): {"r1": 1.5, "r2": 2.0}, "n": {"r1": True}}}
+    )
+
+    assert query["colnames"] == [ROW_LABEL_COLUMN, "m x", "n"]
+    assert query["data"] == [
+        {ROW_LABEL_COLUMN: "r1", "m x": 1.5, "n": True},
+        {ROW_LABEL_COLUMN: "r2", "m x": 2.0, "n": None},
+    ]
+
+
+def test_post_processed_result_is_returned_as_rows(
+    mocks: dict[str, mock.MagicMock],
+) -> None:
+    mocks[
+        "ChartDataQueryContextSchema"
+    ].return_value.load.return_value.result_type = ChartDataResultType.POST_PROCESSED
+    mocks["apply_client_processing"].return_value = {
+        "queries": [
+            {
+                "colnames": [("num", "boy")],
+                "coltypes": [1],
+                "data": {"num boy": {"CA": 10, "NY": 3}},
+            }
+        ]
+    }
+
+    assert run_query_context({"queries": [{}]}) == [
+        ChartQueryResult(
+            [ROW_LABEL_COLUMN, "num boy"],
+            [GenericDataType.STRING, GenericDataType.NUMERIC],
+            [
+                {ROW_LABEL_COLUMN: "CA", "num boy": 10},
+                {ROW_LABEL_COLUMN: "NY", "num boy": 3},
+            ],
         )
     ]
