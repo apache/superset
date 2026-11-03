@@ -75,7 +75,7 @@ test.each([false, true])(
           'exec',
           '--stream',
           '--concurrency',
-          '3',
+          '1',
           '--scope',
           '{@superset-ui/core,@apache-superset/core}',
           '--',
