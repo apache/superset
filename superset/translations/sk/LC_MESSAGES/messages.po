@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 18:16-0300\n"
+"POT-Creation-Date: 2026-11-03 13:38-0300\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -17050,8 +17050,9 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "Na importovanie nižšie uvedených databáz sú potrebné ich heslá."
 
-#. i18n: keep the [text](%(…)s) markdown link syntax and both
-#. placeholders unchanged; translate the link text only
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
 #, python-format
 msgid ""
 "The pattern of timestamp format. For strings use [Python datetime string "

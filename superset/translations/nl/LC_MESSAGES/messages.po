@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 18:16-0300\n"
+"POT-Creation-Date: 2026-11-03 13:38-0300\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -18382,8 +18382,9 @@ msgstr ""
 "De wachtwoorden voor de onderstaande databases zijn nodig om ze te "
 "importeren."
 
-#. i18n: keep the [text](%(…)s) markdown link syntax and both
-#. placeholders unchanged; translate the link text only
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
 #, python-format
 msgid ""
 "The pattern of timestamp format. For strings use [Python datetime string "

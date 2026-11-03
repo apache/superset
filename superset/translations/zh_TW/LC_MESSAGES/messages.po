@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-11-02 18:16-0300\n"
+"POT-Creation-Date: 2026-11-03 13:38-0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -18578,8 +18578,9 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "匯入以下資料庫需要提供其密碼。"
 
-#. i18n: keep the [text](%(…)s) markdown link syntax and both
-#. placeholders unchanged; translate the link text only
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
 #, python-format
 msgid ""
 "The pattern of timestamp format. For strings use [Python datetime string "

@@ -830,8 +830,9 @@ function ColumnCollectionTable({
                 label={t('Datetime format')}
                 description={
                   <SafeMarkdown
-                    // i18n: keep the [text](%(…)s) markdown link syntax and both
-                    // placeholders unchanged; translate the link text only
+                    // i18n: translate the whole sentence, including the link
+                    // text; keep the [text](%(…)s) link syntax, the backticks
+                    // and both placeholders unchanged
                     source={t(
                       'The pattern of timestamp format. For strings use ' +
                         '[Python datetime string pattern](%(python_url)s) ' +

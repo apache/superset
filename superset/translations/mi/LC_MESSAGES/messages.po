@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 18:16-0300\n"
+"POT-Creation-Date: 2026-11-03 13:38-0300\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -17789,8 +17789,9 @@ msgstr ""
 "Ko ngā kupuhipa mō ngā pātengi raraunga o raro nei e hiahiatia ana ki te "
 "kawemai i a rātou."
 
-#. i18n: keep the [text](%(…)s) markdown link syntax and both
-#. placeholders unchanged; translate the link text only
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
 #, python-format
 msgid ""
 "The pattern of timestamp format. For strings use [Python datetime string "
