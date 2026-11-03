@@ -120,7 +120,13 @@ export default function ChangeReviewSettings() {
           <div>
             <dt>{t('Who can approve')}</dt>
             <dd>
-              {t('Other editors with the approval permission, never the author')}
+              {/*
+                Editorship of this asset, and nothing else. The grantable
+                `can_approve` permission this line used to describe was
+                removed with S-05, so the page was telling administrators to
+                go and find a permission that no longer exists (sc-131034).
+              */}
+              {t('Another editor of the asset, never the author')}
             </dd>
           </div>
           <div>

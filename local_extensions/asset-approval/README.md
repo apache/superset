@@ -8,6 +8,41 @@ Turn it on with the `CHANGE_MANAGEMENT` feature flag. With the flag off the
 extension installs nothing: no gate, no banner, no bell, no Approvals entry,
 and Superset behaves as upstream.
 
+## Installing
+
+Order matters, and getting it wrong used to be silent.
+
+1. Install the extension (`LOCAL_EXTENSIONS`, or the packaged build).
+2. Enable `CHANGE_MANAGEMENT` in `superset_config.py`.
+3. Restart.
+
+That is all. The extension creates the permissions its review API is
+protected by, and seeds them onto Admin, Alpha and Gamma while nobody holds
+them, so `superset init` is not required for review to work.
+
+It was, until sc-131031. Superset builds its AppBuilder with
+`update_perms=False`, so registering an API does not create the permissions
+that protect it; `superset init` creates them and nothing else did. Installing
+the extension **after** init had already run therefore left no role holding
+`can_read` or `can_write` on `ChangeRequest`, and every route answered 403.
+
+The way that failed is worth knowing, because it looked like data loss. The
+gate consults the feature flag rather than a permission, so a governed write
+was still captured: the row landed in `change_requests` and the author was
+told their change had been saved for review. Every read then 403'd, and the
+frontend reads a failed read as "no open change", so the author saw no banner
+and no Request review. Submit and approve were 403 as well, so nobody could
+move the edit on, while another editor was correctly refused because the
+asset was locked. Nothing was lost -- rerunning `superset init` released it
+-- but an author had no way to tell.
+
+If you are on a build before that fix, run `superset init` after installing
+and enabling, then restart.
+
+Note for custom roles: `superset init` and the seeding above both cover
+Admin, Alpha and Gamma. A role of your own needs `can_read` and `can_write`
+on `ChangeRequest` granted by hand, or its holders get the same silent 403.
+
 ## Configuration
 
 Three settings, all of them in `superset_config.py`. None is declared in

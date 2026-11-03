@@ -21,7 +21,8 @@ import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Button } from '@superset-ui/core/components';
 import { Input } from '@superset-ui/core/components/Input';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import getControlsForVizType from 'src/utils/getControlsForVizType';
 import { ago, changeCount } from './display';
 import { displayName, STATUS_LABEL } from './types';
 import DatasetReview from './DatasetReview';
@@ -174,9 +175,52 @@ const FIELD_LABELS: Record<string, string> = {
 
 const fieldLabel = (field: string): string => FIELD_LABELS[field] ?? field;
 
+/**
+ * The chart's own control labels, for the keys inside `params`.
+ *
+ * `FIELD_LABELS` above covers storage columns. The keys *inside* `params`
+ * are Explore control names, and they had no mapping at all, so the panel
+ * read "Chart configuration: adhoc_filters, axisTicks,
+ * color_by_primary_axis and 75 more" -- internal names a reviewer deciding
+ * whether to publish should not have to know (sc-129075).
+ *
+ * The labels come from the chart's own control panel, which is where
+ * Explore gets them, so they match what the author saw when they made the
+ * change. `AlteredSliceTag` resolves Superset's own "this chart differs
+ * from its saved version" diff the same way, down to the label-or-raw-key
+ * fallback.
+ *
+ * A key that is not a control -- `viz_type`, `datasource`, `slice_id`,
+ * `url_params` and friends -- keeps its raw name, as it does there.
+ */
+function controlLabels(changeRequest: ChangeRequest): Record<string, string> {
+  const params = changeRequest.proposed?.params;
+  if (typeof params !== 'string') {
+    return {};
+  }
+  try {
+    const vizType = (JSON.parse(params) ?? {}).viz_type;
+    if (typeof vizType !== 'string' || !vizType) {
+      return {};
+    }
+    return Object.fromEntries(
+      Object.entries(getControlsForVizType(vizType) ?? {}).flatMap(
+        ([name, config]) =>
+          // A label can be a node or a function for a dynamic control, and
+          // only a plain string is safe to drop into a sentence.
+          typeof config?.label === 'string' ? [[name, config.label]] : [],
+      ),
+    );
+    // A viz type the registry does not know, or params that will not parse,
+    // leaves every key as it was rather than failing the panel.
+  } catch {
+    return {};
+  }
+}
+
 /** "Title, metrics and 2 more" -- a list a person can read at a glance. */
-function summarise(keys: string[]): string {
-  const named = keys.slice(0, 3).map(fieldLabel);
+function summarise(keys: string[], labels: Record<string, string> = {}): string {
+  const named = keys.slice(0, 3).map(key => labels[key] ?? fieldLabel(key));
   const rest = keys.length - named.length;
   const list = named.join(', ');
   return rest > 0 ? t('%s and %s more', list, rest) : list;
@@ -211,6 +255,7 @@ export default function WhatChangedPanel({
   // history records why it was let through, not only that it was.
   const [extraNote, setExtraNote] = useState('');
   const fields = changeRequest.changes ?? [];
+  const controls = useMemo(() => controlLabels(changeRequest), [changeRequest]);
   const isDatasetDefinition =
     !!changeRequest.dataset_detail && changeRequest.operation !== 'delete';
 
@@ -315,7 +360,12 @@ export default function WhatChangedPanel({
                       </Muted>
                     ) : change.keys?.length ? (
                       <>
-                        <Muted>{summarise(change.keys)}</Muted>
+                        <Muted>
+                          {summarise(
+                            change.keys,
+                            change.field === 'params' ? controls : undefined,
+                          )}
+                        </Muted>
                         {change.added_keys ? (
                           <Muted>
                             {t(

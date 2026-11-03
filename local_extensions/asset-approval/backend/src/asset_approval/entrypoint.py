@@ -266,6 +266,101 @@ def belongs_to_the_workflow(role: Any) -> bool:
 
 
 
+#: The roles the host's own ``sync_role_definitions`` puts the review API's
+#: permissions on. The anonymous role is deliberately absent: see
+#: ``belongs_to_the_workflow``.
+WORKFLOW_ROLES = ("Admin", "Alpha", "Gamma")
+
+
+def _api_permissions() -> list[str]:
+    """The permissions the review API is actually protected by.
+
+    Derived from the route mapping rather than listed again, so adding a
+    route under a new permission name cannot leave that permission
+    uncreated.
+    """
+    from asset_approval.api import ChangeRequestRestApi
+
+    return sorted(
+        {
+            f"can_{name}"
+            for name in ChangeRequestRestApi.method_permission_name.values()
+        }
+    )
+
+
+def _ensure_the_api_permissions_exist() -> None:
+    """Create the review API's permissions, and seed the roles that hold them.
+
+    Superset builds its AppBuilder with ``update_perms=False``, so
+    registering an API does not create the permissions that protect it.
+    ``superset init`` creates them, and nothing else does. Install the
+    extension after init has already run and no such permission exists, so
+    every route under ``@protect()`` answers 403.
+
+    That failure is silent in the worst way. The gate consults the feature
+    flag and not any permission, so the write is still captured: the row
+    lands in ``change_requests`` and the author is told their change was
+    saved for review. Every read then 403s, and the frontend turns a failed
+    read into "no open change", so there is no banner and no Request
+    review. Submit, approve and discard are 403 as well, so nobody can move
+    the edit forward, while another editor is correctly refused because the
+    asset is locked. The edit is stranded rather than lost, and rerunning
+    ``superset init`` releases it (sc-131031).
+
+    The host already solves this shape for an extension's *pages*:
+    ``ensure_page_permissions`` exists precisely because an extension can be
+    installed long after init. Its API permissions were never given the same
+    treatment, and this is that.
+
+    ``add_permission_view_menu`` rather than ``add_permissions_view``: the
+    latter treats the list it is given as the complete set and deletes any
+    permission on the view menu that is missing from it, which would drop a
+    permission an operator or a later version had added.
+
+    Seeding a role happens only while nobody holds the permission. Once any
+    role does, the arrangement is the operator's and a deliberate revocation
+    must survive the next restart.
+    """
+    from superset.extensions import security_manager
+
+    for name in _api_permissions():
+        try:
+            security_manager.add_permission_view_menu(name, WORKFLOW_PERMISSION[1])
+            pvm = security_manager.find_permission_view_menu(
+                name, WORKFLOW_PERMISSION[1]
+            )
+            if pvm is None:
+                continue
+            if any(belongs_to_the_workflow(role) for role in pvm.role):
+                continue
+            for role_name in WORKFLOW_ROLES:
+                role = security_manager.find_role(role_name)
+                if role is None or pvm in role.permissions:
+                    continue
+                security_manager.add_permission_role(role, pvm)
+                logger.info(
+                    "%s: granted %r on %s to %r",
+                    EXTENSION_ID,
+                    name,
+                    WORKFLOW_PERMISSION[1],
+                    role_name,
+                )
+        except Exception:  # pylint: disable=broad-except
+            # A read-only or unmigrated metadata database must not stop the
+            # extension loading. Review is then unreachable until
+            # ``superset init`` runs, which is the behaviour this replaces
+            # rather than a regression.
+            logger.warning(
+                "%s: could not ensure %r on %s; review stays unreachable "
+                "until `superset init` runs",
+                EXTENSION_ID,
+                name,
+                WORKFLOW_PERMISSION[1],
+                exc_info=True,
+            )
+
+
 def _grant_page_permission_to_the_workflow() -> None:
     """Give the Approvals page to whoever may already read change requests.
 
@@ -386,6 +481,10 @@ def install_views() -> None:
     from asset_approval.api import ChangeRequestRestApi
 
     appbuilder.add_api(ChangeRequestRestApi)
+    # Before the page grant: that reads ``can_read`` on ChangeRequest to work
+    # out who belongs in the workflow, so without this it finds nothing and
+    # the Approvals page silently stays Admin-only too (sc-131031).
+    _ensure_the_api_permissions_exist()
     _grant_page_permission_to_the_workflow()
     _take_the_workflow_off_the_anonymous_role()
 

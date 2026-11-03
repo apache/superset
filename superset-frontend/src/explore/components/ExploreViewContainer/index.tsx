@@ -116,6 +116,28 @@ import ExploreContainer from '../ExploreContainer';
 const ExploreVersionHistory = lazyWithRetry(
   () => import('src/features/versionHistory/ExploreVersionHistory'),
 );
+/**
+ * Reload Explore so it shows what was just approved.
+ *
+ * A plain reload shows the old chart. Explore keeps `form_data_key` in the
+ * URL, and after a held save that key holds the live, pre-approval form
+ * data: the save returned 202, Explore refetched the live slice, and
+ * `addHistory` cached that. The explore GET then lets a cached key win over
+ * the slice's own params -- `get_form_data` does
+ * `slice_form_data.update(form_data)` -- so the approved chart came back as
+ * the old one until the chart was reopened from a URL with no key, which is
+ * exactly the "until the chart is reopened" in sc-131032.
+ *
+ * Dropping the key makes the GET fall through to `slice_id` and read the
+ * params the approval just wrote. `replace` rather than `assign` so the
+ * stale-key URL is not left sitting in history for the back button.
+ */
+export function reloadOnTheApprovedChart(): void {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('form_data_key');
+  window.location.replace(url.toString());
+}
+
 const AssetReview = lazyWithRetry(
   () => import('src/features/changeManagement/AssetReview'),
 );
@@ -1256,7 +1278,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
               <AssetReview
                 assetType="chart"
                 assetId={props.slice?.slice_id ?? null}
-                onApplied={() => window.location.reload()}
+                onApplied={reloadOnTheApprovedChart}
               />
             </Suspense>
           )}

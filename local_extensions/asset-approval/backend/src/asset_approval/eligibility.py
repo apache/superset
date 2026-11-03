@@ -159,9 +159,9 @@ def can_approve(
     # checked before anything else and is not overridable.
     if change_request.author_fk == user_id:
         return False
-    # Then what is true of the account itself, whatever the asset: active,
-    # not a service account (S-07), and holding the approval right the
-    # operator granted (S-05).
+    # Then what is true of the account itself, whatever the asset: a live
+    # human account, and not a service account (S-07). No approval right is
+    # consulted -- that was removed with S-05, and this comment outlived it.
     user = load_user(user_id)
     if user is None or not is_eligible_approver(user):
         return False

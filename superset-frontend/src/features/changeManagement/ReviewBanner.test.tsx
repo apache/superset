@@ -65,10 +65,29 @@ test('with the preview on, it says the author is viewing their changes', () => {
   expect(screen.getByText(/Viewing your changes/)).toBeInTheDocument();
 });
 
-test('where there is no preview at all, it still says viewing your changes', () => {
-  // A chart or dataset has no in-place preview, so the author really is
-  // looking at their own draft and the original wording is the true one.
+test('where there is no preview at all, it says the live version is on screen', () => {
+  // This used to assert the opposite, on the reasoning that an asset with
+  // no in-place preview must be showing the author their own draft. That
+  // holds for a dashboard, whose author keeps editing in place. It is false
+  // for a chart: `canPreview` is dashboard-only, and after a held save
+  // Explore reloads the live slice, so the author was told they were
+  // viewing changes that were nowhere on screen (sc-131032).
   show(undefined);
 
-  expect(screen.getByText(/Viewing your changes/)).toBeInTheDocument();
+  expect(
+    screen.getByText(/you and viewers are both seeing the live version/),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(/^Viewing your changes/)).not.toBeInTheDocument();
+});
+
+test('with no preview it does not point at a switch that is not there', () => {
+  show(undefined);
+
+  expect(screen.queryByText(/turn on Show changes/)).not.toBeInTheDocument();
+});
+
+test('with the preview off it does point at the switch', () => {
+  show({ showing: false });
+
+  expect(screen.getByText(/turn on Show changes/)).toBeInTheDocument();
 });

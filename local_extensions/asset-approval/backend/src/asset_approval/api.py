@@ -30,7 +30,7 @@ from typing import Any
 
 from flask import request
 from flask_appbuilder.api import expose, protect, safe
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
 
 from superset import db
 from asset_approval import lifecycle
@@ -554,9 +554,15 @@ class ChangeRequestRestApi(BaseSupersetApi):
     def list_requests(self) -> FlaskResponse:
         """The four SOW views, selected by ``?show=``.
 
-        ``for_me`` is the only one that drives the notification count, so it
-        is the only one that excludes the viewer's own work: a request you
-        submitted is never a request that needs you (Decision 9).
+        ``for_me`` is the only one that drives the notification count. It
+        excludes the viewer's own work in flight, because a request you
+        submitted is not a request that needs you (Decision 9) -- with one
+        exception, which is the whole of sc-131033. A change an approver
+        sent *back* is waiting on nobody but its author. The bell already
+        counted it, so an author saw a badge of 1, clicked "View all
+        approvals", landed here and was told "Nothing needs you right now".
+        Mock 16c asks for the Approvals count to match the bell, and it
+        could not while this view dropped half of what the bell counts.
 
         Whatever the view, a row is only returned to someone entitled to see
         that request: its author, or a strict editor of the asset (the same
@@ -589,8 +595,19 @@ class ChangeRequestRestApi(BaseSupersetApi):
             )
         else:  # for_me
             query = query.filter(
-                ChangeRequest.status == ChangeStatus.PENDING.value,
-                ChangeRequest.author_fk != user_id,
+                or_(
+                    # Waiting on this reader as an approver.
+                    and_(
+                        ChangeRequest.status == ChangeStatus.PENDING.value,
+                        ChangeRequest.author_fk != user_id,
+                    ),
+                    # Or waiting on them as the author who has to act on it.
+                    and_(
+                        ChangeRequest.status
+                        == ChangeStatus.CHANGES_REQUESTED.value,
+                        ChangeRequest.author_fk == user_id,
+                    ),
+                )
             )
 
         # Paging needs a total order. ``decided_at`` can tie and the other
@@ -615,7 +632,15 @@ class ChangeRequestRestApi(BaseSupersetApi):
             # Never list a request on an asset this user has no say over.
             approvable = can_approve(change_request, asset, user_id)
             if show == "for_me":
-                if not approvable:
+                # ``can_approve`` is false for your own change by design, so
+                # the returned row has to be admitted on the other ground or
+                # the widened filter above would be undone here.
+                returned_to_me = (
+                    change_request.author_fk == user_id
+                    and ChangeStatus(change_request.status)
+                    is ChangeStatus.CHANGES_REQUESTED
+                )
+                if not approvable and not returned_to_me:
                     continue
             elif not _may_see(change_request, asset, user_id):
                 continue

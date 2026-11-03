@@ -700,9 +700,19 @@ The mechanism to carry this is already in `entrypoint.install_views`, and the
 seed-then-align pattern is correct. What follows is the operator procedure and
 the two places the current code will trip.
 
-**What happens today on an existing install.** `install_views` runs on every
-boot, in this order: `appbuilder.add_api(ChangeRequestRestApi)` (which is what
-creates `can_approve`), `_grant_page_permission_to_the_workflow`,
+> **Correction, added later.** Two things in this section are no longer
+> true. `appbuilder.add_api` does **not** create any permission: Superset
+> builds its AppBuilder with `update_perms=False`, so only `superset init`
+> did, which is the whole of sc-131031 and is why nobody caught it from this
+> document. `install_views` now creates them itself. The `can_approve`
+> permission and the seed and align helpers described below were removed
+> with S-05; approving is editorship of the asset. The operator procedure
+> here is superseded by the Installing section of the extension README.
+
+**What happened on an existing install at the time of writing.**
+`install_views` runs on every boot, in this order:
+`appbuilder.add_api(ChangeRequestRestApi)` (described here as creating
+`can_approve`, which was wrong), `_grant_page_permission_to_the_workflow`,
 `_seed_approval_permission`, `_take_the_workflow_off_the_anonymous_role`,
 `_align_approval_permission`. With `ASSET_APPROVAL_APPROVER_ROLES` unset, the
 seed copies `can_approve` to whoever holds `can_write` on ChangeRequest, once,
