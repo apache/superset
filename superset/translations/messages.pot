@@ -14926,6 +14926,9 @@ msgstr ""
 msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
 msgstr ""
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr ""
 

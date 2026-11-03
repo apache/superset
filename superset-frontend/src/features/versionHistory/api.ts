@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject, SupersetClient } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  JsonObject,
+  SupersetClient,
+} from '@superset-ui/core';
 import rison from 'rison';
 import { t } from '@apache-superset/core/translation';
 import { DASHBOARD_GET_COLUMNS } from 'src/hooks/apiResources/dashboards';
@@ -218,6 +223,11 @@ export function swapUnreachableChartSlots(
   if (unreachableIds.size === 0 && !unavailableIds?.size) {
     return positionData;
   }
+  const unavailableCode = isFeatureEnabled(FeatureFlag.SoftDelete)
+    ? t(
+        'This chart is archived or unavailable. An editor can restore archived charts from Recently Archived.',
+      )
+    : t('This chart is archived or unavailable.');
   const layout: JsonObject = { ...positionData };
   Object.entries(layout).forEach(([key, item]) => {
     const chartId = layoutChartId(item as JsonObject);
@@ -233,9 +243,7 @@ export function swapUnreachableChartSlots(
           width: meta?.width,
           height: meta?.height,
           code: unavailableIds?.has(chartId)
-            ? t(
-                'This chart is archived or unavailable. An editor can restore archived charts from Recently Archived.',
-              )
+            ? unavailableCode
             : t('This chart no longer exists.'),
         },
       };
