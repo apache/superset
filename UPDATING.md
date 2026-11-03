@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Sessions minted by `MachineAuthProvider.get_auth_cookies` (CSV/XLSX report
+  fetches, PNG/PDF reports and thumbnails via `authenticate_browser_context`) now
+  record their login time, so they are no longer rejected for users with a session
+  invalidation epoch (for example after a password change or reset). A custom
+  `MACHINE_AUTH_PROVIDER_CLASS` or `WEBDRIVER_AUTH_FUNC` that mints its own session
+  with `login_user` must also call `stamp_login_time()` (from
+  `superset.security.session_invalidation`) after a successful `login_user()`;
+  otherwise reports and thumbnails for those users fail with a 401.
+
 - Dashboard and chart `viewers` can no longer be added through the API or the MCP
   `manage_dashboard_roles` tool while the `ENABLE_VIEWERS` feature flag is off; such
   requests are rejected with a 422. Enforcement of existing viewers is unchanged (a
