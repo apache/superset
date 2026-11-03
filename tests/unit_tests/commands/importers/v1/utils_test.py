@@ -34,6 +34,19 @@ from sqlalchemy.orm import Session
 
 
 class TestConvertTemporalColumns:
+    def test_inconsistent_date_formats_raise(self) -> None:
+        from sqlalchemy import DateTime
+
+        from superset.commands.dataset.importers.v1.utils import (
+            _convert_temporal_columns,
+        )
+
+        frame = pd.DataFrame({"ts": ["01/02/2020", "05/03/2020", "13/02/2020"]})
+        original = frame.copy()
+        with pytest.raises(ValueError):
+            _convert_temporal_columns(frame, {"ts": DateTime()})
+        pd.testing.assert_frame_equal(frame, original)
+
     @pytest.mark.parametrize("out_of_bounds", [False, True])
     def test_mixed_offsets_preserved(self, out_of_bounds: bool) -> None:
         from sqlalchemy import DateTime

@@ -71,6 +71,34 @@ def test_pivot_combine_preserves_column_pairs(drop_missing_columns, columns):
     )
 
 
+def test_pivot_combine_keeps_totals_last() -> None:
+    frame = DataFrame(
+        {
+            "row": ["first", "second"],
+            "country": ["AU", "US"],
+            "m1": [1, 2],
+            "m2": [3, 4],
+        }
+    )
+    actual = pivot(
+        df=frame,
+        index=["row"],
+        columns=["country"],
+        aggregates={metric: {"operator": "sum"} for metric in ["m1", "m2"]},
+        marginal_distributions=True,
+        marginal_distribution_name="All",
+        combine_value_with_metric=True,
+    )
+    assert actual.columns.tolist() == [
+        ("AU", "m1"),
+        ("AU", "m2"),
+        ("US", "m1"),
+        ("US", "m2"),
+        ("All", "m1"),
+        ("All", "m2"),
+    ]
+
+
 def test_pivot_with_single_column():
     """
     Make sure pivot with single column returns correct DataFrame

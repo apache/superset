@@ -990,8 +990,11 @@ def _convert_temporal_columns(df: pd.DataFrame, dtype: dict[str, Any]) -> None:
                 if pd.api.types.is_datetime64_any_dtype(converted):
                     df[column_name] = converted
                     continue
-            except ValueError:
+            except OutOfBoundsDatetime:
                 pass
+            except ValueError as ex:
+                if "Mixed timezones" not in str(ex):
+                    raise
             original = df[column_name].copy()
             result = []
             for val in original:
