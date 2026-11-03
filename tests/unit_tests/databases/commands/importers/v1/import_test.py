@@ -17,6 +17,8 @@
 # pylint: disable=unused-argument, import-outside-toplevel, invalid-name
 
 import copy
+from typing import TYPE_CHECKING
+from uuid import UUID
 
 import pytest
 from flask import current_app
@@ -27,6 +29,10 @@ from superset import db
 from superset.commands.exceptions import ImportFailedError
 from superset.constants import PASSWORD_MASK
 from superset.utils import json
+from tests.unit_tests.conftest import with_feature_flags
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
 
 
 def test_import_database(mocker: MockerFixture, session: Session) -> None:
@@ -1012,3 +1018,113 @@ def test_import_database_never_stores_a_mask_over_an_existing_db(
         import_database(masked, overwrite=True)
 
     assert existing.encrypted_extra is None
+
+
+def _pem(passphrase: str) -> str:
+    """A freshly generated RSA private key, PEM-encoded under ``passphrase``."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    return (
+        rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        .private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.BestAvailableEncryption(passphrase.encode()),
+        )
+        .decode()
+    )
+
+
+def _snowflake_config(embedded_credentials: dict[str, str]) -> dict[str, object]:
+    """A per-user OAuth2 Snowflake connection carrying an embedded credential."""
+    return {
+        "database_name": "imported_snowflake",
+        "sqlalchemy_uri": "snowflake://base_user@account/db?warehouse=WH",
+        "uuid": "6c1c5ee7-1d83-4f57-9a8e-1a2b3c4d5e6f",
+        "version": "1.0.0",
+        "extra": {},
+        "impersonate_user": True,
+        "masked_encrypted_extra": json.dumps(
+            {
+                "oauth2_client_info": {"id": "client", "secret": "client-secret"},
+                "embedded_credentials": embedded_credentials,
+            }
+        ),
+    }
+
+
+def _store_snowflake_keypair(
+    mocker: MockerFixture, keypair: dict[str, str]
+) -> "Database":
+    from superset import security_manager
+    from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    Database.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+
+    config = _snowflake_config(keypair)
+    existing = Database(
+        database_name=config["database_name"],
+        sqlalchemy_uri=config["sqlalchemy_uri"],
+        uuid=UUID(str(config["uuid"])),
+        impersonate_user=True,
+        encrypted_extra=config["masked_encrypted_extra"],
+    )
+    db.session.add(existing)
+    db.session.flush()
+    return existing
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=True)
+def test_import_database_refuses_embedded_key_with_wrong_passphrase(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A key pair whose passphrase doesn't open its key is refused with a 400, as
+    the API refuses it, instead of breaking every embedded chart later; the
+    stored key stays (sc-130269).
+    """
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.commands.exceptions import ImportRefusedError
+
+    keypair = {
+        "username": "EMBED_SVC",
+        "auth_method": "keypair",
+        "privatekey_body": _pem("passphrase"),
+        "privatekey_pass": "passphrase",
+    }
+    existing = _store_snowflake_keypair(mocker, keypair)
+
+    wrong = {**keypair, "privatekey_body": PASSWORD_MASK, "privatekey_pass": "wrong"}
+    with pytest.raises(ImportRefusedError, match="private key could not be read"):
+        import_database(_snowflake_config(wrong), overwrite=True)
+
+    stored = json.loads(existing.encrypted_extra)["embedded_credentials"]
+    assert stored == keypair
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=True)
+def test_import_database_keeps_readable_embedded_key(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """A key pair that decodes, its secrets masked, re-imports as before."""
+    from superset.commands.database.importers.v1.utils import import_database
+
+    keypair = {
+        "username": "EMBED_SVC",
+        "auth_method": "keypair",
+        "privatekey_body": _pem("passphrase"),
+        "privatekey_pass": "passphrase",
+    }
+    _store_snowflake_keypair(mocker, keypair)
+
+    masked = {
+        **keypair,
+        "privatekey_body": PASSWORD_MASK,
+        "privatekey_pass": PASSWORD_MASK,
+    }
+    database = import_database(_snowflake_config(masked), overwrite=True)
+
+    assert json.loads(database.encrypted_extra)["embedded_credentials"] == keypair
