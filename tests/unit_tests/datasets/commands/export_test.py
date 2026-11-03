@@ -466,6 +466,9 @@ def test_export_writes_the_partition_mapping_only_when_set(session: Session) -> 
 
     assert payload["partition_column"] == "dt_epoch"
     assert payload["partition_mapped_column"] == "event_time"
+    keys = list(payload)
+    assert keys.index("partition_column") + 1 == keys.index("partition_mapped_column")
+    assert keys.index("folders") < keys.index("partition_column") < keys.index("uuid")
     columns = {column["column_name"]: column for column in payload["columns"]}
     assert columns["event_time"]["partition_value_transform"] == (
         "unix_timestamp(:value)"
