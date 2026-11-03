@@ -258,3 +258,34 @@ def test_unmask_encrypted_extra() -> None:
     assert DruidEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
         {"connect_args": {"scheme": "http", "jwt": "old-token", "password": "new"}}
     )
+
+
+def test_encrypted_extra_hints() -> None:
+    """
+    The JWT and the password get labeled hints; `scheme` is never hinted.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+    from superset.utils import json
+
+    config = json.dumps(
+        {
+            "connect_args": {
+                "scheme": "https" * 10,
+                "jwt": "j" * 20 + "ab3d",
+                "password": "p" * 20 + "9z8y",
+            },
+        }
+    )
+
+    assert DruidEngineSpec.encrypted_extra_hints(config, 4) == [
+        {
+            "path": "$.connect_args.jwt",
+            "label": "JWT Token",
+            "suffix": "ab3d",
+        },
+        {
+            "path": "$.connect_args.password",
+            "label": "Password",
+            "suffix": "9z8y",
+        },
+    ]
