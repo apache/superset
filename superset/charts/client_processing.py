@@ -25,7 +25,7 @@ In order to do that, we reproduce the post-processing in Python for these chart 
 """
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from functools import partial
 from io import BytesIO, StringIO
 from typing import Any, Optional, TYPE_CHECKING, Union
@@ -1281,8 +1281,8 @@ def _apply_excel_explore_formats(
     form_data: dict[str, Any],
     viz_type: Optional[str],
     include_index: bool,
-    verbose_map: Optional[dict[str, Any]] = None,
-    datasource_data: Optional[dict[str, Any]] = None,
+    verbose_map: Optional[Mapping[str, Any]] = None,
+    datasource_data: Optional[Mapping[str, Any]] = None,
 ) -> bytes:
     """Apply Explore number/date/alignment formats to an already-written xlsx."""
     from superset.utils.excel_conditional import polish_explore_xlsx
