@@ -585,6 +585,24 @@ class OAuth2ClientConfigSchema(Schema):
     )
 
 
+def _is_guest_request() -> bool:
+    """
+    Is the current principal an embedded guest?
+
+    Guests authenticate with a guest token rather than a Superset account, so there is
+    no per-user OAuth2 token to resolve for them and no route by which they could
+    authorize one.
+    """
+    # Prevent circular import.
+    from superset import security_manager
+
+    user = getattr(g, "user", None)
+    if user is None:
+        return False
+
+    return security_manager.is_guest_user(user)
+
+
 @contextmanager
 def check_for_oauth2(database: Database) -> Iterator[None]:
     """
@@ -596,6 +614,10 @@ def check_for_oauth2(database: Database) -> Iterator[None]:
         if (
             not is_oauth2_retry_active()
             and database.is_oauth2_enabled()
+            # The `OAuth2TokenRefreshError` arm below reaches the dance without
+            # consulting `needs_oauth2`, so the guest check it performs has to be
+            # repeated here or an embedded viewer takes that arm.
+            and not _is_guest_request()
             and (
                 isinstance(ex, OAuth2TokenRefreshError)
                 or database.db_engine_spec.needs_oauth2(ex)

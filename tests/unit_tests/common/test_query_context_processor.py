@@ -75,6 +75,11 @@ def _wire_contribution_totals(mock_query_context: MagicMock) -> None:
     for query in mock_query_context.queries:
         assert query.datasource is not None
         query.datasource.database.extra = "{}"
+        query.datasource.database.get_embedded_fallback_credentials.return_value = None
+        query.datasource.database.embedded_fallback_applies.return_value = False
+        query.datasource.database.embedded_guest_missing_oauth2_client.return_value = (
+            False
+        )
 
 
 def _query_timing() -> QueryTiming:
@@ -1626,6 +1631,9 @@ def test_get_df_payload_validates_before_cache_key_generation():
     mock_datasource.cache_timeout = None
     mock_datasource.database.db_engine_spec.engine = "postgresql"
     mock_datasource.database.extra = "{}"
+    mock_datasource.database.get_embedded_fallback_credentials.return_value = None
+    mock_datasource.database.embedded_fallback_applies.return_value = False
+    mock_datasource.database.embedded_guest_missing_oauth2_client.return_value = False
     mock_datasource.get_extra_cache_keys.return_value = []
     mock_datasource.changed_on = None
 
@@ -1833,6 +1841,9 @@ def test_cache_key_excludes_contribution_totals():
     mock_datasource = MagicMock()
     mock_datasource.uid = "test_datasource"
     mock_datasource.database.extra = "{}"
+    mock_datasource.database.get_embedded_fallback_credentials.return_value = None
+    mock_datasource.database.embedded_fallback_applies.return_value = False
+    mock_datasource.database.embedded_guest_missing_oauth2_client.return_value = False
     mock_datasource.get_extra_cache_keys.return_value = []
 
     # Create query with contribution post-processing that includes contribution_totals
@@ -1887,6 +1898,9 @@ def test_cache_key_preserves_other_post_processing_options():
     mock_datasource = MagicMock()
     mock_datasource.uid = "test_datasource"
     mock_datasource.database.extra = "{}"
+    mock_datasource.database.get_embedded_fallback_credentials.return_value = None
+    mock_datasource.database.embedded_fallback_applies.return_value = False
+    mock_datasource.database.embedded_guest_missing_oauth2_client.return_value = False
     mock_datasource.get_extra_cache_keys.return_value = []
 
     # Create query with contribution post-processing
@@ -1938,6 +1952,9 @@ def test_cache_key_non_contribution_post_processing_unchanged():
     mock_datasource = MagicMock()
     mock_datasource.uid = "test_datasource"
     mock_datasource.database.extra = "{}"
+    mock_datasource.database.get_embedded_fallback_credentials.return_value = None
+    mock_datasource.database.embedded_fallback_applies.return_value = False
+    mock_datasource.database.embedded_guest_missing_oauth2_client.return_value = False
     mock_datasource.get_extra_cache_keys.return_value = []
 
     # Create query with non-contribution post-processing
@@ -1986,6 +2003,9 @@ def test_force_cached_normalizes_totals_query_row_limit():
     mock_datasource.changed_on = None
     mock_datasource.get_extra_cache_keys.return_value = []
     mock_datasource.database.extra = "{}"
+    mock_datasource.database.get_embedded_fallback_credentials.return_value = None
+    mock_datasource.database.embedded_fallback_applies.return_value = False
+    mock_datasource.database.embedded_guest_missing_oauth2_client.return_value = False
     mock_datasource.database.impersonate_user = False
     mock_datasource.database.db_engine_spec.get_impersonation_key.return_value = None
 
