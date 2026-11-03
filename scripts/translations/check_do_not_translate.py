@@ -91,7 +91,11 @@ def violations(po_file: Path, registry: set[str]) -> list[tuple[str, str]]:
     for entry in polib.pofile(str(po_file)):
         if entry.obsolete or entry.msgid not in registry:
             continue
-        translated = entry.msgstr.strip()
+        # Only an exactly empty msgstr makes gettext fall back to the source
+        # token, which is what the registry asks for. A padded or
+        # whitespace-only value is a translation like any other — " DELETE "
+        # and "   " are both returned verbatim — so compare the raw msgstr.
+        translated = entry.msgstr
         if translated and translated != entry.msgid:
             found.append((entry.msgid, translated))
     return found
@@ -128,7 +132,7 @@ def main() -> None:
         print(
             f"\n{total} entries translate a msgid listed in "
             f"{args.translations_dir / 'do-not-translate.txt'}.\n"
-            "These must stay identical to the source: set their msgstr to \"\" so "
+            'These must stay identical to the source: set their msgstr to "" so '
             "gettext falls back to the source token.",
             file=sys.stderr,
         )
