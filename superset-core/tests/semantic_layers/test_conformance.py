@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import subprocess
+import sys
 from collections.abc import Callable, Iterator
 from dataclasses import replace
 from datetime import date
@@ -88,7 +90,10 @@ def semantic_query_cases(
     month: Dimension = next(
         d for d in semantic_view.get_dimensions() if d.grain == Grains.MONTH
     )
-    total: Metric = next(iter(semantic_view.get_metrics()))
+    total: Metric = next(m for m in semantic_view.get_metrics() if m.name == "total")
+    count: Metric = next(
+        m for m in semantic_view.get_metrics() if m.name == "row_count"
+    )
     null: Filter = Filter(PredicateType.WHERE, category, Operator.IS_NULL, None)
     membership: Filter = Filter(
         PredicateType.WHERE, category, Operator.IN, frozenset({"A", "B"})
@@ -103,11 +108,14 @@ def semantic_query_cases(
     )
     return {
         "identity": (
-            SemanticQuery([total], [category], order=[(total, OrderDirection.ASC)]),
+            SemanticQuery(
+                [total, count], [category], order=[(total, OrderDirection.ASC)]
+            ),
             pa.table(
                 {
                     "category": pa.array([None, "C", "A", "B"], type=pa.string()),
                     "total": [4, 6, 7, 8],
+                    "row_count": [2, 1, 2, 1],
                 }
             ),
         ),
@@ -198,7 +206,7 @@ def semantic_capability_cases(
     category: Dimension = next(
         d for d in semantic_view.get_dimensions() if d.name == "category"
     )
-    total: Metric = next(iter(semantic_view.get_metrics()))
+    total: Metric = next(m for m in semantic_view.get_metrics() if m.name == "total")
     return {
         "ROW_OFFSET": (
             SemanticQuery(
@@ -1018,3 +1026,209 @@ def test_nulls_first_fixture_detects_a_provider_dropping_all_placements(
     monkeypatch.setattr(semantic_view, "get_table", drop_placements)
     with pytest.raises(AssertionError):
         SemanticProviderConformance().test_query_outputs(case, semantic_view, cases)
+
+
+@pytest.mark.parametrize(
+    "mutation,operator",
+    [
+        ("drop_nulls", Operator.NOT_IN),
+        ("swap", Operator.IN),
+        ("swap", Operator.NOT_IN),
+        ("ignore", Operator.IN),
+        ("zero_rows", Operator.IN),
+        ("wrong_scalar", Operator.IN),
+        ("null_count", Operator.IN),
+    ],
+)
+def test_empty_membership_rejects_provider_mutations(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+    operator: Operator,
+) -> None:
+    """Reject lost NULLs, inverted constants, no-row answers and wrong scalars."""
+    import conformance_provider
+
+    predicate: Callable[[FilterExpression, list[object]], str] = (
+        conformance_provider._predicate
+    )
+    get_table: Callable[[SemanticQuery], SemanticResult] = semantic_view.get_table
+
+    def mutated_predicate(
+        expression: FilterExpression, parameters: list[object]
+    ) -> str:
+        if not (isinstance(expression, Filter) and expression.value == frozenset()):
+            return predicate(expression, parameters)
+        if mutation == "drop_nulls" and expression.operator == Operator.NOT_IN:
+            return "category IS NOT NULL"
+        if mutation == "swap":
+            return "(1 = 1)" if expression.operator == Operator.IN else "(1 = 0)"
+        if mutation == "ignore":
+            return "(1 = 1)"
+        return predicate(expression, parameters)
+
+    def mutated_table(query: SemanticQuery) -> SemanticResult:
+        result: SemanticResult = get_table(query)
+        if (
+            mutation in {"wrong_scalar", "null_count"}
+            and not query.dimensions
+            and any(
+                isinstance(item, Filter)
+                and item.operator == Operator.IN
+                and item.value == frozenset()
+                for item in query.filters or set()
+            )
+        ):
+            column: str = "total" if mutation == "wrong_scalar" else "row_count"
+            if column not in result.results.column_names:
+                return result
+            value: int | None = 0 if mutation == "wrong_scalar" else None
+            field: pa.Field = result.results.schema.field(column)
+            return replace(
+                result,
+                results=result.results.set_column(
+                    result.results.schema.get_field_index(column),
+                    field,
+                    pa.array([value], type=field.type),
+                ),
+            )
+        if mutation == "zero_rows" and any(
+            isinstance(item, Filter) and item.value == frozenset()
+            for item in query.filters or set()
+        ):
+            return replace(result, results=result.results.slice(0, 0))
+        return result
+
+    monkeypatch.setattr(conformance_provider, "_predicate", mutated_predicate)
+    monkeypatch.setattr(semantic_view, "get_table", mutated_table)
+    with pytest.raises(
+        AssertionError,
+        match="row_count: a count of no rows is 0"
+        if mutation == "null_count"
+        else None,
+    ):
+        SemanticProviderConformance().test_empty_membership(
+            operator, semantic_view, semantic_query_cases
+        )
+
+
+@pytest.mark.parametrize("operator", [Operator.IN, Operator.NOT_IN])
+def test_or_group_witness_rejects_dropped_empty_leaf(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    monkeypatch: pytest.MonkeyPatch,
+    operator: Operator,
+) -> None:
+    """A provider that treats an empty leaf as the opposite constant must fail."""
+    import conformance_provider
+
+    predicate: Callable[[FilterExpression, list[object]], str] = (
+        conformance_provider._predicate
+    )
+
+    def inverted(expression: FilterExpression, parameters: list[object]) -> str:
+        if isinstance(expression, Filter) and expression.value == frozenset():
+            return "(1 = 1)" if expression.operator == Operator.IN else "(1 = 0)"
+        return predicate(expression, parameters)
+
+    monkeypatch.setattr(conformance_provider, "_predicate", inverted)
+    with pytest.raises(AssertionError):
+        SemanticProviderConformance().test_empty_membership_in_or_group(
+            operator, semantic_view, semantic_query_cases
+        )
+
+
+@pytest.mark.parametrize("kind", ["timestamp", "time"])
+def test_null_placement_preserves_submicrosecond_values_without_pandas(
+    kind: str,
+) -> None:
+    """SDK-only witnesses inspect validity without converting nanosecond scalars."""
+    code: str = """
+import sys
+import importlib.abc
+class NoPandas(importlib.abc.MetaPathFinder):
+    "Make pandas unavailable to the SDK-only interpreter."
+    def find_spec(
+        self, fullname: str, path: object = None, target: object = None,
+    ) -> None:
+        "Block pandas imports while preserving other SDK dependencies."
+        if fullname == "pandas" or fullname.startswith("pandas."):
+            raise ImportError("pandas unavailable in SDK-only test")
+        return None
+sys.meta_path.insert(0, NoPandas())
+import pyarrow as pa
+from types import SimpleNamespace
+from superset_core.semantic_layers.testing import _assert_null_placement_witness
+from superset_core.semantic_layers.types import (
+    Dimension, NullPlacement, OrderDirection, OrderTerm, SemanticQuery, SemanticResult,
+)
+kind: str = sys.argv[1]
+dtype: pa.DataType = pa.timestamp("ns") if kind == "timestamp" else pa.time64("ns")
+full: pa.Table = pa.table({"stamp": pa.array([1, 2, None], type=dtype)})
+stamp: Dimension = Dimension("stamp", "stamp", dtype)
+query: SemanticQuery = SemanticQuery(
+    [], [stamp],
+    order=[OrderTerm(stamp, OrderDirection.ASC, NullPlacement.LAST)], limit=1,
+)
+def get_table(value: SemanticQuery) -> SemanticResult:
+    result: pa.Table = full if value.limit is None else full.take([2, 0, 1]).slice(0, 1)
+    return SemanticResult(requests=[], results=result)
+view: SimpleNamespace = SimpleNamespace(get_table=get_table)
+_assert_null_placement_witness(query, view, full.slice(0, 1))
+assert "pandas" not in sys.modules
+"""
+    # Fixed interpreter/script and a pytest-controlled type name; no shell input.
+    result: subprocess.CompletedProcess[str] = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", code, kind],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_secondary_null_placement_decodes_dictionary_prefix_across_chunks(
+    semantic_view: "QueryView",
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Different dictionaries encoding the same prefix must form a single tie."""
+    first: pa.DictionaryArray = pa.DictionaryArray.from_arrays(
+        pa.array([0], type=pa.int8()),
+        pa.array(["one", "two"]),
+    )
+    second: pa.DictionaryArray = pa.DictionaryArray.from_arrays(
+        pa.array([1, 0], type=pa.int8()),
+        pa.array(["two", "one"]),
+    )
+    column: pa.ChunkedArray = pa.chunked_array([first, second])
+    assert column[0] != column[1]
+    assert column[0].value == column[1].value
+    prefix: Dimension = Dimension("prefix", "prefix", column.type)
+    category: Dimension = Dimension("category", "category", pa.string())
+    full: pa.Table = pa.table(
+        {"prefix": column, "category": pa.array(["A", None, "A"], type=pa.string())}
+    )
+    query: SemanticQuery = SemanticQuery(
+        [],
+        [prefix, category],
+        order=[
+            (prefix, OrderDirection.ASC),
+            OrderTerm(category, OrderDirection.ASC, NullPlacement.LAST),
+        ],
+        offset=1,
+        limit=1,
+    )
+
+    def get_table(value: SemanticQuery) -> SemanticResult:
+        """Serve the original and reversed independently specified fixture pages."""
+        result: pa.Table = (
+            full if value.limit is None else full.take([1, 0, 2]).slice(1, 1)
+        )
+        return SemanticResult(requests=[], results=result)
+
+    monkeypatch.setattr(semantic_view, "get_table", get_table)
+    _assert_null_placement_witness(
+        query, semantic_view, full.slice(1, 1), order_index=1
+    )

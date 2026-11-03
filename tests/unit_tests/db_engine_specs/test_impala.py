@@ -286,12 +286,10 @@ def test_fetch_data_async_result_set(app_context: None, impala_errors: None) -> 
     cursor.cancel_operation.assert_not_called()
 
 
-def test_the_partition_transform_default_is_impala_syntax() -> None:
+def test_impala_does_not_guess_the_epoch_partition_bucket() -> None:
     from superset.db_engine_specs.impala import ImpalaEngineSpec
 
-    assert (
-        ImpalaEngineSpec.partition_value_transform_default == "unix_timestamp(:value)"
-    )
+    assert ImpalaEngineSpec.partition_value_transform_default is None
 
 
 def test_engines_without_a_sensible_default_offer_none() -> None:
