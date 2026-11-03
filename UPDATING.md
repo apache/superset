@@ -24,6 +24,16 @@ assists people when migrating to a new version.
 
 ## Next
 
+- With `ENABLE_VIEWERS` and `VIEWER_PROMISCUOUS_MODE` on, the dashboard grant
+  follows the legacy `DASHBOARD_RBAC` model: only the listed viewers of a
+  published dashboard read its charts and datasets without dataset permissions,
+  and only while viewing that dashboard (its chart data, `/charts`, `/datasets`
+  and drill). Dashboard editors who aren't also listed viewers no longer get the
+  grant and need regular access to the data; add them as viewers to restore it.
+  Copying a dashboard, with or without duplicating its charts, now requires
+  access to each of its charts in their own right and otherwise returns HTTP 422
+  naming the charts.
+
 - Semantic-view filters with an empty IN or NOT IN selection no longer fail with a
   query validation error. They follow SQL semantics where the filter sits: an
   empty IN matches no rows (grouped charts return no rows; an ungrouped total

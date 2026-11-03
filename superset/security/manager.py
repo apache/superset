@@ -22,9 +22,7 @@ import logging
 import re
 import time
 from collections import defaultdict
-from collections.abc import Iterator, Set as AbstractSet
-from contextlib import contextmanager
-from contextvars import ContextVar
+from collections.abc import Set as AbstractSet
 from math import ceil
 from types import SimpleNamespace
 from typing import (
@@ -138,14 +136,6 @@ if TYPE_CHECKING:
     from superset.semantic_layers.models import SemanticLayer, SemanticView
 
 logger = logging.getLogger(__name__)
-
-# Set while a check must count only independently granted access, not access a
-# dashboard editor or viewer inherits under ``VIEWER_PROMISCUOUS_MODE``. A
-# context variable rather than a ``raise_for_access`` argument, so operator
-# overrides of the access methods keep their signatures.
-_DASHBOARD_INHERITANCE_DISABLED: ContextVar[bool] = ContextVar(
-    "dashboard_inheritance_disabled", default=False
-)
 
 
 def get_conf() -> Any:
@@ -2695,309 +2685,26 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return True
 
-    def can_inherit_access_via_dashboard(self, dashboard: "Dashboard") -> bool:
-        """
-        Return True if the principal's access to a dashboard transitively grants
-        access to render that dashboard's charts and datasets, without explicit
-        per-chart or per-datasource grants.
-
-        This is the case for an embedded guest with access to the dashboard, or
-        for an editor or viewer of the dashboard when ``VIEWER_PROMISCUOUS_MODE``
-        is enabled. It mirrors the inheritance the legacy dashboard-level RBAC
-        provided: dashboard access flows down to the charts and datasets it
-        contains.
-
-        The ``published`` requirement tracks the dashboard read gate in
-        :meth:`raise_for_access`: editors are admitted regardless of
-        publication state, viewers only for a published dashboard, so an
-        editor's own unpublished dashboard still renders its charts.
-        """
-        from superset import is_feature_enabled
-
-        return bool(
-            (
-                is_feature_enabled("EMBEDDED_SUPERSET")
-                and self.is_guest_user()
-                and self.has_guest_access(dashboard)
-            )
-            or (
-                is_feature_enabled("ENABLE_VIEWERS")
-                and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
-                and (
-                    self.is_editor(dashboard)
-                    or (self.is_viewer(dashboard) and dashboard.published)
-                )
-            )
-        )
-
     def can_drill_dataset_via_dashboard_access(
         self, datasource: "BaseDatasource | Explorable", dashboard: "Dashboard"
     ) -> bool:
         """
         Return True if an embedded user or viewer (in promiscuous mode) can
         drill a dashboard member datasource via dashboard access.
-
-        Unlike :meth:`can_inherit_access_via_dashboard`, this additionally
-        verifies that ``datasource`` actually belongs to ``dashboard`` — drill
-        endpoints resolve the datasource from an untrusted request parameter,
-        so membership must be enforced rather than assumed.
-        """
-        return self.can_inherit_access_via_dashboard(
-            dashboard
-        ) and dashboard.has_member_datasource(datasource)
-
-    @contextmanager
-    def dashboard_inheritance_disabled(self) -> Iterator[None]:
-        """Count only independently granted access inside the block.
-
-        Chart and datasource access a dashboard editor or viewer inherits under
-        ``VIEWER_PROMISCUOUS_MODE`` lasts only as long as the dashboard grants
-        it. Checks whose result would outlive that grant (attaching a chart to
-        another dashboard, or the chart and dashboard fallbacks that derive
-        access from a dataset) run inside this block.
-        """
-        token = _DASHBOARD_INHERITANCE_DISABLED.set(True)
-        try:
-            yield
-        finally:
-            _DASHBOARD_INHERITANCE_DISABLED.reset(token)
-
-    def _promiscuous_viewer_inherits_chart(self, chart: "Slice") -> bool:
-        """Return True if the current user inherits access to ``chart`` as an
-        editor or viewer of a dashboard the chart belongs to, under
-        ``VIEWER_PROMISCUOUS_MODE``.
-
-        Applies to signed-in principals; an embedded guest is authorized
-        through the token-scoped embedded path, which enforces its dataset
-        allowlist.
         """
         from superset import is_feature_enabled
-        from superset.subjects.utils import get_inherited_slice_ids_subquery
 
-        if _DASHBOARD_INHERITANCE_DISABLED.get() or not (
-            is_feature_enabled("ENABLE_VIEWERS")
-            and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
-            and not self.is_guest_user()
-            and (user_id := get_user_id())
-        ):
-            return False
-
-        subquery = get_inherited_slice_ids_subquery(user_id).subquery()
         if (
-            self.session.query(subquery.c.slice_id)
-            .filter(subquery.c.slice_id == chart.id)
-            .first()
-            is not None
-        ):
+            (
+                is_feature_enabled("EMBEDDED_SUPERSET")
+                and self.is_guest_user()
+                and self.has_guest_access(dashboard)
+            )
+            or self.has_promiscuous_dashboard_access(dashboard)
+        ) and dashboard.has_member_datasource(datasource):
             return True
-        # ``EXTRA_EDITORS_RESOLVER`` grants editorship in Python, which the SQL
-        # above can't see, so check the chart's dashboards directly when set.
-        return bool(current_app.config.get("EXTRA_EDITORS_RESOLVER")) and any(
-            self.is_editor(dashboard) for dashboard in chart.dashboards
-        )
 
-    def _promiscuous_viewer_inherits_datasource(
-        self, datasource: "BaseDatasource | Explorable"
-    ) -> bool:
-        """Return True if the current user inherits access to ``datasource`` as
-        an editor or viewer of a dashboard that uses it, under
-        ``VIEWER_PROMISCUOUS_MODE``.
-
-        This is the datasource-metadata and data-query counterpart of
-        :meth:`_promiscuous_viewer_inherits_chart`, and applies to the same
-        signed-in principals; an embedded guest's datasource access flows
-        through the strict, request-bound dashboard path.
-        """
-        from superset import is_feature_enabled
-        from superset.subjects.utils import get_inherited_datasource_ids_subquery
-
-        if _DASHBOARD_INHERITANCE_DISABLED.get() or not (
-            is_feature_enabled("ENABLE_VIEWERS")
-            and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
-            and not self.is_guest_user()
-            and (user_id := get_user_id())
-        ):
-            return False
-
-        subquery = get_inherited_datasource_ids_subquery(
-            user_id, datasource.type
-        ).subquery()
-        if (
-            self.session.query(subquery.c.datasource_id)
-            .filter(subquery.c.datasource_id == datasource.id)
-            .first()
-            is not None
-        ):
-            return True
-        # ``EXTRA_EDITORS_RESOLVER`` grants editorship in Python, which the SQL
-        # above can't see, so check the dashboards using this datasource
-        # directly when set.
-        if not current_app.config.get("EXTRA_EDITORS_RESOLVER"):
-            return False
-        from superset.models.dashboard import Dashboard, dashboard_slices
-        from superset.models.slice import Slice
-
-        dashboards = (
-            self.session.query(Dashboard)
-            .join(dashboard_slices, dashboard_slices.c.dashboard_id == Dashboard.id)
-            .join(Slice, Slice.id == dashboard_slices.c.slice_id)
-            .filter(
-                Slice.datasource_type == datasource.type,
-                Slice.datasource_id == datasource.id,
-            )
-            .distinct()
-            .all()
-        )
-        return any(self.is_editor(dashboard) for dashboard in dashboards)
-
-    def _has_promiscuous_chart_access(
-        self,
-        datasource: "BaseDatasource | Explorable",
-        form_data: "dict[str, Any] | None",
-    ) -> bool:
-        """Chart-viewer promiscuous access: a viewer or editor of the chart the
-        request references (``slice_id``) may query that chart's own datasource.
-
-        This is keyed off chart-level membership and needs no dashboard context,
-        so it also covers charts opened outside a dashboard (standalone Explore).
-        """
-        from superset import is_feature_enabled
-        from superset.models.slice import Slice
-
-        if not (
-            form_data
-            and is_feature_enabled("ENABLE_VIEWERS")
-            and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
-            and (viewer_slice_id := form_data.get("slice_id"))
-            and (
-                viewer_slc := self.session.query(Slice)
-                .filter(Slice.id == viewer_slice_id)
-                .one_or_none()
-            )
-        ):
-            return False
-
-        if not _datasource_matches(
-            datasource, viewer_slc.datasource_id, viewer_slc.datasource_type
-        ):
-            return False
-
-        return self.is_viewer(viewer_slc) or self.is_editor(viewer_slc)
-
-    def _request_bound_to_dashboard_chart(
-        self,
-        datasource: "BaseDatasource | Explorable",
-        form_data: dict[str, Any],
-        dashboard: "Dashboard",
-    ) -> bool:
-        """Return True if the request's ``slice_id`` maps to a chart on
-        ``dashboard`` backed by ``datasource`` — either directly, or as a
-        validated child of a multi-layer (deck.gl) parent chart on the
-        dashboard. The multi-layer path validates the child against the parent's
-        configuration to prevent a forged ``parent_slice_id`` from unlocking an
-        arbitrary child chart.
-        """
-        from superset.models.slice import Slice
-
-        if not (slice_id := form_data.get("slice_id")):
-            return False
-
-        # Direct chart access (no parent).
-        if form_data.get("parent_slice_id") is None:
-            slc = self.session.query(Slice).filter(Slice.id == slice_id).one_or_none()
-            return bool(
-                slc
-                and slc in dashboard.slices
-                and _datasource_matches(
-                    datasource, slc.datasource_id, slc.datasource_type
-                )
-            )
-
-        # Multi-layer chart child access (has parent).
-        parent_id = form_data.get("parent_slice_id")
-        parent_slc = (
-            self.session.query(Slice).filter(Slice.id == parent_id).one_or_none()
-        )
-        if not (
-            parent_id
-            and parent_slc
-            and parent_slc in dashboard.slices
-            and self._validate_child_in_parent_multilayer(
-                child_slice_id=slice_id, parent_slice=parent_slc
-            )
-        ):
-            return False
-        # Bind the request to the child chart's own datasource, mirroring the
-        # direct-chart leg above.
-        child_slc = self.session.query(Slice).filter(Slice.id == slice_id).one_or_none()
-        return bool(
-            child_slc
-            and _datasource_matches(
-                datasource, child_slc.datasource_id, child_slc.datasource_type
-            )
-        )
-
-    def _has_request_bound_dashboard_datasource_access(
-        self,
-        datasource: "BaseDatasource | Explorable",
-        form_data: "dict[str, Any] | None",
-    ) -> bool:
-        """Datasource access inherited from a dashboard, bound to the request.
-
-        Grants access when the request carries a ``dashboardId`` the principal
-        can access — an embedded guest, or a promiscuous viewer — AND the
-        datasource is legitimately reached through that dashboard for this
-        request: as a native filter target, a member chart, a validated
-        multi-layer child chart, or a drill operation. The per-request binding
-        is what keeps an embedded guest from querying arbitrary datasources by
-        supplying a dashboard id they happen to have access to.
-        """
-        from superset import is_feature_enabled
-        from superset.models.dashboard import Dashboard
-
-        if not (
-            form_data
-            and (dashboard_id := form_data.get("dashboardId"))
-            and (
-                dashboard := self.session.query(Dashboard)
-                .filter(Dashboard.id == dashboard_id)
-                .one_or_none()
-            )
-        ):
-            return False
-
-        if not (
-            (is_feature_enabled("EMBEDDED_SUPERSET") and self.is_guest_user())
-            or (
-                is_feature_enabled("ENABLE_VIEWERS")
-                and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
-                and self.is_viewer(dashboard)
-            )
-        ):
-            return False
-
-        if form_data.get("type") == "NATIVE_FILTER":
-            request_bound = bool(
-                (native_filter_id := form_data.get("native_filter_id"))
-                and dashboard.json_metadata
-                and (json_metadata := json.loads(dashboard.json_metadata))
-                and any(
-                    _datasource_matches(
-                        datasource,
-                        target.get("datasetId"),
-                        target.get("datasourceType") or DatasourceType.TABLE,
-                    )
-                    for fltr in json_metadata.get("native_filter_configuration", [])
-                    for target in fltr.get("targets", [])
-                    if native_filter_id == fltr.get("id")
-                )
-            )
-        else:
-            request_bound = self._request_bound_to_dashboard_chart(
-                datasource, form_data, dashboard
-            ) or self.has_drill_access(form_data, dashboard, datasource)
-
-        return request_bound and self.can_access_dashboard(dashboard)
+        return False
 
     def _validate_child_in_parent_multilayer(
         self, child_slice_id: int, parent_slice: "Slice"
@@ -5564,6 +5271,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset import is_feature_enabled
         from superset.common.db_query_status import QueryStatus
         from superset.connectors.sqla.models import SqlaTable
+        from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
         from superset.models.sql_lab import Query
         from superset.utils.core import shortid
@@ -6002,31 +5710,150 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             assert datasource
             self.raise_for_unsupported_guest_rls(datasource)
 
+            def has_promiscuous_chart_access() -> bool:
+                if not (
+                    form_data
+                    and is_feature_enabled("ENABLE_VIEWERS")
+                    and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
+                    and (viewer_slice_id := form_data.get("slice_id"))
+                    and (
+                        viewer_slc := self.session.query(Slice)
+                        .filter(Slice.id == viewer_slice_id)
+                        .one_or_none()
+                    )
+                ):
+                    return False
+
+                if not _datasource_matches(
+                    datasource, viewer_slc.datasource_id, viewer_slc.datasource_type
+                ):
+                    return False
+
+                return self.is_viewer(viewer_slc) or self.is_editor(viewer_slc)
+
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
                 # A grant on a semantic view's parent layer covers the view,
                 # matching SemanticView.raise_for_access (sc-119501).
                 or self._semantic_layer_grant_allows(datasource)
-                # ``allow_editorship`` is honored on both branches so a caller
-                # that opts out of the editorship accept (e.g. dataset
-                # define/repoint validation) gets consistent behavior.
+                # ``allow_editorship`` is honored here too so a caller that opts
+                # out of the editorship accept (e.g. dataset define/repoint
+                # validation) gets consistent behavior across both branches,
+                # rather than the flag silently applying only to the
+                # database+table / query branch above.
                 or (allow_editorship and self.is_editor(datasource))
-                # Embedded guest / promiscuous viewer, bound to the specific
-                # dashboard request (native filter, member chart, multi-layer
-                # child, or drill). Keeps guests strictly scoped to the request.
-                or self._has_request_bound_dashboard_datasource_access(
-                    datasource, form_data
+                or (
+                    # Grant access to the datasource only if dashboard RBAC is enabled
+                    # or the user is an embedded guest user with access to the dashboard
+                    # and said datasource is associated with the dashboard chart in
+                    # question.
+                    form_data
+                    and (dashboard_id := form_data.get("dashboardId"))
+                    and (
+                        dashboard_ := self.session.query(Dashboard)
+                        .filter(Dashboard.id == dashboard_id)
+                        .one_or_none()
+                    )
+                    and (
+                        (
+                            is_feature_enabled("EMBEDDED_SUPERSET")
+                            and self.is_guest_user()
+                        )
+                        or self.has_promiscuous_dashboard_access(dashboard_)
+                    )
+                    and (
+                        (
+                            # Native filter.
+                            form_data.get("type") == "NATIVE_FILTER"
+                            and (native_filter_id := form_data.get("native_filter_id"))
+                            and dashboard_.json_metadata
+                            and (json_metadata := json.loads(dashboard_.json_metadata))
+                            and any(
+                                _datasource_matches(
+                                    datasource,
+                                    target.get("datasetId"),
+                                    target.get("datasourceType")
+                                    or DatasourceType.TABLE,
+                                )
+                                for fltr in json_metadata.get(
+                                    "native_filter_configuration",
+                                    [],
+                                )
+                                for target in fltr.get("targets", [])
+                                if native_filter_id == fltr.get("id")
+                            )
+                        )
+                        or (
+                            form_data.get("type") != "NATIVE_FILTER"
+                            and (
+                                (
+                                    # Chart.
+                                    (slice_id := form_data.get("slice_id"))
+                                    and (
+                                        # Direct chart access (no parent)
+                                        (
+                                            form_data.get("parent_slice_id") is None
+                                            and (
+                                                slc := self.session.query(Slice)
+                                                .filter(Slice.id == slice_id)
+                                                .one_or_none()
+                                            )
+                                            and slc in dashboard_.slices
+                                            and _datasource_matches(
+                                                datasource,
+                                                slc.datasource_id,
+                                                slc.datasource_type,
+                                            )
+                                        )
+                                        or
+                                        # Multi-layer chart child access (has parent)
+                                        (
+                                            (
+                                                parent_id := form_data.get(
+                                                    "parent_slice_id"
+                                                )
+                                            )
+                                            and (
+                                                parent_slc := self.session.query(Slice)
+                                                .filter(Slice.id == parent_id)
+                                                .one_or_none()
+                                            )
+                                            and parent_slc in dashboard_.slices
+                                            # Validate child is actually part of parent's config    # noqa: E501
+                                            and self._validate_child_in_parent_multilayer(  # noqa: E501
+                                                child_slice_id=slice_id,
+                                                parent_slice=parent_slc,
+                                            )
+                                            # Bind the request to the child
+                                            # chart's own datasource, mirroring
+                                            # the direct-chart leg above.
+                                            and (
+                                                child_slc := self.session.query(Slice)
+                                                .filter(Slice.id == slice_id)
+                                                .one_or_none()
+                                            )
+                                            and _datasource_matches(
+                                                datasource,
+                                                child_slc.datasource_id,
+                                                child_slc.datasource_type,
+                                            )
+                                        )
+                                    )
+                                )
+                                # D2D or Drill By
+                                or self.has_drill_access(
+                                    form_data, dashboard_, datasource
+                                )
+                            )
+                        )
+                    )
+                    and self.can_access_dashboard(dashboard_)
                 )
-                # Chart-viewer/editor promiscuous mode: a viewer or editor of the
-                # chart the request references may query that chart's datasource.
-                or self._has_promiscuous_chart_access(datasource, form_data)
-                # Dashboard-viewer promiscuous mode: a viewer or editor of a
-                # dashboard that uses this datasource inherits access to it,
-                # independent of the request's ``form_data``. This is what
-                # lets ``GET /dashboard/<id>/datasets`` serve full metadata to a
-                # promiscuous viewer.
-                or self._promiscuous_viewer_inherits_datasource(datasource)
+                # Chart-viewer/editor promiscuous mode: bypass datasource
+                # access if the user is a viewer or editor of the chart
+                # and promiscuous mode is enabled.
+                or has_promiscuous_chart_access()
             ):
                 raise SupersetSecurityException(
                     self.get_datasource_access_error_object(datasource)
@@ -6095,14 +5922,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
                 def member_datasource_accessible() -> bool:
                     resolved: BaseDatasource | Explorable | None
-                    # Independently granted access only, so a dataset inherited
-                    # through another dashboard doesn't open this one.
-                    with self.dashboard_inheritance_disabled():
-                        for resolved in Slice.iter_resolved_datasources(member_slices):
-                            if resolved is not None and self.can_access_datasource(
-                                resolved
-                            ):
-                                return True
+                    for resolved in Slice.iter_resolved_datasources(member_slices):
+                        if resolved is not None and self.can_access_datasource(
+                            resolved
+                        ):
+                            return True
                     return False
 
                 if dashboard.published and (
@@ -6126,21 +5950,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # SqlaTable-only, which silently denied entitled users of
                 # semantic-view charts here.
                 chart_datasource := chart.resolved_datasource
-            ) is not None:
-                # Only independently granted dataset access: a dataset inherited
-                # through dashboard A must not open every other chart on it.
-                # Dashboard inheritance reaches charts only through
-                # ``_promiscuous_viewer_inherits_chart`` below.
-                with self.dashboard_inheritance_disabled():
-                    if self.can_access_datasource(chart_datasource):
-                        return
-
-            # Dashboard-viewer promiscuous mode: a viewer or editor of a
-            # dashboard the chart belongs to inherits access to the chart
-            # itself, so its definition (``form_data``) can be served for
-            # rendering. This is datasource-type agnostic and covers charts
-            # whose datasource cannot be resolved above.
-            if self._promiscuous_viewer_inherits_chart(chart):
+            ) is not None and self.can_access_datasource(chart_datasource):
                 return
 
             # An embedded guest may access a member chart of a dashboard their
@@ -7102,19 +6912,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param resource: The dashboard, chart, etc. resource
         :returns: Whether the current user can view the resource
         """
-        from superset.subjects.utils import get_user_subject_ids, subjects_from_roles
-
         if self.is_admin():
             return True
 
-        if user_id := get_user_id():
-            subject_ids = set(get_user_subject_ids(user_id))
-        elif self.is_guest_user():
-            subject_ids = {
-                s.id for s in subjects_from_roles(getattr(g.user, "roles", []))
-            }
-        else:
-            subject_ids = set()
+        subject_ids = self._current_subject_ids()
         if not subject_ids:
             return False
 
@@ -7130,6 +6931,54 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return True
 
         return False
+
+    def _current_subject_ids(self) -> set[int]:
+        """The subject IDs of the current user, or of the guest's roles."""
+        from superset.subjects.utils import get_user_subject_ids, subjects_from_roles
+
+        if user_id := get_user_id():
+            return set(get_user_subject_ids(user_id))
+        if self.is_guest_user():
+            return {s.id for s in subjects_from_roles(getattr(g.user, "roles", []))}
+        return set()
+
+    def is_listed_viewer(self, resource: Model) -> bool:
+        """
+        Returns True if the current user is on the resource's viewer list,
+        directly or through a role or group. Unlike :meth:`is_viewer`, being an
+        editor of the resource doesn't count.
+
+        :param resource: The dashboard, chart, etc. resource
+        :returns: Whether the current user is a listed viewer of the resource
+        """
+        viewers: list[Any] = getattr(resource, "viewers", None) or []
+        if not viewers:
+            return False
+        return bool(self._current_subject_ids() & {s.id for s in viewers})
+
+    def has_promiscuous_dashboard_access(self, dashboard: "Dashboard") -> bool:
+        """
+        Returns True if ``VIEWER_PROMISCUOUS_MODE`` grants the current user the
+        data behind ``dashboard``: its member charts and their datasources.
+
+        The grant mirrors the legacy ``DASHBOARD_RBAC`` model. It covers listed
+        viewers of a published dashboard only (editors need regular access),
+        and callers apply it only to requests bound to this dashboard, so it
+        never becomes access to a chart or datasource outside it. Embedded
+        guests use their own token-scoped grant.
+
+        :param dashboard: The dashboard
+        :returns: Whether the dashboard grants its data to the current user
+        """
+        from superset import is_feature_enabled
+
+        return bool(
+            is_feature_enabled("ENABLE_VIEWERS")
+            and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
+            and not self.is_guest_user()
+            and dashboard.published
+            and self.is_listed_viewer(dashboard)
+        )
 
     def is_admin(self) -> bool:
         """

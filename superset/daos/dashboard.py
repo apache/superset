@@ -343,14 +343,9 @@ def _raise_for_unreadable_new_charts(
             selectinload(Slice.editors),
             selectinload(Slice.viewers),
         ).filter(Slice.id.in_([chart.id for chart in candidates])).all()
-    # Access inherited through another dashboard doesn't count: it lasts only
-    # as long as that dashboard grants it, while membership here would keep it.
-    with security_manager.dashboard_inheritance_disabled():
-        denied: list[int] = sorted(
-            chart.id
-            for chart in candidates
-            if not security_manager.can_access_chart(chart)
-        )
+    denied: list[int] = sorted(
+        chart.id for chart in candidates if not security_manager.can_access_chart(chart)
+    )
     if denied:
         raise DashboardLayoutInvalidError(
             exceptions=[
@@ -1167,6 +1162,10 @@ class DashboardDAO(BaseDAO[Dashboard]):
     ) -> Dashboard:
         if not security_manager.is_editor(original_dash):
             raise DashboardForbiddenError()
+        # The copy (or its cloned charts) is a dashboard the caller edits, so it
+        # would keep the source's charts after the caller loses access to the
+        # source; carrying a chart over takes access to it in its own right.
+        _raise_for_unreadable_new_charts(list(original_dash.slices), set())
 
         dash = Dashboard()
         # The copied dashboard and every chart cloned below share one creator,

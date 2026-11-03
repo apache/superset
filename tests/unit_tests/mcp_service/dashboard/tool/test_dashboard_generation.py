@@ -250,16 +250,8 @@ class TestGenerateDashboard:
     """Tests for generate_dashboard MCP tool."""
 
     @pytest.mark.parametrize(
-        ("restricted", "datasource_granted", "inherited"),
-        [
-            (True, False, False),
-            (True, True, False),
-            (False, True, False),
-            # Readable only through another dashboard: the new dashboard would
-            # keep the chart after the caller loses that one, so it doesn't
-            # count.
-            (True, False, True),
-        ],
+        ("restricted", "datasource_granted"),
+        [(True, False), (True, True), (False, True)],
     )
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -273,12 +265,8 @@ class TestGenerateDashboard:
         mcp_server: object,
         restricted: bool,
         datasource_granted: bool,
-        inherited: bool,
     ) -> None:
-        """Datasource-only readers cannot link viewer-restricted charts, nor can
-        readers who reach a chart only through another dashboard."""
-        from superset.security.manager import _DASHBOARD_INHERITANCE_DISABLED
-
+        """Datasource-only readers cannot link viewer-restricted charts."""
         chart: Mock = _mock_chart()
         chart.configure_mock(
             viewers=[Mock(id=99)] if restricted else [],
@@ -300,21 +288,12 @@ class TestGenerateDashboard:
             ),
             patch.object(
                 security_manager,
-                "_promiscuous_viewer_inherits_chart",
-                side_effect=lambda _: (
-                    inherited and not _DASHBOARD_INHERITANCE_DISABLED.get()
-                ),
-            ),
-            patch.object(
-                security_manager,
                 "can_access_chart",
                 side_effect=partial(
                     SupersetSecurityManager.can_access_chart, security_manager
                 ),
             ),
         ):
-            if inherited:
-                assert security_manager.can_access_chart(chart)
             async with Client(mcp_server) as client:
                 result: CallToolResult = await client.call_tool(
                     "generate_dashboard", {"request": {"chart_ids": [1]}}

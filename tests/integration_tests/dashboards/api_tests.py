@@ -1210,11 +1210,12 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     @with_feature_flags(ENABLE_VIEWERS=True)
     @with_config({"VIEWER_PROMISCUOUS_MODE": True})
     def test_get_dashboard_charts_inherited_by_promiscuous_viewer(self):
-        """A viewer of a published dashboard inherits access to its charts'
+        """A listed viewer of a published dashboard receives its charts'
         form_data under VIEWER_PROMISCUOUS_MODE, without explicit chart grants,
-        so the dashboard can render. The member charts carry an explicit viewer
-        list that excludes Gamma, so form_data can only come from dashboard
-        inheritance, not from the charts' own dataset-based fallback."""
+        so the dashboard can render. An editor who isn't a listed viewer gets no
+        such grant. The member charts carry an explicit viewer list that
+        excludes Gamma, so form_data can only come from the dashboard grant,
+        not from the charts' own dataset-based fallback."""
         from superset.subjects.utils import get_or_create_role_subject
 
         dashboard = self.dashboards[0]
@@ -1225,13 +1226,22 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         admin_subject = get_or_create_role_subject(
             security_manager.find_role("Admin").id
         )
-        dashboard.viewers.append(gamma_subject)
+        dashboard.editors.append(gamma_subject)
         for slc in dashboard.slices:
             slc.viewers.append(admin_subject)
         db.session.commit()
+        uri = f"api/v1/dashboard/{dashboard.id}/charts"
         try:
             self.login(GAMMA_USERNAME)
-            uri = f"api/v1/dashboard/{dashboard.id}/charts"
+            response = self.get_assert_metric(uri, "get_charts")
+            assert response.status_code == 200
+            data = json.loads(response.data.decode("utf-8"))
+            assert data["result"]
+            for chart in data["result"]:
+                assert "form_data" not in chart
+
+            dashboard.viewers.append(gamma_subject)
+            db.session.commit()
             response = self.get_assert_metric(uri, "get_charts")
             assert response.status_code == 200
             data = json.loads(response.data.decode("utf-8"))
@@ -1239,7 +1249,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             for chart in data["result"]:
                 assert "form_data" in chart
         finally:
-            dashboard.viewers.remove(gamma_subject)
+            dashboard.editors.remove(gamma_subject)
+            if gamma_subject in dashboard.viewers:
+                dashboard.viewers.remove(gamma_subject)
             for slc in dashboard.slices:
                 slc.viewers.remove(admin_subject)
             db.session.commit()

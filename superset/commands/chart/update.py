@@ -259,10 +259,7 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
                     effective_id, datasource_type
                 )
                 self._properties["datasource_name"] = datasource.name
-                # As in chart create: the chart's editors keep querying the new
-                # dataset, so access inherited through a dashboard doesn't count.
-                with security_manager.dashboard_inheritance_disabled():
-                    security_manager.raise_for_access(datasource=datasource)
+                security_manager.raise_for_access(datasource=datasource)
             except SupersetSecurityException as ex:
                 raise ChartForbiddenError() from ex
             except ValidationError as ex:

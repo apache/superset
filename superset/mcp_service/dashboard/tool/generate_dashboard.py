@@ -271,18 +271,13 @@ def generate_dashboard(  # noqa: C901
             from superset.mcp_service.auth import check_chart_data_access
 
             for chart in chart_objects:
-                # The new dashboard keeps these charts after the caller loses
-                # any other dashboard, so access inherited through one doesn't
-                # count.
-                with security_manager.dashboard_inheritance_disabled():
-                    chart_readable = security_manager.can_access_chart(chart)
-                    validation = check_chart_data_access(chart)
-                if not chart_readable:
+                if not security_manager.can_access_chart(chart):
                     return GenerateDashboardResponse(
                         dashboard=None,
                         dashboard_url=None,
                         error=f"You don't have permission to access chart {chart.id}.",
                     )
+                validation = check_chart_data_access(chart)
                 if not validation.is_valid:
                     return GenerateDashboardResponse(
                         dashboard=None,

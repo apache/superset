@@ -1435,6 +1435,8 @@ def test_copy_dashboard_duplicate_slices_remaps_native_filters(
 
     with (
         patch.object(security_manager, "is_editor", return_value=True),
+        patch.object(security_manager, "can_access_chart", return_value=True),
+        patch.object(security_manager, "is_admin", return_value=False),
         patch("superset.daos.dashboard.g") as mock_g,
     ):
         mock_g.user = None
@@ -1495,6 +1497,8 @@ def test_copy_dashboard_handles_dividers_and_unscoped_filters(
 
     with (
         patch.object(security_manager, "is_editor", return_value=True),
+        patch.object(security_manager, "can_access_chart", return_value=True),
+        patch.object(security_manager, "is_admin", return_value=False),
         patch("superset.daos.dashboard.g") as mock_g,
     ):
         mock_g.user = None
@@ -1560,6 +1564,8 @@ def test_copy_dashboard_remaps_cross_filters_and_chart_configuration(
 
     with (
         patch.object(security_manager, "is_editor", return_value=True),
+        patch.object(security_manager, "can_access_chart", return_value=True),
+        patch.object(security_manager, "is_admin", return_value=False),
         patch("superset.daos.dashboard.g") as mock_g,
     ):
         mock_g.user = None
@@ -1718,6 +1724,8 @@ def test_issue_44983_consolidated_evidence_gate(session: Session) -> None:
 
     with (
         patch.object(security_manager, "is_editor", return_value=True),
+        patch.object(security_manager, "can_access_chart", return_value=True),
+        patch.object(security_manager, "is_admin", return_value=False),
         patch("superset.daos.dashboard.g") as mock_g,
     ):
         mock_g.user = None
@@ -1868,6 +1876,8 @@ def test_copy_dashboard_does_not_double_remap_overlapping_ids(
 
     with (
         patch.object(security_manager, "is_editor", return_value=True),
+        patch.object(security_manager, "can_access_chart", return_value=True),
+        patch.object(security_manager, "is_admin", return_value=False),
         patch("superset.daos.dashboard.g") as mock_g,
     ):
         mock_g.user = None

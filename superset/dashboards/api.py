@@ -814,10 +814,11 @@ class DashboardRestApi(
             # charts sub-resources. The check reads each chart's editors and
             # viewers, so load them for the whole set first.
             DashboardDAO.prefetch_chart_access(dash)
+            dashboard_grant = security_manager.has_promiscuous_dashboard_access(dash)
             result["charts"] = [
                 slc.chart
                 for slc in dash.slices
-                if security_manager.can_access_chart(slc)
+                if dashboard_grant or security_manager.can_access_chart(slc)
             ]
         attach_extra_editors(result, dash)
         add_extra_log_payload(
@@ -873,8 +874,15 @@ class DashboardRestApi(
         """
         try:
             # Reuse the same permission decision for labels and metadata narrowing.
+            # Every dataset here belongs to the dashboard, so a promiscuous
+            # viewer of it may read them all.
+            dashboard_grant = security_manager.has_promiscuous_dashboard_access(
+                DashboardDAO.get_by_id_or_slug(id_or_slug)
+            )
             can_access_datasource = functools.cache(
-                security_manager.can_access_datasource
+                (lambda _datasource: True)
+                if dashboard_grant
+                else security_manager.can_access_datasource
             )
             datasets = DashboardDAO.get_datasets_for_dashboard(
                 id_or_slug, can_access_datasource=can_access_datasource
@@ -909,10 +917,16 @@ class DashboardRestApi(
                 serialized.pop(key, None)
         return serialized
 
-    def _serialize_dashboard_chart(self, chart: Any) -> dict[str, Any]:
-        """Dump a member chart, narrowed when the caller cannot access it."""
+    def _serialize_dashboard_chart(
+        self, chart: Any, *, dashboard_grant: bool = False
+    ) -> dict[str, Any]:
+        """Dump a member chart, narrowed when the caller cannot access it.
+
+        :param dashboard_grant: Whether the dashboard grants its member charts
+            to the caller (``VIEWER_PROMISCUOUS_MODE``)
+        """
         serialized = self.chart_entity_response_schema.dump(chart)
-        if not security_manager.can_access_chart(chart):
+        if not (dashboard_grant or security_manager.can_access_chart(chart)):
             serialized.pop("form_data", None)
         return serialized
 
@@ -1019,7 +1033,13 @@ class DashboardRestApi(
         """
         try:
             charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
-            result = [self._serialize_dashboard_chart(chart) for chart in charts]
+            dashboard_grant = security_manager.has_promiscuous_dashboard_access(
+                DashboardDAO.get_by_id_or_slug(id_or_slug)
+            )
+            result = [
+                self._serialize_dashboard_chart(chart, dashboard_grant=dashboard_grant)
+                for chart in charts
+            ]
             return self.response(200, result=result)
         except DashboardAccessDeniedError:
             return self.response_403()
