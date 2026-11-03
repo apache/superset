@@ -984,6 +984,8 @@ def test_update_params_from_encrypted_extra_does_not_leak_the_oauth2_client(
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 
     database = mocker.MagicMock()
+    # Not the guest path, which returns before it reads `encrypted_extra`.
+    database.embedded_fallback_applies.return_value = False
     database.encrypted_extra = json.dumps(
         {"oauth2_client_info": {"id": "client-id", "secret": "client-secret"}}
     )

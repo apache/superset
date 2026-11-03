@@ -65,6 +65,11 @@ assists people when migrating to a new version.
   secret when the file names a different client than the stored one, and for the
   embedded credential's secrets when it names a different username, rather than
   pairing the stored secret with them.
+  Importing a connection also fails, with "Must provide value for
+  masked_encrypted_extra field" or a request for `encrypted_extra_secrets`, when its
+  file holds a masked Secure Extra value the destination has no stored secret for, or
+  a mask in plain `encrypted_extra`, rather than saving the mask as the secret.
+  Scripted imports need to supply those secrets.
   Read the limitations in the "Embedding Superset" docs before turning it on: with
   `GLOBAL_ASYNC_QUERIES` on, logged-in users' charts on a Snowflake OAuth2 connection
   run as the connection's base account (this predates the flag, which does not change

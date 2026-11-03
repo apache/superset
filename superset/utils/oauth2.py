@@ -401,8 +401,11 @@ def execute_with_oauth2_retry(  # noqa: C901
         finally:
             _oauth2_retry_active.reset(retry_context)
     except Exception as ex:
+        # The guest check comes first, as in `check_for_oauth2`.
         is_oauth2_error = (
-            database.is_oauth2_enabled() and database.db_engine_spec.needs_oauth2(ex)
+            not _is_guest_request()
+            and database.is_oauth2_enabled()
+            and database.db_engine_spec.needs_oauth2(ex)
         )
         if not is_oauth2_error:
             raise
@@ -613,11 +616,13 @@ def check_for_oauth2(database: Database) -> Iterator[None]:
     except Exception as ex:
         if (
             not is_oauth2_retry_active()
-            and database.is_oauth2_enabled()
             # The `OAuth2TokenRefreshError` arm below reaches the dance without
             # consulting `needs_oauth2`, so the guest check it performs has to be
-            # repeated here or an embedded viewer takes that arm.
+            # repeated here or an embedded viewer takes that arm. It comes first:
+            # loading the client can itself raise, as in a worker with no redirect
+            # URI, and would replace the error the guest should see.
             and not _is_guest_request()
+            and database.is_oauth2_enabled()
             and (
                 isinstance(ex, OAuth2TokenRefreshError)
                 or database.db_engine_spec.needs_oauth2(ex)
