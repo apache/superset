@@ -147,6 +147,9 @@ provider test processes, not a live host. An executable, SDK-only example is in
 It demonstrates discovery and values only; unsupported table/count queries are
 explicitly refused, not claimed as a full provider implementation.
 
+See [Testing semantic providers](../../semantic-layer-provider-testing.md) for the
+reusable SDK conformance suite and its provider-owned fixtures.
+
 ## Execution context
 
 The unreleased SDK uses one `SemanticLayer.from_configuration` factory with
@@ -240,7 +243,10 @@ The host normalizes UI `<NULL>` and `<empty string>` sentinels before coercing
 values. NULL equality becomes `IS_NULL` (inequality becomes `IS_NOT_NULL`). Mixed
 positive membership becomes `OrFilter(IN(non_null_values), IS_NULL)`; mixed
 negative membership becomes two AND leaves, `NOT_IN` and `IS_NOT_NULL`. Empty
-membership and NULL comparison/LIKE operands are rejected before provider calls.
+membership reaches providers as one `IN` or `NOT_IN` leaf with an empty
+`frozenset`: render empty `IN` as FALSE and empty `NOT IN` as TRUE (NULL rows
+included), never as an empty SQL list. NULL comparison/LIKE operands are rejected
+before provider calls.
 Scalar comparisons use the first collection value, or NULL for an empty collection,
 matching native datasources.
 

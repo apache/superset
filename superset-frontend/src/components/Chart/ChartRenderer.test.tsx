@@ -30,6 +30,13 @@ import ChartRenderer, {
   ChartRendererProps,
 } from 'src/components/Chart/ChartRenderer';
 import { ChartSource } from 'src/types/ChartSource';
+import {
+  holdFilterKeyPublish,
+  isFilterKeyPublishHeld,
+  isProtectedFilterKey,
+  resetFilterKeyHold,
+  subscribeFilterKeyPublishRelease,
+} from 'src/dashboard/util/sharedFilterStateHold';
 import type { Dispatch } from 'redux';
 
 interface MockSuperChartProps {
@@ -71,6 +78,16 @@ jest.mock('@superset-ui/core', () => ({
         }
       >
         Emit semantic mask
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          (
+            props.hooks as { setDataMask: (mask: DataMask) => void }
+          ).setDataMask(props.formData?.testDataMask as DataMask)
+        }
+      >
+        Emit test mask
       </button>
       {JSON.stringify(postTransformProps(props).formData)}
     </div>
@@ -655,4 +672,35 @@ test('chart mask updates preserve incoming and query selection provenance', () =
       }),
     }),
   );
+});
+
+test.each<[DataMask, boolean]>([
+  [{ filterState: { value: ['East'] } }, false],
+  [{ extraFormData: { filters: [] } }, false],
+  [{ ownState: { page: 2 } }, true],
+])('chart renderer mask %j keeps the fallback hold: %s', (mask, held) => {
+  const onRelease = jest.fn();
+  const unsubscribe = subscribeFilterKeyPublishRelease(onRelease);
+  const updateDataMask = jest.fn(() => {
+    expect(isFilterKeyPublishHeld()).toBe(held);
+    return jest.fn() as Dispatch;
+  });
+  holdFilterKeyPublish('original-key');
+  try {
+    render(
+      <ChartRenderer
+        {...requiredProps}
+        formData={{ ...requiredProps.formData, testDataMask: mask }}
+        actions={{ ...requiredProps.actions, updateDataMask }}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Emit test mask' }));
+    expect(updateDataMask).toHaveBeenCalledWith(requiredProps.chartId, mask);
+    expect(isFilterKeyPublishHeld()).toBe(held);
+    expect(onRelease).toHaveBeenCalledTimes(held ? 0 : 1);
+    expect(isProtectedFilterKey('original-key')).toBe(true);
+  } finally {
+    unsubscribe();
+    resetFilterKeyHold();
+  }
 });

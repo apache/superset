@@ -127,6 +127,7 @@ def test_preview_returns_the_emitted_predicate(
 
     assert response.status_code == 200
     assert response.json["result"] == {
+        "data_validation": {"status": "not_checked"},
         "valid": True,
         "sample_input": "event_time == '2026-01-15 00:00:00'",
         "emitted_predicate": "dt_epoch = 1768435200 OR dt_epoch IS NULL",
@@ -152,6 +153,7 @@ def test_preview_mirrors_a_range_when_the_transform_is_monotonic(
         )
 
     assert response.json["result"] == {
+        "data_validation": {"status": "not_checked"},
         "valid": True,
         "sample_input": "event_time >= '2026-01-15 00:00:00'",
         "emitted_predicate": "dt_epoch >= 1768435200 OR dt_epoch IS NULL",
@@ -183,6 +185,7 @@ def test_preview_shows_a_strict_bound_mirroring_non_strictly(
         )
 
     assert response.json["result"] == {
+        "data_validation": {"status": "not_checked"},
         "valid": True,
         "sample_input": "event_time < '2026-01-15 00:00:00'",
         "emitted_predicate": "dt_epoch <= 1768435200 OR dt_epoch IS NULL",
@@ -265,6 +268,7 @@ def test_preview_mirrors_in_element_wise(
         )
 
     assert response.json["result"] == {
+        "data_validation": {"status": "not_checked"},
         "valid": True,
         "sample_input": "country IN ('US', 'CA')",
         "emitted_predicate": "region_key IN ('us', 'ca') OR region_key IS NULL",
@@ -1483,6 +1487,7 @@ def test_preview_accepts_a_transform_that_reads_both_shapes_alike(
         )
 
     assert response.json["result"] == {
+        "data_validation": {"status": "not_checked"},
         "valid": True,
         "sample_input": "event_time >= '2026-01-15 10:47:23'",
         "emitted_predicate": "dt_epoch >= 1768474043 OR dt_epoch IS NULL",

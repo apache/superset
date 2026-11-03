@@ -22,7 +22,9 @@ import {
   screen,
   fireEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import { SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import RoleListEditModal from './RoleListEditModal';
@@ -288,6 +290,59 @@ describe('RoleListEditModal', () => {
         },
       ],
     });
+  });
+
+  test('keeps an off-page role member named and searchable by email in the Users picker', async () => {
+    // The member is hydrated from the role's users, not from the picker's
+    // first page, so AsyncSelect rebuilds its option from the form value. That
+    // value must be a full user option: the React label gives the list no
+    // accessible name, and the email search relies on its filter props.
+    const mockGet = SupersetClient.get as jest.Mock;
+    mockGet.mockImplementation(({ endpoint }) => {
+      if (endpoint?.includes('/api/v1/security/users/')) {
+        return Promise.resolve({
+          json: endpoint.includes('rel_m_m')
+            ? {
+                count: 1,
+                result: [
+                  {
+                    id: 42,
+                    username: 'amy',
+                    first_name: 'Amy',
+                    last_name: 'Adams',
+                    email: 'aadams@example.com',
+                  },
+                ],
+              }
+            : {
+                count: 50,
+                result: [{ id: 1, username: 'zoe', first_name: 'Zoe' }],
+              },
+        });
+      }
+      return Promise.resolve({ json: { count: 0, result: [] } });
+    });
+
+    render(<RoleListEditModal {...mockProps} />);
+    await waitFor(() => expect(screen.getByText('Amy Adams')).toBeVisible());
+    const combobox = screen.getByRole('combobox', { name: /users/i });
+    await waitFor(() => userEvent.click(combobox));
+
+    expect(
+      await screen.findByRole('option', { name: 'Amy Adams' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: '42' }),
+    ).not.toBeInTheDocument();
+
+    await userEvent.type(combobox, 'aadams@', { delay: 10 });
+    const dropdown = within(
+      document.querySelector('.ant-select-dropdown-list') as HTMLElement,
+    );
+    await waitFor(() =>
+      expect(dropdown.queryByText('Zoe')).not.toBeInTheDocument(),
+    );
+    expect(dropdown.getByText('Amy Adams')).toBeInTheDocument();
   });
 
   test('preserves missing IDs as numeric fallbacks on partial hydration', async () => {

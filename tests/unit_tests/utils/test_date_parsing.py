@@ -137,7 +137,7 @@ def test_epoch_format_invalid_values(caplog):
     assert "Unable to convert column epoch to datetime, ignoring" in caplog.text
 
     # The column should remain unchanged when conversion fails
-    assert df["epoch"].dtype == object
+    assert df["epoch"].dtype == "str"
     assert df["epoch"].iloc[0] == "not_a_number"
 
 
@@ -345,3 +345,18 @@ def test_datetime_to_epoch_far_future():
     assert isinstance(result, float), "Should return float"
     assert result > 0, "Far future date should have positive epoch"
     assert result == 2524608000000.0, "2050-01-01 should be specific epoch value"
+
+
+@pytest.mark.parametrize(
+    "timestamp, expected",
+    [
+        (pd.Timestamp("2024-01-02 03:04:05.123456789"), 1704164645123.456),
+        (pd.Timestamp("2024-01-02 03:04:05.123456789", tz="UTC"), 1704164645123.456),
+        (pd.Timestamp("1969-12-31 23:59:59.999999999"), -0.0010000000000287557),
+    ],
+)
+def test_datetime_to_epoch_pandas_timestamp_drops_sub_microsecond(
+    timestamp: pd.Timestamp, expected: float
+) -> None:
+    """Nanosecond residuals do not change the epoch across pandas versions"""
+    assert datetime_to_epoch(timestamp) == expected

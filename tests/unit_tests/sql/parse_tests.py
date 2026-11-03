@@ -24,7 +24,7 @@ import sqlite3
 import pytest
 import sqlglot
 from pytest_mock import MockerFixture
-from sqlglot import Dialects, exp, parse_one
+from sqlglot import Dialect, Dialects, exp, parse_one
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
 from superset.jinja_context import JinjaTemplateProcessor
@@ -53,6 +53,7 @@ from superset.sql.parse import (
     SQLGLOT_DIALECTS,
     SQLScript,
     SQLStatement,
+    strip_comments,
     Table,
     tokenize_kql,
     transpile_to_dialect,
@@ -2896,8 +2897,18 @@ LATERAL generate_series(1, value) AS i;
         ("SELECT * FROM t WHERE ROWNUM <= 9 AND x = 1 AND ROWNUM < 4", "oracle", 3),
         ("SELECT * FROM t WHERE ROWNUM < 0", "oracle", 0),
         ("SELECT * FROM (SELECT * FROM t) WHERE ROWNUM <= 11", "oracle", 11),
+        # A nested `AND` grouped in parentheses still bounds the result, no
+        # matter which side of the chain it is on.
+        ("SELECT * FROM t WHERE x = 1 AND (y = 2 AND ROWNUM <= 5)", "oracle", 5),
+        ("SELECT * FROM t WHERE (x = 1 AND y = 2) AND ROWNUM <= 5", "oracle", 5),
+        (
+            "SELECT * FROM t WHERE (x = 1 AND ROWNUM <= 9) AND (y = 2 AND ROWNUM < 4)",
+            "oracle",
+            3,
+        ),
         # ... but not when the comparison doesn't bound the outer result.
         ("SELECT * FROM t WHERE x = 1 OR ROWNUM <= 5", "oracle", None),
+        ("SELECT * FROM t WHERE x = 1 AND (y = 2 OR ROWNUM <= 5)", "oracle", None),
         ("SELECT * FROM t WHERE ROWNUM >= 5", "oracle", None),
         ("SELECT * FROM t WHERE ROWNUM <= :n", "oracle", None),
         ("SELECT * FROM t WHERE t.rownum <= 5", "oracle", None),
@@ -3490,11 +3501,61 @@ def test_deduplicate_oracle_output_names_ignores_non_select() -> None:
 
 
 @pytest.mark.parametrize(
+    "condition, expected",
+    [
+        ("x = 1", ["x = 1"]),
+        ("x = 1 AND y = 2", ["x = 1", "y = 2"]),
+        ("x = 1 AND y = 2 AND z = 3", ["x = 1", "y = 2", "z = 3"]),
+        # A nested `AND` grouped in parentheses is still unwrapped, on
+        # either side of the chain.
+        ("x = 1 AND (y = 2 AND z = 3)", ["x = 1", "y = 2", "z = 3"]),
+        ("(x = 1 AND y = 2) AND z = 3", ["x = 1", "y = 2", "z = 3"]),
+        ("(x = 1 AND (y = 2 AND z = 3))", ["x = 1", "y = 2", "z = 3"]),
+        # An `OR` is a leaf, not a chain to look through.
+        ("x = 1 OR y = 2", ["x = 1 OR y = 2"]),
+        ("x = 1 AND (y = 2 OR z = 3)", ["x = 1", "y = 2 OR z = 3"]),
+    ],
+)
+def test_flatten_and(condition: str, expected: list[str]) -> None:
+    """
+    `_flatten_and` returns every `AND`-ed leaf, regardless of grouping.
+    """
+    from superset.sql.parse import _flatten_and
+
+    parsed = parse_one(f"SELECT * FROM t WHERE {condition}", dialect="oracle")  # noqa: S608
+    leaves = _flatten_and(parsed.args["where"].this)
+    assert [leaf.sql() for leaf in leaves] == expected
+
+
+def test_flatten_and_deep_chain_does_not_recurse() -> None:
+    """
+    A parenthesized `AND` chain deeper than the recursion limit is flattened
+    iteratively, returning every leaf in order.
+    """
+    import sys
+
+    from superset.sql.parse import _flatten_and
+
+    depth = sys.getrecursionlimit() + 100
+    leaves = [
+        exp.EQ(this=exp.column(f"c{i}"), expression=exp.Literal.number(i))
+        for i in range(depth)
+    ]
+    chain: exp.Expression = leaves[0]
+    for leaf in leaves[1:]:
+        chain = exp.Paren(this=exp.And(this=chain, expression=leaf))
+
+    assert _flatten_and(chain) == leaves
+
+
+@pytest.mark.parametrize(
     "sql, limit, expected",
     [
         ("SELECT n FROM t", 10, 10),
         ("SELECT n FROM t WHERE ROWNUM <= 5", 10, 5),
         ("SELECT n FROM t WHERE ROWNUM <= 50", 10, 10),
+        ("SELECT n FROM t WHERE x = 1 AND (y = 2 AND ROWNUM <= 5)", 10, 5),
+        ("SELECT n FROM t WHERE (ROWNUM <= 5 AND y = 2) AND x = 1", 10, 5),
         ("SELECT * FROM (SELECT n FROM t) WHERE ROWNUM <= 11", 11, 11),
     ],
 )
@@ -7694,6 +7755,21 @@ def test_count_select_expressions(sql: str, engine: str, expected: int) -> None:
 
 
 @pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT (UNIX_TIMESTAMP(NULL)) -- note", True),
+        ("SELECT  unix_timestamp( NULL )", True),
+        ("SELECT floor(unix_timestamp(NULL) / 3600) * 3600", False),
+        ("SELECT unix_timestamp(NULL), 1", False),
+    ],
+)
+def test_has_same_projection(sql: str, expected: bool) -> None:
+    """Check the `has_same_projection` method."""
+    reference = SQLStatement("SELECT unix_timestamp(NULL)", "hive")
+    assert SQLStatement(sql, "hive").has_same_projection(reference) is expected
+
+
+@pytest.mark.parametrize(
     "sql, engine, expected",
     [
         ("SELECT lower(country) AS v0", "hive", ["v0"]),
@@ -7978,3 +8054,47 @@ def test_get_select_literal_value(sql: str, engine: str, expected: str | None) -
 def test_has_comment(sql: str, engine: str, expected: bool) -> None:
     """Check the `has_comment` method."""
     assert SQLStatement(sql, engine).has_comment() is expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        (
+            "floor(:value / 3600) * 3600 -- hourly",
+            "hive",
+            "floor(:value / 3600) * 3600",
+        ),
+        ("a/* joined? */+b", "hive", "a +b"),
+        (
+            "concat('a--b', '/* c */', :value)",
+            "hive",
+            "concat('a--b', '/* c */', :value)",
+        ),
+        ("lower(:value) # trailing", "mysql", "lower(:value)"),
+        ("-- leading\nlower(:value)", "postgresql", "lower(:value)"),
+        ("lower(:value)", "base", "lower(:value)"),
+        ("lower(:value) /* unterminated", "hive", None),
+        ("-- only a comment", "hive", ""),
+        ("  ", "hive", ""),
+    ],
+)
+def test_strip_comments(sql: str, engine: str, expected: str | None) -> None:
+    """Comments go, literals and the placeholder stay exactly as written."""
+    assert strip_comments(sql, engine) == expected
+
+
+@pytest.mark.parametrize("relexed", [ValueError("no"), []])
+def test_strip_comments_refuses_what_does_not_relex_the_same(
+    mocker: MockerFixture, relexed: Exception | list[object]
+) -> None:
+    """
+    The stripped text is lexed again and must give back the same tokens; a
+    lexer that fails on it, or reads it differently, yields ``None`` rather
+    than a guess.
+    """
+    tokens = Dialect.get_or_raise("hive").tokenize("lower(:value) -- c")
+    lexer = mocker.MagicMock()
+    lexer.tokenize.side_effect = [tokens, relexed]
+    mocker.patch("superset.sql.parse.Dialect.get_or_raise", return_value=lexer)
+
+    assert strip_comments("lower(:value) -- c", "hive") is None

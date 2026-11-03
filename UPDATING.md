@@ -24,6 +24,53 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic-view filters with an empty IN or NOT IN selection no longer fail with a
+  query validation error. They follow SQL semantics where the filter sits: an
+  empty IN matches no rows (grouped charts return no rows; an ungrouped total
+  returns one row, for example a count of 0), and an empty NOT IN matches every
+  row, including NULLs. Dataset charts still reject an empty selection. Semantic
+  provider adapters receive the empty `frozenset` and must render a constant or an
+  equivalent native predicate, never an empty SQL list; upgrade provider adapters
+  before, or together with, the host. The SDK conformance kit adds
+  `test_empty_membership` and `test_empty_membership_in_or_group`, derived from
+  the existing `identity` and `or` fixtures.
+
+- Dashboard and chart `viewers` can no longer be added through the API or the MCP
+  `manage_dashboard_roles` tool while the `ENABLE_VIEWERS` feature flag is off; such
+  requests are rejected with a 422. Enforcement of existing viewers is unchanged (a
+  non-empty viewers list restricts access regardless of the flag), and removing
+  viewers remains possible so stale assignments can be cleared.
+
+- With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
+  using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and
+  `CACHE_REDIS_USER`. Previously they always ran on DB 0 and without the ACL user.
+  If `CACHE_REDIS_DB` is not 0, coordination state (task state, locks and streams)
+  moves to that DB: avoid running old and new versions side by side, and drain
+  in-flight tasks before upgrading.
+
+- Partition filter mapping no longer suggests bare `unix_timestamp(:value)` on Hive/Impala-family engines. Existing temporal-to-numeric mappings using that expression, or any transform that answers raw epoch instants in seconds through nanoseconds (for example `CAST(unix_timestamp(:value) AS BIGINT)` or `utc_to_unix_micros(:value)`, from a timestamp column or a text one in any common layout), stop pruning to prevent incorrect counts on hour/day epoch keys; this includes keys that really store raw epoch instants. Replace it with the expression that populates the partition key, including rounding and timezone. The dataset editor can explicitly compare a candidate against sampled rows from selected numeric partitions; a sample match is not a guarantee for the entire dataset.
+
+- Refreshing a dataset's columns from its source (the "Sync columns from
+  source" button, `PUT /api/v1/dataset/<id>?override_columns=true`, or
+  `PUT /api/v1/dataset/<id>/refresh`) no longer resets **Is dimension** and
+  **Is filterable** on existing columns. Newly discovered columns still arrive
+  with both enabled; a deployment that relied on a resync to restore those
+  defaults must set them explicitly.
+
+- **`/chart/add` no longer preselects a dataset from `?dataset=<name>`.** Use
+  `?dataset_id=<id>` instead. Dataset names are only unique per database,
+  catalog and schema, so a name could select the wrong dataset. Links built with
+  the `dataset` parameter now open the page with no dataset selected.
+
+- Webhook alerts/reports and the Impala `cancel_query` call now share
+  `get_ssrf_safe_requester`, whose session sets `trust_env=False`. Unless
+  `ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS` / `IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS`
+  is `True`, these requests no longer honor `HTTP(S)_PROXY`/`NO_PROXY`,
+  `REQUESTS_CA_BUNDLE`/`CURL_CA_BUNDLE`, or `.netrc`, because proxied connections
+  would bypass the connected-peer validation. Deployments that must reach webhooks
+  through a proxy or custom CA bundle should set the matching allow-internal flag,
+  which restores the plain `requests` behavior (and skips peer validation).
+
 - MCP `update_dashboard` rejects blank or whitespace-only `dashboard_title`
   values with "Text must not be empty"; omit the field to keep the stored title.
   MCP chart names and theme names are capped at 250 characters, matching their
@@ -156,8 +203,8 @@ assists people when migrating to a new version.
   omitted. Update provider adapters before, or together with, the host/SDK
   upgrade. Adapters must narrow `SemanticQuery.filters` and `GroupLimit.filters`
   members (`Filter | OrFilter`) before reading leaf attributes; `get_values`
-  remains `set[Filter] | None`. Empty membership and invalid NULL comparison
-  operands return query validation errors. Semantic result keys include a
+  remains `set[Filter] | None`. Invalid NULL comparison operands return query
+  validation errors. Semantic result keys include a
   filter-protocol version, and chart-backed annotation results also receive a new
   cache discriminator: expect a one-time cold cache after upgrading. See the
   [semantic filter contract](docs/developer_docs/extensions/semantic-filters.md)
@@ -259,6 +306,15 @@ assists people when migrating to a new version.
   to choose the default exposed temporal dimension for new charts. The declaration
   is optional; absent, unknown or non-temporal names retain the existing fallback.
   Saved chart selections are preserved.
+
+### Dashboard layout chart access
+
+Saving a dashboard layout returns HTTP 422 if it adds a chart the user cannot
+read: `PUT /api/v1/dashboard/<pk>`, `POST /api/v1/dashboard/` and
+`POST /api/v1/dashboard/<id_or_slug>/copy/`. The error names the refused chart
+IDs and nothing is saved. Charts already on the dashboard, archived ones
+included, are not checked, nor are a copy's source charts. Remove the tile from
+the layout, or get access to the chart, and save again.
 
 ### Dashboard copy layout validation
 
@@ -398,6 +454,17 @@ reattached to a reachable container by layout repair.
   exports. Ordinary table bundles retain their existing format. The examples
   loader rejects semantic bundles;
   use the chart, dashboard or assets importer instead.
+
+### Dataset timezone and `DATE` columns
+
+A dataset timezone (`"timezone"` in the dataset's extra settings) no longer
+applies to `DATE` columns, since a date has no time of day. A time filter on a
+`DATE` column keeps the selected days, and its values are shown as stored
+instead of being converted from UTC. This fixes ranges that were one day off and
+days shown at a time of day, often on the day before. The timezone still takes
+precedence over Hours offset. Columns that Superset reads as a date type are
+treated the same even if the database stores a time of day in them, such as
+Oracle `DATE`. `DATETIME` and `TIMESTAMP` columns are not affected.
 
 ### Table and AG Grid server pagination for semantic views
 
@@ -541,7 +608,7 @@ the switch is on.
 `get_chart_data` returns `AccessDenied` when a query is refused for access, and
 `ValidationError` when a semantic layer provider rejects the query or Superset's
 query validation rejects it while it runs (for example, a semantic view refusing
-an empty `IN` filter), matching the chart-data API's 403 and 400. These were previously
+a comparison filter with a missing operand), matching the chart-data API's 403 and 400. These were previously
 reported as `DataError`.
 Clients that matched on `DataError` for these cases should handle the new types.
 On the saved-chart path these errors also no longer emit an error-level MCP log
@@ -857,6 +924,11 @@ error notice. This does not authorize replay of data-bearing notifications.
 - The Pinot extra requires pinotdb[sqlalchemy]>=8.0.0,<10.0.0. Earlier releases declare SQLAlchemy below 2 in their SQLAlchemy extra.
 
 - The Databricks extra requires databricks-sqlalchemy 2.x (at least 2.0.1). The 1.x dialect requires SQLAlchemy below 2.
+  Saved `databricks+connector://` connections are automatically migrated to
+  `databricks://` by `superset db upgrade`, preserving the separately encrypted
+  token and connection settings. Downgrade restores converted connections left
+  unchanged since the upgrade and imported connections carrying the conversion
+  marker, not connections created natively with the new scheme.
 
 - `superset deletion-retention force-purge` now exits **1** when the target is
   blocked by a deletion rule or is not found (the messages are unchanged), so a
@@ -1434,6 +1506,22 @@ theme editor picker.
   should `pip uninstall superset-engine-d1 dbapi-d1` and reinstall the extra.
   `d1://` connection strings are unchanged. File upload is now off for D1:
   D1 has no transactions, so a failed upload could leave a half-written table.
+- Dashboard screenshot requests without `force=true` refresh successfully-rendered
+  (`UPDATED`) images older than `THUMBNAIL_UPDATED_CACHE_TTL` (default 7 days),
+  retaining the last valid image during refresh and error backoff when the cache
+  backend still holds it: on backends without TTL eviction, such as S3, or with a
+  thumbnail `CACHE_DEFAULT_TIMEOUT` of `0` or above the TTL. With the default 7-day
+  timeout, evicting backends such as Redis expire the image as it turns stale, so
+  the refresh renders without one. The on-demand endpoint finds a retained image for
+  about that timeout after it turns stale (indefinitely when it is `0`). This also
+  applies to dashboard thumbnails refreshed by `superset compute-thumbnails` without
+  `--force`; chart screenshots and card-list thumbnail endpoints are excluded. Set
+  the TTL to `0` or `None` to disable this freshness check and rely on the cache
+  backend's retention policy. Only backends without TTL eviction, such as S3, can
+  then serve a cached image indefinitely. Timestamps are naive local time, so run
+  web servers and workers with the same `TZ` and keep the TTL above any clock offset
+  between them. Roll thumbnail workers before web servers: older workers can skip
+  refreshes requested by newer web servers until the worker rollout finishes.
 
 ### Native Value filter "Select all" always targets the whole column
 

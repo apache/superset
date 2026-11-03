@@ -14,16 +14,89 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from copy import deepcopy
 from datetime import datetime, timezone
+from types import SimpleNamespace
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
 from pytest_mock import MockerFixture
 
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
+from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.utils.cache import generate_cache_key
 from superset.utils.core import QueryObjectFilterClause
+
+
+def test_ordinary_context_rewrites_reach_async_cache_values() -> None:
+    """Granularity, time-range, and WHERE rendering preserve cached context behavior."""
+    dataset = SqlaTable(
+        id=1,
+        table_name="events",
+        database=Database(database_name="test", sqlalchemy_uri="sqlite://"),
+        columns=[
+            TableColumn(column_name="ds", type="DATETIME", is_dttm=True),
+            TableColumn(column_name="created_at", type="DATETIME", is_dttm=True),
+        ],
+    )
+    query: dict[str, Any] = {
+        "columns": ["ds"],
+        "granularity": "ds",
+        "time_range": "2024-01-01 : 2025-01-01",
+        "filters": [
+            {"col": "ds", "op": "TEMPORAL_RANGE", "val": "2020-01-01 : 2021-01-01"},
+            {
+                "col": "created_at",
+                "op": "TEMPORAL_RANGE",
+                "val": "2020-01-01 : 2021-01-01",
+            },
+        ],
+        "extras": {"where": "country = '{{ 'France' }}'", "time_grain_sqla": "P1D"},
+    }
+    expected = deepcopy(query)
+    expected["filters"][1]["val"] = query["time_range"]
+    expected["extras"]["where"] = "country = 'France'"
+    with (
+        patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.jinja_context.feature_flag_manager.is_feature_enabled",
+            return_value=True,
+        ),
+        patch("superset.common.query_context_processor.security_manager"),
+    ):
+        context = QueryContextFactory().create(
+            datasource={"id": 1, "type": "table"},
+            queries=[query],
+            form_data={"x_axis": "ds"},
+        )
+        assert context.queries[0].filter == [query["filters"][1]]
+        assert context.queries[0].filter[0] is query["filters"][1]
+        assert query["filters"][1]["val"] == query["time_range"]
+        assert context.queries[0].extras is query["extras"]
+        unrendered_key = context._processor.cache_key()
+        context.raise_for_access()
+        expected_cache_values = {
+            "datasource": {"id": 1, "type": "table"},
+            "queries": [expected],
+            "result_type": ChartDataResultType.FULL,
+            "result_format": ChartDataResultFormat.JSON,
+        }
+        assert context.cache_values == expected_cache_values
+        assert context._processor.cache_key() == generate_cache_key(
+            expected_cache_values, "qc-"
+        )
+        assert context._processor.cache_key() != unrendered_key
+        restored = QueryContextFactory().create(**deepcopy(context.cache_values))
+        assert restored.queries[0].extras["where"] == "country = 'France'"
+        assert restored._processor.cache_key() == context._processor.cache_key()
 
 
 class TestQueryContextFactory:
@@ -145,8 +218,8 @@ class TestQueryContextFactory:
         existing_columns = {"existing_col"}
 
         with patch.object(self.factory, "_find_column_definition") as mock_find:
-            mock_find.side_effect = (
-                lambda qo, col: f"def_{col}" if col != "tooltip_col2" else None
+            mock_find.side_effect = lambda qo, col: (
+                f"def_{col}" if col != "tooltip_col2" else None
             )
 
             self.factory._append_missing_tooltip_columns(
@@ -378,6 +451,45 @@ class TestQueryContextFactory:
         self.factory._apply_granularity(query_object, form_data, datasource)
 
         assert len(query_object.filter) == 0
+
+    @pytest.mark.parametrize("x_axis", [None, "ds"])
+    @pytest.mark.parametrize("temporal_binding", [False, True])
+    @pytest.mark.parametrize("granularity", ["ds", "other_date"])
+    def test_apply_granularity_keeps_simple_filters(
+        self,
+        x_axis: str | None,
+        temporal_binding: bool,
+        granularity: str,
+    ) -> None:
+        """Keep comparisons unless replacing a different temporal column."""
+        query_object = QueryObject(
+            granularity=granularity,
+            columns=["ds"],
+            filters=[
+                {"col": "ds", "op": ">=", "val": "2026-01-01"},
+                {"col": "ds", "op": "<", "val": "2027-01-01"},
+                {"col": "category", "op": "==", "val": "active"},
+                {"col": "other_date", "op": ">=", "val": "2025-01-01"},
+            ],
+        )
+        expected_filters = list(query_object.filter)
+        if temporal_binding:
+            query_object.filter.append(
+                {"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"}
+            )
+        datasource = SimpleNamespace(
+            columns=[
+                SimpleNamespace(column_name="ds", is_dttm=True),
+                SimpleNamespace(column_name="other_date", is_dttm=True),
+            ]
+        )
+
+        self.factory._apply_granularity(query_object, {"x_axis": x_axis}, datasource)
+
+        if (temporal_binding or x_axis == "ds") and granularity != "ds":
+            # A different Time Column replaces stale predicates on the old axis.
+            expected_filters = [f for f in expected_filters if f["col"] != "ds"]
+        assert query_object.filter == expected_filters
 
     def test_apply_granularity_with_granularity_in_temporal_filters(self):
         """Test _apply_granularity when granularity is already in temporal filters"""
