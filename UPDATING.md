@@ -26,6 +26,12 @@ assists people when migrating to a new version.
 
 ## 7.0.0
 
+- Dashboard and chart `viewers` can no longer be added through the API or the MCP
+  `manage_dashboard_roles` tool while the `ENABLE_VIEWERS` feature flag is off; such
+  requests are rejected with a 422. Enforcement of existing viewers is unchanged (a
+  non-empty viewers list restricts access regardless of the flag), and removing
+  viewers remains possible so stale assignments can be cleared.
+
 - Saving a dashboard layout returns HTTP 422 if it adds a chart the user cannot
   read: `PUT /api/v1/dashboard/<pk>`, `POST /api/v1/dashboard/` and
   `POST /api/v1/dashboard/<id_or_slug>/copy/`. The error names the refused chart
