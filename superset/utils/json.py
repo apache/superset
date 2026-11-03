@@ -423,6 +423,55 @@ def _pem_body(value: str) -> str | None:
     return None
 
 
+def _dotted_path_holds(node: Any) -> bool:
+    """
+    Whether every key on a matched path reads back the same from a dotted path:
+    a key with a dot would read as a nested path, and a key named ``*`` as a
+    wildcard.
+    """
+    if isinstance(node, Child):
+        return _dotted_path_holds(node.left) and _dotted_path_holds(node.right)
+    if isinstance(node, Fields):
+        return all("." not in field and field != "*" for field in node.fields)
+    return True
+
+
+def _sensitive_string_values(
+    payload: dict[str, Any],
+    sensitive_fields: set[str],
+) -> dict[str, str]:
+    """
+    Map each concrete path whose value is a string to that value, sorted by path.
+    Keys a dotted path cannot tell apart (a dot, or ``*``) are left out.
+    """
+    if not isinstance(payload, dict):
+        return {}
+
+    values: dict[str, str] = {}
+    for json_path in sensitive_fields:
+        for match in parse(json_path).find(payload):
+            if isinstance(match.value, str) and _dotted_path_holds(match.full_path):
+                values[f"$.{_render_jsonpath(match.full_path)}"] = match.value
+    return dict(sorted(values.items()))
+
+
+def get_sensitive_field_paths(
+    payload: dict[str, Any],
+    sensitive_fields: set[str],
+) -> list[str]:
+    """
+    Returns the concrete paths of the string values found at sensitive paths.
+
+    Wildcards expand per match and non-string values are skipped, so the result
+    lists exactly the fields :func:`get_sensitive_field_hints` would hint.
+
+    :param payload: The payload to inspect; anything but a dict yields no paths
+    :param sensitive_fields: The set of fields to look for, as JSONPath expressions
+    :returns: JSONPath expressions sorted by path
+    """
+    return list(_sensitive_string_values(payload, sensitive_fields))
+
+
 def get_sensitive_field_hints(
     payload: dict[str, Any],
     sensitive_fields: set[str],
@@ -435,7 +484,9 @@ def get_sensitive_field_hints(
     characters long, its last ``length`` characters. That caps what is revealed at
     25% of the value; a shorter value gets no suffix and its length is not reported
     either, since a length alone can identify a short secret. For a PEM block, the
-    suffix and the cap apply to its base64 body without padding.
+    suffix and the cap apply to its base64 body without padding. A stored mask,
+    which older imports saved, gets no suffix either: its ending would read as
+    still masked.
 
     :param payload: The payload to inspect
     :param sensitive_fields: The set of fields to hint, as JSONPath expressions
@@ -445,22 +496,22 @@ def get_sensitive_field_hints(
     if length <= 0:
         return []
 
-    hints: dict[str, dict[str, Any]] = {}
-    for json_path in sensitive_fields:
-        for match in parse(json_path).find(payload):
-            if not isinstance(match.value, str):
-                continue
-            path = f"$.{_render_jsonpath(match.full_path)}"
-            value = match.value.strip()
-            body = _pem_body(value)
-            revealable = value if body is None else body
-            hints[path] = {
+    hints: list[dict[str, Any]] = []
+    for path, stored in _sensitive_string_values(payload, sensitive_fields).items():
+        value = stored.strip()
+        body = _pem_body(value)
+        revealable = value if body is None else body
+        hints.append(
+            {
                 "path": path,
                 "suffix": (
-                    revealable[-length:] if len(revealable) >= 4 * length else None
+                    revealable[-length:]
+                    if len(revealable) >= 4 * length and value != PASSWORD_MASK
+                    else None
                 ),
             }
-    return [hints[path] for path in sorted(hints)]
+        )
+    return hints
 
 
 def set_masked_fields(
