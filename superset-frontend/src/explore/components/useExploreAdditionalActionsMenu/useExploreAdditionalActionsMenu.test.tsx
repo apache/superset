@@ -776,3 +776,26 @@ test('Explore: menu unchanged with nothing registered', async () => {
     'Export to Excel',
   ]);
 });
+
+test('Explore: contributed items are hidden for image-only charts', async () => {
+  registerItem('explore.chart.download', 'ext.gs', 'Export to Google Sheets');
+  render(
+    <TestComponent
+      {...defaultProps}
+      latestQueryFormData={{
+        datasource: '1__table',
+        viz_type: 'big_number_total',
+      }}
+    />,
+    {
+      useRedux: true,
+      initialState: { explore: { can_export_image: true } },
+    },
+  );
+
+  await openExportAllData();
+  expect(
+    await screen.findByText('Export screenshot (jpeg)'),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Export to Google Sheets')).not.toBeInTheDocument();
+});
