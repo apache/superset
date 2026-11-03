@@ -322,9 +322,10 @@ Keep each sentence in one `t()` call. A sentence split into several calls
 around a link has a fixed word order. Translators then cannot write a
 grammatical sentence in their language.
 
-For a link inside help text or a tooltip, write the link as a markdown link
-with a named placeholder for the URL. Render the result with `SafeMarkdown`
-from `@superset-ui/core/components`:
+For a link inside help text or a tooltip, one way to keep the sentence whole
+is a markdown link with a named placeholder for the URL, rendered with
+`SafeMarkdown` from `@superset-ui/core/components`. The dataset editor's
+"Datetime format" help works this way:
 
 ```tsx
 <SafeMarkdown
@@ -336,14 +337,15 @@ from `@superset-ui/core/components`:
 />
 ```
 
-The URL stays out of the translated string. `SafeMarkdown` sanitizes the
-result and renders backticks as code. Check its limits before you use it:
+The URL stays out of the translated string. `SafeMarkdown` blocks
+`javascript:` links, sanitizes or escapes HTML, and renders backticks as code.
+Check its limits before you use it:
 
 - It wraps the text in a paragraph, so it does not fit inside an inline label
   or a button.
 - It renders nothing until its markdown libraries load.
-- Its sanitizer removes the `target` attribute, so its links open in the same
-  tab.
+- Its links open in the same tab. A markdown link has no `target` attribute,
+  and the sanitizer removes one written in HTML.
 
 ### Adding context for translators
 
