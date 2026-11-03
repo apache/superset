@@ -805,6 +805,22 @@ def test_bounded_body_supports_urllib3_without_read1() -> None:
     assert oversized.read_sizes == [semantic_layer_http._CHUNK_BYTES]
 
 
+def test_bounded_body_rejects_short_urllib3_1_response() -> None:
+    raw: Mock = Mock(spec=["read"])
+    raw.read.side_effect = [b"eleven bytes", b""]
+    response: Mock = Mock(
+        raw=raw, headers={"Content-Length": "100"}, request=Mock(method="GET")
+    )
+    bound: semantic_layer_http._Deadline = semantic_layer_http._Deadline(
+        time.monotonic() + 2
+    )
+
+    with pytest.raises(ProviderRequestError) as raised:
+        semantic_layer_http.HostProviderTransport._read_body(response, bound, 100, None)
+
+    assert raised.value.failure == ProviderRequestFailure.UNREACHABLE
+
+
 def test_bounded_body_is_refused_past_its_byte_cap(
     public_tls: tuple[ssl.SSLContext, list[str]],
 ) -> None:
