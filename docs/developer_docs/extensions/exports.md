@@ -54,6 +54,16 @@ Import them from `superset_core.exports.types`. All are frozen dataclasses excep
 
 `iter_dashboard_chart_results` does not raise when a single chart fails. It yields a `ChartResult` with `skipped_reason` set and an empty `queries` list, then continues with the next chart. A Celery soft timeout is the exception and propagates to the caller.
 
+## Errors
+
+The host raises its own exception classes, which extensions cannot import. Catch them by meaning:
+
+| Function | Raises |
+| --- | --- |
+| `run_query_context` | A security exception (HTTP 403 semantics) when the user may not access the datasource. A marshmallow `ValidationError` for a malformed payload, and a `ValueError` for a result type without rows. A query-failure exception when the query is invalid, fails in the database or cannot be loaded from the cache. |
+| `iter_dashboard_chart_results` | Nothing for a failing chart, which yields a skipped result instead. A missing dashboard, or one the user cannot access, yields no results. A Celery soft time limit propagates. |
+| `as_user` | A `ValueError` on entry when no user has the given ID. |
+
 ## Permissions
 
 `run_query_context` and `iter_dashboard_chart_results` check data access: the datasource, row-level security and dashboard membership. They do not check the export permission. Your extension must check it:

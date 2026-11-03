@@ -51,6 +51,11 @@ def run_query_context(payload: dict[str, Any]) -> list[ChartQueryResult]:
     :returns: One result per query in the payload.
     :raises ValueError: If the payload asks for a result type with no rows,
         such as ``query`` or ``columns``.
+    :raises ValidationError: A marshmallow validation error if the payload is
+        malformed (HTTP 400 semantics).
+    :raises Exception: A security exception (HTTP 403 semantics) if the user may
+        not access the datasource, or a query-failure exception if the query is
+        invalid, fails in the database or cannot be loaded from the cache.
     """
     raise NotImplementedError("Function will be replaced during initialization")
 
@@ -62,7 +67,9 @@ def iter_dashboard_chart_results(
     Yield the results of each chart on a dashboard, with filters applied.
 
     A chart that cannot be queried yields a result with ``skipped_reason`` set
-    instead of raising. Callers must check ``can_export_dashboard()`` first.
+    instead of raising. A missing dashboard, or one the user cannot access,
+    yields nothing. A Celery soft time limit propagates. Callers must check
+    ``can_export_dashboard()`` first.
 
     :param dashboard_id: The dashboard ID.
     :param active_data_mask: The dashboard's active filter state, keyed by filter ID.
@@ -113,5 +120,6 @@ def as_user(user_id: int) -> AbstractContextManager[None]:
 
     :param user_id: The ID of the user to act as.
     :returns: A context manager that restores the previous user on exit.
+    :raises ValueError: On entry, if no user has the given ID.
     """
     raise NotImplementedError("Function will be replaced during initialization")

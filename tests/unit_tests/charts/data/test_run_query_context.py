@@ -21,6 +21,7 @@ from typing import Any
 from unittest import mock
 
 import pytest
+from marshmallow import ValidationError
 from superset_core.exports.types import ChartQueryResult, GenericDataType
 
 from superset.charts.data.run_query_context import (
@@ -198,3 +199,15 @@ def test_accepts_result_types_with_rows(
 ) -> None:
     payload = {"queries": [{"result_type": result_type.value}]}
     assert run_query_context({**payload, "result_type": result_type.value}) == []
+
+
+@pytest.mark.parametrize(
+    "error, message",
+    [(KeyError("datasource"), "Request is incorrect"), (ValueError("bad"), "bad")],
+)
+def test_load_errors_raise_validation_error(
+    mocks: dict[str, mock.MagicMock], error: Exception, message: str
+) -> None:
+    mocks["ChartDataQueryContextSchema"].return_value.load.side_effect = error
+    with pytest.raises(ValidationError, match=message):
+        run_query_context({"queries": [{}]})
