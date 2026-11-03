@@ -305,7 +305,10 @@ class UpdateDatabaseCommand(BaseCommand):
         if "sqlalchemy_uri" in self._properties:
             submitted_uri = self._properties["sqlalchemy_uri"] or ""
             connection_identity_changed = uri_identity_changed(
-                model.sqlalchemy_uri, submitted_uri
+                model.sqlalchemy_uri,
+                submitted_uri,
+                model.extra,
+                self._properties.get("extra", model.extra),
             )
             try:
                 submitted_password = make_url_safe(submitted_uri).password

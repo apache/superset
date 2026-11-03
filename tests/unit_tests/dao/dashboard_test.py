@@ -23,7 +23,10 @@ from sqlalchemy import event, inspect, select
 from sqlalchemy.orm.session import Session
 
 from superset import db, security_manager
-from superset.commands.dashboard.exceptions import DashboardInvalidError
+from superset.commands.dashboard.exceptions import (
+    DashboardInvalidError,
+    DashboardLayoutInvalidError,
+)
 from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.daos.dashboard import (
@@ -227,6 +230,159 @@ def test_install_membership_baseline_keeps_unflushed_change(
 
     assert dashboard.slices == [kept, added]
     assert inspect(dashboard).attrs.slices.history.added == [added]
+
+
+@with_feature_flags(SOFT_DELETE=True)
+def test_set_dash_metadata_keeps_only_stored_archived_members(
+    session: Session,
+) -> None:
+    """Archived charts kept outside the layout come from the stored rows, so
+    an unflushed archived addition is not linked past the access check."""
+    Dashboard.metadata.create_all(session.get_bind())
+    archived_at: datetime = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    live: Slice = Slice(slice_name="stored_live", datasource_type="table")
+    stored: Slice = Slice(
+        slice_name="stored_archived", datasource_type="table", deleted_at=archived_at
+    )
+    pending: Slice = Slice(
+        slice_name="pending_archived", datasource_type="table", deleted_at=archived_at
+    )
+    dashboard: Dashboard = Dashboard(
+        dashboard_title="stored_archived_dash", slices=[live, stored]
+    )
+    db.session.add_all([live, stored, pending, dashboard])
+    db.session.commit()
+    positions: dict[str, dict[str, Any]] = {
+        "CHART-live": {"type": "CHART", "meta": {"chartId": live.id}}
+    }
+
+    with db.session.no_autoflush:
+        dashboard.slices.append(pending)
+        DashboardDAO.set_dash_metadata(dashboard, {"positions": positions})
+    db.session.flush()
+
+    member_ids: set[int] = set(
+        db.session.scalars(
+            select(dashboard_slices.c.slice_id).where(
+                dashboard_slices.c.dashboard_id == dashboard.id
+            )
+        )
+    )
+    assert member_ids == {live.id, stored.id}
+
+
+@with_feature_flags(SOFT_DELETE=True)
+def test_set_dash_metadata_checks_new_charts_beside_archived_member(
+    session: Session,
+) -> None:
+    """With an archived member outside the layout, a new unreadable chart is
+    refused against the stored rows, and a new readable chart is linked
+    alongside the kept archived member, which is never access-checked."""
+    Dashboard.metadata.create_all(session.get_bind())
+    live: Slice = Slice(slice_name="mixed_live", datasource_type="table")
+    archived: Slice = Slice(
+        slice_name="mixed_archived",
+        datasource_type="table",
+        deleted_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+    )
+    readable: Slice = Slice(slice_name="mixed_readable", datasource_type="table")
+    unreadable: Slice = Slice(slice_name="mixed_unreadable", datasource_type="table")
+    dashboard: Dashboard = Dashboard(
+        dashboard_title="mixed_dash", slices=[live, archived]
+    )
+    db.session.add_all([live, archived, readable, unreadable, dashboard])
+    db.session.commit()
+    checked: list[int] = []
+
+    def can_access_chart(chart: Slice) -> bool:
+        checked.append(chart.id)
+        return chart.id != unreadable.id
+
+    def layout(*charts: Slice) -> dict[str, Any]:
+        return {
+            "positions": {
+                f"CHART-{chart.id}": {"type": "CHART", "meta": {"chartId": chart.id}}
+                for chart in charts
+            }
+        }
+
+    def stored_ids() -> set[int]:
+        return set(
+            db.session.scalars(
+                select(dashboard_slices.c.slice_id).where(
+                    dashboard_slices.c.dashboard_id == dashboard.id
+                )
+            )
+        )
+
+    with (
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(security_manager, "can_access_chart", can_access_chart),
+    ):
+        with pytest.raises(DashboardLayoutInvalidError):
+            DashboardDAO.set_dash_metadata(
+                dashboard, layout(live, readable, unreadable)
+            )
+        db.session.rollback()
+        assert stored_ids() == {live.id, archived.id}
+
+        checked.clear()
+        DashboardDAO.set_dash_metadata(dashboard, layout(live, readable))
+        db.session.flush()
+
+    assert stored_ids() == {live.id, archived.id, readable.id}
+    assert checked == [readable.id]
+
+
+@with_feature_flags(SOFT_DELETE=True)
+def test_set_dash_metadata_checks_archived_chart_that_is_not_a_member(
+    session: Session,
+) -> None:
+    """Being archived does not exempt a chart from the access check: an
+    archived chart the layout adds, and that is not already a member, is
+    refused when the caller cannot read it."""
+    Dashboard.metadata.create_all(session.get_bind())
+    live: Slice = Slice(slice_name="nonmember_live", datasource_type="table")
+    foreign: Slice = Slice(
+        slice_name="nonmember_archived",
+        datasource_type="table",
+        deleted_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+    )
+    dashboard: Dashboard = Dashboard(dashboard_title="nonmember_dash", slices=[live])
+    db.session.add_all([live, foreign, dashboard])
+    db.session.commit()
+    checked: list[int] = []
+
+    def can_access_chart(chart: Slice) -> bool:
+        checked.append(chart.id)
+        return chart.id != foreign.id
+
+    positions: dict[str, dict[str, Any]] = {
+        f"CHART-{chart.id}": {"type": "CHART", "meta": {"chartId": chart.id}}
+        for chart in (live, foreign)
+    }
+
+    with (
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(security_manager, "can_access_chart", can_access_chart),
+        pytest.raises(DashboardLayoutInvalidError) as excinfo,
+    ):
+        DashboardDAO.set_dash_metadata(dashboard, {"positions": positions})
+    db.session.rollback()
+
+    assert excinfo.value.normalized_messages() == {
+        "json_metadata": [
+            f"The layout references charts that are not available: {foreign.id}"
+        ]
+    }
+    assert checked == [foreign.id]
+    assert set(
+        db.session.scalars(
+            select(dashboard_slices.c.slice_id).where(
+                dashboard_slices.c.dashboard_id == dashboard.id
+            )
+        )
+    ) == {live.id}
 
 
 def test_set_dash_metadata_preserves_refresh_frequency(session: Session) -> None:

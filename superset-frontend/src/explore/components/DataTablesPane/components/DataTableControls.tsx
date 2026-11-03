@@ -64,6 +64,7 @@ export const TableControls = ({
   columnNames,
   columnTypes,
   rowcount,
+  rowcountIsLowerBound,
   isLoading,
   canDownload,
   rowLimit,
@@ -125,6 +126,7 @@ export const TableControls = ({
           limit={effectiveRowLimit ?? rowLimit}
           limitReachedMessage={limitReachedMessage}
           loading={isLoading}
+          isLowerBound={rowcountIsLowerBound}
         />
         {canDownload && onDownloadCSV && onDownloadXLSX && (
           <DownloadDropdown

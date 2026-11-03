@@ -378,6 +378,27 @@ class DatabaseUserOAuth2TokensDAO(BaseDAO[DatabaseUserOAuth2Tokens]):
     """
 
     @classmethod
+    def find_by_database_and_ids(
+        cls, database_id: int, token_ids: list[int]
+    ) -> list[DatabaseUserOAuth2Tokens]:
+        """Get selected OAuth2 tokens belonging to a DB connection in a single query."""
+        if not token_ids:
+            return []
+        return cls.query(
+            db.session.query(DatabaseUserOAuth2Tokens).filter(
+                DatabaseUserOAuth2Tokens.database_id == database_id,
+                DatabaseUserOAuth2Tokens.id.in_(token_ids),
+            )
+        )
+
+    @classmethod
+    def delete_all_tokens(cls, database_id: int) -> None:
+        """Delete credentials in bulk without loading every user's token secrets."""
+        db.session.query(DatabaseUserOAuth2Tokens).filter_by(
+            database_id=database_id
+        ).delete(synchronize_session=False)
+
+    @classmethod
     def get_database(cls, database_id: int) -> Database | None:
         """
         Returns the database.

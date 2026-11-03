@@ -27,55 +27,65 @@ jest.mock('node:fs', () => ({
   globSync: jest.fn(() => ['node_modules/@superset-ui/core/src/index.ts']),
 }));
 
-jest.mock('yargs', () => () => ({ parse: () => ({}) }));
+jest.mock('yargs', () => () => ({
+  parse: () => ({ skipLib: process.argv.includes('--skip-lib') }),
+}));
 jest.mock('yargs/helpers', () => ({
   hideBin: (args: string[]) => args.slice(2),
 }));
 
-test('builds both module formats with clean scope and extension arguments', () => {
-  const originalPath = process.env.PATH;
-  try {
-    require('../../scripts/build.js');
-  } finally {
-    process.env.PATH = originalPath;
-  }
+test.each([false, true])(
+  'builds clean command arguments (skipLib=%s)',
+  skipLib => {
+    jest.clearAllMocks();
+    const originalPath = process.env.PATH;
+    const originalArgv = process.argv;
+    process.argv = ['node', 'build.js', ...(skipLib ? ['--skip-lib'] : [])];
+    try {
+      jest.isolateModules(() => require('../../scripts/build.js'));
+    } finally {
+      process.env.PATH = originalPath;
+      process.argv = originalArgv;
+    }
 
-  expect(spawnSync).toHaveBeenCalledTimes(3);
-  const babelArgs = [
-    'exec',
-    '--stream',
-    '--concurrency',
-    '10',
-    '--scope',
-    '{@superset-ui/!(demo|generator-superset),@apache-superset/*}',
-    '--',
-    'babel',
-    '--config-file=../../babel.config.js',
-    'src',
-    '--extensions',
-    '.ts,.tsx,.js,.jsx',
-    '--copy-files',
-    '--out-dir',
-  ];
-  const { calls } = jest.mocked(spawnSync).mock;
-  expect(calls.map(([program, args]) => ({ program, args }))).toEqual([
-    { program: 'lerna', args: [...babelArgs, 'lib'] },
-    { program: 'lerna', args: [...babelArgs, 'esm'] },
-    {
-      program: 'lerna',
-      args: [
-        'exec',
-        '--stream',
-        '--concurrency',
-        '3',
-        '--scope',
-        '{@superset-ui/core,@apache-superset/core}',
-        '--',
-        '../../scripts/tsc.sh',
-        '--build',
-      ],
-    },
-  ]);
-  expect(calls[1][2]?.env?.NODE_ENV).toBe('production');
-  expect(calls[1][2]?.env?.BABEL_OUTPUT).toBe('esm');
-});
+    expect(spawnSync).toHaveBeenCalledTimes(skipLib ? 2 : 3);
+    const babelArgs = [
+      'exec',
+      '--stream',
+      '--concurrency',
+      '10',
+      '--scope',
+      '{@superset-ui/!(demo|generator-superset),@apache-superset/*}',
+      '--',
+      'babel',
+      '--config-file=../../babel.config.js',
+      'src',
+      '--extensions',
+      '.ts,.tsx,.js,.jsx',
+      '--copy-files',
+      '--out-dir',
+    ];
+    const { calls } = jest.mocked(spawnSync).mock;
+    expect(calls.map(([program, args]) => ({ program, args }))).toEqual([
+      ...(skipLib ? [] : [{ program: 'lerna', args: [...babelArgs, 'lib'] }]),
+      { program: 'lerna', args: [...babelArgs, 'esm'] },
+      {
+        program: 'lerna',
+        args: [
+          'exec',
+          '--stream',
+          '--concurrency',
+          '3',
+          '--scope',
+          '{@superset-ui/core,@apache-superset/core}',
+          '--',
+          '../../scripts/tsc.sh',
+          '--build',
+        ],
+      },
+    ]);
+    const esmOptions = calls[skipLib ? 0 : 1][2];
+    expect(esmOptions?.env?.NODE_ENV).toBe('production');
+    expect(esmOptions?.env?.BABEL_OUTPUT).toBe('esm');
+  },
+);

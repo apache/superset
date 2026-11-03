@@ -52,7 +52,7 @@ from superset.reports.models import (
     ReportRecipientType,
     ReportState,
 )
-from superset.tasks.types import ExecutorType
+from superset.tasks.types import ExecutorType, FixedExecutor
 from superset.utils.database import get_example_database
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -3393,3 +3393,126 @@ class TestReportSchedulesApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert "Celery" in data["message"]
         assert "broker" in data["message"].lower()
+
+    @pytest.fixture
+    def executor_access_dashboards(self) -> Iterator[None]:
+        """Two unpublished admin dashboards that Gamma cannot access."""
+        with self.create_app().app_context():
+            dashboards = (
+                Dashboard(dashboard_title="executor_access_a", published=False),
+                Dashboard(dashboard_title="executor_access_b", published=False),
+            )
+            db.session.add_all(dashboards)
+            db.session.commit()
+            self.executor_dashboards = dashboards
+            yield
+            for schedule in db.session.query(ReportSchedule).filter(
+                ReportSchedule.name.like("executor_access_%")
+            ):
+                db.session.delete(schedule)
+            for dashboard in dashboards:
+                db.session.delete(dashboard)
+            db.session.commit()
+
+    @staticmethod
+    def _executor_access_payload(
+        name: str, dashboard: Dashboard, **overrides: Any
+    ) -> dict[str, Any]:
+        return {
+            "type": ReportScheduleType.REPORT,
+            "name": name,
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
+            "crontab": "0 9 * * *",
+            "dashboard": dashboard.id,
+            **overrides,
+        }
+
+    @with_feature_flags(ALERT_REPORT_DYNAMIC_EXECUTOR=False)
+    @pytest.mark.usefixtures("executor_access_dashboards")
+    def test_create_report_rejects_executor_without_dashboard_access(self) -> None:
+        """
+        The saving admin can access the dashboard, but the configured executor
+        it will run as cannot: the report could never deliver.
+        """
+        dashboard, _ = self.executor_dashboards
+        self.login(ADMIN_USERNAME)
+        with patch.dict(
+            "flask.current_app.config",
+            {"ALERT_REPORTS_EXECUTORS": [FixedExecutor(GAMMA_USERNAME)]},
+        ):
+            rv = self.client.post(
+                "api/v1/report/",
+                json=self._executor_access_payload("executor_access_new", dashboard),
+            )
+            assert rv.status_code == 422, rv.json
+            assert GAMMA_USERNAME in rv.json["message"]["dashboard"]
+
+            # A paused report never executes, so it saves.
+            rv = self.client.post(
+                "api/v1/report/",
+                json=self._executor_access_payload(
+                    "executor_access_paused", dashboard, active=False
+                ),
+            )
+            assert rv.status_code == 201, rv.json
+
+    @with_feature_flags(ALERT_REPORT_DYNAMIC_EXECUTOR=False)
+    @pytest.mark.usefixtures("executor_access_dashboards")
+    def test_update_report_rejects_executor_without_dashboard_access(self) -> None:
+        """Changing the target or resuming checks the target as the executor."""
+        dashboard, other_dashboard = self.executor_dashboards
+        self.login(ADMIN_USERNAME)
+        with patch.dict(
+            "flask.current_app.config",
+            {"ALERT_REPORTS_EXECUTORS": [FixedExecutor(GAMMA_USERNAME)]},
+        ):
+            rv = self.client.post(
+                "api/v1/report/",
+                json=self._executor_access_payload(
+                    "executor_access_update", dashboard, active=False
+                ),
+            )
+            assert rv.status_code == 201, rv.json
+            uri = f"api/v1/report/{rv.json['id']}"
+
+            rv = self.client.put(uri, json={"active": True})
+            assert rv.status_code == 422, rv.json
+
+            rv = self.client.put(uri, json={"dashboard": other_dashboard.id})
+            assert rv.status_code == 200, rv.json
+
+            rv = self.client.put(
+                uri, json={"dashboard": dashboard.id, "description": "edited"}
+            )
+            assert rv.status_code == 200, rv.json
+
+        # Resolved as the saving admin, the executor can access the target.
+        rv = self.client.put(uri, json={"active": True})
+        assert rv.status_code == 200, rv.json
+        with patch.dict(
+            "flask.current_app.config",
+            {"ALERT_REPORTS_EXECUTORS": [FixedExecutor(GAMMA_USERNAME)]},
+        ):
+            rv = self.client.put(uri, json={"dashboard": other_dashboard.id})
+            assert rv.status_code == 422, rv.json
+            # Pausing must always be possible.
+            rv = self.client.put(uri, json={"active": False})
+            assert rv.status_code == 200, rv.json
+
+    @with_feature_flags(ALERT_REPORT_DYNAMIC_EXECUTOR=True)
+    @pytest.mark.usefixtures("executor_access_dashboards")
+    def test_create_report_rejects_run_as_user_without_dashboard_access(self) -> None:
+        dashboard, _ = self.executor_dashboards
+        self.login(ADMIN_USERNAME)
+        gamma = self.get_user(GAMMA_USERNAME)
+        rv = self.client.post(
+            "api/v1/report/",
+            json=self._executor_access_payload(
+                "executor_access_run_as",
+                dashboard,
+                run_as=gamma.id,
+                run_as_type=ExecutorType.FIXED_USER,
+            ),
+        )
+        assert rv.status_code == 422, rv.json
+        assert GAMMA_USERNAME in rv.json["message"]["dashboard"]

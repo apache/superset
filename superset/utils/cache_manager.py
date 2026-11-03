@@ -16,15 +16,15 @@
 # under the License.
 from __future__ import annotations
 
-import hashlib
 import logging
 from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
-from flask import current_app, Flask
+from flask import Flask
 from flask_caching import Cache
 from markupsafe import Markup
 
 from superset.utils.core import DatasourceType
+from superset.utils.hashing import _HASH_CONSTRUCTORS, get_hash_algorithm
 
 if TYPE_CHECKING:
     from superset.coordination.cache_backend import (
@@ -38,12 +38,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 CACHE_IMPORT_PATH = "superset.extensions.metastore_cache.SupersetMetastoreCache"
-
-# Hash function lookup table matching superset.utils.hashing
-_HASH_METHODS: dict[str, Callable[..., Any]] = {
-    "sha256": hashlib.sha256,
-    "md5": hashlib.md5,
-}
 
 
 class ConfigurableHashMethod:
@@ -71,8 +65,8 @@ class ConfigurableHashMethod:
         Raises:
             ValueError: If HASH_ALGORITHM is set to an unsupported value
         """
-        algorithm = current_app.config["HASH_ALGORITHM"]
-        hash_func = _HASH_METHODS.get(algorithm)
+        algorithm = get_hash_algorithm()
+        hash_func = _HASH_CONSTRUCTORS.get(algorithm)
         if hash_func is None:
             raise ValueError(f"Unsupported hash algorithm: {algorithm}")
         return hash_func(data)
