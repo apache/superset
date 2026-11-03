@@ -234,8 +234,9 @@ does not let a token holder choose an identity.
 - **New feature flag** `EMBEDDED_CREDENTIAL_FALLBACK`, default `False`.
 - **New engine-spec attribute** `BaseEngineSpec.supports_embedded_credential_fallback`,
   default `False`; `SnowflakeEngineSpec` overrides it to `True`.
-- **New `Database` methods** `get_embedded_fallback_credentials()`,
-  `embedded_fallback_applies()` and `validated_embedded_credentials()`.
+- **New `Database` methods** `get_embedded_fallback_credentials()` and
+  `embedded_fallback_applies()`, and a new helper
+  `validated_embedded_credentials()` in `superset/databases/utils.py`.
 - **New `encrypted_extra` key** `embedded_credentials`, supporting password and key-pair
   credentials, with their secrets added to Snowflake's sensitive-field paths.
 - **New connection-dialog field** for engines that opt in, rendered only when both
@@ -249,13 +250,18 @@ No database migration: the credential lives in the existing `encrypted_extra` co
 
 ## Migration plan and compatibility
 
-Nothing changes for any existing deployment. The flag defaults to `False`; with it off,
-`parameters_json_schema` does not offer the field, the gate never returns a credential,
-and the refusal above never fires.
+The flag defaults to `False`; with it off, `parameters_json_schema` does not offer the
+field, the gate never returns a credential, and the refusal above never fires.
+
+One change applies whatever the flag: dashboard, chart and dataset exports carry any
+masked OAuth2 client and embedded credential blocks, and overwriting a connection from a
+dashboard bundle merges them into its Secure Extra. A destination still on an earlier
+release replaces its whole Secure Extra with those blocks instead, so upgrade import
+destinations first, as `UPDATING.md` says.
 
 Turning the flag off again is a kill switch rather than a deletion: a stored credential
 stops being offered and stops being used, but is preserved, so the operation is
-reversible and connection export/import round-trips unchanged.
+reversible.
 
 ## Rejected alternatives
 

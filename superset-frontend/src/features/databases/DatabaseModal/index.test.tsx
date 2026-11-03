@@ -2277,6 +2277,79 @@ describe('DatabaseModal', () => {
         expect(fileInput.files).toHaveLength(1);
       });
 
+      test('keeps the newlines of a private key asked for by an import', async () => {
+        const keyPath = '$.embedded_credentials.privatekey_body';
+        const passphrasePath = '$.embedded_credentials.privatekey_pass';
+        const pem =
+          '-----BEGIN PRIVATE KEY-----\nline-one\nline-two\n-----END PRIVATE KEY-----';
+        fetchMock.post(IMPORT_DB_ENDPOINT, {
+          status: 422,
+          body: {
+            errors: [
+              {
+                message: 'Error importing database',
+                error_type: 'GENERIC_COMMAND_ERROR',
+                level: 'warning',
+                extra: {
+                  'databases/snowflake.yaml': {
+                    _schema: [
+                      `Must provide value for masked_encrypted_extra field: ${keyPath} (Private Key)`,
+                      `Must provide value for masked_encrypted_extra field: ${passphrasePath} (Passphrase)`,
+                    ],
+                  },
+                  issue_codes: [],
+                },
+              },
+            ],
+          },
+        });
+        Element.prototype.scrollIntoView = jest.fn();
+
+        setup();
+
+        await screen.findByTestId('import-database-btn');
+        fireEvent.change(
+          document.querySelector('input[type="file"]') as HTMLInputElement,
+          {
+            target: {
+              files: [new File([new ArrayBuffer(1)], 'snowflake_export.zip')],
+            },
+          },
+        );
+
+        const secretField = (path: string) =>
+          document.querySelector(`[name="encrypted_extra_${path}"]`);
+        const key = await waitFor(() => {
+          expect(secretField(keyPath)).toBeInTheDocument();
+          return secretField(keyPath) as HTMLTextAreaElement;
+        });
+        const passphrase = secretField(passphrasePath) as HTMLInputElement;
+        expect(key.tagName).toBe('TEXTAREA');
+        expect(passphrase).toHaveAttribute('type', 'password');
+
+        fireEvent.change(key, { target: { value: pem } });
+        fireEvent.change(passphrase, { target: { value: 'passphrase' } });
+        expect(key.value).toBe(pem);
+
+        await userEvent.click(screen.getByRole('button', { name: 'Connect' }));
+
+        await waitFor(() =>
+          expect(fetchMock.callHistory.calls(IMPORT_DB_ENDPOINT)).toHaveLength(
+            2,
+          ),
+        );
+        const body = fetchMock.callHistory.lastCall(IMPORT_DB_ENDPOINT)?.options
+          .body as FormData;
+        expect(
+          JSON.parse(body.get('encrypted_extra_secrets') as string),
+        ).toEqual({
+          'databases/snowflake.yaml': {
+            [keyPath]: pem,
+            [passphrasePath]: 'passphrase',
+          },
+        });
+      });
+
       test('resets the upload entry after an invalid file error', async () => {
         fetchMock.post(IMPORT_DB_ENDPOINT, {
           status: 422,
@@ -2808,6 +2881,35 @@ describe('dbReducer', () => {
       payload: { name: 'server_cert', json: 'cert' },
     });
     expect(otherEditor?.parameters).toEqual(typedState.parameters);
+  });
+
+  test('a Secure Extra edit keeps an OAuth2 client typed in the sub-form', () => {
+    const typedClient = { id: 'B', secret: 'XXXXXXXXXX' };
+    const mirrored = dbReducer(
+      {
+        ...databaseFixture,
+        masked_encrypted_extra: JSON.stringify({
+          oauth2_client_info: { id: 'A', secret: 'XXXXXXXXXX' },
+        }),
+        parameters: { oauth2_client_info: typedClient },
+      },
+      {
+        type: ActionType.EncryptedExtraInputChange,
+        payload: { name: 'oauth2_client_info', value: typedClient },
+      },
+    );
+    const edited = dbReducer(mirrored, {
+      type: ActionType.EditorChange,
+      payload: {
+        name: 'masked_encrypted_extra',
+        json: mirrored?.masked_encrypted_extra ?? '',
+      },
+    });
+
+    expect(edited?.parameters?.oauth2_client_info).toBeUndefined();
+    expect(
+      JSON.parse(edited?.masked_encrypted_extra ?? '{}').oauth2_client_info,
+    ).toEqual(typedClient);
   });
 
   test('it will reset state to null', () => {

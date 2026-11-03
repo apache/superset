@@ -473,12 +473,14 @@ def test_redact_sensitive_leaves_empty_values_unmasked() -> None:
     [
         (None, ["$.secret", "$.other"]),
         ({"secret": "stored"}, ["$.other"]),
-        ({"secret": "stored", "other": ""}, ["$.other"]),
         ({"secret": "stored", "other": "also"}, []),
         # A stored mask is what master saved when it had nothing to reveal.
         ({"secret": PASSWORD_MASK, "other": "also"}, ["$.secret"]),
         # reveal_sensitive restores any stored value, falsy ones included.
         ({"secret": 0, "other": False}, []),
+        # Earlier releases masked an optional secret that was never set, so an
+        # archived export asks for a value the connection never had.
+        ({"secret": None, "other": ""}, []),
     ],
 )
 def test_unrevealable_masked_fields(

@@ -38,6 +38,14 @@ class InvalidEngine:
     """
 
 
+@pytest.fixture(autouse=True)
+def can_write_databases(mocker: MockerFixture) -> None:
+    """An import only overwrites, and so only asks, with write access."""
+    mocker.patch(
+        "superset.databases.schemas.security_manager.can_access", return_value=True
+    )
+
+
 @pytest.fixture
 def dummy_schema() -> "DatabaseParametersSchemaMixin":
     """
@@ -1397,3 +1405,163 @@ def test_databricks_form_clear_catalog_removes_legacy_override(
     args = json.loads(payload["extra"])["engine_params"]["connect_args"]
     assert "catalog" not in args
     assert args["http_path"] == "/legacy"
+
+
+def _existing_connection_with_secure_extra(
+    mocker: MockerFixture,
+    stored: dict[str, Any],
+    can_write: bool = True,
+) -> None:
+    """Make the import schema find a connection storing this Secure Extra."""
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    existing = mocker.MagicMock()
+    existing.db_engine_spec = SnowflakeEngineSpec
+    existing.encrypted_extra = json.dumps(stored)
+    existing.sqlalchemy_uri = "snowflake://account/db"
+    existing.extra = "{}"
+    mock_session = mocker.patch("superset.databases.schemas.db.session")
+    mock_session.query.return_value.filter_by.return_value.first.return_value = existing
+    mocker.patch(
+        "superset.databases.schemas.security_manager.can_access",
+        return_value=can_write,
+    )
+
+
+def _masked_snowflake_import(
+    masked: dict[str, Any], sqlalchemy_uri: str = "snowflake://account/db"
+) -> dict[str, Any]:
+    return {
+        "database_name": "shared",
+        "sqlalchemy_uri": sqlalchemy_uri,
+        "uuid": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+        "masked_encrypted_extra": json.dumps(masked),
+        "extra": {},
+        "version": "1.0.0",
+    }
+
+
+@pytest.mark.parametrize(
+    "sqlalchemy_uri",
+    ["snowflake://account/db", "snowflake://elsewhere/db"],
+)
+def test_import_schema_asks_nothing_of_a_role_that_cannot_write_databases(
+    mocker: MockerFixture, sqlalchemy_uri: str
+) -> None:
+    """
+    `import_database` leaves the connection alone without `can_write` on Database,
+    so a secret asked for here would be dropped, even for a bundle that moves it.
+    """
+    from superset.databases.schemas import ImportV1DatabaseSchema
+
+    _existing_connection_with_secure_extra(mocker, {}, can_write=False)
+
+    ImportV1DatabaseSchema().load(
+        _masked_snowflake_import(
+            {"oauth2_client_info": {"id": "client", "secret": PASSWORD_MASK}},
+            sqlalchemy_uri,
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    "stored,incoming,expected",
+    [
+        (
+            {"oauth2_client_info": {"id": "prod", "secret": "prod-secret"}},
+            {"oauth2_client_info": {"id": "staging", "secret": PASSWORD_MASK}},
+            ["$.oauth2_client_info.secret"],
+        ),
+        (
+            {"embedded_credentials": {"username": "prod", "password": "prod-pw"}},
+            {
+                "embedded_credentials": {
+                    "username": "staging",
+                    "password": PASSWORD_MASK,
+                }
+            },
+            ["$.embedded_credentials.password"],
+        ),
+        (
+            {
+                "embedded_credentials": {
+                    "username": "prod",
+                    "privatekey_body": "prod-key",
+                    "privatekey_pass": "prod-pass",
+                }
+            },
+            {
+                "embedded_credentials": {
+                    "username": "staging",
+                    "privatekey_body": PASSWORD_MASK,
+                    "privatekey_pass": PASSWORD_MASK,
+                }
+            },
+            [
+                "$.embedded_credentials.privatekey_body",
+                "$.embedded_credentials.privatekey_pass",
+            ],
+        ),
+        # A stored block naming nobody cannot vouch for the one in the file.
+        (
+            {"oauth2_client_info": {"secret": "stored"}},
+            {"oauth2_client_info": {"id": "staging", "secret": PASSWORD_MASK}},
+            ["$.oauth2_client_info.secret"],
+        ),
+    ],
+)
+def test_import_schema_asks_for_a_secret_when_the_file_names_someone_else(
+    mocker: MockerFixture,
+    stored: dict[str, Any],
+    incoming: dict[str, Any],
+    expected: list[str],
+) -> None:
+    """Instances sharing a connection must not end up with each other's pairs."""
+    from superset.databases.schemas import ImportV1DatabaseSchema
+
+    _existing_connection_with_secure_extra(mocker, stored)
+
+    with pytest.raises(ValidationError) as excinfo:
+        ImportV1DatabaseSchema().load(_masked_snowflake_import(incoming))
+    assert all(path in str(excinfo.value.messages) for path in expected)
+
+
+@pytest.mark.parametrize(
+    "incoming",
+    [
+        {"oauth2_client_info": {"id": "client", "secret": PASSWORD_MASK}},
+        # Hand-written: nothing to compare, and nothing mispaired by revealing.
+        {"oauth2_client_info": {"secret": PASSWORD_MASK}},
+    ],
+)
+def test_import_schema_reveals_a_secret_for_the_same_identity(
+    mocker: MockerFixture, incoming: dict[str, Any]
+) -> None:
+    from superset.databases.schemas import ImportV1DatabaseSchema
+
+    _existing_connection_with_secure_extra(
+        mocker, {"oauth2_client_info": {"id": "client", "secret": "stored"}}
+    )
+
+    ImportV1DatabaseSchema().load(_masked_snowflake_import(incoming))
+
+
+def test_import_schema_reveals_a_stored_null_secret(mocker: MockerFixture) -> None:
+    """An archived export masks an optional passphrase the key never had."""
+    from superset.databases.schemas import ImportV1DatabaseSchema
+
+    _existing_connection_with_secure_extra(
+        mocker,
+        {"auth_params": {"privatekey_body": "key", "privatekey_pass": None}},
+    )
+
+    ImportV1DatabaseSchema().load(
+        _masked_snowflake_import(
+            {
+                "auth_params": {
+                    "privatekey_body": PASSWORD_MASK,
+                    "privatekey_pass": PASSWORD_MASK,
+                }
+            }
+        )
+    )

@@ -805,7 +805,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             # Impersonating a guest here would run on whatever identity the engine
             # derives from the URL -- for Snowflake, the base account, with no error
             # or warning.
-            self._refuse_embedded_guest(
+            self.refuse_embedded_guest(
                 '"Impersonate logged in user" is turned on but the connection has '
                 "no usable OAuth2 client information, so there is no identity to "
                 'serve embedded viewers under. Either turn off "Impersonate logged '
@@ -841,7 +841,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 # a per-user OAuth2 connection with no (or a half-filled)
                 # credential configured -- none of which the viewer or
                 # the dashboard author can see. Refuse instead.
-                self._refuse_embedded_guest(
+                self.refuse_embedded_guest(
                     'the connection uses OAuth2 with "Impersonate logged in user" '
                     "turned on but has no complete embedded guest credential. Add "
                     'one under "Embedded guest credentials" on the connection: a '
@@ -1798,7 +1798,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             self._has_embedded_oauth2_client()
         )
 
-    def _refuse_embedded_guest(self, reason: str) -> NoReturn:
+    def refuse_embedded_guest(self, reason: str) -> NoReturn:
         """
         Refuse an embedded guest's query on this connection.
 

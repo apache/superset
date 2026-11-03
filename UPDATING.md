@@ -61,7 +61,10 @@ assists people when migrating to a new version.
   OAuth2 client and embedded credential blocks, and overwriting a connection from a
   dashboard bundle merges them into its Secure Extra. A destination still on an earlier
   release replaces its whole Secure Extra with those blocks instead, so upgrade import
-  destinations first.
+  destinations first. Overwriting a connection by import asks for the OAuth2 client
+  secret when the file names a different client than the stored one, and for the
+  embedded credential's secrets when it names a different username, rather than
+  pairing the stored secret with them.
   Read the limitations in the "Embedding Superset" docs before turning it on: with
   `GLOBAL_ASYNC_QUERIES` on, logged-in users' charts on a Snowflake OAuth2 connection
   run as the connection's base account (this predates the flag, which does not change

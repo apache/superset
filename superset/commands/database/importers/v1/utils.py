@@ -178,8 +178,10 @@ def import_database(  # noqa: C901
         else:
             config["encrypted_extra"] = masked_encrypted_extra
 
-        # Never store a mask as if it were the secret: the schema asks for any
-        # value that cannot be revealed, so one left here is a bug, not input.
+    # Never store a mask as if it were the secret. The schema asks for any value
+    # that cannot be revealed. A plain `encrypted_extra` skips it, and a connection
+    # already storing a mask exports that way, since masking it changes nothing.
+    if config.get("encrypted_extra"):
         engine_spec = (
             existing.db_engine_spec
             if existing
