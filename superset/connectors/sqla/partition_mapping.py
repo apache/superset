@@ -2148,6 +2148,7 @@ def _evaluate_with_text_forms(
             values + [_as_filter_text(values[index]) for index in indexes],
             errors=errors,
             fresh=fresh,
+            record_refusal=False,
         )
         if combined is not None:
             text_answers.extend(zip(indexes, combined[len(values) :], strict=False))
@@ -2156,44 +2157,47 @@ def _evaluate_with_text_forms(
         # text of every correct transform too -- `CAST(:value AS DATE)`
         # cannot read '2026-01-12 06:30:00' under the default
         # ``NLS_DATE_FORMAT`` -- so declining here cost Oracle every time
-        # range. The typed values are asked again, a second round trip only
+        # range. The typed values are asked alone, a second round trip only
         # on this path, and `_declined_for_reading_by_type` checks what they
-        # answer against the instants they were asked about instead.
-        #
-        # In that same round trip each instant is asked once more at the top
-        # of an hour, typed and as the shorter text `_as_hour_text` writes,
-        # which a mask too short for the full text still reads. Being near
-        # the instant is not enough on its own: under an ISO date-only
-        # ``NLS_DATE_FORMAT``, ``TO_DATE(:value, 'YYYY-MM-DD HH24')`` answers
-        # midnight for 06:30, which is near it and a whole hourly key out.
-        # Those two answers differ.
-        hours = [_at_probe_hour(values[index]) for index in indexes]
-        with_hours = evaluate_transform(
+        # answer against the instants they were asked about instead. Their
+        # answer is the one that says whether the transform works, so neither
+        # text-form probe records a refusal as a verdict: the typed lookup only
+        # writes on a cache miss, and nothing would restore it on a hit.
+        typed = evaluate_transform(
+            database, catalog, schema, transform, values, fresh=fresh
+        )
+        if typed is None:
+            return True, None
+        # Being near the instant is not enough on its own: under an ISO
+        # date-only ``NLS_DATE_FORMAT``, ``TO_DATE(:value, 'YYYY-MM-DD HH24')``
+        # answers midnight for 06:30, which is near it and a whole hourly key
+        # out. So one instant is asked once more at the top of an hour, typed
+        # and as the shorter text `_as_hour_text` writes, which a mask too
+        # short for the full text still reads, and those two answers have to
+        # agree. One, and on its own, because losing the time of day does not
+        # depend on the day, and alongside the values a long list would pass
+        # the engine's column limit and read as the text being refused. Every
+        # ISO spelling is refused under Oracle's default ``NLS_DATE_FORMAT``,
+        # and then only the distance from the instant is checked.
+        hour = _at_probe_hour(values[indexes[0]])
+        hour_answers = evaluate_transform(
             database,
             catalog,
             schema,
             transform,
-            values + hours + [_as_hour_text(hour) for hour in hours],
+            [hour, _as_hour_text(hour)],
             fresh=fresh,
+            record_refusal=False,
         )
-        if with_hours is not None:
-            typed_hours = with_hours[len(values) : len(values) + len(hours)]
-            text_hours = with_hours[len(values) + len(hours) :]
-            text_answers.extend(
-                (index, TextRefused(hour, typed_hour, text_hour))
-                for index, hour, typed_hour, text_hour in zip(
-                    indexes, hours, typed_hours, text_hours, strict=False
-                )
+        text_answers.append(
+            (
+                indexes[0],
+                TEXT_REFUSED
+                if hour_answers is None
+                else TextRefused(hour, *hour_answers),
             )
-            return True, with_hours[: len(values)]
-        # The shorter text is refused too -- every ISO spelling is, under
-        # Oracle's default ``NLS_DATE_FORMAT`` -- so the typed values are
-        # asked alone, and only the distance from the instant is checked.
-        typed = evaluate_transform(
-            database, catalog, schema, transform, values, fresh=fresh
         )
-        if typed is not None:
-            text_answers.extend((index, TEXT_REFUSED) for index in indexes)
+        text_answers.extend((index, TEXT_REFUSED) for index in indexes[1:])
         return True, typed
     return False, None
 
@@ -2208,6 +2212,7 @@ def evaluate_transform(
     errors: list[str] | None = None,
     text_answers: list[tuple[int, Any]] | None = None,
     fresh: bool = False,
+    record_refusal: bool = True,
 ) -> list[Any] | None:
     """
     Evaluate ``transform`` against the engine once per distinct value.
@@ -2229,8 +2234,11 @@ def evaluate_transform(
         ``values`` is also asked as the text a simple filter would bind, in the
         same round trip, and ``(index, answer)`` is appended for each -- see
         `_declined_for_reading_by_type` for why. Where the text is refused the
-        typed values are asked again, and a `TextRefused` is appended for each
+        typed values are asked alone, and a `TextRefused` is appended for each
         if they answer.
+    :param record_refusal: whether the engine refusing these values is recorded
+        as the transform's verdict. Off for a question about how text reads,
+        which a working transform can refuse.
     """
     if not values:
         return None
@@ -2286,7 +2294,13 @@ def evaluate_transform(
     cached = _cache_get(cache_key)
     if cached is None:
         cached = _run_probe(
-            database, catalog, schema, transform, distinct, errors=errors
+            database,
+            catalog,
+            schema,
+            transform,
+            distinct,
+            errors=errors,
+            record_refusal=record_refusal,
         )
         if cached is None:
             # Deliberately not cached: a transient engine blip would otherwise
@@ -2325,6 +2339,7 @@ def _run_probe(
     distinct: list[Any],
     *,
     errors: list[str] | None = None,
+    record_refusal: bool = True,
 ) -> list[Any] | None:
     """
     `_probe` plus the advisory record of how it went.
@@ -2355,6 +2370,8 @@ def _run_probe(
     """
     values = _probe(database, catalog, schema, transform, distinct, errors=errors)
     if values is None:
+        if not record_refusal:
+            return None
         mirrors = False
     elif any(value is not None for value in values):
         mirrors = True
