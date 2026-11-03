@@ -36,6 +36,8 @@ class SkipReason(str, Enum):
     """Why a chart yielded no data; values match the Excel export error keys."""
 
     NO_QUERY_CONTEXT = "no-query-context"
+    # Set only by Superset's own Excel export planning, never by
+    # ``iter_dashboard_chart_results``.
     UNBOUNDED = "unbounded-query"
     GENERAL = "general-exception"
 
