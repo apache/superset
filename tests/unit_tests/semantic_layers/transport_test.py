@@ -821,6 +821,25 @@ def test_bounded_body_rejects_short_urllib3_1_response() -> None:
     assert raised.value.failure == ProviderRequestFailure.UNREACHABLE
 
 
+@pytest.mark.parametrize("content_length", ["invalid", "9" * 5000])
+def test_bounded_body_rejects_malformed_content_length(content_length: str) -> None:
+    raw: Mock = Mock(spec=["read"])
+    raw.read.return_value = b""
+    response: Mock = Mock(
+        raw=raw,
+        headers={"Content-Length": content_length},
+        request=Mock(method="GET"),
+    )
+    bound: semantic_layer_http._Deadline = semantic_layer_http._Deadline(
+        time.monotonic() + 2
+    )
+
+    with pytest.raises(ProviderRequestError) as raised:
+        semantic_layer_http.HostProviderTransport._read_body(response, bound, 100, None)
+
+    assert raised.value.failure == ProviderRequestFailure.UNREACHABLE
+
+
 def test_bounded_body_is_refused_past_its_byte_cap(
     public_tls: tuple[ssl.SSLContext, list[str]],
 ) -> None:
