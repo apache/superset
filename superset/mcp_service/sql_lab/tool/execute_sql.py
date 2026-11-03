@@ -194,6 +194,13 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                     template_params=template_params,
                     force_dataset_match=True,
                 )
+                security_manager.raise_for_write_target_access(
+                    database=database,
+                    sql=request.sql,
+                    catalog=request.catalog,
+                    schema=request.schema_name,
+                    template_params=template_params,
+                )
             except SupersetSecurityException as ex:
                 await ctx.warning(
                     "Access denied for query on database: %s" % database.database_name

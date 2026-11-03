@@ -259,6 +259,10 @@ class AlertCommand(BaseCommand):
                         sql=rendered_sql,
                         force_dataset_match=True,
                     )
+                    security_manager.raise_for_write_target_access(
+                        database=self._report_schedule.database,
+                        sql=rendered_sql,
+                    )
                 except SupersetSecurityException as ex:
                     raise AlertQueryError(
                         message=_("Alert query failed the authorization check")

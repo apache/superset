@@ -141,6 +141,9 @@ def test_alert_query_uses_alert_query_executor(mocker: MockerFixture) -> None:
     mocker.patch("superset.reports.utils.is_feature_enabled", return_value=True)
     get_executor = mocker.patch("superset.commands.report.alert.get_executor")
     mocker.patch("superset.commands.report.alert.security_manager.raise_for_access")
+    mocker.patch(
+        "superset.commands.report.alert.security_manager.raise_for_write_target_access"
+    )
     override_user = mocker.patch("superset.commands.report.alert.override_user")
     template_processor = Mock()
     template_processor.process_template.return_value = "SELECT 1"
@@ -165,6 +168,55 @@ def test_alert_query_uses_alert_query_executor(mocker: MockerFixture) -> None:
 
     override_user.assert_called_once_with(query_user)
     get_executor.assert_not_called()
+
+
+def test_alert_query_checks_write_targets_before_running(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The alert run checks the write or DDL targets of the rendered query, after
+    the per-table check, and does not run a query refused there.
+    """
+    from superset.commands.report.exceptions import AlertQueryError
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    mocker.patch("superset.reports.utils.is_feature_enabled", return_value=True)
+    mocker.patch("superset.commands.report.alert.override_user")
+    mocker.patch("superset.commands.report.alert.security_manager.raise_for_access")
+    raise_for_write_target_access = mocker.patch(
+        "superset.commands.report.alert.security_manager.raise_for_write_target_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                message="You need access to the following tables: `t`",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+    template_processor = Mock()
+    template_processor.process_template.return_value = "DELETE FROM t"
+    mocker.patch(
+        "superset.commands.report.alert.jinja_context.get_template_processor",
+        return_value=template_processor,
+    )
+    mocker.patch.object(AlertCommand, "_validate_rendered_sql")
+    mocker.patch.dict(
+        "flask.current_app.config", {"MUTATE_ALERT_QUERY": False}, clear=False
+    )
+    schedule = Mock(run_as_type="fixed_user", run_alert_query_as_type="fixed_user")
+    schedule.id = 1
+    schedule.sql = "DELETE FROM t"
+    schedule.run_as = _user("content_user")
+    schedule.run_alert_query_as = _user("query_user")
+
+    with pytest.raises(AlertQueryError):
+        AlertCommand(schedule, uuid4())._execute_query()
+
+    raise_for_write_target_access.assert_called_once_with(
+        database=schedule.database, sql="DELETE FROM t"
+    )
+    schedule.database.get_df.assert_not_called()
 
 
 def test_alert_query_inactive_executor_raises(mocker: MockerFixture) -> None:
@@ -302,6 +354,9 @@ def test_alert_template_and_database_share_query_identity(
     mocker.patch.object(g, "user", content_user, create=True)
     mocker.patch("superset.reports.utils.is_feature_enabled", return_value=True)
     mocker.patch("superset.commands.report.alert.security_manager.raise_for_access")
+    mocker.patch(
+        "superset.commands.report.alert.security_manager.raise_for_write_target_access"
+    )
     mocker.patch.object(AlertCommand, "_validate_rendered_sql")
     mocker.patch.dict("flask.current_app.config", {"MUTATE_ALERT_QUERY": True})
     schedule = Mock(

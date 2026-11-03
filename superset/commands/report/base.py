@@ -164,6 +164,10 @@ class BaseReportScheduleCommand(BaseCommand):
             security_manager.raise_for_access(
                 database=database, sql=sql, force_dataset_match=True
             )
+            # Same write or DDL target check as the alert run
+            # (``AlertCommand._execute_query``), so a query refused there is
+            # refused here too.
+            security_manager.raise_for_write_target_access(database=database, sql=sql)
         except SupersetSecurityException as ex:
             exceptions.append(AlertQueryDataAccessValidationError(ex.error.message))
         except SupersetParseError as ex:
