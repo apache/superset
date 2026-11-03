@@ -5096,3 +5096,52 @@ test.each(['PNG', 'CSV'])(
     }
   },
 );
+
+test('A blank Teams destination blocks saving alongside a valid Email recipient', async () => {
+  mockNotificationMethods = ['Email', 'Teams'];
+  fetchMock.get(
+    'glob:*/api/v1/report/97',
+    {
+      result: { ...generateMockPayload(true), id: 97, report_format: 'NONE' },
+    },
+    { name: 'teams-blank-report' },
+  );
+  fetchMock.get(
+    'glob:*/api/v1/report/teams_destinations/',
+    {
+      result: [{ key: 'ops', label: 'Operations', available: true }],
+    },
+    { name: 'teams-blank-destinations' },
+  );
+  try {
+    render(
+      <AlertReportModal
+        {...generateMockedProps(false, true)}
+        alert={{ ...validAlert, id: 97 }}
+      />,
+      { useRedux: true, initialState: { user: adminUser } },
+    );
+    const save = screen.getByRole('button', { name: /save/i });
+    await waitFor(() => expect(save).toBeEnabled());
+    await userEvent.click(screen.getByTestId('notification-method-panel'));
+    await userEvent.click(screen.getByText(/Add another notification method/i));
+    await userEvent.click(
+      screen.getAllByRole('combobox', { name: /^Delivery method/ })[1],
+    );
+    await userEvent.click(
+      await screen.findByText('Teams', {
+        selector: '.ant-select-item-option-content',
+      }),
+    );
+    const destination = await screen.findByRole('combobox', {
+      name: 'Teams destination',
+    });
+    await waitFor(() => expect(save).toBeDisabled());
+    await userEvent.click(destination);
+    await userEvent.click(await screen.findByText('Operations'));
+    await waitFor(() => expect(save).toBeEnabled());
+  } finally {
+    fetchMock.removeRoute('teams-blank-report');
+    fetchMock.removeRoute('teams-blank-destinations');
+  }
+});

@@ -396,17 +396,18 @@ def test_transport_errors_map_to_existing_notification_exceptions(
     category: str,
     exception: type[Exception],
 ) -> None:
-    monkeypatch.setattr(
-        adapter,
-        "deliver_teams_alert",
-        MagicMock(side_effect=adapter.TeamsDeliveryError(category)),
-    )
+    deliver = MagicMock(side_effect=adapter.TeamsDeliveryError(category))
+    monkeypatch.setattr(adapter, "deliver_teams_alert", deliver)
     with pytest.raises(exception) as exc:
         notifications._send_to_teams(
-            configured, configured.destinations[0], SERVICE_URL, {}
+            configured, configured.destinations[0], SERVICE_URL, {}, retry_deadline=42.0
         )
     assert type(exc.value) is exception
     assert exc.value.__cause__ is None
+
+    deliver.assert_called_once_with(
+        configured, configured.destinations[0], SERVICE_URL, {}, retry_deadline=42.0
+    )
 
 
 def _sdk_post_response(status: int) -> httpx.Response:
