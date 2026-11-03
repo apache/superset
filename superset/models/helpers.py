@@ -3444,6 +3444,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             TimeRangeAmbiguousError,
             ValidationError,
             ValueError,
+            TypeError,
         ) as ex:
             raise QueryObjectValidationError(str(ex)) from ex
 
