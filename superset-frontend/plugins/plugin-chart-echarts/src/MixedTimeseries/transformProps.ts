@@ -257,6 +257,8 @@ export default function transformProps(
     forceMaxInterval,
     percentageThreshold,
     showQueryIdentifiers = false,
+    truncateMetric,
+    truncateMetricB,
     metrics = [],
     metricsB = [],
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
@@ -512,13 +514,37 @@ export default function transformProps(
   // the same dash pattern, mirroring the regular Timeseries transform.
   const offsetPatterns: { [key: string]: number } = {};
 
+  // With "Truncate Metric", the backend drops the metric from the series names
+  // of a single-metric query with dimensions (see renameOperator), so those
+  // names are rendered as they come. When both queries are truncated and share
+  // a series name that no query identifier tells apart, both keep the metric
+  // so that each series stays distinguishable (#38190).
+  const isMetricTruncatedA =
+    Boolean(truncateMetric) &&
+    groupby.length > 0 &&
+    ensureIsArray(metrics).length === 1;
+  const isMetricTruncatedB =
+    Boolean(truncateMetricB) &&
+    groupbyB.length > 0 &&
+    ensureIsArray(metricsB).length === 1;
+  const seriesNamesA = new Set(
+    rawSeriesA.map(entry => String(entry.name || '')),
+  );
+  const truncatedNamesClash =
+    isMetricTruncatedA &&
+    isMetricTruncatedB &&
+    !showQueryIdentifiers &&
+    rawSeriesB.some(entry => seriesNamesA.has(String(entry.name || '')));
+  const keepTruncatedNamesA = isMetricTruncatedA && !truncatedNamesClash;
+  const keepTruncatedNamesB = isMetricTruncatedB && !truncatedNamesClash;
+
   // The rendered ECharts series names are display names that can diverge from
   // the backend `label_map` keys: the metric display name is prepended when
-  // dimensions are present, query identifiers may be appended, and verbose
-  // names replace the raw column labels. Cross-filtering and drill lookups in
-  // EchartsMixedTimeseries resolve the clicked series name through the label
-  // map, so expose maps re-keyed by the rendered series names to keep those
-  // lookups working (#41622).
+  // dimensions are present and the metric is not truncated, query identifiers
+  // may be appended, and verbose names replace the raw column labels.
+  // Cross-filtering and drill lookups in EchartsMixedTimeseries resolve the
+  // clicked series name through the label map, so expose maps re-keyed by the
+  // rendered series names to keep those lookups working (#41622).
   const displayLabelMap: Record<string, string[]> = {};
   const displayLabelMapB: Record<string, string[]> = {};
 
@@ -547,7 +573,7 @@ export default function transformProps(
 
     let displayName: string;
 
-    if (groupby.length > 0) {
+    if (groupby.length > 0 && !keepTruncatedNamesA) {
       // When we have groupby, format as "metric, dimension". Each series
       // belongs to the metric recorded in its label-map tuple
       // ([metric, ...dimensions]) — always using the first metric would
@@ -564,7 +590,8 @@ export default function transformProps(
         ? entryName
         : `${metricPart}, ${entryName}`;
     } else {
-      // When no groupby, format as just the entry name with optional query identifier
+      // When no groupby or a truncated metric, format as just the entry name
+      // with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query A)` : entryName;
     }
     if (labelMapValues) {
@@ -654,7 +681,7 @@ export default function transformProps(
 
     let displayName: string;
 
-    if (groupbyB.length > 0) {
+    if (groupbyB.length > 0 && !keepTruncatedNamesB) {
       // When we have groupby, format as "metric, dimension". Each series
       // belongs to the metric recorded in its label-map tuple
       // ([metric, ...dimensions]) — always using the first metric would
@@ -671,7 +698,8 @@ export default function transformProps(
         ? entryName
         : `${metricPart}, ${entryName}`;
     } else {
-      // When no groupby, format as just the entry name with optional query identifier
+      // When no groupby or a truncated metric, format as just the entry name
+      // with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query B)` : entryName;
     }
     if (labelMapValuesB) {
