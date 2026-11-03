@@ -476,7 +476,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   // Once the viewer changes a filter the saved state must not be re-applied
   // over their change, so the banner (and its Try again action) goes away.
   useEffect(
-    () => subscribeFilterKeyPublishRelease(() => setSharedStateNotice(null)),
+    () =>
+      subscribeFilterKeyPublishRelease(() => {
+        retryController.current?.abort();
+        setIsRetryingSharedState(false);
+        setSharedStateNotice(null);
+      }),
     [],
   );
 
