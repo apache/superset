@@ -1,0 +1,20 @@
+Asset approval status, 3 Nov
+
+All 15 bugs under the epic are now In Review in Shortcut, each with a note on what was done and how it was retested. Everything is on asset-demo, head 5229b7ab.
+
+Elizabeth's product acceptance set (129068 to 129078), retested by hand against the running build:
+
+10 of 11 pass. Legacy chart-overwrite and dataset-save, chart added to a published dashboard, approving a version never reviewed, undo and double-apply, the fields the SOW says apply immediately, banner and Request review without a reload, empty change, the Published toggle, the What changed panel and the silent delete replacement are all closed out.
+
+129072 (imports) is still refused. That one is a deliberate narrowing rather than a regression: capturing an import means parking an uploaded zip somewhere and replaying it on approval, and the change-request table is not the place for that. SOW 5.1 and Visa Q12 do put imports in V1, so this needs a scope call from Visa before it can close.
+
+The four found while recording the demo (131031 to 131034) are all fixed:
+
+131031, the API permissions were never created when the extension installs after superset init, so every route 403'd for non-admin editors and it looked like their edits were vanishing.
+131032, the chart banner was claiming to show changes that were not on screen, and approving reloaded through a stale form_data_key.
+131033, a change sent back to its author was counted by the bell but missing from the Approvals page.
+131034, the settings page was still describing an approval permission that no longer exists.
+
+From QA run 5, R5-01 to R5-04 are fixed and pushed. R5-05 (whether a second collaborator should be allowed to approve) is a spec question rather than a defect and still needs an answer.
+
+Still open overall: the chart preview in the review panel (the remaining half of 129075, new work rather than a defect), imports (129072), and R5-05.

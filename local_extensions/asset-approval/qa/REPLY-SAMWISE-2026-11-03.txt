@@ -1,0 +1,13 @@
+Thanks Samwise, all five were legit. Four are fixed and pushed, the fifth is partly done. Everything below is on asset-demo @ 5229b7ab, and all of them are now In Review with notes on the tickets.
+
+• sc-131031 (High) fixed. Superset builds AppBuilder with update_perms=False, so registering the review API never created the permissions protecting it, only superset init did. Install after init and no role held can_read or can_write on ChangeRequest, so every route 403'd while the write itself was still captured, which is why it looked like the edits vanished. install_views now creates and seeds those permissions on Admin, Alpha and Gamma, and stops seeding once any role holds them so a revocation survives a restart. No more rerunning superset init, and the README has an install-order section for the Visa deployment docs.
+
+• sc-131032 (Medium) fixed, both halves. The banner was saying "Viewing your changes" on a chart where the preview is dashboard-only, so there was nothing on screen to view; it now says the live version is on screen. The Approve half was the reload going through a URL still carrying form_data_key, and a cached key overrides the slice's own params, so you got the pre-approval chart back. The reload drops the key now.
+
+• sc-131033 (Medium) fixed. for_me only filtered on PENDING, so a returned change could never appear in the view the Approvals page opens on while the bell still counted it. The view now also carries the viewer's own returned changes, which lines up with mock 16c.
+
+• sc-131034 (Medium) fixed. The settings page and a comment in eligibility.py both now describe editorship rather than the permission that was removed.
+
+• sc-129075 partly done. Dataset diffs render properly, chart settings come through with their real Explore names instead of raw keys, and long values no longer render as if the field had been emptied. We also caught one while retesting: the panel was listing colour keys that Superset recomputes on its own, which nobody had touched. The chart preview is still not there, and that one is new work rather than a defect, so it needs a call on whether it goes in V1.
+
+Also worth knowing: while retesting Elizabeth's eleven I found 129072 (imports) is still refused by design. SOW 5.1 and Visa Q12 put imports in V1, so that needs a scope decision before it can close.
