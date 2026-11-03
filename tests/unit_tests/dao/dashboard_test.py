@@ -294,7 +294,11 @@ def test_set_dash_metadata_checks_new_charts_beside_archived_member(
     db.session.commit()
     checked: list[int] = []
 
-    def can_access_chart(chart: Slice) -> bool:
+    def can_access_chart(
+        chart: Slice, *, allow_dashboard_inheritance: bool = True
+    ) -> bool:
+        # The layout check must not count access inherited through a dashboard.
+        assert allow_dashboard_inheritance is False
         checked.append(chart.id)
         return chart.id != unreadable.id
 
@@ -353,7 +357,11 @@ def test_set_dash_metadata_checks_archived_chart_that_is_not_a_member(
     db.session.commit()
     checked: list[int] = []
 
-    def can_access_chart(chart: Slice) -> bool:
+    def can_access_chart(
+        chart: Slice, *, allow_dashboard_inheritance: bool = True
+    ) -> bool:
+        # The layout check must not count access inherited through a dashboard.
+        assert allow_dashboard_inheritance is False
         checked.append(chart.id)
         return chart.id != foreign.id
 

@@ -2687,10 +2687,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         try:
-            self.raise_for_access(
-                datasource=datasource,
-                allow_dashboard_inheritance=allow_dashboard_inheritance,
-            )
+            if allow_dashboard_inheritance:
+                self.raise_for_access(datasource=datasource)
+            else:
+                # Passed only when set, so an operator's in-place replacement
+                # of ``raise_for_access`` with the older signature keeps
+                # working on the default path.
+                self.raise_for_access(
+                    datasource=datasource, allow_dashboard_inheritance=False
+                )
         except SupersetSecurityException:
             return False
 
@@ -3082,9 +3087,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :return: Whether the user can access the chart
         """
         try:
-            self.raise_for_access(
-                chart=chart, allow_dashboard_inheritance=allow_dashboard_inheritance
-            )
+            if allow_dashboard_inheritance:
+                self.raise_for_access(chart=chart)
+            else:
+                # Passed only when set; see ``can_access_datasource``.
+                self.raise_for_access(chart=chart, allow_dashboard_inheritance=False)
         except SupersetSecurityException:
             return False
 
