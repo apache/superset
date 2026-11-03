@@ -222,3 +222,14 @@ def test_post_processed_without_form_data_passes_empty_dict(
     ].return_value.load.return_value.result_type = ChartDataResultType.POST_PROCESSED
     run_query_context({"queries": [{}], **payload_extra})
     assert mocks["apply_client_processing"].call_args.args[1] == {}
+
+
+def test_unknown_coltype_maps_to_string(mocks: dict[str, mock.MagicMock]) -> None:
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a", "b"], "coltypes": [99, 0], "data": []}]
+    }
+    assert run_query_context({"queries": [{}]}) == [
+        ChartQueryResult(
+            ["a", "b"], [GenericDataType.STRING, GenericDataType.NUMERIC], []
+        )
+    ]

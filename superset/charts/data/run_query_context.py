@@ -54,6 +54,14 @@ def _requested_result_types(payload: dict[str, Any]) -> set[str]:
     return requested
 
 
+def _coltype(value: Any) -> GenericDataType:
+    """Map a host column type to the core enum; unknown types read as strings."""
+    try:
+        return GenericDataType(value)
+    except ValueError:
+        return GenericDataType.STRING
+
+
 def run_query_context(payload: dict[str, Any]) -> list[ChartQueryResult]:
     """
     Run a chart-data payload as the current user, always as JSON rows.
@@ -92,7 +100,7 @@ def run_query_context(payload: dict[str, Any]) -> list[ChartQueryResult]:
     return [
         ChartQueryResult(
             colnames=query.get("colnames") or [],
-            coltypes=[GenericDataType(t) for t in query.get("coltypes") or []],
+            coltypes=[_coltype(t) for t in query.get("coltypes") or []],
             data=query.get("data") or [],
         )
         for query in result["queries"]
