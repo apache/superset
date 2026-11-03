@@ -262,18 +262,23 @@ def embedded_credentials_error(
     ``BaseEngineSpec.get_embedded_credentials_error``). An edit sends unchanged
     secrets masked, so they are first restored from ``stored_encrypted_extra``; a
     secret that is still masked has nothing to restore it from and is not checked.
+    Accepts the value as a dict or as the JSON string the connection dialog posts; a
+    value that is neither is left to :func:`embedded_credentials_incomplete`.
     """
+    if isinstance(credentials, str):
+        try:
+            credentials = json.loads(credentials)
+        except json.JSONDecodeError:
+            return None
     if not isinstance(credentials, dict):
         return None
     unmasked = engine_spec.unmask_encrypted_extra(
         stored_encrypted_extra,
         json.dumps({EMBEDDED_CREDENTIALS_KEY: credentials}),
     )
-    try:
-        credentials = json.loads(unmasked or "{}").get(EMBEDDED_CREDENTIALS_KEY)
-    except (AttributeError, json.JSONDecodeError):
-        return None
-    validated = engine_spec.validate_embedded_credentials(credentials)
+    validated = engine_spec.validate_embedded_credentials(
+        json.loads(unmasked or "{}").get(EMBEDDED_CREDENTIALS_KEY)
+    )
     if validated is None or PASSWORD_MASK in validated.values():
         return None
     return engine_spec.get_embedded_credentials_error(validated)

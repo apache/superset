@@ -1153,25 +1153,33 @@ def test_parameter_validation_uses_the_engine_credential_validator(
         pytest.param("-----BEGIN PRIVATE KEY-----", "", id="not-a-pem-key"),
     ],
 )
+@pytest.mark.parametrize("as_json_string", [False, True], ids=["dict", "json-string"])
 @with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
 def test_an_unreadable_embedded_key_is_reported_on_its_field(
-    mocker: MockerFixture, privatekey_body: str, privatekey_pass: str
+    mocker: MockerFixture,
+    as_json_string: bool,
+    privatekey_body: str,
+    privatekey_pass: str,
 ) -> None:
     """
     The dialog validates before saving, so an unreadable key is reported on the
-    embedded credential field there too, without quoting the key (sc-130269).
+    embedded credential field there too, without quoting the key (sc-130269). The
+    dialog can post the credential as a dict or as a JSON string.
     """
     mocker.patch("superset.commands.database.validate.DatabaseDAO")
 
+    credentials = {
+        "username": "embedded_svc",
+        "auth_method": "keypair",
+        "privatekey_body": privatekey_body,
+        "privatekey_pass": privatekey_pass,
+    }
     properties = {
         "engine": "snowflake",
         "parameters": {
-            "embedded_credentials": {
-                "username": "embedded_svc",
-                "auth_method": "keypair",
-                "privatekey_body": privatekey_body,
-                "privatekey_pass": privatekey_pass,
-            }
+            "embedded_credentials": (
+                json.dumps(credentials) if as_json_string else credentials
+            )
         },
     }
     with pytest.raises(InvalidParametersError) as excinfo:
