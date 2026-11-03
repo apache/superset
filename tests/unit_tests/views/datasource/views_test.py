@@ -1105,6 +1105,8 @@ def _save_with_mapping(
     partition_column: str,
     partition_mapped_column: str | None = None,
     main_dttm_col: str | None = "event_time",
+    stored_database: Any = None,
+    requested_database_id: int = 1,
 ) -> MagicMock:
     """
     `_save_with_transform` for the mapping's column *references* rather than
@@ -1119,7 +1121,9 @@ def _save_with_mapping(
 
     mock_orm = MagicMock()
     mock_orm.database_id = 1
-    mock_orm.database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    mock_orm.database = stored_database or Database(
+        database_name="probe_db", sqlalchemy_uri="sqlite://"
+    )
     mock_orm.table_name = "my_table"
     mock_orm.schema = "public"
     mock_orm.catalog = None
@@ -1140,7 +1144,7 @@ def _save_with_mapping(
                     {
                         "id": 1,
                         "type": "table",
-                        "database": {"id": 1},
+                        "database": {"id": requested_database_id},
                         "main_dttm_col": main_dttm_col,
                         "partition_column": partition_column,
                         "partition_mapped_column": partition_mapped_column,
@@ -1186,6 +1190,7 @@ def test_save_refuses_a_non_deterministic_value_transform(
     mock_orm.update_from_object.assert_not_called()
 
 
+@pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
 @patch("superset.views.datasource.views._", _identity_gettext)
 @patch("superset.views.datasource.views.json_error_response")
 @patch("superset.views.datasource.views.db")
@@ -1222,6 +1227,91 @@ def test_save_refuses_a_partition_column_the_dataset_does_not_have(
     mock_orm.update_from_object.assert_not_called()
 
 
+def _database_with_engine_support(*, supported: bool) -> MagicMock:
+    """A database whose engine does, or does not, offer partition filter mapping."""
+    database = MagicMock()
+    database.backend = "hive" if supported else "postgresql"
+    database.db_engine_spec.supports_partition_filter_mapping = supported
+    return database
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_ignores_a_dangling_reference_on_an_unsupported_engine(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_db: MagicMock,
+    mock_json_error_response: MagicMock,
+    app: Flask,
+) -> None:
+    """
+    The editor hides the mapping and the query path ignores it on an engine
+    without the capability, so a stored reference a sync left dangling is not
+    something the owner can see to repair. `UpdateDatasetCommand` skips the
+    reference checks there, and refusing here would make this route the one
+    that still answers 422.
+    """
+    mock_orm = _save_with_mapping(
+        app,
+        mock_get_datasource,
+        mock_security_manager,
+        partition_column="no_such_column",
+    )
+
+    mock_json_error_response.assert_not_called()
+    mock_orm.update_from_object.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    ("stored_supported", "target_supported", "refused"),
+    [
+        pytest.param(False, True, True, id="into-a-supported-engine"),
+        pytest.param(True, False, False, id="out-of-a-supported-engine"),
+    ],
+)
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_judges_a_dangling_reference_by_the_destination_engine(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+    mock_json_error_response: MagicMock,
+    app: Flask,
+    stored_supported: bool,
+    target_supported: bool,
+    refused: bool,
+) -> None:
+    """
+    A save that moves the dataset is judged by where the mapping will live, the
+    way `UpdateDatasetCommand` reads the requested database. `save` assigns only
+    `database_id`, so `orm_datasource.database` still answers for the source.
+    """
+    mock_get_database_by_id.return_value = _database_with_engine_support(
+        supported=target_supported
+    )
+
+    mock_orm = _save_with_mapping(
+        app,
+        mock_get_datasource,
+        mock_security_manager,
+        partition_column="no_such_column",
+        stored_database=_database_with_engine_support(supported=stored_supported),
+        requested_database_id=2,
+    )
+
+    assert mock_json_error_response.called is refused
+    assert mock_orm.update_from_object.called is not refused
+
+
+@pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
 @patch("superset.views.datasource.views._", _identity_gettext)
 @patch("superset.views.datasource.views.json_error_response")
 @patch("superset.views.datasource.views.db")

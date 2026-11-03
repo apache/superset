@@ -339,6 +339,8 @@ def test_database_connection(
                 "supports_file_upload": True,
                 "supports_oauth2": True,
                 "supports_offset": True,
+                "supports_partition_filter_mapping": False,
+                "partition_value_transform_default": None,
                 "supports_schemas": True,
                 "identifier_quote": {
                     "start": '"',
@@ -436,6 +438,8 @@ def test_database_connection(
                 "supports_file_upload": True,
                 "supports_oauth2": True,
                 "supports_offset": True,
+                "supports_partition_filter_mapping": False,
+                "partition_value_transform_default": None,
                 "supports_schemas": True,
                 "identifier_quote": {
                     "start": '"',
