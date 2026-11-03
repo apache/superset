@@ -638,3 +638,37 @@ def test_streaming_export_leaves_no_request_context_behind(
     assert _cv_request.get(None) is outer
     del stream
     assert _cv_request.get(None) is outer
+
+
+def test_streaming_export_does_not_leave_its_contexts_on_the_thread_mid_stream(
+    app: Any,
+    mocker: MockerFixture,
+) -> None:
+    """
+    While the body is suspended between chunks, the request's contexts must not
+    stay pushed on the worker thread: a body the server never finishes (an
+    error raised while encoding keeps it alive on a traceback) would otherwise
+    hand the thread's next request this one's ``g`` and logged-in user.
+    """
+
+    def fake_execute_query_and_stream(
+        self: StreamingCSVExportCommand, *args: Any, **kwargs: Any
+    ) -> Iterator[str]:
+        yield "id\n"
+        yield "1\n"
+
+    mocker.patch.object(
+        StreamingCSVExportCommand,
+        "_execute_query_and_stream",
+        fake_execute_query_and_stream,
+    )
+
+    outer = _cv_request.get(None)
+    with app.app_context(), app.test_request_context("/"):
+        view_request = _cv_request.get()
+        stream = StreamingCSVExportCommand(mocker.MagicMock()).run()()
+
+    assert next(stream) == "id\n"
+    assert _cv_request.get(None) is outer is not view_request
+    assert list(stream) == ["1\n"]
+    assert _cv_request.get(None) is outer

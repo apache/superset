@@ -24,6 +24,7 @@ import io
 import logging
 import time
 from abc import abstractmethod
+from contextvars import copy_context
 from decimal import Decimal
 from numbers import Real
 from typing import Any, Callable, Generator, Iterable, Iterator
@@ -426,9 +427,28 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                 return csv_generator()
             app_context = _cv_app.get()
 
-            def csv_generator_in_request() -> Generator[str, None, None]:
+            def in_request() -> Generator[str, None, None]:
                 with app_context, request_context:
                     yield from csv_generator()
+
+            def csv_generator_in_request() -> Generator[str, None, None]:
+                # Step the export in a contextvars Context of its own, so the
+                # request's contexts are only ever pushed there, never on the
+                # worker thread: a body the server abandons mid-stream (e.g.
+                # an error raised while encoding keeps it alive on a
+                # traceback) or closes from another thread can't leave them
+                # behind for the thread's next request to inherit.
+                context = copy_context()
+                inner = in_request()
+                try:
+                    while True:
+                        try:
+                            chunk = context.run(next, inner)
+                        except StopIteration:
+                            return
+                        yield chunk
+                finally:
+                    context.run(inner.close)
 
             return csv_generator_in_request()
 
