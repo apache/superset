@@ -239,10 +239,12 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
 
     for engine_spec in load_engine_specs():
         driver = drivers[engine_spec.engine]
-        if (
-            engine_spec.engine in dbs_denylist_engines
-            and hasattr(engine_spec, "default_driver")
-            and engine_spec.default_driver in dbs_denylist[engine_spec.engine]
+        if engine_spec.engine in dbs_denylist_engines and any(
+            driver in dbs_denylist[engine_spec.engine]
+            for driver in (
+                engine_spec.default_driver,
+                *engine_spec.default_driver_aliases,
+            )
         ):
             # do not add denied db engine specs to available list
             continue

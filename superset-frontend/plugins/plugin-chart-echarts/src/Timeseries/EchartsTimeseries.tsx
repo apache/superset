@@ -39,7 +39,7 @@ import type {
 } from 'echarts/types/src/util/types';
 import type GlobalModel from 'echarts/types/src/model/Global';
 import type ComponentModel from 'echarts/types/src/model/Component';
-import { EchartsHandler, EventHandlers } from '../types';
+import { EchartsHandler, EventHandlers, LegendOrientation } from '../types';
 import Echart from '../components/Echart';
 import {
   getViableTimeseriesEchartOptions,
@@ -66,6 +66,8 @@ const TIMER_DURATION = 300;
 const MAX_CUSTOM_LEGEND_HEIGHT = 160;
 const MAX_CUSTOM_LEGEND_HEIGHT_RATIO = 0.3;
 const MIN_TIMESERIES_PLOT_HEIGHT = 80;
+// Maximum fraction of chart width that a Left/Right HTML legend may occupy.
+const MAX_CUSTOM_LEGEND_WIDTH_RATIO = 0.4;
 
 // Bound the legend after accounting for the fixed ECharts grid reservations,
 // leaving enough coordinate space for the plot itself to remain usable.
@@ -86,6 +88,10 @@ export const getTimeseriesLegendMaxHeight = (
       0,
     ),
   );
+
+export const getTimeseriesLegendMaxWidth = (chartWidth: number) =>
+  Math.floor(Math.max(chartWidth, 0) * MAX_CUSTOM_LEGEND_WIDTH_RATIO);
+
 const getTimestampFromTimeAxisValue = (value: string | number) => {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : undefined;
@@ -834,13 +840,25 @@ export default function EchartsTimeseries({
   );
 
   const chartBodyHeight = Math.max(height - extraControlHeight, 0);
+  const isVerticalLegend =
+    customLegend?.orientation === LegendOrientation.Left ||
+    customLegend?.orientation === LegendOrientation.Right;
+
   const customLegendMaxHeight = customLegend
-    ? getTimeseriesLegendMaxHeight(chartBodyHeight, customLegend.grid)
+    ? isVerticalLegend
+      ? chartBodyHeight
+      : getTimeseriesLegendMaxHeight(chartBodyHeight, customLegend.grid)
     : 0;
+  const customLegendMaxWidth =
+    customLegend && isVerticalLegend
+      ? getTimeseriesLegendMaxWidth(width)
+      : undefined;
   const shouldRenderCustomLegend =
     customLegend !== undefined &&
-    chartBodyHeight > TIMESERIES_CONSTANTS.compactChartHeight &&
-    customLegendMaxHeight > 0;
+    (isVerticalLegend
+      ? customLegendMaxWidth !== undefined && customLegendMaxWidth > 0
+      : chartBodyHeight > TIMESERIES_CONSTANTS.compactChartHeight &&
+        customLegendMaxHeight > 0);
   const chartEchartOptions = useMemo(
     () =>
       getViableTimeseriesEchartOptions(
@@ -885,6 +903,7 @@ export default function EchartsTimeseries({
             <TimeseriesLegend
               {...customLegend}
               maxHeight={customLegendMaxHeight}
+              maxWidth={customLegendMaxWidth}
               onAll={() => dispatchLegendAction({ type: 'legendAllSelect' })}
               onHover={name =>
                 dispatchLegendAction({
