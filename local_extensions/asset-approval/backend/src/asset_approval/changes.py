@@ -557,16 +557,29 @@ def _stored_config(current: Any, metadata_key: str) -> list[Any] | None:
 def _modifications_already_hold(
     modified: Any, by_id: dict[Any, Any]
 ) -> bool:
-    """Whether every proposed entry says only what is already stored."""
+    """Whether writing every proposed entry would leave the stored ones as is.
+
+    The DAO does not merge a modified entry into the stored one: it puts the
+    proposed entry in the stored one's place. So an entry only holds when
+    the two agree on every key *either* carries. Looking only at the keys
+    the proposal brought let an entry that carried nothing but its ``id``
+    pass as a no-op while the DAO went on to reduce the stored filter to
+    ``{"id": ...}`` -- a write the gate had waved through (B5). What the
+    gate captures has to cover everything the apply will write.
+
+    A key set to nothing and a key left out still read as the same thing,
+    as ``_differs`` reads them, so a modal that drops an empty field is not
+    an edit.
+    """
     for proposed in modified:
         if not isinstance(proposed, dict):
             return False
         live = by_id.get(proposed.get("id"))
-        if live is None:
+        if not isinstance(live, dict):
             # An entry the stored configuration has never seen.
             return False
-        for field, value in proposed.items():
-            if _parsed(value) != _parsed(live.get(field)):
+        for field in proposed.keys() | live.keys():
+            if _parsed(proposed.get(field)) != _parsed(live.get(field)):
                 return False
     return True
 
