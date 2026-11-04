@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-04 02:09-0500\n"
+"POT-Creation-Date: 2026-11-04 05:59-0500\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -2886,6 +2886,9 @@ msgstr "Filters toepassen"
 
 msgid "Apply metrics on"
 msgstr "Metrieken toepassen op"
+
+msgid "Apply warnings to all SQL Lab users on this connection"
+msgstr ""
 
 msgid "April"
 msgstr "April"
@@ -19215,6 +19218,9 @@ msgstr ""
 msgid "The visible title of the layer"
 msgstr "Toon de waarde bovenaan de balk"
 
+msgid "The warning audience setting must be a boolean."
+msgstr ""
+
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "De manier waarop de tikken worden uiteengezet op de X-as"
 
@@ -22274,6 +22280,12 @@ msgid ""
 msgstr ""
 "Wanneer uitgeschakeld, worden kleuren uit het geselecteerde kleurenschema"
 " gebruikt voor tijdsverschoven reeksen"
+
+msgid ""
+"When unchecked, only users with estimation permission receive warnings; "
+"other users run normally. This does not grant access to the manual "
+"estimator or to additional data."
+msgstr ""
 
 msgid ""
 "When unchecked, the \"Explore in Superset\" link is omitted from the "

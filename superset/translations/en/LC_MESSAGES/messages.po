@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-04 02:09-0500\n"
+"POT-Creation-Date: 2026-11-04 05:59-0500\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -2518,6 +2518,9 @@ msgid "Apply filters"
 msgstr ""
 
 msgid "Apply metrics on"
+msgstr ""
+
+msgid "Apply warnings to all SQL Lab users on this connection"
 msgstr ""
 
 msgid "April"
@@ -16447,6 +16450,9 @@ msgstr ""
 msgid "The visible title of the layer"
 msgstr ""
 
+msgid "The warning audience setting must be a boolean."
+msgstr ""
+
 msgid "The way the ticks are laid out on the X-axis"
 msgstr ""
 
@@ -18981,6 +18987,12 @@ msgstr ""
 msgid ""
 "When unchecked, colors from the selected color scheme will be used for "
 "time shifted series"
+msgstr ""
+
+msgid ""
+"When unchecked, only users with estimation permission receive warnings; "
+"other users run normally. This does not grant access to the manual "
+"estimator or to additional data."
 msgstr ""
 
 msgid ""

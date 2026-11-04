@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-04 02:09-0500\n"
+"POT-Creation-Date: 2026-11-04 05:59-0500\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -3688,6 +3688,9 @@ msgstr "필터"
 #, fuzzy
 msgid "Apply metrics on"
 msgstr "메트릭"
+
+msgid "Apply warnings to all SQL Lab users on this connection"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -26009,6 +26012,9 @@ msgstr ""
 msgid "The visible title of the layer"
 msgstr "레이어의 표시 제목"
 
+msgid "The warning audience setting must be a boolean."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -29985,6 +29991,12 @@ msgid ""
 "When unchecked, colors from the selected color scheme will be used for "
 "time shifted series"
 msgstr "선택 해제 시 선택한 색상 구성표의 색상이 시간 이동 시계열에 사용됩니다"
+
+msgid ""
+"When unchecked, only users with estimation permission receive warnings; "
+"other users run normally. This does not grant access to the manual "
+"estimator or to additional data."
+msgstr ""
 
 msgid ""
 "When unchecked, the \"Explore in Superset\" link is omitted from the "

@@ -467,18 +467,29 @@ To enable warnings:
 2. Open **Settings > Database Connections**, edit the connection, and select
    **Advanced > SQL Lab**. Expose the connection in SQL Lab if necessary.
 3. Select **Enable query cost estimation**, then **Enable pre-run warnings**
-   and enter a positive threshold. Save the connection. No threshold is chosen
+   and enter a positive threshold. No threshold is chosen
    automatically; choose one appropriate for the connection's workload.
+4. Optionally select **Apply warnings to all SQL Lab users on this connection**,
+   then save. Refresh SQL Lab after changing the warning audience or user permissions.
 
-Users running queries with warnings enabled need **can estimate query cost on
-SQLLab** (`can_estimate_query_cost`) in addition to **can execute sql query on
-SQLLab** (`can_execute_sql_query`) and access to the queried data. Before enabling
-warnings, administrators should check these permissions for custom roles. If a
-warning request is denied, SQL Lab shows an error and does not execute the query;
-**Run anyway** does not bypass permission errors.
+By default, warnings apply only to users with **can estimate query cost on
+SQLLab** (`can_estimate_query_cost`). Other users run normally without a warning
+check. The optional audience checkbox includes users without that permission in
+automatic warning checks for this connection. It does not grant access to the
+manual estimator. In both cases, users still need **can execute sql query on
+SQLLab** (`can_execute_sql_query`) and access to the queried data. An actual access
+denial remains an error; **Run anyway** does not bypass it.
+
+Enabling the audience option also allows those users to call the warning API
+directly for queries they are authorized to run. The API cannot distinguish a
+Run-button click from another authorized client. It returns advisory information,
+not query results or an authorization token. Every execution still performs its
+own permission checks. Configure the audience only for users who should be able
+to request these assessments.
 
 The shipped cost checks use one rule per connection in `extra.query_cost_warning`,
-containing `enabled`, `metric`, and `threshold`. BigQuery uses `bytes_processed`,
+containing `enabled`, `metric`, and `threshold`, with optional boolean `all_users`
+(defaults to false when absent). BigQuery uses `bytes_processed`,
 a positive whole number of bytes. PostgreSQL uses `total_cost`, a positive number
 that can include decimals. Both numeric thresholds must be no greater than
 9,007,199,254,740,991 so integer settings can be edited safely in the browser.
@@ -518,11 +529,15 @@ The existing manual estimate button keeps its formatted display. Warning checks
 are advisory and are intended for deliberate SQL Lab runs, not dashboards,
 scheduled queries, automatic retries, CTAS/CVAS, or enforced warehouse limits.
 
-API clients can request an advisory check with `POST /api/v1/sqllab/estimate/`, setting
-`check_warning` to `true` and passing the selected `sql`, `database_id`, `catalog`,
+API clients can request an advisory check with `POST /api/v1/sqllab/warning/`,
+passing the selected `sql`, `database_id`, `catalog`,
 `schema`, `template_params`, and SQL Lab dropdown `query_limit`. The check applies
 the execution row limits, including the extra row fetched to detect truncation.
-The result returns `action: proceed` when this check does not need confirmation.
+The endpoint requires SQL execution permission and checks data access before
+applying the connection's audience. Users outside that audience receive
+`action: proceed` without an assessment. Clients cannot override the audience
+in the request body. The result also returns `action: proceed` when an assessment
+does not need confirmation.
 This is not a guarantee that the query is safe in every other way. Otherwise it
 returns `action: confirm`, a `warning` or `unavailable` reason, a nonempty message,
 and optional plain-text label/value details. For the cost checks, estimates and
@@ -536,11 +551,15 @@ them to numbers.
 Checking supports one read-only SELECT. Templates, multiple statements, and
 custom SQL transformations are unavailable. A known estimation timeout or an
 unusable estimate also returns unavailable. Invalid rules, access failures, and
-database or network errors remain errors. Omitting `check_warning` preserves the
-manual estimator response.
+database or network errors remain errors. The existing `/estimate/` endpoint
+retains its estimation permission requirement and manual response. Its
+`check_warning: true` option remains available to authorized estimation clients.
 
 Database API and SQL Lab bootstrap responses include `query_warning_state`:
-`unsupported`, `disabled`, `ready`, or `invalid`. Invalid saved settings are not
+`unsupported`, `disabled`, `ready`, or `invalid`. This state is specific to the
+requesting user; `disabled` includes users outside the configured audience.
+Clients must not share or cache one user's state for another user.
+Invalid saved settings are not
 an opt-out: clients must preserve validation errors. Engine information exposes
 `query_warning_supported` separately from the optional numeric
 `query_cost_warning_metric`. `SQLLAB_QUERY_COST_WARNINGS` gates all checks;
@@ -577,7 +596,10 @@ explicitly opt into the shared flow through `get_query_warning_check()`, returni
 a check with `validate(rule)`, `is_enabled(database)`, and
 `assess(database, catalog, schema, prepared_sql, rule)`, or `None` when unsupported.
 The shared settings validation requires a rule object and a strict boolean
-`enabled`; the selected check validates its own fields and prerequisites.
+`enabled`, plus an optional strict boolean `all_users`. The common command applies
+the audience rule and existing access checks before invoking an assessment;
+engine checks do not grant permissions. The selected check validates its own
+fields and prerequisites.
 
 Both shipped integrations use `QueryCostThresholdCheck` with their engine-specific
 estimation adapters. A future integration can supply a message-only check and its

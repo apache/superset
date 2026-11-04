@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-04 02:09-0500\n"
+"POT-Creation-Date: 2026-11-04 05:59-0500\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -3241,6 +3241,9 @@ msgstr "Applica filtri"
 
 msgid "Apply metrics on"
 msgstr "Applica metrica su"
+
+msgid "Apply warnings to all SQL Lab users on this connection"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -21974,6 +21977,9 @@ msgstr ""
 msgid "The visible title of the layer"
 msgstr "Il titolo visibile del livello"
 
+msgid "The warning audience setting must be a boolean."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -25553,6 +25559,12 @@ msgid ""
 msgstr ""
 "Se deselezionati, i colori della combinazione di colori selezionata "
 "verranno utilizzati per le serie spostate nel tempo"
+
+msgid ""
+"When unchecked, only users with estimation permission receive warnings; "
+"other users run normally. This does not grant access to the manual "
+"estimator or to additional data."
+msgstr ""
 
 msgid ""
 "When unchecked, the \"Explore in Superset\" link is omitted from the "

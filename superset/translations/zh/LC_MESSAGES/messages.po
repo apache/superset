@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-11-04 02:09-0500\n"
+"POT-Creation-Date: 2026-11-04 05:59-0500\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -2767,6 +2767,9 @@ msgstr "应用过滤器"
 
 msgid "Apply metrics on"
 msgstr "应用指标到"
+
+msgid "Apply warnings to all SQL Lab users on this connection"
+msgstr ""
 
 msgid "April"
 msgstr "四月"
@@ -18238,6 +18241,9 @@ msgstr ""
 msgid "The visible title of the layer"
 msgstr "图层的可见标题"
 
+msgid "The warning audience setting must be a boolean."
+msgstr ""
+
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "X轴刻度的布局方式"
 
@@ -21088,6 +21094,12 @@ msgid ""
 "When unchecked, colors from the selected color scheme will be used for "
 "time shifted series"
 msgstr "取消选中时，将使用所选配色方案中的颜色来表示时间偏移序列。"
+
+msgid ""
+"When unchecked, only users with estimation permission receive warnings; "
+"other users run normally. This does not grant access to the manual "
+"estimator or to additional data."
+msgstr ""
 
 msgid ""
 "When unchecked, the \"Explore in Superset\" link is omitted from the "

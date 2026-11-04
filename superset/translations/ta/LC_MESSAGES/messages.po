@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-04 02:09-0500\n"
+"POT-Creation-Date: 2026-11-04 05:59-0500\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -2729,6 +2729,9 @@ msgstr "வடிகட்டிகளைப் பயன்படுத்த�
 
 msgid "Apply metrics on"
 msgstr "அளவீடுகளை எதில் பயன்படுத்துவது"
+
+msgid "Apply warnings to all SQL Lab users on this connection"
+msgstr ""
 
 msgid "April"
 msgstr "ஏப்ரல்"
@@ -17336,6 +17339,9 @@ msgstr ""
 msgid "The visible title of the layer"
 msgstr "அடுக்கின் காணக்கூடிய தலைப்பு"
 
+msgid "The warning audience setting must be a boolean."
+msgstr ""
+
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "X-அச்சில் குறிகள் (Ticks) அமைக்கப்பட்டுள்ள விதம்"
 
@@ -20053,6 +20059,12 @@ msgid ""
 msgstr ""
 "தேர்வு செய்யப்படாத போது, நேர மாற்றப்பட்ட தொடர்களுக்குத் "
 "தேர்ந்தெடுக்கப்பட்ட வண்ணத் திட்டத்திலிருந்து நிறங்கள் பயன்படுத்தப்படும்"
+
+msgid ""
+"When unchecked, only users with estimation permission receive warnings; "
+"other users run normally. This does not grant access to the manual "
+"estimator or to additional data."
+msgstr ""
 
 msgid ""
 "When unchecked, the \"Explore in Superset\" link is omitted from the "

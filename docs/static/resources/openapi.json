@@ -9000,6 +9000,42 @@
         },
         "type": "object"
       },
+      "QueryWarningSchema": {
+        "properties": {
+          "catalog": {
+            "description": "The database catalog",
+            "nullable": true,
+            "type": "string"
+          },
+          "database_id": {
+            "description": "The database id",
+            "type": "integer"
+          },
+          "query_limit": {
+            "description": "The SQL Lab dropdown row limit",
+            "nullable": true,
+            "type": "integer"
+          },
+          "schema": {
+            "description": "The database schema",
+            "nullable": true,
+            "type": "string"
+          },
+          "sql": {
+            "description": "The SQL query to estimate",
+            "type": "string"
+          },
+          "template_params": {
+            "description": "The SQL query template params",
+            "type": "object"
+          }
+        },
+        "required": [
+          "database_id",
+          "sql"
+        ],
+        "type": "object"
+      },
       "RLSRestApi.get": {
         "properties": {
           "clause": {
@@ -11926,6 +11962,7 @@
             "type": "object"
           },
           "query_warning_state": {
+            "description": "Warning readiness for the requesting user; disabled also includes users outside the connection's warning audience",
             "enum": [
               "unsupported",
               "disabled",
@@ -36720,6 +36757,122 @@
           }
         ],
         "summary": "Get the result of a SQL query execution",
+        "tags": [
+          "SQL Lab"
+        ]
+      }
+    },
+    "/api/v1/sqllab/warning/": {
+      "post": {
+        "description": "Requires SQL execution permission and access to the queried data. Users outside the connection's warning audience receive proceed without an assessment. This endpoint does not execute the submitted query or grant access to manual estimation.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryWarningSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "oneOf": [
+                        {
+                          "properties": {
+                            "action": {
+                              "enum": [
+                                "proceed"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "action"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "properties": {
+                            "action": {
+                              "enum": [
+                                "confirm"
+                              ],
+                              "type": "string"
+                            },
+                            "details": {
+                              "items": {
+                                "properties": {
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "label",
+                                  "value"
+                                ],
+                                "type": "object"
+                              },
+                              "type": "array"
+                            },
+                            "message": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "reason": {
+                              "enum": [
+                                "warning",
+                                "unavailable"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "action",
+                            "reason",
+                            "message"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Advisory decision, not authorization to execute SQL"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Check for advisory warnings before executing SQL",
         "tags": [
           "SQL Lab"
         ]

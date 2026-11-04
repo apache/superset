@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-04 02:09-0500\n"
+"POT-Creation-Date: 2026-11-04 05:59-0500\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -2996,6 +2996,9 @@ msgstr "تطبيق الفلاتر"
 
 msgid "Apply metrics on"
 msgstr "تطبيق المقاييس على"
+
+msgid "Apply warnings to all SQL Lab users on this connection"
+msgstr ""
 
 msgid "April"
 msgstr "أبريل"
@@ -19276,6 +19279,9 @@ msgstr ""
 msgid "The visible title of the layer"
 msgstr "اعرض القيمة أعلى الشريط"
 
+msgid "The warning audience setting must be a boolean."
+msgstr ""
+
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "الطريقة التي يتم بها وضع القراد على المحور السيني"
 
@@ -22326,6 +22332,12 @@ msgid ""
 msgstr ""
 "عند إلغاء التحديد، سيتم استخدام الألوان من نظام الألوان المحدد للسلاسل "
 "الزمنية المنقولة"
+
+msgid ""
+"When unchecked, only users with estimation permission receive warnings; "
+"other users run normally. This does not grant access to the manual "
+"estimator or to additional data."
+msgstr ""
 
 msgid ""
 "When unchecked, the \"Explore in Superset\" link is omitted from the "

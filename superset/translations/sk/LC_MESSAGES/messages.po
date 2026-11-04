@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-04 02:09-0500\n"
+"POT-Creation-Date: 2026-11-04 05:59-0500\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -2782,6 +2782,9 @@ msgstr "Aplikovať filtre"
 
 msgid "Apply metrics on"
 msgstr "Aplikovať metriky na"
+
+msgid "Apply warnings to all SQL Lab users on this connection"
+msgstr ""
 
 msgid "April"
 msgstr "Duben"
@@ -17828,6 +17831,9 @@ msgstr ""
 msgid "The visible title of the layer"
 msgstr "Viditelný názov vrstvy"
 
+msgid "The warning audience setting must be a boolean."
+msgstr ""
+
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Spôsob, jakým sú značky rozloženy na ose X"
 
@@ -20645,6 +20651,12 @@ msgid ""
 msgstr ""
 "Keď nie je zaškrtnuto, farby z vybraného fariebného schématu budú použity"
 " pre časove posunuté série"
+
+msgid ""
+"When unchecked, only users with estimation permission receive warnings; "
+"other users run normally. This does not grant access to the manual "
+"estimator or to additional data."
+msgstr ""
 
 msgid ""
 "When unchecked, the \"Explore in Superset\" link is omitted from the "

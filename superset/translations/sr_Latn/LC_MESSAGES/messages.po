@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-04 02:09-0500\n"
+"POT-Creation-Date: 2026-11-04 05:59-0500\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -3252,6 +3252,9 @@ msgstr "Primeni filtere"
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid "Apply metrics on"
 msgstr "Primeni metrike na"
+
+msgid "Apply warnings to all SQL Lab users on this connection"
+msgstr ""
 
 msgid "April"
 msgstr "April"
@@ -21246,6 +21249,9 @@ msgstr ""
 msgid "The visible title of the layer"
 msgstr "Vidljiv naslov sloja"
 
+msgid "The warning audience setting must be a boolean."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Način na koji su oznake raspoređene na X-osi"
@@ -24535,6 +24541,12 @@ msgid ""
 msgstr ""
 "Kada nije označeno, boje iz izabrane šeme boja će se koristiti za "
 "vremenski pomerene serije"
+
+msgid ""
+"When unchecked, only users with estimation permission receive warnings; "
+"other users run normally. This does not grant access to the manual "
+"estimator or to additional data."
+msgstr ""
 
 msgid ""
 "When unchecked, the \"Explore in Superset\" link is omitted from the "

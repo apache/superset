@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-04 02:09-0500\n"
+"POT-Creation-Date: 2026-11-04 05:59-0500\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -2795,6 +2795,9 @@ msgstr "Aplicar filtros"
 
 msgid "Apply metrics on"
 msgstr "Aplicar métricas en"
+
+msgid "Apply warnings to all SQL Lab users on this connection"
+msgstr ""
 
 msgid "April"
 msgstr "Abril"
@@ -18582,6 +18585,9 @@ msgstr ""
 msgid "The visible title of the layer"
 msgstr "El título visible de la capa"
 
+msgid "The warning audience setting must be a boolean."
+msgstr ""
+
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "La forma en que se colocan las marcas en el eje X"
 
@@ -21566,6 +21572,12 @@ msgid ""
 msgstr ""
 "Si no se selecciona, los colores del esquema de color seleccionado se "
 "utilizarán para las series desplazadas en el tiempo"
+
+msgid ""
+"When unchecked, only users with estimation permission receive warnings; "
+"other users run normally. This does not grant access to the manual "
+"estimator or to additional data."
+msgstr ""
 
 msgid ""
 "When unchecked, the \"Explore in Superset\" link is omitted from the "

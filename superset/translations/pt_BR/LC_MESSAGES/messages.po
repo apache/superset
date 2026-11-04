@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-04 02:09-0500\n"
+"POT-Creation-Date: 2026-11-04 05:59-0500\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -2859,6 +2859,9 @@ msgstr "Aplicar filtros"
 #, fuzzy
 msgid "Apply metrics on"
 msgstr "Aplicar métricas em"
+
+msgid "Apply warnings to all SQL Lab users on this connection"
+msgstr ""
 
 msgid "April"
 msgstr "Abril"
@@ -19339,6 +19342,9 @@ msgstr ""
 msgid "The visible title of the layer"
 msgstr "O título visível da camada"
 
+msgid "The warning audience setting must be a boolean."
+msgstr ""
+
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "O modo como os ticks são dispostos no eixo X"
 
@@ -22398,6 +22404,12 @@ msgid ""
 msgstr ""
 "Quando desmarcado, as cores do esquema de cores selecionado serão usadas "
 "para séries com mudança de tempo"
+
+msgid ""
+"When unchecked, only users with estimation permission receive warnings; "
+"other users run normally. This does not grant access to the manual "
+"estimator or to additional data."
+msgstr ""
 
 msgid ""
 "When unchecked, the \"Explore in Superset\" link is omitted from the "

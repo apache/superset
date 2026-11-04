@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-04 02:09-0500\n"
+"POT-Creation-Date: 2026-11-04 05:59-0500\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -2537,6 +2537,9 @@ msgstr "フィルターを適用"
 
 msgid "Apply metrics on"
 msgstr "メトリックの適用対象"
+
+msgid "Apply warnings to all SQL Lab users on this connection"
+msgstr ""
 
 msgid "April"
 msgstr "4月"
@@ -16511,6 +16514,9 @@ msgstr ""
 msgid "The visible title of the layer"
 msgstr "表示されるレイヤーのタイトル"
 
+msgid "The warning audience setting must be a boolean."
+msgstr ""
+
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "X軸の目盛りの配置方法"
 
@@ -19069,6 +19075,12 @@ msgid ""
 "When unchecked, colors from the selected color scheme will be used for "
 "time shifted series"
 msgstr "無効にすると、タイムシフトされた系列にも選択したカラースキームの色が適用されます"
+
+msgid ""
+"When unchecked, only users with estimation permission receive warnings; "
+"other users run normally. This does not grant access to the manual "
+"estimator or to additional data."
+msgstr ""
 
 msgid ""
 "When unchecked, the \"Explore in Superset\" link is omitted from the "

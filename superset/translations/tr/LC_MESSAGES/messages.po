@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-11-04 02:09-0500\n"
+"POT-Creation-Date: 2026-11-04 05:59-0500\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -2775,6 +2775,9 @@ msgstr "Filtreleri uygula"
 
 msgid "Apply metrics on"
 msgstr "Uygulama metrikleri"
+
+msgid "Apply warnings to all SQL Lab users on this connection"
+msgstr ""
 
 msgid "April"
 msgstr "Nisan"
@@ -18151,6 +18154,9 @@ msgstr ""
 msgid "The visible title of the layer"
 msgstr "tabakanın görünür başlığı"
 
+msgid "The warning audience setting must be a boolean."
+msgstr ""
+
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "İşaretlerin X-aksi üzerinde ortaya çıkmasının yolu"
 
@@ -21066,6 +21072,12 @@ msgid ""
 msgstr ""
 "Kontrolsüz olduğunda, seçilen renk programından gelen renkler zaman yedek"
 " dizi için kullanılacaktır"
+
+msgid ""
+"When unchecked, only users with estimation permission receive warnings; "
+"other users run normally. This does not grant access to the manual "
+"estimator or to additional data."
+msgstr ""
 
 msgid ""
 "When unchecked, the \"Explore in Superset\" link is omitted from the "
