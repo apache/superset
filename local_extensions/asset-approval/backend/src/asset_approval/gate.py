@@ -637,6 +637,11 @@ def gate_write(
             note,
             folded_args,
             operation,
+            # A rename that replaces a pending delete must not inherit the
+            # delete's note: the approver was reading "delete it" as the note
+            # on a rename (E3). The delete direction already clears it; this
+            # is the mirror.
+            clear_note=replaced_delete,
             base=base,
         )
     else:
@@ -882,6 +887,39 @@ def _discard_request(change_request_id: int, decided_by: int) -> None:
                 changed_on=now,
             )
         )
+
+
+def discard_the_authors_draft_on(asset_type: AssetType, asset_id: int) -> None:
+    """Close the author's own draft on an asset that is about to be deleted.
+
+    A dashboard no viewer has ever reached is deleted outright rather than
+    held (see ``bindings._gate_dashboard_delete``), and a draft describing an
+    edit to it would otherwise outlive the asset it describes: a row in the
+    author's history and a slot held against an id that no longer resolves.
+
+    Only the author's own, and only a **draft**. Anything submitted means the
+    delete was held instead of applied, so this is never reached for it.
+    Anything unreadable leaves the request alone, on the same reasoning as
+    the revert tidy-up above: failing to tidy up is survivable.
+    """
+    author_id = get_user_id()
+    if author_id is None:
+        return
+    try:
+        existing = find_open_request(asset_type, asset_id)
+    except Exception:  # noqa: BLE001
+        logger.warning(
+            "asset-approval: could not look up the open request on %s %s",
+            asset_type.value,
+            asset_id,
+            exc_info=True,
+        )
+        return
+    if existing is None or existing.author_fk != author_id:
+        return
+    if ChangeStatus(existing.status) is not ChangeStatus.DRAFT:
+        return
+    _discard_request(existing.id, author_id)
 
 
 def _insert_request(

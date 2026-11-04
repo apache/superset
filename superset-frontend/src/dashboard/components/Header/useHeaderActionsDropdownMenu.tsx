@@ -314,12 +314,15 @@ export const useHeaderActionsMenu = ({
       });
     }
 
-    // Edit properties
-    if (editMode) {
+    // Edit properties. Offered to an editor in view mode too: it was inside
+    // the edit-mode branch, so someone who only wanted to change a title or
+    // an editor had to enter edit mode first, and a dashboard held for review
+    // gave them no way to reach the dialog at all.
+    if (editMode || (userCanEdit && !isMobile)) {
       // The review entries come first: when a change is open they are what
       // the author came to this menu for (mock 1c). Discard is separated
       // by a divider and styled as the destructive action it is.
-      if (openChange?.is_open && openChange.is_author) {
+      if (editMode && openChange?.is_open && openChange.is_author) {
         menuItems.push({
           key: 'change-management-what-changed',
           label: t('What changed'),

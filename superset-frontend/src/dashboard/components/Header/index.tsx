@@ -608,6 +608,31 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     [boundActionCreators, dashboardTitle],
   );
 
+  // The same dialog opened from view mode. There is no Save button there to
+  // carry an applied change, so the dialog saves for itself (the list's
+  // behaviour) and this only brings the page in line with what was saved.
+  // Marking the dashboard unsaved here would leave a prompt over a change
+  // that is already on the server.
+  const handleOnPropertiesSaved = useCallback(
+    (updates: DashboardPropertiesUpdate) => {
+      boundActionCreators.dashboardInfoChanged({
+        slug: updates.slug,
+        description: updates.description,
+        metadata: JSON.parse(updates.jsonMetadata || '{}'),
+        certified_by: updates.certifiedBy,
+        certification_details: updates.certificationDetails,
+        editors: updates.editors,
+        tags: updates.tags,
+        ...(updates.theme !== undefined && { theme: updates.theme }),
+        css: updates.css,
+      });
+      if (updates.title && dashboardTitle !== updates.title) {
+        boundActionCreators.updateDashboardTitle(updates.title);
+      }
+    },
+    [boundActionCreators, dashboardTitle],
+  );
+
   const handleRefreshChange = useCallback(
     (refreshFrequency: number, editMode: boolean) => {
       boundActionCreators.setRefreshFrequency(refreshFrequency, !!editMode);
@@ -616,6 +641,16 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
   );
 
   const openChange = useOpenChange('dashboard', dashboardInfo.id);
+
+  // The banner offers Request review on exactly this: the author's own
+  // change, saved and not yet submitted. The toolbar button answered only
+  // "is there something unsaved", so after a save it said there was nothing
+  // to review while the banner beside it, and the server, said there was.
+  const hasDraftToSubmit = !!(
+    openChange?.is_open &&
+    openChange.is_author &&
+    openChange.status === 'draft'
+  );
 
   const handleEnterEditMode = useCallback(() => {
     // One open change per asset (SOW 5.3). Explained before the work rather
@@ -817,20 +852,25 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
                         ? t(
                             'Save, then ask another editor to approve before it goes live.',
                           )
-                        : t('No changes to review yet.')
+                        : hasDraftToSubmit
+                          ? t('Ask another editor to approve your saved draft.')
+                          : t('No changes to review yet.')
                     }
                   >
                     <span>
                       <Button
                         css={saveBtnStyle}
                         buttonSize="small"
-                        disabled={!hasUnsavedChanges}
+                        disabled={!hasUnsavedChanges && !hasDraftToSubmit}
                         buttonStyle="primary"
                         onClick={() => {
                           // Save first: the request is made against the
                           // change that saving captures, so there is
-                          // nothing to ask about until it exists.
-                          overwriteDashboard();
+                          // nothing to ask about until it exists. A draft
+                          // that is already saved has nothing left to
+                          // save, and saving again would only report that
+                          // nothing changed.
+                          if (hasUnsavedChanges) overwriteDashboard();
                           announceRequestReview();
                         }}
                         data-test="header-request-review-button"
@@ -972,8 +1012,10 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
           show={showingPropertiesModal}
           onHide={hidePropertiesModal}
           colorScheme={colorScheme}
-          onSubmit={handleOnPropertiesChange}
-          onlyApply
+          onSubmit={
+            editMode ? handleOnPropertiesChange : handleOnPropertiesSaved
+          }
+          onlyApply={editMode}
         />
       )}
       {showingRefreshModal && (

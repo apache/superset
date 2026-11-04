@@ -1334,8 +1334,15 @@ const headerActionsMenuVisibilityCases = [
       dashboardInfo: { ...initialState.dashboardInfo, dash_edit_perm: true },
     },
     featureFlags: { VERSION_HISTORY: true },
-    visible: ['Refresh dashboard', 'Set auto-refresh', 'View version history'],
-    hidden: ['Edit properties', 'Save as'],
+    // An editor reaches the Properties dialog from view mode too; without it
+    // a dashboard they cannot enter edit mode on had no way to open it.
+    visible: [
+      'Refresh dashboard',
+      'Set auto-refresh',
+      'View version history',
+      'Edit properties',
+    ],
+    hidden: ['Save as'],
   },
   {
     name: 'view mode with edit and save permission and version history enabled',
@@ -1347,8 +1354,8 @@ const headerActionsMenuVisibilityCases = [
       },
     },
     featureFlags: { VERSION_HISTORY: true },
-    visible: ['Save as', 'View version history'],
-    hidden: ['Edit properties'],
+    visible: ['Save as', 'View version history', 'Edit properties'],
+    hidden: [],
   },
   {
     name: 'edit mode with edit and save permission',
@@ -1384,3 +1391,99 @@ test.each(headerActionsMenuVisibilityCases)(
     window.featureFlags = {};
   },
 );
+
+describe('with review enabled', () => {
+  const draftEndpoint = 'glob:*/api/v1/change_request/asset/dashboard/1';
+  const authorsDraft = {
+    result: {
+      id: 9,
+      asset_type: 'dashboard',
+      asset_id: 1,
+      status: 'draft',
+      is_open: true,
+      is_author: true,
+    },
+  };
+
+  beforeEach(() => {
+    window.featureFlags = { CHANGE_MANAGEMENT: true };
+    fetchMock.removeRoutes({ names: ['draft'] });
+  });
+
+  afterEach(() => {
+    window.featureFlags = {};
+    fetchMock.removeRoutes({ names: ['draft'] });
+  });
+
+  // The banner offers Request review on a saved draft. The toolbar's button
+  // said "No changes to review yet" beside it because it only asked whether
+  // anything was unsaved, which is false the moment the author has saved.
+  test('"Request review" is enabled on a saved draft with nothing unsaved', async () => {
+    fetchMock.get(draftEndpoint, authorsDraft, { name: 'draft' });
+    setup(editableState);
+
+    const button = await screen.findByTestId('header-request-review-button');
+    await waitFor(() => expect(button).toBeEnabled());
+  });
+
+  test('"Request review" on a saved draft does not save again', async () => {
+    fetchMock.get(draftEndpoint, authorsDraft, { name: 'draft' });
+    const asked = jest.fn();
+    window.addEventListener(
+      'superset:change-management:request-review',
+      asked,
+    );
+    setup(editableState);
+
+    const button = await screen.findByTestId('header-request-review-button');
+    await waitFor(() => expect(button).toBeEnabled());
+    await userEvent.click(button);
+
+    expect(asked).toHaveBeenCalledTimes(1);
+    expect(onSave).not.toHaveBeenCalled();
+    window.removeEventListener(
+      'superset:change-management:request-review',
+      asked,
+    );
+  });
+
+  test('"Request review" is disabled when there is no draft and nothing unsaved', async () => {
+    fetchMock.get(draftEndpoint, { result: null }, { name: 'draft' });
+    setup(editableState);
+
+    const button = await screen.findByTestId('header-request-review-button');
+    await waitFor(() =>
+      expect(fetchMock.callHistory.called(draftEndpoint)).toBe(true),
+    );
+    expect(button).toBeDisabled();
+  });
+
+  test('"Request review" is disabled while the draft is already awaiting review', async () => {
+    fetchMock.get(
+      draftEndpoint,
+      { result: { ...authorsDraft.result, status: 'pending' } },
+      { name: 'draft' },
+    );
+    setup(editableState);
+
+    const button = await screen.findByTestId('header-request-review-button');
+    await waitFor(() =>
+      expect(fetchMock.callHistory.called(draftEndpoint)).toBe(true),
+    );
+    expect(button).toBeDisabled();
+  });
+});
+
+test('an editor in view mode can open the Properties dialog', async () => {
+  setup({
+    dashboardInfo: { ...initialState.dashboardInfo, dash_edit_perm: true },
+  });
+  await openActionsDropdown();
+  expect(screen.getByText('Edit properties')).toBeInTheDocument();
+});
+
+test('a viewer without edit permission is not offered the Properties dialog', async () => {
+  setup();
+  await openActionsDropdown();
+  expect(screen.queryByText('Edit properties')).not.toBeInTheDocument();
+});

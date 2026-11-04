@@ -44,6 +44,7 @@ from superset.utils import json
 from asset_approval.gate import (
     COMMAND_KEY,
     dashboard_is_exposed,
+    discard_the_authors_draft_on,
     demote_new_published_dashboards,
     FIRST_PUBLISH_NOTE,
     has_pending_request,
@@ -1119,7 +1120,39 @@ def _gate_dashboard_colors(command: Any) -> None:
 
 
 def _gate_dashboard_delete(command: Any) -> None:
-    gate_delete(AssetType.DASHBOARD, [m.id for m in (command._models or [])])
+    """Hold the delete of a dashboard a viewer could have reached; let a
+    private draft go.
+
+    ``_gate_dashboard_update`` already reasons that while a dashboard has
+    never been published there is nothing for review to protect, so an edit
+    to it applies directly. A delete is that same act one step further, and
+    this gate held every one of them. Since an author is the sole editor of
+    the dashboard they just made, and may never approve their own change,
+    the author of a draft nobody has seen could edit it freely and never
+    remove it: the delete was captured, and the submit had no approver to
+    offer but themselves (E1).
+
+    Both of the update gate's guards are kept, so a dashboard that was
+    published and has since been unpublished (QA-18) and one whose first
+    publish is already with a reviewer (R7-03) are still held.
+    """
+    held: list[int] = []
+    for model in command._models or []:
+        if bool(getattr(model, "published", False)):
+            # Read the live flag the same way the update gate does, and
+            # record it: an editor can clear the flag themselves, and the
+            # mark is what remembers where the dashboard has been.
+            mark_published(AssetType.DASHBOARD, model.id)
+            held.append(model.id)
+            continue
+        if has_ever_been_published(
+            AssetType.DASHBOARD, model.id
+        ) or has_pending_request(AssetType.DASHBOARD, model.id):
+            held.append(model.id)
+            continue
+        discard_the_authors_draft_on(AssetType.DASHBOARD, model.id)
+    if held:
+        gate_delete(AssetType.DASHBOARD, held)
 
 
 def _gate_embedded_delete(command: Any) -> None:
