@@ -956,9 +956,9 @@ def test_apply_series_others_grouping_sql_compilation(database: Database) -> Non
     has_single_quotes = "'Others'" in select_sql and "'Others'" in groupby_sql
     has_double_quotes = '"Others"' in select_sql and '"Others"' in groupby_sql
 
-    assert has_single_quotes or has_double_quotes, (
-        "Others literal should be quoted with either single or double quotes"
-    )
+    assert (
+        has_single_quotes or has_double_quotes
+    ), "Others literal should be quoted with either single or double quotes"
 
     # Verify the structure of the generated SQL
     assert "CASE WHEN" in select_sql
@@ -1696,13 +1696,13 @@ def test_process_select_expression_end_to_end(database: Database) -> None:
         # sqlglot may normalize the SQL slightly, so we check the result exists
         # and doesn't contain the SELECT prefix
         assert result is not None, f"Failed to process: {expression}"
-        assert not result.upper().startswith("SELECT"), (
-            f"Result still has SELECT prefix: {result}"
-        )
+        assert not result.upper().startswith(
+            "SELECT"
+        ), f"Result still has SELECT prefix: {result}"
         # The result should contain the core expression (case-insensitive check)
-        assert expected.replace(" ", "").lower() in result.replace(" ", "").lower(), (
-            f"Expected '{expected}' to be in result '{result}' for input '{expression}'"
-        )
+        assert (
+            expected.replace(" ", "").lower() in result.replace(" ", "").lower()
+        ), f"Expected '{expected}' to be in result '{result}' for input '{expression}'"
 
 
 def test_reapply_query_filters_with_granularity(database: Database) -> None:
@@ -2293,9 +2293,9 @@ def test_adhoc_column_with_spaces_generates_quoted_sql(database: Database) -> No
             )
         )
 
-    assert '"Order Total"' in sql_numeric, (
-        f"Expected quoted column name in SQL: {sql_numeric}"
-    )
+    assert (
+        '"Order Total"' in sql_numeric
+    ), f"Expected quoted column name in SQL: {sql_numeric}"
 
 
 def test_adhoc_column_with_spaces_in_full_query(database: Database) -> None:
@@ -3052,13 +3052,13 @@ def test_extras_where_is_parenthesized(
                 )
             )
 
-        assert "(1 = 1 OR 1 = 1)" in sql, (
-            f"extras.where should be wrapped in parentheses. Generated SQL: {sql}"
-        )
+        assert (
+            "(1 = 1 OR 1 = 1)" in sql
+        ), f"extras.where should be wrapped in parentheses. Generated SQL: {sql}"
 
-        assert "b = 'restricted'" in sql, (
-            f"Additional filters should be present in query. Generated SQL: {sql}"
-        )
+        assert (
+            "b = 'restricted'" in sql
+        ), f"Additional filters should be present in query. Generated SQL: {sql}"
 
 
 def test_extras_having_is_parenthesized(
@@ -3105,9 +3105,9 @@ def test_extras_having_is_parenthesized(
                 )
             )
 
-        assert "(COUNT(*) > 0 OR 1 = 1)" in sql, (
-            f"extras.having should be wrapped in parentheses. Generated SQL: {sql}"
-        )
+        assert (
+            "(COUNT(*) > 0 OR 1 = 1)" in sql
+        ), f"extras.having should be wrapped in parentheses. Generated SQL: {sql}"
 
 
 def test_calculated_column_filter_is_parenthesized(
@@ -3563,12 +3563,12 @@ def test_multiple_calculated_columns_each_parenthesized(
             )
         )
 
-    assert "(status = 'active' OR status = 'pending')" in sql, (
-        f"First calculated column should be parenthesized. Generated SQL: {sql}"
-    )
-    assert "(tier = 'gold' OR tier = 'platinum')" in sql, (
-        f"Second calculated column should be parenthesized. Generated SQL: {sql}"
-    )
+    assert (
+        "(status = 'active' OR status = 'pending')" in sql
+    ), f"First calculated column should be parenthesized. Generated SQL: {sql}"
+    assert (
+        "(tier = 'gold' OR tier = 'platinum')" in sql
+    ), f"Second calculated column should be parenthesized. Generated SQL: {sql}"
 
 
 CALC_EXPR = "state = 'CA' OR state = 'NY'"
@@ -3621,9 +3621,9 @@ def test_calculated_column_dimension_is_parenthesized_in_select(
     )
     sql = _compile(database, sqla_query)
 
-    assert f"({CALC_EXPR}) AS" in sql, (
-        f"Calculated dimension should be parenthesized in SELECT. SQL: {sql}"
-    )
+    assert (
+        f"({CALC_EXPR}) AS" in sql
+    ), f"Calculated dimension should be parenthesized in SELECT. SQL: {sql}"
 
 
 def test_physical_column_is_not_parenthesized(
@@ -3665,9 +3665,9 @@ def test_calculated_column_groupby_is_parenthesized(
     sql = _compile(database, sqla_query)
 
     group_by = sql.split("GROUP BY", 1)[1]
-    assert f"({CALC_EXPR})" in group_by, (
-        f"Calculated column should be parenthesized in GROUP BY. SQL: {sql}"
-    )
+    assert (
+        f"({CALC_EXPR})" in group_by
+    ), f"Calculated column should be parenthesized in GROUP BY. SQL: {sql}"
 
 
 def test_calculated_column_orderby_parenthesized_with_alias_allowed(
@@ -3689,13 +3689,13 @@ def test_calculated_column_orderby_parenthesized_with_alias_allowed(
     )
     sql = _compile(database, sqla_query)
 
-    assert f"({CALC_EXPR}) AS is_ca_or_ny" in sql, (
-        f"Calculated dimension should be parenthesized in SELECT. SQL: {sql}"
-    )
+    assert (
+        f"({CALC_EXPR}) AS is_ca_or_ny" in sql
+    ), f"Calculated dimension should be parenthesized in SELECT. SQL: {sql}"
     order_by = sql.split("ORDER BY", 1)[1]
-    assert f"({CALC_EXPR})" in order_by, (
-        f"ORDER BY should carry the parenthesized expression. SQL: {sql}"
-    )
+    assert (
+        f"({CALC_EXPR})" in order_by
+    ), f"ORDER BY should carry the parenthesized expression. SQL: {sql}"
 
 
 def test_calculated_column_orderby_is_parenthesized_raw_expression(
@@ -3719,9 +3719,9 @@ def test_calculated_column_orderby_is_parenthesized_raw_expression(
     sql = _compile(database, sqla_query)
 
     order_by = sql.split("ORDER BY", 1)[1]
-    assert f"({CALC_EXPR})" in order_by, (
-        f"Raw calculated expression in ORDER BY should be parenthesized. SQL: {sql}"
-    )
+    assert (
+        f"({CALC_EXPR})" in order_by
+    ), f"Raw calculated expression in ORDER BY should be parenthesized. SQL: {sql}"
 
 
 def test_calculated_column_orderby_parenthesized_without_alias_in_select(
@@ -3747,16 +3747,16 @@ def test_calculated_column_orderby_parenthesized_without_alias_in_select(
     )
     sql = _compile(database, sqla_query)
 
-    assert f"({CALC_EXPR})" in sql, (
-        f"Bare-Grouping calculated column should be parenthesized. SQL: {sql}"
-    )
-    assert f"({CALC_EXPR}) AS is_ca_or_ny" not in sql, (
-        f"No SELECT alias expected when aliases are disabled. SQL: {sql}"
-    )
+    assert (
+        f"({CALC_EXPR})" in sql
+    ), f"Bare-Grouping calculated column should be parenthesized. SQL: {sql}"
+    assert (
+        f"({CALC_EXPR}) AS is_ca_or_ny" not in sql
+    ), f"No SELECT alias expected when aliases are disabled. SQL: {sql}"
     order_by = sql.split("ORDER BY", 1)[1]
-    assert f"({CALC_EXPR})" in order_by, (
-        f"ORDER BY should carry the parenthesized expression. SQL: {sql}"
-    )
+    assert (
+        f"({CALC_EXPR})" in order_by
+    ), f"ORDER BY should carry the parenthesized expression. SQL: {sql}"
 
 
 def test_calculated_column_series_limit_join_on_is_parenthesized(
@@ -3781,13 +3781,13 @@ def test_calculated_column_series_limit_join_on_is_parenthesized(
     )
     sql = _compile(database, sqla_query)
 
-    assert f"({CALC_EXPR}) = is_ca_or_ny__" in sql, (
-        f"Series-limit JOIN ON should compare the parenthesized expression. SQL: {sql}"
-    )
+    assert (
+        f"({CALC_EXPR}) = is_ca_or_ny__" in sql
+    ), f"Series-limit JOIN ON should compare the parenthesized expression. SQL: {sql}"
     # The bare (mis-parsing) form must be absent.
-    assert "OR state = 'NY' = is_ca_or_ny__" not in sql, (
-        f"Series-limit JOIN ON must not emit the bare, mis-parsing form. SQL: {sql}"
-    )
+    assert (
+        "OR state = 'NY' = is_ca_or_ny__" not in sql
+    ), f"Series-limit JOIN ON must not emit the bare, mis-parsing form. SQL: {sql}"
 
 
 def test_calculated_column_top_groups_predicate_is_parenthesized(
@@ -3824,12 +3824,12 @@ def test_calculated_column_top_groups_predicate_is_parenthesized(
             )
         )
 
-    assert f"({CALC_EXPR}) = 1" in sql, (
-        f"Top-N prequery predicate should be parenthesized. SQL: {sql}"
-    )
-    assert "OR state = 'NY' = 1" not in sql, (
-        f"Top-N prequery predicate must not emit the bare form. SQL: {sql}"
-    )
+    assert (
+        f"({CALC_EXPR}) = 1" in sql
+    ), f"Top-N prequery predicate should be parenthesized. SQL: {sql}"
+    assert (
+        "OR state = 'NY' = 1" not in sql
+    ), f"Top-N prequery predicate must not emit the bare form. SQL: {sql}"
 
 
 def test_calculated_column_reference_adhoc_filter_single_parenthesized(
@@ -3862,12 +3862,12 @@ def test_calculated_column_reference_adhoc_filter_single_parenthesized(
     )
     sql = _compile(database, sqla_query)
 
-    assert f"({CALC_EXPR}) = 1" in sql, (
-        f"Adhoc calc-column-reference filter should be parenthesized. SQL: {sql}"
-    )
-    assert f"(({CALC_EXPR}))" not in sql, (
-        f"Adhoc calc-column-reference filter must not be double-wrapped. SQL: {sql}"
-    )
+    assert (
+        f"({CALC_EXPR}) = 1" in sql
+    ), f"Adhoc calc-column-reference filter should be parenthesized. SQL: {sql}"
+    assert (
+        f"(({CALC_EXPR}))" not in sql
+    ), f"Adhoc calc-column-reference filter must not be double-wrapped. SQL: {sql}"
 
 
 def test_calculated_column_adhoc_expression_filter_by_label_is_parenthesized(
@@ -3897,12 +3897,12 @@ def test_calculated_column_adhoc_expression_filter_by_label_is_parenthesized(
     sql = _compile(database, sqla_query)
 
     where = sql.split("WHERE", 1)[1]
-    assert f"({CALC_EXPR}) = 1" in where, (
-        f"Adhoc expression filtered by label should be parenthesized. SQL: {sql}"
-    )
-    assert "OR state = 'NY' = 1" not in where, (
-        f"Adhoc expression filtered by label must not emit the bare form. SQL: {sql}"
-    )
+    assert (
+        f"({CALC_EXPR}) = 1" in where
+    ), f"Adhoc expression filtered by label should be parenthesized. SQL: {sql}"
+    assert (
+        "OR state = 'NY' = 1" not in where
+    ), f"Adhoc expression filtered by label must not emit the bare form. SQL: {sql}"
 
 
 def test_calculated_column_query_dimension_is_parenthesized(
@@ -3933,9 +3933,9 @@ def test_calculated_column_query_dimension_is_parenthesized(
             )
         )
 
-    assert f"({CALC_EXPR})" in sql, (
-        f"Query (SQL Lab) calculated column should be parenthesized. SQL: {sql}"
-    )
+    assert (
+        f"({CALC_EXPR})" in sql
+    ), f"Query (SQL Lab) calculated column should be parenthesized. SQL: {sql}"
 
 
 def test_calculated_column_with_trailing_comment_closes_paren_on_new_line(
@@ -3973,9 +3973,9 @@ def test_calculated_column_with_trailing_comment_closes_paren_on_new_line(
 
     # The closing paren (and the AS alias) land on the line after the comment,
     # not inside it — otherwise the paren would be commented out.
-    assert "-- coasts\n) AS" in sql, (
-        f"Closing paren must not be swallowed by the trailing comment. SQL: {sql}"
-    )
+    assert (
+        "-- coasts\n) AS" in sql
+    ), f"Closing paren must not be swallowed by the trailing comment. SQL: {sql}"
 
 
 def _run_probe(
@@ -4055,9 +4055,9 @@ def test_adhoc_column_type_probe_uses_where_false(database: Database) -> None:
         f"Probe query should use a WHERE false condition to avoid scanning the "
         f"table, but got: {probe_sql}"
     )
-    assert "limit" not in probe_sql, (
-        f"WHERE false probe must not contain LIMIT, but got: {probe_sql}"
-    )
+    assert (
+        "limit" not in probe_sql
+    ), f"WHERE false probe must not contain LIMIT, but got: {probe_sql}"
 
 
 def test_adhoc_column_type_probe_propagates_db_error(database: Database) -> None:
@@ -4117,19 +4117,19 @@ def test_adhoc_column_type_probe_uses_limit_1_for_row_dependent_engines(
     from superset.db_engine_specs.pinot import PinotEngineSpec
 
     for spec_cls in (DruidEngineSpec, PinotEngineSpec):
-        assert spec_cls.type_probe_needs_row is True, (
-            f"{spec_cls.__name__} must declare type_probe_needs_row = True"
-        )
+        assert (
+            spec_cls.type_probe_needs_row is True
+        ), f"{spec_cls.__name__} must declare type_probe_needs_row = True"
 
     probe_sql = _run_probe(database, type_probe_needs_row=True).lower()
 
-    assert "limit 1" in probe_sql, (
-        f"Row-dependent engines: probe should use LIMIT 1, got: {probe_sql}"
-    )
+    assert (
+        "limit 1" in probe_sql
+    ), f"Row-dependent engines: probe should use LIMIT 1, got: {probe_sql}"
     always_false_patterns = ("where false", "where 0 = 1")
-    assert not any(p in probe_sql for p in always_false_patterns), (
-        f"Row-dependent engines: probe must NOT use WHERE false, got: {probe_sql}"
-    )
+    assert not any(
+        p in probe_sql for p in always_false_patterns
+    ), f"Row-dependent engines: probe must NOT use WHERE false, got: {probe_sql}"
 
 
 def _adhoc_col_with_probed_type(
@@ -4405,9 +4405,9 @@ def test_adhoc_column_type_probe_survives_query_mutator_comments_on_clickhouse(
 
     for attempt in earlier_attempts:
         assert "query hash" in attempt, "mutator comments must be applied"
-        assert not attempt.strip().upper().startswith(("SELECT", "WITH")), (
-            "prior attempts should still be comment-prefixed, reproducing the bug"
-        )
+        assert (
+            not attempt.strip().upper().startswith(("SELECT", "WITH"))
+        ), "prior attempts should still be comment-prefixed, reproducing the bug"
 
     assert retry.strip().upper().startswith("SELECT"), (
         "retry must start with a bare SELECT so clickhouse-connect's "
@@ -4421,12 +4421,12 @@ def test_adhoc_column_type_probe_survives_query_mutator_comments_on_clickhouse(
     # apply_limit_to_sql reformats the query (via sqlglot), so WHERE and its
     # condition can land on separate lines -- match loosely on whitespace.
     always_false_pattern = re.compile(r"where\s+(false|0\s*=\s*1)", re.IGNORECASE)
-    assert always_false_pattern.search(retry), (
-        f"retry must still be a zero-row probe (WHERE false), got: {retry}"
-    )
-    assert retry.strip().lower().endswith("limit 0"), (
-        f"outer wrapper must also guarantee zero rows, got: {retry}"
-    )
+    assert always_false_pattern.search(
+        retry
+    ), f"retry must still be a zero-row probe (WHERE false), got: {retry}"
+    assert (
+        retry.strip().lower().endswith("limit 0")
+    ), f"outer wrapper must also guarantee zero rows, got: {retry}"
 
 
 def test_adhoc_column_type_probe_raises_without_comment_safe_retry_hook(
@@ -5754,12 +5754,12 @@ def test_simple_metric_quotes_column_requiring_quoting(database: Database) -> No
 
     # The spaced identifier must be quoted (double quotes for the SQLite/ANSI
     # dialect used here) and must never appear bare.
-    assert f'"{column_name}"' in rendered, (
-        f"Expected quoted identifier in rendered metric SQL, got: {rendered}"
-    )
-    assert f"SUM({column_name})" not in rendered, (
-        f"Column requiring quoting was emitted unquoted: {rendered}"
-    )
+    assert (
+        f'"{column_name}"' in rendered
+    ), f"Expected quoted identifier in rendered metric SQL, got: {rendered}"
+    assert (
+        f"SUM({column_name})" not in rendered
+    ), f"Column requiring quoting was emitted unquoted: {rendered}"
 
 
 def test_explore_mixin_adhoc_metric_quotes_snowflake_case_sensitive_identifier(
@@ -5799,9 +5799,9 @@ def test_explore_mixin_adhoc_metric_quotes_snowflake_case_sensitive_identifier(
         )
     )
 
-    assert '"amount"' in rendered, (
-        f"Expected the exact-case column to be quoted, got: {rendered}"
-    )
+    assert (
+        '"amount"' in rendered
+    ), f"Expected the exact-case column to be quoted, got: {rendered}"
     assert "(amount)" not in rendered, f"Column was aggregated unquoted: {rendered}"
 
 
@@ -5885,9 +5885,9 @@ def test_like_filter_on_uuid_column_casts_to_string(
         orderby=[],
     )
     whereclause: ColumnElement = result.sqla_query.whereclause
-    assert any(isinstance(node, Cast) for node in iterate(whereclause)), (
-        f"Expected a Cast node in the filter expression: {whereclause}"
-    )
+    assert any(
+        isinstance(node, Cast) for node in iterate(whereclause)
+    ), f"Expected a Cast node in the filter expression: {whereclause}"
 
 
 def test_like_filter_on_string_column_does_not_cast(database: Database) -> None:
@@ -5913,9 +5913,9 @@ def test_like_filter_on_string_column_does_not_cast(database: Database) -> None:
         orderby=[],
     )
     whereclause: ColumnElement = result.sqla_query.whereclause
-    assert not any(isinstance(node, Cast) for node in iterate(whereclause)), (
-        f"Unexpected Cast node in the filter expression: {whereclause}"
-    )
+    assert not any(
+        isinstance(node, Cast) for node in iterate(whereclause)
+    ), f"Unexpected Cast node in the filter expression: {whereclause}"
 
 
 # Rows used by the NULL-handling tests for negated filters. ``state`` is the
