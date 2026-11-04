@@ -65,6 +65,21 @@ assists people when migrating to a new version.
   destinations. Both policies ignore environment proxies and preserve budgets and
   TLS hostname verification. See the [provider transport guide](docs/developer_docs/extensions/semantic-provider-transport.md).
 
+- Saved ClickHouse connections on the legacy `clickhouse://` (clickhouse-sqlalchemy)
+  driver are migrated to `clickhousedb+connect://` (clickhouse-connect) by
+  `superset db upgrade`, so they use the dynamic connection form. Install
+  `clickhouse-connect>=0.13.0` before upgrading. HTTP connections keep their port;
+  `?protocol=https` becomes `?secure=true` (port 8123 is pinned when none was set).
+  Native-protocol connections (`clickhouse+native://`, `clickhouse+asynch://`) move
+  from the native default port 9000 to the HTTP port 8123, because
+  clickhouse-connect speaks HTTP only — confirm the server's HTTP interface is
+  reachable. Connections whose settings cannot be carried over exactly (other
+  URI parameters, a non-default native port, native TLS) stay on the legacy driver
+  and are logged by database id during the upgrade for manual migration. A
+  downgrade restores the original URI of every converted connection that has not
+  been edited since. `DISALLOWED_SQL_FUNCTIONS` gains a `clickhousedb` entry
+  matching `clickhouse`; deployments that override `DISALLOWED_SQL_FUNCTIONS`
+  should add it as well.
 - Semantic-view filters with an empty IN or NOT IN selection no longer fail with a
   query validation error. They follow SQL semantics where the filter sits: an
   empty IN matches no rows (grouped charts return no rows; an ungrouped total

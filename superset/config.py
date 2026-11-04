@@ -2694,6 +2694,10 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "httpuritype",
     },
 }
+# The lookup is keyed by engine spec ``engine``: ClickHouse connections use
+# ``clickhouse`` (clickhouse-sqlalchemy) or ``clickhousedb`` (clickhouse-connect),
+# and both drivers reach the same server functions.
+DISALLOWED_SQL_FUNCTIONS["clickhousedb"] = set(DISALLOWED_SQL_FUNCTIONS["clickhouse"])
 
 # Per-engine blocklist of system catalog tables/views that should not be queried.
 # Prevents information disclosure through system catalog access.

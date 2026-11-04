@@ -23,106 +23,126 @@ SQLAlchemy URI editor. ``ClickHouseConnectEngineSpec`` (backend ``clickhousedb``
 default driver ``connect``, the ``clickhouse-connect`` driver) defines a
 ``parameters_schema`` and therefore renders the new dynamic connection form.
 
-This migration rewrites the ``sqlalchemy_uri`` of connections stored on the
-legacy ``clickhouse`` backend so they resolve to ``ClickHouseConnectEngineSpec``
-and expose the new form. The backend name is what selects the engine spec
-(``Database.db_engine_spec`` reads ``url.get_backend_name()``), so the scheme is
-rewritten from ``clickhouse[+driver]://`` to ``clickhousedb+connect://``.
+The backend name selects the engine spec (``Database.db_engine_spec`` reads
+``url.get_backend_name()``), so saved legacy URIs are rewritten from
+``clickhouse[+driver]://`` to ``clickhousedb+connect://``. Only rows whose
+meaning can be carried across exactly are rewritten; everything else is left on
+the legacy driver -- which keeps working -- and logged by id for an operator.
 
-Scheme and port mapping
------------------------
+HTTP driver (``clickhouse://``, ``clickhouse+http://``)
+-------------------------------------------------------
 
-* ``clickhouse://`` and ``clickhouse+http://`` -- the ``clickhouse-sqlalchemy``
-  HTTP dialect, default port 8123. ``clickhouse-connect`` also speaks HTTP on
-  8123, so only the scheme changes; host, port, credentials, database and query
-  string are preserved byte-for-byte.
-* ``clickhouse+native://`` and ``clickhouse+asynch://`` -- the native TCP
-  protocol, default port 9000. ``clickhouse-connect`` cannot speak the native
-  protocol; it is HTTP-only. A native connection therefore also needs its port
-  moved to the HTTP interface. When the port is the native default (9000, or
-  absent -- which implies 9000) it is rewritten to the HTTP default (8123).
-  A *non-default* native port cannot be mapped to an HTTP port without knowing
-  the server's configuration, so those rows are left on the legacy driver for a
-  human to migrate rather than pointed at a guessed port. Operators should
-  confirm the HTTP interface is enabled on the rewritten native connections.
+``clickhouse-sqlalchemy`` builds the server URL as
+``f"{protocol}://{host}:{url.port or 8123}/{endpoint}"``: TLS comes only from
+``?protocol=https``, the port defaults to 8123 whatever the protocol, and
+``secure`` is not read at all. ``clickhouse-connect`` reads ``secure`` instead
+and defaults a TLS connection to 8443. So:
 
-TLS: ``clickhouse-sqlalchemy`` enables TLS with ``?protocol=https``, but
-``clickhouse-connect`` ignores ``protocol`` and reads ``secure`` instead, so a
-preserved ``protocol=https`` would silently downgrade an encrypted connection to
-plaintext HTTP. ``protocol=https`` is therefore rewritten to ``secure=true`` and
-the meaningless ``protocol`` parameter is dropped; ``secure`` values that a
-connection already carries are left untouched.
+* ``protocol=https`` becomes ``secure=true``; ``protocol=http`` is dropped.
+* a stray ``secure`` is dropped -- the legacy driver ignored it, so keeping it
+  would switch a plaintext connection to TLS (or, alongside ``protocol=https``,
+  produce a duplicate whose last value wins).
+* when the rewrite introduces ``secure=true`` and the URI has no port, 8123 is
+  pinned so the connection keeps addressing the same interface.
+* ``verify=true|false`` has the same meaning in both drivers and is kept.
 
-Password handling: the credential lives either inline in the URI or in
-``encrypted_extra``; both are preserved because the URI is edited in place (only
-the scheme, the TLS parameter, and for native rows the port, are touched) and
-``encrypted_extra`` is never read.
+Native driver (``clickhouse+native://``, ``clickhouse+asynch://``)
+------------------------------------------------------------------
 
-Only rows whose backend is exactly ``clickhouse`` are rewritten; rows already on
-``clickhousedb`` are skipped, which also makes ``upgrade`` idempotent. A row
-whose rewritten URI would exceed the ``dbs.sqlalchemy_uri`` column length is
-skipped with a warning rather than truncated.
+``clickhouse-connect`` is HTTP-only, so a native connection also has to move to
+the HTTP interface. The native default port (9000, or no port, which implies
+9000) becomes the HTTP default 8123. A falsy ``secure`` is dropped.
 
-Downgrade
----------
+Rows left on the legacy driver
+------------------------------
 
-``downgrade`` is intentionally a no-op. After ``upgrade`` a migrated row is
-byte-for-byte indistinguishable from a connection an operator created directly on
-the ``clickhousedb`` key (both are produced by ``build_sqlalchemy_uri`` as
-``clickhousedb+connect://...``), so a blind reversal would also revert genuine
-``clickhousedb`` connections onto the legacy driver and break them. The migrated
-connections keep working after a code rollback regardless, because
-``ClickHouseConnectEngineSpec`` predates this migration -- no data restoration is
-required for them to remain functional -- so the safe choice is to leave the
-rewritten URIs in place.
+* any query parameter other than the ones above -- the drivers do not share a
+  vocabulary (e.g. the legacy ``endpoint`` is the HTTP request path, while
+  ``clickhouse-connect`` forwards unknown keys as server settings and rejects
+  unrecognised ones), so carrying them over verbatim would silently change or
+  break the connection;
+* ``verify`` with a non-boolean value (a CA bundle path);
+* a non-default native port, or native TLS (``secure=true``), neither of which
+  maps to a known HTTP port without the server's configuration;
+* a rewritten URI that would overflow the ``dbs.sqlalchemy_uri`` column.
 
-The revision tree had two open heads when this was authored -- ``88a01c781622``
-(``index_ab_user_lower_username``) and ``c7f53d184ea2``
-(``coordinate_purge_audit_pruning``), which forked at ``7e2c9a4f1b83``. This
-revision merges them so the tree keeps a single head; the data rewrite itself is
-independent of both branches.
+Operators should confirm the HTTP interface is reachable for rewritten native
+connections.
+
+Credentials live in the separately encrypted ``password`` column (the URI only
+carries the masked placeholder), which this migration never reads or writes;
+``encrypted_extra`` is untouched too.
+
+Rollback
+--------
+
+The rewrite is not textually reversible (parameters are translated and native
+ports change), and afterwards a migrated row looks like any connection created
+on the ``clickhousedb`` key. ``upgrade`` therefore records each rewritten row's
+original URI and a fingerprint of its migrated state in a migration-owned
+table. ``downgrade`` restores the original only for rows whose fingerprint still
+matches -- connections edited since the upgrade, and connections created on the
+``clickhousedb`` key, are left alone -- and then drops the table.
 
 Revision ID: f7b3a9c14e02
-Revises: 88a01c781622, c7f53d184ea2
+Revises: b8f3a2c91d64
 Create Date: 2026-09-15 00:00:00.000000
 
 """
 
+from __future__ import annotations
+
 import logging
+from datetime import datetime
+from hashlib import sha256
 
+import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import Column, Integer, String
-from sqlalchemy.orm import declarative_base
 
-from superset import db
-from superset.migrations.shared.utils import paginated_update
+from superset.migrations.shared.utils import create_table, drop_table
+from superset.utils import json
 
-logger = logging.getLogger("alembic")
+logger = logging.getLogger("alembic.env")
 
 # revision identifiers, used by Alembic.
 revision = "f7b3a9c14e02"
-down_revision = ("88a01c781622", "c7f53d184ea2")
-
-Base = declarative_base()
+down_revision = "b8f3a2c91d64"
 
 LEGACY_BACKEND = "clickhouse"
 TARGET_SCHEME = "clickhousedb+connect"
 
 # Drivers that use the native TCP protocol rather than HTTP.
 NATIVE_DRIVERS = {"native", "asynch"}
+HTTP_DRIVERS = {"", "http"}
 NATIVE_DEFAULT_PORT = "9000"
 HTTP_DEFAULT_PORT = "8123"
 
 # Matches the String(1024) length of dbs.sqlalchemy_uri; the rewrite lengthens
 # the scheme (and may add a port), so a row near the limit could overflow.
 URI_MAX_LENGTH = 1024
+BATCH_SIZE = 1000
+
+_TRUE = {"true", "1", "yes", "y", "on", "t"}
+_FALSE = {"false", "0", "no", "n", "off", "f", ""}
+
+# Deliberately independent of application models and encrypted column types.
+databases = sa.table(
+    "dbs",
+    sa.column("id", sa.Integer),
+    sa.column("sqlalchemy_uri", sa.String(1024)),
+    sa.column("changed_on", sa.DateTime),
+)
+
+records = sa.table(
+    "clickhouse_uri_migration",
+    sa.column("id", sa.Integer),
+    sa.column("original_uri", sa.String(1024)),
+    sa.column("fingerprint", sa.String(64)),
+)
 
 
-class Database(Base):  # type: ignore
-    __tablename__ = "dbs"
-
-    id = Column(Integer, primary_key=True)
-    sqlalchemy_uri = Column(String(1024), nullable=False)
+class UnconvertibleError(Exception):
+    """A legacy row that cannot be rewritten without changing its meaning."""
 
 
 def _split_uri(remainder: str) -> tuple[str, str, str, str]:
@@ -142,124 +162,183 @@ def _split_uri(remainder: str) -> tuple[str, str, str, str]:
             break
 
     authority = remainder[:end]
-    rest = remainder[end:]
-
     at = authority.rfind("@")
-    userinfo = authority[: at + 1]
-    hostport = authority[at + 1 :]
-
-    path, _, query = rest.partition("?")
-    return userinfo, hostport, path, query
+    path, _, query = remainder[end:].partition("?")
+    return authority[: at + 1], authority[at + 1 :], path, query
 
 
-def _remap_native_port(hostport: str) -> str | None:
-    """Move a native-default port onto the HTTP interface.
-
-    Returns ``hostport`` with the port rewritten to the HTTP default when it is
-    the native default (9000) or absent (which implies 9000), and ``None`` when
-    the port is a non-default native port or an IPv6 literal host is present, so
-    the caller can leave those rows on the legacy driver rather than guess an
-    HTTP port.
-    """
+def _split_hostport(hostport: str) -> tuple[str, str | None]:
+    """Split ``host[:port]``, treating a bracketed IPv6 literal as one host."""
     if hostport.startswith("["):
-        # IPv6 literal host -- the "host:port" split below is unsafe here.
-        return None
-
+        close = hostport.find("]")
+        rest = hostport[close + 1 :]
+        if close == -1 or (rest and not rest.startswith(":")):
+            raise UnconvertibleError("unparseable IPv6 host")
+        return hostport[: close + 1], rest[1:] if rest else None
     host, colon, port = hostport.rpartition(":")
-    if not colon:
-        # No explicit port: the native driver defaults to 9000, so pin the HTTP
-        # port explicitly for clickhouse-connect.
-        return f"{hostport}:{HTTP_DEFAULT_PORT}"
-    if port == NATIVE_DEFAULT_PORT:
-        return f"{host}:{HTTP_DEFAULT_PORT}"
-    return None
+    return (host, port) if colon else (hostport, None)
 
 
-def _migrate_query(query: str) -> str:
-    """Translate the legacy ``protocol`` TLS flag to clickhouse-connect's.
-
-    ``clickhouse-sqlalchemy`` selects TLS with ``?protocol=https``;
-    ``clickhouse-connect`` ignores ``protocol`` and reads ``secure`` instead, so
-    a preserved ``protocol=https`` would silently downgrade an encrypted
-    connection to plaintext HTTP. ``protocol=https`` becomes ``secure=true`` and
-    the now-meaningless ``protocol`` parameter is dropped; every other parameter
-    keeps its position and value.
-    """
-    if not query:
-        return query
-
-    rewritten = []
-    for pair in query.split("&"):
+def _rewrite_query(query: str, native: bool) -> tuple[list[str], bool]:
+    """Translate the query string; return the new pairs and whether TLS is on."""
+    pairs: list[str] = []
+    secure = False
+    for pair in query.split("&") if query else []:
         key, _, value = pair.partition("=")
-        if key == "protocol":
-            if value.lower() == "https":
-                rewritten.append("secure=true")
-            # protocol=http (the plaintext default) carries no meaning for
-            # clickhouse-connect and is dropped.
-            continue
-        rewritten.append(pair)
-    return "&".join(rewritten)
+        lowered = value.lower()
+        if key == "protocol" and not native:
+            if lowered not in {"http", "https"}:
+                raise UnconvertibleError(f"unsupported protocol {value!r}")
+            if lowered == "https" and not secure:
+                # Takes the position of the protocol flag it replaces.
+                secure = True
+                pairs.append("secure=true")
+        elif key == "secure":
+            if native and lowered not in _FALSE:
+                raise UnconvertibleError("native TLS has no known HTTP port")
+            # The legacy HTTP driver ignores ``secure``; TLS comes from protocol.
+        elif key == "verify" and not native and lowered in _TRUE | _FALSE:
+            pairs.append(pair)
+        else:
+            raise UnconvertibleError(
+                f"parameter {key!r} has no clickhouse-connect equivalent"
+            )
+    return pairs, secure
 
 
-def _migrate_uri(uri: str) -> str | None:
-    """Rewrite a legacy ``clickhouse`` URI onto ``clickhousedb+connect``.
-
-    Returns ``None`` when the URI should be left untouched (already on the
-    ``clickhousedb`` backend, malformed, a native connection whose port cannot
-    be mapped to the HTTP interface, or one that would overflow the column).
-    """
+def _rewrite(uri: str) -> str | None:
+    """Return the migrated URI, ``None`` for a non-legacy row, or raise."""
     scheme, separator, remainder = uri.partition("://")
-    if not separator:
-        return None
-
     backend, _, driver = scheme.partition("+")
-    if backend != LEGACY_BACKEND:
+    if not separator or backend != LEGACY_BACKEND:
         # Already clickhousedb, or an unrelated engine.
         return None
+    if driver not in NATIVE_DRIVERS | HTTP_DRIVERS:
+        raise UnconvertibleError(f"unknown driver {driver!r}")
 
+    native = driver in NATIVE_DRIVERS
     userinfo, hostport, path, query = _split_uri(remainder)
+    host, port = _split_hostport(hostport)
+    pairs, secure = _rewrite_query(query, native)
 
-    if driver in NATIVE_DRIVERS:
-        remapped = _remap_native_port(hostport)
-        if remapped is None:
-            return None
-        hostport = remapped
+    if native:
+        if port not in (None, NATIVE_DEFAULT_PORT):
+            raise UnconvertibleError(f"non-default native port {port}")
+        port = HTTP_DEFAULT_PORT
+    elif port is None and secure:
+        # clickhouse-connect would default a TLS connection to 8443, but the
+        # legacy driver always defaulted to 8123.
+        port = HTTP_DEFAULT_PORT
 
-    query = _migrate_query(query)
-
-    migrated = f"{TARGET_SCHEME}://{userinfo}{hostport}{path}"
-    if query:
-        migrated = f"{migrated}?{query}"
+    migrated = f"{TARGET_SCHEME}://{userinfo}{host}"
+    if port is not None:
+        migrated = f"{migrated}:{port}"
+    migrated = f"{migrated}{path}"
+    if pairs:
+        migrated = f"{migrated}?{'&'.join(pairs)}"
 
     if len(migrated) > URI_MAX_LENGTH:
-        logger.warning(
-            "Skipping ClickHouse connection whose migrated URI exceeds the "
-            "%d-character dbs.sqlalchemy_uri limit; migrate it manually.",
-            URI_MAX_LENGTH,
+        raise UnconvertibleError(
+            f"migrated URI would exceed {URI_MAX_LENGTH} characters"
         )
-        return None
-
     return migrated
 
 
+def _migrate_uri(uri: str) -> str | None:
+    """Return the migrated URI, or ``None`` when the row is left untouched."""
+    try:
+        return _rewrite(uri)
+    except UnconvertibleError:
+        return None
+
+
+def _fingerprint(uri: str, changed_on: datetime | None) -> str:
+    """Recognize the migrated state, including later edits to the connection."""
+    return sha256(json.dumps([uri, str(changed_on)]).encode("utf-8")).hexdigest()
+
+
 def upgrade() -> None:
+    """Rewrite legacy URIs and record each converted row for exact rollback."""
+    create_table(
+        records.name,
+        sa.Column("id", sa.Integer, primary_key=True, autoincrement=False),
+        sa.Column("original_uri", sa.String(1024), nullable=False),
+        sa.Column("fingerprint", sa.String(64), nullable=False),
+    )
     bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    # The LIKE also matches "clickhousedb%"; _migrate_uri filters those out by
-    # backend name, so re-running is a no-op.
-    query = session.query(Database).filter(Database.sqlalchemy_uri.like("clickhouse%"))
-    for database in paginated_update(query):
-        updated = _migrate_uri(database.sqlalchemy_uri)
-        if updated:
-            database.sqlalchemy_uri = updated
-
-    session.commit()
+    last_id = -1
+    while True:
+        # Keyset batches, so rewriting rows out of the LIKE cannot skip others.
+        rows = bind.execute(
+            sa.select(databases)
+            .where(
+                databases.c.id > last_id,
+                databases.c.sqlalchemy_uri.like(f"{LEGACY_BACKEND}%"),
+            )
+            .order_by(databases.c.id)
+            .limit(BATCH_SIZE)
+        ).fetchall()
+        if not rows:
+            break
+        for row in rows:
+            last_id = row.id
+            try:
+                migrated = _rewrite(row.sqlalchemy_uri)
+            except UnconvertibleError as ex:
+                logger.warning(
+                    "Leaving ClickHouse database id=%s on the legacy clickhouse "
+                    "driver (%s); migrate it to clickhousedb manually.",
+                    row.id,
+                    ex,
+                )
+                continue
+            if migrated is None:
+                continue
+            updated = bind.execute(
+                databases.update()
+                .where(
+                    databases.c.id == row.id,
+                    databases.c.sqlalchemy_uri == row.sqlalchemy_uri,
+                )
+                .values(sqlalchemy_uri=migrated)
+            )
+            if updated.rowcount:
+                bind.execute(records.delete().where(records.c.id == row.id))
+                bind.execute(
+                    records.insert().values(
+                        id=row.id,
+                        original_uri=row.sqlalchemy_uri,
+                        fingerprint=_fingerprint(migrated, row.changed_on),
+                    )
+                )
 
 
 def downgrade() -> None:
-    # Intentionally a no-op; see the module docstring. A migrated row is
-    # indistinguishable from a natively-created clickhousedb connection, and the
-    # rewritten URIs remain functional after a code rollback, so nothing is
-    # reverted.
-    pass
+    """Restore unchanged converted URIs, then remove migration bookkeeping."""
+    bind = op.get_bind()
+    rows = bind.execute(
+        sa.select(
+            databases.c.id,
+            databases.c.sqlalchemy_uri,
+            databases.c.changed_on,
+            records.c.original_uri,
+            records.c.fingerprint,
+        ).select_from(records.join(databases, databases.c.id == records.c.id))
+    ).fetchall()
+    for row in rows:
+        if row.fingerprint != _fingerprint(row.sqlalchemy_uri, row.changed_on):
+            logger.warning(
+                "Not reverting ClickHouse database id=%s: it changed after the "
+                "upgrade.",
+                row.id,
+            )
+            continue
+        bind.execute(
+            databases.update()
+            .where(
+                databases.c.id == row.id,
+                databases.c.sqlalchemy_uri == row.sqlalchemy_uri,
+            )
+            .values(sqlalchemy_uri=row.original_uri)
+        )
+    drop_table(records.name)
