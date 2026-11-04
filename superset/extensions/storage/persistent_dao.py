@@ -17,6 +17,9 @@
 
 from __future__ import annotations
 
+import ast
+import base64
+import binascii
 import hashlib
 import hmac
 import logging
@@ -45,6 +48,42 @@ from superset.utils.encrypt import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class EncryptedBytesType(EncryptedType):
+    """EncryptedType that round-trips arbitrary bytes.
+
+    The sqlalchemy_utils engines encrypt text. Given ``bytes``, the parent
+    class encrypts ``repr(value)`` and then fails to rebuild ``bytes`` from
+    the decrypted string ("string argument without an encoding"), so nothing
+    written with ``encrypt=True`` could be read back. The payload is
+    base64-encoded before encryption and decoded after decryption instead.
+    """
+
+    cache_ok = True
+
+    def process_bind_param(self, value: bytes | None, dialect: Any) -> Any:
+        if value is None:
+            return None
+        return super().process_bind_param(
+            base64.b64encode(value).decode("ascii"), dialect
+        )
+
+    def process_result_value(self, value: Any, dialect: Any) -> bytes | None:
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            value = value.decode()
+        self._update_key()
+        plaintext = self.engine.decrypt(value)
+        try:
+            return base64.b64decode(plaintext, validate=True)
+        except binascii.Error:
+            # Written before the fix: the engine encrypted `repr(value)`.
+            legacy = ast.literal_eval(plaintext)
+            if isinstance(legacy, bytes):
+                return legacy
+            raise
 
 
 class ExtensionStorageQuotaExceeded(SupersetGenericErrorException):
@@ -144,7 +183,7 @@ def _derive_key(secret: str, user_fk: int) -> str:
     ).hexdigest()
 
 
-def _enc_type(user_fk: int | None) -> EncryptedType:
+def _enc_type(user_fk: int | None) -> EncryptedBytesType:
     """Return an EncryptedType for the given scope.
 
     User-scoped rows use a key derived from SECRET_KEY and the user ID, so
@@ -156,7 +195,7 @@ def _enc_type(user_fk: int | None) -> EncryptedType:
     engine_name = current_app.config.get(
         "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE", DEFAULT_ENCRYPTION_ENGINE_NAME
     )
-    return EncryptedType(
+    return EncryptedBytesType(
         LargeBinary,
         key=key,
         engine=resolve_encryption_engine(engine_name),

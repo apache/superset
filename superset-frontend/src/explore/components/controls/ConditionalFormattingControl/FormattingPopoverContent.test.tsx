@@ -81,22 +81,22 @@ const getBoundInputs = () => ({
 // the open dropdown via `document.querySelector('.ant-select-dropdown-list')`
 // -- the first match anywhere in the document -- which is safe only when a
 // test opens a single Select. This `Select` (from `@superset-ui/core/components`)
-// renders its popup through `getPopupContainer={trigger => trigger.parentNode}`
-// (inline, as a sibling of the trigger, rather than portaled to <body>), and
-// antd never removes a closed dropdown's list node afterward. Because "Bound
-// unit" sits earlier in the DOM than "Percent denominator", opening "Bound
-// unit" once leaves a stale, closed dropdown list that permanently wins any
-// *unscoped* "first match" query -- a later interaction with "Percent
-// denominator" via the shared helper would silently re-read "Bound unit"'s
-// stale list and time out looking for an option that was never there.
-// Scope explicitly to the target Select's own popup container (its trigger's
-// parent) to sidestep that.
+// portals its popup to <body>, and antd never removes a closed dropdown's list
+// node afterward, so a stale closed list from an earlier Select would win any
+// *unscoped* "first match" query. Scope explicitly to the target Select's own
+// open popup.
 const selectFieldOption = async (option: string, selectName: string) => {
   const trigger = await screen.findByRole('combobox', { name: selectName });
-  const container = trigger.closest('.ant-select')!
-    .parentElement as HTMLElement;
   await userEvent.click(trigger);
-  const item = await within(container).findByText(option);
+  // closed dropdowns keep a hidden node, so only an open one is a match
+  const dropdown = await waitFor(() => {
+    const open = Array.from(
+      document.querySelectorAll<HTMLElement>('.ant-select-dropdown'),
+    ).filter(el => !el.classList.contains('ant-select-dropdown-hidden'));
+    expect(open.length).toBeGreaterThan(0);
+    return open[open.length - 1];
+  });
+  const item = await within(dropdown).findByText(option);
   await userEvent.click(item);
 };
 
