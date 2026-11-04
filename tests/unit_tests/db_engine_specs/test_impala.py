@@ -456,7 +456,7 @@ class _StreamingCursor:
             rows.append(row)
         return rows
 
-    def cancel_operation(self) -> None:
+    def cancel_operation(self, reset_state: bool = True) -> None:
         """Record the cancel RPC."""
         self.calls.append("cancel_operation")
 
@@ -648,6 +648,8 @@ def test_timeout_during_a_stop_check_is_not_swallowed(
             spec.fetch_data(cursor)
 
     assert operation.fetches == 0
+    # The fetch's time-limit handler cancels the operation it leaves behind.
+    assert cursor.calls == ["cancel_operation"]
 
 
 def test_sql_lab_stop_while_fetching_ends_stopped(

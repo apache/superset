@@ -577,6 +577,31 @@ def test_timeout_during_progress_log_cancels_the_operation(
     cursor.close.assert_called_once_with()
 
 
+@pytest.mark.parametrize(
+    "timeout", [SoftTimeLimitExceeded(), _sync_timeout()], ids=["async", "sync"]
+)
+def test_timeout_during_the_post_poll_stop_check_cancels_the_operation(
+    timeout: Exception,
+) -> None:
+    """
+    A time limit that fires while the stop is checked after the last poll must
+    not be taken for a failed status call: the fetch would then start on an
+    operation nothing cancels.
+    """
+    app: Flask = Flask(__name__)
+    query: Mock = Mock(id=1, extra={}, status=QueryStatus.RUNNING, progress=0)
+    cursor: Mock = Mock()
+    cursor.status.return_value = "FINISHED_STATE"
+    with app.app_context(), patch("superset.db_engine_specs.impala.db") as db:
+        db.session.refresh.side_effect = timeout
+        with pytest.raises(type(timeout)):
+            ImpalaEngineSpec.handle_cursor(cursor, query)
+    cursor.cancel_operation.assert_called_once_with()
+    cursor.close_operation.assert_called_once_with()
+    cursor.close.assert_called_once_with()
+    assert cursor._last_operation not in _STOP_WATCHED_OPERATIONS
+
+
 def test_status_failure_still_ends_polling_without_raising() -> None:
     """Ordinary polling failures keep ending the loop quietly."""
     app: Flask = Flask(__name__)
