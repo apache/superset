@@ -35,6 +35,7 @@ import { FilterCardPlacement } from '../../FilterCard/types';
 import { isFilterWithoutScope, useIsFilterInScope } from '../../state';
 import {
   FilterStyledIcon,
+  FilterControlTitleGroup,
   RequiredFieldIndicator,
   DescriptionToolTip,
   OutOfScopeFilterToolTip,
@@ -80,15 +81,16 @@ const FilterControl = ({
   const label = useMemo(
     () => (
       <FilterControlTitleBox>
-        <FilterControlTitle
-          id={`filter-name-${filter.id}`}
-          data-test="filter-control-name"
-          isOutOfScope={isOutOfScope}
-        >
-          {name}
-        </FilterControlTitle>
+        <FilterControlTitleGroup data-test="filter-control-title-group">
+          <FilterControlTitle
+            id={`filter-name-${filter.id}`}
+            data-test="filter-control-name"
+          >
+            {name}
+          </FilterControlTitle>
+          {isOutOfScope && <OutOfScopeFilterToolTip />}
+        </FilterControlTitleGroup>
         {isRequired && <RequiredFieldIndicator />}
-        {isOutOfScope && <OutOfScopeFilterToolTip />}
         {filter.filterType === 'filter_select' &&
           filter.controlValues?.multiSelect && (
             <DescriptionToolTip

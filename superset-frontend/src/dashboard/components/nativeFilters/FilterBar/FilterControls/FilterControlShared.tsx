@@ -33,12 +33,9 @@ export const FilterStyledIcon = styled.div`
   right: 0;
 `;
 
-export const VerticalFilterControlTitle = styled.h4<{
-  isOutOfScope?: boolean;
-}>`
+export const VerticalFilterControlTitle = styled.h4`
   font-size: ${({ theme }) => theme.fontSizeSM}px;
-  color: ${({ theme, isOutOfScope }) =>
-    isOutOfScope ? theme.colorTextDisabled : theme.colorText};
+  color: ${({ theme }) => theme.colorText};
   overflow-wrap: anywhere;
 `;
 
@@ -46,6 +43,8 @@ export const HorizontalFilterControlTitle = styled(VerticalFilterControlTitle)`
   font-weight: ${({ theme }) => theme.fontWeightNormal};
   color: ${({ theme }) => theme.colorText};
   margin: 0;
+  flex: 1;
+  min-width: 0;
   ${truncationCSS};
 `;
 
@@ -61,6 +60,14 @@ export const VerticalFilterControlTitleBox = styled.div`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
+`;
+
+export const FilterControlTitleGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+  flex: 1;
+  min-width: 0;
 `;
 
 export const HorizontalFilterControlTitleBox = styled(
@@ -210,7 +217,25 @@ const StyledInfoCircleOutlined = styled(Icons.InfoCircleOutlined)`
 `;
 
 const StyledWarningOutlined = styled(Icons.WarningOutlined)`
-  padding-left: ${({ theme }) => theme.sizeUnit}px;
+  display: inline-flex;
+`;
+
+const StyledWarningButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
 `;
 
 export const RequiredFieldIndicator = () => (
@@ -252,21 +277,25 @@ export const DescriptionToolTip = ({
   </ToolTipContainer>
 );
 
-export const OutOfScopeFilterToolTip = () => (
-  <ToolTipContainer>
+export const OutOfScopeFilterToolTip = () => {
+  const message = t("This filter isn't applied to any charts yet");
+
+  return (
     <Tooltip
-      title={t("This filter isn't applied to any charts yet")}
+      title={message}
       placement="right"
+      trigger={['hover', 'focus', 'click']}
     >
-      <StyledWarningOutlined
-        className="text-muted"
-        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
-        role="button"
+      <StyledWarningButton
+        type="button"
+        aria-label={t('Warning')}
         data-test="out-of-scope-filter-tooltip-icon"
-      />
+      >
+        <StyledWarningOutlined aria-hidden="true" />
+      </StyledWarningButton>
     </Tooltip>
-  </ToolTipContainer>
-);
+  );
+};
 
 export const DeckglLayerVisibilityTooltip = () => (
   <ToolTipContainer>

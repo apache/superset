@@ -41,12 +41,11 @@ const EMPTY_ARRAY: ChartCustomizationConfiguration = [];
 const EMPTY_ACTIVE_TABS: ActiveTabs = [];
 const defaultFilterConfiguration: (Filter | Divider)[] = [];
 
-export function isFilterWithoutScope(filter: FilterElement) {
+export function isFilterWithoutScope(filter: FilterElement | Divider) {
   return (
-    !isChartCustomization(filter) &&
+    filter.type === NativeFilterType.NativeFilter &&
     Array.isArray(filter.chartsInScope) &&
-    filter.chartsInScope.length === 0 &&
-    !filter.scope?.rootPath?.length
+    filter.chartsInScope.length === 0
   );
 }
 
