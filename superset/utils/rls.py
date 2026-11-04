@@ -129,8 +129,7 @@ def qualify_table(
     """
     The tables a reference may name, qualified with each schema it may resolve to.
 
-    The first is qualified with the first schema, which ``apply_rls`` qualifies
-    the reference with; a reference naming its schema has only that one.
+    A reference naming its schema has only that one.
 
     :param schema: The schema, or schemas, unqualified tables resolve to (see
         ``get_unqualified_table_schemas``)
@@ -140,6 +139,17 @@ def qualify_table(
         table.qualify(catalog=catalog, schema=candidate)
         for candidate in (schemas[:1] if table.schema else schemas)
     ]
+
+
+def _rls_key_schema(schema: RLSSchema) -> str | None:
+    """
+    The schema ``apply_rls`` keys an unqualified table's rules under.
+
+    A table read through a search path of several schemas is keyed without a
+    schema, so it can't share a key, and the rules, with the table the query
+    qualifies with one of those schemas.
+    """
+    return schema if isinstance(schema, str) else None
 
 
 def get_disallowed_tables(
@@ -237,8 +247,7 @@ def apply_rls(
 
     return parsed_statement.apply_rls(
         catalog,
-        # keyed by ``get_rls_predicates`` under the first schema it may resolve to
-        (schema[0] if schema else "") if isinstance(schema, tuple) else schema,
+        _rls_key_schema(schema),
         parse(predicates),
         method,
         None if subquery_predicates is None else parse(subquery_predicates),
@@ -271,27 +280,19 @@ def get_rls_predicates(
     ) -> dict[Table, list[str]]:
         predicates: dict[Table, list[str]] = {}
         for table in parsed_statement.tables:
-            # An unqualified table is keyed under the first schema it may resolve
-            # to, which ``apply_rls`` qualifies it with, and gets the rules of the
-            # table in every schema it may resolve to. Rules are merged into the
-            # key, since a table qualified with that schema shares it.
-            candidates = qualify_table(table, catalog, schema)
-            key = candidates[0]
+            # An unqualified table gets the rules of the table in every schema it
+            # may resolve to.
+            key = table.qualify(catalog=catalog, schema=_rls_key_schema(schema))
             predicates[key] = remove_duplicates(
-                [
-                    *predicates.get(key, []),
-                    *(
-                        predicate
-                        for candidate in candidates
-                        for predicate in get_predicates_for_table(
-                            candidate,
-                            database,
-                            default_catalog,
-                            exclude_dataset_id=exclude_id,
-                            include_global_guest_rls=include_global,
-                        )
-                    ),
-                ]
+                predicate
+                for candidate in qualify_table(table, catalog, schema)
+                for predicate in get_predicates_for_table(
+                    candidate,
+                    database,
+                    default_catalog,
+                    exclude_dataset_id=exclude_id,
+                    include_global_guest_rls=include_global,
+                )
             )
         return predicates
 

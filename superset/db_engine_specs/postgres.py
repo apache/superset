@@ -783,17 +783,14 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         """
         schemas: list[str] = []
         try:
-            with database.get_inspector(catalog=catalog) as inspector:
-                with inspector.engine.connect() as connection:
-                    schemas = (
-                        connection.execute(
-                            text("SELECT current_schemas(false)::text[]")
-                        ).scalar()
-                        or []
-                    )
+            with database.get_raw_connection(catalog=catalog) as connection:
+                cursor = connection.cursor()
+                cursor.execute("SELECT current_schemas(false)::text[]")
+                if (row := cursor.fetchone()) and isinstance(row[0], list):
+                    schemas = row[0]
         except Exception:  # pylint: disable=broad-except
             logger.warning("Unable to read the search path", exc_info=True)
-        return list(schemas) or super().get_search_path(database, catalog)
+        return schemas or super().get_search_path(database, catalog)
 
     @classmethod
     def get_default_schema_for_query(

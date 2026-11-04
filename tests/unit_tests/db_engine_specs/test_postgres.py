@@ -943,11 +943,11 @@ def _search_path_database(
     database = mocker.MagicMock()
     inspector = database.get_inspector.return_value.__enter__.return_value
     inspector.default_schema_name = default_schema
-    connection = inspector.engine.connect.return_value.__enter__.return_value
+    cursor = database.get_raw_connection.return_value.__enter__.return_value.cursor
     if isinstance(search_path, Exception):
-        connection.execute.side_effect = search_path
+        cursor.return_value.execute.side_effect = search_path
     else:
-        connection.execute.return_value.scalar.return_value = search_path
+        cursor.return_value.fetchone.return_value = search_path
     return database
 
 
@@ -956,16 +956,20 @@ def test_get_search_path(mocker: MockerFixture) -> None:
     DB Eng Specs (postgres): ``get_search_path`` lists every schema searched for an
     unqualified table, not just the first existing one ``current_schema()`` reports.
     """
-    database = _search_path_database(mocker, ["analyst", "public"])
+    database = _search_path_database(mocker, (["analyst", "public"],))
 
     assert spec.get_search_path(database, "analytics") == ["analyst", "public"]
-    database.get_inspector.assert_called_with(catalog="analytics")
-    connection = database.get_inspector.return_value.__enter__.return_value.engine
-    statement = connection.connect.return_value.__enter__.return_value.execute
-    assert str(statement.call_args.args[0]) == "SELECT current_schemas(false)::text[]"
+    database.get_raw_connection.assert_called_once_with(catalog="analytics")
+    cursor = database.get_raw_connection.return_value.__enter__.return_value.cursor
+    cursor.return_value.execute.assert_called_once_with(
+        "SELECT current_schemas(false)::text[]"
+    )
 
 
-@pytest.mark.parametrize("search_path", [None, [], Exception("no such function")])
+@pytest.mark.parametrize(
+    "search_path",
+    [None, ([],), ("{analyst,public}",), Exception("no such function")],
+)
 def test_get_search_path_falls_back_to_default_schema(
     mocker: MockerFixture, search_path: Any
 ) -> None:

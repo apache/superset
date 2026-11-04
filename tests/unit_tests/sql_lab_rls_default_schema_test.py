@@ -56,12 +56,31 @@ SEARCH_PATH = ["public"]
 
 
 @contextmanager
-def _inspector(default_schema: str | None, search_path: list[str]) -> Iterator[Any]:
-    """An inspector reporting the connection's default schema and search path."""
-    inspector = MagicMock(default_schema_name=default_schema)
-    connection = inspector.engine.connect.return_value.__enter__.return_value
-    connection.execute.return_value.scalar.return_value = search_path
-    yield inspector
+def _inspector(default_schema: str | None) -> Iterator[Any]:
+    """An inspector reporting the connection's default schema."""
+    yield MagicMock(default_schema_name=default_schema)
+
+
+@contextmanager
+def _raw_connection(search_path: list[str]) -> Iterator[Any]:
+    """A connection reporting its search path, and running nothing else."""
+    connection = MagicMock()
+    connection.cursor.return_value.fetchone.return_value = (search_path,)
+    yield connection
+
+
+def _connect(
+    mocker: MockerFixture, default_schema: str, search_path: list[str]
+) -> None:
+    """Report the connection's default schema and search path."""
+    mocker.patch.object(
+        Database, "get_inspector", side_effect=lambda **kw: _inspector(default_schema)
+    )
+    mocker.patch.object(
+        Database,
+        "get_raw_connection",
+        side_effect=lambda *args, **kw: _raw_connection(search_path),
+    )
 
 
 @pytest.fixture
@@ -71,7 +90,7 @@ def database(session: Session, mocker: MockerFixture) -> Iterator[Database]:
     assigned to the current user's role.
 
     The connection's default schema (the Postgres ``search_path``) is ``public``.
-    Patch ``Database.get_inspector`` again to change it.
+    Call ``_connect`` again to change it.
     """
     from flask_appbuilder.security.sqla.models import Role, User
 
@@ -110,11 +129,7 @@ def database(session: Session, mocker: MockerFixture) -> Iterator[Database]:
         "superset.subjects.utils.get_current_user_subject_ids",
         return_value=[subject.id],
     )
-    mocker.patch.object(
-        Database,
-        "get_inspector",
-        side_effect=lambda **kw: _inspector("public", SEARCH_PATH),
-    )
+    _connect(mocker, "public", SEARCH_PATH)
     with override_user(user):
         yield database
 
@@ -209,7 +224,6 @@ def _run_sql_lab(
     mocker.patch.object(sql_lab, "execute_query", side_effect=capture)
     mocker.patch.object(sql_lab, "commit_query_unless_stopped", return_value=True)
     mocker.patch.object(sql_lab, "results_backend", MagicMock())
-    mocker.patch.object(Database, "get_raw_connection")
     mocker.patch.object(
         database.db_engine_spec, "get_cancel_query_id", return_value=None
     )
@@ -602,11 +616,7 @@ def user_schema_first(database: Database, mocker: MockerFixture) -> Database:
     own schema exists: the connection reports that schema as its default, but an
     unqualified ``sales``, which only ``public`` has, still reads ``public.sales``.
     """
-    mocker.patch.object(
-        Database,
-        "get_inspector",
-        side_effect=lambda **kw: _inspector("analyst", ["analyst", "public"]),
-    )
+    _connect(mocker, "analyst", ["analyst", "public"])
     return database
 
 
@@ -727,21 +737,23 @@ def test_virtual_dataset_rls_failure_checks_every_search_path_schema(
         "SELECT * FROM analyst.sales AS s JOIN sales ON TRUE",
     ],
 )
-def test_apply_rls_keeps_rules_of_every_search_path_schema(
+def test_apply_rls_keeps_qualified_table_out_of_search_path_rules(
     user_schema_first: Database, sql: str
 ) -> None:
     """
-    An unqualified table keyed under the first schema on the search path keeps
-    the rules found in later schemas, even when the query also reads the table
-    qualified with that first schema (which then gets them too, erring toward an
-    extra filter).
+    An unqualified table gets the rules of the table in every schema on the search
+    path, while the same table qualified with one of those schemas keeps only its
+    own (none here).
     """
     from superset.sql.parse import SQLStatement
     from superset.utils.rls import apply_rls
 
     statement = SQLStatement(sql, "postgresql")
     assert apply_rls(user_schema_first, None, ("analyst", "public"), statement)
-    assert statement.format().count(CLAUSE) == 2
+    output = statement.format()
+    assert output.count(CLAUSE) == 1
+    # the qualified read is left as written, not wrapped in a filtered sub-query
+    assert "analyst.sales AS s" in output
 
 
 @pytest.mark.parametrize("is_async", [False, True])
