@@ -44,6 +44,20 @@ const PARSED_FIELDS: Record<string, string> = {
   position_json: 'position_data',
 };
 
+/**
+ * The host's edit-mode flag, when the host is a dashboard.
+ *
+ * This hook is mounted in Explore too, whose store has no `dashboardState`
+ * at all, so the typed store does not carry the field and every read of it
+ * has to say so.
+ */
+function hostEditMode(state: unknown): boolean {
+  return Boolean(
+    (state as { dashboardState?: { editMode?: boolean } } | null)
+      ?.dashboardState?.editMode,
+  );
+}
+
 function overlay(
   live: HydrateDashboardData,
   payload: JsonObject,
@@ -202,8 +216,7 @@ export function useProposedPreview(changeRequest: ChangeRequest | null) {
           // the switch on used to drop them into view mode and turning it
           // off left them there -- their edit session gone, with no way to
           // tell what had happened.
-          editModeBeforeRef.current =
-            store.getState().dashboardState?.editMode ?? false;
+          editModeBeforeRef.current = hostEditMode(store.getState());
           // Cache the live copy on the way in: it is what the switch
           // returns to, and re-fetching on the way out could pick up
           // someone else's save and silently show a third state.
@@ -255,9 +268,7 @@ export function useProposedPreview(changeRequest: ChangeRequest | null) {
               // now, and that is the state to keep, not the view mode they
               // were in when they turned the switch on.
               editMode:
-                (store.getState().dashboardState?.editMode as
-                  | boolean
-                  | undefined) || editModeBeforeRef.current,
+                hostEditMode(store.getState()) || editModeBeforeRef.current,
             }),
           );
           editModeBeforeRef.current = false;

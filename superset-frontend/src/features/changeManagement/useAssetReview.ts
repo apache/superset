@@ -21,6 +21,7 @@ import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { fetchForAsset } from './api';
 import { onChangeCaptured, onReviewChanged } from './events';
 import type { ChangeRequest, ReviewAssetType } from './types';
+import { requestFacts, reviewLog } from './log';
 
 export interface AssetReview {
   changeRequest: ChangeRequest | null;
@@ -57,8 +58,18 @@ export function useAssetReview(
     }
     setLoading(true);
     try {
-      setChangeRequest(await fetchForAsset(assetType, assetId));
-    } catch {
+      const fetched = await fetchForAsset(assetType, assetId);
+      reviewLog('banner: read the review status', {
+        reader: 'useAssetReview',
+        ...requestFacts(fetched),
+      });
+      setChangeRequest(fetched);
+    } catch (error) {
+      reviewLog('banner: could not read the review status', {
+        reader: 'useAssetReview',
+        asset: `${assetType} ${assetId}`,
+        error: String(error),
+      });
       setChangeRequest(null);
     } finally {
       setLoading(false);
@@ -134,9 +145,19 @@ export function useOpenChange(
     }
     fetchForAsset(assetType, assetId)
       .then(result => {
+        reviewLog('toolbar: read the review status', {
+          reader: 'useOpenChange',
+          stillMounted: live,
+          ...requestFacts(result),
+        });
         if (live) setChangeRequest(result);
       })
-      .catch(() => {
+      .catch(error => {
+        reviewLog('toolbar: could not read the review status', {
+          reader: 'useOpenChange',
+          asset: `${assetType} ${assetId}`,
+          error: String(error),
+        });
         if (live) setChangeRequest(null);
       });
     return () => {

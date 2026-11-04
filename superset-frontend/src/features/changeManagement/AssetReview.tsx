@@ -51,6 +51,7 @@ import {
   withdrawRequest,
 } from './api';
 import type { ReviewAssetType } from './types';
+import { requestFacts, reviewLog } from './log';
 
 /**
  * The banner occupies its own full-width row.
@@ -201,6 +202,7 @@ export default function AssetReview({
   useEffect(() => {
     if (!pendingRequest) return;
     if (changeRequest?.status === 'draft') {
+      reviewLog('request review: opening the dialog', requestFacts(changeRequest));
       setRequestOpen(true);
       setPendingRequest(false);
       return;
@@ -210,7 +212,13 @@ export default function AssetReview({
     // status to become a draft and then opened the dialog by itself --
     // minutes later, after an unrelated edit and save, with nothing on
     // screen connecting it to the click that armed it.
-    if (changeRequest) setPendingRequest(false);
+    if (changeRequest) {
+      reviewLog(
+        'request review: dropped, the dialog cannot open for this status',
+        requestFacts(changeRequest),
+      );
+      setPendingRequest(false);
+    }
   }, [pendingRequest, changeRequest, changeRequest?.status]);
 
   /**
@@ -229,8 +237,16 @@ export default function AssetReview({
       applied = false,
     ): Promise<boolean> => {
       setBusy(true);
+      reviewLog('transition: starting', {
+        intent: message,
+        ...requestFacts(changeRequest),
+      });
       try {
         await action();
+        reviewLog('transition: server accepted it', {
+          intent: message,
+          ...requestFacts(changeRequest),
+        });
         addSuccessToast(message);
         await refresh();
         // Tell everyone else reading this request's status, not just our
@@ -245,9 +261,13 @@ export default function AssetReview({
         // raise already carries one written for the person reading it, so
         // replacing them with a generic failure here would throw away the
         // only useful part.
-        addDangerToast(
-          (await refusalMessage(error)) ?? t('Something went wrong.'),
-        );
+        const refusal = await refusalMessage(error);
+        reviewLog('transition: server refused it', {
+          intent: message,
+          refusal: refusal ?? String(error),
+          ...requestFacts(changeRequest),
+        });
+        addDangerToast(refusal ?? t('Something went wrong.'));
         // Then re-read. The commonest refusal here is that the change moved
         // while this page had it open, and being told so is only actionable
         // once the page is showing the version that refused (R4-04).

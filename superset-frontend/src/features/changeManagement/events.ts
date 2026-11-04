@@ -17,6 +17,7 @@
  * under the License.
  */
 import type { JsonObject } from '@superset-ui/core';
+import { reviewLog } from './log';
 
 /**
  * A one-hop signal from an asset's edit header to its review banner.
@@ -34,6 +35,7 @@ import type { JsonObject } from '@superset-ui/core';
 export const REQUEST_REVIEW_EVENT = 'superset:change-management:request-review';
 
 export function announceRequestReview(): void {
+  reviewLog('event: request review asked for');
   window.dispatchEvent(new CustomEvent(REQUEST_REVIEW_EVENT));
 }
 
@@ -57,6 +59,7 @@ export const CHANGE_CAPTURED_EVENT =
   'superset:change-management:change-captured';
 
 export function announceChangeCaptured(): void {
+  reviewLog('event: a write was captured for review');
   window.dispatchEvent(new CustomEvent(CHANGE_CAPTURED_EVENT));
 }
 
@@ -86,6 +89,7 @@ export const REVIEW_CHANGED_EVENT =
   'superset:change-management:review-changed';
 
 export function announceReviewChanged(): void {
+  reviewLog('event: review status moved');
   window.dispatchEvent(new CustomEvent(REVIEW_CHANGED_EVENT));
 }
 
@@ -105,6 +109,7 @@ export function onReviewChanged(handler: () => void): () => void {
 export const ASSET_LOCKED_EVENT = 'superset:change-management:asset-locked';
 
 export function announceAssetLocked(): void {
+  reviewLog('event: asset locked by another editor');
   window.dispatchEvent(new CustomEvent(ASSET_LOCKED_EVENT));
 }
 
@@ -124,6 +129,7 @@ export const SHOW_WHAT_CHANGED_EVENT =
   'superset:change-management:show-what-changed';
 
 export function announceShowWhatChanged(): void {
+  reviewLog('event: what changed asked for');
   window.dispatchEvent(new CustomEvent(SHOW_WHAT_CHANGED_EVENT));
 }
 
@@ -135,6 +141,7 @@ export function onShowWhatChanged(handler: () => void): () => void {
 export const DISCARD_CHANGES_EVENT = 'superset:change-management:discard';
 
 export function announceDiscardChanges(): void {
+  reviewLog('event: discard asked for');
   window.dispatchEvent(new CustomEvent(DISCARD_CHANGES_EVENT));
 }
 

@@ -109,6 +109,7 @@ import { useHeaderActionsMenu } from './useHeaderActionsDropdownMenu';
 import { useHeaderAutoRefresh } from './useHeaderAutoRefresh';
 import AutoRefreshIndicator from '../AutoRefreshIndicator';
 import { RefreshButton } from '../RefreshButton';
+import { reviewLog } from 'src/features/changeManagement/log';
 
 type DashboardPropertiesUpdate = {
   slug?: string;
@@ -669,7 +670,19 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     // button wait on a request would cost every dashboard a round trip for
     // a rule that is off by default. If that state has not arrived, editing
     // proceeds and the server still refuses the save.
+    reviewLog('edit: Edit dashboard pressed', {
+      dashboardId: dashboardInfo.id,
+      openRequest: openChange?.id ?? null,
+      status: openChange?.status ?? null,
+      isOpen: openChange?.is_open ?? false,
+      isAuthor: openChange?.is_author ?? false,
+      hasUnsavedChanges,
+    });
     if (openChange?.is_open && !openChange.is_author) {
+      reviewLog('edit: refused, somebody else holds the open change', {
+        dashboardId: dashboardInfo.id,
+        openRequest: openChange?.id ?? null,
+      });
       announceAssetLocked();
       return;
     }
@@ -847,7 +860,15 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
                       buttonSize="small"
                       disabled={!hasUnsavedChanges}
                       buttonStyle={reviewEnabled ? 'secondary' : 'primary'}
-                      onClick={overwriteDashboard}
+                      onClick={() => {
+                        reviewLog('save: Save pressed in the edit toolbar', {
+                          dashboardId: dashboardInfo.id,
+                          hasUnsavedChanges,
+                          toolbarStatus: openChange?.status ?? null,
+                          openRequest: openChange?.id ?? null,
+                        });
+                        overwriteDashboard();
+                      }}
                       data-test="header-save-button"
                       aria-label={t('Save')}
                     >
@@ -885,6 +906,15 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
                           // that is already saved has nothing left to
                           // save, and saving again would only report that
                           // nothing changed.
+                          reviewLog('request review: toolbar button clicked', {
+                            dashboardId: dashboardInfo.id,
+                            hasUnsavedChanges,
+                            hasDraftToSubmit,
+                            isAwaitingReview,
+                            toolbarStatus: openChange?.status ?? null,
+                            openRequest: openChange?.id ?? null,
+                            willSaveFirst: hasUnsavedChanges,
+                          });
                           if (hasUnsavedChanges) overwriteDashboard();
                           announceRequestReview();
                         }}

@@ -97,6 +97,7 @@ import {
   getDynamicLabelsColors,
 } from '../../utils/colorScheme';
 import type { DashboardState, GetState, RootState, Slice } from '../types';
+import { reviewLog } from 'src/features/changeManagement/log';
 
 // Dashboard dispatch type. The base ThunkDispatch handles dashboard-specific
 // thunks. The intersection with a generic function-accepting overload allows
@@ -624,6 +625,13 @@ export function saveDashboardRequest(
       // so reading metadata off it throws and the save looks like it
       // failed when it did exactly what it was meant to.
       if (body.review_required) {
+        reviewLog('save: the server held it for review (202)', {
+          dashboardId: id,
+          requestId: body.id ?? null,
+          message: body.message ?? null,
+          revertedFields: body.reverted_fields ?? null,
+          leftReview: body.left_review ?? null,
+        });
         dispatch(saveDashboardFinished());
         // Leave edit mode so the review banner is visible; it is the only
         // place the author can now act on what they just submitted.
