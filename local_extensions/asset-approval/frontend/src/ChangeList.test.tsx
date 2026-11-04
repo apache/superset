@@ -28,7 +28,7 @@
  * it; this draws whichever it was sent.
  */
 
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import ChangeList from './ChangeList';
 import type { FieldChange } from './types';
 
@@ -100,7 +100,9 @@ test('a layout change names the chart that arrived', () => {
     },
   ]);
 
-  expect(screen.getByText('1 added, 0 removed, 1 moved')).toBeInTheDocument();
+  // The header is the list's own tally. The raw `changed: 1` is the row that
+  // gained the chart, which the list does not name, so it is not shown.
+  expect(screen.getByTestId('layout-tally')).toHaveTextContent(/^1 added$/);
   expect(screen.getByText('chart: Revenue by region')).toBeInTheDocument();
 });
 
@@ -330,5 +332,188 @@ test('the request as captured is drawn as text, in place of a change', () => {
 
   expect(screen.getByTestId('captured-call')).toHaveTextContent(
     '{"body": {"slice_name": "Revenue"}}',
+  );
+});
+
+test('the layout header is counted from the list beneath it', () => {
+  // R5-03. The server's `changed: 1` counts the row that lost a chart, which
+  // the list does not name, so the header read "0 added, 1 removed, 1 moved"
+  // over a single removed chart. The header is now the list's own tally.
+  draw([
+    {
+      field: 'json_metadata',
+      opaque: true,
+      layout: {
+        added: 0,
+        removed: 1,
+        changed: 1,
+        components: [{ kind: 'removed', type: 'CHART', name: 'Churn' }],
+      },
+    },
+  ]);
+
+  expect(screen.getByTestId('layout-tally')).toHaveTextContent(/^1 removed$/);
+  expect(screen.queryByText(/\bmoved\b/)).not.toBeInTheDocument();
+  expect(screen.getAllByTestId('layout-component')).toHaveLength(1);
+});
+
+test('every row of the layout list is counted once in the header', () => {
+  draw([
+    {
+      field: 'position_json',
+      opaque: true,
+      layout: {
+        // Deliberately not the numbers the list adds up to.
+        added: 9,
+        removed: 9,
+        changed: 9,
+        components: [
+          { kind: 'added', type: 'CHART', name: 'A' },
+          { kind: 'added', type: 'HEADER', name: 'B' },
+          { kind: 'removed', type: 'CHART', name: 'C' },
+          { kind: 'changed', type: 'CHART', name: 'D', moved: true },
+          { kind: 'changed', type: 'CHART', name: 'E', moved: true },
+          { kind: 'changed', type: 'CHART', name: 'F', moved: true },
+          // Moved *and* resized is one row, so one count.
+          {
+            kind: 'changed',
+            type: 'CHART',
+            name: 'G',
+            moved: true,
+            details: ['width 4 → 12'],
+          },
+          { kind: 'changed', type: 'CHART', name: 'H', details: ['width 4 → 8'] },
+        ],
+      },
+    },
+  ]);
+
+  expect(screen.getByTestId('layout-tally')).toHaveTextContent(
+    '2 added, 1 removed, 4 moved, 1 edited',
+  );
+  expect(screen.getAllByTestId('layout-component')).toHaveLength(8);
+});
+
+test('a layout that differs with nothing to name says so instead of a count', () => {
+  draw([
+    {
+      field: 'position_json',
+      opaque: true,
+      layout: { added: 0, removed: 0, changed: 2, components: [] },
+    },
+  ]);
+
+  expect(screen.getByTestId('layout-tally')).toHaveTextContent(
+    'no chart, heading, tab or other component was added, removed or moved',
+  );
+  expect(screen.queryByText(/2 moved/)).not.toBeInTheDocument();
+});
+
+const SCOPES = [
+  {
+    kind: 'removed' as const,
+    key: 'Churn · cross-filter settings',
+    before: 'scope: global',
+    consequence: true,
+  },
+  {
+    kind: 'removed' as const,
+    key: 'Country filter · charts in scope',
+    before: 'Churn, Revenue',
+    consequence: true,
+  },
+  {
+    kind: 'removed' as const,
+    key: 'Country filter · tabs in scope',
+    before: 'Regional',
+    consequence: true,
+  },
+];
+
+test('recalculated scopes are one sentence, with the detail behind it', () => {
+  draw([
+    {
+      field: 'json_metadata',
+      opaque: true,
+      layout: {
+        added: 0,
+        removed: 1,
+        changed: 1,
+        components: [{ kind: 'removed', type: 'CHART', name: 'Churn' }],
+      },
+      entries: [
+        { kind: 'changed', key: 'color_scheme', before: 'a', after: 'b' },
+        ...SCOPES,
+      ],
+      consequence_summary:
+        'Cross-filter and native filter scopes updated for 1 removed chart (Churn)',
+    },
+  ]);
+
+  // The author's own edit is a row; the consequences are not rows yet.
+  expect(screen.getAllByTestId('change-entry')).toHaveLength(1);
+  expect(screen.getByText('color_scheme')).toBeInTheDocument();
+  expect(screen.getByTestId('consequence-summary')).toHaveTextContent(
+    'updated for 1 removed chart (Churn)',
+  );
+  expect(
+    screen.queryByText('Removed · Country filter · charts in scope'),
+  ).not.toBeInTheDocument();
+});
+
+test('the recalculated values stay reachable in the same view', () => {
+  // sc-129075: a summary that hides what it summarises is the original
+  // complaint. Every value must be one click away.
+  draw([
+    {
+      field: 'json_metadata',
+      opaque: true,
+      entries: SCOPES,
+      consequence_summary: 'Cross-filter scopes updated for 1 removed chart (Churn)',
+    },
+  ]);
+
+  const toggle = screen.getByTestId('consequence-toggle');
+  expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  expect(toggle).toHaveTextContent('Show details (3)');
+
+  fireEvent.click(toggle);
+
+  expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  expect(screen.getAllByTestId('change-entry')).toHaveLength(3);
+  expect(
+    screen.getByText('Removed · Country filter · charts in scope'),
+  ).toBeInTheDocument();
+  // A tab is named by its title; the id never appears.
+  expect(screen.getByText('Regional')).toBeInTheDocument();
+  expect(screen.queryByText(/TAB-/)).not.toBeInTheDocument();
+
+  fireEvent.click(toggle);
+  expect(screen.queryAllByTestId('change-entry')).toHaveLength(0);
+});
+
+test('a field whose only change is a recalculated scope still has its sentence', () => {
+  // The scope is what moved, so the sentence must not be what goes missing.
+  draw([
+    {
+      field: 'json_metadata',
+      opaque: true,
+      entries: SCOPES,
+      consequence_summary:
+        '1 chart entering or leaving a scope (Revenue)',
+    },
+  ]);
+
+  expect(screen.getByTestId('consequence-summary')).toHaveTextContent(
+    'Revenue',
+  );
+  expect(screen.queryByTestId('change-undescribed')).not.toBeInTheDocument();
+});
+
+test('recalculated entries from a server that sent no sentence still get one', () => {
+  draw([{ field: 'json_metadata', opaque: true, entries: SCOPES }]);
+
+  expect(screen.getByTestId('consequence-summary')).toHaveTextContent(
+    'recalculated',
   );
 });

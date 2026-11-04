@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { styled, t } from './host';
 import { ago, hasDetail, show } from './display';
 import type { EntryChange, FieldChange, LayoutComponent } from './types';
@@ -125,6 +125,27 @@ const EntryKey = styled.div`
   `}
 `;
 
+/** The recalculated settings, set apart from the edit that caused them. */
+const ConsequenceGroup = styled.div`
+  ${({ theme }) => `
+    margin-top: ${theme.sizeUnit * 2}px;
+    padding-top: ${theme.sizeUnit * 2}px;
+    border-top: 1px dotted ${theme.colorSplit};
+  `}
+`;
+
+const Toggle = styled.button`
+  ${({ theme }) => `
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-size: ${theme.fontSizeSM}px;
+    color: ${theme.colorPrimary};
+    &:hover { text-decoration: underline; }
+  `}
+`;
+
 /**
  * What a reviewer calls these, rather than what the column is called.
  *
@@ -192,6 +213,31 @@ function componentLine(component: LayoutComponent): string {
   return notes.length ? `${what} (${notes.join('; ')})` : what;
 }
 
+/**
+ * What the layout list below it adds up to, counted from that list.
+ *
+ * The server also sends `added`, `removed` and `changed`, but those count the
+ * layout's *elements* whose JSON differs, rows and columns included, while the
+ * list names components. A row that gained a chart was "1 moved" over a list
+ * with no move in it (R5-03). A number a reviewer cannot find in the list
+ * beneath it makes them doubt the list, so the header is now nothing but the
+ * list's own length, by kind: each row is counted exactly once.
+ */
+export function layoutTally(components: LayoutComponent[]): string {
+  const added = components.filter(c => c.kind === 'added').length;
+  const removed = components.filter(c => c.kind === 'removed').length;
+  const moved = components.filter(c => c.kind === 'changed' && c.moved).length;
+  const edited = components.filter(c => c.kind === 'changed' && !c.moved).length;
+  return [
+    added ? t('%s added', added) : '',
+    removed ? t('%s removed', removed) : '',
+    moved ? t('%s moved', moved) : '',
+    edited ? t('%s edited', edited) : '',
+  ]
+    .filter(Boolean)
+    .join(', ');
+}
+
 function Entries({
   entries,
   more,
@@ -239,6 +285,45 @@ function Entries({
   );
 }
 
+/**
+ * Settings Superset recalculated because of the edit, under the line that says
+ * why.
+ *
+ * Deleting one chart rewrote the list of charts in every filter's scope, and
+ * those lists, printed in full, buried the deletion. They are real changes, so
+ * they are not dropped: the sentence is always visible, and one click opens
+ * every list that moved, by name.
+ */
+function Consequences({
+  summary,
+  entries,
+  labels,
+}: {
+  summary?: string;
+  entries: EntryChange[];
+  labels: Record<string, string>;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <ConsequenceGroup data-test="consequence-group">
+      <Summary data-test="consequence-summary">
+        {summary ?? t('Settings Superset recalculated because of this edit')}
+      </Summary>
+      <Toggle
+        type="button"
+        aria-expanded={open}
+        data-test="consequence-toggle"
+        onClick={() => setOpen(wasOpen => !wasOpen)}
+      >
+        {open
+          ? t('Hide details (%s)', entries.length)
+          : t('Show details (%s)', entries.length)}
+      </Toggle>
+      {open ? <Entries entries={entries} labels={labels} /> : null}
+    </ConsequenceGroup>
+  );
+}
+
 export interface ChangeBlockProps {
   change: FieldChange;
   /** Explore's labels for the keys inside a chart's `params`. */
@@ -248,6 +333,9 @@ export interface ChangeBlockProps {
 export function ChangeBlock({ change, controls }: ChangeBlockProps) {
   const labels = change.field === 'params' && controls ? controls : {};
   const entries = change.entries ?? [];
+  // What the author edited, and what Superset recalculated because of it.
+  const edits = entries.filter(entry => !entry.consequence);
+  const consequences = entries.filter(entry => entry.consequence);
   const isCollection = change.count !== undefined;
   const hasPair = change.before !== undefined || change.after !== undefined;
 
@@ -263,13 +351,12 @@ export function ChangeBlock({ change, controls }: ChangeBlockProps) {
 
       {change.layout ? (
         <>
-          <Muted>
-            {t(
-              '%s added, %s removed, %s moved',
-              change.layout.added,
-              change.layout.removed,
-              change.layout.changed,
-            )}
+          <Muted data-test="layout-tally">
+            {(change.layout.components ?? []).length > 0
+              ? layoutTally(change.layout.components ?? [])
+              : t(
+                  'The layout changed, but no chart, heading, tab or other component was added, removed or moved.',
+                )}
           </Muted>
           {(change.layout.components ?? []).map((component, index) => (
             <EntryRow
@@ -343,7 +430,14 @@ export function ChangeBlock({ change, controls }: ChangeBlockProps) {
             // between the live asset and the restored one.
             <Muted>{t('What that version changed')}</Muted>
           ) : null}
-          <Entries entries={entries} more={change.more} labels={labels} />
+          <Entries entries={edits} more={change.more} labels={labels} />
+          {consequences.length > 0 ? (
+            <Consequences
+              summary={change.consequence_summary}
+              entries={consequences}
+              labels={labels}
+            />
+          ) : null}
         </>
       ) : isCollection && hasPair ? (
         // The same members in another order: nothing joined or left.

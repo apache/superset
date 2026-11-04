@@ -19,7 +19,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { fetchForAsset } from './api';
-import { onChangeCaptured } from './events';
+import { onChangeCaptured, onReviewChanged } from './events';
 import type { ChangeRequest, ReviewAssetType } from './types';
 
 export interface AssetReview {
@@ -80,6 +80,17 @@ export function useAssetReview(
     [refresh],
   );
 
+  // ...and on a transition, so this hook and `useOpenChange` below always
+  // answer the same question the same way. They used to diverge the moment
+  // a request was submitted.
+  useEffect(
+    () =>
+      onReviewChanged(() => {
+        refresh();
+      }),
+    [refresh],
+  );
+
   return { changeRequest, loading, refresh };
 }
 
@@ -106,6 +117,12 @@ export function useOpenChange(
   const [captured, setCaptured] = useState(0);
 
   useEffect(() => onChangeCaptured(() => setCaptured(count => count + 1)), []);
+  // And on every transition. Without this the toolbar kept the status it
+  // read on load: after a submit it still believed the request was a draft,
+  // so it offered "Request review" on a change already with a reviewer,
+  // enabled, over a tooltip calling it "your saved draft". The click did
+  // nothing, because the dialog it opens is for drafts.
+  useEffect(() => onReviewChanged(() => setCaptured(count => count + 1)), []);
 
   useEffect(() => {
     let live = true;

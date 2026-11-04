@@ -649,6 +649,14 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
   // change, saved and not yet submitted. The toolbar button answered only
   // "is there something unsaved", so after a save it said there was nothing
   // to review while the banner beside it, and the server, said there was.
+  // Already with a reviewer. Distinct from "nothing to review": the button
+  // is disabled in both cases, and saying "no changes to review yet" to
+  // somebody whose change is sitting in a colleague's queue is the kind of
+  // small untruth that makes people stop believing the rest of the screen.
+  const isAwaitingReview = !!(
+    openChange?.is_open && openChange.status === 'pending'
+  );
+
   const hasDraftToSubmit = !!(
     openChange?.is_open &&
     openChange.is_author &&
@@ -857,7 +865,11 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
                           )
                         : hasDraftToSubmit
                           ? t('Ask another editor to approve your saved draft.')
-                          : t('No changes to review yet.')
+                          : isAwaitingReview
+                            ? t(
+                                'Already with a reviewer. Save an edit to take it back out of review.',
+                              )
+                            : t('No changes to review yet.')
                     }
                   >
                     <span>

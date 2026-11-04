@@ -47,6 +47,12 @@ export interface EntryChange {
   after?: string | null;
   /** The value was cut to fit; the whole of it is on the asset. */
   truncated?: boolean;
+  /**
+   * Superset recalculated this because of another change in the same save
+   * (a filter's list of charts in scope after a chart was deleted). Shown
+   * under the field's `consequence_summary`, behind a toggle, never dropped.
+   */
+  consequence?: boolean;
 }
 
 /** A dashboard layout component that arrived, left or changed. */
@@ -90,7 +96,12 @@ export interface FieldChange {
   truncated?: boolean;
   /** For a JSON column: which top-level entries inside it moved. */
   keys?: string[];
-  /** For a layout: how it moved in counts, and which components. */
+  /**
+   * For a layout: which components moved. `added`, `removed` and `changed`
+   * count the layout's elements whose JSON differs, containers included, so
+   * they do not add up to `components`. The panel does not display them; its
+   * header is counted from `components`.
+   */
   layout?: {
     added: number;
     removed: number;
@@ -104,6 +115,11 @@ export interface FieldChange {
    * collection (viewers, dashboards, tags) lists who joined and who left.
    */
   entries?: EntryChange[];
+  /**
+   * One sentence saying why the entries flagged `consequence` changed:
+   * "Cross-filter scopes updated for 3 removed charts (A, B, C)".
+   */
+  consequence_summary?: string;
   /**
    * Entries the server did not send. The server sends every entry, so this
    * is never set by it; a client that meets it says so rather than reading

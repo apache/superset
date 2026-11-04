@@ -36,6 +36,7 @@ import { useAssetReview } from './useAssetReview';
 import { useProposedPreview } from './useProposedPreview';
 import { afterRemovalPath } from './display';
 import {
+  announceReviewChanged,
   onAssetLocked,
   onDiscardChanges,
   onRequestReview,
@@ -172,7 +173,9 @@ export default function AssetReview({
   const previewBusy = preview.busy;
   useEffect(() => {
     if (editing && previewing && !previewBusy) {
-      previewToggle();
+      // Explicitly off. Called bare it relied on `undefined` reading as
+      // false, which worked and did not typecheck.
+      previewToggle(false);
     }
   }, [editing, previewing, previewBusy, previewToggle]);
 
@@ -196,11 +199,19 @@ export default function AssetReview({
   }, [isReviewer]);
 
   useEffect(() => {
-    if (pendingRequest && changeRequest?.status === 'draft') {
+    if (!pendingRequest) return;
+    if (changeRequest?.status === 'draft') {
       setRequestOpen(true);
       setPendingRequest(false);
+      return;
     }
-  }, [pendingRequest, changeRequest?.status]);
+    // Anything else and the dialog cannot open: it exists to submit a
+    // draft. Drop the request rather than hold it. Held, it waited for the
+    // status to become a draft and then opened the dialog by itself --
+    // minutes later, after an unrelated edit and save, with nothing on
+    // screen connecting it to the click that armed it.
+    if (changeRequest) setPendingRequest(false);
+  }, [pendingRequest, changeRequest, changeRequest?.status]);
 
   /**
    * Runs one workflow action and reports whether it landed.
@@ -222,6 +233,11 @@ export default function AssetReview({
         await action();
         addSuccessToast(message);
         await refresh();
+        // Tell everyone else reading this request's status, not just our
+        // own hook. The edit toolbar reads it separately, and refreshing
+        // only here is what let the two disagree about whether a change
+        // was still a draft.
+        announceReviewChanged();
         if (applied) onApplied?.();
         return true;
       } catch (error) {
@@ -236,6 +252,9 @@ export default function AssetReview({
         // while this page had it open, and being told so is only actionable
         // once the page is showing the version that refused (R4-04).
         await refresh();
+        // A refusal usually means the status is not what this page thought,
+        // so the other readers are wrong too and need the same correction.
+        announceReviewChanged();
         return false;
       } finally {
         setBusy(false);

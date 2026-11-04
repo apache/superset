@@ -66,6 +66,35 @@ export function onChangeCaptured(handler: () => void): () => void {
 }
 
 /**
+ * A request moved through the workflow: submitted, withdrawn, returned,
+ * approved or discarded.
+ *
+ * Separate from the captured event, which means "a write was held and the
+ * asset now has a request it did not have". This one means "the request's
+ * status moved", and the two have different consequences: a capture also
+ * puts the live asset back on screen, and a transition must not.
+ *
+ * It exists because the status had two readers and only one of them was
+ * told. The banner re-read after its own actions; the edit toolbar, on a
+ * separate hook, did not. So a change that was with a reviewer still
+ * offered "Request review" in the toolbar, enabled, described in its
+ * tooltip as "your saved draft", and clicking it did nothing at all --
+ * the dialog it fires only opens for a draft. One fact, two sources, and
+ * the one the author was looking at was the stale one.
+ */
+export const REVIEW_CHANGED_EVENT =
+  'superset:change-management:review-changed';
+
+export function announceReviewChanged(): void {
+  window.dispatchEvent(new CustomEvent(REVIEW_CHANGED_EVENT));
+}
+
+export function onReviewChanged(handler: () => void): () => void {
+  window.addEventListener(REVIEW_CHANGED_EVENT, handler);
+  return () => window.removeEventListener(REVIEW_CHANGED_EVENT, handler);
+}
+
+/**
  * An editor tried to edit an asset somebody else already has open.
  *
  * Same one-hop shape as the request-review signal, and for the same reason:
