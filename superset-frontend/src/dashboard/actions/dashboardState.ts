@@ -636,6 +636,13 @@ export function saveDashboardRequest(
         // Leave edit mode so the review banner is visible; it is the only
         // place the author can now act on what they just submitted.
         dispatch(setEditMode(false));
+        // The edits are stored -- as a change request rather than on the
+        // asset, but stored. Leaving the dashboard marked unsaved meant the
+        // browser warned the author their work would be lost the moment
+        // they navigated away, one line under a toast telling them it was
+        // saved.
+        dispatch(setUnsavedChanges(false));
+        dispatch(UndoActionCreators.clearHistory());
         // ...and tell the banner its picture of the asset is now stale.
         // Leaving edit mode only reveals the banner; the change request
         // this save produced did not exist when the banner loaded, so
@@ -645,14 +652,15 @@ export function saveDashboardRequest(
         // was worse: the banner kept saying changes were requested and
         // offered no way to send the fix on (QA-14, R4-07). Every other
         // captured save path announces here; this one did not.
+        //
+        // Announced last, after every dispatch above, because a listener
+        // reads the store to decide what to do. Announced from the middle
+        // of this sequence it published a half-applied state: edit mode
+        // already off but the unsaved flag not yet cleared, so the listener
+        // that puts the live asset back saw what looked like work in
+        // progress and left the author's deleted row on screen under a
+        // banner saying they were seeing the live version.
         announceChangeCaptured();
-        // The edits are stored -- as a change request rather than on the
-        // asset, but stored. Leaving the dashboard marked unsaved meant the
-        // browser warned the author their work would be lost the moment
-        // they navigated away, one line under a toast telling them it was
-        // saved.
-        dispatch(setUnsavedChanges(false));
-        dispatch(UndoActionCreators.clearHistory());
         const { text, options } = reviewRequiredToast(
           body.message as string | undefined,
           body.id as number,

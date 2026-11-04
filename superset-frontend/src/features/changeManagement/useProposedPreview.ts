@@ -34,6 +34,7 @@ import {
 } from 'src/features/versionHistory/api';
 import { resolveSnapshotCharts } from 'src/features/versionHistory/useDashboardVersionPreview';
 import { announceProposedChart } from './events';
+import { reviewLog } from './log';
 import { displayName } from './types';
 import { hasProposedChart, proposedChartFormData } from './proposedChart';
 import type { ChangeRequest } from './types';
@@ -55,6 +56,14 @@ function hostEditMode(state: unknown): boolean {
   return Boolean(
     (state as { dashboardState?: { editMode?: boolean } } | null)
       ?.dashboardState?.editMode,
+  );
+}
+
+/** Whether the host is holding edits that have not been sent anywhere. */
+function hostHasUnsavedChanges(state: unknown): boolean {
+  return Boolean(
+    (state as { dashboardState?: { hasUnsavedChanges?: boolean } } | null)
+      ?.dashboardState?.hasUnsavedChanges,
   );
 }
 
@@ -296,6 +305,91 @@ export function useProposedPreview(changeRequest: ChangeRequest | null) {
   );
 
   /**
+   * Put the live asset back on screen.
+   *
+   * A captured save leaves the page holding the author's edits. That is the
+   * right outcome for an ordinary save, where those edits *are* the live
+   * asset now, and the wrong one here: the server stored them as a draft and
+   * did not touch what viewers see. So the author pressed Save, left edit
+   * mode, and sat in front of a dashboard missing the row they had just
+   * deleted, under a banner reading "you and viewers are both seeing the
+   * live version". Reloading restored it. Turning Show changes on and off
+   * again also restored it -- which is the whole of this function, and is
+   * why it is safe: the switch's own off path has been hydrating the live
+   * copy over an edited page since this feature shipped.
+   *
+   * Live only, never the draft. An earlier attempt seeded the edit canvas
+   * from the draft instead, and hydrating a layout against charts resolved
+   * for a different one crashed the page on an unguarded read in
+   * `SliceHeader`. Here the layout and the charts come from the same fetch
+   * of the same asset, so they cannot disagree.
+   *
+   * Fetched fresh rather than read from `liveRef`: the cache exists so the
+   * switch returns to the state it left, and this is the opposite case --
+   * whatever is live right now is what the banner is about to claim is on
+   * screen.
+   */
+  const restoreLive = useCallback(async () => {
+    if (!changeRequest || changeRequest.asset_type !== 'dashboard') return;
+    // Not over work in progress.
+    //
+    // A captured save from the toolbar leaves edit mode and clears the
+    // unsaved flag before it announces, so both of these are false by the
+    // time this runs -- that is the case this function exists for. The
+    // Properties and Embed modals announce the same event without touching
+    // either, and an author who changes the title while mid-edit would
+    // otherwise have their canvas replaced with the live layout and be
+    // dropped out of edit mode, losing work the server never saw. That
+    // would be a worse fault than the one being fixed.
+    const state = store.getState();
+    if (hostEditMode(state) || hostHasUnsavedChanges(state)) {
+      reviewLog('preview: left the page alone, it holds unsent edits', {
+        asset: `dashboard ${changeRequest.asset_id}`,
+        editing: hostEditMode(state),
+        unsaved: hostHasUnsavedChanges(state),
+      });
+      return;
+    }
+    try {
+      const live = await fetchDashboardHydrationData(changeRequest.asset_id);
+      liveRef.current = live;
+      dispatch(
+        hydrateDashboard({
+          history,
+          dashboard: live.dashboard,
+          charts: live.charts,
+          // The author's filter selections, not the ones cached on the way
+          // into a preview they may never have opened.
+          dataMask: state.dataMask ?? {},
+          activeTabs: null,
+          chartStates: null,
+          // The save already left edit mode, and hydration would otherwise
+          // read the `edit` URL parameter and put them back into it over
+          // the live asset.
+          editMode: false,
+        }),
+      );
+      // Whatever the switch was showing, it was composed against the
+      // payload this save replaced.
+      setShowing(false);
+      reviewLog('preview: put the live version back after a captured save', {
+        asset: `dashboard ${changeRequest.asset_id}`,
+        requestId: changeRequest.id,
+      });
+    } catch (error) {
+      // Leave the page alone and say so. A toast here would be the second
+      // one after a save that succeeded, about something the author never
+      // asked for, and the page they are looking at is their own work
+      // rather than anything dangerous -- the banner is what is wrong, and
+      // a reload fixes it.
+      reviewLog('preview: could not put the live version back', {
+        asset: `dashboard ${changeRequest.asset_id}`,
+        error: String(error),
+      });
+    }
+  }, [changeRequest, dispatch, history, store]);
+
+  /**
    * Tell Explore what to draw, and stop telling it when there is nothing.
    *
    * Keyed on the change itself, not only on the switch, because the switch
@@ -367,5 +461,5 @@ export function useProposedPreview(changeRequest: ChangeRequest | null) {
     [],
   );
 
-  return { canPreview, showing, busy, toggle: apply };
+  return { canPreview, showing, busy, toggle: apply, restoreLive };
 }
