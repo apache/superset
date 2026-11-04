@@ -633,9 +633,19 @@ export function saveDashboardRequest(
           leftReview: body.left_review ?? null,
         });
         dispatch(saveDashboardFinished());
-        // Leave edit mode so the review banner is visible; it is the only
-        // place the author can now act on what they just submitted.
-        dispatch(setEditMode(false));
+        // Stay in edit mode.
+        //
+        // This used to drop the author out of it on every captured save,
+        // on the reasoning that the review banner is where they act next.
+        // The banner renders in edit mode too, so it bought nothing, and
+        // it cost the author their session: three edits meant three
+        // re-entries, and each re-entry reopened the canvas seeded from
+        // the live asset rather than from the draft they had just saved.
+        //
+        // The mocks are explicit about this state (author screen 1b):
+        // after Save the toolbar reads Exit edit mode with Save disabled,
+        // and "Request review stays available. You don't have to leave
+        // edit mode to send it."
         // The edits are stored -- as a change request rather than on the
         // asset, but stored. Leaving the dashboard marked unsaved meant the
         // browser warned the author their work would be lost the moment

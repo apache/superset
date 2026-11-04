@@ -242,32 +242,28 @@ export default function AssetReview({
   );
 
   /**
-   * A write was captured, so the page is now showing something it should
-   * not be.
+   * Count the captures, so Request review can wait for the save it began.
    *
-   * Two jobs, and they are the same event because they are the same fact.
-   * The count lets Request review wait for the save it started. The
-   * restore puts the live asset back, because a captured save leaves the
-   * author's edits on screen under a banner saying they are looking at the
-   * live version -- the row they deleted gone, the tab they added still
-   * there, and nothing on the page to say the two disagree.
+   * This used to put the live asset back on screen as well. It was fixing
+   * a real contradiction -- the page kept the author's edits while the
+   * banner said they were looking at the live version -- but it fixed it
+   * the wrong way round. The mocks (author screen 2) carry the SOW line
+   * "the author sees their draft when they open the asset, with a link to
+   * the current version", so the page was right and the banner was wrong.
+   * Forcing live made the sentence true by taking the author's work off
+   * the screen.
    *
-   * Dashboards only: a chart's captured save re-renders from Explore's own
-   * controls, and a dataset has no canvas to put back.
+   * Nothing replaces it here. The author now stays in edit mode through a
+   * captured save, so the canvas already holds exactly what was saved and
+   * there is nothing to re-render.
    */
-  const restoreLive = preview.restoreLive;
   useEffect(
     () =>
       onChangeCaptured(() => {
         capturesRef.current += 1;
         setCaptureTick(tick => tick + 1);
-        if (assetType === 'dashboard') {
-          // Deliberately not awaited: nothing here depends on the result,
-          // and the function reports its own failure.
-          restoreLive();
-        }
       }),
-    [assetType, restoreLive],
+    [],
   );
 
   // Another editor pressed Edit while this change is open. The header
@@ -484,6 +480,7 @@ export default function AssetReview({
       <div style={{ flex: 1 }}>
         <ReviewBanner
           changeRequest={changeRequest}
+          editing={editing}
           editingUnsaved={editingUnsaved}
           busy={busy}
           // Withheld entirely in edit mode, not merely hidden: the banner

@@ -1,0 +1,355 @@
+<!doctype html>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+
+MOCKUP. Hand-drawn HTML illustrating a proposed design. NOT a capture of
+Superset and must never be used as QA evidence.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup — Option B</title>
+<style>
+  :root {
+    --brand: #20a7c9; --brand-dark: #1a85a0;
+    --ink: #323232; --ink-2: #666; --ink-3: #879399;
+    --line: #e0e0e0;
+    --info-bg: #f0f8fd; --info-line: #9ad2e8;
+    --warn-bg: #fef9e7; --warn-line: #fcc700;
+    --danger: #e04355; --ok: #28a745; --mock: #8b2fc9;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #eceff1; color: var(--ink);
+    font-family: Inter, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px; line-height: 1.45; }
+  .mockbar {
+    background: repeating-linear-gradient(135deg, #f3e8fb, #f3e8fb 14px, #e9d7f7 14px, #e9d7f7 28px);
+    border-bottom: 2px solid var(--mock); color: var(--mock);
+    font-weight: 700; letter-spacing: .04em; padding: 10px 24px;
+    position: sticky; top: 0; z-index: 50; font-size: 12px; text-transform: uppercase;
+  }
+  .mockbar span { font-weight: 400; text-transform: none; letter-spacing: 0; color: #5c2d7a; }
+  .page { max-width: 1180px; margin: 0 auto; padding: 20px 24px 60px; }
+  h1 { font-size: 20px; margin: 18px 0 2px; }
+  .sub { color: var(--ink-2); margin: 0 0 6px; }
+  .meta { color: var(--ink-3); font-size: 12px; margin: 0 0 22px; }
+  .step { margin: 0 0 26px; }
+  .cap { display: flex; gap: 10px; align-items: baseline; margin: 0 0 8px; }
+  .cap .n { flex: 0 0 auto; background: var(--ink); color: #fff; border-radius: 3px;
+    padding: 1px 7px; font-size: 11px; font-weight: 700; letter-spacing: .04em; }
+  .note { margin: 8px 0 0; padding: 7px 11px; background: #fff8e1;
+    border-left: 3px solid var(--warn-line); color: #6b5400; font-size: 12px; }
+  .note.src { background: #eef4f7; border-left-color: var(--brand); color: #2a5664; }
+  .note.unsure { background: #fdeef0; border-left-color: var(--danger); color: #7d2130; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px;
+    background: #e9eef1; padding: 1px 4px; border-radius: 2px; }
+
+  .app { background: #fff; border: 1px solid #cfd8dc; border-radius: 3px;
+    overflow: hidden; position: relative; }
+  .nav { height: 34px; background: #fff; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 18px; padding: 0 14px;
+    color: var(--ink-2); font-size: 12px; }
+  .nav .logo { font-weight: 700; color: var(--brand-dark); letter-spacing: .02em; }
+  .nav .spacer { margin-left: auto; }
+  .nav .av { width: 20px; height: 20px; border-radius: 50%; background: #c9d6db; }
+  .head { display: flex; align-items: center; gap: 10px; padding: 12px 16px 10px;
+    border-bottom: 1px solid var(--line); }
+  .head .title { font-size: 17px; font-weight: 600; }
+  .head .pill { font-size: 11px; padding: 1px 7px; border-radius: 9px;
+    background: #fff4e5; color: #8a5a00; border: 1px solid #f0cf9a; }
+  .head .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .btn { font: inherit; font-size: 12px; border-radius: 3px; padding: 4px 11px;
+    border: 1px solid var(--brand); color: var(--brand-dark); background: #fff; white-space: nowrap; }
+  .btn.p { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .btn.g { border-color: #c2cbd0; color: var(--ink-2); }
+  .btn.d { border-color: var(--danger); color: var(--danger); }
+  .btn.dd { background: var(--danger); border-color: var(--danger); color: #fff; }
+  .btn.off { opacity: .45; }
+  .btn.focus { box-shadow: 0 0 0 3px rgba(32,167,201,.28); }
+  .dots { color: var(--ink-3); padding: 0 4px; letter-spacing: 2px; }
+
+  .banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+    margin: 10px 14px; padding: 8px 12px; background: var(--info-bg);
+    border: 1px solid var(--info-line); border-radius: 3px; }
+  .banner .ic { flex: 0 0 auto; color: var(--brand-dark); font-weight: 700; }
+  .banner .msg { flex: 1 1 320px; min-width: 0; }
+  .banner .ctl { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .sw { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 12px; }
+  .sw i { width: 26px; height: 14px; border-radius: 7px; background: #c4ced3;
+    position: relative; display: inline-block; }
+  .sw i::after { content: ""; position: absolute; top: 2px; left: 2px;
+    width: 10px; height: 10px; border-radius: 50%; background: #fff; }
+
+  .tabs { display: flex; gap: 20px; padding: 2px 16px 0; border-bottom: 1px solid var(--line); }
+  .tab { padding: 6px 1px 8px; color: var(--ink-2); font-size: 12.5px; border-bottom: 2px solid transparent; }
+  .tab.sel { color: var(--brand-dark); border-bottom-color: var(--brand); font-weight: 600; }
+  .grid { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 16px; background: #fafafa; }
+  .row { display: flex; gap: 10px; }
+  .tile { border: 1px solid var(--line); background: #fff; border-radius: 3px;
+    padding: 8px 10px; min-height: 80px; display: flex; flex-direction: column; }
+  .tile .tn { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+  .tile .spark { flex: 1; display: flex; align-items: flex-end; gap: 3px; }
+  .tile .spark b { display: block; width: 7px; background: #bfe3ee; border-radius: 1px 1px 0 0; }
+  .tile.edit { border-style: dashed; border-color: var(--brand); background: #fbfeff; }
+  .tile.flag { border-color: var(--danger); background: #fffafb; }
+  .tile .drag { font-size: 10px; color: var(--brand-dark); margin-top: 6px; }
+  .tile .warnlbl { font-size: 10px; color: var(--danger); margin-top: 6px; }
+
+  .scrim { position: relative; }
+  .scrim::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,.42); z-index: 5; }
+  .modal { position: absolute; z-index: 6; left: 50%; top: 30px; transform: translateX(-50%);
+    width: 560px; background: #fff; border-radius: 3px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.3); overflow: hidden; }
+  .modal .mh { padding: 11px 16px; border-bottom: 1px solid var(--line); font-size: 15px; font-weight: 600; }
+  .modal .mb { padding: 14px 16px; }
+  .modal .mb p { margin: 0 0 10px; }
+  .modal .mb p:last-child { margin-bottom: 0; }
+  .modal ul.put { margin: 0 0 10px; padding: 0; list-style: none;
+    border: 1px solid #f0d4d8; background: #fff7f8; border-radius: 3px; }
+  .modal ul.put li { padding: 6px 11px; border-bottom: 1px solid #f7e4e7; }
+  .modal ul.put li:last-child { border-bottom: 0; }
+  .modal ul.put li::before { content: "·"; color: var(--danger); font-weight: 700; margin-right: 8px; }
+  .modal .mf { padding: 10px 16px; border-top: 1px solid var(--line);
+    display: flex; justify-content: flex-end; gap: 8px; background: #fcfcfc; }
+  .modal .hint { color: var(--ink-3); font-size: 12px; }
+
+  .toast { position: absolute; z-index: 7; right: 14px; top: 46px; width: 470px;
+    border-radius: 3px; padding: 10px 12px; font-size: 12.5px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.18);
+    background: #f2fbf3; border: 1px solid #9ad6a5; color: #1d5c29; }
+  .toast.warn { background: var(--warn-bg); border-color: var(--warn-line); color: #6b5400; }
+  .toast a { color: var(--brand-dark); }
+  .toast .x { float: right; color: #9aa; }
+  .toast .lbl { display: block; font-weight: 700; margin-bottom: 3px; }
+
+  .sbs { display: flex; gap: 14px; }
+  .sbs > div { flex: 1; min-width: 0; }
+  .sbs h5 { margin: 0 0 6px; font-size: 12px; color: var(--ink-2); font-weight: 600; }
+  .wm { position: absolute; right: 8px; bottom: 6px; z-index: 8; font-size: 9.5px;
+    letter-spacing: .1em; color: rgba(139,47,201,.45); font-weight: 700;
+    text-transform: uppercase; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="mockbar">MOCKUP — not a screenshot of the product
+  <span>· hand-drawn HTML illustrating a proposed design · must not be used as QA evidence</span>
+</div>
+
+<div class="page">
+  <h1>Option B — open on live, but make the save ask first</h1>
+  <p class="sub">The canvas is unchanged. The intervention is a confirmation in front of the save, and a warning toast behind it for the callers that never see a dialog.</p>
+  <p class="meta">Same asset as Option C: dashboard 6, draft #725 saved 27 minutes ago, holding a chart removal, a row removal and a tab change. alex enters edit mode and renames the dashboard.</p>
+
+  <!-- B1 -->
+  <div class="step">
+    <div class="cap"><span class="n">B1</span><div>
+      <b>Edit mode, on the live canvas.</b> Unchanged from today — including the fact that the canvas shows <i>Quarterly Revenue</i>, which the draft removed. The banner is the existing mid-edit string and is literally true: the draft is still what is held.
+    </div></div>
+    <div class="app">
+      <div class="nav"><span class="logo">superset</span><span>Dashboards</span><span>Charts</span><span>Datasets</span><span class="spacer"></span><span>Approvals</span><span class="av"></span></div>
+      <div class="head">
+        <div class="title">Sales Dashboard Q4 Final QA1</div>
+        <div class="acts">
+          <span class="dots">···</span>
+          <button class="btn g">Discard</button>
+          <button class="btn g">Save</button>
+          <button class="btn p">Request review</button>
+        </div>
+      </div>
+      <div class="banner"><span class="ic">i</span>
+        <div class="msg">Editing · these edits are not saved yet · your draft from 27 minutes ago is still what is held for review</div>
+        <div class="ctl"><button class="btn">What changed</button></div>
+      </div>
+      <div class="tabs"><span class="tab sel">Sales Overview</span><span class="tab">Exploratory</span></div>
+      <div class="grid">
+        <div class="row">
+          <div class="tile edit flag" style="flex:5"><div class="tn">Quarterly Revenue (By Product Line)</div><div class="spark"><b style="height:22px"></b><b style="height:40px"></b><b style="height:30px"></b><b style="height:52px"></b></div><div class="warnlbl">your draft removed this chart — the canvas still has it</div></div>
+          <div class="tile edit" style="flex:3"><div class="tn">Revenue by Region</div><div class="spark"><b style="height:30px"></b><b style="height:44px"></b><b style="height:26px"></b></div><div class="drag">⠿ width 6 (live) · your draft has 9</div></div>
+          <div class="tile edit" style="flex:2"><div class="tn">Win rate</div><div class="spark"><b style="height:48px"></b></div><div class="drag">⠿</div></div>
+        </div>
+        <div class="row">
+          <div class="tile edit flag" style="flex:1"><div class="tn">Pipeline by Stage</div><div class="spark"><b style="height:18px"></b><b style="height:34px"></b></div><div class="warnlbl">row removed in your draft</div></div>
+          <div class="tile edit flag" style="flex:1"><div class="tn">Top Accounts</div><div class="spark"><b style="height:40px"></b><b style="height:28px"></b></div><div class="warnlbl">row removed in your draft</div></div>
+          <div class="tile edit flag" style="flex:1"><div class="tn">Churn by Month</div><div class="spark"><b style="height:26px"></b><b style="height:30px"></b></div><div class="warnlbl">row removed in your draft</div></div>
+        </div>
+      </div>
+      <div class="wm">mockup</div>
+    </div>
+    <div class="note src">Banner is the existing <code>editingUnsaved</code> string in <code>ReviewBanner.tsx</code>, verbatim.</div>
+    <div class="note unsure">The red per-tile labels are <b>annotation for this review only</b>, not proposed UI. Option B does not mark up the canvas; marking it up credibly means knowing which components the draft moved, which is the same comparison the dialog needs, and at that point Option C is the cheaper answer. Drawn here only so the reader can see what the author cannot.</div>
+  </div>
+
+  <!-- B2 -->
+  <div class="step">
+    <div class="cap"><span class="n">B2</span><div>
+      <b>Save pressed — the dialog, full version.</b> The list comes from the proposed dry-run route (<code>POST /api/v1/change_request/&lt;pk&gt;/preview_fold</code>), which returns the same <code>reverted_fields</code> the 202 carries today, one request early. “Keep my saved changes” is the default and has focus.
+    </div></div>
+    <div class="app scrim" style="min-height:430px">
+      <div class="nav"><span class="logo">superset</span><span>Dashboards</span><span>Charts</span><span>Datasets</span><span class="spacer"></span><span>Approvals</span><span class="av"></span></div>
+      <div class="head">
+        <div class="title">Sales Dashboard Q4 Final QA1</div>
+        <div class="acts"><span class="dots">···</span><button class="btn g">Discard</button><button class="btn g">Save</button><button class="btn p">Request review</button></div>
+      </div>
+      <div class="banner"><span class="ic">i</span><div class="msg">Editing · these edits are not saved yet · your draft from 27 minutes ago is still what is held for review</div><div class="ctl"><button class="btn">What changed</button></div></div>
+      <div class="tabs"><span class="tab sel">Sales Overview</span><span class="tab">Exploratory</span></div>
+      <div class="grid"><div class="row"><div class="tile edit" style="flex:5"><div class="tn">Quarterly Revenue (By Product Line)</div><div class="spark"><b style="height:22px"></b><b style="height:40px"></b></div></div><div class="tile edit" style="flex:3"><div class="tn">Revenue by Region</div><div class="spark"><b style="height:30px"></b><b style="height:44px"></b></div></div><div class="tile edit" style="flex:2"><div class="tn">Win rate</div><div class="spark"><b style="height:48px"></b></div></div></div></div>
+
+      <div class="modal">
+        <div class="mh">This replaces the changes you already saved</div>
+        <div class="mb">
+          <p>What is on screen started from the live dashboard, not from your saved changes. Saving now would put these back the way they were:</p>
+          <ul class="put">
+            <li>Removed chart: Quarterly Revenue (By Product Line)</li>
+            <li>Removed row</li>
+            <li>Changed tab: Sales Overview</li>
+            <li>Cross-filter scopes for 1 removed chart</li>
+          </ul>
+          <p>There may be more — open <b>What changed</b> to see everything your saved version holds.</p>
+          <p class="hint">Your edit from this session — the title — would be kept.</p>
+        </div>
+        <div class="mf">
+          <button class="btn p focus">Keep my saved changes</button>
+          <button class="btn dd">Replace them</button>
+        </div>
+      </div>
+      <div class="wm">mockup</div>
+    </div>
+    <div class="note">Proposed new copy. The component names in the list are the ones <code>_layout_components</code> / <code>_layout_label</code> already produce for the review panel, so the author can find each one there — they are not a second vocabulary.</div>
+    <div class="note unsure">“Your edit from this session — the title — would be kept” is the one line I am not sure can be built honestly. Naming what <i>survives</i> means diffing the session against the layout hydrated on load, which the dry-run route cannot do. Either drop the line or build the snapshot; do not ship it as a guess.</div>
+  </div>
+
+  <!-- B3 -->
+  <div class="step">
+    <div class="cap"><span class="n">B3</span><div><b>The two outcomes.</b> Left: “Keep my saved changes” sends nothing and leaves the author in edit mode with their session intact. Right: “Replace them” proceeds, and the put-back sentence arrives as a warning that does not time out — not, as today, inside a green success toast.</div></div>
+    <div class="sbs">
+      <div>
+        <h5>Keep my saved changes</h5>
+        <div class="app">
+          <div class="head">
+            <div class="title">Sales Dashboard Q4 Final QA1</div>
+            <div class="acts"><span class="dots">···</span><button class="btn g">Discard</button><button class="btn g">Save</button><button class="btn p">Request review</button></div>
+          </div>
+          <div class="banner"><span class="ic">i</span><div class="msg">Editing · these edits are not saved yet · your draft from 27 minutes ago is still what is held for review</div><div class="ctl"><button class="btn">What changed</button></div></div>
+          <div class="grid"><div class="row"><div class="tile edit" style="flex:2"><div class="tn">Quarterly Revenue</div><div class="spark"><b style="height:22px"></b><b style="height:40px"></b></div></div><div class="tile edit" style="flex:1"><div class="tn">Win rate</div><div class="spark"><b style="height:40px"></b></div></div></div></div>
+          <div class="wm">mockup</div>
+        </div>
+        <div class="note">Nothing was sent, the draft is untouched, and the author is where they were. No toast: they declined an action, which is not an event.</div>
+      </div>
+      <div>
+        <h5>Replace them</h5>
+        <div class="app">
+          <div class="head">
+            <div class="title">Sales Dashboard Q4 Final QA1</div><div class="pill">Draft</div>
+            <div class="acts"><span class="dots">···</span><button class="btn g">Edit dashboard</button></div>
+          </div>
+          <div class="banner"><span class="ic">i</span><div class="msg">Your changes are saved just now · you and viewers are both seeing the live version · turn on Show changes to see yours</div><div class="ctl"><span class="sw"><i></i>Show changes</span><button class="btn">What changed</button><button class="btn p">Request review</button></div></div>
+          <div class="grid"><div class="row"><div class="tile" style="flex:2"><div class="tn">Quarterly Revenue</div><div class="spark"><b style="height:22px"></b><b style="height:40px"></b></div></div><div class="tile" style="flex:1"><div class="tn">Win rate</div><div class="spark"><b style="height:40px"></b></div></div></div></div>
+          <div class="toast warn" style="position:static;width:auto;margin:10px 14px 14px;box-shadow:none">
+            <span class="x">×</span>
+            Changes updated in your existing draft. This save undid 3 layout changes your draft had made: removed chart: Quarterly Revenue (By Product Line), removed row, changed tab: Sales Overview. <a href="#">Review changes →</a>
+          </div>
+          <div class="wm">mockup</div>
+        </div>
+        <div class="note src">Toast text is existing backend copy, unchanged: <code>UPDATED_MESSAGE</code> plus <code>LAYOUT_UNDONE_MANY_MESSAGE</code> from <code>http.py</code>. Only the <i>styling and duration</i> change — warning, not success; no ten-second dismissal.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- B4 -->
+  <div class="step">
+    <div class="cap"><span class="n">B4</span><div><b>The cheap variant,</b> for the week where the dry-run route is not built. Same two buttons, same default, no list — and a route into the panel that does have the list. Weaker, because it does not show the author the thing they are about to lose.</div></div>
+    <div class="app scrim" style="min-height:300px">
+      <div class="nav"><span class="logo">superset</span><span>Dashboards</span><span>Charts</span><span>Datasets</span><span class="spacer"></span><span>Approvals</span><span class="av"></span></div>
+      <div class="head">
+        <div class="title">Sales Dashboard Q4 Final QA1</div>
+        <div class="acts"><span class="dots">···</span><button class="btn g">Discard</button><button class="btn g">Save</button><button class="btn p">Request review</button></div>
+      </div>
+      <div class="banner"><span class="ic">i</span><div class="msg">Editing · these edits are not saved yet · your draft from 27 minutes ago is still what is held for review</div><div class="ctl"><button class="btn">What changed</button></div></div>
+      <div class="grid"><div class="row"><div class="tile edit" style="flex:2"><div class="tn">Quarterly Revenue (By Product Line)</div><div class="spark"><b style="height:22px"></b><b style="height:40px"></b></div></div><div class="tile edit" style="flex:1"><div class="tn">Win rate</div><div class="spark"><b style="height:44px"></b></div></div></div></div>
+      <div class="modal" style="width:520px">
+        <div class="mh">This replaces the changes you already saved</div>
+        <div class="mb">
+          <p>What is on screen started from the live dashboard, not from your saved changes. Saving now replaces the 4 changes you saved 27 minutes ago.</p>
+        </div>
+        <div class="mf">
+          <button class="btn" style="margin-right:auto">What changed</button>
+          <button class="btn p focus">Keep my saved changes</button>
+          <button class="btn dd">Replace them</button>
+        </div>
+      </div>
+      <div class="wm">mockup</div>
+    </div>
+    <div class="note">“4 changes” and “27 minutes ago” come from <code>totalChangeCount</code> and <code>ago</code> in <code>display.ts</code>, which the discard dialog already uses for exactly this purpose. No new endpoint and no new comparison.</div>
+  </div>
+
+  <!-- B5 -->
+  <div class="step">
+    <div class="cap"><span class="n">B5</span><div><b>Where the dialog has to live.</b> Not on the Save button. Three callers reach <code>overwriteDashboard</code>, and a guard on one leaves two open — the same mistake <code>_fold_into</code>'s docstring warns about for the two fold sites in <code>gate.py</code>. Drawn as a diagram because there is no screen for it.</div></div>
+    <div class="app" style="padding:18px 16px 22px">
+      <svg viewBox="0 0 1100 250" width="100%" height="250" role="img" aria-label="Three save callers routed through one confirmation gate">
+        <defs>
+          <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="#879399"/>
+          </marker>
+        </defs>
+        <g font-family="Inter, Arial, sans-serif" font-size="13">
+          <rect x="8" y="18"  width="250" height="40" rx="3" fill="#fff" stroke="#20a7c9"/>
+          <text x="22" y="37" fill="#323232">Save button</text>
+          <text x="22" y="52" fill="#879399" font-size="11">Header/index.tsx:938</text>
+
+          <rect x="8" y="88"  width="250" height="40" rx="3" fill="#fff" stroke="#20a7c9"/>
+          <text x="22" y="107" fill="#323232">Request review button</text>
+          <text x="22" y="122" fill="#879399" font-size="11">Header/index.tsx:1000</text>
+
+          <rect x="8" y="158" width="250" height="40" rx="3" fill="#fff" stroke="#20a7c9"/>
+          <text x="22" y="177" fill="#323232">“Save and close” on navigate</text>
+          <text x="22" y="192" fill="#879399" font-size="11">useUnsavedChangesPrompt, :562</text>
+
+          <path d="M258 38 H350 V100" stroke="#879399" fill="none" marker-end="url(#a)"/>
+          <path d="M258 108 H350" stroke="#879399" fill="none" marker-end="url(#a)"/>
+          <path d="M258 178 H350 V116" stroke="#879399" fill="none" marker-end="url(#a)"/>
+
+          <rect x="358" y="78" width="240" height="60" rx="3" fill="#fbfeff" stroke="#20a7c9" stroke-width="2"/>
+          <text x="372" y="100" fill="#1a85a0" font-weight="600">overwriteDashboard()</text>
+          <text x="372" y="118" fill="#879399" font-size="11">the gate goes here —</text>
+          <text x="372" y="132" fill="#879399" font-size="11">one place, all three routes</text>
+
+          <path d="M598 108 H680" stroke="#879399" fill="none" marker-end="url(#a)"/>
+
+          <rect x="688" y="60" width="200" height="44" rx="3" fill="#fff7f8" stroke="#e04355"/>
+          <text x="702" y="79" fill="#7d2130">open change of mine,</text>
+          <text x="702" y="95" fill="#7d2130">canvas not seeded from it?</text>
+
+          <path d="M788 104 V128" stroke="#879399" fill="none" marker-end="url(#a)"/>
+          <rect x="672" y="134" width="232" height="36" rx="3" fill="#fff" stroke="#e04355"/>
+          <text x="686" y="157" fill="#7d2130">yes → confirmation (B2 / B4)</text>
+
+          <path d="M888 82 H980" stroke="#879399" fill="none" marker-end="url(#a)"/>
+          <rect x="940" y="62" width="150" height="36" rx="3" fill="#f2fbf3" stroke="#28a745"/>
+          <text x="954" y="85" fill="#1d5c29">no → PUT as today</text>
+
+          <text x="8" y="232" fill="#879399" font-size="11">A fourth route exists and no dialog can reach it: REST and MCP callers, which is why the after-the-fact sentence in http.py stays.</text>
+        </g>
+      </svg>
+      <div class="wm">mockup</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

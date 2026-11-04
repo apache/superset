@@ -86,6 +86,8 @@ export interface ReviewBannerProps {
    * and neither describes a half-finished edit nobody has saved yet. Said
    * to somebody mid-edit it is simply untrue.
    */
+  /** The host is in edit mode. */
+  editing?: boolean;
   editingUnsaved?: boolean;
   changeRequest: ChangeRequest;
   /** Omitted when this asset kind has no in-place preview. */
@@ -136,6 +138,7 @@ export default function ReviewBanner({
   onRequestChanges,
   onDiscard,
   busy = false,
+  editing = false,
   editingUnsaved = false,
 }: ReviewBannerProps) {
   const content = useMemo<BannerContent>(() => {
@@ -281,6 +284,26 @@ export default function ReviewBanner({
         };
       }
 
+      // In edit mode with nothing outstanding: the author has just saved,
+      // and the canvas in front of them IS the draft. The live-version
+      // wording below would be false here -- it describes a page showing
+      // the published asset, which this is not.
+      //
+      // The author stays in edit mode through a captured save now (mocks,
+      // author screen 1b), so this state lasts as long as they keep
+      // working rather than for the instant before being thrown out of
+      // the editor.
+      if (editing) {
+        return {
+          type: 'info',
+          message: t(
+            'Viewing your changes · saved %s · viewers still see the live version',
+            ago(changeRequest.changed_on),
+          ),
+          actions: [whatChanged],
+        };
+      }
+
       // What is actually on screen, not what exists. The author sees the
       // live asset until they turn Show changes on, and saying "Viewing
       // your changes" before then told them the opposite of the truth
@@ -376,6 +399,7 @@ export default function ReviewBanner({
       ],
     };
   }, [
+    editing,
     editingUnsaved,
     changeRequest,
     showChanges,

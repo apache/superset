@@ -114,11 +114,16 @@ test('a captured save tells the banner to re-read', async () => {
   expect(announced).toBe(1);
 });
 
-test('a captured save still leaves edit mode and says what happened', async () => {
+test('a captured save keeps the author in edit mode and says what happened', async () => {
+  // It used to throw them out on every save. The banner renders in edit
+  // mode too, so that bought nothing and cost them their session: each
+  // re-entry reopened the canvas seeded from the live asset rather than
+  // from the draft they had just saved. Mocks, author screen 1b: after
+  // Save the toolbar reads Exit edit mode with Save disabled.
   const dispatch = await save(CAPTURED);
 
   const types = dispatch.mock.calls.map(([action]) => action.type);
-  expect(types).toContain('SET_EDIT_MODE');
+  expect(types).not.toContain('SET_EDIT_MODE');
   const toasts = dispatch.mock.calls.filter(
     ([action]) => action.type === 'ADD_TOAST',
   );
@@ -162,11 +167,7 @@ test('the capture is announced only once the state it publishes is settled', asy
   const dispatch = await save(CAPTURED);
 
   const types = dispatch.mock.calls.map(([action]) => action.type);
-  const clearedUnsaved = types.indexOf('SET_UNSAVED_CHANGES');
-  const leftEditMode = types.indexOf('SET_EDIT_MODE');
-
-  expect(clearedUnsaved).toBeGreaterThan(-1);
-  expect(leftEditMode).toBeGreaterThan(-1);
-  // Both have to be in the store before anybody is told to look at it.
-  expect(announcedAfter).toEqual({ editModeSet: true, unsavedCleared: true });
+  expect(types).toContain('SET_UNSAVED_CHANGES');
+  // The flag has to be in the store before anybody is told to look at it.
+  expect(announcedAfter).toEqual({ editModeSet: false, unsavedCleared: true });
 });

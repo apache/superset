@@ -64,7 +64,6 @@ const draft = {
   changed_fields: ['dashboard_title'],
 } as unknown as ChangeRequest;
 
-const restoreLive = jest.fn(async () => {});
 
 beforeEach(() => {
   mockUseAssetReview.mockReset();
@@ -74,9 +73,7 @@ beforeEach(() => {
     showing: false,
     busy: false,
     toggle: jest.fn(),
-    restoreLive,
   });
-  restoreLive.mockClear();
   mockUseAssetReview.mockReturnValue({
     changeRequest: draft,
     refresh: jest.fn(),
@@ -132,30 +129,5 @@ test('an announcement with no detail does not wait', async () => {
 
   await waitFor(() => {
     expect(screen.getByTestId('request-dialog')).toBeInTheDocument();
-  });
-});
-
-test('a captured save puts the live asset back on the dashboard page', async () => {
-  mount();
-
-  announceChangeCaptured();
-
-  await waitFor(() => {
-    expect(restoreLive).toHaveBeenCalled();
-  });
-});
-
-test('a captured save does not try to rehydrate a chart page', async () => {
-  render(<AssetReview assetType="chart" assetId={261} />, {
-    useRedux: true,
-    useRouter: true,
-  });
-
-  announceChangeCaptured();
-
-  // Explore re-renders from its own controls. There is no dashboard here to
-  // put back, and asking for one would fetch the wrong asset.
-  await waitFor(() => {
-    expect(restoreLive).not.toHaveBeenCalled();
   });
 });

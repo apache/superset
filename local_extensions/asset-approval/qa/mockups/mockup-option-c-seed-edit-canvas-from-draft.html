@@ -1,0 +1,431 @@
+<!doctype html>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+
+MOCKUP. Hand-drawn HTML illustrating a proposed design. NOT a capture of
+Superset and must never be used as QA evidence.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup — Option C</title>
+<style>
+  :root {
+    --brand: #20a7c9;
+    --brand-dark: #1a85a0;
+    --ink: #323232;
+    --ink-2: #666;
+    --ink-3: #879399;
+    --line: #e0e0e0;
+    --bg: #f5f5f5;
+    --info-bg: #f0f8fd;
+    --info-line: #9ad2e8;
+    --warn-bg: #fef9e7;
+    --warn-line: #fcc700;
+    --danger: #e04355;
+    --ok: #28a745;
+    --mock: #8b2fc9;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #eceff1;
+    color: var(--ink);
+    font-family: Inter, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .mockbar {
+    background: repeating-linear-gradient(135deg, #f3e8fb, #f3e8fb 14px, #e9d7f7 14px, #e9d7f7 28px);
+    border-bottom: 2px solid var(--mock);
+    color: var(--mock);
+    font-weight: 700;
+    letter-spacing: .04em;
+    padding: 10px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+  .mockbar span { font-weight: 400; text-transform: none; letter-spacing: 0; color: #5c2d7a; }
+  .page { max-width: 1180px; margin: 0 auto; padding: 20px 24px 60px; }
+  h1 { font-size: 20px; margin: 18px 0 2px; }
+  .sub { color: var(--ink-2); margin: 0 0 6px; }
+  .meta { color: var(--ink-3); font-size: 12px; margin: 0 0 22px; }
+
+  .step { margin: 0 0 26px; }
+  .cap {
+    display: flex; gap: 10px; align-items: baseline;
+    margin: 0 0 8px;
+  }
+  .cap .n {
+    flex: 0 0 auto;
+    background: var(--ink); color: #fff;
+    border-radius: 3px; padding: 1px 7px;
+    font-size: 11px; font-weight: 700; letter-spacing: .04em;
+  }
+  .cap .txt { color: var(--ink); }
+  .cap .txt b { font-weight: 600; }
+  .note {
+    margin: 8px 0 0; padding: 7px 11px;
+    background: #fff8e1; border-left: 3px solid var(--warn-line);
+    color: #6b5400; font-size: 12px;
+  }
+  .note.src { background: #eef4f7; border-left-color: var(--brand); color: #2a5664; }
+  .note.unsure { background: #fdeef0; border-left-color: var(--danger); color: #7d2130; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; background: #e9eef1; padding: 1px 4px; border-radius: 2px; }
+
+  /* ---- fake app chrome ---- */
+  .app {
+    background: #fff; border: 1px solid #cfd8dc; border-radius: 3px;
+    overflow: hidden; position: relative;
+  }
+  .nav {
+    height: 34px; background: #fff; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 18px; padding: 0 14px;
+    color: var(--ink-2); font-size: 12px;
+  }
+  .nav .logo { font-weight: 700; color: var(--brand-dark); letter-spacing: .02em; }
+  .nav .spacer { margin-left: auto; }
+  .nav .av { width: 20px; height: 20px; border-radius: 50%; background: #c9d6db; }
+
+  .head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px 10px; border-bottom: 1px solid var(--line);
+  }
+  .head .title { font-size: 17px; font-weight: 600; }
+  .head .pill {
+    font-size: 11px; padding: 1px 7px; border-radius: 9px;
+    background: #fff4e5; color: #8a5a00; border: 1px solid #f0cf9a;
+  }
+  .head .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+  .btn {
+    font: inherit; font-size: 12px; border-radius: 3px; padding: 4px 11px;
+    border: 1px solid var(--brand); color: var(--brand-dark); background: #fff;
+    white-space: nowrap;
+  }
+  .btn.p { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .btn.g { border-color: #c2cbd0; color: var(--ink-2); }
+  .btn.d { border-color: var(--danger); color: var(--danger); }
+  .btn.dd { background: var(--danger); border-color: var(--danger); color: #fff; }
+  .btn.off { opacity: .45; }
+  .dots { color: var(--ink-3); padding: 0 4px; letter-spacing: 2px; }
+
+  /* ---- banner ---- */
+  .banner {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+    margin: 10px 14px; padding: 8px 12px;
+    background: var(--info-bg); border: 1px solid var(--info-line); border-radius: 3px;
+  }
+  .banner.warn { background: var(--warn-bg); border-color: var(--warn-line); }
+  .banner.ok { background: #f2fbf3; border-color: #9ad6a5; }
+  .banner .ic { flex: 0 0 auto; color: var(--brand-dark); font-weight: 700; }
+  .banner.warn .ic { color: #8a6d00; }
+  .banner.ok .ic { color: #1e7b2d; }
+  .banner .msg { flex: 1 1 320px; min-width: 0; }
+  .banner .ctl { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .sw { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 12px; }
+  .sw i {
+    width: 26px; height: 14px; border-radius: 7px; background: #c4ced3;
+    position: relative; display: inline-block;
+  }
+  .sw i::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 10px; height: 10px; border-radius: 50%; background: #fff;
+  }
+  .sw.on i { background: var(--brand); }
+  .sw.on i::after { left: 14px; }
+
+  /* ---- tabs + grid ---- */
+  .tabs { display: flex; gap: 20px; padding: 2px 16px 0; border-bottom: 1px solid var(--line); }
+  .tab { padding: 6px 1px 8px; color: var(--ink-2); font-size: 12.5px; border-bottom: 2px solid transparent; }
+  .tab.sel { color: var(--brand-dark); border-bottom-color: var(--brand); font-weight: 600; }
+  .tab.new { color: var(--ok); }
+  .tab.gone { color: #bbb; text-decoration: line-through; }
+
+  .grid { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 16px; background: #fafafa; }
+  .row { display: flex; gap: 10px; }
+  .tile {
+    border: 1px solid var(--line); background: #fff; border-radius: 3px;
+    padding: 8px 10px; min-height: 86px; display: flex; flex-direction: column;
+  }
+  .tile .tn { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+  .tile .spark { flex: 1; display: flex; align-items: flex-end; gap: 3px; }
+  .tile .spark b { display: block; width: 7px; background: #bfe3ee; border-radius: 1px 1px 0 0; }
+  .tile.edit { border-style: dashed; border-color: var(--brand); background: #fbfeff; }
+  .tile.ghost { border-style: dashed; border-color: #ddd; background: #f6f6f6; color: #b0b0b0; }
+  .tile.ghost .tn { color: #b0b0b0; font-weight: 400; font-style: italic; }
+  .tile .drag { font-size: 10px; color: var(--brand-dark); margin-top: 6px; }
+
+  /* ---- right panel ---- */
+  .with-panel { display: flex; }
+  .with-panel .main { flex: 1; min-width: 0; }
+  .panel {
+    flex: 0 0 260px; border-left: 1px solid var(--line); background: #fff;
+    padding: 12px; font-size: 12px;
+  }
+  .panel h4 { margin: 0 0 2px; font-size: 13px; }
+  .panel .pm { color: var(--ink-3); font-size: 11px; margin-bottom: 10px; }
+  .panel ul { margin: 0; padding-left: 16px; }
+  .panel li { margin-bottom: 5px; }
+  .panel .rm { color: var(--danger); }
+  .panel .ad { color: var(--ok); }
+
+  /* ---- modal ---- */
+  .scrim { position: relative; }
+  .scrim::before {
+    content: ""; position: absolute; inset: 0; background: rgba(0,0,0,.42); z-index: 5;
+  }
+  .modal {
+    position: absolute; z-index: 6; left: 50%; top: 42px; transform: translateX(-50%);
+    width: 520px; background: #fff; border-radius: 3px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.3); overflow: hidden;
+  }
+  .modal .mh {
+    padding: 11px 16px; border-bottom: 1px solid var(--line);
+    font-size: 15px; font-weight: 600;
+  }
+  .modal .mb { padding: 14px 16px; color: var(--ink); }
+  .modal .mb p { margin: 0 0 10px; }
+  .modal .mb p:last-child { margin-bottom: 0; }
+  .modal .mf {
+    padding: 10px 16px; border-top: 1px solid var(--line);
+    display: flex; justify-content: flex-end; gap: 8px; background: #fcfcfc;
+  }
+
+  /* ---- toast ---- */
+  .toast {
+    position: absolute; z-index: 7; right: 14px; top: 46px; width: 430px;
+    border-radius: 3px; padding: 10px 12px; font-size: 12.5px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.18);
+    background: #f2fbf3; border: 1px solid #9ad6a5; color: #1d5c29;
+  }
+  .toast.warn { background: var(--warn-bg); border-color: var(--warn-line); color: #6b5400; }
+  .toast.err { background: #fdeef0; border-color: #efa3ad; color: #7d2130; }
+  .toast a { color: var(--brand-dark); }
+  .toast .x { float: right; color: #9aa; }
+
+  /* ---- queue table ---- */
+  .q { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .q th { text-align: left; color: var(--ink-3); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  .q td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+  .tag { font-size: 11px; padding: 1px 7px; border-radius: 2px; border: 1px solid; }
+  .tag.pend { background: #fff4e5; border-color: #f0cf9a; color: #8a5a00; }
+  .empty { padding: 26px 12px; color: var(--ink-3); text-align: center; }
+  .wm {
+    position: absolute; right: 8px; bottom: 6px; z-index: 8;
+    font-size: 9.5px; letter-spacing: .1em; color: rgba(139,47,201,.45);
+    font-weight: 700; text-transform: uppercase; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div class="mockbar">MOCKUP — not a screenshot of the product
+  <span>· hand-drawn HTML illustrating a proposed design · must not be used as QA evidence</span>
+</div>
+
+<div class="page">
+  <h1>Option C — the edit canvas opens on the author's own saved changes</h1>
+  <p class="sub">Sequence for the journey in the brief: alex has a change with priya, and wants to add one more thing.</p>
+  <p class="meta">Dashboard 6 “Sales Dashboard Q4 Final”. Draft holds 3 of live's 10 charts, four resizes, reversed row order, the <i>Exploratory</i> tab deleted and a <i>Regional breakdown</i> tab added — the change measured in DEFECT-the-preview-never-reads-the-draft-2026-11-04.md.</p>
+
+  <!-- C1 -->
+  <div class="step">
+    <div class="cap"><span class="n">C1</span><div class="txt"><b>Before.</b> alex opens the dashboard. The change is with priya, so the asset is read-only and the banner says who has it. Unchanged from today.</div></div>
+    <div class="app">
+      <div class="nav"><span class="logo">superset</span><span>Dashboards</span><span>Charts</span><span>Datasets</span><span class="spacer"></span><span>Approvals <b style="color:#e04355">2</b></span><span class="av"></span></div>
+      <div class="head">
+        <div class="title">Sales Dashboard Q4 Final</div>
+        <div class="pill">Awaiting review</div>
+        <div class="acts"><span class="dots">···</span><button class="btn g">Edit dashboard</button></div>
+      </div>
+      <div class="banner">
+        <span class="ic">i</span>
+        <div class="msg">Awaiting review · waiting 27 minutes · Priya Shah can approve</div>
+        <div class="ctl">
+          <span class="sw"><i></i>Show changes</span>
+          <button class="btn">What changed</button>
+          <button class="btn">Edit</button>
+        </div>
+      </div>
+      <div class="tabs"><span class="tab sel">Sales Overview</span><span class="tab">Exploratory</span></div>
+      <div class="grid">
+        <div class="row">
+          <div class="tile" style="flex:5"><div class="tn">Quarterly Revenue (By Product Line)</div><div class="spark"><b style="height:22px"></b><b style="height:40px"></b><b style="height:30px"></b><b style="height:52px"></b><b style="height:36px"></b></div></div>
+          <div class="tile" style="flex:3"><div class="tn">Revenue by Region</div><div class="spark"><b style="height:30px"></b><b style="height:44px"></b><b style="height:26px"></b></div></div>
+          <div class="tile" style="flex:2"><div class="tn">Win rate</div><div class="spark"><b style="height:48px"></b></div></div>
+        </div>
+        <div class="row">
+          <div class="tile" style="flex:1"><div class="tn">Pipeline by Stage</div><div class="spark"><b style="height:18px"></b><b style="height:34px"></b><b style="height:46px"></b><b style="height:24px"></b></div></div>
+          <div class="tile" style="flex:1"><div class="tn">Top Accounts</div><div class="spark"><b style="height:40px"></b><b style="height:28px"></b><b style="height:36px"></b></div></div>
+          <div class="tile" style="flex:1"><div class="tn">Churn by Month</div><div class="spark"><b style="height:26px"></b><b style="height:30px"></b><b style="height:44px"></b></div></div>
+        </div>
+      </div>
+      <div class="wm">mockup</div>
+    </div>
+    <div class="note src">Banner sentence is the existing string in <code>ReviewBanner.tsx</code> (pending / author branch), unchanged by this option.</div>
+  </div>
+
+  <!-- C2 -->
+  <div class="step">
+    <div class="cap"><span class="n">C2</span><div class="txt"><b>Edit pressed.</b> The dialog <i>tells</i> and does not act — the withdrawal happens at save time, which is what the gate already does (<code>left_review</code>). Today's dialog withdraws here, so an author who cancels has already emptied priya's queue.</div></div>
+    <div class="app scrim">
+      <div class="nav"><span class="logo">superset</span><span>Dashboards</span><span>Charts</span><span>Datasets</span><span class="spacer"></span><span>Approvals</span><span class="av"></span></div>
+      <div class="head">
+        <div class="title">Sales Dashboard Q4 Final</div><div class="pill">Awaiting review</div>
+        <div class="acts"><span class="dots">···</span><button class="btn g">Edit dashboard</button></div>
+      </div>
+      <div class="banner"><span class="ic">i</span><div class="msg">Awaiting review · waiting 27 minutes · Priya Shah can approve</div><div class="ctl"><span class="sw"><i></i>Show changes</span><button class="btn">What changed</button><button class="btn">Edit</button></div></div>
+      <div class="tabs"><span class="tab sel">Sales Overview</span><span class="tab">Exploratory</span></div>
+      <div class="grid"><div class="row"><div class="tile" style="flex:5"><div class="tn">Quarterly Revenue (By Product Line)</div><div class="spark"><b style="height:22px"></b><b style="height:40px"></b><b style="height:30px"></b></div></div><div class="tile" style="flex:3"><div class="tn">Revenue by Region</div><div class="spark"><b style="height:30px"></b><b style="height:44px"></b></div></div><div class="tile" style="flex:2"><div class="tn">Win rate</div><div class="spark"><b style="height:48px"></b></div></div></div></div>
+
+      <div class="modal">
+        <div class="mh">Editing takes this out of review</div>
+        <div class="mb">
+          <p>Priya Shah has this in Needs my review. As soon as you save an edit it comes back to you as a draft and leaves her queue, and you request review again when you are ready.</p>
+        </div>
+        <div class="mf"><button class="btn g">Cancel</button><button class="btn p">Edit</button></div>
+      </div>
+      <div class="wm">mockup</div>
+    </div>
+    <div class="note">Proposed new copy (section 7 of the design doc). It replaces <code>WithdrawModal</code>'s “Edit and withdraw your request?” / “Withdraw and edit”, which both describe an act that would no longer happen here.</div>
+  </div>
+
+  <!-- C3 -->
+  <div class="step">
+    <div class="cap"><span class="n">C3</span><div class="txt"><b>The canvas opens on the draft.</b> This is the whole option. Three charts, not ten; the resizes are the ones alex set; <i>Exploratory</i> is gone and <i>Regional breakdown</i> is there. The seven removed charts are simply absent — there is no placeholder for them.</div></div>
+    <div class="app">
+      <div class="nav"><span class="logo">superset</span><span>Dashboards</span><span>Charts</span><span>Datasets</span><span class="spacer"></span><span>Approvals</span><span class="av"></span></div>
+      <div class="head">
+        <div class="title">Sales Dashboard Q4 Final</div>
+        <div class="acts">
+          <span class="dots">···</span>
+          <button class="btn g">Discard</button>
+          <button class="btn g off">Save</button>
+          <button class="btn p">Request review</button>
+        </div>
+      </div>
+      <div class="banner"><span class="ic">i</span>
+        <div class="msg">Editing your saved changes · saved 27 minutes ago · viewers still see the live version</div>
+        <div class="ctl"><button class="btn">What changed</button><button class="btn d">Discard changes…</button></div>
+      </div>
+      <div class="tabs"><span class="tab sel">Sales Overview</span><span class="tab new">Regional breakdown</span></div>
+      <div class="grid">
+        <div class="row">
+          <div class="tile edit" style="flex:3"><div class="tn">Revenue by Region</div><div class="spark"><b style="height:30px"></b><b style="height:44px"></b><b style="height:26px"></b></div><div class="drag">⠿ width 9 · resized in your draft</div></div>
+          <div class="tile edit" style="flex:1"><div class="tn">Win rate</div><div class="spark"><b style="height:48px"></b></div><div class="drag">⠿ width 3</div></div>
+        </div>
+        <div class="row">
+          <div class="tile edit" style="flex:1"><div class="tn">Quarterly Revenue (By Product Line)</div><div class="spark"><b style="height:22px"></b><b style="height:40px"></b><b style="height:30px"></b><b style="height:52px"></b><b style="height:36px"></b><b style="height:44px"></b></div><div class="drag">⠿ height 80 · row order reversed in your draft</div></div>
+        </div>
+      </div>
+      <div class="wm">mockup</div>
+    </div>
+    <div class="note unsure">The fourth banner string is new and is the sentence I am least sure of. It borrows its shape from the existing “Viewing your changes · saved %s · viewers still see the live version”. Treat the wording as a placeholder for review; the three facts it must carry are <i>this is your saved version</i>, <i>when you saved it</i>, and <i>viewers are not seeing it</i>.</div>
+    <div class="note">“Show changes” is withheld in edit mode today and stays withheld. <code>DESIGN-lost-edits.md</code> 3.5 proposes relabelling it <b>Show live version</b> for an author in this mode; not drawn here, because adopting it is a separate decision.</div>
+  </div>
+
+  <!-- C4 -->
+  <div class="step">
+    <div class="cap"><span class="n">C4</span><div class="txt"><b>The save.</b> alex widens one chart and presses Save. The body posts draft-plus-that-move, because hydration replaced <code>dashboardInfo.metadata</code> and <code>dashboardLayout</code> from the proposal and <code>overwriteDashboard</code> reads straight back out of them. Nothing is put back, so no tripwire sentence.</div></div>
+    <div class="app">
+      <div class="nav"><span class="logo">superset</span><span>Dashboards</span><span>Charts</span><span>Datasets</span><span class="spacer"></span><span>Approvals</span><span class="av"></span></div>
+      <div class="head">
+        <div class="title">Sales Dashboard Q4 Final</div><div class="pill">Draft</div>
+        <div class="acts"><span class="dots">···</span><button class="btn g">Edit dashboard</button></div>
+      </div>
+      <div class="banner"><span class="ic">i</span>
+        <div class="msg">Your changes are saved just now · you and viewers are both seeing the live version · turn on Show changes to see yours</div>
+        <div class="ctl"><span class="sw"><i></i>Show changes</span><button class="btn">What changed</button><button class="btn p">Request review</button><button class="btn d">Discard changes…</button></div>
+      </div>
+      <div class="tabs"><span class="tab sel">Sales Overview</span><span class="tab">Exploratory</span></div>
+      <div class="grid">
+        <div class="row">
+          <div class="tile" style="flex:5"><div class="tn">Quarterly Revenue (By Product Line)</div><div class="spark"><b style="height:22px"></b><b style="height:40px"></b><b style="height:30px"></b></div></div>
+          <div class="tile" style="flex:3"><div class="tn">Revenue by Region</div><div class="spark"><b style="height:30px"></b><b style="height:44px"></b></div></div>
+          <div class="tile" style="flex:2"><div class="tn">Win rate</div><div class="spark"><b style="height:48px"></b></div></div>
+        </div>
+        <div class="row">
+          <div class="tile" style="flex:1"><div class="tn">Pipeline by Stage</div><div class="spark"><b style="height:18px"></b><b style="height:34px"></b></div></div>
+          <div class="tile" style="flex:1"><div class="tn">Top Accounts</div><div class="spark"><b style="height:40px"></b><b style="height:28px"></b></div></div>
+          <div class="tile" style="flex:1"><div class="tn">Churn by Month</div><div class="spark"><b style="height:26px"></b><b style="height:30px"></b></div></div>
+        </div>
+      </div>
+      <div class="toast">
+        <span class="x">×</span>
+        Changes updated in your draft, which has been taken back out of review. Request review again when you are ready. <a href="#">Review changes →</a>
+      </div>
+      <div class="wm">mockup</div>
+    </div>
+    <div class="note src">Toast text is the existing <code>UPDATED_LEFT_REVIEW_MESSAGE</code> from <code>http.py</code>, verbatim, with the existing “Review changes →” link from <code>reviewRequiredToast</code>. Banner is the existing draft/author string. Both unchanged by this option.</div>
+    <div class="note">The grid is back to live and the author is out of edit mode — <code>restoreLive</code> and <code>setEditMode(false)</code>, both current behaviour. Section 9 of the doc argues this drop-out is the real friction behind “why are Save and Request review separate”, and should be fixed on its own.</div>
+  </div>
+
+  <!-- C5 -->
+  <div class="step">
+    <div class="cap"><span class="n">C5</span><div class="txt"><b>When seeding fails</b> — unparseable payload, a 500 on the dashboard fetch, a chart the draft added that cannot be resolved. Edit mode is <i>not</i> entered. Falling back to the live canvas silently is the original bug.</div></div>
+    <div class="app">
+      <div class="nav"><span class="logo">superset</span><span>Dashboards</span><span>Charts</span><span>Datasets</span><span class="spacer"></span><span>Approvals</span><span class="av"></span></div>
+      <div class="head">
+        <div class="title">Sales Dashboard Q4 Final</div><div class="pill">Awaiting review</div>
+        <div class="acts"><span class="dots">···</span><button class="btn g">Edit dashboard</button></div>
+      </div>
+      <div class="banner"><span class="ic">i</span><div class="msg">Awaiting review · waiting 27 minutes · Priya Shah can approve</div><div class="ctl"><span class="sw"><i></i>Show changes</span><button class="btn">What changed</button><button class="btn">Edit</button></div></div>
+      <div class="tabs"><span class="tab sel">Sales Overview</span><span class="tab">Exploratory</span></div>
+      <div class="grid"><div class="row"><div class="tile" style="flex:5"><div class="tn">Quarterly Revenue (By Product Line)</div><div class="spark"><b style="height:22px"></b><b style="height:40px"></b></div></div><div class="tile" style="flex:3"><div class="tn">Revenue by Region</div><div class="spark"><b style="height:30px"></b><b style="height:44px"></b></div></div><div class="tile" style="flex:2"><div class="tn">Win rate</div><div class="spark"><b style="height:48px"></b></div></div></div></div>
+      <div class="toast err"><span class="x">×</span>Could not open your saved changes. Nothing has been changed.</div>
+      <div class="wm">mockup</div>
+    </div>
+    <div class="note">Proposed new copy. The page stays in view mode with the banner intact, which is Option A's behaviour used as a failure state rather than as the product.</div>
+  </div>
+
+  <!-- C6 -->
+  <div class="step">
+    <div class="cap"><span class="n">C6</span><div class="txt"><b>What priya sees,</b> before and after alex's save. Her side is unchanged by this option — the row leaves her queue when the save lands, as it does today — but it is the half the author cannot see, which is why C2's dialog names her.</div></div>
+    <div class="app">
+      <div class="nav"><span class="logo">superset</span><span>Dashboards</span><span>Charts</span><span>Datasets</span><span class="spacer"></span><span>Approvals <b style="color:#e04355">1</b></span><span class="av"></span></div>
+      <div class="head"><div class="title">Approvals</div><div class="acts"><button class="btn p">Needs my review</button><button class="btn g">Submitted by me</button><button class="btn g">History</button></div></div>
+      <div style="padding:0 0 4px">
+        <table class="q">
+          <tr><th>Asset</th><th>Author</th><th>Changes</th><th>Submitted</th><th>Status</th></tr>
+          <tr>
+            <td><b>Sales Dashboard Q4 Final</b><div style="color:#879399;font-size:11px">Dashboard</div></td>
+            <td>Alex Rivera</td>
+            <td>5 changes</td>
+            <td>27 minutes ago</td>
+            <td><span class="tag pend">Awaiting review</span></td>
+          </tr>
+        </table>
+      </div>
+      <div class="wm">mockup</div>
+    </div>
+    <div style="height:10px"></div>
+    <div class="app">
+      <div class="nav"><span class="logo">superset</span><span>Dashboards</span><span>Charts</span><span>Datasets</span><span class="spacer"></span><span>Approvals</span><span class="av"></span></div>
+      <div class="head"><div class="title">Approvals</div><div class="acts"><button class="btn p">Needs my review</button><button class="btn g">Submitted by me</button><button class="btn g">History</button></div></div>
+      <div class="empty">Nothing needs your review.</div>
+      <div class="wm">mockup</div>
+    </div>
+    <div class="note unsure">Priya is told nothing when the row leaves. That is current behaviour and this option does not change it, but it is the one thing in this sequence a reviewer would complain about — worth raising separately from this design.</div>
+  </div>
+</div>
+</body>
+</html>
