@@ -19,12 +19,16 @@ import inspect
 import logging
 import uuid as uuid_lib
 from typing import Annotated, Any, Literal
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 from flask.testing import FlaskClient
 from pydantic import BaseModel, Field, model_validator, SecretStr
 from pytest_mock import MockerFixture
+from superset_core.semantic_layers.transport import (
+    ProviderRequestError,
+    ProviderRequestFailure,
+)
 from werkzeug.test import TestResponse
 
 from superset.commands.semantic_layer.exceptions import (
@@ -362,7 +366,9 @@ def test_configuration_schema(
 
     assert response.status_code == 200
     assert response.json["result"] == {"type": "object"}
-    mock_cls.get_configuration_schema.assert_called_once_with(None)
+    mock_cls.get_configuration_schema.assert_called_once_with(
+        None, transport=ANY, readiness=ANY
+    )
 
 
 @SEMANTIC_LAYERS_APP
@@ -401,7 +407,9 @@ def test_configuration_schema_with_partial_config(
     )
 
     assert response.status_code == 200
-    mock_cls.get_configuration_schema.assert_called_once_with(mock_config_obj)
+    mock_cls.get_configuration_schema.assert_called_once_with(
+        mock_config_obj, transport=ANY, readiness=ANY
+    )
 
 
 @SEMANTIC_LAYERS_APP
@@ -433,7 +441,9 @@ def test_configuration_schema_read_only_user_gets_static_schema(
     assert response.json["result"] == {"type": "object"}
     can_access.assert_any_call("can_write", "SemanticLayer")
     mock_cls.configuration_class.model_validate.assert_not_called()
-    mock_cls.get_configuration_schema.assert_called_once_with(None)
+    mock_cls.get_configuration_schema.assert_called_once_with(
+        None, transport=ANY, readiness=ANY
+    )
 
 
 @SEMANTIC_LAYERS_APP
@@ -470,7 +480,9 @@ def test_configuration_schema_writer_gets_enriched_schema(
     assert response.status_code == 200
     assert response.json["result"]["properties"] == {"account": {"enum": ["a1"]}}
     can_access.assert_any_call("can_write", "SemanticLayer")
-    mock_cls.get_configuration_schema.assert_called_once_with(mock_config_obj)
+    mock_cls.get_configuration_schema.assert_called_once_with(
+        mock_config_obj, transport=ANY, readiness=ANY
+    )
 
 
 @SEMANTIC_LAYERS_APP
@@ -507,7 +519,9 @@ def test_configuration_schema_with_invalid_partial_config(
     )
 
     assert response.status_code == 200
-    mock_cls.get_configuration_schema.assert_called_once_with(None)
+    mock_cls.get_configuration_schema.assert_called_once_with(
+        None, transport=ANY, readiness=ANY
+    )
 
 
 @SEMANTIC_LAYERS_APP
@@ -541,6 +555,7 @@ def test_runtime_schema(
     test_uuid = str(uuid_lib.uuid4())
     mock_layer = MagicMock()
     mock_layer.type = "snowflake"
+    mock_layer.configuration = '{"account": "test"}'
     mock_layer.implementation.configuration = {"account": "test"}
 
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
@@ -563,7 +578,7 @@ def test_runtime_schema(
     assert response.status_code == 200
     assert response.json["result"] == {"type": "object"}
     mock_cls.get_runtime_schema.assert_called_once_with(
-        {"account": "test"}, {"database": "mydb"}
+        {"account": "test"}, {"database": "mydb"}, transport=ANY, readiness=ANY
     )
 
 
@@ -577,6 +592,7 @@ def test_runtime_schema_no_body(
     test_uuid = str(uuid_lib.uuid4())
     mock_layer = MagicMock()
     mock_layer.type = "snowflake"
+    mock_layer.configuration = '{"account": "test"}'
     mock_layer.implementation.configuration = {"account": "test"}
 
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
@@ -596,7 +612,9 @@ def test_runtime_schema_no_body(
     )
 
     assert response.status_code == 200
-    mock_cls.get_runtime_schema.assert_called_once_with({"account": "test"}, None)
+    mock_cls.get_runtime_schema.assert_called_once_with(
+        {"account": "test"}, None, transport=ANY, readiness=ANY
+    )
 
 
 @SEMANTIC_LAYERS_APP
@@ -674,21 +692,24 @@ def test_runtime_schema_unknown_type(
 
 @SEMANTIC_LAYERS_APP
 def test_runtime_schema_exception(
-    client: Any,
+    client: FlaskClient,
     full_api_access: None,
     mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Test POST /<uuid>/schema/runtime returns 400 when schema raises."""
-    test_uuid = str(uuid_lib.uuid4())
-    mock_layer = MagicMock()
+    """Keep provider details in DEBUG server logs, not the runtime-schema response."""
+    caplog.set_level("DEBUG", logger="superset.semantic_layers.exceptions")
+    test_uuid: str = str(uuid_lib.uuid4())
+    mock_layer: MagicMock = MagicMock()
     mock_layer.type = "snowflake"
+    mock_layer.configuration = '{"account": "test"}'
     mock_layer.implementation.configuration = {"account": "test"}
 
-    mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
+    mock_dao: MagicMock = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
     mock_dao.find_by_uuid.return_value = mock_layer
 
-    mock_cls = MagicMock()
-    mock_cls.get_runtime_schema.side_effect = ValueError("Bad config")
+    mock_cls: MagicMock = MagicMock()
+    mock_cls.get_runtime_schema.side_effect = ValueError("provider-private-detail")
 
     mocker.patch.dict(
         "superset.semantic_layers.api.registry",
@@ -696,12 +717,14 @@ def test_runtime_schema_exception(
         clear=True,
     )
 
-    response = client.post(
+    response: TestResponse = client.post(
         f"/api/v1/semantic_layer/{test_uuid}/schema/runtime",
     )
 
     assert response.status_code == 400
-    assert "Bad config" in response.json["message"]
+    assert response.json["message"] == "Unable to fetch semantic layer runtime schema."
+    assert "provider-private-detail" not in response.get_data(as_text=True)
+    assert "ValueError: provider-private-detail" in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -1036,7 +1059,7 @@ def test_semantic_delete_reports_dependents_as_conflict(
     }
     mock_command: MagicMock = mocker.patch(f"superset.semantic_layers.api.{command}")
     mock_command.return_value.run.side_effect = SemanticDeleteDependentsError(
-        25, [dependent], 24
+        25, [dependent], 24, 3
     )
 
     request_path: str = (
@@ -1047,11 +1070,16 @@ def test_semantic_delete_reports_dependents_as_conflict(
     response: TestResponse = client.delete(request_path)
 
     assert response.status_code == 409
+    assert response.json["archived_count"] == 3
     assert response.json["total"] == 25
     assert response.json["dependents"] == [dependent]
     assert response.json["inaccessible_count"] == 24
     assert response.json["message"] == (
-        "Semantic source is used by 25 dependent assets and cannot be deleted."
+        "Semantic source is used by 25 dependent assets and cannot be deleted. "
+        "Remove or repoint these assets before deleting the semantic source. "
+        "3 dependent assets are archived. "
+        "Go to Recently Archived to restore and repoint archived assets, "
+        "or delete them permanently, or ask an admin for help."
     )
 
 
@@ -1083,6 +1111,7 @@ def test_semantic_delete_openapi_conflict_schema(
         "total",
         "dependents",
         "inaccessible_count",
+        "archived_count",
     }
     assert schema["properties"]["dependents"]["maxItems"] == 20
     assert schema["properties"]["dependents"]["items"]["properties"]["type"][
@@ -1117,7 +1146,13 @@ def test_get_list_semantic_layers(
 
     mocker.patch.dict(
         "superset.semantic_layers.api.registry",
-        {"snowflake": MagicMock(get_configuration_schema=lambda: {"properties": {}})},
+        {
+            "snowflake": MagicMock(
+                get_configuration_schema=lambda *, transport, readiness: {
+                    "properties": {}
+                }
+            )
+        },
         clear=True,
     )
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
@@ -1182,7 +1217,13 @@ def test_get_semantic_layer(
 
     mocker.patch.dict(
         "superset.semantic_layers.api.registry",
-        {"snowflake": MagicMock(get_configuration_schema=lambda: {"properties": {}})},
+        {
+            "snowflake": MagicMock(
+                get_configuration_schema=lambda *, transport, readiness: {
+                    "properties": {}
+                }
+            )
+        },
         clear=True,
     )
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
@@ -1272,7 +1313,13 @@ def test_serialize_layer_string_config(
 
     mocker.patch.dict(
         "superset.semantic_layers.api.registry",
-        {"snowflake": MagicMock(get_configuration_schema=lambda: {"properties": {}})},
+        {
+            "snowflake": MagicMock(
+                get_configuration_schema=lambda *, transport, readiness: {
+                    "properties": {}
+                }
+            )
+        },
         clear=True,
     )
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
@@ -1302,7 +1349,13 @@ def test_serialize_layer_dict_config(
 
     mocker.patch.dict(
         "superset.semantic_layers.api.registry",
-        {"snowflake": MagicMock(get_configuration_schema=lambda: {"properties": {}})},
+        {
+            "snowflake": MagicMock(
+                get_configuration_schema=lambda *, transport, readiness: {
+                    "properties": {}
+                }
+            )
+        },
         clear=True,
     )
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
@@ -1675,6 +1728,7 @@ def test_connections_list(
     mock_db.uuid = uuid_lib.uuid4()
     mock_db.database_name = "PostgreSQL"
     mock_db.backend = "postgresql"
+    mock_db.engine_information = {"oauth2_enabled": False}
     mock_db.allow_run_async = False
     mock_db.allow_dml = False
     mock_db.allow_file_upload = False
@@ -1720,6 +1774,10 @@ def test_connections_list(
     response = client.get("/api/v1/semantic_layer/connections/")
 
     assert response.status_code == 200
+    database_rows = [
+        row for row in response.json["result"] if row["source_type"] == "database"
+    ]
+    assert database_rows[0]["engine_information"] == {"oauth2_enabled": False}
     assert response.json["count"] == 2
     result = response.json["result"]
     assert len(result) == 2
@@ -1885,6 +1943,7 @@ def test_connections_sort_by_name(
     mock_db.uuid = uuid_lib.uuid4()
     mock_db.database_name = "Zebra DB"
     mock_db.backend = "postgresql"
+    mock_db.engine_information = {"oauth2_enabled": False}
     mock_db.allow_run_async = False
     mock_db.allow_dml = False
     mock_db.allow_file_upload = False
@@ -1931,6 +1990,10 @@ def test_connections_sort_by_name(
     response = client.get(f"/api/v1/semantic_layer/connections/?q={q}")
 
     assert response.status_code == 200
+    database_rows = [
+        row for row in response.json["result"] if row["source_type"] == "database"
+    ]
+    assert database_rows[0]["engine_information"] == {"oauth2_enabled": False}
     result = response.json["result"]
     assert result[0]["database_name"] == "Alpha Layer"
     assert result[1]["database_name"] == "Zebra DB"
@@ -1950,6 +2013,7 @@ def test_connections_source_type_filter(
     mock_db.uuid = uuid_lib.uuid4()
     mock_db.database_name = "PostgreSQL"
     mock_db.backend = "postgresql"
+    mock_db.engine_information = {"oauth2_enabled": False}
     mock_db.allow_run_async = False
     mock_db.allow_dml = False
     mock_db.allow_file_upload = False
@@ -1977,6 +2041,10 @@ def test_connections_source_type_filter(
     response = client.get(f"/api/v1/semantic_layer/connections/?q={q}")
 
     assert response.status_code == 200
+    database_rows = [
+        row for row in response.json["result"] if row["source_type"] == "database"
+    ]
+    assert database_rows[0]["engine_information"] == {"oauth2_enabled": False}
     assert response.json["count"] == 1
     # Only one query call (for Database), not two
     mock_db_session.query.assert_called_once()
@@ -3051,26 +3119,32 @@ def test_get_semantic_view_structure_feature_flag_off(
 
 
 @SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("method", ["get_dimensions", "get_metrics"])
 def test_get_semantic_view_structure_implementation_error(
-    client: Any,
+    client: FlaskClient,
     full_api_access: None,
     mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    method: str,
 ) -> None:
-    """Test GET /<pk>/structure returns 422 when implementation raises."""
-    mock_view = MagicMock()
-    mock_view.implementation.get_dimensions.side_effect = RuntimeError(
-        "Connection failed"
+    """Keep provider details in DEBUG server logs, not the structure response."""
+    caplog.set_level("DEBUG", logger="superset.semantic_layers.exceptions")
+    mock_view: MagicMock = MagicMock()
+    getattr(mock_view.implementation, method).side_effect = RuntimeError(
+        "provider-private-detail"
     )
 
-    mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
+    mock_db_session: MagicMock = mocker.patch("superset.semantic_layers.api.db.session")
     mock_db_session.query.return_value.filter_by.return_value.first.return_value = (
         mock_view
     )
 
-    response = client.get("/api/v1/semantic_view/1/structure")
+    response: TestResponse = client.get("/api/v1/semantic_view/1/structure")
 
     assert response.status_code == 422
-    assert "Connection failed" in response.json["message"]
+    assert response.json["message"] == "Unable to fetch semantic view structure."
+    assert "provider-private-detail" not in response.get_data(as_text=True)
+    assert "RuntimeError: provider-private-detail" in caplog.text
 
 
 @SEMANTIC_LAYERS_APP
@@ -3629,3 +3703,63 @@ def test_post_semantic_view_provider_validation(
         )
     else:
         layer.implementation.get_semantic_view.assert_not_called()
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("endpoint", ["structure", "runtime_schema"])
+@pytest.mark.parametrize(
+    "failure,status,expected",
+    [
+        ("HTTP_STATUS", 503, "MetricFlow request failed with HTTP 503."),
+        ("TIMEOUT", None, "MetricFlow request exceeded its time budget."),
+        ("UNREACHABLE", None, "MetricFlow endpoint could not be reached."),
+        (None, None, "fixed"),
+    ],
+)
+def test_metadata_endpoints_preserve_only_typed_transport_errors(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    endpoint: str,
+    failure: str | None,
+    status: int | None,
+    expected: str,
+) -> None:
+    error: Exception = (
+        ProviderRequestError(
+            ProviderRequestFailure[failure], status=status, provider="MetricFlow"
+        )
+        if failure is not None
+        # Looking like a transport message must not grant an untyped error passthrough.
+        else ValueError(
+            "MetricFlow request failed with HTTP 503. provider-private-detail"
+        )
+    )
+    response: TestResponse
+    if endpoint == "structure":
+        view: MagicMock = MagicMock()
+        view.implementation.get_dimensions.side_effect = error
+        session: MagicMock = mocker.patch("superset.semantic_layers.api.db.session")
+        session.query.return_value.filter_by.return_value.first.return_value = view
+        response = client.get("/api/v1/semantic_view/1/structure")
+        assert response.status_code == 422
+        if failure is None:
+            expected = "Unable to fetch semantic view structure."
+    else:
+        layer_uuid: str = str(uuid_lib.uuid4())
+        layer: MagicMock = MagicMock()
+        layer.type = "fixture"
+        layer.configuration = '{"account": "fixture"}'
+        dao: MagicMock = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
+        dao.find_by_uuid.return_value = layer
+        provider: MagicMock = MagicMock()
+        provider.get_runtime_schema.side_effect = error
+        mocker.patch.dict(
+            "superset.semantic_layers.api.registry", {"fixture": provider}, clear=True
+        )
+        response = client.post(f"/api/v1/semantic_layer/{layer_uuid}/schema/runtime")
+        assert response.status_code == 400
+        if failure is None:
+            expected = "Unable to fetch semantic layer runtime schema."
+    assert response.json["message"] == expected
+    assert "provider-private-detail" not in response.get_data(as_text=True)

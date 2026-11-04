@@ -18,8 +18,8 @@
 """Unit tests for Superset"""
 
 import uuid
-from collections.abc import Iterator
-from contextlib import contextmanager
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager, nullcontext
 from datetime import datetime, timedelta
 from io import BytesIO
 from time import sleep, time as now_epoch
@@ -28,6 +28,7 @@ from zipfile import is_zipfile, ZipFile
 from werkzeug.test import TestResponse
 
 from flask import current_app
+from cachelib import SimpleCache
 
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 
@@ -42,7 +43,7 @@ import yaml
 
 from flask import g
 from freezegun import freeze_time
-from sqlalchemy import and_
+from sqlalchemy import and_, event
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm.exc import StaleDataError
 from superset import db, security_manager  # noqa: F401
@@ -60,7 +61,8 @@ from superset.exceptions import (
     ReleaseDistributedLockFailedException,
 )
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
-from superset.models.dashboard import Dashboard
+from superset.models.dashboard import Dashboard, dashboard_slices
+from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
@@ -95,6 +97,9 @@ from tests.integration_tests.fixtures.importexport import (
     dashboard_export,
     dashboard_metadata_config,
     dataset_config,
+)
+from tests.integration_tests.fixtures.public_role import (
+    public_role_like_gamma_scoped,  # noqa: F401
 )
 from tests.integration_tests.fixtures.tags import (
     create_custom_tags,  # noqa: F401
@@ -400,6 +405,616 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 assert excluded_key not in dataset
             # The identifying fields the dashboard needs to render are kept.
             assert {"id", "uid", "table_name", "type"} <= set(dataset)
+
+    WORLD_HEALTH_LABELS = {"country_name": "Country", "sum__SP_POP_TOTL": "Population"}
+
+    @contextmanager
+    def _world_health_display_labels(self) -> Iterator[dict[str, int]]:
+        """Label one saved dimension and one saved metric of world_health.
+
+        Yields the shared dataset id under ``table_id`` and each chart id by
+        name. Every world_health chart is built on that one dataset.
+        """
+        from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+        dashboard = Dashboard.get("world_health")
+        ids = {slc.slice_name: slc.id for slc in dashboard.slices}
+        table = db.session.get(SqlaTable, dashboard.slices[0].datasource_id)
+        assert {slc.datasource_id for slc in dashboard.slices} == {table.id}
+        column = next(col for col in table.columns if col.column_name == "country_name")
+        metric = next(
+            (m for m in table.metrics if m.metric_name == "sum__SP_POP_TOTL"), None
+        )
+        added_metric = metric is None
+        if metric is None:
+            metric = SqlMetric(
+                metric_name="sum__SP_POP_TOTL", expression="SUM(SP_POP_TOTL)"
+            )
+            table.metrics.append(metric)
+        previous = (column.verbose_name, metric.verbose_name)
+        column.verbose_name = self.WORLD_HEALTH_LABELS["country_name"]
+        metric.verbose_name = self.WORLD_HEALTH_LABELS["sum__SP_POP_TOTL"]
+        db.session.commit()
+        column_id, metric_id = column.id, metric.id
+        try:
+            yield {"table_id": table.id, **ids}
+        finally:
+            db.session.get(TableColumn, column_id).verbose_name = previous[0]
+            metric = db.session.get(SqlMetric, metric_id)
+            if added_metric:
+                db.session.delete(metric)
+            else:
+                metric.verbose_name = previous[1]
+            db.session.commit()
+
+    def _world_health_dataset(self, response: Any, table_id: int) -> dict[str, Any]:
+        assert response.status_code == 200
+        data = json.loads(response.data.decode("utf-8"))
+        [dataset] = [item for item in data["result"] if item["id"] == table_id]
+        return dataset
+
+    def _assert_world_health_labels(
+        self, labels: dict[str, Any], ids: dict[str, int]
+    ) -> None:
+        """Check configured stored names and the example's authored adhoc label."""
+        for chart_name in ("Most Populated Countries", "Growth Rate"):
+            assert labels[str(ids[chart_name])] == self.WORLD_HEALTH_LABELS
+        for chart_id, chart_labels in labels.items():
+            assert chart_id in {str(chart_id) for chart_id in ids.values()}
+            allowed = dict(self.WORLD_HEALTH_LABELS)
+            if chart_id in {str(ids["% Rural"]), str(ids["Rural Breakdown"])}:
+                allowed["Rural Population"] = "Rural Population"
+            assert chart_labels.items() <= allowed.items()
+
+    @contextmanager
+    def _without_world_health_authored_labels(self) -> Iterator[None]:
+        """Temporarily remove the example's custom labels for the empty baseline."""
+        from superset.models.slice import Slice
+
+        def disable_custom_labels(value: Any) -> Any:
+            """Retain saved expressions while marking their labels as generated."""
+            if isinstance(value, dict):
+                return {
+                    key: False
+                    if key == "hasCustomLabel"
+                    else disable_custom_labels(item)
+                    for key, item in value.items()
+                }
+            if isinstance(value, list):
+                return [disable_custom_labels(item) for item in value]
+            return value
+
+        dashboard = Dashboard.get("world_health")
+        previous = {
+            chart.id: (chart.params, chart.query_context) for chart in dashboard.slices
+        }
+        for chart in dashboard.slices:
+            chart.params = json.dumps(disable_custom_labels(json.loads(chart.params)))
+            if chart.query_context:
+                chart.query_context = json.dumps(
+                    disable_custom_labels(json.loads(chart.query_context))
+                )
+        db.session.commit()
+        try:
+            yield
+        finally:
+            for chart_id, values in previous.items():
+                chart = db.session.get(Slice, chart_id)
+                chart.params, chart.query_context = values
+            db.session.commit()
+
+    @parameterized.expand(
+        [
+            ("table", {"all_columns": ["country_name"]}, {"country_name": "Country"}),
+            (
+                "pivot_table_v2",
+                {"groupbyRows": ["country_name"], "metrics": ["sum__SP_POP_TOTL"]},
+                WORLD_HEALTH_LABELS,
+            ),
+            (
+                "echarts_timeseries_line",
+                {"x_axis": "country_name", "metrics": ["sum__SP_POP_TOTL"]},
+                WORLD_HEALTH_LABELS,
+            ),
+            (
+                "mixed_timeseries",
+                {"groupby_b": ["country_name"], "metrics_b": ["sum__SP_POP_TOTL"]},
+                WORLD_HEALTH_LABELS,
+            ),
+            (
+                "big_number_total",
+                {"metric": "sum__SP_POP_TOTL"},
+                {"sum__SP_POP_TOTL": "Population"},
+            ),
+            (
+                "pie",
+                {"groupby": ["country_name"], "metric": "sum__SP_POP_TOTL"},
+                WORLD_HEALTH_LABELS,
+            ),
+            (
+                "bubble",
+                {"entity": "country_name", "x": "sum__SP_POP_TOTL"},
+                WORLD_HEALTH_LABELS,
+            ),
+        ]
+    )
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices", "public_role_like_gamma_scoped"
+    )
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_dashboard_datasets_chart_display_labels_visualizations(
+        self, viz_type: str, controls: dict[str, Any], expected: dict[str, str]
+    ) -> None:
+        """A real embedded request labels each visualization's persisted controls."""
+        from superset.models.slice import Slice
+
+        with self._world_health_display_labels() as ids:
+            chart_id = ids["Most Populated Countries"]
+            chart = db.session.get(Slice, chart_id)
+            previous = chart.params, chart.query_context, chart.viz_type
+            chart.params = json.dumps({"viz_type": viz_type, **controls})
+            chart.query_context = None
+            chart.viz_type = viz_type
+            db.session.commit()
+            try:
+                response = self._get_world_health_datasets_as_guest()
+                dataset = self._world_health_dataset(response, ids["table_id"])
+                assert dataset["chart_display_labels"][str(chart_id)] == expected
+                assert "verbose_map" not in dataset
+                assert "columns" not in dataset
+                assert "metrics" not in dataset
+            finally:
+                chart = db.session.get(Slice, chart_id)
+                chart.params, chart.query_context, chart.viz_type = previous
+                db.session.commit()
+
+    @parameterized.expand([ADMIN_USERNAME, ALPHA_USERNAME])
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_datasets_chart_display_labels_full_access(
+        self, username: str
+    ) -> None:
+        """Datasource access supplies verbose_map without a redundant chart map."""
+        with self._world_health_display_labels() as ids:
+            dashboard = Dashboard.get("world_health")
+            dashboard.published = True
+            db.session.commit()
+            self.login(username)
+            response = self.get_assert_metric(
+                "api/v1/dashboard/world_health/datasets", "get_datasets"
+            )
+            dataset = self._world_health_dataset(response, ids["table_id"])
+
+        assert "chart_display_labels" not in dataset
+        assert self.WORLD_HEALTH_LABELS.items() <= dataset["verbose_map"].items()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.dashboards.api.security_manager.can_access_datasource")
+    def test_get_dashboard_datasets_chart_display_labels_without_datasource_access(
+        self, can_access_datasource_mock: MagicMock
+    ) -> None:
+        """Chart labels survive the narrowing that strips dataset metadata."""
+        can_access_datasource_mock.return_value = False
+        with self._world_health_display_labels() as ids:
+            self.login(ADMIN_USERNAME)
+            response = self.get_assert_metric(
+                "api/v1/dashboard/world_health/datasets", "get_datasets"
+            )
+            dataset = self._world_health_dataset(response, ids["table_id"])
+
+        self._assert_world_health_labels(dataset["chart_display_labels"], ids)
+        for excluded_key in ("verbose_map", "columns", "column_names", "metrics"):
+            assert excluded_key not in dataset
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_datasets_chart_display_labels_follow_chart_access(
+        self,
+    ) -> None:
+        """Only member charts that pass the chart access check contribute."""
+        with self._world_health_display_labels() as ids:
+            allowed_id = ids["Most Populated Countries"]
+            self.login(ADMIN_USERNAME)
+            with (
+                patch(
+                    "superset.models.dashboard.security_manager.can_access_chart",
+                    side_effect=lambda chart: chart.id == allowed_id,
+                ),
+                patch(
+                    "superset.models.dashboard.security_manager.can_access_datasource",
+                    return_value=False,
+                ),
+            ):
+                response = self.get_assert_metric(
+                    "api/v1/dashboard/world_health/datasets", "get_datasets"
+                )
+            dataset = self._world_health_dataset(response, ids["table_id"])
+
+        assert dataset["chart_display_labels"] == {
+            str(allowed_id): self.WORLD_HEALTH_LABELS
+        }
+
+    def _world_health_guest_request(
+        self,
+        datasets: list[int] | None = None,
+        dashboard_ref: str | None = None,
+    ) -> Callable[[], Any]:
+        """Return a world_health datasets request with a real guest token."""
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").one()
+        embedded = EmbeddedDashboardDAO.upsert(dashboard, ["superset.example"])
+        db.session.commit()
+        token = security_manager.create_guest_access_token(
+            {"username": "labels_guest"},
+            [
+                {
+                    "type": GuestTokenResourceType.DASHBOARD,
+                    "id": dashboard_ref or str(embedded.uuid),
+                }
+            ],
+            [],
+            datasets=datasets,
+        )
+        uri = f"api/v1/dashboard/{dashboard.id}/datasets"
+        headers = {
+            current_app.config["GUEST_TOKEN_HEADER_NAME"]: token.decode("utf-8")
+            if isinstance(token, bytes)
+            else token
+        }
+
+        def request() -> Any:
+            with self.client as client:
+                response = client.get(uri, headers=headers)
+                assert isinstance(g.user, GuestUser)
+            return response
+
+        return request
+
+    def _get_world_health_datasets_as_guest(
+        self,
+        datasets: list[int] | None = None,
+        dashboard_ref: str | None = None,
+    ) -> Any:
+        """Request world_health datasets with a real embedded guest token."""
+        return self._world_health_guest_request(datasets, dashboard_ref)()
+
+    @staticmethod
+    @contextmanager
+    def _count_metadata_queries() -> Iterator[list[str]]:
+        """Record every statement sent to the metadata database."""
+        statements: list[str] = []
+
+        def record(*args: Any) -> None:
+            statements.append(args[2])
+
+        event.listen(db.engine, "before_cursor_execute", record)
+        try:
+            yield statements
+        finally:
+            event.remove(db.engine, "before_cursor_execute", record)
+
+    def _datasets_query_counts(
+        self, request: Callable[[], Any]
+    ) -> tuple[int, int, dict[str, Any]]:
+        """Count queries without and with chart display labels.
+
+        Returns the count with the label step bypassed, the count with it, and
+        the labelled response body. A first request warms per-process caches.
+        """
+        assert request().status_code == 200
+        with patch.object(
+            Dashboard,
+            "_with_chart_display_labels",
+            lambda self, *args, **kwargs: args[2],
+        ):
+            with self._count_metadata_queries() as baseline:
+                assert request().status_code == 200
+        with self._count_metadata_queries() as statements:
+            response = request()
+        assert response.status_code == 200
+        return len(baseline), len(statements), json.loads(response.data)
+
+    @staticmethod
+    def _labelled_chart_count(data: dict[str, Any]) -> int:
+        return sum(
+            len(dataset.get("chart_display_labels", {})) for dataset in data["result"]
+        )
+
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices", "public_role_like_gamma_scoped"
+    )
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_dashboard_datasets_chart_display_labels_guest_query_count(
+        self,
+    ) -> None:
+        """Labels add no metadata queries for an embedded guest, however many
+        charts carry them: the guest grant is decided once, not per chart."""
+        with self._world_health_display_labels():
+            request = self._world_health_guest_request()
+            baseline, labelled, data = self._datasets_query_counts(request)
+
+        assert self._labelled_chart_count(data) >= 2
+        assert labelled == baseline
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_datasets_chart_display_labels_query_count(self) -> None:
+        """Datasource access avoids label permission queries even with labels."""
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").one()
+        dashboard.published = True
+        db.session.commit()
+        self.login(ALPHA_USERNAME)
+
+        def request() -> Any:
+            return self.client.get("api/v1/dashboard/world_health/datasets")
+
+        with (
+            self._without_world_health_authored_labels(),
+            patch.object(
+                DashboardDAO,
+                "prefetch_chart_access",
+                wraps=DashboardDAO.prefetch_chart_access,
+            ) as prefetch,
+        ):
+            baseline, unlabelled, data = self._datasets_query_counts(request)
+        assert self._labelled_chart_count(data) == 0
+        assert unlabelled == baseline
+        prefetch.assert_not_called()
+
+        with (
+            self._world_health_display_labels(),
+            patch.object(
+                DashboardDAO,
+                "prefetch_chart_access",
+                wraps=DashboardDAO.prefetch_chart_access,
+            ) as prefetch,
+        ):
+            baseline, labelled, data = self._datasets_query_counts(request)
+        assert self._labelled_chart_count(data) == 0
+        assert labelled == baseline
+        prefetch.assert_not_called()
+        assert any(
+            self.WORLD_HEALTH_LABELS.items() <= dataset["verbose_map"].items()
+            for dataset in data["result"]
+        )
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_datasets_chart_display_labels_dashboard_viewer(self) -> None:
+        """A dashboard viewer without dataset access gets labels only for the
+        member charts it may view. A chart restricted to another viewer and
+        charts that rely on dataset access contribute nothing, although they
+        share the same dataset. Authorization adds one relationship prefetch for
+        all candidate charts, including denied charts.
+        """
+        from superset.subjects.utils import get_or_create_user_subject
+
+        gamma_id = security_manager.find_user(GAMMA_USERNAME).id
+        admin_id = security_manager.find_user(ADMIN_USERNAME).id
+        with self._world_health_display_labels() as ids:
+            allowed_id = ids["Most Populated Countries"]
+            restricted_id = ids["Growth Rate"]
+            dashboard = db.session.query(Dashboard).filter_by(slug="world_health").one()
+            gamma_subject = get_or_create_user_subject(gamma_id)
+            admin_subject = get_or_create_user_subject(admin_id)
+            dashboard.published = True
+            dashboard.viewers = [gamma_subject]
+            db.session.get(Slice, allowed_id).viewers = [gamma_subject]
+            db.session.get(Slice, restricted_id).viewers = [admin_subject]
+            db.session.commit()
+            try:
+                self.login(GAMMA_USERNAME)
+                with (
+                    patch.object(
+                        DashboardDAO,
+                        "prefetch_chart_access",
+                        wraps=DashboardDAO.prefetch_chart_access,
+                    ) as prefetch,
+                    patch.object(
+                        security_manager,
+                        "can_access_dashboard_chart_labels",
+                        wraps=security_manager.can_access_dashboard_chart_labels,
+                    ) as chart_access,
+                    patch.object(
+                        security_manager,
+                        "can_access_datasource",
+                        wraps=security_manager.can_access_datasource,
+                    ) as datasource_access,
+                ):
+
+                    def request() -> Any:
+                        """Keep counters for the final measured request only."""
+                        prefetch.reset_mock()
+                        chart_access.reset_mock()
+                        datasource_access.reset_mock()
+                        return self.get_assert_metric(
+                            "api/v1/dashboard/world_health/datasets", "get_datasets"
+                        )
+
+                    baseline, labelled, data = self._datasets_query_counts(request)
+                    prefetch.assert_called_once()
+                    datasource_access.assert_called_once()
+                    checked_ids = {
+                        call.args[1].id for call in chart_access.call_args_list
+                    }
+                    assert {allowed_id, restricted_id} <= checked_ids
+                    assert len(checked_ids) >= 9
+                    # The chart rows plus their editors and viewers cost three
+                    # queries total; there is no per-candidate permission query.
+                    assert labelled <= baseline + 3
+                [dataset] = [
+                    item for item in data["result"] if item["id"] == ids["table_id"]
+                ]
+            finally:
+                for chart_id in (allowed_id, restricted_id):
+                    db.session.get(Slice, chart_id).viewers = []
+                db.session.query(Dashboard).filter_by(
+                    slug="world_health"
+                ).one().viewers = []
+                db.session.commit()
+
+        assert dataset["chart_display_labels"] == {
+            str(allowed_id): self.WORLD_HEALTH_LABELS
+        }
+        for excluded_key in ("verbose_map", "columns", "column_names", "metrics"):
+            assert excluded_key not in dataset
+
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices", "public_role_like_gamma_scoped"
+    )
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_dashboard_datasets_labels_ignore_viewer_query_context_update(
+        self,
+    ) -> None:
+        """A viewer's permitted context refresh cannot expand display labels."""
+        from superset.subjects.utils import get_or_create_user_subject
+
+        gamma = security_manager.find_user(GAMMA_USERNAME)
+        gamma_subject = get_or_create_user_subject(gamma.id)
+        with self._world_health_display_labels() as ids:
+            chart_id = ids["Most Populated Countries"]
+            chart = db.session.get(Slice, chart_id)
+            dashboard = Dashboard.get("world_health")
+            previous_chart = (
+                chart.params,
+                chart.query_context,
+                chart.viz_type,
+                list(chart.viewers),
+            )
+            previous_dashboard = dashboard.published, list(dashboard.viewers)
+            params = json.dumps(
+                {
+                    "viz_type": "big_number_total",
+                    "metric": "sum__SP_POP_TOTL",
+                    "datasource": f"{ids['table_id']}__table",
+                }
+            )
+            chart.params = params
+            chart.query_context = None
+            chart.viz_type = "big_number_total"
+            chart.viewers = [gamma_subject]
+            dashboard.published = True
+            dashboard.viewers = [gamma_subject]
+            db.session.commit()
+            query_context = json.dumps(
+                {
+                    "datasource": {"id": ids["table_id"], "type": "table"},
+                    "queries": [
+                        {"columns": ["country_name"], "metrics": ["sum__SP_POP_TOTL"]}
+                    ],
+                }
+            )
+            try:
+                with override_user(gamma):
+                    assert not security_manager.is_editor(chart)
+                    assert not security_manager.can_access_datasource(chart.datasource)
+                self.login(GAMMA_USERNAME)
+                update = self.client.put(
+                    f"api/v1/chart/{chart_id}",
+                    json={
+                        "query_context": query_context,
+                        "query_context_generation": True,
+                    },
+                )
+                assert update.status_code == 200
+                chart = db.session.get(Slice, chart_id)
+                assert chart.query_context == query_context
+                assert chart.params == params
+
+                response = self.client.get("api/v1/dashboard/world_health/datasets")
+                dataset = self._world_health_dataset(response, ids["table_id"])
+                assert dataset["chart_display_labels"][str(chart_id)] == {
+                    "sum__SP_POP_TOTL": "Population"
+                }
+                for field in ("verbose_map", "columns", "column_names", "metrics"):
+                    assert field not in dataset
+
+                self.logout()
+                # Flask-Login caches the user on the test's shared app context.
+                with current_app.app_context():
+                    guest_response = self._get_world_health_datasets_as_guest()
+                guest_dataset = self._world_health_dataset(
+                    guest_response, ids["table_id"]
+                )
+                assert guest_dataset["chart_display_labels"][str(chart_id)] == {
+                    "sum__SP_POP_TOTL": "Population"
+                }
+            finally:
+                chart = db.session.get(Slice, chart_id)
+                (
+                    chart.params,
+                    chart.query_context,
+                    chart.viz_type,
+                    chart.viewers,
+                ) = previous_chart
+                dashboard = Dashboard.get("world_health")
+                dashboard.published, dashboard.viewers = previous_dashboard
+                db.session.commit()
+
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices", "public_role_like_gamma_scoped"
+    )
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_dashboard_datasets_chart_display_labels_as_guest(self) -> None:
+        """A real embedded guest gets the authorized labels and every redaction."""
+        with self._world_health_display_labels() as ids:
+            response = self._get_world_health_datasets_as_guest()
+            dataset = self._world_health_dataset(response, ids["table_id"])
+
+        self._assert_world_health_labels(dataset["chart_display_labels"], ids)
+        for excluded_key in (
+            "sql",
+            "select_star",
+            "fetch_values_predicate",
+            "template_params",
+            "params",
+            "perm",
+            "edit_url",
+            "database",
+            "parent",
+            "editors",
+            "columns",
+            "column_names",
+            "column_types",
+            "metrics",
+            "verbose_map",
+            "order_by_choices",
+            "main_dttm_col",
+            "granularity_sqla",
+            "time_grain_sqla",
+        ):
+            assert excluded_key not in dataset
+
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices", "public_role_like_gamma_scoped"
+    )
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_dashboard_datasets_chart_display_labels_guest_dataset_allowlist(
+        self,
+    ) -> None:
+        """A guest whose dataset allowlist excludes the charts' dataset gets no
+        labels for them, while the dataset entry itself stays narrowed."""
+        with self._world_health_display_labels() as ids:
+            response = self._get_world_health_datasets_as_guest(
+                datasets=[ids["table_id"] + 100_000]
+            )
+            dataset = self._world_health_dataset(response, ids["table_id"])
+
+        assert "chart_display_labels" not in dataset
+        assert "verbose_map" not in dataset
+        assert "Population" not in response.data.decode("utf-8")
+
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices", "public_role_like_gamma_scoped"
+    )
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_dashboard_datasets_chart_display_labels_guest_wrong_dashboard(
+        self,
+    ) -> None:
+        """A guest token for another dashboard is refused before any payload."""
+        with self._world_health_display_labels():
+            response = self._get_world_health_datasets_as_guest(
+                dashboard_ref=str(uuid.uuid4())
+            )
+
+        # The guest dashboard filter hides it, as for any dashboard not granted.
+        assert response.status_code == 404
+        assert "Population" not in response.data.decode("utf-8")
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.utils.log.logger")
@@ -2377,6 +2992,104 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
         db.session.delete(model)
         db.session.commit()
+
+    @staticmethod
+    def _expunge_dashboards_and_charts() -> None:
+        """Drop dashboards and charts from the session so the next request
+        loads them through a query, as a fresh request would."""
+        for obj in list(db.session):
+            if isinstance(obj, (Dashboard, Slice)):
+                db.session.expunge(obj)
+
+    def test_update_dashboard_keeps_archived_chart_slot(self) -> None:
+        """PUT: saving back the layout of a dashboard that holds an archived
+        chart succeeds, and the chart keeps its slot and its membership, so
+        recovering it puts it back in place."""
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.helpers import skip_visibility_filter
+
+        admin: User = self.get_user("admin")
+        dataset_id: int = db.session.query(SqlaTable.id).first()[0]
+        live: Slice = self.insert_chart("archived-slot-live", [admin.id], dataset_id)
+        archived: Slice = self.insert_chart(
+            "archived-slot-archived", [admin.id], dataset_id
+        )
+        live_id: int = live.id
+        archived_id: int = archived.id
+        archived_uuid: str = str(archived.uuid)
+        positions: dict[str, Any] = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {
+                "id": "GRID_ID",
+                "type": "GRID",
+                "children": ["CHART-live", "CHART-archived"],
+                "parents": ["ROOT_ID"],
+            },
+        }
+        for slot, chart_id in (
+            ("CHART-live", live_id),
+            ("CHART-archived", archived_id),
+        ):
+            positions[slot] = {
+                "id": slot,
+                "type": "CHART",
+                "children": [],
+                "parents": ["ROOT_ID", "GRID_ID"],
+                "meta": {"chartId": chart_id, "width": 4, "height": 50},
+            }
+        dashboard: Dashboard = self.insert_dashboard(
+            "archived-slot",
+            None,
+            [admin.id],
+            slices=[live, archived],
+            position_json=json.dumps(positions),
+        )
+        dashboard_id: int = dashboard.id
+        self.login(ADMIN_USERNAME)
+        rv: TestResponse = self.client.delete(f"api/v1/chart/{archived_id}")
+        assert rv.status_code == 200, rv.data
+        try:
+            # Load the dashboard and its chart list fresh, as a real request
+            # does: through a query that hides archived charts, not from the
+            # identity map this test populated.
+            self._expunge_dashboards_and_charts()
+            rv = self.client.get(f"api/v1/dashboard/{dashboard_id}")
+            assert rv.status_code == 200, rv.data
+            self._expunge_dashboards_and_charts()
+            rv = self.client.put(
+                f"api/v1/dashboard/{dashboard_id}",
+                json={"json_metadata": json.dumps({"positions": positions})},
+            )
+            assert rv.status_code == 200, rv.data
+
+            self._expunge_dashboards_and_charts()
+            model: Dashboard = db.session.get(Dashboard, dashboard_id)
+            stored: dict[str, Any] = json.loads(model.position_json)
+            assert stored["CHART-archived"]["type"] == "CHART"
+            assert stored["CHART-archived"]["meta"]["chartId"] == archived_id
+            member_ids: set[int] = {
+                row[0]
+                for row in db.session.query(dashboard_slices.c.slice_id).filter(
+                    dashboard_slices.c.dashboard_id == dashboard_id
+                )
+            }
+            assert member_ids == {live_id, archived_id}
+
+            rv = self.client.post(f"api/v1/chart/{archived_uuid}/restore")
+            assert rv.status_code == 200, rv.data
+            self._expunge_dashboards_and_charts()
+            model = db.session.get(Dashboard, dashboard_id)
+            assert {s.id for s in model.slices} == {live_id, archived_id}
+        finally:
+            db.session.rollback()
+            self.client.post(f"api/v1/chart/{archived_uuid}/restore")
+            self._expunge_dashboards_and_charts()
+            with skip_visibility_filter(db.session, Slice):
+                db.session.delete(db.session.get(Dashboard, dashboard_id))
+                for chart_id in (live_id, archived_id):
+                    db.session.delete(db.session.get(Slice, chart_id))
+            db.session.commit()
 
     def test_update_dashboard_reconciles_dangling_position_json(self) -> None:
         """PUT: a raw ``position_json`` layout node referencing a chart absent
@@ -5410,6 +6123,10 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             if keep_first
             else {}
         )
+        chart_count: int = db.session.query(Slice).count()
+        orphan_count: int = (
+            db.session.query(Slice).filter(~Slice.dashboards.any()).count()
+        )
         self.login(ADMIN_USERNAME)
         copied_id: int | None = None
         try:
@@ -5428,6 +6145,13 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             expected: set[str] = {"copy-subset-first"} if keep_first else set()
             assert {chart.slice_name for chart in copied.slices} == expected
             assert {chart.id for chart in dashboard.slices} == source_members
+            assert db.session.query(Slice).count() == chart_count + (
+                len(expected) if duplicate_slices else 0
+            )
+            assert (
+                db.session.query(Slice).filter(~Slice.dashboards.any()).count()
+                == orphan_count
+            )
         finally:
             db.session.rollback()
             if copied_id is not None:
@@ -5439,6 +6163,497 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 Slice.slice_name.in_(["copy-subset-first", "copy-subset-second"])
             ):
                 db.session.delete(chart)
+            db.session.commit()
+
+    @contextmanager
+    def _layout_access_fixture(self) -> Iterator[dict[str, int]]:
+        """A dashboard Gamma edits, whose member chart Gamma cannot read,
+        plus a chart Gamma owns, an unrelated chart Gamma cannot read, a
+        chart Gamma reads through a granted dataset but does not edit, a
+        viewer-restricted chart on that dataset, and an archived member."""
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.helpers import skip_visibility_filter
+
+        admin: User = self.get_user(ADMIN_USERNAME)
+        gamma: User = self.get_user(GAMMA_USERNAME)
+        datasets: list[SqlaTable] = (
+            db.session.query(SqlaTable).order_by(SqlaTable.id).limit(2).all()
+        )
+        dataset_id: int = datasets[0].id
+        granted: SqlaTable = datasets[1]
+        self.grant_role_access_to_table(granted, "Gamma")
+        readable: Slice = self.insert_chart(
+            "layout-access-readable", [admin.id], granted.id
+        )
+        restricted: Slice = self.insert_chart(
+            "layout-access-restricted", [admin.id], granted.id
+        )
+        restricted.viewers = [
+            db.session.query(Subject)
+            .filter_by(user_id=admin.id, type=SubjectType.USER)
+            .one()
+        ]
+        member: Slice = self.insert_chart(
+            "layout-access-member", [admin.id], dataset_id
+        )
+        archived: Slice = self.insert_chart(
+            "layout-access-archived", [admin.id], dataset_id
+        )
+        own: Slice = self.insert_chart("layout-access-own", [gamma.id], dataset_id)
+        foreign: Slice = self.insert_chart(
+            "layout-access-foreign", [admin.id], dataset_id
+        )
+        dashboard: Dashboard = self.insert_dashboard(
+            "layout-access", None, [gamma.id], slices=[member, archived]
+        )
+        ids: dict[str, int] = {
+            "dashboard": dashboard.id,
+            "member": member.id,
+            "archived": archived.id,
+            "own": own.id,
+            "foreign": foreign.id,
+            "readable": readable.id,
+            "restricted": restricted.id,
+        }
+        archived.deleted_at = datetime.now()
+        db.session.commit()
+        try:
+            yield ids
+        finally:
+            db.session.rollback()
+            self.revoke_role_access_to_table("Gamma", granted)
+            with skip_visibility_filter(db.session, Slice):
+                for dash in db.session.query(Dashboard).filter(
+                    Dashboard.dashboard_title.like("layout-access%")
+                ):
+                    db.session.delete(dash)
+                for chart in db.session.query(Slice).filter(
+                    Slice.slice_name.like("layout-access-%")
+                ):
+                    db.session.delete(chart)
+            db.session.commit()
+
+    @staticmethod
+    def _chart_layout(*chart_ids: int) -> dict[str, Any]:
+        return {
+            f"CHART-{chart_id}": {
+                "id": f"CHART-{chart_id}",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": chart_id, "width": 4, "height": 50},
+            }
+            for chart_id in chart_ids
+        }
+
+    @parameterized.expand(
+        [
+            ("existing_and_own", ("member", "archived", "own"), 200),
+            ("readable_not_edited", ("member", "archived", "readable"), 200),
+            ("unreadable_new_chart", ("member", "archived", "foreign"), 422),
+            ("restricted_viewers", ("member", "archived", "restricted"), 422),
+        ]
+    )
+    def test_update_dashboard_layout_chart_access(
+        self, case: str, layout: tuple[str, ...], status: int
+    ) -> None:
+        """PUT links a layout chart only if it is already a member or the
+        caller can read it."""
+        with self._layout_access_fixture() as ids:
+            self.login(GAMMA_USERNAME)
+            positions: dict[str, Any] = self._chart_layout(*(ids[k] for k in layout))
+            rv: TestResponse = self.client.put(
+                f"/api/v1/dashboard/{ids['dashboard']}",
+                json={"json_metadata": json.dumps({"positions": positions})},
+            )
+            assert rv.status_code == status, rv.data
+            if case == "restricted_viewers":
+                assert rv.json["message"]["json_metadata"] == [
+                    "The layout references charts that are not available: "
+                    f"{ids['restricted']}"
+                ]
+            expected: set[str] = (
+                set(layout) if status == 200 else {"member", "archived"}
+            )
+            assert self._member_names(ids) == expected
+
+    @parameterized.expand(
+        [
+            ("source_members", ("member", "archived"), 200),
+            ("own_chart", ("own",), 200),
+            ("readable_not_edited", ("readable",), 200),
+            ("unreadable_new_chart", ("member", "foreign"), 422),
+            ("restricted_viewers", ("member", "restricted"), 422),
+        ]
+    )
+    def test_copy_dashboard_layout_chart_access(
+        self, case: str, layout: tuple[str, ...], status: int
+    ) -> None:
+        """A copy links a layout chart only if the source has it or the
+        caller can read it."""
+        with self._layout_access_fixture() as ids:
+            self.login(GAMMA_USERNAME)
+            positions: dict[str, Any] = self._chart_layout(*(ids[k] for k in layout))
+            rv: TestResponse = self.client.post(
+                f"/api/v1/dashboard/{ids['dashboard']}/copy/",
+                json={
+                    "dashboard_title": "layout-access-copy",
+                    "json_metadata": json.dumps({"positions": positions}),
+                },
+            )
+            assert rv.status_code == status, rv.data
+            if case == "restricted_viewers":
+                assert rv.json["message"]["json_metadata"] == [
+                    "The layout references charts that are not available: "
+                    f"{ids['restricted']}"
+                ]
+                assert self._member_names(ids) == {"member", "archived"}
+            copies: int = (
+                db.session.query(Dashboard)
+                .filter(Dashboard.dashboard_title == "layout-access-copy")
+                .count()
+            )
+            assert copies == (1 if status == 200 else 0)
+            if status == 200:
+                copied_ids: dict[str, int] = {
+                    **ids,
+                    "dashboard": rv.json["result"]["id"],
+                }
+                assert self._member_names(copied_ids) == set(layout)
+
+    @patch.object(UpdateDashboardCommand, "_send_deactivated_report_email")
+    def test_update_dashboard_layout_chart_access_rejects_before_side_effects(
+        self, send_email: MagicMock
+    ) -> None:
+        """PUT refuses an unreadable layout chart before it deactivates the
+        reports on a removed tab or native filter, or emails their owners."""
+        with self._layout_access_fixture() as ids:
+            dashboard: Dashboard = db.session.get(Dashboard, ids["dashboard"])
+            stored_metadata: str = json.dumps(
+                {"native_filter_configuration": [{"id": "NATIVE_FILTER-kept"}]}
+            )
+            stored_position: str = json.dumps(
+                {
+                    "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["TABS"]},
+                    "TABS": {"id": "TABS", "type": "TABS", "children": ["TAB-kept"]},
+                    "TAB-kept": {"id": "TAB-kept", "type": "TAB", "children": []},
+                }
+            )
+            dashboard.json_metadata = stored_metadata
+            dashboard.position_json = stored_position
+            report: ReportSchedule = ReportSchedule(
+                type=ReportScheduleType.REPORT,
+                name="layout-access-report",
+                crontab="0 9 * * *",
+                dashboard=dashboard,
+                extra=json.dumps(
+                    {
+                        "dashboard": {
+                            "activeTabs": ["TAB-kept"],
+                            "nativeFilters": [{"nativeFilterId": "NATIVE_FILTER-kept"}],
+                        }
+                    }
+                ),
+            )
+            db.session.add(report)
+            db.session.commit()
+            report_id: int = report.id
+            try:
+                self.login(GAMMA_USERNAME)
+                positions: dict[str, Any] = self._chart_layout(
+                    ids["member"], ids["archived"], ids["foreign"]
+                )
+                rv: TestResponse = self.client.put(
+                    f"/api/v1/dashboard/{ids['dashboard']}",
+                    json={
+                        "position_json": json.dumps(positions),
+                        "json_metadata": json.dumps(
+                            {"positions": positions, "native_filter_configuration": []}
+                        ),
+                    },
+                )
+                assert rv.status_code == 422, rv.data
+                send_email.assert_not_called()
+                assert self._member_names(ids) == {"member", "archived"}
+                dashboard = db.session.get(Dashboard, ids["dashboard"])
+                assert dashboard.json_metadata == stored_metadata
+                assert dashboard.position_json == stored_position
+                assert db.session.get(ReportSchedule, report_id).active is True
+            finally:
+                db.session.rollback()
+                db.session.delete(db.session.get(ReportSchedule, report_id))
+                db.session.commit()
+
+    @parameterized.expand(
+        [
+            ("own_chart", ("own",), 201),
+            ("readable_not_edited", ("readable",), 201),
+            ("unreadable_chart", ("own", "foreign"), 422),
+        ]
+    )
+    def test_create_dashboard_layout_chart_access(
+        self, case: str, layout: tuple[str, ...], status: int
+    ) -> None:
+        """POST links a layout chart only if the caller can read it."""
+        with self._layout_access_fixture() as ids:
+            self.login(GAMMA_USERNAME)
+            positions: dict[str, Any] = self._chart_layout(*(ids[k] for k in layout))
+            rv: TestResponse = self.client.post(
+                "/api/v1/dashboard/",
+                json={
+                    "dashboard_title": "layout-access-new",
+                    "json_metadata": json.dumps({"positions": positions}),
+                },
+            )
+            assert rv.status_code == status, rv.data
+            created: list[Dashboard] = (
+                db.session.query(Dashboard)
+                .filter(Dashboard.dashboard_title == "layout-access-new")
+                .all()
+            )
+            assert len(created) == (1 if status == 201 else 0)
+            if status == 201:
+                assert self._member_names({**ids, "dashboard": created[0].id}) == set(
+                    layout
+                )
+
+    @parameterized.expand([("string", str), ("float", float)])
+    def test_update_dashboard_layout_chart_access_coerced_ids(
+        self, case: str, coerce: type
+    ) -> None:
+        """A foreign chart ID sent as a string or a float is refused like an
+        integer one."""
+        with self._layout_access_fixture() as ids:
+            self.login(GAMMA_USERNAME)
+            positions: dict[str, Any] = self._chart_layout(
+                ids["member"], ids["archived"]
+            )
+            positions["CHART-foreign"] = {
+                "id": "CHART-foreign",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": coerce(ids["foreign"]), "width": 4, "height": 50},
+            }
+            rv: TestResponse = self.client.put(
+                f"/api/v1/dashboard/{ids['dashboard']}",
+                json={"json_metadata": json.dumps({"positions": positions})},
+            )
+            assert rv.status_code == 422, rv.data
+            # Refused by the access check, not as a malformed node.
+            assert rv.json["message"]["json_metadata"] == [
+                f"The layout references charts that are not available: {ids['foreign']}"
+            ]
+            assert self._member_names(ids) == {"member", "archived"}
+
+    @parameterized.expand([("readable_clones", False), ("chart_reads_denied", True)])
+    def test_copy_dashboard_duplicate_slices_layout_chart_access(
+        self, case: str, deny_chart_reads: bool
+    ) -> None:
+        """A copy with ``duplicate_slices`` links the clones of the source's
+        charts, even ones the caller cannot read in the source.
+
+        The caller edits every clone, so the access check passes them anyway.
+        Denying every chart read shows the clones are accepted as the copy's
+        own charts rather than through the caller's access.
+        """
+        with self._layout_access_fixture() as ids:
+            self.login(GAMMA_USERNAME)
+            positions: dict[str, Any] = self._chart_layout(ids["member"])
+            with (
+                patch(
+                    "superset.daos.dashboard.security_manager.can_access_chart",
+                    return_value=False,
+                )
+                if deny_chart_reads
+                else nullcontext()
+            ):
+                rv: TestResponse = self.client.post(
+                    f"/api/v1/dashboard/{ids['dashboard']}/copy/",
+                    json={
+                        "dashboard_title": "layout-access-copy",
+                        "duplicate_slices": True,
+                        "json_metadata": json.dumps({"positions": positions}),
+                    },
+                )
+            assert rv.status_code == 200, rv.data
+            db.session.expire_all()
+            copied: Dashboard = db.session.get(Dashboard, rv.json["result"]["id"])
+            assert [chart.slice_name for chart in copied.slices] == [
+                "layout-access-member"
+            ]
+            assert copied.slices[0].id != ids["member"]
+            assert self._member_names(ids) == {"member", "archived"}
+
+    def test_update_dashboard_layout_detached_chart(self) -> None:
+        """A chart detached from the dashboard but still in its stored layout
+        is a new chart to the next layout save.
+
+        Only ``dashboard_slices`` rows count as membership, so the tile
+        neither keeps the chart a member nor lets a save re-attach it: a
+        caller who cannot read the chart gets a 422 until the tile is
+        removed, and a caller who can read it re-attaches it.
+        """
+        with self._layout_access_fixture() as ids:
+            self.login(ADMIN_USERNAME)
+            rv: TestResponse = self.client.put(
+                f"/api/v1/chart/{ids['member']}", json={"dashboards": []}
+            )
+            assert rv.status_code == 200, rv.data
+            assert self._member_names(ids) == {"archived"}
+
+            stale: dict[str, Any] = {
+                "json_metadata": json.dumps(
+                    {"positions": self._chart_layout(ids["member"], ids["archived"])}
+                )
+            }
+            trimmed: dict[str, Any] = {
+                "json_metadata": json.dumps(
+                    {"positions": self._chart_layout(ids["archived"])}
+                )
+            }
+            self.logout()
+            self.login(GAMMA_USERNAME)
+            rv = self.client.put(f"/api/v1/dashboard/{ids['dashboard']}", json=stale)
+            assert rv.status_code == 422, rv.data
+            assert str(ids["member"]) in rv.json["message"]["json_metadata"][0]
+            assert self._member_names(ids) == {"archived"}
+
+            rv = self.client.put(f"/api/v1/dashboard/{ids['dashboard']}", json=trimmed)
+            assert rv.status_code == 200, rv.data
+            assert self._member_names(ids) == {"archived"}
+
+            self.logout()
+            self.login(ADMIN_USERNAME)
+            rv = self.client.put(f"/api/v1/dashboard/{ids['dashboard']}", json=stale)
+            assert rv.status_code == 200, rv.data
+            assert self._member_names(ids) == {"member", "archived"}
+
+    def test_update_dashboard_layout_chart_access_keeps_archived_member(
+        self,
+    ) -> None:
+        """An archived member that no layout slot represents is kept without
+        passing the access check, while new charts are still checked."""
+        with self._layout_access_fixture() as ids:
+            self.login(GAMMA_USERNAME)
+            rv: TestResponse = self.client.put(
+                f"/api/v1/dashboard/{ids['dashboard']}",
+                json={
+                    "json_metadata": json.dumps(
+                        {
+                            "positions": self._chart_layout(
+                                ids["member"], ids["readable"], ids["foreign"]
+                            )
+                        }
+                    )
+                },
+            )
+            assert rv.status_code == 422, rv.data
+            assert rv.json["message"]["json_metadata"] == [
+                f"The layout references charts that are not available: {ids['foreign']}"
+            ]
+            assert self._member_names(ids) == {"member", "archived"}
+
+            rv = self.client.put(
+                f"/api/v1/dashboard/{ids['dashboard']}",
+                json={
+                    "json_metadata": json.dumps(
+                        {
+                            "positions": self._chart_layout(
+                                ids["member"], ids["readable"]
+                            )
+                        }
+                    )
+                },
+            )
+            assert rv.status_code == 200, rv.data
+            assert self._member_names(ids) == {"member", "archived", "readable"}
+
+    @staticmethod
+    def _member_names(ids: dict[str, int]) -> set[str]:
+        """Fixture names of *ids*' dashboard's members, archived included."""
+        names: dict[int, str] = {v: k for k, v in ids.items() if k != "dashboard"}
+        db.session.expire_all()
+        return {
+            names[row[0]]
+            for row in db.session.query(dashboard_slices.c.slice_id).filter(
+                dashboard_slices.c.dashboard_id == ids["dashboard"]
+            )
+        }
+
+    @parameterized.expand([("default", None), ("merge", False), ("replace", True)])
+    def test_copy_dashboard_metadata_comes_from_snapshot(
+        self, case: str, replace_metadata: bool | None
+    ) -> None:
+        """Only an explicit replacement opts out of source metadata inheritance."""
+        from superset.connectors.sqla.models import SqlaTable
+
+        admin: User = self.get_user(ADMIN_USERNAME)
+        dataset_id: int = (
+            db.session.query(SqlaTable.id).order_by(SqlaTable.id).first()[0]
+        )
+        first: Slice = self.insert_chart("snapshot-first", [admin.id], dataset_id)
+        second: Slice = self.insert_chart("snapshot-second", [admin.id], dataset_id)
+        dashboard: Dashboard = self.insert_dashboard(
+            "snapshot-source", None, [admin.id], slices=[first, second]
+        )
+        dashboard.json_metadata = json.dumps(
+            {"live_only": "absent from snapshot", "refresh_frequency": 900}
+        )
+        db.session.commit()
+        source_metadata: str = dashboard.json_metadata
+        self.login(ADMIN_USERNAME)
+        copied_id: int | None = None
+        try:
+            response: TestResponse = self.client.post(
+                f"/api/v1/dashboard/{dashboard.id}/copy/",
+                json={
+                    "dashboard_title": "snapshot-copy",
+                    **(
+                        {"replace_metadata": replace_metadata}
+                        if replace_metadata is not None
+                        else {}
+                    ),
+                    "json_metadata": json.dumps(
+                        {
+                            "positions": {
+                                "CHART-first": {
+                                    "type": "CHART",
+                                    "meta": {"chartId": first.id},
+                                }
+                            },
+                            "color_scheme": "supersetColors",
+                            "expanded_slices": {
+                                str(first.id): True,
+                                str(second.id): True,
+                            },
+                            "timed_refresh_immune_slices": [first.id, second.id],
+                            "chart_configuration": {
+                                str(first.id): {"id": first.id},
+                                str(second.id): {"id": second.id},
+                            },
+                        }
+                    ),
+                },
+            )
+            assert response.status_code == 200, response.data
+            copied_id = response.json["result"]["id"]
+            db.session.expire_all()
+            copied: Dashboard = db.session.get(Dashboard, copied_id)
+            metadata: dict[str, Any] = copied.params_dict
+            assert ("live_only" not in metadata) is bool(replace_metadata)
+            assert metadata["refresh_frequency"] == (0 if replace_metadata else 900)
+            assert metadata["color_scheme"] == "supersetColors"
+            assert metadata["expanded_slices"] == {str(first.id): True}
+            assert metadata["timed_refresh_immune_slices"] == [first.id]
+            assert metadata["chart_configuration"] == {str(first.id): {"id": first.id}}
+            assert {chart.id for chart in copied.slices} == {first.id}
+            assert dashboard.json_metadata == source_metadata
+        finally:
+            db.session.rollback()
+            if copied_id is not None:
+                db.session.delete(db.session.get(Dashboard, copied_id))
+            db.session.delete(dashboard)
+            db.session.delete(first)
+            db.session.delete(second)
             db.session.commit()
 
     def test_copy_dashboard_logs_database_error(self) -> None:
@@ -6201,6 +7416,237 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert mock_store_cache_payload.call_count == 2
         assert mock_set_current_cache_key.call_count == 2
 
+    @parameterized.expand(
+        [
+            ("pending", StatusValues.PENDING),
+            ("computing", StatusValues.COMPUTING),
+            ("error", StatusValues.ERROR),
+        ]
+    )
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_force_does_not_join_refresh_carrying_previous_image(
+        self, case: str, refresh_status: StatusValues
+    ) -> None:
+        """Only forced requests replace generations carrying an older capture."""
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .one()
+        )
+        scope = f"dashboard:{dashboard.id}"
+        old_image = b"\x89PNG\r\n\x1a\nprevious capture"
+        pointer = {"key": "prior-generation"}
+
+        def publish(
+            _request_key: str,
+            cache_key: str,
+            _scope: str,
+            previous_cache_key: str | None,
+        ) -> bool:
+            """Publish only when the observed generation remains current."""
+            if pointer["key"] != previous_cache_key:
+                return False
+            pointer["key"] = cache_key
+            return True
+
+        with (
+            freeze_time("2026-10-27T12:00:00"),
+            patch(
+                "superset.utils.screenshots.DashboardScreenshot.cache",
+                new_callable=SimpleCache,
+            ) as cache,
+            patch("superset.dashboards.api.DistributedLock"),
+            patch(
+                "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+                side_effect=lambda *_args: pointer["key"],
+            ),
+            patch(
+                "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+                side_effect=["refresh-generation", "forced-generation"],
+            ),
+            patch(
+                "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key",
+                side_effect=publish,
+            ),
+            patch("superset.dashboards.api.cache_dashboard_screenshot") as task,
+        ):
+            cache.set(
+                "prior-generation",
+                ScreenshotCachePayload(
+                    image=old_image,
+                    timestamp=(datetime.now() - timedelta(seconds=400)).isoformat(),
+                    scope=scope,
+                ).to_dict(),
+            )
+            refresh = self._cache_screenshot(dashboard.id)
+            assert refresh.status_code == 202
+            permalink_key = refresh.json["dashboard_url"].rstrip("/").rsplit("/", 1)[-1]
+            retained = ScreenshotCachePayload.from_dict(cache.get("refresh-generation"))
+            retained.status = refresh_status
+            cache.set("refresh-generation", retained.to_dict())
+            retained_response = self.client.get(refresh.json["image_url"])
+            assert retained_response.status_code == 200
+            assert retained_response.data == old_image
+
+            ordinary = self._cache_screenshot(
+                dashboard.id, payload={"permalinkKey": permalink_key}, force=False
+            )
+            assert ordinary.status_code == 200
+            assert ordinary.json["cache_key"] == refresh.json["cache_key"]
+            assert ordinary.json["task_status"] == refresh_status.value
+            ordinary_image = self.client.get(ordinary.json["image_url"])
+            assert ordinary_image.status_code == 200
+            assert ordinary_image.data == old_image
+            task.delay.assert_called_once()
+
+            forced = self._cache_screenshot(
+                dashboard.id, payload={"permalinkKey": permalink_key}, force=True
+            )
+            forced_image = self.client.get(forced.json["image_url"])
+
+            assert forced_image.status_code == 404
+            assert forced.status_code == 202
+            assert forced.json["cache_key"] == "forced-generation"
+            assert cache.get("forced-generation")["image"] is None
+            assert self.client.get(refresh.json["image_url"]).data == old_image
+            assert task.delay.call_count == 2
+
+            joined = self._cache_screenshot(
+                dashboard.id, payload={"permalinkKey": permalink_key}, force=True
+            )
+            assert joined.status_code == 200
+            assert joined.json["cache_key"] == "forced-generation"
+            assert task.delay.call_count == 2
+
+            completed = ScreenshotCachePayload.from_dict(cache.get("forced-generation"))
+            new_image = b"\x89PNG\r\n\x1a\nreplacement capture"
+            completed.update(new_image)
+            cache.set("forced-generation", completed.to_dict())
+            assert self.client.get(forced.json["image_url"]).data == new_image
+
+    @parameterized.expand(
+        [
+            ("locked_pending", "locked", StatusValues.PENDING),
+            ("locked_error", "locked", StatusValues.ERROR),
+            ("cas_pending", "cas", StatusValues.PENDING),
+            ("cas_error", "cas", StatusValues.ERROR),
+            ("contended_pending", "contended", StatusValues.PENDING),
+            ("contended_error", "contended", StatusValues.ERROR),
+            ("cas_timeout", "cas_timeout", StatusValues.ERROR),
+            ("contended_timeout", "contended_timeout", StatusValues.PENDING),
+        ]
+    )
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_force_does_not_join_racing_generation_with_retained_image(
+        self, case: str, race: str, winner_status: StatusValues
+    ) -> None:
+        """Each producer shortcut must reject a race winner carrying an older image."""
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .one()
+        )
+        scope = f"dashboard:{dashboard.id}"
+        old_image = b"\x89PNG\r\n\x1a\nprevious capture"
+        pointer = {"key": "prior-generation"}
+        lock_attempts = 0
+        publication_attempts = 0
+        timed_out = race.endswith("timeout")
+
+        @contextmanager
+        def acquire_lock(**_kwargs: object) -> Iterator[None]:
+            """Publish retained bytes before this producer reads under its lock."""
+            nonlocal lock_attempts
+            lock_attempts += 1
+            if lock_attempts == 1 and race in (
+                "locked",
+                "contended",
+                "contended_timeout",
+            ):
+                pointer["key"] = "racing-generation"
+                if race.startswith("contended"):
+                    raise LockAlreadyHeldException("another producer is publishing")
+            yield
+
+        def publish(
+            _request_key: str,
+            cache_key: str,
+            _scope: str,
+            previous_cache_key: str | None,
+        ) -> bool:
+            """Lose compare-and-set after another producer publishes a refresh."""
+            nonlocal publication_attempts
+            publication_attempts += 1
+            if race.startswith("cas") and (publication_attempts == 1 or timed_out):
+                pointer["key"] = "racing-generation"
+                return False
+            if pointer["key"] != previous_cache_key:
+                return False
+            pointer["key"] = cache_key
+            return True
+
+        with (
+            patch(
+                "superset.utils.screenshots.DashboardScreenshot.cache",
+                new_callable=SimpleCache,
+            ) as cache,
+            patch("superset.dashboards.api.DistributedLock", acquire_lock),
+            patch("superset.dashboards.api.time.sleep") as pause,
+            patch(
+                "superset.dashboards.api.time.monotonic",
+                side_effect=[10.0, 11.1 if timed_out else 10.1],
+            ),
+            patch(
+                "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+                side_effect=lambda *_args: pointer["key"],
+            ),
+            patch(
+                "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+                side_effect=["reserved-generation", "forced-generation"],
+            ),
+            patch(
+                "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key",
+                side_effect=publish,
+            ),
+            patch("superset.dashboards.api.cache_dashboard_screenshot") as task,
+        ):
+            cache.set(
+                "prior-generation",
+                ScreenshotCachePayload(image=old_image, scope=scope).to_dict(),
+            )
+            winner = ScreenshotCachePayload(status=winner_status, scope=scope)
+            winner.retain_image(old_image)
+            cache.set("racing-generation", winner.to_dict())
+
+            response = self._cache_screenshot(dashboard.id, force=True)
+
+            retained_response = self._get_screenshot(
+                dashboard.id, "racing-generation", "png"
+            )
+            assert retained_response.status_code == 200
+            assert retained_response.data == old_image
+            if timed_out:
+                assert response.status_code == 503
+                assert "image_url" not in response.json
+                task.delay.assert_not_called()
+                assert lock_attempts == 1
+                assert publication_attempts == (1 if race == "cas_timeout" else 0)
+                pause.assert_not_called()
+            else:
+                assert response.status_code == 202
+                assert response.json["cache_key"] != "racing-generation"
+                assert response.json["task_status"] == "Pending"
+                assert self.client.get(response.json["image_url"]).status_code == 404
+                task.delay.assert_called_once()
+                assert lock_attempts == (1 if race == "locked" else 2)
+                assert publication_attempts == (2 if race == "cas" else 1)
+                assert pause.call_count == (1 if race == "contended" else 0)
+
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
@@ -6484,23 +7930,26 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
     def test_force_uses_new_generation_without_invalidating_previous_url(
         self,
-        mock_get_from_cache_key,
-        mock_current_cache_key,
-        mock_next_cache_key,
-        mock_store_cache_payload,
-        mock_set_current_cache_key,
-        mock_cache_task,
-    ):
+        mock_get_from_cache_key: MagicMock,
+        mock_current_cache_key: MagicMock,
+        mock_next_cache_key: MagicMock,
+        mock_store_cache_payload: MagicMock,
+        mock_set_current_cache_key: MagicMock,
+        mock_cache_task: MagicMock,
+    ) -> None:
+        """A forced refresh starts imageless while its predecessor stays readable."""
         self.login(ADMIN_USERNAME)
         dashboard = (
             db.session.query(Dashboard)
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
         )
+        old_image = b"\x89PNG\r\n\x1a\nfake image data"
         old_payload = ScreenshotCachePayload(
-            image=b"old image",
+            image=old_image,
             scope=f"dashboard:{dashboard.id}",
         )
+        assert old_payload.get_invalid_image_reason() is None
         mock_get_from_cache_key.return_value = old_payload
 
         response = self._cache_screenshot(dashboard.id, force=True)
@@ -6514,7 +7963,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert response.json["cache_key"] == "new-cache-key"
         assert response.json["task_status"] == "Pending"
         assert old_response.status_code == 200
-        assert old_response.data == b"old image"
+        assert old_response.data == old_image
+        mock_store_cache_payload.assert_called_once()
+        successor = mock_store_cache_payload.call_args[0][1]
+        assert successor.status == StatusValues.PENDING
+        assert successor.to_dict()["image"] is None
         mock_cache_task.delay.assert_called_once()
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
@@ -6964,6 +8417,434 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         non_existent_id = 999
         response = self._cache_screenshot(non_existent_id)
         assert response.status_code == 404
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key",
+        return_value=True,
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="cache-key",
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_cache_dashboard_screenshot_recomputes_stale_updated(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_set_current_cache_key,
+        mock_cache_task,
+    ):
+        """A force-less request whose cached UPDATED entry is older than
+        THUMBNAIL_UPDATED_CACHE_TTL -- but still valid and correctly scoped --
+        must reschedule the Celery task. This exercises the endpoint's
+        ``check_updated_staleness=screenshot_obj.supports_updated_staleness``
+        wiring (True only for dashboards); dropping that argument makes the
+        endpoint serve the stale entry (200) instead, failing this test.
+
+        ``get_current_api_generation_cache_key`` must be mocked to a resolvable
+        pointer: without it the request has no prior generation, so the endpoint
+        takes the ordinary first-render/cache-miss branch (also a 202) and the
+        stale-payload assertion below would pass even if the staleness wiring were
+        reverted."""
+        from datetime import datetime, timedelta
+
+        self.login(ADMIN_USERNAME)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        # A valid, correctly-scoped UPDATED entry, but 400s old against a 300s TTL.
+        stale_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"\x89PNG\r\n\x1a\nfake image data",
+            scope=f"dashboard:{dashboard.id}",
+            timestamp=stale_timestamp,
+        )
+
+        cache_resp = self._cache_screenshot(dashboard.id)
+
+        assert cache_resp.status_code == 202
+        mock_cache_task.delay.assert_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key",
+        return_value=True,
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="cache-key",
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_cache_dashboard_screenshot_worker_clock_ahead_serves_updated(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_set_current_cache_key,
+        mock_store_cache_payload,
+        mock_cache_task,
+    ):
+        """A worker whose naive clock runs an hour ahead of the web host (e.g. a
+        different TZ) stamps a just-rendered UPDATED generation an hour in the
+        future. A force-less request must serve it (200) rather than treat the
+        future timestamp as stale: otherwise every request rotates a generation
+        (202) whose re-render writes another future timestamp, so a client
+        polling for ``Updated`` never converges and each poll costs a render."""
+        from datetime import datetime, timedelta
+
+        self.login(ADMIN_USERNAME)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        # A valid, correctly-scoped UPDATED entry stamped by a worker 1h ahead,
+        # a skew larger than the 300s TTL.
+        worker_ahead_timestamp = (datetime.now() + timedelta(hours=1)).isoformat()
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"\x89PNG\r\n\x1a\nfake image data",
+            scope=f"dashboard:{dashboard.id}",
+            timestamp=worker_ahead_timestamp,
+        )
+
+        cache_resp = self._cache_screenshot(dashboard.id)
+
+        assert cache_resp.status_code == 200
+        assert cache_resp.json["cache_key"] == "cache-key"
+        assert cache_resp.json["task_status"] == "Updated"
+        mock_cache_task.delay.assert_not_called()
+        mock_set_current_cache_key.assert_not_called()
+        mock_store_cache_payload.assert_not_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key",
+        return_value=True,
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="cache-key",
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_cache_dashboard_screenshot_stale_refresh_retains_last_good_image(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_set_current_cache_key,
+        mock_store_cache_payload,
+        mock_cache_task,
+    ):
+        """A force-less staleness refresh must not publish an imageless successor
+        generation. The new generation carries the prior valid capture, so the
+        read path keeps serving it while the refresh renders and a failed render
+        retains it (ERROR keeps the image) instead of 404ing ``image_url``. The
+        successor stays in progress (so concurrent producers coalesce) and the
+        worker's force-less ``should_trigger_task`` still recomputes it.
+
+        Reverting the carry-over leaves the successor imageless, so
+        ``get_image()`` below raises and the test fails."""
+        from datetime import datetime, timedelta
+
+        self.login(ADMIN_USERNAME)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        retained_image = b"\x89PNG\r\n\x1a\nfake image data"
+        # A valid, correctly-scoped UPDATED entry, but 400s old against a 300s TTL.
+        stale_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            retained_image,
+            scope=f"dashboard:{dashboard.id}",
+            timestamp=stale_timestamp,
+        )
+
+        cache_resp = self._cache_screenshot(dashboard.id)
+
+        assert cache_resp.status_code == 202
+        mock_cache_task.delay.assert_called_once()
+
+        # The successor generation persisted for the worker carries the last-good
+        # image, stays in progress (so producers coalesce) and stays triggerable
+        # (so the worker still re-renders).
+        assert mock_store_cache_payload.called
+        successor = mock_store_cache_payload.call_args[0][1]
+        assert successor.get_invalid_image_reason() is None
+        # Load-bearing assertion: reverting the carry-over leaves the successor
+        # imageless, so get_image() raises here. The in-progress/triggerable
+        # assertions below also hold for an imageless PENDING successor, so they
+        # guard against retain_image wrongly flipping status -- not the carry.
+        assert successor.get_image().read() == retained_image
+        assert successor.is_in_progress()
+        assert successor.should_trigger_task(
+            force=False,
+            expected_scope=f"dashboard:{dashboard.id}",
+            check_updated_staleness=True,
+        ), "successor must remain triggerable so the worker re-renders"
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key",
+        return_value=True,
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="cache-key",
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_cache_dashboard_screenshot_retry_rotation_retains_last_good_image(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_set_current_cache_key,
+        mock_store_cache_payload,
+        mock_cache_task,
+    ):
+        """After a staleness refresh fails, the last-good image must survive the
+        retry that rotates to a fresh generation. The predecessor is now ERROR
+        (not UPDATED) but still carries valid, scope-matching bytes past the
+        error-cache TTL, so the force-less retry both re-triggers and carries the
+        image onto the new successor -- image_url keeps serving it instead of
+        404ing. Gating the carry on ``is_updated()`` would drop it here."""
+        from datetime import datetime, timedelta
+
+        self.login(ADMIN_USERNAME)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        retained_image = b"\x89PNG\r\n\x1a\nfake image data"
+        # A retained, valid, correctly-scoped image whose generation is in ERROR
+        # backoff and 2 days old -- past the 1-day THUMBNAIL_ERROR_CACHE_TTL, so a
+        # force-less request re-triggers via the expired-ERROR branch.
+        stale_timestamp = (datetime.now() - timedelta(days=2)).isoformat()
+        errored = ScreenshotCachePayload(
+            retained_image,
+            scope=f"dashboard:{dashboard.id}",
+            timestamp=stale_timestamp,
+        )
+        errored.status = StatusValues.ERROR
+        mock_get_from_cache_key.return_value = errored
+
+        cache_resp = self._cache_screenshot(dashboard.id)
+
+        assert cache_resp.status_code == 202
+        mock_cache_task.delay.assert_called_once()
+
+        assert mock_store_cache_payload.called
+        successor = mock_store_cache_payload.call_args[0][1]
+        # Load-bearing: an is_updated()-gated carry would leave this imageless and
+        # get_image() would raise.
+        assert successor.get_image().read() == retained_image
+        assert successor.is_in_progress()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @with_config(
+        {
+            "THUMBNAIL_UPDATED_CACHE_TTL": int(timedelta(days=7).total_seconds()),
+            "THUMBNAIL_COMPUTING_CACHE_TTL": 360,
+        }
+    )
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_cache_dashboard_screenshot_pointer_outlives_updated_ttl(self) -> None:
+        """With the default 7-day backend timeout and TTL, a force-less request
+        for a stale capture must still resolve the request pointer and carry the
+        capture forward. The pointer is written at publication, before the worker
+        stamps the capture, so a pointer expiring with the backend timeout alone
+        lapses first: the request then publishes an imageless generation and
+        ``image_url`` 404s while the object store still holds the capture."""
+
+        class ObjectStoreCache(SimpleCache):
+            """Advertises a 7-day default timeout but never evicts, like S3."""
+
+            def __init__(self) -> None:
+                super().__init__(default_timeout=int(timedelta(days=7).total_seconds()))
+                # flask_caching.Cache exposes its backend as ``cache``.
+                self.cache = self
+
+            def _normalize_timeout(self, timeout: Any) -> int:
+                return 0
+
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .one()
+        )
+        image = b"\x89PNG\r\n\x1a\nretained capture"
+        published_at = datetime(2026, 10, 27, 12, 0, 0)
+        cache = ObjectStoreCache()
+
+        with (
+            patch("superset.utils.screenshots.DashboardScreenshot.cache", cache),
+            patch("superset.dashboards.api.cache_dashboard_screenshot") as task,
+        ):
+            with freeze_time(published_at):
+                first = self._cache_screenshot(dashboard.id)
+            assert first.status_code == 202
+            first_key = first.json["cache_key"]
+            permalink_key = first.json["dashboard_url"].rstrip("/").rsplit("/", 1)[-1]
+
+            with freeze_time(published_at + timedelta(seconds=30)):
+                rendered = ScreenshotCachePayload.from_dict(cache.get(first_key))
+                rendered.update(image)
+                cache.set(first_key, rendered.to_dict())
+
+            with freeze_time(published_at + timedelta(days=8)):
+                refresh = self._cache_screenshot(
+                    dashboard.id, payload={"permalinkKey": permalink_key}
+                )
+                refresh_image = self.client.get(refresh.json["image_url"])
+
+        assert refresh.status_code == 202
+        assert refresh.json["cache_key"] != first_key
+        assert refresh.json["task_status"] == "Pending"
+        assert task.delay.call_count == 2
+        assert task.delay.call_args.kwargs["cache_key"] == refresh.json["cache_key"]
+        # Load-bearing: once the pointer lapses, the refresh is imageless and 404s.
+        assert refresh_image.status_code == 200
+        assert refresh_image.data == image
+
+    @parameterized.expand(
+        [
+            ("wrong_scope", "dashboard:999999", b"\x89PNG\r\n\x1a\nprior capture"),
+            ("missing_scope", None, b"\x89PNG\r\n\x1a\nprior capture"),
+            ("missing_image", "matching", None),
+            ("corrupt_image", "matching", b"not an image"),
+        ]
+    )
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_cache_dashboard_screenshot_does_not_carry_unusable_predecessor(
+        self,
+        case: str,
+        predecessor_scope: str | None,
+        predecessor_image: bytes | None,
+    ) -> None:
+        """Refresh unusable predecessors without exposing their bytes on the new URL."""
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .one()
+        )
+        scope = f"dashboard:{dashboard.id}"
+        predecessor = ScreenshotCachePayload(
+            image=predecessor_image,
+            status=StatusValues.UPDATED,
+            scope=scope if predecessor_scope == "matching" else predecessor_scope,
+        ).to_dict()
+
+        with (
+            patch(
+                "superset.utils.screenshots.DashboardScreenshot.cache",
+                new_callable=SimpleCache,
+            ) as cache,
+            patch(
+                "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+                return_value="prior-generation",
+            ),
+            patch(
+                "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+                return_value="next-generation",
+            ),
+            patch(
+                "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key",
+                return_value=True,
+            ),
+            patch("superset.dashboards.api.cache_dashboard_screenshot") as cache_task,
+        ):
+            cache.set("prior-generation", predecessor)
+
+            response = self._cache_screenshot(dashboard.id)
+
+            assert response.status_code == 202, case
+            assert response.json["cache_key"] == "next-generation"
+            assert response.json["task_status"] == "Pending"
+            image_response = self.client.get(response.json["image_url"])
+            assert image_response.status_code == 404
+            assert image_response.json["extra"]["task_status"] == "Pending"
+            successor = cache.get("next-generation")
+            assert successor["status"] == "Pending"
+            assert successor["scope"] == scope
+            assert successor["image"] is None
+            assert cache.get("prior-generation") == predecessor
+            cache_task.delay.assert_called_once()
+            assert cache_task.delay.call_args.kwargs["cache_key"] == "next-generation"
+            assert cache_task.delay.call_args.kwargs["force"] is False
+
+    @with_feature_flags(THUMBNAILS=True)
+    @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_thumbnail")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_thumbnail_does_not_recompute_stale_updated(
+        self, mock_get_from_cache_key, mock_cache_task
+    ):
+        """The card-list thumbnail path must never opt into updated-staleness
+        recompute. A force-less request whose cached UPDATED entry is older than
+        THUMBNAIL_UPDATED_CACHE_TTL -- but still valid and correctly scoped --
+        must be served straight from cache (200), not rescheduled.
+
+        Higher stakes than the chart mirror: ``DashboardScreenshot.supports_
+        updated_staleness`` is True, so were the card path to copy
+        ``check_updated_staleness=screenshot_obj.supports_updated_staleness`` the
+        stale entry would be rescheduled (202, no cached bytes). Because the card
+        path calls ``should_trigger_task()`` with no kwarg, the assertions below
+        hold and this pins that the flag is not propagated here."""
+        from datetime import datetime, timedelta
+
+        self.login(ADMIN_USERNAME)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        # A valid, correctly-scoped UPDATED entry, but 400s old against a 300s TTL.
+        # Naive to match the cache's naive `datetime.now()` timestamps: a tz-aware
+        # value here would either be read as future on a UTC-ahead host or raise
+        # when subtracted from naive now().
+        stale_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data",
+            scope=f"dashboard:{dashboard.id}",
+            timestamp=stale_timestamp,
+        )
+
+        # Resolve the digest under the requesting user so the endpoint serves the
+        # entry instead of redirecting to the canonical digest.
+        with override_user(self.get_user(ADMIN_USERNAME)):
+            digest = dashboard.digest
+
+        rv = self.client.get(f"api/v1/dashboard/{dashboard.id}/thumbnail/{digest}/")
+
+        assert rv.status_code == 200
+        mock_cache_task.delay.assert_not_called()
+        assert rv.data == b"fake image data"
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")

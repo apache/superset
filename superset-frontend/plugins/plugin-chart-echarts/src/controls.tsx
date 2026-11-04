@@ -37,8 +37,13 @@ import { DEFAULT_FORM_DATA } from './Timeseries/constants';
 import { BarValueLabelPosition } from './Timeseries/types';
 import { defaultXAxis } from './defaults';
 
-const { legendMargin, legendOrientation, legendType, showLegend } =
-  DEFAULT_LEGEND_FORM_DATA;
+const {
+  legendMargin,
+  legendOrientation,
+  legendType,
+  showLegend,
+  showSelectorLegend,
+} = DEFAULT_LEGEND_FORM_DATA;
 
 export const showLegendControl: ControlSetItem = {
   name: 'show_legend',
@@ -48,6 +53,21 @@ export const showLegendControl: ControlSetItem = {
     renderTrigger: true,
     default: showLegend,
     description: t('Whether to display a legend for the chart'),
+  },
+};
+
+export const showSelectorLegendControl: ControlSetItem = {
+  name: 'show_selector_legend',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Show All/Invert buttons in legend'),
+    renderTrigger: true,
+    default: showSelectorLegend,
+    description: t(
+      'Toggle to show/hide the "All/Invert" buttons in the legend.',
+    ),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.show_legend?.value),
   },
 };
 
@@ -124,6 +144,7 @@ export const legendSortControl: ControlSetItem = {
 export const legendSection: ControlSetRow[] = [
   [<ControlSubSectionHeader>{t('Legend')}</ControlSubSectionHeader>],
   [showLegendControl],
+  [showSelectorLegendControl],
   [legendTypeControl],
   [legendOrientationControl],
   [legendMarginControl],

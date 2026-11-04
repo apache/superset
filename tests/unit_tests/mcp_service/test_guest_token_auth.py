@@ -254,6 +254,7 @@ async def test_composite_falls_through_to_jwt_for_non_guest() -> None:
 
 def test_resolve_builds_guest_user_from_token(app: SupersetApp) -> None:
     token = MagicMock()
+    token.token = "raw-guest-token"  # noqa: S105 — test fixture
     token.claims = {GUEST_TOKEN_CLAIM: True, **_parsed_guest_claims()}
     token.client_id = "guest"
     fake_guest = MagicMock()
@@ -267,9 +268,15 @@ def test_resolve_builds_guest_user_from_token(app: SupersetApp) -> None:
             patch("superset.mcp_service.auth.security_manager") as mock_sm,
         ):
             mock_sm.get_guest_user_from_token = MagicMock(return_value=fake_guest)
+            mock_sm.parse_jwt_guest_token = MagicMock(
+                return_value=_parsed_guest_claims()
+            )
+            mock_sm._is_guest_token_revoked = MagicMock(return_value=False)
             result = _resolve_user_from_jwt_context(app)
 
     assert result is fake_guest
+    # The raw bearer is re-verified as a guest token before resolution.
+    mock_sm.parse_jwt_guest_token.assert_called_once_with(token.token)
     # The internal marker must not leak into the GuestUser's token dict.
     passed_token = mock_sm.get_guest_user_from_token.call_args.args[0]
     assert GUEST_TOKEN_CLAIM not in passed_token

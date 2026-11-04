@@ -462,6 +462,12 @@ def get_version_endpoint(
         model_cls, entity_uuid, version_uuid, entity=entity
     )
     if snapshot is None:
+        logger.warning(
+            "Version snapshot not found: entity_type=%s entity_id=%s version_uuid=%s",
+            model_cls.__name__,
+            entity.id,
+            version_uuid,
+        )
         return api.response_404()
     # Normalize the version-level block through the schema; the entity
     # scalar fields stay as the DAO shaped them (their keys are
@@ -506,6 +512,7 @@ def restore_version_endpoint(
     # Deferred: restore.py pulls the model/versioning graph (same
     # bootstrap-cycle rationale as this module's other local imports).
     from superset.versioning.restore import (
+        ChartPurgedDuringRestoreError,
         MissingDatasourceError,
         PrunedChildHistoryError,
         RecycledChildIdentityError,
@@ -530,6 +537,13 @@ def restore_version_endpoint(
         # command's @transaction untouched (on_error re-raises
         # non-SQLAlchemy exceptions as-is).
         return api.response_422(message=str(ex))
+    except ChartPurgedDuringRestoreError as ex:
+        # A chart the restore was linking or unlinking was purged concurrently;
+        # the restore rolled back. Retrying is safe: the purge also removes the
+        # chart's membership history, so the retry no longer lists that chart
+        # as a snapshot member or in skipped_slice_ids. Return the retryable
+        # 409 rather than a 422. The exception's message is user-facing.
+        return api.response(409, message=str(ex))
     except command_cls.failed_exc as ex:
         logger.exception("Error restoring %s version", model_cls.__name__)
         return api.response_422(message=str(ex))

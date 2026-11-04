@@ -661,6 +661,7 @@ curl -X POST http://localhost:5008/mcp \
 
 - A dedicated guest-token verifier validates the token against the same `GUEST_TOKEN_JWT_SECRET` / `GUEST_TOKEN_JWT_ALGO` / `GUEST_TOKEN_JWT_AUDIENCE` config used by embedded dashboards, replays the embedded structural checks, and enforces revocation (global version bumps and per-dashboard `guest_token_revoked_before` cutoffs). It runs *before* the JWT verifier described above, since guest tokens are signed with a different key/algorithm and would otherwise be rejected at the transport.
 - A verified guest resolves to a Superset guest user as the highest-priority identity, so it's never downgraded to API-key / `MCP_DEV_USERNAME` / dev-mode resolution. Data access is scoped by the same checks (dataset allowlist, dashboard access, row-level security) that apply to embedded dashboard views.
+- Guest and API-key identity resolution supports FastMCP 3 and FastMCP 4, including verifier chains wrapped in `MultiAuth`. Guest resolution revalidates the bearer and core revocation checks on every identity resolution (including tool discovery), not just transport verification. These checks are not cached across resolutions: each dashboard resource can require a metadata lookup, but a previous successful resolution cannot mask subsequent expiry or revocation; API-key resolution trusts only FAB validation, not identity-routing claims supplied by an external JWT.
 - Guests are restricted to a default-deny allow-list, `MCP_GUEST_ALLOWED_TOOLS`, regardless of `MCP_RBAC_ENABLED`. Sensitive enumeration tools like `find_users` and `get_instance_info` are denied simply by being absent from the default list.
 - Setting `MCP_AUTH_FACTORY` bypasses this whole path: a configured factory is tried first, and the default factory that wires up the guest-token verifier is never reached. If you rely on a custom auth factory (e.g. your own OIDC provider) alongside guest auth, that factory must verify guest tokens itself -- otherwise they're rejected regardless of `MCP_EMBEDDED_GUEST_AUTH_ENABLED`.
 
@@ -980,7 +981,7 @@ All MCP settings go in `superset_config.py`. Defaults are defined in `superset/m
 | `MCP_REQUIRED_SCOPES`  | `[]`      | Required JWT scopes                                                                                                                                                                                                              |
 | `MCP_JWT_DEBUG_ERRORS` | `False`   | Log detailed JWT errors server-side (never exposed in HTTP responses per RFC 6750)                                                                                                                                               |
 | `MCP_AUTH_FACTORY`     | `None`    | Custom auth provider factory `(flask_app) -> auth_provider`. Takes precedence over built-in JWT                                                                                                                                  |
-| `MCP_USER_RESOLVER`    | `None`    | Custom function `(app, access_token) -> username` to extract a Superset username from a validated JWT token. When `None`, the default resolver checks `preferred_username`, `username`, `email`, and `sub` claims in that order. |
+| `MCP_USER_RESOLVER`    | `None`    | Custom function `(app, access_token) -> username` to extract a Superset username from a validated JWT token. Use `get_verifier_client_id(access_token)` from `superset.mcp_service.composite_token_verifier` instead of reading `access_token.client_id`: FastMCP 4 `MultiAuth` qualifies that field. The helper supports FastMCP 3 and 4 and identifies the originating verifier, not proof of bearer validity. When `None`, the default resolver checks `preferred_username`, `username`, `email`, and `sub` claims in that order. |
 | `MCP_EMBEDDED_GUEST_AUTH_ENABLED` | `False` | Accept embedded [guest tokens](#embedded-guest-authentication) as Bearer auth. Also requires the `EMBEDDED_SUPERSET` feature flag. |
 | `MCP_GUEST_ALLOWED_TOOLS` | see [default list](#embedded-guest-authentication) | The only tool names callable by embedded guests (default-deny), regardless of `MCP_RBAC_ENABLED`. |
 
@@ -1557,6 +1558,13 @@ and `get_chart_info` prechecks, and the chart access checks in
 resolve semantic-view sources by type and ID, then check access before
 continuing. `update_chart` then refuses semantic-view charts, which it cannot
 yet edit. SQL-dataset charts retain their existing dataset validation.
+
+Adding charts to a dashboard with `add_chart_to_existing_dashboard` or
+`generate_dashboard` requires access to each chart as well as its datasource.
+A datasource grant alone does not override a chart's explicit viewer restrictions.
+For `generate_dashboard`, every chart referenced in a custom `position_json`
+must also appear in `chart_ids`, where its access is checked. This includes
+chart nodes outside the connected layout tree.
 
 `list_charts` filters on `datasource_name` use these same live names before
 pagination and counting. For tables with a schema, filter using
@@ -2429,3 +2437,64 @@ Context names are returned verbatim per the Tool Result Value Contract.
 "Did you mean" column candidates also preserve dataset spelling, including
 quotes and ampersands, with a 200-character bound per candidate. Use
 `get_dataset_info` for the complete schema.
+
+### Title validation errors
+
+Rejected MCP titles report a field-specific reason without echoing the input.
+Titles exceeding 500 characters for dashboards or 250 characters for charts
+report "String exceeds the allowed maximum length". `duplicate_dashboard`
+requires a non-blank title and reports "Text must not be empty" for blank or
+whitespace-only input. A title containing only removed HTML/script content
+(such as `<script>alert(1)</script>`) reports "Contains disallowed content"
+(`unsafe_text`), not an empty-text error. Optional titles on creation retain
+their existing empty-value behavior, including whitespace-only values longer
+than the title limit. On creation, blank chart names fall back to generated
+names; `generate_dashboard` falls back to chart-based titles when
+`dashboard_title` (or its `title` / `name` alias) is omitted, empty, or
+whitespace-only. `update_dashboard` rejects explicit blank
+or whitespace-only dashboard renames with "Text must not be empty"; omitting
+`dashboard_title` leaves the stored title unchanged.
+
+Blank names in `create_virtual_dataset`, `create_theme`, `create_dataset_metric`,
+`update_dataset_metric`, and `update_dataset`, and whitespace-only labels in
+`save_sql_query`, report "Text must not be empty" at the corresponding name field.
+Blank-name checks precede length checks, including whitespace-only inputs longer
+than the field limit.
+Explicit null metric or dataset names remain invalid; omitting them from updates
+leaves the stored name unchanged.
+
+### Chart and dashboard titles
+
+MCP chart names and dashboard titles preserve literal comparisons such as
+`Users aged <30`, `Revenue <$1M`, and `Love <3 charts`. HTML tags are stripped;
+script-only names, dangerous URL schemes, and entity-encoded markup that would
+leave tag-shaped text or rebuild entities that would change on resubmission
+are rejected. A title altered by sanitization
+includes a warning. Python callers supplying UTF-8 bytes or bytearrays receive
+the same title normalization as string inputs; invalid UTF-8 reports an error on
+the title field. Names are sanitized once before
+persistence, including by
+`generate_chart`'s schema revalidation, so a stored name does not change when
+it is sent back.
+
+### Object-name validation
+
+MCP object names must fit their persisted model columns: chart and dataset names
+and theme names allow 250 characters, dashboard titles allow 500, saved-query
+labels and SQL Lab tab titles allow 256, and dashboard slugs allow 255.
+For fields that trim whitespace, length validation applies after trimming.
+Physical-dataset `schema` and `catalog` values trim whitespace and treat blanks
+as omitted namespaces, including UTF-8 bytes supplied by Python callers.
+For fields using the shared user-text sanitizer (including chart names, dashboard
+titles, column names, labels, and certification text), the limit applies to the
+trimmed sanitized text, not removed markup, entity encoding, or surrounding
+whitespace exposed by tag removal. Raw user-text sanitizer
+input has a separate 10,000-character resource bound (or the field limit, if larger).
+Nonblank theme names, saved-metric names, and dataset renames retain their
+whitespace and count it toward the limit.
+
+Blank saved-query labels and explicit blank dashboard renames return
+`Text must not be empty`, matching virtual-dataset names and duplicated dashboard
+titles. Omit an update field to retain the existing value.
+Chart creation and updates reject names reduced entirely to disallowed content;
+partial sanitization returns a warning alongside the normalized name.

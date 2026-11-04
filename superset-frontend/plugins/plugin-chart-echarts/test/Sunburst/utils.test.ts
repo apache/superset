@@ -17,7 +17,7 @@
  * under the License.
  */
 import { TimeGranularity } from '@superset-ui/core';
-import { getSunburstTimeGrain } from '../../src/Sunburst/utils';
+import { getSunburstTimeGrain } from '../../src/Sunburst/timeGrain';
 import { EchartsSunburstFormData } from '../../src/Sunburst/types';
 
 const formData: EchartsSunburstFormData = {
@@ -30,18 +30,18 @@ const formData: EchartsSunburstFormData = {
   timeGrainSqla: TimeGranularity.MONTH,
 };
 
-test('does not grain ambiguous semantic hierarchies with two temporal levels', () => {
-  expect(getSunburstTimeGrain(formData, 'd1')).toBeUndefined();
-  expect(getSunburstTimeGrain(formData, 'd2')).toBeUndefined();
+test('grains every lookup-marked temporal hierarchy level', () => {
+  expect(getSunburstTimeGrain(formData, 'd1')).toBe(TimeGranularity.MONTH);
+  expect(getSunburstTimeGrain(formData, 'd2')).toBe(TimeGranularity.MONTH);
 });
 
-test('dashboard time column takes precedence in a two-temporal-level hierarchy', () => {
+test('dashboard time column does not disable lookup-marked temporal levels', () => {
   const overridden = {
     ...formData,
     granularitySqla: 'd1',
     extraFormData: { granularity_sqla: 'd2' },
   };
-  expect(getSunburstTimeGrain(overridden, 'd1')).toBeUndefined();
+  expect(getSunburstTimeGrain(overridden, 'd1')).toBe(TimeGranularity.MONTH);
   expect(getSunburstTimeGrain(overridden, 'd2')).toBe(TimeGranularity.MONTH);
 });
 
