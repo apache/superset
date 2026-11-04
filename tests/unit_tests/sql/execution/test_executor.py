@@ -620,11 +620,21 @@ def test_execute_returns_cached_result(
         },
     )
 
-    # Mock _get_from_cache to simulate a cache hit
-    cached_result = MagicMock()
-    cached_result.status = QueryStatus.SUCCESS
-    cached_result.data = cached_df
-    cached_result.is_cached = True
+    from superset_core.queries.types import QueryResult, StatementResult
+
+    cached_result = QueryResult(
+        status=QueryStatus.SUCCESS,
+        statements=[
+            StatementResult(
+                original_sql="SELECT * FROM users",
+                executed_sql="SELECT * FROM users",
+                data=cached_df,
+                row_count=2,
+                execution_time_ms=0,
+            )
+        ],
+        is_cached=True,
+    )
     mocker.patch.object(SQLExecutor, "_get_from_cache", return_value=cached_result)
 
     # get_raw_connection should NOT be called if cache hit
@@ -634,6 +644,8 @@ def test_execute_returns_cached_result(
 
     assert result.status == QueryStatus.SUCCESS
     assert result.is_cached is True
+    assert result.statements[0].data.equals(cached_df)
+    assert result.statements[0].row_count == 2
     get_conn_mock.assert_not_called()
 
 
@@ -2998,10 +3010,13 @@ def test_try_get_cached_result_with_mutation(
     assert result is None
 
 
+@pytest.mark.parametrize(
+    "status", [QueryStatus.FAILED, QueryStatus.STOPPED, QueryStatus.TIMED_OUT]
+)
 def test_store_in_cache_with_failed_status(
-    mocker: MockerFixture, database: Database, app_context: None
+    mocker: MockerFixture, database: Database, app_context: None, status: QueryStatus
 ) -> None:
-    """Test that failed queries are not cached."""
+    """Unsuccessful outcomes, including a winning Stop, are never cached."""
     from superset_core.queries.types import QueryResult as QueryResultType
 
     from superset.sql.execution.executor import SQLExecutor
@@ -3009,7 +3024,7 @@ def test_store_in_cache_with_failed_status(
     executor = SQLExecutor(database)
 
     failed_result = QueryResultType(
-        status=QueryStatus.FAILED,
+        status=status,
         error_message="Test error",
     )
 

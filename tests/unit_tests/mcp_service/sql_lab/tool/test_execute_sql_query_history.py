@@ -159,3 +159,62 @@ async def test_execute_sql_records_cached_query(
     assert query.status == "success"
     assert query.rows == 1
     assert query.extra.get("is_cached") is True
+
+
+@pytest.mark.asyncio
+async def test_execute_sql_deadline_finishes_query(
+    session: Session, database: Database
+) -> None:
+    """A worker deadline finishes history before the transport reports timeout."""
+    from fastmcp.exceptions import ToolError
+
+    from superset.mcp_service.worker import WorkerDeadlineExceeded
+
+    with patch(
+        "superset.sql.execution.cancellation.check_query_deadline",
+        side_effect=[None, WorkerDeadlineExceeded()],
+    ) as check:
+        with pytest.raises(ToolError, match="timed out"):
+            await call("execute_sql", {"database_id": database.id, "sql": "SELECT 1"})
+    assert check.call_count == 2
+    query = session.query(Query).one()
+    assert query.status == "timed_out"
+    assert query.end_time >= query.start_running_time
+    assert query.error_message == "Query exceeded the timeout limit"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("redirect", [False, True])
+async def test_execute_sql_oauth_returns_query_id(
+    session: Session, database: Database, redirect: bool
+) -> None:
+    """Both OAuth response variants identify the failed run in history."""
+    from superset.exceptions import OAuth2Error, OAuth2RedirectError
+
+    error = (
+        OAuth2RedirectError(
+            url="https://example.com/authorize",
+            tab_id="tab",
+            redirect_uri="https://example.com/callback",
+        )
+        if redirect
+        else OAuth2Error("missing configuration")
+    )
+    with patch.object(database.db_engine_spec, "execute", side_effect=error):
+        response = await call(
+            "execute_sql", {"database_id": database.id, "sql": "SELECT 1"}
+        )
+    assert response["success"] is False
+    query = session.query(Query).one()
+    assert query.status == "failed"
+    assert query.end_time >= query.start_running_time
+    assert response["query_id"] == query.id
+
+
+def test_execute_sql_query_id_documents_missing_history() -> None:
+    """The schema must not promise an ID for pre-execution or history failures."""
+    from superset.mcp_service.sql_lab.schemas import ExecuteSqlResponse
+
+    description = ExecuteSqlResponse.model_fields["query_id"].description
+    assert "errors before" in description
+    assert "cache-hit history" in description

@@ -438,6 +438,7 @@ class OAuth2RedirectError(SupersetErrorException):
     """
 
     status = 403
+    query_id: int | None = None
 
     def __init__(self, url: str, tab_id: str, redirect_uri: str):
         super().__init__(
@@ -480,6 +481,8 @@ class OAuth2Error(SupersetErrorException):
     """
     Exception for when OAuth2 goes wrong.
     """
+
+    query_id: int | None = None
 
     def __init__(self, error: str):
         super().__init__(
