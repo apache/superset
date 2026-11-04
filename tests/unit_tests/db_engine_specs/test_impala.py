@@ -15,16 +15,21 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Iterator
 from datetime import datetime
-from typing import Optional
-from unittest.mock import Mock, patch
+from typing import Any, Optional
+from unittest.mock import call, MagicMock, Mock, patch
 
 import pytest
+from celery.exceptions import SoftTimeLimitExceeded
 from pytest_mock import MockerFixture
 
 from superset.db_engine_specs.impala import ImpalaEngineSpec as spec  # noqa: N813
+from superset.errors import ErrorLevel, SupersetErrorType
+from superset.exceptions import SupersetTimeoutException
 from superset.models.core import Database
 from superset.models.sql_lab import Query
+from superset.sql.execution.executor import _LimitedCursor
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
@@ -182,10 +187,33 @@ class _DriverError(Exception):
     """Represent impyla's optional DB-API error base in unit tests."""
 
 
+class _RejectedReplyError(_DriverError):
+    """Represent impyla's error for an error status, read in full."""
+
+
+@pytest.fixture(autouse=True)
+def clean_transport() -> Iterator[Mock]:
+    """
+    Stub local transport drops for mock cursors.
+
+    Mock cursors have no Thrift transport; resets over real impyla transports
+    are covered in ``test_impala_transport.py``.
+    """
+    with patch.object(spec, "_reset_transport", return_value=True) as reset_transport:
+        yield reset_transport
+
+
 @pytest.fixture
 def impala_errors(mocker: MockerFixture) -> None:
     """Provide driver errors without requiring the optional impyla package."""
-    mocker.patch.dict("sys.modules", {"impala.error": Mock(Error=_DriverError)})
+    mocker.patch.dict(
+        "sys.modules",
+        {
+            "impala.error": Mock(
+                Error=_DriverError, HiveServer2Error=_RejectedReplyError
+            )
+        },
+    )
 
 
 class _AsyncCursor:
@@ -254,6 +282,53 @@ def test_fetch_data_timeout(
     assert monotonic_mock.call_count == 3
 
 
+@patch("superset.db_engine_specs.impala.time.monotonic", side_effect=[0, 31])
+def test_fetch_data_deadline_releases_operation_when_cancel_fails(
+    monotonic_mock: Mock, app_context: None, impala_errors: None
+) -> None:
+    """A rejected cancel must not mask the deadline or retain operation handles."""
+    from flask import current_app
+
+    cursor = Mock()
+    cursor.is_executing.return_value = True
+    cursor.cancel_operation.side_effect = _RejectedReplyError("cancel rejected")
+
+    with patch.dict(current_app.config, SQLLAB_TIMEOUT=30):
+        with pytest.raises(TimeoutError, match="Timed out waiting"):
+            spec.fetch_data(cursor)
+
+    cursor.cancel_operation.assert_called_once_with()
+    cursor.close_operation.assert_called_once_with()
+    cursor.close.assert_called_once_with()
+    cursor.fetchall.assert_not_called()
+    assert monotonic_mock.call_count == 2
+
+
+@patch("superset.db_engine_specs.impala.time.monotonic", side_effect=[0, 31])
+def test_fetch_data_deadline_abandons_the_cursor_when_the_cancel_reply_is_unread(
+    monotonic_mock: Mock,
+    clean_transport: Mock,
+    app_context: None,
+    impala_errors: None,
+) -> None:
+    """A cancel that failed partway through its reply ends the cleanup."""
+    from flask import current_app
+
+    cursor = Mock()
+    cursor.is_executing.return_value = True
+    cursor.cancel_operation.side_effect = _DriverError("connection lost")
+
+    with patch.dict(current_app.config, SQLLAB_TIMEOUT=30):
+        with pytest.raises(TimeoutError, match="Timed out waiting"):
+            spec.fetch_data(cursor)
+
+    cursor.close_operation.assert_not_called()
+    cursor.close.assert_not_called()
+    assert cursor._closed is True
+    # The transport is dropped, not reconnected, so the next RPC opens it.
+    clean_transport.assert_called_once_with(cursor, reconnect=False)
+
+
 @pytest.mark.parametrize("error", [TypeError("bug"), AttributeError("bug")])
 @patch.object(spec, "get_dbapi_mapped_exception")
 def test_fetch_data_preserves_programming_errors(
@@ -286,12 +361,10 @@ def test_fetch_data_async_result_set(app_context: None, impala_errors: None) -> 
     cursor.cancel_operation.assert_not_called()
 
 
-def test_the_partition_transform_default_is_impala_syntax() -> None:
+def test_impala_does_not_guess_the_epoch_partition_bucket() -> None:
     from superset.db_engine_specs.impala import ImpalaEngineSpec
 
-    assert (
-        ImpalaEngineSpec.partition_value_transform_default == "unix_timestamp(:value)"
-    )
+    assert ImpalaEngineSpec.partition_value_transform_default is None
 
 
 def test_engines_without_a_sensible_default_offer_none() -> None:
@@ -304,3 +377,418 @@ def test_engines_without_a_sensible_default_offer_none() -> None:
 
     assert BaseEngineSpec.partition_value_transform_default is None
     assert PostgresEngineSpec.partition_value_transform_default is None
+
+
+@pytest.mark.parametrize(
+    "timeout",
+    [
+        SoftTimeLimitExceeded(),
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="The query exceeded the 30 seconds timeout.",
+            level=ErrorLevel.ERROR,
+        ),
+    ],
+    ids=["async", "sync"],
+)
+@patch("superset.db_engine_specs.impala.time.sleep")
+def test_fetch_data_cancels_the_operation_on_time_limit(
+    sleep_mock: Mock, timeout: Exception, app_context: None, impala_errors: None
+) -> None:
+    """A SQL Lab time limit between RPCs cancels before propagating."""
+    sleep_mock.side_effect = timeout
+    cursor = Mock()
+    cursor.is_executing.return_value = True
+    with pytest.raises(type(timeout)):
+        spec.fetch_data(cursor)
+    cursor.cancel_operation.assert_called_once_with(reset_state=False)
+    cursor.fetchall.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "cancel_timeout_type", [SoftTimeLimitExceeded, SupersetTimeoutException]
+)
+@patch("superset.db_engine_specs.impala.time.sleep")
+def test_fetch_data_preserves_time_limit_when_cancellation_times_out(
+    sleep_mock: Mock,
+    cancel_timeout_type: type[Exception],
+    app_context: None,
+    impala_errors: None,
+) -> None:
+    """A second limit during cancellation must not replace the polling limit."""
+    original_timeout = SoftTimeLimitExceeded("waiting")
+    cancel_timeout: Exception
+    if cancel_timeout_type is SupersetTimeoutException:
+        cancel_timeout = SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="Timed out during cancellation",
+            level=ErrorLevel.ERROR,
+        )
+    else:
+        cancel_timeout = cancel_timeout_type("cancelling")
+    sleep_mock.side_effect = original_timeout
+    cursor = Mock()
+    cursor.is_executing.return_value = True
+    cursor.cancel_operation.side_effect = cancel_timeout
+
+    with pytest.raises(SoftTimeLimitExceeded) as raised:
+        spec.fetch_data(cursor)
+
+    assert raised.value is original_timeout
+    cursor.cancel_operation.assert_called_once_with(reset_state=False)
+    cursor.fetchall.assert_not_called()
+
+
+@pytest.mark.parametrize("cancel_fails", [False, True])
+@pytest.mark.parametrize(
+    "timeout",
+    [
+        SoftTimeLimitExceeded(),
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="Timed out fetching rows",
+            level=ErrorLevel.ERROR,
+        ),
+    ],
+    ids=["async", "sync"],
+)
+def test_fetch_data_cancels_on_clean_transport_row_fetch_limit(
+    timeout: Exception,
+    cancel_fails: bool,
+    app_context: None,
+    impala_errors: None,
+) -> None:
+    """A time limit after polling ends cancels even when the cancel RPC fails."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    cursor = Mock()
+    cursor.is_executing.return_value = False
+    cursor.execution_failed.return_value = False
+    if cancel_fails:
+        cursor.cancel_operation.side_effect = RuntimeError("cancel RPC failed")
+
+    with patch.object(BaseEngineSpec, "fetch_data", side_effect=timeout) as fetch:
+        with pytest.raises(type(timeout)) as raised:
+            spec.fetch_data(cursor, 10)
+
+    assert raised.value is timeout
+    fetch.assert_called_once_with(cursor, 10)
+    cursor.cancel_operation.assert_called_once_with(reset_state=False)
+
+
+@pytest.mark.parametrize("cancel_fails", [False, True])
+def test_fetch_data_cancels_after_mock_fetch_limit(
+    cancel_fails: bool,
+    clean_transport: Mock,
+    app_context: None,
+    impala_errors: None,
+) -> None:
+    """A mock fetch limit leaves the transport clean, including a rejected cancel."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    cursor = Mock()
+    cursor.is_executing.return_value = False
+    cursor.execution_failed.return_value = False
+    calls = MagicMock()
+    calls.attach_mock(clean_transport, "reset_transport")
+    calls.attach_mock(cursor.cancel_operation, "cancel_operation")
+    if cancel_fails:
+        cursor.cancel_operation.side_effect = _RejectedReplyError("cancel rejected")
+    timeout = SoftTimeLimitExceeded()
+
+    with patch.object(BaseEngineSpec, "fetch_data", side_effect=timeout):
+        with pytest.raises(SoftTimeLimitExceeded) as raised:
+            spec.fetch_data(cursor)
+
+    assert raised.value is timeout
+    assert calls.mock_calls == [
+        call.cancel_operation(reset_state=False),
+        call.reset_transport(cursor, reconnect=False),
+    ]
+    cursor.close_operation.assert_not_called()
+    cursor.close.assert_not_called()
+
+
+@pytest.mark.parametrize("interrupted_rpc", ["status", "get_log"])
+@pytest.mark.parametrize("cancel_fails", [False, True])
+@pytest.mark.parametrize(
+    "timeout",
+    [
+        SoftTimeLimitExceeded(),
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="Timed out polling the operation",
+            level=ErrorLevel.ERROR,
+        ),
+    ],
+    ids=["async", "sync"],
+)
+def test_handle_cursor_cancels_after_mock_poll_limit(
+    interrupted_rpc: str,
+    cancel_fails: bool,
+    timeout: Exception,
+    clean_transport: Mock,
+    app_context: None,
+    impala_errors: None,
+) -> None:
+    """Mock status/log limits leave a clean transport available for cancellation."""
+    cursor = Mock()
+    cursor.status.return_value = "RUNNING_STATE"
+    getattr(cursor, interrupted_rpc).side_effect = timeout
+    if cancel_fails:
+        cursor.cancel_operation.side_effect = _RejectedReplyError("cancel rejected")
+    query = Mock(id=1, extra={}, status="running", progress=0)
+    calls = MagicMock()
+    calls.attach_mock(clean_transport, "reset_transport")
+    calls.attach_mock(cursor.cancel_operation, "cancel_operation")
+    calls.attach_mock(cursor.close_operation, "close_operation")
+    calls.attach_mock(cursor.close, "close")
+
+    with patch("superset.db_engine_specs.impala.db"):
+        with pytest.raises(type(timeout)) as raised:
+            spec.handle_cursor(cursor, query)
+
+    assert raised.value is timeout
+    assert calls.mock_calls == [
+        call.cancel_operation(),
+        call.close_operation(),
+        call.close(),
+    ]
+
+
+@pytest.mark.parametrize(
+    "reset_outcome",
+    [{"return_value": False}, {"side_effect": OSError("connection refused")}],
+    ids=["unknown_transport", "reopen_fails"],
+)
+@pytest.mark.parametrize("interrupted_rpc", ["status", "get_log", "fetch"])
+@pytest.mark.parametrize(
+    "timeout",
+    [
+        SoftTimeLimitExceeded(),
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="Timed out polling the operation",
+            level=ErrorLevel.ERROR,
+        ),
+    ],
+    ids=["async", "sync"],
+)
+def test_time_limit_skips_cancel_rpcs_without_a_clean_transport(
+    reset_outcome: dict[str, Any],
+    interrupted_rpc: str,
+    timeout: Exception,
+    clean_transport: Mock,
+    app_context: None,
+    impala_errors: None,
+) -> None:
+    """No RPC is sent on a transport that may hold an interrupted reply."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    clean_transport.configure_mock(**reset_outcome)
+    cursor = Mock()
+    cursor.status.return_value = "RUNNING_STATE"
+    cursor.is_executing.return_value = False
+    cursor.execution_failed.return_value = False
+    query = Mock(id=1, extra={}, status="running", progress=0)
+    spec.prepare_cursor(cursor)
+    guard = cursor.session.service.client
+    guard._client.InterruptedRPC.side_effect = timeout
+
+    with (
+        patch("superset.db_engine_specs.impala.db"),
+        patch.object(BaseEngineSpec, "fetch_data", side_effect=guard.InterruptedRPC),
+    ):
+        if interrupted_rpc == "fetch":
+            with pytest.raises(type(timeout)) as raised:
+                spec.fetch_data(cursor)
+        else:
+            getattr(cursor, interrupted_rpc).side_effect = guard.InterruptedRPC
+            with pytest.raises(type(timeout)) as raised:
+                spec.handle_cursor(cursor, query)
+
+    assert raised.value is timeout
+    # The transport is dropped once without reconnecting.
+    assert clean_transport.mock_calls == [call(cursor, reconnect=False)]
+    cursor.cancel_operation.assert_not_called()
+    cursor.close_operation.assert_not_called()
+    cursor.close.assert_not_called()
+    # impyla's close() and finalizer skip a cursor marked closed.
+    assert cursor._closed is True
+
+
+@pytest.mark.parametrize(
+    "second_timeout_type",
+    [SoftTimeLimitExceeded, SupersetTimeoutException],
+)
+def test_time_limit_during_transport_reset_propagates(
+    second_timeout_type: type[Exception],
+    clean_transport: Mock,
+    app_context: None,
+    impala_errors: None,
+) -> None:
+    """A second limit while resetting must not hide the original time limit."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    second_timeout: Exception
+    if second_timeout_type is SoftTimeLimitExceeded:
+        second_timeout = SoftTimeLimitExceeded("resetting")
+    else:
+        second_timeout = SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="Timed out resetting the transport",
+            level=ErrorLevel.ERROR,
+        )
+    clean_transport.side_effect = second_timeout
+    cursor = Mock()
+    cursor.is_executing.return_value = False
+    cursor.execution_failed.return_value = False
+    cursor.cancel_operation.side_effect = OSError("cancel transport failed")
+
+    original_timeout = SoftTimeLimitExceeded("fetching")
+    with patch.object(BaseEngineSpec, "fetch_data", side_effect=original_timeout):
+        with pytest.raises(SoftTimeLimitExceeded) as raised:
+            spec.fetch_data(cursor)
+
+    assert raised.value is original_timeout
+    cursor.cancel_operation.assert_called_once_with(reset_state=False)
+    assert cursor._closed is True
+
+
+@pytest.mark.parametrize(
+    "cleanup_rpc", ["cancel_operation", "close_operation", "close"]
+)
+@pytest.mark.parametrize(
+    "second_timeout",
+    [
+        SoftTimeLimitExceeded("cleanup"),
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="Timed out during cleanup",
+            level=ErrorLevel.ERROR,
+        ),
+    ],
+    ids=["async", "sync"],
+)
+def test_fetch_time_limit_preserved_when_rpc_cleanup_times_out(
+    cleanup_rpc: str,
+    second_timeout: Exception,
+    clean_transport: Mock,
+    app_context: None,
+    impala_errors: None,
+) -> None:
+    """Clean-transport cancellation runs once and preserves the original limit."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    cursor = Mock()
+    cursor.is_executing.return_value = False
+    cursor.execution_failed.return_value = False
+    getattr(cursor, cleanup_rpc).side_effect = second_timeout
+
+    original_timeout = SoftTimeLimitExceeded("fetching")
+    with patch.object(BaseEngineSpec, "fetch_data", side_effect=original_timeout):
+        with pytest.raises(SoftTimeLimitExceeded) as raised:
+            spec.fetch_data(cursor)
+
+    assert raised.value is original_timeout
+    cursor.cancel_operation.assert_called_once_with(reset_state=False)
+    cursor.close_operation.assert_not_called()
+    cursor.close.assert_not_called()
+    assert cursor._closed is True
+    assert clean_transport.mock_calls == [call(cursor, reconnect=False)]
+
+
+@pytest.mark.parametrize(
+    "reset_outcome",
+    [{"return_value": False}, {"side_effect": OSError("connection refused")}],
+    ids=["unknown_transport", "reopen_fails"],
+)
+def test_time_limit_abandons_the_cursor_behind_a_row_limit(
+    reset_outcome: dict[str, Any],
+    clean_transport: Mock,
+    app_context: None,
+    impala_errors: None,
+) -> None:
+    """The closed flag reaches the cursor that SQL Lab closes, not the wrapper."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    clean_transport.configure_mock(**reset_outcome)
+    cursor = Mock()
+    cursor.is_executing.return_value = False
+    cursor.execution_failed.return_value = False
+    limited = _LimitedCursor(cursor, 10)
+    spec.prepare_cursor(cursor)
+    guard = cursor.session.service.client
+    guard._client.InterruptedRPC.side_effect = SoftTimeLimitExceeded()
+
+    with patch.object(BaseEngineSpec, "fetch_data", side_effect=guard.InterruptedRPC):
+        with pytest.raises(SoftTimeLimitExceeded):
+            spec.fetch_data(limited)
+
+    assert cursor._closed is True
+    assert "_closed" not in vars(limited)
+
+
+def test_closed_cursor_is_not_cancelled_again(
+    clean_transport: Mock, app_context: None
+) -> None:
+    """An abandoned or closed cursor sends nothing after a later time limit."""
+    cursor = Mock(_closed=True)
+
+    spec._abandon_cursor(cursor, 1)
+
+    clean_transport.assert_not_called()
+    cursor.cancel_operation.assert_not_called()
+
+
+@pytest.mark.parametrize("state", ["abandoned", "closed", "interrupted"])
+def test_time_limit_does_not_cancel_unusable_cursor(state: str) -> None:
+    """Skip cancellation for each cursor or client state that prohibits RPCs."""
+    from superset.utils.hive import ThriftClientGuard
+
+    cursor = Mock(_superset_abandoned=state == "abandoned", _closed=state == "closed")
+    guard = ThriftClientGuard(Mock())
+    cursor.session.service.client = guard
+    if state == "interrupted":
+        guard.abandon(SoftTimeLimitExceeded())
+        assert guard.interrupted
+
+    spec._cancel_operation_on_time_limit(cursor)
+
+    cursor.cancel_operation.assert_not_called()
+    cursor.close_operation.assert_not_called()
+    cursor.close.assert_not_called()
+
+
+@pytest.mark.parametrize("phase", ["poll", "rows"])
+@pytest.mark.parametrize(
+    "timeout",
+    [SoftTimeLimitExceeded(), KeyboardInterrupt()],
+    ids=["soft-limit", "timer-interrupt"],
+)
+def test_fetch_limit_cancels_without_close_rpcs(
+    phase: str,
+    timeout: BaseException,
+    clean_transport: Mock,
+    app_context: None,
+    impala_errors: None,
+) -> None:
+    """Only CancelOperation may consume the soft-to-hard time-limit gap."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    cursor = Mock()
+    cursor.is_executing.return_value = phase == "poll"
+    cursor.execution_failed.return_value = False
+    with (
+        patch("superset.db_engine_specs.impala.time.sleep", side_effect=timeout),
+        patch.object(BaseEngineSpec, "fetch_data", side_effect=timeout),
+    ):
+        with pytest.raises(type(timeout)) as raised:
+            spec.fetch_data(cursor)
+
+    assert raised.value is timeout
+    cursor.cancel_operation.assert_called_once_with(reset_state=False)
+    cursor.close_operation.assert_not_called()
+    cursor.close.assert_not_called()
+    clean_transport.assert_called_once_with(cursor, reconnect=False)
+    assert cursor._closed is True
