@@ -226,7 +226,7 @@
         "name": "ESTIMATE_QUERY_COST",
         "default": false,
         "lifecycle": "testing",
-        "description": "Enable query cost estimation. Supported in Presto, Postgres, and BigQuery. Requires `cost_estimate_enabled: true` in database `extra` attribute."
+        "description": "Enable query cost estimation. Supported in Presto, Postgres, BigQuery, and Oracle. Requires `cost_estimate_enabled: true` in database `extra` attribute."
       },
       {
         "name": "GLOBAL_ASYNC_QUERIES",

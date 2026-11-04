@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
 from datetime import datetime
 from typing import Any, Optional, Union
 from unittest import mock
@@ -88,6 +89,179 @@ def test_fetch_data_no_description() -> None:
     cursor = mock.MagicMock()
     cursor.description = []
     assert OracleEngineSpec.fetch_data(cursor) == []
+
+
+def test_oracle_estimate_statement_cost() -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    cursor = mock.MagicMock()
+    cursor.fetchone.return_value = (42, 17, 0.01, 168)
+
+    result = OracleEngineSpec.estimate_statement_cost(
+        mock.MagicMock(), "SELECT * FROM employees", cursor
+    )
+
+    assert result == {
+        "Estimated rows": 42,
+        "Optimizer cost": 17,
+        "Estimated time (s)": 0.01,
+        "Estimated bytes accessed": 168,
+    }
+    explain_sql = cursor.execute.call_args_list[0].args[0]
+    match = re.fullmatch(
+        r"EXPLAIN PLAN SET STATEMENT_ID = '([0-9a-f]{30})' "
+        r"FOR SELECT \* FROM employees",
+        explain_sql,
+    )
+    assert match is not None
+    cursor.execute.assert_any_call(
+        "SELECT cardinality, cost, time, bytes FROM plan_table "
+        "WHERE statement_id = :statement_id AND id = 0",
+        {"statement_id": match.group(1)},
+    )
+    assert cursor.execute.call_args_list[-1] == mock.call(
+        "DELETE FROM plan_table WHERE statement_id = :statement_id",
+        {"statement_id": match.group(1)},
+    )
+
+
+def test_oracle_estimate_empty_plan_cleans_up_and_preserves_columns() -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    cursor = mock.MagicMock()
+    cursor.fetchone.return_value = None
+    empty_estimate = OracleEngineSpec.estimate_statement_cost(
+        mock.MagicMock(), "SELECT 1 FROM dual", cursor
+    )
+    assert empty_estimate == {
+        "Estimated rows": None,
+        "Optimizer cost": None,
+        "Estimated time (s)": None,
+        "Estimated bytes accessed": None,
+    }
+    assert (
+        cursor.execute.call_args_list[-1].args[0].startswith("DELETE FROM plan_table")
+    )
+    cursor.fetchone.return_value = (1, 2, 1, 2)
+    later_estimate = OracleEngineSpec.estimate_statement_cost(
+        mock.MagicMock(), "SELECT dummy FROM dual", cursor
+    )
+    formatted = OracleEngineSpec.query_cost_formatter([empty_estimate, later_estimate])
+    assert set(formatted[0]) == set(formatted[1])
+    assert all(value == "" for value in formatted[0].values())
+    assert formatted[1]["Estimated bytes accessed"] == "2"
+
+
+@pytest.mark.parametrize("stage", ["select", "fetch"])
+def test_oracle_estimate_preserves_timeout_without_cleanup(stage: str) -> None:
+    """An injected timeout exception must not trigger another database call."""
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+    from superset.errors import ErrorLevel, SupersetErrorType
+    from superset.exceptions import SupersetTimeoutException
+
+    error = SupersetTimeoutException(
+        error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+        message="estimation timed out",
+        level=ErrorLevel.ERROR,
+    )
+    cursor = mock.MagicMock()
+    if stage == "select":
+        cursor.execute.side_effect = [None, error]
+    else:
+        cursor.fetchone.side_effect = error
+    with pytest.raises(SupersetTimeoutException) as exc:
+        OracleEngineSpec.estimate_statement_cost(
+            mock.MagicMock(), "SELECT 1 FROM dual", cursor
+        )
+    assert exc.value is error
+    assert cursor.execute.call_count == 2
+    assert cursor.execute.call_args_list[-1].args[0].startswith("SELECT")
+
+
+@pytest.mark.parametrize("error", [RuntimeError("fetch failed"), KeyboardInterrupt()])
+def test_oracle_estimate_preserves_fetch_failure_without_cleanup(
+    error: BaseException,
+) -> None:
+    """Errors and interruption leave rollback to the connection owner."""
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    cursor = mock.MagicMock()
+    cursor.fetchone.side_effect = error
+    with pytest.raises(type(error)) as exc:
+        OracleEngineSpec.estimate_statement_cost(
+            mock.MagicMock(), "SELECT 1 FROM dual", cursor
+        )
+    assert exc.value is error
+    assert cursor.execute.call_count == 2
+    assert cursor.execute.call_args_list[-1].args[0].startswith("SELECT")
+
+
+def test_oracle_estimate_propagates_cleanup_failure() -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    cursor = mock.MagicMock()
+    cursor.fetchone.return_value = (1, 1, 1, 2)
+    cursor.execute.side_effect = [None, None, RuntimeError("cleanup failed")]
+    with pytest.raises(RuntimeError, match="cleanup failed"):
+        OracleEngineSpec.estimate_statement_cost(
+            mock.MagicMock(), "SELECT 1 FROM dual", cursor
+        )
+
+
+def test_oracle_estimate_propagates_explain_failure() -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    cursor = mock.MagicMock()
+    cursor.execute.side_effect = RuntimeError("explain failed")
+    with pytest.raises(RuntimeError, match="explain failed"):
+        OracleEngineSpec.estimate_statement_cost(
+            mock.MagicMock(), "SELECT 1 FROM dual", cursor
+        )
+    cursor.execute.assert_called_once()
+
+
+def test_oracle_query_cost_formatter() -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    assert OracleEngineSpec.query_cost_formatter(
+        [
+            {
+                "Estimated rows": 42,
+                "Optimizer cost": 17,
+                "Estimated time (s)": 0.01,
+                "Estimated bytes accessed": 168,
+            }
+        ]
+    ) == [
+        {
+            "Estimated rows": "42",
+            "Optimizer cost": "17",
+            "Estimated time (s)": "0.01",
+            "Estimated bytes accessed": "168",
+        }
+    ]
+
+
+def test_oracle_query_cost_formatter_preserves_unavailable_estimates() -> None:
+    """Unavailable estimates remain blank without dropping their columns."""
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    assert OracleEngineSpec.query_cost_formatter(
+        [{"Optimizer cost": None, "Estimated time (s)": None, "Estimated rows": 0}, {}]
+    ) == [{"Optimizer cost": "", "Estimated time (s)": "", "Estimated rows": "0"}, {}]
+
+
+def test_oracle_query_cost_formatter_preserves_columns_for_later_statements() -> None:
+    """The modal derives its columns from the first statement's estimates."""
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    formatted = OracleEngineSpec.query_cost_formatter(
+        [{"Estimated bytes accessed": None}, {"Estimated bytes accessed": 2}]
+    )
+    assert formatted == [
+        {"Estimated bytes accessed": ""},
+        {"Estimated bytes accessed": "2"},
+    ]
 
 
 def test_fetch_data() -> None:
