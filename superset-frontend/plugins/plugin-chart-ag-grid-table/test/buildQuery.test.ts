@@ -88,6 +88,35 @@ test('applies grain to every temporal dimension and keeps the first axis first',
   ]);
 });
 
+test('marks semantic temporal dimensions as column references', () => {
+  const query = buildQueryUncached({
+    ...basicFormData,
+    datasource: '1__semantic_view',
+    groupby: ['StartDate', 'EndDate'],
+    time_grain_sqla: 'P1M',
+    temporal_columns_lookup: { StartDate: true, EndDate: true },
+  }).queries[0];
+
+  expect(query.columns).toEqual([
+    {
+      timeGrain: 'P1M',
+      columnType: 'BASE_AXIS',
+      sqlExpression: 'StartDate',
+      label: 'StartDate',
+      expressionType: 'SQL',
+      isColumnReference: true,
+    },
+    {
+      timeGrain: 'P1M',
+      columnType: 'BASE_AXIS',
+      sqlExpression: 'EndDate',
+      label: 'EndDate',
+      expressionType: 'SQL',
+      isColumnReference: true,
+    },
+  ]);
+});
+
 describe('plugin-chart-ag-grid-table', () => {
   describe('buildQuery - sort mapping for server pagination', () => {
     test('should map string column colId to backend identifier', () => {
