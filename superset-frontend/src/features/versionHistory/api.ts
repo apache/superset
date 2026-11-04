@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject, SupersetClient } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  JsonObject,
+  SupersetClient,
+} from '@superset-ui/core';
 import rison from 'rison';
 import { t } from '@apache-superset/core/translation';
 import { DASHBOARD_GET_COLUMNS } from 'src/hooks/apiResources/dashboards';
@@ -213,14 +218,23 @@ export const layoutChartId = (item: JsonObject): number | null => {
 export function swapUnreachableChartSlots(
   positionData: JsonObject,
   unreachableIds: Set<number>,
+  unavailableIds?: Set<number>,
 ): JsonObject {
-  if (unreachableIds.size === 0) {
+  if (unreachableIds.size === 0 && !unavailableIds?.size) {
     return positionData;
   }
+  const unavailableCode = isFeatureEnabled(FeatureFlag.SoftDelete)
+    ? t(
+        'This chart is archived or unavailable. An editor can restore archived charts from Recently Archived.',
+      )
+    : t('This chart is archived or unavailable.');
   const layout: JsonObject = { ...positionData };
   Object.entries(layout).forEach(([key, item]) => {
     const chartId = layoutChartId(item as JsonObject);
-    if (chartId !== null && unreachableIds.has(chartId)) {
+    if (
+      chartId !== null &&
+      (unreachableIds.has(chartId) || unavailableIds?.has(chartId))
+    ) {
       const meta = (item as JsonObject).meta as JsonObject;
       layout[key] = {
         ...(item as JsonObject),
@@ -228,7 +242,9 @@ export function swapUnreachableChartSlots(
         meta: {
           width: meta?.width,
           height: meta?.height,
-          code: t('This chart no longer exists.'),
+          code: unavailableIds?.has(chartId)
+            ? unavailableCode
+            : t('This chart no longer exists.'),
         },
       };
     }
