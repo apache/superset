@@ -25,6 +25,59 @@ from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 
 
+@pytest.mark.parametrize("datasource_type", ["table", "semantic_view"])
+def test_chart_datasource_filter_matches_id_and_type(datasource_type: str) -> None:
+    """Same-numbered tables and semantic views must remain distinct."""
+    from superset.charts.filters import ChartDatasourceFilter
+    from superset.models.slice import Slice
+
+    query: MagicMock = MagicMock()
+    filt: ChartDatasourceFilter = ChartDatasourceFilter.__new__(ChartDatasourceFilter)
+    filt.model = Slice
+
+    filt.apply(query, f"7__{datasource_type}")
+
+    clause: Any = query.filter.call_args.args[0]
+    compiled: str = str(
+        clause.compile(
+            create_engine("sqlite://"), compile_kwargs={"literal_binds": True}
+        )
+    )
+    assert "datasource_id = 7" in compiled
+    assert f"datasource_type = '{datasource_type}'" in compiled
+
+
+@pytest.mark.parametrize(
+    "identity",
+    [
+        "7__unknown",
+        "-7__table",
+        "7__table__extra",
+        "99999999999999999999__table",
+        None,
+        7,
+    ],
+)
+def test_chart_datasource_filter_rejects_malformed_identity(identity: object) -> None:
+    """Malformed filter values must not turn into an unfiltered chart list."""
+    from superset.charts.filters import ChartDatasourceFilter
+    from superset.models.slice import Slice
+
+    query: MagicMock = MagicMock()
+    filt: ChartDatasourceFilter = ChartDatasourceFilter.__new__(ChartDatasourceFilter)
+    filt.model = Slice
+
+    filt.apply(query, identity)
+
+    clause: Any = query.filter.call_args.args[0]
+    compiled: str = str(
+        clause.compile(
+            create_engine("sqlite://"), compile_kwargs={"literal_binds": True}
+        )
+    )
+    assert compiled == "0"
+
+
 def test_chart_filter_scopes_guest_to_token_dashboards(mocker: MockerFixture) -> None:
     """A guest's chart list is scoped to the dashboards in its token."""
     from superset.charts.filters import ChartFilter
