@@ -40,6 +40,9 @@ def _chart(chart_id: int, name: str) -> mock.MagicMock:
     return chart
 
 
+_EFD = {"filters": [{"col": "region", "op": "IN", "val": ["EU"]}]}
+
+
 @pytest.fixture
 def mocks(app_context: None) -> Iterator[dict[str, Any]]:
     with (
@@ -69,7 +72,9 @@ def mocks(app_context: None) -> Iterator[dict[str, Any]]:
 def test_permalink_created_from_exported_state(mocks: dict[str, Any]) -> None:
     mocks["CreateDashboardPermalinkCommand"].return_value.run.return_value = "abc"
     mocks["get_url_path"].return_value = "https://bi/superset/dashboard/p/abc/"
-    mask = {"NATIVE_FILTER-1": {"filterState": {"value": ["EU"]}}}
+    mask = {
+        "NATIVE_FILTER-1": {"extraFormData": _EFD, "filterState": {"value": ["EU"]}}
+    }
 
     info = describe_dashboard_export(5, mask)
 
@@ -85,20 +90,28 @@ def test_permalink_created_from_exported_state(mocks: dict[str, Any]) -> None:
 
 def test_native_filter_uses_configured_name_and_label(mocks: dict[str, Any]) -> None:
     mask = {
-        "NATIVE_FILTER-1": {"filterState": {"value": ["EU", "US"], "label": "EU, US"}}
+        "NATIVE_FILTER-1": {
+            "extraFormData": _EFD,
+            "filterState": {"value": ["EU", "US"], "label": "EU, US"},
+        }
     }
     info = describe_dashboard_export(5, mask)
     assert info.applied_filters == [AppliedFilter("Region", "EU, US")]
 
 
 def test_value_joined_when_no_label(mocks: dict[str, Any]) -> None:
-    mask = {"NATIVE_FILTER-1": {"filterState": {"value": ["EU", "US"]}}}
+    mask = {
+        "NATIVE_FILTER-1": {
+            "extraFormData": _EFD,
+            "filterState": {"value": ["EU", "US"]},
+        }
+    }
     info = describe_dashboard_export(5, mask)
     assert info.applied_filters == [AppliedFilter("Region", "EU, US")]
 
 
 def test_scalar_value_stringified(mocks: dict[str, Any]) -> None:
-    mask = {"NATIVE_FILTER-1": {"filterState": {"value": 3}}}
+    mask = {"NATIVE_FILTER-1": {"extraFormData": _EFD, "filterState": {"value": 3}}}
     info = describe_dashboard_export(5, mask)
     assert info.applied_filters == [AppliedFilter("Region", "3")]
 
@@ -106,15 +119,15 @@ def test_scalar_value_stringified(mocks: dict[str, Any]) -> None:
 def test_keys_that_are_not_native_filters_are_ignored(mocks: dict[str, Any]) -> None:
     mocks["get_charts_in_layout_order"].return_value = [_chart(12, "Top regions")]
     mask = {
-        "12": {"filterState": {"value": ["EU"]}},
-        "NATIVE_FILTER-9": {"filterState": {"value": ["x"]}},
+        "12": {"extraFormData": _EFD, "filterState": {"value": ["EU"]}},
+        "NATIVE_FILTER-9": {"extraFormData": _EFD, "filterState": {"value": ["x"]}},
     }
     assert describe_dashboard_export(5, mask).applied_filters == []
 
 
 @pytest.mark.parametrize("empty", [None, [], ""])
 def test_empty_filters_dropped(mocks: dict[str, Any], empty: Any) -> None:
-    mask = {"NATIVE_FILTER-1": {"filterState": {"value": empty}}}
+    mask = {"NATIVE_FILTER-1": {"extraFormData": _EFD, "filterState": {"value": empty}}}
     assert describe_dashboard_export(5, mask).applied_filters == []
 
 
@@ -130,8 +143,8 @@ def test_filters_in_sorted_id_order(mocks: dict[str, Any]) -> None:
         ]
     }
     mask = {
-        "b": {"filterState": {"value": [2]}},
-        "a": {"filterState": {"value": [1]}},
+        "b": {"extraFormData": _EFD, "filterState": {"value": [2]}},
+        "a": {"extraFormData": _EFD, "filterState": {"value": [1]}},
     }
     info = describe_dashboard_export(5, mask)
     assert info.applied_filters == [AppliedFilter("a", "1"), AppliedFilter("b", "2")]
@@ -160,7 +173,12 @@ def test_saved_default_listed_when_mask_has_no_entry(mocks: dict[str, Any]) -> N
 
 def test_active_entry_overrides_saved_default(mocks: dict[str, Any]) -> None:
     _use_filter_with_default(mocks)
-    mask = {"NATIVE_FILTER-1": {"filterState": {"value": None}}}
+    mask = {"NATIVE_FILTER-1": {"extraFormData": {}, "filterState": {"value": None}}}
+    assert describe_dashboard_export(5, mask).applied_filters == []
+
+
+def test_value_without_extra_form_data_not_listed(mocks: dict[str, Any]) -> None:
+    mask = {"NATIVE_FILTER-1": {"extraFormData": {}, "filterState": {"value": ["EU"]}}}
     assert describe_dashboard_export(5, mask).applied_filters == []
 
 
@@ -217,7 +235,7 @@ def test_malformed_mask_entries_skipped(mocks: dict[str, Any], entry: Any) -> No
     }
     mask = {
         "NATIVE_FILTER-1": entry,
-        "NATIVE_FILTER-2": {"filterState": {"value": ["EU"]}},
+        "NATIVE_FILTER-2": {"extraFormData": _EFD, "filterState": {"value": ["EU"]}},
     }
     info = describe_dashboard_export(5, mask)
     assert info.applied_filters == [AppliedFilter("Country", "EU")]
