@@ -534,9 +534,7 @@ class TestAbortCheckSessionCleanup:
     @patch("superset.db")
     @patch("superset.tasks.manager.TaskManager._check_abort_status")
     @patch("superset.coordination.base.CoordinationService.listen_for_signal")
-    def test_successful_poll_releases_session(
-        self, mock_listen, mock_check, mock_db
-    ):
+    def test_successful_poll_releases_session(self, mock_listen, mock_check, mock_db):
         mock_check.return_value = False
         TaskManager.listen_for_abort("u", MagicMock(), 1.0, app=None)
 
