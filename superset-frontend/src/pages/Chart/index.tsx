@@ -417,6 +417,7 @@ export default function ExplorePage() {
     return (
       <OAuth2RedirectMessage
         error={authenticationError}
+        closable={false}
         source="explore"
         errorMitigationFunction={() => {
           setIsLoaded(false);

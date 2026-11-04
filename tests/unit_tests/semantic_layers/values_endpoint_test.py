@@ -24,6 +24,7 @@ header contract.
 
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import MagicMock
 
@@ -887,3 +888,88 @@ def test_ambiguous_values_are_a_400_without_query_or_cache_write(
     assert "ambiguous" in response.json["message"]
     implementation.get_values.assert_not_called()
     cache.set.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "method,path,payload",
+    [
+        (
+            "get_values",
+            "/api/v1/datasource/semantic_view/1/column/category/values/",
+            None,
+        ),
+        ("get_compatible_metrics", "/api/v1/datasource/semantic_view/1/compatible", {}),
+        (
+            "get_compatible_dimensions",
+            "/api/v1/datasource/semantic_view/1/compatible",
+            {},
+        ),
+        (
+            "get_metrics",
+            "/api/v1/datasource/semantic_view/1/compatible",
+            {"selected_metrics": ["orders"]},
+        ),
+    ],
+)
+def test_metadata_endpoints_preserve_oauth(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+    method: str,
+    path: str,
+    payload: dict[str, Any] | None,
+) -> None:
+    """Metadata calls preserve structured authorization rather than generic 500s."""
+    from superset.exceptions import OAuth2RedirectError
+
+    mocker.patch(
+        "superset.datasource.api.cache_manager"
+    ).data_cache.get.return_value = None
+    error = OAuth2RedirectError("/connect", "flow", "/complete")
+    getattr(semantic_view_datasource.implementation, method).side_effect = error
+    response = client.get(path) if payload is None else client.post(path, json=payload)
+    assert response.status_code == 403
+    assert response.json["errors"][0]["error_type"] == "OAUTH2_REDIRECT"
+    assert response.json["errors"][0]["extra"] == error.error.extra
+
+
+def test_compatibility_cache_is_user_scoped(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+) -> None:
+    """Even empty selections cannot return another user's cached member lists."""
+    cached: dict[str, Any] = {}
+    cache = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.side_effect = cached.get
+    cache.set.side_effect = lambda key, value, **kwargs: cached.update({key: value})
+    identity = mocker.patch("superset.datasource.api.get_user_id", return_value=1)
+    provider = semantic_view_datasource.implementation
+    provider.get_compatible_metrics.return_value = [
+        SimpleNamespace(**{"name": "alice_metric"})
+    ]
+    provider.get_compatible_dimensions.return_value = [
+        SimpleNamespace(**{"name": "alice_dimension"})
+    ]
+    path = "/api/v1/datasource/semantic_view/1/compatible"
+    assert client.post(path, json={}).json["result"]["compatible_metrics"] == [
+        "alice_metric"
+    ]
+    identity.return_value = 2
+    provider.get_compatible_metrics.return_value = [
+        SimpleNamespace(**{"name": "bob_metric"})
+    ]
+    provider.get_compatible_dimensions.return_value = [
+        SimpleNamespace(**{"name": "bob_dimension"})
+    ]
+    assert client.post(path, json={}).json["result"]["compatible_metrics"] == [
+        "bob_metric"
+    ]
+    assert len(cached) == 2
+    assert provider.get_compatible_metrics.call_count == 2
+    assert client.post(path, json={}).json["result"]["compatible_metrics"] == [
+        "bob_metric"
+    ]
+    assert provider.get_compatible_metrics.call_count == 2

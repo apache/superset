@@ -102,8 +102,8 @@ def test_connection_credentials_cache_keys(
     assert keys == [
         # Dimension values use the requesting user's OAuth cache partition.
         "col_values:ef5f1012d43907f9aeed4b06bc9f847dfe2d6bf2117d7ecaf806d1a484df5bff",
-        # Compatibility identity includes changed_on="None" for this view.
-        "compatible:a2e526c4cd1db4f68fd34cc7dffe06cc4fbd029975f2147b4b11bb55179795b8",
+        # Compatibility identity includes the requesting user and changed_on.
+        "compatible:351b2fd9f6ac71f0b838d50f784023f4072f37aef78f08205f4b0f492a49520f",
         # Chart keys also include the requesting user's OAuth cache partition.
         "14ee069dbffd0f7ca50bb720f7d2b9b1d2d4ade37cf50661e33562913dba0e6a",
     ]

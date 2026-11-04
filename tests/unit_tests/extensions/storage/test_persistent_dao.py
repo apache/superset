@@ -1121,3 +1121,95 @@ def test_list_returns_empty_when_no_entries_match(
 
     assert entries == []
     assert total_count == 0
+
+
+@pytest.mark.parametrize("resource_scoped", [False, True])
+def test_frontend_crud_preserves_backend_row(
+    app: Flask,
+    list_session: Session,
+    resource_scoped: bool,
+) -> None:
+    """Real scoped queries cannot read, overwrite, or remove a personal secret."""
+    resource_type = "chart" if resource_scoped else None
+    resource_uuid = "chart-uuid" if resource_scoped else None
+    backend = _create_entry(
+        list_session,
+        "ext",
+        "oauth",
+        b"secret",
+        user_fk=42,
+        resource_type=resource_type,
+        resource_uuid=resource_uuid,
+        access=StorageAccess.BACKEND,
+    )
+    frontend = _create_entry(
+        list_session,
+        "ext",
+        "oauth",
+        b"public",
+        user_fk=42,
+        resource_type=resource_type,
+        resource_uuid=resource_uuid,
+    )
+    list_session.commit()
+    with (
+        app.app_context(),
+        patch("superset.extensions.storage.persistent_dao.db") as database,
+    ):
+        database.session = list_session
+        entry = ExtensionStorageDAO.get(
+            "ext",
+            "oauth",
+            user_fk=42,
+            resource_type=resource_type,
+            resource_uuid=resource_uuid,
+        )
+        assert entry is not None
+        assert entry.id == frontend.id
+        ExtensionStorageDAO.set(
+            "ext",
+            "oauth",
+            b"updated",
+            user_fk=42,
+            resource_type=resource_type,
+            resource_uuid=resource_uuid,
+        )
+        entry = ExtensionStorageDAO.get(
+            "ext",
+            "oauth",
+            user_fk=42,
+            resource_type=resource_type,
+            resource_uuid=resource_uuid,
+        )
+        assert entry is not None
+        assert entry.value == b"updated"
+        assert ExtensionStorageDAO.delete_by_key(
+            "ext",
+            "oauth",
+            user_fk=42,
+            resource_type=resource_type,
+            resource_uuid=resource_uuid,
+        )
+        assert (
+            ExtensionStorageDAO.get(
+                "ext",
+                "oauth",
+                user_fk=42,
+                resource_type=resource_type,
+                resource_uuid=resource_uuid,
+            )
+            is None
+        )
+        list_session.refresh(backend)
+        assert backend.value == b"secret"
+        assert backend.access == StorageAccess.BACKEND.value
+        entry = ExtensionStorageDAO.get(
+            "ext",
+            "oauth",
+            access=StorageAccess.BACKEND,
+            user_fk=42,
+            resource_type=resource_type,
+            resource_uuid=resource_uuid,
+        )
+        assert entry is not None
+        assert entry.id == backend.id

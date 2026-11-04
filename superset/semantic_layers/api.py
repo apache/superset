@@ -397,7 +397,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     @requires_json
-    def post(self) -> Response:
+    def post(self) -> Response:  # noqa: C901
         """Bulk create semantic views.
         ---
         post:
@@ -435,6 +435,8 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             422:
               $ref: '#/components/responses/422'
         """
@@ -477,6 +479,12 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
             try:
                 new_model = CreateSemanticViewCommand(item).run()
                 created.append({"uuid": str(new_model.uuid), "name": new_model.name})
+            except OAuth2RedirectError as ex:
+                return self.response(
+                    403,
+                    errors=[ex.error.to_dict()],
+                    result={"created": created, "errors": errors},
+                )
             except SemanticLayerNotFoundError:
                 errors.append(
                     {"name": view_data.get("name"), "error": "Semantic layer not found"}
@@ -923,7 +931,9 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
             # configuring a layer, so it requires write access; read-only callers
             # get the static schema.
             parsed_config = None
-            readiness: SemanticCredentialReadiness = SemanticCredentialReadiness.UNRESOLVED
+            readiness: SemanticCredentialReadiness = (
+                SemanticCredentialReadiness.UNRESOLVED
+            )
             config: Any
             if isinstance(
                 config := body.get("configuration"), dict
@@ -936,7 +946,9 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
             warning: str | None = None
             try:
                 schema: dict[str, Any] = cls.get_configuration_schema(
-                    parsed_config, transport=build_provider_transport(), readiness=readiness
+                    parsed_config,
+                    transport=build_provider_transport(),
+                    readiness=readiness,
                 )
             except Exception as ex:  # pylint: disable=broad-except
                 # Keep public guidance stable; unknown diagnostics require DEBUG logs.

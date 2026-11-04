@@ -490,6 +490,11 @@ SDK. The accessor intentionally has no `list()` or `.shared` operation. Use
 deployment configuration for extension-wide client secrets or service
 credentials.
 
+Secret writes and removals commit in a separate database session. They survive
+a later failure or rollback of the operation that requested credentials, without
+committing unrelated changes in that operation. This preserves rotated refresh
+tokens even when a subsequent provider call fails.
+
 Secret operations require an authenticated principal. Background work must
 execute with the identity of the user who initiated it; the accessor fails
 closed when no user identity is available.

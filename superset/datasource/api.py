@@ -69,6 +69,7 @@ from superset.utils.core import (
 from superset.utils.error_sanitization import sanitize_error_message
 from superset.utils.hashing import hash_from_dict
 from superset.views.base_api import BaseSupersetApi, protect_read, statsd_metrics
+from superset.views.error_handling import handle_api_exception
 
 logger = logging.getLogger(__name__)
 
@@ -229,7 +230,7 @@ class DatasourceRestApi(BaseSupersetApi):
         methods=("GET",),
     )
     @protect()
-    @safe
+    @handle_api_exception
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: (
@@ -594,7 +595,7 @@ class DatasourceRestApi(BaseSupersetApi):
         methods=("POST",),
     )
     @protect()
-    @safe
+    @handle_api_exception
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.compatible",
@@ -729,15 +730,16 @@ class DatasourceRestApi(BaseSupersetApi):
 
         # Build a stable cache key from the datasource identity and the
         # (sorted) selection so that order differences don't cause cache misses.
-        cache_key = "compatible:" + hash_from_dict(
-            {
-                "uid": datasource_uid,
-                "changed_on": str(getattr(datasource, "changed_on", "")),
-                "metadata_version": metadata_version,
-                "m": sorted(selected_metrics),
-                "d": sorted(selected_dimensions),
-            }
-        )
+        material: dict[str, Any] = {
+            "uid": datasource_uid,
+            "changed_on": str(getattr(datasource, "changed_on", "")),
+            "metadata_version": metadata_version,
+            "m": sorted(selected_metrics),
+            "d": sorted(selected_dimensions),
+        }
+        if isinstance(datasource, SemanticView):
+            material["semantic_layer_user"] = get_user_id()
+        cache_key = "compatible:" + hash_from_dict(material)
 
         timeout: int = datasource.cache_timeout or app.config.get(
             "CACHE_DEFAULT_TIMEOUT", 300

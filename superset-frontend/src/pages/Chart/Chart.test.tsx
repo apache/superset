@@ -822,6 +822,9 @@ describe('ChartPage', () => {
       name: 'provide authorization',
     });
     expect(link).toHaveAttribute('href', '/oauth2/start');
+    expect(
+      document.querySelector('.ant-alert-close-icon'),
+    ).not.toBeInTheDocument();
     expect(hydrateSpy).not.toHaveBeenCalled();
     expect(toastSpy).not.toHaveBeenCalled();
     expect(

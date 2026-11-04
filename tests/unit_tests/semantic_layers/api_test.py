@@ -25,14 +25,14 @@ import pytest
 from flask.testing import FlaskClient
 from pydantic import BaseModel, Field, model_validator, SecretStr
 from pytest_mock import MockerFixture
-from superset_core.semantic_layers.transport import (
-    ProviderRequestError,
-    ProviderRequestFailure,
-)
 from superset_core.semantic_layers.layer import (
     SemanticLayerAction,
     SemanticLayerActionResult,
     SemanticLayerAuthenticationRequiredError,
+)
+from superset_core.semantic_layers.transport import (
+    ProviderRequestError,
+    ProviderRequestFailure,
 )
 from werkzeug.test import TestResponse
 
@@ -4364,3 +4364,34 @@ def test_discovery_authentication_error(
     assert f"/{layer.uuid}/oauth2/connect?" in error["extra"]["url"]
     assert uuid_lib.UUID(error["extra"]["tab_id"])
     provider.execute_configuration_action.assert_not_called()
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("partial", [False, True])
+def test_bulk_create_preserves_oauth_and_committed_views(
+    client: Any, full_api_access: None, mocker: MockerFixture, partial: bool
+) -> None:
+    """Authorization failures retain both recovery details and committed results."""
+    error = OAuth2RedirectError("/connect", "flow", "/complete")
+    created = MagicMock(uuid=uuid_lib.uuid4())
+    created.name = "orders"
+    command = mocker.patch(
+        "superset.semantic_layers.api.CreateSemanticViewCommand"
+    ).return_value
+    command.run.side_effect = [created, error] if partial else [error]
+    names = ["orders", "customers", "products"] if partial else ["orders"]
+    response = client.post(
+        "/api/v1/semantic_view/",
+        json={
+            "views": [
+                {"name": name, "semantic_layer_uuid": str(uuid_lib.uuid4())}
+                for name in names
+            ]
+        },
+    )
+    assert response.status_code == 403
+    assert response.json["errors"][0]["extra"] == error.error.extra
+    assert response.json["result"]["created"] == (
+        [{"uuid": str(created.uuid), "name": "orders"}] if partial else []
+    )
+    assert command.run.call_count == (2 if partial else 1)
