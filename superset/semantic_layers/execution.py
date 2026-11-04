@@ -50,6 +50,7 @@ from superset.key_value.types import (
     KeyValueResource,
     SEMANTIC_INSTALL_ID_KEY,
 )
+from superset.semantic_layers.exceptions import provider_code
 from superset.semantic_layers.registry import registry
 from superset.utils import json
 
@@ -327,13 +328,15 @@ class SemanticBindingMemo:
             method,
         )
         if key not in self.bindings:
-            self.bindings[key] = (
-                registry[layer.type].from_configuration(
-                    json.loads(layer.configuration),
-                    cache_token=layer.metadata_generation,
+            provider: type[ProviderLayer[Any, Any]] = registry[layer.type]
+            configuration: dict[str, Any] = json.loads(layer.configuration)
+            cache_token: str = layer.metadata_generation
+            with provider_code():
+                bound: ProviderLayer[Any, Any] = provider.from_configuration(
+                    configuration,
+                    cache_token=cache_token,
                     context=context,
                     credentials=None,
-                ),
-                {},
-            )
+                )
+            self.bindings[key] = (bound, {})
         return self.bindings[key]

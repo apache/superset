@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Alert } from '@apache-superset/core/components';
 import { t, tn } from '@apache-superset/core/translation';
 import {
   getExtensionsRegistry,
@@ -78,9 +77,14 @@ import { Typography } from '@superset-ui/core/components/Typography';
 import handleResourceExport from 'src/utils/export';
 import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import {
-  archiveConfirmDescription,
+  archiveConfirmContent,
+  archiveToastContent,
+  rememberArchivedType,
+  archiveTitle,
+  datasetArchiveImpact,
   deleteActionLabel,
-  deletedToast,
+  deletedToastContent,
+  ToastContent,
   deleteFailedToast,
 } from 'src/utils/softDeleteCopy';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
@@ -100,6 +104,7 @@ import DuplicateDatasetModal from 'src/features/datasets/DuplicateDatasetModal';
 import type DatasetType from 'src/types/Dataset';
 import SemanticViewEditModal from 'src/features/semanticViews/SemanticViewEditModal';
 import AddSemanticViewModal from 'src/features/semanticViews/AddSemanticViewModal';
+import SemanticLayerModal from 'src/features/semanticLayers/SemanticLayerModal';
 import {
   datasetLabel,
   datasetLabelLower,
@@ -110,6 +115,10 @@ import {
 import { useSelector } from 'react-redux';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
+import SemanticDeleteBlockers, {
+  SemanticDeleteError,
+} from 'src/features/semanticLayers/SemanticDeleteBlockers';
 import type {
   BootstrapData,
   UserWithPermissionsAndRoles,
@@ -193,7 +202,7 @@ const isSemanticView = (d: Pick<Dataset, 'kind'>): boolean =>
 
 interface DatasetListProps {
   addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
+  addSuccessToast: (msg: string, options?: ToastContent['options']) => void;
   user?: UserWithPermissionsAndRoles;
 }
 
@@ -630,18 +639,21 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     null,
   );
 
-  const [svDeleteError, setSVDeleteError] = useState<{
-    error: string;
-    total?: number;
-    archived_count?: number;
-  } | null>(null);
+  const [svDeleteError, setSVDeleteError] =
+    useState<SemanticDeleteError | null>(null);
   const [svDeleting, setSVDeleting] = useState(false);
   const svDeleteRequest = useRef(0);
   const [svCurrentlyDeleting, setSvCurrentlyDeleting] =
     useState<Dataset | null>(null);
 
-  const [showAddSemanticViewModal, setShowAddSemanticViewModal] =
-    useState(false);
+  const [semanticSetup, setSemanticSetup] = useState<
+    'closed' | 'view' | 'layer'
+  >('closed');
+  const [layerCreatedSignal, setLayerCreatedSignal] = useState(0);
+  const newDatasourceButtonRef = useRef<HTMLButtonElement>(null);
+  const canCreateLayer =
+    isFeatureEnabled(SEMANTIC_LAYERS_FLAG) &&
+    findPermission('can_write', 'SemanticLayer', user?.roles);
   const [importingDataset, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
@@ -1389,13 +1401,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 {
                   key: 'semantic-view',
                   label: t('Semantic View'),
-                  onClick: () => setShowAddSemanticViewModal(true),
+                  onClick: () => setSemanticSetup('view'),
                 },
               ],
             }}
             trigger={['click']}
           >
             <Button
+              ref={newDatasourceButtonRef}
               data-test="btn-create-new"
               buttonStyle="primary"
               icon={<Icons.PlusOutlined iconSize="m" />}
@@ -1445,7 +1458,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       () => {
         refreshData();
         setDatasetCurrentlyDeleting(null);
-        addSuccessToast(deletedToast(tableName));
+        rememberArchivedType('dataset');
+        const toast = deletedToastContent(tableName, 'dataset');
+        addSuccessToast(toast.text, toast.options);
       },
       createErrorHandler(errMsg =>
         addDangerToast(deleteFailedToast(tableName, errMsg)),
@@ -1489,23 +1504,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       // Always refresh so the list reflects whatever actually got deleted.
       refreshData();
       if (failures.length === 0) {
-        if (softDelete && semanticViews.length) {
-          // Semantic views were hard-deleted, not archived; counting them as
-          // archived would tell the user they are recoverable.
-          addSuccessToast(
-            t(
-              'Archived %s item(s); permanently deleted %s semantic view(s)',
-              datasets.length,
-              semanticViews.length,
-            ),
-          );
-        } else {
-          addSuccessToast(
-            softDelete
+        const message =
+          softDelete && semanticViews.length
+            ? t(
+                'Archived %s item(s); permanently deleted %s semantic view(s)',
+                datasets.length,
+                semanticViews.length,
+              )
+            : softDelete
               ? t('Archived %s item(s)', datasetsToDelete.length)
-              : t('Deleted %s item(s)', datasetsToDelete.length),
-          );
-        }
+              : t('Deleted %s item(s)', datasetsToDelete.length);
+        if (datasets.length) rememberArchivedType('dataset');
+        const toast: ToastContent =
+          softDelete && datasets.length
+            ? archiveToastContent(message, 'dataset')
+            : { text: message };
+        addSuccessToast(toast.text, toast.options);
       } else {
         const semanticResult = semanticViews.length
           ? results[results.length - 1]
@@ -1577,17 +1591,40 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           description={
             <>
               {softDelete && (
-                <p>{archiveConfirmDescription(datasetLabelLower())}</p>
+                <p>{archiveConfirmContent('dataset', datasetLabelLower())}</p>
               )}
-              <p>
-                {t('The %s', datasetLabelLower())}
-                <b> {datasetCurrentlyDeleting.table_name} </b>
-                {t(
-                  'is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
-                  datasetCurrentlyDeleting.charts.count,
-                  datasetCurrentlyDeleting.dashboards.count,
+              {softDelete &&
+                datasetCurrentlyDeleting.charts.count === 0 &&
+                datasetCurrentlyDeleting.dashboards.count === 0 && (
+                  <p>
+                    {t(
+                      'No charts or dashboards depend on the selected %s.',
+                      datasetLabelLower(),
+                    )}
+                  </p>
                 )}
-              </p>
+              {softDelete ? (
+                (datasetCurrentlyDeleting.charts.count > 0 ||
+                  datasetCurrentlyDeleting.dashboards.count > 0) && (
+                  <p>
+                    {datasetArchiveImpact(
+                      datasetLabelLower(),
+                      datasetCurrentlyDeleting.charts.count,
+                      datasetCurrentlyDeleting.dashboards.count,
+                    )}
+                  </p>
+                )
+              ) : (
+                <p>
+                  {t('The %s', datasetLabelLower())}
+                  <b> {datasetCurrentlyDeleting.table_name} </b>
+                  {t(
+                    'is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
+                    datasetCurrentlyDeleting.charts.count,
+                    datasetCurrentlyDeleting.dashboards.count,
+                  )}
+                </p>
+              )}
               <AffectedObjectsList
                 charts={datasetCurrentlyDeleting.charts}
                 dashboards={datasetCurrentlyDeleting.dashboards}
@@ -1608,9 +1645,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           open
           title={
             softDelete
-              ? t('Archive %(name)s?', {
-                  name: datasetCurrentlyDeleting.table_name,
-                })
+              ? archiveTitle(datasetCurrentlyDeleting.table_name)
               : t('Delete %s?', datasetLabel())
           }
         />
@@ -1622,31 +1657,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           description={
             <>
               <p>
-                {t(
-                  'Are you sure you want to delete %s? This cannot be undone.',
-                  svCurrentlyDeleting.table_name,
-                )}
+                {t('Are you sure you want to delete')}{' '}
+                <b>{svCurrentlyDeleting.table_name}</b>?{' '}
+                {t('This cannot be undone.')}
               </p>
               {svDeleteError && (
-                <Alert
-                  type="error"
-                  showIcon
-                  message={
-                    <>
-                      {typeof svDeleteError.total === 'number' &&
-                      typeof svDeleteError.archived_count === 'number'
-                        ? t(
-                            'Deletion is blocked by %s dependent assets (%s archived). Remove or repoint them before deleting.',
-                            svDeleteError.total,
-                            svDeleteError.archived_count,
-                          )
-                        : svDeleteError.error}{' '}
-                      <a href={ensureAppRoot('/archived/')}>
-                        {t('Recently Archived')}
-                      </a>
-                    </>
-                  }
-                />
+                <SemanticDeleteBlockers error={svDeleteError} />
               )}
             </>
           }
@@ -1656,7 +1672,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             setSvCurrentlyDeleting(null);
           }}
           open
-          title={t('Delete Semantic View?')}
+          title={
+            <ModalTitleWithIcon
+              icon={<Icons.DeleteOutlined />}
+              title={t('Delete Semantic View?')}
+            />
+          }
         />
       )}
       {datasetCurrentlyEditing && (
@@ -1681,13 +1702,40 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         addSuccessToast={addSuccessToast}
         semanticView={svCurrentlyEditing}
       />
-      <AddSemanticViewModal
-        show={showAddSemanticViewModal}
-        onHide={() => setShowAddSemanticViewModal(false)}
-        onSuccess={refreshData}
-        addDangerToast={addDangerToast}
-        addSuccessToast={addSuccessToast}
-      />
+      {semanticSetup === 'view' && (
+        <AddSemanticViewModal
+          show
+          layerCreatedSignal={layerCreatedSignal}
+          onHide={() => {
+            setSemanticSetup('closed');
+            newDatasourceButtonRef.current?.focus();
+          }}
+          onCreateLayer={
+            canCreateLayer
+              ? () => {
+                  if (
+                    isFeatureEnabled(SEMANTIC_LAYERS_FLAG) &&
+                    findPermission('can_write', 'SemanticLayer', user?.roles)
+                  ) {
+                    setSemanticSetup('layer');
+                  }
+                }
+              : undefined
+          }
+          onSuccess={refreshData}
+          addDangerToast={addDangerToast}
+          addSuccessToast={addSuccessToast}
+        />
+      )}
+      {semanticSetup === 'layer' && (
+        <SemanticLayerModal
+          show
+          onHide={() => setSemanticSetup('view')}
+          onCreated={() => setLayerCreatedSignal(signal => signal + 1)}
+          addDangerToast={addDangerToast}
+          addSuccessToast={addSuccessToast}
+        />
+      )}
       <ConfirmStatusChange
         // A selection containing semantic views is not recoverable: the
         // semantic_view API hard-deletes. Promising the archive while part of
@@ -1704,7 +1752,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           <>
             {softDelete ? (
               bulkIsRecoverable ? (
-                archiveConfirmDescription(datasetsLabelLower(), true)
+                archiveConfirmContent('dataset', datasetsLabelLower(), true)
               ) : (
                 <>
                   {tn(
@@ -1730,10 +1778,15 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             )}
             {bulkRelatedLookup.status === 'failed' && (
               <p>
-                {t(
-                  'Could not check which charts and dashboards depend on the selected %s. Deleting them may break charts and dashboards.',
-                  datasetsLabelLower(),
-                )}
+                {bulkIsRecoverable
+                  ? t(
+                      'Could not check which charts and dashboards depend on the selected %s. Archiving them may make charts unavailable.',
+                      datasetsLabelLower(),
+                    )
+                  : t(
+                      'Could not check which charts and dashboards depend on the selected %s. Deleting them may break charts and dashboards.',
+                      datasetsLabelLower(),
+                    )}
               </p>
             )}
             {bulkRelatedLookup.status === 'done' &&
@@ -1741,22 +1794,29 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               bulkRelatedLookup.related.dashboards.count > 0 ? (
                 <>
                   <p>
-                    {t(
-                      'The selected %s are linked to %s on %s. Deleting them will break those objects.',
-                      datasetsLabelLower(),
-                      tn(
-                        '%s chart',
-                        '%s charts',
-                        bulkRelatedLookup.related.charts.count,
-                        bulkRelatedLookup.related.charts.count,
-                      ),
-                      tn(
-                        '%s dashboard',
-                        '%s dashboards',
-                        bulkRelatedLookup.related.dashboards.count,
-                        bulkRelatedLookup.related.dashboards.count,
-                      ),
-                    )}
+                    {bulkIsRecoverable
+                      ? datasetArchiveImpact(
+                          datasetsLabelLower(),
+                          bulkRelatedLookup.related.charts.count,
+                          bulkRelatedLookup.related.dashboards.count,
+                          true,
+                        )
+                      : t(
+                          'The selected %s are linked to %s on %s. Deleting them will break those objects.',
+                          datasetsLabelLower(),
+                          tn(
+                            '%s chart',
+                            '%s charts',
+                            bulkRelatedLookup.related.charts.count,
+                            bulkRelatedLookup.related.charts.count,
+                          ),
+                          tn(
+                            '%s dashboard',
+                            '%s dashboards',
+                            bulkRelatedLookup.related.dashboards.count,
+                            bulkRelatedLookup.related.dashboards.count,
+                          ),
+                        )}
                   </p>
                   <AffectedObjectsList
                     charts={bulkRelatedLookup.related.charts}
