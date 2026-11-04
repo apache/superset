@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -491,6 +491,11 @@ msgstr[0] ""
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "%s gün önce"
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
 
 #, python-format
 msgid "%s field"
@@ -1204,6 +1209,9 @@ msgstr "Yeni bir grafik oluşturulacaktır."
 
 msgid "A new dashboard will be created."
 msgstr "Yeni bir pano oluşturulacak."
+
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
 
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
@@ -2450,6 +2458,10 @@ msgstr "Bir hata, yükleme pano bilgilerini yükleme sırasında gerçekleşti."
 msgid "An error occurred while loading the SQL"
 msgstr "Bir hata, SQL'i yüklerken meydana geldi"
 
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
+
 msgid "An error occurred while overwriting the dataset"
 msgstr "Verisetinin üzerine yazılırken bir hata oluştu"
 
@@ -2822,10 +2834,6 @@ msgstr "Silmek istediğinize emin misiniz"
 #, python-format
 msgid "Are you sure you want to delete %s?"
 msgstr "%s’i silmek istiyor musunuz?"
-
-#, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
 
 #, python-format
 msgid "Are you sure you want to delete the selected %s?"
@@ -4003,6 +4011,9 @@ msgstr "Bu grafiği kontrol edin:"
 msgid "Check out this dashboard: "
 msgstr "Bu panoyu kontrol edin:"
 
+msgid "Check the value transform →"
+msgstr ""
+
 msgid "Check to force date partitions to have the same height"
 msgstr "Aynı yüksekliklere sahip olmak için tarih bölmelerini kontrol edin"
 
@@ -4013,6 +4024,11 @@ msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
+msgstr ""
+
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
 msgstr ""
 
 msgid "Child label position"
@@ -4045,6 +4061,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr "Bir numara format seçin"
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr "Kaynak seçin"
 
@@ -4062,9 +4081,6 @@ msgstr "Tarihler olarak parsed edilecek sütunları seçin"
 
 msgid "Choose columns to read"
 msgstr "Okunacak sütunları seçin"
-
-msgid "Choose current semantic fields"
-msgstr ""
 
 msgid "Choose current semantic filter fields"
 msgstr ""
@@ -4999,6 +5015,12 @@ msgstr "Headers ile kopyalayın"
 msgid "Corner Radius"
 msgstr "Corner Radius"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "Correlation"
 
@@ -5175,6 +5197,9 @@ msgstr "Yeni grafik oluştur"
 
 msgid "Create or select schema..."
 msgstr "Create or select şema..."
+
+msgid "Create semantic layer"
+msgstr ""
 
 msgid "Created"
 msgstr "Oluşturuldu"
@@ -5681,6 +5706,12 @@ msgstr "Veri yenilendi"
 
 msgid "Data type"
 msgstr "Veri tipi"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "DataFrame en az bir seri içerir"
@@ -6220,7 +6251,7 @@ msgstr "Öğeyi sil"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -6573,6 +6604,12 @@ msgstr "Bu veritabanı için ayrıntılı bir özellik için matkapları ayırt 
 
 msgid "Discard"
 msgstr "Discard"
+
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Ekran Adı"
@@ -7374,6 +7411,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Nesne adının bir kısmını girin"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Alarm adını girin"
 
@@ -7389,8 +7429,14 @@ msgstr "Grup adını girin"
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "aralığı filtre için minimum ve maksimum değerler girin"
 
+msgid "Enter one to three existing partition keys."
+msgstr ""
+
 msgid "Enter report name"
 msgstr "Rapor adını girin"
+
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
 
 msgid ""
 "Enter the email address of your account and we will send you a link to "
@@ -7509,6 +7555,10 @@ msgstr "RLS filtrelerde jinja ifadesi:   %(msg)s "
 #, python-format
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "WHERE koşulunda jinja ifadesi:   %(msg)s "
+
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -7671,6 +7721,12 @@ msgstr "Mevcut veri kümesi"
 
 #, python-format
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
+
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
 msgstr ""
 
 msgid "Exit edit mode"
@@ -7868,6 +7924,9 @@ msgstr "İfade"
 
 msgid "Expression cannot be empty"
 msgstr "İfade boş olamaz"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8357,6 +8416,19 @@ msgstr ""
 msgid ""
 "Filters on the mapped column are mirrored onto this column so the engine "
 "can prune partitions."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but with this"
+" transform they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -8853,6 +8925,9 @@ msgstr ""
 " görüntülenmeden eksik zaman serisi verilerini engeller."
 
 msgid "Guest"
+msgstr ""
+
+msgid "Guest user cannot access this query"
 msgstr ""
 
 msgid "Guest user cannot modify chart payload"
@@ -10150,6 +10225,12 @@ msgstr "Filtre değerleri yükleniyor"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 msgid "Loading timezones..."
 msgstr "Saat dilimleri yükleniyor..."
 
@@ -10435,6 +10516,11 @@ msgstr "Maç zamanı orijinal seri ile renk değiştiriyor"
 #, fuzzy
 msgid "Match type"
 msgstr "Eşleşme türü"
+
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
 
 msgid "Matrixify"
 msgstr "Matrixify"
@@ -11205,6 +11291,12 @@ msgstr "Uygun filtre yok."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
+msgstr ""
+
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 
@@ -11371,6 +11463,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12186,6 +12294,18 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
+msgstr ""
+
+msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -12938,8 +13058,20 @@ msgstr "Sıralama"
 msgid "Ratio"
 msgstr "Oran"
 
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
+
 msgid "Raw records"
 msgstr "Raw kayıtları"
+
+msgid "Re-pick fields"
+msgstr ""
+
+msgid "Re-pick fields for this chart"
+msgstr ""
 
 msgid "Rearranged layout"
 msgstr ""
@@ -14008,6 +14140,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Sorguyu kaydet"
 
+msgid "Save the dataset before validating against data."
+msgstr ""
+
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
 "saved columns, and this mapping uses one that has not been saved yet."
@@ -14891,6 +15026,9 @@ msgstr "Semantik katman mevcut değil"
 #, fuzzy
 msgid "Semantic layer parameters are invalid."
 msgstr "Semantik katman parametreleri geçersiz."
+
+msgid "Semantic layer setup guide"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -15838,6 +15976,10 @@ msgstr "Source kategori"
 msgid "Source location"
 msgstr "Kaynak konumu"
 
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
+
 msgid "Sparkline"
 msgstr "Spark"
 
@@ -15935,12 +16077,6 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "field selections, pre-filters, sorting, defaults and dependencies. Saved "
 "display titles cannot be recovered automatically."
-msgstr ""
-
-msgid ""
-"Start field selection using current member IDs. This clears any existing "
-"query and formatting settings. Saved display titles cannot be safely "
-"mapped to member IDs. The saved chart is unchanged until you save."
 msgstr ""
 
 msgid ""
@@ -17460,6 +17596,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr "Rapor oluşturuldu"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 msgid "The report will be sent to your email at"
 msgstr "Rapor e-postanıza gönderilecek"
 
@@ -17719,6 +17861,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -17726,6 +17871,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -17782,6 +17930,13 @@ msgstr "Kullanıcı başarıyla oluşturuldu."
 #, fuzzy
 msgid "The user has been updated successfully."
 msgstr "Gösterim Paneli başarıyla kaydedildi."
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 #, fuzzy
 msgid "The user was updated successfully"
@@ -18349,6 +18504,17 @@ msgid ""
 "mydatabase.com)."
 msgstr "Bu bir IP adresi (e.g. 127.0.0.1) veya bir alan adı (e.g. mydatabase.com)."
 
+msgid "This cannot be undone."
+msgstr ""
+
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -18391,6 +18557,13 @@ msgid ""
 "This chart version can't be restored because the semantic view it used "
 "has been permanently deleted. Restore a version that uses an existing "
 "semantic view or dataset, or recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart was saved with an older format of field names for this "
+"semantic view, so the fields it refers to can't be confirmed. Re-pick the"
+" metrics and dimensions to keep using it. The saved chart doesn't change "
+"until you save."
 msgstr ""
 
 msgid "This chart was updated to use the restored aggregation"
@@ -18763,6 +18936,13 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
 msgstr ""
 
 msgid ""
@@ -19373,6 +19553,9 @@ msgstr "Bu URL'ye güven ve bir daha sorma"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 "Farklı filtreler uygulamak veya veri kaynağınızın veri kaynağının veriye "
@@ -19593,7 +19776,20 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr "1 Gösterim Paneline eklendi"
 
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
+
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 msgid ""
@@ -20104,11 +20300,11 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Boyutun daha fazla değeri varsa ilk 25 değeri kullanır."
 
-msgid "Valid"
-msgstr ""
-
 msgid "Valid SQL expression"
 msgstr "Geçerli SQL ifadesi"
+
+msgid "Validate against data"
+msgstr ""
 
 #, fuzzy
 msgid "Validate query"
@@ -20124,6 +20320,9 @@ msgstr "%s "
 #, fuzzy
 msgid "Validating..."
 msgstr "Yükleniyor…"
+
+msgid "Validation inconclusive"
+msgstr ""
 
 msgid "Value"
 msgstr "Değer"
@@ -21710,6 +21909,9 @@ msgstr "birkaç saniye"
 msgid "aggregate"
 msgstr "Toplam"
 
+msgid "alert"
+msgstr ""
+
 #, fuzzy
 msgid "alert condition"
 msgstr "Grafik seçenekleri"
@@ -21726,6 +21928,10 @@ msgstr "Ayrıca kopya (duplicate) grafikler"
 msgid "ancestor"
 msgstr "ata"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "Annotasyon"
 
@@ -21736,6 +21942,10 @@ msgstr "Annotation layer"
 #, fuzzy
 msgid "apple"
 msgstr "elma"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "Asfreq"
@@ -22480,6 +22690,12 @@ msgstr ""
 
 msgid "query"
 msgstr "Soru"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "rastgele"
