@@ -23,6 +23,10 @@ from typing import Any
 from superset_core.exports.types import AppliedFilter, DashboardExportInfo
 
 from superset import security_manager
+from superset.charts.data.dashboard_filter_context import (
+    _extract_filter_extra_form_data,
+    DashboardFilterStatus,
+)
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.commands.dashboard.permalink.create import (
     CreateDashboardPermalinkCommand,
@@ -68,24 +72,30 @@ def describe_dashboard_export(
     )
 
     charts = get_charts_in_layout_order(dashboard)
-    native_names = {
-        config["id"]: config["name"]
+    native_filters = {
+        config["id"]: config
         for config in dashboard.params_dict.get("native_filter_configuration", [])
         if "id" in config and "name" in config
     }
 
     applied_filters: list[AppliedFilter] = []
-    for filter_id in sorted(active_data_mask):
-        # Exports apply native filters only, so cross-filters are not listed.
-        if filter_id not in native_names:
-            continue
+    # Exports apply native filters only, so cross-filters are not listed.
+    for filter_id in sorted(native_filters):
+        config = native_filters[filter_id]
+        if filter_id in active_data_mask:
+            entry = active_data_mask[filter_id]
+        else:
+            # Without an active entry the export applies the saved default.
+            _, status = _extract_filter_extra_form_data(config)
+            if status != DashboardFilterStatus.APPLIED:
+                continue
+            entry = config.get("defaultDataMask")
         # The mask is client-supplied, so entries of the wrong shape are skipped.
-        entry = active_data_mask[filter_id]
         filter_state = entry.get("filterState") if isinstance(entry, dict) else None
         if not isinstance(filter_state, dict) or _is_empty(filter_state.get("value")):
             continue
         applied_filters.append(
-            AppliedFilter(native_names[filter_id], _display_value(filter_state))
+            AppliedFilter(config["name"], _display_value(filter_state))
         )
 
     return DashboardExportInfo(
