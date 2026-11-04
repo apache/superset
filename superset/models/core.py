@@ -423,7 +423,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     @property
     def driver(self) -> str:
-        return self.url_object.get_driver_name()
+        try:
+            return self.url_object.get_driver_name()
+        except NoSuchModuleError:
+            # Driverless connections must still open in the URI repair form.
+            return ""
 
     @property
     def masked_encrypted_extra(self) -> str | None:
@@ -435,14 +439,14 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         # the sqlalchemy_uri
         # When returning the parameters we should use the masked SQLAlchemy URI and the
         # masked ``encrypted_extra`` to prevent exposing sensitive credentials.
-        masked_uri = make_url_safe(self.sqlalchemy_uri)
-        encrypted_config = {}
-        if (masked_encrypted_extra := self.masked_encrypted_extra) is not None:
-            with suppress(TypeError, json.JSONDecodeError):
-                encrypted_config = json.loads(masked_encrypted_extra)
         try:
-            parameters = self.db_engine_spec.get_parameters_from_uri(  # type: ignore
-                masked_uri,
+            make_url_safe(self.sqlalchemy_uri)
+            encrypted_config = {}
+            if (masked_encrypted_extra := self.masked_encrypted_extra) is not None:
+                with suppress(TypeError, json.JSONDecodeError):
+                    encrypted_config = json.loads(masked_encrypted_extra)
+            parameters = self.db_engine_spec.get_parameters_from_database(
+                self,
                 encrypted_extra=encrypted_config,
             )
         except Exception:  # pylint: disable=broad-except
@@ -462,13 +466,20 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
     def metadata_cache_timeout(self) -> dict[str, Any]:
         return self.get_extra().get("metadata_cache_timeout", {})
 
+    def _metadata_cache_timeout_value(self, key: str) -> int | None:
+        """Older database forms stored these timeouts as strings."""
+        try:
+            return int(self.metadata_cache_timeout[key])
+        except (KeyError, TypeError, ValueError):
+            return None
+
     @property
     def catalog_cache_enabled(self) -> bool:
         return "catalog_cache_timeout" in self.metadata_cache_timeout
 
     @property
     def catalog_cache_timeout(self) -> int | None:
-        return self.metadata_cache_timeout.get("catalog_cache_timeout")
+        return self._metadata_cache_timeout_value("catalog_cache_timeout")
 
     @property
     def schema_cache_enabled(self) -> bool:
@@ -476,7 +487,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     @property
     def schema_cache_timeout(self) -> int | None:
-        return self.metadata_cache_timeout.get("schema_cache_timeout")
+        return self._metadata_cache_timeout_value("schema_cache_timeout")
 
     @property
     def table_cache_enabled(self) -> bool:
@@ -484,7 +495,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     @property
     def table_cache_timeout(self) -> int | None:
-        return self.metadata_cache_timeout.get("table_cache_timeout")
+        return self._metadata_cache_timeout_value("table_cache_timeout")
 
     @property
     def default_schemas(self) -> list[str]:

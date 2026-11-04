@@ -319,7 +319,7 @@ AURORA_DATA_API_KNOWN_INCOMPATIBILITIES: list[KnownIncompatibility] = [
         "tracking_url": (
             "https://github.com/cloud-utils/sqlalchemy-aurora-data-api/issues/43"
         ),
-        "since": "2026-07-28",
+        "since": "2026-10-27",
     }
 ]
 
@@ -466,6 +466,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ),
         (
             re.compile(r"^smallint", re.IGNORECASE),
+            types.SmallInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^tinyint", re.IGNORECASE),
             types.SmallInteger(),
             GenericDataType.NUMERIC,
         ),
@@ -3268,6 +3273,32 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
 
         return json.dumps(new_config)
+
+    @classmethod
+    def get_connection_identity(cls, uri: URL, connect_args: dict[str, Any]) -> URL:
+        """
+        Return the destination a stored credential is sent to, for checks that
+        decide whether the credential may be reused on an edited connection.
+        """
+        return uri
+
+    @classmethod
+    def get_extra_from_parameters(
+        cls, parameters: dict[str, Any], extra: str | None
+    ) -> str | None:
+        """Reconcile field-form values with settings stored outside the URI."""
+        return extra
+
+    @classmethod
+    def get_parameters_from_database(
+        cls,
+        database: Database,
+        encrypted_extra: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Return masked form parameters, including engine-specific stored settings."""
+        return cls.get_parameters_from_uri(  # type: ignore
+            make_url_safe(database.sqlalchemy_uri), encrypted_extra=encrypted_extra
+        )
 
     @classmethod
     def get_public_information(cls) -> dict[str, Any]:
