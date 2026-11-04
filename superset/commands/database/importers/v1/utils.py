@@ -31,6 +31,7 @@ from superset.commands.exceptions import ImportFailedError, ImportRefusedError
 from superset.constants import EMBEDDED_CREDENTIALS_KEY, PASSWORD_MASK
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import (
+    embedded_credentials_error,
     embedded_credentials_incomplete,
     embedded_credentials_missing_fields,
     make_url_safe,
@@ -123,6 +124,31 @@ def _refuse_incomplete_embedded_credentials(
         + " Provide all required fields or clear them to leave embedded viewers "
         "unconfigured."
     )
+
+
+def _refuse_unreadable_embedded_key(
+    config: dict[str, Any], engine_spec: type[BaseEngineSpec]
+) -> None:
+    """
+    Refuse an imported embedded credential the engine can't use, as the API does.
+
+    ``config["encrypted_extra"]`` has its masked secrets already revealed, so a
+    key pair is decoded with the passphrase it will actually be stored with.
+    """
+    if not (
+        is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK")
+        and is_feature_enabled("EMBEDDED_SUPERSET")
+    ):
+        return
+    payload = json.loads(config["encrypted_extra"])
+    if not isinstance(payload, dict):
+        return
+    credentials = payload.get(EMBEDDED_CREDENTIALS_KEY)
+    if message := embedded_credentials_error(engine_spec, credentials, None):
+        raise ImportRefusedError(
+            f"Embedded guest credentials of database '{config['database_name']}' "
+            f"can't be used. {message}"
+        )
 
 
 def _sync_permissions_best_effort(database: Database) -> None:
@@ -243,6 +269,7 @@ def import_database(  # noqa: C901
                 "Must provide value for masked_encrypted_extra field: "
                 + ", ".join(still_masked)
             )
+        _refuse_unreadable_embedded_key(config, engine_spec)
 
         if isinstance(payload, dict):
             _refuse_incomplete_embedded_credentials(

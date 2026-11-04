@@ -88,7 +88,8 @@ assists people when migrating to a new version.
   for guests. A malformed or incomplete `embedded_credentials` is rejected by
   `POST`/`PUT /api/v1/database/`, by `validate_parameters`, and by database and asset
   import (HTTP 400, naming the missing fields) rather than stored and ignored while
-  both embedding flags are enabled. Validation
+  both embedding flags are enabled. Import refuses a key pair that
+  doesn't decode with its passphrase, as the API does. Validation
   uses the engine's credential rules and edited credentials rather than stale stored
   values, and rejects whitespace-only usernames. Disabling either flag preserves stored credentials without blocking unrelated edits. Restored async guest
   queries use the same credential as synchronous queries. Connection-mutator hooks
