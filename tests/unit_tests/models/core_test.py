@@ -73,6 +73,10 @@ def test_cost_warning_rule_survives_inactive_settings(
     enabled: bool,
 ) -> None:
     """Saved rules remain available for display independently of activation gates."""
+    mocker.patch(
+        "superset.db_engine_specs.query_warning.security_manager.has_access",
+        return_value=True,
+    )
     request.addfinalizer(Database.get_db_engine_spec.cache_clear)
     mocker.patch(
         "superset.models.core.is_feature_enabled",
@@ -3118,6 +3122,10 @@ def test_message_check_state_does_not_require_estimation(
     mocker: MockerFixture, enabled: bool
 ) -> None:
     """The same message check reports ready or disabled with estimation off."""
+    mocker.patch(
+        "superset.db_engine_specs.query_warning.security_manager.has_access",
+        return_value=True,
+    )
     from tests.fixtures.query_warning import MessageOnlyQueryWarningCheck
 
     mocker.patch(

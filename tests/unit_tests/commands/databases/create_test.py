@@ -42,6 +42,7 @@ def test_create_preserves_warning_rule_and_unrelated_extras(
     extra = {
         "query_cost_warning": {
             "enabled": enabled,
+            "all_users": True,
             "metric": metric,
             "threshold": 100,
         },

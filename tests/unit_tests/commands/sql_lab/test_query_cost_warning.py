@@ -36,12 +36,13 @@ from flask_appbuilder.security.sqla.models import (
 from pytest_mock import MockerFixture
 from sqlalchemy.orm import Session
 
-from superset import config
+from superset import config, security_manager
 from superset.commands.sql_lab.estimate import (
     EstimateQueryCostType,
     QueryEstimationCommand,
 )
 from superset.commands.sql_lab.execute import ExecuteSqlCommand
+from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.query_warning import (
     QueryCostEstimate,
@@ -66,11 +67,27 @@ from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 from superset.utils import json
 
 
-@pytest.mark.parametrize("can_estimate", [False, True])
-def test_warning_api_requires_estimation_permission(
-    app: Flask, session: Session, mocker: MockerFixture, can_estimate: bool
+@pytest.mark.parametrize("all_users", [None, False, True])
+@pytest.mark.parametrize(
+    "can_execute,can_estimate,data_access",
+    [
+        (True, False, True),
+        (True, True, True),
+        (False, True, True),
+        (False, False, True),
+        (True, False, False),
+    ],
+)
+def test_warning_api_audience_and_permissions(
+    app: Flask,
+    session: Session,
+    mocker: MockerFixture,
+    can_execute: bool,
+    can_estimate: bool,
+    all_users: bool | None,
+    data_access: bool,
 ) -> None:
-    """An execution-only custom role cannot call the warning endpoint."""
+    """Connection opt-in expands only warning access, never manual or SQL access."""
     # Use isolated security tables and real permission checks, not full_api_access.
     User.metadata.create_all(
         session.get_bind(),
@@ -80,7 +97,7 @@ def test_warning_api_requires_estimation_permission(
             if table.name.startswith("ab_") or table.name in {"user_attribute", "logs"}
         ],
     )
-    permissions = ["can_execute_sql_query"]
+    permissions = ["can_execute_sql_query"] if can_execute else []
     if can_estimate:
         permissions.append("can_estimate_query_cost")
     view = ViewMenu(name="SQLLab")
@@ -91,6 +108,14 @@ def test_warning_api_requires_estimation_permission(
             for name in permissions
         ],
     )
+    dataset_perm = "[warning_test].[sales](id:1)"
+    if data_access:
+        role.permissions.append(
+            PermissionView(
+                permission=Permission(name="datasource_access"),
+                view_menu=ViewMenu(name=dataset_perm),
+            )
+        )
     user = User(
         username="warning_test",
         first_name="Warning",
@@ -102,6 +127,65 @@ def test_warning_api_requires_estimation_permission(
     session.add(user)
     session.commit()
     mocker.patch.object(app.login_manager, "_user_callback", return_value=user)
+    database = Database(
+        id=1,
+        database_name="warning_test",
+        sqlalchemy_uri="postgresql://localhost/test",
+        extra=json.dumps(
+            {
+                "cost_estimate_enabled": True,
+                "query_cost_warning": {
+                    "enabled": True,
+                    **({"all_users": all_users} if all_users is not None else {}),
+                    "metric": "total_cost",
+                    "threshold": 10,
+                },
+            }
+        ),
+    )
+    mocker.patch(
+        "superset.commands.sql_lab.estimate.DatabaseDAO.find_by_id",
+        return_value=database,
+    )
+    mocker.patch.object(database, "get_default_catalog", return_value="test")
+    mocker.patch.object(database, "get_default_schema_for_query", return_value="public")
+    mocker.patch.object(
+        SqlaTable,
+        "query_datasources_by_name",
+        return_value=[
+            SqlaTable(
+                database=database,
+                table_name="sales",
+                schema="public",
+                perm=dataset_perm,
+            )
+        ],
+    )
+    access = mocker.spy(security_manager, "raise_for_access")
+    mocker.patch(
+        "superset.commands.sql_lab.estimate.is_feature_enabled",
+        side_effect=lambda name: (
+            name in {"SQLLAB_QUERY_COST_WARNINGS", "ESTIMATE_QUERY_COST"}
+        ),
+    )
+    mocker.patch("superset.models.core.is_feature_enabled", return_value=True)
+    mocker.patch(
+        "superset.db_engine_specs.query_warning.is_feature_enabled", return_value=True
+    )
+    estimator = mocker.patch.object(
+        database.db_engine_spec,
+        "estimate_query_cost_for_warning",
+        return_value=QueryCostEstimate.from_value(20),
+    )
+    manual = mocker.patch.object(QueryEstimationCommand, "_run_manual_estimate")
+    with app.app_context(), app.test_client() as anonymous_client:
+        anonymous = anonymous_client.post(
+            "/api/v1/sqllab/warning/",
+            json={"database_id": 1, "sql": "SELECT * FROM public.sales"},
+        )
+        assert anonymous.status_code == 401
+        access.assert_not_called()
+        estimator.assert_not_called()
     with app.test_client() as client:
         with client.session_transaction() as login:
             login["_user_id"] = str(user.id)
@@ -109,19 +193,67 @@ def test_warning_api_requires_estimation_permission(
         # Empty bodies stop authorized requests at validation without executing SQL.
         execute = client.post("/api/v1/sqllab/execute/", json={})
         estimate = client.post("/api/v1/sqllab/estimate/", json={})
+        warning = client.post(
+            "/api/v1/sqllab/warning/",
+            json={
+                "database_id": 1,
+                "sql": "SELECT * FROM public.sales",
+                "catalog": "test",
+                "schema": "public",
+            },
+        )
+        if can_execute:
+            assert database.query_warning_state == (
+                "ready" if all_users or can_estimate else "disabled"
+            )
     missing_inputs = {
         "message": {
             "database_id": ["Missing data for required field."],
             "sql": ["Missing data for required field."],
         }
     }
-    assert execute.status_code == 400
-    assert execute.json == missing_inputs
+    assert execute.status_code == (400 if can_execute else 403)
+    if can_execute:
+        assert execute.json == missing_inputs
     assert estimate.status_code == (400 if can_estimate else 403)
     if can_estimate:
         assert estimate.json == missing_inputs
     else:
         assert estimate.json == {"message": "Forbidden"}
+    assert warning.status_code == (200 if can_execute and data_access else 403)
+    if can_execute:
+        access.assert_called_once_with(
+            database=database,
+            sql="SELECT * FROM public.sales",
+            catalog="test",
+            schema="public",
+            template_params={},
+            force_dataset_match=True,
+        )
+        if data_access:
+            assert warning.json["result"]["action"] == (
+                "confirm" if all_users or can_estimate else "proceed"
+            )
+    else:
+        access.assert_not_called()
+    assert estimator.call_count == int(
+        can_execute and data_access and (all_users or can_estimate)
+    )
+    manual.assert_not_called()
+
+
+@pytest.mark.parametrize("app", [{"WTF_CSRF_ENABLED": True}], indirect=True)
+def test_warning_endpoint_requires_csrf(
+    mocker: MockerFixture, client: Any, full_api_access: None
+) -> None:
+    """Browser warning requests retain CSRF protection even with API permission."""
+    command = mocker.patch("superset.sqllab.api.QueryEstimationCommand")
+    response = client.post(
+        "/api/v1/sqllab/warning/", json={"database_id": 1, "sql": "SELECT 1"}
+    )
+    assert response.status_code == 400
+    assert "CSRF token is missing" in response.get_data(as_text=True)
+    command.assert_not_called()
 
 
 class WarningTestEngineSpec(BaseEngineSpec):
@@ -151,6 +283,10 @@ def _make_command(
     mocker: MockerFixture, engine: str = "postgresql", **params: Any
 ) -> QueryEstimationCommand:
     """Use real engine specs, SQL parsing, rule validation and execution limits."""
+    mocker.patch(
+        "superset.db_engine_specs.query_warning.security_manager.has_access",
+        return_value=True,
+    )
     metric = "bytes_processed" if engine == "bigquery" else "total_cost"
     database = Database(
         id=1,
@@ -317,7 +453,11 @@ def test_warning_command_delegates_to_engine_check(
     from tests.fixtures.query_warning import MessageOnlyQueryWarningCheck
 
     command = _make_command(mocker)
-    rule = {"enabled": enabled}
+    mocker.patch(
+        "superset.db_engine_specs.query_warning.security_manager.has_access",
+        side_effect=lambda permission, view: permission == "can_execute_sql_query",
+    )
+    rule = {"enabled": enabled, "all_users": True}
     _set_extra(command, {"query_cost_warning": rule, "cost_estimate_enabled": False})
     check = MessageOnlyQueryWarningCheck()
     validate = mocker.spy(check, "validate")
@@ -333,14 +473,13 @@ def test_warning_command_delegates_to_engine_check(
         command._database.db_engine_spec, "get_query_warning_check", return_value=check
     )
     response = client.post(
-        "/api/v1/sqllab/estimate/",
+        "/api/v1/sqllab/warning/",
         json={
             "database_id": 1,
             "sql": "SELECT * FROM sales",
             "catalog": "selected_catalog",
             "schema": "selected_schema",
             "query_limit": 100,
-            "check_warning": True,
         },
     )
     assert response.status_code == 200
@@ -457,6 +596,10 @@ def test_warning_unusable_estimate(
 def test_warning_flag_off_still_checks_access(mocker: MockerFixture, flag: str) -> None:
     """Even disabled checks first run the existing database/table authorization."""
     command = _make_command(mocker)
+    command.validate()
+    extra = json.loads(command._database.extra)
+    extra["query_cost_warning"]["all_users"] = True
+    _set_extra(command, extra)
     flags = mocker.patch(
         "superset.commands.sql_lab.estimate.is_feature_enabled",
         side_effect=lambda name: name != flag,
@@ -646,7 +789,8 @@ def test_warning_rejects_configured_sql_mutator(tmp_path: Path) -> None:
                     extra=json.dumps({
                         "cost_estimate_enabled": True,
                         "query_cost_warning": {
-                            "enabled": True, "metric": "total_cost", "threshold": 10,
+                            "enabled": True, "all_users": True,
+                            "metric": "total_cost", "threshold": 10,
                         },
                     }),
                 )
@@ -886,16 +1030,21 @@ def test_warning_sql_errors_are_not_unavailable(
     _estimator(command).assert_not_called()
 
 
+@pytest.mark.parametrize("endpoint", ["estimate", "warning"])
 @pytest.mark.parametrize("value", [5, 11, None])
 def test_warning_endpoint(
-    mocker: MockerFixture, client: Any, full_api_access: None, value: int | None
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    value: int | None,
+    endpoint: str,
 ) -> None:
-    """Serialize both decisions as plain text through the existing protected API."""
+    """Both assessment endpoints serialize the same decisions and display details."""
     command = _make_command(mocker)
     command.validate()
     _estimator(command).return_value = QueryCostEstimate.from_value(value)
     response = client.post(
-        "/api/v1/sqllab/estimate/",
+        f"/api/v1/sqllab/{endpoint}/",
         json={
             "database_id": 1,
             "sql": "SELECT * FROM sales",
@@ -903,7 +1052,7 @@ def test_warning_endpoint(
             "schema": "selected_schema",
             "template_params": {},
             "query_limit": 100,
-            "check_warning": True,
+            **({"check_warning": True} if endpoint == "estimate" else {}),
         },
     )
     assert response.status_code == 200
@@ -929,39 +1078,60 @@ def test_warning_endpoint(
         }
 
 
+@pytest.mark.parametrize(
+    "field,value,error",
+    [
+        ("query_limit", "100", "Not a valid integer."),
+        ("check_warning", False, "Unknown field."),
+        ("all_users", True, "Unknown field."),
+    ],
+)
 def test_warning_endpoint_rejects_invalid_input(
-    mocker: MockerFixture, client: Any, full_api_access: None
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    field: str,
+    value: object,
+    error: str,
 ) -> None:
-    """Malformed warning requests fail request validation before a warehouse call."""
+    """Clients cannot request manual estimates or override server-owned policy."""
     command = mocker.patch("superset.sqllab.api.QueryEstimationCommand")
     response = client.post(
-        "/api/v1/sqllab/estimate/",
-        json={
-            "database_id": 1,
-            "sql": "SELECT 1",
-            "check_warning": True,
-            "query_limit": "100",
-        },
+        "/api/v1/sqllab/warning/",
+        json={"database_id": 1, "sql": "SELECT 1", field: value},
     )
     assert response.status_code == 400
+    assert response.json == {"message": {field: [error]}}
     command.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "rule",
+    [
+        {"enabled": True},
+        {"enabled": True, "metric": "total_cost", "threshold": 10, "all_users": "true"},
+    ],
+)
 def test_warning_endpoint_invalid_rule_is_error(
-    mocker: MockerFixture, client: Any, full_api_access: None
+    mocker: MockerFixture, client: Any, full_api_access: None, rule: dict[str, Any]
 ) -> None:
-    """Bad stored configuration is an HTTP error rather than a usable status."""
+    """Bad stored configuration is an error even for a user outside the audience."""
     command = _make_command(mocker)
+    mocker.patch(
+        "superset.db_engine_specs.query_warning.security_manager.has_access",
+        side_effect=lambda permission, view: permission == "can_execute_sql_query",
+    )
     _set_extra(
         command,
-        {"cost_estimate_enabled": True, "query_cost_warning": {"enabled": True}},
+        {"cost_estimate_enabled": True, "query_cost_warning": rule},
     )
     response = client.post(
-        "/api/v1/sqllab/estimate/",
-        json={"database_id": 1, "sql": "SELECT 1", "check_warning": True},
+        "/api/v1/sqllab/warning/",
+        json={"database_id": 1, "sql": "SELECT 1"},
     )
     assert response.status_code == 400
     assert "action" not in response.json
+    _estimator(command).assert_not_called()
 
 
 def test_warning_endpoint_keeps_manual_response(

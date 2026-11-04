@@ -1437,6 +1437,7 @@ def test_warning_update_preserves_rule_without_resubmitting_extra(
     extra = {
         "query_cost_warning": {
             "enabled": enabled,
+            "all_users": True,
             "metric": "bytes_processed",
             "threshold": 100,
         },

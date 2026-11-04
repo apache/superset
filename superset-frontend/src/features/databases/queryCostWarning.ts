@@ -121,6 +121,9 @@ export function getQueryCostWarningError(
   metric: QueryCostWarningMetric | null | undefined,
   supported = isQueryCostWarningMetric(metric),
 ): string | undefined {
+  if ('all_users' in rule && typeof rule.all_users !== 'boolean') {
+    return t('The warning audience setting must be a boolean.');
+  }
   if (supported && metric == null) {
     return typeof rule.enabled === 'boolean'
       ? undefined
@@ -203,6 +206,7 @@ export function disableQueryCostWarning(
       : undefined;
   return {
     enabled: false,
+    ...(typeof rule.all_users === 'boolean' && { all_users: rule.all_users }),
     ...(metric && { metric }),
     ...(threshold !== undefined && { threshold }),
   };

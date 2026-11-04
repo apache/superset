@@ -91,6 +91,11 @@ test.each([
     await userEvent.click(await screen.findByText('SQL Lab'));
     const amount = await screen.findByLabelText(label);
     fireEvent.change(amount, { target: { value: input } });
+    await userEvent.click(
+      screen.getByLabelText(
+        'Apply warnings to all SQL Lab users on this connection',
+      ),
+    );
     await userEvent.click(screen.getByLabelText('Enable pre-run warnings'));
     await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
     await waitFor(() =>
@@ -102,7 +107,12 @@ test.each([
     const extra = JSON.parse(request.extra || '{}') as ExtraJson;
     expect(extra).toMatchObject({
       ...initialExtra,
-      query_cost_warning: { enabled: false, metric, threshold: saved },
+      query_cost_warning: {
+        enabled: false,
+        all_users: true,
+        metric,
+        threshold: saved,
+      },
     });
     view.unmount();
     database = { ...database, extra: request.extra || '{}' };
@@ -113,6 +123,12 @@ test.each([
     await userEvent.click(await screen.findByText('SQL Lab'));
     expect(await screen.findByLabelText(label)).toHaveValue(reopened);
     expect(screen.getByLabelText('Enable pre-run warnings')).not.toBeChecked();
+    await userEvent.click(screen.getByLabelText('Enable pre-run warnings'));
+    expect(
+      screen.getByLabelText(
+        'Apply warnings to all SQL Lab users on this connection',
+      ),
+    ).toBeChecked();
   },
 );
 

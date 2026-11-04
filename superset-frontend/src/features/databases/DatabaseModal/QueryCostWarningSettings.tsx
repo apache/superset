@@ -106,22 +106,30 @@ export default function QueryCostWarningSettings({
       );
     }
   }
+  const disableRule = () => {
+    const disabled: Record<string, unknown> =
+      supported && !metricDefinition
+        ? { ...rule, enabled: false }
+        : disableQueryCostWarning(rule);
+    if (typeof disabled.all_users !== 'boolean') delete disabled.all_users;
+    return disabled;
+  };
   const setEnabled = (event: CheckboxChangeEvent) => {
     setThresholdDraft(undefined);
+    if (!event.target.checked) {
+      onChange(disableRule());
+      return;
+    }
     if (supported && !metricDefinition) {
       onChange({ ...rule, enabled: event.target.checked });
       return;
     }
-    onChange(
-      event.target.checked
-        ? {
-            ...rule,
-            enabled: true,
-            metric,
-            ...(rule.metric !== metric && { threshold: undefined }),
-          }
-        : disableQueryCostWarning(rule),
-    );
+    onChange({
+      ...rule,
+      enabled: true,
+      metric,
+      ...(rule.metric !== metric && { threshold: undefined }),
+    });
   };
   const changeThreshold = (event: ChangeEvent<HTMLInputElement>) => {
     if (!isQueryCostWarningMetric(metric)) return;
@@ -169,6 +177,24 @@ export default function QueryCostWarningSettings({
         css={{ marginInlineStart: theme.sizeUnit * 8 }}
       >
         {inactiveReason && <small>{inactiveReason}</small>}
+        {enabled && (
+          <>
+            <Checkbox
+              checked={rule.all_users === true}
+              disabled={!prerequisitesMet}
+              onChange={event =>
+                onChange({ ...rule, all_users: event.target.checked })
+              }
+            >
+              {t('Apply warnings to all SQL Lab users on this connection')}
+            </Checkbox>
+            <small>
+              {t(
+                'When unchecked, only users with estimation permission receive warnings; other users run normally. This does not grant access to the manual estimator or to additional data.',
+              )}
+            </small>
+          </>
+        )}
         {metricDefinition && (enabled || matchingThreshold !== undefined) && (
           <Form.Item
             css={no_margin_bottom}
@@ -227,11 +253,7 @@ export default function QueryCostWarningSettings({
             buttonSize="small"
             onClick={() => {
               setThresholdDraft(undefined);
-              onChange(
-                supported && !metricDefinition
-                  ? { ...rule, enabled: false }
-                  : disableQueryCostWarning(rule),
-              );
+              onChange(disableRule());
             }}
           >
             {t('Disable saved rule')}

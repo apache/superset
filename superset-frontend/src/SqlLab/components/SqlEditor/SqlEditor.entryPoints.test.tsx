@@ -243,7 +243,7 @@ beforeEach(() => {
   });
   fetchMock.get('glob:*/api/v1/database/*', { result: [] });
   fetchMock.post(
-    'glob:*/api/v1/sqllab/estimate/',
+    'glob:*/api/v1/sqllab/warning/',
     { result: warning },
     { name: 'check' },
   );
@@ -283,7 +283,6 @@ test.each([
     expect(JSON.parse(String(estimates()[0].options.body))).toMatchObject({
       sql: expected,
       query_limit: 42,
-      check_warning: true,
     });
     expect(executions()).toHaveLength(0);
     expect(mockSetSelection).not.toHaveBeenCalled();
@@ -451,7 +450,6 @@ test('history action opens a tab, checks its effective inputs, and executes that
   await screen.findByRole('dialog');
   const checked = JSON.parse(String(estimates()[0].options.body));
   expect(checked).toEqual({
-    check_warning: true,
     database_id: 2,
     catalog: 'historical_catalog',
     schema: 'historical_schema',

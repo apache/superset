@@ -29,6 +29,7 @@ from superset import config, db, is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand
 from superset.daos.database import DatabaseDAO
 from superset.db_engine_specs.query_warning import (
+    query_warning_applies_to_user,
     QueryWarningCheck,
     QueryWarningResult,
     validate_query_warning_rule,
@@ -239,7 +240,12 @@ class QueryEstimationCommand(BaseCommand):
             return {"action": "proceed"}
         check = self._database.db_engine_spec.get_query_warning_check()
         rule = self._get_warning_rule(check)
-        if check is None or not rule["enabled"] or not check.is_enabled(self._database):
+        if (
+            check is None
+            or not rule["enabled"]
+            or not check.is_enabled(self._database)
+            or not query_warning_applies_to_user(rule)
+        ):
             return {"action": "proceed"}
         prepared_sql, unavailable_reason = self._prepare_warning_sql()
         if prepared_sql is None:

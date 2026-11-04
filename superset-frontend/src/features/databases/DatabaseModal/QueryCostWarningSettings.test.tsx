@@ -115,6 +115,7 @@ test('unit changes preserve bytes and disabled values survive reopening', async 
     allows_virtual_table_explore: true,
     query_cost_warning: {
       enabled: true,
+      all_users: true,
       metric: 'bytes_processed',
       threshold: 2000000000,
     },
@@ -139,6 +140,7 @@ test('unit changes preserve bytes and disabled values survive reopening', async 
     ...initial,
     query_cost_warning: {
       enabled: false,
+      all_users: true,
       metric: 'bytes_processed',
       threshold: 1250000000,
     },
@@ -150,6 +152,29 @@ test('unit changes preserve bytes and disabled values survive reopening', async 
     screen.getByLabelText('Warning threshold (bytes processed)'),
   ).toHaveValue(1250);
   expect(savedExtra()).toEqual(saved);
+});
+
+test('warning audience defaults to permitted users and changes without changing the threshold', async () => {
+  const rule = { enabled: true, metric: 'total_cost' as const, threshold: 10 };
+  render(
+    <SettingsHarness
+      metric="total_cost"
+      engine="postgresql"
+      extra={{ cost_estimate_enabled: true, query_cost_warning: rule }}
+    />,
+  );
+  const audience = screen.getByLabelText(
+    'Apply warnings to all SQL Lab users on this connection',
+  );
+  expect(audience).not.toBeChecked();
+  expect(savedExtra().query_cost_warning).toEqual(rule);
+  await userEvent.click(audience);
+  expect(savedExtra().query_cost_warning).toEqual({ ...rule, all_users: true });
+  await userEvent.click(audience);
+  expect(savedExtra().query_cost_warning).toEqual({
+    ...rule,
+    all_users: false,
+  });
 });
 
 test('fractional bytes show validation and cannot be saved or silently rounded', async () => {
@@ -284,6 +309,12 @@ test.each([
   { enabled: 'invalid', metric: 'bytes_processed', threshold: 10 },
   { enabled: false, metric: 'bytes_processed', threshold: -1 },
   { enabled: true, metric: 'bytes_processed', threshold: 'invalid' },
+  {
+    enabled: true,
+    all_users: 'true',
+    metric: 'bytes_processed',
+    threshold: 10,
+  },
 ])('broken saved rules remain disableable (%j)', rule => {
   window.featureFlags = {};
   render(<SettingsHarness extra={{ query_cost_warning: rule } as ExtraJson} />);
@@ -353,6 +384,7 @@ test('message-only opt-in preserves check fields and needs no estimation or thre
   };
   const rule = {
     enabled: false,
+    all_users: true,
     notice: 'Review this query',
     options: { mode: 'notice' },
   };

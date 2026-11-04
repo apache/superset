@@ -148,6 +148,7 @@ def test_query_cost_warning_preserves_valid_rules_and_unrelated_settings(
     extra = {
         "query_cost_warning": {
             "enabled": False,
+            "all_users": True,
             "metric": "total_cost",
             "threshold": 12.5,
         },
@@ -155,6 +156,26 @@ def test_query_cost_warning_preserves_valid_rules_and_unrelated_settings(
         "engine_params": {"connect_args": {"application_name": "test"}},
     }
     assert warning_extra_loader(extra) == extra
+
+
+@pytest.mark.parametrize("value", ["true", "false", 1, 0, None, [], {}])
+def test_warning_audience_requires_boolean(
+    warning_extra_loader: Callable[[dict[str, object]], dict[str, object]],
+    value: object,
+) -> None:
+    """Create, update and import cannot coerce values into broader assessment access."""
+    with pytest.raises(ValidationError) as error:
+        warning_extra_loader(
+            {
+                "query_cost_warning": {
+                    "enabled": True,
+                    "all_users": value,
+                    "metric": "total_cost",
+                    "threshold": 10,
+                }
+            }
+        )
+    assert "all_users" in str(error.value.messages)
 
 
 @pytest.mark.parametrize(

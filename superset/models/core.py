@@ -305,7 +305,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     @property
     def query_warning_state(self) -> str:
-        """Expose check readiness without confusing invalid settings with opt-out."""
+        """Expose readiness for the requesting user, keeping invalid rules distinct."""
+        from superset.db_engine_specs.query_warning import query_warning_applies_to_user
+
         rule = self.query_cost_warning
         if rule is None:
             return "invalid"
@@ -316,6 +318,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             not is_feature_enabled("SQLLAB_QUERY_COST_WARNINGS")
             or not rule["enabled"]
             or not check.is_enabled(self)
+            or not query_warning_applies_to_user(rule)
         ):
             return "disabled"
         return "ready"

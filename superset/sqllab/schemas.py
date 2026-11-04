@@ -74,6 +74,13 @@ class FormatQueryPayloadSchema(Schema):
     )
 
 
+class QueryWarningSchema(EstimateQueryCostSchema):
+    """Accept assessment inputs without allowing callers to select manual estimation."""
+
+    class Meta:
+        exclude = ("check_warning",)
+
+
 class ExecutePayloadSchema(Schema):
     database_id = fields.Integer(required=True)
     sql = fields.String(required=True)
@@ -186,7 +193,13 @@ class SQLLabBootstrapDatabaseSchema(Schema):
     allows_cost_estimate = fields.Boolean(allow_none=True)
     query_cost_warning = fields.Dict(allow_none=True)
     query_warning_state = fields.String(
-        validate=validate.OneOf(["unsupported", "disabled", "ready", "invalid"])
+        validate=validate.OneOf(["unsupported", "disabled", "ready", "invalid"]),
+        metadata={
+            "description": (
+                "Warning readiness for the requesting user; disabled also includes "
+                "users outside the connection's warning audience"
+            )
+        },
     )
     allows_subquery = fields.Boolean()
     allows_virtual_table_explore = fields.Boolean()

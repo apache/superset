@@ -37,7 +37,7 @@ from marshmallow import (
     ValidationError,
 )
 
-from superset import is_feature_enabled
+from superset import is_feature_enabled, security_manager
 from superset.utils.core import JS_MAX_INTEGER
 
 if TYPE_CHECKING:
@@ -172,6 +172,19 @@ def query_cost_warning_threshold_validator(value: object) -> None:
         )
 
 
+def query_warning_all_users_validator(value: object) -> None:
+    """Require an explicit boolean when expanding the warning audience."""
+    if not isinstance(value, bool):
+        raise ValidationError([_("The warning audience setting must be a boolean.")])
+
+
+def query_warning_applies_to_user(rule: dict[str, Any]) -> bool:
+    """Select the audience without granting manual estimation or SQL access."""
+    return rule.get("all_users") is True or security_manager.has_access(
+        "can_estimate_query_cost", "SQLLab"
+    )
+
+
 class QueryWarningRuleSchema(Schema):
     """Validate shared opt-in while preserving fields owned by the engine check."""
 
@@ -182,6 +195,16 @@ class QueryWarningRuleSchema(Schema):
         required=True,
         validate=query_cost_warning_enabled_validator,
         metadata={"type": "boolean"},
+    )
+    all_users = fields.Raw(
+        validate=query_warning_all_users_validator,
+        metadata={
+            "type": "boolean",
+            "description": (
+                "Apply warnings to all users authorized to execute SQL "
+                "on this connection"
+            ),
+        },
     )
 
 

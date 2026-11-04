@@ -57,7 +57,7 @@ jest.mock('@superset-ui/core', () => ({
   ),
 }));
 const featureEnabled = jest.mocked(isFeatureEnabled);
-const endpoint = 'glob:*/api/v1/sqllab/estimate/';
+const endpoint = 'glob:*/api/v1/sqllab/warning/';
 const executeEndpoint = 'glob:*/api/v1/sqllab/execute/*';
 const warning = {
   action: 'confirm',
@@ -229,7 +229,6 @@ test('proceed executes a captured request once', async () => {
   );
   const executed = JSON.parse(String(h.executions()[0].options.body));
   expect(checked).toEqual({
-    check_warning: true,
     database_id: h.editor.dbId,
     sql: 'SELECT 2',
     catalog: 'catalog',
@@ -513,11 +512,16 @@ test.each([
   expect(h.result.current.confirmation).toBeUndefined();
 });
 
-test.each(['async', 'rule', 'state', 'tab'])(
-  'invalidates %s changes',
-  async field => {
+test.each(
+  ['async', 'rule', 'audience', 'state', 'tab'].flatMap(field =>
+    [false, true].map(confirmed => ({ field, confirmed })),
+  ),
+)(
+  'invalidates $field changes with confirmation displayed: $confirmed',
+  async ({ field, confirmed }) => {
     const h = setup();
     h.start();
+    if (confirmed) await h.finish(warning);
     h.replace(state => ({
       ...state,
       sqlLab: {
@@ -533,6 +537,13 @@ test.each(['async', 'rule', 'state', 'tab'])(
                   ...(field === 'rule' && {
                     query_cost_warning: { enabled: false },
                   }),
+                  ...(field === 'audience' && {
+                    query_cost_warning: {
+                      ...state.sqlLab.databases[h.editor.dbId!]
+                        .query_cost_warning!,
+                      all_users: true,
+                    },
+                  }),
                   ...(field === 'state' && {
                     query_warning_state: 'disabled' as const,
                   }),
@@ -541,8 +552,10 @@ test.each(['async', 'rule', 'state', 'tab'])(
             }),
       },
     }));
-    await h.finish({ action: 'proceed' });
+    if (!confirmed) await h.finish({ action: 'proceed' });
+    await act(async () => h.result.current.continueRun());
     expect(h.executions()).toHaveLength(0);
+    expect(h.result.current.confirmation).toBeUndefined();
   },
 );
 

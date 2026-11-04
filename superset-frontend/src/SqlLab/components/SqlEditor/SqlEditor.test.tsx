@@ -217,7 +217,7 @@ describe('SqlEditor', () => {
         ].includes(flag),
       );
       fetchMock.post(
-        'glob:*/api/v1/sqllab/estimate/',
+        'glob:*/api/v1/sqllab/warning/',
         {
           result: {
             action,

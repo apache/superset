@@ -71,6 +71,7 @@ export type QueryCostWarningMetric = keyof typeof queryCostWarningMetrics;
 export type QueryCostWarning = {
   [key: string]: unknown;
   enabled: boolean;
+  all_users?: boolean;
   metric?: QueryCostWarningMetric;
   threshold?: number;
 };

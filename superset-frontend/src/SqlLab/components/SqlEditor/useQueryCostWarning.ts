@@ -223,9 +223,8 @@ export default function useQueryCostWarning(
       setPendingAttempt(attempt);
       try {
         const { json } = await SupersetClient.post({
-          endpoint: '/api/v1/sqllab/estimate/',
+          endpoint: '/api/v1/sqllab/warning/',
           jsonPayload: {
-            check_warning: true,
             database_id: query.dbId,
             sql: query.sql,
             catalog: query.catalog,
