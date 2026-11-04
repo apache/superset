@@ -148,3 +148,88 @@ test("the reviewer's banner is not the same in both states", () => {
 
   expect(off).not.toEqual(on);
 });
+
+/**
+ * The layout a draft puts the banner in.
+ *
+ * A draft carries the longest message and the most controls (the switch plus
+ * three buttons). In Explore the banner is only a few hundred pixels wide, and
+ * when the message and the controls were laid out as non-wrapping siblings the
+ * controls kept their full width and left the message a column a few
+ * characters wide. What a test can pin is the structure that prevents that,
+ * not any width: the message sits in its own element, apart from the controls,
+ * and the two are laid out in a row that wraps.
+ */
+const showDraftWithControls = () =>
+  render(
+    <ReviewBanner
+      changeRequest={draft}
+      onShowWhatChanged={() => {}}
+      onRequestReview={() => {}}
+      onDiscard={() => {}}
+      showChanges={{ showing: false, busy: false, toggle: () => {} }}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+test('a draft renders its message and every control inside the one banner', () => {
+  showDraftWithControls();
+
+  const banner = screen.getByRole('alert');
+  expect(banner).toHaveTextContent(/Your changes are saved/);
+  expect(screen.getAllByRole('alert')).toHaveLength(1);
+  expect(screen.getByRole('switch', { name: 'Show changes' })).toBeVisible();
+  ['What changed', 'Request review', 'Discard changes…'].forEach(name => {
+    expect(screen.getByRole('button', { name })).toBeInTheDocument();
+  });
+});
+
+test('the message is its own element, not one the controls share', () => {
+  showDraftWithControls();
+
+  const message = screen.getByText(/Your changes are saved/);
+
+  expect(message.querySelector('button, [role="switch"]')).toBeNull();
+  ['What changed', 'Request review', 'Discard changes…'].forEach(name => {
+    expect(message).not.toContainElement(
+      screen.getByRole('button', { name }),
+    );
+  });
+});
+
+test('the message and the controls are laid out in a row that can wrap', () => {
+  showDraftWithControls();
+
+  const message = screen.getByText(/Your changes are saved/);
+  const row = message.parentElement as HTMLElement;
+  const controls = screen.getByRole('button', {
+    name: 'Request review',
+  }).parentElement as HTMLElement;
+
+  // One row holds both, so the controls can drop below the message rather
+  // than squeeze it.
+  expect(row).toContainElement(controls);
+  expect(row).toHaveStyle({ flexWrap: 'wrap' });
+  // And if even a line to themselves is too narrow, the controls wrap too.
+  expect(controls).toHaveStyle({ flexWrap: 'wrap' });
+});
+
+test('with no preview there is no switch, and the other controls remain', () => {
+  render(
+    <ReviewBanner
+      changeRequest={draft}
+      onShowWhatChanged={() => {}}
+      onRequestReview={() => {}}
+      onDiscard={() => {}}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Request review' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Discard changes…' }),
+  ).toBeInTheDocument();
+});

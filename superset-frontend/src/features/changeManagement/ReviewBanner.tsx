@@ -36,11 +36,45 @@ const ShowChanges = styled.label`
   `}
 `;
 
+/**
+ * The message and its controls, as one wrapping row.
+ *
+ * They used to be the Alert's `message` and `action`, which antd lays out as
+ * siblings in a non-wrapping flex row. The controls never shrink below their
+ * content, so the message got whatever width they left over. A draft carries
+ * a switch and three buttons (about 500px), and Explore gives the banner
+ * roughly 480-630px at common window widths, so the message was squeezed to
+ * a column a few characters wide and the banner grew several hundred pixels
+ * tall. Here the message takes a line of its own as soon as the controls do
+ * not fit beside it, and the controls wrap among themselves if even a line
+ * to themselves is too narrow.
+ */
+const Row = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
+  `}
+`;
+
+const Message = styled.div`
+  ${({ theme }) => `
+    flex: 1 1 ${theme.sizeUnit * 100}px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  `}
+`;
+
 const Actions = styled.div`
   ${({ theme }) => `
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    justify-content: flex-end;
     gap: ${theme.sizeUnit * 2}px;
+    margin-left: auto;
   `}
 `;
 
@@ -358,49 +392,51 @@ export default function ReviewBanner({
       type={content.type}
       closable={false}
       showIcon
-      message={content.message}
-      action={
-        <Actions>
-          {showChanges ? (
-            <ShowChanges>
-              <Switch
-                size="small"
-                checked={showChanges.showing}
-                disabled={showChanges.busy}
-                onChange={showChanges.toggle}
-                aria-label={t('Show changes')}
-                data-test="show-changes-switch"
-              />
-              <span>{t('Show changes')}</span>
-            </ShowChanges>
-          ) : null}
-          {content.actions
-            .filter(a => a.onClick || a.href)
-            .map(a => (
-              <Button
-                key={a.key}
-                buttonStyle={a.key === 'approve' ? 'primary' : 'secondary'}
-                buttonSize="small"
-                danger={a.danger}
-                disabled={busy && !a.href}
-                onClick={a.onClick}
-                {...(a.href
-                  ? {
-                      href: a.href,
-                      // No `target`. SOW 5.3 wants the live version reachable
-                      // for a side-by-side read, and a real `href` still gives
-                      // that to a middle- or ctrl-click. Forcing every plain
-                      // click into a new tab broke the embedded case, where
-                      // the new tab leaves the host app and lands on the raw
-                      // Superset origin (QA-22).
-                      rel: 'noopener noreferrer',
-                    }
-                  : {})}
-              >
-                {a.label}
-              </Button>
-            ))}
-        </Actions>
+      message={
+        <Row>
+          <Message>{content.message}</Message>
+          <Actions>
+            {showChanges ? (
+              <ShowChanges>
+                <Switch
+                  size="small"
+                  checked={showChanges.showing}
+                  disabled={showChanges.busy}
+                  onChange={showChanges.toggle}
+                  aria-label={t('Show changes')}
+                  data-test="show-changes-switch"
+                />
+                <span>{t('Show changes')}</span>
+              </ShowChanges>
+            ) : null}
+            {content.actions
+              .filter(a => a.onClick || a.href)
+              .map(a => (
+                <Button
+                  key={a.key}
+                  buttonStyle={a.key === 'approve' ? 'primary' : 'secondary'}
+                  buttonSize="small"
+                  danger={a.danger}
+                  disabled={busy && !a.href}
+                  onClick={a.onClick}
+                  {...(a.href
+                    ? {
+                        href: a.href,
+                        // No `target`. SOW 5.3 wants the live version reachable
+                        // for a side-by-side read, and a real `href` still gives
+                        // that to a middle- or ctrl-click. Forcing every plain
+                        // click into a new tab broke the embedded case, where
+                        // the new tab leaves the host app and lands on the raw
+                        // Superset origin (QA-22).
+                        rel: 'noopener noreferrer',
+                      }
+                    : {})}
+                >
+                  {a.label}
+                </Button>
+              ))}
+          </Actions>
+        </Row>
       }
     />
   );
