@@ -20,16 +20,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any
 from uuid import UUID
 
 from sqlalchemy_continuum import version_class
 
 from superset import db, security_manager
-from superset.canvas.definition.registry import get_widget_resolver
-from superset.canvas.definition.schemas import RemoveOp
+from superset.canvas.versions import version_definition
 from superset.commands.base import BaseCommand
-from superset.commands.canvas.apply_ops import apply_or_raise, publish_canvas_changed
+from superset.commands.canvas.apply_ops import publish_canvas_changed
 from superset.commands.canvas.exceptions import (
     CanvasForbiddenError,
     CanvasNotFoundError,
@@ -107,7 +105,7 @@ class RestoreCanvasVersionCommand(BaseCommand):
         if target is None or target.operation_type == OPERATION_DELETE:
             raise CanvasVersionNotFoundError()
 
-        definition, skipped = self._restorable_definition(canvas, target.definition)
+        definition, skipped = version_definition(canvas, target.definition)
         self._stamp_restore(canvas, self._version_uuid, version_number)
         for name in RESTORED_FIELDS:
             setattr(canvas, name, getattr(target, name))
@@ -136,40 +134,6 @@ class RestoreCanvasVersionCommand(BaseCommand):
         if canvas.is_managed_externally:
             raise CanvasForbiddenError()
         self._canvas_id = canvas.id
-
-    @staticmethod
-    def _restorable_definition(
-        canvas: Canvas, raw: str
-    ) -> tuple[dict[str, Any], list[str]]:
-        """
-        The version's definition without placements of widgets that are gone,
-        or that the canvas no longer places and the user may not place.
-        """
-        definition = CanvasDAO.parse(raw)
-        placed = {
-            node["widgetId"]
-            for node in CanvasDAO.load(canvas)["nodes"].values()
-            if node.get("widgetId")
-        }
-        wanted = {
-            node_id: node["widgetId"]
-            for node_id, node in definition["nodes"].items()
-            if node.get("widgetId")
-        }
-        resolver = get_widget_resolver()
-        existing = set(resolver.widget_types(set(wanted.values())))
-        returning = set(wanted.values()) - placed
-        allowed = resolver.placeable(returning) if returning else set()
-        skipped = sorted(
-            node_id
-            for node_id, widget_id in wanted.items()
-            if widget_id not in existing
-            or (widget_id in returning and widget_id not in allowed)
-        )
-        definition, _ = apply_or_raise(
-            definition, [RemoveOp(op="remove", id=node_id) for node_id in skipped]
-        )
-        return definition, skipped
 
     @staticmethod
     def _stamp_restore(canvas: Canvas, version_uuid: UUID, version_number: int) -> None:

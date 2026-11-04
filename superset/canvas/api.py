@@ -1068,7 +1068,10 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                 The canvas' fields at the version, its definition rendered
                 like the definition route's response under `rendered`, and a
                 `_version` block with the version's metadata. Widgets placed
-                by UUID are rendered with their current content.
+                by UUID are rendered with their current content; placements
+                of widgets deleted since, or that the canvas no longer places
+                and the caller may not place, are left out and listed in
+                `skippedPlacements`.
               content:
                 application/json:
                   schema:

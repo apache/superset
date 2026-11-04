@@ -198,6 +198,33 @@ def test_restore_leaves_out_widgets_that_are_gone_or_not_placeable(
     assert list(json.loads(canvas.definition)["nodes"]) == ["kept"]
 
 
+def test_a_version_hides_widgets_the_canvas_no_longer_grants(
+    client: Any,
+    full_api_access: None,
+    canvas: Canvas,
+    widget_types: FakeResolver,
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch("superset.commands.canvas.placement_data.run_binding")
+    widget_types.props["chart-3"] = {"dataBinding": BINDING}
+    save(canvas, {"op": "add", "id": "secret", "widgetId": "chart-3"})
+    first = versions(client, canvas)[1]["version_uuid"]
+    save(canvas, {"op": "remove", "id": "secret"})
+    widget_types.hidden.add("chart-3")
+
+    result = client.get(f"{BASE}/{canvas.uuid}/versions/{first}/").json["result"]
+    data = client.post(
+        f"{BASE}/{canvas.id}/placement/secret/data",
+        json={},
+        headers={"X-Canvas-Version": first},
+    )
+
+    assert result["skippedPlacements"] == ["secret"]
+    assert result["rendered"]["definition"]["nodes"] == {}
+    assert result["rendered"]["widgets"] == {}
+    assert data.status_code == 404
+
+
 def test_only_editors_read_or_restore_versions(
     client: Any, full_api_access: None, canvas: Canvas, mocker: MockerFixture
 ) -> None:
