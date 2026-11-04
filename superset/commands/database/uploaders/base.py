@@ -25,7 +25,7 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import or_
 from werkzeug.datastructures import FileStorage
 
-from superset import db
+from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
@@ -38,6 +38,7 @@ from superset.commands.database.exceptions import (
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.database import DatabaseDAO
+from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.utils.backports import StrEnum
@@ -186,7 +187,16 @@ class UploadCommand(BaseCommand):
             )
             .one_or_none()
         )
-        if not sqla_table:
+        if sqla_table:
+            # Uploading onto a table that already backs a dataset rewrites that
+            # dataset's data (``replace`` drops the table) and its columns
+            # (``fetch_metadata`` below). ``can_upload`` on the database is not
+            # authority to do that: it takes the same editorship as editing
+            # the dataset does, and it must be settled BEFORE ``reader.read``
+            # because that write is outside this command's metadata
+            # transaction and cannot be rolled back.
+            self._raise_unless_dataset_editor(sqla_table)
+        else:
             from superset.subjects.utils import get_user_subject
 
             user = get_user()
@@ -235,6 +245,23 @@ class UploadCommand(BaseCommand):
             sqla_table.catalog = catalog
 
         sqla_table.fetch_metadata()
+
+    @staticmethod
+    def _raise_unless_dataset_editor(dataset: SqlaTable) -> None:
+        """Require what ``UpdateDatasetCommand`` requires to change ``dataset``."""
+        # Deferred like the other dataset imports in this module.
+        from superset.commands.dataset.exceptions import (  # noqa: PLC0415
+            DatasetForbiddenError,
+        )
+        from superset.commands.utils import (  # noqa: PLC0415
+            raise_if_managed_externally,
+        )
+
+        try:
+            security_manager.raise_for_editorship(dataset)
+        except SupersetSecurityException as ex:
+            raise DatasetForbiddenError() from ex
+        raise_if_managed_externally(dataset, DatasetForbiddenError)
 
     @staticmethod
     def _file_size_bytes(file: Any) -> Optional[int]:

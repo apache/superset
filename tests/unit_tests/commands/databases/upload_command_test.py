@@ -420,6 +420,11 @@ def test_run_updates_catalog_on_existing_dataset_with_none_catalog(
     db_mock.session.query.return_value.filter.return_value.one_or_none.return_value = (
         existing_table
     )
+    # This test is about the catalog, not about who may upload. An upload onto
+    # an EXISTING dataset now requires the same editorship as editing it, so
+    # stand in for that check rather than assert it here; the editorship rule
+    # has its own tests.
+    mocker.patch.object(UploadCommand, "_raise_unless_dataset_editor")
 
     reader = MagicMock()
     command = UploadCommand(
