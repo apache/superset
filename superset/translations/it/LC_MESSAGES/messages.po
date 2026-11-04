@@ -4788,6 +4788,9 @@ msgstr "Carica questo grafico:"
 msgid "Check out this dashboard: "
 msgstr "Dai un'occhiata a questa dashboard: "
 
+msgid "Check the value transform →"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -7924,6 +7927,12 @@ msgstr "Disabilita la funzionalità drill-to-dettaglio per questo database."
 msgid "Discard"
 msgstr "Annulla"
 
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Visualizza Nome"
 
@@ -10099,6 +10108,9 @@ msgstr ""
 msgid ""
 "Filters on this column are mapped onto the partition column, but are not "
 "mirrored."
+msgstr ""
+
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -12490,8 +12502,10 @@ msgstr "Tema locale impostato su \"%s\""
 msgid "Locate the chart"
 msgstr "Posiziona il grafico"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
-msgstr "Login"
+msgstr "Log"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -15014,6 +15028,12 @@ msgid "Partition keys must be whole numbers within the 64-bit range, up to three
 msgstr ""
 
 msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -22345,6 +22365,14 @@ msgstr ""
 "(ad esempio mydatabase.com)."
 
 msgid "This cannot be undone."
+msgstr ""
+
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
