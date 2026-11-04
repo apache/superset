@@ -19,14 +19,16 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import pandas as pd
+from flask import g
 from marshmallow import ValidationError
 from superset_core.exports.types import ChartQueryResult, GenericDataType
 
 from superset import is_feature_enabled, security_manager
 from superset.charts.client_processing import apply_client_processing
+from superset.charts.data.form_data import set_form_data
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -34,6 +36,9 @@ from superset.common.query_context_factory import QueryContextFactory
 from superset.daos.dashboard import DashboardDAO
 from superset.exceptions import SupersetSecurityException
 from superset.utils.core import extract_dataframe_dtypes
+
+if TYPE_CHECKING:
+    from superset.common.query_context import QueryContext
 
 # Result types whose queries return rows; the rest return SQL or metadata.
 ROW_RESULT_TYPES = frozenset(
@@ -49,14 +54,19 @@ ROW_RESULT_TYPES = frozenset(
 # Header of the row-label column; blank, like the unnamed index in a CSV export.
 ROW_LABEL_COLUMN = ""
 
+_UNSET = object()
 
-def _requested_result_types(payload: dict[str, Any]) -> set[str]:
-    """Collect the context-level and per-query result types a payload asks for."""
-    requested = {str(payload.get("result_type") or ChartDataResultType.FULL)}
-    for query in payload.get("queries") or []:
-        if isinstance(query, dict) and query.get("result_type"):
-            requested.add(str(query["result_type"]))
-    return requested
+
+def _requested_result_types(query_context: QueryContext) -> set[str]:
+    """Collect the context-level and per-query result types after loading."""
+    return {
+        str(result_type)
+        for result_type in (
+            query_context.result_type,
+            *(query.result_type for query in query_context.queries),
+        )
+        if result_type
+    }
 
 
 def _coltype(value: Any) -> GenericDataType:
@@ -115,13 +125,21 @@ def run_query_context(payload: dict[str, Any]) -> list[ChartQueryResult]:
     :raises ValidationError: If the payload is malformed
     :raises ValueError: If a result type carries no row data
     """
-    if unsupported := sorted(_requested_result_types(payload) - ROW_RESULT_TYPES):
-        raise ValueError(
-            f"Result type {', '.join(unsupported)} returns no rows; use one of "
-            f"{', '.join(sorted(ROW_RESULT_TYPES))}"
-        )
     # Rows are read from JSON results, whatever format the payload asks for.
     payload = {**payload, "result_format": ChartDataResultFormat.JSON}
+    previous = g.get("form_data", _UNSET)
+    # Jinja macros read the payload from ``g.form_data`` outside a request.
+    set_form_data(payload)
+    try:
+        return _run(payload)
+    finally:
+        if previous is _UNSET:
+            g.pop("form_data", None)
+        else:
+            g.form_data = previous
+
+
+def _run(payload: dict[str, Any]) -> list[ChartQueryResult]:
     schema: ChartDataQueryContextSchema = ChartDataQueryContextSchema()
     schema.query_context_factory = QueryContextFactory(
         authorize_semantic_before_metadata=True
@@ -132,6 +150,12 @@ def run_query_context(payload: dict[str, Any]) -> list[ChartQueryResult]:
         raise ValidationError("Request is incorrect") from ex
     except ValueError as ex:
         raise ValidationError(str(ex)) from ex
+
+    if unsupported := sorted(_requested_result_types(query_context) - ROW_RESULT_TYPES):
+        raise ValueError(
+            f"Result type {', '.join(unsupported)} returns no rows; use one of "
+            f"{', '.join(sorted(ROW_RESULT_TYPES))}"
+        )
 
     command = ChartDataCommand(query_context)
     command.validate()

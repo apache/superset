@@ -28,7 +28,7 @@ from collections.abc import Iterator
 from typing import Any, cast, Final, TYPE_CHECKING
 
 from celery.exceptions import SoftTimeLimitExceeded
-from flask import current_app, g
+from flask import current_app
 from superset_core.exports.types import ChartResult, SkipReason
 
 from superset.charts.data.dashboard_filter_context import (
@@ -180,8 +180,6 @@ def prepare_for_export(
     if filter_context.extra_form_data:
         apply_dashboard_filter_context(json_body, filter_context.extra_form_data)
 
-    # Jinja macros read the query context from ``g.form_data``.
-    g.form_data = json_body
     return json_body
 
 

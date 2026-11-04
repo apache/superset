@@ -150,6 +150,9 @@ def mocks() -> Iterator[dict[str, Any]]:
         )
 
         patched["get_dashboard_filter_context"].return_value.extra_form_data = {}
+        loaded = patched["ChartDataQueryContextSchema"].return_value.load.return_value
+        loaded.result_type = ChartDataResultType.FULL
+        loaded.queries = []
         patched["create_download_link"].return_value = "https://signed/file.xlsx"
 
         patched["user"] = user
