@@ -41,12 +41,15 @@ from superset.mcp_service.dashboard.schemas import (
     FilterRangeSpec,
     FilterSelectSpec,
     FilterTimeGrainSpec,
+    FilterValueRequest,
+    FilterValueScalar,
     GenerateDashboardRequest,
     GetDashboardInfoRequest,
     GetDashboardLayoutRequest,
     ListDashboardsRequest,
     ManageDashboardOwnersResponse,
     ManageDashboardRolesResponse,
+    NativeFilterAvailableValues,
     NativeFilterSummary,
     NativeFilterUpdateSpec,
     redact_filter_state_data_model_metadata,
@@ -1440,6 +1443,211 @@ def test_apply_filter_range_rejects_boolean_bounds(bound: bool, index: int) -> N
         ApplyFilterValueSpec.model_validate(
             {"filter_name_or_id": "Cost", "range": bounds}
         )
+
+
+@pytest.mark.parametrize(
+    "controls",
+    [
+        {"filter_values_offset": 0},
+        {"filter_value_requests": [{"filter_id": "region"}]},
+        {"proposed_filter_values": [{"filter_id": "region", "values": []}]},
+        {"filter_value_requests": None},
+    ],
+)
+def test_discovery_controls_require_explicit_opt_in(controls: dict[str, Any]) -> None:
+    """Even an explicitly supplied zero offset is a discovery control."""
+    with pytest.raises(ValidationError, match="require include_filter_values"):
+        GetDashboardInfoRequest(identifier=1, **controls)
+
+
+@pytest.mark.parametrize("value", [True, 1, 1.5, "1", None, "  Côte d'Ivoire, EMEA  "])
+def test_discovery_exact_values_preserve_scalar_types(value: FilterValueScalar) -> None:
+    """JSON scalar identity survives request and response serialization."""
+    request = FilterValueRequest(filter_id="region", exact_value=value)
+    assert type(request.exact_value) is type(value)
+    assert request.exact_value == value
+    response = NativeFilterAvailableValues(
+        status="complete", query_mode="exact", exact_value=value, values=[value]
+    ).model_dump(mode="json")
+    assert type(response["exact_value"]) is type(value)
+    assert response["exact_value"] == value
+    assert type(response["values"][0]) is type(value)
+
+
+@pytest.mark.parametrize("value", [[], {}, float("nan"), float("inf"), float("-inf")])
+def test_discovery_rejects_nonscalar_or_nonfinite_probe(value: object) -> None:
+    """Rejected probes cannot reach query construction."""
+    with pytest.raises(ValidationError):
+        FilterValueRequest.model_validate({"filter_id": "region", "exact_value": value})
+
+
+@pytest.mark.parametrize(
+    "controls",
+    [
+        {"filter_value_requests": []},
+        {"filter_value_requests": [{"filter_id": "a"}, {"filter_id": "a"}]},
+        {"filter_value_requests": [{"filter_id": str(i)} for i in range(21)]},
+        {"filter_value_requests": [{"filter_id": "a"}], "filter_values_offset": 0},
+        {
+            "filter_value_requests": [
+                {"filter_id": "a", "search": "", "exact_value": None}
+            ]
+        },
+        {"filter_value_requests": [{"filter_id": "a", "search": None}]},
+        {"filter_value_requests": [{"filter_id": "a", "search": "a" * 201}]},
+        {"filter_value_requests": [{"filter_id": "a", "limit": True}]},
+        {"filter_value_requests": [{"filter_id": "a", "limit": 1.5}]},
+        {"filter_value_requests": [{"filter_id": "a", "limit": "2"}]},
+        {"filter_value_requests": [{"filter_id": "a", "limit": 0}]},
+        {"filter_value_requests": [{"filter_id": "a", "limit": 101}]},
+        {"filter_value_requests": [{"filter_id": "a", "column": "region"}]},
+        {"filter_values_offset": True},
+        {"filter_values_offset": -1},
+        {"proposed_filter_values": []},
+        {"proposed_filter_values": [{"filter_id": "a", "values": list(range(21))}]},
+        {"proposed_filter_values": [{"filter_id": "a", "values": [{"sql": "1=1"}]}]},
+        {"proposed_filter_values": [{"filter_id": "a", "values": []}] * 2},
+        {"id": 2},
+    ],
+)
+def test_discovery_rejects_invalid_controls(controls: dict[str, Any]) -> None:
+    """All controls are bounded and cannot inject raw query inputs."""
+    with pytest.raises(ValidationError):
+        GetDashboardInfoRequest(identifier=1, include_filter_values=True, **controls)
+
+
+def test_discovery_presence_survives_request_roundtrip() -> None:
+    """Default model dumps must not fabricate optional controls or exact probes."""
+    metadata = GetDashboardInfoRequest.model_validate({"identifier": 1})
+    assert GetDashboardInfoRequest.model_validate(metadata.model_dump()) == metadata
+    listing = FilterValueRequest(filter_id="a")
+    assert "exact_value" not in listing.model_dump()
+    exact = FilterValueRequest(filter_id="a", exact_value=None)
+    assert "exact_value" in exact.model_dump()
+    assert (
+        "exact_value"
+        in FilterValueRequest.model_validate(exact.model_dump()).model_fields_set
+    )
+    assert "search" not in exact.model_dump()
+
+
+def test_discovery_mode_fields_advertise_no_default() -> None:
+    """Clients that fill in schema defaults cannot switch a listing's mode."""
+    properties = FilterValueRequest.model_json_schema()["properties"]
+    assert "default" not in properties["search"]
+    assert "default" not in properties["exact_value"]
+    assert properties["search"]["type"] == "string"
+    assert properties["search"]["maxLength"] == 200
+    assert {"type": "null"} in properties["exact_value"]["anyOf"]
+    with pytest.raises(ValidationError):
+        FilterValueRequest.model_validate({"filter_id": "a", "search": None})
+
+
+def test_request_schema_defaults_keep_ordinary_and_discovery_calls_valid() -> None:
+    """Filling in every advertised default never supplies a discovery control."""
+    properties = GetDashboardInfoRequest.model_json_schema()["properties"]
+    presence_sensitive = {
+        "permalink_key",
+        "filter_state",
+        "filter_value_requests",
+        "filter_values_offset",
+        "proposed_filter_values",
+    }
+    assert not {name for name in presence_sensitive if "default" in properties[name]}
+    for name in ("filter_value_requests", "proposed_filter_values"):
+        assert properties[name]["type"] == "array"
+    defaults = {name: p["default"] for name, p in properties.items() if "default" in p}
+    metadata = GetDashboardInfoRequest.model_validate({**defaults, "identifier": 1})
+    discovery = GetDashboardInfoRequest.model_validate(
+        {
+            **defaults,
+            "identifier": 1,
+            "include_filter_values": True,
+            "filter_value_requests": [{"filter_id": "a"}],
+        }
+    )
+    assert not metadata.model_fields_set & presence_sensitive
+    assert discovery.model_fields_set & presence_sensitive == {"filter_value_requests"}
+
+
+def test_metadata_serialization_omits_choice_enrichment() -> None:
+    """Existing dashboard serializers retain their metadata-only response shape."""
+    summary = NativeFilterSummary(id="a", name="Region", filter_type="filter_select")
+    response = DashboardInfo.model_validate(
+        {"id": 1, "native_filters": [summary]}
+    ).model_dump(mode="json")
+    assert "filter_value_discovery" not in response
+    assert "available_values" not in response["native_filters"][0]
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        {"status": "complete", "reason": "row_limit"},
+        {"status": "truncated"},
+        {"status": "unavailable", "reason": "query_failed", "values": ["x"]},
+        {"status": "unsupported", "reason": "unsupported_filter", "values": ["x"]},
+        {"status": "complete", "query_mode": "exact"},
+    ],
+)
+def test_discovery_response_rejects_false_completeness(data: dict[str, Any]) -> None:
+    """Status and reason must accurately describe retained exact options."""
+    with pytest.raises(ValidationError):
+        NativeFilterAvailableValues(**data)
+
+
+def test_discovery_fields_are_exclusive_to_dashboard_info_schema() -> None:
+    """Shared dashboard/native-filter tools must not advertise opt-in choice fields."""
+    from superset.mcp_service.dashboard.schemas import (
+        DashboardInfoWithFilterValues,
+        NativeFilterValueSummary,
+    )
+
+    for schema in (DashboardInfo, NativeFilterSummary):
+        fields = str(schema.model_json_schema())
+        assert "available_values" not in fields
+        assert "filter_value_discovery" not in fields
+    output_schema = DashboardInfoWithFilterValues.model_json_schema()
+    assert "filter_value_discovery" in output_schema["properties"]
+    assert (
+        "available_values" in NativeFilterValueSummary.model_json_schema()["properties"]
+    )
+
+
+def test_dedicated_dashboard_info_keeps_metadata_response_shape() -> None:
+    """The advertised choice response can still return ordinary metadata unchanged."""
+    from superset.mcp_service.dashboard.schemas import DashboardInfoWithFilterValues
+
+    payload = {"id": 1, "native_filters": [{"id": "region", "name": "Region"}]}
+    assert (
+        DashboardInfoWithFilterValues.model_validate(payload).model_dump()
+        == DashboardInfo.model_validate(payload).model_dump()
+    )
+
+
+@pytest.mark.parametrize(
+    "controls",
+    [
+        {"filter_value_requests": [{"filter_id": "\ud800"}]},
+        {"filter_value_requests": [{"filter_id": "a", "search": "\ud800"}]},
+        {"filter_value_requests": [{"filter_id": "a", "exact_value": "\ud800"}]},
+        {"proposed_filter_values": [{"filter_id": "\ud800", "values": []}]},
+        {"proposed_filter_values": [{"filter_id": "a", "values": ["\ud800"]}]},
+    ],
+)
+def test_discovery_rejects_invalid_utf8_input(controls: dict[str, Any]) -> None:
+    """Invalid transport strings are rejected before lookup or query construction."""
+    with pytest.raises(ValidationError):
+        GetDashboardInfoRequest.model_validate(
+            {"identifier": 1, "include_filter_values": True, **controls}
+        )
+
+
+def test_discovery_preserves_nonbmp_unicode_input() -> None:
+    """Valid non-BMP scalars and identifiers remain exact UTF-8 strings."""
+    request = FilterValueRequest(filter_id="region-🌏", exact_value="Côte d'Ivoire 🏍️")
+    assert request.model_dump()["exact_value"] == "Côte d'Ivoire 🏍️"
+    assert request.filter_id == "region-🌏"
 
 
 @pytest.mark.parametrize("field", ["owned_by_me", "created_by_my", "page_szie"])

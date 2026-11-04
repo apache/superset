@@ -76,9 +76,9 @@ def test_cost_warning_rule_survives_inactive_settings(
     request.addfinalizer(Database.get_db_engine_spec.cache_clear)
     mocker.patch(
         "superset.models.core.is_feature_enabled",
-        side_effect=lambda name: warnings_flag
-        if name == "SQLLAB_QUERY_COST_WARNINGS"
-        else estimate_flag,
+        side_effect=lambda name: (
+            warnings_flag if name == "SQLLAB_QUERY_COST_WARNINGS" else estimate_flag
+        ),
     )
     mocker.patch.object(
         Database,
@@ -378,6 +378,25 @@ def test_dttm_sql_literal(
     result: str,
 ) -> None:
     assert SqlaTable(database=database).dttm_sql_literal(dttm, col) == result
+
+
+@pytest.mark.parametrize(
+    "uri",
+    [
+        "postgresql://user:pass@host:notaport/db",
+        "not a SQLAlchemy URI",
+        "uninstalled_dialect://host/db",
+    ],
+)
+def test_connection_details_allow_uri_repair(app_context: None, uri: str) -> None:
+    """Broken saved connections serialize enough information for the URI editor."""
+    from superset.databases.schemas import DatabaseConnectionSchema
+
+    database = Database(database_name="db", sqlalchemy_uri=uri, extra="{}")
+    result = DatabaseConnectionSchema().dump(database)
+    assert result["parameters"] == {}
+    assert result["parameters_schema"] == {}
+    assert result["sqlalchemy_uri"] == uri
 
 
 def test_table_column_database() -> None:

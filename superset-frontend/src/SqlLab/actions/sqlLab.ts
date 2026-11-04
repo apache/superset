@@ -710,7 +710,7 @@ function migrateQuery(
 /** Create the server tab, then associate queries submitted against its local ID. */
 function persistQueryEditor(
   queryEditor: QueryEditor,
-): SqlLabThunkAction<Promise<unknown>> {
+): SqlLabThunkAction<Promise<void>> {
   return async function (dispatch: AppDispatch, getState: GetState) {
     try {
       let databaseWasRemoved = false;
@@ -824,7 +824,7 @@ function persistQueryEditor(
           );
       }
     } catch {
-      return dispatch(
+      dispatch(
         addWarningToast(
           t(
             'Unable to migrate query editor state to backend. Superset will retry ' +

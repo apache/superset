@@ -18,6 +18,7 @@
  */
 import fetchMock from 'fetch-mock';
 import { createStore, waitFor } from 'spec/helpers/testing-library';
+import { DEFAULT_BOOTSTRAP_DATA } from 'src/constants';
 import { defaultQueryEditor, initialState } from 'src/SqlLab/fixtures';
 import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
 import type { SqlLabRootState } from 'src/SqlLab/types';
@@ -40,8 +41,13 @@ function setup() {
     sql: 'SELECT 42',
     inLocalStorage: true,
   };
-  const state = {
+  const state: SqlLabRootState = {
     ...initialState,
+    user: { ...initialState.user, isAnonymous: false, groups: [] },
+    common: {
+      ...DEFAULT_BOOTSTRAP_DATA.common,
+      conf: initialState.common.conf,
+    },
     localStorageUsageInKilobytes: 0,
     sqlLab: {
       ...initialState.sqlLab,
@@ -51,8 +57,12 @@ function setup() {
       queries: {},
       tables: [],
       destroyedQueryEditors: {},
+      dbConnect: false,
+      errorMessage: null,
+      editorTabLastUpdatedAt: 0,
+      lastUpdatedActiveTab: '',
     },
-  } as SqlLabRootState;
+  };
   const store = createStore(state, {
     sqlLab: sqlLabReducer,
     common: (value = state.common) => value,

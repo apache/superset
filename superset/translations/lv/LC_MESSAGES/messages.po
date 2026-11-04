@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:28-0400\n"
+"POT-Creation-Date: 2026-11-04 02:09-0500\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -519,6 +519,13 @@ msgstr[2] ""
 #, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
 msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
@@ -1248,6 +1255,9 @@ msgstr "Tiks izveidota jauna diagramma."
 
 msgid "A new dashboard will be created."
 msgstr "Tiks izveidots jauns infopanelis."
+
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
 
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
@@ -2818,10 +2828,6 @@ msgid "Are you sure you want to delete %s?"
 msgstr "Vai tiešām vēlaties dzēst %s?"
 
 #, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-
-#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr "Vai tiešām vēlaties dzēst atlasīto %s?"
 
@@ -3994,6 +4000,9 @@ msgstr "Apskatiet šo diagrammu: "
 msgid "Check out this dashboard: "
 msgstr "Apskatiet šo informācijas paneli: "
 
+msgid "Check the value transform →"
+msgstr ""
+
 msgid "Check to force date partitions to have the same height"
 msgstr "Atzīmēt, lai piespiestu datuma partīcijām vienādu augstumu"
 
@@ -4004,6 +4013,11 @@ msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
+msgstr ""
+
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
 msgstr ""
 
 msgid "Child label position"
@@ -4033,6 +4047,9 @@ msgstr ""
 
 msgid "Choose a number format"
 msgstr "Izvēlieties skaitļu formātu"
+
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
 
 msgid "Choose a source"
 msgstr "Izvēlēties avotu"
@@ -4970,6 +4987,12 @@ msgstr "Kopēt ar virsrakstiem"
 msgid "Corner Radius"
 msgstr "Stūra rādiuss"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "Korelācija"
 
@@ -5144,6 +5167,9 @@ msgstr "Izveidot jaunu diagrammu"
 
 msgid "Create or select schema..."
 msgstr "Izveidot vai izvēlēties shēmu..."
+
+msgid "Create semantic layer"
+msgstr ""
 
 msgid "Created"
 msgstr "Izveidots"
@@ -5631,6 +5657,12 @@ msgstr "Dati atsvaidzināti"
 
 msgid "Data type"
 msgstr "Datu tips"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "DataFrame jāiekļauj vismaz viena sērija"
@@ -6164,7 +6196,7 @@ msgstr "Dzēst objektu"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -6535,6 +6567,12 @@ msgstr "Atspējo iedziļināšanās detaļās funkciju šai datubāzei."
 
 msgid "Discard"
 msgstr "Atmest"
+
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Attēlojamais nosaukums"
@@ -7332,6 +7370,9 @@ msgstr "Ievadiet daļu no objekta nosaukuma"
 msgid "Enter a positive, finite warning threshold."
 msgstr ""
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 msgid "Enter a warning threshold no greater than 9,007,199,254,740,991."
 msgstr ""
 
@@ -7358,8 +7399,14 @@ msgstr "Ievadiet grupas nosaukumu"
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Ievadiet minimālās un maksimālās vērtības diapazona filtram"
 
+msgid "Enter one to three existing partition keys."
+msgstr ""
+
 msgid "Enter report name"
 msgstr "Ievadiet atskaites nosaukumu"
+
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
 
 msgid ""
 "Enter the email address of your account and we will send you a link to "
@@ -7657,6 +7704,12 @@ msgstr "Esoša datu kopa"
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -7847,6 +7900,9 @@ msgstr "SQL izteiksme"
 
 msgid "Expression cannot be empty"
 msgstr "Izteiksme nevar būt tukša"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8315,6 +8371,21 @@ msgstr ""
 msgid ""
 "Filters on the mapped column are mirrored onto this column so the engine "
 "can prune partitions."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but with this"
+" transform they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -10053,6 +10124,15 @@ msgstr "Saraksts atjaunināts"
 msgid "List view"
 msgstr "Lietotāju saraksts"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Tiešsaistes renderēšana"
 
@@ -10084,6 +10164,15 @@ msgstr "Kārtot filtru vērtības"
 
 #, python-format
 msgid "Loading historical version · %s"
+msgstr ""
+
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -10363,6 +10452,13 @@ msgstr "Saskaņot laika nobīdes krāsu ar sākotnējo sēriju"
 #, fuzzy
 msgid "Match type"
 msgstr "Datu tips"
+
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 msgid "Matrixify"
 msgstr "Iespējot Matrixify"
@@ -11117,6 +11213,12 @@ msgstr "Nav pieejamu filtru."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
+msgstr ""
+
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 
@@ -11273,6 +11375,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12086,6 +12204,18 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
+msgstr ""
+
+msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -12835,8 +12965,17 @@ msgstr "Ranžēšana"
 msgid "Ratio"
 msgstr "Attiecība"
 
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
+
 msgid "Raw records"
 msgstr "Neapstrādāti ieraksti"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -13891,6 +14030,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Saglabāt vaicājumu"
 
+msgid "Save the dataset before validating against data."
+msgstr ""
+
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
 "saved columns, and this mapping uses one that has not been saved yet."
@@ -14703,6 +14845,9 @@ msgstr "Diagramma neeksistē"
 #, fuzzy
 msgid "Semantic layer parameters are invalid."
 msgstr "Anotāciju slāņa parametri nav derīgi."
+
+msgid "Semantic layer setup guide"
+msgstr ""
 
 #, fuzzy
 msgid "Semantic layer type"
@@ -15614,6 +15759,10 @@ msgstr "Avota kategorija"
 #, fuzzy
 msgid "Source location"
 msgstr "Avota kategorija"
+
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
 
 msgid "Sparkline"
 msgstr "Dzirkstlīnija"
@@ -16741,6 +16890,16 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "Funkcija, kas jāizmanto punktu apzīmējumiem"
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -17495,6 +17654,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -17502,6 +17664,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -18084,6 +18249,17 @@ msgid ""
 msgstr ""
 "Tā var būt IP adrese (piem., 127.0.0.1) vai domēna nosaukums (piem., "
 "mydatabase.com)."
+
+msgid "This cannot be undone."
+msgstr ""
+
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
 
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
@@ -19114,6 +19290,9 @@ msgstr "Uzticēties šim URL un vairs nejautāt"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 "Mēģiniet piemērot citus filtrus vai pārliecinieties, ka datu avotam ir "
@@ -19325,6 +19504,16 @@ msgstr ""
 
 msgid "Unable to load dashboard"
 msgstr "Nevar ielādēt paneli"
+
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr ""
@@ -19822,11 +20011,11 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Izmanto pirmās 25 vērtības, ja dimensijai ir vairāk."
 
-msgid "Valid"
-msgstr ""
-
 msgid "Valid SQL expression"
 msgstr "Derīga SQL izteiksme"
+
+msgid "Validate against data"
+msgstr ""
 
 msgid "Validate query"
 msgstr "Pārbaudīt vaicājumu"
@@ -19840,6 +20029,9 @@ msgstr "Pārbauda savienojamību priekš %s"
 
 msgid "Validating..."
 msgstr "Pārbaudīšana..."
+
+msgid "Validation inconclusive"
+msgstr ""
 
 msgid "Value"
 msgstr "Vērtība"
@@ -20006,6 +20198,9 @@ msgstr "Skatītājs"
 
 msgid "Viewers"
 msgstr "Skatītāji"
+
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
 
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
@@ -20249,6 +20444,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -21435,6 +21635,9 @@ msgstr "5 sekundes"
 msgid "aggregate"
 msgstr "apkopot"
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr "brīdinājuma nosacījums"
 
@@ -21450,6 +21653,10 @@ msgstr "arī kopēt (dublēt) diagrammas"
 msgid "ancestor"
 msgstr "priekštecis"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "anotācija"
 
@@ -21460,6 +21667,10 @@ msgstr "anotācijas_slānis"
 #, fuzzy
 msgid "apple"
 msgstr "ābols"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "asfreq"
