@@ -470,6 +470,13 @@ To enable warnings:
    and enter a positive threshold. Save the connection. No threshold is chosen
    automatically; choose one appropriate for the connection's workload.
 
+Users running queries with warnings enabled need **can estimate query cost on
+SQLLab** (`can_estimate_query_cost`) in addition to **can execute sql query on
+SQLLab** (`can_execute_sql_query`) and access to the queried data. Before enabling
+warnings, administrators should check these permissions for custom roles. If a
+warning request is denied, SQL Lab shows an error and does not execute the query;
+**Run anyway** does not bypass permission errors.
+
 The shipped cost checks use one rule per connection in `extra.query_cost_warning`,
 containing `enabled`, `metric`, and `threshold`. BigQuery uses `bytes_processed`,
 a positive whole number of bytes. PostgreSQL uses `total_cost`, a positive number

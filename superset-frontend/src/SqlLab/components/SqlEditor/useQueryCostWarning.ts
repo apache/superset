@@ -23,6 +23,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { isEqual } from 'lodash-es';
 import { useStore } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -51,7 +52,6 @@ export type QueryWarningConfirmation = {
   details?: { label: string; value: string }[];
 };
 type CheckResult = QueryWarningConfirmation | { action: 'proceed' };
-type Attempt = { query: Query; key: string; result?: QueryWarningConfirmation };
 
 /** Reject incomplete responses rather than treating them as permission to execute. */
 export function parseWarningResult(result: unknown): CheckResult {
@@ -89,10 +89,8 @@ export default function useQueryCostWarning(
 ) {
   const store = useStore<SqlLabRootState>();
   const dispatch = useAppDispatch();
-  const activeAttemptRef = useRef<Attempt>();
   const mounted = useRef(false);
   const editorInputsRef = useRef({ queryEditor, defaultQueryLimit });
-  const [pendingAttempt, setPendingAttempt] = useState<Attempt>();
 
   const readInputs = useCallback(() => {
     const state = store.getState();
@@ -101,7 +99,7 @@ export default function useQueryCostWarning(
     const database: DatabaseObject | undefined =
       state.sqlLab.databases[editor.dbId || ''];
     const enabled = isFeatureEnabled(FeatureFlag.SqlLabQueryCostWarnings);
-    const key = JSON.stringify({
+    const inputs = {
       id: editor.id,
       active: state.sqlLab.tabHistory.slice(-1)[0],
       sql: editor.sql,
@@ -112,22 +110,28 @@ export default function useQueryCostWarning(
       templateParams: editor.templateParams,
       limit: editor.queryLimit || editorInputs.defaultQueryLimit,
       async: database?.allow_run_async,
-      tab: editor.name,
-      tabViewId: editor.tabViewId,
       immutableId: editor.immutableId,
       backend: database?.backend,
       rule: database?.query_cost_warning,
       warningState: database?.query_warning_state,
       enabled,
-    });
+    };
     return {
       editor,
       database,
       enabled,
-      key,
+      inputs,
       active: state.sqlLab.tabHistory.slice(-1)[0] === editor.id,
     };
   }, [store]);
+
+  type Attempt = {
+    query: Query;
+    inputs: ReturnType<typeof readInputs>['inputs'];
+    result?: QueryWarningConfirmation;
+  };
+  const activeAttemptRef = useRef<Attempt>();
+  const [pendingAttempt, setPendingAttempt] = useState<Attempt>();
 
   const cancel = useCallback(() => {
     activeAttemptRef.current = undefined;
@@ -137,7 +141,7 @@ export default function useQueryCostWarning(
     (attempt: Attempt) =>
       mounted.current &&
       activeAttemptRef.current === attempt &&
-      readInputs().key === attempt.key,
+      isEqual(readInputs().inputs, attempt.inputs),
     [readInputs],
   );
   useLayoutEffect(() => {
@@ -162,10 +166,18 @@ export default function useQueryCostWarning(
 
   const execute = useCallback(
     (query: Query) => {
-      dispatch(runQuery(query));
+      // Saving or renaming a tab changes its bookkeeping, not the checked SQL.
+      const { editor } = readInputs();
+      dispatch(
+        runQuery({
+          ...query,
+          sqlEditorId: editor.tabViewId ?? editor.id,
+          tab: editor.name,
+        }),
+      );
       dispatch(setActiveSouthPaneTab('Results'));
     },
-    [dispatch],
+    [dispatch, readInputs],
   );
   const continueRun = useCallback(() => {
     const attempt = activeAttemptRef.current;
@@ -186,7 +198,7 @@ export default function useQueryCostWarning(
       sql?: string,
     ) => {
       if (activeAttemptRef.current) return;
-      const { editor, database, enabled, key, active } = readInputs();
+      const { editor, database, enabled, inputs, active } = readInputs();
       if (!database || (!active && !isAutomaticRun)) return;
       const query = buildSqlEditorQuery(
         { id: database.id, allow_run_async: Boolean(database.allow_run_async) },
@@ -206,7 +218,7 @@ export default function useQueryCostWarning(
         execute(query);
         return;
       }
-      const attempt: Attempt = { query, key };
+      const attempt: Attempt = { query, inputs };
       activeAttemptRef.current = attempt;
       setPendingAttempt(attempt);
       try {

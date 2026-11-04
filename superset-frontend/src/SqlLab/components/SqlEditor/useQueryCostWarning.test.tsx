@@ -31,6 +31,22 @@ import { DEFAULT_BOOTSTRAP_DATA } from 'src/constants';
 import { ADD_TOAST } from 'src/components/MessageToasts/actions';
 import { ToastType } from 'src/components/MessageToasts/types';
 import type { SqlLabRootState } from 'src/SqlLab/types';
+import type { AppDispatch } from 'src/views/store';
+import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
+import {
+  QUERY_EDITOR_SET_CATALOG,
+  QUERY_EDITOR_SET_QUERY_LIMIT,
+  QUERY_EDITOR_SET_SCHEMA,
+  QUERY_EDITOR_SET_SELECTED_TEXT,
+  QUERY_EDITOR_SET_SQL,
+  QUERY_EDITOR_SET_TEMPLATE_PARAMS,
+  QUERY_EDITOR_SETDB,
+  queryEditorSetCursorPosition,
+  queryEditorSetTitle,
+  SET_DATABASES,
+  SqlLabAction,
+  syncQueryEditor,
+} from 'src/SqlLab/actions/sqlLab';
 import useQueryCostWarning, { parseWarningResult } from './useQueryCostWarning';
 
 jest.mock('@superset-ui/core', () => ({
@@ -85,6 +101,7 @@ function setup() {
     selectedText: '',
     templateParams: '{}',
     queryLimit: 0,
+    inLocalStorage: true,
   };
   const state: SqlLabRootState = {
     ...initialState,
@@ -106,6 +123,8 @@ function setup() {
       editorTabLastUpdatedAt: 0,
       lastUpdatedActiveTab: '',
       queryEditors: [editor],
+      queries: {},
+      tables: [],
       unsavedQueryEditor: {},
       tabHistory: [editor.id],
       databases: {
@@ -127,9 +146,14 @@ function setup() {
   const reducer = jest.fn(
     (
       currentState = state,
-      action: { type: string; state?: SqlLabRootState },
+      action: SqlLabAction & { state?: SqlLabRootState },
     ): SqlLabRootState =>
-      action.type === 'REPLACE' && action.state ? action.state : currentState,
+      action.type === 'REPLACE' && action.state
+        ? action.state
+        : {
+            ...currentState,
+            sqlLab: sqlLabReducer(currentState.sqlLab, action),
+          },
   );
   const store = createStore(reducer, state, applyMiddleware(thunk));
   const hook = renderHook(
@@ -224,6 +248,110 @@ test('proceed executes a captured request once', async () => {
   });
   expect(h.result.current.checking).toBe(false);
 });
+
+test.each([
+  'before Run',
+  'checking/proceed',
+  'checking/confirm',
+  'confirmation',
+])(
+  'tab persistence finishing %s preserves Run and uses the persisted tab ID',
+  async phase => {
+    const h = setup();
+    let finishSave!: (value: { id: number }) => void;
+    fetchMock.get(`glob:*/api/v1/database/${h.editor.dbId}`, {});
+    fetchMock.post(
+      'glob:*/tabstateview/',
+      () =>
+        new Promise(resolve => {
+          finishSave = resolve;
+        }),
+      { name: 'save-tab' },
+    );
+    let saving: Promise<unknown>;
+    act(() => {
+      saving = (h.store.dispatch as AppDispatch)(syncQueryEditor(h.editor));
+    });
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls('save-tab')).toHaveLength(1),
+    );
+    if (phase !== 'before Run') h.start();
+    if (phase === 'confirmation') await h.finish(warning);
+    await act(async () => {
+      finishSave({ id: 12345 });
+      await saving;
+    });
+    expect(h.store.getState().sqlLab.queryEditors[0]).toMatchObject({
+      id: h.editor.id,
+      immutableId: h.editor.immutableId,
+      tabViewId: '12345',
+      inLocalStorage: false,
+    });
+    if (phase === 'before Run') h.start();
+    if (phase !== 'confirmation') {
+      await h.finish(
+        phase === 'checking/confirm' ? warning : { action: 'proceed' },
+      );
+    }
+    if (phase === 'confirmation' || phase === 'checking/confirm') {
+      expect(h.result.current.confirmation).toEqual(warning);
+      act(() => {
+        h.result.current.continueRun();
+        h.result.current.continueRun();
+      });
+    }
+    await waitFor(() => expect(h.executions()).toHaveLength(1));
+    expect(fetchMock.callHistory.calls('warning-check')).toHaveLength(1);
+    expect(JSON.parse(String(h.executions()[0].options.body))).toMatchObject({
+      sql_editor_id: '12345',
+      database_id: h.editor.dbId,
+      sql: h.editor.sql,
+      catalog: h.editor.catalog,
+      schema: h.editor.schema,
+      queryLimit: 1000,
+      runAsync: false,
+    });
+  },
+);
+
+test.each(['rename', 'cursor', 'rule key order'])(
+  '%s does not invalidate an unchanged query',
+  async change => {
+    const h = setup();
+    h.start();
+    await h.finish(warning);
+    act(() => {
+      if (change === 'rename') {
+        h.store.dispatch(queryEditorSetTitle(h.editor, 'Renamed', h.editor.id));
+      } else if (change === 'cursor') {
+        h.store.dispatch(
+          queryEditorSetCursorPosition(h.editor, { row: 0, column: 2 }),
+        );
+      } else {
+        h.store.dispatch({
+          type: SET_DATABASES,
+          databases: [
+            {
+              ...h.store.getState().sqlLab.databases[h.editor.dbId!],
+              query_cost_warning: {
+                threshold: 10,
+                metric: 'total_cost',
+                enabled: true,
+              },
+            },
+          ],
+        });
+      }
+    });
+    expect(h.result.current.confirmation).toEqual(warning);
+    act(() => h.result.current.continueRun());
+    await waitFor(() => expect(h.executions()).toHaveLength(1));
+    expect(JSON.parse(String(h.executions()[0].options.body))).toMatchObject({
+      sql: h.editor.sql,
+      tab: change === 'rename' ? 'Renamed' : h.editor.name,
+    });
+  },
+);
 
 test.each([
   { reason: 'warning', runAsync: false, details: warning.details },
@@ -354,33 +482,36 @@ test('a late error cannot dismiss a newer confirmation or show a stale toast', a
 });
 
 test.each([
-  ['sql', 'SELECT 3'],
-  ['selectedText', 'SELECT 4'],
-  ['dbId', 99],
-  ['catalog', 'other'],
-  ['schema', 'other'],
-  ['templateParams', '{"x":1}'],
-  ['queryLimit', 50],
-])(
-  'invalidates changed %s even if restored before response',
-  async (field, value) => {
-    const h = setup();
-    h.start();
-    const original = h.store.getState();
-    h.replace(state => ({
-      ...state,
-      sqlLab: {
-        ...state.sqlLab,
-        unsavedQueryEditor: { id: h.editor.id, [field]: value },
+  { type: QUERY_EDITOR_SET_SQL, sql: 'SELECT 3' },
+  { type: QUERY_EDITOR_SET_SELECTED_TEXT, sql: 'SELECT 4' },
+  { type: QUERY_EDITOR_SETDB, dbId: 99 },
+  { type: QUERY_EDITOR_SET_CATALOG, catalog: 'other' },
+  { type: QUERY_EDITOR_SET_SCHEMA, schema: 'other' },
+  { type: QUERY_EDITOR_SET_TEMPLATE_PARAMS, templateParams: '{"x":1}' },
+  { type: QUERY_EDITOR_SET_QUERY_LIMIT, queryLimit: 50 },
+])('invalidates $type even if restored before response', async change => {
+  const h = setup();
+  // The other connection has the same warning settings; only its ID differs.
+  h.replace(state => ({
+    ...state,
+    sqlLab: {
+      ...state.sqlLab,
+      databases: {
+        ...state.sqlLab.databases,
+        99: { ...state.sqlLab.databases[h.editor.dbId!], id: 99 },
       },
-    }));
-    h.replace(() => original);
-    await h.finish(warning);
-    await act(async () => h.result.current.continueRun());
-    expect(h.executions()).toHaveLength(0);
-    expect(h.result.current.confirmation).toBeUndefined();
-  },
-);
+    },
+  }));
+  h.start();
+  expect(h.result.current.checking).toBe(true);
+  const original = h.store.getState();
+  act(() => h.store.dispatch({ ...change, queryEditor: h.editor }));
+  h.replace(() => original);
+  await h.finish(warning);
+  await act(async () => h.result.current.continueRun());
+  expect(h.executions()).toHaveLength(0);
+  expect(h.result.current.confirmation).toBeUndefined();
+});
 
 test.each(['async', 'rule', 'state', 'tab'])(
   'invalidates %s changes',

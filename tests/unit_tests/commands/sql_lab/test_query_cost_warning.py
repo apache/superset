@@ -26,7 +26,15 @@ from unittest.mock import MagicMock
 
 import pytest
 from flask import Flask
+from flask_appbuilder.security.sqla.models import (
+    Permission,
+    PermissionView,
+    Role,
+    User,
+    ViewMenu,
+)
 from pytest_mock import MockerFixture
+from sqlalchemy.orm import Session
 
 from superset import config
 from superset.commands.sql_lab.estimate import (
@@ -56,6 +64,64 @@ from superset.sql.parse import SQLScript
 from superset.sql_lab import apply_limit
 from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 from superset.utils import json
+
+
+@pytest.mark.parametrize("can_estimate", [False, True])
+def test_warning_api_requires_estimation_permission(
+    app: Flask, session: Session, mocker: MockerFixture, can_estimate: bool
+) -> None:
+    """An execution-only custom role cannot call the warning endpoint."""
+    # Use isolated security tables and real permission checks, not full_api_access.
+    User.metadata.create_all(
+        session.get_bind(),
+        tables=[
+            table
+            for table in User.metadata.sorted_tables
+            if table.name.startswith("ab_") or table.name in {"user_attribute", "logs"}
+        ],
+    )
+    permissions = ["can_execute_sql_query"]
+    if can_estimate:
+        permissions.append("can_estimate_query_cost")
+    view = ViewMenu(name="SQLLab")
+    role = Role(
+        name="WarningTestRole",
+        permissions=[
+            PermissionView(permission=Permission(name=name), view_menu=view)
+            for name in permissions
+        ],
+    )
+    user = User(
+        username="warning_test",
+        first_name="Warning",
+        last_name="Test",
+        email="warning@example.invalid",
+        active=True,
+        roles=[role],
+    )
+    session.add(user)
+    session.commit()
+    mocker.patch.object(app.login_manager, "_user_callback", return_value=user)
+    with app.test_client() as client:
+        with client.session_transaction() as login:
+            login["_user_id"] = str(user.id)
+            login["_fresh"] = True
+        # Empty bodies stop authorized requests at validation without executing SQL.
+        execute = client.post("/api/v1/sqllab/execute/", json={})
+        estimate = client.post("/api/v1/sqllab/estimate/", json={})
+    missing_inputs = {
+        "message": {
+            "database_id": ["Missing data for required field."],
+            "sql": ["Missing data for required field."],
+        }
+    }
+    assert execute.status_code == 400
+    assert execute.json == missing_inputs
+    assert estimate.status_code == (400 if can_estimate else 403)
+    if can_estimate:
+        assert estimate.json == missing_inputs
+    else:
+        assert estimate.json == {"message": "Forbidden"}
 
 
 class WarningTestEngineSpec(BaseEngineSpec):
