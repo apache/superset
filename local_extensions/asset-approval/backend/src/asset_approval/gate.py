@@ -701,6 +701,35 @@ def _is_comparable(
     )
 
 
+def proposes_nothing(change_request: Any, asset: Any) -> bool:
+    """Whether this stored request would leave the live asset exactly as it is.
+
+    The question ``gate_write`` asks of a save before it makes a request,
+    asked again of the request itself when it is about to go to a reviewer.
+    Answered by the same test (``is_empty_change``) under the same conditions
+    (``_is_comparable``, and no keyword that acts on the asset), so there is
+    one definition of "changed" and the two places cannot disagree about it.
+
+    A delete, a sub-command's body and a request carrying keyword arguments
+    never answer yes: they are not measured against the asset's fields.
+    """
+    if asset is None:
+        return False
+    try:
+        operation = Operation(change_request.operation)
+        args = change_request.command_args
+        if not _is_comparable(operation, None, args) or captured_arguments(args):
+            return False
+        return is_empty_change(asset, change_request.payload_dict)
+    except Exception:  # noqa: BLE001 -- unknowable is not empty
+        logger.warning(
+            "asset-approval: could not tell whether request %s proposes nothing",
+            getattr(change_request, "id", None),
+            exc_info=True,
+        )
+        return False
+
+
 def _as_stored(proposed: dict[str, Any], body: dict[str, Any]) -> dict[str, Any]:
     """The fields ``body`` carries, as the fold is going to store them.
 

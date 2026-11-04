@@ -235,6 +235,28 @@ class NoEligibleApproverError(ChangeManagementException):
         )
 
 
+class NothingToReviewError(ChangeManagementException):
+    """The draft proposes exactly what the asset already is.
+
+    Asked with the gate's own test of "changed" (``is_empty_change``), so a
+    request cannot be sent to a reviewer that the gate would have refused to
+    create. The gate stops a save that alters nothing from making a request,
+    but a draft can still come to match the asset afterwards -- someone else's
+    change was approved in between, or the author undid their own edit in
+    another tab -- and a reviewer then gets a request with nothing in it.
+    """
+
+    status = 422
+
+    def __init__(self, asset_type: str):
+        self.asset_type = asset_type
+        super().__init__(
+            f"There is nothing to review: this draft matches the live "
+            f"{asset_type} already. Make a change and save it, or discard "
+            "the draft."
+        )
+
+
 class InvalidTransitionError(ChangeManagementException):
     """The request is not in a state where this action makes sense."""
 

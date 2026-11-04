@@ -50,6 +50,7 @@ from asset_approval.exceptions import (
     ChangeRequestNotFoundError,
     InvalidTransitionError,
     NoEligibleApproverError,
+    NothingToReviewError,
     ReplayFailedError,
     ReviewedVersionStaleError,
     ReviewNoteRequiredError,
@@ -2691,7 +2692,11 @@ class ChangeRequestRestApi(BaseSupersetApi):
             return self.response_404()
         except ApprovalForbiddenError as ex:
             return self.response(403, message=str(ex))
-        except (ReviewNoteRequiredError, NoEligibleApproverError) as ex:
+        except (
+            ReviewNoteRequiredError,
+            NoEligibleApproverError,
+            NothingToReviewError,
+        ) as ex:
             return self.response(422, message=str(ex))
         except (
             AuthorNoLongerEditorError,
