@@ -3077,9 +3077,9 @@ def test_apply_offset_before_limit_reorders_ansi_ordering() -> None:
     upper = result.upper()
     assert "OFFSET" in upper
     assert "LIMIT" in upper
-    assert upper.rfind("OFFSET") < upper.rfind(
-        "LIMIT"
-    ), f"OFFSET must precede LIMIT for Trino, got: {result!r}"
+    assert upper.rfind("OFFSET") < upper.rfind("LIMIT"), (
+        f"OFFSET must precede LIMIT for Trino, got: {result!r}"
+    )
 
 
 def test_apply_offset_before_limit_leaves_correct_order_untouched() -> None:
@@ -3111,3 +3111,18 @@ def test_apply_offset_before_limit_noop_for_ansi_engines() -> None:
     ansi_sql = "SELECT a, b FROM t LIMIT 50 OFFSET 50"
     assert BaseEngineSpec.offset_before_limit is False
     assert BaseEngineSpec.apply_offset_before_limit(ansi_sql) == ansi_sql
+
+
+def test_apply_offset_before_limit_not_applied_to_hive_family() -> None:
+    """
+    Hive, Spark and Databricks (Hive) inherit from the Presto spec but use the
+    ANSI ``LIMIT ... OFFSET`` order, so they must not get the Trino rewrite.
+    """
+    from superset.db_engine_specs.databricks import DatabricksHiveEngineSpec
+    from superset.db_engine_specs.hive import HiveEngineSpec
+    from superset.db_engine_specs.spark import SparkEngineSpec
+
+    ansi_sql = "SELECT a, b\nFROM t\nLIMIT 50 OFFSET 50"
+    for spec in (HiveEngineSpec, SparkEngineSpec, DatabricksHiveEngineSpec):
+        assert spec.offset_before_limit is False
+        assert spec.apply_offset_before_limit(ansi_sql) == ansi_sql

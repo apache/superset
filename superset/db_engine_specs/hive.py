@@ -119,6 +119,11 @@ class HiveEngineSpec(PrestoEngineSpec):
     supports_dynamic_schema = True
     supports_cross_catalog_queries = False
 
+    # Hive, Spark and Databricks (Hive-based) use the ANSI ``LIMIT ... OFFSET``
+    # order emitted by PyHive's Hive dialect; opt out of the Presto/Trino
+    # OFFSET-before-LIMIT rewrite inherited from PrestoBaseEngineSpec.
+    offset_before_limit = False
+
     # Epoch-integer partition keys are the common Hive layout, and the
     # one-argument form takes the bound being mirrored rather than "now".
     partition_value_transform_default = "unix_timestamp(:value)"

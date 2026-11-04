@@ -3003,6 +3003,6 @@ def test_compile_sqla_query_offset_before_limit_for_trino(
     upper = sql.upper()
     assert "OFFSET" in upper
     assert "LIMIT" in upper
-    assert upper.rfind("OFFSET") < upper.rfind(
-        "LIMIT"
-    ), f"OFFSET must precede LIMIT for Trino, got: {sql!r}"
+    assert upper.rfind("OFFSET") < upper.rfind("LIMIT"), (
+        f"OFFSET must precede LIMIT for Trino, got: {sql!r}"
+    )
