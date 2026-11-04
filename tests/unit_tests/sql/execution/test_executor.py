@@ -778,6 +778,38 @@ def test_execute_timeout_records_query(
     commit.assert_called_once_with(mock_query)
 
 
+@pytest.mark.parametrize("status", [QueryStatus.FAILED, QueryStatus.TIMED_OUT])
+def test_record_failure_metadata_write_error(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    mock_db_session: MagicMock,
+    status: QueryStatus,
+) -> None:
+    """A metadata write error rolls back without replacing the query error."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    query = MagicMock(id=123)
+    commit = mocker.patch(
+        "superset.sql.execution.utils.commit_query_unless_stopped",
+        side_effect=RuntimeError("metadata unavailable"),
+    )
+    warning = mocker.patch("superset.sql.execution.executor.logger.warning")
+
+    result = SQLExecutor(database)._record_failure(
+        query, status, "original query error", 0.0
+    )
+
+    commit.assert_called_once_with(query)
+    mock_db_session.rollback.assert_called_once_with()
+    warning.assert_called_once_with(
+        "Unable to record failure of query %s", 123, exc_info=True
+    )
+    assert result.status == status
+    assert result.error_message == "original query error"
+    assert result.query_id == 123
+
+
 def test_execute_custom_timeout(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
