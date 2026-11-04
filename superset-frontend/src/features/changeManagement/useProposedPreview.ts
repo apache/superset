@@ -62,6 +62,27 @@ function overlay(
       }
     }
   });
+
+  // The grid travels inside `json_metadata.positions`, not as
+  // `position_json`. The shipped dashboard editor posts it there, and the
+  // live row keeps it in the `position_json` column instead, so the two
+  // sides of this overlay do not even name it the same thing. Mapping only
+  // `position_json` therefore left `position_data` holding the live layout:
+  // a proposal that resized, reordered, added or removed anything on the
+  // grid redrew the live dashboard under a banner reading "Viewing your
+  // changes", and the only thing that visibly moved was the title. The
+  // sidebar named the moves correctly the whole time, so the two disagreed,
+  // and a reviewer trusts the picture.
+  //
+  // `position_json` still wins where a payload carries it: it says the same
+  // thing more directly.
+  if (payload.position_json === undefined && payload.json_metadata !== undefined) {
+    const positions = (proposed.metadata as JsonObject | undefined)?.positions;
+    if (positions && typeof positions === 'object') {
+      proposed.position_data = positions;
+    }
+  }
+
   return proposed as unknown as HydrateDashboardData;
 }
 
