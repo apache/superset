@@ -356,7 +356,11 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
         return ExecuteSqlResponse(
             success=False,
             query_id=result.query_id,
-            error=result.error_message,
+            error=(
+                "Query was stopped"
+                if result.status == QueryStatus.STOPPED
+                else result.error_message
+            ),
             error_type=result.status.value,
         )
 

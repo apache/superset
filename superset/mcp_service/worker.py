@@ -890,6 +890,10 @@ def warehouse_cursor(
         call.check()
         yield
         call.check()
+    except Exception as exc:
+        if call.expired.is_set():
+            raise WorkerDeadlineExceeded() from exc
+        raise
     finally:
         after_execute.reset(execute_token)
         check_deadline.reset(deadline_token)

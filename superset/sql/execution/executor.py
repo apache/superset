@@ -583,6 +583,7 @@ class SQLExecutor:
         start_time = time.time()
         # Set once the run is recorded, so a failure is recorded on it too.
         query = None
+        query_id = None
 
         try:
             # 1. Prepare SQL (assembly only, no security checks)
@@ -637,6 +638,7 @@ class SQLExecutor:
             query = self._create_query_record(
                 final_sql, opts, catalog, schema, status=QueryStatus.RUNNING
             )
+            query_id = query.id
             query.start_running_time = now_as_float()
 
             # 6. Execute with timeout
@@ -676,32 +678,44 @@ class SQLExecutor:
         except SupersetTimeoutException:
             return self._record_failure(
                 query,
+                query_id,
                 QueryStatus.TIMED_OUT,
                 "Query exceeded the timeout limit",
                 start_time,
             )
         except SupersetSecurityException as ex:
-            return self._record_failure(query, QueryStatus.FAILED, str(ex), start_time)
+            return self._record_failure(
+                query, query_id, QueryStatus.FAILED, str(ex), start_time
+            )
         except (OAuth2RedirectError, OAuth2Error) as ex:
             # Let OAuth2 exceptions propagate so callers (MCP, API) can
             # handle them with context-appropriate responses.
             result = self._record_failure(
-                query, QueryStatus.FAILED, str(ex), start_time
+                query, query_id, QueryStatus.FAILED, str(ex), start_time
             )
             ex.query_id = result.query_id
             if result.status == QueryStatus.STOPPED:
                 return result
             raise
         except Exception as ex:
-            error_msg = self.database.db_engine_spec.extract_error_message(ex)
+            # A failed metadata flush expires Database as well as Query.
+            # Do not load engine configuration before the failure helper rolls back.
+            error_msg = (
+                self.database.db_engine_spec.extract_error_message(ex)
+                if db.session.is_active
+                else str(ex)
+            )
             return self._record_failure(
-                query, QueryStatus.FAILED, error_msg, start_time
+                query, query_id, QueryStatus.FAILED, error_msg, start_time
             )
         except BaseException:
             # Execution-owner deadlines and disconnects must propagate, but
             # must not leave their recorded run in a nonterminal state.
             self._mark_query_failed(
-                query, QueryStatus.TIMED_OUT, "Query exceeded the timeout limit"
+                query,
+                query_id,
+                QueryStatus.TIMED_OUT,
+                "Query exceeded the timeout limit",
             )
             raise
 
@@ -1046,8 +1060,9 @@ class SQLExecutor:
 
     def _record_failure(
         self,
-        query: Any,
-        status: Any,
+        query: Query | None,
+        query_id: int | None,
+        status: QueryStatus,
         error_message: str,
         start_time: float,
     ) -> QueryResult:
@@ -1056,6 +1071,7 @@ class SQLExecutor:
 
         :param query: Query model of the run, or None if it failed before the
             run was recorded
+        :param query_id: ID captured before execution can fail a metadata flush
         :param status: QueryStatus enum value
         :param error_message: Error message to include
         :param start_time: Start time for calculating execution duration
@@ -1063,8 +1079,7 @@ class SQLExecutor:
         """
         from superset_core.queries.types import QueryStatus
 
-        query_id = query.id if query is not None else None
-        stopped = self._mark_query_failed(query, status, error_message)
+        stopped = self._mark_query_failed(query, query_id, status, error_message)
         result = self._create_error_result(
             QueryStatus.STOPPED if stopped else status,
             None if stopped else error_message,
@@ -1073,7 +1088,13 @@ class SQLExecutor:
         result.query_id = query_id
         return result
 
-    def _mark_query_failed(self, query: Any, status: Any, error_message: str) -> bool:
+    def _mark_query_failed(
+        self,
+        query: Query | None,
+        query_id: int | None,
+        status: QueryStatus,
+        error_message: str,
+    ) -> bool:
         """
         Finish a recorded run as failed instead of leaving it running.
 
@@ -1081,6 +1102,7 @@ class SQLExecutor:
         rather than masking the query's own error.
 
         :param query: Query model of the run, or None if not yet recorded
+        :param query_id: ID captured before execution can fail a metadata flush
         :param status: QueryStatus enum value
         :param error_message: Error message to store
         :returns: Whether a concurrent Stop won
@@ -1090,8 +1112,9 @@ class SQLExecutor:
 
         from superset.sql.execution.utils import commit_query_unless_stopped
 
-        query_id = query.id
         try:
+            if not db.session.is_active:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
             query.status = status.value
             query.error_message = error_message
             query.end_time = now_as_float()
@@ -1130,7 +1153,11 @@ class SQLExecutor:
             query = self._create_query_record(
                 sql, opts, catalog, schema, status=QueryStatus.SUCCESS, commit=False
             )
-            query.executed_sql = sql
+            query.executed_sql = (
+                cached_result.statements[-1].executed_sql
+                if cached_result.statements
+                else sql
+            )
             query.rows = sum(stmt.row_count for stmt in cached_result.statements)
             query.progress = 100
             query.end_time = now_as_float()

@@ -809,7 +809,7 @@ def test_record_failure_metadata_write_error(
     warning = mocker.patch("superset.sql.execution.executor.logger.warning")
 
     result = SQLExecutor(database)._record_failure(
-        query, status, "original query error", 0.0
+        query, 123, status, "original query error", 0.0
     )
 
     commit.assert_called_once_with(query)

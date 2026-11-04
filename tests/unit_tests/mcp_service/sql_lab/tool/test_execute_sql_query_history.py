@@ -218,3 +218,23 @@ def test_execute_sql_query_id_documents_missing_history() -> None:
     description = ExecuteSqlResponse.model_fields["query_id"].description
     assert "errors before" in description
     assert "cache-hit history" in description
+
+
+@pytest.mark.parametrize("error_message", [None, "driver cancellation detail"])
+def test_stopped_response_has_error_text(error_message: str | None) -> None:
+    """A stopped run has a stable, actionable message in the MCP response."""
+    from superset_core.queries.types import QueryResult, QueryStatus
+
+    from superset.mcp_service.sql_lab.tool.execute_sql import _convert_to_response
+
+    response = _convert_to_response(
+        QueryResult(
+            status=QueryStatus.STOPPED,
+            query_id=123,
+            error_message=error_message,
+        )
+    )
+    assert response.success is False
+    assert response.query_id == 123
+    assert response.error_type == "stopped"
+    assert response.error == "Query was stopped"

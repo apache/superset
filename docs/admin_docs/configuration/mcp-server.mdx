@@ -1892,10 +1892,12 @@ status and row count. A worker deadline or client disconnect finishes the run as
 `timed_out`; a concurrent Stop keeps its `stopped` outcome.
 
 Synchronous results-cache hits create a separate successful history entry marked
-as cached. If that history write fails, the cached data is still returned, with
-`query_id: null`. Dry runs and requests rejected before a run is created also
-return no query ID. Other MCP data tools use the chart-data path and do not create
-SQL Lab query-history entries. Async executor cache hits do not create entries.
+as cached. Its executed statement is the cached run's last statement, including
+any SQL query mutation, matching a warehouse-executed run. If that history write
+fails, the cached data is still returned, with `query_id: null`. Dry runs and
+requests rejected before a run is created also return no query ID. Other MCP data
+tools use the chart-data path and do not create SQL Lab query-history entries.
+Async executor cache hits do not create entries.
 
 ## SQL execution row limits
 

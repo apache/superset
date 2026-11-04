@@ -276,3 +276,139 @@ def test_history_records_mutated_statement(
     result = database.execute("SELECT 1 AS one")
     assert result.status == (QueryStatus.FAILED if failure else QueryStatus.SUCCESS)
     assert session.get(Query, result.query_id).executed_sql == "SELECT 2 AS two"
+
+
+@pytest.mark.parametrize("write_site", ["progress", "success"])
+@pytest.mark.parametrize("persist_database", [False, True])
+def test_failed_flush_finishes_history(
+    session: Session, database: Database, write_site: str, persist_database: bool
+) -> None:
+    """A failed flush must not mask its error by loading an expired Query ID."""
+    from sqlalchemy import event
+    from sqlalchemy.orm.unitofwork import UOWTransaction
+
+    if persist_database:
+        session.add(database)
+        session.commit()
+    injected = False
+
+    def fail_flush(flushing: Session, context: UOWTransaction) -> None:
+        """Fail once after the progress or success update has been flushed."""
+        nonlocal injected
+        status = "running" if write_site == "progress" else "success"
+        if not injected and any(
+            isinstance(row, Query) and row.progress == 100 and row.status == status
+            for row in flushing.dirty
+        ):
+            injected = True
+            raise RuntimeError(f"metadata {write_site} flush failed")
+
+    event.listen(session, "after_flush", fail_flush)
+    try:
+        result = database.execute("SELECT 1 AS one")
+    finally:
+        event.remove(session, "after_flush", fail_flush)
+
+    assert injected
+    assert result.status == QueryStatus.FAILED
+    assert f"metadata {write_site} flush failed" in result.error_message
+    query = session.query(Query).one()
+    assert result.query_id == query.id
+    assert query.status == "failed"
+    assert query.error_message == result.error_message
+    assert query.end_time >= query.start_time
+    assert session.is_active
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("expired", [False, True])
+async def test_driver_cancellation_finishes_history(
+    mocker: MockerFixture, session: Session, database: Database, expired: bool
+) -> None:
+    """An expired call's driver error is a deadline, not a warehouse failure."""
+    from flask import current_app
+
+    from superset.mcp_service.worker import (
+        _active_call,
+        warehouse_cursor,
+        WorkerCall,
+    )
+
+    call = WorkerCall(current_app._get_current_object(), mocker.Mock(), 30)
+    error = RuntimeError("driver query cancelled")
+
+    def cancel(*args: object) -> None:
+        """Model a driver raising after deadline/disconnect cancellation."""
+        if expired:
+            call.expired.set()
+        raise error
+
+    mocker.patch.object(database.db_engine_spec, "execute", side_effect=cancel)
+    mocker.patch("superset.mcp_service.worker.QueryCancellation.capture")
+    mocker.patch("superset.mcp_service.worker.QueryCancellation.register")
+    call_token = _active_call.set(call)
+    cursor_token = cursor_scope.set(warehouse_cursor)
+    try:
+        if expired:
+            with pytest.raises(WorkerDeadlineExceeded) as caught:
+                database.execute("SELECT 1 AS one")
+            assert caught.value.__cause__ is error
+        else:
+            result = database.execute("SELECT 1 AS one")
+            assert result.status == QueryStatus.FAILED
+            assert (
+                result.error_message
+                == database.db_engine_spec.extract_error_message(error)
+            )
+    finally:
+        cursor_scope.reset(cursor_token)
+        _active_call.reset(call_token)
+
+    query = session.query(Query).one()
+    assert query.status == ("timed_out" if expired else "failed")
+    assert query.error_message == (
+        "Query exceeded the timeout limit"
+        if expired
+        else database.db_engine_spec.extract_error_message(error)
+    )
+    assert query.end_time >= query.start_running_time
+    assert call.cancel_query is None
+
+
+def test_cached_history_matches_mutated_last_statement(
+    mocker: MockerFixture, session: Session, database: Database
+) -> None:
+    """Cached runs reuse the executed last statement without rerunning a mutator."""
+    mutate = mocker.patch.object(
+        database,
+        "mutate_sql_based_on_config",
+        side_effect=["SELECT 2 AS two", "SELECT 4 AS four"],
+    )
+    first = database.execute("SELECT 1 AS one; SELECT 3 AS three")
+    first_id = first.query_id
+    assert first.status == QueryStatus.SUCCESS
+    first.is_cached = True
+    mocker.patch.object(SQLExecutor, "_get_from_cache", return_value=first)
+    second = database.execute("SELECT 1 AS one; SELECT 3 AS three")
+
+    assert second.status == QueryStatus.SUCCESS
+    assert second.is_cached
+    assert second.query_id != first_id
+    executed = session.get(Query, first_id)
+    cached = session.get(Query, second.query_id)
+    assert cached.executed_sql == executed.executed_sql == "SELECT 4 AS four"
+    assert cached.sql == executed.sql
+    assert mutate.call_count == 2
+
+
+def test_empty_cached_history_retains_sql(
+    mocker: MockerFixture, session: Session, database: Database
+) -> None:
+    """Legacy cache entries without statement metadata retain the prepared SQL."""
+    cached = cached_result()
+    cached.statements = []
+    mocker.patch.object(SQLExecutor, "_get_from_cache", return_value=cached)
+    result = database.execute("SELECT 1 AS one")
+    query = session.get(Query, result.query_id)
+    assert result.status == QueryStatus.SUCCESS
+    assert " ".join(query.executed_sql.split()) == "SELECT 1 AS one"

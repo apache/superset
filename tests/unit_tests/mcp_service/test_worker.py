@@ -780,7 +780,7 @@ async def test_abandoned_trino_query_is_killed_by_its_query_id(app: Any) -> None
     import trino.dbapi
 
     from superset.db_engine_specs.trino import TrinoEngineSpec
-    from superset.mcp_service.worker import run_in_worker
+    from superset.mcp_service.worker import run_in_worker, WorkerDeadlineExceeded
     from superset.sql.execution.cancellation import cancellable_cursor
 
     killed = threading.Event()
@@ -830,9 +830,10 @@ async def test_abandoned_trino_query_is_killed_by_its_query_id(app: Any) -> None
 
     cancellation.assert_called_once()
     assert killed.is_set()
-    # The engine spec maps the driver error; the kill is what ended the query.
-    assert "name=ADMINISTRATIVELY_KILLED" in str(errors[0])
-    assert f"query_id={TRINO_QUERY_ID}" in str(errors[0])
+    # The deadline classification preserves the engine-mapped driver error.
+    assert isinstance(errors[0], WorkerDeadlineExceeded)
+    assert "name=ADMINISTRATIVELY_KILLED" in str(errors[0].__cause__)
+    assert f"query_id={TRINO_QUERY_ID}" in str(errors[0].__cause__)
 
 
 @pytest.mark.asyncio
