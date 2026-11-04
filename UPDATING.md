@@ -24,6 +24,12 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic cache rollups serve limited queries only when the post-filter,
+  rolled-up result fits within `offset + limit`. Larger results fall back to
+  the provider, preserving page membership when NULL placement, tie order or
+  collation differs from the cache's local sort. NULL placement and tie order
+  remain provider-defined; no provider update or cache reset is required.
+
 - **Semantic-layer schema readiness and failures.** Both provider schema hooks
   require keyword-only `readiness: SemanticCredentialReadiness` alongside
   `transport`. This plain Enum is exported by `superset_core.semantic_layers`.
