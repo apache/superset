@@ -20,6 +20,7 @@ import re
 import secrets
 import time
 import warnings
+from contextlib import AbstractContextManager, nullcontext
 from contextvars import ContextVar
 from typing import Any, Awaitable, Callable, Sequence
 
@@ -28,12 +29,16 @@ from fastmcp.exceptions import ToolError, ValidationError as FastMCPValidationEr
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.middleware.middleware import CallNext
 from fastmcp.tools import Tool, ToolResult
-from flask import g
+from flask import g, has_app_context
 from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError, TimeoutError
 from starlette.exceptions import HTTPException
 
-from superset.change_management import is_review_signal, review_signal_details
+from superset.change_management import (
+    is_review_signal,
+    refuse_unreviewed_tool_call,
+    review_signal_details,
+)
 from superset.commands.exceptions import (
     CommandInvalidError,
     ForbiddenError,
@@ -1324,6 +1329,69 @@ class RBACToolVisibilityMiddleware(Middleware):
             # Unexpected setup errors (ImportError, etc.) → fail open.
             # Call-time RBAC still enforces permissions.
             return tools
+
+
+class ChangeManagementBackstopMiddleware(Middleware):
+    """Refuse MCP writes while review is promised but nothing enforces it.
+
+    :func:`superset.change_management.install_fail_closed_guard` is a Flask
+    ``before_request`` hook, and a tool call never enters Flask's request
+    dispatch -- FastMCP runs it under an app context only, and over stdio
+    there is no HTTP request to hook. So in exactly the state the backstop
+    exists for (``CHANGE_MANAGEMENT`` on, no gate installed) REST answered
+    503 while every MCP write went live, unreviewed and silent.
+
+    This is the same check at the point every tool call does pass through.
+    It is a middleware rather than a check in ``mcp_auth_hook`` so it also
+    covers a tool registered ``protect=False``, and a call forwarded by the
+    ``call_tool`` search proxy (``FastMCP.call_tool`` re-enters the chain
+    with the real tool name).
+
+    "Could write" is read from the tool's own ``readOnlyHint``: only a tool
+    that says it is read-only is let through, the allow-list shape of the
+    Flask hook's ``GET``/``HEAD``/``OPTIONS``. A tool that cannot be resolved
+    is refused, not waved through.
+    """
+
+    async def on_call_tool(
+        self,
+        context: MiddlewareContext[mt.CallToolRequestParams],
+        call_next: CallNext[mt.CallToolRequestParams, ToolResult],
+    ) -> ToolResult:
+        tool_name = str(getattr(context.message, "name", "") or "")
+        refusal = await self._refusal(context, tool_name)
+        if refusal is None:
+            return await call_next(context)
+        error = refusal["errors"][0]
+        raise ToolError(f"{error['error_type']}: {error['message']}")
+
+    @staticmethod
+    async def _refusal(
+        context: MiddlewareContext[mt.CallToolRequestParams], tool_name: str
+    ) -> dict[str, Any] | None:
+        read_only = False
+        try:
+            tool = await context.fastmcp_context.fastmcp.get_tool(tool_name)  # type: ignore[union-attr]  # noqa: E501
+            annotations = getattr(tool, "annotations", None)
+            read_only = getattr(annotations, "readOnlyHint", None) is True
+        except Exception:  # noqa: BLE001
+            # Cannot tell what this tool does, so assume it writes.
+            read_only = False
+        # The flag may be resolved by a deployment callback that needs an app
+        # context, which the loop does not have until the tool wrapper pushes
+        # one. Without it the lookup fails and reads as "flag off" -- the
+        # backstop would then fail open. Only the context is needed, so this
+        # does not use the per-call session scoping the tool wrapper sets up.
+        with ChangeManagementBackstopMiddleware._app_context():
+            return refuse_unreviewed_tool_call(tool_name, read_only=read_only)
+
+    @staticmethod
+    def _app_context() -> AbstractContextManager[Any]:
+        if has_app_context():
+            return nullcontext()
+        from superset.mcp_service.flask_singleton import get_flask_app
+
+        return get_flask_app().app_context()
 
 
 class GlobalErrorHandlerMiddleware(Middleware):

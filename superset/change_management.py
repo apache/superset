@@ -28,9 +28,25 @@ Core cannot review anything, but it can refuse to pretend. A gate registers
 itself here as it installs; while the flag is on and none has, every request
 that could write is refused.
 
-This covers everything that arrives over HTTP, which is the REST API, the
-legacy views and MCP. It does not cover work started inside the process --
-a CLI import, a Celery task -- so those remain the gate's own problem.
+Two doors are covered, because there are two ways in that are not the same
+code path:
+
+* **Flask requests** -- the REST API and the legacy views. The
+  ``before_request`` hook :func:`install_fail_closed_guard` installs refuses
+  any request whose method can write.
+* **MCP tool calls** -- :func:`refuse_unreviewed_tool_call`, which the MCP
+  server calls before it dispatches a tool. MCP does not pass through Flask's
+  request dispatch at all: FastMCP runs tools with an app context and no
+  request, and under stdio there is no HTTP to hook. A ``before_request`` hook
+  therefore never sees an MCP write, and an earlier version of this module
+  claimed otherwise while every MCP write went live unreviewed.
+
+Both ask the same question (:func:`review_promised_but_unenforced`) and give
+the same refusal (:func:`unenforced_message`); they differ only in what
+"could write" means for the kind of call.
+
+It does not cover work started inside the process -- a CLI import, a Celery
+task -- so those remain the gate's own problem.
 """
 
 from __future__ import annotations
@@ -167,3 +183,31 @@ def install_fail_closed_guard(app: Flask) -> None:
             request.path,
         )
         return jsonify(unenforced_message()), 503  # type: ignore[return-value]
+
+
+def refuse_unreviewed_tool_call(
+    tool_name: str, *, read_only: bool
+) -> Optional[dict[str, Any]]:
+    """The MCP counterpart of the Flask hook: refuse a write, let a read by.
+
+    Returns the refusal body when the call must be refused, else ``None``.
+    ``read_only`` is the tool's own declaration (``readOnlyHint``) and the
+    caller must pass ``False`` for a tool it could not resolve, so an unknown
+    tool is treated as a writer -- the same way the Flask hook lets only
+    ``GET``/``HEAD``/``OPTIONS`` by and refuses every other method.
+
+    There is no tool equivalent of ``ALWAYS_ALLOWED_PREFIXES``. Those paths
+    exist so an operator can still sign in and see that the deployment is
+    broken; over MCP the only such tool is ``health_check``, and it is
+    read-only already.
+    """
+    if read_only:
+        return None
+    if not review_promised_but_unenforced():
+        return None
+    logger.error(
+        "change management: refusing MCP tool %s -- the feature flag is on but "
+        "no review gate is installed",
+        tool_name,
+    )
+    return unenforced_message()
