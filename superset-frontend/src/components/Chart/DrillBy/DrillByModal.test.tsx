@@ -131,7 +131,7 @@ const renderModal = async (
   });
 
   await userEvent.click(screen.getByRole('button', { name: 'Show modal' }));
-  await screen.findByRole('dialog', { name: `Drill by: ${chartName}` });
+  await screen.findByRole('dialog', { name: /^Drill by: / });
 };
 
 beforeEach(() => {
@@ -626,7 +626,10 @@ describe('Table view with pagination', () => {
     );
   });
 
-  test('contributed item gets the drilled payload and the original chart name', async () => {
+  const runContributedItem = async (
+    overrideState: Record<string, any> = {},
+    modalProps: Partial<DrillByModalProps> = {},
+  ) => {
     const run = jest.fn();
     const disposables: common.Disposable[] = [
       commands.registerCommand(
@@ -640,13 +643,17 @@ describe('Table view with pagination', () => {
       ),
     ];
     try {
-      await renderModal({
-        column: { column_name: 'state', verbose_name: null },
-        drillByConfig: {
-          filters: [{ col: 'gender', op: '==', val: 'boy' }],
-          groupbyFieldName: 'groupby',
+      await renderModal(
+        {
+          column: { column_name: 'state', verbose_name: null },
+          drillByConfig: {
+            filters: [{ col: 'gender', op: '==', val: 'boy' }],
+            groupbyFieldName: 'groupby',
+          },
+          ...modalProps,
         },
-      });
+        overrideState,
+      );
       const tableRadio = await screen.findByRole('radio', { name: /table/i });
       await userEvent.click(tableRadio.closest('label') ?? tableRadio);
       await waitFor(() =>
@@ -658,9 +665,8 @@ describe('Table view with pagination', () => {
         await screen.findByRole('button', { name: 'Download' }),
       );
       await userEvent.click(await screen.findByText('Export to Google Sheets'));
-
       expect(run).toHaveBeenCalledTimes(1);
-      const ctx = run.mock.calls[0][0] as {
+      return run.mock.calls[0][0] as {
         getPayload: () => Promise<{
           result_type: string;
           result_format: string;
@@ -668,13 +674,46 @@ describe('Table view with pagination', () => {
         }>;
         chartName: string;
       };
-      expect(ctx.chartName).toBe(chartName);
-      const payload = await ctx.getPayload();
-      expect(payload.result_type).toBe('full');
-      expect(payload.result_format).toBe('json');
-      expect(JSON.stringify(payload.queries[0])).toContain('state');
     } finally {
       disposables.forEach(d => d.dispose());
     }
+  };
+
+  test.each([
+    ['sliceName', { sliceName: 'Layout name' }, 'Layout name'],
+    [
+      'sliceNameOverride',
+      { sliceName: 'Layout name', sliceNameOverride: 'Renamed on dashboard' },
+      'Renamed on dashboard',
+    ],
+  ])(
+    'contributed item gets the dashboard layout %s as the chart name',
+    async (_, meta, expected) => {
+      const ctx = await runContributedItem(
+        {
+          dashboardLayout: {
+            past: [],
+            present: {
+              CHART_ID: {
+                id: 'CHART_ID',
+                meta: { chartId: formData.slice_id, ...meta },
+              },
+            },
+            future: [],
+          },
+        },
+        { formData: omit(formData, 'slice_name') },
+      );
+      expect(ctx.chartName).toBe(expected);
+    },
+  );
+
+  test('contributed item gets the drilled payload and the original chart name', async () => {
+    const ctx = await runContributedItem();
+    expect(ctx.chartName).toBe(chartName);
+    const payload = await ctx.getPayload();
+    expect(payload.result_type).toBe('full');
+    expect(payload.result_format).toBe('json');
+    expect(JSON.stringify(payload.queries[0])).toContain('state');
   });
 });

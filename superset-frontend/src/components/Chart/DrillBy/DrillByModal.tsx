@@ -512,9 +512,9 @@ export default function DrillByModal({
   }, [addDangerToast, asyncModeOverride, drilledFormData]);
   const { metadataBar } = useDatasetMetadataBar({ dataset });
 
-  // drilledFormData drops slice_name, so the original chart's name comes from
-  // formData.
-  const originalChartName: string = formData.slice_name ?? t('Untitled chart');
+  // Dashboard form data carries no slice_name, so the layout's name comes first.
+  const originalChartName: string =
+    chartName || formData.slice_name || t('Untitled chart');
   const downloadContext = useMemo(
     () => ({
       getPayload: async () => ({
