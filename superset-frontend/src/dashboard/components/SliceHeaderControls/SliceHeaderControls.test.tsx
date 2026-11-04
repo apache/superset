@@ -1277,6 +1277,26 @@ test('dashboard chart: contributed item follows Export to Excel and gets the das
   expect(getExportPayload).toHaveBeenCalledWith('full');
 });
 
+test('dashboard chart: contributed item gets the title shown in the chart header', async () => {
+  const run = jest.fn();
+  registerItem(
+    'dashboard.chart.download',
+    'ext.gs',
+    'Export to Google Sheets',
+    run,
+  );
+  renderWrapper({
+    ...createProps(),
+    sliceName: 'Renamed on dashboard',
+    getExportPayload: jest.fn().mockResolvedValue({}),
+  });
+  await openDownloadSubmenu('Export to Excel');
+  await userEvent.click(screen.getByText('Export to Google Sheets'));
+  expect(run.mock.calls[0][0]).toEqual(
+    expect.objectContaining({ chartName: 'Renamed on dashboard' }),
+  );
+});
+
 test('dashboard chart: pivoted item follows Export to Pivoted Excel for pivot tables and requests post_processed', async () => {
   const run = jest.fn();
   registerItem(

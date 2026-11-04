@@ -71,38 +71,23 @@ export function useExtensionMenuItems(
   }, [menu, canDownload, location]);
 }
 
-interface ChartDownloadProviderValue {
+const ChartDownloadItemsCtx = createContext<MenuItem[]>([]);
+
+/** Resolves the extension items for `location` and supplies them to nested menus. */
+export const ChartDownloadProvider: React.FC<{
   location: ChartDownloadLocation;
   context: ChartDownloadContext;
-}
-
-const ChartDownloadCtx = createContext<ChartDownloadProviderValue | null>(null);
-
-/** Supplies the chart download location and context to nested menus. */
-export const ChartDownloadProvider: React.FC<
-  ChartDownloadProviderValue & { children?: React.ReactNode }
-> = ({ location, context, children }) => {
-  const value = useMemo(() => ({ location, context }), [location, context]);
+  children?: React.ReactNode;
+}> = ({ location, context, children }) => {
+  const items = useExtensionMenuItems(location, context);
   return (
-    <ChartDownloadCtx.Provider value={value}>
+    <ChartDownloadItemsCtx.Provider value={items}>
       {children}
-    </ChartDownloadCtx.Provider>
+    </ChartDownloadItemsCtx.Provider>
   );
-};
-
-const NO_ITEMS: MenuItem[] = [];
-const NO_CONTEXT: ChartDownloadContext = {
-  getPayload: async () => ({}),
-  chartName: '',
-  canDownload: false,
 };
 
 /** Extension items for the nearest {@link ChartDownloadProvider}; empty without one. */
 export function useChartDownloadItems(): MenuItem[] {
-  const provided = useContext(ChartDownloadCtx);
-  const items = useExtensionMenuItems(
-    provided?.location ?? 'explore.chart.download',
-    provided?.context ?? NO_CONTEXT,
-  );
-  return provided ? items : NO_ITEMS;
+  return useContext(ChartDownloadItemsCtx);
 }

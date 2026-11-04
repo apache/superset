@@ -49,14 +49,23 @@ The seven chart locations pass a `ChartDownloadContext` to the command:
 
 ```typescript
 interface ChartDownloadContext {
-  getPayload: () => Promise<Record<string, unknown>>;
+  getPayload: () => Promise<ChartDataRequest>;
   chartName: string;
   canDownload: boolean;
 }
+
+interface ChartDataRequest {
+  datasource: { id: number; type: string };
+  queries: object[];
+  result_type: string;
+  result_format: string;
+  force?: boolean;
+  form_data?: object;
+}
 ```
 
-- `getPayload()` is evaluated when called, so call it from the command. It resolves to the query-context object that the CSV export sends, with `result_format: 'json'`. The type is `Record<string, unknown>`.
-- `chartName` is the display name of the chart.
+- `getPayload()` is evaluated when called, so call it from the command. It resolves to the `/api/v1/chart/data` request body that the CSV export sends, with `result_format: 'json'`.
+- `chartName` is the chart's title as shown, including a name set on the dashboard.
 - `canDownload` is `false` when the current user lacks the permission to export the chart's data.
 
 The `dashboard.download` location passes a `DashboardDownloadContext`:

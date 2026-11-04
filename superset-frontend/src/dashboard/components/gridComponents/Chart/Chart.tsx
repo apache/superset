@@ -29,6 +29,7 @@ import {
   RefObject,
 } from 'react';
 import type { ChartCustomization, JsonObject } from '@superset-ui/core';
+import type { menus } from '@apache-superset/core';
 import { DatasourceType, VizType } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
@@ -596,7 +597,9 @@ const Chart = (props: ChartProps) => {
   );
 
   const getExportPayload = useCallback(
-    (resultType: 'full' | 'post_processed') => {
+    (
+      resultType: 'full' | 'post_processed',
+    ): Promise<menus.ChartDataRequest> => {
       const { formData: exportFormData, ownState: exportOwnState } =
         getExportInputs(false);
       return buildV1ChartDataPayload({
@@ -605,7 +608,7 @@ const Chart = (props: ChartProps) => {
         ownState: exportOwnState,
         resultType,
         resultFormat: 'json',
-      }) as Promise<JsonObject>;
+      });
     },
     [getExportInputs],
   );

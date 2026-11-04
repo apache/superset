@@ -36,15 +36,26 @@ export type ChartDownloadLocation =
  */
 export type DashboardDownloadLocation = 'dashboard.download';
 
+/** Request body for `POST /api/v1/chart/data`. */
+export interface ChartDataRequest {
+  datasource: { id: number; type: string };
+  queries: object[];
+  result_type: string;
+  result_format: string;
+  force?: boolean;
+  form_data?: object;
+}
+
 /**
  * Argument passed to commands contributed to a {@link ChartDownloadLocation}.
  */
 export interface ChartDownloadContext {
   /**
-   * Resolves to a query-context object with `result_format: 'json'`.
-   * Evaluated when called, so invoke it from the command rather than ahead of time.
+   * Resolves to the chart-data request the CSV export would send, with
+   * `result_format: 'json'`. Evaluated when called, so invoke it from the
+   * command rather than ahead of time.
    */
-  getPayload: () => Promise<Record<string, unknown>>;
+  getPayload: () => Promise<ChartDataRequest>;
   /** Display name of the chart. */
   chartName: string;
   /** Whether the current user may download this chart's data. */

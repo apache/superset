@@ -517,13 +517,12 @@ export default function DrillByModal({
     chartName || formData.slice_name || t('Untitled chart');
   const downloadContext = useMemo(
     () => ({
-      getPayload: async () => ({
-        ...(await buildV1ChartDataPayload({
+      getPayload: () =>
+        buildV1ChartDataPayload({
           formData: drilledFormData,
           resultFormat: 'json',
           resultType: 'full',
-        })),
-      }),
+        }),
       chartName: originalChartName,
       canDownload,
     }),

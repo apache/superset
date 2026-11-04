@@ -17,6 +17,7 @@
  * under the License.
  */
 import { JsonObject, QueryFormData } from '@superset-ui/core';
+import type { menus } from '@apache-superset/core';
 
 export interface SliceHeaderControlsProps {
   slice: {
@@ -27,6 +28,8 @@ export interface SliceHeaderControlsProps {
     slice_description: string;
     datasource: string;
   };
+  /** Title shown in the chart header, which may override `slice.slice_name`. */
+  sliceName?: string;
 
   componentId: string;
   dashboardId: number;
@@ -51,7 +54,7 @@ export interface SliceHeaderControlsProps {
   exportXLSX?: (sliceId: number) => void;
   getExportPayload?: (
     resultType: 'full' | 'post_processed',
-  ) => Promise<JsonObject>;
+  ) => Promise<menus.ChartDataRequest>;
   exportFullXLSX?: (sliceId: number) => void;
   handleToggleFullSize: () => void;
 

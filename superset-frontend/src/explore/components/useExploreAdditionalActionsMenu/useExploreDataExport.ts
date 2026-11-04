@@ -24,6 +24,7 @@ import {
   LatestQueryFormData,
   QueryFormData,
 } from '@superset-ui/core';
+import type { menus } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import {
@@ -262,13 +263,13 @@ export const useExploreDataExport = ({
 
   // Builds at call time so extensions get the chart's latest form data.
   const getExportPayload = useCallback(
-    (resultType: 'full' | 'post_processed'): Promise<JsonObject> =>
+    (resultType: 'full' | 'post_processed'): Promise<menus.ChartDataRequest> =>
       buildV1ChartDataPayload({
         formData: latestQueryFormData as QueryFormData,
         resultFormat: 'json',
         resultType,
         ownState,
-      }) as Promise<JsonObject>,
+      }),
     [latestQueryFormData, ownState],
   );
 

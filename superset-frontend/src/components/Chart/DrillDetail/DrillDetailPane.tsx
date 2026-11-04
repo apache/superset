@@ -35,6 +35,7 @@ import {
   QueryFormData,
   SupersetClient,
 } from '@superset-ui/core';
+import type { menus } from '@apache-superset/core';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useResizeDetector } from 'react-resize-detector';
@@ -103,12 +104,12 @@ function buildDrillDetailPayload({
   rowLimit: number;
   dashboardId?: number;
   resultFormat: 'csv' | 'xlsx' | 'json';
-}): JsonObject | null {
+}): menus.ChartDataRequest | null {
   const drillPayload = getDrillPayload(formData, filters);
   if (!drillPayload) {
     return null;
   }
-  const payload: JsonObject = {
+  const payload: menus.ChartDataRequest = {
     datasource: {
       id: parseInt(datasourceId, 10),
       type: datasourceType,
