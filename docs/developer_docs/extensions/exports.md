@@ -72,7 +72,7 @@ The host raises its own exception classes, which extensions cannot import. Catch
 | `describe_dashboard_export` | A not-found exception (HTTP 404 semantics) for a missing dashboard, and a security exception (HTTP 403 semantics) when the user cannot access it. |
 | `as_user` | A `ValueError` on entry when no user has the given ID. |
 
-`applied_filters` from `describe_dashboard_export` lists the dashboard's native filters only, by their configured names. Cross-filters are not included, because exports do not apply them. A filter with no entry in `active_data_mask` is listed with its saved default when the export applies that default.
+`applied_filters` from `describe_dashboard_export` lists the dashboard's native filters only, by their configured names. Cross-filters are not included, because exports do not apply them. A filter is listed only when the export applies it, by the same rules as the query: an entry in `active_data_mask` needs non-empty `extraFormData`, and a filter with no entry is listed with its saved default.
 
 URLs from `describe_dashboard_export` resolve inside Celery workers, so they are safe to use in background tasks.
 

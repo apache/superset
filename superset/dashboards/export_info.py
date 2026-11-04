@@ -24,7 +24,7 @@ from superset_core.exports.types import AppliedFilter, DashboardExportInfo
 
 from superset import security_manager
 from superset.charts.data.dashboard_filter_context import (
-    _extract_filter_extra_form_data,
+    _resolve_filter_extra_form_data,
     DashboardFilterStatus,
 )
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
@@ -84,13 +84,15 @@ def describe_dashboard_export(
         config = native_filters[filter_id]
         if filter_id in active_data_mask:
             entry = active_data_mask[filter_id]
-        else:
-            # Without an active entry the export applies the saved default.
-            _, status = _extract_filter_extra_form_data(config)
-            if status != DashboardFilterStatus.APPLIED:
+            # The mask is client-supplied, so entries of the wrong shape are skipped.
+            if not isinstance(entry, dict):
                 continue
+        else:
             entry = config.get("defaultDataMask")
-        # The mask is client-supplied, so entries of the wrong shape are skipped.
+        # Execution's resolver decides whether the filter was applied.
+        _, status = _resolve_filter_extra_form_data(config, active_data_mask)
+        if status != DashboardFilterStatus.APPLIED:
+            continue
         filter_state = entry.get("filterState") if isinstance(entry, dict) else None
         if not isinstance(filter_state, dict) or _is_empty(filter_state.get("value")):
             continue
