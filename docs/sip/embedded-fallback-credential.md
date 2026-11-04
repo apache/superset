@@ -243,8 +243,9 @@ does not let a token holder choose an identity.
   `EMBEDDED_CREDENTIAL_FALLBACK` and `EMBEDDED_SUPERSET` are on and the connection uses
   OAuth2.
 - **New validation** rejecting malformed or incomplete `embedded_credentials` on
-  `POST`/`PUT /api/v1/database/` and on `validate_parameters` while both embedding flags
-  are enabled. Import is deliberately not tightened, so existing exports still load.
+  `POST`/`PUT /api/v1/database/`, on `validate_parameters`, and on database and asset
+  import (HTTP 400) while both embedding flags are enabled. Only the import schema stays
+  loose, so existing exports still load with either flag off.
 
 No database migration: the credential lives in the existing `encrypted_extra` column.
 

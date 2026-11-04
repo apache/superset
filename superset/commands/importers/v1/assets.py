@@ -66,8 +66,14 @@ from superset.utils.decorators import on_error, transaction
 
 
 def _on_import_error(ex: Exception) -> None:
-    """Keep dependency validation actionable after the transaction rolls back."""
-    if isinstance(ex, SemanticReferenceError):
+    """
+    Keep dependency validation and deliberate import refusals actionable after
+    the transaction rolls back.
+
+    An ``ImportFailedError`` names what the bundle must change, e.g. a secret it
+    must provide; re-raising it bare would leave only "unknown reason".
+    """
+    if isinstance(ex, (SemanticReferenceError, ImportFailedError)):
         raise ex
     on_error(ex, catches=(Exception,), reraise=ImportFailedError)
 
