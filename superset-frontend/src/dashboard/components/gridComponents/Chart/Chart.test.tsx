@@ -1368,3 +1368,77 @@ test('dashboard chart download: getPayload reflects ownState changed after the c
     buildPayload.mockRestore();
   }
 });
+
+test('dashboard chart download: getPayload merges converted chart state into ownState', async () => {
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(true);
+  const convert = jest
+    .spyOn(chartStateConverter, 'convertChartStateToOwnState')
+    .mockReturnValue({ sort: [{ columnId: 'column1', order: 'asc' }] });
+  const buildPayload = jest
+    .spyOn(exploreUtils, 'buildV1ChartDataPayload')
+    .mockResolvedValue(
+      {} as unknown as Awaited<
+        ReturnType<typeof exploreUtils.buildV1ChartDataPayload>
+      >,
+    );
+  const run = jest.fn();
+  const disposables: common.Disposable[] = [
+    commands.registerCommand(
+      { id: 'ext.gs', title: 'Export to Google Sheets' },
+      run,
+    ),
+    menus.registerMenuItem(
+      { view: 'dashboard.chart.download', command: 'ext.gs' },
+      'dashboard.chart.download',
+      'primary',
+    ),
+  ];
+  try {
+    const { getByRole, findByText } = render(<Chart {...props} />, {
+      store: createStore(
+        {
+          ...defaultState,
+          dashboardInfo: {
+            ...defaultState.dashboardInfo,
+            superset_can_download: true,
+          },
+          dataMask: { [queryId]: { ownState: { currentPage: 2 } } },
+          dashboardState: {
+            ...defaultState.dashboardState,
+            chartStates: {
+              [queryId]: { state: { sortColumn: 'column1', sortOrder: 'asc' } },
+            },
+          },
+        },
+        reducerIndex,
+      ),
+      useRouter: true,
+    });
+    fireEvent.click(getByRole('button', { name: 'More Options' }));
+    fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+    fireEvent.click(await findByText('Export to Google Sheets'));
+
+    const ctx = run.mock.calls[0][0] as {
+      getPayload: () => Promise<unknown>;
+    };
+    await ctx.getPayload();
+    expect(convert).toHaveBeenCalledWith(
+      expect.anything(),
+      { sortColumn: 'column1', sortOrder: 'asc' },
+      { forExport: true },
+    );
+    expect(buildPayload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownState: {
+          currentPage: 2,
+          sort: [{ columnId: 'column1', order: 'asc' }],
+        },
+      }),
+    );
+  } finally {
+    disposables.forEach(d => d.dispose());
+    jest.restoreAllMocks();
+  }
+});
