@@ -46,12 +46,11 @@ import type { Action, Middleware, Store } from 'redux';
 import SqlEditor, { Props } from '.';
 
 jest.mock('react-virtualized-auto-sizer', () => ({
-  __esModule: true,
-  default: ({
-    children,
+  AutoSizer: ({
+    renderProp,
   }: {
-    children: (params: { height: number }) => React.ReactChild;
-  }) => children({ height: 500 }),
+    renderProp: (params: { height: number }) => React.ReactChild;
+  }) => renderProp({ height: 500 }),
 }));
 jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
   ...jest.requireActual('@superset-ui/core/components/AsyncAceEditor'),

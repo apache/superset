@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useDeferredValue, useMemo } from 'react';
-import AutoSizer from 'react-virtualized-auto-sizer';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 import ControlHeader, {
   ControlHeaderProps,
 } from 'src/explore/components/ControlHeader';
@@ -75,8 +75,8 @@ export default function JSEditorControl({
     <>
       <ControlHeader {...headerProps} />
       <Container>
-        <AutoSizer>
-          {({ width }) => (
+        <AutoSizer
+          renderProp={({ width }) => (
             <EditorHost
               id="echart-js-editor"
               value={value ?? ''}
@@ -88,7 +88,7 @@ export default function JSEditorControl({
               height="250px"
             />
           )}
-        </AutoSizer>
+        />
       </Container>
       {error && (
         <ErrorMessage>

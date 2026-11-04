@@ -35,12 +35,11 @@ import { FoldersEditorItemType } from '../types';
 
 // Mock react-virtualized-auto-sizer to provide dimensions in tests
 jest.mock('react-virtualized-auto-sizer', () => ({
-  __esModule: true,
-  default: ({
-    children,
+  AutoSizer: ({
+    renderProp,
   }: {
-    children: (params: { height: number; width: number }) => ReactChild;
-  }) => children({ height: 500, width: 400 }),
+    renderProp: (params: { height: number; width: number }) => ReactChild;
+  }) => renderProp({ height: 500, width: 400 }),
 }));
 
 // Mock react-window List to render all items for testing
