@@ -811,7 +811,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             cursor.execute("SELECT pg_catalog.current_schemas(true)::text[]")
             row = cursor.fetchone()
             if not row or not isinstance(row[0], list):
-                # an empty path would read no table, so don't report one
+                # reported as an empty path, it would match no table's rules
                 raise ValueError(f"Unexpected search path: {row!r}")
             schemas: list[str] = row[0]
             found: dict[str, str] = {}
