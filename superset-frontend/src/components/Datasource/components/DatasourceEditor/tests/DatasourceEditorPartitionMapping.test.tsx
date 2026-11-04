@@ -25,6 +25,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import type { DatasetObject } from 'src/features/datasets/types';
+import type { PartitionMappingDatasource } from '../components/PartitionFilterMapping/types';
 import {
   createProps,
   DATASOURCE_ENDPOINT,
@@ -67,6 +68,34 @@ const lastValidationErrors = (props: DatasourceEditorProps): string[] => {
   return (calls[calls.length - 1][1] ?? []) as string[];
 };
 
+/**
+ * Record that the engine confirmed `transform` mirrors, as the dataset read's
+ * summary does once a probe has passed. Without one the editor no longer
+ * promises a mirror (SC-130302).
+ */
+const confirmStoredVerdict = (
+  props: DatasourceEditorProps,
+  transform: string,
+) => {
+  const datasource = props.datasource as DatasetObject &
+    PartitionMappingDatasource;
+  datasource.partition_filter_mapping = {
+    evaluable: true,
+    evaluated_transform: transform,
+    mapped_column:
+      datasource.partition_mapped_column || datasource.main_dttm_col,
+    partition_column: datasource.partition_column,
+  };
+};
+
+/** Accept the dialog that asks before the mapped transform is discarded. */
+const confirmDiscard = async () => {
+  await screen.findAllByText('Discard the value transform?');
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Discard transform' }),
+  );
+};
+
 beforeEach(() => {
   fetchMock.get(DATASOURCE_ENDPOINT, [], { name: DATASOURCE_ENDPOINT });
   setupDatasourceEditorMocks();
@@ -102,6 +131,7 @@ test('removing the mapping does not leave the default datetime column mirroring'
     'unix_timestamp(:value)';
   columnNamed(seeded, 'ds')!.partition_transform_is_monotonic = true;
   columnNamed(seeded, 'state')!.partition_value_transform = 'lower(:value)';
+  confirmStoredVerdict(props, 'lower(:value)');
 
   fastRender(props);
   await dismissDatasourceWarning();
@@ -167,6 +197,8 @@ test('moving the mapping onto a column does not arm a transform parked there', a
   );
   await userEvent.click((await screen.findAllByLabelText(/expand row/i))[0]);
   await userEvent.click(await screen.findByTestId('move-mapping-here'));
+  // The move costs `ds` the transform the mapping was mirroring.
+  await confirmDiscard();
 
   // `state` is a VARCHAR, so there is no engine default to pre-fill either: the
   // mapping arrives inert, and the field's own required marker says why rather
@@ -221,6 +253,7 @@ test('re-pointing the default datetime column leaves the value transform behind'
   await screen.findByTestId('default-datetime-column-select');
 
   await selectOption('ingest_time', 'Default datetime column');
+  await confirmDiscard();
 
   await waitFor(() => {
     const columns = lastSavedColumns(props);
@@ -271,6 +304,7 @@ test('the mapping will not follow the default datetime column onto a calculated 
   await screen.findByTestId('default-datetime-column-select');
 
   await selectOption('ds_day', 'Default datetime column');
+  await confirmDiscard();
 
   await waitFor(() => {
     expect(
@@ -479,6 +513,7 @@ test('"Customize the value transform" opens the mapped column\'s editor', async 
   props.datasource.partition_mapped_column = 'state';
   const seeded = props.datasource.columns as EditorColumn[];
   columnNamed(seeded, 'state')!.partition_value_transform = 'lower(:value)';
+  confirmStoredVerdict(props, 'lower(:value)');
 
   fastRender(props);
   await dismissDatasourceWarning();
@@ -509,6 +544,7 @@ test('"Customize the value transform" works from the Calculated columns tab', as
   props.datasource.partition_mapped_column = 'state';
   const seeded = props.datasource.columns as EditorColumn[];
   columnNamed(seeded, 'state')!.partition_value_transform = 'lower(:value)';
+  confirmStoredVerdict(props, 'lower(:value)');
 
   fastRender(props);
   await dismissDatasourceWarning();
@@ -599,6 +635,7 @@ test('re-pointing the partition column keeps the mapped transform', async () => 
   props.datasource.partition_mapped_column = 'state';
   const seeded = props.datasource.columns as EditorColumn[];
   columnNamed(seeded, 'state')!.partition_value_transform = 'lower(:value)';
+  confirmStoredVerdict(props, 'lower(:value)');
 
   fastRender(props);
   await dismissDatasourceWarning();
@@ -645,5 +682,94 @@ test('designating a partition column leaves its filterable and groupby flags alo
   expect(columnNamed(lastSavedColumns(props), 'gender')).toMatchObject({
     filterable: true,
     groupby: true,
+  });
+});
+
+/** A dataset whose mapping mirrors a working transform on `ds`. */
+const workingImplicitMapping = () => {
+  const props = createProps();
+  props.datasource.main_dttm_col = 'ds';
+  props.datasource.partition_column = 'num';
+  props.datasource.partition_mapped_column = null;
+  const seeded = props.datasource.columns as EditorColumn[];
+  columnNamed(seeded, 'ds')!.partition_value_transform =
+    'unix_timestamp(:value)';
+  columnNamed(seeded, 'ds')!.partition_transform_is_monotonic = true;
+  seeded.push({
+    id: 99,
+    type: 'DATETIME',
+    filterable: false,
+    is_dttm: true,
+    is_active: true,
+    expression: '',
+    groupby: false,
+    column_name: 'ingest_time',
+  } as EditorColumn);
+  confirmStoredVerdict(props, 'unix_timestamp(:value)');
+  return props;
+};
+
+test('cancelling a default datetime change keeps the column and its transform', async () => {
+  // SC-130258. Re-pointing the default datetime column is an edit unrelated to
+  // partitioning, and it used to clear the mapped transform without a word --
+  // pruning stopped for every chart on the dataset once it was saved.
+  const props = workingImplicitMapping();
+
+  fastRender(props);
+  await dismissDatasourceWarning();
+  await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
+  await screen.findByTestId('default-datetime-column-select');
+  const changesBefore = props.onChange.mock.calls.length;
+
+  await selectOption('ingest_time', 'Default datetime column');
+
+  expect(
+    await screen.findByText(/This change discards the value transform on ds/),
+  ).toBeInTheDocument();
+  // Nothing has changed while the owner decides.
+  expect(props.onChange).toHaveBeenCalledTimes(changesBefore);
+
+  await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+  await waitFor(() => {
+    expect(screen.queryAllByText('Discard the value transform?')).toHaveLength(
+      0,
+    );
+  });
+  expect(props.onChange).toHaveBeenCalledTimes(changesBefore);
+  expect(
+    screen.getByText(/will automatically apply an equivalent filter/),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByTestId('default-datetime-column-select'),
+  ).toHaveTextContent('ds');
+});
+
+test('clearing the partition column asks before discarding the transform', async () => {
+  // The clear-and-reselect path from the same story: clearing the partition
+  // column leaves nothing mapped, so the transform is cleared, and choosing the
+  // column again cannot bring it back. The owner is asked at the clear.
+  const props = workingImplicitMapping();
+
+  fastRender(props);
+  await dismissDatasourceWarning();
+  await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
+  const select = await screen.findByTestId('partition-column-select');
+  const changesBefore = props.onChange.mock.calls.length;
+
+  await userEvent.click(
+    select.querySelector('.ant-select-clear') as HTMLElement,
+  );
+
+  await screen.findAllByText('Discard the value transform?');
+  expect(props.onChange).toHaveBeenCalledTimes(changesBefore);
+
+  await confirmDiscard();
+
+  await waitFor(() => {
+    expect(columnNamed(lastSavedColumns(props), 'ds')).toMatchObject({
+      partition_value_transform: null,
+      partition_transform_is_monotonic: false,
+    });
   });
 });

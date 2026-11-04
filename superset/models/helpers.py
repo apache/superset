@@ -24,6 +24,7 @@ import builtins
 import copy
 import dataclasses
 import logging
+import math
 import re
 import uuid
 from collections.abc import Hashable, Iterable, Iterator
@@ -216,6 +217,16 @@ SERIES_LIMIT_SUBQ_ALIAS = "series_limit"
 OFFSET_JOIN_COLUMN_SUFFIX = "__offset_join_column_"
 
 
+def is_date_column_type(
+    db_engine_spec: type["BaseEngineSpec"],
+    column_type: str | None,
+    db_extra: dict[str, Any] | None = None,
+) -> bool:
+    """Return whether a temporal column's type holds dates with no time of day."""
+    sqla_type = db_engine_spec.get_sqla_column_type(column_type, db_extra=db_extra)
+    return isinstance(sqla_type, sa.Date)
+
+
 def get_effective_hours_offset(
     db_engine_spec: type["BaseEngineSpec"],
     column_type: str | None,
@@ -223,8 +234,7 @@ def get_effective_hours_offset(
     db_extra: dict[str, Any] | None = None,
 ) -> int:
     """Return the dataset offset representable by a temporal column's type."""
-    sqla_type = db_engine_spec.get_sqla_column_type(column_type, db_extra=db_extra)
-    if isinstance(sqla_type, sa.Date):
+    if is_date_column_type(db_engine_spec, column_type, db_extra=db_extra):
         # int() deliberately truncates toward zero; // would turn -1h into -24h.
         return int(offset_hours / 24) * 24
     return offset_hours
@@ -249,8 +259,75 @@ def build_like_predicate(
 
     ``lower(expr) LIKE lower('%term%')`` is used rather than ``ILIKE`` because
     the latter is not portable across engines.
+
+    ``lower()`` is only defined for string types on strict engines (e.g.
+    PostgreSQL), so non-string expressions (numeric, boolean, date, or
+    untyped) are cast to a string first. String columns are left untouched.
     """
+    if not isinstance(expr.type, sa.String):
+        # A bare VARCHAR is invalid where a length is required (Oracle renders
+        # VARCHAR2, Db2 VARCHAR(None)); MSSQL needs NVARCHAR to keep characters
+        # outside the database code page.
+        cast_type = (
+            sa.String()
+            .with_variant(sa.String(4000), "oracle")
+            .with_variant(sa.String(32672), "ibm_db_sa")
+            .with_variant(sa.Unicode(), "mssql")
+        )
+        expr = sa.cast(expr, cast_type)
     return sa.func.lower(expr).contains(search.lower(), autoescape=True)
+
+
+def build_native_like_predicate(
+    expr: ColumnElement[Any], search: str, engine_spec: type["BaseEngineSpec"]
+) -> ColumnElement[Any]:
+    """Build the internal native search predicate with dialect-specific literals."""
+    from superset.db_engine_specs.clickhouse import ClickHouseBaseEngineSpec
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    lowered = sa.func.lower(expr)
+    if engine_spec.engine == "bigquery":
+        # STRPOS has no LIKE escape layer: trailing backslashes remain plain data.
+        return sa.func.strpos(lowered, sa.func.lower(sa.literal(search))) > 0
+    if issubclass(engine_spec, ClickHouseBaseEngineSpec):
+        # ClickHouse compilers reject LIKE ... ESCAPE; position() matches the term
+        # as plain data, like STRPOS above.
+        return sa.func.position(lowered, sa.func.lower(sa.literal(search))) > 0
+    escaped = search.replace("/", "//").replace("%", "/%").replace("_", "/_")
+    if issubclass(engine_spec, MssqlEngineSpec):
+        # SQL Server and its derivatives treat '[' as a wildcard-class opener.
+        escaped = escaped.replace("[", "/[")
+    return lowered.like(sa.func.lower(sa.literal("%" + escaped + "%")), escape="/")
+
+
+def _validate_literal_filter_value(operator: str, value: Any) -> None:
+    """Reject malformed private predicates before SQLAlchemy receives them."""
+    list_operators = {
+        utils.FilterOperator.IN,
+        utils.FilterOperator.NOT_IN,
+        utils.FilterOperator.CONTAINS_ANY,
+        utils.FilterOperator.CONTAINS_ALL,
+    }
+    if operator in list_operators:
+        if not isinstance(value, (list, tuple)) or not value:
+            raise QueryObjectValidationError(
+                _(
+                    "Literal membership filters require "
+                    "a non-empty list of scalar values"
+                )
+            )
+        values = value
+    else:
+        values = [value]
+    if any(
+        item is not None
+        and (
+            type(item) not in (str, bool, int, float)
+            or (isinstance(item, float) and not math.isfinite(item))
+        )
+        for item in values
+    ):
+        raise QueryObjectValidationError(_("Literal filters require scalar values"))
 
 
 def _is_parenthesized(sqla_col: ColumnElement) -> bool:
@@ -2821,6 +2898,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         )
         return str(fmt) if fmt else None
 
+    def _is_date_only_column(self, column: str | None) -> bool:
+        """Return whether the column's type holds dates with no time of day (such
+        as ``DATE``), which the dataset timezone must not move. Reads from either
+        a column object or a dict, matching ``_python_date_format``."""
+        if not hasattr(self, "get_column") or not (col := self.get_column(column)):
+            return False
+        column_type = (
+            col.get("type") if isinstance(col, dict) else getattr(col, "type", None)
+        )
+        return is_date_column_type(
+            self.db_engine_spec, column_type, db_extra=self.db_extra
+        )
+
     def _collect_dttm_labels(
         self, query_object: QueryObject
     ) -> tuple[tuple[str, str | None], ...]:
@@ -2937,6 +3027,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             rounding them to float64; only for frames that are not processed further
         :return: Normalized dataframe
         """
+        # Only discovery's internal opt-in (exactly True) restores raw columns.
+        preserve_literal = query_object.extras.get("preserve_literal_values") is True
+        literal_columns = {
+            name: df[name].copy()
+            for name in query_object.column_names
+            if preserve_literal and name in df
+        }
         sql_shifted_temporal_labels = sql_shifted_temporal_labels or set()
         labels = self._collect_dttm_labels(query_object)
 
@@ -2952,6 +3049,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 offset=0 if label in sql_shifted_temporal_labels else self.offset,
                 time_shift=query_object.time_shift,
                 timezone=dataset_timezone,
+                date_only=bool(dataset_timezone) and self._is_date_only_column(label),
                 col_label=label,
             )
             for label, fmt in labels
@@ -2966,6 +3064,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     ),
                     time_shift=query_object.time_shift,
                     timezone=dataset_timezone,
+                    date_only=bool(dataset_timezone)
+                    and self._is_date_only_column(query_object.granularity),
                 )
             )
 
@@ -3011,6 +3111,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         df = df.mask(df.isin([np.inf, -np.inf])).infer_objects()
         for col, series in exact_columns.items():
             df[col] = series
+        # Native choices need the stored grouping scalars: infer_objects can
+        # round nullable large integers, and mask hides nonfinite values. The
+        # opt-in is part of extras, so it also partitions the dataframe cache.
+        for name, values in literal_columns.items():
+            df[name] = values
 
         return df
 
@@ -5933,24 +6038,32 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         dataset_timezone = self.get_dataset_timezone()
 
         if dataset_timezone and (start_dttm or end_dttm):
+            # A DATE column holds calendar days with no time of day, so its bounds
+            # are kept as they are; the timezone still overrides Hour Offset.
+            date_only = is_date_column_type(
+                self.db_engine_spec,
+                time_col.type if time_col is not None else None,
+                db_extra=self.db_extra,
+            )
             try:
                 tz = ZoneInfo(dataset_timezone)
 
                 # The datetimes from the UI are naive (no timezone info). We
                 # interpret them as being in the dataset's configured timezone and
                 # convert them to UTC for comparison with UTC-stored data.
-                if start_dttm is not None:
-                    start_dttm = (
-                        start_dttm.replace(tzinfo=tz)
-                        .astimezone(timezone.utc)
-                        .replace(tzinfo=None)
-                    )
-                if end_dttm is not None:
-                    end_dttm = (
-                        end_dttm.replace(tzinfo=tz)
-                        .astimezone(timezone.utc)
-                        .replace(tzinfo=None)
-                    )
+                if not date_only:
+                    if start_dttm is not None:
+                        start_dttm = (
+                            start_dttm.replace(tzinfo=tz)
+                            .astimezone(timezone.utc)
+                            .replace(tzinfo=None)
+                        )
+                    if end_dttm is not None:
+                        end_dttm = (
+                            end_dttm.replace(tzinfo=tz)
+                            .astimezone(timezone.utc)
+                            .replace(tzinfo=None)
+                        )
             except (ZoneInfoNotFoundError, TypeError):
                 logger.warning(
                     "Invalid timezone %r in dataset extra; falling back to Hour "
@@ -7023,6 +7136,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     target_generic_type = adhoc_generic_type
                 else:
                     target_generic_type = GenericDataType.STRING
+                # Literal discovery predicates preserve whitespace and sentinel-like
+                # strings. Keep values as SQLAlchemy data, never SQL/Jinja text.
+                literal_filter = flt.get("is_literal") is True
+                if literal_filter:
+                    _validate_literal_filter_value(op, val)
                 # Adhoc aliases absent from dataset metadata are not normalized
                 # by _collect_dttm_labels, so their buckets have no pandas offset.
                 offset_column = (
@@ -7030,42 +7148,46 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     if adhoc_filter_column
                     else col_obj
                 )
-                eq = self.filter_values_handler(
-                    values=val,
-                    operator=op,
-                    target_generic_type=target_generic_type,
-                    target_native_type=col_type,
-                    is_list_target=is_list_target,
-                    db_engine_spec=db_engine_spec,
-                    db_extra=self.db_extra,
-                    # Engines without SQL shifts group raw timestamps, then add
-                    # Hours offset in pandas. Invert that display-only shift on
-                    # each selected bucket, not on the underlying column.
-                    temporal_offset_hours=(
-                        (self.offset or 0)
-                        if filter_grain
-                        and offset_column is not None
-                        and offset_column.is_dttm
-                        and op
-                        in {
-                            utils.FilterOperator.EQUALS,
-                            utils.FilterOperator.NOT_EQUALS,
-                            utils.FilterOperator.IN,
-                            utils.FilterOperator.NOT_IN,
-                            utils.FilterOperator.GREATER_THAN,
-                            utils.FilterOperator.LESS_THAN,
-                            utils.FilterOperator.GREATER_THAN_OR_EQUALS,
-                            utils.FilterOperator.LESS_THAN_OR_EQUALS,
-                        }
-                        # A SQL-shifted grouping already matches the label.
-                        and not (
-                            db_engine_spec.supports_temporal_column_shift
-                            and not self.get_dataset_timezone()
-                        )
-                        # pandas skips the offset only for a valid timezone.
-                        and not self._has_valid_dataset_timezone()
-                        else 0
-                    ),
+                eq = (
+                    val
+                    if literal_filter
+                    else self.filter_values_handler(
+                        values=val,
+                        operator=op,
+                        target_generic_type=target_generic_type,
+                        target_native_type=col_type,
+                        is_list_target=is_list_target,
+                        db_engine_spec=db_engine_spec,
+                        db_extra=self.db_extra,
+                        # Engines without SQL shifts group raw timestamps, then add
+                        # Hours offset in pandas. Invert that display-only shift on
+                        # each selected bucket, not on the underlying column.
+                        temporal_offset_hours=(
+                            (self.offset or 0)
+                            if filter_grain
+                            and offset_column is not None
+                            and offset_column.is_dttm
+                            and op
+                            in {
+                                utils.FilterOperator.EQUALS,
+                                utils.FilterOperator.NOT_EQUALS,
+                                utils.FilterOperator.IN,
+                                utils.FilterOperator.NOT_IN,
+                                utils.FilterOperator.GREATER_THAN,
+                                utils.FilterOperator.LESS_THAN,
+                                utils.FilterOperator.GREATER_THAN_OR_EQUALS,
+                                utils.FilterOperator.LESS_THAN_OR_EQUALS,
+                            }
+                            # A SQL-shifted grouping already matches the label.
+                            and not (
+                                db_engine_spec.supports_temporal_column_shift
+                                and not self.get_dataset_timezone()
+                            )
+                            # pandas skips the offset only for a valid timezone.
+                            and not self._has_valid_dataset_timezone()
+                            else 0
+                        ),
+                    )
                 )
                 if op in {
                     utils.FilterOperator.IN,
@@ -7084,6 +7206,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         )
                     )
 
+                if literal_filter and target_generic_type == GenericDataType.BOOLEAN:
+                    # Spark/Databricks drivers bind Python booleans as integers.
+                    # Keep the engine's explicit SQL boolean representation while
+                    # avoiding the legacy string/sentinel normalization above.
+                    if isinstance(eq, (list, tuple)):
+                        eq = [
+                            db_engine_spec.coerce_boolean_for_sql(value)
+                            if type(value) is bool
+                            else value
+                            for value in eq
+                        ]
+                    elif type(eq) is bool:
+                        eq = db_engine_spec.coerce_boolean_for_sql(eq)
+
                 # Hoisted above the mirror collection below, which has to
                 # record the values the real predicate *binds*. SQLAlchemy
                 # infers an `IN` bind's type from the first element, so a mixed
@@ -7096,9 +7232,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # Scoped to the operators whose branch did it, so that moving
                 # the call changes when it runs and not what it applies to:
                 # `CONTAINS_ANY`/`CONTAINS_ALL` are list targets too and were
-                # never widened.
+                # never widened. Literal filters skip it as that branch did:
+                # their `IN` binds each member as its own typed literal, and
+                # widening would round an exact integer above 2^53.
                 if (
-                    target_generic_type == utils.GenericDataType.NUMERIC
+                    not literal_filter
+                    and target_generic_type == utils.GenericDataType.NUMERIC
                     and op in {utils.FilterOperator.IN, utils.FilterOperator.NOT_IN}
                     and isinstance(eq, (list, tuple))
                 ):
@@ -7108,8 +7247,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # ad-hoc filters, dashboard native filters and cross-filters,
                 # because they all arrive as entries in `filter`. `eq` rather
                 # than the raw `val`: it is the value the real predicate binds,
-                # which is only true because the numeric widening above now
-                # runs before this rather than inside the `IN` branch below.
+                # which is only true because every rewrite of `eq` -- the
+                # literal boolean coercion and the numeric widening above --
+                # runs before this rather than inside the branches below.
                 # `TEMPORAL_RANGE` is collected in its own branch below, where
                 # the range has been resolved into a pair of bounds.
                 #
@@ -7244,10 +7384,32 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             _("Filter value list cannot be empty")
                         )
 
-                    # `eq` was already normalized where it was produced, so
-                    # that the partition mirror could record the same values
-                    # this binds -- see the comment there.
+                    # A non-literal `eq` was already normalized where it was
+                    # produced, so that the partition mirror could record the
+                    # same values this binds -- see the comment there. A literal
+                    # `eq` skips that widening and is bound member by member.
 
+                    if literal_filter:
+                        # Each literal keeps its SQL type; a mixed numeric list must
+                        # not inherit the type of its first bind parameter.
+                        values_without_none = [
+                            value
+                            if isinstance(value, ColumnElement)
+                            else sa.literal(value)
+                            for value in eq
+                            if value is not None
+                        ]
+                        literal_condition = sqla_col.in_(values_without_none)
+                        if any(v is None for v in eq):
+                            literal_condition = or_(
+                                sqla_col.is_(None), literal_condition
+                            )
+                        target_clause_list.append(
+                            ~literal_condition
+                            if op == utils.FilterOperator.NOT_IN
+                            else literal_condition
+                        )
+                        continue
                     if len(eq) > len(
                         eq_without_none := [x for x in eq if x is not None]
                     ):
@@ -7393,7 +7555,24 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         if op == utils.FilterOperator.LIKE:
                             target_clause_list.append(sqla_col.like(eq))
                         elif op == utils.FilterOperator.ILIKE:
-                            target_clause_list.append(sqla_col.ilike(eq))
+                            if literal_filter:
+                                if (
+                                    target_generic_type != GenericDataType.STRING
+                                    or not isinstance(eq, str)
+                                ):
+                                    raise QueryObjectValidationError(
+                                        _(
+                                            "Literal substring filters require "
+                                            "a string column and value"
+                                        )
+                                    )
+                                target_clause_list.append(
+                                    build_native_like_predicate(
+                                        sqla_col, eq, db_engine_spec
+                                    )
+                                )
+                            else:
+                                target_clause_list.append(sqla_col.ilike(eq))
                         elif op == utils.FilterOperator.NOT_LIKE:
                             target_clause_list.append(
                                 keep_null_rows(

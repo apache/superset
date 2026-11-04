@@ -24,6 +24,7 @@ which is where the correctness argument lives.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date, datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -43,7 +44,8 @@ from superset.superset_typing import QueryObjectDict
 from superset.utils import json
 from superset.utils.core import FilterOperator
 
-PROBE = "superset.connectors.sqla.partition_mapping.evaluate_transform"
+PARTITION_MAPPING = "superset.connectors.sqla.partition_mapping"
+PROBE = f"{PARTITION_MAPPING}.evaluate_transform"
 
 
 @pytest.fixture(autouse=True)
@@ -2838,6 +2840,98 @@ def test_a_mixed_number_in_list_is_probed_as_the_predicate_binds_it(
     assert probed == [[9007199254740992.0, 1.5]]
 
 
+def test_a_literal_mixed_number_in_list_is_probed_unwidened(app: Flask) -> None:
+    """
+    A literal `IN` binds each member as its own typed literal, so it skips the
+    widening above and keeps an integer beyond 2^53 exact. The mirror has to
+    probe those same unwidened members, or it prunes away the partition holding
+    the exact key the predicate compares.
+    """
+    table = _table(
+        transform="lower(:value)",
+        monotonic=False,
+        mapped_column="metric_value",
+        partition_mapped_column="metric_value",
+        partition_column="region_key",
+    )
+    table.columns.append(TableColumn(column_name="metric_value", type="DOUBLE"))
+    for column in table.columns:
+        if column.column_name == "metric_value":
+            column.partition_value_transform = "lower(:value)"
+            column.partition_transform_is_monotonic = False
+
+    probed: list[list[Any]] = []
+
+    def record(*args: Any, **kwargs: Any) -> list[Any]:
+        probed.append(list(args[-1]))
+        return ["a", "b"]
+
+    with app.app_context():
+        with patch(PROBE, side_effect=record):
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "metric_value",
+                        "op": FilterOperator.IN.value,
+                        "val": [9007199254740993, 1.5],
+                        "is_literal": True,
+                    }
+                ],
+            )
+
+    assert probed == [[9007199254740993, 1.5]]
+    assert "metric_value IN (9007199254740993, 1.5)" in sql
+    assert "region_key IN ('a', 'b')" in sql
+
+
+def test_a_literal_boolean_is_probed_as_the_engine_literal_it_binds(
+    app: Flask,
+) -> None:
+    """
+    Strict-boolean engines bind `true()`/`false()` rather than Python booleans
+    (see `coerce_boolean_for_sql`). A literal filter skips
+    `filter_values_handler` but applies that same coercion before the mirror
+    collects `eq`, so it probes exactly what an ordinary filter probes.
+    """
+    table = _table(
+        transform="lower(:value)",
+        monotonic=False,
+        mapped_column="flag",
+        partition_mapped_column="flag",
+        partition_column="region_key",
+    )
+    table.columns.append(TableColumn(column_name="flag", type="BOOLEAN"))
+    for column in table.columns:
+        if column.column_name == "flag":
+            column.partition_value_transform = "lower(:value)"
+            column.partition_transform_is_monotonic = False
+
+    def run(predicate: dict[str, Any]) -> tuple[list[list[Any]], str]:
+        probed: list[list[Any]] = []
+
+        def record(*args: Any, **kwargs: Any) -> list[Any]:
+            probed.append(list(args[-1]))
+            return ["a", "b"]
+
+        with app.app_context():
+            with patch.object(
+                table.database.db_engine_spec,
+                "coerce_boolean_for_sql",
+                classmethod(lambda cls, value: sa.true() if value else sa.false()),
+            ):
+                with patch(PROBE, side_effect=record):
+                    sql = _query(table, filter=[predicate])
+        return probed, sql
+
+    ordinary = {"col": "flag", "op": FilterOperator.IN.value, "val": [True, False]}
+    literal_probed, literal_sql = run({**ordinary, "is_literal": True})
+
+    assert literal_probed == [[RawProbeValue(sql="1"), RawProbeValue(sql="0")]]
+    assert (literal_probed, literal_sql) == run(ordinary)
+    assert "flag IN (true, false)" in literal_sql
+
+
 def test_a_mixed_number_probe_result_is_bound_as_one_type(app: Flask) -> None:
     """
     The same inference, one step later and on the other side of the probe. The
@@ -3278,3 +3372,352 @@ def test_an_array_partition_column_gets_no_mirror(app: Flask) -> None:
     # The filter itself is untouched: the query is still correct, it just reads
     # every partition.
     assert "dt_epoch = 5" in sql
+
+
+# A comment the owner wrote is inert: it is removed before the probe compiles,
+# so it costs neither rows nor pruning.
+@pytest.mark.parametrize("comment", ["", " -- floor to the bucket"])
+@pytest.mark.parametrize("bucket", [3600, 86400])
+@pytest.mark.parametrize("operator", ["==", "IN", ">", ">=", "<", "<=", "range"])
+def test_epoch_bucket_queries_preserve_actual_rows(
+    app: Flask, bucket: int, operator: str, comment: str
+) -> None:
+    """Execute generated SQL and compare rows against independently built keys."""
+    import math
+    import sqlite3
+    from datetime import timezone
+
+    connection = sqlite3.connect(":memory:")
+    connection.create_function("floor", 1, math.floor)
+    connection.create_function(
+        "unix_timestamp",
+        1,
+        lambda value: int(
+            datetime.fromisoformat(value).replace(tzinfo=timezone.utc).timestamp()
+        ),
+    )
+    connection.execute(
+        "CREATE TABLE web_events (country TEXT, event_time TEXT, dt_epoch BIGINT)"
+    )
+    origin = 1790812800  # 2026-10-01 UTC
+    seconds = [-1, 0, 1] + [
+        origin + hour * 3600 + offset
+        for hour in range(48)
+        for offset in (0, 1, 1800, 3599)
+    ]
+    rows: list[tuple[str, str, int | None]] = [
+        (
+            str(index),
+            datetime.fromtimestamp(value, timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+            value // bucket * bucket,
+        )
+        for index, value in enumerate(seconds)
+    ]
+    rows.append(("null_partition", "2026-10-01 10:30:00", None))
+    connection.executemany("INSERT INTO web_events VALUES (?, ?, ?)", rows)
+    table = _table(
+        transform=(
+            f"CAST(floor(unix_timestamp(:value) / {bucket}.0) * {bucket} AS BIGINT)"
+            f"{comment}"
+        )
+    )
+    if operator == "range":
+        arguments = {
+            "granularity": "event_time",
+            "from_dttm": datetime(2026, 10, 1, 10, 30),
+            "to_dttm": datetime(2026, 10, 2, 10, 30),
+        }
+    else:
+        arguments = {
+            "filter": [
+                {
+                    "col": "event_time",
+                    "op": operator,
+                    "val": ["2026-10-01 10:30:00", "2026-10-02 11:59:59"]
+                    if operator == "IN"
+                    else "2026-10-01 10:30:00",
+                }
+            ]
+        }
+    with (
+        app.app_context(),
+        patch.object(
+            Database,
+            "get_df",
+            side_effect=lambda sql, **kwargs: pd.read_sql_query(sql, connection),
+        ),
+    ):
+        mirrored_sql = _query(table, **arguments)
+        table.partition_column = None
+        unmirrored_sql = _query(table, **arguments)
+    assert "dt_epoch" in mirrored_sql
+    assert sorted(connection.execute(mirrored_sql).fetchall()) == sorted(
+        connection.execute(unmirrored_sql).fetchall()
+    )
+    connection.close()
+
+
+@pytest.mark.parametrize("source_type", ["TIMESTAMP", "VARCHAR"])
+@pytest.mark.parametrize(
+    "transform",
+    [
+        "unix_timestamp(:value)",
+        "CAST(unix_timestamp(:value) AS BIGINT)",
+        "unix_timestamp(:value) + 0",
+        "unix_timestamp(:value) * 1",
+        "floor(unix_timestamp(:value))",
+    ],
+)
+def test_a_raw_instant_transform_is_declined_onto_hourly_keys(
+    app: Flask, source_type: str, transform: str
+) -> None:
+    """
+    Any spelling of a raw-instant transform, on a timestamp or a text timestamp
+    column, would drop rows from hour-bucketed Hive keys; the canaries decline it.
+    """
+    import math
+    import sqlite3
+    from datetime import timezone
+    from unittest.mock import PropertyMock
+
+    from superset.connectors.sqla.partition_mapping import (
+        preview_partition_mapping,
+    )
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    connection = sqlite3.connect(":memory:")
+    connection.create_function("floor", 1, math.floor)
+    connection.create_function(
+        "unix_timestamp",
+        1,
+        lambda value: int(
+            datetime.fromisoformat(value).replace(tzinfo=timezone.utc).timestamp()
+        ),
+    )
+    connection.execute(
+        "CREATE TABLE web_events (country TEXT, event_time TEXT, dt_epoch BIGINT)"
+    )
+    origin = 1790812800  # 2026-10-01 UTC
+    connection.executemany(
+        "INSERT INTO web_events VALUES (?, ?, ?)",
+        [
+            (
+                str(offset),
+                datetime.fromtimestamp(origin + offset, timezone.utc).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                ),
+                (origin + offset) // 3600 * 3600,
+            )
+            for offset in (37800, 38000, 39599)
+        ],
+    )
+    table = _table(transform=transform)
+    next(c for c in table.columns if c.column_name == "event_time").type = source_type
+    arguments = {
+        "filter": [{"col": "event_time", "op": "==", "val": "2026-10-01 10:33:20"}]
+    }
+    with (
+        app.app_context(),
+        patch.object(
+            Database,
+            "get_df",
+            side_effect=lambda sql, **kwargs: pd.read_sql_query(sql, connection),
+        ),
+    ):
+        # Elsewhere a raw epoch column is an ordinary index, so it still mirrors.
+        assert "dt_epoch" in _query(table, **arguments)
+        with patch.object(
+            Database,
+            "db_engine_spec",
+            new_callable=PropertyMock,
+            return_value=HiveEngineSpec,
+        ):
+            mirrored_sql = _query(table, **arguments)
+            preview = preview_partition_mapping(
+                table,
+                mapped_column="event_time",
+                value_transform=transform,
+                sample_values=["2026-10-01 10:33:20"],
+            )
+        table.partition_column = None
+        unmirrored_sql = _query(table, **arguments)
+    assert "dt_epoch" not in mirrored_sql
+    assert connection.execute(mirrored_sql).fetchall() == [("38000",)]
+    assert connection.execute(unmirrored_sql).fetchall() == [("38000",)]
+    assert preview["reason"] == "unbucketed_epoch"
+    connection.close()
+
+
+@pytest.mark.parametrize(
+    "source_type, is_dttm, layout, transform, key_scale",
+    [
+        # A text timestamp column left at the default, not flagged temporal.
+        ("VARCHAR", False, "%Y-%m-%d %H:%M:%S", "unix_timestamp(:value)", 1),
+        # Microsecond instants onto a microsecond hour key.
+        (
+            "TIMESTAMP",
+            True,
+            "%Y-%m-%d %H:%M:%S",
+            "unix_timestamp(:value) * 1000000",
+            1000000,
+        ),
+        # ISO text with a `T`, parsed by a transform that reads no other layout.
+        ("VARCHAR", True, "%Y-%m-%dT%H:%M:%S", "iso_seconds(:value)", 1),
+        ("VARCHAR", False, "%Y-%m-%dT%H:%M:%S", "iso_seconds(:value)", 1),
+    ],
+)
+def test_raw_instants_are_declined_in_every_unit_and_text_layout(
+    app: Flask,
+    source_type: str,
+    is_dttm: bool,
+    layout: str,
+    transform: str,
+    key_scale: int,
+) -> None:
+    """
+    Raw instants are declined whatever their unit, and on text columns whatever
+    their layout or temporal flag; each of these dropped rows from hourly keys.
+    """
+    import sqlite3
+    from datetime import timezone
+    from unittest.mock import PropertyMock
+
+    from superset.connectors.sqla.partition_mapping import (
+        preview_partition_mapping,
+    )
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    def seconds_if(separator: str) -> Callable[[str], int | None]:
+        """Epoch seconds of text in one layout only, as Hive's parsers read it."""
+
+        def parse(value: str) -> int | None:
+            if not isinstance(value, str) or value[10:11] != separator:
+                return None
+            try:
+                parsed = datetime.fromisoformat(value)
+            except ValueError:
+                return None
+            return int(parsed.replace(tzinfo=timezone.utc).timestamp())
+
+        return parse
+
+    connection = sqlite3.connect(":memory:")
+    connection.create_function("unix_timestamp", 1, seconds_if(" "))
+    connection.create_function("iso_seconds", 1, seconds_if("T"))
+    connection.execute(
+        "CREATE TABLE web_events (country TEXT, event_time TEXT, dt_epoch BIGINT)"
+    )
+    origin = 1790812800  # 2026-10-01 UTC
+    connection.executemany(
+        "INSERT INTO web_events VALUES (?, ?, ?)",
+        [
+            (
+                str(offset),
+                datetime.fromtimestamp(origin + offset, timezone.utc).strftime(layout),
+                (origin + offset) // 3600 * 3600 * key_scale,
+            )
+            for offset in (37800, 38000, 39599)
+        ],
+    )
+    table = _table(transform=transform)
+    event_time = next(c for c in table.columns if c.column_name == "event_time")
+    event_time.type = source_type
+    event_time.is_dttm = is_dttm
+    value = datetime(2026, 10, 1, 10, 33, 20).strftime(layout)
+    arguments = {"filter": [{"col": "event_time", "op": "==", "val": value}]}
+    probes: dict[str, Any] = {}
+    with (
+        app.app_context(),
+        patch.object(
+            Database,
+            "get_df",
+            side_effect=lambda sql, **kwargs: pd.read_sql_query(sql, connection),
+        ),
+        patch(f"{PARTITION_MAPPING}._cache_get", side_effect=probes.get),
+        patch(f"{PARTITION_MAPPING}._cache_set", side_effect=probes.__setitem__),
+    ):
+        # Nothing probed yet, so the API has no refusal to report.
+        cold_summary = table.partition_filter_mapping_summary
+        assert cold_summary is not None
+        assert cold_summary["safety_refusal"] is None
+        # Elsewhere a raw epoch column is an ordinary index, so it still mirrors.
+        assert "dt_epoch" in _query(table, **arguments)
+        with patch.object(
+            Database,
+            "db_engine_spec",
+            new_callable=PropertyMock,
+            return_value=HiveEngineSpec,
+        ):
+            mirrored_sql = _query(table, **arguments)
+            preview = preview_partition_mapping(
+                table,
+                mapped_column="event_time",
+                value_transform=transform,
+                sample_values=[value],
+            )
+            summary = table.partition_filter_mapping_summary
+        table.partition_column = None
+        unmirrored_sql = _query(table, **arguments)
+    assert "dt_epoch" not in mirrored_sql
+    assert connection.execute(mirrored_sql).fetchall() == [("38000",)]
+    assert connection.execute(unmirrored_sql).fetchall() == [("38000",)]
+    assert preview["reason"] == "unbucketed_epoch"
+    # The API reports the refusal the probe found, not only the editor.
+    assert summary is not None
+    assert summary["safety_refusal"]["reason"] == "unbucketed_epoch"
+    connection.close()
+
+
+def test_a_text_layout_the_engine_rejects_does_not_hide_the_others() -> None:
+    """
+    An engine raising on one text layout fails the batched canary probe; each
+    layout is then asked alone, so the one the transform parses still counts.
+    """
+    from superset.connectors.sqla import partition_mapping
+
+    canaries = ["a", "b", "c", "d"]
+
+    def probe(database: Any, catalog: Any, schema: Any, transform: str, values: Any):
+        if values == canaries or values == ["a", "b"]:
+            return None
+        return [100, 100 + 2843]
+
+    with patch.object(partition_mapping, "_probe", side_effect=probe):
+        answers = partition_mapping._probe_canaries(MagicMock(), "t(:value)", canaries)
+    assert answers == [None, None, 100, 2943]
+    assert partition_mapping._answers_raw_instants(answers)
+
+    with patch.object(partition_mapping, "_probe", return_value=None):
+        assert (
+            partition_mapping._probe_canaries(MagicMock(), "t(:value)", canaries)
+            is None
+        )
+
+
+@pytest.mark.parametrize(
+    "date_format, asked",
+    [
+        ("%d/%m/%Y %H:%M:%S", True),
+        # Hive reads a backslash escape and ignores a doubled apostrophe, so
+        # the rendered literal would close early and the rest would run.
+        ("%Y\\' || reflect('java.lang.Thread', 'sleep', 1) || '", False),
+    ],
+)
+def test_a_date_format_reaches_the_probe_only_as_a_literal(
+    date_format: str, asked: bool
+) -> None:
+    """
+    The column's `python_date_format` is the dataset owner's text. Its canary
+    pair is asked only when it round-trips as a literal, as a filter value must.
+    """
+    from superset.connectors.sqla import partition_mapping
+
+    database = MagicMock()
+    database.backend = "hive"
+    source = MagicMock()
+    source.python_date_format = date_format
+
+    canaries = partition_mapping._text_epoch_canaries(source, database)
+
+    assert len(canaries) == (8 if asked else 6)
+    assert all(partition_mapping.value_round_trips(database, text) for text in canaries)
