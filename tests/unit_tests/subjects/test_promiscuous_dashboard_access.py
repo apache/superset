@@ -320,16 +320,38 @@ def test_carrying_charts_or_filter_targets_onto_a_dashboard_takes_access(
             }
         ]
 
-    def copy_editor_published(**data: Any) -> Any:
+    layout = {
+        "positions": {
+            "CHART-1": {
+                "type": "CHART",
+                "id": "CHART-1",
+                "children": [],
+                "meta": {"chartId": fx.editor_published_slice.id},
+            }
+        }
+    }
+
+    def copy_editor_published(
+        metadata: dict[str, Any] | None = None, **data: Any
+    ) -> Any:
         return DashboardDAO.copy_dashboard(
             fx.editor_published,
-            {"dashboard_title": "copy", "json_metadata": "{}", **data},
+            {
+                "dashboard_title": "copy",
+                "json_metadata": json.dumps(metadata or {}),
+                **data,
+            },
         )
 
     with acting_as(fx.editor_user):
-        for duplicate_slices in (False, True):
+        # Without a layout, with one, and duplicating the layout's charts.
+        for metadata, data in (
+            (None, {}),
+            (layout, {}),
+            (layout, {"duplicate_slices": True}),
+        ):
             with pytest.raises(DashboardLayoutInvalidError):
-                copy_editor_published(duplicate_slices=duplicate_slices)
+                copy_editor_published(metadata, **data)
 
         grant = security_manager.add_permission_view_menu(
             "datasource_access", fx.table.perm

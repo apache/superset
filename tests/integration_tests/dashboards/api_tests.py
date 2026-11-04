@@ -6436,7 +6436,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
     @parameterized.expand(
         [
-            ("source_members", ("member", "archived"), 200),
+            ("source_members", ("member", "archived"), 422),
             ("own_chart", ("own",), 200),
             ("readable_not_edited", ("readable",), 200),
             ("unreadable_new_chart", ("member", "foreign"), 422),
@@ -6446,8 +6446,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     def test_copy_dashboard_layout_chart_access(
         self, case: str, layout: tuple[str, ...], status: int
     ) -> None:
-        """A copy links a layout chart only if the source has it or the
-        caller can read it."""
+        """A copy links a layout chart only if the caller can read it: the copy
+        is the caller's and keeps its charts, so the source having a chart
+        doesn't exempt it."""
         with self._layout_access_fixture() as ids:
             self.login(GAMMA_USERNAME)
             positions: dict[str, Any] = self._chart_layout(*(ids[k] for k in layout))
@@ -6460,9 +6461,12 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             )
             assert rv.status_code == status, rv.data
             if case == "restricted_viewers":
+                refused: str = ", ".join(
+                    str(chart_id)
+                    for chart_id in sorted([ids["member"], ids["restricted"]])
+                )
                 assert rv.json["message"]["json_metadata"] == [
-                    "The layout references charts that are not available: "
-                    f"{ids['restricted']}"
+                    f"The layout references charts that are not available: {refused}"
                 ]
                 assert self._member_names(ids) == {"member", "archived"}
             copies: int = (
@@ -6602,26 +6606,22 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             ]
             assert self._member_names(ids) == {"member", "archived"}
 
-    @parameterized.expand([("readable_clones", False), ("chart_reads_denied", True)])
+    @parameterized.expand([("unreadable_source", False), ("readable_source", True)])
     def test_copy_dashboard_duplicate_slices_layout_chart_access(
-        self, case: str, deny_chart_reads: bool
+        self, case: str, source_readable: bool
     ) -> None:
-        """A copy with ``duplicate_slices`` links the clones of the source's
-        charts, even ones the caller cannot read in the source.
-
-        The caller edits every clone, so the access check passes them anyway.
-        Denying every chart read shows the clones are accepted as the copy's
-        own charts rather than through the caller's access.
-        """
+        """A copy with ``duplicate_slices`` clones a source chart only if the
+        caller can read it: the caller edits every clone, so cloning a chart
+        is a way to keep it."""
         with self._layout_access_fixture() as ids:
             self.login(GAMMA_USERNAME)
             positions: dict[str, Any] = self._chart_layout(ids["member"])
             with (
                 patch(
                     "superset.daos.dashboard.security_manager.can_access_chart",
-                    return_value=False,
+                    return_value=True,
                 )
-                if deny_chart_reads
+                if source_readable
                 else nullcontext()
             ):
                 rv: TestResponse = self.client.post(
@@ -6632,6 +6632,14 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                         "json_metadata": json.dumps({"positions": positions}),
                     },
                 )
+            if not source_readable:
+                assert rv.status_code == 422, rv.data
+                assert rv.json["message"]["json_metadata"] == [
+                    "The layout references charts that are not available: "
+                    f"{ids['member']}"
+                ]
+                assert self._member_names(ids) == {"member", "archived"}
+                return
             assert rv.status_code == 200, rv.data
             db.session.expire_all()
             copied: Dashboard = db.session.get(Dashboard, rv.json["result"]["id"])

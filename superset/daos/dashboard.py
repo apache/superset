@@ -1251,14 +1251,14 @@ class DashboardDAO(BaseDAO[Dashboard]):
     ) -> Dashboard:
         if not security_manager.is_editor(original_dash):
             raise DashboardForbiddenError()
-        # The copy (or its cloned charts) is a dashboard the caller edits, so it
-        # would keep the source's charts and filter targets after the caller
-        # loses access to the source; carrying them over takes access to them in
-        # their own right.
-        _raise_for_unreadable_new_charts(list(original_dash.slices), set())
-        _raise_for_unreadable_new_filter_targets(
-            original_dash.params_dict.get("native_filter_configuration"), None
-        )
+        # The copy (and any cloned charts) is the caller's, so it would keep the
+        # source's charts and filter targets after the caller loses access to the
+        # source: whatever it carries over takes access in its own right. The
+        # charts are checked where each copy mode picks them, below.
+        if not data.get("replace_metadata", False):
+            _raise_for_unreadable_new_filter_targets(
+                original_dash.params_dict.get("native_filter_configuration"), None
+            )
 
         dash = Dashboard()
         # The copied dashboard and every chart cloned below share one creator,
@@ -1312,10 +1312,14 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 for node in metadata["positions"].values()
                 if (chart_id := _layout_chart_id(node)) is not None
             }
+            sources: list[Slice] = [
+                slc
+                for slc in original_dash.slices
+                if slc.id not in archived_ids and slc.id in layout_chart_ids
+            ]
+            _raise_for_unreadable_new_charts(sources, set())
             # Duplicating slices as well, mapping old ids to new ones
-            for slc in original_dash.slices:
-                if slc.id in archived_ids or slc.id not in layout_chart_ids:
-                    continue
+            for slc in sources:
                 new_slice = slc.clone()
                 # ``Slice.clone()`` carries over no subjects, so both
                 # collections start empty on the new chart.
@@ -1348,6 +1352,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
             # With a layout, set_dash_metadata links exactly the layout's charts.
             # Linking the source's charts first and then dropping some makes the
             # flush delete dashboard_slices rows that were never inserted.
+            _raise_for_unreadable_new_charts(list(original_dash.slices), set())
             dash.slices = original_dash.slices
 
         # Version forks opt into complete metadata to avoid inheriting settings
@@ -1359,11 +1364,9 @@ class DashboardDAO(BaseDAO[Dashboard]):
             dash,
             metadata,
             old_to_new_slice_ids,
-            allowed_chart_ids=(
-                set(old_to_new_slice_ids.values())
-                if old_to_new_slice_ids
-                else _member_chart_ids(original_dash.id)
-            ),
+            # Clones are new charts the caller edits, whose sources were checked
+            # above; a layout copy's charts face the check as new charts.
+            allowed_chart_ids=set(old_to_new_slice_ids.values()),
         )
         copied_ids: set[int] = {chart.id for chart in dash.slices}
         chart_id_map: dict[int, int] = (
