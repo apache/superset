@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
@@ -81,6 +81,16 @@ const FloatingPanel = styled.div`
     display: flex;
   `}
 `;
+
+/**
+ * How long Request review waits for its own save to produce a draft.
+ *
+ * The click saves and announces together, so the draft arrives a moment
+ * later; a save measured here landed in under 200ms. Generous for a slow
+ * one, and nowhere near long enough to still be armed when the author does
+ * something else.
+ */
+const REQUEST_DIALOG_GRACE_MS = 10_000;
 
 export interface AssetReviewProps {
   assetType: ReviewAssetType;
@@ -150,6 +160,10 @@ export default function AssetReview({
   const history = useHistory();
   const preview = useProposedPreview(changeRequest);
   const [pendingRequest, setPendingRequest] = useState(false);
+  /** When Request review was asked for, so the wait below can time out. */
+  const armedAtRef = useRef<number | null>(null);
+  /** Bumped by the deadline timer to re-run the wait. */
+  const [armedTick, setArmedTick] = useState(0);
 
   // The live title travels with every read of the change request, so the
   // host does not have to fetch the asset again to find out that what it is
@@ -203,26 +217,54 @@ export default function AssetReview({
   }, [isReviewer]);
 
   useEffect(() => {
-    if (!pendingRequest) return;
+    if (!pendingRequest) {
+      armedAtRef.current = null;
+      return undefined;
+    }
+    if (armedAtRef.current === null) armedAtRef.current = Date.now();
+
     if (changeRequest?.status === 'draft') {
       reviewLog('request review: opening the dialog', requestFacts(changeRequest));
       setRequestOpen(true);
       setPendingRequest(false);
-      return;
+      armedAtRef.current = null;
+      return undefined;
     }
-    // Anything else and the dialog cannot open: it exists to submit a
-    // draft. Drop the request rather than hold it. Held, it waited for the
-    // status to become a draft and then opened the dialog by itself --
-    // minutes later, after an unrelated edit and save, with nothing on
-    // screen connecting it to the click that armed it.
-    if (changeRequest) {
-      reviewLog(
-        'request review: dropped, the dialog cannot open for this status',
-        requestFacts(changeRequest),
-      );
+
+    // Not a draft yet, and that is usually because the click's own save is
+    // still in flight.
+    //
+    // The toolbar's Request review saves first and announces in the same
+    // breath, so this ran against the status from *before* that write --
+    // measured at 6ms after the click, against a save that landed at
+    // 190ms. Deciding there meant deciding on a status the save was in the
+    // middle of replacing: an author whose last change had been approved
+    // got the save and no dialog at all.
+    //
+    // So wait for the draft the save is about to produce. Bounded, because
+    // the first version of this waited forever and opened the dialog
+    // minutes later after an unrelated save, with nothing on screen
+    // connecting it to the click that armed it. Long enough for a slow
+    // round trip, far too short to reach another edit.
+    const waited = Date.now() - armedAtRef.current;
+    if (waited >= REQUEST_DIALOG_GRACE_MS) {
+      reviewLog('request review: gave up waiting for a draft to submit', {
+        waitedMs: waited,
+        ...requestFacts(changeRequest),
+      });
       setPendingRequest(false);
+      armedAtRef.current = null;
+      return undefined;
     }
-  }, [pendingRequest, changeRequest, changeRequest?.status]);
+
+    // Nothing may arrive at all -- a save that fails, or a click with
+    // nothing to save -- so wake up once at the deadline to let go.
+    const timer = window.setTimeout(
+      () => setArmedTick(tick => tick + 1),
+      REQUEST_DIALOG_GRACE_MS - waited + 20,
+    );
+    return () => window.clearTimeout(timer);
+  }, [pendingRequest, changeRequest, changeRequest?.status, armedTick]);
 
   /**
    * Runs one workflow action and reports whether it landed.
