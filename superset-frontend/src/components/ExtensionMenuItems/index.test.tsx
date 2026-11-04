@@ -71,6 +71,20 @@ test('returns no items when nothing is registered', () => {
   expect(result.current).toEqual([]);
 });
 
+test('skips an item whose command is not registered', () => {
+  disposables.push(
+    menus.registerMenuItem(
+      { view: 'explore.chart.download', command: 'ext.missing' },
+      'explore.chart.download',
+      'primary',
+    ),
+  );
+  const { result } = renderHook(() =>
+    useExtensionMenuItems('explore.chart.download', ctx),
+  );
+  expect(result.current).toEqual([]);
+});
+
 test('maps a registered item to a menu item that runs the command with the context', async () => {
   const run = jest.fn();
   register('ext.gs', 'Export to Google Sheets', 'explore.chart.download', run);

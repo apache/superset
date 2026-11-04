@@ -36,6 +36,7 @@ import { supersetGetCache } from 'src/utils/cachedSupersetGet';
 import { commands, menus } from 'src/core';
 import type { common } from '@apache-superset/core';
 import DrillDetailPane from './DrillDetailPane';
+import * as drillUtils from './utils';
 
 const chart = chartQueries[sliceId];
 const setup = (overrides: Record<string, any> = {}) => {
@@ -424,6 +425,32 @@ test('contributed item gets the drill_detail payload with json format and the ch
       ]),
     );
     expect(payload.queries[0].row_limit).toBe(50000);
+  } finally {
+    disposables.forEach(d => d.dispose());
+  }
+});
+
+test('contributed item getPayload rejects when the drill payload cannot be built', async () => {
+  fetchWithData();
+  const run = jest.fn();
+  const disposables = registerDrillDetailItem(run);
+  try {
+    render(
+      <DrillDetailPane
+        initialFilters={[]}
+        formData={chart.form_data as unknown as QueryFormData}
+        chartName="Sales"
+      />,
+      { useRedux: true, initialState: DOWNLOAD_STATE },
+    );
+    const ctx = await clickExtensionItem(run);
+    const getDrillPayload = jest
+      .spyOn(drillUtils, 'getDrillPayload')
+      .mockReturnValue(undefined);
+    await expect(ctx.getPayload()).rejects.toThrow(
+      'Unable to generate download payload',
+    );
+    getDrillPayload.mockRestore();
   } finally {
     disposables.forEach(d => d.dispose());
   }
