@@ -585,7 +585,7 @@ class SQLExecutor:
             )
 
             # 2. Security checks on transformed script
-            self._check_security(transformed_script, schema)
+            self._check_security(transformed_script, schema, catalog)
 
             # 3. Get mutation status and format SQL
             has_mutation = transformed_script.has_mutation()
@@ -718,7 +718,7 @@ class SQLExecutor:
         )
 
         # 2. Security checks on transformed script
-        self._check_security(transformed_script, schema)
+        self._check_security(transformed_script, schema, catalog)
 
         # 3. Get mutation status and format SQL
         has_mutation = transformed_script.has_mutation()
@@ -824,12 +824,18 @@ class SQLExecutor:
 
         return original_script, transformed_script, catalog, schema
 
-    def _check_security(self, script: SQLScript, schema: str | None = None) -> None:
+    def _check_security(
+        self,
+        script: SQLScript,
+        schema: str | None = None,
+        catalog: str | None = None,
+    ) -> None:
         """
         Perform security checks on prepared SQL script.
 
         :param script: Prepared SQLScript
         :param schema: Effective schema unqualified references resolve to
+        :param catalog: Catalog the script runs against
         :raises SupersetSecurityException: If security checks fail
         """
         # Check disallowed functions
@@ -845,7 +851,7 @@ class SQLExecutor:
             )
 
         # Check disallowed tables
-        if disallowed_tables := self._check_disallowed_tables(script, schema):
+        if disallowed_tables := self._check_disallowed_tables(script, schema, catalog):
             raise SupersetSecurityException(
                 SupersetError(
                     message=f"Disallowed SQL tables: {', '.join(disallowed_tables)}",
@@ -1120,13 +1126,17 @@ class SQLExecutor:
         )
 
     def _check_disallowed_tables(
-        self, script: SQLScript, schema: str | None = None
+        self,
+        script: SQLScript,
+        schema: str | None = None,
+        catalog: str | None = None,
     ) -> set[str] | None:
         """
         Check for disallowed SQL tables/views.
 
         :param script: Parsed SQL script
         :param schema: Effective schema unqualified references resolve to
+        :param catalog: Catalog the script runs against
         :returns: Set of disallowed tables found, or None if none found
         """
         disallowed_config = app.config.get("DISALLOWED_SQL_TABLES", {})
@@ -1140,7 +1150,18 @@ class SQLExecutor:
         # Honors schema-qualified denylist entries (e.g.
         # ``information_schema.tables``) as well as bare names. The effective
         # schema lets an unqualified reference that resolves to it at runtime
-        # (via the connection ``search_path``) match too.
+        # (via the connection ``search_path``) match too. A query without a schema
+        # still reads unqualified tables from the connection's default schema, so a
+        # qualified entry is matched against that schema.
+        from superset.utils.rls import (
+            get_unqualified_table_schema,
+            has_qualified_table_entry,
+        )
+
+        if has_qualified_table_entry(engine_disallowed):
+            schema = get_unqualified_table_schema(
+                self.database, catalog, schema, script.statements
+            )
         return script.get_disallowed_tables(engine_disallowed, schema) or None
 
     def _apply_rls_to_script(
@@ -1153,11 +1174,11 @@ class SQLExecutor:
         :param catalog: Catalog name
         :param schema: Schema name
         """
-        from superset.utils.rls import apply_rls, get_rls_default_schema
+        from superset.utils.rls import apply_rls, get_unqualified_table_schema
 
         # A query without a schema still reads unqualified tables from the
         # connection's default schema, so RLS targets that schema too.
-        rls_schema = get_rls_default_schema(
+        rls_schema = get_unqualified_table_schema(
             self.database, catalog, schema, script.statements
         )
         for statement in script.statements:

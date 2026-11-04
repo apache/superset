@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+from functools import cache, partial
 from typing import Any, TypedDict
 
 from flask import current_app as app
@@ -41,7 +42,11 @@ from superset.jinja_context import get_template_processor
 from superset.models.core import Database
 from superset.sql.parse import SQLScript
 from superset.utils import core as utils, json
-from superset.utils.rls import apply_rls, get_rls_default_schema
+from superset.utils.rls import (
+    apply_rls,
+    get_unqualified_table_schema,
+    has_qualified_table_entry,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -140,12 +145,29 @@ class QueryEstimationCommand(BaseCommand):
             # fall back to the runtime-resolved default.
             effective_schema = self._schema or resolved_schema or ""
 
+        # A query without a schema still reads unqualified tables from the
+        # connection's default schema, so RLS and schema-qualified denylist
+        # entries match against that schema. Discovering it connects to the
+        # database, so it runs at most once and only when a control needs it.
+        table_schema = cache(
+            partial(
+                get_unqualified_table_schema,
+                self._database,
+                catalog,
+                effective_schema,
+                parsed_script.statements,
+            )
+        )
+
         if disallowed_tables:
             # Honors schema-qualified denylist entries (e.g.
             # ``information_schema.tables``) and reports only the tables
             # actually referenced by the query.
             found_tables = parsed_script.get_disallowed_tables(
-                disallowed_tables, effective_schema
+                disallowed_tables,
+                table_schema()
+                if has_qualified_table_entry(disallowed_tables)
+                else effective_schema,
             )
             if found_tables:
                 raise SupersetDisallowedSQLTableException(found_tables)
@@ -158,13 +180,8 @@ class QueryEstimationCommand(BaseCommand):
             raise SupersetDMLNotAllowedException()
 
         if rls_enabled:
-            # A query without a schema still reads unqualified tables from the
-            # connection's default schema, so RLS targets that schema too.
-            rls_schema = get_rls_default_schema(
-                self._database, catalog, effective_schema, parsed_script.statements
-            )
             for statement in parsed_script.statements:
-                apply_rls(self._database, catalog, rls_schema, statement)
+                apply_rls(self._database, catalog, table_schema(), statement)
             return parsed_script.format()
 
         return sql

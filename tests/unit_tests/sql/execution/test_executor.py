@@ -566,6 +566,54 @@ def test_check_disallowed_tables_no_config(
     assert result is None
 
 
+@pytest.mark.parametrize(
+    "entry, sql, blocked, probed",
+    [
+        # a qualified entry matches an unqualified table in the default schema
+        ("public.secrets", "SELECT * FROM secrets", True, True),
+        ("archive.secrets", "SELECT * FROM secrets", False, True),
+        # a qualified table needs no default schema
+        ("public.secrets", "SELECT * FROM public.secrets", True, False),
+        # a bare entry matches whatever the schema, without discovering it
+        ("secrets", "SELECT * FROM secrets", True, False),
+    ],
+)
+def test_check_disallowed_tables_without_schema(
+    mocker: MockerFixture,
+    app_context: None,
+    entry: str,
+    sql: str,
+    blocked: bool,
+    probed: bool,
+) -> None:
+    """
+    On a dynamic-schema engine a query without a schema reads unqualified tables
+    from the connection's default schema, so a schema-qualified entry is matched
+    against it. The default schema is discovered only when an entry needs it.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+
+    database = Database(
+        id=1, database_name="pg", sqlalchemy_uri="postgresql://u:p@h/analytics"
+    )
+    get_default_schema = mocker.patch.object(
+        database, "get_default_schema", return_value="public"
+    )
+    mocker.patch.dict(
+        current_app.config, {"DISALLOWED_SQL_TABLES": {"postgresql": {entry}}}
+    )
+
+    result = SQLExecutor(database)._check_disallowed_tables(
+        SQLScript(sql, "postgresql"), None, "analytics"
+    )
+
+    assert result == ({entry} if blocked else None)
+    if probed:
+        get_default_schema.assert_called_once_with("analytics")
+    else:
+        get_default_schema.assert_not_called()
+
+
 # =============================================================================
 # Row-Level Security Tests
 # =============================================================================

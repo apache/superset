@@ -23,6 +23,7 @@ import uuid
 from collections.abc import Callable
 from contextlib import closing, nullcontext
 from datetime import datetime
+from functools import cache, partial
 from sys import getsizeof
 from typing import Any, cast, Optional, TYPE_CHECKING, TypeVar, Union
 
@@ -82,7 +83,11 @@ from superset.utils.core import (
 from superset.utils.database import warm_and_release_connection
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
-from superset.utils.rls import apply_rls, get_rls_default_schema
+from superset.utils.rls import (
+    apply_rls,
+    get_unqualified_table_schema,
+    has_qualified_table_entry,
+)
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -532,11 +537,28 @@ def execute_sql_statements(  # noqa: C901
     if disallowed_tables or rls_enabled:
         effective_schema = database.get_default_schema_for_query(query)
 
+    # A query without a schema still reads unqualified tables from the
+    # connection's default schema, so RLS and schema-qualified denylist entries
+    # match against that schema. Discovering it connects to the database, so it
+    # runs at most once and only when a control needs it.
+    table_schema = cache(
+        partial(
+            get_unqualified_table_schema,
+            database,
+            query.catalog,
+            effective_schema,
+            parsed_script.statements,
+        )
+    )
+
     if disallowed_tables:
         # Report only the denylisted tables actually referenced in the query,
         # honoring schema-qualified entries (e.g. ``information_schema.tables``).
         found_tables = parsed_script.get_disallowed_tables(
-            disallowed_tables, effective_schema
+            disallowed_tables,
+            table_schema()
+            if has_qualified_table_entry(disallowed_tables)
+            else effective_schema,
         )
         if found_tables:
             raise SupersetDisallowedSQLTableException(found_tables)
@@ -549,13 +571,8 @@ def execute_sql_statements(  # noqa: C901
         raise SupersetDMLNotAllowedException()
 
     if rls_enabled:
-        # A query without a schema still reads unqualified tables from the
-        # connection's default schema, so RLS targets that schema too.
-        rls_schema = get_rls_default_schema(
-            database, query.catalog, effective_schema, parsed_script.statements
-        )
         for statement in parsed_script.statements:
-            apply_rls(query.database, query.catalog, rls_schema, statement)
+            apply_rls(query.database, query.catalog, table_schema(), statement)
 
     if query.select_as_cta:
         # CTAS is valid when the last statement is a SELECT, while CVAS is valid when

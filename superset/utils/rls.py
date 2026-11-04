@@ -69,7 +69,7 @@ def get_rls_schema(
     returns no schema, keep the configured schema rather than losing its RLS rules.
     """
     if database.db_engine_spec.supports_dynamic_schema:
-        return get_rls_default_schema(database, catalog, schema)
+        return get_unqualified_table_schema(database, catalog, schema)
     return (
         database.resolve_query_default_schema(sql, schema, catalog, template_params)
         or schema
@@ -77,23 +77,24 @@ def get_rls_schema(
     )
 
 
-def get_rls_default_schema(
+def get_unqualified_table_schema(
     database: Database,
     catalog: str | None,
     schema: str | None,
     statements: Iterable[BaseSQLStatement[Any]] | None = None,
 ) -> str:
     """
-    The schema RLS qualifies unqualified tables with, given the per-query schema.
+    The schema an unqualified table resolves to, given the per-query schema.
 
     An engine with dynamic-schema support takes the per-query schema from the
     request, so a request without one has no per-query schema. The connection still
     resolves an unqualified table to its default schema (the Postgres
-    ``search_path``, for instance), so RLS must look the table up there too, or the
-    rules of a dataset registered in that schema are skipped.
+    ``search_path``, for instance), so the controls that match tables by schema --
+    RLS and schema-qualified ``DISALLOWED_SQL_TABLES`` entries -- must use that
+    schema too, or a table in it escapes them.
 
     :param schema: The per-query schema already resolved for execution, if any
-    :param statements: The statements RLS is applied to. When given, the default
+    :param statements: The statements being checked. When given, the default
         schema is only discovered if one of them reads an unqualified table, since
         discovery connects to the database.
     :returns: The schema, or an empty string when it can't be determined
@@ -107,6 +108,16 @@ def get_rls_default_schema(
     ):
         return ""
     return database.get_default_schema(catalog) or ""
+
+
+def has_qualified_table_entry(tables: Iterable[str]) -> bool:
+    """
+    Whether a table denylist has a schema-qualified entry (e.g. ``public.secrets``).
+
+    Bare entries match a table whatever its schema, so only a qualified entry needs
+    the schema an unqualified table resolves to.
+    """
+    return any("." in table for table in tables)
 
 
 def apply_rls(
