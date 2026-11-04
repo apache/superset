@@ -46,6 +46,7 @@ from superset_core.queries.types import (
     QueryStatus,
 )
 
+from superset.db_engine_specs.base import TIME_LIMIT_EXCEPTIONS
 from superset.models.core import Database
 from superset.sql.parse import LimitMethod, SQLScript
 
@@ -1965,6 +1966,28 @@ def test_execute_bounds_cursor_fetches(
         ]
 
 
+def test_limited_cursor_writes_driver_state_to_the_real_cursor() -> None:
+    """
+    State an engine spec sets, such as a closed flag, reaches the real cursor.
+
+    The executor closes the real cursor, so a flag left on the wrapper would
+    be invisible to the driver.
+    """
+    from superset.sql.execution.executor import _LimitedCursor
+
+    cursor = create_mock_cursor(["n"], [(n,) for n in range(3)])
+    cursor.fetchmany.return_value = [(0,)]
+    limited = _LimitedCursor(cursor, 3)
+    probe = _LimitedCursor(limited, 1)
+
+    probe._closed = True
+
+    assert cursor._closed is True
+    assert "_closed" not in vars(limited)
+    assert "_closed" not in vars(probe)
+    assert probe.fetchall() == [(0,)]
+
+
 @pytest.mark.parametrize("first_read", ["fetchmany", "fetchone", "iterate"])
 def test_limited_cursor_shares_read_budget(first_read: str) -> None:
     """All cursor read methods share a budget; metadata stays on the driver."""
@@ -3462,6 +3485,62 @@ def test_limited_cursor_truncation_probe(row_count: int, limit: int) -> None:
         limited = _LimitedCursor(cursor, limit)
         assert len(limited.fetchall()) == min(limit, row_count)
         assert limited.check_truncated(BaseEngineSpec) is (row_count > limit)
+
+
+@pytest.mark.parametrize("timeout_type", TIME_LIMIT_EXCEPTIONS)
+def test_execute_truncation_probe_propagates_time_limits(
+    mocker: MockerFixture,
+    mock_database: MagicMock,
+    mock_query: MagicMock,
+    app_context: None,
+    caplog: pytest.LogCaptureFixture,
+    timeout_type: type[BaseException],
+) -> None:
+    """A probe timeout propagates unchanged instead of returning partial rows."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.errors import ErrorLevel, SupersetErrorType
+    from superset.exceptions import SupersetTimeoutException
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    timeout = (
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="Truncation probe timed out",
+            level=ErrorLevel.ERROR,
+        )
+        if timeout_type is SupersetTimeoutException
+        else timeout_type()
+    )
+    mock_database.db_engine_spec = BaseEngineSpec
+    mock_query.limit = 2
+    cursor = create_mock_cursor(["n"])
+    cursor.fetchmany.return_value = [(1,), (2,)]
+    result_set = mocker.patch("superset.result_set.SupersetResultSet")
+
+    def fetch_rows(fetch_cursor: Any) -> list[tuple[int, ...]]:
+        """Consume the row budget, then interrupt the next engine fetch."""
+        rows = fetch_cursor.fetchall()
+        fetch_data.side_effect = timeout
+        return rows
+
+    fetch_data = mocker.patch.object(
+        BaseEngineSpec, "fetch_data", side_effect=fetch_rows
+    )
+
+    with pytest.raises(timeout_type) as raised:
+        execute_sql_with_cursor(
+            mock_database,
+            cursor,
+            ["SELECT n FROM t"],
+            mock_query,
+            execute_fn=MagicMock(),
+        )
+
+    assert raised.value is timeout
+    assert fetch_data.call_count == 2
+    assert fetch_data.call_args.args[0]._remaining == 1
+    assert "Truncation probe failed" not in caplog.text
+    result_set.assert_not_called()
 
 
 @pytest.mark.parametrize("eof", [True, False])
