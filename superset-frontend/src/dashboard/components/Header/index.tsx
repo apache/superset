@@ -449,7 +449,28 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     boundActionCreators.setEditMode(!editMode);
   }, [boundActionCreators, editMode]);
 
+  /**
+   * Whether a save this header started is still in flight.
+   *
+   * A ref rather than `dashboardIsSaving`, because a disabled button is not
+   * a guard here. Redux flips that flag synchronously but the re-render that
+   * would disable the button is scheduled, and a double click lands about
+   * 3ms apart -- inside the same frame. The exploratory pass double-clicked
+   * Request review and got two saves, two toasts, and a reviewer sent the
+   * same draft twice.
+   *
+   * Released when the save settles, including when it fails, so a failed
+   * save does not leave the toolbar permanently refusing to try again.
+   */
+  const savingRef = useRef(false);
+
   const overwriteDashboard = useCallback(() => {
+    if (savingRef.current) {
+      reviewLog('save: ignored, a save from this toolbar is still in flight', {
+        dashboardId: dashboardInfo.id,
+      });
+      return;
+    }
     const currentColorNamespace =
       dashboardInfo?.metadata?.color_namespace || colorNamespace;
     const currentColorScheme =
@@ -499,7 +520,20 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
         );
       }
 
-      boundActionCreators.onSave(data, dashboardInfo.id, SAVE_TYPE_OVERWRITE);
+      savingRef.current = true;
+      const settled = () => {
+        savingRef.current = false;
+      };
+      // `onSave` is a thunk, so what comes back is its promise. Not every
+      // path through it resolves with anything useful, and none of that
+      // matters here: the latch is released either way.
+      Promise.resolve(
+        boundActionCreators.onSave(
+          data,
+          dashboardInfo.id,
+          SAVE_TYPE_OVERWRITE,
+        ) as unknown,
+      ).then(settled, settled);
     }
   }, [
     actualLastModifiedTime,
@@ -906,6 +940,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
                           // that is already saved has nothing left to
                           // save, and saving again would only report that
                           // nothing changed.
+                          const savingFirst = hasUnsavedChanges;
                           reviewLog('request review: toolbar button clicked', {
                             dashboardId: dashboardInfo.id,
                             hasUnsavedChanges,
@@ -913,10 +948,22 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
                             isAwaitingReview,
                             toolbarStatus: openChange?.status ?? null,
                             openRequest: openChange?.id ?? null,
-                            willSaveFirst: hasUnsavedChanges,
+                            willSaveFirst: savingFirst,
+                            alreadySaving: savingRef.current,
                           });
-                          if (hasUnsavedChanges) overwriteDashboard();
-                          announceRequestReview();
+                          // The whole click, not just the save, is dropped
+                          // while one is in flight. Announcing again would
+                          // arm the dialog a second time against the same
+                          // save, and the author would get two of them.
+                          if (savingRef.current) return;
+                          if (savingFirst) overwriteDashboard();
+                          // `savingFirst` tells the banner whether to wait
+                          // for that save before opening its dialog. It
+                          // cannot work this out for itself: an author
+                          // editing on top of a draft already has one, so
+                          // "a draft exists" is true before the save that
+                          // the dialog is supposed to be about.
+                          announceRequestReview({ savingFirst });
                         }}
                         data-test="header-request-review-button"
                         aria-label={t('Request review')}

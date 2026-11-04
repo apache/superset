@@ -38,10 +38,12 @@ import { afterRemovalPath } from './display';
 import {
   announceReviewChanged,
   onAssetLocked,
+  onChangeCaptured,
   onDiscardChanges,
   onRequestReview,
   onShowWhatChanged,
   REVIEW_PANEL_SLOT,
+  type RequestReviewDetail,
 } from './events';
 import {
   approveChange,
@@ -159,11 +161,34 @@ export default function AssetReview({
   const { addSuccessToast, addDangerToast } = useToasts();
   const history = useHistory();
   const preview = useProposedPreview(changeRequest);
-  const [pendingRequest, setPendingRequest] = useState(false);
+  /**
+   * The change request as the window listeners below see it.
+   *
+   * They are registered once, so the request they closed over is the one
+   * from the first render -- which is `null` on every page that has not
+   * fetched yet. Only used for log lines, where a stale `null` is the
+   * difference between an account of what happened and a line saying
+   * nothing.
+   */
+  const changeRequestRef = useRef(changeRequest);
+  changeRequestRef.current = changeRequest;
+  const [pendingRequest, setPendingRequest] =
+    useState<RequestReviewDetail | null>(null);
   /** When Request review was asked for, so the wait below can time out. */
   const armedAtRef = useRef<number | null>(null);
   /** Bumped by the deadline timer to re-run the wait. */
   const [armedTick, setArmedTick] = useState(0);
+  /**
+   * How many writes have been captured on this page.
+   *
+   * Counted rather than flagged so the wait below can ask "has one landed
+   * *since* I was armed", which is the only form of the question that
+   * survives an author who saves twice.
+   */
+  const capturesRef = useRef(0);
+  const [captureTick, setCaptureTick] = useState(0);
+  /** The count when Request review was asked for. */
+  const capturesWhenArmedRef = useRef(0);
 
   // The live title travels with every read of the change request, so the
   // host does not have to fetch the asset again to find out that what it is
@@ -200,7 +225,48 @@ export default function AssetReview({
   // The edit header asks for review; this component owns the modal. The
   // request is held until the change the save produced has actually loaded,
   // because the modal needs it.
-  useEffect(() => onRequestReview(() => setPendingRequest(true)), []);
+  useEffect(
+    () =>
+      onRequestReview(detail => {
+        capturesWhenArmedRef.current = capturesRef.current;
+        reviewLog('request review: asked for', {
+          savingFirst: detail.savingFirst,
+          capturesSoFar: capturesRef.current,
+          ...requestFacts(changeRequestRef.current),
+        });
+        setPendingRequest(detail);
+      }),
+    [],
+  );
+
+  /**
+   * A write was captured, so the page is now showing something it should
+   * not be.
+   *
+   * Two jobs, and they are the same event because they are the same fact.
+   * The count lets Request review wait for the save it started. The
+   * restore puts the live asset back, because a captured save leaves the
+   * author's edits on screen under a banner saying they are looking at the
+   * live version -- the row they deleted gone, the tab they added still
+   * there, and nothing on the page to say the two disagree.
+   *
+   * Dashboards only: a chart's captured save re-renders from Explore's own
+   * controls, and a dataset has no canvas to put back.
+   */
+  const restoreLive = preview.restoreLive;
+  useEffect(
+    () =>
+      onChangeCaptured(() => {
+        capturesRef.current += 1;
+        setCaptureTick(tick => tick + 1);
+        if (assetType === 'dashboard') {
+          // Deliberately not awaited: nothing here depends on the result,
+          // and the function reports its own failure.
+          restoreLive();
+        }
+      }),
+    [assetType, restoreLive],
+  );
 
   // Another editor pressed Edit while this change is open. The header
   // cannot explain the lock itself -- it has no idea whose change it is.
@@ -223,10 +289,27 @@ export default function AssetReview({
     }
     if (armedAtRef.current === null) armedAtRef.current = Date.now();
 
-    if (changeRequest?.status === 'draft') {
-      reviewLog('request review: opening the dialog', requestFacts(changeRequest));
+    // A click that started a save waits for that save, whatever the status
+    // says in the meantime.
+    //
+    // Waiting on "is there a draft" alone was not enough: an author editing
+    // on top of a draft already has one, so the condition was true at the
+    // moment of the click and the dialog opened on the *previous* payload
+    // while the save replacing it was still in flight -- measured at 70ms
+    // ahead of it. Submitting in that window sends the reviewer a draft
+    // the author had already moved past, and the save that lands after it
+    // reopens the request they thought they had submitted.
+    const savedSinceArmed =
+      capturesRef.current > capturesWhenArmedRef.current;
+    const stillSaving = pendingRequest.savingFirst && !savedSinceArmed;
+
+    if (!stillSaving && changeRequest?.status === 'draft') {
+      reviewLog(
+        'request review: opening the dialog',
+        requestFacts(changeRequest),
+      );
       setRequestOpen(true);
-      setPendingRequest(false);
+      setPendingRequest(null);
       armedAtRef.current = null;
       return undefined;
     }
@@ -250,9 +333,11 @@ export default function AssetReview({
     if (waited >= REQUEST_DIALOG_GRACE_MS) {
       reviewLog('request review: gave up waiting for a draft to submit', {
         waitedMs: waited,
+        savingFirst: pendingRequest.savingFirst,
+        savedSinceArmed,
         ...requestFacts(changeRequest),
       });
-      setPendingRequest(false);
+      setPendingRequest(null);
       armedAtRef.current = null;
       return undefined;
     }
@@ -264,7 +349,15 @@ export default function AssetReview({
       REQUEST_DIALOG_GRACE_MS - waited + 20,
     );
     return () => window.clearTimeout(timer);
-  }, [pendingRequest, changeRequest, changeRequest?.status, armedTick]);
+    // `captureTick` is what moves when a save lands: `capturesRef` is read
+    // above but a ref never re-runs an effect on its own.
+  }, [
+    pendingRequest,
+    changeRequest,
+    changeRequest?.status,
+    armedTick,
+    captureTick,
+  ]);
 
   /**
    * Runs one workflow action and reports whether it landed.
@@ -355,7 +448,14 @@ export default function AssetReview({
           // to publish", so it has to go on and request. Same hand-off the
           // edit header uses: wait for the change the save produced, then
           // open the modal on it.
-          setPendingRequest(true);
+          //
+          // Nothing to wait for, though: the capture is already done by
+          // the time this line runs, because the call above is awaited.
+          // Arming this as a save in flight would wait for a capture that
+          // has already been and gone, and time out with no dialog at all.
+          // What is still outstanding is only the re-read, which is what
+          // the wait on "status is draft" covers.
+          setPendingRequest({ savingFirst: false });
         }}
       />
     ) : null;
@@ -387,12 +487,42 @@ export default function AssetReview({
                 }
               : undefined
           }
-          onShowWhatChanged={() => setPanelOpen(true)}
-          onRequestReview={() => setRequestOpen(true)}
-          onRequestChanges={() => setChangesOpen(true)}
-          onApprove={() => setApproveOpen(true)}
-          onWithdraw={() => setWithdrawOpen(true)}
-          onDiscard={() => setDiscardOpen(true)}
+          onShowWhatChanged={() => {
+            reviewLog(
+              'banner: Show what changed opened',
+              requestFacts(changeRequest),
+            );
+            setPanelOpen(true);
+          }}
+          onRequestReview={() => {
+            // Straight to the dialog, with nothing to wait for: the draft
+            // this is about is the one the banner is drawn from. The
+            // toolbar's button is the one that saves first.
+            reviewLog(
+              'banner: Request review pressed',
+              requestFacts(changeRequest),
+            );
+            setRequestOpen(true);
+          }}
+          onRequestChanges={() => {
+            reviewLog(
+              'banner: Request changes pressed',
+              requestFacts(changeRequest),
+            );
+            setChangesOpen(true);
+          }}
+          onApprove={() => {
+            reviewLog('banner: Approve pressed', requestFacts(changeRequest));
+            setApproveOpen(true);
+          }}
+          onWithdraw={() => {
+            reviewLog('banner: Withdraw pressed', requestFacts(changeRequest));
+            setWithdrawOpen(true);
+          }}
+          onDiscard={() => {
+            reviewLog('banner: Discard pressed', requestFacts(changeRequest));
+            setDiscardOpen(true);
+          }}
         />
       </div>
 

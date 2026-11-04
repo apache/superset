@@ -34,14 +34,44 @@ import { reviewLog } from './log';
  */
 export const REQUEST_REVIEW_EVENT = 'superset:change-management:request-review';
 
-export function announceRequestReview(): void {
-  reviewLog('event: request review asked for');
-  window.dispatchEvent(new CustomEvent(REQUEST_REVIEW_EVENT));
+export interface RequestReviewDetail {
+  /**
+   * Whether the click that asked for this also started a save.
+   *
+   * The banner's Request review acts on a draft that is already stored, so
+   * there is nothing to wait for. The edit toolbar's saves first, and the
+   * draft the dialog is about does not exist yet when this is announced.
+   *
+   * Without the distinction the listener could only wait for "a draft
+   * exists", which is already true whenever the author is editing on top
+   * of one -- so the dialog opened on the *previous* draft while the save
+   * replacing it was still in flight. Measured at 70ms before the save
+   * returned, which is long enough to submit the wrong thing.
+   */
+  savingFirst: boolean;
 }
 
-export function onRequestReview(handler: () => void): () => void {
-  window.addEventListener(REQUEST_REVIEW_EVENT, handler);
-  return () => window.removeEventListener(REQUEST_REVIEW_EVENT, handler);
+export function announceRequestReview(
+  detail: RequestReviewDetail = { savingFirst: false },
+): void {
+  reviewLog('event: request review asked for', {
+    savingFirst: detail.savingFirst,
+  });
+  window.dispatchEvent(new CustomEvent(REQUEST_REVIEW_EVENT, { detail }));
+}
+
+export function onRequestReview(
+  handler: (detail: RequestReviewDetail) => void,
+): () => void {
+  const listener = (event: Event) => {
+    // An event dispatched without a detail -- a test, or an older caller --
+    // reads as "nothing to wait for", which is the behaviour this had
+    // before the field existed.
+    const { detail } = event as CustomEvent<RequestReviewDetail | undefined>;
+    handler({ savingFirst: detail?.savingFirst ?? false });
+  };
+  window.addEventListener(REQUEST_REVIEW_EVENT, listener);
+  return () => window.removeEventListener(REQUEST_REVIEW_EVENT, listener);
 }
 
 /**
