@@ -177,14 +177,17 @@ const editButtonStyle = (theme: SupersetTheme) => css`
 const actionButtonsStyle = (theme: SupersetTheme) => css`
   display: flex;
   align-items: center;
-
-  .action-schedule-report {
-    margin-left: ${theme.sizeUnit * 2}px;
-  }
+  /* The row holds three buttons that read as one decision each -- leave
+     edit mode, save, ask for review -- and with no gap they ran together
+     into a single bar of text. Spacing is what separates them; nothing
+     else here does. */
+  gap: ${theme.sizeUnit * 2}px;
 
   .undoRedo {
     display: flex;
-    margin-right: ${theme.sizeUnit * 2}px;
+    /* A little more than the gap, so undo/redo reads as its own cluster
+       rather than a fourth button in the row. */
+    margin-right: ${theme.sizeUnit}px;
   }
 `;
 

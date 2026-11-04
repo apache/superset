@@ -122,6 +122,8 @@ export function useProposedPreview(changeRequest: ChangeRequest | null) {
   // the switch would quietly clear their filters and show a different slice
   // of the data than the one they were looking at.
   const liveMaskRef = useRef<DataMaskStateWithId>({});
+  /** Whether the author was editing when they turned the preview on. */
+  const editModeBeforeRef = useRef(false);
 
   const isChart = changeRequest?.asset_type === 'chart';
 
@@ -194,6 +196,14 @@ export function useProposedPreview(changeRequest: ChangeRequest | null) {
           if (!Object.keys(liveMaskRef.current).length) {
             liveMaskRef.current = store.getState().dataMask ?? {};
           }
+          // Remember whether the author was editing. Hydration recomputes
+          // edit mode from the `edit` URL parameter, which is absent for
+          // anyone who entered edit mode by pressing the button, so turning
+          // the switch on used to drop them into view mode and turning it
+          // off left them there -- their edit session gone, with no way to
+          // tell what had happened.
+          editModeBeforeRef.current =
+            store.getState().dashboardState?.editMode ?? false;
           // Cache the live copy on the way in: it is what the switch
           // returns to, and re-fetching on the way out could pick up
           // someone else's save and silently show a third state.
@@ -221,6 +231,9 @@ export function useProposedPreview(changeRequest: ChangeRequest | null) {
               dataMask: liveMaskRef.current,
               activeTabs: null,
               chartStates: null,
+              // A proposal is for looking at, not for editing: the grid on
+              // screen belongs to a change request, and dragging it would
+              // be editing a draft through a window onto it.
               editMode: false,
             }),
           );
@@ -233,9 +246,13 @@ export function useProposedPreview(changeRequest: ChangeRequest | null) {
               dataMask: liveMaskRef.current,
               activeTabs: null,
               chartStates: null,
-              editMode: false,
+              // Back to the live asset, and back to editing it if that is
+              // where the author was. Hydration would otherwise read edit
+              // mode off the URL and silently end their session.
+              editMode: editModeBeforeRef.current,
             }),
           );
+          editModeBeforeRef.current = false;
         }
         setShowing(next);
       } catch (error) {
