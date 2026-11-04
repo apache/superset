@@ -10018,6 +10018,8 @@ msgstr "உள்ளூர் தீம் \"%s\" என அமைக்கப�
 msgid "Locate the chart"
 msgstr "சார்ட்டைக் கண்டறியவும்"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr "பதிவு (Log)"
 

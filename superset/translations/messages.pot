@@ -8788,6 +8788,8 @@ msgstr ""
 msgid "Locate the chart"
 msgstr ""
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr ""
 
@@ -15460,6 +15462,12 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr ""
 
+msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
+msgstr ""
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr ""
 
@@ -16339,6 +16347,10 @@ msgid "Unable to fetch semantic view structure."
 msgstr ""
 
 msgid "Unable to fetch semantic views. Check the layer configuration."
+msgstr ""
+
+#, python-format
+msgid "Unable to find such a country: [%(country)s]"
 msgstr ""
 
 #, python-format

@@ -11065,6 +11065,8 @@ msgstr "تم تعيين المظهر المحلي على \"%s\""
 msgid "Locate the chart"
 msgstr "حدد موقع المخطط"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "خشبة"
