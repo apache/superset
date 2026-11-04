@@ -1897,7 +1897,9 @@ any SQL query mutation, matching a warehouse-executed run. If that history write
 fails, the cached data is still returned, with `query_id: null`. Dry runs and
 requests rejected before a run is created also return no query ID. Other MCP data
 tools use the chart-data path and do not create SQL Lab query-history entries.
-Async executor cache hits do not create entries.
+Async executor cache hits do not create entries. A failure to populate the results
+cache does not discard a successful warehouse result or change its history status.
+Async broker-submission failures finish the pending history entry with an end time.
 
 ## SQL execution row limits
 

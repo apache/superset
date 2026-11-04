@@ -167,4 +167,10 @@ def _handle_error(context: Any) -> None:
     if manager := getattr(execution, "_superset_cancellation_scope", None):
         execution._superset_cancellation_scope = None
         error = context.original_exception
-        manager.__exit__(type(error), error, error.__traceback__)
+        try:
+            manager.__exit__(type(error), error, error.__traceback__)
+        except BaseException:  # pylint: disable=broad-except
+            # SQLAlchemy catches only Exception from handle_error listeners.
+            # Let it close the cursor and roll back before the execution owner
+            # raises its deadline outside this listener.
+            return

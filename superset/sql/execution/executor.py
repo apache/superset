@@ -671,7 +671,7 @@ class SQLExecutor:
 
             # Store in cache (if SELECT and caching enabled)
             if not has_mutation:
-                self._store_in_cache(result, final_sql, opts)
+                self._try_store_in_cache(result, final_sql, opts)
 
             return result
 
@@ -1107,14 +1107,13 @@ class SQLExecutor:
         :param error_message: Error message to store
         :returns: Whether a concurrent Stop won
         """
-        if query is None:
-            return False
-
         from superset.sql.execution.utils import commit_query_unless_stopped
 
         try:
             if not db.session.is_active:
                 db.session.rollback()  # pylint: disable=consider-using-transaction
+            if query is None:
+                return False
             query.status = status.value
             query.error_message = error_message
             query.end_time = now_as_float()
@@ -1447,6 +1446,15 @@ class SQLExecutor:
 
         return None
 
+    def _try_store_in_cache(
+        self, result: QueryResult, sql: str, opts: QueryOptions
+    ) -> None:
+        """Cache opportunistically without discarding a successful warehouse result."""
+        try:
+            self._store_in_cache(result, sql, opts)
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Unable to store SQL result in cache", exc_info=True)
+
     def _store_in_cache(
         self, result: QueryResult, sql: str, opts: QueryOptions
     ) -> None:
@@ -1590,6 +1598,7 @@ class SQLExecutor:
         except Exception as ex:
             query.status = "failed"
             query.error_message = str(ex)
+            query.end_time = now_as_float()
             db.session.commit()  # pylint: disable=consider-using-transaction
             raise
 

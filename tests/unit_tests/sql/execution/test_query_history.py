@@ -19,13 +19,14 @@
 
 from contextlib import nullcontext
 from pathlib import Path
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import Connection, Engine, ExecutionContext
 from sqlalchemy.orm import Session
 from superset_core.queries.types import (
     QueryResult,
@@ -35,7 +36,7 @@ from superset_core.queries.types import (
 
 from superset import db
 from superset.daos.query import QueryDAO
-from superset.errors import ErrorLevel, SupersetErrorType
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2Error,
     OAuth2RedirectError,
@@ -107,7 +108,7 @@ def test_worker_deadline_finishes_history(
     assert query.status == "timed_out"
     assert query.error_message == "Query exceeded the timeout limit"
     assert query.start_running_time is not None
-    assert query.end_time >= query.start_running_time
+    assert query.start_time <= query.start_running_time <= query.end_time
 
 
 @pytest.mark.parametrize(
@@ -168,7 +169,7 @@ def test_concurrent_stop_wins(
     session.expire_all()
     query = session.query(Query).one()
     assert query.status == "stopped"
-    assert query.end_time is not None
+    assert query.end_time >= query.start_time
     assert query.error_message is None
 
 
@@ -254,7 +255,7 @@ def test_oauth_failure_finishes_history(
         database.execute("SELECT 1 AS one")
     query = session.query(Query).one()
     assert query.status == "failed"
-    assert query.end_time >= query.start_running_time
+    assert query.start_time <= query.start_running_time <= query.end_time
     assert query.error_message
     assert caught.value.query_id == query.id
 
@@ -311,7 +312,7 @@ def test_failed_flush_finishes_history(
 
     assert injected
     assert result.status == QueryStatus.FAILED
-    assert f"metadata {write_site} flush failed" in result.error_message
+    assert result.error_message == f"metadata {write_site} flush failed"
     query = session.query(Query).one()
     assert result.query_id == query.id
     assert query.status == "failed"
@@ -371,7 +372,7 @@ async def test_driver_cancellation_finishes_history(
         if expired
         else database.db_engine_spec.extract_error_message(error)
     )
-    assert query.end_time >= query.start_running_time
+    assert query.start_time <= query.start_running_time <= query.end_time
     assert call.cancel_query is None
 
 
@@ -412,3 +413,178 @@ def test_empty_cached_history_retains_sql(
     query = session.get(Query, result.query_id)
     assert result.status == QueryStatus.SUCCESS
     assert " ".join(query.executed_sql.split()) == "SELECT 1 AS one"
+
+
+@pytest.mark.asyncio
+async def test_expired_sqlalchemy_error_cleans_up_before_deadline(
+    mocker: MockerFixture, session: Session, database: Database
+) -> None:
+    """SQLAlchemy closes a failed cursor before the raw owner raises a deadline."""
+    from flask import current_app
+    from sqlalchemy import event, text
+    from sqlalchemy.exc import OperationalError
+
+    from superset.mcp_service.worker import (
+        _active_call,
+        warehouse_cursor,
+        WorkerCall,
+    )
+    from superset.sql.execution.cancellation import cancellable_engine
+
+    call = WorkerCall(current_app._get_current_object(), mocker.Mock(), 30)
+    warehouse = create_engine("sqlite://")
+    handled: list[MagicMock] = []
+    connections: list[Connection] = []
+    rollbacks: list[MagicMock] = []
+    closed_cursors: list[MagicMock] = []
+
+    def expire(
+        conn: Connection,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: ExecutionContext,
+        executemany: bool,
+    ) -> None:
+        """Expire after registration, while the driver is executing."""
+        call.expired.set()
+        handled.append(mocker.spy(context, "handle_dbapi_exception"))
+
+    event.listen(warehouse, "before_cursor_execute", expire)
+
+    def execute(*args: object) -> None:
+        """Model an engine spec issuing a SQLAlchemy statement during execution."""
+        with cancellable_engine(database, warehouse, None, None):
+            with warehouse.connect() as connection:
+                connections.append(connection)
+                rollbacks.append(mocker.spy(connection, "_rollback_impl"))
+                closed_cursors.append(mocker.spy(connection, "_safe_close_cursor"))
+                connection.execute(text("SELECT * FROM missing_table"))
+
+    mocker.patch.object(database.db_engine_spec, "execute", side_effect=execute)
+    mocker.patch("superset.mcp_service.worker.QueryCancellation.capture")
+    mocker.patch("superset.mcp_service.worker.QueryCancellation.register")
+    call_token = _active_call.set(call)
+    cursor_token = cursor_scope.set(warehouse_cursor)
+    try:
+        with pytest.raises(WorkerDeadlineExceeded) as caught:
+            database.execute("SELECT 1 AS one")
+    finally:
+        cursor_scope.reset(cursor_token)
+        _active_call.reset(call_token)
+        warehouse.dispose()
+
+    handled[0].assert_called_once()
+    closed_cursors[0].assert_called_once()
+    rollbacks[0].assert_called_once()
+    assert connections[0].closed
+    assert not connections[0].in_transaction()
+    assert isinstance(caught.value.__cause__, OperationalError)
+    query = session.query(Query).one()
+    assert query.status == "timed_out"
+    assert query.error_message == "Query exceeded the timeout limit"
+    assert query.start_time <= query.start_running_time <= query.end_time
+    assert call.cancel_query is None
+
+
+def test_failed_running_insert_restores_session(
+    session: Session, database: Database
+) -> None:
+    """A failed initial history flush leaves no row and a usable metadata session."""
+    from sqlalchemy import event
+    from sqlalchemy.orm.unitofwork import UOWTransaction
+
+    def fail_insert(flushing: Session, context: UOWTransaction) -> None:
+        """Fail during the first commit, before the executor receives a Query."""
+        if any(isinstance(row, Query) for row in flushing.new):
+            raise RuntimeError("metadata running insert failed")
+
+    event.listen(session, "after_flush", fail_insert)
+    try:
+        result = database.execute("SELECT 1 AS one")
+    finally:
+        event.remove(session, "after_flush", fail_insert)
+
+    assert result.status == QueryStatus.FAILED
+    assert result.error_message == "metadata running insert failed"
+    assert result.query_id is None
+    assert session.is_active
+    assert not session.in_transaction()
+    assert session.query(Query).count() == 0
+    assert database.execute("SELECT 1 AS one").status == QueryStatus.SUCCESS
+
+
+def test_cache_write_failure_preserves_success(
+    mocker: MockerFixture, session: Session, database: Database
+) -> None:
+    """An optional cache write cannot turn committed warehouse success into failure."""
+    mocker.patch.object(
+        SQLExecutor, "_store_in_cache", side_effect=RuntimeError("cache unavailable")
+    )
+    warning = mocker.patch("superset.sql.execution.executor.logger.warning")
+    result = database.execute("SELECT 1 AS one")
+
+    assert result.status == QueryStatus.SUCCESS
+    assert result.error_message is None
+    assert result.statements[0].data.to_dict("records") == [{"one": 1}]
+    query = session.get(Query, result.query_id)
+    assert query.status == "success"
+    assert query.error_message is None
+    assert query.rows == 1
+    assert query.start_time <= query.start_running_time <= query.end_time
+    warning.assert_called_once_with(
+        "Unable to store SQL result in cache", exc_info=True
+    )
+
+
+@pytest.mark.parametrize("outcome", ["warehouse", "security", "timeout"])
+def test_failure_history_timestamps(
+    mocker: MockerFixture, session: Session, database: Database, outcome: str
+) -> None:
+    """Every recorded synchronous error has ordered start and end timestamps."""
+    from superset.exceptions import SupersetSecurityException
+
+    if outcome == "warehouse":
+        error: Exception = RuntimeError("warehouse failed")
+    elif outcome == "security":
+        error = SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                message="execution failed",
+                level=ErrorLevel.ERROR,
+            )
+        )
+    else:
+        error = SupersetTimeoutException(
+            error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+            message="execution failed",
+            level=ErrorLevel.ERROR,
+        )
+    mocker.patch.object(SQLExecutor, "_execute_statements", side_effect=error)
+    result = database.execute("SELECT 1 AS one")
+
+    assert result.status == (
+        QueryStatus.TIMED_OUT if outcome == "timeout" else QueryStatus.FAILED
+    )
+    query = session.get(Query, result.query_id)
+    assert query.status == result.status.value
+    assert query.start_time <= query.start_running_time <= query.end_time
+
+
+def test_async_submission_failure_history_timestamps(
+    mocker: MockerFixture, session: Session, database: Database
+) -> None:
+    """A broker rejection finishes the pending row even before a worker starts."""
+    mocker.patch(
+        "superset.sql.execution.celery_task.execute_sql_task.delay",
+        side_effect=RuntimeError("broker unavailable"),
+    )
+    with pytest.raises(RuntimeError, match="broker unavailable"):
+        database.execute_async("SELECT 1 AS one")
+
+    query = session.query(Query).one()
+    assert query.status == "failed"
+    assert query.error_message == "broker unavailable"
+    assert query.start_time is not None
+    assert query.end_time >= query.start_time
+    assert query.start_running_time is None

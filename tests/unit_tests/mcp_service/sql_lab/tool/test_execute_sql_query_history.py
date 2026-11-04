@@ -106,7 +106,7 @@ async def test_execute_sql_records_query_history(
     assert "1 AS one" in query.executed_sql
     assert query.rows == 1
     assert query.start_time is not None
-    assert query.end_time is not None
+    assert query.end_time >= query.start_time
 
     history = await call("list_queries", {})
     assert response["query_id"] in [item["id"] for item in history["queries"]]
@@ -128,7 +128,7 @@ async def test_execute_sql_records_failed_query(
     assert query.user_id == user.id
     assert query.status == "failed"
     assert "missing" in query.error_message
-    assert query.end_time is not None
+    assert query.end_time >= query.start_time
 
 
 @pytest.mark.asyncio
@@ -159,6 +159,7 @@ async def test_execute_sql_records_cached_query(
     assert query.status == "success"
     assert query.rows == 1
     assert query.extra.get("is_cached") is True
+    assert query.end_time >= query.start_time
 
 
 @pytest.mark.asyncio
@@ -179,7 +180,7 @@ async def test_execute_sql_deadline_finishes_query(
     assert check.call_count == 2
     query = session.query(Query).one()
     assert query.status == "timed_out"
-    assert query.end_time >= query.start_running_time
+    assert query.start_time <= query.start_running_time <= query.end_time
     assert query.error_message == "Query exceeded the timeout limit"
 
 
@@ -207,7 +208,7 @@ async def test_execute_sql_oauth_returns_query_id(
     assert response["success"] is False
     query = session.query(Query).one()
     assert query.status == "failed"
-    assert query.end_time >= query.start_running_time
+    assert query.start_time <= query.start_running_time <= query.end_time
     assert response["query_id"] == query.id
 
 
