@@ -109,6 +109,7 @@ def test_the_mapping_summary_survives_dashboard_payload_pruning(app: Flask) -> N
         data = _table().data_for_slices([])
 
     assert data["partition_filter_mapping"] == {
+        "safety_refusal": None,
         "partition_column": "dt_epoch",
         "mapped_column": "event_time",
         "active": True,
@@ -336,6 +337,7 @@ def test_the_mapping_summary_still_names_the_columns_when_inactive(
         summary = table.data["partition_filter_mapping"]
 
     assert summary == {
+        "safety_refusal": None,
         "partition_column": "dt_epoch",
         "mapped_column": "event_time",
         "active": False,
