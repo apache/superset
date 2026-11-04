@@ -584,6 +584,31 @@ describe("embedDashboard", () => {
     expect(ports[0].close).toHaveBeenCalled();
   });
 
+  test("a refresh that resolves after unmount sends nothing", async () => {
+    vi.useFakeTimers();
+    const refresh = deferred<string>();
+    const fakeToken = makeFakeJWT({ exp: Date.now() / 1000 + 300 });
+    const mockFetchGuestToken = vi
+      .fn()
+      .mockResolvedValueOnce(fakeToken)
+      .mockReturnValueOnce(refresh.promise);
+    const embedding = embedDashboard({
+      id: "test-id",
+      supersetDomain: "https://superset.example.com",
+      mountPoint,
+      fetchGuestToken: mockFetchGuestToken,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    const dashboard = await embedding;
+    await vi.advanceTimersByTimeAsync(300_000);
+    expect(mockFetchGuestToken).toHaveBeenCalledTimes(2);
+    dashboard.unmount();
+    refresh.resolve(fakeToken);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(mockSwitchboard.emit).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
   it("hands the iframe its end of the message channel", async () => {
     const fakeToken = makeFakeJWT({ exp: Date.now() / 1000 + 300 });
     const dashboard = await embedDashboard({
