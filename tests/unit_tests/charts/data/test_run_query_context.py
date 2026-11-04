@@ -21,6 +21,7 @@ from typing import Any
 from unittest import mock
 
 import pytest
+from flask import g
 from marshmallow import ValidationError
 from superset_core.exports.types import ChartQueryResult, GenericDataType
 
@@ -52,6 +53,9 @@ def mocks() -> Iterator[dict[str, mock.MagicMock]]:
         patched["security_manager"] = security_manager
         patched["DashboardDAO"] = dashboard_dao
         patched["ChartDataCommand"].return_value.run.return_value = {"queries": []}
+        loaded = patched["ChartDataQueryContextSchema"].return_value.load.return_value
+        loaded.result_type = ChartDataResultType.FULL
+        loaded.queries = []
         yield patched
 
 
@@ -188,17 +192,20 @@ def test_forces_json_on_a_copy_of_the_payload(
 def test_rejects_result_types_without_rows(
     mocks: dict[str, mock.MagicMock], result_type: ChartDataResultType
 ) -> None:
+    loaded = mocks["ChartDataQueryContextSchema"].return_value.load.return_value
+    loaded.result_type = result_type
     with pytest.raises(ValueError, match=result_type.value):
-        run_query_context({"queries": [{}], "result_type": result_type.value})
-    mocks["ChartDataQueryContextSchema"].return_value.load.assert_not_called()
+        run_query_context({"queries": [{}]})
     mocks["ChartDataCommand"].assert_not_called()
 
 
 def test_rejects_a_query_level_result_type_without_rows(
     mocks: dict[str, mock.MagicMock],
 ) -> None:
+    loaded = mocks["ChartDataQueryContextSchema"].return_value.load.return_value
+    loaded.queries = [mock.Mock(result_type=ChartDataResultType.QUERY)]
     with pytest.raises(ValueError, match="query"):
-        run_query_context({"queries": [{"result_type": "query"}]})
+        run_query_context({"queries": [{}]})
 
 
 @pytest.mark.parametrize(
@@ -214,8 +221,46 @@ def test_rejects_a_query_level_result_type_without_rows(
 def test_accepts_result_types_with_rows(
     mocks: dict[str, mock.MagicMock], result_type: ChartDataResultType
 ) -> None:
-    payload = {"queries": [{"result_type": result_type.value}]}
-    assert run_query_context({**payload, "result_type": result_type.value}) == []
+    loaded = mocks["ChartDataQueryContextSchema"].return_value.load.return_value
+    loaded.result_type = result_type
+    loaded.queries = [mock.Mock(result_type=result_type)]
+    assert run_query_context({"queries": [{}]}) == []
+
+
+@pytest.mark.parametrize("queries", [1, True])
+def test_malformed_queries_raise_validation_error(
+    app_context: None, queries: Any
+) -> None:
+    with pytest.raises(ValidationError):
+        run_query_context(
+            {"datasource": {"id": 1, "type": "table"}, "queries": queries}
+        )
+
+
+def test_payload_is_the_jinja_form_data_while_running(
+    app_context: None, mocks: dict[str, mock.MagicMock]
+) -> None:
+    seen: list[Any] = []
+
+    def run() -> dict[str, Any]:
+        seen.append(g.form_data)
+        return {"queries": []}
+
+    mocks["ChartDataCommand"].return_value.run.side_effect = run
+    g.form_data = {"previous": True}
+
+    run_query_context({"queries": [{"url_params": {"country": "CA"}}]})
+
+    assert seen[0]["queries"] == [{"url_params": {"country": "CA"}}]
+    assert g.form_data == {"previous": True}
+
+
+def test_form_data_cleared_after_running_without_prior_context(
+    app_context: None, mocks: dict[str, mock.MagicMock]
+) -> None:
+    g.pop("form_data", None)
+    run_query_context({"queries": [{}]})
+    assert "form_data" not in g
 
 
 @pytest.mark.parametrize(

@@ -31,6 +31,7 @@ from unittest import mock
 
 import pytest
 
+from superset.common.chart_data import ChartDataResultType
 from superset.dashboards.excel_export import email
 from superset.dashboards.excel_export.workbook import build_workbook
 from superset.utils import json
@@ -68,6 +69,9 @@ def mocks() -> Iterator[dict[str, Any]]:
     ):
         patched = {**workbook_patched, **chart_results_patched, **run_patched}
         patched["get_dashboard_filter_context"].return_value.extra_form_data = {}
+        loaded = patched["ChartDataQueryContextSchema"].return_value.load.return_value
+        loaded.result_type = ChartDataResultType.FULL
+        loaded.queries = []
         patched["ChartDataCommand"].return_value.run.return_value = {
             "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
         }

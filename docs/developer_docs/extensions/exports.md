@@ -42,7 +42,9 @@ Import them from `superset_core.exports.export`.
 
 `active_data_mask` is the dashboard's active filter state, keyed by filter ID.
 
-`run_query_context` always returns JSON rows and ignores the payload's `result_format`. Its `result_type` must be `full` (the default), `results`, `post_processed`, `samples` or `drill_detail`; types that return no rows, such as `query` or `columns`, raise a `ValueError`.
+`run_query_context` always returns JSON rows and ignores the payload's `result_format`. Its `result_type` must be `full` (the default), `results`, `post_processed`, `samples` or `drill_detail`; types that return no rows, such as `query` or `columns`, raise a `ValueError`. A malformed payload raises a `ValidationError`.
+
+While it runs, the payload is the form data that Jinja macros such as `url_param` and `filter_values` read. Inside an HTTP request those macros read the request instead, so call `run_query_context` from a background task.
 
 With `post_processed`, the rows are the table the chart displays, such as a pivot table. Hierarchical column names are joined with spaces. The row labels come first, in a column with a blank (`""`) name; a Table chart has no such column, matching its CSV export. `colnames` and `coltypes` describe these rows.
 
