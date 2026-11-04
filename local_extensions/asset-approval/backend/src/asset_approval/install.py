@@ -215,12 +215,25 @@ def gate_run(
     *,
     capture: bool = False,
     validate_first: bool = True,
+    permit: bool = True,
+    after: Callable[[Any, Any], None] | None = None,
 ) -> None:
     """Run ``gate`` between the command's validation and its body.
 
     ``validate_first`` is off for the importers, whose ``run`` validates a
     bundle rather than an asset and whose refusal depends only on whether
     the import would overwrite.
+
+    ``permit``: whether the body, once the gate has looked at the write and
+    returned without capturing it, runs inside :func:`gate.permitted`. That is
+    what "a declared gate is on the stack" means to the deny-by-default
+    guard. It is off for a path whose gate returning means *not applicable*
+    rather than *approved* (an importer that finds no collision, a creation),
+    so the guard keeps watching what those go on to write.
+
+    ``after`` is called with the command and what ``run`` returned, outside
+    the permit, and may raise a review signal: a creation has already
+    happened by then, which is the point.
     """
     command_cls = _resolve(module_path, class_name)
     if command_cls is None:
@@ -235,11 +248,21 @@ def gate_run(
     original_run = command_cls.run
 
     def patched_run(self: Any, *args: Any, **kwargs: Any) -> Any:
-        if _gate_applies():
-            if validate_first:
-                _validate_once(self)
-            gate(self)
-        return original_run(self, *args, **kwargs)
+        if not _gate_applies():
+            return original_run(self, *args, **kwargs)
+        if validate_first:
+            _validate_once(self)
+        gate(self)
+        if permit:
+            with import_module("asset_approval.gate").permitted(
+                f"{class_name}.run"
+            ):
+                result = original_run(self, *args, **kwargs)
+        else:
+            result = original_run(self, *args, **kwargs)
+        if after is not None:
+            after(self, result)
+        return result
 
     functools.update_wrapper(patched_run, original_run)
     patched_run.__asset_approval_gate__ = True  # type: ignore[attr-defined]
@@ -278,6 +301,7 @@ def gate_method(
     class_name: str,
     attr: str,
     gate: Callable[..., None],
+    permit: bool = True,
 ) -> None:
     """Run ``gate`` before a static method on a host class (the DAOs).
 
@@ -302,15 +326,117 @@ def gate_method(
         return
 
     def patched(*args: Any, **kwargs: Any) -> Any:
-        if _gate_applies():
-            gate(*args, **kwargs)
-        return original(*args, **kwargs)
+        if not _gate_applies():
+            return original(*args, **kwargs)
+        gate(*args, **kwargs)
+        if not permit:
+            return original(*args, **kwargs)
+        with import_module("asset_approval.gate").permitted(
+            f"{class_name}.{attr}"
+        ):
+            return original(*args, **kwargs)
 
     functools.update_wrapper(patched, original)
     patched.__asset_approval_gate__ = True  # type: ignore[attr-defined]
     setattr(host_cls, attr, _as_declared(host_cls, attr, patched))
     _patched.append(f"{class_name}.{attr}")
     _method_gates.append((class_name, attr, original, patched))
+
+
+def _permitting(original: Callable[..., Any], reason: str) -> Callable[..., Any]:
+    """``original``, run inside :func:`gate.permitted` and nothing else."""
+
+    @functools.wraps(original)
+    def permitted_call(*args: Any, **kwargs: Any) -> Any:
+        with import_module("asset_approval.gate").permitted(reason):
+            return original(*args, **kwargs)
+
+    permitted_call.__asset_approval_permit__ = True  # type: ignore[attr-defined]
+    return permitted_call
+
+
+def permit_run(module_path: str, class_name: str, attr: str = "run") -> None:
+    """Let a declared internal writer through the deny-by-default guard.
+
+    For a path that is not someone editing an asset and so has no gate to
+    declare -- today the dataset resync, which re-reads what the source
+    already says, and the operator's force-purge. Deliberately a different
+    marker from a gate's: ``verify_installation`` still reports an exempt path
+    that grew a *gate* as drift, and reports one declared to be permitted that
+    is not as a defect, because it would then be refused.
+    """
+    host_cls = _resolve(module_path, class_name)
+    if host_cls is None:
+        return
+    original = getattr(host_cls, attr, None)
+    if original is None or getattr(original, "__asset_approval_permit__", False):
+        return
+    setattr(
+        host_cls,
+        attr,
+        _as_declared(host_cls, attr, _permitting(original, f"{class_name}.{attr}")),
+    )
+    _patched.append(f"{class_name}.{attr} (permitted)")
+
+
+def permit_function(module_path: str, func_name: str) -> None:
+    """:func:`permit_run` for a module-level function."""
+    try:
+        module = import_module(module_path)
+    except ImportError:
+        logger.warning("asset-approval: %s not importable; UNPERMITTED", module_path)
+        return
+    original = getattr(module, func_name, None)
+    if original is None or getattr(original, "__asset_approval_permit__", False):
+        return
+    setattr(module, func_name, _permitting(original, func_name))
+    _patched.append(f"{func_name} (permitted)")
+
+
+def install_flush_guard() -> None:
+    """Bind the deny-by-default guard to the SQLAlchemy ``Session`` class.
+
+    The class, not ``db.session``: every session the process makes is subject
+    to it, so a tool holding a bare session is no different from a command.
+    Idempotent, as every binding here has to be.
+    """
+    from sqlalchemy import event
+    from sqlalchemy.orm import Session
+
+    gate = import_module("asset_approval.gate")
+    for name, listener in gate.GUARD_LISTENERS:
+        if not event.contains(Session, name, listener):
+            event.listen(Session, name, listener)
+    # Said every boot, so an operator reading the log can tell a guard that is
+    # on from one that was switched off (or one whose flag is misspelt).
+    if gate.unlisted_writes_allowed():
+        logger.warning(
+            "asset-approval config: FEATURE_FLAGS[%r] = True, so the "
+            "deny-by-default guard is OFF: only writes the gate names are held",
+            gate.ALLOW_UNLISTED_FLAG,
+        )
+    else:
+        logger.info(
+            "asset-approval config: FEATURE_FLAGS[%r] is not set, so a write to "
+            "a governed asset that no gate declared is refused",
+            gate.ALLOW_UNLISTED_FLAG,
+        )
+
+
+def flush_guard_defects() -> list["BindingDefect"]:
+    """Listeners the guard needs that are not bound right now."""
+    from sqlalchemy import event
+    from sqlalchemy.orm import Session
+
+    return [
+        BindingDefect(
+            "deny-by-default guard",
+            f"the {name} listener is not bound to the Session; an unlisted "
+            "write to a governed asset is UNGUARDED",
+        )
+        for name, listener in import_module("asset_approval.gate").GUARD_LISTENERS
+        if not event.contains(Session, name, listener)
+    ]
 
 
 def rebind_registered_routes(app: Any) -> list[str]:
@@ -453,6 +579,8 @@ def verify_installation(
             defects.append(defect)
 
     defects.extend(_route_defects(app))
+    if declared is None:
+        defects.extend(flush_guard_defects())
 
     return BindingReport(
         declared=len(paths), verified=verified, defects=tuple(defects)
@@ -461,7 +589,7 @@ def verify_installation(
 
 def _verify_one(path: Any) -> BindingDefect | None:
     """Whether one declared path is installed as its disposition says."""
-    target = f"{path.class_name}.{path.attr}"
+    target = path.target
     try:
         module = import_module(path.module_path)
     except (ImportError, AttributeError):
@@ -475,12 +603,24 @@ def _verify_one(path: Any) -> BindingDefect | None:
             target, f"{path.class_name} is not in {path.module_path}"
         )
 
-    installed = getattr(host, path.attr, None)
+    # A module-level function is its own installed object.
+    installed = host if getattr(path, "via", "run") == "function" else (
+        getattr(host, path.attr, None)
+    )
     if installed is None:
         return BindingDefect(target, f"{path.class_name} has no {path.attr}")
 
     gated = _already_gated(installed)
     if path.gate is None:
+        if getattr(path, "permits_writes", False):
+            if not getattr(installed, "__asset_approval_permit__", False):
+                return BindingDefect(
+                    target,
+                    "declared as a permitted internal writer but nothing "
+                    "permits it; the deny-by-default guard will refuse its "
+                    "writes",
+                )
+            return None
         # Declared exempt, so nothing should be wrapped. An exemption that
         # has grown a gate refuses a write the SOW says is allowed, which is
         # how the dataset resync became unreachable (129073).

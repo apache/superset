@@ -48,7 +48,7 @@ from asset_approval.exceptions import (
     StaleBaselineError,
 )
 from asset_approval.changes import moved_since
-from asset_approval.gate import mark_published
+from asset_approval.gate import mark_published, snapshot_draft_for_review
 from asset_approval.models import ChangeRequest
 from asset_approval.replay import apply_change, is_restore, load_asset
 from asset_approval.types import AssetType, ChangeStatus
@@ -164,6 +164,9 @@ def submit(
     if not eligible_approvers(asset, exclude_user_id=user_id):
         raise NoEligibleApproverError(change_request.asset_type)
 
+    # What the reviewer is about to be shown of a draft that is being
+    # published for the first time, so approving can tell if it moved (R7-03).
+    snapshot_draft_for_review(change_request, asset)
     change_request.set_status(ChangeStatus.PENDING)
     change_request.submitted_at = _now()
     if note is not None:

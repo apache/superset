@@ -30,8 +30,10 @@ from __future__ import annotations
 import inspect
 import logging
 import uuid as uuid_module
+from dataclasses import dataclass
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime, timezone
 from typing import Any
 
@@ -51,7 +53,9 @@ from asset_approval.changes import (
     _comparable,
     baseline_of,
     changed_fields,
+    EXEMPT_EXTRA_KEYS,
     EXEMPT_FIELDS,
+    IGNORED_FIELDS,
     is_empty_change,
     reverted_fields,
 )
@@ -63,6 +67,7 @@ from asset_approval.types import (
     OPEN_STATUSES,
     Operation,
 )
+from superset.utils import json
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
@@ -212,7 +217,10 @@ def replaying() -> Iterator[None]:
     previous = getattr(g, REPLAY_FLAG, False)
     setattr(g, REPLAY_FLAG, True)
     try:
-        yield
+        # A replay is also the first of the narrow ways through the
+        # deny-by-default guard (see ``permitted``).
+        with permitted("replaying an approved change"):
+            yield
     finally:
         setattr(g, REPLAY_FLAG, previous)
 
@@ -624,7 +632,12 @@ def gate_write(
             is ChangeStatus.PENDING
         )
         change_request_id = _update_own_request(
-            existing.id, proposed, note, folded_args, operation, base=base
+            existing.id,
+            proposed,
+            note,
+            folded_args,
+            operation,
+            base=base,
         )
     else:
         # ``payload`` and the args as stamped, not the folded pair: there was
@@ -855,7 +868,12 @@ def _discard_request(change_request_id: int, decided_by: int) -> None:
     with db.engine.begin() as connection:
         connection.execute(
             table.update()
-            .where(table.c.id == change_request_id)
+            .where(
+                table.c.id == change_request_id,
+                # Only a draft, as the caller checked a moment ago: a request
+                # submitted or decided since is not this save's to close.
+                table.c.status == ChangeStatus.DRAFT.value,
+            )
             .values(
                 status=ChangeStatus.DISCARDED.value,
                 active_slot=None,
@@ -1037,7 +1055,12 @@ def _lost_the_slot(
         )
 
     return _update_own_request(
-        holder.id, payload, note, command_args, operation, base=base
+        holder.id,
+        payload,
+        note,
+        command_args,
+        operation,
+        base=base,
     )
 
 
@@ -1075,9 +1098,34 @@ def _update_own_request(
         values["note"] = None
     elif note is not None:
         values["note"] = note
+    # Conditional on the request still being open, not merely on its id.
+    #
+    # The caller read the request a moment ago and decided to fold into it,
+    # and a reviewer may decide it in between: approving takes a row lock on
+    # the request, this write is on another connection and so waits for it,
+    # and an unconditional UPDATE then ran the moment the approval committed.
+    # It put the *approved* request back to ``draft``, reopened its slot and
+    # replaced its payload with the author's newer one, so the record of what
+    # was approved was overwritten by what had not been (R7-05). Nothing in
+    # the capture path takes the lifecycle's lock; a status predicate on the
+    # write is what makes the race lose cleanly instead.
     with db.engine.begin() as connection:
-        connection.execute(
-            table.update().where(table.c.id == change_request_id).values(**values)
+        result = connection.execute(
+            table.update()
+            .where(
+                table.c.id == change_request_id,
+                table.c.status.in_([s.value for s in OPEN_STATUSES]),
+            )
+            .values(**values)
+        )
+    if result.rowcount == 0:
+        raise AssetLockedError(
+            "change request",
+            change_request_id,
+            message=(
+                "This change was reviewed while you were saving, so your "
+                "latest edit was not saved. Reload it and save again."
+            ),
         )
     return change_request_id
 
@@ -1248,3 +1296,824 @@ def combine_config_diffs(
 def combine_key_values(existing: dict[str, Any], new: dict[str, Any]) -> dict[str, Any]:
     """Fold two partial key/value updates into one; later keys win."""
     return {**existing, **new}
+
+
+# ===========================================================================
+# Deny by default
+# ===========================================================================
+#
+# Everything above is an allowlist: a write path is bound by name, and a write
+# that nobody named reaches the asset untouched. QA samples that unbounded set
+# round after round (an MCP tool that mutates a live chart, a theme delete that
+# nulls ``theme_id`` on published dashboards, an import that appends charts to a
+# live dashboard) and every sample is a new row. This is the other half: the
+# gate no longer has to *name* a write to stop it.
+#
+# The hook is the SQLAlchemy session, because that is the one place every ORM
+# write to a governed row passes through whoever wrote it -- a command, an MCP
+# tool holding a bare ``db.session``, a CLI, a task. Anything a bound gate has
+# looked at and let through runs inside :func:`permitted`; anything else that
+# changes what a viewer would see on a governed asset is refused at flush.
+#
+# What it is for, and what it is not for:
+#
+# * It is scoped to the governed asset types, their child rows and the two
+#   dependency types that show text on a chart. It does not touch logging,
+#   preferences, query history, caches, tags or version history.
+# * Creation is free. A new chart or dataset reaches nobody by being created,
+#   and a new dashboard is a draft (SOW 5.1). What is governed is the first
+#   *exposure*: a dashboard being published, or a chart being placed on a
+#   dashboard viewers can already reach.
+# * It is a second line, not a replacement for the declared gates: those
+#   capture a write and make it reviewable, this one only refuses one that
+#   was never going to be reviewed.
+
+#: Turns the guard off without a code change. Read like every other flag in
+#: ``FEATURE_FLAGS`` and absent means off, so the name is the escape hatch
+#: ("allow"), not the protection.
+ALLOW_UNLISTED_FLAG = "CHANGE_MANAGEMENT_ALLOW_UNLISTED_WRITES"
+
+#: Reasons a block of code is allowed to write governed rows unreviewed. A
+#: context variable, not ``flask.g``: the guard also runs outside a request.
+_PERMITS: ContextVar[tuple[str, ...]] = ContextVar(
+    "asset_approval_permits", default=()
+)
+
+
+@contextmanager
+def permitted(reason: str) -> Iterator[None]:
+    """Let the writes inside this block through the deny-by-default guard.
+
+    Entered in exactly three places, each named in the log if it is ever
+    asked about: a replay of an approved change (``replaying``), the body of
+    a *gated* command after its gate has looked at the write and let it by
+    (``install.gate_run``), and the few declared internal writers that are not
+    someone editing an asset (``bindings.WRITE_PATHS``, ``permit=True``).
+    It is not a switch a caller can leave on: it is scoped to the block and
+    restored on the way out, and nothing here reads it from a request.
+    """
+    token = _PERMITS.set((*_PERMITS.get(), reason))
+    try:
+        yield
+    finally:
+        _PERMITS.reset(token)
+
+
+def current_permits() -> tuple[str, ...]:
+    return _PERMITS.get()
+
+
+def unlisted_writes_allowed() -> bool:
+    """Whether an operator has switched the guard off."""
+    try:
+        from superset.extensions import feature_flag_manager
+
+        return bool(feature_flag_manager.is_feature_enabled(ALLOW_UNLISTED_FLAG))
+    except Exception:  # noqa: BLE001 -- flags not configured yet: not switched off
+        return False
+
+
+def _running_a_migration() -> bool:
+    """Whether Alembic is running a schema migration in this context.
+
+    A data migration rewrites charts and dashboards through the ORM (a viz
+    type renamed, a parameter reshaped) in a session of its own, during
+    ``superset db upgrade`` and with the same feature flags as the running
+    app. It is not someone editing an asset, and refusing it would fail the
+    upgrade half way. Read from Alembic's own operations proxy, which exists
+    only for the duration of a migration.
+    """
+    try:
+        from alembic import op
+
+        return getattr(op, "_proxy", None) is not None
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def guard_is_live() -> bool:
+    """Whether a write made right now is subject to the guard."""
+    if _PERMITS.get() or _running_a_migration():
+        return False
+    try:
+        if is_replaying():
+            return False
+    except RuntimeError:  # outside an application context
+        pass
+    try:
+        if not is_enabled():
+            return False
+    except Exception:  # noqa: BLE001 -- asked before the flags exist
+        return False
+    return not unlisted_writes_allowed()
+
+
+#: Columns whose change is not a change to what a viewer sees: who saved and
+#: when, and the permission strings Superset derives from the dataset. The
+#: host's own version history leaves the same ones out.
+BOOKKEEPING_FIELDS = IGNORED_FIELDS | frozenset(
+    {
+        "created_on",
+        "created_by",
+        "created_by_fk",
+        "perm",
+        "schema_perm",
+        "catalog_perm",
+        # Revoking guest tokens narrows who can reach an embedded dashboard.
+        "guest_token_revoked_before",
+        "id",
+    }
+)
+
+#: Not governed on any path: the SOW exempts them (``EXEMPT_FIELDS``), and a
+#: dashboard's legacy ``roles`` list is access control of the same kind as
+#: ``viewers`` and is written by an MCP tool the repo already declares exempt.
+UNGOVERNED_FIELDS = BOOKKEEPING_FIELDS | EXEMPT_FIELDS | frozenset({"roles"})
+
+#: The join between a chart and a dashboard, seen from either end.
+MEMBERSHIP_FIELDS = frozenset({"slices", "dashboards"})
+
+#: Model class name -> the asset it is, for the models that *are* assets.
+_ASSET_CLASSES = {
+    "Dashboard": AssetType.DASHBOARD,
+    "Slice": AssetType.CHART,
+    "SqlaTable": AssetType.DATASET,
+}
+
+#: Child rows: ``(foreign key, relationship, the asset they belong to)``.
+_CHILD_CLASSES = {
+    "TableColumn": ("table_id", "table", AssetType.DATASET),
+    "SqlMetric": ("table_id", "table", AssetType.DATASET),
+    "EmbeddedDashboard": ("dashboard_id", "dashboard", AssetType.DASHBOARD),
+}
+
+#: Rows a chart *displays* without being part of it, and the column that names
+#: the layer. Not asset types: they have no editors, so no approver could ever
+#: exist for one (SOW 5.4). They are guarded only while a chart shows them.
+_DEPENDENCY_CLASSES = {"Annotation": "layer_id", "AnnotationLayer": "id"}
+
+#: Tables a bulk statement can reach a governed row through.
+_GOVERNED_TABLES = {
+    "dashboards": AssetType.DASHBOARD,
+    "slices": AssetType.CHART,
+    "tables": AssetType.DATASET,
+    "table_columns": AssetType.DATASET,
+    "sql_metrics": AssetType.DATASET,
+    "embedded_dashboards": AssetType.DASHBOARD,
+    "dashboard_slices": AssetType.DASHBOARD,
+}
+
+#: Columns a *bulk* statement may write because the host derives them from
+#: something else. A dataset's ``catalog`` follows its database's default
+#: catalog, and ``UpdateDatabaseCommand`` rewrites it for every dataset on that
+#: database in one UPDATE when an administrator changes the connection. Only
+#: through a bulk statement: setting ``catalog`` on one dataset's row is still
+#: an edit to that dataset.
+_BULK_DERIVED = {"tables": frozenset({"catalog"})}
+
+_BORN = "asset_approval_born"
+_DEMOTED = "asset_approval_demoted"
+
+#: The note on the publish request filed for a dashboard that was submitted
+#: already published.
+FIRST_PUBLISH_NOTE = (
+    "Created as a draft: it was submitted already published, and a dashboard "
+    "is first shown to viewers through review."
+)
+
+
+def _classify(obj: Any) -> tuple[str, str, Any] | None:
+    """``(role, class name, what it belongs to)`` for a governed row, else None."""
+    for klass in type(obj).__mro__:
+        if not str(getattr(klass, "__module__", "")).startswith("superset."):
+            continue
+        name = klass.__name__
+        if name in _ASSET_CLASSES:
+            return "asset", name, _ASSET_CLASSES[name]
+        if name in _CHILD_CLASSES:
+            return "child", name, _CHILD_CLASSES[name]
+        if name in _DEPENDENCY_CLASSES:
+            return "dependency", name, _DEPENDENCY_CLASSES[name]
+    return None
+
+
+def _changes(obj: Any) -> dict[str, Any]:
+    """Attribute -> history, for every attribute the flush would write."""
+    from sqlalchemy import inspect as sa_inspect
+
+    return {
+        attribute.key: attribute.history
+        for attribute in sa_inspect(obj).attrs
+        if attribute.history.has_changes()
+    }
+
+
+_UNKNOWN = object()
+
+
+class _NoHistory:
+    added: tuple = ()
+    deleted: tuple = ()
+
+
+_NO_HISTORY = _NoHistory()
+
+
+def _before(history: Any) -> Any:
+    if history.deleted:
+        return history.deleted[0]
+    if history.unchanged:
+        return history.unchanged[0]
+    return _UNKNOWN
+
+
+def _after(history: Any) -> Any:
+    return history.added[0] if history.added else None
+
+
+def _born(session: Any) -> set[tuple[str, int]]:
+    return session.info.setdefault(_BORN, set())
+
+
+def _is_born(session: Any, asset: AssetType, asset_id: Any) -> bool:
+    return asset_id is not None and (asset.value, asset_id) in _born(session)
+
+
+def _pending_review_exists(asset_type: AssetType, asset_id: int) -> bool:
+    """Whether the asset has a request waiting on a reviewer right now.
+
+    On its own connection, like the other reads the guard makes, so a request
+    another worker has just submitted is visible.
+    """
+    table = ChangeRequest.__table__
+    try:
+        with db.engine.connect() as connection:
+            return (
+                connection.execute(
+                    select(table.c.id).where(
+                        table.c.asset_type == asset_type.value,
+                        table.c.asset_id == asset_id,
+                        table.c.status == ChangeStatus.PENDING.value,
+                    )
+                ).first()
+                is not None
+            )
+    except Exception:  # noqa: BLE001
+        # Unknowable is not "nobody is reviewing": the cautious answer.
+        logger.warning(
+            "asset-approval: could not tell whether %s %s is in review",
+            asset_type.value,
+            asset_id,
+            exc_info=True,
+        )
+        return True
+
+
+def has_pending_request(asset_type: AssetType, asset_id: int) -> bool:
+    """Whether the asset's request has been submitted and not yet decided."""
+    return _pending_review_exists(asset_type, asset_id)
+
+
+def _published_before_this_flush(session: Any, dashboard: Any) -> bool:
+    """What the dashboard's Draft flag held before the write being judged."""
+    from sqlalchemy import inspect as sa_inspect
+
+    try:
+        history = sa_inspect(dashboard).attrs.published.history
+    except Exception:  # noqa: BLE001 -- not a mapped row: a stand-in
+        return bool(getattr(dashboard, "published", False))
+    was = _before(history)
+    if was is not _UNKNOWN:
+        return bool(was)
+    dashboard_id = getattr(dashboard, "id", None)
+    session = session or sa_inspect(dashboard).session
+    if dashboard_id is None or session is None:
+        return False
+    # Set without the old value loaded, so ask the database what it holds.
+    from superset.models.dashboard import Dashboard
+
+    table = Dashboard.__table__
+    return bool(
+        session.execute(
+            select(table.c.published).where(table.c.id == dashboard_id)
+        ).scalar()
+    )
+
+
+def dashboard_is_exposed(dashboard: Any, session: Any = None) -> bool:
+    """Whether viewers can reach this dashboard, or ever have.
+
+    The same question ``bindings._gate_dashboard_update`` asks to decide
+    whether a draft may be edited freely: published now, or ever recorded as
+    published. Used for the other half of exposure too -- placing a chart on
+    a dashboard changes what the dashboard's viewers can reach.
+    """
+    if _published_before_this_flush(session, dashboard):
+        return True
+    dashboard_id = getattr(dashboard, "id", None)
+    return dashboard_id is not None and has_ever_been_published(
+        AssetType.DASHBOARD, dashboard_id
+    )
+
+
+def _extra_is_only_certification(history: Any) -> bool:
+    from asset_approval.changes import _parsed
+
+    before, after = _before(history), _after(history)
+    if before is _UNKNOWN:
+        return False
+    old, new = _parsed(before) or {}, _parsed(after) or {}
+    if not isinstance(old, dict) or not isinstance(new, dict):
+        return False
+    moved = {
+        key
+        for key in set(old) | set(new)
+        if _parsed(old.get(key)) != _parsed(new.get(key))
+    }
+    return bool(moved) and moved <= EXEMPT_EXTRA_KEYS
+
+
+def _annotation_layer_in_use(session: Any, layer_id: Any) -> bool:
+    """Whether a chart is configured to display this annotation layer."""
+    if layer_id is None:
+        return False
+    from superset.models.slice import Slice
+
+    with session.no_autoflush:
+        rows = session.execute(
+            select(Slice.params).where(Slice.params.like("%annotation_layers%"))
+        ).scalars()
+        for params in rows:
+            try:
+                layers = (json.loads(params) or {}).get("annotation_layers") or []
+            except (ValueError, TypeError, AttributeError):
+                continue
+            for layer in layers:
+                if (
+                    isinstance(layer, dict)
+                    and layer.get("sourceType", "NATIVE") == "NATIVE"
+                    and str(layer.get("value")) == str(layer_id)
+                ):
+                    return True
+    return False
+
+
+@dataclass
+class _Finding:
+    asset: str
+    asset_id: Any
+    what: str
+    alternative: str
+    objects: list[Any]
+
+    def action(self) -> str:
+        where = f"{self.asset} {self.asset_id}" if self.asset_id else self.asset
+        return f"Writing {self.what} on {where} outside the editor"
+
+
+_EDITOR = (
+    "Make the change in the editor, or through the API's own update call, so "
+    "it can be reviewed."
+)
+
+
+def _named(keys: Any) -> str:
+    names = sorted(keys)
+    shown = ", ".join(names[:4])
+    return shown + (f" and {len(names) - 4} more" if len(names) > 4 else "")
+
+
+def demote_new_published_dashboards(session: Any) -> list[Any]:
+    """Make every dashboard being created in this flush a draft.
+
+    SOW 5.1: a dashboard is created as a draft, and showing it to viewers is
+    an edit that requires approval. A creation that arrives already published
+    (the REST create with ``published: true``, an MCP tool, an import) used to
+    skip that: it landed live with no request, and the product's own refusal
+    text conceded as much ("an import that only creates new assets is
+    unaffected"). The dashboard is created, as it was asked to be, and not
+    published; a request to publish it is filed once the creation commits.
+
+    Returns the dashboards it changed.
+    """
+    changed = []
+    for obj in list(session.new):
+        classified = _classify(obj)
+        if classified is None or classified[1] != "Dashboard":
+            continue
+        if bool(getattr(obj, "published", False)):
+            obj.published = False
+            changed.append(obj)
+    return changed
+
+
+def _review_flush(session: Any) -> list[_Finding]:  # noqa: C901
+    findings: list[_Finding] = []
+    exposed_cache: dict[int, bool] = {}
+
+    def exposed(dashboard: Any) -> bool:
+        key = id(dashboard)
+        if key not in exposed_cache:
+            exposed_cache[key] = dashboard_is_exposed(dashboard, session)
+        return exposed_cache[key]
+
+    deleted_ids = {
+        (c[2].value, getattr(o, "id", None))
+        for o in session.deleted
+        if (c := _classify(o)) and c[0] == "asset"
+    }
+
+    def parent_of(child: Any, spec: tuple[str, str, AssetType]) -> tuple[AssetType, Any]:
+        foreign_key, relationship, asset = spec
+        parent_id = getattr(child, foreign_key, None)
+        if parent_id is None:
+            parent = getattr(child, relationship, None)
+            parent_id = getattr(parent, "id", None)
+        return asset, parent_id
+
+    def add(asset: AssetType, asset_id: Any, what: str, alt: str, obj: Any) -> None:
+        findings.append(_Finding(asset.value, asset_id, what, alt, [obj]))
+
+    for obj in session.new:
+        classified = _classify(obj)
+        if classified is None:
+            continue
+        role, name, target = classified
+        if role == "asset" and name == "Slice":
+            # A new chart is free, but not onto a dashboard viewers can reach.
+            # Read off the chart's own side of the join: the dashboard's
+            # collection may not be loaded, and then it is not flagged either.
+            for dashboard in _changes(obj).get("dashboards", _NO_HISTORY).added:
+                dash_id = getattr(dashboard, "id", None)
+                if (
+                    dash_id is not None
+                    and not _is_born(session, AssetType.DASHBOARD, dash_id)
+                    and exposed(dashboard)
+                ):
+                    add(AssetType.DASHBOARD, dash_id, "the charts on it",
+                        _PLACE_CHART, obj)
+        if role == "child":
+            asset, parent_id = parent_of(obj, target)
+            if parent_id is not None and not _is_born(session, asset, parent_id):
+                what = "an embedded config" if name == "EmbeddedDashboard" else (
+                    "a new column" if name == "TableColumn" else "a new metric"
+                )
+                add(asset, parent_id, what, _EDITOR, obj)
+        elif role == "dependency":
+            layer_id = getattr(obj, target, None)
+            if _annotation_layer_in_use(session, layer_id):
+                add(AssetType.CHART, None, f"an annotation in layer {layer_id}",
+                    _IN_USE_ANNOTATION, obj)
+
+    for obj in session.dirty:
+        classified = _classify(obj)
+        if classified is None:
+            continue
+        role, name, target = classified
+        changes = _changes(obj)
+        if not changes:
+            continue
+        if role == "dependency":
+            layer_id = getattr(obj, target, None)
+            if set(changes) - BOOKKEEPING_FIELDS and _annotation_layer_in_use(
+                session, layer_id
+            ):
+                add(AssetType.CHART, None, f"annotation layer {layer_id}",
+                    _IN_USE_ANNOTATION, obj)
+            continue
+        if role == "child":
+            asset, parent_id = parent_of(obj, target)
+            moved = set(changes) - BOOKKEEPING_FIELDS
+            if moved and parent_id is not None and not _is_born(session, asset, parent_id):
+                add(asset, parent_id, _named(moved), _EDITOR, obj)
+            continue
+
+        asset = target
+        born = _is_born(session, asset, getattr(obj, "id", None))
+        keys = set(changes) - UNGOVERNED_FIELDS
+        if "extra" in keys and _extra_is_only_certification(changes["extra"]):
+            keys.discard("extra")
+        membership = keys & MEMBERSHIP_FIELDS
+        content = keys - MEMBERSHIP_FIELDS
+
+        if name == "Dashboard":
+            if "published" in content:
+                content.discard("published")
+                if not born or bool(_after(changes["published"])):
+                    add(asset, obj.id, "its published state", _EDITOR, obj)
+            # A draft that nobody has seen is built freely (SOW 5.1) -- unless
+            # it has been submitted, when the reviewer is looking at it.
+            if (content or membership) and not born:
+                if exposed(obj):
+                    pass
+                elif obj.id is not None and _pending_review_exists(asset, obj.id):
+                    add(asset, obj.id, _named(content | membership) + " while it is in review",
+                        "Withdraw the request to keep editing, or wait for the decision.", obj)
+                    continue
+                else:
+                    continue
+            if membership and not born and exposed(obj):
+                add(asset, obj.id, "the charts on it", _EDITOR, obj)
+            if content and not born and exposed(obj):
+                add(asset, obj.id, _named(content), _EDITOR, obj)
+            continue
+
+        if name == "Slice" and "dashboards" in membership:
+            for dashboard in (*changes["dashboards"].added, *changes["dashboards"].deleted):
+                dash_id = getattr(dashboard, "id", None)
+                if dash_id is None or _is_born(session, AssetType.DASHBOARD, dash_id):
+                    continue
+                if exposed(dashboard):
+                    add(AssetType.DASHBOARD, dash_id, "the charts on it",
+                        _PLACE_CHART, obj)
+        if content and not born:
+            add(asset, obj.id, _named(content), _EDITOR, obj)
+
+    for obj in session.deleted:
+        classified = _classify(obj)
+        if classified is None:
+            continue
+        role, name, target = classified
+        if role == "asset":
+            if not _is_born(session, target, getattr(obj, "id", None)):
+                add(target, obj.id, "a delete", _EDITOR, obj)
+        elif role == "child":
+            asset, parent_id = parent_of(obj, target)
+            if (
+                parent_id is not None
+                and (asset.value, parent_id) not in deleted_ids
+                and not _is_born(session, asset, parent_id)
+            ):
+                add(asset, parent_id, "a removed column, metric or embedded config",
+                    _EDITOR, obj)
+        else:
+            layer_id = getattr(obj, target, None)
+            if _annotation_layer_in_use(session, layer_id):
+                add(AssetType.CHART, None, f"a delete in annotation layer {layer_id}",
+                    _IN_USE_ANNOTATION, obj)
+    return findings
+
+
+_IN_USE_ANNOTATION = (
+    "A chart displays this layer to its viewers. Create a new layer and point "
+    "the chart at it from the chart editor, so the change can be reviewed."
+)
+_PLACE_CHART = (
+    "Save the chart on its own, then add it to the dashboard from the "
+    "dashboard editor, so the change can be reviewed."
+)
+
+
+def _drop_pending(session: Any, findings: list[_Finding]) -> None:
+    """Take the refused writes out of the session, so they are not retried.
+
+    A caller that catches the refusal and goes on to commit again (an event
+    logger does) would otherwise be refused on every flush after, with the
+    refused change still sitting in the session waiting for one that is not
+    checked.
+    """
+    for finding in findings:
+        for obj in finding.objects:
+            try:
+                if obj in session.new or obj in session.deleted:
+                    session.expunge(obj)
+                else:
+                    session.expire(obj)
+            except Exception:  # noqa: BLE001
+                logger.warning("asset-approval: could not drop a refused write",
+                               exc_info=True)
+
+
+def _refuse(findings: list[_Finding], session: Any = None) -> None:
+    first = findings[0]
+    logger.warning(
+        "asset-approval: refused %d unlisted write(s) to governed assets -- "
+        "first: %s. To switch the deny-by-default guard off, set "
+        "FEATURE_FLAGS[%r] = True.",
+        len(findings),
+        first.action(),
+        ALLOW_UNLISTED_FLAG,
+    )
+    if session is not None:
+        _drop_pending(session, findings)
+    raise UnreviewableWriteRefusedError(first.action(), first.alternative)
+
+
+def refuse_unlisted_writes(session: Any, _context: Any = None, _instances: Any = None) -> None:
+    """``before_flush``: refuse a write to a governed asset nobody declared.
+
+    A no-op for a flush that touches no governed row, which is almost all of
+    them, so it costs one pass over the session's pending objects.
+    """
+    pending = (*session.new, *session.dirty, *session.deleted)
+    if not any(_classify(obj) is not None for obj in pending):
+        return
+    if not guard_is_live():
+        return
+    try:
+        demoted = demote_new_published_dashboards(session)
+        if demoted:
+            author = _author_or_none()
+            session.info.setdefault(_DEMOTED, []).extend(
+                {"object": obj, "id": None, "author": author} for obj in demoted
+            )
+        findings = _review_flush(session)
+    except UnreviewableWriteRefusedError:
+        raise
+    except Exception as ex:  # noqa: BLE001
+        # Fails closed: a write the guard could not read is not one it can
+        # call harmless. Loud, because the way out is the off switch.
+        logger.error("asset-approval: the deny-by-default guard failed", exc_info=True)
+        raise UnreviewableWriteRefusedError(
+            "Writing to a governed asset outside the editor",
+            "The write could not be checked, so it was not made. " + _EDITOR,
+        ) from ex
+    if findings:
+        _refuse(findings, session)
+
+
+def _author_or_none() -> int | None:
+    try:
+        return get_user_id()
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def note_flush(session: Any, _context: Any = None) -> None:
+    """``after_flush``: remember what this transaction created.
+
+    Anything created in a transaction that has not committed has been seen by
+    nobody, so a later write to it in the same transaction is still part of
+    creating it. Also learns the ids of the dashboards that were demoted,
+    which exist only now.
+    """
+    born = None
+    for obj in session.new:
+        classified = _classify(obj)
+        if classified is None or classified[0] != "asset":
+            continue
+        if getattr(obj, "id", None) is not None:
+            born = born if born is not None else _born(session)
+            born.add((classified[2].value, obj.id))
+    for entry in session.info.get(_DEMOTED, ()):
+        if entry["id"] is None:
+            entry["id"] = getattr(entry["object"], "id", None)
+
+
+def file_first_publish_request(asset_id: int, author_id: int | None) -> int | None:
+    """Ask for a dashboard that was created published to be published.
+
+    On the connection ``_insert_request`` uses, because it runs after the
+    creation has committed. Nothing is filed for a dashboard that is not there
+    or is already published (a savepoint rolled back, or review published it),
+    and nothing for a write with nobody to attribute it to: a request needs an
+    author, and the dashboard is a draft either way.
+    """
+    if author_id is None:
+        logger.warning(
+            "asset-approval: dashboard %s was created published by nobody "
+            "identifiable; it is a draft and no publish request was filed",
+            asset_id,
+        )
+        return None
+    from superset.models.dashboard import Dashboard
+
+    table = Dashboard.__table__
+    with db.engine.connect() as connection:
+        row = connection.execute(
+            select(table.c.published).where(table.c.id == asset_id)
+        ).first()
+    if row is None or row[0]:
+        return None
+    from types import SimpleNamespace
+
+    return _insert_request(
+        AssetType.DASHBOARD,
+        asset_id,
+        {"published": True},
+        author_id,
+        FIRST_PUBLISH_NOTE,
+        None,
+        Operation.UPDATE,
+        base=baseline_of(SimpleNamespace(published=False), {"published": True}),
+    )
+
+
+def settle_after_commit(session: Any) -> None:
+    """``after_commit``: file the publish requests for demoted dashboards."""
+    entries = session.info.pop(_DEMOTED, None)
+    for entry in entries or ():
+        if entry["id"] is None:
+            continue
+        try:
+            file_first_publish_request(entry["id"], entry["author"])
+        except Exception:  # noqa: BLE001 -- the commit has happened; say so
+            logger.warning(
+                "asset-approval: dashboard %s was created as a draft but its "
+                "publish request could not be filed",
+                entry["id"],
+                exc_info=True,
+            )
+
+
+def forget_transaction(session: Any, transaction: Any) -> None:
+    """``after_transaction_end``: a finished transaction created nothing more."""
+    if getattr(transaction, "parent", None) is None:
+        session.info.pop(_BORN, None)
+        session.info.pop(_DEMOTED, None)
+
+
+def refuse_unlisted_bulk_writes(state: Any) -> None:
+    """``do_orm_execute``: the same refusal for UPDATE and DELETE statements.
+
+    ``Query.update`` and a Core ``update()`` run through ``Session.execute``
+    and never appear in a flush, which is how the theme delete nulled
+    ``theme_id`` on every bound dashboard without touching one of them.
+    """
+    if not (state.is_update or state.is_delete):
+        return
+    table = getattr(getattr(state, "statement", None), "table", None)
+    asset = _GOVERNED_TABLES.get(getattr(table, "name", None))
+    if asset is None or not guard_is_live():
+        return
+    if state.is_update:
+        statement = state.statement
+        names = {
+            getattr(key, "key", None) or str(key)
+            for key in (getattr(statement, "_values", None) or {})
+        }
+        parameters = state.parameters
+        if isinstance(parameters, dict):
+            names |= set(parameters)
+        elif parameters:
+            for row in parameters:
+                names |= set(row)
+        if names and names <= UNGOVERNED_FIELDS | _BULK_DERIVED.get(table.name, frozenset()):
+            return
+        moved = _named(names - UNGOVERNED_FIELDS) if names else "rows"
+        if "theme_id" in names:
+            logger.warning("asset-approval: refused a bulk change of theme_id")
+            raise UnreviewableWriteRefusedError(
+                "Deleting a theme that dashboards use",
+                "Move those dashboards to another theme first (a change to a "
+                "published dashboard goes through review), then delete this one.",
+            )
+        what = f"{moved} on {table.name} in bulk"
+    else:
+        what = f"rows of {table.name} in bulk (a delete)"
+    logger.warning(
+        "asset-approval: refused %s. To switch the deny-by-default guard off, "
+        "set FEATURE_FLAGS[%r] = True.",
+        what,
+        ALLOW_UNLISTED_FLAG,
+    )
+    raise UnreviewableWriteRefusedError(f"Writing {what}", _EDITOR)
+
+
+#: ``(event, listener)`` for everything ``install.install_flush_guard`` binds
+#: to the SQLAlchemy ``Session`` class.
+GUARD_LISTENERS: tuple[tuple[str, Callable[..., Any]], ...] = (
+    ("before_flush", refuse_unlisted_writes),
+    ("after_flush", note_flush),
+    ("after_commit", settle_after_commit),
+    ("after_transaction_end", forget_transaction),
+    ("do_orm_execute", refuse_unlisted_bulk_writes),
+)
+
+
+def snapshot_draft_for_review(change_request: ChangeRequest, asset: Any) -> None:
+    """Record what the reviewer is about to be shown of a draft being published.
+
+    A dashboard that has never been published is edited freely, and that
+    includes while its request to publish is waiting: the request carries the
+    flag alone, so nothing in it moves when the content does, the reviewer's
+    revision still matches, and approving published a dashboard they had not
+    read (R7-03). Taken at submit -- not at capture, because the author keeps
+    editing the draft until they ask for review -- and compared at approval
+    with the same check that guards every other request.
+    """
+    if AssetType(change_request.asset_type) is not AssetType.DASHBOARD:
+        return
+    if change_request.command_args.get(COMMAND_KEY):
+        return
+    if change_request.payload_dict.get("published") is not True:
+        return
+    if asset is None or bool(getattr(asset, "published", False)):
+        return
+    fields = {name: None for name in FIRST_PUBLISH_CONTENT}
+    base = {**change_request.base_dict, **baseline_of(asset, fields)}
+    change_request.payload = ChangeRequest.serialize_payload(
+        change_request.payload_dict, change_request.command_args, base
+    )
+
+
+#: What a viewer would first see of a dashboard, which a publish request does
+#: not carry and the reviewer is nonetheless approving.
+FIRST_PUBLISH_CONTENT = (
+    "dashboard_title",
+    "position_json",
+    "json_metadata",
+    "css",
+    "slug",
+    "theme_id",
+)

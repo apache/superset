@@ -8,11 +8,14 @@ it. Each closure reproduces exactly what the host build calls at that site;
 the host's own test suite (``tests/unit_tests/change_management``) is the
 contract they are checked against.
 
-Twenty-five entries -- twenty-four bound, one declared exempt -- is the
-honest cost of having no declared seam. The number is the table's length,
-not a figure maintained by hand: the docstrings used to say "eighteen",
-which was wrong by six, and nothing could tell because there was no
-denominator to count against. Each entry is a separate chance to drift from
+The table is the denominator, and its length is not a figure kept in prose:
+the docstrings used to say "eighteen", which was wrong by six, and nothing
+could tell because there was no denominator to count against.
+Entries are gated, refused, or deliberately left unbound (``EXEMPT``) -- and an
+exempt one may still be a *permitted internal writer*, which the deny-by-default
+guard (``gate.refuse_unlisted_writes``) leaves alone; that is declared here too,
+so "what is allowed to write governed rows without review" is one list.
+Each entry is a separate chance to drift from
 the host, and a binding that fails to resolve logs a warning and leaves that
 path UNGATED rather than failing silently -- a gap you can see beats a gate
 you only believe in. Verification now turns that gap into a withheld
@@ -26,8 +29,10 @@ import inspect
 import logging
 from dataclasses import dataclass
 from importlib import import_module
+from types import SimpleNamespace
 from typing import Any, Callable
 
+from asset_approval import gate as _gate_module
 from asset_approval.changes import (
     changed_fields,
     config_diff_changes_nothing,
@@ -38,6 +43,11 @@ from asset_approval.changes import (
 from superset.utils import json
 from asset_approval.gate import (
     COMMAND_KEY,
+    dashboard_is_exposed,
+    demote_new_published_dashboards,
+    FIRST_PUBLISH_NOTE,
+    has_pending_request,
+    refuse_unlisted_writes,
     combine_config_diffs,
     combine_key_values,
     gate_delete,
@@ -58,6 +68,9 @@ from asset_approval.install import (
     BindingReport,
     gate_method,
     gate_run,
+    install_flush_guard,
+    permit_function,
+    permit_run,
     rebind_registered_routes,
     REVIEW_COMMANDS,
 )
@@ -67,6 +80,7 @@ try:
 except ImportError:  # install.verify_bindings has not been split yet
     from asset_approval.install import verify_bindings as verify_installation
 from asset_approval.types import AssetType
+from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -146,9 +160,28 @@ class WritePath:
     args: tuple[str, ...] = ()
     uncovered: tuple[Uncovered, ...] = ()
     probes: tuple[tuple[str, Callable[[], bool]], ...] = ()
+    #: Whether the write, once this path has dealt with it, runs inside
+    #: :func:`~asset_approval.gate.permitted`. ``None`` means "if the path is
+    #: GATED", which is right for a gate that returns only when it has decided
+    #: the write may proceed. It is ``False`` for a creation and an importer,
+    #: whose gate returning means "not applicable" and whose writes the
+    #: deny-by-default guard should therefore keep watching; and ``True`` on
+    #: an ``EXEMPT`` path that is a deliberate internal writer.
+    permit: bool | None = None
+    #: Called with the command and its result once ``run`` has returned, for a
+    #: creation that has to answer with a review signal after it has happened.
+    after: Callable[[Any, Any], None] | None = None
+
+    @property
+    def permits_writes(self) -> bool:
+        if self.permit is not None:
+            return self.permit
+        return self.disposition == GATED
 
     @property
     def target(self) -> str:
+        if self.via == "function":
+            return self.class_name
         return f"{self.class_name}.{self.attr}"
 
 
@@ -350,11 +383,23 @@ def install_bindings() -> None:
     gate and is deliberately skipped here; it is in the table so that the
     choice is visible and so verification can tell it from an oversight.
     """
+    install_flush_guard()
     for path in WRITE_PATHS:
         if path.gate is None:
+            if path.permits_writes:
+                if path.via == "function":
+                    permit_function(path.module_path, path.class_name)
+                else:
+                    permit_run(path.module_path, path.class_name, path.attr)
             continue
         if path.via == "method":
-            gate_method(path.module_path, path.class_name, path.attr, path.gate)
+            gate_method(
+                path.module_path,
+                path.class_name,
+                path.attr,
+                path.gate,
+                permit=path.permits_writes,
+            )
         else:
             if path.capture:
                 try:
@@ -369,6 +414,8 @@ def install_bindings() -> None:
                 path.gate,
                 capture=path.capture,
                 validate_first=path.validate_first,
+                permit=path.permits_writes,
+                after=path.after,
             )
 
     app = _app_if_any()
@@ -487,7 +534,16 @@ def _gate_dashboard_update(command: Any) -> None:
 
     if not published_now and not publishing:
         if not has_ever_been_published(AssetType.DASHBOARD, model.id):
-            return
+            # Free while nobody is looking at it. Once the request to publish
+            # it has been submitted a reviewer is, and the request carries the
+            # flag alone: an edit that landed here applied directly, left the
+            # request and its revision exactly as the reviewer saw them, and
+            # was published by the approval (R7-03). From submission the draft
+            # is held like a live dashboard, so the edit folds into the
+            # request (taking it back out of review) or, for anyone but its
+            # author, is refused as locked.
+            if not has_pending_request(AssetType.DASHBOARD, model.id):
+                return
 
     # ``fold_fields``: a second save that posts only some of the fields (the
     # Properties dialog never carries ``position_json``) is a statement about
@@ -578,14 +634,49 @@ def _without_layout(merged: dict[str, Any], layout: str) -> dict[str, Any]:
     return merged
 
 
-def _legacy_save_is_held(action: str | None, slc: Any) -> bool:
+def _legacy_save_is_held(
+    action: str | None, slc: Any, target: Any = None
+) -> bool:
     """Whether the gate takes hold of this legacy save at all.
 
     Pulled out of the gate so that verification asks the question the gate
     itself asks, rather than a second copy of it: the ``WritePath`` probes
     call this with each ``action`` and report what comes back.
+
+    ``overwrite`` rewrites a chart that exists, and is captured. ``saveas``
+    creates one, and a creation is free -- except that it can be placed on a
+    dashboard, which is the exposure: ``target`` is the dashboard it names,
+    and a save onto one viewers can reach, or one in review, is held (A4).
     """
-    return action == "overwrite" and slc is not None and bool(getattr(slc, "id", None))
+    if action == "overwrite":
+        return slc is not None and bool(getattr(slc, "id", None))
+    if action == "saveas":
+        return target is not None and _viewers_or_reviewer_depend_on(target)
+    return False
+
+
+def _viewers_or_reviewer_depend_on(dashboard: Any) -> bool:
+    """Whether changing what is on this dashboard would reach someone."""
+    if dashboard_is_exposed(dashboard):
+        return True
+    dashboard_id = getattr(dashboard, "id", None)
+    return dashboard_id is not None and has_pending_request(
+        AssetType.DASHBOARD, dashboard_id
+    )
+
+
+def _dashboard_named(args: Any) -> Any:
+    """The dashboard ``save_to_dashboard_id`` names, if there is one."""
+    from superset import db
+    from superset.models.dashboard import Dashboard
+
+    target = args.get("save_to_dashboard_id")
+    if not target:
+        return None
+    try:
+        return db.session.query(Dashboard).filter_by(id=int(target)).one_or_none()
+    except (TypeError, ValueError):
+        return None
 
 
 def _gate_legacy_slice_save(
@@ -617,9 +708,22 @@ def _gate_legacy_slice_save(
 
     action = request.args.get("action")
 
+    if action == "saveas":
+        # Creating a chart is free; placing it on a dashboard viewers can
+        # reach is not (A4). Refused before the view writes anything, with
+        # the reviewable route named: save, then add it in the dashboard's
+        # own editor, which is a layout change a reviewer is shown.
+        if not _gate_module.unlisted_writes_allowed() and _legacy_save_is_held(
+            action, slc, _dashboard_named(request.args)
+        ):
+            refuse_unreviewable_write(
+                "Saving a new chart onto a dashboard that viewers can reach",
+                "Save the chart on its own, then add it to the dashboard from "
+                "the dashboard editor, so the change can be reviewed.",
+            )
+        return
+
     if not _legacy_save_is_held(action, slc):
-        # Not covered, and declared as such on the ``WritePath``: ``saveas``
-        # creates a chart and may attach it to a published dashboard (A4).
         return
 
     form_data = get_form_data()[0]
@@ -1099,26 +1203,127 @@ def _gate_dataset_delete(command: Any) -> None:
     gate_delete(AssetType.DATASET, [m.id for m in (command._models or [])])
 
 
+def _gate_dashboard_create(command: Any) -> None:
+    """A dashboard is created as a draft, whatever the request says (SOW 5.1).
+
+    Creation itself is not reviewed: nobody can reach a draft. What is is
+    first showing it to viewers, which is the existing publish transition on
+    a dashboard that now exists. So ``published`` is taken off the creation,
+    and :func:`_announce_deferred_publish` files the request for it once the
+    dashboard is there to be reviewed.
+    """
+    if _gate_module.unlisted_writes_allowed():
+        return  # the operator's switch restores what creating did before
+    properties = getattr(command, "_properties", None)
+    if isinstance(properties, dict) and properties.get("published"):
+        properties["published"] = False
+        command._first_publish_deferred = True
+
+
+def _announce_deferred_publish(command: Any, dashboard: Any) -> None:
+    """Answer a create that asked to be published with the request it made.
+
+    Raised after the creation has committed, so the draft exists and the
+    caller is told, in the answer to the create itself, that publishing it is
+    waiting for review. Without a signal the REST create answered 201 and
+    echoed ``published: true`` back for a dashboard that is not.
+    """
+    if not getattr(command, "_first_publish_deferred", False):
+        return
+    if get_user_id() is None:
+        logger.warning(
+            "asset-approval: dashboard %s asked to be published by nobody "
+            "identifiable; it was created as a draft",
+            getattr(dashboard, "id", None),
+        )
+        return
+    gate_write(
+        AssetType.DASHBOARD,
+        dashboard.id,
+        {"published": True},
+        note=FIRST_PUBLISH_NOTE,
+    )
+
+
+def _gate_chart_create(command: Any) -> None:
+    """A chart may be created, but not onto a dashboard viewers can reach (A5).
+
+    The join row is the exposure: it makes the chart, and the data behind it,
+    part of a dashboard that is already published. The REST create wrote it
+    unreviewed, and even while a request was open on that dashboard.
+    """
+    if _gate_module.unlisted_writes_allowed():
+        return
+    for dashboard in (getattr(command, "_properties", None) or {}).get(
+        "dashboards"
+    ) or []:
+        if _viewers_or_reviewer_depend_on(dashboard):
+            refuse_unreviewable_write(
+                "Creating a chart on a dashboard that viewers can reach",
+                "Create the chart on its own, then add it to the dashboard "
+                "from the dashboard editor, so the change can be reviewed.",
+            )
+
+
+def _refuse_rest_purge(*_args: Any, **_kwargs: Any) -> None:
+    if _gate_module.unlisted_writes_allowed():
+        return
+    refuse_unreviewable_write(
+        "Permanently deleting an archived asset",
+        "Restore it through review if it should come back. Permanent removal "
+        "of archived assets is done by the scheduled retention task.",
+    )
+
+
 class _ExistingChart:
     """A stand-in for a saved chart, which is all a probe needs of one."""
 
     id = 1
 
 
+class _LiveDashboard:
+    """A stand-in for a dashboard viewers can reach."""
+
+    id = 1
+    published = True
+
+
 def _saving_as(action: str) -> Callable[[], bool]:
-    """A probe: does the legacy-save gate take hold of this ``action``?"""
-    return lambda: _legacy_save_is_held(action, _ExistingChart())
+    """A probe: does the legacy-save gate take hold of this ``action``?
+
+    ``saveas`` is asked what it is actually dangerous for: being placed on a
+    dashboard viewers can already reach.
+    """
+    return lambda: _legacy_save_is_held(action, _ExistingChart(), _LiveDashboard())
+
+
+def _a_creation_cannot_land_published() -> bool:
+    """A probe: does a dashboard being created already published become a draft?
+
+    This is the half of an import that the importers' own gates do not see --
+    they are scoped to collisions, so a bundle of new assets passes them and
+    its ``published: true`` used to land live. What holds it is the session
+    guard, so the question put is the guard's own: the rule it runs on a
+    dashboard in ``session.new``, and that it is bound to the session at all.
+    """
+    from sqlalchemy import event
+    from sqlalchemy.orm import Session
+
+    from superset.models.dashboard import Dashboard
+
+    if not event.contains(Session, "before_flush", refuse_unlisted_writes):
+        return False
+    created = Dashboard(published=True)
+    demote_new_published_dashboards(SimpleNamespace(new=[created]))
+    return created.published is False
 
 
 #: What every importer shares: the refusal fires only for a bundle that lands
-#: on a live asset, so one that creates new assets is not touched at all.
-_IMPORT_CREATES = Uncovered(
-    "an import whose assets do not exist yet",
-    "Scoped to collisions so a first-time import still works (S-06), which "
-    "means a bundle carrying published: true creates a live, published "
-    "dashboard with its charts and no request is ever made. The gate cannot "
-    "represent a creation (D1), so there is no row to add.",
-    "A6, D1",
+#: on a live asset. A bundle of new assets is a creation, which is free; what
+#: it could do that is not free is publish a dashboard, and that is probed.
+_IMPORT_PROBES = (
+    ("a first-time import that creates a published dashboard",
+     _a_creation_cannot_land_published),
 )
 
 #: Every write path the gate is responsible for, and its disposition.
@@ -1207,7 +1412,32 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         via="method",
         args=("dashboard", "allowed_domains"),
     ),
+    WritePath(
+        "superset.commands.dashboard.create",
+        "CreateDashboardCommand",
+        "run",
+        GATED,
+        "Creation is free and a new dashboard is a draft (SOW 5.1); a create "
+        "that asks to be published is made a draft, and the publish is "
+        "requested for review (A2). Not permitted: the guard keeps watching.",
+        _gate_dashboard_create,
+        validate_first=False,
+        permit=False,
+        after=_announce_deferred_publish,
+        args=("data",),
+    ),
     # ---- charts --------------------------------------------------------
+    WritePath(
+        "superset.commands.chart.create",
+        "CreateChartCommand",
+        "run",
+        GATED,
+        "Creation is free; placing the new chart on a dashboard viewers can "
+        "reach is not, and is refused with the reviewable route named (A5).",
+        _gate_chart_create,
+        permit=False,
+        args=("data",),
+    ),
     WritePath(
         "superset.commands.chart.update",
         "UpdateChartCommand",
@@ -1273,7 +1503,40 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "Sync columns from source does not author a change, it re-reads "
         "what the database already says (SOW 5.2, criterion 5). Refusing it "
         "left no way to do it at all while review was on (129073), so it is "
-        "deliberately unbound and applies directly.",
+        "deliberately unbound and applies directly. Permitted through the "
+        "deny-by-default guard for the same reason, and only this command.",
+        permit=True,
+    ),
+    # ---- permanent removal of archived assets ------------------------------
+    WritePath(
+        "superset.commands.purge",
+        "PurgeArchivedCommand",
+        "run",
+        REFUSED,
+        "The REST purge makes an approved delete irreversible and detaches the "
+        "live charts of a purged dataset, on one editor's say-so (A10, A11).",
+        _refuse_rest_purge,
+        validate_first=False,
+    ),
+    WritePath(
+        "superset.commands.deletion_retention.force_purge",
+        "ForcePurgeCommand",
+        "run",
+        EXEMPT,
+        "The operator's compliance purge (CLI). Not someone editing an asset, "
+        "and the REST route to it is refused above, so what is permitted here "
+        "is the operator's own tool.",
+        permit=True,
+    ),
+    WritePath(
+        "superset.tasks.deletion_retention",
+        "_purge_one",
+        "__call__",
+        EXEMPT,
+        "The scheduled retention purge: removes only rows already archived by "
+        "a reviewed delete, after the retention window. Not an edit.",
+        via="function",
+        permit=True,
     ),
     # ---- the legacy datasource save -------------------------------------
     WritePath(
@@ -1299,24 +1562,14 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         GATED,
         "Explore's ?action=overwrite writes through ChartDAO inline, so no "
         "command binding sees it and a reviewed chart could be changed with "
-        "nothing held (129068). The view method is the only seam. PARTIAL: "
-        "only the overwrite branch is held -- see ``uncovered``.",
+        "nothing held (129068). The view method is the only seam. Overwrite is "
+        "captured; saveas creates a chart, which is free, and is refused only "
+        "when it would place that chart on a dashboard viewers can reach (A4).",
         _gate_legacy_slice_save,
         via="method",
         probes=(
             ("action=overwrite", _saving_as("overwrite")),
-            ("action=saveas", _saving_as("saveas")),
-        ),
-        uncovered=(
-            Uncovered(
-                "action=saveas",
-                "Creates a chart, and with save_to_dashboard_id or "
-                "new_dashboard_name attaches it to the dashboard named, "
-                "published or not. The gate returns early unless the action "
-                "is overwrite, and a creation is not something it can "
-                "represent (D1).",
-                "A4, A5, D1",
-            ),
+            ("action=saveas onto a dashboard viewers can reach", _saving_as("saveas")),
         ),
         args=(
             "slc",
@@ -1392,7 +1645,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "has, so a first-time import still works (S-06).",
         _import_gate("dashboard"),
         validate_first=False,
-        uncovered=(_IMPORT_CREATES,),
+        probes=_IMPORT_PROBES,
     ),
     WritePath(
         "superset.commands.chart.importers.v1",
@@ -1402,7 +1655,6 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "As the dashboard importer above.",
         _import_gate("chart"),
         validate_first=False,
-        uncovered=(_IMPORT_CREATES,),
     ),
     WritePath(
         "superset.commands.dataset.importers.v1",
@@ -1412,7 +1664,6 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "As the dashboard importer above.",
         _import_gate("dataset"),
         validate_first=False,
-        uncovered=(_IMPORT_CREATES,),
     ),
     WritePath(
         "superset.commands.importers.v1.assets",
@@ -1423,7 +1674,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "scope.",
         _assets_import_gate,
         validate_first=False,
-        uncovered=(_IMPORT_CREATES,),
+        probes=_IMPORT_PROBES,
     ),
     # ---- dataset datetime formats --------------------------------------
     WritePath(

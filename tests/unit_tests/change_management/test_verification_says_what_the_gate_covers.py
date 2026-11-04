@@ -57,50 +57,55 @@ class _App:
 # ---- the table this build ships --------------------------------------------
 
 
-def test_the_legacy_chart_save_is_not_reported_as_fully_gated() -> None:
+def test_the_legacy_chart_save_has_no_declared_gap_left() -> None:
+    """A4 is closed: saveas onto a dashboard viewers can reach is held."""
     report = verify_bindings()
 
-    gaps = [
-        gap
-        for gap in report.partial
-        if gap.target == "Superset.save_or_overwrite_slice"
-    ]
-    assert [gap.branch for gap in gaps] == ["action=saveas"]
-    assert "A4" in gaps[0].tracked
-    assert gaps[0].probed is True
+    assert [
+        gap for gap in report.partial if gap.target == "Superset.save_or_overwrite_slice"
+    ] == []
 
 
-def test_the_gate_really_holds_overwrite_and_really_skips_saveas() -> None:
-    """The measurement behind the declaration, not the declaration."""
+def test_the_gate_really_holds_overwrite_and_really_holds_saveas_onto_a_live_dashboard() -> None:
+    """The measurement behind the removal of the declaration, not the removal."""
     path = next(p for p in WRITE_PATHS if p.attr == "save_or_overwrite_slice")
     held = {name: probe() for name, probe in path.probes}
 
-    assert held == {"action=overwrite": True, "action=saveas": False}
+    assert held == {
+        "action=overwrite": True,
+        "action=saveas onto a dashboard viewers can reach": True,
+    }
 
 
-def test_a_declared_gap_does_not_fail_the_run_and_does_not_pass_for_clean() -> None:
+def test_the_build_ships_with_no_declared_gap_and_says_so() -> None:
     report = verify_bindings()
 
     assert report.defects == ()
     assert report.ok is True
-    assert report.complete is False
-    assert report.partial, "the build ships with known gaps and must say so"
+    assert report.complete is True
+    assert report.partial == ()
 
 
 def test_the_summary_says_how_much_is_partial() -> None:
     summary = verify_bindings().summary()
 
-    assert "declared=25" in summary
+    assert f"declared={len(WRITE_PATHS)}" in summary
     assert "ok=True" in summary
-    assert "complete=False" in summary
-    assert "partial=" in summary
+    assert "complete=True" in summary
+    assert "partial=0" in summary
 
 
-def test_every_importer_declares_that_a_creating_import_is_not_held() -> None:
-    importers = [p for p in WRITE_PATHS if "importers" in p.module_path]
+def test_the_importers_that_can_publish_a_dashboard_probe_that_they_cannot() -> None:
+    importers = [
+        p
+        for p in WRITE_PATHS
+        if "importers" in p.module_path
+        and p.class_name in {"ImportDashboardsCommand", "ImportAssetsCommand"}
+    ]
 
-    assert importers
-    assert [p.target for p in importers if not p.uncovered] == []
+    assert len(importers) == 2
+    assert [p.target for p in importers if not p.probes] == []
+    assert all(probe() for p in importers for _name, probe in p.probes)
 
 
 def test_the_promise_to_core_is_made_from_the_coverage_aware_report() -> None:
