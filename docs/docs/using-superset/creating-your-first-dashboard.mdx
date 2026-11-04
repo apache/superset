@@ -83,6 +83,14 @@ for your target database.
 Click the **Test Connection** button to confirm things work end to end. If the connection looks good, save the configuration
 by clicking the **Connect** button in the bottom right corner of the modal window:
 
+Closing the connection window starts a fresh session the next time you add a database.
+A pending save may still complete on the server and refresh the database list, but
+its response does not populate or close the new connection window. Check the database
+list before retrying a save that was pending when you closed the window. In the
+connection wizard, **Back** from the credentials step returns to database selection
+even while a save is pending; it does not cancel a create or update request already
+sent to the server.
+
 Congratulations, you've just added a new data source in Superset!
 
 ### Sharing a Database Connection
@@ -367,6 +375,21 @@ Draft dashboards are only visible to dashboard editors and admins. Published das
 to users with access to the underlying datasets, or, when `ENABLE_VIEWERS` is enabled, to users
 who have viewer access directly or through an assigned role or group subject.
 :::
+
+### Opening a shared dashboard view
+
+Shared dashboard links can include saved filters. While those filters load, the
+page displays “Loading the view shared with you…”. If the request fails or times
+out, Superset retries once, then opens the default view with a warning. Use
+**Try again** to reload the original shared filters. Expired filter links show a
+warning without a retry button; ask the sender for a new link.
+
+After a fallback, refreshing the page retries the original link until you change
+a filter. Applying a native filter or clicking a chart to cross-filter dismisses the
+warning and creates a new saved filter key without overwriting the shared state.
+Copying or emailing a permalink through the dashboard Share menu while fallback
+is active shares the default view and displays a warning toast. Tab and heading
+anchor links and the embedded permalink API do not display that warning.
 
 ### Mark a Dashboard as Favorite
 

@@ -123,18 +123,23 @@ export async function resolveSnapshotCharts(
   });
 
   const unreachable = new Set<number>();
+  const unavailable = new Set<number>();
   await forEachWithConcurrency(
     missingIds,
     EXPLORE_REHYDRATION_CONCURRENCY,
     async id => {
       try {
         const { slice, form_data } = await fetchExploreRehydrationData(id);
+        if (!slice) {
+          unavailable.add(id);
+          return;
+        }
         charts.push({
           slice_id: id,
           slice_url: `/explore/?slice_id=${id}`,
-          slice_name: slice?.slice_name ?? t('Untitled chart'),
+          slice_name: slice.slice_name ?? t('Untitled chart'),
           form_data: { ...form_data, slice_id: id },
-          description: slice?.description ?? '',
+          description: slice.description ?? '',
           description_markeddown: '',
           editors: [],
           modified: '',
@@ -148,7 +153,11 @@ export async function resolveSnapshotCharts(
 
   return {
     charts,
-    positionData: swapUnreachableChartSlots(positionData, unreachable),
+    positionData: swapUnreachableChartSlots(
+      positionData,
+      unreachable,
+      unavailable,
+    ),
   };
 }
 
