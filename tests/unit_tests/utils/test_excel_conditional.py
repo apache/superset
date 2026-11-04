@@ -55,6 +55,21 @@ def _workbook_with_sales(*values: float) -> bytes:
     return raw.getvalue()
 
 
+def _workbook_with_seq_and_sales() -> bytes:
+    """Numeric ``seq_in_group`` and ``sales`` so per-column bar flags can differ."""
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet["A1"] = "seq_in_group"
+    sheet["B1"] = "sales"
+    sheet["A2"] = 1.0
+    sheet["A3"] = 2.0
+    sheet["B2"] = 10
+    sheet["B3"] = 33
+    raw = io.BytesIO()
+    workbook.save(raw)
+    return raw.getvalue()
+
+
 def test_apply_conditional_formatting_writes_cell_is_rule() -> None:
     """A greater-than rule becomes an Excel CellIs rule on the sales column."""
     styled = apply_conditional_formatting(
@@ -65,6 +80,7 @@ def test_apply_conditional_formatting_writes_cell_is_rule() -> None:
                 "operator": ">",
                 "targetValue": 8,
                 "colorScheme": "#FF0000",
+                "useGradient": False,
             }
         ],
     )
@@ -88,6 +104,242 @@ def test_apply_cell_bars_when_show_cell_bars_and_no_custom_rules() -> None:
     rules = _cf_rules(result)
     assert any(rule.type == "dataBar" for _, rule in rules)
     assert not any("B2" in cf_range for cf_range, _ in rules)
+
+
+def test_column_config_can_disable_cell_bars_on_one_column() -> None:
+    """Explore Column Settings ``Show cell bars`` off must drop that column's bars."""
+    styled = apply_conditional_formatting(
+        _workbook_with_seq_and_sales(),
+        [],
+        show_cell_bars=True,
+        column_config={"seq_in_group": {"showCellBars": False}},
+    )
+    data_bars = [
+        rng
+        for rng, rule in _cf_rules(load_workbook(io.BytesIO(styled)).active)
+        if rule.type == "dataBar"
+    ]
+    assert data_bars == ["B2:B3"]
+
+
+def test_column_config_can_enable_cell_bars_when_global_is_off() -> None:
+    """Per-column ``showCellBars`` true still bars that column if global is off."""
+    styled = apply_conditional_formatting(
+        _workbook_with_seq_and_sales(),
+        [],
+        show_cell_bars=False,
+        column_config={"sales": {"showCellBars": True}},
+    )
+    data_bars = [
+        rng
+        for rng, rule in _cf_rules(load_workbook(io.BytesIO(styled)).active)
+        if rule.type == "dataBar"
+    ]
+    assert data_bars == ["B2:B3"]
+
+
+def test_cell_bars_use_neutral_color_when_color_pn_is_off() -> None:
+    """Color +/- off matches Explore theme.colorFill, not Excel's default green."""
+    styled = apply_conditional_formatting(
+        _workbook_with_sales(10, 20),
+        [],
+        show_cell_bars=True,
+        color_pn=False,
+    )
+    rule = next(
+        cf for _, cf in _cf_rules(load_workbook(io.BytesIO(styled)).active)
+        if cf.type == "dataBar"
+    )
+    assert str(rule.dataBar.color.rgb).endswith("BFBFBF")
+
+
+def test_cell_bars_use_success_color_when_color_pn_is_on() -> None:
+    """Color +/- on uses the same success green as Explore cell bars."""
+    styled = apply_conditional_formatting(
+        _workbook_with_sales(10, 20),
+        [],
+        show_cell_bars=True,
+        color_pn=True,
+    )
+    rule = next(
+        cf for _, cf in _cf_rules(load_workbook(io.BytesIO(styled)).active)
+        if cf.type == "dataBar"
+    )
+    assert str(rule.dataBar.color.rgb).endswith("52C41A")
+
+
+def test_column_config_can_disable_color_pn_on_one_column() -> None:
+    """Per-column Color +/- off grays that column's bars only."""
+    styled = apply_conditional_formatting(
+        _workbook_with_seq_and_sales(),
+        [],
+        show_cell_bars=True,
+        color_pn=True,
+        column_config={"seq_in_group": {"colorPositiveNegative": False}},
+    )
+    colors = {
+        rng: str(rule.dataBar.color.rgb)
+        for rng, rule in _cf_rules(load_workbook(io.BytesIO(styled)).active)
+        if rule.type == "dataBar"
+    }
+    assert colors["A2:A3"].endswith("BFBFBF")
+    assert colors["B2:B3"].endswith("52C41A")
+
+
+def test_show_cell_bars_survive_a_rule_on_another_column() -> None:
+    """A color formatter on a text column must not drop default bars on sales.
+
+    Table Explore still paints cell bars when Custom conditional formatting
+    names a different column (for example ``region``).
+    """
+    styled = apply_conditional_formatting(
+        _workbook_with_sales(10, 20),
+        [{"column": "region", "operator": None, "colorScheme": "success"}],
+        show_cell_bars=True,
+    )
+    rules = _cf_rules(load_workbook(io.BytesIO(styled)).active)
+    data_bars = [rng for rng, rule in rules if rule.type == "dataBar"]
+    assert data_bars == ["A2:A3"]
+    assert any(rule.type == "expression" for _, rule in rules)
+
+
+def test_operator_none_on_text_column_writes_solid_fill() -> None:
+    """String color formatters become a fill on non-blank cells, not a color scale.
+
+    Excel color scales do not paint text, so LibreOffice would hide the rule.
+    """
+    styled = apply_conditional_formatting(
+        _workbook_with_sales(10),
+        [{"column": "region", "operator": None, "colorScheme": "success"}],
+    )
+    cf_range, rule = _cf_rules(load_workbook(io.BytesIO(styled)).active)[0]
+    assert "B2" in cf_range
+    assert rule.type == "expression"
+    formula = "".join(str(part) for part in (rule.formula or []))
+    assert "NOT(ISBLANK(B2))" in formula
+    assert rule.dxf is not None
+    assert rule.dxf.fill is not None
+    assert str(rule.dxf.fill.fgColor.rgb).endswith("52C41A")
+
+
+def test_background_rule_on_sales_replaces_default_bars() -> None:
+    """A fill rule on a numeric column turns off that column's default bars."""
+    styled = apply_conditional_formatting(
+        _workbook_with_sales(10, 20),
+        [
+            {
+                "column": "sales",
+                "operator": ">",
+                "targetValue": 8,
+                "colorScheme": "#FF0000",
+                "useGradient": False,
+            }
+        ],
+        show_cell_bars=True,
+    )
+    rules = _cf_rules(load_workbook(io.BytesIO(styled)).active)
+    assert any(rule.type == "cellIs" for _, rule in rules)
+    assert not any(rule.type == "dataBar" for _, rule in rules)
+
+
+def test_column_formatting_paints_target_from_source() -> None:
+    """Formatting column paints region from a sales comparator, not sales itself."""
+    styled = apply_conditional_formatting(
+        _workbook_with_sales(10, 20),
+        [
+            {
+                "column": "sales",
+                "operator": ">",
+                "targetValue": 10,
+                "colorScheme": "#5AC189",
+                "columnFormatting": "region",
+                "objectFormatting": "BACKGROUND_COLOR",
+                "useGradient": False,
+            }
+        ],
+        show_cell_bars=True,
+    )
+    rules = _cf_rules(load_workbook(io.BytesIO(styled)).active)
+    fills = [(rng, rule) for rng, rule in rules if rule.type == "expression"]
+    assert len(fills) == 1
+    cf_range, rule = fills[0]
+    assert "B2" in cf_range
+    formula = "".join(str(part) for part in (rule.formula or []))
+    assert "$A2>10" in formula
+    assert rule.dxf is not None
+    assert rule.dxf.fill is not None
+    assert str(rule.dxf.fill.fgColor.rgb).endswith("5AC189")
+    data_bars = [rng for rng, cf_rule in rules if cf_rule.type == "dataBar"]
+    assert data_bars == ["A2:A3"]
+    assert not any(cf_rule.type == "cellIs" for _, cf_rule in rules)
+
+
+def test_entire_row_formula_uses_source_column() -> None:
+    """ENTIRE_ROW applies a source-column formula across the used range."""
+    styled = apply_conditional_formatting(
+        _workbook_with_sales(10, 50),
+        [
+            {
+                "column": "sales",
+                "operator": ">",
+                "targetValue": 20,
+                "colorScheme": "#ACE1C4",
+                "columnFormatting": "ENTIRE_ROW",
+                "useGradient": False,
+            }
+        ],
+    )
+    cf_range, rule = _cf_rules(load_workbook(io.BytesIO(styled)).active)[0]
+    assert "A2" in cf_range
+    assert "B" in cf_range
+    assert rule.type == "expression"
+    formula = "".join(str(part) for part in (rule.formula or []))
+    assert "$A2>20" in formula
+
+
+def test_to_all_row_matches_entire_row() -> None:
+    """Legacy toAllRow uses the same entire-row formula as columnFormatting."""
+    styled = apply_conditional_formatting(
+        _workbook_with_sales(10, 50),
+        [
+            {
+                "column": "sales",
+                "operator": ">",
+                "targetValue": 20,
+                "colorScheme": "#ACE1C4",
+                "toAllRow": True,
+                "useGradient": False,
+            }
+        ],
+    )
+    cf_range, rule = _cf_rules(load_workbook(io.BytesIO(styled)).active)[0]
+    assert rule.type == "expression"
+    assert "B" in cf_range
+    formula = "".join(str(part) for part in (rule.formula or []))
+    assert "$A2>20" in formula
+
+
+def test_cell_bar_column_formatting_paints_target() -> None:
+    """CELL_BAR with Formatting column puts bars on the target, keyed off source."""
+    styled = apply_conditional_formatting(
+        _workbook_with_seq_and_sales(),
+        [
+            {
+                "column": "sales",
+                "operator": ">",
+                "targetValue": 10,
+                "colorScheme": "#5AC189",
+                "columnFormatting": "seq_in_group",
+                "objectFormatting": "CELL_BAR",
+            }
+        ],
+    )
+    data_bars = [
+        rng
+        for rng, rule in _cf_rules(load_workbook(io.BytesIO(styled)).active)
+        if rule.type == "dataBar"
+    ]
+    assert data_bars == ["A3"]
 
 
 def test_cell_bar_object_writes_data_bar_only_on_matching_cells() -> None:
@@ -134,6 +386,88 @@ def test_color_scale_when_operator_is_none() -> None:
     assert float(scale.colorScale.cfvo[0].val) == 0
     assert scale.colorScale.cfvo[1].type == "num"
     assert float(scale.colorScale.cfvo[1].val) == 100
+
+
+def test_use_gradient_greater_than_writes_color_scale() -> None:
+    """Use gradient + numeric comparator becomes an Excel 2-color scale."""
+    styled = apply_conditional_formatting(
+        _workbook_with_sales(1, 2, 3),
+        [
+            {
+                "column": "sales",
+                "operator": ">",
+                "targetValue": 1,
+                "colorScheme": "#5AC189",
+                "useGradient": True,
+                "objectFormatting": "BACKGROUND_COLOR",
+            }
+        ],
+    )
+    scale = next(
+        rule
+        for _, rule in _cf_rules(load_workbook(io.BytesIO(styled)).active)
+        if rule.type == "colorScale"
+    )
+    assert scale.colorScale.cfvo[0].type == "num"
+    assert float(scale.colorScale.cfvo[0].val) == 1
+    assert scale.colorScale.cfvo[1].type == "max"
+    colors = [str(color.rgb) for color in scale.colorScale.color]
+    assert colors[0].endswith("FFFFFF")
+    assert colors[1].endswith("5AC189")
+
+
+def test_use_gradient_cross_column_bakes_varying_fills() -> None:
+    """Gradient keyed off sales paints region with opacity scaled to the value."""
+    styled = apply_conditional_formatting(
+        _workbook_with_sales(10, 20),
+        [
+            {
+                "column": "sales",
+                "operator": ">",
+                "targetValue": 5,
+                "colorScheme": "#5AC189",
+                "columnFormatting": "region",
+                "objectFormatting": "BACKGROUND_COLOR",
+                "useGradient": True,
+            }
+        ],
+    )
+    sheet = load_workbook(io.BytesIO(styled)).active
+    fill_low = str(sheet["B2"].fill.fgColor.rgb)
+    fill_high = str(sheet["B3"].fill.fgColor.rgb)
+    assert fill_low != fill_high
+    assert fill_high.endswith("5AC189")
+
+
+def test_polish_explore_xlsx_qty_gradient() -> None:
+    """qty > 1 with Use gradient writes a color scale, not a solid CellIs fill."""
+    df = pd.DataFrame({"qty": [1.0, 2.0, 3.0]})
+    polished = polish_explore_xlsx(
+        df_to_excel(df, index=False),
+        df,
+        {
+            "viz_type": "table",
+            "show_cell_bars": False,
+            "conditional_formatting": [
+                {
+                    "column": "qty",
+                    "operator": ">",
+                    "targetValue": 1,
+                    "colorScheme": "#5AC189",
+                    "columnFormatting": "qty",
+                    "objectFormatting": "BACKGROUND_COLOR",
+                    "useGradient": True,
+                }
+            ],
+        },
+    )
+    scale = next(
+        rule
+        for _, rule in _cf_rules(load_workbook(io.BytesIO(polished)).active)
+        if rule.type == "colorScale"
+    )
+    assert float(scale.colorScale.cfvo[0].val) == 1
+    assert str(scale.colorScale.color[1].rgb).endswith("5AC189")
 
 
 def test_rule_matches_verbose_column_header() -> None:
@@ -233,6 +567,7 @@ def test_range_operator_writes_formula_rule() -> None:
                 "targetValueLeft": 0,
                 "targetValueRight": 10,
                 "colorScheme": "#00FF00",
+                "useGradient": False,
             }
         ],
     )
@@ -391,6 +726,7 @@ def test_polish_explore_xlsx_table_cf_on_xlsxwriter_workbook() -> None:
                     "operator": ">",
                     "targetValue": 8,
                     "colorScheme": "#FF0000",
+                    "useGradient": False,
                 }
             ],
             "show_cell_bars": False,
@@ -433,6 +769,98 @@ def test_polish_explore_xlsx_default_cell_bars_on_xlsxwriter() -> None:
     assert data_bars == ["A2:A3"]
 
 
+def test_polish_explore_xlsx_honors_color_pn() -> None:
+    """Table color_pn=false writes gray data bars, matching Color +/- off."""
+    df = pd.DataFrame({"seq_in_group": [1.0, 2.0], "sales": [10, 33]})
+    polished = polish_explore_xlsx(
+        df_to_excel(df, index=False),
+        df,
+        {"viz_type": "table", "show_cell_bars": True, "color_pn": False},
+    )
+    colors = [
+        str(rule.dataBar.color.rgb)
+        for _, rule in _cf_rules(load_workbook(io.BytesIO(polished)).active)
+        if rule.type == "dataBar"
+    ]
+    assert colors
+    assert all(color.endswith("BFBFBF") for color in colors)
+
+
+def test_polish_explore_xlsx_honors_column_show_cell_bars() -> None:
+    """Table column_config.showCellBars=false must not bar that column in XLSX."""
+    df = pd.DataFrame({"seq_in_group": [1.0, 2.0], "sales": [10, 33]})
+    polished = polish_explore_xlsx(
+        df_to_excel(df, index=False),
+        df,
+        {
+            "viz_type": "table",
+            "show_cell_bars": True,
+            "column_config": {"seq_in_group": {"showCellBars": False}},
+        },
+    )
+    data_bars = [
+        rng for rng, rule in _cf_rules(load_workbook(io.BytesIO(polished)).active)
+        if rule.type == "dataBar"
+    ]
+    assert data_bars == ["B2:B3"]
+
+
+def test_polish_explore_xlsx_sales_rule_paints_region() -> None:
+    """Explore 'sales > 10' with Formatting column=region paints region in XLSX."""
+    df = pd.DataFrame({"region": ["EMEA", "APAC"], "sales": [10, 33]})
+    polished = polish_explore_xlsx(
+        df_to_excel(df, index=False),
+        df,
+        {
+            "viz_type": "table",
+            "show_cell_bars": True,
+            "conditional_formatting": [
+                {
+                    "column": "sales",
+                    "operator": ">",
+                    "targetValue": 10,
+                    "colorScheme": "#5AC189",
+                    "columnFormatting": "region",
+                    "objectFormatting": "BACKGROUND_COLOR",
+                    "useGradient": False,
+                }
+            ],
+        },
+    )
+    sheet = load_workbook(io.BytesIO(polished)).active
+    rules = _cf_rules(sheet)
+    fills = [(rng, rule) for rng, rule in rules if rule.type == "expression"]
+    assert len(fills) == 1
+    cf_range, rule = fills[0]
+    assert "A2" in cf_range
+    formula = "".join(str(part) for part in (rule.formula or []))
+    assert "$B2>10" in formula
+    data_bars = [rng for rng, cf_rule in rules if cf_rule.type == "dataBar"]
+    assert data_bars == ["B2:B3"]
+
+
+def test_polish_explore_xlsx_table_bars_with_region_color_formatter() -> None:
+    """Explore Table with region CF and show_cell_bars still bars sales."""
+    df = pd.DataFrame({"sales": [10, 33], "region": ["EMEA", "APAC"]})
+    polished = polish_explore_xlsx(
+        df_to_excel(df, index=False),
+        df,
+        {
+            "viz_type": "table",
+            "show_cell_bars": True,
+            "conditional_formatting": [
+                {"column": "region", "operator": None, "colorScheme": "success"}
+            ],
+        },
+    )
+    sheet = load_workbook(io.BytesIO(polished)).active
+    types = [rule.type for _, rule in _cf_rules(sheet)]
+    assert "dataBar" in types
+    assert "expression" in types
+    data_bars = [rng for rng, rule in _cf_rules(sheet) if rule.type == "dataBar"]
+    assert data_bars == ["A2:A3"]
+
+
 def test_polish_explore_xlsx_skips_unrelated_viz() -> None:
     """Non Table/Pivot viz types leave the workbook bytes untouched."""
     df = pd.DataFrame({"sales": [10]})
@@ -459,6 +887,7 @@ def test_polish_explore_xlsx_skips_pivot_percent_display_override() -> None:
                     "operator": ">",
                     "targetValue": 0.1,
                     "colorScheme": "#FF0000",
+                    "useGradient": False,
                 }
             ],
         },
