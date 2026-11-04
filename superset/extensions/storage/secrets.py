@@ -21,16 +21,17 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy.orm import Session
 from superset_core.extensions.storage.models import StorageAccess
 from superset_core.extensions.storage.secrets import SecretsState as CoreSecretsState
 
+from superset import db
 from superset.extensions.storage.codecs import DEFAULT_CODEC, get_codec
 from superset.extensions.storage.persistent_dao import ExtensionStorageDAO
 from superset.extensions.storage.utils import (
     get_current_extension_id,
     get_current_user_id,
 )
-from superset.utils.decorators import transaction
 
 
 class SecretsState(CoreSecretsState):
@@ -49,30 +50,33 @@ class SecretsState(CoreSecretsState):
         )
 
     @staticmethod
-    @transaction()
     def set(key: str, value: Any) -> None:
-        """Store a JSON-encoded secret encrypted at rest."""
+        """Store an encrypted secret independently of the caller's transaction."""
         extension_id = get_current_extension_id("secrets_state")
         user_id = get_current_user_id("secrets_state")
-        ExtensionStorageDAO.set(
-            extension_id,
-            key,
-            get_codec(DEFAULT_CODEC).encode(value),
-            codec=DEFAULT_CODEC,
-            user_fk=user_id,
-            encrypt=True,
-            access=StorageAccess.BACKEND,
-        )
+        with Session(bind=db.session.get_bind()) as session:
+            ExtensionStorageDAO.set(
+                extension_id,
+                key,
+                get_codec(DEFAULT_CODEC).encode(value),
+                codec=DEFAULT_CODEC,
+                user_fk=user_id,
+                encrypt=True,
+                access=StorageAccess.BACKEND,
+                session=session,
+            )
 
     @staticmethod
-    @transaction()
     def remove(key: str) -> None:
         """Remove the current user's secret."""
         extension_id = get_current_extension_id("secrets_state")
         user_id = get_current_user_id("secrets_state")
-        ExtensionStorageDAO.delete_by_key(
-            extension_id,
-            key,
-            user_fk=user_id,
-            access=StorageAccess.BACKEND,
-        )
+        with Session(bind=db.session.get_bind()) as session:
+            ExtensionStorageDAO.delete_by_key(
+                extension_id,
+                key,
+                user_fk=user_id,
+                access=StorageAccess.BACKEND,
+                session=session,
+            )
+            session.commit()  # pylint: disable=consider-using-transaction

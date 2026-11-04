@@ -31,6 +31,7 @@ from flask import current_app
 from flask_babel import gettext as _
 from sqlalchemy import and_, desc, func, LargeBinary
 from sqlalchemy.engine import Dialect
+from sqlalchemy.orm import Session
 from superset_core.extensions.storage.models import StorageAccess
 
 from superset import db
@@ -258,7 +259,12 @@ def _validate_value_size(encoded: bytes) -> None:
         raise ExtensionStorageValueTooLarge(max_size)
 
 
-def _check_quota(extension_id: str, new_size: int, existing_size: int = 0) -> None:
+def _check_quota(
+    extension_id: str,
+    new_size: int,
+    existing_size: int = 0,
+    session: Session | None = None,
+) -> None:
     """Raise if writing `new_size` bytes would push the extension over quota.
 
     `existing_size` is the size of the row being replaced (0 for inserts),
@@ -273,11 +279,12 @@ def _check_quota(extension_id: str, new_size: int, existing_size: int = 0) -> No
     grows with row count — acceptable at the row counts a single extension
     is expected to accumulate, but not a fully constant-time check.
     """
+    session = session if session is not None else db.session
     quota = _get_quota()
     if quota is None:
         return
     current_usage = (
-        db.session.query(func.coalesce(func.sum(ExtensionStorage.value_size), 0))
+        session.query(func.coalesce(func.sum(ExtensionStorage.value_size), 0))
         .filter(ExtensionStorage.extension_id == extension_id)
         .scalar()
     )
@@ -585,6 +592,7 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         resource_uuid: str | None = None,
         encrypt: bool = False,
         access: StorageAccess = StorageAccess.FRONTEND,
+        session: Session | None = None,
     ) -> ExtensionStorage:
         """Upsert a storage entry.
 
@@ -619,6 +627,7 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         :raises ExtensionStorageQuotaExceeded: if writing `value` would push
             the extension over its total storage quota.
         """
+        session = session if session is not None else db.session
         _validate_key_length(key)
         _validate_value_size(value)
         encrypt = encrypt or access is StorageAccess.BACKEND
@@ -632,7 +641,7 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
             extension_id=extension_id,
         ):
             entry = (
-                db.session.query(ExtensionStorage)
+                session.query(ExtensionStorage)
                 .filter(
                     and_(
                         *_scope_filter(
@@ -649,7 +658,7 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
             )
             new_size = len(stored_value)
             existing_size = entry.value_size if entry is not None else 0
-            _check_quota(extension_id, new_size, existing_size)
+            _check_quota(extension_id, new_size, existing_size, session=session)
             if entry is not None:
                 entry.value = stored_value
                 entry.value_size = new_size
@@ -669,13 +678,13 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
                     is_encrypted=encrypt,
                     access=access.value,
                 )
-                db.session.add(entry)
-            db.session.flush()
+                session.add(entry)
+            session.flush()
             # Committed here, inside the lock, rather than left to the
             # caller's @transaction(): that decorator only commits after
             # this whole function returns, which is after the lock above
             # has already been released — see the docstring.
-            db.session.commit()  # pylint: disable=consider-using-transaction
+            session.commit()  # pylint: disable=consider-using-transaction
             return entry
 
     # ── Create (disallowed) ─────────────────────────────────────────────────────
@@ -714,6 +723,7 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         resource_type: str | None = None,
         resource_uuid: str | None = None,
         access: StorageAccess = StorageAccess.FRONTEND,
+        session: Session | None = None,
     ) -> bool:
         """Delete a single entry by key. Returns True if a row was removed.
 
@@ -722,8 +732,9 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         docstring), so two concurrent writes to the same scoped key can
         never land as duplicate rows in the first place.
         """
+        session = session if session is not None else db.session
         entry = (
-            db.session.query(ExtensionStorage)
+            session.query(ExtensionStorage)
             .filter(
                 and_(
                     *_scope_filter(
@@ -740,6 +751,6 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         )
         if entry is None:
             return False
-        db.session.delete(entry)
-        db.session.flush()
+        session.delete(entry)
+        session.flush()
         return True

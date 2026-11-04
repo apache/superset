@@ -1026,7 +1026,7 @@ const databaseSchema = (schemas: string[]) => ({
 
 type PendingSchema = {
   resolve: (schema: Record<string, unknown> | null) => void;
-  reject: (error: Error) => void;
+  reject: (error: unknown) => void;
 };
 
 async function chooseDependentOption(name: string, value: string) {
@@ -2041,5 +2041,146 @@ test.each(['runtime', 'views'])(
     );
     await selectOption('Semantic views', 'orders');
     expect(screen.getByRole('button', { name: 'Add 1 view(s)' })).toBeEnabled();
+  },
+);
+
+test('runtime schema authorization retries with the latest nondependency edits', async () => {
+  const { pending, props } = await openDependentSchemaForm();
+  await chooseDependentOption('Database', 'second');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+    pending[1].reject({
+      response: new Response(
+        JSON.stringify({
+          errors: [
+            {
+              error_type: 'OAUTH2_REDIRECT',
+              message: 'Authorization needed',
+              level: 'warning',
+              extra: { url: '/connect', tab_id: 'runtime-flow' },
+            },
+          ],
+        }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } },
+      ),
+    });
+  });
+  await screen.findByRole('link', { name: 'provide authorization' });
+  fireEvent.change(screen.getByRole('textbox', { name: 'Note' }), {
+    target: { value: 'keep this edit' },
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(10);
+  });
+  await act(async () => {
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: 'oauth2_auth_complete',
+        newValue: JSON.stringify({ tabId: 'runtime-flow' }),
+      }),
+    );
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(screen.getByRole('textbox', { name: 'Note' })).toHaveValue(
+    'keep this edit',
+  );
+  expect(mockedPost).toHaveBeenLastCalledWith({
+    endpoint: '/api/v1/semantic_layer/layer-1/schema/runtime',
+    jsonPayload: {
+      runtime_data: expect.objectContaining({
+        database: 'second',
+        note: 'keep this edit',
+      }),
+    },
+  });
+  await act(async () => {
+    pending[2].resolve(databaseSchema(['shared']));
+  });
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+});
+
+test.each([false, true])(
+  'offers authorization during Add and preserves partial creations (%s)',
+  async partial => {
+    const props = createProps();
+    let needsAuthentication = true;
+    mockedGet.mockResolvedValue({
+      json: { result: [{ uuid: 'layer-1', name: 'Personal layer' }] },
+    });
+    mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+      if (endpoint.endsWith('/schema/runtime'))
+        return Promise.resolve({ json: { result: { properties: {} } } });
+      if (endpoint.endsWith('/views'))
+        return Promise.resolve({
+          json: {
+            result: [
+              {
+                name: 'orders',
+                already_added: partial && !needsAuthentication,
+              },
+              { name: 'customers', already_added: false },
+            ],
+          },
+        });
+      if (needsAuthentication)
+        return Promise.reject({
+          response: new Response(
+            JSON.stringify({
+              errors: [
+                {
+                  error_type: 'OAUTH2_REDIRECT',
+                  message: 'Authorization needed',
+                  level: 'warning',
+                  extra: { url: '/connect', tab_id: 'add-flow' },
+                },
+              ],
+              result: {
+                created: partial
+                  ? [{ uuid: 'orders-uuid', name: 'orders' }]
+                  : [],
+                errors: [],
+              },
+            }),
+            { status: 403, headers: { 'Content-Type': 'application/json' } },
+          ),
+        });
+      return Promise.resolve({
+        json: {
+          result: { created: [{ uuid: 'customers-uuid', name: 'customers' }] },
+        },
+      });
+    });
+    render(<AddSemanticViewModal {...props} />);
+    await selectOption('Semantic layer', 'Personal layer');
+    await selectOption('Semantic views', 'orders');
+    await selectOption('Semantic views', 'customers');
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Add 2 view(s)' }),
+    );
+    expect(
+      await screen.findByRole('link', { name: 'provide authorization' }),
+    ).toHaveAttribute('href', '/connect');
+    expect(props.addDangerToast).not.toHaveBeenCalled();
+    expect(props.onHide).not.toHaveBeenCalled();
+    expect(props.onSuccess).toHaveBeenCalledTimes(partial ? 1 : 0);
+    needsAuthentication = false;
+    await act(async () => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'oauth2_auth_complete',
+          newValue: JSON.stringify({ tabId: 'add-flow' }),
+        }),
+      );
+    });
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('link', { name: 'provide authorization' }),
+      ).not.toBeInTheDocument(),
+    );
+    await selectOption('Semantic views', 'customers');
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Add 1 view(s)' }),
+    );
+    await waitFor(() => expect(props.onHide).toHaveBeenCalledTimes(1));
   },
 );

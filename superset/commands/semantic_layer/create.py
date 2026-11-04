@@ -37,7 +37,7 @@ from superset.commands.semantic_layer.exceptions import (
 from superset.commands.semantic_layer.utils import validate_configuration
 from superset.commands.utils import current_user_can_modify_object
 from superset.daos.semantic_layer import SemanticLayerDAO, SemanticViewDAO
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import OAuth2RedirectError, SupersetSecurityException
 from superset.semantic_layers.registry import registry, semantic_layer_context
 from superset.utils import json
 from superset.utils.decorators import on_error, transaction
@@ -134,6 +134,8 @@ class CreateSemanticViewCommand(BaseCommand):
             view: SemanticViewABC | None = layer.implementation.get_semantic_view(
                 name, configuration
             )
+        except OAuth2RedirectError:
+            raise
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning(
                 "Semantic view lookup failed for layer %s, view %s: %s",

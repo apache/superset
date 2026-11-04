@@ -195,6 +195,8 @@ export default function AddSemanticViewModal({
     UISchemaElement | undefined
   >();
   const [runtimeData, setRuntimeData] = useState<Record<string, unknown>>({});
+  const runtimeDataRef = useRef(runtimeData);
+  runtimeDataRef.current = runtimeData;
   const [loadingRuntime, setLoadingRuntime] = useState(false);
   const [refreshingSchema, setRefreshingSchema] = useState(false);
   const [staleSchemaOptions, setStaleSchemaOptions] = useState(false);
@@ -481,6 +483,7 @@ export default function AddSemanticViewModal({
       if (stableSerialize(data) !== stableSerialize(runtimeData)) {
         setCreationErrors([]);
       }
+      runtimeDataRef.current = data;
       setRuntimeData(data);
       errorsRef.current = errors ?? [];
 
@@ -562,7 +565,7 @@ export default function AddSemanticViewModal({
                   () => {
                     lastDepSnapshotRef.current = '';
                     handleRuntimeFormChange({
-                      data,
+                      data: runtimeDataRef.current,
                       errors: errorsRef.current,
                     });
                   },
@@ -744,6 +747,7 @@ export default function AddSemanticViewModal({
         }));
 
       let body: unknown;
+      let authenticationRequired = false;
       try {
         const { json } = await SupersetClient.post({
           endpoint: '/api/v1/semantic_view/',
@@ -751,25 +755,44 @@ export default function AddSemanticViewModal({
         });
         body = json;
       } catch (error) {
-        // SupersetClient rejects non-2xx responses before parsing their body.
-        if (!isRecord(error) || typeof error.json !== 'function') {
-          throw error;
+        authenticationRequired = await captureAuthenticationError(
+          error,
+          () => {
+            if (selectedLayerUuid)
+              fetchViews(selectedLayerUuid, runtimeDataRef.current, gen);
+          },
+          () => gen === fetchGenRef.current,
+        );
+        if (authenticationRequired) {
+          const parsed = await getClientErrorObject(error);
+          body = parsed;
+        } else {
+          // SupersetClient rejects non-2xx responses before parsing their body.
+          if (!isRecord(error) || typeof error.json !== 'function') {
+            throw error;
+          }
+          if (error.status === 400) {
+            // The whole batch was refused before any lookup (for example, more
+            // views than the configured limit): explain why and keep the
+            // selection so the user can trim it and retry.
+            const refusal = batchRefusalMessage(await error.json());
+            if (!refusal) throw error;
+            if (gen !== fetchGenRef.current) return;
+            setCreationErrors([{ name: '', message: refusal }]);
+            addDangerToast(refusal);
+            return;
+          }
+          if (error.status !== 422) throw error;
+          body = await error.json();
         }
-        if (error.status === 400) {
-          // The whole batch was refused before any lookup (for example, more
-          // views than the configured limit): explain why and keep the
-          // selection so the user can trim it and retry.
-          const refusal = batchRefusalMessage(await error.json());
-          if (!refusal) throw error;
-          if (gen !== fetchGenRef.current) return;
-          setCreationErrors([{ name: '', message: refusal }]);
-          addDangerToast(refusal);
-          return;
-        }
-        if (error.status !== 422) throw error;
-        body = await error.json();
       }
-      const { created, errors, failedCount } = parseCreationResult(body);
+      const {
+        created,
+        errors: parsedErrors,
+        failedCount,
+      } = parseCreationResult(body);
+      const errors =
+        authenticationRequired && failedCount === 0 ? [] : parsedErrors;
       // Committed creations must refresh the parent even after this modal closes.
       if (created.length > 0) {
         addSuccessToast(t('%s semantic view(s) added', created.length));
@@ -806,7 +829,11 @@ export default function AddSemanticViewModal({
         );
       }
 
-      if (created.length > 0 && errors.length === 0) {
+      if (
+        !authenticationRequired &&
+        created.length > 0 &&
+        errors.length === 0
+      ) {
         onHide();
       }
     } catch {
