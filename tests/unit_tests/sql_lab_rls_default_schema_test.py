@@ -89,10 +89,10 @@ def database(session: Session, mocker: MockerFixture) -> Iterator[Database]:
     dataset = SqlaTable(table_name="sales", schema="public", database=database)
     role = Role(name="east_sales")
     user = User(
-        first_name="alice",
-        last_name="doe",
-        username="alice",
-        email="alice@example.org",
+        first_name="test",
+        last_name="user",
+        username="analyst",
+        email="analyst@example.org",
         roles=[role],
     )
     subject = Subject(label="east_sales", type=SubjectType.ROLE, role=role)
@@ -220,7 +220,7 @@ def _run_sql_lab(
         sql,
         return_results=not store_results,
         store_results=store_results,
-        username="alice",
+        username="analyst",
     )
     return executed, payload
 
@@ -538,10 +538,10 @@ def _statements(sql: str) -> list[Any]:
             None,
             True,
             "SELECT * FROM public.sales JOIN x ON 1 = 1",
-            ("alice", "public"),
+            ("analyst", "public"),
             True,
         ),
-        ("", True, SQL, ("alice", "public"), True),
+        ("", True, SQL, ("analyst", "public"), True),
     ],
 )
 def test_get_unqualified_table_schemas(
@@ -559,7 +559,7 @@ def test_get_unqualified_table_schemas(
 
     database = MagicMock()
     database.db_engine_spec.supports_dynamic_schema = dynamic
-    database.get_search_path.return_value = ["alice", "public"]
+    database.get_search_path.return_value = ["analyst", "public"]
 
     assert (
         get_unqualified_table_schemas(database, "cat", schema, _statements(sql))
@@ -574,7 +574,7 @@ def test_get_unqualified_table_schemas(
     "search_path, expected",
     [
         (["public"], "public"),
-        (["alice", "public"], ("alice", "public")),
+        (["analyst", "public"], ("analyst", "public")),
         ([], ""),
     ],
 )
@@ -605,7 +605,7 @@ def user_schema_first(database: Database, mocker: MockerFixture) -> Database:
     mocker.patch.object(
         Database,
         "get_inspector",
-        side_effect=lambda **kw: _inspector("alice", ["alice", "public"]),
+        side_effect=lambda **kw: _inspector("analyst", ["analyst", "public"]),
     )
     return database
 
@@ -682,7 +682,7 @@ def test_adhoc_and_cache_key_rls_table_later_on_search_path(
     from superset.models.helpers import validate_adhoc_subquery
     from superset.utils.rls import collect_rls_predicates_for_sql, get_rls_schema
 
-    assert get_rls_schema(user_schema_first, None, None, SQL) == ("alice", "public")
+    assert get_rls_schema(user_schema_first, None, None, SQL) == ("analyst", "public")
     assert CLAUSE in validate_adhoc_subquery(
         f"({SQL})", user_schema_first, None, "", "postgresql"
     )
@@ -723,8 +723,8 @@ def test_virtual_dataset_rls_failure_checks_every_search_path_schema(
 @pytest.mark.parametrize(
     "sql",
     [
-        "SELECT * FROM sales JOIN alice.sales AS s ON TRUE",
-        "SELECT * FROM alice.sales AS s JOIN sales ON TRUE",
+        "SELECT * FROM sales JOIN analyst.sales AS s ON TRUE",
+        "SELECT * FROM analyst.sales AS s JOIN sales ON TRUE",
     ],
 )
 def test_apply_rls_keeps_rules_of_every_search_path_schema(
@@ -740,7 +740,7 @@ def test_apply_rls_keeps_rules_of_every_search_path_schema(
     from superset.utils.rls import apply_rls
 
     statement = SQLStatement(sql, "postgresql")
-    assert apply_rls(user_schema_first, None, ("alice", "public"), statement)
+    assert apply_rls(user_schema_first, None, ("analyst", "public"), statement)
     assert statement.format().count(CLAUSE) == 2
 
 
@@ -998,8 +998,8 @@ def test_datasource_skips_search_path_without_unqualified_table(
     "schema, entries, expected",
     [
         # an entry matching the table in any schema it may resolve to
-        (("alice", "public"), {"public.sales", "archive.sales"}, {"public.sales"}),
-        (("alice", "public"), {"alice.sales"}, {"alice.sales"}),
+        (("analyst", "public"), {"public.sales", "archive.sales"}, {"public.sales"}),
+        (("analyst", "public"), {"analyst.sales"}, {"analyst.sales"}),
         # without any schema only a bare entry can match
         ((), {"public.sales", "sales"}, {"sales"}),
         ("public", {"public.sales"}, {"public.sales"}),

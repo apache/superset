@@ -937,7 +937,7 @@ def test_extended_aggregation_func_compiles_expected_sql(
 
 
 def _search_path_database(
-    mocker: MockerFixture, search_path: Any, default_schema: str = "alice"
+    mocker: MockerFixture, search_path: Any, default_schema: str = "analyst"
 ) -> MagicMock:
     """A database whose connection reports a default schema and search path."""
     database = mocker.MagicMock()
@@ -956,9 +956,9 @@ def test_get_search_path(mocker: MockerFixture) -> None:
     DB Eng Specs (postgres): ``get_search_path`` lists every schema searched for an
     unqualified table, not just the first existing one ``current_schema()`` reports.
     """
-    database = _search_path_database(mocker, ["alice", "public"])
+    database = _search_path_database(mocker, ["analyst", "public"])
 
-    assert spec.get_search_path(database, "analytics") == ["alice", "public"]
+    assert spec.get_search_path(database, "analytics") == ["analyst", "public"]
     database.get_inspector.assert_called_with(catalog="analytics")
     connection = database.get_inspector.return_value.__enter__.return_value.engine
     statement = connection.connect.return_value.__enter__.return_value.execute
@@ -975,4 +975,4 @@ def test_get_search_path_falls_back_to_default_schema(
     """
     database = _search_path_database(mocker, search_path)
 
-    assert spec.get_search_path(database, None) == ["alice"]
+    assert spec.get_search_path(database, None) == ["analyst"]

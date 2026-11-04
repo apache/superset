@@ -573,8 +573,8 @@ def test_check_disallowed_tables_no_config(
         ("public.secrets", "SELECT * FROM secrets", "public", True),
         ("archive.secrets", "SELECT * FROM secrets", "public", False),
         # or in any later schema on the search path
-        ("public.secrets", "SELECT * FROM secrets", ("alice", "public"), True),
-        ("archive.secrets", "SELECT * FROM secrets", ("alice", "public"), False),
+        ("public.secrets", "SELECT * FROM secrets", ("analyst", "public"), True),
+        ("archive.secrets", "SELECT * FROM secrets", ("analyst", "public"), False),
         # without a known default schema only a bare entry can match
         ("public.secrets", "SELECT * FROM secrets", "", False),
         ("secrets", "SELECT * FROM secrets", "", True),
@@ -624,7 +624,7 @@ def test_prepare_sql_resolves_table_schemas_once(
         id=1, database_name="pg", sqlalchemy_uri="postgresql://u:p@h/analytics"
     )
     get_search_path = mocker.patch.object(
-        database, "get_search_path", return_value=["alice", "public"]
+        database, "get_search_path", return_value=["analyst", "public"]
     )
     apply_rls = mocker.patch.object(SQLExecutor, "_apply_rls_to_script")
 
@@ -632,9 +632,9 @@ def test_prepare_sql_resolves_table_schemas_once(
         "SELECT * FROM secrets", QueryOptions()
     )
 
-    assert (schema, table_schemas) == (None, ("alice", "public"))
+    assert (schema, table_schemas) == (None, ("analyst", "public"))
     get_search_path.assert_called_once_with("analytics")
-    assert apply_rls.call_args.args[2] == ("alice", "public")
+    assert apply_rls.call_args.args[2] == ("analyst", "public")
 
 
 # =============================================================================
