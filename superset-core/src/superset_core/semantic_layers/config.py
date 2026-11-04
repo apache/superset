@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Any, get_args, get_origin, Iterator
 
 from pydantic import BaseModel
@@ -80,6 +81,17 @@ def _reorder(schema_node: dict[str, Any], field_order: list[str]) -> None:
         schema_node["required"] = sorted(
             required, key=lambda key: index.get(key, len(field_order))
         )
+
+
+class SemanticCredentialReadiness(Enum):
+    """Host-normalized secret resolution, not authentication or authorization.
+
+    Providers must check identity with RESOLVED before discovery, then validate
+    their required fields. Strings and truthy values never authorize discovery.
+    """
+
+    UNRESOLVED = "unresolved"
+    RESOLVED = "resolved"
 
 
 def build_configuration_schema(

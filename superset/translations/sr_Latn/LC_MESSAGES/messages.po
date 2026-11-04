@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 19:15+0300\n"
+"POT-Creation-Date: 2026-11-04 19:58+0300\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -2026,6 +2026,13 @@ msgid "Added %s '%s'"
 msgstr ""
 
 #, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-format
 msgid "Added '%s' dimension"
 msgstr ""
 
@@ -3623,6 +3630,9 @@ msgstr "Nazad"
 msgid "Back to all"
 msgstr "Nazad na sve"
 
+msgid "Back to current"
+msgstr ""
+
 msgid "Back to sign in"
 msgstr ""
 
@@ -4443,13 +4453,22 @@ msgstr "Promenio/la"
 msgid "Changed color palette"
 msgstr ""
 
+msgid "Changed details"
+msgstr ""
+
 #, python-format
 msgid "Changed filter on '%s'"
+msgstr ""
+
+msgid "Changed filter scopes"
 msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Changed on"
 msgstr "Promenjeno"
+
+msgid "Changed settings"
+msgstr ""
 
 msgid "Changed the time range"
 msgstr ""
@@ -4778,6 +4797,9 @@ msgstr "Pogledajte ovaj grafikon: "
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, ru, sk, sl, uk, zh, zh_TW]
 msgid "Check out this dashboard: "
 msgstr "Pogledajte ovu kontrolnu tablu: "
+
+msgid "Check the value transform →"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Check to force date partitions to have the same height"
@@ -7909,6 +7931,12 @@ msgstr "Onemogućava funkciju prelaska na detalje za ovu bazu podataka."
 msgid "Discard"
 msgstr "Odbaci"
 
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Display Name"
 msgstr "Naziv za prikaz"
@@ -8596,6 +8624,16 @@ msgstr "Izmenljivo"
 # zh, zh_TW]
 msgid "Edited"
 msgstr "Izmenjeno"
+
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Edited widget content"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Editing 1 filter:"
@@ -10058,6 +10096,11 @@ msgstr ""
 msgid ""
 "Filters on this column are mapped onto the partition column, but are not "
 "mirrored."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -12169,6 +12212,15 @@ msgstr "Lista ažurirana"
 msgid "List view"
 msgstr "Pregled liste"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Live render"
 msgstr "Renderovanje uživo"
@@ -12241,6 +12293,8 @@ msgid "Locate the chart"
 msgstr "Lociraj grafikon"
 
 # ru, uk]
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr "Log"
 
@@ -14652,6 +14706,12 @@ msgstr ""
 msgid "Partition mismatch found"
 msgstr ""
 
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -15583,6 +15643,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "Sirovi zapisi"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 msgid "Re-pick fields"
 msgstr ""
 
@@ -15590,6 +15653,9 @@ msgid "Re-pick fields for this chart"
 msgstr ""
 
 msgid "Rearranged layout"
+msgstr ""
+
+msgid "Rearranged the layout"
 msgstr ""
 
 msgid ""
@@ -15835,6 +15901,13 @@ msgid "Removed %s '%s'"
 msgstr ""
 
 #, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-format
 msgid "Removed '%s' dimension"
 msgstr ""
 
@@ -15872,6 +15945,10 @@ msgid "Rename tab"
 msgstr "Preimenuj karticu"
 
 msgid "Renamed chart"
+msgstr ""
+
+#, python-format
+msgid "Renamed to “%s”"
 msgstr ""
 
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
@@ -16224,6 +16301,24 @@ msgid "Restore this version?"
 msgstr ""
 
 #, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Restored %s; %s widget no longer exists or is no longer yours to place, "
+"so it was left out."
+msgid_plural ""
+"Restored %s; %s widgets no longer exist or are no longer yours to place, "
+"so they were left out."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
+#, python-format
 msgid "Restored to '%s' version"
 msgstr ""
 
@@ -16235,12 +16330,21 @@ msgid "Restored version"
 msgstr ""
 
 #, python-format
+msgid "Restored version %s"
+msgstr ""
+
+#, python-format
 msgid "Restored version · %s"
 msgstr ""
 
 msgid ""
 "Restoring creates a new version. Your existing version history will not "
 "be lost."
+msgstr ""
+
+msgid ""
+"Restoring saves a new version, so no history is lost. Drafts started "
+"before the restore can no longer be published."
 msgstr ""
 
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -19877,6 +19981,10 @@ msgstr ""
 msgid "The canvas changed too much since your revision; reload it."
 msgstr ""
 
+#, python-format
+msgid "The canvas will be restored to %s."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -21739,6 +21847,14 @@ msgstr ""
 msgid "This canvas is empty"
 msgstr ""
 
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
@@ -21754,6 +21870,14 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "This chart has been moved to a different filter scope."
 msgstr "Ovaj grafikon je premešten u drugi opseg filtera."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr "Ovim grafikonom se upravlja eksterno i ne može se prepisati u Superset-u."
@@ -23134,6 +23258,10 @@ msgstr ""
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Nije moguće preuzeti semantičke prikaze. Proverite konfiguraciju sloja."
 
+#, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
@@ -23921,6 +24049,10 @@ msgstr ""
 msgid "Version"
 msgstr "Verzija"
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 msgid "Version history"
 msgstr ""
 
@@ -23998,6 +24130,9 @@ msgstr "Gledalac"
 msgid "Viewers"
 msgstr "Gledaoci"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -24009,6 +24144,10 @@ msgstr ""
 "Pregledači su lista subjekata koji mogu da pregledaju kontrolni panel. "
 "Ako nijedan pregledač nije definisan, kontrolni panel je dostupan svim "
 "korisnicima sa odgovarajućim dozvolama za izvor podataka."
+
+#, python-format
+msgid "Viewing %s"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Viewport"

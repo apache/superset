@@ -833,7 +833,28 @@ for results, and propagates asynchronous database errors. If an operation is sti
 pending when result fetching begins, the additional polling wait is bounded by
 `SQLLAB_TIMEOUT` (in seconds); on expiry, Superset requests cancellation and reports
 a timeout. Configure the driver's network timeout separately to bound individual
-RPC calls.
+RPC calls. A signal-based SQL Lab time limit can interrupt any HiveServer2
+response, including execution, lazy result metadata, status, logs, rows, or
+cleanup. Superset abandons the affected Impala or Hive cursor and connection
+before driver exception handlers run: subsequent cancellation, close, and
+finalizer calls send no RPCs on that transport. The socket is dropped locally;
+cleanup failures are logged without replacing the original time-limit exception.
+No reconnect or cancellation is attempted after an interrupted RPC. Configure
+server-side query and session timeouts to release an abandoned operation.
+A time limit between RPCs leaves the transport usable: Impala requests cancellation,
+and Hive retains its normal session cleanup. During Impala result fetching, only
+CancelOperation is sent before abandoning the cursor locally; CloseOperation and
+CloseSession are skipped to shorten cleanup in alerts/reports' soft-to-hard limit
+gap. The cancellation RPC itself is not bounded by this handler. Configure a driver
+network timeout or increase `ALERT_REPORTS_WORKING_TIME_OUT_LAG` for Impala
+alerts/reports. SQL Lab's execution-status polling retains full operation/session
+cleanup after cancellation.
+Abandoned Impala and Hive connections are invalidated when returned to a
+SQLAlchemy pool, so later checkouts open a fresh connection rather than replaying
+the previous time limit or reusing a locally dropped transport.
+The local Impala polling deadline and an explicit Stop also request cancellation
+when the transport has not been interrupted; an incomplete cleanup reply abandons
+the transport rather than attempting another cleanup RPC.
 
 ## SQL Lab Query History Pruning
 

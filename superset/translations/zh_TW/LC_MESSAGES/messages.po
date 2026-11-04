@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-11-02 19:15+0300\n"
+"POT-Creation-Date: 2026-11-04 19:58+0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -1838,6 +1838,11 @@ msgid "Added %s '%s'"
 msgstr ""
 
 #, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
+
+#, python-format
 msgid "Added '%s' dimension"
 msgstr ""
 
@@ -3222,6 +3227,9 @@ msgstr "返回"
 msgid "Back to all"
 msgstr "返回到列表"
 
+msgid "Back to current"
+msgstr ""
+
 msgid "Back to sign in"
 msgstr ""
 
@@ -3971,13 +3979,22 @@ msgstr "修改人"
 msgid "Changed color palette"
 msgstr ""
 
+msgid "Changed details"
+msgstr ""
+
 #, python-format
 msgid "Changed filter on '%s'"
+msgstr ""
+
+msgid "Changed filter scopes"
 msgstr ""
 
 #, fuzzy
 msgid "Changed on"
 msgstr "範圍"
+
+msgid "Changed settings"
+msgstr ""
 
 msgid "Changed the time range"
 msgstr ""
@@ -4266,6 +4283,9 @@ msgstr "看看這張圖表："
 
 msgid "Check out this dashboard: "
 msgstr "查看此看板："
+
+msgid "Check the value transform →"
+msgstr ""
 
 msgid "Check to force date partitions to have the same height"
 msgstr "選中以强制日期分區具有相同的高度"
@@ -7063,6 +7083,12 @@ msgstr "這個數據集没有返回預覽數據"
 msgid "Discard"
 msgstr "取消"
 
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
+
 msgid "Display Name"
 msgstr "顯示名稱"
 
@@ -7660,6 +7686,14 @@ msgstr "可編輯"
 
 msgid "Edited"
 msgstr "已編輯"
+
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+
+msgid "Edited widget content"
+msgstr ""
 
 msgid "Editing 1 filter:"
 msgstr "編輯 1 個過濾條件："
@@ -9076,6 +9110,11 @@ msgstr ""
 msgid ""
 "Filters on this column are mapped onto the partition column, but are not "
 "mirrored."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -11046,6 +11085,15 @@ msgstr "列表已更新"
 msgid "List view"
 msgstr "數字"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "實時渲染"
 
@@ -11116,6 +11164,8 @@ msgstr "本地主題已設定為 \"%s\""
 msgid "Locate the chart"
 msgstr "定位到圖表"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "日誌"
@@ -13323,6 +13373,12 @@ msgstr ""
 msgid "Partition mismatch found"
 msgstr ""
 
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -14179,6 +14235,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "原始紀錄"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 msgid "Re-pick fields"
 msgstr ""
 
@@ -14186,6 +14245,9 @@ msgid "Re-pick fields for this chart"
 msgstr ""
 
 msgid "Rearranged layout"
+msgstr ""
+
+msgid "Rearranged the layout"
 msgstr ""
 
 msgid ""
@@ -14422,6 +14484,11 @@ msgid "Removed %s '%s'"
 msgstr ""
 
 #, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+
+#, python-format
 msgid "Removed '%s' dimension"
 msgstr ""
 
@@ -14457,6 +14524,10 @@ msgid "Rename tab"
 msgstr "重命名選項卡"
 
 msgid "Renamed chart"
+msgstr ""
+
+#, python-format
+msgid "Renamed to “%s”"
 msgstr ""
 
 #, fuzzy
@@ -14776,6 +14847,22 @@ msgid "Restore this version?"
 msgstr ""
 
 #, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Restored %s; %s widget no longer exists or is no longer yours to place, "
+"so it was left out."
+msgid_plural ""
+"Restored %s; %s widgets no longer exist or are no longer yours to place, "
+"so they were left out."
+msgstr[0] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
+#, python-format
 msgid "Restored to '%s' version"
 msgstr ""
 
@@ -14787,12 +14874,21 @@ msgid "Restored version"
 msgstr ""
 
 #, python-format
+msgid "Restored version %s"
+msgstr ""
+
+#, python-format
 msgid "Restored version · %s"
 msgstr ""
 
 msgid ""
 "Restoring creates a new version. Your existing version history will not "
 "be lost."
+msgstr ""
+
+msgid ""
+"Restoring saves a new version, so no history is lost. Drafts started "
+"before the restore can no longer be published."
 msgstr ""
 
 msgid "Results"
@@ -18125,6 +18221,10 @@ msgstr ""
 msgid "The canvas changed too much since your revision; reload it."
 msgstr ""
 
+#, python-format
+msgid "The canvas will be restored to %s."
+msgstr ""
+
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
@@ -19793,6 +19893,14 @@ msgstr ""
 msgid "This canvas is empty"
 msgstr ""
 
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -19804,6 +19912,14 @@ msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "此圖表已移至其他過濾器範圍内。"
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -21127,6 +21243,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "無法擷取語義視圖。請檢查圖層設定。"
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "找不到這樣的假期：[%(holiday)s]"
 
@@ -21852,6 +21972,10 @@ msgstr "在其他篩選器中選取的值將影響篩選器選項，以僅顯示
 msgid "Version"
 msgstr "版本"
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 msgid "Version history"
 msgstr ""
 
@@ -21928,6 +22052,9 @@ msgstr "檢視者"
 msgid "Viewers"
 msgstr "檢視者"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -21936,6 +22063,10 @@ msgid ""
 "are defined, the dashboard is accessible to all users with appropriate "
 "datasource permissions."
 msgstr "檢視者是可以檢視儀表板的對象清單。若未定義任何檢視者，則具有適當資料來源權限的所有使用者皆可存取該儀表板。"
+
+#, python-format
+msgid "Viewing %s"
+msgstr ""
 
 msgid "Viewport"
 msgstr "視口"

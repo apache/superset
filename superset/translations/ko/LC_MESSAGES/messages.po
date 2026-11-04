@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 19:15+0300\n"
+"POT-Creation-Date: 2026-11-04 19:58+0300\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -2261,6 +2261,11 @@ msgid "Added %s '%s'"
 msgstr ""
 
 #, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
+
+#, python-format
 msgid "Added '%s' dimension"
 msgstr ""
 
@@ -4180,6 +4185,9 @@ msgstr "뒤로"
 msgid "Back to all"
 msgstr "전체로 돌아가기"
 
+msgid "Back to current"
+msgstr ""
+
 msgid "Back to sign in"
 msgstr ""
 
@@ -5232,13 +5240,22 @@ msgstr "관리"
 msgid "Changed color palette"
 msgstr ""
 
+msgid "Changed details"
+msgstr ""
+
 #, python-format
 msgid "Changed filter on '%s'"
+msgstr ""
+
+msgid "Changed filter scopes"
 msgstr ""
 
 #, fuzzy
 msgid "Changed on"
 msgstr "관리"
+
+msgid "Changed settings"
+msgstr ""
 
 msgid "Changed the time range"
 msgstr ""
@@ -5607,6 +5624,9 @@ msgstr "이 차트를 확인하십시오: "
 #, fuzzy
 msgid "Check out this dashboard: "
 msgstr "이 대시보드를 확인하십시오: "
+
+msgid "Check the value transform →"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -9289,6 +9309,12 @@ msgstr "이 데이터베이스의 세부 정보 드릴 기능을 비활성화합
 msgid "Discard"
 msgstr "대시보드"
 
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
+
 #, fuzzy
 msgid "Display Name"
 msgstr "필터"
@@ -10126,6 +10152,14 @@ msgstr "편집 가능"
 
 msgid "Edited"
 msgstr "테이블 수정"
+
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+
+msgid "Edited widget content"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -11989,6 +12023,11 @@ msgstr ""
 msgid ""
 "Filters on this column are mapped onto the partition column, but are not "
 "mirrored."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -14711,6 +14750,15 @@ msgstr "분기"
 msgid "List view"
 msgstr "저장된 Query 수정"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -14799,6 +14847,8 @@ msgstr "로컬 테마가 \"%s\"(으)로 설정됨"
 msgid "Locate the chart"
 msgstr "새 차트 생성"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "로그"
@@ -17885,6 +17935,12 @@ msgstr ""
 msgid "Partition mismatch found"
 msgstr ""
 
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -19130,6 +19186,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "원시 레코드"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 msgid "Re-pick fields"
 msgstr ""
 
@@ -19137,6 +19196,9 @@ msgid "Re-pick fields for this chart"
 msgstr ""
 
 msgid "Rearranged layout"
+msgstr ""
+
+msgid "Rearranged the layout"
 msgstr ""
 
 msgid ""
@@ -19431,6 +19493,11 @@ msgid "Removed %s '%s'"
 msgstr ""
 
 #, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+
+#, python-format
 msgid "Removed '%s' dimension"
 msgstr ""
 
@@ -19470,6 +19537,10 @@ msgid "Rename tab"
 msgstr "탭 이름 바꾸기"
 
 msgid "Renamed chart"
+msgstr ""
+
+#, python-format
+msgid "Renamed to “%s”"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -19912,6 +19983,22 @@ msgid "Restore this version?"
 msgstr ""
 
 #, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Restored %s; %s widget no longer exists or is no longer yours to place, "
+"so it was left out."
+msgid_plural ""
+"Restored %s; %s widgets no longer exist or are no longer yours to place, "
+"so they were left out."
+msgstr[0] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
+#, python-format
 msgid "Restored to '%s' version"
 msgstr ""
 
@@ -19923,12 +20010,21 @@ msgid "Restored version"
 msgstr ""
 
 #, python-format
+msgid "Restored version %s"
+msgstr ""
+
+#, python-format
 msgid "Restored version · %s"
 msgstr ""
 
 msgid ""
 "Restoring creates a new version. Your existing version history will not "
 "be lost."
+msgstr ""
+
+msgid ""
+"Restoring saves a new version, so no history is lost. Drafts started "
+"before the restore can no longer be published."
 msgstr ""
 
 msgid "Results"
@@ -24366,6 +24462,10 @@ msgstr ""
 msgid "The canvas changed too much since your revision; reload it."
 msgstr ""
 
+#, python-format
+msgid "The canvas will be restored to %s."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -26580,6 +26680,14 @@ msgstr ""
 msgid "This canvas is empty"
 msgstr ""
 
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
 # zh_TW]
@@ -26599,6 +26707,14 @@ msgstr ""
 #, fuzzy
 msgid "This chart has been moved to a different filter scope."
 msgstr "이 차트가 다른 필터 범위로 이동되었습니다."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -28303,6 +28419,10 @@ msgstr ""
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "시맨틱 뷰를 가져올 수 없습니다. 레이어 구성을 확인해 주세요."
 
+#, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -29266,6 +29386,10 @@ msgstr "다른 필터에서 선택된 값은 관련 값만 표시하도록 필�
 msgid "Version"
 msgstr "버전"
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 msgid "Version history"
 msgstr ""
 
@@ -29360,6 +29484,9 @@ msgstr "열람자"
 msgid "Viewers"
 msgstr "열람자"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -29370,6 +29497,10 @@ msgid ""
 msgstr ""
 "열람자는 대시보드를 볼 수 있는 주체의 목록입니다. 열람자가 정의되지 않은 경우, 적절한 데이터 소스 권한을 가진 모든 사용자가 "
 "대시보드에 접근할 수 있습니다."
+
+#, python-format
+msgid "Viewing %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,

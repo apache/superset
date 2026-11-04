@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 19:15+0300\n"
+"POT-Creation-Date: 2026-11-04 19:58+0300\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -1808,6 +1808,12 @@ msgid "Added %s '%s'"
 msgstr ""
 
 #, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "Added '%s' dimension"
 msgstr ""
 
@@ -3233,6 +3239,9 @@ msgstr "Terug"
 msgid "Back to all"
 msgstr "Terug naar alles"
 
+msgid "Back to current"
+msgstr ""
+
 msgid "Back to sign in"
 msgstr ""
 
@@ -3967,13 +3976,22 @@ msgstr "Gewijzigd door"
 msgid "Changed color palette"
 msgstr ""
 
+msgid "Changed details"
+msgstr ""
+
 #, python-format
 msgid "Changed filter on '%s'"
+msgstr ""
+
+msgid "Changed filter scopes"
 msgstr ""
 
 #, fuzzy
 msgid "Changed on"
 msgstr "wijziging"
+
+msgid "Changed settings"
+msgstr ""
 
 msgid "Changed the time range"
 msgstr ""
@@ -4253,6 +4271,9 @@ msgstr "Bekijk deze grafiek: "
 
 msgid "Check out this dashboard: "
 msgstr "Kijk naar dit dashboard: "
+
+msgid "Check the value transform →"
+msgstr ""
 
 msgid "Check to force date partitions to have the same height"
 msgstr "Aanvinken om de datum partities te forceren dezelfde hoogte te hebben"
@@ -7040,6 +7061,12 @@ msgstr "Er zijn geen voorbeelden gevonden voor deze dataset"
 msgid "Discard"
 msgstr "Negeren"
 
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Toon naam"
 
@@ -7651,6 +7678,15 @@ msgstr "Bewerkbaar"
 
 msgid "Edited"
 msgstr "Bewerkt"
+
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Edited widget content"
+msgstr ""
 
 msgid "Editing 1 filter:"
 msgstr "Bewerk 1 filter:"
@@ -9008,6 +9044,11 @@ msgstr ""
 msgid ""
 "Filters on this column are mapped onto the partition column, but are not "
 "mirrored."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -10923,6 +10964,15 @@ msgstr "Lijst bijgewerkt"
 msgid "List view"
 msgstr "Splits nummer"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Live render"
 
@@ -10992,6 +11042,8 @@ msgstr "Lokaal thema ingesteld op \"%s\""
 msgid "Locate the chart"
 msgstr "Zoek de grafiek"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "log"
@@ -13134,6 +13186,12 @@ msgstr ""
 msgid "Partition mismatch found"
 msgstr ""
 
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -13953,6 +14011,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "Ruwe records"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 msgid "Re-pick fields"
 msgstr ""
 
@@ -13960,6 +14021,9 @@ msgid "Re-pick fields for this chart"
 msgstr ""
 
 msgid "Rearranged layout"
+msgstr ""
+
+msgid "Rearranged the layout"
 msgstr ""
 
 msgid ""
@@ -14186,6 +14250,12 @@ msgid "Removed %s '%s'"
 msgstr ""
 
 #, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "Removed '%s' dimension"
 msgstr ""
 
@@ -14222,6 +14292,10 @@ msgid "Rename tab"
 msgstr "Tabblad hernoemen"
 
 msgid "Renamed chart"
+msgstr ""
+
+#, python-format
+msgid "Renamed to “%s”"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -14534,6 +14608,23 @@ msgid "Restore this version?"
 msgstr ""
 
 #, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Restored %s; %s widget no longer exists or is no longer yours to place, "
+"so it was left out."
+msgid_plural ""
+"Restored %s; %s widgets no longer exist or are no longer yours to place, "
+"so they were left out."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
+#, python-format
 msgid "Restored to '%s' version"
 msgstr ""
 
@@ -14545,12 +14636,21 @@ msgid "Restored version"
 msgstr ""
 
 #, python-format
+msgid "Restored version %s"
+msgstr ""
+
+#, python-format
 msgid "Restored version · %s"
 msgstr ""
 
 msgid ""
 "Restoring creates a new version. Your existing version history will not "
 "be lost."
+msgstr ""
+
+msgid ""
+"Restoring saves a new version, so no history is lost. Drafts started "
+"before the restore can no longer be published."
 msgstr ""
 
 msgid "Results"
@@ -17859,6 +17959,10 @@ msgstr ""
 msgid "The canvas changed too much since your revision; reload it."
 msgstr ""
 
+#, python-format
+msgid "The canvas will be restored to %s."
+msgstr ""
+
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
@@ -19666,6 +19770,14 @@ msgstr ""
 msgid "This canvas is empty"
 msgstr ""
 
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -19679,6 +19791,14 @@ msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Deze grafiek is verplaatst naar een ander filterbereik."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -20995,6 +21115,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Kan semantische weergaven niet ophalen. Controleer de laagconfiguratie."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Niet in staat om zo’n holiday te vinden: [%(holiday)s]"
 
@@ -21733,6 +21857,10 @@ msgstr ""
 msgid "Version"
 msgstr "Versie"
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 msgid "Version history"
 msgstr ""
 
@@ -21796,6 +21924,9 @@ msgstr "Kijker"
 msgid "Viewers"
 msgstr "Kijkers"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -21804,6 +21935,10 @@ msgstr ""
 "Kijkers zijn een lijst met subjects die het dashboard kunnen bekijken. "
 "Als er geen kijkers zijn gedefinieerd, is het dashboard toegankelijk voor"
 " alle gebruikers met passende databronrechten."
+
+#, python-format
+msgid "Viewing %s"
+msgstr ""
 
 msgid "Viewport"
 msgstr "Weergavevenster"
