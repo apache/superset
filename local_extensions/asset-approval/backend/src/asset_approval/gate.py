@@ -641,7 +641,15 @@ def gate_write(
             # delete's note: the approver was reading "delete it" as the note
             # on a rename (E3). The delete direction already clears it; this
             # is the mirror.
-            clear_note=replaced_delete,
+            #
+            # A save that pulls the request back out of review clears it for
+            # the same reason. The note was written to tell a reviewer what
+            # they were being asked to look at, and the content has just
+            # changed underneath it. Kept, it is pre-filled into the next
+            # request-review dialog, so an author in a hurry sends their
+            # reviewer a description of work the draft no longer contains --
+            # which is what a tester did, and rated the worst thing they hit.
+            clear_note=replaced_delete or left_review,
             base=base,
         )
     else:

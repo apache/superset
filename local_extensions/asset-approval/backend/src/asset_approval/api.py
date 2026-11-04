@@ -25,6 +25,7 @@ the Home tab and the Approvals page can all deep-link to the same endpoint
 
 from __future__ import annotations
 
+import copy
 import logging
 from datetime import date, datetime
 from importlib import import_module
@@ -854,6 +855,250 @@ def _layout_of(before: Any, after: Any) -> dict[str, Any] | None:
     return layout
 
 
+# --------------------------------------------------- derived filter scopes
+
+#: The two lists a filter's scope keeps beside the scope itself.
+#:
+#: ``scope`` (``rootPath`` and ``excluded``) is what the author set. These are
+#: what Superset worked out from it: every chart, and every tab, the scope
+#: reaches *right now*. Superset recomputes them whenever a chart or a tab is
+#: added or removed, so deleting one chart rewrote the list in the dashboard
+#: scope, in every other chart's cross-filter record and in every native
+#: filter -- eleven rows, none of which the author touched, between the
+#: reviewer and the one change that was made.
+#:
+#: They are real: the stored values do change, and a chart entering or
+#: leaving a scope is reviewable (Visa Q3). So they are not dropped. They are
+#: moved out of the way of the author's own edit and put under one line that
+#: says what caused them, with every value still sent.
+SCOPE_CACHE_KEYS = ("chartsInScope", "tabsInScope")
+
+#: Fields of ``json_metadata`` that are lists of objects with an ``id``, each
+#: object keeping a scope of its own, and what to call one.
+_SCOPED_LISTS = {
+    "native_filter_configuration": ("native filter", "filter"),
+    "chart_customization_config": ("chart customization", "customization"),
+}
+
+
+def _layout_names(layout: Any) -> tuple[dict[str, str], dict[str, str]]:
+    """``(chart id -> name, tab id -> name)`` for what a layout holds.
+
+    A scope lists charts by id and tabs by the layout's own element id
+    (``TAB-d-E0Zc1cTH``). Neither means anything to a reviewer, and the
+    layout in the same payload knows both names.
+    """
+    charts: dict[str, str] = {}
+    tabs: dict[str, str] = {}
+    if not isinstance(layout, dict):
+        return charts, tabs
+    for key, component in layout.items():
+        if not isinstance(component, dict):
+            continue
+        kind = _component_type(key, component)
+        if kind == "CHART":
+            meta = component.get("meta")
+            chart_id = meta.get("chartId") if isinstance(meta, dict) else None
+            if chart_id is not None:
+                charts[str(chart_id)] = (
+                    _component_name(component) or f"chart {chart_id}"
+                )
+        elif kind == "TAB":
+            tabs[str(key)] = _component_name(component) or str(key)
+    return charts, tabs
+
+
+def _scope_sites(
+    blob: dict[Any, Any], chart_names: dict[str, str]
+) -> dict[tuple[str, str], tuple[str, str, dict[Any, Any]]]:
+    """Every place ``blob`` keeps a scope: ``site -> (label, noun, holder)``.
+
+    ``holder`` is the object that carries the two cache lists, so the caller
+    can read them and take them out. Only places that are known by shape are
+    listed; a scope kept anywhere else is simply left in the ordinary list of
+    entries, where it is shown in full as it always was.
+    """
+    sites: dict[tuple[str, str], tuple[str, str, dict[Any, Any]]] = {}
+    overall = blob.get("global_chart_configuration")
+    if isinstance(overall, dict):
+        sites[("global", "")] = ("Dashboard cross-filtering", "cross-filter", overall)
+    per_chart = blob.get("chart_configuration")
+    if isinstance(per_chart, dict):
+        for chart_id, record in per_chart.items():
+            cross = record.get("crossFilters") if isinstance(record, dict) else None
+            if isinstance(cross, dict):
+                name = chart_names.get(str(chart_id), f"chart {chart_id}")
+                sites[("chart", str(chart_id))] = (
+                    f"Cross-filtering from {name}",
+                    "cross-filter",
+                    cross,
+                )
+    for field, (noun, word) in _SCOPED_LISTS.items():
+        for ident, item in (_identified(blob.get(field)) or {}).items():
+            sites[(field, str(ident))] = (f"{_item_name(item)} {word}", noun, item)
+    return sites
+
+
+def _scope_row(kind: str, key: str, text: str) -> dict[str, Any]:
+    """One line of the consequence group.
+
+    Not cut to ``ENTRY_VALUE_LIMIT``: a list of chart names is the content of
+    the line, and cutting it is how a chart leaving a scope would go unseen.
+    """
+    entry: dict[str, Any] = {"kind": kind, "key": key, "consequence": True}
+    entry["after" if kind == "added" else "before"] = text
+    return entry
+
+
+def _scope_consequence(
+    kind_count: int,
+    names: list[str],
+    singular: str,
+    plural: str,
+) -> str:
+    listed = ", ".join(names)
+    return f"{kind_count} {singular if kind_count == 1 else plural} ({listed})"
+
+
+def _split_scope_caches(
+    before: Any, after: Any, was_layout: Any, now_layout: Any
+) -> tuple[Any, Any, list[dict[str, Any]], str | None]:
+    """Take the derived scope lists out of two ``json_metadata`` blobs.
+
+    Returns the two blobs without them, one row per list that really moved
+    (what left it, what joined it, by name), and the sentence that says why.
+    Both blobs come back unchanged in meaning when there is nothing to
+    separate, and are copies either way.
+
+    A scope list is only taken out where it exists on both sides. A filter
+    that was added or removed shows its whole body, scope lists included, in
+    its own ordinary row, because there the lists are part of what arrived.
+    """
+    if not (isinstance(before, dict) and isinstance(after, dict)):
+        return before, after, [], None
+    before, after = copy.deepcopy(before), copy.deepcopy(after)
+
+    was_charts, was_tabs = _layout_names(_parsed(was_layout))
+    now_charts, now_tabs = _layout_names(_parsed(now_layout))
+    chart_names = {**was_charts, **now_charts}
+    tab_names = {**was_tabs, **now_tabs}
+    gone_charts = set(was_charts) - set(now_charts)
+    new_charts = set(now_charts) - set(was_charts)
+    gone_tabs = set(was_tabs) - set(now_tabs)
+    new_tabs = set(now_tabs) - set(was_tabs)
+
+    def chart(ident: Any) -> str:
+        return chart_names.get(str(ident), f"chart {ident}")
+
+    def tab(ident: Any) -> str:
+        return tab_names.get(str(ident), str(ident))
+
+    rows: list[dict[str, Any]] = []
+    nouns: list[str] = []
+    touched_charts: set[str] = set()
+    touched_tabs: set[str] = set()
+
+    def note(noun: str) -> None:
+        if noun not in nouns:
+            nouns.append(noun)
+
+    # A chart's own cross-filter record arrives with the chart and leaves with
+    # it. Only for a chart the layout really added or removed: a record that
+    # vanishes for a chart still on the dashboard is not a consequence of
+    # anything and stays in the ordinary list.
+    was_records = before.get("chart_configuration")
+    now_records = after.get("chart_configuration")
+    if isinstance(was_records, dict) and isinstance(now_records, dict):
+        for chart_id in sorted(set(was_records) ^ set(now_records), key=str):
+            left = chart_id in was_records
+            if str(chart_id) not in (gone_charts if left else new_charts):
+                continue
+            record = (was_records if left else now_records).pop(chart_id)
+            cross = record.get("crossFilters") if isinstance(record, dict) else None
+            scope = cross.get("scope") if isinstance(cross, dict) else None
+            text = f"scope: {_text_of(scope)}" if scope is not None else "no scope set"
+            rows.append(
+                _scope_row(
+                    "removed" if left else "added",
+                    f"{chart(chart_id)} · cross-filter settings",
+                    text,
+                )
+            )
+            touched_charts.add(str(chart_id))
+            note("cross-filter")
+
+    was_sites = _scope_sites(before, chart_names)
+    now_sites = _scope_sites(after, chart_names)
+    for site, (label, noun, was_holder) in was_sites.items():
+        if site not in now_sites:
+            continue
+        now_holder = now_sites[site][2]
+        for cache, name_of, touched, what in (
+            ("chartsInScope", chart, touched_charts, "charts"),
+            ("tabsInScope", tab, touched_tabs, "tabs"),
+        ):
+            was_ids, now_ids = was_holder.get(cache), now_holder.get(cache)
+            sides = (was_ids, now_ids)
+            if not all(ids is None or isinstance(ids, list) for ids in sides):
+                continue  # not a list: leave it where the ordinary walk shows it
+            was_holder.pop(cache, None)
+            now_holder.pop(cache, None)
+            left = [i for i in was_ids or [] if i not in (now_ids or [])]
+            joined = [i for i in now_ids or [] if i not in (was_ids or [])]
+            for kind, ids in (("removed", left), ("added", joined)):
+                if ids:
+                    rows.append(
+                        _scope_row(
+                            kind,
+                            f"{label} · {what} in scope",
+                            ", ".join(sorted(name_of(i) for i in ids)),
+                        )
+                    )
+                    touched.update(str(i) for i in ids)
+                    note(noun)
+
+    if not rows:
+        return before, after, [], None
+
+    def named(ids: set[str], name_of: Any) -> list[str]:
+        return sorted(name_of(i) for i in ids)
+
+    causes = []
+    for ids, name_of, singular, plural in (
+        (touched_charts & gone_charts, chart, "removed chart", "removed charts"),
+        (touched_charts & new_charts, chart, "added chart", "added charts"),
+        (touched_tabs & gone_tabs, tab, "removed tab", "removed tabs"),
+        (touched_tabs & new_tabs, tab, "added tab", "added tabs"),
+        # Nothing was added or removed to explain it, so the author changed who
+        # is in the scope. That is the edit Visa Q3 means, and it is named here
+        # in the line that is always visible, not only in the detail.
+        (
+            touched_charts - gone_charts - new_charts,
+            chart,
+            "chart entering or leaving a scope",
+            "charts entering or leaving a scope",
+        ),
+        (
+            touched_tabs - gone_tabs - new_tabs,
+            tab,
+            "tab entering or leaving a scope",
+            "tabs entering or leaving a scope",
+        ),
+    ):
+        if ids:
+            causes.append(
+                _scope_consequence(len(ids), named(ids, name_of), singular, plural)
+            )
+
+    subject = nouns[0]
+    if len(nouns) > 1:
+        subject = f"{', '.join(nouns[:-1])} and {nouns[-1]}"
+    summary = f"{subject[0].upper()}{subject[1:]} scopes updated"
+    if causes:
+        summary += " for " + "; ".join(causes)
+    return before, after, rows, summary
+
+
 # ------------------------------------------------------------- structured entry
 
 
@@ -883,6 +1128,8 @@ def _opaque_entry(
 
     kinds = changed_keys_by_kind(before, after)
     skip: frozenset[str] = frozenset()
+    scope_rows: list[dict[str, Any]] = []
+    scope_summary: str | None = None
     if field == "json_metadata":
         # The gate ignores these: Superset recomputes them on every read, so
         # they move on their own and no author sets them. Naming them here
@@ -897,19 +1144,28 @@ def _opaque_entry(
         # asset keeps it in a column, so it is compared against that column,
         # as the gate does, and reported as a layout and not as a key.
         skip = DERIVED_METADATA_KEYS | {LAYOUT_KEY}
+        was_layout = (
+            before.get(LAYOUT_KEY)
+            if isinstance(before, dict) and LAYOUT_KEY in before
+            else None
+            if layout_column is _MISSING
+            else layout_column
+        )
+        now_layout = (
+            after[LAYOUT_KEY]
+            if isinstance(after, dict) and LAYOUT_KEY in after
+            else was_layout
+        )
+        # The scope lists Superset recomputes from the layout are separated
+        # from the author's own settings and reported once, below.
+        before, after, scope_rows, scope_summary = _split_scope_caches(
+            before, after, was_layout, now_layout
+        )
         kinds = {
             kind: [key for key in keys if key not in skip]
-            for kind, keys in kinds.items()
+            for kind, keys in changed_keys_by_kind(before, after).items()
         }
         if isinstance(after, dict) and LAYOUT_KEY in after:
-            was_layout = (
-                before.get(LAYOUT_KEY)
-                if isinstance(before, dict) and LAYOUT_KEY in before
-                else None
-                if layout_column is _MISSING
-                else layout_column
-            )
-            now_layout = after[LAYOUT_KEY]
             if not (
                 _is_nothing(was_layout) and _is_nothing(now_layout)
             ) and _parsed(was_layout) != _parsed(now_layout):
@@ -926,7 +1182,9 @@ def _opaque_entry(
         # follow, every one of them named with its value. They used to be
         # counted ("76 further settings written for the first time"), which
         # is a number where a reviewer needs the settings.
-        _capped(entry, edited_entries + added_entries)
+        _capped(entry, edited_entries + added_entries + scope_rows)
+        if scope_rows and scope_summary:
+            entry["consequence_summary"] = scope_summary
     return entry
 
 
