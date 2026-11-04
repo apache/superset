@@ -454,6 +454,13 @@ def _assert_null_placement_witness(
     index: int
     for index in range(full.num_rows):
         groups.setdefault(order_values[index][:order_index], []).append(index)
+    if order_index:
+        assert len(groups) > 1, "secondary placement requires multiple prefix groups"
+        assert any(
+            values[index] is None
+            for indices in list(groups.values())[:-1]
+            for index in indices
+        ), "secondary placement requires NULLs before the final prefix group"
     placed: list[int] = []
     opposite: list[int] = []
     indices: list[int]
@@ -489,10 +496,26 @@ def _assert_null_placement_witness(
         replace(query, order=reversed_order)
     ).results
     # Compare every declared key; payload order inside a complete key tie is free.
-    _assert_result_equal(
+    key_pages: list[pa.Table] = [
         reversed_page.select(order_names),
         full.take(opposite).slice(start, query.limit).select(order_names),
-    )
+    ]
+    page: pa.Table
+    for index, page in enumerate(key_pages):
+        key_pages[index] = page.cast(
+            pa.schema(
+                [
+                    (
+                        field.name,
+                        field.type.value_type
+                        if pa.types.is_dictionary(field.type)
+                        else field.type,
+                    )
+                    for field in page.schema
+                ]
+            )
+        )
+    _assert_result_equal(key_pages[0], key_pages[1])
 
 
 _COUNTS: frozenset[AggregationType] = frozenset(

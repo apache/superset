@@ -37,6 +37,7 @@ from superset_core.semantic_layers.types import (
     FilterExpression,
     Grains,
     Metric,
+    null_placement,
     NullPlacement,
     Operator,
     OrderDirection,
@@ -909,9 +910,12 @@ def test_null_placement_rejects_a_page_distinguished_only_by_unordered_ties(
     prefix: Dimension = Dimension("prefix", "prefix", pa.int64())
     full: pa.Table = pa.table(
         {
-            "prefix": [1, 1, 1],
-            "category": pa.array(["A", None, None], type=pa.string()),
-            "payload": ["x", "y", "z"],
+            "prefix": [1, 1, 1, 2] if secondary else [1, 1, 1],
+            "category": pa.array(
+                ["A", None, None, "B"] if secondary else ["A", None, None],
+                type=pa.string(),
+            ),
+            "payload": ["x", "y", "z", "w"] if secondary else ["x", "y", "z"],
         }
     )
     term: OrderTerm = OrderTerm(category, OrderDirection.ASC, NullPlacement.LAST)
@@ -949,9 +953,12 @@ def test_null_placement_accepts_a_trailing_key_breaking_null_ties(
     payload: Dimension = Dimension("payload", "payload", pa.string())
     full: pa.Table = pa.table(
         {
-            "prefix": [1, 1, 1],
-            "category": pa.array(["A", None, None], type=pa.string()),
-            "payload": ["x", "y", "z"],
+            "prefix": [1, 1, 1, 2] if secondary else [1, 1, 1],
+            "category": pa.array(
+                ["A", None, None, "B"] if secondary else ["A", None, None],
+                type=pa.string(),
+            ),
+            "payload": ["x", "y", "z", "w"] if secondary else ["x", "y", "z"],
         }
     )
     term: OrderTerm = OrderTerm(category, OrderDirection.ASC, NullPlacement.LAST)
@@ -970,7 +977,7 @@ def test_null_placement_accepts_a_trailing_key_breaking_null_ties(
         """Serve independently specified original and reversed fixture orders."""
         if value.limit is None:
             return SemanticResult(requests=[], results=full)
-        reversed_rows: pa.Table = full.take([1, 2, 0])
+        reversed_rows: pa.Table = full.take([1, 2, 0, 3] if secondary else [1, 2, 0])
         return SemanticResult(requests=[], results=reversed_rows.slice(1, 1))
 
     monkeypatch.setattr(semantic_view, "get_table", get_table)
@@ -1232,3 +1239,130 @@ def test_secondary_null_placement_decodes_dictionary_prefix_across_chunks(
     _assert_null_placement_witness(
         query, semantic_view, full.slice(1, 1), order_index=1
     )
+
+
+@pytest.mark.parametrize("weak", ["single_prefix", "late_nulls"])
+def test_secondary_null_placement_rejects_a_weak_prefix_fixture(
+    semantic_view: "QueryView",
+    monkeypatch: pytest.MonkeyPatch,
+    weak: str,
+) -> None:
+    """A secondary fixture must expose NULLs displaced beyond a later prefix."""
+    prefix: Dimension = Dimension("prefix", "prefix", pa.string())
+    category: Dimension = Dimension("category", "category", pa.string())
+    full: pa.Table = pa.table(
+        {
+            "prefix": ["one", "one"]
+            if weak == "single_prefix"
+            else ["one", "two", "two"],
+            "category": pa.array(
+                ["A", None] if weak == "single_prefix" else ["A", "A", None],
+                type=pa.string(),
+            ),
+        }
+    )
+    query: SemanticQuery = SemanticQuery(
+        [],
+        [prefix, category],
+        order=[
+            (prefix, OrderDirection.ASC),
+            OrderTerm(category, OrderDirection.ASC, NullPlacement.LAST),
+        ],
+        offset=1,
+        limit=1,
+    )
+
+    def get_table(value: SemanticQuery) -> SemanticResult:
+        """Global and per-prefix placement coincide for this weak fixture."""
+        indices: list[int] = [1, 0] if weak == "single_prefix" else [0, 2, 1]
+        result: pa.Table = (
+            full if value.limit is None else full.take(indices).slice(1, 1)
+        )
+        return SemanticResult(requests=[], results=result)
+
+    monkeypatch.setattr(semantic_view, "get_table", get_table)
+    with pytest.raises(
+        AssertionError,
+        match="multiple prefix groups|NULLs before the final prefix group",
+    ):
+        _assert_null_placement_witness(
+            query, semantic_view, full.slice(1, 1), order_index=1
+        )
+
+
+def test_reversed_null_placement_compares_dictionary_keys_by_value(
+    semantic_view: "QueryView",
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A reversed page may use different dictionary encoding for the same keys."""
+    full_column: pa.DictionaryArray = pa.DictionaryArray.from_arrays(
+        pa.array([0, 0, 1], type=pa.int8()),
+        pa.array(["one", "two"]),
+    )
+    prefix: Dimension = Dimension("prefix", "prefix", full_column.type)
+    category: Dimension = Dimension("category", "category", pa.string())
+    full: pa.Table = pa.table(
+        {
+            "prefix": full_column,
+            "category": pa.array(["A", None, "A"], type=pa.string()),
+        }
+    )
+    reversed_column: pa.DictionaryArray = pa.DictionaryArray.from_arrays(
+        pa.array([1], type=pa.int8()),
+        pa.array(["two", "one"]),
+    )
+    reversed_page: pa.Table = pa.table({"prefix": reversed_column, "category": ["A"]})
+    assert not full.slice(0, 1).column("prefix").equals(reversed_page.column("prefix"))
+    query: SemanticQuery = SemanticQuery(
+        [],
+        [prefix, category],
+        order=[
+            (prefix, OrderDirection.ASC),
+            OrderTerm(category, OrderDirection.ASC, NullPlacement.LAST),
+        ],
+        offset=1,
+        limit=1,
+    )
+
+    def get_table(value: SemanticQuery) -> SemanticResult:
+        """Return the correct page with an independently encoded prefix."""
+        return SemanticResult(
+            requests=[], results=full if value.limit is None else reversed_page
+        )
+
+    monkeypatch.setattr(semantic_view, "get_table", get_table)
+    _assert_null_placement_witness(
+        query, semantic_view, full.slice(1, 1), order_index=1
+    )
+
+
+def test_secondary_null_placement_rejects_global_nulls_last_provider(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Moving NULLs beyond later prefixes must fail the required secondary lane."""
+    original: Callable[[SemanticQuery], SemanticResult] = semantic_view.get_table
+
+    def globally_last(query: SemanticQuery) -> SemanticResult:
+        """Model ORDER BY secondary IS NULL, primary, secondary for LAST only."""
+        assert query.order
+        if null_placement(query.order[1]) is not NullPlacement.LAST:
+            return original(query)
+        result: SemanticResult = original(replace(query, limit=None, offset=None))
+        null_mask: list[bool] = result.results.column("category").is_null().to_pylist()
+        order: list[int] = [i for i, value in enumerate(null_mask) if not value] + [
+            i for i, value in enumerate(null_mask) if value
+        ]
+        rows: pa.Table = result.results.take(order)
+        if query.limit is not None:
+            rows = rows.slice(query.offset or 0, query.limit)
+        return replace(result, results=rows)
+
+    monkeypatch.setattr(semantic_view, "get_table", globally_last)
+    with pytest.raises(AssertionError):
+        SemanticProviderConformance().test_query_outputs(
+            "null_placement_secondary",
+            semantic_view,
+            semantic_query_cases,
+        )

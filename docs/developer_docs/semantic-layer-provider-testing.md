@@ -73,7 +73,9 @@ limited page with the same rows of the unlimited result, so give the order key
 distinct values and a single NULL group: tied rows may come back in either order.
 For `null_placement_secondary`, use at least two order keys, with a selected
 dimension carrying explicit NULL placement on the second key. Seed NULL and
-non-NULL values within a tie on the first key, and put the page boundary inside
+non-NULL values within a tie on the first key. Use at least two first-key
+groups, with NULLs in an earlier group, so moving NULLs to the end of the whole
+result cannot pass. Put the page boundary inside
 that tie so reversing only the second key's placement changes the retained rows.
 The example orders by month then category, skips January's first row and keeps
 its NULL category (total 3); dropping secondary `NULLS LAST` instead keeps A
