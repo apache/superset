@@ -350,6 +350,7 @@ def test_import_database_with_masked_encrypted_extra_existing_db(
     assert encrypted["credentials_info"]["private_key"] != PASSWORD_MASK
 
 
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=True)
 @pytest.mark.parametrize("partial", [True, False])
 def test_import_database_keeps_secure_extra_only_for_a_partial_bundle(
     mocker: MockerFixture,
@@ -1064,10 +1065,26 @@ def test_import_database_never_stores_a_mask_over_an_existing_db(
     assert existing.encrypted_extra is None
 
 
+def _pem(passphrase: str) -> str:
+    """A freshly generated RSA private key, PEM-encoded under ``passphrase``."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    return (
+        rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        .private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.BestAvailableEncryption(passphrase.encode()),
+        )
+        .decode()
+    )
+
+
 EMBEDDED_KEYPAIR = {
     "username": "EMBED_SVC",
     "auth_method": "keypair",
-    "privatekey_body": "-----BEGIN PRIVATE KEY-----\nKEY\n-----END PRIVATE KEY-----\n",
+    "privatekey_body": _pem("passphrase"),
     "privatekey_pass": "passphrase",
 }
 
@@ -1202,25 +1219,6 @@ def test_import_database_keeps_complete_embedded_credential_on_overwrite(
     assert stored == EMBEDDED_KEYPAIR
 
 
-@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=False)
-def test_import_database_skips_embedded_credential_check_when_flag_off(
-    mocker: MockerFixture, session: Session
-) -> None:
-    """
-    With the fallback off the credential is inert, so import doesn't judge it --
-    the same as the dialog and the API.
-    """
-    from superset.commands.database.importers.v1.utils import import_database
-
-    _import_snowflake_with_stored_keypair(mocker)
-
-    half_filled = {"username": "EMBED_SVC", "auth_method": "keypair"}
-    database = import_database(_snowflake_config(half_filled), overwrite=True)
-
-    stored = json.loads(database.encrypted_extra)["embedded_credentials"]
-    assert stored == half_filled
-
-
 def test_import_database_checks_masks_with_the_incoming_engine(
     mocker: MockerFixture, session: Session
 ) -> None:
@@ -1331,22 +1329,6 @@ def test_import_database_does_not_count_a_mask_as_an_embedded_password(
 
     stored = json.loads(existing.encrypted_extra)["embedded_credentials"]
     assert stored == EMBEDDED_KEYPAIR
-
-
-def _pem(passphrase: str) -> str:
-    """A freshly generated RSA private key, PEM-encoded under ``passphrase``."""
-    from cryptography.hazmat.primitives import serialization
-    from cryptography.hazmat.primitives.asymmetric import rsa
-
-    return (
-        rsa.generate_private_key(public_exponent=65537, key_size=2048)
-        .private_bytes(
-            serialization.Encoding.PEM,
-            serialization.PrivateFormat.PKCS8,
-            serialization.BestAvailableEncryption(passphrase.encode()),
-        )
-        .decode()
-    )
 
 
 def _store_snowflake_keypair(

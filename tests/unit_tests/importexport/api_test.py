@@ -606,10 +606,28 @@ def test_imports_keep_their_secrets_out_of_the_event_log(
     assert response.status_code == 200, response.json
     log.assert_called()
     assert "s3cret" not in str(log.call_args_list)
+
+
+def _pem(passphrase: str) -> str:
+    """A freshly generated RSA private key, PEM-encoded under ``passphrase``."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    return (
+        rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        .private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.BestAvailableEncryption(passphrase.encode()),
+        )
+        .decode()
+    )
+
+
 EMBEDDED_KEYPAIR = {
     "username": "EMBED_SVC",
     "auth_method": "keypair",
-    "privatekey_body": "-----BEGIN PRIVATE KEY-----\nKEY\n-----END PRIVATE KEY-----\n",
+    "privatekey_body": _pem("passphrase"),
     "privatekey_pass": "passphrase",
 }
 
@@ -634,12 +652,8 @@ EMBEDDED_KEYPAIR = {
         pytest.param(
             False,
             {"username": "EMBED_SVC", "auth_method": "keypair", "privatekey_pass": "X"},
-            200,
-            {
-                "username": "EMBED_SVC",
-                "auth_method": "keypair",
-                "privatekey_pass": "passphrase",
-            },
+            400,
+            EMBEDDED_KEYPAIR,
             id="fallback-off",
         ),
     ],
@@ -657,7 +671,8 @@ def test_import_assets_overwrite_embedded_credential(
     """
     An overwrite import whose embedded guest credential leaves out a required
     value is refused with a message naming it, and the stored credential stays
-    (sc-127530). A complete credential, or the fallback off, imports as before.
+    (sc-127530). A complete credential imports as before. With the fallback off, a
+    changed credential is refused too (sc-130270).
 
     ``"X"`` in ``incoming`` stands for the export mask, which the import reveals
     from the stored credential.
@@ -742,10 +757,12 @@ def test_import_assets_overwrite_embedded_credential(
 
     assert response.status_code == status, response.json
     if status != 200:
-        assert (
+        expected = (
             "$.embedded_credentials.privatekey_body"
-            in (response.json["errors"][0]["message"])
+            if fallback_enabled
+            else "while the embedded credential fallback is turned off"
         )
+        assert expected in response.json["errors"][0]["message"]
     db.session.expire_all()
     database = db.session.query(Database).filter_by(uuid=UUID(db_uuid)).one()
     assert json.loads(database.encrypted_extra)["embedded_credentials"] == stored
