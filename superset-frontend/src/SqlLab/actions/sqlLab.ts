@@ -30,7 +30,7 @@ import {
   getClientErrorObject,
 } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
-import { invert, mapKeys } from 'lodash-es';
+import { invert, isEqual, mapKeys } from 'lodash-es';
 
 import { now } from '@superset-ui/core/utils/dates';
 import {
@@ -50,6 +50,7 @@ import { rehydratePersistedState } from '../utils/reduxStateToLocalStorageHelper
 import { PREVIEW_QUERY_LIMIT } from '../constants';
 import { EMPTY_STATE_QE_ID } from '../hooks/useQueryEditor';
 import { queryHistoryApi } from '../../hooks/apiResources/queries';
+import { sqlEditorApi } from '../../hooks/apiResources/sqlEditorTabs';
 import type { AppDispatch as RootDispatch } from '../../views/store';
 
 // Type definitions for SqlLab actions
@@ -515,6 +516,10 @@ export function fetchQueryResults(
   };
 }
 
+// A query must exist on the server before its tab association can be migrated.
+const pendingQueryRequests = new Map<string, Promise<unknown>>();
+const pendingTabSaves = new Map<string, Promise<unknown>>();
+
 export function runQuery(
   query: Query,
   runPreviewOnly?: boolean,
@@ -539,7 +544,7 @@ export function runQuery(
     };
 
     const search = window.location.search || '';
-    return SupersetClient.post({
+    const request = SupersetClient.post({
       endpoint: `/api/v1/sqllab/execute/${search}`,
       body: JSON.stringify(postPayload),
       headers: { 'Content-Type': 'application/json' },
@@ -562,7 +567,14 @@ export function runQuery(
           }
           dispatch(queryFailed(query, message, error.link, error.errors));
         }),
-      );
+      )
+      .finally(() => {
+        if (pendingQueryRequests.get(query.id) === request) {
+          pendingQueryRequests.delete(query.id);
+        }
+      });
+    pendingQueryRequests.set(query.id, request);
+    return request;
   };
 }
 
@@ -695,21 +707,12 @@ function migrateQuery(
     );
 }
 
-/**
- * Persist QueryEditor from local storage to backend tab state.
- * This ensures that when new tabs are created, query editors are
- * asynchronously stored in local storage and periodically synchronized
- * with the backend.
- * When switching to persistence mode, the QueryEditors previously
- * stored in local storage will also be synchronized to the backend
- * through syncQueryEditor.
- */
-export function syncQueryEditor(
+/** Create the server tab, then associate queries submitted against its local ID. */
+function persistQueryEditor(
   queryEditor: QueryEditor,
 ): SqlLabThunkAction<Promise<unknown>> {
   return async function (dispatch: AppDispatch, getState: GetState) {
     try {
-      const { tables, queries } = getState().sqlLab;
       let databaseWasRemoved = false;
       if (queryEditor.dbId != null) {
         await SupersetClient.get({
@@ -729,13 +732,6 @@ export function syncQueryEditor(
             schema: undefined,
           }
         : queryEditor;
-      const localStorageTables = tables.filter(
-        (table: Table) =>
-          table.inLocalStorage && table.queryEditorId === queryEditor.id,
-      );
-      const queriesToMigrate = Object.values(queries).filter(
-        query => query.sqlEditorId === queryEditor.id && !query.isDataPreview,
-      );
       const { json } = await SupersetClient.post({
         endpoint: '/tabstateview/',
         postPayload: {
@@ -745,8 +741,18 @@ export function syncQueryEditor(
           },
         },
       });
+      const { tables, queries, queryEditors } = getState().sqlLab;
+      const currentEditor = queryEditors.find(
+        ({ id }) => id === queryEditor.id,
+      );
+      const latestEditor =
+        currentEditor && getUpToDateQuery(getState(), currentEditor);
       const newQueryEditor = {
         ...queryEditorToMigrate,
+        ...latestEditor,
+        ...(databaseWasRemoved && latestEditor?.dbId === queryEditor.dbId
+          ? { dbId: undefined, catalog: undefined, schema: undefined }
+          : {}),
         inLocalStorage: false,
         loaded: true,
         tabViewId: json.id.toString(),
@@ -756,19 +762,67 @@ export function syncQueryEditor(
         oldQueryEditor: queryEditor,
         newQueryEditor,
       });
-      if (databaseWasRemoved && localStorageTables.length > 0) {
-        dispatch({ type: REMOVE_TABLES, tables: localStorageTables });
+      if (!currentEditor) return;
+      const localStorageTables = tables.filter(
+        (table: Table) =>
+          table.inLocalStorage && table.queryEditorId === queryEditor.id,
+      );
+      const queriesToMigrate = Object.values(queries).filter(
+        query => query.sqlEditorId === queryEditor.id && !query.isDataPreview,
+      );
+      const removedDatabaseTables = databaseWasRemoved
+        ? localStorageTables.filter(table => table.dbId === queryEditor.dbId)
+        : [];
+      if (removedDatabaseTables.length > 0) {
+        dispatch({ type: REMOVE_TABLES, tables: removedDatabaseTables });
       }
-      return Promise.all([
-        ...(databaseWasRemoved
-          ? []
-          : localStorageTables.map((table: Table) =>
-              migrateTable(table, newQueryEditor.tabViewId!, dispatch),
-            )),
-        ...queriesToMigrate.map((query: Query) =>
-          migrateQuery(query.id, newQueryEditor.tabViewId!, dispatch),
-        ),
+      await Promise.all([
+        ...localStorageTables
+          .filter(table => !removedDatabaseTables.includes(table))
+          .map(table =>
+            migrateTable(table, newQueryEditor.tabViewId!, dispatch),
+          ),
+        ...queriesToMigrate.map(async (query: Query) => {
+          await pendingQueryRequests.get(query.id);
+          const state = getState().sqlLab;
+          if (
+            state.queries[query.id]?.sqlEditorId === queryEditor.id &&
+            state.queryEditors.some(({ id }) => id === queryEditor.id)
+          ) {
+            await migrateQuery(query.id, newQueryEditor.tabViewId!, dispatch);
+          }
+        }),
       ]);
+      const state = getState();
+      if (!state.sqlLab.queryEditors.some(({ id }) => id === queryEditor.id))
+        return;
+      const updatedEditor = getUpToDateQuery(state, queryEditor);
+      if (updatedEditor.tabViewId !== newQueryEditor.tabViewId) return;
+      if (
+        !isEqual(updatedEditor, {
+          ...queryEditorToMigrate,
+          inLocalStorage: false,
+          loaded: true,
+          tabViewId: newQueryEditor.tabViewId,
+        })
+      ) {
+        // Preserve edits made during creation without referencing an uncreated query.
+        const latestQueryId = queriesToMigrate.find(
+          query =>
+            query.id === updatedEditor.latestQueryId &&
+            state.sqlLab.queries[query.id]?.sqlEditorId ===
+              newQueryEditor.tabViewId,
+        )?.id;
+        await dispatch(
+          sqlEditorApi.endpoints.updateSqlEditorTab.initiate({
+            queryEditor: { ...updatedEditor, latestQueryId },
+          }),
+        )
+          .unwrap()
+          .catch(() =>
+            dispatch(addDangerToast(t('Your query could not be saved'))),
+          );
+      }
     } catch {
       return dispatch(
         addWarningToast(
@@ -779,6 +833,34 @@ export function syncQueryEditor(
         ),
       );
     }
+  };
+}
+
+/**
+ * Persist QueryEditor from local storage to backend tab state.
+ * This ensures that when new tabs are created, query editors are
+ * asynchronously stored in local storage and periodically synchronized
+ * with the backend.
+ * When switching to persistence mode, the QueryEditors previously
+ * stored in local storage will also be synchronized to the backend
+ * through syncQueryEditor.
+ */
+export function syncQueryEditor(
+  queryEditor: QueryEditor,
+): SqlLabThunkAction<Promise<unknown>> {
+  return (dispatch, getState) => {
+    const currentEditor = getState().sqlLab.queryEditors.find(
+      ({ id }) => id === queryEditor.id,
+    );
+    if (!currentEditor?.inLocalStorage) return Promise.resolve();
+    const key = queryEditor.immutableId || queryEditor.id;
+    const pendingSave = pendingTabSaves.get(key);
+    if (pendingSave) return pendingSave;
+    const save = dispatch(persistQueryEditor(queryEditor)).finally(() => {
+      pendingTabSaves.delete(key);
+    });
+    pendingTabSaves.set(key, save);
+    return save;
   };
 }
 
