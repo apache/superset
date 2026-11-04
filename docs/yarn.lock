@@ -3203,100 +3203,100 @@
   resolved "https://registry.yarnpkg.com/@oxlint-tsgolint/win32-x64/-/win32-x64-7.0.2005.tgz#db2902e8902a08c2b2811fb04964b3ecf41701de"
   integrity sha512-ekU89cTGy9fpQzuvxIsFHrnoP8XoFjGIRgPEW6eqgY2NYjGy9pwpjF79o04WXRMJFKRrcaVqkZXUUBdLsqpQDw==
 
-"@oxlint/binding-android-arm-eabi@1.89.0":
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/@oxlint/binding-android-arm-eabi/-/binding-android-arm-eabi-1.89.0.tgz#80c1cb1058989ad2c452648fa622454c409f147c"
-  integrity sha512-Pflpba5F3gRAQ12sWglRxvWTHEdAusNDvmi4Y5N1T5SY1AGkM7AixOnET8qkrnLJ/F32qAlNokO6eCknT8tmnw==
+"@oxlint/binding-android-arm-eabi@1.90.0":
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/@oxlint/binding-android-arm-eabi/-/binding-android-arm-eabi-1.90.0.tgz#8118f7bbf8b6b7795d8b56bc21a156929829290d"
+  integrity sha512-sgfalb1HuxYjiAa4wESZ626z1FGusqNcXYHyB5oIOEprS2sbPg0UYEfo83uF1GNG70DIfZxHkXuE6KFrlSdn8Q==
 
-"@oxlint/binding-android-arm64@1.89.0":
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/@oxlint/binding-android-arm64/-/binding-android-arm64-1.89.0.tgz#5a37280403872b63e4b27f6bc1eeb9c62ebabe06"
-  integrity sha512-dYmyD1x7LaPlb79vZWUcpTShk8dI9z1I+IubtqrBxWNJaDhQdPHwcsvg7q5StTU4xWyd9AwPfLaTYFZY8NZgtQ==
+"@oxlint/binding-android-arm64@1.90.0":
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/@oxlint/binding-android-arm64/-/binding-android-arm64-1.90.0.tgz#be0ab1aaa883d7152ac3264bb6918dff117002f6"
+  integrity sha512-RcKhz1ETMq+fazE9TKS2+5NIRGwigm/nW8egqF0LI+A8Yw2iW5r0E/C3XAPRiwIm/vcPiutIRIa6IQCIKhZsTQ==
 
-"@oxlint/binding-darwin-arm64@1.89.0":
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/@oxlint/binding-darwin-arm64/-/binding-darwin-arm64-1.89.0.tgz#301a9c54701c50ed30e7227748b4569b79539e42"
-  integrity sha512-Z/oxOPiIqiS7fItRdxaaOEC+6GD3OpGi0IxoR0dMefzQHolsKLzScw2DNcu/5gUPok3tv+G9mslvYB5bo3i0qg==
+"@oxlint/binding-darwin-arm64@1.90.0":
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/@oxlint/binding-darwin-arm64/-/binding-darwin-arm64-1.90.0.tgz#18933ee45247437c6347c0f574ee3a143fd1c677"
+  integrity sha512-PSrxMvP6mx+p1karZcUxLdy9lpaP+JWQPti4al9FgTaPhxE+pT/BjhGExloVVSWgZgIfOlLOjVyyq8BXlodhLQ==
 
-"@oxlint/binding-darwin-x64@1.89.0":
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/@oxlint/binding-darwin-x64/-/binding-darwin-x64-1.89.0.tgz#1282f19ed6c8655534194d3167da530b676a405a"
-  integrity sha512-eAjTkHSjAxrdCPJxO6y5sPQL5pYLKb2kvxZz9UU7tXnOZk9I/HLtkvx9S7GHY883k+AmL/eC7mqFt+w7WCwk0w==
+"@oxlint/binding-darwin-x64@1.90.0":
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/@oxlint/binding-darwin-x64/-/binding-darwin-x64-1.90.0.tgz#d9a20b957264859868032abcf9d600af03892005"
+  integrity sha512-OLbU9qsrV2Q8QxT2OEzOPdO8zCCpyI8qB+hDI8yr6RsYELtkf0FAZhJdfjM/RnLHKzt44HWwAPnk92vBtKofvw==
 
-"@oxlint/binding-freebsd-x64@1.89.0":
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/@oxlint/binding-freebsd-x64/-/binding-freebsd-x64-1.89.0.tgz#b68c41f6f5d29bff94240a1db392442b25ef6d9f"
-  integrity sha512-0lNCA9Tl1n1FKpqy2/9ckp0kIuSrtJ/l9bMRgaEhOtM7TsOHshFuwOcvW8oA9teXLMOJT61LjEKWiaHDFGxF/w==
+"@oxlint/binding-freebsd-x64@1.90.0":
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/@oxlint/binding-freebsd-x64/-/binding-freebsd-x64-1.90.0.tgz#a364c02992dbf180fe8c6aeffc12868f397ea024"
+  integrity sha512-fBA4pWyVDARmNucQqpyFuPC49xYf1r+sX7dxPL5fNPQrSMLum39Sn56tZ9JPleWC7FzLPwSQ7plYYfirYBHF8A==
 
-"@oxlint/binding-linux-arm-gnueabihf@1.89.0":
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-arm-gnueabihf/-/binding-linux-arm-gnueabihf-1.89.0.tgz#b953c80a08e2fe15cb9551045e6557e71f201c83"
-  integrity sha512-OTFEvi9W+JczaZD1Caj17SGCoW8H7TE+fvx0D7ATEWa1Lohn91UMxFQ6r145SiGy/yCxeIwptMys/RAM7gSVSQ==
+"@oxlint/binding-linux-arm-gnueabihf@1.90.0":
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-arm-gnueabihf/-/binding-linux-arm-gnueabihf-1.90.0.tgz#0de8e324a36bcd25698b296fe72978a541a75f2c"
+  integrity sha512-zhxH78eP2nR6/pGdhBc7MIfjhhcgATeu8fkmkFJbuzfk6Cj0FzBxyEhL85yDqrCybjx+G2YDzZGsxIO9kvO4Iw==
 
-"@oxlint/binding-linux-arm-musleabihf@1.89.0":
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-arm-musleabihf/-/binding-linux-arm-musleabihf-1.89.0.tgz#19fc7db28cd253cd430496f288eba4250c75d956"
-  integrity sha512-fRxgNHvBLswj6MrhW2uBq5UDhPRQlCbHeq/Nf8yuG9zOxhDsXqX/mi2PX1axgsQxMm88el7HLiJAzglAnflYxw==
+"@oxlint/binding-linux-arm-musleabihf@1.90.0":
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-arm-musleabihf/-/binding-linux-arm-musleabihf-1.90.0.tgz#957229d882ea49fba7ddb2225455c03b8206bf33"
+  integrity sha512-MvYmpHyJqUJjEvkZbJHdwfdL45cGn8EVBkYmoXFiaYFW9suoD3dbJl5mBdpy0DVgdjlyddmldbRtk3cCgETadQ==
 
-"@oxlint/binding-linux-arm64-gnu@1.89.0":
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-1.89.0.tgz#2b0ceef51c007cf8f3eee1036b25fb7de0424031"
-  integrity sha512-v9ENzHvwrQoYSWTtviH1pOYc7R9UovDxVofnck50cNmPihRRTcrg5X0UlRbLOZ7IVtxPOlh2hb7kDO+FpE8SfQ==
+"@oxlint/binding-linux-arm64-gnu@1.90.0":
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-1.90.0.tgz#2ddbb1a85232310b1fde0be198daaa6d05cfd5a3"
+  integrity sha512-L13Sy+Kg0nZhwTsToniqjUFPA2TuM6962qCZ5Wp5KeB517Tw7ApdLTTtlb+bF86fcZZa2EtvCVvAJxk4Dya/MQ==
 
-"@oxlint/binding-linux-arm64-musl@1.89.0":
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-arm64-musl/-/binding-linux-arm64-musl-1.89.0.tgz#8e04e809620cde227a54e5089f15455f2b923347"
-  integrity sha512-vfffe8mQ484AzVadlUOFpgL+JDwhvs9hrzxTgQP1FVfi4ZEUUYeffXlzC9dFV7Dgnu5s/KrNKvfmG6HxBd/ISQ==
+"@oxlint/binding-linux-arm64-musl@1.90.0":
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-arm64-musl/-/binding-linux-arm64-musl-1.90.0.tgz#a2f9f6b08d63cf11335404e629122a2fcdab439e"
+  integrity sha512-wFDdZWGpzIPFdJFjSLWnKB0TGzFriTKUIrl04iMqMyM9BBIJTuerfCHYa0WpDSjr5x3lcW/CHLyacSt886WpGg==
 
-"@oxlint/binding-linux-ppc64-gnu@1.89.0":
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-1.89.0.tgz#3266e1013a95afb884170165a87fb9268a28e9eb"
-  integrity sha512-Buonlp4hVS7RGNP5M7bPpGNQrenyzA2C64JcO/oz9C1c6dGOXJ7VEAnaiAMY7voou0JYyCJdvDVlFQc5DZX3DQ==
+"@oxlint/binding-linux-ppc64-gnu@1.90.0":
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-1.90.0.tgz#a5c9bf3049612167cf33b0463690ddb1d9119fbe"
+  integrity sha512-FRywfn+MoKn8xpBSzgNwNVliSKRI2QXkxi/iF7o6FEQs8Bh8z2RpVTaFAcO3pchXjvB2eGNFIoLLQABIQ+u7VA==
 
-"@oxlint/binding-linux-riscv64-gnu@1.89.0":
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-riscv64-gnu/-/binding-linux-riscv64-gnu-1.89.0.tgz#7e4c51819f52f37b7b75567843e1d92352a85e8f"
-  integrity sha512-1eVwJJrJ3lYIPT+cm7BcBBZZXY6IQZP/oyonaruTor/MrVyWOpvnwt1oD5CLdsHg5aVBIxXodQSvt+1gK6ck5w==
+"@oxlint/binding-linux-riscv64-gnu@1.90.0":
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-riscv64-gnu/-/binding-linux-riscv64-gnu-1.90.0.tgz#753f2c302060fa0d9460912de54e02d8d9c01c33"
+  integrity sha512-IS2PaUgpc/qeLADTyhUNmdx3x4ijs9pjJdPKBYHaT+mAE7k3FsjnHPTjhpsak1b++h6CIPhv6WX9Z+y7Pw0voQ==
 
-"@oxlint/binding-linux-riscv64-musl@1.89.0":
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-riscv64-musl/-/binding-linux-riscv64-musl-1.89.0.tgz#fbd55628a6dd175e821399dab74a9d976058f1c7"
-  integrity sha512-fRQQsKUGShdEL5Fl9o9uhj3grkZbeXKLv0icQ5tspUCNYSDy8wzzEcP1WC2bKdTQ0rSszbKlO3iiHORxV22DLg==
+"@oxlint/binding-linux-riscv64-musl@1.90.0":
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-riscv64-musl/-/binding-linux-riscv64-musl-1.90.0.tgz#d8e7df000336cd8f9d763c06ebe123fef37cdb95"
+  integrity sha512-s7JFKRkGS8O7i2ZVODfuO++NC7sH6HDqpMn8lYxw91w0SXJOxnAVjQ8utvmDwLMMT0jaSkuOKuUYJDGDtu4sHQ==
 
-"@oxlint/binding-linux-s390x-gnu@1.89.0":
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-1.89.0.tgz#17d994ca78da11c86313daab3bef7e4b21102cb3"
-  integrity sha512-dEtYjIy6+fHcjKklsmtmMkZRhwHr2UbzjmpvuPtQYSeN9awQ2hx5JLms5Wvri+8P/NZtD8v5hfgHALUql+/Ycg==
+"@oxlint/binding-linux-s390x-gnu@1.90.0":
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-1.90.0.tgz#bf49df686a7c7051760e10ed2d1cdbae8816743f"
+  integrity sha512-b0GxrOQr5VONCkd7KLSqmP6b6nqZuTpuS8QPQHzltmqdXP5bY0Jl0CZ0QmlCTrS3ExaLYbioFYOARzNbYvcApQ==
 
-"@oxlint/binding-linux-x64-gnu@1.89.0":
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-x64-gnu/-/binding-linux-x64-gnu-1.89.0.tgz#ec51437597081911845c71746ab564fdd5109e52"
-  integrity sha512-hqjwIj5KOYM8Wjef/p7IruNi1iByLhSzbMBk62y22P/E8q7Jj0Pp+DeUTKTRYyZYCDtU1wEGlnWOnttHbyNIww==
+"@oxlint/binding-linux-x64-gnu@1.90.0":
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-x64-gnu/-/binding-linux-x64-gnu-1.90.0.tgz#0b9c8dcd9450ee16a00c106234b108cd72bcdd88"
+  integrity sha512-iaJeShJtgUp8rZbt9YUdTAGOpmX5KogCLba17Jp1tWdJ3F4M3D2g2TKUyI1FMTHxKH9NNHuQcuC2kZRg6IV7yQ==
 
-"@oxlint/binding-linux-x64-musl@1.89.0":
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-x64-musl/-/binding-linux-x64-musl-1.89.0.tgz#a5c207b8013f22a643ba4231876729896d1e5e9b"
-  integrity sha512-iAQN3e6o9UgUCcdGwqRx/jYcKbG3HK7ur3rH6lTqVcQeNGZ85AeWIg6cgn/edwFQ0ofEZZItMwkzyCVTahnvEA==
+"@oxlint/binding-linux-x64-musl@1.90.0":
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/@oxlint/binding-linux-x64-musl/-/binding-linux-x64-musl-1.90.0.tgz#a141848b3c18d78cb7638c0f778b1c305c1876fd"
+  integrity sha512-/aZoXnL5WBLCXuzfHqvEFXcm4iwYmr/cYByHDTXzLFzJdE5DC7bm6phpWqHv6BeqpVgY9IpBAxGDv2WEkl5JCg==
 
-"@oxlint/binding-openharmony-arm64@1.89.0":
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/@oxlint/binding-openharmony-arm64/-/binding-openharmony-arm64-1.89.0.tgz#6651be8434ec17b1159be63a21c236f04657af82"
-  integrity sha512-MNxjEByz3N/7Q4qFQuPWvc14TpN9LoD3pECEDsJTZbP/wyB7U+hduUXEl7QAbbgVezFwsb9sWtNUO6XVBndOhg==
+"@oxlint/binding-openharmony-arm64@1.90.0":
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/@oxlint/binding-openharmony-arm64/-/binding-openharmony-arm64-1.90.0.tgz#f5f46772429d605dde4bf3d0fe107c8205defb3b"
+  integrity sha512-SMhk7ozwoxYDKfYqGZCQEfULOKDneF9uhaoIf2neoDLWvNtjY9yVeL7YHmE5L9WdKvMpWNwwZxhenxBu6AgfOg==
 
-"@oxlint/binding-win32-arm64-msvc@1.89.0":
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/@oxlint/binding-win32-arm64-msvc/-/binding-win32-arm64-msvc-1.89.0.tgz#2d76cf977f20ce9035a438326185e86c26e664f0"
-  integrity sha512-xxe+i9wfuFso/VnoL4mfj0UlzE+cfCFiUB06vkXCMyQdgVVmItF5FfAF4tATAktSU6uHruWR+FjqvAT9cHZZzg==
+"@oxlint/binding-win32-arm64-msvc@1.90.0":
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/@oxlint/binding-win32-arm64-msvc/-/binding-win32-arm64-msvc-1.90.0.tgz#6e7616c8b531c3d247a72b6ec28004945ef3f848"
+  integrity sha512-KBvR3A9fO7fCi2vCP8ifWvlia7tGEQV9NaYh+IGwa/7Groy48Mt/UaYqMK9/zOtAWl20BUCf6RPqzJ32fRw33Q==
 
-"@oxlint/binding-win32-ia32-msvc@1.89.0":
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/@oxlint/binding-win32-ia32-msvc/-/binding-win32-ia32-msvc-1.89.0.tgz#2e70418153a5b8d77379fc099bb1c9ea6b01563e"
-  integrity sha512-saFy07cO94E664glwgLmKLI40HgTL1PY86y4T6+ud4niX4H0Kdqjcmqmjps7mQNdBytV5guGbXDdyQtRfeLbLA==
+"@oxlint/binding-win32-ia32-msvc@1.90.0":
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/@oxlint/binding-win32-ia32-msvc/-/binding-win32-ia32-msvc-1.90.0.tgz#3de87cdf131ea78cc890dcf73c67b7c3a7937f17"
+  integrity sha512-+x42rDHQGbTCuT3EzpWAzhP3NoVPE/cJsG4gnrakOSg0olV+GCdMpPU23Nvrl3zZMnXxFZdTtDv4D3SuaA5ZeQ==
 
-"@oxlint/binding-win32-x64-msvc@1.89.0":
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/@oxlint/binding-win32-x64-msvc/-/binding-win32-x64-msvc-1.89.0.tgz#d98d58041e08fdb9ac97af7bd3566cf7f7de6715"
-  integrity sha512-hLFJ/o0f/dTJh/EW0vmcbREYSQO9tYgfiAAlsOkiLFiJuRRWvYtFELUXN5o2ijpSo/tlO1n+YlWN58tZwPG18A==
+"@oxlint/binding-win32-x64-msvc@1.90.0":
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/@oxlint/binding-win32-x64-msvc/-/binding-win32-x64-msvc-1.90.0.tgz#e4b6e1d6b0cdc827c9b10c7bf432b9593e5e24b8"
+  integrity sha512-30JiaFEBUB9peEOcvVM8ggo88SoN/IdSr9DW505JdBji/R6dM66gKEiG65hw6qcaF2f4mO0cEJ+RwRZprmun9g==
 
 "@parcel/watcher-android-arm64@2.5.6":
   version "2.5.6"
@@ -11581,30 +11581,30 @@ oxlint-tsgolint@^7.0.2005:
     "@oxlint-tsgolint/win32-arm64" "7.0.2005"
     "@oxlint-tsgolint/win32-x64" "7.0.2005"
 
-oxlint@^1.89.0:
-  version "1.89.0"
-  resolved "https://registry.yarnpkg.com/oxlint/-/oxlint-1.89.0.tgz#e793fed75ae4aee4018675731378b955a01d02e2"
-  integrity sha512-a25hkfo61okGPvJz432fRIPoxlKtNnOVy9w4rzrmGgNm4iVTPwpSQlmdqNWnp6p9QyyPVfAZRgnf5XvSBZFk/A==
+oxlint@^1.90.0:
+  version "1.90.0"
+  resolved "https://registry.yarnpkg.com/oxlint/-/oxlint-1.90.0.tgz#aa7747bfbfd0fefff14b88eae6f9d7a0cba0ede5"
+  integrity sha512-RkTN9EmgIUpLuhNoLhO3OliMGJlvb3Dk7XVjBZnfoMCHrVpuz5ESd97klfiyYeV7XfA2lNLnDCPMkUI+Qw5How==
   optionalDependencies:
-    "@oxlint/binding-android-arm-eabi" "1.89.0"
-    "@oxlint/binding-android-arm64" "1.89.0"
-    "@oxlint/binding-darwin-arm64" "1.89.0"
-    "@oxlint/binding-darwin-x64" "1.89.0"
-    "@oxlint/binding-freebsd-x64" "1.89.0"
-    "@oxlint/binding-linux-arm-gnueabihf" "1.89.0"
-    "@oxlint/binding-linux-arm-musleabihf" "1.89.0"
-    "@oxlint/binding-linux-arm64-gnu" "1.89.0"
-    "@oxlint/binding-linux-arm64-musl" "1.89.0"
-    "@oxlint/binding-linux-ppc64-gnu" "1.89.0"
-    "@oxlint/binding-linux-riscv64-gnu" "1.89.0"
-    "@oxlint/binding-linux-riscv64-musl" "1.89.0"
-    "@oxlint/binding-linux-s390x-gnu" "1.89.0"
-    "@oxlint/binding-linux-x64-gnu" "1.89.0"
-    "@oxlint/binding-linux-x64-musl" "1.89.0"
-    "@oxlint/binding-openharmony-arm64" "1.89.0"
-    "@oxlint/binding-win32-arm64-msvc" "1.89.0"
-    "@oxlint/binding-win32-ia32-msvc" "1.89.0"
-    "@oxlint/binding-win32-x64-msvc" "1.89.0"
+    "@oxlint/binding-android-arm-eabi" "1.90.0"
+    "@oxlint/binding-android-arm64" "1.90.0"
+    "@oxlint/binding-darwin-arm64" "1.90.0"
+    "@oxlint/binding-darwin-x64" "1.90.0"
+    "@oxlint/binding-freebsd-x64" "1.90.0"
+    "@oxlint/binding-linux-arm-gnueabihf" "1.90.0"
+    "@oxlint/binding-linux-arm-musleabihf" "1.90.0"
+    "@oxlint/binding-linux-arm64-gnu" "1.90.0"
+    "@oxlint/binding-linux-arm64-musl" "1.90.0"
+    "@oxlint/binding-linux-ppc64-gnu" "1.90.0"
+    "@oxlint/binding-linux-riscv64-gnu" "1.90.0"
+    "@oxlint/binding-linux-riscv64-musl" "1.90.0"
+    "@oxlint/binding-linux-s390x-gnu" "1.90.0"
+    "@oxlint/binding-linux-x64-gnu" "1.90.0"
+    "@oxlint/binding-linux-x64-musl" "1.90.0"
+    "@oxlint/binding-openharmony-arm64" "1.90.0"
+    "@oxlint/binding-win32-arm64-msvc" "1.90.0"
+    "@oxlint/binding-win32-ia32-msvc" "1.90.0"
+    "@oxlint/binding-win32-x64-msvc" "1.90.0"
 
 p-cancelable@^3.0.0:
   version "3.0.0"
