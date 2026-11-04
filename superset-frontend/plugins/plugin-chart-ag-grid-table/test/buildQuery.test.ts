@@ -76,6 +76,7 @@ test('applies grain to every temporal dimension and keeps the first axis first',
       sqlExpression: 'EndDate',
       label: 'EndDate',
       expressionType: 'SQL',
+      isColumnReference: true,
     },
     'category',
     {
@@ -84,6 +85,7 @@ test('applies grain to every temporal dimension and keeps the first axis first',
       sqlExpression: 'StartDate',
       label: 'StartDate',
       expressionType: 'SQL',
+      isColumnReference: true,
     },
   ]);
 });

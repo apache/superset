@@ -290,6 +290,7 @@ test('applies grain to every temporal dimension and keeps the first axis first',
       sqlExpression: 'EndDate',
       label: 'EndDate',
       expressionType: 'SQL',
+      isColumnReference: true,
     },
     'category',
     customColumn,
@@ -299,6 +300,7 @@ test('applies grain to every temporal dimension and keeps the first axis first',
       sqlExpression: 'StartDate',
       label: 'StartDate',
       expressionType: 'SQL',
+      isColumnReference: true,
     },
   ]);
 });
@@ -320,6 +322,7 @@ test('applies dashboard grain override to every temporal dimension', () => {
       sqlExpression: 'StartDate',
       label: 'StartDate',
       expressionType: 'SQL',
+      isColumnReference: true,
     },
     {
       timeGrain: TimeGranularity.MONTH,
@@ -327,6 +330,7 @@ test('applies dashboard grain override to every temporal dimension', () => {
       sqlExpression: 'EndDate',
       label: 'EndDate',
       expressionType: 'SQL',
+      isColumnReference: true,
     },
   ]);
 });
@@ -508,6 +512,7 @@ test.each([TimeGranularity.DAY, TimeGranularity.MONTH])(
         sqlExpression: 'metric_time',
         label: 'metric_time',
         expressionType: 'SQL',
+        isColumnReference: true,
       },
     ]);
   },
@@ -644,6 +649,7 @@ describe('plugin-chart-table', () => {
         sqlExpression: 'col1',
         label: 'col1',
         expressionType: 'SQL',
+        isColumnReference: true,
       });
     });
     test('should fallback to formData.time_grain_sqla if extra_form_data.time_grain_sqla is not set', () => {
@@ -660,6 +666,7 @@ describe('plugin-chart-table', () => {
         sqlExpression: 'col1',
         label: 'col1',
         expressionType: 'SQL',
+        isColumnReference: true,
       });
     });
     test('should retain percent-metric post-processing on the summary (show_totals) query', () => {

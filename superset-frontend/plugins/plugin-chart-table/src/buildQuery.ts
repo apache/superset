@@ -228,7 +228,7 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
             sqlExpression: col,
             label: col,
             expressionType: 'SQL',
-            ...(isSemanticView ? { isColumnReference: true } : {}),
+            isColumnReference: true,
           };
           firstTemporalColumn ??= temporalColumn;
           return temporalColumn;
