@@ -137,6 +137,7 @@ function getCustomLegend(
   return {
     items: Array.from({ length: itemCount }, (_, index) => ({
       color: `rgb(${index % 255}, 0, 0)`,
+      icon: { shape: 'box' as const, opacity: 1 },
       interactive: true,
       name: `Series ${index + 1}`,
       selected: true,
@@ -323,6 +324,8 @@ test('accounts for axis-title grid reservations when bounding the custom legend'
 test.each([
   [LegendOrientation.Top, 'column'],
   [LegendOrientation.Bottom, 'column-reverse'],
+  [LegendOrientation.Left, 'row'],
+  [LegendOrientation.Right, 'row-reverse'],
 ])('places a custom Plain legend at %s', (orientation, flexDirection) => {
   renderTimeseries({
     ...({

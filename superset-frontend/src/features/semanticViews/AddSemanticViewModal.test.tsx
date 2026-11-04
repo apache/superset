@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import getBootstrapData from 'src/utils/getBootstrapData';
 import {
   act,
   fireEvent,
@@ -46,6 +47,13 @@ jest.mock('@superset-ui/core', () => ({
   },
 }));
 
+let mockSemanticDocsUrl: unknown;
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  ...jest.requireActual('src/utils/getBootstrapData'),
+  default: jest.fn(jest.requireActual('src/utils/getBootstrapData').default),
+}));
+
 const mockedGet = SupersetClient.get as jest.Mock;
 const mockedPost = SupersetClient.post as jest.Mock;
 
@@ -64,6 +72,22 @@ const selectOption = async (name: string, optionLabel: string) => {
 };
 
 beforeEach(() => {
+  mockSemanticDocsUrl = undefined;
+  jest.mocked(getBootstrapData).mockImplementation(() => {
+    const bootstrap = jest
+      .requireActual('src/utils/getBootstrapData')
+      .default();
+    return {
+      ...bootstrap,
+      common: {
+        ...bootstrap.common,
+        conf: {
+          ...bootstrap.common.conf,
+          SEMANTIC_LAYER_DOCUMENTATION_URL: mockSemanticDocsUrl,
+        },
+      },
+    };
+  });
   mockedGet.mockReset();
   mockedPost.mockReset();
 });
@@ -1676,4 +1700,169 @@ test('a superseded refresh failure cannot toast or clobber a newer response', as
   expect(schema.closest('.ant-select')).toHaveTextContent('shared');
   fireEvent.mouseDown(schema);
   expect(await screen.findByText('third_only')).toBeInTheDocument();
+});
+
+test('setup guidance distinguishes pending and empty layers for readers', async () => {
+  let resolveLayers!: (value: { json: { result: [] } }) => void;
+  mockedGet.mockReturnValue(
+    new Promise(resolve => {
+      resolveLayers = resolve;
+    }),
+  );
+  render(<AddSemanticViewModal {...createProps()} />);
+  expect(screen.getByRole('status')).toHaveTextContent(
+    'Loading semantic layers',
+  );
+  expect(screen.queryByText(/Ask your administrator/)).not.toBeInTheDocument();
+  await act(async () => resolveLayers({ json: { result: [] } }));
+  expect(
+    await screen.findByText(
+      /Ask your administrator to set up a semantic layer or grant you access/,
+    ),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Create semantic layer' }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
+});
+
+test('setup guidance offers direct creation only when a caller supplies the action', async () => {
+  mockedGet.mockResolvedValue({ json: { result: [] } });
+  const onCreateLayer = jest.fn();
+  render(
+    <AddSemanticViewModal {...createProps()} onCreateLayer={onCreateLayer} />,
+  );
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Create semantic layer' }),
+  );
+  expect(onCreateLayer).toHaveBeenCalledTimes(1);
+  expect(mockedPost).not.toHaveBeenCalled();
+});
+
+test.each([
+  {},
+  { result: null },
+  { result: {} },
+  { result: [{ name: 'missing id' }] },
+])('setup guidance treats malformed layer data as an error: %j', async json => {
+  mockedGet.mockResolvedValue({ json });
+  render(<AddSemanticViewModal {...createProps()} />);
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Unable to load semantic layers',
+  );
+  expect(
+    screen.queryByText(/No semantic layers are available/),
+  ).not.toBeInTheDocument();
+});
+
+test.each([403, 404, 500])(
+  'setup guidance retries a failed %s read without diagnosing installation',
+  async status => {
+    mockedGet
+      .mockRejectedValueOnce({ status })
+      .mockResolvedValueOnce({ json: { result: [] } });
+    render(<AddSemanticViewModal {...createProps()} />);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to load semantic layers',
+    );
+    expect(
+      screen.queryByText(/No semantic layers are available/),
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(
+      await screen.findByText(/No semantic layers are available to you/),
+    ).toBeInTheDocument();
+    expect(mockedGet).toHaveBeenCalledTimes(2);
+  },
+);
+
+test.each(['resolve', 'reject'])(
+  'setup guidance ignores stale layer %s after reopening',
+  async settlement => {
+    let resolveOld!: (value: { json: { result: [] } }) => void;
+    let rejectOld!: (error: Error) => void;
+    mockedGet
+      .mockReturnValueOnce(
+        new Promise((resolve, reject) => {
+          resolveOld = resolve;
+          rejectOld = reject;
+        }),
+      )
+      .mockResolvedValueOnce({
+        json: { result: [{ uuid: 'current', name: 'Current layer' }] },
+      });
+    const props = createProps();
+    const { rerender } = render(<AddSemanticViewModal {...props} />);
+    rerender(<AddSemanticViewModal {...props} show={false} />);
+    rerender(<AddSemanticViewModal {...props} />);
+    await waitFor(() => expect(mockedGet).toHaveBeenCalledTimes(2));
+    await act(async () => {
+      if (settlement === 'resolve') resolveOld({ json: { result: [] } });
+      else rejectOld(new Error('stale request'));
+    });
+    await userEvent.click(
+      screen.getByRole('combobox', { name: 'Semantic layer' }),
+    );
+    expect(await screen.findByText('Current layer')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/No semantic layers are available/),
+    ).not.toBeInTheDocument();
+    expect(props.addDangerToast).not.toHaveBeenCalled();
+  },
+);
+
+describe('setup documentation', () => {
+  test.each([
+    undefined,
+    null,
+    '',
+    '   ',
+    '/relative',
+    'https://',
+    'https:example.org',
+    '//example.org/docs',
+    // Deliberately unsafe input: the link must reject executable URLs.
+    // eslint-disable-next-line no-script-url
+    'javascript:alert(1)',
+    'data:text/html,test',
+    'https://user:secret@example.org/docs',
+    123,
+  ])('hides an unset or unsafe URL: %p', async url => {
+    mockSemanticDocsUrl = url;
+    mockedGet.mockReset().mockResolvedValue({ json: { result: [] } });
+    render(<AddSemanticViewModal {...createProps()} />);
+    await screen.findByText(/No semantic layer/);
+    expect(
+      screen.queryByRole('link', { name: 'Semantic layer setup guide' }),
+    ).not.toBeInTheDocument();
+  });
+
+  test.each([
+    'https://docs.example.org/setup',
+    'http://docs.example.org/setup',
+  ])(
+    'keeps the configured help link available while loading and after failure: %s',
+    async url => {
+      mockSemanticDocsUrl = url;
+      let reject!: (reason: Error) => void;
+      mockedGet.mockReset().mockReturnValue(
+        new Promise((_, rejectRequest) => {
+          reject = rejectRequest;
+        }),
+      );
+      render(<AddSemanticViewModal {...createProps()} />);
+      const link = screen.getByRole('link', {
+        name: 'Semantic layer setup guide',
+      });
+      expect(link).toHaveAttribute('href', url);
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+      await act(async () => reject(new Error('private detail')));
+      expect(screen.getByRole('alert')).toHaveTextContent('Unable to load');
+      expect(
+        screen.getByRole('link', { name: 'Semantic layer setup guide' }),
+      ).toHaveAttribute('href', url);
+      expect(screen.queryByText('private detail')).not.toBeInTheDocument();
+    },
+  );
 });
