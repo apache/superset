@@ -3547,9 +3547,10 @@ class ExtraRelatedQueryFilters(TypedDict, total=False):
 EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
 
 # When True, the listed viewers of a published dashboard may read its member
-# charts and their datasets on requests bound to that dashboard, without
-# dataset-level RBAC (the legacy DASHBOARD_RBAC model). Editors keep their
-# regular access only, but control the viewer list. Only effective when
+# charts and their datasets on requests bound to that dashboard, and the listed
+# viewers of a chart may read that chart's data, without dataset-level RBAC (the
+# legacy DASHBOARD_RBAC model). Editors keep their regular access only, but
+# control the viewer list. Only effective when
 # ENABLE_VIEWERS is on. This deliberately relaxes the security model; see
 # SECURITY.md.
 VIEWER_PROMISCUOUS_MODE = False

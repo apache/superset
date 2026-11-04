@@ -30,6 +30,8 @@ assists people when migrating to a new version.
   and only while viewing that dashboard (its chart data, `/charts`, `/datasets`
   and drill). Dashboard editors who aren't also listed viewers no longer get the
   grant and need regular access to the data; add them as viewers to restore it.
+  The chart grant follows the same rule: only a chart's listed viewers load its
+  data without dataset permissions, and its editors need regular access.
   Copying a dashboard, with or without duplicating its charts, now requires
   access to each of its charts and native-filter target datasets in their own
   right, and saving a native filter (through the dashboard or the filters API)

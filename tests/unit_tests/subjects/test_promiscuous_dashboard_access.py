@@ -37,7 +37,8 @@ from sqlalchemy.orm.session import Session
 
 @pytest.fixture
 def inheritance_fixtures(app_context: None, session: Session) -> SimpleNamespace:
-    """Four dashboards covering the editor/viewer x published/draft matrix."""
+    """Four dashboards covering the editor/viewer x published/draft matrix, plus
+    a chart on no dashboard that the editor edits and the viewer is listed on."""
     # pylint: disable=import-outside-toplevel
     from flask_appbuilder.security.sqla.models import User
 
@@ -117,6 +118,12 @@ def inheritance_fixtures(app_context: None, session: Session) -> SimpleNamespace
     editor_subject = make_subject(editor_user)
     viewer_subject = make_subject(viewer_user)
 
+    shared_slice = make_slice("shared chart")
+    shared_slice.editors = [editor_subject]
+    shared_slice.viewers = [viewer_subject]
+    session.add(shared_slice)
+    session.flush()
+
     editor_published = Dashboard(
         dashboard_title="editor published",
         slug="editor-published",
@@ -172,6 +179,7 @@ def inheritance_fixtures(app_context: None, session: Session) -> SimpleNamespace
         viewer_published_slice=viewer_published_slice,
         viewer_draft_slice=viewer_draft_slice,
         unrelated_slice=unrelated_slice,
+        shared_slice=shared_slice,
     )
 
 
@@ -197,6 +205,11 @@ def acting_as(user: object) -> Iterator[None]:
         g.user = previous
 
 
+def _chart_request(chart: Any, datasource: Any) -> Any:
+    """A chart-data request for ``chart`` on its own, outside any dashboard."""
+    return SimpleNamespace(datasource=datasource, form_data={"slice_id": chart.id})
+
+
 def _bound_to(dashboard: Any, chart: Any, datasource: Any) -> Any:
     """A chart-data request for ``chart`` as rendered on ``dashboard``."""
     return SimpleNamespace(
@@ -210,7 +223,8 @@ def test_viewer_reads_a_published_dashboard_only_through_its_requests(
 ) -> None:
     """A listed viewer of a published dashboard reads its member charts' data
     on requests bound to it, and nothing else: not the charts or the dataset
-    themselves, not a chart off the dashboard, not an unpublished dashboard."""
+    themselves, not a chart off the dashboard, not an unpublished dashboard.
+    A chart's listed viewer likewise reads that chart's data, and no other's."""
     from superset import security_manager
     from superset.exceptions import SupersetSecurityException
 
@@ -228,7 +242,13 @@ def test_viewer_reads_a_published_dashboard_only_through_its_requests(
             fx.table, fx.viewer_published
         )
 
+        assert security_manager.has_promiscuous_chart_access(fx.shared_slice)
+        security_manager.raise_for_access(
+            query_context=_chart_request(fx.shared_slice, fx.table)
+        )
+
         for denied in (
+            {"query_context": _chart_request(fx.unrelated_slice, fx.table)},
             {"chart": fx.viewer_published_slice},
             {"datasource": fx.table},
             {
@@ -252,8 +272,8 @@ def test_editors_strangers_guests_and_flag_off_get_no_grant(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Editors keep their regular access only, even on their own published
-    dashboard; strangers and embedded guests get nothing; and the grant is off
-    without ``VIEWER_PROMISCUOUS_MODE``."""
+    dashboard or chart; strangers and embedded guests get nothing; and the
+    grant is off without ``VIEWER_PROMISCUOUS_MODE``."""
     from superset import security_manager
     from superset.exceptions import SupersetSecurityException
 
@@ -271,6 +291,11 @@ def test_editors_strangers_guests_and_flag_off_get_no_grant(
         assert not security_manager.can_drill_dataset_via_dashboard_access(
             fx.table, fx.editor_published
         )
+        assert not security_manager.has_promiscuous_chart_access(fx.shared_slice)
+        with pytest.raises(SupersetSecurityException):
+            security_manager.raise_for_access(
+                query_context=_chart_request(fx.shared_slice, fx.table)
+            )
 
     with acting_as(fx.stranger_user):
         assert not security_manager.has_promiscuous_dashboard_access(fx.unrelated)
@@ -280,12 +305,14 @@ def test_editors_strangers_guests_and_flag_off_get_no_grant(
         assert not security_manager.has_promiscuous_dashboard_access(
             fx.viewer_published
         )
-        monkeypatch.undo()
+        assert not security_manager.has_promiscuous_chart_access(fx.shared_slice)
+        monkeypatch.setattr(security_manager, "is_guest_user", lambda: False)
 
         monkeypatch.setitem(current_app.config, "VIEWER_PROMISCUOUS_MODE", False)
         assert not security_manager.has_promiscuous_dashboard_access(
             fx.viewer_published
         )
+        assert not security_manager.has_promiscuous_chart_access(fx.shared_slice)
 
 
 def test_carrying_charts_or_filter_targets_onto_a_dashboard_takes_access(
