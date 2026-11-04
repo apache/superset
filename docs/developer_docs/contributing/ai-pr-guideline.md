@@ -34,7 +34,7 @@ It does not make sense for us to engage with one-off contributions that are 100%
 
 To that end, before submitting a PR, make sure:
 
-1. If the issue is labeled good-first-issue, you have requested to work on it and been assigned
+1. If the issue is labeled "good first issue", you have requested to work on it and been assigned
 2. You have checked for existing open PRs that do the same thing
 3. You have deployed the changes in your own Superset environment and tested the new behavior directly as a user.
 4. If there's any resulting change in the UI, you include before & after screenshots from your manual testing of the current behavior vs. your fix
