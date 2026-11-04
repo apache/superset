@@ -60,6 +60,34 @@ const createAdhocColumn = (
   expressionType: 'SQL',
 });
 
+test('applies grain to every temporal dimension and keeps the first axis first', () => {
+  const grain = 'P1M';
+  const query = buildQueryUncached({
+    ...basicFormData,
+    groupby: ['category', 'EndDate', 'StartDate'],
+    time_grain_sqla: grain,
+    temporal_columns_lookup: { EndDate: true, StartDate: true },
+  }).queries[0];
+
+  expect(query.columns).toEqual([
+    {
+      timeGrain: grain,
+      columnType: 'BASE_AXIS',
+      sqlExpression: 'EndDate',
+      label: 'EndDate',
+      expressionType: 'SQL',
+    },
+    'category',
+    {
+      timeGrain: grain,
+      columnType: 'BASE_AXIS',
+      sqlExpression: 'StartDate',
+      label: 'StartDate',
+      expressionType: 'SQL',
+    },
+  ]);
+});
+
 describe('plugin-chart-ag-grid-table', () => {
   describe('buildQuery - sort mapping for server pagination', () => {
     test('should map string column colId to backend identifier', () => {
