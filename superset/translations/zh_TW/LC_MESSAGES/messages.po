@@ -11066,6 +11066,8 @@ msgstr "本地主題已設定為 \"%s\""
 msgid "Locate the chart"
 msgstr "定位到圖表"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "日誌"

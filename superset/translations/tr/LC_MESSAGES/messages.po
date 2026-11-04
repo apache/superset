@@ -10246,6 +10246,8 @@ msgstr "Yerel tema \"  %s \" olarak belirlendi."
 msgid "Locate the chart"
 msgstr "Locate the chart"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr "Log"
 
