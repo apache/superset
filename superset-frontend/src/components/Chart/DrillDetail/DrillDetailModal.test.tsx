@@ -93,6 +93,7 @@ test('should prefer the chart name shown on the dashboard', async () => {
       formData={formData}
       initialFilters={[]}
       showModal
+      onHideModal={jest.fn()}
     />,
     {
       useRouter: true,
