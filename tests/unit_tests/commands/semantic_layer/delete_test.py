@@ -1257,8 +1257,9 @@ def test_semantic_delete_names_archived_dependents_to_restore_audience(
     assert session.scalar(sa.select(Slice.id).where(Slice.id == 962)) is None
     mocker.patch(
         "superset.security_manager.can_access",
-        side_effect=lambda permission, resource: viewer != "read-only-editor"
-        or permission != "can_write",
+        side_effect=lambda permission, resource: (
+            viewer != "read-only-editor" or permission != "can_write"
+        ),
     )
     for access_filter in (
         "ChartFilter",
