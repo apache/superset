@@ -1423,3 +1423,108 @@ def test_import_database_keeps_readable_embedded_key(
     database = import_database(_snowflake_config(masked), overwrite=True)
 
     assert json.loads(database.encrypted_extra)["embedded_credentials"] == keypair
+
+
+EMBEDDED_PASSWORD = {"username": "EMBED_SVC", "password": "embedded-secret"}
+
+
+def _store_snowflake_credential(mocker: MockerFixture) -> "Database":
+    """Store the connection directly, whatever the flags."""
+    from superset import security_manager
+    from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    Database.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+
+    config = _snowflake_config(EMBEDDED_PASSWORD)
+    existing = Database(
+        database_name=config["database_name"],
+        sqlalchemy_uri=config["sqlalchemy_uri"],
+        uuid=UUID(str(config["uuid"])),
+        impersonate_user=True,
+        encrypted_extra=config["masked_encrypted_extra"],
+    )
+    db.session.add(existing)
+    db.session.flush()
+    return existing
+
+
+def _masked_password() -> dict[str, str]:
+    return {**EMBEDDED_PASSWORD, "password": PASSWORD_MASK}
+
+
+@pytest.mark.parametrize("carries_secure_extra", [True, False])
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=True)
+def test_import_database_refuses_impersonation_off_with_embedded_credential(
+    mocker: MockerFixture, session: Session, carries_secure_extra: bool
+) -> None:
+    """
+    A file that turns impersonation off on a connection that keeps an embedded
+    credential is refused with a 400, whether the file carries the credential or
+    leaves the stored one attached; otherwise viewers run as the base account
+    (sc-130268).
+    """
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.commands.exceptions import ImportRefusedError
+
+    existing = _store_snowflake_credential(mocker)
+
+    config = {**_snowflake_config(_masked_password()), "impersonate_user": False}
+    if not carries_secure_extra:
+        del config["masked_encrypted_extra"]
+    with pytest.raises(ImportRefusedError, match="Impersonate logged in user"):
+        import_database(config, overwrite=True)
+
+    assert existing.impersonate_user is True
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=True)
+def test_import_database_keeps_embedded_credential_with_impersonation_on(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """The same file with impersonation on imports and reveals the stored secret."""
+    from superset.commands.database.importers.v1.utils import import_database
+
+    _store_snowflake_credential(mocker)
+
+    database = import_database(_snowflake_config(_masked_password()), overwrite=True)
+
+    stored = json.loads(database.encrypted_extra)["embedded_credentials"]
+    assert stored == EMBEDDED_PASSWORD
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=False)
+def test_import_database_refuses_changed_embedded_credential_when_flag_off(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    With the fallback off nothing validates a credential, so a new or changed
+    one is refused with a 400, as the API refuses it; the stored one stays
+    (sc-130270).
+    """
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.commands.exceptions import ImportRefusedError
+
+    existing = _store_snowflake_credential(mocker)
+
+    with pytest.raises(ImportRefusedError, match="fallback is turned off"):
+        import_database(_snowflake_config({"username": "OTHER"}), overwrite=True)
+
+    stored = json.loads(existing.encrypted_extra)["embedded_credentials"]
+    assert stored == EMBEDDED_PASSWORD
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=False)
+def test_import_database_keeps_unchanged_embedded_credential_when_flag_off(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """Re-importing the stored credential unchanged still works with the flag off."""
+    from superset.commands.database.importers.v1.utils import import_database
+
+    _store_snowflake_credential(mocker)
+
+    database = import_database(_snowflake_config(_masked_password()), overwrite=True)
+
+    stored = json.loads(database.encrypted_extra)["embedded_credentials"]
+    assert stored == EMBEDDED_PASSWORD

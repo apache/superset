@@ -103,6 +103,21 @@ const asObject = (value: unknown): Record<string, unknown> => {
 const asString = (value: unknown): string =>
   typeof value === 'string' ? value : '';
 
+const isNonBlankString = (value: unknown): boolean =>
+  typeof value === 'string' && value.trim().length > 0;
+
+/**
+ * Does an `oauth2_client_info` block actually configure a client?
+ *
+ * Mirrors `oauth2_client_info_configured` in `superset/utils/oauth2.py`: some
+ * forms save the block with a blank client id and secret, so both must be
+ * non-blank. A masked secret counts as set.
+ */
+export const oauth2ClientInfoConfigured = (clientInfo: unknown): boolean => {
+  const client = asObject(clientInfo);
+  return isNonBlankString(client.id) && isNonBlankString(client.secret);
+};
+
 /**
  * Does this connection have an OAuth2 client configured?
  *
@@ -120,12 +135,12 @@ export const connectionUsesOAuth2 = (
     return true;
   }
 
-  const fromForm = asObject(db?.parameters?.oauth2_client_info);
-  const fromStorage = asObject(
-    asObject(db?.masked_encrypted_extra).oauth2_client_info,
+  return (
+    oauth2ClientInfoConfigured(db?.parameters?.oauth2_client_info) ||
+    oauth2ClientInfoConfigured(
+      asObject(db?.masked_encrypted_extra).oauth2_client_info,
+    )
   );
-
-  return !!(asString(fromForm.id) || asString(fromStorage.id));
 };
 
 export const EmbeddedCredentialsField = ({
