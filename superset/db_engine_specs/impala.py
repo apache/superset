@@ -52,9 +52,8 @@ class ImpalaEngineSpec(BaseEngineSpec):
     # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
     binary_string_comparison = True
 
-    # Epoch-integer partition keys are the common Impala layout, and the
-    # one-argument form takes the bound being mirrored rather than "now".
-    partition_value_transform_default = "unix_timestamp(:value)"
+    # A numeric key does not reveal its bucket size or timezone.
+    partition_value_transform_default = None
 
     metadata = {
         "description": (

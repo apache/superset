@@ -1046,7 +1046,11 @@ def _convert_query_object_filter(
 
 
 def _normalize_membership_filter(filter_: Filter) -> set[FilterExpression]:
-    """Normalize NULL equality/membership and reject empty membership selections."""
+    """Normalize NULL equality/membership; empty membership stays a SQL constant.
+
+    An empty ``IN`` is FALSE and an empty ``NOT IN`` is TRUE, NULL rows included,
+    at the filter's position in the query. Providers render the constant.
+    """
     negated: bool = filter_.operator in {Operator.NOT_EQUALS, Operator.NOT_IN}
     null_filter: Filter = replace(
         filter_,
@@ -1064,7 +1068,7 @@ def _normalize_membership_filter(filter_: Filter) -> set[FilterExpression]:
         else frozenset({filter_.value})
     )
     if not values:
-        raise QueryObjectValidationError("Semantic IN/NOT IN filters cannot be empty.")
+        return {replace(filter_, value=values)}
     if None not in values:
         return {filter_}
 
