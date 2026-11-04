@@ -41,6 +41,23 @@ jest.mock('./DatasetReview', () => () => null);
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const getControls = require('src/utils/getControlsForVizType').default;
 
+/**
+ * What the server sends for a field that moved: the keys and, under them, each
+ * one's value before and after. Key names alone are no longer drawn as a
+ * change (sc-129075), so the fixtures carry the values a real response does.
+ */
+const moved = (field: string, keys: string[]) => ({
+  field,
+  opaque: true,
+  keys,
+  entries: keys.map(key => ({
+    kind: 'changed' as const,
+    key,
+    before: 'old',
+    after: 'new',
+  })),
+});
+
 const request = (overrides: Partial<ChangeRequest> = {}): ChangeRequest =>
   ({
     id: 1,
@@ -57,7 +74,7 @@ const request = (overrides: Partial<ChangeRequest> = {}): ChangeRequest =>
     changed_fields: ['params'],
     proposed: { params: JSON.stringify({ viz_type: 'table' }) },
     changes: [
-      { field: 'params', opaque: true, keys: ['adhoc_filters', 'groupby'] },
+      moved('params', ['adhoc_filters', 'groupby']),
     ],
     ...overrides,
   }) as unknown as ChangeRequest;
@@ -79,7 +96,8 @@ beforeEach(() => {
 test('a control is named the way Explore names it', () => {
   show(request());
 
-  expect(screen.getByText(/Filters, Dimensions/)).toBeInTheDocument();
+  expect(screen.getByText('Filters')).toBeInTheDocument();
+  expect(screen.getByText('Dimensions')).toBeInTheDocument();
 });
 
 test('the labels are looked up for the chart being reviewed', () => {
@@ -95,13 +113,12 @@ test('a key that is not a control keeps its raw name', () => {
 
   show(
     request({
-      changes: [
-        { field: 'params', opaque: true, keys: ['groupby', 'datasource'] },
-      ],
+      changes: [moved('params', ['groupby', 'datasource'])],
     } as Partial<ChangeRequest>),
   );
 
-  expect(screen.getByText(/Dimensions, datasource/)).toBeInTheDocument();
+  expect(screen.getByText('Dimensions')).toBeInTheDocument();
+  expect(screen.getByText('datasource')).toBeInTheDocument();
 });
 
 test('a label that is not a plain string is not dropped into the sentence', () => {
@@ -113,13 +130,15 @@ test('a label that is not a plain string is not dropped into the sentence', () =
 
   show(request());
 
-  expect(screen.getByText(/adhoc_filters, Dimensions/)).toBeInTheDocument();
+  expect(screen.getByText('adhoc_filters')).toBeInTheDocument();
+  expect(screen.getByText('Dimensions')).toBeInTheDocument();
 });
 
 test('an unparseable params payload leaves every key as it was', () => {
   show(request({ proposed: { params: '{not json' } } as Partial<ChangeRequest>));
 
-  expect(screen.getByText(/adhoc_filters, groupby/)).toBeInTheDocument();
+  expect(screen.getByText('adhoc_filters')).toBeInTheDocument();
+  expect(screen.getByText('groupby')).toBeInTheDocument();
 });
 
 test('a viz type the registry does not know leaves every key as it was', () => {
@@ -127,7 +146,8 @@ test('a viz type the registry does not know leaves every key as it was', () => {
 
   show(request());
 
-  expect(screen.getByText(/adhoc_filters, groupby/)).toBeInTheDocument();
+  expect(screen.getByText('adhoc_filters')).toBeInTheDocument();
+  expect(screen.getByText('groupby')).toBeInTheDocument();
 });
 
 test('a dashboard change does not get chart control labels', () => {
@@ -139,13 +159,12 @@ test('a dashboard change does not get chart control labels', () => {
     request({
       asset_type: 'dashboard',
       changed_fields: ['json_metadata'],
-      changes: [
-        { field: 'json_metadata', opaque: true, keys: ['groupby', 'color_scheme'] },
-      ],
+      changes: [moved('json_metadata', ['groupby', 'color_scheme'])],
     } as Partial<ChangeRequest>),
   );
 
-  expect(screen.getByText(/groupby, color_scheme/)).toBeInTheDocument();
+  expect(screen.getByText('groupby')).toBeInTheDocument();
+  expect(screen.getByText('color_scheme')).toBeInTheDocument();
 });
 
 test('only a chart gets chart control labels', () => {
@@ -156,10 +175,10 @@ test('only a chart gets chart control labels', () => {
   show(
     request({
       asset_type: 'dataset',
-      changes: [{ field: 'params', opaque: true, keys: ['groupby'] }],
+      changes: [moved('params', ['groupby'])],
     } as Partial<ChangeRequest>),
   );
 
-  expect(screen.getByText(/groupby/)).toBeInTheDocument();
+  expect(screen.getByText('groupby')).toBeInTheDocument();
   expect(getControls).not.toHaveBeenCalled();
 });

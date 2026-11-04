@@ -72,25 +72,29 @@ def test_dashboard_metadata_over_an_empty_value_lists_its_settings(
 
 
 def test_the_edit_still_leads_when_the_stored_value_is_not_empty() -> None:
-    """The ranking QA-15 asked for is unchanged: what moved first, what was
-    merely written down for the first time counted behind it."""
+    """The ranking QA-15 asked for is unchanged: what moved comes first. What
+    was merely written down for the first time follows it, named, and is not
+    reduced to a count (sc-129075)."""
     asset = SimpleNamespace(params=json.dumps({"viz_type": "bar", "legend": True}))
     proposed = json.dumps({"viz_type": "bar", "legend": False, **{f"d{n}": n for n in range(30)}})
 
     [entry] = api.describe_changes(_request({"params": proposed}), asset)
 
-    assert [e["key"] for e in entry["entries"]] == ["legend"]
-    assert entry["added_keys"] == 30
+    assert entry["entries"][0]["key"] == "legend"
+    assert len(entry["entries"]) == 31
+    assert "added_keys" not in entry
 
 
-def test_a_long_list_of_settings_is_capped_and_the_rest_counted() -> None:
+def test_a_long_list_of_settings_is_never_cut_or_counted_away() -> None:
+    """The limit that was here (25, with "and N more") hid content from a
+    reviewer who was being asked to approve it. Every entry is sent."""
     asset = SimpleNamespace(params=None)
-    proposed = json.dumps({f"k{n:03}": n for n in range(api.MAX_ENTRIES + 7)})
+    proposed = json.dumps({f"k{n:03}": n for n in range(200)})
 
     [entry] = api.describe_changes(_request({"params": proposed}), asset)
 
-    assert len(entry["entries"]) == api.MAX_ENTRIES
-    assert entry["more"] == 7
+    assert len(entry["entries"]) == 200
+    assert "more" not in entry
 
 
 def test_a_long_value_inside_a_setting_is_cut_and_said_to_be() -> None:

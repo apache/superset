@@ -23,9 +23,9 @@ import { Button } from '@superset-ui/core/components';
 import { Input } from '@superset-ui/core/components/Input';
 import { useMemo, useState } from 'react';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
-import { ago, changeCount } from './display';
+import { ago, changeCount, reviewBlocker } from './display';
 import { displayName, STATUS_LABEL } from './types';
-import ChangeList from './ChangeList';
+import ChangeList, { BlockedNotice } from './ChangeList';
 import DatasetReview from './DatasetReview';
 import type { ChangeRequest } from './types';
 
@@ -192,6 +192,11 @@ export default function WhatChangedPanel({
   const [extraNote, setExtraNote] = useState('');
   const fields = changeRequest.changes ?? [];
   const controls = useMemo(() => controlLabels(changeRequest), [changeRequest]);
+  // Why Approve is withheld, if it is. Asked of the request and not of the
+  // list below, so an empty list can never read as "nothing changed" beside
+  // an enabled button.
+  const blocker = reviewBlocker(changeRequest);
+  const keywords = fields.filter(change => change.keyword);
   const isDatasetDefinition =
     !!changeRequest.dataset_detail && changeRequest.operation !== 'delete';
 
@@ -261,7 +266,12 @@ export default function WhatChangedPanel({
             <SectionTitle>
               {`${t('What changed')} · ${changeCount(changeRequest)}`}
             </SectionTitle>
+            {blocker ? <BlockedNotice reason={blocker} /> : null}
             <DatasetReview detail={changeRequest.dataset_detail!} />
+            {blocker ? (
+              <ChangeList changes={fields.filter(change => change.unreadable)} />
+            ) : null}
+            {keywords.length ? <ChangeList changes={keywords} /> : null}
           </Section>
         ) : (
           <Section>
@@ -274,7 +284,15 @@ export default function WhatChangedPanel({
             {changeRequest.operation === 'delete' ? (
               // A delete has no fields. Saying "0 changes" would describe the
               // most consequential request in the system as nothing happening.
-              <Muted>{t('This asset would be removed once approved.')}</Muted>
+              <>
+                <Muted>{t('This asset would be removed once approved.')}</Muted>
+                {keywords.length ? <ChangeList changes={keywords} /> : null}
+              </>
+            ) : blocker ? (
+              <>
+                <BlockedNotice reason={blocker} />
+                <ChangeList changes={fields} />
+              </>
             ) : fields.length === 0 ? (
               // Everything submitted matched what was already stored. Saying
               // "no fields recorded" would imply we lost the detail; the truth
@@ -301,7 +319,7 @@ export default function WhatChangedPanel({
           <Button
             buttonStyle="primary"
             buttonSize="small"
-            disabled={review.busy}
+            disabled={review.busy || !!blocker}
             onClick={() => review.onApprove(extraNote)}
             data-test="panel-approve"
           >

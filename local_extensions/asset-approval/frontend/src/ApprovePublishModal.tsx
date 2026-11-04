@@ -19,8 +19,8 @@
 
 import React from 'react';
 import { Modal, styled, t } from './host';
-import ChangeList from './ChangeList';
-import { changeCount, totalChangeCount } from './display';
+import ChangeList, { BlockedNotice } from './ChangeList';
+import { changeCount, reviewBlocker, totalChangeCount } from './display';
 import type { ChangeRequest } from './types';
 
 const Hint = styled.div`
@@ -53,11 +53,17 @@ export default function ApprovePublishModal({
   onConfirm,
 }: ApprovePublishModalProps) {
   const deleting = changeRequest.operation === 'delete';
+  // Approving something with nothing in it to read is approving blind, and
+  // every Approve button in the app ends at this dialog, so this is the one
+  // place that holds for all of them.
+  const blocker = reviewBlocker(changeRequest);
+  const keywords = (changeRequest.changes ?? []).filter(change => change.keyword);
   const restoring = changeRequest.command === 'restore';
 
   return (
     <Modal
       show={open}
+      disablePrimaryButton={!!blocker}
       title={deleting ? t('Approve and delete?') : t('Approve and publish?')}
       onHide={onClose}
       onHandledPrimaryAction={onConfirm}
@@ -66,7 +72,8 @@ export default function ApprovePublishModal({
       }
       data-test="approve-publish-modal"
     >
-      {restoring
+      {blocker ? <BlockedNotice reason={blocker} /> : null}
+      {blocker ? null : restoring
         ? // An un-archive has nothing to preview on a page, because the asset
           // is in the trash and has none, so this dialog is the only place
           // the reviewer is told what approving does. It said the generic
@@ -104,6 +111,13 @@ export default function ApprovePublishModal({
         // decided here and not on the asset's own page.
         <div data-test="approve-changes">
           <ChangeList changes={changeRequest.changes} />
+        </div>
+      ) : null}
+      {keywords.length && !changeRequest.asset_archived ? (
+        // What the save is also called with, repeated at the moment of
+        // approval: the keyword is the part most likely to have been missed.
+        <div data-test="approve-keywords">
+          <ChangeList changes={keywords} />
         </div>
       ) : null}
       <Hint>{t('Your note is saved with the approval.')}</Hint>

@@ -55,6 +55,8 @@ from asset_approval.exceptions import (
     StaleBaselineError,
 )
 from asset_approval.gate import (
+    captured_arguments,
+    captured_exempt_fields,
     COMMAND_KEY,
     find_open_request,
     is_enabled,
@@ -71,6 +73,7 @@ from asset_approval.changes import (
     _is_nothing,
     _parsed,
     DERIVED_METADATA_KEYS,
+    EXEMPT_FIELDS,
     changed_fields,
     changed_keys_by_kind,
     IDENTITY_FIELDS,
@@ -150,8 +153,15 @@ def _asset_title(asset: Any) -> str | None:
 #: limits below are about the reviewer's reading, not about what may be
 #: disclosed: a value is cut to a readable length *and said to be cut*.
 
-#: Most entries listed inside one changed field before the rest are counted.
-MAX_ENTRIES = 25
+#: There is no limit on how many entries one changed field lists.
+#:
+#: There used to be one (25), with the rest reported as a count. A count is
+#: not content: a reviewer told "and 7 more" is approving seven things they
+#: were not shown (sc-129075: "'and 3 more' hides changes"). The entries are
+#: derived from the request body, which ``serialize`` already returns whole as
+#: ``proposed``, and each value in them is cut to ``ENTRY_VALUE_LIMIT``, so
+#: listing all of them costs the payload no more than the body already does.
+#: The panel decides how much to show at once; it never decides what exists.
 
 #: How much of one value inside a structured field is shown.
 ENTRY_VALUE_LIMIT = 300
@@ -417,11 +427,13 @@ def _entry(kind: str, key: str, was: Any = _MISSING, now: Any = _MISSING) -> dic
 
 
 def _capped(entry: dict[str, Any], entries: list[dict[str, Any]]) -> dict[str, Any]:
-    """``entries`` on ``entry``: at most ``MAX_ENTRIES``, the rest counted."""
+    """``entries`` on ``entry``, all of them.
+
+    Still called ``_capped`` for the callers that were written against the
+    limit it used to apply; it no longer drops or counts anything.
+    """
     if entries:
-        entry["entries"] = entries[:MAX_ENTRIES]
-        if len(entries) > MAX_ENTRIES:
-            entry["more"] = len(entries) - MAX_ENTRIES
+        entry["entries"] = entries
     return entry
 
 
@@ -679,9 +691,7 @@ def _layout_of(before: Any, after: Any) -> dict[str, Any] | None:
         return None
     layout: dict[str, Any] = dict(summary)
     components = _layout_components(before, after)
-    layout["components"] = components[:MAX_ENTRIES]
-    if len(components) > MAX_ENTRIES:
-        layout["more"] = len(components) - MAX_ENTRIES
+    layout["components"] = components
     return layout
 
 
@@ -750,12 +760,14 @@ def _opaque_entry(
     edited = kinds["moved"] + kinds["removed"]
     if keys := edited or kinds["added"]:
         entry["keys"] = keys
-    if edited and kinds["added"]:
-        entry["added_keys"] = len(kinds["added"])
 
     if isinstance(before, dict) and isinstance(after, dict):
         edited_entries, added_entries = _blob_entries(before, after, skip)
-        _capped(entry, edited_entries or added_entries)
+        # The edit leads and the settings written down for the first time
+        # follow, every one of them named with its value. They used to be
+        # counted ("76 further settings written for the first time"), which
+        # is a number where a reviewer needs the settings.
+        _capped(entry, edited_entries + added_entries)
     return entry
 
 
@@ -772,6 +784,9 @@ _NAMED_MODELS: dict[str, tuple[str, str]] = {
     "theme_id": ("superset.models.core", "Theme"),
     "datasource_id": ("superset.connectors.sqla.models", "SqlaTable"),
     "owners": ("", "user"),
+    # The metrics a dataset save asks to delete: ``delete_metric_ids`` is a
+    # keyword and not a body field, but its ids are named the same way.
+    "delete_metric_ids": ("superset.connectors.sqla.models", "SqlMetric"),
 }
 
 
@@ -932,15 +947,242 @@ def _field_entry(
             if asset is not None
             else _MISSING,
         )
-        if not any(key in entry for key in ("layout", "keys", "entries")):
+        if not any(key in entry for key in ("layout", "entries")):
             # Whatever the structure was, it moved somewhere this could not
-            # name. Both values are still better than the word "Changed".
+            # give a value for. Names alone are not a change a reviewer can
+            # judge, so both values come with them rather than the word
+            # "Changed" or a list of keys.
             entry.update(_pair(current, proposed))
         return entry
 
     if _is_collection(current) or _is_collection(proposed):
         return _collection_entry(field, current, proposed)
     return _scalar_entry(field, current, proposed)
+
+
+# -------------------------------------------------------------------- keywords
+
+#: What a write is *called with*, beside its body.
+#:
+#: The gate captures every constructor argument past the asset id and the
+#: body (``gate.KWARGS_KEY``), because a command's keywords change what the
+#: write does as much as its body does: ``delete_metric_ids`` deletes with a
+#: body of ``{}``, ``preserve_existing_metrics`` decides whether the metrics a
+#: save does not list survive, ``save_to_dashboard_id`` attaches the chart to a
+#: dashboard. A capture holds them; replay hands them back; and until this
+#: section nothing showed them to the reviewer, who was asked to approve the
+#: body alone.
+#:
+#: The rule is the one ``_field_entry`` follows for fields: the default is
+#: chosen without knowing the keyword and fails *closed*, so a keyword a
+#: command grows next week still reaches the reviewer with its name and its
+#: value. ``_KEYWORD_RENDERERS`` only improves on that for the few whose
+#: consequence a person needs spelled out; a renderer that declines or fails
+#: leaves the default standing.
+
+
+def _quoted(value: Any) -> str:
+    """A keyword's value as it reads in ``name = value``."""
+    return json.dumps(value) if isinstance(value, str) else _text_of(value)
+
+
+def _keyword_entry(
+    name: str, summary: str, value: Any = _MISSING, **more: Any
+) -> dict[str, Any]:
+    """One keyword as an entry: its name, what it does, and its value.
+
+    ``summary`` is the consequence in a sentence; ``after`` is the value
+    itself, so the mechanism stays visible beside the explanation of it.
+    """
+    entry: dict[str, Any] = {"field": name, "keyword": True, "summary": summary}
+    if value is not _MISSING:
+        after, cut = _render(value)
+        entry["after"] = after
+        if cut:
+            entry["truncated"] = True
+        if _is_structural(value):
+            entry["opaque"] = True
+    entry.update(more)
+    return entry
+
+
+def _unrecognised_keyword(name: str, value: Any) -> dict[str, Any]:
+    """The default: a keyword nobody wrote a sentence for, by name and value."""
+    text, _ = _clip(_quoted(value), ENTRY_VALUE_LIMIT)
+    return _keyword_entry(name, f"Also applied with this save: {name} = {text}", value)
+
+
+def _whole_ids(value: Any) -> list[int] | None:
+    """``value`` as a list of ids, or ``None`` if any of it is not an id."""
+    items = list(value) if _is_collection(value) else [value]
+    if not items or not all(
+        isinstance(item, int) and not isinstance(item, bool) for item in items
+    ):
+        return None
+    return sorted(set(items))
+
+
+def _metrics_being_deleted(value: Any, _request: Any, asset: Any) -> dict | None:
+    """``delete_metric_ids`` as the metrics, by name, that approving deletes.
+
+    Read off the dataset's own metrics: the DAO deletes only a metric that is
+    on the dataset, so an id that is not one of them deletes nothing and is
+    said so rather than named as if it would go. Without the dataset the ids
+    are looked up, and an id nobody can name is shown as an id.
+    """
+    ids = _whole_ids(value)
+    if ids is None:
+        return None
+    own = None
+    if asset is not None and hasattr(asset, "metrics"):
+        own = {
+            _field_of(metric, "id"): _field_of(metric, "metric_name")
+            or _label_of(metric)
+            for metric in getattr(asset, "metrics", None) or []
+        }
+    names = own if own is not None else _names_of("delete_metric_ids", ids)
+
+    going: list[str] = []
+    stray: list[str] = []
+    for ident in ids:
+        if ident in names:
+            going.append(str(names[ident]))
+        elif own is not None:
+            stray.append(f"metric {ident}")
+        else:
+            going.append(f"metric {ident}")
+
+    parts = []
+    if going:
+        noun = "metric" if len(going) == 1 else "metrics"
+        parts.append(
+            f"Deletes {len(going)} {noun} from this dataset: {', '.join(going)}. "
+            "Anything that uses them loses them."
+        )
+    if stray:
+        parts.append(
+            f"{', '.join(stray)} {'is' if len(stray) == 1 else 'are'} not on "
+            "this dataset, so nothing is deleted for "
+            f"{'it' if len(stray) == 1 else 'them'}."
+        )
+    entry = _keyword_entry(
+        "delete_metric_ids", " ".join(parts), ", ".join(going + stray)
+    )
+    return _capped(entry, [_entry("removed", name) for name in going])
+
+
+def _keeping_other_metrics(value: Any, *_context: Any) -> dict | None:
+    if value is not True:
+        return None
+    return _keyword_entry(
+        "preserve_existing_metrics",
+        "The dataset's other metrics are kept. The metrics in this save are "
+        "added or updated, not taken as the full list, so a metric it does "
+        "not mention stays.",
+        value,
+    )
+
+
+def _replacing_columns(value: Any, *_context: Any) -> dict | None:
+    if value is not True:
+        return None
+    return _keyword_entry(
+        "override_columns",
+        "Columns are replaced and then refreshed from the source table, not "
+        "merged: a column this save does not list is removed, and so is one "
+        "the source no longer has.",
+        value,
+    )
+
+
+def _dashboard_published(ident: int) -> bool | None:
+    """Whether a dashboard is published, or ``None`` if that cannot be read."""
+    try:
+        from superset.models.dashboard import Dashboard
+
+        row = db.session.query(Dashboard).filter(Dashboard.id == ident).one_or_none()
+        return None if row is None else bool(row.published)
+    except Exception:  # noqa: BLE001 -- the sentence says it could not check
+        logger.warning("asset-approval: could not read dashboard %s", ident)
+        return None
+
+
+def _adding_to_dashboard(value: Any, *_context: Any) -> dict | None:
+    """``save_to_dashboard_id``: the chart goes onto a dashboard as well."""
+    try:
+        ident = int(value)
+    except (TypeError, ValueError):
+        return None
+    name = _names_of("dashboards", [ident]).get(ident)
+    published = _dashboard_published(ident)
+    target = f'the dashboard "{name}"' if name else f"dashboard {ident}"
+    summary = f"Also adds this chart to {target}."
+    if published is True:
+        summary += (
+            " That dashboard is PUBLISHED, so this reaches the people who "
+            "view it as soon as it is approved."
+        )
+    elif published is False:
+        summary += " That dashboard is not published."
+    else:
+        summary += " Whether that dashboard is published could not be checked."
+    return _keyword_entry(
+        "save_to_dashboard_id",
+        summary,
+        name or ident,
+        published=published,
+    )
+
+
+def _adding_to_new_dashboard(value: Any, *_context: Any) -> dict | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    return _keyword_entry(
+        "new_dashboard_name",
+        f'Also creates a new dashboard "{value}" containing this chart.',
+        value,
+    )
+
+
+_KEYWORD_RENDERERS: dict[str, Any] = {
+    "delete_metric_ids": _metrics_being_deleted,
+    "preserve_existing_metrics": _keeping_other_metrics,
+    "override_columns": _replacing_columns,
+    "save_to_dashboard_id": _adding_to_dashboard,
+    "new_dashboard_name": _adding_to_new_dashboard,
+}
+
+
+def keyword_entries(change_request: Any, asset: Any) -> list[dict[str, Any]]:
+    """One entry per keyword the write was captured with, none skipped.
+
+    A keyword with a renderer is explained by it; any other, and any whose
+    renderer declines or fails, is shown by name and value. Nothing the
+    capture holds can be left out of this list, which is the point: a keyword
+    that is replayed on approval and shown nowhere is a blind approval.
+    """
+    command_args = getattr(change_request, "command_args", None)
+    arguments = captured_arguments(command_args)
+    # A dataset save captured before keywords were kept as a set carries this
+    # one under a key of its own, and replay still honours it.
+    if isinstance(command_args, dict) and command_args.get("override_columns") is True:
+        arguments.setdefault("override_columns", True)
+
+    entries = []
+    for name, value in arguments.items():
+        entry = None
+        if (render := _KEYWORD_RENDERERS.get(name)) is not None:
+            try:
+                entry = render(value, change_request, asset)
+            except Exception:  # noqa: BLE001 -- the default below still answers
+                logger.warning(
+                    "asset-approval: could not explain %r", name, exc_info=True
+                )
+        entries.append(
+            entry if entry is not None else _unrecognised_keyword(name, value)
+        )
+    return entries
+
 
 
 # --------------------------------------------------------------------- commands
@@ -1142,7 +1384,47 @@ def _describe_command(
     return None
 
 
+def applied_fields(change_request: Any, asset: Any) -> list[str]:
+    """The body's changed fields that approving will actually write.
+
+    ``changed_fields`` answers "what differs from the live asset", and for an
+    exempt field (editors, viewers, tags, ...) that is not the same as "what
+    approving writes". Replay drops an exempt field unless the capture named
+    it as one this very write changed (``gate.captured_exempt_fields``); the
+    rest are the form echoing a value back, and a request is only a snapshot
+    of it. An echo that differs from live *now* -- someone added an editor
+    since -- was listed as a change the reviewer was approving, when
+    approving would never write it. Listing it tells them something will
+    happen that will not; leaving out one that is written would be a blind
+    approval, which is why this asks the capture and does not guess.
+
+    A capture that never recorded owns none, which is how replay reads it too.
+    """
+    owned = set(
+        captured_exempt_fields(getattr(change_request, "command_args", None)) or ()
+    )
+    return [
+        field
+        for field in changed_fields(asset, change_request.payload_dict)
+        if field not in EXEMPT_FIELDS or field in owned
+    ]
+
+
 def describe_changes(
+    change_request: ChangeRequest, asset: Any
+) -> list[dict[str, Any]]:
+    """What approving does: the keywords it is called with, then the fields.
+
+    Keywords first, because they are the part of a write most likely to be
+    missed and least likely to be reversible: a metric delete is a keyword
+    over a body that says nothing at all.
+    """
+    return keyword_entries(change_request, asset) + _describe_fields(
+        change_request, asset
+    )
+
+
+def _describe_fields(
     change_request: ChangeRequest, asset: Any
 ) -> list[dict[str, Any]]:
     """What each changed field is now, and what it would become.
@@ -1183,7 +1465,7 @@ def describe_changes(
     reported = (
         None
         if current_of is not None
-        else set(changed_fields(asset, change_request.payload_dict))
+        else set(applied_fields(change_request, asset))
     )
 
     changes = []
@@ -1245,8 +1527,95 @@ def _author_can_still_edit(change_request: Any, asset: Any) -> bool:
     return is_strict_editor(asset, change_request.author_fk)
 
 
+#: Said to a reviewer who has been handed a request with nothing in it to read.
+NOTHING_TO_REVIEW = (
+    "There is nothing here the reviewer can check: the request either matches "
+    "the live version already, or carries something this page cannot describe. "
+    "It cannot be approved from here. Request changes, or ask the author to "
+    "discard it."
+)
+
+
+def _detail_shows_something(detail: dict[str, Any] | None) -> bool:
+    """Whether a dataset's definition diff has a row for the reviewer."""
+    if not detail:
+        return False
+    sql = detail.get("sql")
+    if sql and (sql.get("before") or "") != (sql.get("after") or ""):
+        return True
+    for key in ("columns", "metrics"):
+        diff = detail.get(key) or {}
+        if any(diff.get(kind) for kind in ("added", "changed", "removed")):
+            return True
+    return bool(detail.get("settings"))
+
+
+def review_blocker(
+    change_request: Any,
+    changes: list[dict[str, Any]],
+    detail: dict[str, Any] | None = None,
+) -> str | None:
+    """Why this open request cannot be approved from what is shown, or ``None``.
+
+    A request that is open, is not a delete, and has nothing to list -- no
+    changed field, no keyword, no dataset row -- renders as an empty panel.
+    That is how the metric delete read before keywords were shown: held,
+    opened, nothing on it, Approve enabled. It is also how a request whose
+    body has become the live asset reads, and the two look identical to
+    someone clicking through a queue, so neither gets an Approve.
+
+    A confident "nothing changed" is the wrong thing to say here, because
+    this cannot tell *nothing happens* from *something this page could not
+    describe*; so it says that, shows the raw call (``_unreadable_entry``),
+    and the approve route refuses the same request. A delete is not empty:
+    the asset is the change.
+    """
+    if not getattr(change_request, "is_open", False):
+        return None
+    if Operation(change_request.operation) is Operation.DELETE:
+        return None
+    if changes or _detail_shows_something(detail):
+        return None
+    return NOTHING_TO_REVIEW
+
+
+def _unreadable_entry(change_request: Any) -> dict[str, Any]:
+    """The raw captured call, for a request with nothing else to show.
+
+    The body, the keywords and which exempt fields it owns, as stored. Not
+    pretty, and not meant to be: it is what is there, shown so that a
+    reviewer who is told there is nothing to approve can see for themselves
+    what the request holds.
+    """
+    args = change_request.command_args if isinstance(
+        change_request.command_args, dict
+    ) else {}
+    call = {
+        "command": args.get(COMMAND_KEY),
+        "body": change_request.payload_dict,
+        "arguments": captured_arguments(args),
+        "exempt_fields_written": captured_exempt_fields(args) or [],
+    }
+    text, cut = _clip(_text_of(call), SHOWN_VALUE_LIMIT)
+    entry: dict[str, Any] = {
+        "field": "captured_call",
+        "unreadable": True,
+        "opaque": True,
+        "summary": "The request as it was captured",
+        "after": text,
+    }
+    if cut:
+        entry["truncated"] = True
+    return entry
+
+
 def serialize(change_request: ChangeRequest, asset: Any = None) -> dict[str, Any]:
     """One change request, as the UI needs it."""
+    changes = describe_changes(change_request, asset)
+    detail = dataset_detail(change_request, asset) if asset is not None else None
+    blocked = review_blocker(change_request, changes, detail)
+    if blocked:
+        changes = [_unreadable_entry(change_request)]
     return {
         "id": change_request.id,
         "asset_type": change_request.asset_type,
@@ -1294,8 +1663,8 @@ def serialize(change_request: ChangeRequest, asset: Any = None) -> dict[str, Any
         # The token an approver quotes back when they press Approve, so a
         # request that moved since they loaded it is refused (129070).
         "revision": lifecycle.revision_of(change_request),
-        "changed_fields": changed_fields(
-            _asset_for_diff(change_request), change_request.payload_dict
+        "changed_fields": applied_fields(
+            change_request, _asset_for_diff(change_request)
         ),
         # The raw request body. The UI lays it over the live asset to show
         # the dashboard as approving would leave it -- the same composition
@@ -1309,10 +1678,13 @@ def serialize(change_request: ChangeRequest, asset: Any = None) -> dict[str, Any
         # body, so a client must not lay it over the asset unless this is
         # null.
         "command": change_request.command_args.get(COMMAND_KEY),
-        "changes": describe_changes(change_request, asset),
-        "dataset_detail": dataset_detail(change_request, asset)
-        if asset is not None
-        else None,
+        "changes": changes,
+        # Set when there is nothing to show a reviewer, with the reason. A
+        # client must not offer Approve while this is set: the server
+        # refuses it as well, but a button that can only fail is the same
+        # trap as ``can_approve`` was before QA-07.
+        "review_blocked": blocked,
+        "dataset_detail": detail,
         # The dataset this chart is built on, when it has a change waiting
         # of its own. Approving this one first can publish a chart against
         # columns that do not exist yet (QA-09).
@@ -1779,6 +2151,8 @@ class ChangeRequestRestApi(BaseSupersetApi):
     @statsd_metrics
     def approve(self, pk: int) -> FlaskResponse:
         body = request.get_json(silent=True) or {}
+        if (refusal := self._refusal_to_approve_blind(pk)) is not None:
+            return refusal
         return self._act(
             lambda: lifecycle.approve(
                 pk,
@@ -1825,6 +2199,31 @@ class ChangeRequestRestApi(BaseSupersetApi):
         )
 
     # ----------------------------------------------------------------- shared
+
+    def _refusal_to_approve_blind(self, pk: int) -> FlaskResponse | None:
+        """422 for a pending request that shows a reviewer nothing to approve.
+
+        The panels disable Approve for it, but the answer cannot live only in
+        a client: a request with nothing on it is one a reviewer cannot have
+        read, and approving it is approving blind whoever sends the call.
+        Asked only of someone who could approve it, so a caller who could not
+        is answered by the workflow as before and learns nothing from this.
+        """
+        try:
+            change_request = lifecycle.find(pk)
+        except ChangeRequestNotFoundError:
+            return None
+        if ChangeStatus(change_request.status) is not ChangeStatus.PENDING:
+            return None
+        asset = _asset_of(change_request)
+        if asset is None or not can_approve(change_request, asset, get_user_id()):
+            return None
+        reason = review_blocker(
+            change_request,
+            describe_changes(change_request, asset),
+            dataset_detail(change_request, asset),
+        )
+        return self.response(422, message=reason) if reason else None
 
     def _act(
         self, action: Any, message: str, reload_pk: int | None = None
@@ -2235,7 +2634,7 @@ def _dataset_settings(
     """
     body = change_request.payload_dict
     settings: list[dict[str, Any]] = []
-    for field in changed_fields(asset, body):
+    for field in applied_fields(change_request, asset):
         if field in DATASET_FIELDS_SHOWN_ELSEWHERE:
             continue
         current = getattr(asset, field, None)

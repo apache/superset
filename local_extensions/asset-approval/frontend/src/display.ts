@@ -48,6 +48,7 @@ const { t } = translation;
 import type {
   ChangeRequest,
   DatasetDetail,
+  FieldChange,
   NamedDiff,
   UserBrief,
 } from './types';
@@ -136,9 +137,60 @@ export function datasetChangeCount(
 /** Everything this request would change, whatever shape it arrived in. */
 export function totalChangeCount(changeRequest: ChangeRequest): number {
   return (
-    (changeRequest.changes ?? []).length +
+    // The raw captured call is shown in place of a change, not as one.
+    (changeRequest.changes ?? []).filter(change => !change.unreadable).length +
     datasetChangeCount(changeRequest.dataset_detail)
   );
+}
+
+/**
+ * Whether a change carries anything a reviewer can judge it by: a layout, the
+ * entries that moved, a before and an after, or a sentence saying what it does.
+ *
+ * A list of key names is deliberately not enough. Names say that something
+ * moved and not to what, which is the "readable names, no values" QA
+ * reported (sc-129075).
+ */
+export function hasDetail(change: FieldChange): boolean {
+  return (
+    !!change.layout ||
+    (change.entries ?? []).length > 0 ||
+    change.before !== undefined ||
+    change.after !== undefined ||
+    !!change.summary
+  );
+}
+
+export const NOTHING_TO_REVIEW = t(
+  'There is nothing here the reviewer can check, so it cannot be approved from here. Request changes, or ask the author to discard it.',
+);
+
+/**
+ * Why Approve is not offered for this request, or null if it is.
+ *
+ * The server says so (`review_blocked`) and refuses the approval itself. This
+ * is the same question asked again, because a button that depends on a field
+ * an older server does not send is a button that fails open: an open request
+ * with no change, no keyword and no dataset row reads as "nothing differs"
+ * beside an enabled Approve, which is how a metric delete went through
+ * looking like nothing. A change with no values to read is blocked too.
+ */
+export function reviewBlocker(changeRequest: ChangeRequest): string | null {
+  if (changeRequest.review_blocked) return changeRequest.review_blocked;
+  if (changeRequest.operation === 'delete') return null;
+  if (changeRequest.status !== 'pending') return null;
+  const changes = changeRequest.changes ?? [];
+  if (totalChangeCount(changeRequest) === 0) return NOTHING_TO_REVIEW;
+  const unreadable = changes.find(
+    change => !change.unreadable && !hasDetail(change),
+  );
+  if (unreadable) {
+    return t(
+      'The values for %s were not sent, so what it changes cannot be shown. It cannot be approved from here.',
+      unreadable.field,
+    );
+  }
+  return null;
 }
 
 /** "3 changes" — the count the reviewer banner leads with.
@@ -149,6 +201,9 @@ export function totalChangeCount(changeRequest: ChangeRequest): number {
  * counted too, so the panel cannot say "0 changes" above a listed one.
  */
 export function changeCount(changeRequest: ChangeRequest): string {
+  if (reviewBlocker(changeRequest) && totalChangeCount(changeRequest) === 0) {
+    return t('a change that cannot be described');
+  }
   const n = totalChangeCount(changeRequest);
   return n === 1 ? t('1 change') : t('%s changes', n);
 }

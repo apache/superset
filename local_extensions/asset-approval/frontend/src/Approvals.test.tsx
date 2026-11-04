@@ -81,6 +81,9 @@ const request = (over: Partial<ChangeRequest> = {}): ChangeRequest =>
     is_author: false,
     note: 'Updated the revenue tiles',
     review_note: null,
+    // Something to read. A pending request with no change, keyword or dataset
+    // row is one the reviewer is not offered Approve for.
+    changes: [{ field: 'dashboard_title', before: 'Q2 revenue', after: 'Q3 revenue' }],
     ...over,
   }) as ChangeRequest;
 

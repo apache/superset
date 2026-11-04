@@ -125,8 +125,12 @@ def test_a_description_riding_with_a_governed_change_is_shown(
     """
     live = _live(sql="SELECT 1", description="old")
     body = {"sql": "SELECT 2", "description": "new"}
+    request = dataset_request(body)
+    # The capture names the exempt fields this write changed; one it does not
+    # name is the form echoing a value back and is not written on approval.
+    request.command_args = {"exempt_fields": ["description"]}
 
-    settings = _settings(api.dataset_detail(dataset_request(body), live))
+    settings = _settings(api.dataset_detail(request, live))
 
     assert settings["description"] == {
         "field": "description",
@@ -176,8 +180,10 @@ def test_a_value_too_structural_to_render_is_still_reported(
     more than the three tabs ever said about it."""
     live = _live(owners=[SimpleNamespace(id=1)])
     body = {"owners": [2]}
+    request = dataset_request(body)
+    request.command_args = {"exempt_fields": ["owners"]}
 
-    settings = _settings(api.dataset_detail(dataset_request(body), live))
+    settings = _settings(api.dataset_detail(request, live))
 
     assert settings["owners"]["opaque"] is True
 

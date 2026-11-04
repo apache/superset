@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { styled, t } from './host';
-import { ago, show } from './display';
+import { ago, hasDetail, show } from './display';
 import type { EntryChange, FieldChange, LayoutComponent } from './types';
 
 /**
@@ -71,16 +71,49 @@ const Muted = styled.div`
   `}
 `;
 
-const Tag = styled.span`
-  ${({ theme }) => `
-    font-size: ${theme.fontSizeSM}px;
-    color: ${theme.colorTextTertiary};
-  `}
-`;
-
 const EntryRow = styled.div`
   ${({ theme }) => `
     padding: ${theme.sizeUnit}px 0;
+    word-break: break-word;
+  `}
+`;
+
+const Summary = styled.div`
+  ${({ theme }) => `
+    font-weight: ${theme.fontWeightStrong};
+    color: ${theme.colorText};
+    margin-bottom: ${theme.sizeUnit}px;
+    word-break: break-word;
+  `}
+`;
+
+/** The request as it was captured: monospaced, wrapped, not interpreted. */
+const Raw = styled.pre`
+  ${({ theme }) => `
+    font-family: ${theme.fontFamilyCode};
+    font-size: ${theme.fontSizeSM}px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+    color: ${theme.colorText};
+  `}
+`;
+
+const Unshown = styled.div`
+  ${({ theme }) => `
+    color: ${theme.colorWarningText};
+    word-break: break-word;
+  `}
+`;
+
+const Blocked = styled.div`
+  ${({ theme }) => `
+    padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
+    margin-bottom: ${theme.sizeUnit * 3}px;
+    background: ${theme.colorWarningBg};
+    border: 1px solid ${theme.colorWarningBorder};
+    border-radius: ${theme.borderRadius}px;
+    color: ${theme.colorText};
     word-break: break-word;
   `}
 `;
@@ -131,17 +164,6 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 export const fieldLabel = (field: string): string => FIELD_LABELS[field] ?? field;
-
-/** "Title, metrics and 2 more" -- a list a person can read at a glance. */
-export function summarise(
-  keys: string[],
-  labels: Record<string, string> = {},
-): string {
-  const named = keys.slice(0, 3).map(key => labels[key] ?? fieldLabel(key));
-  const rest = keys.length - named.length;
-  const list = named.join(', ');
-  return rest > 0 ? t('%s and %s more', list, rest) : list;
-}
 
 const KIND_LABEL: Record<EntryChange['kind'], string> = {
   added: t('Added'),
@@ -202,7 +224,17 @@ function Entries({
           ) : null}
         </EntryRow>
       ))}
-      {more ? <Muted>{t('and %s more', more)}</Muted> : null}
+      {/* Only ever said about entries that are missing from the list above.
+          The server sends every entry, so this is the client declining to
+          let a partial list read as the whole change. */}
+      {more ? (
+        <Unshown data-test="entries-not-sent">
+          {t(
+            '%s further entries were not sent with this request. Open the asset to read them.',
+            more,
+          )}
+        </Unshown>
+      ) : null}
     </>
   );
 }
@@ -218,15 +250,16 @@ export function ChangeBlock({ change, controls }: ChangeBlockProps) {
   const entries = change.entries ?? [];
   const isCollection = change.count !== undefined;
   const hasPair = change.before !== undefined || change.after !== undefined;
-  const hasDetail =
-    !!change.layout ||
-    entries.length > 0 ||
-    !!change.keys?.length ||
-    hasPair;
 
   return (
     <FieldBlock data-test={`change-${change.field}`}>
       <FieldName>{fieldLabel(change.field)}</FieldName>
+
+      {/* What approving does because of a keyword, before the keyword's
+          value: the mechanism is `name = value`, the consequence is this. */}
+      {change.summary ? (
+        <Summary data-test="change-summary">{change.summary}</Summary>
+      ) : null}
 
       {change.layout ? (
         <>
@@ -248,7 +281,12 @@ export function ChangeBlock({ change, controls }: ChangeBlockProps) {
             </EntryRow>
           ))}
           {change.layout.more ? (
-            <Muted>{t('and %s more', change.layout.more)}</Muted>
+            <Unshown data-test="entries-not-sent">
+              {t(
+                '%s further components were not sent with this request. Open the asset to read them.',
+                change.layout.more,
+              )}
+            </Unshown>
           ) : null}
         </>
       ) : null}
@@ -259,8 +297,20 @@ export function ChangeBlock({ change, controls }: ChangeBlockProps) {
           repeat them. */}
       {hasPair && !isCollection ? (
         <>
-          <Before>{show(change.before)}</Before>
-          <After>{show(change.after)}</After>
+          {change.unreadable ? (
+            <Raw data-test="captured-call">{show(change.after)}</Raw>
+          ) : (
+            <>
+              {/* A keyword has a value and no "before": drawing a struck-out
+                  dash for the missing side reads as a value being removed. */}
+              {change.before !== undefined ? (
+                <Before>{show(change.before)}</Before>
+              ) : null}
+              {change.after !== undefined ? (
+                <After>{show(change.after)}</After>
+              ) : null}
+            </>
+          )}
           {change.truncated ? (
             <Muted>{t('Shortened to fit. Open the asset to read it in full.')}</Muted>
           ) : null}
@@ -301,17 +351,25 @@ export function ChangeBlock({ change, controls }: ChangeBlockProps) {
         </>
       ) : null}
 
-      {change.added_keys ? (
-        <Muted>
-          {t('%s further settings written for the first time', change.added_keys)}
-        </Muted>
+      {/* Names without values are not a change a reviewer can judge. Every
+          name is listed, none cut to a count, and the missing values are
+          said to be missing rather than left to look like there were none.
+          The server sends entries or a before and after for every field, so
+          this is only reached by a response it did not write. */}
+      {!hasDetail(change) ? (
+        <>
+          {(change.keys ?? []).map(key => (
+            <EntryRow key={key} data-test="change-key">
+              {entryLabel(key, labels)}
+            </EntryRow>
+          ))}
+          <Unshown data-test="change-undescribed">
+            {t(
+              'The values for this change were not sent, so what it changes cannot be shown here.',
+            )}
+          </Unshown>
+        </>
       ) : null}
-
-      {!change.layout && entries.length === 0 && change.keys?.length ? (
-        <Muted>{summarise(change.keys, labels)}</Muted>
-      ) : null}
-
-      {!hasDetail ? <Tag>{t('Changed')}</Tag> : null}
     </FieldBlock>
   );
 }
@@ -325,8 +383,24 @@ export default function ChangeList({ changes, controls }: ChangeListProps) {
   return (
     <>
       {changes.map(change => (
-        <ChangeBlock key={change.field} change={change} controls={controls} />
+        <ChangeBlock
+          key={`${change.keyword ? 'keyword:' : ''}${change.field}`}
+          change={change}
+          controls={controls}
+        />
       ))}
     </>
+  );
+}
+
+/**
+ * Why a request cannot be approved from what is shown, said where the reviewer
+ * is looking. Shown with the raw request beneath it, and with Approve withheld.
+ */
+export function BlockedNotice({ reason }: { reason: string }) {
+  return (
+    <Blocked role="alert" data-test="review-blocked">
+      {reason}
+    </Blocked>
   );
 }

@@ -63,6 +63,22 @@ export interface LayoutComponent {
 export interface FieldChange {
   field: string;
   /**
+   * A keyword the write was called with (`delete_metric_ids`,
+   * `save_to_dashboard_id`, ...) and not a field of the asset. `summary`
+   * says what approving does because of it; `after` is its value.
+   */
+  keyword?: boolean;
+  /** What approving does because of this, in a sentence. */
+  summary?: string;
+  /** For a keyword naming a dashboard: whether that dashboard is published. */
+  published?: boolean | null;
+  /**
+   * The request as it was captured, shown because there was nothing else to
+   * show: a request with no changed field, keyword or dataset row. `after`
+   * holds it.
+   */
+  unreadable?: boolean;
+  /**
    * The value is not a scalar (an object, a list, a layout). Informational:
    * what to draw is decided by which of `layout`, `entries`, `keys`,
    * `before` and `after` the server sent, not by this flag.
@@ -74,10 +90,6 @@ export interface FieldChange {
   truncated?: boolean;
   /** For a JSON column: which top-level entries inside it moved. */
   keys?: string[];
-  /** Settings the save wrote down for the first time, nearly
-   * always a control's own default rather than an edit. Counted
-   * rather than named, so one real change is not buried. */
-  added_keys?: number;
   /** For a layout: how it moved in counts, and which components. */
   layout?: {
     added: number;
@@ -92,7 +104,11 @@ export interface FieldChange {
    * collection (viewers, dashboards, tags) lists who joined and who left.
    */
   entries?: EntryChange[];
-  /** Entries beyond the ones listed. */
+  /**
+   * Entries the server did not send. The server sends every entry, so this
+   * is never set by it; a client that meets it says so rather than reading
+   * a partial list as the whole change.
+   */
   more?: number;
   /** For a collection: how many members each side holds. */
   count?: { before: number; after: number };
@@ -170,6 +186,12 @@ export interface ChangeRequest {
   changed_fields: string[];
   /** What each field is now and what it would become. */
   changes: FieldChange[];
+  /**
+   * Why there is nothing here to approve, when there is not: the request has
+   * no changed field, keyword or dataset row to read. Approve must not be
+   * offered while this is set; the server refuses it too.
+   */
+  review_blocked?: string | null;
   /** 'update' or 'delete'. A delete has no fields; the asset is the change. */
   operation: 'update' | 'delete';
   /**

@@ -80,8 +80,13 @@ def test_shapes_that_are_not_objects_say_nothing() -> None:
     }
 
 
-def test_the_reviewer_is_shown_the_edit_and_the_rest_are_counted() -> None:
-    """The real shape of an Explore save: one edit, dozens of defaults."""
+def test_the_reviewer_is_shown_the_edit_first_and_then_every_other_setting() -> None:
+    """The real shape of an Explore save: one edit, dozens of defaults.
+
+    The edit leads. The defaults follow, each named with its value: they used
+    to be counted ("76 further settings written for the first time"), and a
+    count is not something a reviewer can approve (sc-129075).
+    """
     stored = _params(viz_type="bar", adhoc_filters=["a"])
     posted = _params(
         viz_type="bar",
@@ -92,16 +97,21 @@ def test_the_reviewer_is_shown_the_edit_and_the_rest_are_counted() -> None:
     entry = _opaque_entry("params", stored, posted)
 
     assert entry["keys"] == ["adhoc_filters"]
-    assert entry["added_keys"] == 76
+    assert "added_keys" not in entry
+    assert entry["entries"][0]["key"] == "adhoc_filters"
+    assert entry["entries"][0]["kind"] == "changed"
+    named = [e["key"] for e in entry["entries"][1:]]
+    assert sorted(named) == sorted(f"default_{n}" for n in range(76))
+    assert {e["kind"] for e in entry["entries"][1:]} == {"added"}
 
 
 def test_a_save_that_only_adds_settings_still_names_them() -> None:
-    """Counting them and naming nothing would be a filter, not a ranking."""
     entry = _opaque_entry(
         "params", _params(viz_type="bar"), _params(viz_type="bar", legend=True)
     )
 
     assert entry["keys"] == ["legend"]
+    assert [e["key"] for e in entry["entries"]] == ["legend"]
     assert "added_keys" not in entry
 
 

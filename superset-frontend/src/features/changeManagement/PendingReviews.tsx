@@ -20,6 +20,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Tag } from '@superset-ui/core/components';
+import { userHasPermission } from 'src/dashboard/util/permissionUtils';
+import type { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { fetchList } from './api';
 import { approvalsPath } from './approvalsPath';
 import { ago, age, assetUrl, isStale } from './display';
@@ -100,6 +102,33 @@ const Footer = styled.div`
 `;
 
 /**
+ * The asset kinds a change can be made to, and so reviewed on.
+ *
+ * Review is between editors of an asset, and editing one needs the right to
+ * write it. A principal with none of these (a viewer) can neither submit a
+ * change nor approve one, so a reviewer's queue is not theirs to be shown.
+ */
+const REVIEWABLE_VIEWS = ['Dashboard', 'Chart', 'Dataset'] as const;
+
+/**
+ * Whether this person could take part in review at all.
+ *
+ * Not "is there anything pending": an editor with an empty queue is a normal
+ * state and gets an empty message. This is the other question, whether the
+ * section has any business on their Home. The page uses it to leave the
+ * section out entirely, because hiding the body of a section leaves its
+ * header behind, collapsed over nothing.
+ */
+export function canTakePartInReview(
+  user: UserWithPermissionsAndRoles | undefined,
+): boolean {
+  if (!user) return false;
+  return REVIEWABLE_VIEWS.some(view => userHasPermission(user, view, 'can_write'));
+}
+
+type Load = 'loading' | 'ready' | 'failed';
+
+/**
  * Pending reviews on Home.
  *
  * Two of the four Approvals views, because these are the two a person has a
@@ -107,22 +136,38 @@ const Footer = styled.div`
  * on. The other two are a destination, not a homepage glance, and the
  * footer link goes there.
  */
-export default function PendingReviews() {
+export default function PendingReviews({
+  user,
+}: {
+  /** When given, someone who cannot take part in review is shown nothing. */
+  user?: UserWithPermissionsAndRoles;
+}) {
   const [view, setView] = useState<ApprovalsView>('for_me');
   const [rows, setRows] = useState<ChangeRequest[]>([]);
+  const [status, setStatus] = useState<Load>('loading');
+  const participates = user === undefined || canTakePartInReview(user);
 
   const load = useCallback(async () => {
+    setStatus('loading');
     try {
       const all = await fetchList(view);
       setRows(view === 'submitted_by_me' ? all.filter(r => r.is_open) : all);
+      setStatus('ready');
     } catch {
+      // A queue that could not be read is not an empty one. It used to say
+      // "Nothing needs you right now", which tells a reviewer with work
+      // waiting that there is none.
       setRows([]);
+      setStatus('failed');
     }
   }, [view]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    // A viewer has no queue, so none is asked for.
+    if (participates) load();
+  }, [load, participates]);
+
+  if (!participates) return null;
 
   return (
     <div data-test="home-pending-reviews">
@@ -143,8 +188,14 @@ export default function PendingReviews() {
         </Switch>
       </Bar>
 
-      {rows.length === 0 ? (
-        <Empty>
+      {status === 'loading' ? (
+        <Empty data-test="home-reviews-loading">{t('Loading…')}</Empty>
+      ) : status === 'failed' ? (
+        <Empty data-test="home-reviews-failed">
+          {t('Pending reviews could not be loaded. Try again shortly.')}
+        </Empty>
+      ) : rows.length === 0 ? (
+        <Empty data-test="home-reviews-empty">
           {view === 'for_me'
             ? t('Nothing needs you right now')
             : t('You have no changes in flight')}

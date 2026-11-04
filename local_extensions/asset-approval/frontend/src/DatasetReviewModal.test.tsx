@@ -215,3 +215,54 @@ test('a setting cleared to nothing shows a dash for the proposed value', () => {
   expect(screen.getByText('1 = 1')).toBeInTheDocument();
   expect(screen.getByText('—')).toBeInTheDocument();
 });
+
+
+// ---- keywords, and a request with nothing to read ----------------------------
+
+const KEYWORD = {
+  field: 'delete_metric_ids',
+  keyword: true,
+  summary: 'Deletes 1 metric from this dataset: total_revenue. Anything that uses them loses them.',
+  after: 'total_revenue',
+};
+
+const withReview = (over: Partial<ChangeRequest>) =>
+  render(
+    <DatasetReviewModal
+      changeRequest={{ ...changeRequest({ impact: { charts: 0, dashboards: 0 } }), ...over }}
+      open
+      onClose={() => {}}
+      review={{ busy: false, onApprove: () => {}, onRequestChanges: () => {} }}
+    />,
+  );
+
+const approveButton = () => screen.getByText('Approve').closest('button')!;
+
+test('a metric delete over an empty body is shown, not read as no change', () => {
+  // The tabs only know the definition's fields; a delete is a keyword.
+  withReview({ changes: [KEYWORD] } as Partial<ChangeRequest>);
+
+  expect(screen.getByTestId('change-summary')).toHaveTextContent('Deletes 1 metric');
+  expect(approveButton()).toBeEnabled();
+});
+
+test('a pending dataset request with nothing to read cannot be approved', () => {
+  withReview({ changes: [] } as Partial<ChangeRequest>);
+
+  expect(screen.getByTestId('review-blocked')).toBeInTheDocument();
+  expect(approveButton()).toBeDisabled();
+});
+
+test('a dataset request with a row to read can be approved', () => {
+  render(
+    <DatasetReviewModal
+      changeRequest={changeRequest(SETTINGS)}
+      open
+      onClose={() => {}}
+      review={{ busy: false, onApprove: () => {}, onRequestChanges: () => {} }}
+    />,
+  );
+
+  expect(screen.queryByTestId('review-blocked')).not.toBeInTheDocument();
+  expect(approveButton()).toBeEnabled();
+});

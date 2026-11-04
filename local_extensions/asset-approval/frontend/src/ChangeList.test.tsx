@@ -139,14 +139,114 @@ test('a restore names its version and what that version holds', () => {
   expect(screen.getByText('New')).toBeInTheDocument();
 });
 
-test('only a field with nothing to show falls back to the bare word', () => {
+test('a field the server sent no detail for says so, rather than the bare word', () => {
+  // sc-129075: a field with nothing to show used to draw as "Changed", which
+  // a reviewer reads as a change they have been shown.
   draw([{ field: 'mystery', opaque: true }]);
 
-  expect(screen.getByText('Changed')).toBeInTheDocument();
+  expect(screen.queryByText('Changed')).not.toBeInTheDocument();
+  expect(screen.getByTestId('change-undescribed')).toBeInTheDocument();
 });
 
-test('the keys are still summarised when nothing more was sent', () => {
-  draw([{ field: 'params', opaque: true, keys: ['groupby', 'metrics'] }]);
+test('key names with no values list every name and say the values are missing', () => {
+  // QA: "readable names, but no values, 'and 3 more' hides changes". Three
+  // names and a count was the answer; every name and an admission is.
+  const keys = ['groupby', 'metrics', 'row_limit', 'color_scheme', 'legend'];
+  draw([{ field: 'params', opaque: true, keys }]);
 
-  expect(screen.getByText('groupby, metrics')).toBeInTheDocument();
+  keys.forEach(key => expect(screen.getByText(key)).toBeInTheDocument());
+  expect(screen.queryByText(/and \d+ more/)).not.toBeInTheDocument();
+  expect(screen.getByTestId('change-undescribed')).toBeInTheDocument();
+});
+
+test('a long list of entries is drawn in full', () => {
+  const entries = Array.from({ length: 60 }, (_, n) => ({
+    kind: 'changed' as const,
+    key: `setting_${n}`,
+    before: `was ${n}`,
+    after: `now ${n}`,
+  }));
+  draw([{ field: 'params', opaque: true, keys: ['setting_0'], entries }]);
+
+  expect(screen.getAllByTestId('change-entry')).toHaveLength(60);
+  expect(screen.getByText('now 59')).toBeInTheDocument();
+});
+
+test('settings written for the first time are listed, not counted', () => {
+  // "76 further settings written for the first time" told a reviewer a
+  // number and no settings.
+  const entries = [
+    { kind: 'changed' as const, key: 'legend', before: 'true', after: 'false' },
+    ...Array.from({ length: 5 }, (_, n) => ({
+      kind: 'added' as const,
+      key: `default_${n}`,
+      after: `${n}`,
+    })),
+  ];
+  draw([{ field: 'params', opaque: true, entries }]);
+
+  expect(screen.getAllByTestId('change-entry')).toHaveLength(6);
+  expect(screen.getByText('Added · default_4')).toBeInTheDocument();
+  expect(screen.queryByText(/written for the first time/)).not.toBeInTheDocument();
+});
+
+test('entries the server did not send are said to be missing, not read as the whole', () => {
+  draw([
+    {
+      field: 'params',
+      opaque: true,
+      entries: [{ kind: 'changed', key: 'legend', before: 'a', after: 'b' }],
+      more: 7,
+    },
+  ]);
+
+  expect(screen.getByTestId('entries-not-sent')).toHaveTextContent(
+    '7 further entries were not sent',
+  );
+});
+
+test('a keyword says what it does, then shows its value, with no struck-out before', () => {
+  draw([
+    {
+      field: 'delete_metric_ids',
+      keyword: true,
+      summary: 'Deletes 2 metrics from this dataset: total_revenue, order_count.',
+      after: 'total_revenue, order_count',
+      entries: [
+        { kind: 'removed', key: 'total_revenue' },
+        { kind: 'removed', key: 'order_count' },
+      ],
+    },
+  ]);
+
+  expect(screen.getByTestId('change-summary')).toHaveTextContent(
+    'Deletes 2 metrics from this dataset',
+  );
+  expect(screen.getByText('delete_metric_ids')).toBeInTheDocument();
+  expect(screen.getByText('Removed · total_revenue')).toBeInTheDocument();
+  expect(screen.queryByText('—')).not.toBeInTheDocument();
+});
+
+test('a keyword and a field of the same name are both drawn', () => {
+  draw([
+    { field: 'override_columns', keyword: true, summary: 'Replaces columns.', after: true },
+    { field: 'override_columns', before: 'a', after: 'b' },
+  ]);
+
+  expect(screen.getAllByText('override_columns')).toHaveLength(2);
+});
+
+test('the request as captured is drawn as text, in place of a change', () => {
+  draw([
+    {
+      field: 'captured_call',
+      unreadable: true,
+      summary: 'The request as it was captured',
+      after: '{"body": {"slice_name": "Revenue"}}',
+    },
+  ]);
+
+  expect(screen.getByTestId('captured-call')).toHaveTextContent(
+    '{"body": {"slice_name": "Revenue"}}',
+  );
 });

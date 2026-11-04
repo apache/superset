@@ -55,7 +55,9 @@ import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { userHasPermission } from 'src/dashboard/util/permissionUtils';
 import { WelcomePageLastTab } from 'src/features/home/types';
 import ActivityTable from 'src/features/home/ActivityTable';
-import PendingReviews from 'src/features/changeManagement/PendingReviews';
+import PendingReviews, {
+  canTakePartInReview,
+} from 'src/features/changeManagement/PendingReviews';
 import ChartTable from 'src/features/home/ChartTable';
 import ToastedSavedQueries from 'src/features/home/SavedQueries';
 import DashboardTable from 'src/features/home/DashboardTable';
@@ -368,12 +370,17 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                 // First, when there is review work: a homepage is for what
                 // needs you today, and a pending review is the one item here
                 // that blocks somebody else.
-                ...(isFeatureEnabled(FeatureFlag.ChangeManagement)
+                // Left out entirely for someone who approves nothing. The
+                // section is a collapse item, so withholding only its body
+                // leaves the header behind, collapsed over nothing, which is
+                // what a viewer was shown (R7-08).
+                ...(isFeatureEnabled(FeatureFlag.ChangeManagement) &&
+                canTakePartInReview(user)
                   ? [
                       {
                         key: 'pending-reviews',
                         label: t('Pending reviews'),
-                        children: <PendingReviews />,
+                        children: <PendingReviews user={user} />,
                       },
                     ]
                   : []),

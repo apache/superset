@@ -153,3 +153,30 @@ test('the warning does not replace the publish wording', async () => {
   // The approver still has to be told what approving does.
   expect(await screen.findByText(/Viewers see/)).toBeInTheDocument();
 });
+
+
+test('a request with nothing to read cannot be confirmed', () => {
+  // Every Approve button ends at this dialog, so this is the place that
+  // holds for all of them.
+  renderModal({ ...base, changes: [], changed_fields: [] } as unknown as ChangeRequest);
+
+  expect(screen.getByTestId('review-blocked')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Approve and publish' })).toBeDisabled();
+});
+
+test('a keyword is repeated at the moment of approval', () => {
+  renderModal({
+    ...base,
+    changes: [
+      {
+        field: 'save_to_dashboard_id',
+        keyword: true,
+        summary: 'Also adds this chart to the dashboard "Board pack". That dashboard is PUBLISHED.',
+        after: 'Board pack',
+      },
+    ],
+  } as unknown as ChangeRequest);
+
+  expect(screen.getByTestId('approve-keywords')).toHaveTextContent('PUBLISHED');
+  expect(screen.getByRole('button', { name: 'Approve and publish' })).toBeEnabled();
+});

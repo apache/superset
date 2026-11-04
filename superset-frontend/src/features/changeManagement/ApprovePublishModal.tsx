@@ -20,7 +20,8 @@ import { t, tn } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { Modal } from '@superset-ui/core/components';
 import { styled } from '@apache-superset/core/theme';
-import { changeCount, totalChangeCount } from './display';
+import ChangeList, { BlockedNotice } from './ChangeList';
+import { changeCount, reviewBlocker, totalChangeCount } from './display';
 import type { ChangeRequest } from './types';
 
 const Warning = styled(Alert)`
@@ -59,6 +60,11 @@ export default function ApprovePublishModal({
   onConfirm,
 }: ApprovePublishModalProps) {
   const deleting = changeRequest.operation === 'delete';
+  // Approving something with nothing in it to read is approving blind, and
+  // every Approve button in the app ends at this dialog, so this is the one
+  // place that holds for all of them.
+  const blocker = reviewBlocker(changeRequest);
+  const keywords = (changeRequest.changes ?? []).filter(change => change.keyword);
   const dependency = changeRequest.pending_dependency;
   // The author's name where we have it: the approver's next move is to ask
   // them whether the dataset change should go first.
@@ -71,6 +77,7 @@ export default function ApprovePublishModal({
   return (
     <Modal
       show={open}
+      disablePrimaryButton={!!blocker}
       title={deleting ? t('Approve and delete?') : t('Approve and publish?')}
       onHide={onClose}
       onHandledPrimaryAction={onConfirm}
@@ -79,6 +86,7 @@ export default function ApprovePublishModal({
       }
       data-test="approve-publish-modal"
     >
+      {blocker ? <BlockedNotice reason={blocker} /> : null}
       {dependency && (
         <Warning
           type="warning"
@@ -115,7 +123,7 @@ export default function ApprovePublishModal({
           }
         />
       )}
-      {deleting
+      {blocker ? null : deleting
         ? // Said "It cannot be undone", which the product contradicts twice
           // over: the archive confirmation on the same delete promises
           // Recently archived, and Walk C restored an approved delete from
@@ -139,6 +147,13 @@ export default function ApprovePublishModal({
               'Viewers see these %s right away. The current version moves to version history.',
               changeCount(changeRequest),
             )}
+      {keywords.length ? (
+        // What the save is also called with, repeated at the moment of
+        // approval: the keyword is the part most likely to have been missed.
+        <div data-test="approve-keywords">
+          <ChangeList changes={keywords} />
+        </div>
+      ) : null}
       <Hint>{t('Your note is saved with the approval.')}</Hint>
     </Modal>
   );

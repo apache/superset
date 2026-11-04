@@ -21,8 +21,9 @@ import { t, tn } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Modal, Button, Tag } from '@superset-ui/core/components';
 import { Alert } from '@apache-superset/core/components';
-import { ago, assetUrl, show } from './display';
+import { ago, assetUrl, reviewBlocker, show } from './display';
 import { displayName } from './types';
+import ChangeList, { BlockedNotice } from './ChangeList';
 import type { ChangeRequest, NamedDelta, NamedDiff } from './types';
 
 const Byline = styled.div`
@@ -230,6 +231,16 @@ export default function DatasetReviewModal({
 
   if (!detail) return null;
 
+  // What this save is called with beyond its fields (a metric delete is a
+  // keyword over an empty body), and why Approve is withheld if it is. Both
+  // come from the request and not from the tabs, which only know the fields
+  // of the definition: a request the tabs read as "No column changed" can
+  // still delete metrics.
+  const blocker = reviewBlocker(changeRequest);
+  const extras = (changeRequest.changes ?? []).filter(
+    change => change.keyword || change.unreadable,
+  );
+
   const rows =
     tab === 'metrics' ? metricRows : tab === 'columns' ? columnRows : [];
 
@@ -275,7 +286,7 @@ export default function DatasetReviewModal({
                 </Button>{' '}
                 <Button
                   buttonStyle="primary"
-                  disabled={review.busy}
+                  disabled={review.busy || !!blocker}
                   onClick={review.onApprove}
                 >
                   {t('Approve')}
@@ -318,6 +329,13 @@ export default function DatasetReviewModal({
         )}
         {changeRequest.note ? ` · "${changeRequest.note}"` : ''}
       </Byline>
+
+      {blocker ? <BlockedNotice reason={blocker} /> : null}
+      {extras.length ? (
+        <div data-test="dataset-keywords">
+          <ChangeList changes={extras} />
+        </div>
+      ) : null}
 
       {removing ? null : (
         <Tabs>

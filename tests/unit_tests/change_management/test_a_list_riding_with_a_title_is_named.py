@@ -34,11 +34,23 @@ from types import SimpleNamespace
 from typing import Any
 
 from asset_approval import api
+from asset_approval.changes import EXEMPT_FIELDS
 from pytest_mock import MockerFixture
 
 
 def _request(payload: dict[str, Any]) -> Any:
-    return SimpleNamespace(operation="update", command_args={}, payload_dict=payload)
+    """A governed write carrying an exempt list the author really changed.
+
+    The capture names those (``exempt_fields``); a list it does not name is the
+    form echoing a value back and approval does not write it, so it is not
+    shown (see ``test_an_exempt_field_is_shown_only_if_approving_writes_it``).
+    """
+    exempt = [field for field in payload if field in EXEMPT_FIELDS]
+    return SimpleNamespace(
+        operation="update",
+        command_args={"exempt_fields": exempt} if exempt else {},
+        payload_dict=payload,
+    )
 
 
 def _row(ident: int, **fields: Any) -> SimpleNamespace:
