@@ -11006,6 +11006,8 @@ msgstr "Tema local definido como \"%s\""
 msgid "Locate the chart"
 msgstr "Localize o gráfico"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "Registro"
@@ -19963,6 +19965,9 @@ msgstr "Este filtro já existe no relatório"
 msgid ""
 "This filter is also applied to a partition column for faster queries. See"
 " \"View query\" for the generated SQL."
+msgstr ""
+
+msgid "This filter isn't applied to any charts yet"
 msgstr ""
 
 #, python-format
