@@ -1043,6 +1043,7 @@ const DashboardBuilder = () => {
               assetType="dashboard"
               assetId={Number(dashboardId)}
               unpublished={dashboardUnpublished}
+              editing={editMode}
               onApplied={() => window.location.reload()}
               onLiveTitle={showLiveTitle}
             />

@@ -249,7 +249,15 @@ export function useProposedPreview(changeRequest: ChangeRequest | null) {
               // Back to the live asset, and back to editing it if that is
               // where the author was. Hydration would otherwise read edit
               // mode off the URL and silently end their session.
-              editMode: editModeBeforeRef.current,
+              //
+              // The live reading wins over the remembered one: an author
+              // who pressed Edit while the preview was on is in edit mode
+              // now, and that is the state to keep, not the view mode they
+              // were in when they turned the switch on.
+              editMode:
+                (store.getState().dashboardState?.editMode as
+                  | boolean
+                  | undefined) || editModeBeforeRef.current,
             }),
           );
           editModeBeforeRef.current = false;

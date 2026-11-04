@@ -86,6 +86,14 @@ export interface AssetReviewProps {
   /** Dashboards only: still a draft, so edits are outside the gate. */
   unpublished?: boolean;
   /**
+   * Dashboards only: the host is in edit mode.
+   *
+   * Passed in rather than read from the store, because this component is
+   * mounted in Explore too and Explore's store has no `dashboardState` to
+   * read.
+   */
+  editing?: boolean;
+  /**
    * Called after a decision lands on an asset that still exists, so the host
    * can reload it.
    *
@@ -119,6 +127,7 @@ export default function AssetReview({
   assetType,
   assetId,
   unpublished = false,
+  editing = false,
   onApplied,
   onLiveTitle,
 }: AssetReviewProps) {
@@ -152,6 +161,20 @@ export default function AssetReview({
       onLiveTitle(liveTitle);
     }
   }, [liveTitle, onLiveTitle, previewing]);
+
+  // Pressing Edit while the preview is on would strand the author: the
+  // switch is withheld in edit mode, so they would be editing the proposal
+  // with no way back to live, the banner would tell them they were looking
+  // at the live version, and their next save would post the proposal as
+  // their own edit. Return to live first; the toggle keeps them in edit
+  // mode on the way back.
+  const previewToggle = preview.toggle;
+  const previewBusy = preview.busy;
+  useEffect(() => {
+    if (editing && previewing && !previewBusy) {
+      previewToggle();
+    }
+  }, [editing, previewing, previewBusy, previewToggle]);
 
   // The edit header asks for review; this component owns the modal. The
   // request is held until the change the save produced has actually loaded,
@@ -260,8 +283,18 @@ export default function AssetReview({
         <ReviewBanner
           changeRequest={changeRequest}
           busy={busy}
+          // Withheld entirely in edit mode, not merely hidden: the banner
+          // chooses its wording from whether this prop is here, and hiding
+          // only the switch would leave it saying "turn on Show changes"
+          // next to no switch (QA-19).
+          //
+          // The switch cannot work in edit mode. It re-hydrates the whole
+          // dashboard, and hydration resets `hasUnsavedChanges` and replaces
+          // the layout with the cached live copy -- so toggling it while
+          // editing threw the author's unsaved edits away and handed back an
+          // edit session that looked untouched.
           showChanges={
-            preview.canPreview
+            preview.canPreview && !editing
               ? {
                   showing: preview.showing,
                   busy: preview.busy,
