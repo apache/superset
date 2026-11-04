@@ -36,6 +36,21 @@ assists people when migrating to a new version.
   with a new target requires access to that dataset; otherwise both return
   HTTP 422 naming the charts or datasets.
 
+- Aborting or timing out an async chart-data query on Impala now cancels the
+  statement that is running. The cancel used to target the `USE <database>`
+  operation the driver runs when it opens a cursor, so the query ran to
+  completion, and without a database in the URL the task could not be aborted
+  at all. The cancel still goes through the coordinator's web UI
+  (`http://<host>:25000`), so the backend must reach that port, and a private or
+  internal coordinator needs `IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS = True`.
+  On engines whose chart-data cancel id is captured (Impala, and engines that
+  expose a session id when the cursor opens, such as PostgreSQL, MySQL,
+  Snowflake and Redshift), a chart-data task that is aborting starts no further
+  statements, such as a time comparison's offset query, and its partial result
+  is not cached. Engines whose cancel id only exists once a query is running,
+  such as Trino, still cannot cancel chart-data queries: their tasks stay
+  non-abortable, as before.
+
 - **Semantic-layer schema readiness and failures.** Both provider schema hooks
   require keyword-only `readiness: SemanticCredentialReadiness` alongside
   `transport`. This plain Enum is exported by `superset_core.semantic_layers`.
