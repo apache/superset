@@ -947,7 +947,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @category: runtime_config
     "CSS_TEMPLATES": True,
     # Subject-based viewer access control for dashboards and charts.
-    # When enabled, resources can have explicit viewer Subject assignments.
+    # When enabled, viewers can be assigned through the UI and API. A non-empty
+    # viewers list is always enforced, even when this flag is off (legacy
+    # DASHBOARD_RBAC roles are migrated into viewers); turning the flag off only
+    # blocks adding new viewers, while existing ones can still be removed.
     # @lifecycle: testing
     # @category: security
     "ENABLE_VIEWERS": False,
@@ -1441,6 +1444,15 @@ THUMBNAIL_ERROR_CACHE_TTL = int(timedelta(days=1).total_seconds())
 # How long to treat a COMPUTING cache entry as an active lease before considering
 # the worker stuck.  Should exceed the task soft_time_limit (300 s) by a margin.
 THUMBNAIL_COMPUTING_CACHE_TTL = int(timedelta(seconds=360).total_seconds())
+# Refresh threshold for UPDATED dashboard screenshots requested by the on-demand
+# endpoint or dashboard thumbnails refreshed by compute-thumbnails without --force.
+# Chart screenshots and card-list thumbnail endpoints do not use this check.
+# Images the cache backend still holds remain servable during refresh and error
+# backoff: this triggers recomputation, not image expiry. Defaults to match
+# THUMBNAIL_CACHE_CONFIG's CACHE_DEFAULT_TIMEOUT (7 days), so an evicting backend
+# (e.g. Redis) drops an image as it turns stale. Set to 0 or None to disable this
+# check; cache backend expiry and eviction still apply.
+THUMBNAIL_UPDATED_CACHE_TTL = int(timedelta(days=7).total_seconds())
 
 # Cache warmup user — must be set explicitly before enabling the cache-warmup
 # Celery task. Intentionally defaults to None so operators pick a dedicated
@@ -3095,6 +3107,9 @@ DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
 # Leave False (the default) in any deployment where untrusted users can
 # create or edit database connections.
 DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS: bool = False
+
+# Provider-only opt-out: budgets, direct connections and redirect checks still apply.
+SEMANTIC_LAYER_ALLOW_INTERNAL_HOSTS: bool = False
 
 # Enable/disable CSP warning
 CONTENT_SECURITY_POLICY_WARNING = True
