@@ -288,40 +288,83 @@ def test_editors_strangers_guests_and_flag_off_get_no_grant(
         )
 
 
-def test_copying_a_dashboard_takes_access_to_its_charts(
+def test_carrying_charts_or_filter_targets_onto_a_dashboard_takes_access(
     inheritance_fixtures: SimpleNamespace, promiscuous: None
 ) -> None:
-    """A copy is a dashboard the caller edits and would keep the source's charts
-    after the caller loses the source, so carrying them over takes access to
-    them in their own right, with or without duplicating them."""
+    """The promiscuous grant lets a dashboard's viewers read its charts and
+    native-filter targets, and an editor can add themselves as a viewer. So
+    whatever a dashboard newly gains must be readable by the editor in their own
+    right: a copy's charts (with or without duplicating them) and filter
+    targets, and a new filter target saved through the dashboard or the filters
+    API. Targets the dashboard already had stay accepted."""
     from flask_appbuilder.security.sqla.models import Role
 
     from superset import security_manager
     from superset.commands.dashboard.exceptions import DashboardLayoutInvalidError
+    from superset.connectors.sqla.models import SqlaTable
     from superset.daos.dashboard import DashboardDAO
+    from superset.utils import json
 
     fx = inheritance_fixtures
+    unreadable = SqlaTable(
+        id=3, table_name="unreadable", database_id=10, perm="[examples].[x](id:3)"
+    )
+    fx.session.add(unreadable)
+    fx.session.flush()
+
+    def native_filters(datasource_id: int) -> list[dict[str, Any]]:
+        return [
+            {
+                "id": "NATIVE_FILTER-1",
+                "targets": [{"datasetId": datasource_id, "column": {"name": "x"}}],
+            }
+        ]
+
+    def copy_editor_published(**data: Any) -> Any:
+        return DashboardDAO.copy_dashboard(
+            fx.editor_published,
+            {"dashboard_title": "copy", "json_metadata": "{}", **data},
+        )
+
     with acting_as(fx.editor_user):
         for duplicate_slices in (False, True):
             with pytest.raises(DashboardLayoutInvalidError):
-                DashboardDAO.copy_dashboard(
-                    fx.editor_published,
-                    {
-                        "dashboard_title": "copy",
-                        "duplicate_slices": duplicate_slices,
-                        "json_metadata": "{}",
-                    },
-                )
+                copy_editor_published(duplicate_slices=duplicate_slices)
 
         grant = security_manager.add_permission_view_menu(
             "datasource_access", fx.table.perm
         )
         fx.editor_user.roles = [Role(name="dataset reader", permissions=[grant])]
         fx.session.flush()
-        copy = DashboardDAO.copy_dashboard(
-            fx.editor_published, {"dashboard_title": "copy", "json_metadata": "{}"}
+        copy = copy_editor_published()
+        assert {chart.id for chart in copy.slices} == {fx.editor_published_slice.id}
+
+        with pytest.raises(DashboardLayoutInvalidError) as refused:
+            DashboardDAO.set_dash_metadata(
+                fx.editor_published,
+                {"native_filter_configuration": native_filters(unreadable.id)},
+            )
+        assert str(unreadable.id) in str(refused.value.normalized_messages())
+        with pytest.raises(DashboardLayoutInvalidError):
+            DashboardDAO.update_native_filters_config(
+                fx.editor_published, {"modified": native_filters(unreadable.id)}
+            )
+        DashboardDAO.set_dash_metadata(
+            fx.editor_published,
+            {"native_filter_configuration": native_filters(fx.table.id)},
         )
-    assert {chart.id for chart in copy.slices} == {fx.editor_published_slice.id}
+
+        # A target the dashboard already has is accepted on save, but a copy
+        # would carry it over, so the copy needs access to it.
+        fx.editor_published.json_metadata = json.dumps(
+            {"native_filter_configuration": native_filters(unreadable.id)}
+        )
+        DashboardDAO.set_dash_metadata(
+            fx.editor_published,
+            {"native_filter_configuration": native_filters(unreadable.id)},
+        )
+        with pytest.raises(DashboardLayoutInvalidError):
+            copy_editor_published()
 
 
 def test_operator_override_with_the_original_signature_keeps_working(

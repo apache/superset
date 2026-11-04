@@ -213,8 +213,8 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         self._validate_layout_chart_access()
 
     def _validate_layout_chart_access(self) -> None:
-        """Refuse a layout chart the caller cannot read before ``run``
-        deactivates reports and emails their owners."""
+        """Refuse a layout chart or native-filter target the caller cannot read
+        before ``run`` deactivates reports and emails their owners."""
         assert self._model is not None
         json_metadata: str | None
         positions: object
@@ -224,6 +224,10 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                 positions := metadata.get("positions"), dict
             ):
                 DashboardDAO.validate_layout_chart_access(self._model, positions)
+            if isinstance(metadata, dict) and "native_filter_configuration" in metadata:
+                DashboardDAO.validate_native_filter_targets(
+                    self._model, metadata["native_filter_configuration"]
+                )
 
     @staticmethod
     def _send_deactivated_report_email(

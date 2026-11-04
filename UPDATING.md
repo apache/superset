@@ -31,8 +31,10 @@ assists people when migrating to a new version.
   and drill). Dashboard editors who aren't also listed viewers no longer get the
   grant and need regular access to the data; add them as viewers to restore it.
   Copying a dashboard, with or without duplicating its charts, now requires
-  access to each of its charts in their own right and otherwise returns HTTP 422
-  naming the charts.
+  access to each of its charts and native-filter target datasets in their own
+  right, and saving a native filter (through the dashboard or the filters API)
+  with a new target requires access to that dataset; otherwise both return
+  HTTP 422 naming the charts or datasets.
 
 - Semantic-view filters with an empty IN or NOT IN selection no longer fail with a
   query validation error. They follow SQL semantics where the filter sits: an
