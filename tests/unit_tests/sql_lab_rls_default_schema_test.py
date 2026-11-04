@@ -1462,6 +1462,30 @@ def test_adhoc_and_cache_key_shadowed_table_gets_only_its_own_rules(
     assert not any(CLAUSE in key for key in keys)
 
 
+@pytest.mark.parametrize("datasource", ["dataset", "query"])
+def test_virtual_dataset_shadowed_table_gets_only_its_own_rules(
+    shadowed: Database, datasource: str
+) -> None:
+    """
+    A virtual dataset's SQL, and a SQL Lab query used as a datasource, give an
+    unqualified table the rules of the table read, not those of one it shadows.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.sql_lab import Query
+
+    virtual = (
+        SqlaTable(table_name="virtual", sql=SQL, schema=None, database=shadowed)
+        if datasource == "dataset"
+        else Query(client_id="virtual", sql=SQL, schema=None, database=shadowed)
+    )
+
+    from_clause, _ = virtual.get_from_clause()
+    sql = str(from_clause.compile(compile_kwargs={"literal_binds": True}))
+
+    assert WEST in sql
+    assert CLAUSE not in sql
+
+
 @pytest.mark.parametrize("path", DENYLIST_PATHS)
 @pytest.mark.parametrize(
     "entry, blocked", [("public.sales", False), ("analyst.sales", True)]
