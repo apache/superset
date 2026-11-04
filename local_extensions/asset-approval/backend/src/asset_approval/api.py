@@ -617,24 +617,34 @@ def _component_type(key: Any, component: Any) -> str:
 
 
 def _component_name(component: Any) -> str | None:
-    """What the author would call a layout component: the chart, the heading."""
+    """What the author would call a layout component: the chart, the heading.
+
+    A chart's ``sliceNameOverride`` is the name the dashboard actually shows
+    (the title the author typed over the chart's own), so it leads.
+    """
     meta = component.get("meta") if isinstance(component, dict) else None
     if not isinstance(meta, dict):
         return None
-    for attr in ("sliceName", "text", "code"):
+    for attr in ("sliceNameOverride", "sliceName", "text", "code"):
         value = meta.get(attr)
         if isinstance(value, str) and value.strip():
-            return _clip(value.strip(), 80)[0]
+            # A markdown block's "name" is its text, which runs to paragraphs.
+            first = value.strip().splitlines()[0].strip()
+            return _clip(first, 80)[0]
     if meta.get("chartId") is not None:
         return f"chart {meta['chartId']}"
     return None
 
 
-def _component_details(was: Any, now: Any) -> tuple[bool, list[str]]:
-    """Whether a component moved, and what else about it differs."""
+def _meta_details(was: Any, now: Any) -> list[str]:
+    """What else about a component differs: a resize, a rename, a background.
+
+    A resize is reported here, as a detail, and is deliberately *not* a move:
+    the component is where it was and only its size changed, which a reviewer
+    weighs differently from a chart that went somewhere else.
+    """
     if not (isinstance(was, dict) and isinstance(now, dict)):
-        return False, []
-    moved = _parsed(was.get("parents")) != _parsed(now.get("parents"))
+        return []
     details = []
     old_meta, new_meta = was.get("meta"), now.get("meta")
     if isinstance(old_meta, dict) and isinstance(new_meta, dict):
@@ -646,39 +656,188 @@ def _component_details(was: Any, now: Any) -> tuple[bool, list[str]]:
                 )
     elif _parsed(old_meta) != _parsed(new_meta):
         details.append("meta")
-    return moved, details
+    return details
+
+
+def _placements(layout: dict[Any, Any]) -> dict[Any, tuple[Any, int]]:
+    """``id -> (container id, index in its children)``, from the ``children`` lists.
+
+    A node's own ``parents`` is a copy of its ancestry that the editor
+    rewrites for every descendant when a row moves, so it cannot tell a chart
+    that went elsewhere from a chart whose row did. The container's
+    ``children`` list is the layout itself, and it is also the only place a
+    reorder within one container is written down: both swapped charts keep
+    byte-identical nodes.
+    """
+    placed: dict[Any, tuple[Any, int]] = {}
+    for container, component in layout.items():
+        children = component.get("children") if isinstance(component, dict) else None
+        if not isinstance(children, list):
+            continue
+        for index, child in enumerate(children):
+            if isinstance(child, str):
+                placed.setdefault(child, (container, index))
+    return placed
+
+
+def _reordered(
+    before: dict[Any, Any], after: dict[Any, Any]
+) -> dict[Any, tuple[int, int]]:
+    """Components whose order inside the same container changed.
+
+    ``id -> (position before, position after)``, 1-based in the container's
+    full ``children`` list on each side. A component is reordered when its
+    place among the siblings *both* sides hold differs; one that merely
+    shifted because a neighbour arrived or left is not.
+    """
+    found: dict[Any, tuple[int, int]] = {}
+    for container, was in before.items():
+        now = after.get(container)
+        if not (isinstance(was, dict) and isinstance(now, dict)):
+            continue
+        old, new = was.get("children"), now.get("children")
+        if not (isinstance(old, list) and isinstance(new, list)):
+            continue
+        kept_old = [c for c in old if c in new]
+        kept_new = [c for c in new if c in old]
+        if kept_old == kept_new:
+            continue
+        slot_new = {c: i for i, c in enumerate(kept_new)}
+        for i, child in enumerate(kept_old):
+            if slot_new.get(child) != i:
+                found[child] = (old.index(child) + 1, new.index(child) + 1)
+    return found
+
+
+def _where(layout: dict[Any, Any], placed: dict[Any, tuple[Any, int]], key: Any) -> str:
+    """Where a container sits, in words an author would use.
+
+    A tab by its title, anything else by its place among siblings of its own
+    type ("row 2 of tab: Overview"). Only what the tree itself says: no
+    position is made up for a container the layout does not place.
+    """
+    parts: list[str] = []
+    seen: set[Any] = set()
+    while key is not None and key not in seen:
+        seen.add(key)
+        component = layout.get(key)
+        type_ = _component_type(key, component)
+        if type_ in ("ROOT", "GRID"):
+            break
+        if type_ == "TABS" and parts:
+            pass  # the tab inside it is what an author names; "tabs 1" adds nothing
+        elif type_ == "TAB" and (name := _component_name(component)):
+            parts.append(f"tab: {name}")
+        else:
+            at = placed.get(key)
+            if at is None:
+                parts.append(type_.lower())
+            else:
+                siblings = layout.get(at[0], {}).get("children", [])
+                number = sum(
+                    1
+                    for s in siblings[: at[1] + 1]
+                    if _component_type(s, layout.get(s)) == type_
+                )
+                parts.append(f"{type_.lower()} {number}")
+        key = placed[key][0] if key in placed else None
+    return " of ".join(parts) if parts else "the top level"
+
+
+def _holding(layout: dict[Any, Any], key: Any) -> str | None:
+    """The names of what a container holds, for a container nobody named."""
+    names: list[str] = []
+    stack = [key]
+    seen: set[Any] = set()
+    while stack:
+        node = stack.pop()
+        if node in seen:
+            continue
+        seen.add(node)
+        component = layout.get(node)
+        if not isinstance(component, dict):
+            continue
+        children = component.get("children")
+        if isinstance(children, list) and children:
+            stack.extend(reversed(children))
+        if node != key and _component_type(node, component) not in LAYOUT_CONTAINER_TYPES:
+            if name := _component_name(component):
+                names.append(name)
+    if not names:
+        return None
+    return _clip("holding " + ", ".join(names), 160)[0]
 
 
 def _layout_components(
     before: dict[Any, Any], after: dict[Any, Any]
 ) -> list[dict[str, Any]]:
-    """The components that arrived, left or changed, named.
+    """The components that arrived, left, moved or changed, named.
 
     ``layout_summary`` counts them -- "1 added, 0 removed, 1 moved" -- and the
     ids are generated, so a count is all it can say. Each component also
     carries its own ``meta`` (a chart its name, a heading its text), which is
     what a reviewer recognises.
+
+    A move is named the way an add or a remove is, with where it went in
+    ``details``: "position 1 → 2 in row 1" for a reorder inside one container
+    and "from row 1 to tab: Regional" for a move into another. Nothing is
+    capped: a restructure that moves forty charts lists forty.
     """
+    was_at, now_at = _placements(before), _placements(after)
+    reordered = _reordered(before, after)
     found = []
     for key in sorted(set(before) | set(after), key=str):
         in_before, in_after = key in before, key in after
-        if in_before and in_after and _parsed(before[key]) == _parsed(after[key]):
+        if not (in_before and in_after):
+            component = after[key] if in_after else before[key]
+            entry: dict[str, Any] = {
+                "kind": "added" if in_after else "removed",
+                "type": _component_type(key, component),
+            }
+            if (name := _component_name(component)) is not None:
+                entry["name"] = name
+            found.append(entry)
             continue
-        component = after[key] if in_after else before[key]
-        kind = "added" if not in_before else "removed" if not in_after else "changed"
-        type_ = _component_type(key, component)
-        moved, details = False, []
-        if kind == "changed":
-            if type_ in LAYOUT_CONTAINER_TYPES:
+
+        was, now = before[key], after[key]
+        type_ = _component_type(key, now)
+        container = type_ in LAYOUT_CONTAINER_TYPES
+        moved, notes = False, []
+        if key in was_at and key in now_at:
+            if was_at[key][0] != now_at[key][0]:
+                moved = True
+                notes.append(
+                    f"from {_where(before, was_at, was_at[key][0])}"
+                    f" to {_where(after, now_at, now_at[key][0])}"
+                )
+            elif key in reordered:
+                moved = True
+                old, new = reordered[key]
+                notes.append(
+                    f"position {old} → {new}"
+                    f" in {_where(after, now_at, now_at[key][0])}"
+                )
+        elif not container and isinstance(was, dict) and isinstance(now, dict):
+            # Placed in neither tree's ``children``: all that is left to go on
+            # is the node's own record of its ancestry.
+            moved = _parsed(was.get("parents")) != _parsed(now.get("parents"))
+        details = _meta_details(was, now)
+        if not (moved or details):
+            # Nothing nameable differs. A leaf whose record still differs is
+            # listed bare, as it always was; a container's own record changes
+            # whenever a child does, and that is the child's line to carry.
+            if container or _parsed(was) == _parsed(now):
                 continue
-            moved, details = _component_details(before[key], after[key])
-        entry: dict[str, Any] = {"kind": kind, "type": type_}
-        if (name := _component_name(component)) is not None:
-            entry["name"] = name
+
+        entry = {"kind": "changed", "type": type_}
+        name = _component_name(now)
+        if name is None and container:
+            name = _holding(after, key)
+        entry["name"] = name if name is not None else str(key)
         if moved:
             entry["moved"] = True
-        if details:
-            entry["details"] = details
+        if notes or details:
+            entry["details"] = notes + details
         found.append(entry)
     return found
 

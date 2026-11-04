@@ -104,6 +104,88 @@ test('a layout change names the chart that arrived', () => {
   expect(screen.getByText('chart: Revenue by region')).toBeInTheDocument();
 });
 
+test('a swap names both charts and where each went', () => {
+  // The customer swapped two charts in a column and was told "2 moved".
+  draw([
+    {
+      field: 'position_json',
+      opaque: true,
+      layout: {
+        added: 0,
+        removed: 0,
+        changed: 1,
+        components: [
+          {
+            kind: 'changed',
+            type: 'CHART',
+            name: 'Revenue',
+            moved: true,
+            details: ['position 1 → 2 in column 1 of row 1'],
+          },
+          {
+            kind: 'changed',
+            type: 'CHART',
+            name: 'Churn',
+            moved: true,
+            details: ['position 2 → 1 in column 1 of row 1'],
+          },
+        ],
+      },
+    },
+  ]);
+
+  expect(
+    screen.getByText(
+      'chart: Revenue (moved; position 1 → 2 in column 1 of row 1)',
+    ),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      'chart: Churn (moved; position 2 → 1 in column 1 of row 1)',
+    ),
+  ).toBeInTheDocument();
+});
+
+test('a resize is shown as a resize, and two moves of one name both show', () => {
+  draw([
+    {
+      field: 'position_json',
+      opaque: true,
+      layout: {
+        added: 0,
+        removed: 0,
+        changed: 3,
+        components: [
+          { kind: 'changed', type: 'CHART', name: 'Revenue', details: ['width 4 → 12'] },
+          {
+            kind: 'changed',
+            type: 'CHART',
+            name: 'Same title',
+            moved: true,
+            details: ['from row 1 to row 2'],
+          },
+          {
+            kind: 'changed',
+            type: 'CHART',
+            name: 'Same title',
+            moved: true,
+            details: ['from row 2 to row 1'],
+          },
+        ],
+      },
+    },
+  ]);
+
+  expect(screen.getByText('chart: Revenue (width 4 → 12)')).toBeInTheDocument();
+  expect(
+    screen.getByText('chart: Same title (moved; from row 1 to row 2)'),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText('chart: Same title (moved; from row 2 to row 1)'),
+  ).toBeInTheDocument();
+  expect(screen.getAllByTestId('layout-component')).toHaveLength(3);
+});
+
 test('a list field names who joined, with the count on each side', () => {
   // C11 / C12. A bare "Changed" beside a raw key.
   draw([

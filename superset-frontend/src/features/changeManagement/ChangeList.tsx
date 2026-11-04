@@ -271,9 +271,11 @@ export function ChangeBlock({ change, controls }: ChangeBlockProps) {
               change.layout.changed,
             )}
           </Muted>
-          {(change.layout.components ?? []).map(component => (
+          {(change.layout.components ?? []).map((component, index) => (
             <EntryRow
-              key={`${component.kind}-${component.type}-${component.name ?? ''}`}
+              /* Two moved charts can share a title, and a swap names both. */
+              // eslint-disable-next-line react/no-array-index-key
+              key={`${index}-${component.kind}-${component.type}-${component.name ?? ''}`}
               data-test="layout-component"
             >
               <EntryKey>{KIND_LABEL[component.kind]}</EntryKey>
