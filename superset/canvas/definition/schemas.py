@@ -280,6 +280,17 @@ class SetPropsOp(_Model):
     schema_version: int | None = Field(default=None, ge=1)
 
 
+class RenameOp(_Model):
+    """
+    Rename the widget entity a placement holds, everywhere it is placed. The
+    name is the title the canvas shows above it.
+    """
+
+    op: Literal["rename"]
+    id: str
+    name: str = Field(min_length=1, max_length=250)
+
+
 class SetScopeOp(_Model):
     """
     Override which widgets a filter, cross-filter source or customization
@@ -301,7 +312,16 @@ class SetSettingsOp(_Model):
 
 
 Operation = Annotated[
-    Union[AddOp, RemoveOp, MoveOp, PlaceOp, SetPropsOp, SetScopeOp, SetSettingsOp],
+    Union[
+        AddOp,
+        RemoveOp,
+        MoveOp,
+        PlaceOp,
+        SetPropsOp,
+        RenameOp,
+        SetScopeOp,
+        SetSettingsOp,
+    ],
     Field(discriminator="op"),
 ]
 

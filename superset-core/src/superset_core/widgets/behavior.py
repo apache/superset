@@ -96,3 +96,6 @@ class WidgetUi:
     # Rows a container's own chrome (a tab bar) takes above its children; the
     # canvas grows a container to its children's rows plus these.
     chrome_rows: int = 0
+    # Whether the canvas shows a widget entity's name as a title above it;
+    # off for a widget that labels itself. Structural widgets have no name.
+    show_title: bool = True

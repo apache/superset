@@ -23,7 +23,9 @@ without re-implementing auto-placement and collision push-down.
 ``widgetTypes`` maps placements to their widget so clients pick a renderer;
 placements that don't resolve are left out and render as placeholders.
 ``gridColumns`` gives the column count of each grid container, whose
-children's placements are in its own grid units. ``widgets`` holds the content
+children's placements are in its own grid units. ``titles`` gives the title
+shown above each placement of a widget entity: its name, unless the widget
+labels itself. ``widgets`` holds the content
 of the widget entities placements hold, keyed by UUID: whoever can read the
 canvas can read the widgets it places.
 """
@@ -83,10 +85,17 @@ def render_context(
                 "colSpan": rect.col_span,
                 "rowSpan": rect.row_span,
             }
+    titles = {
+        node_id: widgets[widget_id].name
+        for node_id, widget in node_types.items()
+        if (widget_id := nodes[node_id].get("widgetId")) in widgets
+        and widget.ui.show_title
+    }
     return {
         "widgetTypes": type_ids,
         "placements": placements,
         "gridColumns": grid_columns,
+        "titles": titles,
         "widgets": widget_payload(widgets),
     }
 

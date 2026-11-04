@@ -28,6 +28,10 @@ import {
 
 /** The draft a canvas page shows, if any; its placements read from it. */
 export const CanvasDraftContext = createContext<string | undefined>(undefined);
+/** The version a canvas page previews, if any; its placements read from it. */
+export const CanvasVersionContext = createContext<string | undefined>(
+  undefined,
+);
 
 export interface WidgetRows extends PlacementData {
   loading: boolean;
@@ -51,12 +55,18 @@ export function useWidgetRows(
   refreshKey: number,
 ): WidgetRows {
   const draftToken = useContext(CanvasDraftContext);
+  const versionUuid = useContext(CanvasVersionContext);
   const binding = props?.dataBinding as DataBinding | undefined;
   const bound = Boolean(binding?.datasetId);
   const selected = runtimeFilters(filters);
   // The binding is in the key so an edit refetches; the server reads it from
   // the stored definition.
-  const key = JSON.stringify([binding ?? null, selected, draftToken ?? null]);
+  const key = JSON.stringify([
+    binding ?? null,
+    selected,
+    draftToken ?? null,
+    versionUuid ?? null,
+  ]);
   const [state, setState] = useState<WidgetRows>({
     rows: [],
     loading: bound,
@@ -73,6 +83,7 @@ export function useWidgetRows(
       canvasId,
       placementId: nodeId,
       draftToken,
+      versionUuid,
       filters: selected,
     })
       .then(data => {

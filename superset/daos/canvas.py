@@ -61,7 +61,12 @@ class CanvasDAO(BaseDAO[Canvas]):
         The stored definition, with inline props upgraded to their widgets'
         schema versions in memory; the next write stores them.
         """
-        definition = check_definition_version(json.loads(canvas.definition))
+        return CanvasDAO.parse(canvas.definition)
+
+    @staticmethod
+    def parse(raw: str) -> dict[str, Any]:
+        """A stored definition, such as a version's, read like ``load``."""
+        definition = check_definition_version(json.loads(raw))
         return upgrade_inline_props(definition, get_widget_types())
 
     @staticmethod

@@ -314,6 +314,28 @@ def test_set_props_on_a_new_widget_keeps_it_new() -> None:
     assert pending == {"w0": StoredWidget("chart", 1, "Chart", {"metric": "avg"})}
 
 
+def test_rename_renames_the_widget_a_placement_holds() -> None:
+    doc = build(add("chart-1"), {"op": "add", "id": "text", "widgetType": "markdown"})
+    pending: dict[str, StoredWidget] = {}
+
+    result, applied = apply(
+        doc, {"op": "rename", "id": "n0", "name": "Revenue"}, pending=pending
+    )
+
+    assert result == doc
+    assert pending == {"chart-1": StoredWidget("chart", 1, "Revenue", {}, revision=1)}
+    assert not applied[0].replay
+    assert applied[0].touched == [Touch("n0", FieldGroup.PROPS)]
+    with pytest.raises(OperationError, match="holds no widget entity"):
+        apply(doc, {"op": "rename", "id": "text", "name": "Notes"})
+    with pytest.raises(OperationError, match="may not change widget 'chart-1'"):
+        apply(
+            doc,
+            {"op": "rename", "id": "n0", "name": "Revenue"},
+            resolver=FakeResolver(readonly={"chart-1"}),
+        )
+
+
 def test_props_written_at_an_older_version_are_migrated() -> None:
     widget_types = canvas_widget_types()
     chart = widget_types["chart"]

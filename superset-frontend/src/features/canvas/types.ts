@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { VersionMeta } from 'src/features/versionHistory/types';
 
 export interface GridPlacement {
   col: number;
@@ -88,6 +89,8 @@ export interface CanvasDefinitionResult {
   widgetTypes: Record<string, string>;
   /** Grid container node id -> its column count. */
   gridColumns: Record<string, number>;
+  /** Node id -> the title shown above it: its widget entity's name. */
+  titles?: Record<string, string>;
   /** Widget UUID -> the content of each widget entity placements hold. */
   widgets?: Record<string, StoredWidget>;
 }
@@ -118,6 +121,7 @@ export interface CanvasObject {
 /** `GET /api/v1/canvas/<id>`. */
 export interface CanvasMetadata {
   id: number;
+  uuid: string;
   title: string;
   description?: string | null;
   slug?: string | null;
@@ -125,4 +129,12 @@ export interface CanvasMetadata {
   certified_by?: string | null;
   certification_details?: string | null;
   theme?: { id: number; theme_name: string; json_data: string } | null;
+}
+
+/** `GET /api/v1/canvas/<uuid>/versions/<version_uuid>/` */
+export interface CanvasVersionSnapshot {
+  title: string | null;
+  /** The version's definition, rendered like the definition route's. */
+  rendered: CanvasDefinitionResult;
+  _version: VersionMeta;
 }

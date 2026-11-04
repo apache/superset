@@ -18155,6 +18155,10 @@
                         "revision": {
                           "type": "integer"
                         },
+                        "titles": {
+                          "description": "The title shown above each placement of a widget entity: its name, unless the widget labels itself",
+                          "type": "object"
+                        },
                         "version": {
                           "type": "integer"
                         },
@@ -18192,80 +18196,6 @@
           }
         ],
         "summary": "Get a canvas' definition",
-        "tags": [
-          "Canvases"
-        ]
-      },
-      "patch": {
-        "description": "Applies `ops` in order to the latest definition, atomically. Changes made since `base_revision` are merged unless they touched the same node and field group (layout, a scope kind, or a settings section), or moved or removed an edited node; then the whole request is rejected with 409 and the conflicting node ids.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id_or_uuid",
-            "required": true,
-            "schema": {
-              "description": "The canvas id or UUID",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "base_revision": {
-                    "type": "integer"
-                  },
-                  "ops": {
-                    "items": {
-                      "type": "object"
-                    },
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "base_revision",
-                  "ops"
-                ],
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "The new revision, the applied operations and scopes"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "409": {
-            "description": "Conflicting or stale write"
-          },
-          "422": {
-            "description": "An operation failed or produced an invalid definition"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          },
-          {
-            "api_key": []
-          }
-        ],
-        "summary": "Apply operations to a canvas' definition",
         "tags": [
           "Canvases"
         ]
@@ -18365,7 +18295,7 @@
     },
     "/api/v1/canvas/{id_or_uuid}/placement/{placement_id}/data": {
       "post": {
-        "description": "Runs the query the placement's stored `dataBinding` describes, as the caller, narrowed by `runtime_filters` on the binding's dataset. With the `X-Canvas-Draft` header, reads the placement from the caller's draft of this canvas. Each dataset includes the query that ran when the caller can view queries.",
+        "description": "Runs the query the placement's stored `dataBinding` describes, as the caller, narrowed by `runtime_filters` on the binding's dataset. With the `X-Canvas-Draft` header, reads the placement from the caller's draft of this canvas; with `X-Canvas-Version`, from that version of it, which only its editors can read. Each dataset includes the query that ran when the caller can view queries.",
         "parameters": [
           {
             "in": "path",
@@ -18684,6 +18614,230 @@
           }
         ],
         "summary": "Update a canvas' title, description and sharing",
+        "tags": [
+          "Canvases"
+        ]
+      }
+    },
+    "/api/v1/canvas/{uuid_str}/versions/": {
+      "get": {
+        "description": "Every save of the canvas (a draft commit, a metadata update or a restore) is a version. Only the canvas' editors can read them.",
+        "parameters": [
+          {
+            "description": "Canvas UUID",
+            "in": "path",
+            "name": "uuid_str",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "result": {
+                      "items": {
+                        "$ref": "#/components/schemas/VersionListItemSchema"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Version history ordered by oldest first"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List the saved versions of a canvas",
+        "tags": [
+          "Canvases"
+        ]
+      }
+    },
+    "/api/v1/canvas/{uuid_str}/versions/{version_uuid_str}/": {
+      "get": {
+        "parameters": [
+          {
+            "description": "Canvas UUID",
+            "in": "path",
+            "name": "uuid_str",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Version UUID as returned by the list endpoint",
+            "in": "path",
+            "name": "version_uuid_str",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "properties": {
+                        "_version": {
+                          "$ref": "#/components/schemas/VersionListItemSchema"
+                        },
+                        "rendered": {
+                          "type": "object"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The canvas' fields at the version, its definition rendered like the definition route's response under `rendered`, and a `_version` block with the version's metadata. Widgets placed by UUID are rendered with their current content."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Read-only snapshot of a canvas at a given version",
+        "tags": [
+          "Canvases"
+        ]
+      }
+    },
+    "/api/v1/canvas/{uuid_str}/versions/{version_uuid_str}/restore": {
+      "post": {
+        "description": "The restore is a new save, so no history is lost. Placements of widgets deleted since the version, or that the caller may not place, are left out and listed in `skippedPlacements`. Open drafts of the canvas can no longer be committed.",
+        "parameters": [
+          {
+            "description": "Canvas UUID",
+            "in": "path",
+            "name": "uuid_str",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Version UUID as returned by the list endpoint",
+            "in": "path",
+            "name": "version_uuid_str",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "properties": {
+                        "revision": {
+                          "type": "integer"
+                        },
+                        "skippedPlacements": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The canvas' revision after the restore"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Make an earlier version the canvas' latest one",
         "tags": [
           "Canvases"
         ]

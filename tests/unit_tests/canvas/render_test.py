@@ -59,3 +59,26 @@ def test_placements_include_auto_placed_nodes_and_grid_containers() -> None:
         "c": "chart",
     }
     assert context["gridColumns"] == {"g": 12}
+
+
+def test_widget_entities_are_titled_by_name_unless_they_label_themselves() -> None:
+    from superset_core.widgets import WidgetUi
+
+    rules = canvas_widget_types()
+    rules["filter"] = type(
+        "LabeledFilter", (rules["filter"],), {"ui": WidgetUi(show_title=False)}
+    )
+    resolver = FakeResolver()
+    definition = normalize_definition(
+        canvas(
+            {
+                "k": node("chart-1"),
+                "f": node("filter-1"),
+                "gone": node("missing-1"),
+            }
+        ),
+        rules,
+        resolver,
+    )
+
+    assert render_context(definition, rules, resolver)["titles"] == {"k": "chart-1"}

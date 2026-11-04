@@ -21,9 +21,12 @@ import { useParams } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import type { canvas as canvasApi } from '@apache-superset/core';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import {
+  Button,
   CertifiedBadge,
   EmptyState,
+  Icons,
   Loading,
 } from '@superset-ui/core/components';
 import { chat, setActiveCanvas, useChat } from 'src/core';
@@ -43,6 +46,9 @@ import { useDraftToken } from 'src/features/canvas/useDraftToken';
 import { registerBuiltinRenderers } from 'src/features/canvas/builtinRenderers';
 import { useCanvasId } from 'src/features/canvas/useCanvasId';
 import { useCanvasRefresh } from 'src/features/canvas/useCanvasRefresh';
+import CanvasVersionHistory from 'src/features/canvas/versionHistory/CanvasVersionHistory';
+import VersionPreviewBanner from 'src/features/canvas/versionHistory/VersionPreviewBanner';
+import { useCanvasVersionHistory } from 'src/features/canvas/versionHistory/useCanvasVersionHistory';
 
 registerBuiltinRenderers();
 
@@ -60,6 +66,15 @@ const Header = styled.header`
     display: flex;
     flex-direction: column;
     gap: ${theme.sizeUnit}px;
+  `}
+`;
+
+const TitleRow = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: ${theme.sizeUnit * 2}px;
   `}
 `;
 
@@ -105,7 +120,13 @@ const notFound = (
 function CanvasContent({ id }: { id: number }) {
   const metadata = useApiV1Resource<CanvasMetadata>(`/api/v1/canvas/${id}`);
   const draft = useDraftToken();
-  const { state } = useCanvasDefinition(id, draft.token);
+  const { state, reload } = useCanvasDefinition(id, draft.token);
+  // History is of published versions, so a draft doesn't show it.
+  const history = useCanvasVersionHistory(
+    metadata.result?.uuid,
+    !draft.token && isFeatureEnabled(FeatureFlag.VersionHistory),
+  );
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [values, setValues] = useState<ScopeValues>(emptyScopeValues);
   const [events, setEvents] = useState<EventValues>({});
   const refreshKeys = useCanvasRefresh(
@@ -176,23 +197,45 @@ function CanvasContent({ id }: { id: number }) {
     return <Loading />;
   }
 
-  const isEmpty = state.result.definition.root.children.length === 0;
+  const { preview } = history;
+  const shown = preview?.rendered ?? state.result;
+  const isEmpty = shown.definition.root.children.length === 0;
+  const restore = async (versionUuid: string) => {
+    const result = await history.restore(versionUuid);
+    await reload();
+    return result;
+  };
   const certifiedBy = metadata.result?.certified_by;
   return (
     <CrudThemeProvider theme={metadata.result?.theme}>
       <Page data-test="canvas-page">
         <Header>
-          <Title>
-            {certifiedBy && (
-              <>
-                <CertifiedBadge
-                  certifiedBy={certifiedBy}
-                  details={metadata.result?.certification_details ?? undefined}
-                />{' '}
-              </>
+          <TitleRow>
+            <Title>
+              {certifiedBy && (
+                <>
+                  <CertifiedBadge
+                    certifiedBy={certifiedBy}
+                    details={
+                      metadata.result?.certification_details ?? undefined
+                    }
+                  />{' '}
+                </>
+              )}
+              {title}
+            </Title>
+            {history.versions && (
+              <Button
+                buttonStyle="tertiary"
+                buttonSize="small"
+                icon={<Icons.HistoryOutlined />}
+                onClick={() => setHistoryOpen(open => !open)}
+                data-test="canvas-version-history-button"
+              >
+                {t('Version history')}
+              </Button>
             )}
-            {title}
-          </Title>
+          </TitleRow>
           {metadata.result?.description && (
             <Description>{metadata.result.description}</Description>
           )}
@@ -204,6 +247,13 @@ function CanvasContent({ id }: { id: number }) {
             onClose={draft.clear}
           />
         )}
+        {preview && (
+          <VersionPreviewBanner
+            version={preview._version}
+            onRestore={restore}
+            onClose={history.showCurrent}
+          />
+        )}
         {isEmpty ? (
           <EmptyState
             size="medium"
@@ -212,16 +262,23 @@ function CanvasContent({ id }: { id: number }) {
           />
         ) : (
           <CanvasGrid
+            key={preview?._version.version_uuid ?? 'current'}
             canvasId={id}
-            result={state.result}
+            result={shown}
             values={values}
             onValueChange={onValueChange}
             events={events}
             onPublish={onPublish}
             refreshKeys={refreshKeys}
             draftToken={draft.token}
+            versionUuid={preview?._version.version_uuid}
           />
         )}
+        <CanvasVersionHistory
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          history={history}
+        />
       </Page>
     </CrudThemeProvider>
   );

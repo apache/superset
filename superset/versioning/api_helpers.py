@@ -323,10 +323,11 @@ def _version_endpoint_models() -> tuple[type, ...]:
     """
     # pylint: disable=import-outside-toplevel
     from superset.connectors.sqla.models import SqlaTable
+    from superset.models.canvas import Canvas
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
 
-    return (Slice, Dashboard, SqlaTable)
+    return (Slice, Dashboard, SqlaTable, Canvas)
 
 
 class PathEntityResponseError(Exception):

@@ -23,7 +23,7 @@ import { css, styled } from '@apache-superset/core/theme';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { useWidgetRenderers } from 'src/core';
 import { CanvasDefinitionResult, GridPlacement } from './types';
-import { CanvasDraftContext } from './useWidgetRows';
+import { CanvasDraftContext, CanvasVersionContext } from './useWidgetRows';
 
 /** Current values set by nodes, per scope kind, by node id. */
 export type ScopeValues = Record<canvasApi.ScopeKind, Record<string, unknown>>;
@@ -117,6 +117,33 @@ const Stack = styled.div`
   `}
 `;
 
+const Titled = styled.div`
+  ${({ theme }) => css`
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.sizeUnit}px;
+  `}
+`;
+
+const WidgetTitle = styled.div`
+  ${({ theme }) => css`
+    flex: none;
+    overflow: hidden;
+    color: ${theme.colorTextHeading};
+    font-size: ${theme.fontSizeLG}px;
+    font-weight: ${theme.fontWeightStrong};
+    line-height: ${theme.lineHeightLG};
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `}
+`;
+
+const TitledBody = styled.div`
+  flex: 1;
+  min-height: 0;
+`;
+
 const Placeholder = styled.div`
   ${({ theme }) => css`
     height: 100%;
@@ -148,6 +175,8 @@ export interface CanvasGridProps {
   refreshKeys?: Record<string, number>;
   /** The draft being shown; widgets read their data from it. */
   draftToken?: string;
+  /** The version being previewed; widgets read their data from it. */
+  versionUuid?: string;
 }
 
 /**
@@ -164,6 +193,7 @@ export default function CanvasGrid({
   onPublish,
   refreshKeys = {},
   draftToken,
+  versionUuid,
 }: CanvasGridProps) {
   const getRenderer = useWidgetRenderers();
   const {
@@ -175,6 +205,7 @@ export default function CanvasGrid({
     crossFilterScopes,
     customizationScopes,
     eventScopes,
+    titles = {},
     widgets = {},
   } = result;
   // Props and schema version live on the placement for a structural widget,
@@ -263,7 +294,8 @@ export default function CanvasGrid({
       element: renderNode(childId),
     }));
     const childGridColumns = gridColumns[nodeId];
-    return (
+    const title = titles[nodeId];
+    const widget = (
       <ErrorBoundary>
         <Renderer
           canvasId={canvasId}
@@ -307,13 +339,24 @@ export default function CanvasGrid({
         />
       </ErrorBoundary>
     );
+    if (!title) return widget;
+    return (
+      <Titled>
+        <WidgetTitle title={title} data-test="canvas-widget-title">
+          {title}
+        </WidgetTitle>
+        <TitledBody>{widget}</TitledBody>
+      </Titled>
+    );
   }
 
   return (
     <CanvasDraftContext.Provider value={draftToken}>
-      <div data-test="canvas-grid">
-        {renderGrid(definition.root.children, columns, renderNode)}
-      </div>
+      <CanvasVersionContext.Provider value={versionUuid}>
+        <div data-test="canvas-grid">
+          {renderGrid(definition.root.children, columns, renderNode)}
+        </div>
+      </CanvasVersionContext.Provider>
     </CanvasDraftContext.Provider>
   );
 }

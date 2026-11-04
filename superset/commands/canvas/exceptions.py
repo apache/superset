@@ -101,6 +101,11 @@ class CanvasPlacementNotFoundError(ObjectNotFoundError):
         super().__init__("Canvas placement")
 
 
+class CanvasVersionNotFoundError(ObjectNotFoundError):
+    def __init__(self) -> None:
+        super().__init__("Canvas version")
+
+
 class CanvasPlacementUnboundError(CommandException):
     status = 422
     message = _("This placement has no data binding.")

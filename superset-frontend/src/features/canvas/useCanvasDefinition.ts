@@ -28,6 +28,8 @@ import { CanvasDefinitionResult } from './types';
 
 /** Draft tokens travel in this header, never in a URL. */
 export const DRAFT_TOKEN_HEADER = 'X-Canvas-Draft';
+/** Reads placement data as a version saved it. */
+export const VERSION_HEADER = 'X-Canvas-Version';
 
 export const REFETCH_DEBOUNCE_MS = 300;
 

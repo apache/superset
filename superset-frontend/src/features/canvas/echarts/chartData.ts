@@ -18,7 +18,7 @@
  */
 
 import { SupersetClient } from '@superset-ui/core';
-import { DRAFT_TOKEN_HEADER } from '../useCanvasDefinition';
+import { DRAFT_TOKEN_HEADER, VERSION_HEADER } from '../useCanvasDefinition';
 import type { DataRow } from './resolveBindings';
 
 /** A widget's `dataBinding` prop: the query the server runs for it. */
@@ -74,18 +74,25 @@ export async function fetchPlacementData({
   canvasId,
   placementId,
   draftToken,
+  versionUuid,
   filters,
 }: {
   canvasId: number;
   placementId: string;
   draftToken?: string;
+  /** Read the placement as this version saved it. */
+  versionUuid?: string;
   filters: SelectFilterValue[];
 }): Promise<PlacementData> {
+  const headers = {
+    ...(draftToken ? { [DRAFT_TOKEN_HEADER]: draftToken } : {}),
+    ...(versionUuid ? { [VERSION_HEADER]: versionUuid } : {}),
+  };
   const { json } = await SupersetClient.post({
     endpoint: `/api/v1/canvas/${canvasId}/placement/${encodeURIComponent(
       placementId,
     )}/data`,
-    headers: draftToken ? { [DRAFT_TOKEN_HEADER]: draftToken } : undefined,
+    headers,
     jsonPayload: { runtime_filters: filters },
   });
   const dataset = json?.result?.datasets?.[0];

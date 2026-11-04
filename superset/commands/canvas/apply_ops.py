@@ -268,6 +268,7 @@ def save_widgets(pending: dict[str, StoredWidget], canvas: Canvas) -> None:
             security_manager.raise_for_editorship(row)
         except SupersetSecurityException as ex:
             raise CanvasForbiddenError() from ex
+        row.name = widget.name
         row.props = widget.props
         row.schema_version = widget.schema_version
         row.revision = widget.revision + 1
