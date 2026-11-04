@@ -74,12 +74,14 @@ from superset import db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.partition_mapping import (
     declares_array_type,
+    epoch_mapping_refusal,
     equality_mirrors_safely,
     FEATURE_FLAG as PARTITION_FILTER_MAPPING_FLAG,
     has_active_advanced_data_type,
     is_transform_active,
     known_mirror_verdict,
     mirrorable_operators,
+    raw_instant_refusal,
     resolve_partition_mapping,
     value_round_trips,
 )
@@ -2312,8 +2314,14 @@ class SqlaTable(
         mapped_column_name = self.partition_mapped_column or self.main_dttm_col
         mapped_column = columns_by_name.get(mapped_column_name or "")
         transform = mapped_column.partition_value_transform if mapped_column else None
+        safety_refusal = epoch_mapping_refusal(
+            self, mapped_column_name, self.partition_column, transform
+        ) or raw_instant_refusal(
+            self, mapped_column_name, self.partition_column, transform, probe=False
+        )
         active = bool(
-            self.partition_column in columns_by_name
+            not safety_refusal
+            and self.partition_column in columns_by_name
             and not declares_array_type(columns_by_name[self.partition_column].type)
             and mapped_column is not None
             and mapped_column_name != self.partition_column
@@ -2327,6 +2335,7 @@ class SqlaTable(
             "partition_column": self.partition_column,
             "mapped_column": mapped_column_name,
             "active": active,
+            "safety_refusal": safety_refusal,
             # Whether the last probe of this transform produced a mirror.
             # `active` is the save path's own verdict and deliberately stays
             # that -- a parse, which a misspelled function clears happily -- so

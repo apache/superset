@@ -420,6 +420,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     engine_aliases: set[str] = set()
     drivers: dict[str, str] = {}
     default_driver: str | None = None
+    # Historical default names that must continue to match DBS_AVAILABLE_DENYLIST.
+    default_driver_aliases: tuple[str, ...] = ()
 
     # placeholder with the SQLAlchemy URI template
     sqlalchemy_uri_placeholder = (

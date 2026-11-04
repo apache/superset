@@ -103,6 +103,11 @@ def boxplot(  # noqa: C901
         whisker_high = np.max
         whisker_low = np.min
 
+    def count(series: Series) -> int:
+        # Series.count leaves NULL values out, unlike np.ma.count on a plain
+        # array, so a group whose metric is NULL contributes no observations.
+        return int(series.count())
+
     def outliers(series: Series) -> set[float]:
         above = series[series > whisker_high(series)]
         below = series[series < whisker_low(series)]
@@ -123,7 +128,7 @@ def boxplot(  # noqa: C901
         "min": "min" if is_minmax else whisker_low,
         "q1": quartile1,
         "q3": quartile3,
-        "count": np.ma.count,
+        "count": count,
         "outliers": outliers,
     }
     aggregates: dict[str, dict[str, Union[str, Callable[..., Any]]]] = {

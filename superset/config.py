@@ -947,7 +947,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @category: runtime_config
     "CSS_TEMPLATES": True,
     # Subject-based viewer access control for dashboards and charts.
-    # When enabled, resources can have explicit viewer Subject assignments.
+    # When enabled, viewers can be assigned through the UI and API. A non-empty
+    # viewers list is always enforced, even when this flag is off (legacy
+    # DASHBOARD_RBAC roles are migrated into viewers); turning the flag off only
+    # blocks adding new viewers, while existing ones can still be removed.
     # @lifecycle: testing
     # @category: security
     "ENABLE_VIEWERS": False,
@@ -3104,6 +3107,9 @@ DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
 # Leave False (the default) in any deployment where untrusted users can
 # create or edit database connections.
 DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS: bool = False
+
+# Provider-only opt-out: budgets, direct connections and redirect checks still apply.
+SEMANTIC_LAYER_ALLOW_INTERNAL_HOSTS: bool = False
 
 # Enable/disable CSP warning
 CONTENT_SECURITY_POLICY_WARNING = True
