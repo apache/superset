@@ -1068,13 +1068,8 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         try:
             cursor.execute_async(sql)
         except Exception as ex:
-            database = query.database
-            if (
-                not is_oauth2_retry_active()
-                and database.is_oauth2_enabled()
-                and cls.needs_oauth2(ex)
-            ):
-                cls.start_oauth2_dance(database)
+            if cls._is_oauth2_failure(query, ex):
+                cls.start_oauth2_dance(query.database)
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
         try:
@@ -1085,14 +1080,21 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         finally:
             cls._retire_cancel_query_id(query)
 
-        if stopped:
-            return
+        if not stopped:
+            cls._load_results(cursor, query)
 
+    @classmethod
+    def _load_results(cls, cursor: Any, query: Query) -> None:
+        """
+        Load the finished statement's result set onto the cursor, so it can be
+        fetched exactly as after a synchronous ``execute``.
+        """
         try:
-            # Loads the finished statement's result set onto the cursor, so it
-            # can be fetched exactly as after a synchronous ``execute``.
             cursor.get_async_execution_result()
         except Exception as ex:
+            if cls._is_oauth2_failure(query, ex):
+                cls.start_oauth2_dance(query.database)
+                raise cls.get_dbapi_mapped_exception(ex) from ex
             try:
                 cls._raise_statement_error(cursor)
             except Exception as statement_error:  # pylint: disable=broad-except
@@ -1100,6 +1102,21 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
                     statement_error
                 ) from statement_error
             raise cls.get_dbapi_mapped_exception(ex) from ex
+
+    @classmethod
+    def _is_oauth2_failure(cls, query: Query, ex: Exception) -> bool:
+        """
+        Whether ``ex`` is an auth failure the OAuth2 dance can resolve.
+
+        The same check ``BaseEngineSpec.execute`` applies to a failed
+        statement, so an expired user token is handled alike whether it's
+        rejected on submission, while polling, or while loading results.
+        """
+        return (
+            cls.needs_oauth2(ex)
+            and not is_oauth2_retry_active()
+            and query.database.is_oauth2_enabled()
+        )
 
     @staticmethod
     def _raise_statement_error(cursor: Any) -> None:
@@ -1138,7 +1155,9 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         A failed status request doesn't mean the statement finished, so it's
         treated as still running and polled again; the statement stays
         cancellable meanwhile. After ``sea_max_poll_failures`` consecutive
-        failures the statement is cancelled and the error is raised.
+        failures the statement is cancelled and the error is raised. An auth
+        failure the OAuth2 dance can resolve isn't retried: the statement is
+        cancelled and the user is prompted to re-authorize.
 
         :return: True if the query was stopped, False if the statement finished
         """
@@ -1155,6 +1174,13 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
                 except (SoftTimeLimitExceeded, SupersetTimeoutException):
                     raise
                 except Exception as ex:  # pylint: disable=broad-except
+                    if cls._is_oauth2_failure(query, ex):
+                        # Retrying can't renew the user's token: cancel the
+                        # statement, then prompt for re-authorization as a
+                        # failed submission does.
+                        cls._cancel_statement(cursor, query.id)
+                        cls.start_oauth2_dance(query.database)
+                        raise cls.get_dbapi_mapped_exception(ex) from ex
                     failures += 1
                     if failures >= cls.sea_max_poll_failures:
                         cls._cancel_statement(cursor, query.id)

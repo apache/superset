@@ -2512,3 +2512,113 @@ def test_execute_with_cursor_sea_failed_statement_without_detail(
         DatabricksPythonConnectorEngineSpec.execute_with_cursor(
             cursor, "SELECT FOO", query
         )
+
+
+@pytest.fixture
+def oauth2_query(mocker: MockerFixture) -> Any:
+    """
+    A running query on an OAuth2-enabled, user-impersonating database, with a
+    logged-in user and the OAuth2 dance stubbed to raise its redirect.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+    from superset.utils.core import QueryStatus
+
+    g = mocker.patch("superset.db_engine_specs.databricks.g")
+    g.user = mocker.MagicMock()
+    mocker.patch.object(Database, "is_oauth2_enabled", return_value=True)
+    dance = mocker.patch.object(
+        BaseEngineSpec,
+        "start_oauth2_dance",
+        side_effect=OAuth2RedirectError("https://example/authorize", "tab", "uri"),
+    )
+    database = Database(database_name="databricks", impersonate_user=True)
+    query = Query(status=QueryStatus.RUNNING)
+    query.database = database
+    return query, dance
+
+
+def test_execute_with_cursor_sea_auth_failure_while_polling_starts_oauth2(
+    sea_session: Any, oauth2_query: Any
+) -> None:
+    """
+    An expired user token rejected by a status request isn't retried as a
+    transient failure: the statement is cancelled and the user is prompted to
+    re-authorize, as when the token is rejected on submission.
+    """
+    query, dance = oauth2_query
+    cursor = FakeSeaCursor(["stmt-1"], pending_polls=100)
+    cursor.poll_errors = [RuntimeError("The access token expired")]
+
+    with pytest.raises(OAuth2RedirectError):
+        DatabricksPythonConnectorEngineSpec.execute_with_cursor(
+            cursor, "SELECT 1", query
+        )
+
+    dance.assert_called_once_with(query.database)
+    assert cursor.polls == 1
+    assert cursor.cancelled == ["stmt-1"]
+    assert cursor.results_loaded == []
+
+
+def test_execute_with_cursor_sea_auth_failure_loading_results_starts_oauth2(
+    sea_session: Any, oauth2_query: Any
+) -> None:
+    """
+    An expired user token rejected while loading a finished statement's
+    results prompts the user to re-authorize.
+    """
+    query, dance = oauth2_query
+    cursor = FakeSeaCursor(["stmt-1"], pending_polls=1)
+    cursor.get_async_execution_result = MagicMock(  # type: ignore[method-assign]
+        side_effect=RuntimeError(
+            "Error during request to server: HTTP 401 Unauthorized"
+        )
+    )
+
+    with pytest.raises(OAuth2RedirectError):
+        DatabricksPythonConnectorEngineSpec.execute_with_cursor(
+            cursor, "SELECT 1", query
+        )
+
+    dance.assert_called_once_with(query.database)
+    cursor.backend._poll_query.assert_not_called()
+    assert cursor.cancelled == []
+
+
+def test_execute_with_cursor_sea_auth_failure_without_impersonation(
+    sea_session: Any, oauth2_query: Any
+) -> None:
+    """
+    Without user impersonation re-authorizing can't help, so an auth failure
+    while polling cancels the statement and raises the driver's error at once
+    instead of retrying it.
+    """
+    query, dance = oauth2_query
+    query.database.impersonate_user = False
+    cursor = FakeSeaCursor(["stmt-1"], pending_polls=100)
+    cursor.poll_errors = [RuntimeError("The access token expired")]
+
+    with pytest.raises(Exception, match="The access token expired"):
+        DatabricksPythonConnectorEngineSpec.execute_with_cursor(
+            cursor, "SELECT 1", query
+        )
+
+    dance.assert_not_called()
+    assert cursor.polls == 1
+    assert cursor.cancelled == ["stmt-1"]
+
+
+def test_execute_with_cursor_sea_non_auth_poll_failure_skips_oauth2(
+    sea_session: Any, oauth2_query: Any
+) -> None:
+    """A non-auth status failure is retried without prompting to re-authorize."""
+    query, dance = oauth2_query
+    cursor = FakeSeaCursor(["stmt-1"], pending_polls=1)
+    cursor.poll_errors = [RuntimeError("503 Service Unavailable")]
+
+    DatabricksPythonConnectorEngineSpec.execute_with_cursor(cursor, "SELECT 1", query)
+
+    dance.assert_not_called()
+    assert cursor.results_loaded == ["stmt-1"]
