@@ -1817,7 +1817,14 @@ def _evict_engine_cache_on_rollback(
 
 
 def _forget_evicted_database_ids(session: Session) -> None:
-    """A committed change keeps its settings, so a later rollback must not evict."""
+    """A committed change keeps its settings, so a later rollback must not evict.
+
+    ``after_commit`` also fires when a savepoint is released, while the
+    enclosing transaction can still roll back, so only an outermost commit
+    forgets the ids.
+    """
+    if session.in_nested_transaction():
+        return
     session.info.pop(_EVICTED_DATABASE_IDS_KEY, None)
 
 
