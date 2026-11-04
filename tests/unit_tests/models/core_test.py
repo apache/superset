@@ -973,6 +973,60 @@ def test_engine_not_evicted_by_rollback_after_commit(
     assert _ENGINE_CACHE == cached
 
 
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_evicted_again_when_update_rolls_back_after_savepoint(
+    session: Session, tmp_path: Path
+) -> None:
+    """
+    Releasing a savepoint is not a commit of the update: the enclosing
+    transaction can still roll back, and must still evict the engine built from
+    the uncommitted settings.
+    """
+    path = tmp_path / "db.duckdb"
+    database = _saved_duckdb_database(session, path)
+    original_extra = database.extra
+
+    database.extra = _duckdb_database(path, threads=2).extra
+    session.flush()
+    _query_duckdb(database)
+
+    with session.begin_nested():
+        pass
+
+    session.rollback()
+
+    assert database.extra == original_extra
+    _query_duckdb(database)
+
+
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_not_evicted_by_rollback_after_savepoint_and_commit(
+    session: Session, tmp_path: Path
+) -> None:
+    """
+    A savepoint released before the outermost commit does not keep the
+    remembered evictions alive: after the commit, an unrelated rollback leaves
+    the cached engines alone.
+    """
+    from superset.models.core import _ENGINE_CACHE
+
+    path = tmp_path / "db.duckdb"
+    database = _saved_duckdb_database(session, path)
+
+    database.extra = _duckdb_database(path, threads=2).extra
+    session.flush()
+    with session.begin_nested():
+        pass
+    session.commit()
+    _query_duckdb(database)
+    cached = dict(_ENGINE_CACHE)
+    assert cached
+
+    session.rollback()
+
+    assert _ENGINE_CACHE == cached
+
+
 def test_engine_rollback_eviction_survives_dispose_failure(
     session: Session, tmp_path: Path
 ) -> None:
