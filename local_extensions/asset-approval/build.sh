@@ -11,6 +11,10 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$here/../.." && pwd)"
 
 core_types="$repo_root/superset-frontend/packages/superset-core/lib/index.d.ts"
+# `lib/index.d.ts` only re-exports; `theme` is the subpath this extension
+# actually types `styled` from, and it is a separate emitted file, so a
+# half-finished core build can satisfy the check above and still fail.
+core_theme_types="$repo_root/superset-frontend/packages/superset-core/lib/theme/index.d.ts"
 
 build_frontend() {
   if ! command -v npm >/dev/null 2>&1; then
@@ -34,9 +38,10 @@ build_frontend() {
   # not in git. Without it `styled` resolves to `any` and every styled block
   # fails with TS7031, which reads as a missing Emotion augmentation and is
   # not one -- so say what is actually missing.
-  if [ ! -f "$core_types" ]; then
-    echo "build.sh: @apache-superset/core has not been built." >&2
+  if [ ! -f "$core_types" ] || [ ! -f "$core_theme_types" ]; then
+    echo "build.sh: @apache-superset/core has not been built, or only partly." >&2
     echo "  Expected: $core_types" >&2
+    echo "        and: $core_theme_types" >&2
     echo "  Build it with:" >&2
     echo "    cd $repo_root/superset-frontend/packages/superset-core && npm run build" >&2
     return 1

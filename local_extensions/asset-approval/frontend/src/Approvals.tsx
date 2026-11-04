@@ -108,6 +108,34 @@ const ActionNote = styled.div`
   `}
 `;
 
+/**
+ * The reviewer's instruction, under the status tag that announces it.
+ *
+ * Clamped to two lines, with the whole of it in `title`: a reviewer writes
+ * a paragraph, and a row that grows to fit one stops being a list.
+ */
+const ReturnedNote = styled.div`
+  ${({ theme }) => `
+    color: ${theme.colorTextSecondary};
+    font-size: ${theme.fontSizeSM}px;
+    margin-top: ${theme.sizeUnit}px;
+    max-width: 320px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  `}
+`;
+
+const NoNote = styled.div`
+  ${({ theme }) => `
+    color: ${theme.colorTextTertiary};
+    font-size: ${theme.fontSizeSM}px;
+    margin-top: ${theme.sizeUnit}px;
+    max-width: 320px;
+  `}
+`;
+
 const From = styled.span`
   ${({ theme }) => `
     display: inline-flex;
@@ -169,6 +197,45 @@ function statusOf(row: ChangeRequest): { label: string; color: string } {
     return { label: t('Discarded'), color: 'default' };
   }
   return { label: t('Draft'), color: 'default' };
+}
+
+/**
+ * The reviewer's note, on the row that asks the author to act on it.
+ *
+ * Keyed on the **status**, never on the note being there. `review_note` is
+ * written by `lifecycle.request_changes` and cleared in exactly one place --
+ * `gate._update_own_request`, when the author's next save folds into the
+ * draft. `submit`, `withdraw` and `approve` all leave it standing, so a
+ * request that was sent back and resubmitted still carries the old
+ * instruction while it is `pending`, and so can an approved one. Keyed on
+ * presence, this line would show a stale instruction under "Awaiting
+ * review" or "Approved" as though a reviewer were still asking for it
+ * (sc-131033).
+ *
+ * Shown to everyone who sees the row, not only its author: another editor
+ * reading "Changes requested" is owed the reason too.
+ */
+function returnedNote(row: ChangeRequest) {
+  if (row.status !== 'changes_requested') return null;
+  const note = row.review_note?.trim();
+  const reviewer = row.reviewer?.first_name?.trim() || displayName(row.reviewer);
+  if (!note) {
+    // `request_changes` refuses a blank note today
+    // (`ReviewNoteRequiredError`), so this is only reachable for rows
+    // written before that rule. A fallback, not a flow.
+    return (
+      <NoNote data-test="returned-no-note">
+        {reviewer
+          ? t('%s sent this back without a note.', reviewer)
+          : t('Sent back without a note.')}
+      </NoNote>
+    );
+  }
+  return (
+    <ReturnedNote data-test="returned-note" title={note}>
+      {reviewer ? t('%s: "%s"', reviewer, note) : t('"%s"', note)}
+    </ReturnedNote>
+  );
 }
 
 /** Two initials, as the mock's avatars show. */
@@ -357,7 +424,12 @@ export default function Approvals() {
       key: 'status',
       render: (_: unknown, row: ChangeRequest) => {
         const status = statusOf(row);
-        return <Tag color={status.color}>{status.label}</Tag>;
+        return (
+          <>
+            <Tag color={status.color}>{status.label}</Tag>
+            {returnedNote(row)}
+          </>
+        );
       },
     },
     {

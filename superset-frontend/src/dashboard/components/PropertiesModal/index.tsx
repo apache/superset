@@ -60,6 +60,8 @@ import {
   dashboardSaveSucceeded,
 } from 'src/dashboard/actions/dashboardInfo';
 import { areObjectsEqual } from 'src/reduxUtils';
+import { isReviewRequired } from 'src/features/changeManagement/types';
+import { announceChangeCaptured } from 'src/features/changeManagement/events';
 import { AsyncModeOverride } from 'src/utils/asyncMode';
 import { StandardModal, useModalValidation } from 'src/components/Modal';
 import { validateRefreshFrequency } from '../RefreshFrequency';
@@ -484,7 +486,24 @@ const PropertiesModal = ({
         endpoint: `/api/v1/dashboard/${dashboardId}`,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(saveData),
-      }).then(() => {
+      }).then(response => {
+        // A gated write (HTTP 202) was captured for review: the live
+        // dashboard has not moved, so saying it was saved and handing the
+        // proposal to `onSubmit` would put the author's own change on
+        // screen as though viewers could see it.
+        if (isReviewRequired(response.json)) {
+          // The list this was saved from is still drawing the row as it
+          // stood when it mounted, so its "Changes pending" tag never
+          // appeared until a reload. The chart list has announced since
+          // 129074; this is the same save on the other list (NEW-3).
+          announceChangeCaptured();
+          addSuccessToast(
+            response.json.message ??
+              t('Changes saved. Viewers still see the live version.'),
+          );
+          onHide();
+          return;
+        }
         dispatch(dashboardSaveSucceeded(dashboardId));
         onSubmit(onSubmitProps);
         onHide();

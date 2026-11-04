@@ -372,10 +372,15 @@ def _gate_legacy_slice_save(
         payload["datasource_id"] = datasource_id
     if datasource_type is not None:
         payload["datasource_type"] = datasource_type
+    # ``fold_fields`` for the same reason the command path takes it: this
+    # body is the same shape, it reaches the same ``gate_write``, and
+    # without it this would be the one chart path that still replaces an
+    # open draft wholesale.
     gate_write(
         AssetType.CHART,
         slc.id,
         {k: v for k, v in payload.items() if v is not None},
+        fold_fields=True,
     )
 
 
@@ -712,6 +717,20 @@ def _gate_embedded_delete(command: Any) -> None:
 
 
 def _gate_chart_update(command: Any) -> None:
+    """Gate a chart edit, folding it onto whatever the author already has open.
+
+    ``fold_fields`` because this one command takes both shapes of body.
+    Explore posts every control, so its body asserts the whole chart and
+    replacing each field it names is right; the chart Properties dialog
+    posts eight fields and the REST and MCP clients post whatever they like,
+    and those say nothing at all about the fields they leave out. Replacing
+    the stored payload with one of those discarded a captured ``params``
+    edit the moment the author renamed the chart.
+
+    Not ``combine``: it would also switch off ``comparable`` in the gate,
+    and with it the empty-change test (129076), the baseline (QA-24) and
+    R4-01 for every chart.
+    """
     if _only_exempt(command._model, _payload(command)):
         return
     gate_write(
@@ -723,6 +742,7 @@ def _gate_chart_update(command: Any) -> None:
                 command, "_normalization_changes", None
             )
         },
+        fold_fields=True,
     )
 
 

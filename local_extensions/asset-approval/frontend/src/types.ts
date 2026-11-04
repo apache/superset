@@ -79,6 +79,15 @@ export interface DatasetDetail {
   sql?: { before: string | null; after: string | null };
   columns?: NamedDiff;
   metrics?: NamedDiff;
+  /**
+   * Every other field the change moves: the description riding with a
+   * governed edit, `main_dttm_col`, `fetch_values_predicate`,
+   * `template_params`, `extra.warning_markdown`. The dialog had three tabs
+   * and the server emitted three fields, so these were replayed on approve
+   * and shown nowhere -- a reviewer read "No column changed." and approved
+   * them unseen (129075).
+   */
+  settings?: FieldChange[];
 }
 
 export interface ChangeRequest {

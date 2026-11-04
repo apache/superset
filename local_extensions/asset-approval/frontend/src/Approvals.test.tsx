@@ -664,3 +664,99 @@ test('a decided row does not warn about access that no longer matters', async ()
     screen.queryByTestId('author-lost-access'),
   ).not.toBeInTheDocument();
 });
+
+/**
+ * The reviewer's note on a row that was sent back (sc-131033).
+ *
+ * The row already carries `review_note` and `reviewer`; nothing showed
+ * them, so an author whose change came back read "Returned to you" and had
+ * to open the asset to find out what was being asked.
+ *
+ * The case that matters most is the last one. `review_note` is cleared in
+ * exactly one place -- the gate, when the author's next save folds into the
+ * draft -- so submitting, withdrawing and approving all leave it standing,
+ * and an implementation keyed on the note being present shows a stale
+ * instruction under "Awaiting review".
+ */
+const sentBack = (over: Partial<ChangeRequest> = {}) =>
+  request({
+    id: 21,
+    status: 'changes_requested',
+    is_author: true,
+    can_approve: false,
+    review_note: 'Use the approved colour scheme, not the custom one.',
+    reviewer: { id: 3, first_name: 'Priya', last_name: 'Shah' },
+    ...over,
+  });
+
+test('a returned row shows the reviewer and what they asked for', async () => {
+  mockedFetchList.mockResolvedValue(asPage([sentBack()]));
+
+  render(<Approvals />);
+
+  const note = await screen.findByTestId('returned-note');
+  expect(note.textContent).toContain('Priya');
+  expect(note.textContent).toContain('approved colour scheme');
+  // The whole of it, for a note longer than the two lines the row shows.
+  expect(note).toHaveAttribute(
+    'title',
+    'Use the approved colour scheme, not the custom one.',
+  );
+});
+
+test('another editor reading the row is owed the reason too', async () => {
+  // Not keyed on `is_author`: somebody else looking at "Changes requested"
+  // needs to know what was asked for as much as its author does.
+  mockedFetchList.mockResolvedValue(asPage([
+    sentBack({ is_author: false }),
+  ]));
+
+  render(<Approvals />);
+
+  expect(await screen.findByTestId('returned-note')).toBeInTheDocument();
+});
+
+test('a returned row with no note says that instead of nothing', async () => {
+  // `request_changes` refuses a blank note today, so this is a row written
+  // before that rule -- a fallback, not a flow.
+  mockedFetchList.mockResolvedValue(asPage([
+    sentBack({ review_note: '   ' }),
+  ]));
+
+  render(<Approvals />);
+
+  const note = await screen.findByTestId('returned-no-note');
+  expect(note.textContent).toContain('Priya');
+  expect(note.textContent).toContain('without a note');
+});
+
+test('a note with no known reviewer still reads as a quotation', async () => {
+  mockedFetchList.mockResolvedValue(asPage([sentBack({ reviewer: null })]));
+
+  render(<Approvals />);
+
+  const note = await screen.findByTestId('returned-note');
+  expect(note.textContent).toContain('approved colour scheme');
+});
+
+test.each(['pending', 'approved'] as const)(
+  'a %s row shows no note even when a stale one is still stored',
+  async status => {
+    // The case a presence-keyed implementation passes and the product
+    // fails: the note survives submit and approve, so the row would go on
+    // asking for a change that has already been made and reviewed.
+    mockedFetchList.mockResolvedValue(asPage([
+      sentBack({ status, can_approve: false }),
+    ]));
+
+    render(<Approvals />);
+
+    await screen.findByTestId('approvals-table');
+    await waitFor(() =>
+      expect(screen.queryByTestId('returned-note')).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByTestId('returned-no-note'),
+    ).not.toBeInTheDocument();
+  },
+);

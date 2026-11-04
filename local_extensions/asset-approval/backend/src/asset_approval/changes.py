@@ -735,6 +735,99 @@ def _comparable(value: Any, field: str) -> Any:
     return str(value)
 
 
+#: The one JSON column whose *entries* are named rather than the column.
+#: A chart's ``params`` is dozens of settings in one field, so telling an
+#: author that "params" was put back says nothing they can act on.
+KEYED_BLOB_FIELD = "params"
+
+
+def _says_the_same(one: Any, other: Any) -> bool:
+    """Whether two values inside a JSON blob say the same thing.
+
+    The same two spellings of empty ``changed_fields`` reconciles: a key the
+    draft dropped and a key the body sets to ``""`` are one statement, and
+    reading them as different would report a revert nobody made.
+    """
+    if _is_nothing(one) and _is_nothing(other):
+        return True
+    return _parsed(one) == _parsed(other)
+
+
+def _keys_put_back(current: Any, drafted: Any, proposed: Any) -> list[str]:
+    """Entries inside one JSON blob that the draft moved and this body undid.
+
+    Anything not readable as an object either side answers nothing: the
+    sentence this feeds is a heuristic that must never be wrong in the
+    direction of accusing a save of losing work it did not touch.
+    """
+    live, draft, body = _parsed(current), _parsed(drafted), _parsed(proposed)
+    if not all(isinstance(blob, dict) for blob in (live, draft, body)):
+        return []
+    return [
+        key
+        for key, was_drafted in draft.items()
+        # A key the body says nothing about is one this save left alone; the
+        # fold keeps the draft's value and nothing was put back.
+        if key in body
+        and not _says_the_same(was_drafted, live.get(key))
+        and _says_the_same(body[key], live.get(key))
+        and not _says_the_same(body[key], was_drafted)
+    ]
+
+
+def reverted_fields(
+    asset: Any, draft: dict[str, Any], body: dict[str, Any]
+) -> list[str]:
+    """Settings the draft had moved off live that this body puts back.
+
+    The tripwire behind the "put back" sentence. An editing surface that
+    starts from the live asset rather than from the author's open proposal
+    writes the live value back for every field it posts, so a second save
+    from such a surface silently undoes the first one. This is how a save
+    says that happened, and it is measured on the server so that a REST
+    client which never saw a dialog is told as well. (The MCP tool result
+    does not carry it yet; see ``http.PUT_BACK_ONE_MESSAGE`` for why.)
+
+    Deliberately a heuristic, and deliberately non-blocking. It cannot tell
+    a revert the author meant from an edit made on a stale view, so the
+    wording it feeds says what happened and does not accuse. A false 409
+    would refuse the author the one way they have of undoing part of a
+    draft.
+
+    ``params`` is reported by its entries rather than by its name: a chart's
+    whole control set lives in that one field, so "params" alone is not
+    something an author can check.
+
+    Anything unreadable answers nothing. Saying less than the truth is
+    survivable here; naming a setting the save did not touch is not.
+    """
+    if asset is None:
+        return []
+    put_back: list[str] = []
+    for field, proposed in body.items():
+        if field in IGNORED_FIELDS or field not in draft:
+            continue
+        if not hasattr(asset, field):
+            continue
+        try:
+            live = getattr(asset, field)
+            drafted = draft[field]
+            if field == KEYED_BLOB_FIELD:
+                put_back.extend(_keys_put_back(live, drafted, proposed))
+                continue
+            if (
+                _differs(live, drafted, field)
+                and not _differs(live, proposed, field)
+                and _differs(drafted, proposed, field)
+            ):
+                put_back.append(field)
+        except Exception:  # noqa: BLE001 -- a diagnostic must never block a write
+            logger.warning(
+                "asset-approval: could not tell whether %r was put back", field
+            )
+    return sorted(set(put_back))
+
+
 def moved_since(asset: Any, baseline: dict[str, Any]) -> list[str]:
     """Reviewed fields whose live value no longer matches the baseline.
 

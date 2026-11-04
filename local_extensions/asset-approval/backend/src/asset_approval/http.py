@@ -66,6 +66,55 @@ BULK_DELETE_MESSAGE = (
     "each when you are ready."
 )
 
+#: Appended to a capture that put settings back to the live value.
+#:
+#: A sentence rather than a refusal. An editing surface that opens on the
+#: live asset instead of on the author's open proposal posts the live value
+#: back for every field it carries, so a second save silently undoes the
+#: first; this is the only thing in the answer that says so, and it reaches
+#: every HTTP caller -- the REST API included -- rather than only the
+#: surfaces where a dialog could have warned.
+#:
+#: **Not yet the MCP tool result.** That text is written in core, by
+#: ``mcp_service.middleware._captured_result`` from
+#: ``change_management.review_signal_details``, neither of which reads this
+#: module, and an MCP tool call never produces a 202 body to read it from.
+#: Carrying it there means adding ``reverted_fields`` to
+#: ``review_signal_details`` and to the tool's own sentence, which is a
+#: change in core; until then the signal carries the list and the MCP
+#: result does not say it.
+#:
+#: Written as what happened, not as an accusation: a deliberate revert
+#: produces this sentence too, and it is true of one.
+PUT_BACK_ONE_MESSAGE = (
+    "This save put back 1 setting your draft had changed: %s."
+)
+PUT_BACK_MANY_MESSAGE = (
+    "This save put back %d settings your draft had changed: %s."
+)
+
+#: How many names the sentence carries before it starts counting instead.
+#: An Explore save posts every control, so a draft measured against a body
+#: written from the live chart can legitimately name scores of settings, and
+#: a sentence that long reads as a fault rather than as information.
+NAMED_PUT_BACK_LIMIT = 5
+
+
+def put_back_sentence(fields: list[str]) -> str:
+    """What a fold says about the settings it returned to the live value.
+
+    Empty for the ordinary case, so callers can append it unconditionally.
+    """
+    if not fields:
+        return ""
+    shown = fields[:NAMED_PUT_BACK_LIMIT]
+    named = ", ".join(shown)
+    if len(fields) > len(shown):
+        named = f"{named} and {len(fields) - len(shown)} more"
+    if len(fields) == 1:
+        return PUT_BACK_ONE_MESSAGE % named
+    return PUT_BACK_MANY_MESSAGE % (len(fields), named)
+
 
 def captured_message(ex: ChangeRequestCreated) -> str:
     """What a captured write tells the caller it did.
@@ -76,6 +125,15 @@ def captured_message(ex: ChangeRequestCreated) -> str:
     ``DELETE_REPLACED_MESSAGE`` and ``UPDATED_MESSAGE`` were written,
     tested, and then never reached a caller.
     """
+    return " ".join(part for part in (_what_was_captured(ex), _put_back(ex)) if part)
+
+
+def _put_back(ex: ChangeRequestCreated) -> str:
+    """``getattr``: the message is also built from stand-ins for the signal."""
+    return put_back_sentence(list(getattr(ex, "reverted_fields", None) or []))
+
+
+def _what_was_captured(ex: ChangeRequestCreated) -> str:
     deleting = getattr(ex, "operation", "update") == "delete"
     if ex.count > 1:
         # A bulk delete or an import captures several assets, each reviewed
@@ -129,6 +187,11 @@ def signal_response(ex: ChangeManagementException) -> tuple[dict[str, Any], int]
                 "asset_id": details["asset_id"],
                 "review_required": True,
                 "message": captured_message(ex),
+                # The same tripwire the sentence carries, as data. A QA run
+                # -- or any client -- can assert that a save put work back
+                # without parsing English out of ``message`` (SOW 5.5 owns
+                # the copy; this is the oracle).
+                "reverted_fields": list(getattr(ex, "reverted_fields", None) or []),
             },
             CAPTURED_STATUS,
         )

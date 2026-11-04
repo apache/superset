@@ -86,7 +86,11 @@ export function datasetChangeCount(detail?: DatasetDetail | null): number {
   return (
     (sqlChanged ? 1 : 0) +
     namedCount(detail.columns) +
-    namedCount(detail.metrics)
+    namedCount(detail.metrics) +
+    // The Settings rows count too, or the panel header reads "0 changes"
+    // over a dialog that lists a changed `fetch_values_predicate` -- the
+    // exact contradiction `WhatChangedPanel` already had to fix once.
+    (detail.settings?.length ?? 0)
   );
 }
 

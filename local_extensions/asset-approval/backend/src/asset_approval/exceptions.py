@@ -72,6 +72,7 @@ class ChangeRequestCreated(ChangeManagementException):
         replaced_edit: bool = False,
         replaced_delete: bool = False,
         left_review: bool = False,
+        reverted_fields: list[str] | None = None,
     ):
         self.change_request_id = change_request_id
         self.asset_type = asset_type
@@ -102,6 +103,15 @@ class ChangeRequestCreated(ChangeManagementException):
         #: pulled it back out of review and the approver's queued item is
         #: gone.
         self.left_review = left_review
+        #: Settings the author's draft had moved off the live value that
+        #: this save put back. A tripwire, not a refusal: an editing
+        #: surface that opens on the live asset rather than on the author's
+        #: open proposal writes live back over their own work, and this is
+        #: the only thing in the answer that says so. Non-blocking because
+        #: it cannot tell a revert the author meant from an edit made on a
+        #: stale view, and refusing the first would take away the only way
+        #: to undo part of a draft.
+        self.reverted_fields = reverted_fields or []
         super().__init__(
             f"Changes to {count} {asset_type}(s) were held for review as "
             f"drafts. Request review on each when you are ready."

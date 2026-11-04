@@ -192,11 +192,18 @@ export interface DatasetReviewModalProps {
  * reviewer gets the contract, field by field, with the live value beside
  * the proposed one.
  *
- * Source, Metrics and Columns are the three the gate actually computes.
- * Calculated columns and settings are not separable from the columns diff
- * the backend produces today, so they are not shown as empty tabs -- a
- * tab reading "0" would claim nothing changed there, which is not
- * something this data can support.
+ * Source, Metrics and Columns are the three the gate computes as
+ * structures. Settings is everything else the change carries: the
+ * description riding with a governed edit, `main_dttm_col`,
+ * `fetch_values_predicate`, `template_params`, and `extra.warning_markdown`,
+ * which puts a banner in front of every viewer. Those were replayed on
+ * approve and shown on no tab at all, so a reviewer read "No column
+ * changed." and approved them unseen (129075).
+ *
+ * Calculated columns still have no tab of their own: they are not separable
+ * from the columns diff the backend produces, and a tab reading "0" would
+ * claim nothing changed there, which is not something this data can
+ * support.
  */
 export default function DatasetReviewModal({
   changeRequest,
@@ -209,11 +216,16 @@ export default function DatasetReviewModal({
     !!detail?.sql && (detail.sql.before ?? '') !== (detail.sql.after ?? '');
   const columnRows = rowsOf(detail?.columns);
   const metricRows = rowsOf(detail?.metrics);
+  const settingRows = detail?.settings ?? [];
 
   const tabs = [
     { key: 'source', label: t('Source'), count: sqlChanged ? 1 : 0 },
     { key: 'metrics', label: t('Metrics'), count: metricRows.length },
     { key: 'columns', label: t('Columns'), count: columnRows.length },
+    // Last, and counted like the rest, so `firstWithChanges` lands here
+    // only when nothing structural moved -- and so the panel's own count
+    // cannot read "0 changes" over a listed one.
+    { key: 'settings', label: t('Settings'), count: settingRows.length },
   ];
   // Open where the change is. Landing on an empty tab and reading "no
   // column changed" reads as nothing having changed at all.
@@ -337,6 +349,40 @@ export default function DatasetReviewModal({
           </Table>
         ) : (
           <Empty>{t('The query behind this dataset is unchanged.')}</Empty>
+        )
+      ) : tab === 'settings' ? (
+        settingRows.length ? (
+          <Table>
+            <thead>
+              <tr>
+                <th>{t('Field')}</th>
+                <th>{t('Live')}</th>
+                <th>{t('Proposed')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {settingRows.map(row => (
+                <tr key={row.field}>
+                  <td>
+                    <Tag color="orange">{t('Changed')}</Tag>{' '}
+                    <code>{row.field}</code>
+                  </td>
+                  <Live>
+                    <code>{show(row.before)}</code>
+                  </Live>
+                  <Proposed>
+                    <code>{show(row.after)}</code>
+                    {/* Said, never silently dropped: a reviewer who cannot
+                        see what they are approving is the thing this
+                        feature exists to prevent. */}
+                    {row.truncated ? <em> {t('(shortened)')}</em> : null}
+                  </Proposed>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        ) : (
+          <Empty>{t('No other setting changed.')}</Empty>
         )
       ) : rows.length ? (
         <Table>

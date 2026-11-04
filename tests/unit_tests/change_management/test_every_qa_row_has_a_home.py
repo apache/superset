@@ -92,15 +92,8 @@ NO_TEST_NAMES_IT: dict[str, str] = {
     "QA-02": "a refused legacy save must not have already mutated the dataset",
     "QA-04": "a filter refused with 409 must be visible, not a vanished filter",
     "R4-07": "banner and Request review appear on first save with no reload",
-    "129074": "the same, on the dashboard properties path",
     "129077": "the Published toggle is held and its copy does not contradict it",
     "S-03": "an exempt change made during review survives the approval",
-    "NEW-1": "a captured save must leave the page clean to navigate away from",
-    "NEW-3": "a list row's tag appears after a capture made from that row",
-    "NEW-9": "the Editors picker finds a person by name",
-    "NEW-10": "'no one can approve' clears when a second editor is added",
-    "NEW-11": "the same tag, from the chart list's own Archive button",
-    "R5-02": "a report PNG must not carry the editor's review banner",
 }
 
 

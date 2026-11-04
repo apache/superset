@@ -1289,4 +1289,54 @@ def dataset_detail(
         detail["metrics"] = _diff_named(
             getattr(asset, "metrics", []), body["metrics"], "metric_name", METRIC_FIELDS
         )
+    if settings := _dataset_settings(change_request, asset):
+        detail["settings"] = settings
     return detail
+
+
+#: Dataset fields the review dialog already has a tab of their own for.
+#: Everything else a dataset change carries had nowhere to be shown at all.
+DATASET_FIELDS_SHOWN_ELSEWHERE = frozenset({"sql", "columns", "metrics"})
+
+
+def _dataset_settings(
+    change_request: ChangeRequest, asset: Any
+) -> list[dict[str, Any]]:
+    """Every other dataset field this change moves, as a before/after pair.
+
+    The dialog had exactly three tabs -- Source, Metrics, Columns -- and
+    ``dataset_detail`` emitted exactly those three, so a payload carrying
+    any other changed field was replayed on approve and shown **nowhere**.
+    A reviewer read "No column changed." and approved a rewritten
+    ``fetch_values_predicate``, a moved ``main_dttm_col``, a new
+    ``template_params`` or an ``extra.warning_markdown`` that puts a banner
+    in front of every viewer, without ever seeing it. That is a
+    review-integrity gap of the same family this feature exists to close
+    (129075).
+
+    Which fields moved is the gate's question, asked here rather than
+    answered again, so the dialog cannot come to disagree with the capture.
+    ``description`` and the other exempt fields appear when they ride along
+    with a governed change: the exemption is per-write, so the write is
+    governed and the reviewer is approving the description too.
+
+    Shown through ``_shown``, so a long value is shortened and *said* to be
+    shortened rather than silently dropped, exactly as ``describe_changes``
+    does. A value too structural to render is marked opaque instead -- the
+    reviewer is told the field moved, which is strictly more than the three
+    tabs told them.
+    """
+    body = change_request.payload_dict
+    settings: list[dict[str, Any]] = []
+    for field in changed_fields(asset, body):
+        if field in DATASET_FIELDS_SHOWN_ELSEWHERE:
+            continue
+        before, before_cut = _shown(getattr(asset, field, None))
+        after, after_cut = _shown(body.get(field))
+        entry: dict[str, Any] = {"field": field, "before": before, "after": after}
+        if before is None and after is None:
+            entry["opaque"] = True
+        elif before_cut or after_cut:
+            entry["truncated"] = True
+        settings.append(entry)
+    return settings

@@ -46,7 +46,7 @@ from asset_approval.exceptions import (
     UnattributableWriteRefusedError,
     UnreviewableWriteRefusedError,
 )
-from asset_approval.changes import baseline_of, is_empty_change
+from asset_approval.changes import baseline_of, is_empty_change, reverted_fields
 from asset_approval.models import ChangeRequest, PublishedAsset
 from asset_approval.types import (
     AssetType,
@@ -93,6 +93,14 @@ UPSERT_EMBEDDED_COMMAND = "upsert_embedded"
 #: How a further capture folds into the author's existing open request of
 #: the same kind: ``combine(existing_body, new_body) -> stored_body``.
 Combine = Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]]
+
+#: ``command_args`` entry the chart gate carries: which keys Explore
+#: rewrote on its own as it loaded the chart, for version history. The new
+#: body of a *partial* second save has no ``params`` at all and so nothing
+#: to say about normalisation, and ``command_args`` is replaced wholesale on
+#: a fold -- so without keeping it, a rename through the Properties dialog
+#: erased the first save's list.
+NORMALIZATION_KEY = "normalization_changes"
 
 
 @contextmanager
@@ -204,6 +212,91 @@ def mark_published(asset_type: AssetType, asset_id: int) -> None:
         )
 
 
+def _same_kind(existing: Any, command_args: dict[str, Any] | None) -> bool:
+    """Whether this write replays through the same command as the open one.
+
+    One request replays through one command, so a native-filter diff and a
+    properties draft can never be folded together. ``getattr``: some callers
+    hand the fold a partial stand-in for the row rather than the row.
+    """
+    kind = (command_args or {}).get(COMMAND_KEY)
+    return getattr(existing, "command_args", {}).get(COMMAND_KEY) == kind
+
+
+def _can_fold(
+    existing: Any,
+    author_id: int | None,
+    command_args: dict[str, Any] | None,
+    operation: Operation,
+) -> bool:
+    """Whether this write's body may be merged with the open request's.
+
+    The author's own, the same command, and the same operation. Anything
+    else either belongs to someone else (and is refused further down) or
+    describes a different act, and merging across either of those would
+    put a payload in the queue that no single screen ever asserted.
+    """
+    if existing is None or author_id is None:
+        return False
+    if getattr(existing, "author_fk", None) != author_id:
+        return False
+    if not _same_kind(existing, command_args):
+        return False
+    return (
+        Operation(getattr(existing, "operation", Operation.UPDATE.value)) is operation
+    )
+
+
+def _fold_into(
+    existing: Any,
+    payload: dict[str, Any],
+    command_args: dict[str, Any] | None,
+    combine: Combine | None,
+    fold_fields: bool,
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    """One body folded onto the open request's, and the args that go with it.
+
+    The whole of R2: *a fold of body B into open draft D must equal applying
+    D and then B.* Which merge that is depends on what the body is.
+
+    - A **diff** body (``combine``) is added to the one already stored, or
+      approving the draft would apply only the last edit.
+    - A **partial full-state** body (``fold_fields``) replaces the fields it
+      carries and leaves the rest of the draft standing. Explore posts every
+      control, so a body with ``params`` asserts the whole chart and
+      replacing that one field is right; the chart Properties dialog, REST
+      and MCP post a handful of fields and say nothing about the others, and
+      replacing the payload wholesale is how a captured ``params`` edit
+      disappeared behind a later rename.
+    - Neither: the body replaces, which is what a full-state body means.
+
+    Top-level fields only. Never inside ``params``, ``query_context`` or
+    ``json_metadata``: the server cannot tell a key the author edited from
+    one Explore normalised on its way through, so a three-way merge there
+    would overwrite draft values for every key Explore touches on its own,
+    could not express a revert, and would hand the approver a chart that was
+    never on anybody's screen.
+
+    Lives here rather than at either call site because there are **two**
+    fold sites -- ``gate_write`` and ``_lost_the_slot``, which a double
+    click on Save reaches -- and a fix landing on the one a unit test calls
+    and not the one a double click reaches is this epic's own failure mode.
+    """
+    if combine is not None:
+        return combine(existing.payload_dict, payload), command_args
+    if not fold_fields:
+        return payload, command_args
+    merged = {**existing.payload_dict, **payload}
+    if "params" in payload:
+        return merged, command_args
+    # The incoming body has no ``params``, so it has nothing to say about
+    # what Explore normalised, and ``command_args`` is replaced wholesale.
+    previous = getattr(existing, "command_args", {}).get(NORMALIZATION_KEY)
+    if previous is None or (command_args or {}).get(NORMALIZATION_KEY):
+        return merged, command_args
+    return merged, {**(command_args or {}), NORMALIZATION_KEY: previous}
+
+
 def gate_write(
     asset_type: AssetType,
     asset_id: int,
@@ -212,6 +305,7 @@ def gate_write(
     command_args: dict[str, Any] | None = None,
     operation: Operation = Operation.UPDATE,
     combine: Combine | None = None,
+    fold_fields: bool = False,
 ) -> None:
     """Capture this write for review, or return so the caller may proceed.
 
@@ -226,6 +320,14 @@ def gate_write(
         asset's full state, how a further edit folds into the author's open
         request of the same kind. Without it the new body replaces the old,
         which is right for full-state bodies and loses work for diffs.
+    :param fold_fields: for commands whose body may be a *partial* statement
+        of the asset's fields -- the chart main update, which the Properties
+        dialog, REST and MCP all post a handful of fields to -- fold the new
+        body's fields onto the open request's instead of replacing it.
+        Separate from ``combine`` on purpose: ``combine`` also switches off
+        ``comparable`` below, so reusing it here would silently turn off the
+        empty-change test (129076), the baseline (QA-24) and R4-01 for every
+        chart. It is the obvious one-line fix and it is the trap.
     :raises AssetLockedError: when a different author already holds the
         asset's open slot, or when the author's own open request is for a
         different command and so cannot absorb this write.
@@ -267,15 +369,48 @@ def gate_write(
                 asset_id,
                 exc_info=True,
             )
-        if live is not None and is_empty_change(live, payload):
-            # Nothing to capture -- but the author may just have typed
-            # their own draft back to what is live, and the draft would
-            # otherwise go on proposing the text they thought they had
-            # undone (R4-01).
-            _drop_a_fully_reverted_draft(asset_type, asset_id)
-            return
-
+    # Read here rather than beside the refusal below, because deciding
+    # whether this body may be folded onto an open request needs to know
+    # whose request it is. The refusal itself stays where it was, after the
+    # emptiness test: an identity-less write that changes nothing has always
+    # been let through, and this is not the change that starts refusing it.
     author_id = get_user_id()
+
+    # The author's own open request is looked up *before* this write is
+    # judged, because what the save really proposes is the body folded onto
+    # that request -- and every question below has to be asked of the fold
+    # rather than of the body. R4-01 used to read the body alone, so a
+    # partial save whose own fields all matched live was called "empty" and
+    # discarded a draft carrying an unrelated ``params`` edit. Only the
+    # *lookup* moves: the refusals stay below the emptiness test, because a
+    # save that changes nothing has never been refused for a lock it is not
+    # going to take.
+    existing = _open_request_or_none(asset_type, asset_id)
+    foldable = _can_fold(existing, author_id, command_args, operation)
+    proposed, folded_args = (
+        _fold_into(existing, payload, command_args, combine, fold_fields)
+        if foldable
+        else (payload, command_args)
+    )
+
+    # Settings the draft had moved off live that this body puts back. Said
+    # out loud in the response and never refused: it is the oracle for every
+    # editing surface that still opens on the live asset, including the REST
+    # clients that never saw a dialog, and a deliberate revert deserves a
+    # true sentence rather than a false 409.
+    put_back = (
+        reverted_fields(live, existing.payload_dict, payload)
+        if foldable and live is not None
+        else []
+    )
+
+    if comparable and live is not None and is_empty_change(live, proposed):
+        # Nothing to capture -- but the author may just have typed their own
+        # draft back to what is live, and the draft would otherwise go on
+        # proposing the text they thought they had undone (R4-01).
+        _drop_a_fully_reverted_draft(asset_type, asset_id)
+        return
+
     if author_id is None:
         # No identity means we cannot attribute the change or decide who may
         # approve it. Refusing is the only safe answer: the SOW requires the
@@ -284,11 +419,12 @@ def gate_write(
 
     # What the asset holds right now in the fields this change reviews, so
     # an approval can tell whether the asset moved while the request waited
-    # (QA-24). Only full-state bodies have one; a diff describes an
-    # operation, not the asset's fields.
-    base = baseline_of(live, payload) if comparable else {}
+    # (QA-24). Measured on the folded payload, which is what the request
+    # proposes and therefore what an approval has to find unmoved. Only
+    # full-state bodies have one; a diff describes an operation, not the
+    # asset's fields.
+    base = baseline_of(live, proposed) if comparable else {}
 
-    existing = find_open_request(asset_type, asset_id)
     if existing is not None and existing.author_fk != author_id:
         raise AssetLockedError(
             asset_type.value,
@@ -299,9 +435,7 @@ def gate_write(
     replaced_delete = False
     left_review = False
     if existing is not None:
-        kind = (command_args or {}).get(COMMAND_KEY)
-        existing_kind = existing.command_args.get(COMMAND_KEY)
-        if kind != existing_kind:
+        if not _same_kind(existing, command_args):
             # One request replays through one command. Folding a native
             # filter diff into a properties draft (or the reverse) would
             # either be unreplayable or silently discard the earlier edit.
@@ -314,10 +448,8 @@ def gate_write(
                     "making this change."
                 ),
             )
-        if combine is not None and Operation(existing.operation) is operation:
-            payload = combine(existing.payload_dict, payload)
-        # Read before the fold overwrites them. A save that takes the place
-        # of a delete, or that pulls a submitted request back out of review,
+        # Read before the update overwrites the row. A save that takes the
+        # place of a delete, or that pulls a submitted request out of review,
         # has to say so: the delete direction already did, and this one left
         # the author with "Changes updated in your existing draft" while
         # their submitted delete was discarded and the approver's queued
@@ -334,9 +466,14 @@ def gate_write(
             is ChangeStatus.PENDING
         )
         change_request_id = _update_own_request(
-            existing.id, payload, note, command_args, operation, base=base
+            existing.id, proposed, note, folded_args, operation, base=base
         )
     else:
+        # ``payload`` and ``command_args``, not the folded pair: there was
+        # nothing to fold into. If the insert loses the asset's open slot to
+        # the author's own second click, ``_lost_the_slot`` folds against
+        # whatever won it, through the same ``_fold_into``.
+        outcome: dict[str, Any] = {}
         change_request_id = _insert_request(
             asset_type,
             asset_id,
@@ -346,7 +483,12 @@ def gate_write(
             command_args,
             operation,
             base=base,
+            combine=combine,
+            fold_fields=fold_fields,
+            live=live,
+            outcome=outcome,
         )
+        put_back = outcome.get("reverted_fields", put_back)
 
     raise ChangeRequestCreated(
         change_request_id,
@@ -356,7 +498,28 @@ def gate_write(
         updated_existing=existing is not None,
         replaced_delete=existing is not None and replaced_delete,
         left_review=existing is not None and left_review,
+        reverted_fields=put_back,
     )
+
+
+def _open_request_or_none(asset_type: AssetType, asset_id: int) -> ChangeRequest | None:
+    """The asset's open request, or nothing if it cannot be read.
+
+    The lookup now happens before the write is judged at all, so a database
+    it cannot reach must not turn a save into a 500. An unreadable slot
+    answers "no open request", which is what every path below this already
+    does with one.
+    """
+    try:
+        return find_open_request(asset_type, asset_id)
+    except Exception:  # noqa: BLE001
+        logger.warning(
+            "asset-approval: could not look up the open request on %s %s",
+            asset_type.value,
+            asset_id,
+            exc_info=True,
+        )
+        return None
 
 
 def _display_name(user: Any) -> str | None:
@@ -465,6 +628,11 @@ def _insert_request(
     command_args: dict[str, Any] | None = None,
     operation: Operation = Operation.UPDATE,
     base: dict[str, Any] | None = None,
+    *,
+    combine: Combine | None = None,
+    fold_fields: bool = False,
+    live: Any = None,
+    outcome: dict[str, Any] | None = None,
 ) -> int:
     """Write a new request on its own connection and commit it.
 
@@ -472,6 +640,11 @@ def _insert_request(
     triggers, so it cannot ride the caller's session. A separate connection
     from the same engine commits independently of whatever the command's
     transaction goes on to do.
+
+    ``combine``, ``fold_fields`` and ``live`` are carried only so that
+    ``_lost_the_slot`` can fold the same way ``gate_write`` does when this
+    insert loses the asset's open slot; ``outcome`` is how it reports what
+    that fold put back, since the caller is the one that raises.
     """
     now = datetime.now(timezone.utc)
     # Written explicitly: this is a Core insert, so the ORM-level
@@ -526,6 +699,10 @@ def _insert_request(
             operation,
             base,
             ex,
+            combine=combine,
+            fold_fields=fold_fields,
+            live=live,
+            outcome=outcome,
         )
 
 
@@ -539,6 +716,11 @@ def _lost_the_slot(
     operation: Operation,
     base: dict[str, Any] | None,
     cause: IntegrityError,
+    *,
+    combine: Combine | None = None,
+    fold_fields: bool = False,
+    live: Any = None,
+    outcome: dict[str, Any] | None = None,
 ) -> int:
     """Someone else reached the asset's open slot first. Who, and so what.
 
@@ -548,11 +730,18 @@ def _lost_the_slot(
     does not exist -- with the losing payload dropped. Doing it in sequence
     folds, so doing it at once should too.
 
-    Same author, same command: fold, exactly as the sequential path does.
-    One caveat written down rather than hidden: the fold here replaces the
-    payload instead of merging it, so two *diff* bodies racing (native
-    filters, chart customizations) keep the later one alone. That is a
-    narrower loss than refusing, and the window is a genuine tie.
+    Same author, same command: fold, through the *same* ``_fold_into`` the
+    sequential path uses. It used to replace the payload here instead of
+    merging it, which made this the one chart path a double click could
+    still lose an edit on -- a fix landing on the branch a unit test calls
+    and not on the branch a double click reaches. There is now one fold, so
+    the two cannot drift again.
+
+    The baseline is recomputed on the folded payload for the same reason
+    ``gate_write`` measures it there: it is what an approval has to find
+    unmoved. The emptiness test is *not* re-run -- a race whose fold happens
+    to come out equal to live is a tidy-up, and this is not the place to
+    discard a request that another connection has just committed.
     """
     try:
         holder = find_open_request(asset_type, asset_id)
@@ -571,8 +760,7 @@ def _lost_the_slot(
             _display_name(holder.author),
         ) from cause
 
-    kind = (command_args or {}).get(COMMAND_KEY)
-    if holder.command_args.get(COMMAND_KEY) != kind:
+    if not _same_kind(holder, command_args):
         raise AssetLockedError(
             asset_type.value,
             asset_id,
@@ -582,6 +770,17 @@ def _lost_the_slot(
                 "making this change."
             ),
         ) from cause
+
+    if _can_fold(holder, author_id, command_args, operation):
+        if outcome is not None and live is not None:
+            outcome["reverted_fields"] = reverted_fields(
+                live, holder.payload_dict, payload
+            )
+        payload, command_args = _fold_into(
+            holder, payload, command_args, combine, fold_fields
+        )
+        if live is not None:
+            base = baseline_of(live, payload)
 
     return _update_own_request(
         holder.id, payload, note, command_args, operation, base=base

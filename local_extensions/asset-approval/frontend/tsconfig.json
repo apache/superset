@@ -21,7 +21,23 @@
       ],
       "@apache-superset/core/*": [
         "../../../superset-frontend/packages/superset-core/lib/*"
-      ]
+      ],
+      // The mapping above points at a .d.ts outside this package, so the
+      // non-relative imports *inside* it (`@emotion/styled`, `@emotion/react`,
+      // `@emotion/cache`) are resolved from that file's own directory --
+      // i.e. from `superset-frontend/node_modules`, never from this
+      // extension's. When those are absent or mid-reinstall, `skipLibCheck`
+      // swallows the resolution failure, `styled` silently degrades to `any`,
+      // and the build reports ~53 TS7031 `({ theme })` errors that name
+      // neither Emotion nor the real cause. Pin them to the copies this
+      // extension installs itself (identical versions: styled 11.14.1,
+      // react 11.14.0, cache 11.14.0) so the type graph closes inside this
+      // package. Type resolution only -- webpack shares
+      // `@apache-superset/core` with `import: false`, so no Emotion is
+      // bundled either way.
+      "@emotion/styled": ["./node_modules/@emotion/styled"],
+      "@emotion/react": ["./node_modules/@emotion/react"],
+      "@emotion/cache": ["./node_modules/@emotion/cache"]
     }
   },
   "include": [
