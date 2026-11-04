@@ -36,12 +36,14 @@ import { useAssetReview } from './useAssetReview';
 import { useProposedPreview } from './useProposedPreview';
 import { afterRemovalPath } from './display';
 import {
+  announceEditAfterWithdraw,
   announceReviewChanged,
   onAssetLocked,
   onChangeCaptured,
   onDiscardChanges,
   onRequestReview,
   onShowWhatChanged,
+  onWithdrawToEdit,
   REVIEW_PANEL_SLOT,
   type RequestReviewDetail,
 } from './events';
@@ -271,6 +273,22 @@ export default function AssetReview({
   // Another editor pressed Edit while this change is open. The header
   // cannot explain the lock itself -- it has no idea whose change it is.
   useEffect(() => onAssetLocked(() => setLockedOpen(true)), []);
+
+  // The host's own Edit button, pressed on a change that is with a
+  // reviewer. Same dialog the banner's Edit raises, because it is the same
+  // decision: the author cannot edit this without taking it off somebody
+  // else's queue, and only this component knows whose.
+  useEffect(
+    () =>
+      onWithdrawToEdit(() => {
+        reviewLog(
+          'withdraw: asked for by the host before editing',
+          requestFacts(changeRequestRef.current),
+        );
+        setWithdrawOpen(true);
+      }),
+    [],
+  );
   useEffect(() => onShowWhatChanged(() => setPanelOpen(true)), []);
   useEffect(() => onDiscardChanges(() => setDiscardOpen(true)), []);
 
@@ -632,10 +650,18 @@ export default function AssetReview({
         onClose={() => setWithdrawOpen(false)}
         onConfirm={async () => {
           setWithdrawOpen(false);
-          await run(
+          const withdrawn = await run(
             () => withdrawRequest(changeRequest.id),
             t('Request withdrawn. Your changes are editable again.'),
           );
+          // The button says "Withdraw and edit". It used to do only the
+          // first half, leaving the author on the same read-only page
+          // having to press Edit again for what they had just confirmed.
+          //
+          // Only on success: a refused withdrawal means the change is not
+          // theirs to edit, and opening the editor anyway would invite a
+          // save the server is about to turn down.
+          if (withdrawn) announceEditAfterWithdraw();
         }}
       />
 

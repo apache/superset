@@ -129,6 +129,61 @@ export function onReviewChanged(handler: () => void): () => void {
 }
 
 /**
+ * The author pressed Edit while their own change is with a reviewer.
+ *
+ * Editing it has to take it off the approvers' queue first, and the author
+ * cannot see that queue: to them the asset simply becomes editable again,
+ * while the approver who had set time aside for it is the one who notices.
+ * So it is confirmed, by name, before anything moves.
+ *
+ * The banner has always done this. The dashboard's own Edit button did not
+ * -- it went straight into edit mode, left the request sitting in the
+ * reviewer's queue, and took it out silently at save time instead. Two
+ * buttons, both labelled Edit, one telling the author what it was about to
+ * do and the other doing it behind them. This is how the header asks for
+ * the same dialog, since only the review component knows who the approvers
+ * are.
+ */
+export const WITHDRAW_TO_EDIT_EVENT =
+  'superset:change-management:withdraw-to-edit';
+
+export function announceWithdrawToEdit(): void {
+  reviewLog('event: edit asked for on a change that is with a reviewer');
+  window.dispatchEvent(new CustomEvent(WITHDRAW_TO_EDIT_EVENT));
+}
+
+export function onWithdrawToEdit(handler: () => void): () => void {
+  window.addEventListener(WITHDRAW_TO_EDIT_EVENT, handler);
+  return () => window.removeEventListener(WITHDRAW_TO_EDIT_EVENT, handler);
+}
+
+/**
+ * The withdrawal went through, so now do the editing part of it.
+ *
+ * The dialog's button reads "Withdraw and edit" and it only ever withdrew.
+ * The author confirmed an edit, watched the request leave review, and was
+ * left on the same read-only page with a toast -- having to press Edit a
+ * second time to get what the first press had promised.
+ *
+ * Announced rather than done directly because edit mode belongs to the
+ * host: the review component has no business reaching into a dashboard's
+ * store, and on a chart or a dataset there is no edit mode for it to reach
+ * into, so nothing is listening and nothing happens.
+ */
+export const EDIT_AFTER_WITHDRAW_EVENT =
+  'superset:change-management:edit-after-withdraw';
+
+export function announceEditAfterWithdraw(): void {
+  reviewLog('event: withdrawn, now entering edit mode');
+  window.dispatchEvent(new CustomEvent(EDIT_AFTER_WITHDRAW_EVENT));
+}
+
+export function onEditAfterWithdraw(handler: () => void): () => void {
+  window.addEventListener(EDIT_AFTER_WITHDRAW_EVENT, handler);
+  return () => window.removeEventListener(EDIT_AFTER_WITHDRAW_EVENT, handler);
+}
+
+/**
  * An editor tried to edit an asset somebody else already has open.
  *
  * Same one-hop shape as the request-review signal, and for the same reason:

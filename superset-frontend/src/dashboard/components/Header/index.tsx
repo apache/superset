@@ -44,6 +44,8 @@ import {
 import {
   announceAssetLocked,
   announceRequestReview,
+  announceWithdrawToEdit,
+  onEditAfterWithdraw,
 } from 'src/features/changeManagement/events';
 import { useOpenChange } from 'src/features/changeManagement/useAssetReview';
 import { findPermission } from 'src/utils/findPermission';
@@ -442,13 +444,6 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     }, 100);
   }, [boundActionCreators]);
 
-  const toggleEditMode = useCallback(() => {
-    boundActionCreators.logEvent(LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD, {
-      edit_mode: !editMode,
-    });
-    boundActionCreators.setEditMode(!editMode);
-  }, [boundActionCreators, editMode]);
-
   /**
    * Whether a save this header started is still in flight.
    *
@@ -698,6 +693,34 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     openChange.status === 'draft'
   );
 
+  /**
+   * Actually enter edit mode.
+   *
+   * Separate from the button's handler because there are now two ways in:
+   * pressing Edit on something nobody is reviewing, and pressing Edit on
+   * something that is with a reviewer, which goes through a confirmation
+   * and a withdrawal first and arrives back here afterwards. Both have to
+   * leave the page in the same state, and when this was inlined in the
+   * handler only one of them did.
+   *
+   * Not `toggleEditMode`: by the time a withdrawal has been confirmed the
+   * author may have pressed something else, and a toggle would drop them
+   * out of the editor they just asked for.
+   */
+  const enterEditMode = useCallback(() => {
+    if (!editMode) {
+      boundActionCreators.logEvent(LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD, {
+        edit_mode: true,
+      });
+      boundActionCreators.setEditMode(true);
+    }
+    boundActionCreators.clearDashboardHistory?.();
+    boundActionCreators.setUnsavedChanges(false);
+  }, [boundActionCreators, editMode]);
+
+  // Arriving back from the withdrawal the banner just confirmed.
+  useEffect(() => onEditAfterWithdraw(enterEditMode), [enterEditMode]);
+
   const handleEnterEditMode = useCallback(() => {
     // One open change per asset (SOW 5.3). Explained before the work rather
     // than refused after it, on state already loaded -- making the edit
@@ -720,10 +743,25 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
       announceAssetLocked();
       return;
     }
-    toggleEditMode();
-    boundActionCreators.clearDashboardHistory?.();
-    boundActionCreators.setUnsavedChanges(false);
-  }, [toggleEditMode, boundActionCreators, openChange]);
+    // The author's own change, already submitted. Editing it takes it off
+    // the approvers' queue, so it is confirmed first -- exactly as the
+    // banner's Edit does, because it is the same decision reached by a
+    // different button.
+    //
+    // This used to go straight into the editor. The request stayed in the
+    // reviewer's queue while the author worked on top of it, and the save
+    // pulled it out from under them without either of them being asked.
+    // Two buttons on one page, both saying Edit, doing different things.
+    if (openChange?.is_open && openChange.is_author && isAwaitingReview) {
+      reviewLog('edit: with a reviewer, asking to withdraw first', {
+        dashboardId: dashboardInfo.id,
+        openRequest: openChange?.id ?? null,
+      });
+      announceWithdrawToEdit();
+      return;
+    }
+    enterEditMode();
+  }, [enterEditMode, dashboardInfo.id, hasUnsavedChanges, isAwaitingReview, openChange]);
 
   const NavExtension = extensionsRegistry.get('dashboard.nav.right');
 
