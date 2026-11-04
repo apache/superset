@@ -383,7 +383,9 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def _extract_error_message(cls, ex: Exception) -> str:
         msg = str(ex)
-        response = ex.args[0] if ex.args else None
+        # SQL Lab passes the stringified exception, which has no `args`.
+        args = getattr(ex, "args", None)
+        response = args[0] if args else None
         status = getattr(response, "status", response)
         detail = getattr(status, "errorMessage", None)
         if isinstance(detail, str) and detail:

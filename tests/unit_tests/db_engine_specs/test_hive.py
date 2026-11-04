@@ -413,3 +413,21 @@ def test_extract_hive_error_fallback(detail: str) -> None:
         HiveEngineSpec.extract_error_message(Exception(detail))
         == f"hive error: {detail}"
     )
+
+
+@pytest.mark.parametrize(
+    "error, expected",
+    [
+        (
+            "TExecuteStatementResp(status=TStatus("
+            "errorMessage=\"Table not found 'events'\"))",
+            "Table not found 'events'",
+        ),
+        ("plain failure", "plain failure"),
+    ],
+)
+def test_extract_hive_error_from_string(error: str, expected: str) -> None:
+    """SQL Lab hands `extract_errors` the stringified exception."""
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    assert HiveEngineSpec._extract_error_message(error) == expected  # type: ignore[arg-type]
