@@ -85,7 +85,8 @@ from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
 from superset.utils.rls import (
     apply_rls,
-    get_unqualified_table_schema,
+    get_disallowed_tables,
+    get_unqualified_table_schemas,
     has_qualified_table_entry,
 )
 
@@ -537,13 +538,13 @@ def execute_sql_statements(  # noqa: C901
     if disallowed_tables or rls_enabled:
         effective_schema = database.get_default_schema_for_query(query)
 
-    # A query without a schema still reads unqualified tables from the
-    # connection's default schema, so RLS and schema-qualified denylist entries
-    # match against that schema. Discovering it connects to the database, so it
-    # runs at most once and only when a control needs it.
-    table_schema = cache(
+    # A query without a schema still reads unqualified tables through the
+    # connection's search path, so RLS and schema-qualified denylist entries
+    # match against the schemas on it. Discovering them connects to the database,
+    # so it runs at most once and only when a control needs it.
+    table_schemas = cache(
         partial(
-            get_unqualified_table_schema,
+            get_unqualified_table_schemas,
             database,
             query.catalog,
             effective_schema,
@@ -554,9 +555,10 @@ def execute_sql_statements(  # noqa: C901
     if disallowed_tables:
         # Report only the denylisted tables actually referenced in the query,
         # honoring schema-qualified entries (e.g. ``information_schema.tables``).
-        found_tables = parsed_script.get_disallowed_tables(
+        found_tables = get_disallowed_tables(
+            parsed_script,
             disallowed_tables,
-            table_schema()
+            table_schemas()
             if has_qualified_table_entry(disallowed_tables)
             else effective_schema,
         )
@@ -572,7 +574,7 @@ def execute_sql_statements(  # noqa: C901
 
     if rls_enabled:
         for statement in parsed_script.statements:
-            apply_rls(query.database, query.catalog, table_schema(), statement)
+            apply_rls(query.database, query.catalog, table_schemas(), statement)
 
     if query.select_as_cta:
         # CTAS is valid when the last statement is a SELECT, while CVAS is valid when

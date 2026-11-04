@@ -770,6 +770,32 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         return None
 
     @classmethod
+    def get_search_path(cls, database: Database, catalog: str | None) -> list[str]:
+        """
+        Return the schemas a table referenced without a schema is looked up in.
+
+        The default schema Postgres reports is the first schema of the
+        ``search_path`` that exists (``current_schema()``), which needn't hold the
+        table: under the default ``"$user", public`` an unqualified ``sales`` in
+        ``public`` is still read when a schema named after the user exists.
+        ``current_schemas(false)`` lists every existing schema on the path, in
+        order. An engine that can't report it falls back to the default schema.
+        """
+        schemas: list[str] = []
+        try:
+            with database.get_inspector(catalog=catalog) as inspector:
+                with inspector.engine.connect() as connection:
+                    schemas = (
+                        connection.execute(
+                            text("SELECT current_schemas(false)::text[]")
+                        ).scalar()
+                        or []
+                    )
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Unable to read the search path", exc_info=True)
+        return list(schemas) or super().get_search_path(database, catalog)
+
+    @classmethod
     def get_default_schema_for_query(
         cls,
         database: Database,

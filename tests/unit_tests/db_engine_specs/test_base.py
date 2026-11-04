@@ -2057,3 +2057,20 @@ def test_expand_nested_columns_default_returns_input() -> None:
     ]
 
     assert BaseEngineSpec.expand_nested_columns(object(), columns) is columns
+
+
+@pytest.mark.parametrize("default_schema, expected", [("main", ["main"]), (None, [])])
+def test_get_search_path(
+    mocker: MockerFixture, default_schema: str | None, expected: list[str]
+) -> None:
+    """
+    An engine without a search path looks an unqualified table up in its default
+    schema only.
+    """
+    database = mocker.MagicMock()
+    get_default_schema = mocker.patch.object(
+        BaseEngineSpec, "get_default_schema", return_value=default_schema
+    )
+
+    assert BaseEngineSpec.get_search_path(database, "cat") == expected
+    get_default_schema.assert_called_once_with(database, "cat")

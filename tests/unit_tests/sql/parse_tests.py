@@ -1095,20 +1095,164 @@ def test_extract_tables_aliased_cte_does_not_hide_table() -> None:
     ) == {Table("other_table")}
 
 
-def test_extract_tables_cte_reference_over_reported() -> None:
-    """Test the two shapes that over-report a CTE reference as a table.
-
-    A spurious access check, not a missing one. Pinned so a change either way is meant.
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        # PostgreSQL folds both unquoted names, so `sales` reads the CTE
+        ("WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales", "postgresql", set()),
+        ("WITH sales AS (SELECT 1 AS n) SELECT * FROM SALES", "postgresql", set()),
+        ('WITH "sales" AS (SELECT 1 AS n) SELECT * FROM Sales', "postgresql", set()),
+        ("WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales", "snowflake", set()),
+        ('WITH "SALES" AS (SELECT 1 AS n) SELECT * FROM sales', "snowflake", set()),
+        ("WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales", "oracle", set()),
+        (
+            "WITH RECURSIVE T(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM t) "
+            "SELECT * FROM t",
+            "postgresql",
+            set(),
+        ),
+        (
+            "SELECT * FROM (WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales) AS x",
+            "postgresql",
+            set(),
+        ),
+        # a quoted name keeps its case, so the folded reference reads the table
+        (
+            'WITH "Sales" AS (SELECT 1 AS n) SELECT * FROM sales',
+            "postgresql",
+            {Table("sales")},
+        ),
+        (
+            'WITH "Sales" AS (SELECT 1 AS n) SELECT * FROM Sales',
+            "postgresql",
+            {Table("Sales")},
+        ),
+        (
+            'WITH sales AS (SELECT 1 AS n) SELECT * FROM "Sales"',
+            "postgresql",
+            {Table("Sales")},
+        ),
+        (
+            'WITH "Sales" AS (SELECT 1 AS n) SELECT * FROM sales',
+            "snowflake",
+            {Table("sales")},
+        ),
+        # a CTE body reads the table its CTE shadows
+        (
+            "WITH sales AS (SELECT * FROM sales) SELECT * FROM sales",
+            "postgresql",
+            {Table("sales")},
+        ),
+        # dialects whose case rules aren't fixed keep the exact match
+        (
+            "WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales",
+            "mysql",
+            {Table("sales")},
+        ),
+        (
+            "WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales",
+            "mssql",
+            {Table("sales")},
+        ),
+        (
+            "WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales",
+            "bigquery",
+            {Table("sales")},
+        ),
+        ("WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales", "base", {Table("sales")}),
+    ],
+)
+def test_extract_tables_cte_name_folding(
+    sql: str, engine: str, expected: set[Table]
+) -> None:
     """
-    # PostgreSQL resolves `foo` to the CTE; this reports the table.
-    assert extract_tables_from_sql("WITH Foo AS (SELECT 1 AS d) SELECT * FROM foo") == {
-        Table("foo")
-    }
-    # Legal under RECURSIVE: `q2` is the CTE declared below, not a table.
-    assert extract_tables_from_sql(
+    Test that a CTE reference matches its CTE by the name the engine resolves.
+
+    On an engine that folds unquoted identifiers, a reference differing from its
+    CTE's name only in case reads the CTE, and one matching a quoted CTE name only
+    as written reads a table.
+    """
+    assert extract_tables_from_sql(sql, engine) == expected
+    assert {
+        table
+        for statement in SQLScript(sql, engine).statements
+        for table in statement.tables
+    } == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        # under RECURSIVE, `sales` is the CTE declared after `a`
+        (
+            "WITH RECURSIVE a AS (SELECT n FROM sales), sales AS (SELECT 1 AS n) "
+            "SELECT * FROM a",
+            "postgresql",
+            set(),
+        ),
+        (
+            "WITH RECURSIVE a AS (SELECT n FROM Sales), sales AS (SELECT 1 AS n) "
+            "SELECT * FROM a",
+            "postgresql",
+            set(),
+        ),
+        # also from a nested CTE body inside the recursive clause
+        (
+            "WITH RECURSIVE x AS (WITH y AS (SELECT * FROM sales) SELECT * FROM y), "
+            "sales AS (SELECT 1 AS n) SELECT * FROM x",
+            "postgresql",
+            set(),
+        ),
+        # without RECURSIVE a CTE only sees the ones before it
+        (
+            "WITH a AS (SELECT n FROM sales), sales AS (SELECT 1 AS n) SELECT * FROM a",
+            "postgresql",
+            {Table("sales")},
+        ),
+        # engines not known to resolve forward references keep reporting the table
+        (
+            "WITH RECURSIVE a AS (SELECT n FROM sales), sales AS (SELECT 1 AS n) "
+            "SELECT * FROM a",
+            "cockroachdb",
+            {Table("sales")},
+        ),
+        (
+            "WITH RECURSIVE a AS (SELECT n FROM sales), sales AS (SELECT 1 AS n) "
+            "SELECT * FROM a",
+            "mysql",
+            {Table("sales")},
+        ),
+    ],
+)
+def test_extract_tables_recursive_cte_forward_reference(
+    sql: str, engine: str, expected: set[Table]
+) -> None:
+    """
+    Test that a ``WITH RECURSIVE`` CTE body can read a CTE defined after it.
+    """
+    assert {
+        table
+        for statement in SQLScript(sql, engine).statements
+        for table in statement.tables
+    } == expected
+
+
+def test_extract_tables_forward_reference_needs_engine() -> None:
+    """
+    Test that the module-level extractor resolves forward references on request.
+    """
+    sql = (
         "WITH RECURSIVE q1 AS (SELECT key FROM q2), q2 AS (SELECT 1 AS key) "
         "SELECT * FROM q1"
-    ) == {Table("q2")}
+    )
+    assert extract_tables_from_sql(sql) == {Table("q2")}
+    statement = SQLScript(sql, "postgresql").statements[0]
+    assert (
+        extract_tables_from_statement(
+            statement._parsed, Dialects.POSTGRES, cte_forward_references=True
+        )
+        == set()
+    )
 
 
 def test_extract_tables_multistatement() -> None:
@@ -4884,6 +5028,45 @@ def test_rls_subquery_filters_every_authorized_read(
     output = statement.format()
     for table, count in read_counts.items():
         assert output.count(f"rls_{table} = 1") == count
+
+
+@pytest.mark.parametrize(
+    "sql, filtered",
+    [
+        ("WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales", False),
+        (
+            "WITH RECURSIVE a AS (SELECT n FROM sales), sales AS (SELECT 1 AS n) "
+            "SELECT * FROM a",
+            False,
+        ),
+        ('WITH "Sales" AS (SELECT 1 AS n) SELECT * FROM Sales', True),
+        ('WITH "Sales" AS (SELECT 1 AS n) SELECT * FROM sales', True),
+    ],
+)
+@pytest.mark.parametrize("method", [RLSMethod.AS_PREDICATE, RLSMethod.AS_SUBQUERY])
+def test_rls_cte_reference_folded_like_the_engine(
+    sql: str, filtered: bool, method: RLSMethod
+) -> None:
+    """
+    A rule on a table filters the references the engine resolves to it.
+
+    On PostgreSQL a reference matching a CTE's name after case folding, or a CTE
+    defined later in a ``WITH RECURSIVE`` clause, reads the CTE, so the table's rule
+    stays out of it; a reference matching a quoted CTE name only as written reads
+    the table.
+    """
+    statement = SQLStatement(sql, "postgresql")
+    applied = statement.apply_rls(
+        None,
+        "public",
+        {
+            Table(table, "public"): [parse_one("region = 'east'")]
+            for table in ("sales", "Sales")
+        },
+        method,
+    )
+    assert applied is filtered
+    assert ("region = 'east'" in statement.format()) is filtered
 
 
 def test_rls_invalid_method(mocker: MockerFixture) -> None:

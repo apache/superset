@@ -907,6 +907,12 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         """
         return self.db_engine_spec.get_default_schema(self, catalog)
 
+    def get_search_path(self, catalog: str | None) -> list[str]:
+        """
+        Return the schemas a table referenced without a schema is looked up in.
+        """
+        return self.db_engine_spec.get_search_path(self, catalog)
+
     def get_default_schema_for_query(
         self, query: Query, template_params: Optional[dict[str, Any]] = None
     ) -> str | None:

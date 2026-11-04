@@ -1283,6 +1283,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return inspector.default_schema_name
 
     @classmethod
+    def get_search_path(cls, database: Database, catalog: str | None) -> list[str]:
+        """
+        Return the schemas a table referenced without a schema is looked up in.
+
+        Most engines look in their default schema only. An engine with a search
+        path looks in each of its schemas in order, so the default schema is not
+        necessarily the one holding a given table, and a control that matches
+        tables by schema (RLS, ``DISALLOWED_SQL_TABLES``) has to consider them all.
+
+        :returns: The schemas, in lookup order, or an empty list if unknown
+        """
+        schema = cls.get_default_schema(database, catalog)
+        return [schema] if schema else []
+
+    @classmethod
     def get_schema_from_engine_params(  # pylint: disable=unused-argument
         cls,
         sqlalchemy_uri: URL,

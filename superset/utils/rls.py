@@ -32,7 +32,7 @@ from superset.utils.hashing import hash_from_str
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
-    from superset.sql.parse import BaseSQLStatement
+    from superset.sql.parse import BaseSQLStatement, SQLScript
 
 
 def _get_cache_identity() -> str:
@@ -55,13 +55,18 @@ def _get_cache_identity() -> str:
     return str(get_user_id())
 
 
+# The schema unqualified tables resolve to, or the schemas they may resolve to in
+# lookup order when the connection searches several (see ``get_search_path``).
+RLSSchema = str | tuple[str, ...]
+
+
 def get_rls_schema(
     database: Database,
     catalog: str | None,
     schema: str | None,
     sql: str,
     template_params: dict[str, Any] | None = None,
-) -> str:
+) -> RLSSchema:
     """Qualify RLS tables with the execution schema, retaining unknown defaults.
 
     Only dynamic-schema engines apply a query's schema to the connection. Other
@@ -69,7 +74,7 @@ def get_rls_schema(
     returns no schema, keep the configured schema rather than losing its RLS rules.
     """
     if database.db_engine_spec.supports_dynamic_schema:
-        return get_unqualified_table_schema(database, catalog, schema)
+        return get_unqualified_table_schemas(database, catalog, schema)
     return (
         database.resolve_query_default_schema(sql, schema, catalog, template_params)
         or schema
@@ -77,27 +82,32 @@ def get_rls_schema(
     )
 
 
-def get_unqualified_table_schema(
+def get_unqualified_table_schemas(
     database: Database,
     catalog: str | None,
     schema: str | None,
     statements: Iterable[BaseSQLStatement[Any]] | None = None,
-) -> str:
+) -> RLSSchema:
     """
-    The schema an unqualified table resolves to, given the per-query schema.
+    The schema an unqualified table resolves to, given the per-query schema, or
+    the schemas it may resolve to.
 
     An engine with dynamic-schema support takes the per-query schema from the
     request, so a request without one has no per-query schema. The connection still
-    resolves an unqualified table to its default schema (the Postgres
+    resolves an unqualified table, through its search path (the Postgres
     ``search_path``, for instance), so the controls that match tables by schema --
-    RLS and schema-qualified ``DISALLOWED_SQL_TABLES`` entries -- must use that
-    schema too, or a table in it escapes them.
+    RLS and schema-qualified ``DISALLOWED_SQL_TABLES`` entries -- must use that path
+    too, or a table on it escapes them. When the path has several schemas, which of
+    them holds a given table isn't known without looking it up, so all of them are
+    returned, in order, and the controls match against each, erring toward an extra
+    rule rather than a missing one.
 
     :param schema: The per-query schema already resolved for execution, if any
-    :param statements: The statements being checked. When given, the default
-        schema is only discovered if one of them reads an unqualified table, since
+    :param statements: The statements being checked. When given, the search path
+        is only discovered if one of them reads an unqualified table, since
         discovery connects to the database.
-    :returns: The schema, or an empty string when it can't be determined
+    :returns: The schema, a tuple of the schemas when there are several, or an
+        empty string when it can't be determined
     """
     if schema:
         return schema
@@ -105,7 +115,53 @@ def get_unqualified_table_schema(
         return ""
     if statements is not None and not reads_unqualified_table(statements):
         return ""
-    return database.get_default_schema(catalog) or ""
+    schemas = database.get_search_path(catalog)
+    if len(schemas) > 1:
+        return tuple(schemas)
+    return schemas[0] if schemas else ""
+
+
+def qualify_table(
+    table: Table,
+    catalog: str | None,
+    schema: RLSSchema,
+) -> list[Table]:
+    """
+    The tables a reference may name, qualified with each schema it may resolve to.
+
+    The first is qualified with the first schema, which ``apply_rls`` qualifies
+    the reference with; a reference naming its schema has only that one.
+
+    :param schema: The schema, or schemas, unqualified tables resolve to (see
+        ``get_unqualified_table_schemas``)
+    """
+    schemas = (schema if isinstance(schema, tuple) else (schema,)) or ("",)
+    return [
+        table.qualify(catalog=catalog, schema=candidate)
+        for candidate in (schemas[:1] if table.schema else schemas)
+    ]
+
+
+def get_disallowed_tables(
+    script: SQLScript,
+    tables: set[str],
+    schema: RLSSchema | None,
+) -> set[str]:
+    """
+    The ``DISALLOWED_SQL_TABLES`` entries a script reads.
+
+    :param schema: The schema unqualified tables resolve to, or the schemas they
+        may resolve to (see ``get_unqualified_table_schemas``); an entry matching
+        the table in any of them counts
+    """
+    if isinstance(schema, tuple):
+        return set().union(
+            *(
+                script.get_disallowed_tables(tables, candidate)
+                for candidate in schema or (None,)
+            )
+        )
+    return script.get_disallowed_tables(tables, schema)
 
 
 def reads_unqualified_table(statements: Iterable[BaseSQLStatement[Any]]) -> bool:
@@ -130,7 +186,7 @@ def has_qualified_table_entry(tables: Iterable[str]) -> bool:
 def apply_rls(
     database: Database,
     catalog: str | None,
-    schema: str,
+    schema: RLSSchema,
     parsed_statement: BaseSQLStatement[Any],
     exclude_dataset_id: int | None = None,
     include_global_guest_rls: bool = True,
@@ -181,7 +237,8 @@ def apply_rls(
 
     return parsed_statement.apply_rls(
         catalog,
-        schema,
+        # keyed by ``get_rls_predicates`` under the first schema it may resolve to
+        (schema[0] if schema else "") if isinstance(schema, tuple) else schema,
         parse(predicates),
         method,
         None if subquery_predicates is None else parse(subquery_predicates),
@@ -191,7 +248,7 @@ def apply_rls(
 def get_rls_predicates(
     database: Database,
     catalog: str | None,
-    schema: str,
+    schema: RLSSchema,
     parsed_statement: BaseSQLStatement[Any],
     default_catalog: str | None,
     exclude_dataset_id: int | None = None,
@@ -214,13 +271,27 @@ def get_rls_predicates(
     ) -> dict[Table, list[str]]:
         predicates: dict[Table, list[str]] = {}
         for table in parsed_statement.tables:
-            table = table.qualify(catalog=catalog, schema=schema)
-            predicates[table] = get_predicates_for_table(
-                table,
-                database,
-                default_catalog,
-                exclude_dataset_id=exclude_id,
-                include_global_guest_rls=include_global,
+            # An unqualified table is keyed under the first schema it may resolve
+            # to, which ``apply_rls`` qualifies it with, and gets the rules of the
+            # table in every schema it may resolve to. Rules are merged into the
+            # key, since a table qualified with that schema shares it.
+            candidates = qualify_table(table, catalog, schema)
+            key = candidates[0]
+            predicates[key] = remove_duplicates(
+                [
+                    *predicates.get(key, []),
+                    *(
+                        predicate
+                        for candidate in candidates
+                        for predicate in get_predicates_for_table(
+                            candidate,
+                            database,
+                            default_catalog,
+                            exclude_dataset_id=exclude_id,
+                            include_global_guest_rls=include_global,
+                        )
+                    ),
+                ]
             )
         return predicates
 
@@ -405,7 +476,7 @@ def collect_rls_predicates_for_sql(
     *,
     include_global_guest_rls: bool = True,
     resolve_catalog: Callable[[], str | None] | None = None,
-    resolve_schema: Callable[[], str] | None = None,
+    resolve_schema: Callable[[], RLSSchema] | None = None,
 ) -> list[str]:
     """
     Collect all RLS predicates that would be applied to tables in the given SQL.
@@ -436,7 +507,7 @@ def collect_rls_predicates_for_sql(
     try:
         # Schema discovery can connect to the database, so failures must use
         # the same viewer-scoped fallback as predicate collection failures.
-        schema = (
+        rls_schema: RLSSchema = (
             resolve_schema()
             if resolve_schema is not None
             else (
@@ -452,7 +523,7 @@ def collect_rls_predicates_for_sql(
             predicates, subquery_predicates = get_rls_predicates(
                 database,
                 catalog,
-                schema,
+                rls_schema,
                 statement,
                 default_catalog,
                 exclude_dataset_id=exclude_dataset_id,

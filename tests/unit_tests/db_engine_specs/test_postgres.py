@@ -934,3 +934,45 @@ def test_extended_aggregation_func_compiles_expected_sql(
         )
     )
     assert compiled == expected_sql
+
+
+def _search_path_database(
+    mocker: MockerFixture, search_path: Any, default_schema: str = "alice"
+) -> MagicMock:
+    """A database whose connection reports a default schema and search path."""
+    database = mocker.MagicMock()
+    inspector = database.get_inspector.return_value.__enter__.return_value
+    inspector.default_schema_name = default_schema
+    connection = inspector.engine.connect.return_value.__enter__.return_value
+    if isinstance(search_path, Exception):
+        connection.execute.side_effect = search_path
+    else:
+        connection.execute.return_value.scalar.return_value = search_path
+    return database
+
+
+def test_get_search_path(mocker: MockerFixture) -> None:
+    """
+    DB Eng Specs (postgres): ``get_search_path`` lists every schema searched for an
+    unqualified table, not just the first existing one ``current_schema()`` reports.
+    """
+    database = _search_path_database(mocker, ["alice", "public"])
+
+    assert spec.get_search_path(database, "analytics") == ["alice", "public"]
+    database.get_inspector.assert_called_with(catalog="analytics")
+    connection = database.get_inspector.return_value.__enter__.return_value.engine
+    statement = connection.connect.return_value.__enter__.return_value.execute
+    assert str(statement.call_args.args[0]) == "SELECT current_schemas(false)::text[]"
+
+
+@pytest.mark.parametrize("search_path", [None, [], Exception("no such function")])
+def test_get_search_path_falls_back_to_default_schema(
+    mocker: MockerFixture, search_path: Any
+) -> None:
+    """
+    DB Eng Specs (postgres): a connection that can't report its search path falls
+    back to its default schema.
+    """
+    database = _search_path_database(mocker, search_path)
+
+    assert spec.get_search_path(database, None) == ["alice"]

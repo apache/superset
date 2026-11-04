@@ -44,7 +44,8 @@ from superset.sql.parse import SQLScript
 from superset.utils import core as utils, json
 from superset.utils.rls import (
     apply_rls,
-    get_unqualified_table_schema,
+    get_disallowed_tables,
+    get_unqualified_table_schemas,
     has_qualified_table_entry,
 )
 
@@ -145,13 +146,13 @@ class QueryEstimationCommand(BaseCommand):
             # fall back to the runtime-resolved default.
             effective_schema = self._schema or resolved_schema or ""
 
-        # A query without a schema still reads unqualified tables from the
-        # connection's default schema, so RLS and schema-qualified denylist
-        # entries match against that schema. Discovering it connects to the
+        # A query without a schema still reads unqualified tables through the
+        # connection's search path, so RLS and schema-qualified denylist entries
+        # match against the schemas on it. Discovering them connects to the
         # database, so it runs at most once and only when a control needs it.
-        table_schema = cache(
+        table_schemas = cache(
             partial(
-                get_unqualified_table_schema,
+                get_unqualified_table_schemas,
                 self._database,
                 catalog,
                 effective_schema,
@@ -163,9 +164,10 @@ class QueryEstimationCommand(BaseCommand):
             # Honors schema-qualified denylist entries (e.g.
             # ``information_schema.tables``) and reports only the tables
             # actually referenced by the query.
-            found_tables = parsed_script.get_disallowed_tables(
+            found_tables = get_disallowed_tables(
+                parsed_script,
                 disallowed_tables,
-                table_schema()
+                table_schemas()
                 if has_qualified_table_entry(disallowed_tables)
                 else effective_schema,
             )
@@ -181,7 +183,7 @@ class QueryEstimationCommand(BaseCommand):
 
         if rls_enabled:
             for statement in parsed_script.statements:
-                apply_rls(self._database, catalog, table_schema(), statement)
+                apply_rls(self._database, catalog, table_schemas(), statement)
             return parsed_script.format()
 
         return sql

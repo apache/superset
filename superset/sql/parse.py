@@ -198,6 +198,21 @@ CASE_SENSITIVE_OBJECT_NAMES = {
     "superset",
 }
 
+# Dialects whose engines fold an unquoted identifier to one case before resolving
+# it, including against a CTE's name, while keeping a quoted identifier as written.
+# A CTE reference is matched to its CTE by the folded name on these engines; others
+# keep the exact name match, which reports a case-mismatched CTE reference as a
+# table read rather than risk hiding a real one.
+CTE_NAME_FOLDING_DIALECTS = {
+    Dialects.ORACLE,
+    Dialects.POSTGRES,
+    Dialects.SNOWFLAKE,
+}
+
+# Engines where a ``WITH RECURSIVE`` CTE body can read any CTE of its clause,
+# including one defined later, rather than only itself and the earlier ones.
+CTE_FORWARD_REFERENCE_ENGINES = {"postgres", "postgresql"}
+
 
 @lru_cache(maxsize=None)
 def folds_unquoted_object_names(engine: str) -> bool:
@@ -1772,7 +1787,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         Find all referenced tables.
         """
         dialect = SQLGLOT_DIALECTS.get(engine)
-        return extract_tables_from_statement(parsed, dialect)
+        return extract_tables_from_statement(
+            parsed,
+            dialect,
+            cte_forward_references=engine in CTE_FORWARD_REFERENCE_ENGINES,
+        )
 
     def is_select(self) -> bool:
         """
@@ -2995,13 +3014,13 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             scope_transformer = (
                 subquery_transformer if id(scope) in subquery_scopes else transformer
             )
-            for source in scope.sources.values():
+            for source in _find_scope_table_reads(
+                scope,
+                self._dialect,
+                self.engine in CTE_FORWARD_REFERENCE_ENGINES,
+            ):
                 # dedupe by identity: a correlated LATERAL reaches one node twice
-                if (
-                    isinstance(source, exp.Table)
-                    and not is_cte(source, scope)
-                    and id(source) not in seen
-                ):
+                if id(source) not in seen:
                     seen.add(id(source))
                     reads.append((source, scope_transformer))
 
@@ -3673,6 +3692,7 @@ def _find_show_statement_tables(statement: exp.Show) -> set[Table]:
 def _find_table_sources(
     statement: exp.Expression,
     dialect: Dialects | None,
+    cte_forward_references: bool = False,
 ) -> list[exp.Table]:
     """
     Find every table reference (occurrence, not deduplicated) in a statement.
@@ -3720,17 +3740,52 @@ def _find_table_sources(
     return [
         source
         for scope in scopes
-        for source in scope.sources.values()
-        if isinstance(source, exp.Table) and not is_cte(source, scope)
+        for source in _find_scope_table_reads(scope, dialect, cte_forward_references)
     ]
+
+
+def _find_scope_table_reads(
+    scope: Scope,
+    dialect: DialectType,
+    cte_forward_references: bool = False,
+) -> list[exp.Table]:
+    """
+    Find the real tables a scope reads, leaving out its CTE references.
+
+    sqlglot lists a reference it matches to a CTE by the exact name as the CTE's
+    scope in ``Scope.sources``, not as the table. On a dialect that folds CTE names
+    such a reference can still read a table (``WITH "Sales" ... FROM Sales`` reads
+    ``sales`` on PostgreSQL), so those references are checked again there.
+
+    :param dialect: The statement's sqlglot dialect
+    :param cte_forward_references: See ``is_cte``
+    """
+    reads = [
+        source
+        for source in scope.sources.values()
+        if isinstance(source, exp.Table)
+        and not is_cte(source, scope, dialect, cte_forward_references)
+    ]
+    if _folds_cte_names(dialect):
+        reads.extend(
+            table
+            for table in scope.tables
+            if isinstance(scope.sources.get(table.alias_or_name), Scope)
+            and not is_cte(table, scope, dialect, cte_forward_references)
+        )
+    return reads
 
 
 def extract_tables_from_statement(
     statement: exp.Expression,
     dialect: Dialects | None,
+    cte_forward_references: bool = False,
 ) -> set[Table]:
     """
     Extract all distinct table references in a single statement.
+
+    :param cte_forward_references: The engine lets a ``WITH RECURSIVE`` CTE read
+        a CTE defined later in the same clause (see ``is_cte``)
     """
     if isinstance(statement, exp.Show):
         return _find_show_statement_tables(statement)
@@ -3741,7 +3796,7 @@ def extract_tables_from_statement(
             source.db if source.db != "" else None,
             source.catalog if source.catalog != "" else None,
         )
-        for source in _find_table_sources(statement, dialect)
+        for source in _find_table_sources(statement, dialect, cte_forward_references)
     }
 
 
@@ -3899,7 +3954,12 @@ def _is_correlated(scope: Scope) -> bool:
     )
 
 
-def is_cte(source: exp.Table, scope: Scope) -> bool:
+def is_cte(
+    source: exp.Table,
+    scope: Scope,
+    dialect: DialectType = None,
+    cte_forward_references: bool = False,
+) -> bool:
     """
     Does this reference resolve to a CTE rather than to a real table?
 
@@ -3907,16 +3967,66 @@ def is_cte(source: exp.Table, scope: Scope) -> bool:
     read tables, or a rule on a table could be evaded by wrapping it in a same-named
     CTE. Resolve the name through ``Scope.cte_sources`` (not ``Scope.sources``, keyed by
     ``alias_or_name``, which would hide a real table sharing a CTE's alias); a qualified
-    reference (schema or catalog) is always a table. Where sqlglot registers a name
-    differently than SQL scopes it (letter-case, a ``WITH RECURSIVE`` self/forward
-    reference), this errs toward reporting a table -- a spurious check, not a leak.
+    reference (schema or catalog) is always a table.
+
+    sqlglot registers a CTE under its name as written, so on a dialect in
+    ``CTE_NAME_FOLDING_DIALECTS`` both names are folded the way the engine folds
+    them (``WITH Sales ... FROM sales`` reads the CTE on PostgreSQL, while
+    ``WITH "Sales" ... FROM Sales`` reads the table). Other dialects compare the
+    names exactly, which errs toward reporting a table -- a spurious check, not a
+    leak.
+
+    :param dialect: The statement's sqlglot dialect
+    :param cte_forward_references: The engine lets a ``WITH RECURSIVE`` CTE body
+        read any CTE of the same clause, including one defined after it, which
+        sqlglot doesn't register as visible there
     """
     if source.db or source.catalog:
         # Qualified references are always physical tables, never CTEs.
         return False
 
-    resolved = scope.cte_sources.get(source.name)
-    return isinstance(resolved, Scope) and resolved.scope_type == ScopeType.CTE
+    # the CTEs visible here, by the name sqlglot registers, with their identifier
+    ctes: dict[str, exp.Expression | None] = {
+        name: _find_cte_identifier(cte_scope)
+        for name, cte_scope in scope.cte_sources.items()
+        if isinstance(cte_scope, Scope) and cte_scope.scope_type == ScopeType.CTE
+    }
+    if cte_forward_references:
+        cte = source.find_ancestor(exp.CTE)
+        while cte is not None:
+            clause = cte.parent
+            if isinstance(clause, exp.With) and clause.args.get("recursive"):
+                for sibling in clause.expressions:
+                    ctes.setdefault(sibling.alias, sibling.args["alias"].this)
+            cte = cte.find_ancestor(exp.CTE)
+
+    if not _folds_cte_names(dialect) or not isinstance(source.this, exp.Identifier):
+        return source.name in ctes
+
+    normalize = Dialect.get_or_raise(dialect).normalize_identifier
+    name = normalize(source.this.copy()).name
+    return any(
+        identifier is not None and normalize(identifier.copy()).name == name
+        for identifier in ctes.values()
+    )
+
+
+def _folds_cte_names(dialect: DialectType) -> bool:
+    """
+    Does the dialect match a CTE reference to its CTE by the folded name?
+    """
+    return dialect in CTE_NAME_FOLDING_DIALECTS
+
+
+def _find_cte_identifier(cte_scope: Scope) -> exp.Expression | None:
+    """
+    The identifier naming a CTE, with its quoting.
+
+    A recursive CTE's scope can hold just its anchor query, so the CTE is the
+    nearest ``exp.CTE`` ancestor of the scope's expression rather than its parent.
+    """
+    cte = cte_scope.expression.find_ancestor(exp.CTE)
+    return cte and cte.args["alias"].this
 
 
 T = TypeVar("T", str, None)
