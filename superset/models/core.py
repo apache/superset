@@ -735,6 +735,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                                 dbapi_connection: Any,
                                 connection_record: Any,  # pylint: disable=unused-argument
                             ) -> None:
+                                self.db_engine_spec.prepare_connection(dbapi_connection)
                                 cursor = dbapi_connection.cursor()
                                 try:
                                     from superset.sql.execution.cancellation import (
@@ -743,8 +744,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                                         query_executed,
                                     )
 
-                                    with cancellable_cursor(
-                                        self, cursor, catalog, schema
+                                    with (
+                                        self.db_engine_spec.cursor_context(cursor),
+                                        cancellable_cursor(
+                                            self, cursor, catalog, schema
+                                        ),
                                     ):
                                         for prequery in prequeries:
                                             check_query_deadline()
@@ -1033,6 +1037,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                             _log_embedded_rejection(self.id, self.database_name, ex)
                         raise
                     with closing(raw_connection) as conn:
+                        self.db_engine_spec.prepare_connection(conn.dbapi_connection)
                         yield conn
 
         with self._open_with_oauth2_retry(open_connection) as conn:

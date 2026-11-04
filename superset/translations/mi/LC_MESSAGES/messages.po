@@ -10592,6 +10592,8 @@ msgstr "Kua tūtohuhia te āhua ā-rohe ki \"%s\""
 msgid "Locate the chart"
 msgstr "Kimihia te kauwhata"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "pūkete"
