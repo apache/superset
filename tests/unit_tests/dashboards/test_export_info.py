@@ -137,6 +137,38 @@ def test_filters_in_sorted_id_order(mocks: dict[str, Any]) -> None:
     assert info.applied_filters == [AppliedFilter("a", "1"), AppliedFilter("b", "2")]
 
 
+def _use_filter_with_default(mocks: dict[str, Any], **extra: Any) -> None:
+    config = {
+        "id": "NATIVE_FILTER-1",
+        "name": "Region",
+        "defaultDataMask": {
+            "filterState": {"value": ["EU"]},
+            "extraFormData": {"filters": [{"col": "region", "val": ["EU"]}]},
+        },
+        **extra,
+    }
+    mocks["DashboardDAO"].find_by_id.return_value.params_dict = {
+        "native_filter_configuration": [config]
+    }
+
+
+def test_saved_default_listed_when_mask_has_no_entry(mocks: dict[str, Any]) -> None:
+    _use_filter_with_default(mocks)
+    info = describe_dashboard_export(5, {})
+    assert info.applied_filters == [AppliedFilter("Region", "EU")]
+
+
+def test_active_entry_overrides_saved_default(mocks: dict[str, Any]) -> None:
+    _use_filter_with_default(mocks)
+    mask = {"NATIVE_FILTER-1": {"filterState": {"value": None}}}
+    assert describe_dashboard_export(5, mask).applied_filters == []
+
+
+def test_default_to_first_item_not_listed(mocks: dict[str, Any]) -> None:
+    _use_filter_with_default(mocks, controlValues={"defaultToFirstItem": True})
+    assert describe_dashboard_export(5, {}).applied_filters == []
+
+
 def test_chart_urls_point_at_explore(mocks: dict[str, Any]) -> None:
     mocks["get_charts_in_layout_order"].return_value = [_chart(12, "a")]
     mocks["get_url_path"].side_effect = lambda view, **kw: f"{view}:{kw}"
