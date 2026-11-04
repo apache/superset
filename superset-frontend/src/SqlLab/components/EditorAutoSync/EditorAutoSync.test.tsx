@@ -35,9 +35,11 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, act } from 'spec/helpers/testing-library';
+import { render, act, createStore } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
+import { queryEditorSetSql } from 'src/SqlLab/actions/sqlLab';
 import { logging } from '@apache-superset/core/utils';
 import EditorAutoSync, { INTERVAL } from '.';
 
@@ -210,6 +212,55 @@ test('skip syncing the unsaved editor tab state when the updates are already syn
     jest.advanceTimersByTime(INTERVAL);
   });
   expect(fetchMock.callHistory.calls(updateEditorTabState)).toHaveLength(0);
+  fetchMock.clearHistory().removeRoutes();
+});
+
+test('sync the changes made while the previous sync request was in flight', async () => {
+  const updateEditorTabState = `glob:*/tabstateview/${defaultQueryEditor.id}`;
+  // the server answers with the tab id; the first answer is held until the
+  // test releases it
+  const response = { id: defaultQueryEditor.id };
+  let resolveFirstSync: (body: typeof response) => void = () => {};
+  fetchMock.put(
+    updateEditorTabState,
+    () =>
+      new Promise<typeof response>(resolve => {
+        resolveFirstSync = resolve;
+      }),
+    { repeat: 1 },
+  );
+  fetchMock.put(updateEditorTabState, response);
+  const store = createStore(
+    {
+      ...initialState,
+      sqlLab: unsavedSqlLabState,
+    },
+    reducerIndex,
+  );
+  render(<EditorAutoSync />, { store });
+  await act(async () => {
+    jest.advanceTimersByTime(INTERVAL);
+  });
+  expect(fetchMock.callHistory.calls(updateEditorTabState)).toHaveLength(1);
+
+  // the user edits the query before the first request resolves
+  await act(async () => {
+    jest.advanceTimersByTime(200);
+    store.dispatch(queryEditorSetSql(defaultQueryEditor, 'SELECT 2'));
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+    resolveFirstSync(response);
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(INTERVAL);
+  });
+
+  const calls = fetchMock.callHistory.calls(updateEditorTabState);
+  expect(calls).toHaveLength(2);
+  expect((calls[1].options.body as FormData).get('sql')).toBe(
+    JSON.stringify('SELECT 2'),
+  );
   fetchMock.clearHistory().removeRoutes();
 });
 
