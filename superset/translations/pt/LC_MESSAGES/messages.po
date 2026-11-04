@@ -23327,10 +23327,10 @@ msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
-#, python-format
 msgid "This filter isn't applied to any charts yet"
 msgstr ""
 
+#, python-format
 msgid "This filter might be incompatible with current %s"
 msgstr "Este filtro pode ser incompatível com o%satual"
 

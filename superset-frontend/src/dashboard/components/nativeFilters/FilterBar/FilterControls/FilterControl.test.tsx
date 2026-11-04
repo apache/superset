@@ -204,12 +204,17 @@ test('keeps the warning beside the name in the horizontal More filters layout', 
   );
 
   const titleGroup = screen.getByTestId('filter-control-title-group');
-  expect(
-    within(titleGroup).getByTestId('filter-control-name'),
-  ).toHaveTextContent(longFilterName);
-  expect(
-    within(titleGroup).getByTestId('out-of-scope-filter-tooltip-icon'),
-  ).toBeInTheDocument();
-  expect(screen.getByText('*')).toBeInTheDocument();
+  const name = within(titleGroup).getByTestId('filter-control-name');
+  const requiredIndicator = screen.getByText('*');
+  const warningIcon = within(titleGroup).getByTestId(
+    'out-of-scope-filter-tooltip-icon',
+  );
+  expect(name).toHaveTextContent(longFilterName);
+  expect(name.compareDocumentPosition(requiredIndicator)).toBe(
+    Node.DOCUMENT_POSITION_FOLLOWING,
+  );
+  expect(requiredIndicator.compareDocumentPosition(warningIcon)).toBe(
+    Node.DOCUMENT_POSITION_FOLLOWING,
+  );
   expect(screen.getAllByRole('button')).toHaveLength(2);
 });

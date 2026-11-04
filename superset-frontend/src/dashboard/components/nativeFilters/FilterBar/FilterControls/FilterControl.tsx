@@ -88,9 +88,9 @@ const FilterControl = ({
           >
             {name}
           </FilterControlTitle>
+          {isRequired && <RequiredFieldIndicator />}
           {isOutOfScope && <OutOfScopeFilterToolTip />}
         </FilterControlTitleGroup>
-        {isRequired && <RequiredFieldIndicator />}
         {filter.filterType === 'filter_select' &&
           filter.controlValues?.multiSelect && (
             <DescriptionToolTip
