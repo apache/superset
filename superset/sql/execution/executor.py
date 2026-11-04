@@ -796,8 +796,8 @@ class SQLExecutor:
         :param sql: Original SQL query
         :param opts: Query options
         :returns: Tuple of (original_script, transformed_script, catalog, schema,
-            table_schemas), where ``table_schemas`` is the schema, or schemas,
-            unqualified tables may resolve to (see ``get_unqualified_table_schemas``)
+            table_schemas), where ``table_schemas`` is the schema, or search path,
+            unqualified tables resolve to (see ``get_unqualified_table_schemas``)
         """
         # 1. Render Jinja2 templates
         rendered_sql = self._render_sql_template(sql, opts.template_params)
@@ -828,7 +828,7 @@ class SQLExecutor:
 
         # A query without a schema still reads unqualified tables through the
         # connection's search path, so RLS and schema-qualified denylist entries
-        # match against the schemas on it.
+        # match each against the schema it's read from there.
         from superset.utils.rls import get_unqualified_table_schemas
 
         table_schemas = get_unqualified_table_schemas(
@@ -855,7 +855,7 @@ class SQLExecutor:
 
         :param script: Prepared SQLScript
         :param schema: Effective schema unqualified references resolve to
-        :param table_schemas: The schema, or schemas, unqualified tables may
+        :param table_schemas: The schema, or search path, unqualified tables
             resolve to when the query has no schema (see
             ``get_unqualified_table_schemas``)
         :raises SupersetSecurityException: If security checks fail
@@ -1160,7 +1160,7 @@ class SQLExecutor:
 
         :param script: Parsed SQL script
         :param schema: Effective schema unqualified references resolve to
-        :param table_schemas: The schema, or schemas, unqualified tables may
+        :param table_schemas: The schema, or search path, unqualified tables
             resolve to when the query has no schema (see
             ``get_unqualified_table_schemas``)
         :returns: Set of disallowed tables found, or None if none found
@@ -1176,8 +1176,8 @@ class SQLExecutor:
         # Honors schema-qualified denylist entries (e.g.
         # ``information_schema.tables``) as well as bare names. The effective
         # schema lets an unqualified reference that resolves to it at runtime
-        # (via the connection ``search_path``) match too, including each schema
-        # on the search path when the query has none.
+        # (via the connection ``search_path``) match too, including the schema
+        # the search path reads it from when the query has none.
         from superset.utils.rls import get_disallowed_tables
 
         return (
@@ -1193,7 +1193,7 @@ class SQLExecutor:
 
         :param script: SQLScript object to modify
         :param catalog: Catalog name
-        :param schema: Schema, or schemas, unqualified tables may resolve to
+        :param schema: Schema, or search path, unqualified tables resolve to
         """
         from superset.utils.rls import apply_rls
 

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Collection
 from datetime import datetime
 from re import Pattern
 from typing import Any, Callable, Optional, TYPE_CHECKING
@@ -171,6 +172,13 @@ def _normalize_interval(v: Any) -> Optional[float]:
         type(v).__name__,
     )
     return None
+
+
+def _quote_identifier(name: str) -> str:
+    """
+    Quote a Postgres identifier, so it's read exactly as written.
+    """
+    return '"' + name.replace('"', '""') + '"'
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
@@ -770,27 +778,63 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         return None
 
     @classmethod
-    def get_search_path(cls, database: Database, catalog: str | None) -> list[str]:
+    def get_search_path(
+        cls,
+        database: Database,
+        catalog: str | None,
+        tables: Collection[str] = (),
+    ) -> tuple[list[str], dict[str, list[str]]]:
         """
-        Return the schemas a table referenced without a schema is looked up in.
+        Resolve tables referenced without a schema the way the connection does.
 
         The default schema Postgres reports is the first schema of the
         ``search_path`` that exists (``current_schema()``), which needn't hold the
         table: under the default ``"$user", public`` an unqualified ``sales`` in
-        ``public`` is still read when a schema named after the user exists.
-        ``current_schemas(false)`` lists every existing schema on the path, in
-        order. An engine that can't report it falls back to the default schema.
+        ``public`` is still read when a schema named after the user exists, and a
+        ``sales`` in that schema shadows it. ``current_schemas(true)`` lists the
+        schemas Postgres searches, in order, including the ``pg_catalog`` it
+        searches first when the path doesn't name it, and ``to_regclass`` resolves
+        a table name the way a query does. A parsed reference no longer says
+        whether its name was quoted, which decides whether Postgres folds it to
+        lower case, so both spellings are looked up and every schema holding
+        either is returned.
         """
-        schemas: list[str] = []
-        try:
-            with database.get_raw_connection(catalog=catalog) as connection:
-                cursor = connection.cursor()
-                cursor.execute("SELECT current_schemas(false)::text[]")
-                if (row := cursor.fetchone()) and isinstance(row[0], list):
-                    schemas = row[0]
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Unable to read the search path", exc_info=True)
-        return schemas or super().get_search_path(database, catalog)
+        spellings = {
+            table: [
+                _quote_identifier(name)
+                for name in utils.remove_duplicates([table, table.lower()])
+            ]
+            for table in tables
+        }
+        with database.get_raw_connection(catalog=catalog) as connection:
+            cursor = connection.cursor()
+            cursor.execute("SELECT pg_catalog.current_schemas(true)::text[]")
+            row = cursor.fetchone()
+            if not row or not isinstance(row[0], list):
+                # an empty path would read no table, so don't report one
+                raise ValueError(f"Unexpected search path: {row!r}")
+            schemas: list[str] = row[0]
+            found: dict[str, str] = {}
+            if spellings:
+                cursor.execute(
+                    "SELECT spelling, n.nspname::text "
+                    "FROM unnest(%s::text[]) AS s(spelling) "
+                    "JOIN pg_catalog.pg_class AS c "
+                    "ON c.oid = pg_catalog.to_regclass(spelling) "
+                    "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace",
+                    ([name for names in spellings.values() for name in names],),
+                )
+                found = dict(cursor.fetchall())
+
+        order = {schema: position for position, schema in enumerate(schemas)}
+        resolved = {
+            table: sorted(
+                {found[name] for name in names if name in found},
+                key=lambda schema: order.get(schema, len(order)),
+            )
+            for table, names in spellings.items()
+        }
+        return schemas, {table: found for table, found in resolved.items() if found}
 
     @classmethod
     def get_default_schema_for_query(

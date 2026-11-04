@@ -17,11 +17,12 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Iterable
 from functools import partial
 from typing import Any, TYPE_CHECKING
 
-from sqlalchemy import and_, func, or_
+from sqlalchemy import and_, func, or_, true
 
 from superset import db, security_manager
 from superset.sql.parse import folds_unquoted_object_names, Table
@@ -33,6 +34,8 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
     from superset.sql.parse import BaseSQLStatement, SQLScript
+
+logger = logging.getLogger(__name__)
 
 
 def _get_cache_identity() -> str:
@@ -55,9 +58,81 @@ def _get_cache_identity() -> str:
     return str(get_user_id())
 
 
-# The schema unqualified tables resolve to, or the schemas they may resolve to in
-# lookup order when the connection searches several (see ``get_search_path``).
-RLSSchema = str | tuple[str, ...]
+class SearchPath:
+    """
+    The search path a connection reads a table referenced without a schema through
+    (the Postgres ``search_path``, for instance), resolving each such table to the
+    schema it's read from.
+
+    A connection searching several schemas reads the first table of the name it
+    finds, so which schema that is isn't known without asking it (see
+    ``Database.get_search_path``). Tables are looked up as they're needed, each at
+    most once, and a batch passed to ``resolve`` in one round trip.
+    """
+
+    def __init__(
+        self,
+        database: Database,
+        catalog: str | None,
+        schemas: Iterable[str] | None,
+    ) -> None:
+        """
+        :param schemas: The schemas on the path, in order, or ``None`` when the
+            connection couldn't be asked for them
+        """
+        self.database = database
+        self.catalog = catalog
+        self.schemas = None if schemas is None else tuple(schemas)
+        self._tables: dict[str, tuple[str, ...] | None] = {}
+
+    def resolve(self, tables: Iterable[str]) -> None:
+        """
+        Look up the tables not looked up yet.
+
+        A failed lookup leaves which schema they're read from unknown, rather than
+        guessing one (see ``schemas_for``).
+        """
+        missing = sorted(set(tables) - self._tables.keys())
+        if not missing:
+            return
+        found: dict[str, list[str]] = {}
+        if self.schemas is not None:
+            try:
+                schemas, found = self.database.get_search_path(self.catalog, missing)
+                self.schemas = tuple(schemas)
+            except Exception:  # pylint: disable=broad-except
+                logger.warning(
+                    "Unable to look up tables on the search path", exc_info=True
+                )
+                self.schemas = None
+        self.record(missing, found)
+
+    def record(self, tables: Iterable[str], found: dict[str, list[str]]) -> None:
+        """
+        Record the schemas holding the tables, as ``get_search_path`` found them.
+        """
+        for table in tables:
+            self._tables[table] = (
+                None
+                if self.schemas is None
+                else tuple(found.get(table) or self.schemas) or None
+            )
+
+    def schemas_for(self, table: str) -> tuple[str, ...] | None:
+        """
+        The schemas a table referenced without a schema may be read from.
+
+        :returns: The schema holding it, or the schemas when its name is ambiguous
+            (see ``get_search_path``); every schema on the path when none holds it
+            (a script can create it before reading it); or ``None`` when that's
+            unknown, so a control has to match the table in any schema
+        """
+        self.resolve([table])
+        return self._tables[table]
+
+
+# The schema unqualified tables resolve to, or the search path they're read through.
+RLSSchema = str | SearchPath
 
 
 def get_rls_schema(
@@ -90,66 +165,83 @@ def get_unqualified_table_schemas(
 ) -> RLSSchema:
     """
     The schema an unqualified table resolves to, given the per-query schema, or
-    the schemas it may resolve to.
+    the search path it's read through.
 
     An engine with dynamic-schema support takes the per-query schema from the
     request, so a request without one has no per-query schema. The connection still
     resolves an unqualified table, through its search path (the Postgres
     ``search_path``, for instance), so the controls that match tables by schema --
-    RLS and schema-qualified ``DISALLOWED_SQL_TABLES`` entries -- must use that path
-    too, or a table on it escapes them. When the path has several schemas, which of
-    them holds a given table isn't known without looking it up, so all of them are
-    returned, in order, and the controls match against each, erring toward an extra
-    rule rather than a missing one.
+    RLS and schema-qualified ``DISALLOWED_SQL_TABLES`` entries -- must match it in
+    the schema the connection reads it from, or a table on the path escapes them.
 
     :param schema: The per-query schema already resolved for execution, if any
     :param statements: The statements being checked. When given, the search path
-        is only discovered if one of them reads an unqualified table, since
-        discovery connects to the database.
-    :returns: The schema, a tuple of the schemas when there are several, or an
-        empty string when it can't be determined
+        is only read if one of them reads an unqualified table, and their tables
+        are looked up on it at the same time, since that connects to the database.
+    :returns: The schema, the search path when it has several, or an empty string
+        when there's no unqualified table to resolve
     """
     if schema:
         return schema
     if not database.db_engine_spec.supports_dynamic_schema:
         return ""
-    if statements is not None and not reads_unqualified_table(statements):
+    tables = sorted(unqualified_tables(statements)) if statements is not None else []
+    if statements is not None and not tables:
         return ""
-    schemas = database.get_search_path(catalog)
-    if len(schemas) > 1:
-        return tuple(schemas)
-    return schemas[0] if schemas else ""
-
-
-def qualify_table(
-    table: Table,
-    catalog: str | None,
-    schema: RLSSchema,
-) -> list[Table]:
-    """
-    The tables a reference may name, qualified with each schema it may resolve to.
-
-    A reference naming its schema has only that one.
-
-    :param schema: The schema, or schemas, unqualified tables resolve to (see
-        ``get_unqualified_table_schemas``)
-    """
-    schemas = (schema if isinstance(schema, tuple) else (schema,)) or ("",)
-    return [
-        table.qualify(catalog=catalog, schema=candidate)
-        for candidate in (schemas[:1] if table.schema else schemas)
-    ]
+    try:
+        schemas, found = database.get_search_path(catalog, tables)
+    except Exception:  # pylint: disable=broad-except
+        logger.warning("Unable to read the search path", exc_info=True)
+        return SearchPath(database, catalog, None)
+    if len(schemas) < 2:
+        # a single schema is where every unqualified table is read from
+        return schemas[0] if schemas else ""
+    search_path = SearchPath(database, catalog, schemas)
+    search_path.record(tables, found)
+    return search_path
 
 
 def _rls_key_schema(schema: RLSSchema) -> str | None:
     """
     The schema ``apply_rls`` keys an unqualified table's rules under.
 
-    A table read through a search path of several schemas is keyed without a
-    schema, so it can't share a key, and the rules, with the table the query
-    qualifies with one of those schemas.
+    A table read through a search path is keyed without a schema, so it can't
+    share a key, and the rules, with a table the query qualifies with one.
     """
     return schema if isinstance(schema, str) else None
+
+
+def qualify_table(
+    table: Table,
+    catalog: str | None,
+    schema: RLSSchema,
+) -> list[tuple[Table, bool]]:
+    """
+    The tables a reference may name, each qualified with a schema it may be read
+    from.
+
+    A reference naming its schema, or an unqualified one read from a known schema,
+    names the table there. One read through a search path names the table in the
+    schema it's read from (see ``SearchPath.schemas_for``), and when that's
+    unknown, a table of its name in any schema, so a control errs toward an extra
+    rule rather than a missing one.
+
+    :param schema: The schema, or search path, unqualified tables resolve to (see
+        ``get_unqualified_table_schemas``)
+    :returns: Each table, and whether it stands for a table of its name in any
+        schema (see ``get_predicates_for_table``)
+    """
+    if isinstance(schema, str):
+        return [(table.qualify(catalog=catalog, schema=schema), False)]
+    if table.schema:
+        return [(table.qualify(catalog=catalog), False)]
+    candidates = schema.schemas_for(table.table)
+    if candidates is None:
+        return [(table.qualify(catalog=catalog), True)]
+    return [
+        (table.qualify(catalog=catalog, schema=candidate), False)
+        for candidate in candidates
+    ]
 
 
 def get_disallowed_tables(
@@ -160,27 +252,49 @@ def get_disallowed_tables(
     """
     The ``DISALLOWED_SQL_TABLES`` entries a script reads.
 
-    :param schema: The schema unqualified tables resolve to, or the schemas they
-        may resolve to (see ``get_unqualified_table_schemas``); an entry matching
-        the table in any of them counts
+    :param schema: The schema unqualified tables resolve to, or the search path
+        they're read through (see ``get_unqualified_table_schemas``). A
+        schema-qualified entry matches an unqualified table read from its schema,
+        and when that's unknown, one of its name whatever the schema.
     """
-    if isinstance(schema, tuple):
-        return set().union(
-            *(
-                script.get_disallowed_tables(tables, candidate)
-                for candidate in schema or (None,)
-            )
+    if not isinstance(schema, SearchPath):
+        return script.get_disallowed_tables(tables, schema)
+
+    found = script.get_disallowed_tables(tables)
+    qualified = {
+        entry: entry.lower().rpartition(".")[::2] for entry in tables if "." in entry
+    }
+    names = unqualified_tables(script.statements) if qualified else set()
+    schema.resolve(names)
+    for name in names:
+        candidates = schema.schemas_for(name)
+        searched = None if candidates is None else {c.lower() for c in candidates}
+        found.update(
+            entry
+            for entry, (entry_schema, entry_table) in qualified.items()
+            if entry_table == name.lower()
+            and (searched is None or entry_schema in searched)
         )
-    return script.get_disallowed_tables(tables, schema)
+    return found
+
+
+def unqualified_tables(statements: Iterable[BaseSQLStatement[Any]]) -> set[str]:
+    """
+    The names of the tables the statements read without naming their schema.
+    """
+    return {
+        table.table
+        for statement in statements
+        for table in statement.tables
+        if not table.schema
+    }
 
 
 def reads_unqualified_table(statements: Iterable[BaseSQLStatement[Any]]) -> bool:
     """
     Whether any of the statements reads a table without naming its schema.
     """
-    return any(
-        not table.schema for statement in statements for table in statement.tables
-    )
+    return bool(unqualified_tables(statements))
 
 
 def has_qualified_table_entry(tables: Iterable[str]) -> bool:
@@ -280,21 +394,24 @@ def get_rls_predicates(
     ) -> dict[Table, list[str]]:
         predicates: dict[Table, list[str]] = {}
         for table in parsed_statement.tables:
-            # An unqualified table gets the rules of the table in every schema it
-            # may resolve to.
             key = table.qualify(catalog=catalog, schema=_rls_key_schema(schema))
             predicates[key] = remove_duplicates(
                 predicate
-                for candidate in qualify_table(table, catalog, schema)
+                for candidate, any_schema in qualify_table(table, catalog, schema)
                 for predicate in get_predicates_for_table(
                     candidate,
                     database,
                     default_catalog,
                     exclude_dataset_id=exclude_id,
                     include_global_guest_rls=include_global,
+                    any_schema=any_schema,
                 )
             )
         return predicates
+
+    if isinstance(schema, SearchPath):
+        # one round trip for the statement's tables, rather than one per table
+        schema.resolve(unqualified_tables([parsed_statement]))
 
     predicates = collect_predicates(include_global_guest_rls, exclude_dataset_id)
     # The outer query only constrains the rows that reach it, so a table read
@@ -351,6 +468,7 @@ def find_datasets(
     default_catalog: str | None,
     exclude_dataset_id: int | None,
     fold: bool,
+    any_schema: bool = False,
 ) -> list[SqlaTable]:
     """
     Find the datasets a table reference resolves to.
@@ -368,6 +486,8 @@ def find_datasets(
         match several that differ only in case. They all name the same physical
         table, so all of them are returned and the caller applies every one's
         predicates, rather than picking one and dropping the rest.
+    :param any_schema: Match a dataset of the table's name in any schema, for a
+        reference whose schema can't be determined
     """
     from superset.connectors.sqla.models import SqlaTable
 
@@ -393,10 +513,13 @@ def find_datasets(
 
     def match(schema_predicate: Any) -> list[SqlaTable]:
         query = db.session.query(SqlaTable).filter(and_(*filters, schema_predicate))
-        if fold:
+        if fold or any_schema:
             return query.all()
         dataset = query.one_or_none()
         return [dataset] if dataset else []
+
+    if any_schema:
+        return match(true())
 
     if datasets := match(eq(SqlaTable.schema, table.schema)):
         return datasets
@@ -417,6 +540,7 @@ def get_predicates_for_table(
     default_catalog: str | None,
     exclude_dataset_id: int | None = None,
     include_global_guest_rls: bool = True,
+    any_schema: bool = False,
 ) -> list[str]:
     """
     Get the RLS predicates for a table.
@@ -427,6 +551,8 @@ def get_predicates_for_table(
 
     :param include_global_guest_rls: Also return global (unscoped) guest RLS rules.
         See ``apply_rls``.
+    :param any_schema: Get the predicates of the table in any schema (see
+        ``find_datasets``)
     """
     datasets = find_datasets(
         table,
@@ -444,6 +570,7 @@ def get_predicates_for_table(
         # distinct table on those engines: that direction applies extra
         # predicates rather than dropping one that should have applied.
         fold=folds_unquoted_object_names(database.db_engine_spec.engine),
+        any_schema=any_schema,
     )
 
     if not datasets:

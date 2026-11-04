@@ -2337,9 +2337,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         A datasource without a schema on a dynamic-schema engine still reads
         unqualified tables through the connection's search path, so when the
         denylist has a schema-qualified entry and the SQL reads an unqualified
-        table, the schemas on it are discovered (once) and used instead (see
-        ``get_unqualified_table_schemas``). Bare entries match whatever the
-        schema, so a bare-name denylist never connects for it.
+        table, that search path is used instead, resolving each table it's asked
+        about once (see ``get_unqualified_table_schemas``). Bare entries match
+        whatever the schema, so a bare-name denylist never connects for it.
 
         :param disallowed_tables: The denylist entries being checked
         :param script: The parsed SQL being checked
@@ -4792,10 +4792,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             include_global_guest_rls=(
                                 not is_dataset or statement.has_subquery()
                             ),
+                            any_schema=any_schema,
                         )
                         for statement in parsed_script.statements
                         for table in statement.tables
-                        for candidate in qualify_table(
+                        for candidate, any_schema in qualify_table(
                             table, self.catalog, default_schema
                         )
                     )

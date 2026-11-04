@@ -937,46 +937,97 @@ def test_extended_aggregation_func_compiles_expected_sql(
 
 
 def _search_path_database(
-    mocker: MockerFixture, search_path: Any, default_schema: str = "analyst"
+    mocker: MockerFixture,
+    search_path: Any,
+    found: list[tuple[str, str]] | None = None,
 ) -> MagicMock:
-    """A database whose connection reports a default schema and search path."""
+    """
+    A database whose connection reports a search path and the schema each quoted
+    table name resolves to.
+    """
     database = mocker.MagicMock()
-    inspector = database.get_inspector.return_value.__enter__.return_value
-    inspector.default_schema_name = default_schema
     cursor = database.get_raw_connection.return_value.__enter__.return_value.cursor
     if isinstance(search_path, Exception):
         cursor.return_value.execute.side_effect = search_path
     else:
         cursor.return_value.fetchone.return_value = search_path
+        cursor.return_value.fetchall.return_value = found or []
     return database
 
 
 def test_get_search_path(mocker: MockerFixture) -> None:
     """
     DB Eng Specs (postgres): ``get_search_path`` lists every schema searched for an
-    unqualified table, not just the first existing one ``current_schema()`` reports.
+    unqualified table, the implicit ``pg_catalog`` included, and resolves each
+    table to the schema holding it, both spellings of a name that may be quoted.
     """
-    database = _search_path_database(mocker, (["analyst", "public"],))
-
-    assert spec.get_search_path(database, "analytics") == ["analyst", "public"]
-    database.get_raw_connection.assert_called_once_with(catalog="analytics")
-    cursor = database.get_raw_connection.return_value.__enter__.return_value.cursor
-    cursor.return_value.execute.assert_called_once_with(
-        "SELECT current_schemas(false)::text[]"
+    database = _search_path_database(
+        mocker,
+        (["pg_catalog", "analyst", "public"],),
+        [
+            ('"pg_class"', "pg_catalog"),
+            ('"Sales"', "public"),
+            ('"sales"', "analyst"),
+            ('"temp"', "pg_temp_3"),
+        ],
     )
 
+    assert spec.get_search_path(
+        database, "analytics", ["Sales", "pg_class", "missing", "temp"]
+    ) == (
+        ["pg_catalog", "analyst", "public"],
+        {
+            "Sales": ["analyst", "public"],
+            "pg_class": ["pg_catalog"],
+            "temp": ["pg_temp_3"],
+        },
+    )
+    database.get_raw_connection.assert_called_once_with(catalog="analytics")
+    cursor = database.get_raw_connection.return_value.__enter__.return_value.cursor
+    (paths,), (lookup, params) = (
+        call.args for call in cursor.return_value.execute.call_args_list
+    )
+    assert paths == "SELECT pg_catalog.current_schemas(true)::text[]"
+    assert "pg_catalog.to_regclass(spelling)" in lookup
+    assert params == (['"Sales"', '"sales"', '"pg_class"', '"missing"', '"temp"'],)
 
-@pytest.mark.parametrize(
-    "search_path",
-    [None, ([],), ("{analyst,public}",), Exception("no such function")],
-)
-def test_get_search_path_falls_back_to_default_schema(
-    mocker: MockerFixture, search_path: Any
-) -> None:
+
+def test_get_search_path_without_tables(mocker: MockerFixture) -> None:
     """
-    DB Eng Specs (postgres): a connection that can't report its search path falls
-    back to its default schema.
+    DB Eng Specs (postgres): only the search path is read when no table is asked
+    about, and a name is quoted so it's looked up exactly as written.
+    """
+    database = _search_path_database(mocker, (["public"],))
+    cursor = database.get_raw_connection.return_value.__enter__.return_value.cursor
+
+    assert spec.get_search_path(database, None) == (["public"], {})
+    cursor.return_value.execute.assert_called_once_with(
+        "SELECT pg_catalog.current_schemas(true)::text[]"
+    )
+
+    spec.get_search_path(database, None, ['a"b'])
+    assert cursor.return_value.execute.call_args.args[1] == (['"a""b"'],)
+
+
+@pytest.mark.parametrize("search_path", [None, ("{analyst,public}",)])
+def test_get_search_path_unreadable(mocker: MockerFixture, search_path: Any) -> None:
+    """
+    DB Eng Specs (postgres): a search path the connection doesn't report as a list
+    raises, rather than reading as an empty one.
     """
     database = _search_path_database(mocker, search_path)
 
-    assert spec.get_search_path(database, None) == ["analyst"]
+    with pytest.raises(ValueError, match="Unexpected search path"):
+        spec.get_search_path(database, None, ["sales"])
+
+
+def test_get_search_path_failure_raises(mocker: MockerFixture) -> None:
+    """
+    DB Eng Specs (postgres): a connection that can't be asked raises, rather than
+    falling back to its default schema, which needn't be where a table is read.
+    """
+    database = _search_path_database(mocker, Exception("permission denied"))
+
+    with pytest.raises(Exception, match="permission denied"):
+        spec.get_search_path(database, None, ["sales"])
+    database.get_inspector.assert_not_called()

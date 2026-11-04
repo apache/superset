@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 import re
 import warnings
+from collections.abc import Collection
 from datetime import datetime, timedelta
 from inspect import signature
 from re import Match, Pattern
@@ -1283,19 +1284,29 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return inspector.default_schema_name
 
     @classmethod
-    def get_search_path(cls, database: Database, catalog: str | None) -> list[str]:
+    def get_search_path(
+        cls,
+        database: Database,
+        catalog: str | None,
+        tables: Collection[str] = (),
+    ) -> tuple[list[str], dict[str, list[str]]]:
         """
-        Return the schemas a table referenced without a schema is looked up in.
+        Resolve tables referenced without a schema the way the connection does.
 
         Most engines look in their default schema only. An engine with a search
-        path looks in each of its schemas in order, so the default schema is not
-        necessarily the one holding a given table, and a control that matches
-        tables by schema (RLS, ``DISALLOWED_SQL_TABLES``) has to consider them all.
+        path looks in each of its schemas in order and reads the first table of
+        the name it finds, so the default schema isn't necessarily the one holding
+        a given table, and a control that matches tables by schema (RLS,
+        ``DISALLOWED_SQL_TABLES``) has to know which one does.
 
-        :returns: The schemas, in lookup order, or an empty list if unknown
+        :param tables: The names of tables referenced without a schema
+        :returns: The schemas looked in, in order, and the schema holding each of
+            ``tables`` that one does (an engine that can't tell leaves a table
+            out, so it's taken to be in any of them)
+        :raises Exception: If the connection can't be asked
         """
         schema = cls.get_default_schema(database, catalog)
-        return [schema] if schema else []
+        return ([schema] if schema else []), {}
 
     @classmethod
     def get_schema_from_engine_params(  # pylint: disable=unused-argument

@@ -51,7 +51,8 @@ CLAUSE = "region = 'east'"
 SQL = "SELECT region, amount FROM sales"
 
 
-# The schemas the Postgres connection searches, in order (``current_schemas(false)``)
+# The schemas on the Postgres ``search_path``, in order, without the implicit
+# ``pg_catalog`` (``current_schemas(false)``)
 SEARCH_PATH = ["public"]
 
 
@@ -61,25 +62,84 @@ def _inspector(default_schema: str | None) -> Iterator[Any]:
     yield MagicMock(default_schema_name=default_schema)
 
 
+class _Cursor:
+    """
+    A Postgres cursor answering the search path queries.
+
+    ``current_schemas(true)`` adds the ``pg_catalog`` Postgres searches first when
+    the path doesn't place it, and ``current_schemas(false)`` leaves it out.
+    ``to_regclass`` resolves a quoted table name to the schema ``tables`` puts it
+    in, and to nothing for a table ``tables`` doesn't have.
+    """
+
+    def __init__(
+        self,
+        search_path: list[str],
+        tables: dict[str, str],
+        error: Exception | None,
+    ) -> None:
+        self.search_path = search_path
+        self.tables = tables
+        self.error = error
+        self.result: list[tuple[Any, ...]] = []
+
+    def execute(self, sql: str, params: tuple[Any, ...] = ()) -> None:
+        if self.error is not None:
+            raise self.error
+        if "current_schemas" in sql:
+            implicit = "current_schemas(true)" in sql
+            self.result = [
+                (
+                    ["pg_catalog"] * (implicit and "pg_catalog" not in self.search_path)
+                    + self.search_path,
+                )
+            ]
+        else:
+            assert "to_regclass" in sql
+            self.result = [
+                (spelling, self.tables[spelling[1:-1]])
+                for spelling in params[0]
+                if spelling[1:-1] in self.tables
+            ]
+
+    def fetchone(self) -> tuple[Any, ...] | None:
+        return self.result[0] if self.result else None
+
+    def fetchall(self) -> list[tuple[Any, ...]]:
+        return self.result
+
+
 @contextmanager
-def _raw_connection(search_path: list[str]) -> Iterator[Any]:
-    """A connection reporting its search path, and running nothing else."""
+def _raw_connection(
+    search_path: list[str], tables: dict[str, str], error: Exception | None
+) -> Iterator[Any]:
+    """A connection answering the search path queries (see ``_Cursor``)."""
     connection = MagicMock()
-    connection.cursor.return_value.fetchone.return_value = (search_path,)
+    connection.cursor.return_value = _Cursor(search_path, tables, error)
     yield connection
 
 
 def _connect(
-    mocker: MockerFixture, default_schema: str, search_path: list[str]
+    mocker: MockerFixture,
+    default_schema: str,
+    search_path: list[str],
+    tables: dict[str, str] | None = None,
+    error: Exception | None = None,
 ) -> None:
-    """Report the connection's default schema and search path."""
+    """
+    Report the connection's default schema and search path, and resolve each table
+    in ``tables`` (by name) to its schema there. ``error`` fails the search path
+    queries.
+    """
     mocker.patch.object(
         Database, "get_inspector", side_effect=lambda **kw: _inspector(default_schema)
     )
     mocker.patch.object(
         Database,
         "get_raw_connection",
-        side_effect=lambda *args, **kw: _raw_connection(search_path),
+        side_effect=lambda *args, **kw: _raw_connection(
+            search_path, tables or {}, error
+        ),
     )
 
 
@@ -129,7 +189,7 @@ def database(session: Session, mocker: MockerFixture) -> Iterator[Database]:
         "superset.subjects.utils.get_current_user_subject_ids",
         return_value=[subject.id],
     )
-    _connect(mocker, "public", SEARCH_PATH)
+    _connect(mocker, "public", SEARCH_PATH, {"sales": "public"})
     with override_user(user):
         yield database
 
@@ -535,78 +595,165 @@ def _statements(sql: str) -> list[Any]:
 
 
 @pytest.mark.parametrize(
-    "schema, dynamic, sql, expected, probed",
+    "schema, dynamic, sql, expected",
     [
-        # an explicit or already-resolved schema wins without a probe
-        ("analytics", True, SQL, "analytics", False),
+        # an explicit or already-resolved schema wins without a lookup
+        ("analytics", True, SQL, "analytics"),
         # engines without dynamic schemas resolve their default for execution
-        (None, False, SQL, "", False),
-        # a fully qualified query has no table for the search path to qualify
-        (None, True, "SELECT * FROM public.sales JOIN archive.x ON 1 = 1", "", False),
+        (None, False, SQL, ""),
+        # a fully qualified query has no table for the search path to resolve
+        (None, True, "SELECT * FROM public.sales JOIN archive.x ON 1 = 1", ""),
         # a query reading no table at all
-        (None, True, "SELECT 1", "", False),
+        (None, True, "SELECT 1", ""),
         # a query reading only a CTE
-        (None, True, "WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales", "", False),
-        # an unqualified table resolves through the connection's search path
-        (
-            None,
-            True,
-            "SELECT * FROM public.sales JOIN x ON 1 = 1",
-            ("analyst", "public"),
-            True,
-        ),
-        ("", True, SQL, ("analyst", "public"), True),
+        (None, True, "WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales", ""),
+        # unqualified tables are looked up on the search path, all at once
+        (None, True, "SELECT * FROM public.sales JOIN x ON 1 = 1", ["x"]),
+        ("", True, "SELECT * FROM b JOIN a ON 1 = 1", ["a", "b"]),
     ],
 )
 def test_get_unqualified_table_schemas(
     schema: str | None,
     dynamic: bool,
     sql: str,
-    expected: str | tuple[str, ...],
-    probed: bool,
+    expected: str | list[str],
 ) -> None:
     """
-    The search path is discovered only when RLS needs it: a dynamic-schema
-    engine, no per-query schema, and a table read without a schema.
+    The search path is used only when RLS needs it: a dynamic-schema engine, no
+    per-query schema, and a table read without a schema. The tables read without
+    one are then looked up on it in one round trip.
+
+    :param expected: The schema, or the tables looked up on the search path
     """
-    from superset.utils.rls import get_unqualified_table_schemas
+    from superset.utils.rls import get_unqualified_table_schemas, SearchPath
 
     database = MagicMock()
     database.db_engine_spec.supports_dynamic_schema = dynamic
-    database.get_search_path.return_value = ["analyst", "public"]
+    database.get_search_path.return_value = (["analyst", "public"], {"a": ["public"]})
 
-    assert (
-        get_unqualified_table_schemas(database, "cat", schema, _statements(sql))
-        == expected
-    )
-    assert database.get_search_path.called is probed
-    if probed:
-        database.get_search_path.assert_called_once_with("cat")
+    result = get_unqualified_table_schemas(database, "cat", schema, _statements(sql))
+
+    if isinstance(expected, str):
+        assert result == expected
+        database.get_search_path.assert_not_called()
+    else:
+        assert isinstance(result, SearchPath)
+        database.get_search_path.assert_called_once_with("cat", expected)
+        # the tables were looked up with the path, so resolving them doesn't connect
+        assert [result.schemas_for(table) for table in expected] == [
+            ("public",) if table == "a" else ("analyst", "public") for table in expected
+        ]
+        database.get_search_path.assert_called_once()
 
 
 @pytest.mark.parametrize(
     "search_path, expected",
     [
+        # a single schema is where every unqualified table is read from
         (["public"], "public"),
-        (["analyst", "public"], ("analyst", "public")),
         ([], ""),
+        # several need a table looked up to know which of them it's read from
+        (["analyst", "public"], ("analyst", "public")),
+        # and when the connection can't be asked, none is known
+        (Exception("permission denied"), None),
     ],
 )
 def test_get_unqualified_table_schemas_without_statements(
-    search_path: list[str], expected: str | tuple[str, ...]
+    search_path: list[str] | Exception,
+    expected: str | tuple[str, ...] | None,
 ) -> None:
     """
-    Without the statements the search path is always discovered. A path of one
-    schema gives that schema, one of several gives all of them, and a connection
-    reporting none leaves the schema empty.
+    Without the statements the search path is read without looking a table up.
     """
-    from superset.utils.rls import get_unqualified_table_schemas
+    from superset.utils.rls import get_unqualified_table_schemas, SearchPath
 
     database = MagicMock()
     database.db_engine_spec.supports_dynamic_schema = True
-    database.get_search_path.return_value = search_path
+    if isinstance(search_path, Exception):
+        database.get_search_path.side_effect = search_path
+    else:
+        database.get_search_path.return_value = (search_path, {})
 
-    assert get_unqualified_table_schemas(database, None, None) == expected
+    result = get_unqualified_table_schemas(database, "cat", None)
+
+    database.get_search_path.assert_called_once_with("cat", [])
+    if isinstance(expected, str):
+        assert result == expected
+    else:
+        assert isinstance(result, SearchPath)
+        assert result.schemas == expected
+
+
+@pytest.mark.parametrize(
+    "found, expected",
+    [
+        # the schema the connection reads the table from
+        ({"sales": ["analyst"]}, ("analyst",)),
+        # both, when its name could name a table in either (see get_search_path)
+        ({"sales": ["analyst", "public"]}, ("analyst", "public")),
+        # every schema on the path when none holds it
+        ({}, ("pg_catalog", "analyst", "public")),
+        # unknown when the connection can't be asked
+        (Exception("permission denied"), None),
+    ],
+)
+def test_search_path_schemas_for(
+    found: dict[str, list[str]] | Exception,
+    expected: tuple[str, ...] | None,
+) -> None:
+    """
+    A table read through a search path resolves to the schema it's read from,
+    looked up once.
+    """
+    from superset.utils.rls import SearchPath
+
+    database = MagicMock()
+    if isinstance(found, Exception):
+        database.get_search_path.side_effect = found
+    else:
+        database.get_search_path.return_value = (
+            ["pg_catalog", "analyst", "public"],
+            found,
+        )
+    path = SearchPath(database, "cat", ["analyst", "public"])
+
+    assert path.schemas_for("sales") == expected
+    assert path.schemas_for("sales") == expected
+    database.get_search_path.assert_called_once_with("cat", ["sales"])
+
+
+def test_search_path_unknown_is_not_looked_up() -> None:
+    """
+    A search path the connection couldn't report resolves no table, without asking
+    again.
+    """
+    from superset.utils.rls import SearchPath
+
+    database = MagicMock()
+
+    assert SearchPath(database, None, None).schemas_for("sales") is None
+    database.get_search_path.assert_not_called()
+
+
+def test_search_path_resolves_each_table_once() -> None:
+    """
+    ``resolve`` looks up, in one round trip, only the tables not looked up yet.
+    """
+    from superset.utils.rls import SearchPath
+
+    database = MagicMock()
+    database.get_search_path.return_value = (["analyst", "public"], {})
+    path = SearchPath(database, None, ["analyst", "public"])
+    path.record(["d"], {})
+
+    path.resolve(["b", "a", "d"])
+    path.resolve(["a", "c", "b"])
+    path.resolve(["c"])
+
+    assert database.get_search_path.call_args_list == [
+        ((None, ["a", "b"]),),
+        ((None, ["c"]),),
+    ]
 
 
 @pytest.fixture
@@ -616,7 +763,7 @@ def user_schema_first(database: Database, mocker: MockerFixture) -> Database:
     own schema exists: the connection reports that schema as its default, but an
     unqualified ``sales``, which only ``public`` has, still reads ``public.sales``.
     """
-    _connect(mocker, "analyst", ["analyst", "public"])
+    _connect(mocker, "analyst", ["analyst", "public"], {"sales": "public"})
     return database
 
 
@@ -690,9 +837,13 @@ def test_adhoc_and_cache_key_rls_table_later_on_search_path(
     ``public`` is not the first schema on the search path.
     """
     from superset.models.helpers import validate_adhoc_subquery
-    from superset.utils.rls import collect_rls_predicates_for_sql, get_rls_schema
+    from superset.utils.rls import (
+        collect_rls_predicates_for_sql,
+        get_rls_schema,
+        SearchPath,
+    )
 
-    assert get_rls_schema(user_schema_first, None, None, SQL) == ("analyst", "public")
+    assert isinstance(get_rls_schema(user_schema_first, None, None, SQL), SearchPath)
     assert CLAUSE in validate_adhoc_subquery(
         f"({SQL})", user_schema_first, None, "", "postgresql"
     )
@@ -741,15 +892,16 @@ def test_apply_rls_keeps_qualified_table_out_of_search_path_rules(
     user_schema_first: Database, sql: str
 ) -> None:
     """
-    An unqualified table gets the rules of the table in every schema on the search
-    path, while the same table qualified with one of those schemas keeps only its
+    An unqualified table gets the rules of the table the search path reads it from,
+    while the same table qualified with another schema on the path keeps only its
     own (none here).
     """
     from superset.sql.parse import SQLStatement
-    from superset.utils.rls import apply_rls
+    from superset.utils.rls import apply_rls, get_unqualified_table_schemas
 
     statement = SQLStatement(sql, "postgresql")
-    assert apply_rls(user_schema_first, None, ("analyst", "public"), statement)
+    search_path = get_unqualified_table_schemas(user_schema_first, None, None)
+    assert apply_rls(user_schema_first, None, search_path, statement)
     output = statement.format()
     assert output.count(CLAUSE) == 1
     # the qualified read is left as written, not wrapped in a filtered sub-query
@@ -1007,26 +1159,423 @@ def test_datasource_skips_search_path_without_unqualified_table(
 
 
 @pytest.mark.parametrize(
-    "schema, entries, expected",
+    "search_path, entries, expected",
     [
-        # an entry matching the table in any schema it may resolve to
-        (("analyst", "public"), {"public.sales", "archive.sales"}, {"public.sales"}),
-        (("analyst", "public"), {"analyst.sales"}, {"analyst.sales"}),
-        # without any schema only a bare entry can match
-        ((), {"public.sales", "sales"}, {"sales"}),
-        ("public", {"public.sales"}, {"public.sales"}),
-        (None, {"public.sales"}, set()),
+        # an entry for the schema the table is read from
+        (
+            (["analyst", "public"], {"sales": ["public"]}),
+            {"Public.Sales"},
+            {"Public.Sales"},
+        ),
+        # not one for a schema it's not read from, nor a catalog-qualified one
+        (
+            (["analyst", "public"], {"sales": ["public"]}),
+            {"analyst.sales", "public.other", "db.public.sales"},
+            set(),
+        ),
+        # one for any schema on the path when none holds it
+        ((["analyst", "public"], {}), {"analyst.sales"}, {"analyst.sales"}),
+        # one for any schema when that's unknown
+        (Exception("permission denied"), {"archive.sales", "x.y"}, {"archive.sales"}),
+        # a bare entry, without a lookup
+        (Exception("not looked up"), {"sales"}, {"sales"}),
     ],
 )
 def test_get_disallowed_tables(
-    schema: tuple[str, ...] | str | None, entries: set[str], expected: set[str]
+    search_path: tuple[list[str], dict[str, list[str]]] | Exception,
+    entries: set[str],
+    expected: set[str],
 ) -> None:
     """
-    An unqualified table matches a schema-qualified entry for any schema it may
-    resolve to.
+    A schema-qualified entry matches an unqualified table read through a search
+    path in the schema the connection reads it from.
+    """
+    from superset.sql.parse import SQLScript
+    from superset.utils.rls import get_disallowed_tables, SearchPath
+
+    database = MagicMock()
+    if isinstance(search_path, Exception):
+        database.get_search_path.side_effect = search_path
+    else:
+        database.get_search_path.return_value = search_path
+    script = SQLScript("SELECT * FROM sales", engine="postgresql")
+
+    path = SearchPath(database, None, ["analyst", "public"])
+    assert get_disallowed_tables(script, entries, path) == expected
+    assert database.get_search_path.called is any("." in e for e in entries)
+
+
+@pytest.mark.parametrize(
+    "schema, entries, expected",
+    [
+        ("public", {"public.sales"}, {"public.sales"}),
+        (None, {"public.sales", "sales"}, {"sales"}),
+    ],
+)
+def test_get_disallowed_tables_known_schema(
+    schema: str | None, entries: set[str], expected: set[str]
+) -> None:
+    """
+    An unqualified table read from a known schema matches an entry for it, and one
+    from an unknown schema only a bare entry.
     """
     from superset.sql.parse import SQLScript
     from superset.utils.rls import get_disallowed_tables
 
     script = SQLScript("SELECT * FROM sales", engine="postgresql")
     assert get_disallowed_tables(script, entries, schema) == expected
+
+
+def test_get_disallowed_tables_after_search_path_change() -> None:
+    """
+    A table read after the script changes its search path matches an entry of its
+    name whatever the schema, even when the connection reads it from another one
+    before the change.
+    """
+    from superset.sql.parse import SQLScript
+    from superset.utils.rls import get_disallowed_tables, SearchPath
+
+    database = MagicMock()
+    database.get_search_path.return_value = (["public"], {"tables": ["public"]})
+    script = SQLScript(
+        "SET search_path = information_schema; SELECT * FROM tables",
+        engine="postgresql",
+    )
+    entries = {"information_schema.tables"}
+
+    search_path = SearchPath(database, None, ["public", "information_schema"])
+    assert get_disallowed_tables(script, entries, search_path) == entries
+
+
+# The paths that apply RLS to a SQL Lab style query
+RLS_PATHS = ["executor", "executor_async", "sql_lab", "sql_lab_celery", "estimate"]
+
+
+def _rls_sql(
+    path: str,
+    database: Database,
+    session: Session,
+    mocker: MockerFixture,
+    sql: str = SQL,
+) -> str:
+    """The SQL a query without a schema runs as (or is priced as) on ``path``."""
+    if path.startswith("executor"):
+        mocker.patch.dict(current_app.config, {"SQL_QUERY_MUTATOR": None})
+        options = QueryOptions(dry_run=True)
+        if path == "executor_async":
+            result = database.execute_async(sql, options=options).get_result()
+        else:
+            result = database.execute(sql, options=options)
+        assert result.error_message is None
+        return result.statements[0].executed_sql
+    if path.startswith("sql_lab"):
+        with patch(
+            "superset.sql_lab.is_feature_enabled",
+            side_effect=lambda flag: flag == "RLS_IN_SQLLAB",
+        ):
+            executed, payload = _run_sql_lab(
+                database,
+                session,
+                mocker,
+                None,
+                store_results=path == "sql_lab_celery",
+                sql=sql,
+            )
+        assert len(executed) == 1, payload
+        return executed[0]
+    with (
+        patch(
+            "superset.commands.sql_lab.estimate.is_feature_enabled",
+            side_effect=lambda flag: flag == "RLS_IN_SQLLAB",
+        ),
+        patch.dict(current_app.config, {"DISALLOWED_SQL_TABLES": {}}),
+    ):
+        return _estimate(database, sql)._apply_sql_security(sql)
+
+
+# The paths that check a query against ``DISALLOWED_SQL_TABLES``
+DENYLIST_PATHS = ["executor", "sql_lab", "estimate", "datasource", "adhoc"]
+
+
+def _denied(
+    path: str,
+    database: Database,
+    session: Session,
+    mocker: MockerFixture,
+    entry: str,
+    sql: str = SQL,
+) -> bool:
+    """Whether ``path`` denies a query without a schema for the denylist ``entry``."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import SupersetDisallowedSQLTableException
+    from superset.models.helpers import SqlExpressionContext
+
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, **_denylist(entry)}
+    )
+    if path == "executor":
+        result = database.execute(sql, options=QueryOptions(dry_run=True))
+        return "Disallowed SQL tables" in (result.error_message or "")
+    if path == "sql_lab":
+        with patch("superset.sql_lab.is_feature_enabled", return_value=False):
+            executed, payload = _run_sql_lab(
+                database, session, mocker, None, store_results=False, sql=sql
+            )
+        return not executed
+    datasource = SqlaTable(database=database, schema=None, table_name="t")
+    try:
+        if path == "estimate":
+            with patch(
+                "superset.commands.sql_lab.estimate.is_feature_enabled",
+                return_value=False,
+            ):
+                _estimate(database, sql)._apply_sql_security(sql)
+        elif path == "datasource":
+            datasource._raise_for_disallowed_sql(sql)
+        else:
+            with patch(
+                "superset.models.helpers.is_feature_enabled",
+                side_effect=lambda flag: flag == "ALLOW_ADHOC_SUBQUERY",
+            ):
+                datasource._process_sql_expression(
+                    f"({sql})", SqlExpressionContext("postgresql", "", None)
+                )
+    except SupersetDisallowedSQLTableException:
+        return True
+    return False
+
+
+@pytest.fixture
+def discovery_denied(database: Database, mocker: MockerFixture) -> Database:
+    """
+    A connection that can't be asked for its search path (``EXECUTE`` on
+    ``current_schemas`` revoked, say), although its default schema, which doesn't
+    hold ``sales``, is still known.
+    """
+    _connect(
+        mocker,
+        "analyst",
+        ["analyst", "public"],
+        error=Exception("permission denied for function current_schemas"),
+    )
+    return database
+
+
+@pytest.mark.parametrize("path", RLS_PATHS)
+def test_rls_search_path_discovery_failure_fails_closed(
+    discovery_denied: Database,
+    session: Session,
+    mocker: MockerFixture,
+    path: str,
+) -> None:
+    """
+    When the search path can't be discovered, which schema an unqualified ``sales``
+    is read from is unknown, so it gets the rules of ``sales`` in any schema
+    rather than those of the default schema only (none here).
+    """
+    assert CLAUSE in _rls_sql(path, discovery_denied, session, mocker)
+
+
+@pytest.mark.parametrize("path", DENYLIST_PATHS)
+@pytest.mark.parametrize(
+    "entry, blocked", [("public.sales", True), ("public.other", False)]
+)
+def test_denylist_search_path_discovery_failure_fails_closed(
+    discovery_denied: Database,
+    session: Session,
+    mocker: MockerFixture,
+    path: str,
+    entry: str,
+    blocked: bool,
+) -> None:
+    """
+    When the search path can't be discovered, a schema-qualified denylist entry
+    matches an unqualified table of its name in any schema.
+    """
+    assert _denied(path, discovery_denied, session, mocker, entry) is blocked
+
+
+WEST = "region = 'west'"
+
+
+@pytest.fixture
+def shadowed(database: Database, session: Session, mocker: MockerFixture) -> Database:
+    """
+    ``analyst.sales`` shadows ``public.sales``: both exist, ``analyst`` comes first
+    on the search path, and so an unqualified ``sales`` reads ``analyst.sales``,
+    whose rule is ``WEST``, never ``public.sales``, whose rule is ``CLAUSE``.
+    """
+    from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
+
+    east = session.query(RowLevelSecurityFilter).filter_by(name="east only").one()
+    analyst_sales = SqlaTable(table_name="sales", schema="analyst", database=database)
+    west = RowLevelSecurityFilter(
+        name="west only",
+        filter_type="Regular",
+        clause=WEST,
+        tables=[analyst_sales],
+        subjects=list(east.subjects),
+    )
+    session.add_all([analyst_sales, west])
+    session.flush()
+    _connect(mocker, "analyst", ["analyst", "public"], {"sales": "analyst"})
+    return database
+
+
+@pytest.mark.parametrize("path", RLS_PATHS)
+def test_rls_shadowed_table_gets_only_its_own_rules(
+    shadowed: Database, session: Session, mocker: MockerFixture, path: str
+) -> None:
+    """
+    An unqualified table gets the rules of the table the connection reads, the
+    first one of its name on the search path, not those of a table it shadows.
+    """
+    sql = _rls_sql(path, shadowed, session, mocker)
+
+    assert WEST in sql
+    assert CLAUSE not in sql
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_adhoc_and_cache_key_shadowed_table_gets_only_its_own_rules(
+    shadowed: Database,
+) -> None:
+    """
+    An adhoc sub-query and the RLS cache key, which resolve the search path without
+    the statements, also give an unqualified table the rules of the table read.
+    """
+    from superset.models.helpers import validate_adhoc_subquery
+    from superset.utils.rls import collect_rls_predicates_for_sql, get_rls_schema
+
+    adhoc = validate_adhoc_subquery(f"({SQL})", shadowed, None, "", "postgresql")
+    keys = collect_rls_predicates_for_sql(
+        SQL,
+        shadowed,
+        None,
+        None,
+        resolve_schema=lambda: get_rls_schema(shadowed, None, None, SQL),
+    )
+
+    assert WEST in adhoc
+    assert CLAUSE not in adhoc
+    assert any(WEST in key for key in keys)
+    assert not any(CLAUSE in key for key in keys)
+
+
+@pytest.mark.parametrize("path", DENYLIST_PATHS)
+@pytest.mark.parametrize(
+    "entry, blocked", [("public.sales", False), ("analyst.sales", True)]
+)
+def test_denylist_shadowed_table(
+    shadowed: Database,
+    session: Session,
+    mocker: MockerFixture,
+    path: str,
+    entry: str,
+    blocked: bool,
+) -> None:
+    """
+    A schema-qualified denylist entry matches an unqualified table only in the
+    schema the connection reads it from, not one whose table it shadows.
+    """
+    assert _denied(path, shadowed, session, mocker, entry) is blocked
+
+
+@pytest.mark.parametrize("path", RLS_PATHS)
+def test_rls_unresolved_table_gets_rules_of_every_search_path_schema(
+    user_schema_first: Database,
+    session: Session,
+    mocker: MockerFixture,
+    path: str,
+) -> None:
+    """
+    A table the connection doesn't find on the search path (one the script creates
+    before reading it, say) gets the rules of the table in every schema on it.
+    """
+    _connect(mocker, "analyst", ["analyst", "public"])
+
+    assert CLAUSE in _rls_sql(path, user_schema_first, session, mocker)
+
+
+CATALOG_SQL = "SELECT relname FROM pg_class"
+CATALOG_CLAUSE = "relname = 'sales'"
+
+
+@pytest.fixture
+def catalog_table(
+    database: Database, session: Session, mocker: MockerFixture
+) -> Database:
+    """
+    The rule is on ``pg_catalog.pg_class``, which Postgres searches before the
+    schemas on the ``search_path`` without the path naming it.
+    """
+    from superset.connectors.sqla.models import RowLevelSecurityFilter
+
+    rule = session.query(RowLevelSecurityFilter).filter_by(name="east only").one()
+    rule.clause = CATALOG_CLAUSE
+    rule.tables[0].schema = "pg_catalog"
+    rule.tables[0].table_name = "pg_class"
+    session.flush()
+    _connect(mocker, "public", SEARCH_PATH, {"pg_class": "pg_catalog"})
+    return database
+
+
+@pytest.mark.parametrize("path", RLS_PATHS)
+def test_rls_implicit_pg_catalog_table(
+    catalog_table: Database, session: Session, mocker: MockerFixture, path: str
+) -> None:
+    """
+    An unqualified table read from the implicit ``pg_catalog`` gets its rules.
+    """
+    sql = _rls_sql(path, catalog_table, session, mocker, CATALOG_SQL)
+
+    assert CATALOG_CLAUSE in sql
+
+
+@pytest.mark.parametrize("path", DENYLIST_PATHS)
+def test_denylist_implicit_pg_catalog_table(
+    catalog_table: Database, session: Session, mocker: MockerFixture, path: str
+) -> None:
+    """
+    A ``pg_catalog`` denylist entry matches an unqualified table read from the
+    implicit ``pg_catalog``.
+    """
+    assert _denied(
+        path, catalog_table, session, mocker, "pg_catalog.pg_class", CATALOG_SQL
+    )
+
+
+@pytest.mark.parametrize(
+    "sql, tables",
+    [
+        # a table no rule applies to
+        ("SELECT * FROM no_rules", {}),
+        # the table read has no rule, although one it shadows has
+        (SQL, {"sales": "analyst"}),
+    ],
+)
+def test_virtual_dataset_rls_failure_without_applicable_rule_continues(
+    user_schema_first: Database,
+    mocker: MockerFixture,
+    sql: str,
+    tables: dict[str, str],
+) -> None:
+    """
+    When RLS can't be injected into a virtual dataset's SQL but no rule applies to
+    the tables it reads, the query still runs.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    _connect(mocker, "analyst", ["analyst", "public"], tables)
+    mocker.patch(
+        "superset.models.helpers.apply_rls", side_effect=ValueError("cannot apply")
+    )
+    # the fixture's rows are only flushed, so keep the handler's rollback off them
+    mocker.patch("superset.models.helpers.db.session.rollback")
+    virtual = SqlaTable(
+        table_name="virtual", sql=sql, schema=None, database=user_schema_first
+    )
+
+    from_clause, _ = virtual.get_from_clause()
+
+    assert "cannot apply" not in str(from_clause)

@@ -148,8 +148,9 @@ class QueryEstimationCommand(BaseCommand):
 
         # A query without a schema still reads unqualified tables through the
         # connection's search path, so RLS and schema-qualified denylist entries
-        # match against the schemas on it. Discovering them connects to the
-        # database, so it runs at most once and only when a control needs it.
+        # match each against the schema it's read from there. Looking that up
+        # connects to the database, so it runs at most once and only when a
+        # control needs it.
         table_schemas = cache(
             partial(
                 get_unqualified_table_schemas,

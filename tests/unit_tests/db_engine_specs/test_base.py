@@ -2065,12 +2065,15 @@ def test_get_search_path(
 ) -> None:
     """
     An engine without a search path looks an unqualified table up in its default
-    schema only.
+    schema only, so it needn't look up which schema holds a table.
     """
     database = mocker.MagicMock()
     get_default_schema = mocker.patch.object(
         BaseEngineSpec, "get_default_schema", return_value=default_schema
     )
 
-    assert BaseEngineSpec.get_search_path(database, "cat") == expected
+    assert BaseEngineSpec.get_search_path(database, "cat", ["sales"]) == (
+        expected,
+        {},
+    )
     get_default_schema.assert_called_once_with(database, "cat")

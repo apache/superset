@@ -567,14 +567,14 @@ def test_check_disallowed_tables_no_config(
 
 
 @pytest.mark.parametrize(
-    "entry, sql, table_schemas, blocked",
+    "entry, sql, search_path, blocked",
     [
         # a qualified entry matches an unqualified table in the default schema
         ("public.secrets", "SELECT * FROM secrets", "public", True),
         ("archive.secrets", "SELECT * FROM secrets", "public", False),
-        # or in any later schema on the search path
-        ("public.secrets", "SELECT * FROM secrets", ("analyst", "public"), True),
-        ("archive.secrets", "SELECT * FROM secrets", ("analyst", "public"), False),
+        # or in the schema the search path reads it from
+        ("public.secrets", "SELECT * FROM secrets", {"secrets": ["public"]}, True),
+        ("analyst.secrets", "SELECT * FROM secrets", {"secrets": ["public"]}, False),
         # without a known default schema only a bare entry can match
         ("public.secrets", "SELECT * FROM secrets", "", False),
         ("secrets", "SELECT * FROM secrets", "", True),
@@ -587,15 +587,16 @@ def test_check_disallowed_tables_without_schema(
     app_context: None,
     entry: str,
     sql: str,
-    table_schemas: str | tuple[str, ...],
+    search_path: str | dict[str, list[str]],
     blocked: bool,
 ) -> None:
     """
     A query without a schema reads unqualified tables through the connection's
     search path, the ``table_schemas`` ``_prepare_sql`` resolves, so a
-    schema-qualified entry is matched against each of them.
+    schema-qualified entry is matched against the schema each is read from.
     """
     from superset.sql.execution.executor import SQLExecutor
+    from superset.utils.rls import SearchPath
 
     database = Database(
         id=1, database_name="pg", sqlalchemy_uri="postgresql://u:p@h/analytics"
@@ -603,6 +604,14 @@ def test_check_disallowed_tables_without_schema(
     mocker.patch.dict(
         current_app.config, {"DISALLOWED_SQL_TABLES": {"postgresql": {entry}}}
     )
+    table_schemas: str | SearchPath = search_path  # type: ignore[assignment]
+    if isinstance(search_path, dict):
+        mocker.patch.object(
+            database,
+            "get_search_path",
+            return_value=(["analyst", "public"], search_path),
+        )
+        table_schemas = SearchPath(database, None, ["analyst", "public"])
 
     result = SQLExecutor(database)._check_disallowed_tables(
         SQLScript(sql, "postgresql"), None, table_schemas
@@ -615,16 +624,18 @@ def test_prepare_sql_resolves_table_schemas_once(
     mocker: MockerFixture, app_context: None
 ) -> None:
     """
-    ``_prepare_sql`` discovers the connection's search path once for a query
-    without a schema, and hands it to both RLS and the denylist check.
+    ``_prepare_sql`` looks the unqualified tables of a query without a schema up on
+    the connection's search path once, and hands it to both RLS and the denylist
+    check.
     """
     from superset.sql.execution.executor import SQLExecutor
+    from superset.utils.rls import SearchPath
 
     database = Database(
         id=1, database_name="pg", sqlalchemy_uri="postgresql://u:p@h/analytics"
     )
     get_search_path = mocker.patch.object(
-        database, "get_search_path", return_value=["analyst", "public"]
+        database, "get_search_path", return_value=(["analyst", "public"], {})
     )
     apply_rls = mocker.patch.object(SQLExecutor, "_apply_rls_to_script")
 
@@ -632,9 +643,10 @@ def test_prepare_sql_resolves_table_schemas_once(
         "SELECT * FROM secrets", QueryOptions()
     )
 
-    assert (schema, table_schemas) == (None, ("analyst", "public"))
-    get_search_path.assert_called_once_with("analytics")
-    assert apply_rls.call_args.args[2] == ("analyst", "public")
+    assert schema is None
+    assert isinstance(table_schemas, SearchPath)
+    get_search_path.assert_called_once_with("analytics", ["secrets"])
+    assert apply_rls.call_args.args[2] is table_schemas
 
 
 # =============================================================================
