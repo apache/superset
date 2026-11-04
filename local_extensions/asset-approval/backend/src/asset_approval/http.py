@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from asset_approval.changes import LAYOUT_PUT_BACK_PREFIX
 from asset_approval.exceptions import (
     AssetLockedError,
     ChangeManagementException,
@@ -100,20 +101,60 @@ PUT_BACK_MANY_MESSAGE = (
 NAMED_PUT_BACK_LIMIT = 5
 
 
+#: What a save says when it undid layout the draft had changed. Not "settings":
+#: a layout is charts, rows and tabs on the dashboard, and the names that follow
+#: are the ones the review panel uses, so the author can find each one there.
+LAYOUT_UNDONE_ONE_MESSAGE = "%s undid 1 layout change your draft had made: %s."
+LAYOUT_UNDONE_MANY_MESSAGE = "%s undid %d layout changes your draft had made: %s."
+
+
+def _named(items: list[str]) -> str:
+    shown = items[:NAMED_PUT_BACK_LIMIT]
+    named = ", ".join(shown)
+    if len(items) > len(shown):
+        named = f"{named} and {len(items) - len(shown)} more"
+    return named
+
+
+def _layout_count(item: str) -> int:
+    """How many components one collapsed entry ("removed row x2") stands for."""
+    head, _, tail = item.rpartition(" x")
+    return int(tail) if head and tail.isdigit() else 1
+
+
 def put_back_sentence(fields: list[str]) -> str:
     """What a fold says about the settings it returned to the live value.
 
     Empty for the ordinary case, so callers can append it unconditionally.
+    Layout entries (``LAYOUT_PUT_BACK_PREFIX``) are said separately and in
+    their own words: a count of layout changes, then which, rather than a
+    "setting" with a column name.
     """
     if not fields:
         return ""
-    shown = fields[:NAMED_PUT_BACK_LIMIT]
-    named = ", ".join(shown)
-    if len(fields) > len(shown):
-        named = f"{named} and {len(fields) - len(shown)} more"
-    if len(fields) == 1:
-        return PUT_BACK_ONE_MESSAGE % named
-    return PUT_BACK_MANY_MESSAGE % (len(fields), named)
+    layout = [
+        field[len(LAYOUT_PUT_BACK_PREFIX) :]
+        for field in fields
+        if field.startswith(LAYOUT_PUT_BACK_PREFIX)
+    ]
+    settings = [f for f in fields if not f.startswith(LAYOUT_PUT_BACK_PREFIX)]
+    sentences = []
+    if settings:
+        named = _named(settings)
+        sentences.append(
+            PUT_BACK_ONE_MESSAGE % named
+            if len(settings) == 1
+            else PUT_BACK_MANY_MESSAGE % (len(settings), named)
+        )
+    if layout:
+        total = sum(_layout_count(item) for item in layout)
+        lead = "It also" if settings else "This save"
+        sentences.append(
+            LAYOUT_UNDONE_ONE_MESSAGE % (lead, _named(layout))
+            if total == 1
+            else LAYOUT_UNDONE_MANY_MESSAGE % (lead, total, _named(layout))
+        )
+    return " ".join(sentences)
 
 
 def captured_message(ex: ChangeRequestCreated) -> str:

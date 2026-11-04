@@ -822,12 +822,24 @@ def reverted_fields(
             continue
         if not hasattr(asset, field):
             continue
+        if field == LAYOUT_COLUMN:
+            # Read below with ``json_metadata.positions``, as one layout. The
+            # column's name is not something a person recognises.
+            continue
         try:
             live = getattr(asset, field)
             drafted = draft[field]
             if field == KEYED_BLOB_FIELD:
                 put_back.extend(_keys_put_back(live, drafted, proposed))
                 continue
+            if field == "json_metadata":
+                # The layout rides inside the metadata on a dashboard save and
+                # is judged on its own below; left in, it made every
+                # layout-bearing save look unlike live and hid a revert of
+                # the metadata's other settings.
+                live, drafted, proposed = (
+                    _without_layout(value) for value in (live, drafted, proposed)
+                )
             if (
                 _differs(live, drafted, field)
                 and not _differs(live, proposed, field)
@@ -838,7 +850,144 @@ def reverted_fields(
             logger.warning(
                 "asset-approval: could not tell whether %r was put back", field
             )
+    try:
+        put_back.extend(layout_put_back(asset, draft, body))
+    except Exception:  # noqa: BLE001 -- a diagnostic must never block a write
+        logger.warning(
+            "asset-approval: could not tell whether the layout was put back",
+            exc_info=True,
+        )
     return sorted(set(put_back))
+
+
+#: Marks an entry of ``reverted_fields`` as a layout component rather than a
+#: field. The list is data to clients and must stay a list of strings; the
+#: marker is how the sentence tells "chart: Revenue (removed)" from
+#: ``dashboard_title`` without a second list.
+LAYOUT_PUT_BACK_PREFIX = "layout: "
+
+_NOT_THERE = object()
+
+
+def _without_layout(metadata: Any) -> Any:
+    """A ``json_metadata`` value with the layout taken out of it.
+
+    Anything that is not an object is returned as it came, so a field that is
+    not metadata the layout rides in is compared exactly as before.
+    """
+    parsed = _parsed(metadata)
+    if not isinstance(parsed, dict) or LAYOUT_KEY not in parsed:
+        return metadata
+    return {key: value for key, value in parsed.items() if key != LAYOUT_KEY}
+
+
+def _layout_object(value: Any) -> dict[str, Any] | None:
+    parsed = _parsed(value)
+    return parsed if isinstance(parsed, dict) and parsed else None
+
+
+def _layout_stated_by(body: dict[str, Any]) -> dict[str, Any] | None:
+    """The layout a dashboard body states, the way the update command reads it.
+
+    ``json_metadata.positions`` wins when it is there and not null, and the
+    raw ``position_json`` is only read otherwise: the update command
+    reconciles the first and overwrites the column from it. ``None`` when the
+    body says nothing about the layout, which is not the same as saying the
+    layout is empty.
+    """
+    metadata = _parsed(body.get("json_metadata"))
+    if isinstance(metadata, dict) and metadata.get(LAYOUT_KEY) is not None:
+        return _layout_object(metadata[LAYOUT_KEY])
+    return _layout_object(body.get(LAYOUT_COLUMN))
+
+
+def _same_component(one: Any, other: Any) -> bool:
+    if one is _NOT_THERE or other is _NOT_THERE:
+        return one is other
+    return bool(_parsed(one) == _parsed(other))
+
+
+def _layout_label(entry: dict[str, Any]) -> str:
+    """One put-back component as the author would say it.
+
+    Seen from the author's side: the comparison runs from their draft to the
+    draft with these components put back, so something that comes back
+    "added" is a removal their draft had made.
+    """
+    drafted = {"added": "removed", "removed": "added"}.get(
+        entry.get("kind", ""), "moved" if entry.get("moved") else "changed"
+    )
+    kind = str(entry.get("type") or "component").lower()
+    name = entry.get("name")
+    return f"{drafted} {kind}: {name}" if name else f"{drafted} {kind}"
+
+
+def layout_put_back(
+    asset: Any, draft: dict[str, Any], body: dict[str, Any]
+) -> list[str]:
+    """Layout components the draft had moved off live that this body puts back.
+
+    The same question ``reverted_fields`` asks of a scalar, asked of each
+    component of a dashboard's layout. The layout travels two ways -- the raw
+    ``position_json`` and ``json_metadata.positions`` -- and either may carry
+    it, in the draft and in the body.
+
+    Dashboard edit mode starts from the live dashboard, not from the author's
+    draft, so its save posts the live layout whole. That is legitimate and
+    says nothing by itself: a component is put back only when the draft had
+    it differently from live *and* this body has it as live has it. A body
+    that carries the whole layout but changes nothing the draft had changed
+    answers nothing, and so does a draft that never touched the layout.
+
+    Each entry is ``"layout: removed chart: Revenue"`` -- what the draft had
+    done to that component, named the way the review panel names it. Entries
+    that read identically are collapsed with a count ("removed row x2").
+    """
+    if not hasattr(asset, LAYOUT_COLUMN):
+        return []
+    live = _layout_object(getattr(asset, LAYOUT_COLUMN, None))
+    drafted, stated = _layout_stated_by(draft), _layout_stated_by(body)
+    if live is None or drafted is None or stated is None:
+        return []
+    restored = [
+        key
+        for key in set(live) | set(drafted) | set(stated)
+        if not _same_component(
+            drafted.get(key, _NOT_THERE), live.get(key, _NOT_THERE)
+        )
+        and _same_component(stated.get(key, _NOT_THERE), live.get(key, _NOT_THERE))
+    ]
+    if not restored:
+        return []
+
+    put_back = dict(drafted)
+    for key in restored:
+        if key in live:
+            put_back[key] = live[key]
+        else:
+            put_back.pop(key, None)
+    try:
+        # Imported here: ``api`` imports this module. It owns how a layout
+        # component is named, and a second copy of that would drift from the
+        # panel the author reads it against.
+        from asset_approval.api import _layout_components
+
+        labels = [_layout_label(entry) for entry in _layout_components(drafted, put_back)]
+    except Exception:  # noqa: BLE001 -- naming is a courtesy; the count is not
+        logger.warning("asset-approval: could not name the layout put back", exc_info=True)
+        labels = []
+    if not labels:
+        # What came back was only containers (a row's list of children), which
+        # carry no name of their own.
+        labels = ["changed arrangement"]
+
+    counts: dict[str, int] = {}
+    for label in labels:
+        counts[label] = counts.get(label, 0) + 1
+    return [
+        f"{LAYOUT_PUT_BACK_PREFIX}{label}{f' x{n}' if n > 1 else ''}"
+        for label, n in sorted(counts.items())
+    ]
 
 
 def moved_since(asset: Any, baseline: dict[str, Any]) -> list[str]:
