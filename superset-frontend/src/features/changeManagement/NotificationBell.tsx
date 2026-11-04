@@ -164,6 +164,23 @@ export default function NotificationBell() {
 
   const total = count.needs_me + count.returned;
 
+  // Nothing in the queue, no bell.
+  //
+  // The flag alone used to decide this, so every signed-in person carried a
+  // review bell -- including a read-only colleague, who opened it to be
+  // told they were "all caught up" on work they can never do, beside a link
+  // to an Approvals page that is not theirs. No permission separates the
+  // two: Gamma holds can_write on dashboards and charts, and the extension
+  // grants can_review to everyone who can open the page. Taking part in
+  // review is a property of the data -- being an editor of something
+  // somebody has proposed a change to -- so the queue is the honest test,
+  // the same one Home uses for its Pending reviews section.
+  //
+  // The cost is that an editor whose queue empties loses the bell until
+  // something arrives, which is the behaviour the section on Home already
+  // has.
+  if (total === 0) return null;
+
   const content = (
     <PanelBody data-test="review-bell-panel">
       {items.length === 0 && returned.length === 0 ? (

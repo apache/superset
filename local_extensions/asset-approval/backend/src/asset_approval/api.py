@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import copy
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from importlib import import_module
 from typing import Any
 from uuid import UUID
@@ -100,6 +100,13 @@ logger = logging.getLogger(__name__)
 
 #: Activity older than this is not shown (Decision 8: a native 30-day
 #: changelog, not an unbounded feed).
+#: How long after a decision the author is still told about it on the asset.
+#:
+#: Long enough to span a lunch or a meeting, short enough that it reads as
+#: "this just happened" rather than as a record. The record is version
+#: history; Visa keeps no review history of its own (Q7).
+RECENTLY_DECIDED = timedelta(hours=12)
+
 ACTIVITY_WINDOW_DAYS = 30
 
 
@@ -2423,6 +2430,33 @@ class ChangeRequestRestApi(BaseSupersetApi):
             )
             .one_or_none()
         )
+        if change_request is None:
+            # Nothing open. Before answering "nothing to show", look for a
+            # decision this asset's author has not had a chance to see yet.
+            #
+            # An approval was silent: the reviewer's page reloads itself,
+            # and the author found out by opening the dashboard later and
+            # noticing it had changed. Their own change going live is the
+            # one outcome they are waiting for, and the product said
+            # nothing about it. A short window, because this is a nudge on
+            # the way past rather than a record -- the history is in
+            # version history, and SOW Q7 is clear that Visa keeps none of
+            # its own.
+            change_request = (
+                db.session.query(ChangeRequest)
+                .filter(
+                    ChangeRequest.asset_type == kind.value,
+                    ChangeRequest.asset_id == asset_id,
+                    ChangeRequest.status == ChangeStatus.APPROVED.value,
+                    ChangeRequest.author_fk == get_user_id(),
+                    ChangeRequest.decided_at.isnot(None),
+                    ChangeRequest.decided_at
+                    >= datetime.now(timezone.utc) - RECENTLY_DECIDED,
+                )
+                .order_by(ChangeRequest.decided_at.desc())
+                .first()
+            )
+
         if change_request is None:
             return self.response(200, result=None)
 

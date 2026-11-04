@@ -605,6 +605,12 @@ const DashboardBuilder = () => {
   const editMode = useSelector<RootState, boolean>(
     state => state.dashboardState.editMode,
   );
+  // For the review banner: "editing, with edits not yet saved" is a
+  // different thing to say than either of its draft messages, and neither
+  // of those is true while somebody is mid-edit.
+  const hasUnsavedChanges = useSelector<RootState, boolean>(
+    state => !!state.dashboardState.hasUnsavedChanges,
+  );
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -1044,6 +1050,7 @@ const DashboardBuilder = () => {
               assetId={Number(dashboardId)}
               unpublished={dashboardUnpublished}
               editing={editMode}
+              editingUnsaved={editMode && hasUnsavedChanges}
               onApplied={() => window.location.reload()}
               onLiveTitle={showLiveTitle}
             />

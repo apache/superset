@@ -45,6 +45,14 @@ const Actions = styled.div`
 `;
 
 export interface ReviewBannerProps {
+  /**
+   * The host is in edit mode with unsaved edits on screen.
+   *
+   * The draft wording talks about what is published versus what is saved,
+   * and neither describes a half-finished edit nobody has saved yet. Said
+   * to somebody mid-edit it is simply untrue.
+   */
+  editingUnsaved?: boolean;
   changeRequest: ChangeRequest;
   /** Omitted when this asset kind has no in-place preview. */
   showChanges?: {
@@ -94,6 +102,7 @@ export default function ReviewBanner({
   onRequestChanges,
   onDiscard,
   busy = false,
+  editingUnsaved = false,
 }: ReviewBannerProps) {
   const content = useMemo<BannerContent>(() => {
     const {
@@ -116,6 +125,25 @@ export default function ReviewBanner({
       label: t('Open live version'),
       href: assetUrl(changeRequest),
     };
+
+    // Approved, and the author has not been told. The server only sends a
+    // decided request back to its own author, and only briefly -- see
+    // RECENTLY_DECIDED. Informational: there is nothing left to act on.
+    // Guarded on the author as well as the status: the server only sends a
+    // decided request to its own author, and anything else falls through to
+    // the ordinary branches rather than inventing a state for it.
+    if (status === 'approved' && isAuthor) {
+      return {
+        type: 'success',
+        message: changeRequest.reviewer
+          ? t(
+              '%s approved your change · it is live for viewers',
+              displayName(changeRequest.reviewer),
+            )
+          : t('Your change was approved · it is live for viewers'),
+        actions: [whatChanged],
+      };
+    }
 
     if (status === 'changes_requested') {
       if (isAuthor) {
@@ -201,6 +229,24 @@ export default function ReviewBanner({
 
     // Draft.
     if (isAuthor) {
+      // Mid-edit, nothing of this on screen is what the message below
+      // describes. "Your changes are saved" is about the draft, and the
+      // author is looking at edits that are not in it yet; "viewers are
+      // seeing the live version" is true but answers a question they are
+      // not asking. Say what is on screen and what it would take to keep
+      // it, and leave the draft's own wording for when the draft is what
+      // they are looking at.
+      if (editingUnsaved) {
+        return {
+          type: 'info',
+          message: t(
+            'Editing · these edits are not saved yet · your draft from %s is still what is held for review',
+            ago(changeRequest.changed_on),
+          ),
+          actions: [whatChanged],
+        };
+      }
+
       // What is actually on screen, not what exists. The author sees the
       // live asset until they turn Show changes on, and saying "Viewing
       // your changes" before then told them the opposite of the truth
@@ -296,6 +342,7 @@ export default function ReviewBanner({
       ],
     };
   }, [
+    editingUnsaved,
     changeRequest,
     showChanges,
     onApprove,

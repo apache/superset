@@ -95,6 +95,8 @@ export interface AssetReviewProps {
    * read.
    */
   editing?: boolean;
+  /** Edit mode with unsaved edits on screen; changes what the banner says. */
+  editingUnsaved?: boolean;
   /**
    * Called after a decision lands on an asset that still exists, so the host
    * can reload it.
@@ -130,6 +132,7 @@ export default function AssetReview({
   assetId,
   unpublished = false,
   editing = false,
+  editingUnsaved = false,
   onApplied,
   onLiveTitle,
 }: AssetReviewProps) {
@@ -321,6 +324,7 @@ export default function AssetReview({
       <div style={{ flex: 1 }}>
         <ReviewBanner
           changeRequest={changeRequest}
+          editingUnsaved={editingUnsaved}
           busy={busy}
           // Withheld entirely in edit mode, not merely hidden: the banner
           // chooses its wording from whether this prop is here, and hiding
