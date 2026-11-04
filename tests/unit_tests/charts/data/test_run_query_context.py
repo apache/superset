@@ -280,7 +280,9 @@ def _pivot_form_data(rows: list[str], columns: list[str]) -> dict[str, Any]:
 
 
 def test_post_processed_pivot_becomes_rows_with_row_labels() -> None:
-    query = post_processed_rows(_post_process(_pivot_form_data(["state"], ["gender"])))
+    query = post_processed_rows(
+        _post_process(_pivot_form_data(["state"], ["gender"])), row_labels=True
+    )
 
     assert query["colnames"] == [
         ROW_LABEL_COLUMN,
@@ -307,7 +309,7 @@ def test_post_processed_pivot_becomes_rows_with_row_labels() -> None:
 
 def test_post_processed_pivot_joins_multi_level_row_labels() -> None:
     query = post_processed_rows(
-        _post_process(_pivot_form_data(["state", "gender"], []))
+        _post_process(_pivot_form_data(["state", "gender"], [])), row_labels=True
     )
 
     assert query["colnames"] == [ROW_LABEL_COLUMN, "num", "Total (Sum)"]
@@ -322,7 +324,7 @@ def test_post_processed_pivot_joins_multi_level_row_labels() -> None:
 
 
 def test_post_processed_table_drops_default_positions() -> None:
-    query = post_processed_rows(_post_process({"viz_type": "table"}))
+    query = post_processed_rows(_post_process({"viz_type": "table"}), row_labels=False)
 
     assert query["colnames"] == ["state", "gender", "num"]
     assert query["data"] == _SALES
@@ -333,14 +335,43 @@ def test_post_processed_table_drops_default_positions() -> None:
     ]
 
 
+def test_post_processed_rows_keeps_labels_that_look_like_positions() -> None:
+    query = post_processed_rows({"data": {"num": {0: 5, 1: 7}}}, row_labels=True)
+
+    assert query["data"] == [
+        {ROW_LABEL_COLUMN: "0", "num": 5},
+        {ROW_LABEL_COLUMN: "1", "num": 7},
+    ]
+
+
+@pytest.mark.parametrize(
+    ("viz_type", "colnames"),
+    [("table", ["num"]), ("pivot_table_v2", [ROW_LABEL_COLUMN, "num"])],
+)
+def test_row_labels_follow_the_viz_type(
+    mocks: dict[str, mock.MagicMock], viz_type: str, colnames: list[str]
+) -> None:
+    mocks[
+        "ChartDataQueryContextSchema"
+    ].return_value.load.return_value.result_type = ChartDataResultType.POST_PROCESSED
+    mocks["apply_client_processing"].return_value = {
+        "queries": [{"data": {"num": {0: 5, 1: 7}}}]
+    }
+
+    [result] = run_query_context({"queries": [{}], "form_data": {"viz_type": viz_type}})
+
+    assert result.colnames == colnames
+
+
 def test_post_processed_rows_leaves_row_data_alone() -> None:
     query = {"colnames": ["a"], "coltypes": [0], "data": [{"a": 1}]}
-    assert post_processed_rows(query) is query
+    assert post_processed_rows(query, row_labels=True) is query
 
 
 def test_post_processed_rows_flattens_tuple_columns_and_fills_gaps() -> None:
     query = post_processed_rows(
-        {"data": {("m", "x"): {"r1": 1.5, "r2": 2.0}, "n": {"r1": True}}}
+        {"data": {("m", "x"): {"r1": 1.5, "r2": 2.0}, "n": {"r1": True}}},
+        row_labels=True,
     )
 
     assert query["colnames"] == [ROW_LABEL_COLUMN, "m x", "n"]

@@ -74,14 +74,14 @@ def _flatten_label(label: Any) -> str:
     return str(label)
 
 
-def post_processed_rows(query: dict[str, Any]) -> dict[str, Any]:
+def post_processed_rows(query: dict[str, Any], row_labels: bool) -> dict[str, Any]:
     """
     Return ``query`` with post-processed JSON data rebuilt as row records.
 
     Client processing serializes its frame as ``{column: {row label: value}}``
-    and drops the index names, so the row labels become a leading
-    ``ROW_LABEL_COLUMN`` unless they are the default ``0..n-1`` positions.
-    ``colnames`` and ``coltypes`` are recomputed to describe the rows.
+    and drops the index names, so with ``row_labels`` the labels become a
+    leading ``ROW_LABEL_COLUMN``. ``colnames`` and ``coltypes`` are recomputed
+    to describe the rows.
     """
     data = query.get("data")
     if not isinstance(data, dict):
@@ -89,16 +89,14 @@ def post_processed_rows(query: dict[str, Any]) -> dict[str, Any]:
 
     df = pd.DataFrame.from_dict(data)
     df.columns = [_flatten_label(column) for column in df.columns]
-    if df.index.tolist() == list(range(len(df))):
-        df = df.reset_index(drop=True)
-    else:
+    if row_labels:
         df.insert(
             0,
             ROW_LABEL_COLUMN,
             [_flatten_label(label) for label in df.index],
             allow_duplicates=True,
         )
-        df = df.reset_index(drop=True)
+    df = df.reset_index(drop=True)
 
     rows = df.astype(object).where(df.notna(), None)
     return {
@@ -140,12 +138,15 @@ def run_query_context(payload: dict[str, Any]) -> list[ChartQueryResult]:
     result = command.run()
 
     if query_context.result_type == ChartDataResultType.POST_PROCESSED:
-        result = apply_client_processing(
-            result, payload.get("form_data") or {}, query_context.datasource
-        )
+        form_data = payload.get("form_data") or {}
+        result = apply_client_processing(result, form_data, query_context.datasource)
+        # Only the table processor keeps the default index, which CSV omits too.
+        row_labels = form_data.get("viz_type") != "table"
         result = {
             **result,
-            "queries": [post_processed_rows(query) for query in result["queries"]],
+            "queries": [
+                post_processed_rows(query, row_labels) for query in result["queries"]
+            ],
         }
 
     return [
