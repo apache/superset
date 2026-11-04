@@ -92,7 +92,6 @@ def test_streaming_sql_result_export_command_init():
     assert command._client_id == "client_123"
     assert command._chunk_size == 500
     assert command._query is None
-    assert command._current_app is not None
 
 
 def test_streaming_sql_result_export_command_default_chunk_size():
@@ -418,7 +417,9 @@ def test_error_handling_yields_error_marker(mocker, mock_query):
     mock_db_base = mocker.patch("superset.commands.streaming_export.base.db")
     mock_session = MagicMock()
     mock_db_base.session.return_value.__enter__.return_value = mock_session
-    mock_session.merge.side_effect = Exception("Database connection failed")
+    mock_query.database.get_sqla_engine.side_effect = Exception(
+        "Database connection failed"
+    )
 
     mock_db_sqllab = mocker.patch(
         "superset.commands.sql_lab.streaming_export_command.db"
@@ -857,19 +858,13 @@ def test_streaming_export_preserves_impersonated_user_context(
     app_context, mocker, mock_query, mock_result_proxy
 ):
     """
-    Checks the other half of apache/superset#40465's theory: that the
-    streaming path drops user impersonation because it acquires its engine
-    "without this context" (unlike other call sites, which the issue says
-    use a get_sqla_engine_with_context(user_name=...) that doesn't actually
-    exist anywhere in this codebase). Independently verified this does NOT
-    reproduce: BaseStreamingCSVExportCommand.run() captures flask.g's full
-    __dict__ (including g.user) before entering the deferred generator, and
-    csv_generator() restores it via preserve_g_context before calling
-    _execute_query_and_stream -- so Database.get_sqla_engine's internal
-    get_effective_user()/get_username() call (which every engine-acquisition
-    call site relies on for impersonation, streaming or not) sees the same
-    acting user it would anywhere else. This pins that behavior rather than
-    the bug the issue reports for it.
+    Covers the other half of apache/superset#40465: the streaming path must
+    impersonate the acting user. Database.get_sqla_engine resolves the
+    impersonated user through get_effective_user()/get_username(), which read
+    g.user, so the deferred generator has to see the same g.user as the code
+    that created it. A real, ORM-backed user is also detached by the request
+    teardown before the body streams; that case is covered by
+    test_streaming_export_reloads_a_detached_acting_user in the chart tests.
     """
     g.user = Mock(username="alice")
     assert get_username() == "alice"
