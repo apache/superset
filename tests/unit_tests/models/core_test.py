@@ -916,6 +916,88 @@ def test_engine_evicted_on_update_releases_pooled_connection(tmp_path: Path) -> 
     _query_duckdb(edited)
 
 
+def _saved_duckdb_database(session: Session, path: Path) -> Database:
+    """Persist a DuckDB ``Database`` and leave a committed row to edit."""
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = _duckdb_database(path, threads=1)
+    session.add(database)
+    session.commit()
+    return database
+
+
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_evicted_again_when_update_rolls_back(
+    session: Session, tmp_path: Path
+) -> None:
+    """
+    The update's eviction runs at flush, before the transaction is known to
+    commit. If the update then rolls back after an engine built from the edited
+    settings was cached, the committed settings must not be blocked by that
+    engine's pooled connection.
+    """
+    path = tmp_path / "db.duckdb"
+    database = _saved_duckdb_database(session, path)
+    _query_duckdb(database)
+
+    database.extra = _duckdb_database(path, threads=2).extra
+    session.flush()  # after_update evicts the engine for the committed settings
+    _query_duckdb(database)  # e.g. the permission sync after the edit
+
+    session.rollback()
+
+    _query_duckdb(_duckdb_database(path, threads=1))
+
+
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_not_evicted_by_rollback_after_commit(
+    session: Session, tmp_path: Path
+) -> None:
+    """
+    Only a rollback of the transaction that evicted the engines evicts them
+    again; an engine cached after the edit committed survives a later,
+    unrelated rollback.
+    """
+    from superset.models.core import _ENGINE_CACHE
+
+    path = tmp_path / "db.duckdb"
+    database = _saved_duckdb_database(session, path)
+
+    database.extra = _duckdb_database(path, threads=2).extra
+    session.commit()
+    _query_duckdb(database)
+    cached = dict(_ENGINE_CACHE)
+    assert cached
+
+    session.rollback()
+
+    assert _ENGINE_CACHE == cached
+
+
+def test_engine_rollback_eviction_survives_dispose_failure(
+    session: Session, tmp_path: Path
+) -> None:
+    """A failure to dispose an engine never breaks the rollback."""
+    from unittest.mock import MagicMock
+
+    from superset.models.core import _ENGINE_CACHE
+
+    database = _saved_duckdb_database(session, tmp_path / "db.duckdb")
+    engine = MagicMock(pool=MagicMock(spec=QueuePool))
+    engine.dispose.side_effect = RuntimeError("boom")
+    _ENGINE_CACHE.clear()
+    try:
+        database.database_name = "renamed"
+        session.flush()
+        _ENGINE_CACHE[(database.id, "duckdb://", "")] = engine
+
+        session.rollback()
+
+        engine.dispose.assert_called_once()
+        assert _ENGINE_CACHE == {}
+    finally:
+        _ENGINE_CACHE.clear()
+
+
 @pytest.mark.usefixtures("duckdb_engine_cache")
 def test_has_view_closes_its_connection(tmp_path: Path) -> None:
     """
