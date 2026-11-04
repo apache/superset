@@ -1153,11 +1153,15 @@ class SQLExecutor:
         :param catalog: Catalog name
         :param schema: Schema name
         """
-        from superset.utils.rls import apply_rls
+        from superset.utils.rls import apply_rls, get_rls_default_schema
 
-        # Apply RLS to each statement in the script
+        # A query without a schema still reads unqualified tables from the
+        # connection's default schema, so RLS targets that schema too.
+        rls_schema = get_rls_default_schema(
+            self.database, catalog, schema, script.statements
+        )
         for statement in script.statements:
-            apply_rls(self.database, catalog, schema or "", statement)
+            apply_rls(self.database, catalog, rls_schema, statement)
 
     def _create_query_record(
         self,

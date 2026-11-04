@@ -41,7 +41,7 @@ from superset.jinja_context import get_template_processor
 from superset.models.core import Database
 from superset.sql.parse import SQLScript
 from superset.utils import core as utils, json
-from superset.utils.rls import apply_rls
+from superset.utils.rls import apply_rls, get_rls_default_schema
 
 logger = logging.getLogger(__name__)
 
@@ -158,8 +158,13 @@ class QueryEstimationCommand(BaseCommand):
             raise SupersetDMLNotAllowedException()
 
         if rls_enabled:
+            # A query without a schema still reads unqualified tables from the
+            # connection's default schema, so RLS targets that schema too.
+            rls_schema = get_rls_default_schema(
+                self._database, catalog, effective_schema, parsed_script.statements
+            )
             for statement in parsed_script.statements:
-                apply_rls(self._database, catalog, effective_schema, statement)
+                apply_rls(self._database, catalog, rls_schema, statement)
             return parsed_script.format()
 
         return sql

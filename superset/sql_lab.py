@@ -82,7 +82,7 @@ from superset.utils.core import (
 from superset.utils.database import warm_and_release_connection
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
-from superset.utils.rls import apply_rls
+from superset.utils.rls import apply_rls, get_rls_default_schema
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -549,8 +549,13 @@ def execute_sql_statements(  # noqa: C901
         raise SupersetDMLNotAllowedException()
 
     if rls_enabled:
+        # A query without a schema still reads unqualified tables from the
+        # connection's default schema, so RLS targets that schema too.
+        rls_schema = get_rls_default_schema(
+            database, query.catalog, effective_schema, parsed_script.statements
+        )
         for statement in parsed_script.statements:
-            apply_rls(query.database, query.catalog, effective_schema, statement)
+            apply_rls(query.database, query.catalog, rls_schema, statement)
 
     if query.select_as_cta:
         # CTAS is valid when the last statement is a SELECT, while CVAS is valid when

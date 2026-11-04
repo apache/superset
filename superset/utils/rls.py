@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from functools import partial
 from typing import Any, TYPE_CHECKING
 
@@ -69,12 +69,44 @@ def get_rls_schema(
     returns no schema, keep the configured schema rather than losing its RLS rules.
     """
     if database.db_engine_spec.supports_dynamic_schema:
-        return schema or database.get_default_schema(catalog) or ""
+        return get_rls_default_schema(database, catalog, schema)
     return (
         database.resolve_query_default_schema(sql, schema, catalog, template_params)
         or schema
         or ""
     )
+
+
+def get_rls_default_schema(
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+    statements: Iterable[BaseSQLStatement[Any]] | None = None,
+) -> str:
+    """
+    The schema RLS qualifies unqualified tables with, given the per-query schema.
+
+    An engine with dynamic-schema support takes the per-query schema from the
+    request, so a request without one has no per-query schema. The connection still
+    resolves an unqualified table to its default schema (the Postgres
+    ``search_path``, for instance), so RLS must look the table up there too, or the
+    rules of a dataset registered in that schema are skipped.
+
+    :param schema: The per-query schema already resolved for execution, if any
+    :param statements: The statements RLS is applied to. When given, the default
+        schema is only discovered if one of them reads an unqualified table, since
+        discovery connects to the database.
+    :returns: The schema, or an empty string when it can't be determined
+    """
+    if schema:
+        return schema
+    if not database.db_engine_spec.supports_dynamic_schema:
+        return ""
+    if statements is not None and all(
+        table.schema for statement in statements for table in statement.tables
+    ):
+        return ""
+    return database.get_default_schema(catalog) or ""
 
 
 def apply_rls(
