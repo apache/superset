@@ -12188,6 +12188,8 @@ msgid "Locate the chart"
 msgstr "Лоцирај графикон"
 
 # ru, uk]
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr "Log"
 

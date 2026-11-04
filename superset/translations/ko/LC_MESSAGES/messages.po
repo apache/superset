@@ -14755,6 +14755,8 @@ msgstr "로컬 테마가 \"%s\"(으)로 설정됨"
 msgid "Locate the chart"
 msgstr "새 차트 생성"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "로그"

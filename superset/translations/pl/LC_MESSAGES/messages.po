@@ -11099,6 +11099,8 @@ msgstr "Lokalny motyw ustawiony na \"%s\""
 msgid "Locate the chart"
 msgstr "Zlokalizuj wykres"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "dziennik"
