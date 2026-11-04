@@ -555,3 +555,7 @@ class MySemanticView(SemanticView):
 Providers that omit the declaration retain Explore's existing first temporal
 column fallback. This preference does not change the time dimension already
 selected on a saved chart.
+
+Dashboard chart pagination and empty filter resets do not contribute semantic
+member selections to other charts. Cross-filters that select members still carry
+their source view and selection version, and incompatible views remain rejected.
