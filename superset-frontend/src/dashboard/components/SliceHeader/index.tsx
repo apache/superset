@@ -397,6 +397,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               {!uiConfig.hideChartControls && !isMobile && (
                 <SliceHeaderControls
                   slice={slice}
+                  sliceName={sliceName}
                   isCached={isCached}
                   isExpanded={isExpanded}
                   cachedDttm={cachedDttm}

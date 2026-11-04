@@ -40,6 +40,7 @@ import {
   JsonObject,
   QueryFormData,
 } from '@superset-ui/core';
+import type { menus } from '@apache-superset/core';
 import { logging } from '@apache-superset/core/utils';
 import { css, useTheme, styled } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
@@ -115,6 +116,8 @@ export interface SliceHeaderControlsProps {
     slice_description: string;
     datasource: string;
   };
+  /** Title shown in the chart header, which may override `slice.slice_name`. */
+  sliceName?: string;
 
   defaultOpen?: boolean;
   componentId: string;
@@ -141,7 +144,7 @@ export interface SliceHeaderControlsProps {
   exportFullXLSX?: (sliceId: number) => void;
   getExportPayload?: (
     resultType: 'full' | 'post_processed',
-  ) => Promise<JsonObject>;
+  ) => Promise<menus.ChartDataRequest>;
   handleToggleFullSize: () => void;
   exportPivotExcel?: (tableSelector: string, sliceName: string) => void;
 
@@ -467,6 +470,7 @@ const SliceHeaderControls = (
   const isImageOnlyExport = isImageOnlyExportViz(slice.viz_type);
   const canDownload = !!props.supersetCanDownload;
   const { getExportPayload } = props;
+  const displayedChartName = props.sliceName || slice.slice_name;
   const getPayloadFor = (resultType: 'full' | 'post_processed') => () =>
     getExportPayload
       ? getExportPayload(resultType)
@@ -475,7 +479,7 @@ const SliceHeaderControls = (
     'dashboard.chart.download',
     {
       getPayload: getPayloadFor('full'),
-      chartName: slice.slice_name,
+      chartName: displayedChartName,
       canDownload,
     },
   );
@@ -483,7 +487,7 @@ const SliceHeaderControls = (
     'dashboard.chart.download.pivoted',
     {
       getPayload: getPayloadFor('post_processed'),
-      chartName: slice.slice_name,
+      chartName: displayedChartName,
       canDownload,
     },
   );

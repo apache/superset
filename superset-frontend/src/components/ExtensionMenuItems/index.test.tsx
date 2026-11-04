@@ -28,7 +28,12 @@ import {
 } from '.';
 
 const ctx = {
-  getPayload: async () => ({}),
+  getPayload: async () => ({
+    datasource: { id: 1, type: 'table' },
+    queries: [],
+    result_type: 'full',
+    result_format: 'json',
+  }),
   chartName: 'Sales',
   canDownload: true,
 };

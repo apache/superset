@@ -99,7 +99,12 @@ test('appends items contributed to the provider location', async () => {
       <ChartDownloadProvider
         location="chart.drillBy.download"
         context={{
-          getPayload: async () => ({}),
+          getPayload: async () => ({
+            datasource: { id: 1, type: 'table' },
+            queries: [],
+            result_type: 'full',
+            result_format: 'json',
+          }),
           chartName: 'Sales',
           canDownload: true,
         }}
