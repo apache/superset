@@ -74,9 +74,9 @@ distinct values and a single NULL group: tied rows may come back in either order
 For `null_placement_secondary`, use at least two order keys, with a selected
 dimension carrying explicit NULL placement on the second key. Seed NULL and
 non-NULL values within a tie on the first key. Use at least two first-key
-groups, with NULLs in an earlier group, so moving NULLs to the end of the whole
-result cannot pass. Put the page boundary inside
-that tie so reversing only the second key's placement changes the retained rows.
+groups, with NULLs before the final group for LAST or after the first group for
+FIRST, so moving NULLs to the requested end of the whole result cannot pass.
+Put the page boundary inside that tie so reversing only the second key's placement changes the retained rows.
 The example orders by month then category, skips January's first row and keeps
 its NULL category (total 3); dropping secondary `NULLS LAST` instead keeps A
 (total 2). The suite checks placement within each tied prefix, not globally. The page must

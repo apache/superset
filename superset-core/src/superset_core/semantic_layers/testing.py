@@ -433,8 +433,13 @@ def _assert_null_placement_witness(
     assert query.limit is not None
     assert query.limit > 0
     full: pa.Table = view.get_table(replace(query, limit=None, offset=None)).results
+    column: pa.ChunkedArray = full.column(member.name)
+    if pa.types.is_dictionary(column.type):
+        column = column.cast(column.type.value_type)
+    null_mask: list[bool] = column.is_null().to_pylist()
     values: list[pa.Scalar | None] = [
-        value if value.is_valid else None for value in full.column(member.name)
+        None if is_null else value
+        for value, is_null in zip(column, null_mask, strict=True)
     ]
     assert any(value is None for value in values), (
         "null_placement fixture requires NULL values of the order key"
@@ -456,11 +461,13 @@ def _assert_null_placement_witness(
         groups.setdefault(order_values[index][:order_index], []).append(index)
     if order_index:
         assert len(groups) > 1, "secondary placement requires multiple prefix groups"
-        assert any(
-            values[index] is None
-            for indices in list(groups.values())[:-1]
-            for index in indices
-        ), "secondary placement requires NULLs before the final prefix group"
+        last: bool = placement is NullPlacement.LAST
+        ordered: list[list[int]] = list(groups.values())
+        movable: list[list[int]] = ordered[:-1] if last else ordered[1:]
+        side: str = "before the final" if last else "after the first"
+        assert any(values[index] is None for group in movable for index in group), (
+            f"secondary placement requires NULLs {side} prefix group"
+        )
     placed: list[int] = []
     opposite: list[int] = []
     indices: list[int]

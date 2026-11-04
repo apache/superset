@@ -1366,3 +1366,87 @@ def test_secondary_null_placement_rejects_global_nulls_last_provider(
             semantic_view,
             semantic_query_cases,
         )
+
+
+@pytest.mark.parametrize("null_group", ["early", "late"])
+def test_secondary_nulls_first_requires_nulls_after_first_prefix(
+    semantic_view: "QueryView",
+    monkeypatch: pytest.MonkeyPatch,
+    null_group: str,
+) -> None:
+    """FIRST must expose NULLs moved ahead of a preceding prefix, not just LAST."""
+    prefix: Dimension = Dimension("prefix", "prefix", pa.string())
+    category: Dimension = Dimension("category", "category", pa.string())
+    early: bool = null_group == "early"
+    full: pa.Table = pa.table(
+        {
+            "prefix": ["one", "one", "two"] if early else ["one", "two", "two"],
+            "category": pa.array(
+                [None, "A", "A"] if early else ["A", None, "A"], type=pa.string()
+            ),
+        }
+    )
+    offset: int = 0 if early else 1
+    query: SemanticQuery = SemanticQuery(
+        [],
+        [prefix, category],
+        order=[
+            (prefix, OrderDirection.ASC),
+            OrderTerm(category, OrderDirection.ASC, NullPlacement.FIRST),
+        ],
+        offset=offset,
+        limit=1,
+    )
+
+    def get_table(value: SemanticQuery) -> SemanticResult:
+        """Serve the fixed original and opposite orders within each prefix."""
+        order: list[int] = [1, 0, 2] if early else [0, 2, 1]
+        result: pa.Table = (
+            full if value.limit is None else full.take(order).slice(offset, 1)
+        )
+        return SemanticResult(requests=[], results=result)
+
+    monkeypatch.setattr(semantic_view, "get_table", get_table)
+    if early:
+        with pytest.raises(AssertionError, match="NULLs after the first"):
+            _assert_null_placement_witness(
+                query, semantic_view, full.slice(offset, 1), order_index=1
+            )
+    else:
+        _assert_null_placement_witness(
+            query, semantic_view, full.slice(offset, 1), order_index=1
+        )
+
+
+def test_null_placement_accepts_dictionary_encoded_null_values(
+    semantic_view: "QueryView",
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An encoded dictionary NULL remains NULL even though its index is valid."""
+    column: pa.ChunkedArray = pa.chunked_array(
+        [
+            pa.array(["A", "B", None]).dictionary_encode(null_encoding="encode"),
+        ]
+    )
+    assert column[2].is_valid
+    assert column.to_pylist() == ["A", "B", None]
+    dimension: Dimension = Dimension("category", "category", column.type)
+    full: pa.Table = pa.table({"category": column})
+    query: SemanticQuery = SemanticQuery(
+        [],
+        [dimension],
+        order=[
+            OrderTerm(dimension, OrderDirection.ASC, NullPlacement.LAST),
+        ],
+        limit=1,
+    )
+
+    def get_table(value: SemanticQuery) -> SemanticResult:
+        """Serve the original and reversed dictionary-encoded fixture pages."""
+        result: pa.Table = (
+            full if value.limit is None else full.take([2, 0, 1]).slice(0, 1)
+        )
+        return SemanticResult(requests=[], results=result)
+
+    monkeypatch.setattr(semantic_view, "get_table", get_table)
+    _assert_null_placement_witness(query, semantic_view, full.slice(0, 1))
