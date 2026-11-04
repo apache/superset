@@ -417,7 +417,7 @@ def _declared_paths() -> Sequence[Any]:
     return WRITE_PATHS
 
 
-def verify_bindings(
+def verify_installation(
     app: Any | None = None, declared: Iterable[Any] | None = None
 ) -> BindingReport:
     """Check that every declared write path is bound the way it is declared.
@@ -519,3 +519,26 @@ def _route_defects(app: Any | None) -> list[BindingDefect]:
                 )
                 break
     return defects
+
+
+def verify_bindings(
+    app: Any | None = None, declared: Iterable[Any] | None = None
+) -> Any:
+    """The coverage-aware report, under the name everything already calls.
+
+    :func:`verify_installation` above answers "is each declared path bound
+    the way it says", which is necessary and not sufficient: it asks whether
+    *something* wraps the target, never what the wrapper covers. So it
+    printed ``declared=25 verified=25 ok=True`` while
+    ``Superset.save_or_overwrite_slice`` was gated on its ``overwrite``
+    branch alone and the four importers held nothing on a first-time import
+    -- five paths the report called clean (D3).
+
+    ``bindings.verify_bindings`` is the instrument that knows about partial
+    coverage. This name delegates to it so that running the obvious thing
+    tells the truth, rather than leaving a clean-looking report answering to
+    the name a reader would reach for first.
+    """
+    from asset_approval.bindings import verify_bindings as _coverage_aware
+
+    return _coverage_aware(app, declared)

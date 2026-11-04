@@ -21,8 +21,11 @@ promise, so core refuses the write instead.
 
 from __future__ import annotations
 
+import functools
+import inspect
 import logging
 from dataclasses import dataclass
+from importlib import import_module
 from typing import Any, Callable
 
 from asset_approval.changes import (
@@ -39,8 +42,11 @@ from asset_approval.gate import (
     combine_key_values,
     gate_delete,
     gate_write,
+    ctor_signature,
     has_ever_been_published,
+    KWARGS_KEY,
     mark_published,
+    remember_signature,
     refuse_import_overwrite,
     refuse_unreviewable_write,
     RESTORE_COMMAND,
@@ -48,12 +54,18 @@ from asset_approval.gate import (
     UPSERT_EMBEDDED_COMMAND,
 )
 from asset_approval.install import (
+    BindingDefect,
+    BindingReport,
     gate_method,
     gate_run,
     rebind_registered_routes,
     REVIEW_COMMANDS,
-    verify_bindings,
 )
+
+try:
+    from asset_approval.install import verify_installation
+except ImportError:  # install.verify_bindings has not been split yet
+    from asset_approval.install import verify_bindings as verify_installation
 from asset_approval.types import AssetType
 
 logger = logging.getLogger(__name__)
@@ -74,6 +86,31 @@ EXEMPT = "exempt"
 
 
 @dataclass(frozen=True)
+class Uncovered:
+    """A branch of a gated write path that the gate does not reach.
+
+    ``GATED`` used to be all a path could say, so a gate that holds the
+    ``overwrite`` branch of a save and returns early on every other one was
+    reported exactly like a gate that holds the lot. Four rows were filed
+    against a path the report called fully covered. A gap is now something a
+    path *declares*, with the reason and the row it is filed under, and
+    verification fails on one that is not declared.
+
+    The declaration is checked against the path's ``probes`` when the branch
+    has one: a probe runs the question the real gate asks of a synthetic call
+    down that branch and answers whether the gate takes hold of it. A declared
+    gap whose probe now says "held" is stale and fails, so closing a gap means
+    deleting its declaration; and a probed branch the gate does not hold that
+    nobody declared fails too. A branch with no probe is a statement of fact
+    that verification lists but cannot check.
+    """
+
+    branch: str
+    why: str
+    tracked: str
+
+
+@dataclass(frozen=True)
 class WritePath:
     """One governed write path, and how the gate reaches it.
 
@@ -81,6 +118,20 @@ class WritePath:
     whose ``run`` is wrapped, or ``"method"`` for a write that has no
     command in the host build and can only be reached at the method the
     API calls inline.
+
+    ``args`` names the parameters of the command (or method) that the gate
+    accounts for -- identities and request bodies, and anything the gate
+    reads and captures itself. A command that takes a parameter not named
+    here is a write the gate does not know it has, which is how
+    ``delete_metric_ids`` and ``preserve_existing_metrics`` came to act on a
+    dataset with nothing captured. Verification compares it to the real
+    signature, so the next keyword someone adds fails there instead of
+    becoming a new escape. Commands bound with ``capture`` have the rest
+    captured by default and need name only what comes before it.
+
+    ``uncovered`` and ``probes`` are described on :class:`Uncovered`:
+    ``probes`` is every branch of the write that can be exercised, by the name
+    ``uncovered`` uses for it, each answering whether the gate takes hold of it.
     """
 
     module_path: str
@@ -92,14 +143,120 @@ class WritePath:
     via: str = "run"
     capture: bool = False
     validate_first: bool = True
+    args: tuple[str, ...] = ()
+    uncovered: tuple[Uncovered, ...] = ()
+    probes: tuple[tuple[str, Callable[[], bool]], ...] = ()
 
     @property
     def target(self) -> str:
         return f"{self.class_name}.{self.attr}"
 
 
+#: How many leading constructor parameters are the asset's identity and the
+#: request body rather than arguments: ``(model_id, data)`` on every update
+#: command. The body is captured on its own, so everything after them is a
+#: keyword the command takes.
+IDENTITY_PARAMETERS = 2
+
+
 def _payload(command: Any) -> dict[str, Any]:
     return getattr(command, "_captured_payload", {}) or {}
+
+
+#: The attribute the constructor wrapper leaves the call's arguments on.
+_ARGUMENTS_ATTR = "_captured_arguments"
+
+
+def capture_arguments(command_cls: Any) -> None:
+    """Snapshot what a command was constructed with, beyond its id and body.
+
+    The gate used to read the one or two arguments it knew about off the
+    command's own attributes, which only works for the ones someone
+    remembered to look for and that the command happens to keep. This takes
+    them from the call itself: every argument the caller passed, by name.
+    Wrapped once (the marker), and before ``install.capture_payload`` wraps
+    the same constructor, so :func:`~asset_approval.gate.remember_signature`
+    can still read the real parameters.
+    """
+    remember_signature(command_cls)
+    original_init = command_cls.__init__
+    if getattr(original_init, "__asset_approval_arguments__", False):
+        return
+    signature = ctor_signature(command_cls)
+
+    @functools.wraps(original_init)
+    def patched_init(self: Any, *args: Any, **kwargs: Any) -> None:
+        original_init(self, *args, **kwargs)
+        try:
+            bound = signature.bind(self, *args, **kwargs)
+        except TypeError:
+            # The original constructor accepted the call, so a mismatch is
+            # this module's signature being stale, not the caller's error.
+            return
+        names = list(signature.parameters)[1 + IDENTITY_PARAMETERS :]
+        setattr(
+            self,
+            _ARGUMENTS_ATTR,
+            {n: v for n, v in bound.arguments.items() if n in names},
+        )
+
+    patched_init.__asset_approval_arguments__ = True  # type: ignore[attr-defined]
+    command_cls.__init__ = patched_init
+
+
+def _nothing(value: Any) -> bool:
+    """Whether a keyword's value is the same as not passing it at all."""
+    return value is None or value is False or value == "" or (
+        isinstance(value, (list, tuple, set, frozenset, dict)) and not value
+    )
+
+
+def _json_safe(name: str, value: Any) -> Any:
+    """A keyword's value as the JSON a capture is stored in.
+
+    A value that cannot be stored cannot be replayed, and a capture that
+    approval cannot reproduce is the defect this exists to end. So it is
+    refused up front, at the author, rather than discovered at approval.
+    """
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if isinstance(value, (set, frozenset)):
+        return sorted((_json_safe(name, item) for item in value), key=repr)
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(name, item) for item in value]
+    if isinstance(value, dict):
+        return {str(k): _json_safe(name, v) for k, v in value.items()}
+    refuse_unreviewable_write(
+        f"A save that passes {name!r}",
+        "Make the change through the editor and save, so it can be reviewed.",
+    )
+    return None  # review off: the gate never gets here, nothing is stored
+
+
+def _arguments_of(
+    command: Any, *, already_captured: tuple[str, ...] = ()
+) -> dict[str, Any]:
+    """The ``command_args`` entry for the keywords this command was given.
+
+    Everything the caller passed that differs from the keyword's own default,
+    unless the gate captures it elsewhere (``already_captured``). Not a list
+    of the keywords someone knew about: a keyword that is not here has to be
+    named in ``already_captured`` to be left out, so a new one is captured
+    until somebody decides otherwise.
+    """
+    given = getattr(command, _ARGUMENTS_ATTR, None) or {}
+    parameters = ctor_signature(type(command)).parameters
+    captured: dict[str, Any] = {}
+    for name, value in given.items():
+        if name in already_captured:
+            continue
+        default = getattr(parameters.get(name), "default", inspect.Parameter.empty)
+        if default is inspect.Parameter.empty:
+            default = None
+        if value == default or (_nothing(value) and _nothing(default)):
+            continue
+        captured[name] = _json_safe(name, value)
+    return {KWARGS_KEY: captured} if captured else {}
 
 
 def install_review_commands() -> None:
@@ -164,6 +321,12 @@ def _keep_the_promise_only_if_the_gate_is_whole() -> None:
     log needs to know which path, not just that there was one.
     """
     report = verify_bindings(_app_if_any())
+    # Said every boot, and not as an error: a declared gap is known and filed,
+    # which is why it does not withhold the promise. It is logged so that a
+    # gate which is installed and whole is not mistaken for one that is
+    # complete.
+    for gap in getattr(report, "partial", ()):
+        logger.warning("asset-approval: write path only partly gated -- %s", gap)
     if report.ok:
         _tell_core_the_promise_is_kept()
         return
@@ -193,6 +356,13 @@ def install_bindings() -> None:
         if path.via == "method":
             gate_method(path.module_path, path.class_name, path.attr, path.gate)
         else:
+            if path.capture:
+                try:
+                    capture_arguments(
+                        getattr(import_module(path.module_path), path.class_name)
+                    )
+                except (ImportError, AttributeError):
+                    pass  # ``gate_run`` logs the unresolved path
             gate_run(
                 path.module_path,
                 path.class_name,
@@ -300,8 +470,9 @@ def _gate_dashboard_update(command: Any) -> None:
     """
     model = command._model
     payload = _payload(command)
+    arguments = _arguments_of(command)
 
-    if _only_exempt(model, payload):
+    if not arguments and _only_exempt(model, payload):
         return
 
     published_now = bool(getattr(model, "published", False))
@@ -318,7 +489,103 @@ def _gate_dashboard_update(command: Any) -> None:
         if not has_ever_been_published(AssetType.DASHBOARD, model.id):
             return
 
-    gate_write(AssetType.DASHBOARD, model.id, payload)
+    # ``fold_fields``: a second save that posts only some of the fields (the
+    # Properties dialog never carries ``position_json``) is a statement about
+    # those fields. Without it the second save replaced the whole draft and
+    # the response still said "Changes updated in your existing draft" (B3).
+    # And refined, because the layout is not where that sentence suggests:
+    # the dashboard save carries it *inside* ``json_metadata``, so folding by
+    # field alone would still replace it.
+    gate_write(
+        AssetType.DASHBOARD,
+        model.id,
+        payload,
+        command_args=arguments or None,
+        fold_fields=_keep_the_layout_the_draft_holds,
+    )
+
+
+def _keep_the_layout_the_draft_holds(
+    draft: dict[str, Any], body: dict[str, Any], merged: dict[str, Any]
+) -> dict[str, Any]:
+    """Correct the plain field-by-field fold for a dashboard's layout.
+
+    The shipped layout save does not send ``position_json``; it sends the
+    layout as ``positions`` inside ``json_metadata``, and the server pulls it
+    out into the column. The Properties dialog sends nine fields and a
+    ``json_metadata`` with no layout in it. Folded field by field, that second
+    ``json_metadata`` replaces the first and the author's layout edit is gone,
+    which is the defect B3 describes -- by a different route than the one it
+    is usually described by, and one that adding ``fold_fields`` alone does
+    not close.
+
+    The rule is what the two saves in order would do. Applying a
+    ``json_metadata`` merges its keys over what is stored, so a key the later
+    save leaves out keeps the earlier one's value, and a layout is replaced
+    only by a later save that states one. A later ``position_json`` of its own
+    states one; a ``json_metadata`` that is empty states none at all.
+    """
+    layout = "positions"
+    if "json_metadata" not in body:
+        # Untouched by this save, so the draft's stands -- unless a raw layout
+        # arrived, which would otherwise be overridden by the one in there.
+        if "position_json" in body:
+            return _without_layout(merged, layout)
+        return merged
+    if not body["json_metadata"]:
+        # Empty is "leave the metadata alone" to the command, so the draft's
+        # metadata, layout included, is still what the dashboard will hold.
+        if "json_metadata" in draft:
+            merged["json_metadata"] = draft["json_metadata"]
+        return merged
+    drafted, incoming = _metadata_object(draft.get("json_metadata")), _metadata_object(
+        body["json_metadata"]
+    )
+    if (
+        drafted is None
+        or incoming is None
+        or incoming.get(layout) is not None
+        or "position_json" in body
+        or drafted.get(layout) is None
+    ):
+        return merged
+    carried = {**incoming, layout: drafted[layout]}
+    merged["json_metadata"] = (
+        carried if isinstance(body["json_metadata"], dict) else json.dumps(carried)
+    )
+    return merged
+
+
+def _metadata_object(value: Any) -> dict[str, Any] | None:
+    """A ``json_metadata`` value as an object, or ``None`` if it is not one."""
+    if isinstance(value, dict):
+        return value
+    try:
+        parsed = json.loads(value) if isinstance(value, str) and value else None
+    except (ValueError, TypeError):
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def _without_layout(merged: dict[str, Any], layout: str) -> dict[str, Any]:
+    metadata = _metadata_object(merged.get("json_metadata"))
+    if metadata is None or layout not in metadata:
+        return merged
+    stripped = {k: v for k, v in metadata.items() if k != layout}
+    merged["json_metadata"] = (
+        stripped if isinstance(merged["json_metadata"], dict) else json.dumps(stripped)
+    )
+    return merged
+
+
+def _legacy_save_is_held(action: str | None, slc: Any) -> bool:
+    """Whether the gate takes hold of this legacy save at all.
+
+    Pulled out of the gate so that verification asks the question the gate
+    itself asks, rather than a second copy of it: the ``WritePath`` probes
+    call this with each ``action`` and report what comes back.
+    """
+    return action == "overwrite" and slc is not None and bool(getattr(slc, "id", None))
 
 
 def _gate_legacy_slice_save(
@@ -350,14 +617,9 @@ def _gate_legacy_slice_save(
 
     action = request.args.get("action")
 
-    # NOTE: ``save_to_dashboard_id`` on this same call attaches the chart to
-    # a dashboard, which changes that dashboard for its viewers (129069).
-    # It is deliberately NOT captured here: replaying it means re-attaching
-    # a chart to a dashboard, which no command expresses, and capturing a
-    # request that approval cannot apply would turn a visible bug into a
-    # silent one. That one needs its own command before it can be gated.
-
-    if action != "overwrite" or slc is None or not getattr(slc, "id", None):
+    if not _legacy_save_is_held(action, slc):
+        # Not covered, and declared as such on the ``WritePath``: ``saveas``
+        # creates a chart and may attach it to a published dashboard (A4).
         return
 
     form_data = get_form_data()[0]
@@ -376,12 +638,61 @@ def _gate_legacy_slice_save(
     # body is the same shape, it reaches the same ``gate_write``, and
     # without it this would be the one chart path that still replaces an
     # open draft wholesale.
+    #
+    # The dashboard the save names is part of the write. The view attaches the
+    # chart to it after the update, which changes that dashboard for its
+    # viewers (129069), and a gate that held the rename and forgot the attach
+    # let the author be told "Changes saved", the reviewer be shown a rename
+    # with no mention of a dashboard, and the join row never be written (B7).
+    # Carried with the capture, shown to the reviewer from there, and done on
+    # approval (``replay.ChartSaveWithDashboard``).
     gate_write(
         AssetType.CHART,
         slc.id,
         {k: v for k, v in payload.items() if v is not None},
+        command_args=_dashboard_the_save_names(request.args),
         fold_fields=True,
     )
+
+
+def _dashboard_the_save_names(args: Any) -> dict[str, Any] | None:
+    """The ``command_args`` for the dashboard a legacy save attaches to, if any.
+
+    Checked here with the view's own rules, as the author, because the gate
+    runs *before* the view and so before its checks: a capture that approval
+    cannot carry out (the dashboard is gone, or the author cannot edit it)
+    would sit pending on the chart's only open slot, and returning to let the
+    view answer would let it overwrite the chart first. Refusing is the
+    answer the author gets either way; this one says so before anything moved.
+    """
+    from superset import db, security_manager
+    from superset.models.dashboard import Dashboard
+
+    target = args.get("save_to_dashboard_id")
+    new_name = args.get("new_dashboard_name")
+    if target:
+        try:
+            dashboard = (
+                db.session.query(Dashboard).filter_by(id=int(target)).one_or_none()
+            )
+        except (TypeError, ValueError):
+            dashboard = None
+        if dashboard is None or not security_manager.is_editor(dashboard):
+            refuse_unreviewable_write(
+                "Saving a chart to a dashboard you cannot edit",
+                "Ask an editor of that dashboard to add the chart.",
+            )
+            return None
+        return {KWARGS_KEY: {"save_to_dashboard_id": dashboard.id}}
+    if new_name:
+        if not security_manager.can_access("can_write", "Dashboard"):
+            refuse_unreviewable_write(
+                "Saving a chart to a new dashboard you cannot create",
+                "Ask someone who can create dashboards to do it.",
+            )
+            return None
+        return {KWARGS_KEY: {"new_dashboard_name": str(new_name)}}
+    return None
 
 
 def _gate_embedded_upsert(
@@ -731,7 +1042,11 @@ def _gate_chart_update(command: Any) -> None:
     and with it the empty-change test (129076), the baseline (QA-24) and
     R4-01 for every chart.
     """
-    if _only_exempt(command._model, _payload(command)):
+    # ``normalization_changes`` is version-history bookkeeping, not part of
+    # what the save does, and keeps the key the fold already knows it by.
+    # Every *other* keyword the command was given is captured and replayed.
+    arguments = _arguments_of(command, already_captured=("normalization_changes",))
+    if not arguments and _only_exempt(command._model, _payload(command)):
         return
     gate_write(
         AssetType.CHART,
@@ -740,7 +1055,8 @@ def _gate_chart_update(command: Any) -> None:
         command_args={
             "normalization_changes": getattr(
                 command, "_normalization_changes", None
-            )
+            ),
+            **arguments,
         },
         fold_fields=True,
     )
@@ -751,21 +1067,59 @@ def _gate_chart_delete(command: Any) -> None:
 
 
 def _gate_dataset_update(command: Any) -> None:
-    if _only_exempt(command._model, _payload(command)):
+    """Gate a dataset edit: its body, and every keyword it was given.
+
+    The keywords matter here more than anywhere. ``delete_metric_ids`` is a
+    write whose body is empty, so there is no diff for anything to hold
+    (A12); ``preserve_existing_metrics`` decides whether the metrics list in
+    the body replaces the dataset's metrics or adds to them, and a replay
+    without it deleted every metric the author never mentioned (B2);
+    ``override_columns`` decides whether the columns are replaced and
+    refreshed. All three, and any keyword added later, are captured by
+    :func:`_arguments_of` and handed back on approval.
+
+    ``fold_fields`` because the dataset editor posts the fields of the tab
+    the author was on, and a second save is a statement about those, not a
+    replacement for the first (B3). Two saves with different keywords are
+    not folded -- see :func:`~asset_approval.gate._same_kind`.
+    """
+    arguments = _arguments_of(command)
+    if not arguments and _only_exempt(command._model, _payload(command)):
         return
     gate_write(
         AssetType.DATASET,
         command._model.id,
         _payload(command),
-        command_args={
-            "override_columns": getattr(command, "override_columns", False)
-        },
+        command_args=arguments or None,
+        fold_fields=True,
     )
 
 
 def _gate_dataset_delete(command: Any) -> None:
     gate_delete(AssetType.DATASET, [m.id for m in (command._models or [])])
 
+
+class _ExistingChart:
+    """A stand-in for a saved chart, which is all a probe needs of one."""
+
+    id = 1
+
+
+def _saving_as(action: str) -> Callable[[], bool]:
+    """A probe: does the legacy-save gate take hold of this ``action``?"""
+    return lambda: _legacy_save_is_held(action, _ExistingChart())
+
+
+#: What every importer shares: the refusal fires only for a bundle that lands
+#: on a live asset, so one that creates new assets is not touched at all.
+_IMPORT_CREATES = Uncovered(
+    "an import whose assets do not exist yet",
+    "Scoped to collisions so a first-time import still works (S-06), which "
+    "means a bundle carrying published: true creates a live, published "
+    "dashboard with its charts and no request is ever made. The gate cannot "
+    "represent a creation (D1), so there is no row to add.",
+    "A6, D1",
+)
 
 #: Every write path the gate is responsible for, and its disposition.
 #:
@@ -791,6 +1145,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "been published, because no viewer can reach a draft (SOW 5.1).",
         _gate_dashboard_update,
         capture=True,
+        args=("model_id", "data"),
     ),
     WritePath(
         "superset.commands.dashboard.update",
@@ -800,6 +1155,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "Native filters arrive as a diff of one json_metadata list, which "
         "folds into an open draft instead of replacing it (R4-08).",
         _gate_config_diff("native_filter_configuration"),
+        args=("model_id", "data"),
     ),
     WritePath(
         "superset.commands.dashboard.update",
@@ -808,6 +1164,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         GATED,
         "Chart customizations arrive as a diff, as native filters do.",
         _gate_config_diff("chart_customization_config"),
+        args=("model_id", "data"),
     ),
     WritePath(
         "superset.commands.dashboard.update",
@@ -817,6 +1174,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "A colour change an author made is captured; the same command run "
         "in the background is refused, having no author to attribute it to.",
         _gate_dashboard_colors,
+        args=("model_id", "data", "mark_updated"),
     ),
     WritePath(
         "superset.commands.dashboard.delete",
@@ -826,6 +1184,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "Deleting takes the dashboard away from viewers, so it is reviewed "
         "like any other change to what they see.",
         _gate_dashboard_delete,
+        args=("model_ids",),
     ),
     WritePath(
         "superset.commands.dashboard.delete",
@@ -834,6 +1193,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         GATED,
         "Revoking an embedded config changes who can reach the dashboard.",
         _gate_embedded_delete,
+        args=("dashboard",),
     ),
     WritePath(
         "superset.daos.dashboard",
@@ -845,6 +1205,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "DAO inline, so the DAO is the only seam.",
         _gate_embedded_upsert,
         via="method",
+        args=("dashboard", "allowed_domains"),
     ),
     # ---- charts --------------------------------------------------------
     WritePath(
@@ -855,6 +1216,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "The ordinary chart save.",
         _gate_chart_update,
         capture=True,
+        args=("model_id", "data"),
     ),
     WritePath(
         "superset.commands.chart.delete",
@@ -863,6 +1225,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         GATED,
         "Deleting takes the chart away from viewers.",
         _gate_chart_delete,
+        args=("model_ids",),
     ),
     # ---- datasets ------------------------------------------------------
     WritePath(
@@ -874,6 +1237,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "metric edits.",
         _gate_dataset_update,
         capture=True,
+        args=("model_id", "data"),
     ),
     WritePath(
         "superset.commands.dataset.delete",
@@ -882,6 +1246,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         GATED,
         "Deleting a dataset breaks every chart built on it.",
         _gate_dataset_delete,
+        args=("model_ids",),
     ),
     WritePath(
         "superset.commands.dataset.columns.delete",
@@ -934,9 +1299,35 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         GATED,
         "Explore's ?action=overwrite writes through ChartDAO inline, so no "
         "command binding sees it and a reviewed chart could be changed with "
-        "nothing held (129068). The view method is the only seam.",
+        "nothing held (129068). The view method is the only seam. PARTIAL: "
+        "only the overwrite branch is held -- see ``uncovered``.",
         _gate_legacy_slice_save,
         via="method",
+        probes=(
+            ("action=overwrite", _saving_as("overwrite")),
+            ("action=saveas", _saving_as("saveas")),
+        ),
+        uncovered=(
+            Uncovered(
+                "action=saveas",
+                "Creates a chart, and with save_to_dashboard_id or "
+                "new_dashboard_name attaches it to the dashboard named, "
+                "published or not. The gate returns early unless the action "
+                "is overwrite, and a creation is not something it can "
+                "represent (D1).",
+                "A4, A5, D1",
+            ),
+        ),
+        args=(
+            "slc",
+            "slice_add_perm",
+            "slice_overwrite_perm",
+            "slice_download_perm",
+            "datasource_id",
+            "datasource_type",
+            "datasource_name",
+            "query_context",
+        ),
     ),
     # ---- version restore -----------------------------------------------
     WritePath(
@@ -948,6 +1339,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "write like any other.",
         _gate_version_restore,
         validate_first=False,
+        args=("entity_uuid", "version_uuid"),
     ),
     # ---- un-archive ----------------------------------------------------
     # The delete that archived the asset went through review; restoring it
@@ -960,6 +1352,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "Un-archiving puts the dashboard back in front of viewers (QA-17).",
         _gate_restore,
         validate_first=False,
+        args=("model_uuid",),
     ),
     WritePath(
         "superset.commands.chart.restore",
@@ -969,6 +1362,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "Un-archiving puts the chart back in front of viewers (QA-17).",
         _gate_restore,
         validate_first=False,
+        args=("model_uuid",),
     ),
     WritePath(
         "superset.commands.dataset.restore",
@@ -978,6 +1372,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "Un-archiving puts the dataset back in front of viewers (QA-17).",
         _gate_restore,
         validate_first=False,
+        args=("model_uuid",),
     ),
     # ---- imports -------------------------------------------------------
     # Bound ahead of ``run``, not inside ``_import`` where the overwrite
@@ -997,6 +1392,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "has, so a first-time import still works (S-06).",
         _import_gate("dashboard"),
         validate_first=False,
+        uncovered=(_IMPORT_CREATES,),
     ),
     WritePath(
         "superset.commands.chart.importers.v1",
@@ -1006,6 +1402,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "As the dashboard importer above.",
         _import_gate("chart"),
         validate_first=False,
+        uncovered=(_IMPORT_CREATES,),
     ),
     WritePath(
         "superset.commands.dataset.importers.v1",
@@ -1015,6 +1412,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "As the dashboard importer above.",
         _import_gate("dataset"),
         validate_first=False,
+        uncovered=(_IMPORT_CREATES,),
     ),
     WritePath(
         "superset.commands.importers.v1.assets",
@@ -1025,6 +1423,7 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "scope.",
         _assets_import_gate,
         validate_first=False,
+        uncovered=(_IMPORT_CREATES,),
     ),
     # ---- dataset datetime formats --------------------------------------
     WritePath(
@@ -1039,3 +1438,263 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         via="method",
     ),
 )
+
+
+# ---- what the gate covers, as opposed to whether it is installed ---------
+
+
+@dataclass(frozen=True)
+class PartialCoverage:
+    """A declared gap in a gated path, as verification reports it."""
+
+    target: str
+    branch: str
+    why: str
+    tracked: str
+    probed: bool
+
+    def __str__(self) -> str:
+        checked = "probed" if self.probed else "not probed"
+        return f"{self.target} [{self.branch}] ({self.tracked}; {checked})"
+
+
+@dataclass(frozen=True)
+class CoverageReport(BindingReport):
+    """``BindingReport``, plus what the gated paths do not cover.
+
+    ``ok`` keeps its meaning -- everything declared is bound as declared, and
+    every gap is declared -- and so can be true while writes still escape
+    review through a gap somebody has written down. That is exactly the case
+    the old report could not tell apart from a clean one, so it gets a name:
+    ``complete`` is true only when there is nothing to declare.
+    """
+
+    partial: tuple[PartialCoverage, ...] = ()
+
+    @property
+    def complete(self) -> bool:
+        return self.ok and not self.partial
+
+    def summary(self) -> str:
+        paths = {gap.target for gap in self.partial}
+        return (
+            f"declared={self.declared} verified={self.verified} "
+            f"partial={len(paths)} gaps={len(self.partial)} "
+            f"defects={len(self.defects)} ok={self.ok} complete={self.complete}"
+        )
+
+
+def _all_subclasses(cls: type) -> list[type]:
+    found: list[type] = []
+    pending = list(cls.__subclasses__())
+    while pending:
+        sub = pending.pop()
+        if sub not in found:
+            found.append(sub)
+            pending.extend(sub.__subclasses__())
+    return found
+
+
+def _resolve_host(path: WritePath) -> Any | None:
+    try:
+        return getattr(import_module(path.module_path), path.class_name, None)
+    except ImportError:
+        return None
+
+
+def _hidden_behind_before_request(host: Any, attr: str) -> bool:
+    """Whether Flask-AppBuilder wraps this method's route in a hook.
+
+    A ``before_request`` on a view or API class makes FAB register a closure
+    over the handler instead of the handler, and the closure holds the
+    ungated original where ``install.rebind_registered_routes`` and the route
+    check cannot see it. It is S-01's shape, and the only reason it is not
+    open today is that none of the classes this gate binds by method carries
+    one. Read off the class dictionaries so no descriptor is run.
+    """
+    for klass in getattr(host, "__mro__", ()):
+        for value in vars(klass).values():
+            if getattr(value, "_before_request_hook", False) is not True:
+                continue
+            only = getattr(value, "_before_request_only", None)
+            if only is None or attr in only:
+                return True
+    return False
+
+
+def _method_parameters(host: Any, attr: str) -> list[inspect.Parameter]:
+    function = inspect.unwrap(getattr(host, attr))
+    return [
+        parameter
+        for name, parameter in inspect.signature(function).parameters.items()
+        if name != "self"
+    ]
+
+
+def _unaccounted_arguments(path: WritePath, host: Any) -> list[str]:
+    """Parameters the gate neither names nor captures by default."""
+    if path.via == "method":
+        parameters = _method_parameters(host, path.attr)
+    else:
+        parameters = [
+            parameter
+            for name, parameter in ctor_signature(host).parameters.items()
+            if name != "self"
+        ]
+    variadic = [
+        p.name
+        for p in parameters
+        if p.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+    ]
+    if variadic:
+        # Anything can arrive through these and nothing can be audited.
+        return variadic
+    names = [parameter.name for parameter in parameters]
+    accounted = set(path.args)
+    if path.capture and path.via == "run":
+        accounted |= set(names)  # identity by position, the rest captured
+    return [name for name in names if name not in accounted]
+
+
+def _coverage_of(  # noqa: C901
+    path: WritePath,
+) -> tuple[list[BindingDefect], list[PartialCoverage]]:
+    """What one path's gate covers, against what the path says it covers."""
+    defects: list[BindingDefect] = []
+    declared = {gap.branch: gap for gap in path.uncovered}
+    probes = dict(path.probes)
+
+    for name, probe in probes.items():
+        try:
+            held = bool(probe())
+        except Exception as ex:  # noqa: BLE001 -- a broken probe is a finding
+            defects.append(
+                BindingDefect(path.target, f"the probe for {name!r} failed: {ex!r}")
+            )
+            continue
+        if held and name in declared:
+            defects.append(
+                BindingDefect(
+                    path.target,
+                    f"{name!r} is declared uncovered but the gate now holds it; "
+                    "drop the declaration",
+                )
+            )
+        elif not held and name not in declared:
+            defects.append(
+                BindingDefect(
+                    path.target,
+                    f"{name!r} is not covered by the gate and is not declared "
+                    "uncovered; that branch of the write path is UNGATED",
+                )
+            )
+
+    host = _resolve_host(path)
+    if host is not None and path.gate is not None:
+        if path.disposition == GATED:
+            try:
+                unaccounted = _unaccounted_arguments(path, host)
+            except (TypeError, ValueError, AttributeError):
+                unaccounted = []
+            if unaccounted:
+                defects.append(
+                    BindingDefect(
+                        path.target,
+                        f"takes {', '.join(unaccounted)}, which the gate neither "
+                        "names nor captures; a write that acts through it is "
+                        "UNGATED",
+                    )
+                )
+        if (
+            path.via == "method"
+            and "route: before_request" not in declared
+            and _hidden_behind_before_request(host, path.attr)
+        ):
+            defects.append(
+                BindingDefect(
+                    path.target,
+                    f"{path.class_name} carries a before_request hook, so its "
+                    "route holds a closure over the original and cannot be "
+                    "rebound or verified; that route is UNGATED",
+                )
+            )
+        if path.via == "run":
+            defects.extend(_unguarded_subclasses(path, host))
+
+    partial = [
+        PartialCoverage(
+            path.target, gap.branch, gap.why, gap.tracked, gap.branch in probes
+        )
+        for gap in path.uncovered
+    ]
+    return defects, partial
+
+
+def _unguarded_subclasses(path: WritePath, host: Any) -> list[BindingDefect]:
+    """Host subclasses that replace ``run`` without going through the gated one.
+
+    The gate wraps ``host.run``. A subclass that defines its own ``run`` and
+    does not call ``super().run()`` never reaches it, and unless that
+    subclass is itself a declared path it is a write the table does not
+    mention.
+    """
+    declared = {(p.module_path, p.class_name) for p in WRITE_PATHS}
+    found: list[BindingDefect] = []
+    for sub in _all_subclasses(host):
+        if "run" not in vars(sub) or not sub.__module__.startswith("superset."):
+            continue
+        if (sub.__module__, sub.__name__) in declared:
+            continue
+        try:
+            delegates = "super().run(" in inspect.getsource(vars(sub)["run"])
+        except (OSError, TypeError):
+            delegates = False
+        if not delegates:
+            found.append(
+                BindingDefect(
+                    f"{sub.__name__}.run",
+                    f"overrides {path.class_name}.run without calling it, so the "
+                    "gate bound there is bypassed; that write is UNGATED",
+                )
+            )
+    return found
+
+
+def verify_bindings(app: Any | None = None, declared: Any = None) -> CoverageReport:
+    """Check the gate is installed as declared **and** says what it covers.
+
+    ``install.verify_bindings`` answers the first: is something wrapped where
+    the table says. It could not answer the second, because a path had no way
+    to say "gated, but only on the overwrite branch" and the check asked only
+    whether *a* wrapper was present -- so ``save_or_overwrite_slice`` reported
+    clean while two filed defects sat on a branch it returns early on.
+
+    This runs that check and adds the second:
+
+    * every probed branch of a path is either held, or declared uncovered
+      (and a declared gap the gate has since closed is stale and fails);
+    * every parameter of a gated command is accounted for, so a keyword added
+      to a command is a failure here until it is captured or named;
+    * a method-gated route is not hidden behind a ``before_request`` closure;
+    * a host subclass does not replace ``run`` without delegating.
+
+    Declared gaps do not fail the run -- they are listed, counted and make
+    ``complete`` false -- because they are known and filed; an undeclared one
+    does, because that is the report over-reporting again.
+    """
+    base = verify_installation(app, declared)
+    paths = list(WRITE_PATHS if declared is None else declared)
+    defects = list(base.defects)
+    partial: list[PartialCoverage] = []
+    for path in paths:
+        found, gaps = _coverage_of(path)
+        defects.extend(found)
+        partial.extend(gaps)
+    broken = {defect.target for defect in defects}
+    verified = sum(1 for path in paths if path.target not in broken)
+    return CoverageReport(
+        declared=len(paths),
+        verified=verified,
+        defects=tuple(defects),
+        partial=tuple(partial),
+    )

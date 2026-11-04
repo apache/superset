@@ -27,6 +27,7 @@ immediately and Superset behaves exactly as it does today (SOW 6.1).
 
 from __future__ import annotations
 
+import inspect
 import logging
 import uuid as uuid_module
 from collections.abc import Callable, Iterator
@@ -46,7 +47,14 @@ from asset_approval.exceptions import (
     UnattributableWriteRefusedError,
     UnreviewableWriteRefusedError,
 )
-from asset_approval.changes import baseline_of, is_empty_change, reverted_fields
+from asset_approval.changes import (
+    _comparable,
+    baseline_of,
+    changed_fields,
+    EXEMPT_FIELDS,
+    is_empty_change,
+    reverted_fields,
+)
 from asset_approval.models import ChangeRequest, PublishedAsset
 from asset_approval.types import (
     AssetType,
@@ -94,6 +102,14 @@ UPSERT_EMBEDDED_COMMAND = "upsert_embedded"
 #: the same kind: ``combine(existing_body, new_body) -> stored_body``.
 Combine = Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]]
 
+#: A fold that knows more about its asset than "a field replaces a field":
+#: ``refine(draft_body, new_body, merged) -> stored_body``, handed the plain
+#: field-by-field merge to correct. Passed as ``fold_fields`` in place of
+#: ``True``. For a body that carries one blob holding several independent
+#: things -- a dashboard's ``json_metadata`` holds its layout -- where
+#: replacing the blob wholesale replaces all of them.
+Refine = Callable[[dict[str, Any], dict[str, Any], dict[str, Any]], dict[str, Any]]
+
 #: ``command_args`` entry the chart gate carries: which keys Explore
 #: rewrote on its own as it loaded the chart, for version history. The new
 #: body of a *partial* second save has no ``params`` at all and so nothing
@@ -101,6 +117,88 @@ Combine = Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]]
 #: a fold -- so without keeping it, a rename through the Properties dialog
 #: erased the first save's list.
 NORMALIZATION_KEY = "normalization_changes"
+
+#: ``command_args`` entry holding the command's own keyword arguments -- the
+#: ones that are not the asset id or the request body.
+#:
+#: The gate used to capture the body and then a hand-picked argument or two
+#: (``override_columns``, ``normalization_changes``), so every keyword a
+#: command grew was a write that reached the asset without being captured,
+#: shown or replayed: ``delete_metric_ids`` reached viewers unreviewed
+#: (an empty body has no diff to hold), ``preserve_existing_metrics`` was
+#: dropped on approval and took the dataset's other metrics with it, and the
+#: legacy chart save's ``save_to_dashboard_id`` was never carried at all.
+#:
+#: So the rule is now the opposite way round: whatever the command was
+#: constructed with is captured, and only what is known to change nothing is
+#: left out. Holds the arguments that differ from the command's own default
+#: and so change what the write does; replay hands every one of them back to
+#: the same command, or refuses to approve what it cannot hand back.
+KWARGS_KEY = "kwargs"
+
+#: ``command_args`` entry naming the exempt fields this write changed.
+#:
+#: An exempt field (editors, viewers, tags, ...) normally applies the moment
+#: it is saved, so a captured copy of one is only a snapshot -- except when it
+#: travelled in the same write as a governed field, in which case the gate
+#: held it too and nothing else will ever apply it. Capture is per write and
+#: replay used to be per field (B4); this is how replay tells the two apart.
+#: Absent on a request captured before it existed, which replays as it always
+#: did: every exempt field dropped.
+EXEMPT_APPLIED_KEY = "exempt_fields"
+
+
+def captured_arguments(command_args: Any) -> dict[str, Any]:
+    """The command keyword arguments a capture carries, by name.
+
+    The one place the display, replay and the fold ask "what else does this
+    write do besides its body?". Empty for a write that is only its body.
+    Tolerant of the stand-ins some callers hand over instead of a real
+    ``command_args``.
+    """
+    if not isinstance(command_args, dict):
+        return {}
+    arguments = command_args.get(KWARGS_KEY)
+    return dict(arguments) if isinstance(arguments, dict) else {}
+
+
+#: Where :func:`remember_signature` keeps a constructor's real signature.
+_SIGNATURE_ATTR = "__asset_approval_signature__"
+
+
+def remember_signature(command_cls: type) -> None:
+    """Keep the constructor's signature before anything wraps the constructor.
+
+    The bindings wrap ``__init__`` to snapshot what the command was built
+    with, and a wrapper takes ``(*args, **kwargs)``: asked afterwards, the
+    class would claim to take nothing in particular. Replay needs the real
+    parameters to hand captured arguments back, so they are read once, first.
+    """
+    owner = _constructor_owner(command_cls)
+    if owner is not None and _SIGNATURE_ATTR not in owner.__dict__:
+        setattr(owner, _SIGNATURE_ATTR, inspect.signature(owner.__init__))
+
+
+def _constructor_owner(command_cls: type) -> type | None:
+    return next(
+        (klass for klass in command_cls.__mro__ if "__init__" in klass.__dict__), None
+    )
+
+
+def ctor_signature(command_cls: type) -> inspect.Signature:
+    """What the command's constructor takes, whether or not it is wrapped."""
+    owner = _constructor_owner(command_cls)
+    if owner is None:
+        return inspect.signature(command_cls.__init__)
+    return owner.__dict__.get(_SIGNATURE_ATTR) or inspect.signature(owner.__init__)
+
+
+def captured_exempt_fields(command_args: Any) -> list[str] | None:
+    """The exempt fields this capture owns, or ``None`` if it never recorded."""
+    if not isinstance(command_args, dict):
+        return None
+    owned = command_args.get(EXEMPT_APPLIED_KEY)
+    return list(owned) if isinstance(owned, (list, tuple)) else None
 
 
 @contextmanager
@@ -218,9 +316,44 @@ def _same_kind(existing: Any, command_args: dict[str, Any] | None) -> bool:
     One request replays through one command, so a native-filter diff and a
     properties draft can never be folded together. ``getattr``: some callers
     hand the fold a partial stand-in for the row rather than the row.
+
+    "The same command" includes the arguments it was given. A body can be
+    folded onto another because replacing a field is how two saves compose;
+    there is no such rule for a keyword, and guessing one is how a draft is
+    quietly rewritten into something nobody asked for (a delete of metric 5
+    folded into a draft that preserves the rest would apply both to a body
+    neither was written for). Two writes whose arguments differ therefore
+    cannot share a request, and the second is told so rather than replacing
+    the first.
     """
     kind = (command_args or {}).get(COMMAND_KEY)
-    return getattr(existing, "command_args", {}).get(COMMAND_KEY) == kind
+    if getattr(existing, "command_args", {}).get(COMMAND_KEY) != kind:
+        return False
+    return _same_arguments(existing, command_args)
+
+
+def _is_update(existing: Any) -> bool:
+    try:
+        return (
+            Operation(getattr(existing, "operation", Operation.UPDATE.value))
+            is Operation.UPDATE
+        )
+    except ValueError:
+        return True
+
+
+def _same_arguments(existing: Any, command_args: dict[str, Any] | None) -> bool:
+    """Whether the open request and this write were given the same arguments.
+
+    Only an update's arguments are compared: a delete carries none, and a
+    save that takes a pending delete's place is a case of its own, reported
+    as such (129078).
+    """
+    if not _is_update(existing):
+        return True
+    return captured_arguments(getattr(existing, "command_args", {})) == (
+        captured_arguments(command_args)
+    )
 
 
 def _can_fold(
@@ -252,7 +385,7 @@ def _fold_into(
     payload: dict[str, Any],
     command_args: dict[str, Any] | None,
     combine: Combine | None,
-    fold_fields: bool,
+    fold_fields: bool | Refine,
 ) -> tuple[dict[str, Any], dict[str, Any] | None]:
     """One body folded onto the open request's, and the args that go with it.
 
@@ -269,6 +402,12 @@ def _fold_into(
       replacing the payload wholesale is how a captured ``params`` edit
       disappeared behind a later rename.
     - Neither: the body replaces, which is what a full-state body means.
+
+    ``fold_fields`` may be a :data:`Refine` instead of ``True``, for a body
+    with a blob that is several things at once. That is not a corner: the
+    dashboard's layout travels *inside* ``json_metadata``, so the plain
+    per-field merge let a Properties save -- whose ``json_metadata`` has no
+    layout in it -- replace a draft's whole layout edit.
 
     Top-level fields only. Never inside ``params``, ``query_context`` or
     ``json_metadata``: the server cannot tell a key the author edited from
@@ -287,6 +426,8 @@ def _fold_into(
     if not fold_fields:
         return payload, command_args
     merged = {**existing.payload_dict, **payload}
+    if callable(fold_fields):
+        merged = fold_fields(existing.payload_dict, payload, merged)
     if "params" in payload:
         return merged, command_args
     # The incoming body has no ``params``, so it has nothing to say about
@@ -305,7 +446,7 @@ def gate_write(
     command_args: dict[str, Any] | None = None,
     operation: Operation = Operation.UPDATE,
     combine: Combine | None = None,
-    fold_fields: bool = False,
+    fold_fields: bool | Refine = False,
 ) -> None:
     """Capture this write for review, or return so the caller may proceed.
 
@@ -315,7 +456,11 @@ def gate_write(
     :param command_args: constructor arguments the command takes outside
         the request body, which replay needs in order to invoke the same
         command the author did. ``command_args[COMMAND_KEY]`` selects a
-        command other than the asset's main update.
+        command other than the asset's main update; ``command_args[KWARGS_KEY]``
+        holds the keyword arguments that change what the write does. A write
+        that carries any is never "empty", whatever its body says: a body
+        with nothing in it is exactly how ``delete_metric_ids`` and
+        ``preserve_existing_metrics`` reached the asset unreviewed.
     :param combine: for commands whose body is a *diff* rather than the
         asset's full state, how a further edit folds into the author's open
         request of the same kind. Without it the new body replaces the old,
@@ -345,11 +490,17 @@ def gate_write(
     # operation, not the asset's fields, so measuring it against the asset
     # finds nothing in common and would call every such write empty --
     # letting native-filter and colour changes through the gate entirely.
-    comparable = (
-        operation is Operation.UPDATE
-        and combine is None
-        and not (command_args or {}).get(COMMAND_KEY)
-    )
+    #
+    # "Comparable" is about the *body*: whether it can be measured against the
+    # asset's fields, for the empty-change test, the baseline and the revert
+    # tripwire. It says nothing about what else the write does. That is
+    # ``carries_effect``, and it vetoes only the first of those three -- a
+    # write whose keyword arguments act on the asset is not a no-op whatever
+    # its body says, but its body still has a live value to be measured
+    # against, and giving up the baseline for it would let a stale approval
+    # through (QA-24).
+    comparable = _is_comparable(operation, combine, command_args)
+    carries_effect = bool(captured_arguments(command_args))
     live = None
     if comparable:
         # Imported here: `replay` imports this module, so taking it at the
@@ -399,12 +550,17 @@ def gate_write(
     # clients that never saw a dialog, and a deliberate revert deserves a
     # true sentence rather than a false 409.
     put_back = (
-        reverted_fields(live, existing.payload_dict, payload)
+        reverted_fields(live, existing.payload_dict, _as_stored(proposed, payload))
         if foldable and live is not None
         else []
     )
 
-    if comparable and live is not None and is_empty_change(live, proposed):
+    if (
+        comparable
+        and live is not None
+        and not carries_effect
+        and is_empty_change(live, proposed)
+    ):
         # Nothing to capture -- but the author may just have typed their own
         # draft back to what is live, and the draft would otherwise go on
         # proposing the text they thought they had undone (R4-01).
@@ -424,6 +580,8 @@ def gate_write(
     # full-state bodies have one; a diff describes an operation, not the
     # asset's fields.
     base = baseline_of(live, proposed) if comparable else {}
+    if comparable:
+        folded_args, base = _own_the_exempt_fields(live, proposed, folded_args, base)
 
     if existing is not None and existing.author_fk != author_id:
         raise AssetLockedError(
@@ -469,7 +627,7 @@ def gate_write(
             existing.id, proposed, note, folded_args, operation, base=base
         )
     else:
-        # ``payload`` and ``command_args``, not the folded pair: there was
+        # ``payload`` and the args as stamped, not the folded pair: there was
         # nothing to fold into. If the insert loses the asset's open slot to
         # the author's own second click, ``_lost_the_slot`` folds against
         # whatever won it, through the same ``_fold_into``.
@@ -480,7 +638,7 @@ def gate_write(
             payload,
             author_id,
             note,
-            command_args,
+            folded_args,
             operation,
             base=base,
             combine=combine,
@@ -500,6 +658,90 @@ def gate_write(
         left_review=existing is not None and left_review,
         reverted_fields=put_back,
     )
+
+
+def _is_comparable(
+    operation: Operation, combine: Combine | None, command_args: dict[str, Any] | None
+) -> bool:
+    """Whether the body can be measured against the asset's own fields.
+
+    Only a full-state body can. A diff body (``combine``) or a sub-command's
+    body (``COMMAND_KEY``) describes an operation, not the asset's fields.
+    """
+    return (
+        operation is Operation.UPDATE
+        and combine is None
+        and not (command_args or {}).get(COMMAND_KEY)
+    )
+
+
+def _as_stored(proposed: dict[str, Any], body: dict[str, Any]) -> dict[str, Any]:
+    """The fields ``body`` carries, as the fold is going to store them.
+
+    The revert tripwire asks whether this save undid something the draft had
+    moved. After a refined fold a field can be stored with more in it than
+    the body had (a dashboard's ``json_metadata`` keeps the draft's layout),
+    and asking about the body's own value would report that layout as put
+    back when the fold has just kept it.
+    """
+    return {field: proposed[field] for field in body if field in proposed}
+
+
+def _exempt_fields_this_write_changes(live: Any, proposed: dict[str, Any]) -> list[str]:
+    """The exempt fields in ``proposed`` that differ from what is live now.
+
+    That is what separates the two things a captured exempt field can be. One
+    that differs from the live asset was put there on purpose: a save that
+    leaves a field as it found it is not changing it, and an exempt change
+    made alone never reaches the gate at all. One that equals the live value
+    is only the dialog echoing the form back, a snapshot that will be wrong
+    the moment someone else touches the field.
+    """
+    carried = {k: v for k, v in proposed.items() if k in EXEMPT_FIELDS}
+    if not carried:
+        return []
+    if live is None:
+        # Unreadable is unknowable, and an unknowable change is the author's.
+        return sorted(carried)
+    return changed_fields(live, carried)
+
+
+def _own_the_exempt_fields(
+    live: Any,
+    proposed: dict[str, Any],
+    command_args: dict[str, Any] | None,
+    base: dict[str, Any],
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    """Record which exempt fields this capture is responsible for applying.
+
+    Replay drops an exempt field unless it is named here (129071: the copy in
+    a request is a snapshot, and writing it back undid anything done to the
+    field since). Naming the ones the author changed in this very write is
+    what lets the rest of that rule stand without losing the edit that rode
+    along with a governed one (B4).
+
+    An owned field is applied, so it also joins the baseline. The baseline
+    deliberately leaves exempt fields out, so that adding an editor during a
+    review does not make the review unapprovable; an exempt field this
+    request will *write* is a different thing, and writing a stale list over
+    one that has moved since is the 129071 defect again. It is refused with
+    the field named, as any other moved field is, and the author saves again.
+    """
+    args = {k: v for k, v in (command_args or {}).items() if k != EXEMPT_APPLIED_KEY}
+    owned = _exempt_fields_this_write_changes(live, proposed)
+    if not owned:
+        return (args if command_args is not None else None), base
+    if live is not None:
+        for field in owned:
+            if not hasattr(live, field):
+                continue
+            try:
+                base = {**base, field: _comparable(getattr(live, field), field)}
+            except Exception:  # noqa: BLE001 -- a baseline must never block a write
+                logger.warning(
+                    "asset-approval: could not record a baseline for %r", field
+                )
+    return {**args, EXEMPT_APPLIED_KEY: owned}, base
 
 
 def _open_request_or_none(asset_type: AssetType, asset_id: int) -> ChangeRequest | None:
@@ -590,6 +832,11 @@ def _drop_a_fully_reverted_draft(asset_type: AssetType, asset_id: int) -> None:
         return
     if existing.command_args.get(COMMAND_KEY):
         return
+    if captured_arguments(existing.command_args):
+        # The draft does something its body does not say (a metric delete, a
+        # dashboard attach). A body that matches live says only that this
+        # save changes nothing; it cannot speak for the arguments.
+        return
     _discard_request(existing.id, author_id)
 
 
@@ -630,7 +877,7 @@ def _insert_request(
     base: dict[str, Any] | None = None,
     *,
     combine: Combine | None = None,
-    fold_fields: bool = False,
+    fold_fields: bool | Refine = False,
     live: Any = None,
     outcome: dict[str, Any] | None = None,
 ) -> int:
@@ -718,7 +965,7 @@ def _lost_the_slot(
     cause: IntegrityError,
     *,
     combine: Combine | None = None,
-    fold_fields: bool = False,
+    fold_fields: bool | Refine = False,
     live: Any = None,
     outcome: dict[str, Any] | None = None,
 ) -> int:
@@ -772,15 +1019,22 @@ def _lost_the_slot(
         ) from cause
 
     if _can_fold(holder, author_id, command_args, operation):
-        if outcome is not None and live is not None:
-            outcome["reverted_fields"] = reverted_fields(
-                live, holder.payload_dict, payload
-            )
+        body = payload
         payload, command_args = _fold_into(
             holder, payload, command_args, combine, fold_fields
         )
+        if outcome is not None and live is not None:
+            outcome["reverted_fields"] = reverted_fields(
+                live, holder.payload_dict, _as_stored(payload, body)
+            )
         if live is not None:
             base = baseline_of(live, payload)
+    if live is not None and _is_comparable(operation, combine, command_args):
+        # Measured on whatever is stored, folded or not: what this request
+        # owns is a fact about the body it ends up with.
+        command_args, base = _own_the_exempt_fields(
+            live, payload, command_args, base or {}
+        )
 
     return _update_own_request(
         holder.id, payload, note, command_args, operation, base=base
