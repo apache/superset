@@ -1105,6 +1105,7 @@ USER_AGENT_FUNC: Callable[[Database, utils.QuerySource | None], str] | None = No
 # database and a dict with whichever of user, dashboard_id, chart_id, report_id
 # and sqllab_query_id apply; return None to send nothing. For example:
 #
+# import json
 # def QUERY_LOG_COMMENT_FUNC(database, context):
 #     return json.dumps({"app": "superset", **context})
 QUERY_LOG_COMMENT_FUNC: Callable[[Database, dict[str, Any]], str | None] | None = None
