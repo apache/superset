@@ -56,7 +56,7 @@ import { userHasPermission } from 'src/dashboard/util/permissionUtils';
 import { WelcomePageLastTab } from 'src/features/home/types';
 import ActivityTable from 'src/features/home/ActivityTable';
 import PendingReviews, {
-  canTakePartInReview,
+  useHasAnythingInReview,
 } from 'src/features/changeManagement/PendingReviews';
 import ChartTable from 'src/features/home/ChartTable';
 import ToastedSavedQueries from 'src/features/home/SavedQueries';
@@ -155,6 +155,7 @@ export const LoadingCards = ({ cover }: LoadingProps) => (
 function Welcome({ user, addDangerToast }: WelcomeProps) {
   const isNotMobile = !useIsMobile();
   const canReadSavedQueries = userHasPermission(user, 'SavedQuery', 'can_read');
+  const hasAnythingInReview = useHasAnythingInReview();
   const userid = user.userId;
   const id = userid!.toString(); // confident that user is not a guest user
   const params = rison.encode({ page_size: 24, distinct: false });
@@ -370,12 +371,12 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                 // First, when there is review work: a homepage is for what
                 // needs you today, and a pending review is the one item here
                 // that blocks somebody else.
-                // Left out entirely for someone who approves nothing. The
+                // Left out entirely when there is nothing in the queue. The
                 // section is a collapse item, so withholding only its body
                 // leaves the header behind, collapsed over nothing, which is
                 // what a viewer was shown (R7-08).
                 ...(isFeatureEnabled(FeatureFlag.ChangeManagement) &&
-                canTakePartInReview(user)
+                hasAnythingInReview
                   ? [
                       {
                         key: 'pending-reviews',

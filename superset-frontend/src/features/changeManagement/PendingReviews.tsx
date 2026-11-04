@@ -126,6 +126,48 @@ export function canTakePartInReview(
   return REVIEWABLE_VIEWS.some(view => userHasPermission(user, view, 'can_write'));
 }
 
+/**
+ * Whether this person has anything in the review queue at all.
+ *
+ * Home asks this to decide whether to draw the section, because no
+ * permission answers the question. ``can_write`` on a dashboard is held by
+ * Gamma, Superset's "may make their own content" role, and the extension
+ * grants ``can_review`` to everyone who can open the Approvals page -- which
+ * on stock roles is everyone, viewers included. Taking part in review is a
+ * property of the data, not of a role: it means being an editor of some
+ * asset somebody has proposed a change to. So the queue itself is the only
+ * honest test, and a viewer, whose queue is empty on both counts, is shown
+ * no section rather than an empty one collapsed over nothing (R7-08).
+ *
+ * Starts false, so the section appears when there is something rather than
+ * flashing up and being taken away.
+ */
+export function useHasAnythingInReview(): boolean {
+  const [present, setPresent] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      try {
+        const [forMe, mine] = await Promise.all([
+          fetchList('for_me'),
+          fetchList('submitted_by_me'),
+        ]);
+        // A queue that could not be read leaves the section out: the panel
+        // itself reports a failed fetch, and it is not drawn to do so.
+        if (live) setPresent(forMe.length > 0 || mine.some(row => row.is_open));
+      } catch {
+        if (live) setPresent(false);
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  return present;
+}
+
 type Load = 'loading' | 'ready' | 'failed';
 
 /**
