@@ -10304,6 +10304,8 @@ msgstr "Thème local défini sur \"%s\""
 msgid "Locate the chart"
 msgstr "Situer le graphique"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr "Log"
 
