@@ -584,6 +584,41 @@ test('any change on an archived asset is decided here, whatever its command', as
   expect(assign).not.toHaveBeenCalled();
 });
 
+test('an un-archive from the queue says the asset returns to viewers', async () => {
+  // C3. The archived branch skipped the panel and showed only the generic
+  // "Viewers see this change right away", with nothing to say what the
+  // change was. A restore's body is a uuid, so the dialog is the only place
+  // the reviewer can be told.
+  mockedFetchList.mockResolvedValue(asPage([
+    request({
+      id: 13,
+      asset_type: 'chart',
+      asset_title: 'Genders by State',
+      can_approve: true,
+      command: 'restore',
+      asset_archived: true,
+      changes: [
+        {
+          field: 'archived',
+          before: 'Archived (hidden from viewers)',
+          after: 'Restored (visible to viewers again)',
+        },
+      ],
+    }),
+  ]));
+
+  render(<Approvals />);
+
+  (await screen.findByTestId('review-action')).click();
+
+  expect(
+    await screen.findByText(/Viewers can see the chart again/),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText('Restored (visible to viewers again)'),
+  ).toBeInTheDocument();
+});
+
 test('a change on a live asset is still reviewed on the asset', async () => {
   // The other half: the default has to keep working, or every review
   // loses the banner and the in-place panel.

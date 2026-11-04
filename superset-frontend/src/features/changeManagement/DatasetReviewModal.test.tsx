@@ -151,3 +151,61 @@ test('the panel count includes the settings rows', () => {
     }),
   ).toBe(2);
 });
+
+test('a dataset delete says it would be removed, not that no column changed', () => {
+  // C6. A delete has no columns, metrics or settings, so every tab read zero
+  // and the dialog opened on "No column changed." over the most consequential
+  // request there is. The copy for it lived in a component datasets never
+  // reach.
+  render(
+    <DatasetReviewModal
+      changeRequest={
+        { ...changeRequest(detail()), operation: 'delete' } as ChangeRequest
+      }
+      open
+      onClose={() => {}}
+    />,
+  );
+
+  expect(
+    screen.getByText('This dataset would be removed once approved.'),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('No column changed.')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('dataset-tab-columns')).not.toBeInTheDocument();
+});
+
+test('a column field the server never used to compare is listed', () => {
+  // C4. `warning_markdown` was outside the compared fields, so the dialog
+  // read "No column changed." beside an enabled Approve while a "DO NOT USE"
+  // banner was bound for every viewer.
+  show(
+    detail({
+      columns: {
+        added: [],
+        removed: [],
+        changed: [
+          {
+            name: 'revenue',
+            fields: [
+              { field: 'warning_markdown', before: null, after: 'DO NOT USE' },
+            ],
+          },
+        ],
+      },
+    }),
+  );
+
+  expect(screen.getByText('DO NOT USE')).toBeInTheDocument();
+  expect(screen.queryByText('No column changed.')).not.toBeInTheDocument();
+});
+
+test('a setting cleared to nothing shows a dash for the proposed value', () => {
+  show(
+    detail({
+      settings: [{ field: 'fetch_values_predicate', before: '1 = 1', after: '' }],
+    }),
+  );
+
+  expect(screen.getByText('1 = 1')).toBeInTheDocument();
+  expect(screen.getByText('—')).toBeInTheDocument();
+});

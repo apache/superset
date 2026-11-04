@@ -21,7 +21,7 @@ import { t, tn } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Modal, Button, Tag } from '@superset-ui/core/components';
 import { Alert } from '@apache-superset/core/components';
-import { ago, assetUrl } from './display';
+import { ago, assetUrl, show } from './display';
 import { displayName } from './types';
 import type { ChangeRequest, NamedDelta, NamedDiff } from './types';
 
@@ -118,11 +118,6 @@ const FooterRow = styled.div`
     width: 100%;
   `}
 `;
-
-function show(value: unknown): string {
-  if (value === null || value === undefined || value === '') return '—';
-  return String(value);
-}
 
 interface Row {
   kind: 'Changed' | 'Added' | 'Removed';
@@ -238,6 +233,23 @@ export default function DatasetReviewModal({
   const rows =
     tab === 'metrics' ? metricRows : tab === 'columns' ? columnRows : [];
 
+  // A delete has no columns, metrics or settings: the dataset is the change.
+  // The tabs would all read zero and open on "No column changed.", which is
+  // true and is the opposite of what is being approved.
+  const removing = changeRequest.operation === 'delete';
+  const charts = tn(
+    '%s chart',
+    '%s charts',
+    detail.impact.charts,
+    detail.impact.charts,
+  );
+  const dashboards = tn(
+    '%s dashboard',
+    '%s dashboards',
+    detail.impact.dashboards,
+    detail.impact.dashboards,
+  );
+
   return (
     <Modal
       show={open}
@@ -283,21 +295,19 @@ export default function DatasetReviewModal({
         type="warning"
         showIcon
         closable={false}
-        message={t(
-          'Used by %s on %s. Changes apply to all of them once approved.',
-          tn(
-            '%s chart',
-            '%s charts',
-            detail.impact.charts,
-            detail.impact.charts,
-          ),
-          tn(
-            '%s dashboard',
-            '%s dashboards',
-            detail.impact.dashboards,
-            detail.impact.dashboards,
-          ),
-        )}
+        message={
+          removing
+            ? t(
+                'Used by %s on %s. All of them lose this dataset once approved.',
+                charts,
+                dashboards,
+              )
+            : t(
+                'Used by %s on %s. Changes apply to all of them once approved.',
+                charts,
+                dashboards,
+              )
+        }
       />
 
       <Byline>
@@ -309,21 +319,27 @@ export default function DatasetReviewModal({
         {changeRequest.note ? ` · "${changeRequest.note}"` : ''}
       </Byline>
 
-      <Tabs>
-        {tabs.map(entry => (
-          <TabButton
-            key={entry.key}
-            active={tab === entry.key}
-            onClick={() => setTab(entry.key)}
-            data-test={`dataset-tab-${entry.key}`}
-          >
-            {entry.label}
-            <Count>{entry.count}</Count>
-          </TabButton>
-        ))}
-      </Tabs>
+      {removing ? null : (
+        <Tabs>
+          {tabs.map(entry => (
+            <TabButton
+              key={entry.key}
+              active={tab === entry.key}
+              onClick={() => setTab(entry.key)}
+              data-test={`dataset-tab-${entry.key}`}
+            >
+              {entry.label}
+              <Count>{entry.count}</Count>
+            </TabButton>
+          ))}
+        </Tabs>
+      )}
 
-      {tab === 'source' ? (
+      {removing ? (
+        <Empty data-test="dataset-removal">
+          {t('This dataset would be removed once approved.')}
+        </Empty>
+      ) : tab === 'source' ? (
         sqlChanged ? (
           <Table>
             <thead>

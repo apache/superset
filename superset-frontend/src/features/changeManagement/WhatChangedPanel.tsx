@@ -25,6 +25,7 @@ import { useMemo, useState } from 'react';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import { ago, changeCount } from './display';
 import { displayName, STATUS_LABEL } from './types';
+import ChangeList from './ChangeList';
 import DatasetReview from './DatasetReview';
 import type { ChangeRequest } from './types';
 
@@ -92,49 +93,10 @@ const SectionTitle = styled.div`
   `}
 `;
 
-const Tag = styled.span`
-  ${({ theme }) => `
-    font-size: ${theme.fontSizeSM}px;
-    color: ${theme.colorTextTertiary};
-  `}
-`;
-
 const Note = styled.div`
   ${({ theme }) => `
     white-space: pre-wrap;
     color: ${theme.colorText};
-  `}
-`;
-
-const FieldBlock = styled.div`
-  ${({ theme }) => `
-    padding: ${theme.sizeUnit * 2}px 0;
-    border-bottom: 1px dashed ${theme.colorSplit};
-    &:last-of-type { border-bottom: none; }
-  `}
-`;
-
-const FieldName = styled.div`
-  ${({ theme }) => `
-    font-family: ${theme.fontFamilyCode};
-    font-size: ${theme.fontSizeSM}px;
-    color: ${theme.colorTextSecondary};
-    margin-bottom: ${theme.sizeUnit}px;
-  `}
-`;
-
-const Before = styled.div`
-  ${({ theme }) => `
-    color: ${theme.colorTextTertiary};
-    text-decoration: line-through;
-    word-break: break-word;
-  `}
-`;
-
-const After = styled.div`
-  ${({ theme }) => `
-    color: ${theme.colorSuccessText};
-    word-break: break-word;
   `}
 `;
 
@@ -151,34 +113,9 @@ const Muted = styled.div`
 `;
 
 /**
- * What a reviewer calls these, rather than what the column is called.
- *
- * `params` and `json_metadata` are storage names; a reviewer deciding
- * whether to publish a change should not have to know them (129075).
- */
-const FIELD_LABELS: Record<string, string> = {
-  slice_name: t('Title'),
-  dashboard_title: t('Title'),
-  table_name: t('Name'),
-  description: t('Description'),
-  params: t('Chart configuration'),
-  query_context: t('Query'),
-  json_metadata: t('Dashboard settings'),
-  position_json: t('Layout'),
-  css: t('Stylesheet'),
-  published: t('Published'),
-  cache_timeout: t('Cache timeout'),
-  owners: t('Owners'),
-  editors: t('Editors'),
-  sql: t('SQL'),
-};
-
-const fieldLabel = (field: string): string => FIELD_LABELS[field] ?? field;
-
-/**
  * The chart's own control labels, for the keys inside `params`.
  *
- * `FIELD_LABELS` above covers storage columns. The keys *inside* `params`
+ * `FIELD_LABELS` in `ChangeList` covers storage columns. The keys *inside* `params`
  * are Explore control names, and they had no mapping at all, so the panel
  * read "Chart configuration: adhoc_filters, axisTicks,
  * color_by_primary_axis and 75 more" -- internal names a reviewer deciding
@@ -223,14 +160,6 @@ function controlLabels(changeRequest: ChangeRequest): Record<string, string> {
   } catch {
     return {};
   }
-}
-
-/** "Title, metrics and 2 more" -- a list a person can read at a glance. */
-function summarise(keys: string[], labels: Record<string, string> = {}): string {
-  const named = keys.slice(0, 3).map(key => labels[key] ?? fieldLabel(key));
-  const rest = keys.length - named.length;
-  const list = named.join(', ');
-  return rest > 0 ? t('%s and %s more', list, rest) : list;
 }
 
 export interface WhatChangedPanelProps {
@@ -352,50 +281,7 @@ export default function WhatChangedPanel({
               // is the save carried nothing new.
               <Muted>{t('Nothing differs from the live version.')}</Muted>
             ) : (
-              (changeRequest.changes ?? []).map(change => (
-                <FieldBlock key={change.field}>
-                  <FieldName>{fieldLabel(change.field)}</FieldName>
-                  {change.opaque ? (
-                    change.layout ? (
-                      <Muted>
-                        {t(
-                          '%s added, %s removed, %s moved',
-                          change.layout.added,
-                          change.layout.removed,
-                          change.layout.changed,
-                        )}
-                      </Muted>
-                    ) : change.keys?.length ? (
-                      <>
-                        <Muted>
-                          {summarise(
-                            change.keys,
-                            change.field === 'params' ? controls : undefined,
-                          )}
-                        </Muted>
-                        {change.added_keys ? (
-                          <Muted>
-                            {t(
-                              '%s further settings written for the first time',
-                              change.added_keys,
-                            )}
-                          </Muted>
-                        ) : null}
-                      </>
-                    ) : (
-                      <Tag>{t('Changed')}</Tag>
-                    )
-                  ) : (
-                    <>
-                      <Before>{String(change.before ?? '—')}</Before>
-                      <After>{String(change.after ?? '—')}</After>
-                      {change.truncated ? (
-                        <Muted>{t('Shortened to fit. Open the asset to read it in full.')}</Muted>
-                      ) : null}
-                    </>
-                  )}
-                </FieldBlock>
-              ))
+              <ChangeList changes={fields} controls={controls} />
             )}
           </Section>
         )}

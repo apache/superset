@@ -38,22 +38,67 @@ export interface UserBrief {
   last_name?: string | null;
 }
 
+/** One line in the list of what moved inside a structured field. */
+export interface EntryChange {
+  kind: 'added' | 'removed' | 'changed';
+  /** The setting, filter, dashboard or member this line is about. */
+  key: string;
+  before?: string | null;
+  after?: string | null;
+  /** The value was cut to fit; the whole of it is on the asset. */
+  truncated?: boolean;
+}
+
+/** A dashboard layout component that arrived, left or changed. */
+export interface LayoutComponent {
+  kind: 'added' | 'removed' | 'changed';
+  /** The layout's own type: CHART, HEADER, MARKDOWN, TAB, DIVIDER... */
+  type: string;
+  /** What the author calls it: the chart's name, the heading's text. */
+  name?: string;
+  moved?: boolean;
+  details?: string[];
+}
+
 export interface FieldChange {
   field: string;
-  /** True when the value is too large or structural to show inline. */
+  /**
+   * The value is not a scalar (an object, a list, a layout). Informational:
+   * what to draw is decided by which of `layout`, `entries`, `keys`,
+   * `before` and `after` the server sent, not by this flag.
+   */
   opaque?: boolean;
-  /** For an opaque JSON column: which entries inside it moved. */
   /** The shown value was shortened. It is never dropped: a reviewer who
    * cannot see what they are approving is the thing this feature exists
    * to prevent. */
   truncated?: boolean;
+  /** For a JSON column: which top-level entries inside it moved. */
   keys?: string[];
   /** Settings the save wrote down for the first time, nearly
    * always a control's own default rather than an edit. Counted
    * rather than named, so one real change is not buried. */
   added_keys?: number;
-  /** For `position_json`: how the dashboard's layout moved, in counts. */
-  layout?: { added: number; removed: number; changed: number };
+  /** For a layout: how it moved in counts, and which components. */
+  layout?: {
+    added: number;
+    removed: number;
+    changed: number;
+    components?: LayoutComponent[];
+    more?: number;
+  };
+  /**
+   * What moved inside the field, with each value before and after. Walks
+   * nested objects, tells a filter removed from a filter added, and for a
+   * collection (viewers, dashboards, tags) lists who joined and who left.
+   */
+  entries?: EntryChange[];
+  /** Entries beyond the ones listed. */
+  more?: number;
+  /** For a collection: how many members each side holds. */
+  count?: { before: number; after: number };
+  /** For a version restore: when that version was saved, and by whom. */
+  saved_at?: string;
+  saved_by?: string;
   before?: string | number | boolean | null;
   after?: string | number | boolean | null;
   unchanged?: boolean;

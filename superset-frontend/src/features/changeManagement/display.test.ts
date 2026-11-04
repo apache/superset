@@ -21,6 +21,7 @@ import {
   assetUrl,
   changeCount,
   datasetChangeCount,
+  show,
 } from './display';
 import type { ChangeRequest, DatasetDetail } from './types';
 
@@ -174,4 +175,18 @@ describe('where an approved delete leaves the reviewer', () => {
 
     expect(afterRemovalPath()).toBe('/approvals/');
   });
+});
+
+test('nothing and the empty string both read as a dash', () => {
+  // C21. `String(value ?? '—')` passes '' through, so a field cleared to
+  // nothing drew a blank where its new value belongs.
+  expect(show(null)).toBe('—');
+  expect(show(undefined)).toBe('—');
+  expect(show('')).toBe('—');
+});
+
+test('a value that is there is shown as it is, falsy or not', () => {
+  expect(show(0)).toBe('0');
+  expect(show(false)).toBe('false');
+  expect(show('Revenue')).toBe('Revenue');
 });

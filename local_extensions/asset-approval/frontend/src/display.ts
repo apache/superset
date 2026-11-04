@@ -53,6 +53,21 @@ import type {
 } from './types';
 import { displayName } from './types';
 
+/**
+ * A value as the reviewer reads it.
+ *
+ * Nothing and the empty string both read as an em-dash. `String(value ?? '—')`
+ * is not the same thing: `??` passes `''` straight through, so a text field
+ * cleared to nothing drew a blank where "after" should be, which reads as
+ * the panel having failed to load the value and not as the field having been
+ * emptied. One definition, because the dataset dialog and the field panel
+ * each had their own and only one of them was right.
+ */
+export function show(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '—';
+  return String(value);
+}
+
 /** Timestamps arrive as UTC ISO strings; render them in the reader's zone. */
 export function toLocal(iso: string | null) {
   return iso ? extendedDayjs.utc(iso).local() : null;

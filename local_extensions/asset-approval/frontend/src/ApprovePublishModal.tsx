@@ -19,6 +19,7 @@
 
 import React from 'react';
 import { Modal, styled, t } from './host';
+import ChangeList from './ChangeList';
 import { changeCount, totalChangeCount } from './display';
 import type { ChangeRequest } from './types';
 
@@ -52,6 +53,7 @@ export default function ApprovePublishModal({
   onConfirm,
 }: ApprovePublishModalProps) {
   const deleting = changeRequest.operation === 'delete';
+  const restoring = changeRequest.command === 'restore';
 
   return (
     <Modal
@@ -64,7 +66,17 @@ export default function ApprovePublishModal({
       }
       data-test="approve-publish-modal"
     >
-      {deleting
+      {restoring
+        ? // An un-archive has nothing to preview on a page, because the asset
+          // is in the trash and has none, so this dialog is the only place
+          // the reviewer is told what approving does. It said the generic
+          // sentence below and listed nothing, which for a restore read as a
+          // change that did not exist.
+          t(
+            'Viewers can see the %s again straight away. It comes out of Recently archived.',
+            changeRequest.asset_type,
+          )
+        : deleting
         ? // Said "It cannot be undone", which the product contradicts twice
           // over: the archive confirmation on the same delete promises
           // Recently archived, and Walk C restored an approved delete from
@@ -87,6 +99,13 @@ export default function ApprovePublishModal({
               'Viewers see these %s right away. The current version moves to version history.',
               changeCount(changeRequest),
             )}
+      {changeRequest.asset_archived && (changeRequest.changes ?? []).length ? (
+        // What the request changes, for the one kind of request that is
+        // decided here and not on the asset's own page.
+        <div data-test="approve-changes">
+          <ChangeList changes={changeRequest.changes} />
+        </div>
+      ) : null}
       <Hint>{t('Your note is saved with the approval.')}</Hint>
     </Modal>
   );
