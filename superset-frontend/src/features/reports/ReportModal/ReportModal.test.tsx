@@ -98,6 +98,31 @@ beforeEach(() => {
   );
 });
 
+// Routes registered inside individual tests. Several share a URL glob and
+// fetch-mock answers with the first matching route, so cleanup lives here:
+// a test that fails before its last line must not leave a route behind that
+// shadows the routes of the tests after it.
+const PER_TEST_ROUTES = [
+  'post-subscribe',
+  'post-subscribe-chart',
+  'put-report-77',
+  'put-report-42',
+  'put-report-44',
+  'put-chart-format',
+  'put-chart-metadata',
+  'put-chart-self',
+  'post-chart-subscribe',
+  'put-report-43',
+  'post-fail',
+  'post-retry',
+];
+
+afterEach(() => {
+  fetchMock.removeRoutes({ names: PER_TEST_ROUTES, includeFallback: false });
+  fetchMock.modifyRoute('report-list', { response: {} });
+  fetchMock.clearHistory();
+});
+
 test('inputs respond correctly', async () => {
   render(<ReportModal {...defaultProps} />, { useRedux: true });
   // ----- Report name textbox
@@ -158,7 +183,7 @@ test('creates a new email report via modal Add button', async () => {
   render(<ReportModal {...defaultProps} />, { useRedux: true });
 
   const addButton = screen.getByRole('button', { name: /add/i });
-  await waitFor(async () => await userEvent.click(addButton));
+  await userEvent.click(addButton);
 
   // Verify exactly one POST to the subscribe endpoint
   await waitFor(() => {
@@ -176,8 +201,6 @@ test('creates a new email report via modal Add button', async () => {
   expect(body.recipients).toBeUndefined();
   expect(body.dashboard).toBe(1);
   expect(body.chart).toBeUndefined();
-
-  fetchMock.removeRoute('post-subscribe');
 });
 
 test('creating a chart report in a dashboard context sends only the chart id', async () => {
@@ -209,8 +232,6 @@ test('creating a chart report in a dashboard context sends only the chart id', a
   const body = JSON.parse(postCalls[0].options.body as string);
   expect(body.chart).toBe(119);
   expect(body.dashboard).toBeUndefined();
-
-  fetchMock.removeRoute('post-subscribe-chart');
 });
 
 test('text-based chart hides screenshot width and shows message content', () => {
@@ -393,8 +414,6 @@ test('edit mode in a dashboard context resolves and saves the chart report', asy
   const body = JSON.parse(calls[calls.length - 1].options.body as string);
   expect(body.chart).toBe(119);
   expect(body.dashboard).toBeUndefined();
-
-  fetchMock.removeRoute('put-report-77');
 });
 
 test('edit mode dispatches editReport via PUT on save', async () => {
@@ -438,7 +457,7 @@ test('edit mode dispatches editReport via PUT on save', async () => {
 
   expect(screen.getByText('Edit email report')).toBeInTheDocument();
   const saveButton = screen.getByRole('button', { name: /save/i });
-  await waitFor(async () => await userEvent.click(saveButton));
+  await userEvent.click(saveButton);
 
   await waitFor(() => {
     const calls = fetchMock.callHistory.calls('put-report-42');
@@ -457,8 +476,6 @@ test('edit mode dispatches editReport via PUT on save', async () => {
   expect(body.editors).toEqual([99]);
   expect(body.recipients).toBeDefined();
   expect(body.recipients[0].type).toBe('Email');
-
-  fetchMock.removeRoute('put-report-42');
 });
 
 test('edit mode preserves the fetched report_format on save', async () => {
@@ -518,8 +535,6 @@ test('edit mode preserves the fetched report_format on save', async () => {
   const calls = fetchMock.callHistory.calls('put-report-44');
   const body = JSON.parse(calls[calls.length - 1].options.body as string);
   expect(body.report_format).toBe('XLSX');
-
-  fetchMock.removeRoute('put-report-44');
 });
 
 test('changing a legacy chart subscription format requires an explicit takeover', async () => {
@@ -594,7 +609,6 @@ test('changing a legacy chart subscription format requires an explicit takeover'
   expect(body.report_format).toBe('CSV');
   expect(body.run_as).toBe(7);
   expect(body.run_as_type).toBe('fixed_user');
-  fetchMock.removeRoute('put-chart-format');
 });
 
 test('unchanged chart subscription format needs no takeover', async () => {
@@ -651,7 +665,6 @@ test('unchanged chart subscription format needs no takeover', async () => {
   );
   expect(body.run_as).toBeUndefined();
   expect(body.run_as_type).toBeUndefined();
-  fetchMock.removeRoute('put-chart-metadata');
 });
 
 test('changing a chart subscription format needs no takeover when it runs as the owner', async () => {
@@ -725,7 +738,6 @@ test('changing a chart subscription format needs no takeover when it runs as the
   );
   expect(body.report_format).toBe('CSV');
   expect(body.run_as).toBeUndefined();
-  fetchMock.removeRoute('put-chart-self');
 });
 
 test('new subscription refreshes its server-defaulted executor before format edits', async () => {
@@ -793,9 +805,6 @@ test('new subscription refreshes its server-defaulted executor before format edi
   expect(
     screen.queryByRole('button', { name: 'Execute using my permissions' }),
   ).not.toBeInTheDocument();
-
-  fetchMock.modifyRoute('report-list', { response: {} });
-  fetchMock.removeRoute('post-chart-subscribe');
 });
 
 test('edit mode does not fall back to user id when subject id is unavailable', async () => {
@@ -848,7 +857,7 @@ test('edit mode does not fall back to user id when subject id is unavailable', a
   });
 
   const saveButton = screen.getByRole('button', { name: /save/i });
-  await waitFor(async () => await userEvent.click(saveButton));
+  await userEvent.click(saveButton);
 
   await waitFor(() => {
     const calls = fetchMock.callHistory.calls('put-report-43');
@@ -859,8 +868,6 @@ test('edit mode does not fall back to user id when subject id is unavailable', a
   const body = JSON.parse(calls[calls.length - 1].options.body as string);
 
   expect(body.editors).toBeUndefined();
-
-  fetchMock.removeRoute('put-report-43');
 });
 
 test('submit failure dispatches danger toast and keeps modal open', async () => {
@@ -874,7 +881,7 @@ test('submit failure dispatches danger toast and keeps modal open', async () => 
   });
 
   const addButton = screen.getByRole('button', { name: /add/i });
-  await waitFor(async () => await userEvent.click(addButton));
+  await userEvent.click(addButton);
 
   // The addReport action catches 500 errors, dispatches a danger toast, and re-throws
   await waitFor(() => {
@@ -890,8 +897,6 @@ test('submit failure dispatches danger toast and keeps modal open', async () => 
   // Modal stays open; onHide should NOT have been called.
   expect(onHide).not.toHaveBeenCalled();
   expect(screen.getByText('Schedule a new email report')).toBeInTheDocument();
-
-  fetchMock.removeRoute('post-fail');
 });
 
 // ---------------------------------------------------------------------------
@@ -986,6 +991,4 @@ test('retry fields are included in the POST body when Enable Retries is enabled'
     expect(typeof body.retry_notify_owners).toBe('boolean');
     expect(typeof body.retry_notify_recipients).toBe('boolean');
   });
-
-  fetchMock.removeRoute('post-retry');
 });
