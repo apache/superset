@@ -2008,6 +2008,35 @@ test('bulk select shows "N Selected (Physical)" for physical-only selection', as
   );
 }, 30000);
 
+test('bulk select names both physical and semantic-view selections', async () => {
+  const physicalDataset = mockDatasets.find(d => d.kind === 'physical')!;
+  const semanticView = {
+    ...physicalDataset,
+    id: 999,
+    table_name: 'semantic_sales',
+    kind: 'semantic_view',
+  };
+  mockDatasetListEndpoints({
+    result: [physicalDataset, semanticView],
+    count: 2,
+  });
+
+  renderDatasetList(mockAdminUser);
+  const table = await screen.findByTestId('listview-table');
+  await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+  await within(table).findAllByRole('checkbox');
+  for (const name of [physicalDataset.table_name, semanticView.table_name]) {
+    const row = screen.getByText(name).closest('tr')!;
+    await userEvent.click(within(row).getByRole('checkbox'));
+  }
+
+  await waitFor(() =>
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      '2 Selected (1 Physical, 1 Semantic View)',
+    ),
+  );
+}, 30000);
+
 test('bulk select shows mixed count for virtual and physical selection', async () => {
   // Use a small mixed set - 1 physical + 1 virtual
   const mixedDatasets = [

@@ -650,3 +650,23 @@ test.each([false, true])(
     }
   },
 );
+
+test('semantic-view creation link opens the semantic-view modal', async () => {
+  const previousFlags = window.featureFlags;
+  window.featureFlags = {
+    ...previousFlags,
+    [FeatureFlag.SemanticLayers]: true,
+  };
+  try {
+    fetchMock.get(API_ENDPOINTS.SEMANTIC_LAYERS, { result: [], count: 0 });
+    renderDatasetList(
+      mockAdminUser,
+      {},
+      {},
+      '/tablemodelview/list/?create=semantic_view',
+    );
+    expect(await screen.findByText('Add Semantic View')).toBeInTheDocument();
+  } finally {
+    window.featureFlags = previousFlags;
+  }
+});

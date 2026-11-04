@@ -1291,6 +1291,9 @@ msgstr ""
 msgid "Add a dataset"
 msgstr ""
 
+msgid "Add a datasource"
+msgstr ""
+
 msgid "Add a new tab"
 msgstr ""
 
@@ -18182,6 +18185,9 @@ msgid "create"
 msgstr ""
 
 msgid "create a new chart"
+msgstr ""
+
+msgid "create a semantic view"
 msgstr ""
 
 msgid "create dataset from SQL query"

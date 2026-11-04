@@ -30,6 +30,7 @@ import {
   useState,
   useMemo,
   useCallback,
+  useEffect,
   useRef,
   Key,
 } from 'react';
@@ -702,6 +703,17 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const canCreate = hasPerm('can_write');
   const canDuplicate = hasPerm('can_duplicate');
   const canExport = hasPerm('can_export');
+
+  useEffect(() => {
+    if (
+      canCreate &&
+      isFeatureEnabled(SEMANTIC_LAYERS_FLAG) &&
+      new URLSearchParams(history.location.search).get('create') ===
+        'semantic_view'
+    ) {
+      setSemanticSetup('view');
+    }
+  }, [canCreate, history]);
 
   const initialSort = SORT_BY;
 
@@ -1906,14 +1918,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 if (!selected.length) {
                   return t('0 Selected');
                 }
-                if (virtualCount && !physicalCount) {
+                if (virtualCount && !physicalCount && !semanticViewCount) {
                   return t(
                     '%s Selected (Virtual)',
                     selected.length,
                     virtualCount,
                   );
                 }
-                if (physicalCount && !virtualCount) {
+                if (physicalCount && !virtualCount && !semanticViewCount) {
                   return t(
                     '%s Selected (Physical)',
                     selected.length,
