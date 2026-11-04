@@ -213,6 +213,25 @@ export default function ReviewBanner({
           label: t('Request review'),
           onClick: onRequestReview,
         },
+        // The author's own way out, where the banner has just told them
+        // they have changes pending.
+        //
+        // It existed only in the ⋯ menu and only while editing, so the way
+        // to abandon a draft was to first enter edit mode on it -- which is
+        // the thing somebody abandoning it is trying not to do. Two testers
+        // opened a stale draft they did not recognise, looked for a discard,
+        // found none, and carried on editing on top of it. Another editor
+        // looking at the same draft was offered this all along.
+        ...(onDiscard
+          ? [
+              {
+                key: 'discard',
+                label: t('Discard changes…'),
+                onClick: onDiscard,
+                danger: true,
+              },
+            ]
+          : []),
       ];
 
       // The only case where the author really is looking at their own work.
