@@ -580,12 +580,16 @@ class SQLExecutor:
 
         try:
             # 1. Prepare SQL (assembly only, no security checks)
-            original_script, transformed_script, catalog, schema = self._prepare_sql(
-                sql, opts
-            )
+            (
+                original_script,
+                transformed_script,
+                catalog,
+                schema,
+                table_schema,
+            ) = self._prepare_sql(sql, opts)
 
             # 2. Security checks on transformed script
-            self._check_security(transformed_script, schema, catalog)
+            self._check_security(transformed_script, schema, table_schema)
 
             # 3. Get mutation status and format SQL
             has_mutation = transformed_script.has_mutation()
@@ -713,12 +717,16 @@ class SQLExecutor:
         opts: QueryOptionsType = options or QueryOptionsType()
 
         # 1. Prepare SQL (assembly only, no security checks)
-        original_script, transformed_script, catalog, schema = self._prepare_sql(
-            sql, opts
-        )
+        (
+            original_script,
+            transformed_script,
+            catalog,
+            schema,
+            table_schema,
+        ) = self._prepare_sql(sql, opts)
 
         # 2. Security checks on transformed script
-        self._check_security(transformed_script, schema, catalog)
+        self._check_security(transformed_script, schema, table_schema)
 
         # 3. Get mutation status and format SQL
         has_mutation = transformed_script.has_mutation()
@@ -770,7 +778,7 @@ class SQLExecutor:
         self,
         sql: str,
         opts: QueryOptions,
-    ) -> tuple[SQLScript, SQLScript, str | None, str | None]:
+    ) -> tuple[SQLScript, SQLScript, str | None, str | None, str]:
         """
         Prepare SQL for execution (no side effects, no security checks).
 
@@ -786,7 +794,9 @@ class SQLExecutor:
 
         :param sql: Original SQL query
         :param opts: Query options
-        :returns: Tuple of (original_script, transformed_script, catalog, schema)
+        :returns: Tuple of (original_script, transformed_script, catalog, schema,
+            table_schema), where ``table_schema`` is the schema unqualified tables
+            resolve to (see ``get_unqualified_table_schema``)
         """
         # 1. Render Jinja2 templates
         rendered_sql = self._render_sql_template(sql, opts.template_params)
@@ -815,27 +825,37 @@ class SQLExecutor:
         resolved_schema = self._resolve_query_schema(sql, opts, catalog)
         schema = opts.schema or resolved_schema
 
+        # A query without a schema still reads unqualified tables from the
+        # connection's default schema, so RLS and schema-qualified denylist
+        # entries match against that schema.
+        from superset.utils.rls import get_unqualified_table_schema
+
+        table_schema = get_unqualified_table_schema(
+            self.database, catalog, schema, transformed_script.statements
+        )
+
         # 5. Apply RLS to transformed script only
-        self._apply_rls_to_script(transformed_script, catalog, schema)
+        self._apply_rls_to_script(transformed_script, catalog, table_schema)
 
         # 6. Apply limit only if not a mutation
         if not transformed_script.has_mutation():
             self._apply_limit_to_script(transformed_script, opts)
 
-        return original_script, transformed_script, catalog, schema
+        return original_script, transformed_script, catalog, schema, table_schema
 
     def _check_security(
         self,
         script: SQLScript,
         schema: str | None = None,
-        catalog: str | None = None,
+        table_schema: str | None = None,
     ) -> None:
         """
         Perform security checks on prepared SQL script.
 
         :param script: Prepared SQLScript
         :param schema: Effective schema unqualified references resolve to
-        :param catalog: Catalog the script runs against
+        :param table_schema: The schema unqualified tables resolve to when the
+            query has no schema (see ``get_unqualified_table_schema``)
         :raises SupersetSecurityException: If security checks fail
         """
         # Check disallowed functions
@@ -851,7 +871,9 @@ class SQLExecutor:
             )
 
         # Check disallowed tables
-        if disallowed_tables := self._check_disallowed_tables(script, schema, catalog):
+        if disallowed_tables := self._check_disallowed_tables(
+            script, schema, table_schema
+        ):
             raise SupersetSecurityException(
                 SupersetError(
                     message=f"Disallowed SQL tables: {', '.join(disallowed_tables)}",
@@ -1129,14 +1151,15 @@ class SQLExecutor:
         self,
         script: SQLScript,
         schema: str | None = None,
-        catalog: str | None = None,
+        table_schema: str | None = None,
     ) -> set[str] | None:
         """
         Check for disallowed SQL tables/views.
 
         :param script: Parsed SQL script
         :param schema: Effective schema unqualified references resolve to
-        :param catalog: Catalog the script runs against
+        :param table_schema: The schema unqualified tables resolve to when the
+            query has no schema (see ``get_unqualified_table_schema``)
         :returns: Set of disallowed tables found, or None if none found
         """
         disallowed_config = app.config.get("DISALLOWED_SQL_TABLES", {})
@@ -1150,18 +1173,10 @@ class SQLExecutor:
         # Honors schema-qualified denylist entries (e.g.
         # ``information_schema.tables``) as well as bare names. The effective
         # schema lets an unqualified reference that resolves to it at runtime
-        # (via the connection ``search_path``) match too. A query without a schema
-        # still reads unqualified tables from the connection's default schema, so a
-        # qualified entry is matched against that schema.
-        from superset.utils.rls import (
-            get_unqualified_table_schema,
-            has_qualified_table_entry,
-        )
-
-        if has_qualified_table_entry(engine_disallowed):
-            schema = get_unqualified_table_schema(
-                self.database, catalog, schema, script.statements
-            )
+        # (via the connection ``search_path``) match too, including the
+        # connection's default schema when the query has none.
+        if table_schema:
+            schema = table_schema
         return script.get_disallowed_tables(engine_disallowed, schema) or None
 
     def _apply_rls_to_script(
@@ -1172,17 +1187,13 @@ class SQLExecutor:
 
         :param script: SQLScript object to modify
         :param catalog: Catalog name
-        :param schema: Schema name
+        :param schema: Schema unqualified tables resolve to
         """
-        from superset.utils.rls import apply_rls, get_unqualified_table_schema
+        from superset.utils.rls import apply_rls
 
-        # A query without a schema still reads unqualified tables from the
-        # connection's default schema, so RLS targets that schema too.
-        rls_schema = get_unqualified_table_schema(
-            self.database, catalog, schema, script.statements
-        )
+        # Apply RLS to each statement in the script
         for statement in script.statements:
-            apply_rls(self.database, catalog, rls_schema, statement)
+            apply_rls(self.database, catalog, schema or "", statement)
 
     def _create_query_record(
         self,

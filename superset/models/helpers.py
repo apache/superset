@@ -198,6 +198,7 @@ from superset.utils.rls import (
     get_rls_schema,
     get_unqualified_table_schema,
     has_qualified_table_entry,
+    reads_unqualified_table,
 )
 
 
@@ -2309,7 +2310,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return []
 
     def _resolve_denylist_schema(
-        self, sql: str, disallowed_tables: Iterable[str] = ()
+        self,
+        sql: str,
+        disallowed_tables: Iterable[str] = (),
+        script: SQLScript | None = None,
     ) -> Optional[str]:
         """
         Resolve the effective default schema for ``DISALLOWED_SQL_TABLES``
@@ -2329,11 +2333,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         A datasource without a schema on a dynamic-schema engine still reads
         unqualified tables from the connection's default schema, so when the
-        denylist has a schema-qualified entry that schema is discovered (once)
-        and used instead. Bare entries match whatever the schema, so a bare-name
-        denylist never connects for it.
+        denylist has a schema-qualified entry and the SQL reads an unqualified
+        table, that schema is discovered (once) and used instead. Bare entries
+        match whatever the schema, so a bare-name denylist never connects for it.
 
         :param disallowed_tables: The denylist entries being checked
+        :param script: The parsed SQL being checked
         """
         if self.schema and self.db_engine_spec.supports_dynamic_schema:
             return self.schema
@@ -2343,7 +2348,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 sql, self.schema, catalog
             )
         schema = self._denylist_default_schema
-        if schema or not has_qualified_table_entry(disallowed_tables):
+        if (
+            schema
+            or not has_qualified_table_entry(disallowed_tables)
+            or (script is not None and not reads_unqualified_table(script.statements))
+        ):
             return schema
         if not hasattr(self, "_denylist_connection_schema"):
             self._denylist_connection_schema = get_unqualified_table_schema(
@@ -2489,7 +2498,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # resolver, not the static inspector default), so both
                     # surfaces enforce the denylist consistently.
                     effective_schema = self._resolve_denylist_schema(
-                        sql_to_check, disallowed_tables
+                        sql_to_check, disallowed_tables, parsed
                     )
                     found_tables = parsed.get_disallowed_tables(
                         disallowed_tables, effective_schema
@@ -2799,7 +2808,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # / executor gate resolves them to (via the query-aware resolver,
             # not the static inspector default), so both surfaces enforce the
             # denylist consistently.
-            effective_schema = self._resolve_denylist_schema(sql, disallowed_tables)
+            effective_schema = self._resolve_denylist_schema(
+                sql, disallowed_tables, parsed_script
+            )
             found_tables = parsed_script.get_disallowed_tables(
                 disallowed_tables, effective_schema
             )

@@ -103,11 +103,18 @@ def get_unqualified_table_schema(
         return schema
     if not database.db_engine_spec.supports_dynamic_schema:
         return ""
-    if statements is not None and all(
-        table.schema for statement in statements for table in statement.tables
-    ):
+    if statements is not None and not reads_unqualified_table(statements):
         return ""
     return database.get_default_schema(catalog) or ""
+
+
+def reads_unqualified_table(statements: Iterable[BaseSQLStatement[Any]]) -> bool:
+    """
+    Whether any of the statements reads a table without naming its schema.
+    """
+    return any(
+        not table.schema for statement in statements for table in statement.tables
+    )
 
 
 def has_qualified_table_entry(tables: Iterable[str]) -> bool:
