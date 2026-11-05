@@ -350,3 +350,181 @@ describe('the author while their change is with a reviewer', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(/Priya Shah/);
   });
 });
+
+describe('the author in edit mode while their change is with a reviewer', () => {
+  /**
+   * The author now stays in the editor through a captured save and on
+   * through the submit, so this is the state they are in the instant after
+   * pressing Request review: the canvas holds their draft, with the row
+   * they deleted gone from it.
+   *
+   * The clause that names the version on screen read it off the preview
+   * switch alone. The switch is withheld entirely in edit mode -- it
+   * re-hydrates the dashboard and would throw unsaved edits away -- so it
+   * is always "off" there, and the banner told an author looking at their
+   * own draft that they were seeing the live version.
+   */
+  const pending = {
+    id: 8,
+    asset_type: 'dashboard',
+    asset_id: 6,
+    status: 'pending',
+    is_open: true,
+    is_author: true,
+    can_approve: false,
+    submitted_at: new Date().toISOString(),
+    changed_on: new Date().toISOString(),
+    changed_fields: ['dashboard_title'],
+    eligible_approvers: [{ first_name: 'Priya', last_name: 'Shah' }],
+  } as unknown as ChangeRequest;
+
+  const renderEditingPending = (over: Record<string, unknown> = {}) =>
+    render(
+      <ReviewBanner
+        changeRequest={pending}
+        editing
+        onShowWhatChanged={() => {}}
+        onWithdraw={() => {}}
+        {...over}
+      />,
+      { useRedux: true, useRouter: true },
+    );
+
+  test('the canvas is the draft, so that is what it says', () => {
+    renderEditingPending();
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/Awaiting review/);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /you are seeing your changes/,
+    );
+    expect(screen.getByRole('alert')).not.toHaveTextContent(
+      /you are seeing the live version/,
+    );
+  });
+
+  test('mid-edit it says the edits are unsaved rather than name a version', () => {
+    renderEditingPending({ editingUnsaved: true });
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /you are seeing your unsaved edits/,
+    );
+  });
+
+  test('out of edit mode the switch is the source again', () => {
+    render(
+      <ReviewBanner
+        changeRequest={pending}
+        showChanges={{ showing: false, busy: false, toggle: () => {} }}
+        onShowWhatChanged={() => {}}
+        onWithdraw={() => {}}
+      />,
+      { useRedux: true, useRouter: true },
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /you are seeing the live version/,
+    );
+  });
+});
+
+describe('a change the reviewer sent back', () => {
+  /**
+   * The author's route back, which this branch did not offer.
+   *
+   * It returned What changed alone, and the toolbar's Request review
+   * wanted `status === 'draft'`, so an author asked to revise who entered
+   * edit mode and changed nothing had no way to resubmit from either
+   * surface -- beside a disabled button whose tooltip read "No changes to
+   * review yet." two inches under this banner naming the reviewer and
+   * quoting what they had asked for.
+   *
+   * Offered with no fresh edit required: `lifecycle.submit` accepts
+   * CHANGES_REQUESTED as it accepts DRAFT, and the Approvals list has
+   * always offered Request review on the same row.
+   */
+  const returned = {
+    id: 11,
+    asset_type: 'dashboard',
+    asset_id: 6,
+    status: 'changes_requested',
+    is_open: true,
+    is_author: true,
+    can_approve: false,
+    review_note: 'Use the approved colour scheme, not the custom one.',
+    reviewer: { id: 4, first_name: 'Priya', last_name: 'Shah' },
+    decided_at: new Date().toISOString(),
+    changed_on: new Date().toISOString(),
+    changed_fields: ['dashboard_title'],
+  } as unknown as ChangeRequest;
+
+  const renderReturned = (over: Record<string, unknown> = {}) =>
+    render(
+      <ReviewBanner
+        changeRequest={{ ...returned, ...over } as unknown as ChangeRequest}
+        onShowWhatChanged={() => {}}
+        onRequestReview={() => {}}
+        onDiscard={() => {}}
+      />,
+      { useRedux: true, useRouter: true },
+    );
+
+  test('still says who asked for what', () => {
+    renderReturned();
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Priya Shah requested changes · "Use the approved colour scheme, not the custom one."',
+    );
+  });
+
+  test('offers the author a way to send it back for review', () => {
+    renderReturned();
+
+    expect(
+      screen.getByRole('button', { name: 'Request review' }),
+    ).toBeInTheDocument();
+  });
+
+  test('and a way to abandon it instead', () => {
+    renderReturned();
+
+    expect(
+      screen.getByRole('button', { name: 'Discard changes…' }),
+    ).toBeInTheDocument();
+  });
+
+  test('a row with no note stored does not quote an empty one', () => {
+    // Only reachable for rows written before a note was required of the
+    // reviewer. It used to render `· ""`.
+    renderReturned({ review_note: null });
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Priya Shah requested changes',
+    );
+    expect(screen.getByRole('alert')).not.toHaveTextContent('""');
+  });
+
+  test('another editor is told what is happening, not offered the author’s actions', () => {
+    render(
+      <ReviewBanner
+        changeRequest={
+          {
+            ...returned,
+            is_author: false,
+            author: { id: 2, first_name: 'Alex', last_name: 'Rivera' },
+          } as unknown as ChangeRequest
+        }
+        onShowWhatChanged={() => {}}
+        onRequestReview={() => {}}
+        onDiscard={() => {}}
+      />,
+      { useRedux: true, useRouter: true },
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /Alex Rivera is updating this after a review/,
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Request review' }),
+    ).not.toBeInTheDocument();
+  });
+});

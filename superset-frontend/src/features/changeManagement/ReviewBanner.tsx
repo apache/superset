@@ -184,14 +184,55 @@ export default function ReviewBanner({
 
     if (status === 'changes_requested') {
       if (isAuthor) {
+        const note = changeRequest.review_note?.trim();
+        const reviewer = displayName(changeRequest.reviewer) || t('A reviewer');
         return {
           type: 'warning',
-          message: t(
-            '%s requested changes · "%s"',
-            displayName(changeRequest.reviewer),
-            changeRequest.review_note ?? '',
-          ),
-          actions: [whatChanged],
+          // The note is required of a reviewer today
+          // (`ReviewNoteRequiredError`), so the second form is for rows
+          // written before that rule. Said without the empty pair of
+          // quotes the `?? ''` used to leave behind.
+          message: note
+            ? t('%s requested changes · "%s"', reviewer, note)
+            : t('%s requested changes', reviewer),
+          // The author's way back. This branch offered What changed alone,
+          // so an author asked to revise could read the request and had no
+          // route to answer it: the toolbar's Request review wanted
+          // `status === 'draft'`, and so a returned change with nothing
+          // unsaved was a dead end on both surfaces until the author
+          // happened to save something.
+          //
+          // Offered without requiring a fresh edit. `lifecycle.submit`
+          // accepts CHANGES_REQUESTED exactly as it accepts DRAFT, the
+          // Approvals list has always offered Request review on the same
+          // row (`canSubmit`), and whether a change still proposes
+          // anything is the server's question, not this banner's
+          // (`NothingToReviewError`). A reviewer who asked something the
+          // author answers in the submission note has not asked for the
+          // content to move.
+          //
+          // Discard comes with it for the same reason it is on the draft
+          // branch: the alternative to answering a review is abandoning
+          // the change, and the author should not have to go looking for
+          // that in a menu.
+          actions: [
+            whatChanged,
+            {
+              key: 'request-review',
+              label: t('Request review'),
+              onClick: onRequestReview,
+            },
+            ...(onDiscard
+              ? [
+                  {
+                    key: 'discard',
+                    label: t('Discard changes…'),
+                    onClick: onDiscard,
+                    danger: true,
+                  },
+                ]
+              : []),
+          ],
         };
       }
       // Another editor, including whoever sent it back. The change was
@@ -248,9 +289,22 @@ export default function ReviewBanner({
         // looking at their proposal under a banner that never mentions it,
         // beside a header pill reading Published for a dashboard viewers
         // cannot see.
-        const onScreen = showChanges?.showing
-          ? t('you are seeing your changes')
-          : t('you are seeing the live version');
+        //
+        // In edit mode the switch is not the source. It is withheld
+        // entirely while editing (it re-hydrates the dashboard and would
+        // throw unsaved edits away), so `showChanges?.showing` is false
+        // there whatever is on the canvas -- and the canvas in the editor
+        // is the author's own work, not the published asset. The author
+        // now stays in the editor through a captured save and on through
+        // the submit, so this is the state they are in immediately after
+        // pressing Request review, being told they are looking at the live
+        // version of a dashboard whose deleted row is missing in front of
+        // them.
+        const onScreen = editingUnsaved
+          ? t('you are seeing your unsaved edits')
+          : editing || showChanges?.showing
+            ? t('you are seeing your changes')
+            : t('you are seeing the live version');
         return {
           type: isStale(changeRequest) ? 'warning' : 'info',
           message: t(

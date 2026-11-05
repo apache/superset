@@ -1458,6 +1458,46 @@ describe('with review enabled', () => {
     expect(button).toBeDisabled();
   });
 
+  // A change a reviewer sent back is the author's to send again: the
+  // server accepts it as it stands (`lifecycle.submit` takes
+  // CHANGES_REQUESTED as it takes DRAFT) and the Approvals list has
+  // always offered Request review on the same row. This button wanted
+  // `draft`, so an author asked to revise who entered edit mode and
+  // changed nothing was told "No changes to review yet." under a banner
+  // naming the reviewer who had just sent it back and quoting what they
+  // asked for. Any save reopened the path; nothing on screen said so.
+  test('"Request review" is offered on a change a reviewer sent back', async () => {
+    fetchMock.get(
+      draftEndpoint,
+      { result: { ...authorsDraft.result, status: 'changes_requested' } },
+      { name: 'draft' },
+    );
+    setup(editableState);
+
+    const button = await screen.findByTestId('header-request-review-button');
+    await waitFor(() => expect(button).toBeEnabled());
+  });
+
+  test('and the tooltip on it no longer denies there is anything to review', async () => {
+    fetchMock.get(
+      draftEndpoint,
+      { result: { ...authorsDraft.result, status: 'changes_requested' } },
+      { name: 'draft' },
+    );
+    setup(editableState);
+
+    const button = await screen.findByTestId('header-request-review-button');
+    await waitFor(() => expect(button).toBeEnabled());
+    await userEvent.hover(button);
+
+    expect(
+      await screen.findByText(/Send your change back for review/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('No changes to review yet.'),
+    ).not.toBeInTheDocument();
+  });
+
   test('"Request review" is disabled while the draft is already awaiting review', async () => {
     fetchMock.get(
       draftEndpoint,

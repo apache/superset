@@ -687,11 +687,38 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     openChange?.is_open && openChange.status === 'pending'
   );
 
+  /**
+   * The author's own change, sent back by a reviewer and waiting on them.
+   *
+   * Submittable as it stands: `lifecycle.submit` accepts
+   * CHANGES_REQUESTED exactly as it accepts DRAFT, and the Approvals list
+   * has always offered Request review on the same row (`canSubmit`). Only
+   * this button and the banner required `draft`, so an author asked to
+   * revise who entered edit mode and changed nothing had no route to
+   * resubmit from either -- under a tooltip reading "No changes to review
+   * yet." two inches below a banner naming the reviewer who sent it back
+   * and quoting what they asked for. Any save reopened the path, by
+   * folding the returned request back into a draft, but nothing on screen
+   * said so.
+   *
+   * Kept apart from `hasDraftToSubmit` so the tooltip can say which of the
+   * two it is. "Ask another editor to approve your saved draft" is not
+   * what is happening to a change that has already been in front of one.
+   */
+  const isReturnedToMe = !!(
+    openChange?.is_open &&
+    openChange.is_author &&
+    openChange.status === 'changes_requested'
+  );
+
   const hasDraftToSubmit = !!(
     openChange?.is_open &&
     openChange.is_author &&
     openChange.status === 'draft'
   );
+
+  /** Either of the two states the author can submit from. */
+  const canRequestReview = hasDraftToSubmit || isReturnedToMe;
 
   /**
    * Actually enter edit mode.
@@ -1007,20 +1034,26 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
                         ? t(
                             'Save, then ask another editor to approve before it goes live.',
                           )
-                        : hasDraftToSubmit
-                          ? t('Ask another editor to approve your saved draft.')
-                          : isAwaitingReview
+                        : isReturnedToMe
+                          ? t(
+                              'Send your change back for review. Edit it first if the reviewer asked for a change.',
+                            )
+                          : hasDraftToSubmit
                             ? t(
-                                'Already with a reviewer. Save an edit to take it back out of review.',
+                                'Ask another editor to approve your saved draft.',
                               )
-                            : t('No changes to review yet.')
+                            : isAwaitingReview
+                              ? t(
+                                  'Already with a reviewer. Save an edit to take it back out of review.',
+                                )
+                              : t('No changes to review yet.')
                     }
                   >
                     <span>
                       <Button
                         css={saveBtnStyle}
                         buttonSize="small"
-                        disabled={!hasUnsavedChanges && !hasDraftToSubmit}
+                        disabled={!hasUnsavedChanges && !canRequestReview}
                         buttonStyle="primary"
                         onClick={() => {
                           // Save first: the request is made against the
@@ -1034,6 +1067,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
                             dashboardId: dashboardInfo.id,
                             hasUnsavedChanges,
                             hasDraftToSubmit,
+                            isReturnedToMe,
                             isAwaitingReview,
                             toolbarStatus: openChange?.status ?? null,
                             openRequest: openChange?.id ?? null,

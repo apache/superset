@@ -355,7 +355,17 @@ export default function AssetReview({
       capturesRef.current > capturesWhenArmedRef.current;
     const stillSaving = pendingRequest.savingFirst && !savedSinceArmed;
 
-    if (!stillSaving && changeRequest?.status === 'draft') {
+    // `changes_requested` as well as `draft`: both are the author's to
+    // send, the server accepts either (`lifecycle.submit`), and the
+    // toolbar's Request review is now offered on a returned change with
+    // nothing unsaved. Gated on `draft` alone, that click armed a wait
+    // that could never match, so the button announced and then gave up
+    // silently after the grace period with no dialog at all.
+    const submittable =
+      changeRequest?.status === 'draft' ||
+      changeRequest?.status === 'changes_requested';
+
+    if (!stillSaving && submittable) {
       reviewLog(
         'request review: opening the dialog',
         requestFacts(changeRequest),

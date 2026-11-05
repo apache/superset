@@ -131,3 +131,30 @@ test('an announcement with no detail does not wait', async () => {
     expect(screen.getByTestId('request-dialog')).toBeInTheDocument();
   });
 });
+
+test('a returned change is submittable, so the dialog opens on it too', async () => {
+  // The toolbar now offers Request review on a change a reviewer sent
+  // back, with nothing unsaved -- the server accepts it as it stands
+  // (`lifecycle.submit` takes CHANGES_REQUESTED as it takes DRAFT) and the
+  // Approvals list has always offered it on the same row. Gated on `draft`
+  // alone, that click armed a wait that could never match: the button
+  // announced, nothing happened, and the arming was dropped silently when
+  // the grace period ran out. An enabled button that does nothing is worse
+  // than the disabled one it replaced.
+  mockUseAssetReview.mockReturnValue({
+    changeRequest: {
+      ...draft,
+      status: 'changes_requested',
+      review_note: 'Use the approved colour scheme.',
+      reviewer: { id: 4, first_name: 'Priya', last_name: 'Shah' },
+    } as unknown as ChangeRequest,
+    refresh: jest.fn(),
+  });
+  mount();
+
+  announceRequestReview({ savingFirst: false });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('request-dialog')).toBeInTheDocument();
+  });
+});
