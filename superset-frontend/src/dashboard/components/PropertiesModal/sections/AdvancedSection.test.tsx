@@ -16,8 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import AdvancedSection from './AdvancedSection';
+
+let mockEditorDelay = 0;
+
+jest.mock('src/core/editors', () => {
+  const actual = jest.requireActual('src/core/editors');
+  const { createElement, forwardRef, useEffect, useState } =
+    jest.requireActual('react');
+  const DelayedEditorHost = forwardRef((props: object, ref: unknown) => {
+    const [show, setShow] = useState(mockEditorDelay === 0);
+    useEffect(() => {
+      if (show) {
+        return undefined;
+      }
+      const timer = setTimeout(() => setShow(true), mockEditorDelay);
+      return () => clearTimeout(timer);
+    }, [show]);
+    return show ? createElement(actual.EditorHost, { ...props, ref }) : null;
+  });
+  return { ...actual, EditorHost: DelayedEditorHost };
+});
 
 const defaultProps = {
   jsonMetadata: '{"color_scheme": "supersetColors"}',
@@ -31,6 +51,18 @@ const defaultProps = {
 beforeEach(() => {
   jest.clearAllMocks();
 });
+
+afterEach(() => {
+  mockEditorDelay = 0;
+});
+
+const ERROR_IDS =
+  'dashboard-json-metadata-error-0 dashboard-json-metadata-error-1';
+
+const editorTextarea = () =>
+  document.querySelector<HTMLTextAreaElement>(
+    '#dashboard-json-metadata textarea',
+  );
 
 test('renders JSON metadata field', () => {
   render(<AdvancedSection {...defaultProps} />);
@@ -79,4 +111,77 @@ test('shows helper text explaining JSON metadata purpose', () => {
     screen.getByText(/This JSON object is generated dynamically/),
   ).toBeInTheDocument();
   expect(screen.getByText(/reference and for power users/)).toBeInTheDocument();
+});
+
+test('shows extra errors in an aria-live region below the editor', () => {
+  render(
+    <AdvancedSection
+      {...defaultProps}
+      extraErrors={['auto_refresh_policy.extra: Unknown field.']}
+    />,
+  );
+
+  const error = screen.getByText('auto_refresh_policy.extra: Unknown field.');
+  expect(error.closest('[aria-live="polite"]')).toBeInTheDocument();
+});
+
+test('keeps an empty aria-live region without extra errors', () => {
+  const { container } = render(<AdvancedSection {...defaultProps} />);
+
+  const region = container.querySelector('[aria-live="polite"]');
+  expect(region).toBeInTheDocument();
+  expect(region).toBeEmptyDOMElement();
+});
+
+test('extra errors describe the editor and mark it invalid', async () => {
+  render(
+    <AdvancedSection
+      {...defaultProps}
+      extraErrors={[
+        'auto_refresh_policy.extra: Unknown field.',
+        'auto_refresh_policy.minimum_refresh_interval: Invalid value.',
+      ]}
+    />,
+  );
+
+  await waitFor(() =>
+    expect(editorTextarea()).toHaveAttribute('aria-describedby', ERROR_IDS),
+  );
+  expect(editorTextarea()).toHaveAttribute('aria-invalid', 'true');
+  expect(editorTextarea()).toHaveAccessibleDescription(
+    'auto_refresh_policy.extra: Unknown field. auto_refresh_policy.minimum_refresh_interval: Invalid value.',
+  );
+});
+
+test('clearing the extra errors removes the description and invalid state', async () => {
+  const { rerender } = render(
+    <AdvancedSection
+      {...defaultProps}
+      extraErrors={['auto_refresh_policy.extra: Unknown field.']}
+    />,
+  );
+  await waitFor(() =>
+    expect(editorTextarea()).toHaveAttribute('aria-invalid', 'true'),
+  );
+
+  rerender(<AdvancedSection {...defaultProps} extraErrors={[]} />);
+
+  await waitFor(() =>
+    expect(editorTextarea()).not.toHaveAttribute('aria-describedby'),
+  );
+  expect(editorTextarea()).not.toHaveAttribute('aria-invalid');
+});
+
+test('errors present before the editor mounts are linked once it is ready', async () => {
+  mockEditorDelay = 100;
+  render(<AdvancedSection {...defaultProps} extraErrors={['e0', 'e1']} />);
+  expect(editorTextarea()).not.toBeInTheDocument();
+
+  await waitFor(() => expect(editorTextarea()).toBeInTheDocument(), {
+    timeout: 5000,
+  });
+  await waitFor(() =>
+    expect(editorTextarea()).toHaveAttribute('aria-describedby', ERROR_IDS),
+  );
+  expect(editorTextarea()).toHaveAttribute('aria-invalid', 'true');
 });

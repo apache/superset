@@ -27,7 +27,9 @@ import {
   RefreshFrequencySelect,
   validateRefreshFrequency,
   getRefreshWarningMessage,
+  getBoundSeconds,
 } from './RefreshFrequency';
+import type { RefreshFrequencyOption } from './RefreshFrequency';
 
 const ModalContent = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 4}px;
@@ -36,6 +38,8 @@ const ModalContent = styled.div`
 const CheckboxFormItem = styled(Form.Item)`
   padding-top: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
+
+const HELP_ID = 'refresh-interval-help';
 
 interface RefreshIntervalModalProps {
   show: boolean;
@@ -46,7 +50,49 @@ interface RefreshIntervalModalProps {
   addSuccessToast: (msg: string) => void;
   pauseOnInactiveTab: boolean;
   onPauseOnInactiveTabChange: (checked: boolean) => void;
+  options?: RefreshFrequencyOption[];
+  policy?: unknown;
 }
+
+const getPolicyHelp = (
+  options: RefreshFrequencyOption[],
+  policy: unknown,
+): string => {
+  const positive = options.filter(({ value }) => value > 0);
+  const bounds = (policy ?? {}) as Record<string, unknown>;
+  const hasMinimum = getBoundSeconds(bounds.minimum_refresh_interval) !== null;
+  const hasMaximum = getBoundSeconds(bounds.maximum_refresh_interval) !== null;
+  if (positive.length === 0) {
+    return t('Set refresh frequency for current session only.');
+  }
+  const first = positive[0].label;
+  const last = positive[positive.length - 1].label;
+  if (positive.length === 1) {
+    return t(
+      'Set refresh frequency for current session only. This dashboard allows %s.',
+      first,
+    );
+  }
+  if (hasMinimum && hasMaximum) {
+    return t(
+      'Set refresh frequency for current session only. This dashboard allows %(first)s to %(last)s.',
+      { first, last },
+    );
+  }
+  if (hasMinimum) {
+    return t(
+      'Set refresh frequency for current session only. This dashboard allows %s or longer.',
+      first,
+    );
+  }
+  if (hasMaximum) {
+    return t(
+      'Set refresh frequency for current session only. This dashboard allows up to %s.',
+      last,
+    );
+  }
+  return t('Set refresh frequency for current session only.');
+};
 
 /**
  * Simple refresh interval modal for View Mode (session-only refresh)
@@ -61,6 +107,8 @@ const RefreshIntervalModal = ({
   addSuccessToast,
   pauseOnInactiveTab,
   onPauseOnInactiveTabChange,
+  options,
+  policy,
 }: RefreshIntervalModalProps) => {
   const [refreshFrequency, setRefreshFrequency] = useState(initialFrequency);
   const [localPauseOnInactiveTab, setLocalPauseOnInactiveTab] =
@@ -83,6 +131,11 @@ const RefreshIntervalModal = ({
     () =>
       getRefreshWarningMessage(refreshFrequency, refreshLimit, refreshWarning),
     [refreshFrequency, refreshLimit, refreshWarning],
+  );
+
+  const optionPairs = useMemo(
+    () => options?.map(({ value, label }): [number, string] => [value, label]),
+    [options],
   );
 
   const handleFrequencyChange = (value: number) => {
@@ -109,6 +162,25 @@ const RefreshIntervalModal = ({
     onHide();
   };
 
+  const helpText =
+    refreshErrors[0] ||
+    (editMode
+      ? t('Set the automatic refresh frequency for this dashboard.')
+      : options
+        ? getPolicyHelp(options, policy)
+        : t('Set refresh frequency for current session only.'));
+
+  const frequencySelect = (
+    <RefreshFrequencySelect
+      value={refreshFrequency}
+      onChange={handleFrequencyChange}
+      aria-label={options ? t('Refresh frequency') : undefined}
+      aria-describedby={options ? HELP_ID : undefined}
+      options={optionPairs}
+      showCustom={!options}
+    />
+  );
+
   return (
     <StandardModal
       show={show}
@@ -124,19 +196,11 @@ const RefreshIntervalModal = ({
         <Form layout="vertical">
           <Form.Item
             label={t('Refresh frequency')}
-            help={
-              refreshErrors[0] ||
-              (editMode
-                ? t('Set the automatic refresh frequency for this dashboard.')
-                : t('Set refresh frequency for current session only.'))
-            }
+            help={options ? <span id={HELP_ID}>{helpText}</span> : helpText}
             extra={refreshWarningMessage}
             validateStatus={refreshErrors.length ? 'error' : undefined}
           >
-            <RefreshFrequencySelect
-              value={refreshFrequency}
-              onChange={handleFrequencyChange}
-            />
+            {frequencySelect}
           </Form.Item>
           <CheckboxFormItem>
             <Checkbox

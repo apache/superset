@@ -17,7 +17,12 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  DataMaskStateWithId,
+  JsonObject,
+} from '@superset-ui/core';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -64,6 +69,10 @@ import extractUrlParams from '../util/extractUrlParams';
 import updateComponentParentsList from '../util/updateComponentParentsList';
 import { AUTO_REFRESH_STATE_DEFAULTS } from '../types/autoRefresh';
 import { migrateChartCustomizationArray } from '../util/migrateChartCustomization';
+import {
+  getAllowedRefreshOptions,
+  getEffectiveRefreshFrequency,
+} from '../components/RefreshFrequency';
 import {
   DashboardLayout,
   FilterBarOrientation,
@@ -408,7 +417,15 @@ export const hydrateDashboard =
           focusedFilterField: null,
           expandedSlices: metadata?.expanded_slices || {},
           expandAllSlices: metadata?.expand_all_slices || false,
-          refreshFrequency: metadata?.refresh_frequency || 0,
+          refreshFrequency: getEffectiveRefreshFrequency(
+            metadata?.refresh_frequency || 0,
+            getAllowedRefreshOptions(
+              isFeatureEnabled(FeatureFlag.AutoRefreshPolicy)
+                ? metadata?.auto_refresh_policy
+                : undefined,
+              common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS,
+            ),
+          ),
           // dashboard viewers can set refresh frequency for the current visit,
           // only persistent refreshFrequency will be saved to backend
           shouldPersistRefreshFrequency: false,

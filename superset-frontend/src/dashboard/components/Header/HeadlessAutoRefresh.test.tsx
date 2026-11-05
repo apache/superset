@@ -98,3 +98,24 @@ test('passes the redux refresh frequency through to the hook', () => {
     expect.objectContaining({ refreshFrequency: 0 }),
   );
 });
+
+test.each([true, false])(
+  'prohibited headless policy respects enabled flag %s',
+  enabled => {
+    window.featureFlags = { AUTO_REFRESH_POLICY: enabled };
+    render(<HeadlessAutoRefresh />, {
+      useRedux: true,
+      initialState: {
+        ...initialState,
+        dashboardInfo: {
+          ...initialState.dashboardInfo,
+          metadata: { auto_refresh_policy: { auto_refresh_allowed: false } },
+        },
+      },
+    });
+    expect(mockUseHeaderAutoRefresh).toHaveBeenCalledWith(
+      expect.objectContaining({ refreshFrequency: enabled ? 0 : 30 }),
+    );
+    window.featureFlags = {};
+  },
+);

@@ -28,6 +28,7 @@ from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.dashboard.exceptions import (
     DashboardCreateFailedError,
     DashboardInvalidError,
+    DashboardRefreshPolicyInvalidError,
     DashboardSlugExistsValidationError,
 )
 from superset.commands.soft_delete_collisions import (
@@ -35,6 +36,11 @@ from superset.commands.soft_delete_collisions import (
 )
 from superset.commands.utils import populate_subjects
 from superset.daos.dashboard import DashboardDAO
+from superset.dashboards.refresh_policy import (
+    check_refresh_policy,
+    log_refresh_policy_change,
+    POLICY_KEY,
+)
 from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
@@ -71,6 +77,9 @@ class CreateDashboardCommand(CreateMixin, BaseCommand):
             )
         if after_create := current_app.config.get("AFTER_ASSET_CREATE"):
             after_create(dashboard, "dashboard")
+        log_refresh_policy_change(
+            dashboard.id, None, dashboard.params_dict.get(POLICY_KEY), "post"
+        )
         return dashboard
 
     def validate(self) -> None:
@@ -90,3 +99,7 @@ class CreateDashboardCommand(CreateMixin, BaseCommand):
 
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)
+
+        if metadata := self._properties.get("json_metadata"):
+            if errors := check_refresh_policy(json.loads(metadata)):
+                raise DashboardRefreshPolicyInvalidError(exceptions, errors)

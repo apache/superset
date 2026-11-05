@@ -40,6 +40,8 @@ import {
   CLEAR_ALL_CHART_STATES,
   setActiveTab,
   setActiveTabs,
+  setRefreshFrequency,
+  setUnsavedChanges,
 } from '../actions/dashboardState';
 import { DashboardState, RootState } from '../types';
 
@@ -641,5 +643,22 @@ describe('DashboardState reducer', () => {
     });
     expect(result.chartStates).toEqual({});
     expect((result as Record<string, unknown>).otherState).toEqual('preserved');
+  });
+});
+
+test('setRefreshFrequency then setUnsavedChanges(true) keeps the changes unsaved', () => {
+  const afterRefresh = typedDashboardStateReducer(
+    { hasUnsavedChanges: true, refreshFrequency: 0 },
+    setRefreshFrequency(3600, false),
+  );
+  const afterUnsaved = typedDashboardStateReducer(
+    afterRefresh,
+    setUnsavedChanges(true),
+  );
+
+  expect(afterRefresh.hasUnsavedChanges).toBe(true);
+  expect(afterUnsaved).toMatchObject({
+    hasUnsavedChanges: true,
+    refreshFrequency: 3600,
   });
 });

@@ -32,6 +32,7 @@ from superset.commands.exceptions import (
     ObjectNotFoundError,
     UpdateFailedError,
 )
+from superset.dashboards.refresh_policy import RefreshPolicyError
 
 
 class DashboardSlugExistsValidationError(ValidationError):
@@ -67,6 +68,35 @@ class DashboardSlugReservedValidationError(ValidationError):
                 )
             ],
             field_name="slug",
+        )
+
+
+class DashboardRefreshPolicyInvalidError(DashboardInvalidError):
+    """
+    Invalid auto-refresh policy. ``errors`` lists each policy field with its
+    code; ``normalized_messages()`` also keeps the other validation errors.
+    """
+
+    def __init__(
+        self,
+        exceptions: list[ValidationError],
+        errors: list[RefreshPolicyError],
+    ) -> None:
+        """Preserve ordinary validation messages alongside coded policy errors."""
+        self.errors = [
+            {
+                "field": f"json_metadata.{error.field}",
+                "code": error.code,
+                "message": error.message,
+            }
+            for error in errors
+        ]
+        super().__init__(
+            exceptions=exceptions
+            + [
+                ValidationError([error["message"]], field_name=error["field"])
+                for error in self.errors
+            ]
         )
 
 

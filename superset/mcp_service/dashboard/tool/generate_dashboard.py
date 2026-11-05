@@ -360,6 +360,20 @@ def generate_dashboard(  # noqa: C901
             }
             if request.json_metadata_overrides:
                 json_metadata_dict.update(request.json_metadata_overrides)
+            from superset.dashboards.refresh_policy import (
+                check_refresh_policy,
+                log_refresh_policy_change,
+                POLICY_KEY,
+            )
+
+            if errors := check_refresh_policy(json_metadata_dict):
+                return GenerateDashboardResponse(
+                    dashboard=None,
+                    dashboard_url=None,
+                    error="; ".join(
+                        f"{error.field}: {error.message}" for error in errors
+                    ),
+                )
             json_metadata = json.dumps(json_metadata_dict)
 
             try:
@@ -412,6 +426,13 @@ def generate_dashboard(  # noqa: C901
                 dashboard.slices = fresh_charts
 
                 db.session.add(dashboard)
+                db.session.flush()
+                log_refresh_policy_change(
+                    dashboard.id,
+                    None,
+                    dashboard.params_dict.get(POLICY_KEY),
+                    "mcp_create",
+                )
                 db.session.commit()  # pylint: disable=consider-using-transaction
                 try:
                     db.session.refresh(dashboard)
