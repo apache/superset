@@ -2412,6 +2412,13 @@ columns using the target view's member IDs and explicitly supply `filters`
 Certification applies only when the final merged query contains no unverified
 retained selections; sending `config` alone is not enough.
 
+Table display settings and dashboard associations may be retained. Empty
+conditional-formatting and annotation settings are supported, but unclassified
+non-empty plugin state still requires Explore recovery. An explicitly selected
+`temporal_column` is checked against the target view's temporal metadata and the
+generated query filter; a saved internal time-binding marker alone is not proof
+of a fresh selection.
+
 Only an explicit `filters: []` authorizes clearing saved WHERE/HAVING predicate
 aliases, including legacy and adhoc filters. A non-empty filter replacement that
 would discard those unclassified predicates is refused; reselect in Explore, or

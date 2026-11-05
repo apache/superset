@@ -212,6 +212,9 @@ async def test_semantic_table_reselection_filter_intent(
         assert candidate["slice_name"] == "Renamed"
     else:
         assert write.call_args.args[1]["slice_name"] == "Renamed"
+        assert write.call_args.kwargs["expected_basis"] is not None
+        assert write.call_args.kwargs["expected_basis"].params == chart.params
+        assert write.call_args.kwargs["expected_basis"].datasource_id == 7
     assert json.loads(chart.params) == existing
 
 

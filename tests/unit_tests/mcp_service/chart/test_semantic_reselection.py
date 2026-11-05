@@ -16,19 +16,166 @@
 # under the License.
 """Proof counterexamples for semantic table reselection."""
 
+from pathlib import Path
 from typing import Any
 from unittest.mock import Mock
 
 import pytest
+import yaml
 
+from superset.mcp_service.chart.datasource_resolver import ChartDatasource
 from superset.mcp_service.chart.schemas import (
     ColumnRef,
     TableChartConfig,
     UpdateChartRequest,
 )
 from superset.mcp_service.chart.semantic_reselection import prove_table_reselection
-from superset.mcp_service.chart.tool.update_chart import _build_update_payload
+from superset.mcp_service.chart.tool.update_chart import (
+    _build_update_payload,
+    _prepare_semantic_reselection,
+)
 from superset.utils import json
+from superset.utils.core import DatasourceType
+
+
+@pytest.mark.parametrize("case", ["aggregate_sort", "explore_controls", "temporal"])
+def test_reselection_of_exported_explore_table(case: str) -> None:
+    """Use the shipped Explore export, with legacy temporal roles reset explicitly."""
+    path: Path = (
+        Path(__file__).resolve().parents[4]
+        / "superset/examples/featured_charts/charts/Table.yaml"
+    )
+    saved: dict[str, Any] = yaml.safe_load(path.read_text())["params"]
+    # These exported roles require separate reselection; isolate the reviewed
+    # controls rather than declaring old temporal identities safe to retain.
+    saved.pop("temporal_columns_lookup")
+    saved.pop("time_grain_sqla")
+    saved["datasource"] = "7__semantic_view"
+    if case != "explore_controls":
+        for key in (
+            "dashboards",
+            "server_page_length",
+            "allow_render_html",
+            "color_pn",
+            "annotation_layers",
+        ):
+            saved.pop(key)
+    else:
+        saved["conditional_formatting"] = []
+    config: TableChartConfig = TableChartConfig.model_validate(
+        {
+            "columns": [{"name": "sales", "aggregate": "SUM"}]
+            if case == "aggregate_sort"
+            else [{"name": "product_line"}],
+            "filters": [],
+            "sort_by": [],
+            **({"temporal_column": "order_date"} if case == "temporal" else {}),
+        }
+    )
+    chart: Mock = Mock(
+        id=12,
+        datasource_id=7,
+        datasource_type="semantic_view",
+        viz_type="table",
+        slice_name="Table",
+        params=json.dumps(saved),
+    )
+    payload: Any = _build_update_payload(
+        UpdateChartRequest(identifier=12, config=config),
+        chart,
+        config,
+        temporal_columns={"order_date"},
+    )
+    assert isinstance(payload, dict)
+    candidate: dict[str, Any] = json.loads(payload["params"])
+    assert (
+        prove_table_reselection(
+            config, config, saved, candidate, temporal_columns={"order_date"}
+        )
+        is None
+    )
+    assert candidate["order_desc"] is True
+    if case == "temporal":
+        assert candidate["_mcp_dashboard_time_filter_subject"] == "order_date"
+        assert candidate["adhoc_filters"][0]["subject"] == "order_date"
+    target: ChartDatasource = ChartDatasource(
+        Mock(implementation=Mock(selection_identity_version="v1")),
+        DatasourceType.SEMANTIC_VIEW,
+        7,
+        "Table",
+    )
+    prepared: Any = _prepare_semantic_reselection(
+        UpdateChartRequest(identifier=12, config=config),
+        chart,
+        config,
+        target,
+        {"order_date"},
+        False,
+    )
+    assert isinstance(prepared, dict)
+    assert json.loads(prepared["params"])["semantic_selection_version"] == "v1"
+
+
+@pytest.mark.parametrize(
+    "retained",
+    [
+        {"conditional_formatting": [{"column": "old_member"}]},
+        {"annotation_layers": [{"name": "old_layer"}]},
+        {"server_pagination": True},
+        {"unknown_plugin_state": []},
+        {"_mcp_dashboard_time_filter_subject": "old_member"},
+    ],
+)
+def test_explore_classification_still_refuses_query_state(
+    retained: dict[str, Any],
+) -> None:
+    """Safe display keys must not broaden permission to keep query identities."""
+    config: TableChartConfig = TableChartConfig(
+        columns=[ColumnRef(name="member_id")], filters=[]
+    )
+    existing: dict[str, Any]
+    candidate: dict[str, Any]
+    existing, candidate = _candidate(retained, config)
+    assert prove_table_reselection(config, config, existing, candidate) is not None
+
+
+@pytest.mark.parametrize("tamper", ["subject", "filter", "unpublished"])
+def test_explicit_temporal_binding_must_match_authorized_fresh_mapping(
+    tamper: str,
+) -> None:
+    """A copied marker alone cannot certify a different or unpublished member."""
+    config: TableChartConfig = TableChartConfig(
+        columns=[ColumnRef(name="member_id")], filters=[], temporal_column="order_date"
+    )
+    chart: Mock = Mock(
+        id=12,
+        datasource_id=7,
+        datasource_type="semantic_view",
+        viz_type="table",
+        slice_name="Table",
+        params='{"viz_type":"table"}',
+    )
+    payload: Any = _build_update_payload(
+        UpdateChartRequest(identifier=12, config=config),
+        chart,
+        config,
+        temporal_columns={"order_date"},
+    )
+    candidate: dict[str, Any] = json.loads(payload["params"])
+    if tamper == "subject":
+        candidate["_mcp_dashboard_time_filter_subject"] = "other_date"
+    elif tamper == "filter":
+        candidate["adhoc_filters"][0]["subject"] = "other_date"
+    assert (
+        prove_table_reselection(
+            config,
+            config,
+            {"viz_type": "table"},
+            candidate,
+            temporal_columns=set() if tamper == "unpublished" else {"order_date"},
+        )
+        is not None
+    )
 
 
 def _candidate(

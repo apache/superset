@@ -18,7 +18,7 @@
 
 from typing import Any
 
-from superset.mcp_service.chart.chart_utils import map_table_config
+from superset.mcp_service.chart.chart_utils import map_config_to_form_data
 from superset.mcp_service.chart.schemas import (
     ChartConfig,
     TableChartConfig,
@@ -41,6 +41,10 @@ _PRESENTATION_KEYS: frozenset[str] = frozenset(
         "show_totals",
         "page_length",
         "table_timestamp_format",
+        "dashboards",
+        "server_page_length",
+        "allow_render_html",
+        "color_pn",
     }
 )
 _QUERY_KEYS: frozenset[str] = frozenset(
@@ -67,6 +71,8 @@ _FILTER_KEYS: frozenset[str] = frozenset(
 )
 _EMPTY_LIST_KEYS: frozenset[str] = frozenset(
     {
+        "conditional_formatting",
+        "annotation_layers",
         "percent_metrics",
         "time_compare",
         "time_offsets",
@@ -160,10 +166,17 @@ def _query_mismatch(fresh: dict[str, Any], candidate: dict[str, Any]) -> str | N
 
 
 def _unverified_control(
-    state: dict[str, Any], *, replacing_filters: bool = False
+    state: dict[str, Any],
+    *,
+    replacing_filters: bool = False,
+    temporal_subject: str | None = None,
 ) -> str | None:
     """Classify retained controls without discarding unknown state."""
     for key, value in state.items():
+        if key == "_mcp_dashboard_time_filter_subject":
+            if temporal_subject is not None and value == temporal_subject:
+                continue
+            return "temporal selections"
         if key == "include_time" and value is not None and value is not False:
             return "temporal selections"
         if key in _PRESENTATION_KEYS or key in _QUERY_KEYS:
@@ -193,6 +206,8 @@ def prove_table_reselection(
     resolved: ChartConfig | None,
     existing: dict[str, Any],
     candidate: dict[str, Any],
+    *,
+    temporal_columns: set[str] | None = None,
 ) -> str | None:
     """Return an incomplete category, or None for a fully repicked table."""
     if original is None:
@@ -209,17 +224,46 @@ def prove_table_reselection(
         return "filters"
     if original.filters != [] and _has_saved_predicates(existing):
         return "saved WHERE/HAVING predicates"
+    fresh: dict[str, Any] = map_config_to_form_data(
+        resolved, include_disabled=True, temporal_columns=temporal_columns
+    )
     # Original presence, not equality or post-normalization fields_set, is proof.
     if "sort_by" not in original.model_fields_set or original.sort_by is None:
         if existing.get("order_by_cols") not in (None, []):
             return "sorting"
+    return _unrequested_control_change(
+        original, existing, candidate
+    ) or _mapped_reselection_mismatch(original, existing, candidate, fresh)
+
+
+def _mapped_reselection_mismatch(
+    original: TableChartConfig,
+    existing: dict[str, Any],
+    candidate: dict[str, Any],
+    fresh: dict[str, Any],
+) -> str | None:
+    """Compare effective mapped controls while preserving classified saved scalars."""
+    # Aggregate mapping omits this scalar; retain the saved direction without
+    # allowing it to carry a member identity or changing it during a rebind.
+    if "order_desc" not in fresh and "order_desc" in existing:
+        if not isinstance(existing["order_desc"], bool):
+            return "sorting"
+        fresh["order_desc"] = existing["order_desc"]
+    temporal_subject: str | None = (
+        fresh.get("_mcp_dashboard_time_filter_subject")
+        if "temporal_column" in original.model_fields_set
+        else None
+    )
+    if candidate.get("_mcp_dashboard_time_filter_subject") != temporal_subject:
+        return "temporal selections"
     # Inspect saved state too: a rebind/cross-viz merge can discard controls.
     # Disappearance is not an explicit clear and must not manufacture proof.
     return (
-        _unrequested_control_change(original, existing, candidate)
-        or _query_mismatch(map_table_config(resolved), candidate)
-        or _unverified_control(existing, replacing_filters=True)
-        or _unverified_control(candidate)
+        _query_mismatch(fresh, candidate)
+        or _unverified_control(
+            existing, replacing_filters=True, temporal_subject=temporal_subject
+        )
+        or _unverified_control(candidate, temporal_subject=temporal_subject)
     )
 
 

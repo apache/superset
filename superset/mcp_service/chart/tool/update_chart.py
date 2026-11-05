@@ -751,7 +751,11 @@ def _prepare_semantic_reselection(
         return payload
     candidate: dict[str, Any] = json.loads(payload.get("params", chart.params))
     category: str | None = prove_table_reselection(
-        request.config, parsed_config, existing, candidate
+        request.config,
+        parsed_config,
+        existing,
+        candidate,
+        temporal_columns=temporal_columns,
     )
     if category is not None:
         return _validation_error_response(
