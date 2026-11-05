@@ -476,15 +476,21 @@ python scripts/translations/backfill_po.py --lang fr
 
 Options:
 
-| Flag              | Default             | Description                                           |
-| ----------------- | ------------------- | ----------------------------------------------------- |
-| `--lang LANG`     | required            | ISO language code (`fr`, `de`, `ja`, …)               |
-| `--batch-size N`  | 50                  | Strings per Claude request                            |
-| `--limit N`       | unlimited           | Stop after N entries                                  |
-| `--min-context N` | 0                   | Skip entries with fewer than N reference translations |
-| `--model MODEL`   | `claude-sonnet-4-6` | Claude model to use                                   |
-| `--dry-run`       | off                 | Print without writing                                 |
-| `--no-fuzzy`      | off                 | Don't mark entries as fuzzy                           |
+| Flag              | Default   | Description                                                      |
+| ----------------- | --------- | ---------------------------------------------------------------- |
+| `--lang LANG`     | required  | ISO language code (`fr`, `de`, `ja`, …)                          |
+| `--batch-size N`  | 50        | Strings per Claude request                                       |
+| `--limit N`       | unlimited | Stop after N entries                                             |
+| `--min-context N` | 0         | Skip entries with fewer than N reference translations            |
+| `--model MODEL`   | `sonnet`  | Claude model ID, or an alias such as `sonnet` for the latest one |
+| `--dry-run`       | off       | Print without writing                                            |
+| `--no-fuzzy`      | off       | Don't mark entries as fuzzy                                      |
+
+A model alias is resolved to its concrete model ID once per run, and that ID is
+what appears in each entry's `# Machine-translated via backfill_po.py (…)`
+comment. After writing, the script re-serializes the catalog with Babel in the
+same format `babel_update.sh` produces, so the diff contains only the new
+translations.
 
 Use `--min-context 2` to skip strings that have fewer than 2 reference
 translations in other languages. Those strings are more likely to be ambiguous
@@ -513,6 +519,16 @@ npm run translations:build-index
 # Backfill (pass arguments after --)
 npm run translations:backfill -- --lang fr --dry-run
 ```
+
+#### Scheduled backfill in CI
+
+The `Backfill Translations` workflow
+(`.github/workflows/backfill-translations.yml`) runs the backfill over every
+catalog each Tuesday, the day after the weekly catalog sync, and opens a PR
+with the result. It skips the run while a previous backfill PR is still open,
+so review it and merge (or close) it to let the next week's run proceed. It
+can also be started by hand from the Actions tab, optionally limited to
+specific languages or a different model.
 
 ## Linting
 

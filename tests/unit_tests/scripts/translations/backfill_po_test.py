@@ -774,3 +774,133 @@ def test_single_plaintext_fallback_sends_the_note(
         "Developer note (authoritative on the intended meaning): a URL identifier"
         in sent["prompt"]
     )
+
+
+# --- model resolution and the claude -p invocation -----------------------------
+
+
+class _FakeResult:
+    def __init__(self, stdout: str, returncode: int = 0) -> None:
+        self.stdout = stdout
+        self.stderr = ""
+        self.returncode = returncode
+
+
+def test_default_model_is_an_alias_for_the_latest_sonnet() -> None:
+    assert backfill_po.DEFAULT_MODEL == "sonnet"
+
+
+def test_claude_command_disables_tools() -> None:
+    cmd = backfill_po._claude_command("/usr/bin/claude", "sonnet")
+    assert cmd[:4] == ["/usr/bin/claude", "--model", "sonnet", "-p"]
+    tools_at = cmd.index("--tools")
+    assert cmd[tools_at + 1] == ""
+
+
+def test_resolve_model_returns_concrete_ids_without_a_request(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def boom(*args: object, **kwargs: object) -> None:
+        raise AssertionError("no CLI call expected for a concrete model ID")
+
+    monkeypatch.setattr(backfill_po.subprocess, "run", boom)
+    assert backfill_po.resolve_model("claude-opus-5-5") == "claude-opus-5-5"
+
+
+def test_resolve_model_reads_the_concrete_id_for_an_alias(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sent: dict[str, list[str]] = {}
+
+    def fake_run(args: list[str], **kwargs: object) -> _FakeResult:
+        sent["args"] = args
+        payload = {"result": "OK", "modelUsage": {"claude-sonnet-9-9": {}}}
+        return _FakeResult(json.dumps(payload))
+
+    monkeypatch.setattr(backfill_po.shutil, "which", lambda _name: "/usr/bin/claude")
+    monkeypatch.setattr(backfill_po.subprocess, "run", fake_run)
+
+    assert backfill_po.resolve_model("sonnet") == "claude-sonnet-9-9"
+    assert "--output-format" in sent["args"]
+    assert "--tools" in sent["args"]
+
+
+def test_resolve_model_falls_back_to_the_alias_on_unreadable_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(backfill_po.shutil, "which", lambda _name: "/usr/bin/claude")
+    monkeypatch.setattr(
+        backfill_po.subprocess, "run", lambda *a, **k: _FakeResult("not json")
+    )
+    assert backfill_po.resolve_model("sonnet") == "sonnet"
+
+
+def test_resolve_model_raises_when_the_cli_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(backfill_po.shutil, "which", lambda _name: "/usr/bin/claude")
+    monkeypatch.setattr(
+        backfill_po.subprocess, "run", lambda *a, **k: _FakeResult("", returncode=1)
+    )
+    with pytest.raises(RuntimeError):
+        backfill_po.resolve_model("sonnet")
+
+
+# --- normalize_catalog: canonical Babel formatting ------------------------------
+
+_LONG = (
+    "This is a deliberately long source string that is well past the "
+    "seventy-six column wrapping width Babel uses when writing catalogs."
+)
+
+
+def _write_catalog(tmp_path: Path, body: str) -> Path:
+    po = tmp_path / "fr" / "LC_MESSAGES" / "messages.po"
+    po.parent.mkdir(parents=True)
+    po.write_text(
+        'msgid ""\nmsgstr ""\n'
+        '"Language: fr\\n"\n'
+        '"Plural-Forms: nplurals=2; plural=(n > 1);\\n"\n'
+        '"Content-Type: text/plain; charset=utf-8\\n"\n\n' + body,
+        encoding="utf-8",
+    )
+    return po
+
+
+def test_normalize_catalog_wraps_long_lines_and_keeps_content(
+    tmp_path: Path,
+) -> None:
+    po = _write_catalog(
+        tmp_path,
+        "# Machine-translated via backfill_po.py (claude-x) [no refs]\n"
+        "#, fuzzy\n"
+        f'msgid "{_LONG}"\n'
+        'msgstr "Traduction"\n',
+    )
+
+    backfill_po.normalize_catalog(po)
+
+    text = po.read_text(encoding="utf-8")
+    assert all(len(line) <= 80 for line in text.splitlines())
+    assert not text.endswith("\n\n")
+    entry = polib.pofile(str(po)).find(_LONG)
+    assert entry is not None
+    assert entry.msgstr == "Traduction"
+    assert "fuzzy" in entry.flags
+    assert "Machine-translated via backfill_po.py" in entry.tcomment
+
+
+def test_normalize_catalog_marks_percent_labels_no_python_format(
+    tmp_path: Path,
+) -> None:
+    po = _write_catalog(
+        tmp_path,
+        '#, python-format\nmsgid "% of total"\nmsgstr "% du total"\n',
+    )
+
+    backfill_po.normalize_catalog(po)
+
+    entry = polib.pofile(str(po)).find("% of total")
+    assert entry is not None
+    assert "no-python-format" in entry.flags
+    assert "python-format" not in entry.flags

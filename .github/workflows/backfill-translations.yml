@@ -1,0 +1,186 @@
+name: Backfill Translations
+
+# New translatable strings land in every locale catalog untranslated (see
+# sync-translation-catalogs.yml), and between manual passes they pile up by
+# the hundreds per language. This job runs the AI backfill
+# (scripts/translations/backfill_po.py, via `npm run translations:backfill`)
+# over every catalog on a schedule and opens a PR with the result. Every
+# generated entry is marked `#, fuzzy` and carries a "Machine-translated via
+# backfill_po.py (<model>)" comment so reviewers can find it; the script only
+# fills empty msgstr entries and never modifies an existing translation.
+#
+# Authenticates the Claude Code CLI with the CLAUDE_CODE_OAUTH_TOKEN secret
+# (generate one with `claude setup-token`). The CLI is invoked with all tools
+# disabled, so it can only return text.
+on:
+  schedule:
+    # Tuesdays, the day after the Monday catalog sync.
+    - cron: "0 6 * * 2"
+  workflow_dispatch:
+    inputs:
+      languages:
+        description: "Space-separated language codes (blank = every catalog except en)"
+        required: false
+        default: ""
+      model:
+        description: "Claude model ID or alias (blank = script default, the latest Sonnet)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backfill-translations
+  cancel-in-progress: false
+
+jobs:
+  backfill-translations:
+    if: github.repository == 'apache/superset'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 240
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      BRANCH: chore/backfill-translations-automated
+    steps:
+      - name: Skip while a previous backfill PR is open
+        id: pending
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Re-running would re-translate the same strings and force-push over
+          # any review edits on the open PR; wait for it to merge or close.
+          open=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" \
+            --state open --json number --jq '.[0].number // empty')
+          if [ -n "$open" ]; then
+            echo "::notice::Backfill PR #$open is still open; skipping this run."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: "Checkout master"
+        if: steps.pending.outputs.skip == 'false'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          persist-credentials: false
+
+      - name: Set up Python
+        if: steps.pending.outputs.skip == 'false'
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.11"
+
+      - name: Install translation tooling
+        if: steps.pending.outputs.skip == 'false'
+        run: pip install babel==2.17.0 polib==1.2.0
+
+      - name: Set up Node
+        if: steps.pending.outputs.skip == 'false'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: superset-frontend/.nvmrc
+
+      - name: Install Claude Code CLI
+        if: steps.pending.outputs.skip == 'false'
+        run: npm install -g @anthropic-ai/claude-code@2.1.318
+
+      - name: Build translation index
+        if: steps.pending.outputs.skip == 'false'
+        working-directory: superset-frontend
+        run: npm run translations:build-index
+
+      - name: Backfill catalogs
+        if: steps.pending.outputs.skip == 'false'
+        working-directory: superset-frontend
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          INPUT_LANGUAGES: ${{ inputs.languages }}
+          INPUT_MODEL: ${{ inputs.model }}
+        run: |
+          if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+            echo "::error::The CLAUDE_CODE_OAUTH_TOKEN secret is not set." >&2
+            exit 1
+          fi
+
+          # Inputs are interpolated into the per-language shell below, so only
+          # accept plain language codes and model IDs.
+          for lang in $INPUT_LANGUAGES; do
+            if ! printf '%s' "$lang" | grep -Eqx '[a-z]{2,3}(_[A-Za-z]{2,4})?'; then
+              echo "::error::Invalid language code: $lang" >&2
+              exit 1
+            fi
+          done
+          if [ -n "$INPUT_MODEL" ] && ! printf '%s' "$INPUT_MODEL" | grep -Eqx '[A-Za-z0-9._-]+'; then
+            echo "::error::Invalid model: $INPUT_MODEL" >&2
+            exit 1
+          fi
+
+          if [ -n "$INPUT_LANGUAGES" ]; then
+            langs="$INPUT_LANGUAGES"
+          else
+            langs=$(ls ../superset/translations/*/LC_MESSAGES/messages.po \
+              | cut -d/ -f4 | grep -vx en)
+          fi
+          model_args=""
+          if [ -n "$INPUT_MODEL" ]; then
+            model_args="--model $INPUT_MODEL"
+          fi
+
+          mkdir -p "$RUNNER_TEMP/backfill-logs"
+          export LOG_DIR="$RUNNER_TEMP/backfill-logs" MODEL_ARGS="$model_args"
+          # One process per catalog, eight at a time. A failed language is
+          # reported but doesn't sink the others' results.
+          printf '%s\n' $langs | xargs -P 8 -I{} sh -c '
+            if npm run translations:backfill -- --lang "{}" $MODEL_ARGS \
+                > "$LOG_DIR/{}.log" 2>&1; then
+              echo "{}: $(grep -h "^Done\." "$LOG_DIR/{}.log" || echo "nothing to do")"
+            else
+              echo "::warning::backfill failed for {}"; tail -20 "$LOG_DIR/{}.log"
+            fi
+          ' | tee "$RUNNER_TEMP/backfill-summary.txt"
+
+      - name: Check for changes
+        if: steps.pending.outputs.skip == 'false'
+        id: diff
+        run: |
+          if git diff --quiet -- superset/translations; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update backfill PR
+        if: steps.diff.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git checkout -b "$BRANCH"
+          git add superset/translations
+          git commit -m "feat(i18n): backfill missing translations (AI-generated, needs review)" \
+            -m "Automated run of scripts/translations/backfill_po.py over every catalog. New entries are marked #, fuzzy with a Machine-translated attribution comment; no existing translation is modified."
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+            push --force "https://github.com/$GITHUB_REPOSITORY.git" "$BRANCH"
+
+          {
+            echo "Automated weekly run of \`npm run translations:backfill\` (\`scripts/translations/backfill_po.py\`) against current \`master\`."
+            echo
+            echo "Every generated entry is marked \`#, fuzzy\` and carries a \`# Machine-translated via backfill_po.py (<model>)\` comment. Only empty \`msgstr\` entries are filled; no existing translation is modified. Native-speaker review is welcome: drop the \`fuzzy\` flag on entries you've checked."
+            echo
+            echo "Per-language results:"
+            echo
+            echo '```'
+            sort "$RUNNER_TEMP/backfill-summary.txt"
+            echo '```'
+          } > "$RUNNER_TEMP/pr-body.md"
+
+          gh pr create --repo "$GITHUB_REPOSITORY" \
+            --title "feat(i18n): backfill missing translations (AI-generated, needs review)" \
+            --body-file "$RUNNER_TEMP/pr-body.md" \
+            --base master --head "$BRANCH"
