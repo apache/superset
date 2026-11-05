@@ -869,14 +869,9 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         # here would run the statement to completion even though Superset
         # already told the user it stopped.
         try:
-            # flush() first: refresh() does NOT autoflush -- without this,
-            # a pending, uncommitted attribute set just before this call
-            # (a caller that stages a write on the query, such as its
-            # executed_sql, without committing before execute_with_cursor)
-            # would be silently discarded and reloaded back to its previous
-            # committed value instead of surviving to this query's later
-            # commits. Same idiom and same reasoning as the existing
-            # flush()-before-refresh() pairs already in sql_lab.py.
+            # Preserve any pending caller metadata before the full refresh.
+            # SQL Lab publishes executed_sql before dispatch, but this engine
+            # hook also supports callers with uncommitted query attributes.
             db.session.flush()
             db.session.refresh(query)
             already_stopped = query.status == QueryStatus.STOPPED

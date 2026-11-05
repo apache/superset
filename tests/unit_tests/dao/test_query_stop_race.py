@@ -1230,38 +1230,12 @@ def test_execute_with_cursor_refresh_does_not_discard_pending_executed_sql(
     app: Any, session: Session
 ) -> None:
     """
-    Round 9 review: `ClickHouseConnectEngineSpec.execute_with_cursor()`'s own
-    pre-dispatch STOPPED check does `db.session.refresh(query)` -- a *full*
-    refresh (every column, not the targeted single-attribute one
-    `handle_query_error()` uses), since nothing it does locally beforehand
-    needs protecting from an autoflush the way `handle_query_error()`'s
-    exception-handler callers do. But `refresh()` does NOT autoflush on its
-    own either: a caller that stages `query.executed_sql = sql` and then calls
-    `execute_with_cursor()`, with no commit or flush in between (the shape
-    this test reproduces; the SQL Lab execution paths publish `executed_sql`
-    before the engine call), would, without a `flush()` first, have that
-    pending, uncommitted `executed_sql` silently discarded and reloaded back
-    to its previous committed value --
-    leaving the persisted Query row describing the wrong executed SQL,
-    verified here by actually reproducing the sequence and reading the
-    column back from a fresh query, not just asserting the in-memory
-    attribute.
+    The engine hook preserves pending caller metadata across its full refresh.
 
-    Getting this reproduction right required care: a commit expires every
-    attribute by default (`expire_on_commit=True`), and accessing an
-    *expired* attribute (e.g. this method's own `query.id` in its first
-    debug-log line) triggers an incidental autoflush+reload as a side
-    effect of the lazy-load SELECT -- which would flush the pending
-    `executed_sql` "for free" and mask the bug entirely. The real call
-    sequence doesn't hit that accidental protection: `execute_sql_with_cursor`
-    (superset/sql/execution/executor.py) calls `check_stopped_fn()` --
-    which itself does a plain `db.session.refresh(query)` -- immediately
-    before `execute_fn()` in the *same* loop iteration, so every attribute
-    is already loaded (not expired) by the time `execute_with_cursor` sets
-    `executed_sql` and runs. This test replicates that ordering explicitly
-    (an explicit refresh to simulate `check_stopped_fn()`, then the dirty
-    write, then the call) rather than relying on a bare post-commit object,
-    which would accidentally dodge the bug it's meant to catch.
+    SQL Lab publishes executed_sql before dispatch. This test instead exercises
+    a direct caller that leaves it uncommitted. Load the row before assigning
+    executed_sql so an incidental lazy-load autoflush cannot mask its loss.
+    Verify the persisted value, not just the in-memory attribute.
     """
     from unittest.mock import MagicMock
 

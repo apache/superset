@@ -1276,12 +1276,12 @@ def test_failed_statement_keeps_its_executed_sql(
 @pytest.mark.parametrize(
     ("stopped", "status", "logged", "executed_sql"),
     [
-        # A stop wins: the pending statement is discarded with the results.
-        (True, QueryStatusEnum.STOPPED, False, None),
+        # A stop discards results, but the dispatched statement stays recorded.
+        (True, QueryStatusEnum.STOPPED, False, "SELECT\n  1"),
         (False, QueryStatusEnum.FAILED, True, "SELECT\n  1"),
     ],
 )
-def test_impala_fetch_stop_reaches_the_executor(
+def test_impala_fetch_stop_retains_dispatched_sql(
     mocker: MockerFixture,
     app: Any,
     session: Any,
@@ -1292,8 +1292,8 @@ def test_impala_fetch_stop_reaches_the_executor(
 ) -> None:
     """
     Impala's stop signal, raised while the result rows are read, ends a stopped
-    query quietly. For a query nobody stopped it is a failure that keeps the
-    statement it was executing.
+    query quietly. Both outcomes retain the statement published before dispatch;
+    a query nobody stopped is a failure with diagnostics.
     """
     import sqlalchemy as sa
 
