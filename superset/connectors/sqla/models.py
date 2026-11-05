@@ -74,12 +74,14 @@ from superset import db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.partition_mapping import (
     declares_array_type,
+    epoch_mapping_refusal,
     equality_mirrors_safely,
     FEATURE_FLAG as PARTITION_FILTER_MAPPING_FLAG,
     has_active_advanced_data_type,
     is_transform_active,
     known_mirror_verdict,
     mirrorable_operators,
+    raw_instant_refusal,
     resolve_partition_mapping,
     value_round_trips,
 )
@@ -164,6 +166,19 @@ class MetadataResult:
     added: list[str] = field(default_factory=list)
     removed: list[str] = field(default_factory=list)
     modified: list[str] = field(default_factory=list)
+
+
+def _default_unset_column_flags(column: TableColumn) -> None:
+    """Default *column*'s ``groupby`` and ``filterable`` flags when unset.
+
+    A column sync runs this on every column the source reports. A newly
+    discovered column, or a legacy row whose flags were never written,
+    gets both enabled; a flag the dataset owner turned off stays off.
+    """
+    if column.groupby is None:
+        column.groupby = True
+    if column.filterable is None:
+        column.filterable = True
 
 
 def _is_calculated_column(column: TableColumn) -> bool:
@@ -2332,8 +2347,14 @@ class SqlaTable(
         mapped_column_name = self.partition_mapped_column or self.main_dttm_col
         mapped_column = columns_by_name.get(mapped_column_name or "")
         transform = mapped_column.partition_value_transform if mapped_column else None
+        safety_refusal = epoch_mapping_refusal(
+            self, mapped_column_name, self.partition_column, transform
+        ) or raw_instant_refusal(
+            self, mapped_column_name, self.partition_column, transform, probe=False
+        )
         active = bool(
-            self.partition_column in columns_by_name
+            not safety_refusal
+            and self.partition_column in columns_by_name
             and not declares_array_type(columns_by_name[self.partition_column].type)
             and mapped_column is not None
             and mapped_column_name != self.partition_column
@@ -2347,6 +2368,7 @@ class SqlaTable(
             "partition_column": self.partition_column,
             "mapped_column": mapped_column_name,
             "active": active,
+            "safety_refusal": safety_refusal,
             # Whether the last probe of this transform produced a mirror.
             # `active` is the save path's own verdict and deliberately stays
             # that -- a parse, which a misspelled function clears happily -- so
@@ -2934,8 +2956,7 @@ class SqlaTable(
                 # Set description from comment field if available
                 if col.get("comment"):
                     new_column.description = col["comment"]
-            new_column.groupby = True
-            new_column.filterable = True
+            _default_unset_column_flags(new_column)
             columns.append(new_column)
             # Never the partition column. It is a technical column -- an epoch
             # integer, a lowercased region key -- that no analyst filters on,
