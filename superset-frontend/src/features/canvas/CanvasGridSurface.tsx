@@ -508,17 +508,23 @@ const handleOffset = (
  * Whether a widget's handles have a container's handles to clear.
  *
  * Only the child sitting under them does. A container's handles are at the
- * top right of its box, and its box begins where its first row of children
- * does -- so a child in that row, reaching the container's right edge, would
- * paint over them and make the container ungrabbable. Every other child has
- * nothing to clear, and stepping it down would strand its handles in the
- * middle of the widget for no reason.
+ * top right of its box, and a bare container's box begins where its first row
+ * of children does -- so a child in that row, reaching the container's right
+ * edge, would paint over them and make the container ungrabbable. Every other
+ * child has nothing to clear, and stepping it down would strand its handles in
+ * the middle of the widget for no reason.
+ *
+ * `chromeAbove` says the container draws something of its own over that strip,
+ * such as a group's title. Its handles then sit in that chrome rather than on
+ * its first row, so no child has anything to clear and none steps down.
  */
 export const stepsAside = (
   depth: number,
   columns: number,
   placement: { row: number; col: number; colSpan: number } | undefined,
+  chromeAbove = false,
 ): boolean =>
+  !chromeAbove &&
   depth > 0 &&
   placement !== undefined &&
   placement.row === 1 &&
@@ -821,6 +827,11 @@ export interface CanvasGridSurfaceProps {
    * container's grip would sit over its child's and swallow the click.
    */
   depth: number;
+  /**
+   * Whether the container around this grid draws chrome of its own above it,
+   * such as a title; see `stepsAside`.
+   */
+  chromeAbove?: boolean;
   /** The container this grid lays out; the root grid's own id for the root. */
   parentId: string;
   /** Whether a child holds a grid of its own, and so is bounded, not scrolled. */
@@ -861,6 +872,7 @@ export default function CanvasGridSurface({
   constraints,
   editable,
   depth,
+  chromeAbove = false,
   parentId,
   isContainer = () => false,
   labelOf = nodeId => nodeId,
@@ -1556,7 +1568,7 @@ export default function CanvasGridSurface({
           theme.sizeUnit,
           depth,
           extent,
-          stepsAside(depth, columns, placed),
+          stepsAside(depth, columns, placed, chromeAbove),
         );
         const selectable = editable && Boolean(placements[childId]);
         const selected = selection.selectedId === childId;

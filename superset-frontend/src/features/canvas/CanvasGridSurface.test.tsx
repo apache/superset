@@ -20,7 +20,7 @@
 import { ReactNode, useContext, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
-import CanvasGridSurface from './CanvasGridSurface';
+import CanvasGridSurface, { stepsAside } from './CanvasGridSurface';
 import { CanvasWidgetChromeContext } from './widgetChrome';
 import { CanvasDragProvider } from './useCanvasDrag';
 import {
@@ -2005,4 +2005,35 @@ test('a move still carries the widget rather than re-placing it', () => {
   expect(screen.getByTestId('canvas-drop-preview')).toBeInTheDocument();
 
   pointer(handle, 'pointerup', { clientX: COL_PITCH * 4, clientY: 0 });
+});
+
+/**
+ * The corner case the rule exists for: the one child whose top-right would
+ * land on its container's own handles.
+ */
+const RIGHT_EDGE = { row: 1, col: 7, colSpan: 6 };
+
+test('the child under a bare container’s handles steps clear of them', () => {
+  // A container with nothing of its own above its grid starts where this
+  // child starts, so the two sets of handles would sit on the same spot.
+  expect(stepsAside(1, 12, RIGHT_EDGE)).toBe(true);
+});
+
+test('a child of a titled container keeps its handles at the top', () => {
+  // The title holds that strip, so the container's handles are already clear
+  // of the grid and stepping the child down only strands its grip in the
+  // middle of the widget.
+  expect(stepsAside(1, 12, RIGHT_EDGE, true)).toBe(false);
+});
+
+test('only the child that reaches the corner steps aside', () => {
+  // Short of the right edge, or below the first row, there is nothing above
+  // to collide with.
+  expect(stepsAside(1, 12, { row: 1, col: 1, colSpan: 6 })).toBe(false);
+  expect(stepsAside(1, 12, { row: 2, col: 7, colSpan: 6 })).toBe(false);
+});
+
+test('a widget on the root grid never steps aside', () => {
+  // Nothing contains it, so there are no handles above it to clear.
+  expect(stepsAside(0, 24, { row: 1, col: 19, colSpan: 6 })).toBe(false);
 });

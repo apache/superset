@@ -153,8 +153,14 @@ export interface CanvasWidgetProps {
   /**
    * For grid containers: the children laid out on the container's grid. Other
    * containers arrange `childNodes` themselves.
+   *
+   * Pass `chromeAbove` when the container draws something of its own above
+   * that grid, such as a title. A container's handles sit at the top right of
+   * its box, so a child in the first row reaching the right edge would paint
+   * over them -- unless the container's own chrome already holds that strip,
+   * in which case there is nothing for the child to clear.
    */
-  renderGrid: () => ReactNode;
+  renderGrid: (options?: { chromeAbove?: boolean }) => ReactNode;
 }
 
 /** The canvas the user has open. */

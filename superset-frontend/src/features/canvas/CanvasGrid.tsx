@@ -235,9 +235,13 @@ export default function CanvasGrid({
     gridColumnCount: number,
     render: (nodeId: string) => ReactNode,
     depth: number,
+    // Only the container knows whether it drew anything above its grid, so it
+    // is the one that says so; see `stepsAside`.
+    chromeAbove = false,
   ) => (
     <CanvasGridSurface
       parentId={parentId}
+      chromeAbove={chromeAbove}
       childIds={childIds}
       columns={gridColumnCount}
       gap={gap}
@@ -324,7 +328,7 @@ export default function CanvasGrid({
           showTimestamp={display.showTimestamps}
           refreshKey={refreshKeys[nodeId] ?? 0}
           childNodes={childNodes}
-          renderGrid={() =>
+          renderGrid={options =>
             childGridColumns !== undefined ? (
               renderGrid(
                 nodeId,
@@ -332,6 +336,7 @@ export default function CanvasGrid({
                 childGridColumns,
                 childId => renderNode(childId, depth + 1),
                 depth + 1,
+                options?.chromeAbove,
               )
             ) : (
               <Stack>

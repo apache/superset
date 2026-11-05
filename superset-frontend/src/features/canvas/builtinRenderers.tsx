@@ -65,14 +65,17 @@ const GridRenderer = ({ renderGrid }: Props) => (
   <Container>{renderGrid()}</Container>
 );
 
-const GroupRenderer = ({ props, renderGrid }: Props) => (
-  <Container>
-    {text(props?.title) && (
-      <Typography.Title level={5}>{text(props?.title)}</Typography.Title>
-    )}
-    {renderGrid()}
-  </Container>
-);
+const GroupRenderer = ({ props, renderGrid }: Props) => {
+  const title = text(props?.title);
+  return (
+    <Container>
+      {title && <Typography.Title level={5}>{title}</Typography.Title>}
+      {/* A title takes the strip the group's own handles sit in, so no child
+          of it has handles to clear; see `stepsAside`. */}
+      {renderGrid({ chromeAbove: Boolean(title) })}
+    </Container>
+  );
+};
 
 const Markdown = styled.div`
   ${({ theme }) => css`
