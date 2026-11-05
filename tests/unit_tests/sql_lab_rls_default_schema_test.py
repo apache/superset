@@ -2767,3 +2767,79 @@ def test_unknown_catalog_schema_and_search_path_share_all_applicable_rules(
     protected, other = statement.format().split("UNION ALL")
     assert protected.count(CLAUSE) == 1
     assert other.count(CLAUSE) == 1
+
+
+@pytest.mark.parametrize("method", ["AS_SUBQUERY", "AS_PREDICATE"])
+def test_catalog_schema_reaches_uncorrelated_subquery_transformer(
+    mocker: MockerFixture, method: str
+) -> None:
+    """Excluded dataset rules still filter catalog-only subquery reads."""
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.sql.parse import RLSMethod, SQLStatement
+    from superset.utils import rls
+
+    database = MagicMock(db_engine_spec=SnowflakeEngineSpec)
+    database.get_default_catalog.return_value = "MAINDB"
+    mocker.patch.object(
+        SnowflakeEngineSpec, "get_rls_method", return_value=RLSMethod[method]
+    )
+    mocker.patch.object(rls, "_dataset_has_rls", return_value=True)
+
+    def rules(table: Table, *args: Any, **kwargs: Any) -> list[str]:
+        """Only the unexcluded lookup returns the protected table's rule."""
+        if table == Table("SALES", "PUBLIC", "OTHERDB"):
+            return [CLAUSE] if kwargs.get("exclude_dataset_id") is None else []
+        return []
+
+    lookup = mocker.patch.object(rls, "get_predicates_for_table", side_effect=rules)
+    statement = SQLStatement(
+        "SELECT * FROM T WHERE ID IN (SELECT ID FROM OTHERDB..SALES)", "snowflake"
+    )
+
+    assert rls.apply_rls(
+        database, "MAINDB", "ANALYTICS", statement, exclude_dataset_id=7
+    )
+
+    assert statement.format().count(CLAUSE) == 1
+    assert {call.kwargs["exclude_dataset_id"] for call in lookup.call_args_list} == {
+        7,
+        None,
+    }
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_shared_rls_key_preserves_deterministic_rule_order(
+    mocker: MockerFixture, reverse: bool
+) -> None:
+    """Shared-key rules retain the same order for either table iteration order."""
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.sql.parse import SQLStatement
+    from superset.utils import rls
+
+    database = MagicMock(db_engine_spec=MssqlEngineSpec)
+    schema = rls.SearchPath(database, "OTHERDB", ["dbo", "sales_s"])
+    schema.record([Table("SALES")], {"SALES": ["dbo"]})
+    statement = SQLStatement(
+        "SELECT 1 FROM OTHERDB..SALES UNION ALL SELECT 1 FROM SALES", "mssql"
+    )
+    # Pin both possible set iteration orders without depending on PYTHONHASHSEED.
+    statement.tables = sorted(statement.tables, key=str, reverse=reverse)  # type: ignore[assignment]
+    r_sales, r_dbo = "region = 'sales'", "region = 'dbo'"
+
+    def rules(table: Table, *args: Any, **kwargs: Any) -> list[str]:
+        """Unknown schemas include both rules; the resolved bare read has one."""
+        assert table.catalog == "OTHERDB"
+        if kwargs["any_schema"]:
+            assert table.schema is None
+            return [r_sales, r_dbo]
+        assert table.schema == "dbo"
+        return [r_dbo]
+
+    mocker.patch.object(rls, "get_predicates_for_table", side_effect=rules)
+
+    predicates, subquery_predicates = rls.get_rls_predicates(
+        database, "OTHERDB", schema, statement, "OTHERDB"
+    )
+
+    assert predicates == {Table("SALES", catalog="OTHERDB"): [r_sales, r_dbo]}
+    assert subquery_predicates is None
