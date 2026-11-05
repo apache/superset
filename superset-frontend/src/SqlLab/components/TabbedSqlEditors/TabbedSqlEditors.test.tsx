@@ -407,7 +407,7 @@ test('new tab button ignores clicks while extensions load, then opens the dropdo
       undefined;
   };
   const previousFlags = window.featureFlags;
-  window.featureFlags = { ...previousFlags, EnableExtensions: true };
+  window.featureFlags = { ...previousFlags, ENABLE_EXTENSIONS: true };
   resetLoader();
   let resolveList: (value: unknown) => void = () => {};
   const getSpy = jest.spyOn(SupersetClient, 'get').mockReturnValue(
