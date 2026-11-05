@@ -72,6 +72,13 @@ export type DatabaseParameters = {
   embedded_credentials?: Record<string, string>;
 };
 
+// When a stored JWT expires, read from its exp claim; `expired` is decided by
+// the server.
+export type EncryptedExtraExpiration = {
+  expires_at: string;
+  expired: boolean;
+};
+
 export type DatabaseObject = {
   // Connection + general
   backend?: string;
@@ -127,6 +134,7 @@ export type DatabaseObject = {
     supports_oauth2?: boolean;
     oauth2_enabled?: boolean;
     encrypted_extra_sensitive_fields?: Record<string, string>;
+    encrypted_extra_expirations?: Record<string, EncryptedExtraExpiration>;
   };
 
   // SSH Tunnel information

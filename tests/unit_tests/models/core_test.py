@@ -16,6 +16,7 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel
+import base64
 import gc
 import sqlite3
 from contextlib import nullcontext
@@ -27,6 +28,7 @@ import pandas as pd
 import pytest
 import sqlalchemy.exc
 from flask import current_app
+from freezegun import freeze_time
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 from sqlalchemy import (
@@ -3386,6 +3388,75 @@ def test_engine_information_keeps_declared_patterns() -> None:
         ),
         "$.oauth2_client_info.secret": "OAuth2 client secret",
     }
+
+
+def _jwt(exp: int) -> str:
+    """An HS256-shaped token with the given ``exp`` and a fake, decodable signature."""
+    claims = json.dumps({"sub": "service-account", "exp": exp}).encode()
+    payload = base64.urlsafe_b64encode(claims).rstrip(b"=").decode()
+    return f"eyJhbGciOiJIUzI1NiJ9.{payload}.c2lnbmF0dXJlXYZabcde"
+
+
+@freeze_time("2026-11-05T12:00:00Z")
+def test_stored_secret_expirations() -> None:
+    """
+    Each stored sensitive JWT with an exp claim is listed with its expiry and
+    whether it has passed; other secrets, such as a PEM key, are not.
+    """
+    pem = (
+        "-----BEGIN PRIVATE KEY-----\n"
+        + "MIIEvQIBADANBgkqhkiG9w0BAQEFAASC" * 20
+        + "\n-----END PRIVATE KEY-----\n"
+    )
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=json.dumps(
+            {
+                "expiring": f"  {_jwt(1_794_312_000)}  ",
+                "expired": _jwt(1_762_257_600),
+                "private_key": pem,
+                "password": "hunter2",
+            }
+        ),
+    )
+
+    assert database.stored_secret_expirations() == {
+        "$.expired": {"expires_at": "2025-11-04T12:00:00+00:00", "expired": True},
+        "$.expiring": {"expires_at": "2026-11-10T12:00:00+00:00", "expired": False},
+    }
+
+
+@pytest.mark.parametrize(
+    "encrypted_extra",
+    [None, "", "{oops", "[1, 2]", "{}", json.dumps({"password": "hunter2"})],
+)
+def test_stored_secret_expirations_none(encrypted_extra: str | None) -> None:
+    """
+    No stored JWT, or a missing or malformed `encrypted_extra`, gives no entries.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=encrypted_extra,
+    )
+
+    assert database.stored_secret_expirations() == {}
+
+
+def test_stored_secret_expirations_only_declared_fields() -> None:
+    """
+    A JWT outside the engine's declared sensitive paths is not listed.
+    """
+    database = Database(
+        database_name="druid",
+        sqlalchemy_uri="druid://localhost:8082/druid/v2/sql/",
+        encrypted_extra=json.dumps(
+            {"connect_args": {"scheme": _jwt(1_794_312_000), "jwt": "token"}}
+        ),
+    )
+
+    assert database.stored_secret_expirations() == {}
 
 
 def _embedded_snowflake_database(

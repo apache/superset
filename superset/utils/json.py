@@ -510,6 +510,31 @@ def get_sensitive_field_paths(
     return list(_sensitive_string_values(payload, sensitive_fields))
 
 
+def get_sensitive_field_expirations(
+    payload: dict[str, Any],
+    sensitive_fields: set[str],
+) -> dict[str, dict[str, Any]]:
+    """
+    Returns when each JWT found at a sensitive path expires, by concrete path.
+
+    Only values for which :func:`jwt_expiry` finds an ``exp`` are listed, as
+    ``{"expires_at": <ISO 8601 UTC>, "expired": <bool>}``, sorted by path.
+
+    :param payload: The payload to inspect; anything but a dict yields nothing
+    :param sensitive_fields: The set of fields to look for, as JSONPath expressions
+    :returns: The expiry of each JWT, by path
+    """
+    expirations: dict[str, dict[str, Any]] = {}
+    for path, stored in _sensitive_string_values(payload, sensitive_fields).items():
+        expires_at, expired = jwt_expiry(stored.strip())
+        if expires_at is not None:
+            expirations[path] = {
+                "expires_at": expires_at.isoformat(),
+                "expired": expired,
+            }
+    return expirations
+
+
 def get_sensitive_field_hints(
     payload: dict[str, Any],
     sensitive_fields: set[str],

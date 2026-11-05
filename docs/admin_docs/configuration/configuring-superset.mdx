@@ -289,7 +289,9 @@ with an eye that reveals its ending on request.
 - For a PEM private key, the ending comes from its base64 body, without the
   fixed footer, the line breaks or the padding.
 - A stored JWT also shows when it expires, read from its `exp` claim without
-  verifying the signature; no other claim is read.
+  verifying the signature; no other claim is read. The warning shown when the
+  modal opens on an expired or expiring JWT does not depend on this setting:
+  it reads the expiry from `GET /api/v1/database/<pk>/connection`.
 - The endings come from
   `GET /api/v1/database/<pk>/encrypted_extra_hints/`, which requires the same
   permission as editing the database. Each call is recorded in the event log.

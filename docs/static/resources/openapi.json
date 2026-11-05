@@ -7834,6 +7834,20 @@
         },
         "type": "object"
       },
+      "EncryptedExtraExpiration": {
+        "properties": {
+          "expired": {
+            "description": "Whether the stored JWT has expired",
+            "type": "boolean"
+          },
+          "expires_at": {
+            "description": "When the stored JWT expires, from its exp claim, in UTC",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "EncryptedExtraHintSchema": {
         "properties": {
           "expired": {
@@ -7883,6 +7897,13 @@
           "disable_ssh_tunneling": {
             "description": "SSH tunnel is not available to the database",
             "type": "boolean"
+          },
+          "encrypted_extra_expirations": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EncryptedExtraExpiration"
+            },
+            "description": "On `/connection` only: JSONPath of each stored sensitive encrypted_extra field holding a JWT with an exp claim, and when it expires. The signature is not verified.",
+            "type": "object"
           },
           "encrypted_extra_sensitive_fields": {
             "additionalProperties": {
