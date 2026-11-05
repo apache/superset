@@ -88,11 +88,7 @@ def test_get_samples_uses_normal_path_when_engine_supports_offset(
     datasource.database.db_engine_spec.fetch_data_with_cursor.assert_not_called()
 
 
-@pytest.mark.parametrize(
-    "messages", [[], [{"message": "Hive requires a partition filter"}]]
-)
 def test_get_samples_normal_path_cleans_count_cache_when_sample_data_failed(
-    messages: list[dict[str, str]],
     fake_datasource_factory: FakeDatasourceFactory,
 ) -> None:
     """
@@ -112,7 +108,6 @@ def test_get_samples_normal_path_cleans_count_cache_when_sample_data_failed(
             {
                 "status": "failed",
                 "error": "backend query failed",
-                "errors": messages,
             }
         ]
     }
@@ -145,8 +140,7 @@ def test_get_samples_normal_path_cleans_count_cache_when_sample_data_failed(
             )
 
     cache_mgr.delete.assert_called_once_with("count-cache-key", CacheRegion.DATA)
-    expected = messages[0]["message"] if messages else "backend query failed"
-    assert expected in str(excinfo.value)
+    assert "backend query failed" in str(excinfo.value)
 
 
 def test_get_samples_uses_cursor_path_when_engine_disallows_offset(
@@ -690,3 +684,85 @@ def test_get_samples_carries_chart_type_to_sample_and_count_queries(
         assert call.kwargs["form_data"] == expected_form_data
         assert "viz_type" not in call.kwargs["queries"][0]
     assert payload == {"viz_type": "sunburst_v2", "filters": []}
+
+
+HIVE_STRICT_ERROR = (
+    "TExecuteStatementResp(status=TStatus(statusCode=3, errorCode=10056, "
+    'errorMessage="Error while compiling statement: FAILED: SemanticException '
+    "[Error 10056]: Queries against partitioned tables without a partition "
+    'filter are disabled for safety reasons."))'
+)
+
+
+@pytest.mark.parametrize("failing_query", ["count", "samples"])
+@pytest.mark.parametrize("drill", [False, True], ids=["samples", "drill"])
+def test_get_samples_reports_the_engine_message(
+    failing_query: str,
+    drill: bool,
+    app_context: None,
+    fake_datasource_factory: FakeDatasourceFactory,
+) -> None:
+    """
+    A failed query payload carries only the driver's raw `error` text, so it has
+    to go through the engine spec to read well. The count runs first, so both
+    queries need it.
+    """
+    from superset.commands.dataset.exceptions import DatasetSamplesFailedError
+    from superset.db_engine_specs.hive import HiveEngineSpec
+    from superset.views.datasource import utils
+
+    datasource = fake_datasource_factory(supports_offset=True)
+    datasource.database.db_engine_spec = HiveEngineSpec
+    datasource.database.unique_name = "hive"
+    failed = {"queries": [{"status": "failed", "error": HIVE_STRICT_ERROR}]}
+    count_ok = {"queries": [{"status": "success", "data": [{"COUNT(*)": 1}]}]}
+    samples_ctx, count_ctx = MagicMock(), MagicMock()
+    samples_ctx.get_payload.return_value = failed
+    count_ctx.get_payload.return_value = (
+        failed if failing_query == "count" else count_ok
+    )
+
+    with (
+        patch.object(utils, "QueryContextFactory") as qcf,
+        patch.object(utils, "QueryCacheManager"),
+    ):
+        qcf.return_value.create.side_effect = [samples_ctx, count_ctx]
+        with pytest.raises(DatasetSamplesFailedError) as excinfo:
+            utils.get_samples(
+                datasource_type="table",
+                datasource_id=1,
+                datasource=datasource,
+                payload={"filters": []} if drill else None,
+            )
+
+    assert "Hive requires a partition filter" in str(excinfo.value)
+    assert "TExecuteStatementResp" not in str(excinfo.value)
+
+
+@pytest.mark.parametrize("error", [None, ""])
+def test_get_samples_failure_without_error_text_keeps_the_default_message(
+    error: str | None,
+    fake_datasource_factory: FakeDatasourceFactory,
+) -> None:
+    """Missing error text must not be stringified into the literal "None"."""
+    from superset.commands.dataset.exceptions import DatasetSamplesFailedError
+    from superset.views.datasource import utils
+
+    datasource = fake_datasource_factory(supports_offset=True)
+    count_ctx = MagicMock()
+    count_ctx.get_payload.return_value = {
+        "queries": [{"status": "failed", "error": error}]
+    }
+
+    with patch.object(utils, "QueryContextFactory") as qcf:
+        qcf.return_value.create.side_effect = [MagicMock(), count_ctx]
+        with pytest.raises(DatasetSamplesFailedError) as excinfo:
+            utils.get_samples(
+                datasource_type="table",
+                datasource_id=1,
+                datasource=datasource,
+            )
+
+    assert "None" not in str(excinfo.value)
+    assert str(excinfo.value) == DatasetSamplesFailedError.message
+    datasource.database.db_engine_spec.extract_errors.assert_not_called()
