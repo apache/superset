@@ -29,8 +29,6 @@ from superset.charts.client_processing import apply_client_processing
 from superset.charts.data.run_query_context import (
     can_export_dashboard,
     can_export_data,
-    post_processed_rows,
-    ROW_LABEL_COLUMN,
     run_query_context,
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -106,6 +104,7 @@ def test_post_processed_applies_client_processing(
     ].return_value.load.return_value.result_type = ChartDataResultType.POST_PROCESSED
     run_query_context({"queries": [{}], "form_data": {"viz_type": "pivot_table_v2"}})
     mocks["apply_client_processing"].assert_called_once()
+    assert mocks["apply_client_processing"].call_args.kwargs == {"json_records": True}
 
 
 def test_full_result_skips_client_processing(
@@ -305,13 +304,15 @@ _SALES = [
 
 
 def _post_process(form_data: dict[str, Any]) -> dict[str, Any]:
+    """Run real client processing with records serialized before display labels."""
     result = {
         "queries": [{"result_format": ChartDataResultFormat.JSON, "data": list(_SALES)}]
     }
-    return apply_client_processing(result, form_data)["queries"][0]
+    return apply_client_processing(result, form_data, json_records=True)["queries"][0]
 
 
 def _pivot_form_data(rows: list[str], columns: list[str]) -> dict[str, Any]:
+    """Build a pivot request with totals and a single numeric metric."""
     return {
         "viz_type": "pivot_table_v2",
         "groupbyRows": rows,
@@ -325,12 +326,11 @@ def _pivot_form_data(rows: list[str], columns: list[str]) -> dict[str, Any]:
 
 
 def test_post_processed_pivot_becomes_rows_with_row_labels() -> None:
-    query = post_processed_rows(
-        _post_process(_pivot_form_data(["state"], ["gender"])), row_labels=True
-    )
+    """Keep a single pivot row dimension under the CSV-style blank header."""
+    query = _post_process(_pivot_form_data(["state"], ["gender"]))
 
     assert query["colnames"] == [
-        ROW_LABEL_COLUMN,
+        "",
         "num boy",
         "num girl",
         "num Subtotal",
@@ -338,13 +338,13 @@ def test_post_processed_pivot_becomes_rows_with_row_labels() -> None:
     ]
     assert all(isinstance(name, str) for name in query["colnames"])
     assert len(query["coltypes"]) == len(query["colnames"])
-    assert [row[ROW_LABEL_COLUMN] for row in query["data"]] == [
+    assert [row[""] for row in query["data"]] == [
         "CA",
         "NY",
         "Total (Sum)",
     ]
     assert query["data"][0] == {
-        ROW_LABEL_COLUMN: "CA",
+        "": "CA",
         "num boy": "10",
         "num girl": "5",
         "num Subtotal": "15",
@@ -352,24 +352,29 @@ def test_post_processed_pivot_becomes_rows_with_row_labels() -> None:
     }
 
 
-def test_post_processed_pivot_joins_multi_level_row_labels() -> None:
-    query = post_processed_rows(
-        _post_process(_pivot_form_data(["state", "gender"], [])), row_labels=True
+def test_post_processed_pivot_preserves_each_row_dimension() -> None:
+    """Export each named pivot row dimension as a separate leading field."""
+    query = _post_process(
+        {
+            **_pivot_form_data(["state", "gender"], []),
+            "rowTotals": False,
+            "colTotals": False,
+        }
     )
 
-    assert query["colnames"] == [ROW_LABEL_COLUMN, "num", "Total (Sum)"]
-    assert [row[ROW_LABEL_COLUMN] for row in query["data"]] == [
-        "CA boy",
-        "CA girl",
-        "CA Subtotal",
-        "NY boy",
-        "NY Subtotal",
-        "Total (Sum)",
+    assert query["colnames"] == ["state", "gender", "num"]
+    assert [(row["state"], row["gender"]) for row in query["data"]] == [
+        ("CA", "boy"),
+        ("CA", "girl"),
+        ("NY", "boy"),
     ]
+    assert query["rowcount"] == len(query["data"])
+    assert len(query["coltypes"]) == len(query["colnames"])
 
 
 def test_post_processed_table_drops_default_positions() -> None:
-    query = post_processed_rows(_post_process({"viz_type": "table"}), row_labels=False)
+    """Omit the default table index when serializing record-oriented JSON."""
+    query = _post_process({"viz_type": "table"})
 
     assert query["colnames"] == ["state", "gender", "num"]
     assert query["data"] == _SALES
@@ -380,75 +385,38 @@ def test_post_processed_table_drops_default_positions() -> None:
     ]
 
 
-def test_post_processed_rows_keeps_labels_that_look_like_positions() -> None:
-    query = post_processed_rows({"data": {"num": {0: 5, 1: 7}}}, row_labels=True)
-
-    assert query["data"] == [
-        {ROW_LABEL_COLUMN: "0", "num": 5},
-        {ROW_LABEL_COLUMN: "1", "num": 7},
-    ]
-
-
-@pytest.mark.parametrize(
-    ("viz_type", "colnames"),
-    [("table", ["num"]), ("pivot_table_v2", [ROW_LABEL_COLUMN, "num"])],
-)
-def test_row_labels_follow_the_viz_type(
-    mocks: dict[str, mock.MagicMock], viz_type: str, colnames: list[str]
-) -> None:
-    mocks[
-        "ChartDataQueryContextSchema"
-    ].return_value.load.return_value.result_type = ChartDataResultType.POST_PROCESSED
-    mocks["apply_client_processing"].return_value = {
-        "queries": [{"data": {"num": {0: 5, 1: 7}}}]
-    }
-
-    [result] = run_query_context({"queries": [{}], "form_data": {"viz_type": viz_type}})
-
-    assert result.colnames == colnames
-
-
-def test_post_processed_rows_leaves_row_data_alone() -> None:
-    query = {"colnames": ["a"], "coltypes": [0], "data": [{"a": 1}]}
-    assert post_processed_rows(query, row_labels=True) is query
-
-
-def test_post_processed_rows_flattens_tuple_columns_and_fills_gaps() -> None:
-    query = post_processed_rows(
-        {"data": {("m", "x"): {"r1": 1.5, "r2": 2.0}, "n": {"r1": True}}},
-        row_labels=True,
-    )
-
-    assert query["colnames"] == [ROW_LABEL_COLUMN, "m x", "n"]
-    assert query["data"] == [
-        {ROW_LABEL_COLUMN: "r1", "m x": 1.5, "n": True},
-        {ROW_LABEL_COLUMN: "r2", "m x": 2.0, "n": None},
-    ]
-
-
-def test_post_processed_result_is_returned_as_rows(
+def test_post_processed_runner_preserves_colliding_multi_level_row_labels(
     mocks: dict[str, mock.MagicMock],
 ) -> None:
-    mocks[
-        "ChartDataQueryContextSchema"
-    ].return_value.load.return_value.result_type = ChartDataResultType.POST_PROCESSED
-    mocks["apply_client_processing"].return_value = {
+    """Run real pivot processing without collapsing distinct rows to one label."""
+    loaded = mocks["ChartDataQueryContextSchema"].return_value.load.return_value
+    loaded.result_type = ChartDataResultType.POST_PROCESSED
+    loaded.datasource = None
+    mocks["ChartDataCommand"].return_value.run.return_value = {
         "queries": [
             {
-                "colnames": [("num", "boy")],
-                "coltypes": [1],
-                "data": {"num boy": {"CA": 10, "NY": 3}},
+                "result_format": ChartDataResultFormat.JSON,
+                "data": [
+                    {"first": "Mary Ann", "last": "Smith", "num": 120},
+                    {"first": "Mary", "last": "Ann Smith", "num": 350},
+                ],
             }
         ]
     }
+    mocks["apply_client_processing"].side_effect = apply_client_processing
+    form_data = {
+        **_pivot_form_data(["first", "last"], []),
+        "rowTotals": False,
+        "colTotals": False,
+    }
 
-    assert run_query_context({"queries": [{}]}) == [
-        ChartQueryResult(
-            [ROW_LABEL_COLUMN, "num boy"],
-            [GenericDataType.STRING, GenericDataType.NUMERIC],
-            [
-                {ROW_LABEL_COLUMN: "CA", "num boy": 10},
-                {ROW_LABEL_COLUMN: "NY", "num boy": 3},
-            ],
-        )
-    ]
+    [result] = run_query_context({"queries": [{}], "form_data": form_data})
+
+    assert result.colnames == ["first", "last", "num"]
+    assert len(result.data) == 2
+    assert {(row["first"], row["last"], row["num"]) for row in result.data} == {
+        ("Mary Ann", "Smith", "120"),
+        ("Mary", "Ann Smith", "350"),
+    }
+    assert result.coltypes == [GenericDataType.STRING] * 3
+    assert all(list(row) == result.colnames for row in result.data)

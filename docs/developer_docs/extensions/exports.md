@@ -46,7 +46,7 @@ Import them from `superset_core.exports.export`.
 
 While it runs, the payload is the form data that Jinja macros such as `url_param` and `filter_values` read. Inside an HTTP request those macros read the request instead, so call `run_query_context` from a background task.
 
-With `post_processed`, the rows are the table the chart displays, such as a pivot table. Hierarchical column names are joined with spaces. The row labels come first, in a column with a blank (`""`) name; a Table chart has no such column, matching its CSV export. `colnames` and `coltypes` describe these rows.
+With `post_processed`, the rows are the table the chart displays, such as a pivot table. Hierarchical column names are joined with spaces. A pivot with multiple row dimensions exports each dimension as a separate leading column, preserving its values even when joining them with spaces would produce identical labels. Named dimensions use their index names; unnamed dimensions use `row_1`, `row_2`, and so on. A single row dimension uses a blank (`""`) column name. Default positional indexes, such as those of Table charts, are omitted. Duplicate column names receive a ` (1)`, ` (2)`, and so on suffix so every value has a unique record key. `colnames` and `coltypes` describe the exported rows.
 
 ## Result types
 
