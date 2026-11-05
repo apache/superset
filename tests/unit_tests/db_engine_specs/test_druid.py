@@ -282,11 +282,15 @@ def test_encrypted_extra_hints() -> None:
             "path": "$.connect_args.jwt",
             "label": "JWT Token",
             "suffix": "ab3d",
+            "expires_at": None,
+            "expired": None,
         },
         {
             "path": "$.connect_args.password",
             "label": "Password",
             "suffix": "9z8y",
+            "expires_at": None,
+            "expired": None,
         },
     ]
 

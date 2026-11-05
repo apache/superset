@@ -1021,6 +1021,20 @@ class EncryptedExtraHintSchema(Schema):
             "body for a PEM key), null when the value is too short to reveal any"
         },
     )
+    expires_at = fields.DateTime(
+        allow_none=True,
+        metadata={
+            "description": "When the stored JWT expires, from its exp claim, in "
+            "UTC; null when the value is not a JWT with an exp claim"
+        },
+    )
+    expired = fields.Boolean(
+        allow_none=True,
+        metadata={
+            "description": "Whether the stored JWT has expired; null when "
+            "expires_at is null"
+        },
+    )
 
 
 class EncryptedExtraHintsResponseSchema(Schema):

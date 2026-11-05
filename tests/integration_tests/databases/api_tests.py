@@ -395,6 +395,8 @@ class TestDatabaseApi(SupersetTestCase):
                     "path": "$.connect_args.jwt",
                     "label": "JWT Token",
                     "suffix": "abcde",
+                    "expires_at": None,
+                    "expired": None,
                 }
             ]
         }

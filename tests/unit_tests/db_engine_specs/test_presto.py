@@ -1497,6 +1497,8 @@ def test_encrypted_extra_hints_jwt_in_connect_args() -> None:
             "path": "$.connect_args.requests_kwargs.jwt",
             "label": "JWT Token",
             "suffix": "ab3d",
+            "expires_at": None,
+            "expired": None,
         }
     ]
 
@@ -1524,11 +1526,15 @@ def test_encrypted_extra_hints_auth_params_token() -> None:
             "path": "$.auth_params.password",
             "label": "Password",
             "suffix": None,
+            "expires_at": None,
+            "expired": None,
         },
         {
             "path": "$.auth_params.token",
             "label": "JWT Token",
             "suffix": "ab3d",
+            "expires_at": None,
+            "expired": None,
         },
     ]
 
@@ -1549,5 +1555,7 @@ def test_encrypted_extra_hints_oauth2_client_secret() -> None:
             "path": "$.oauth2_client_info.secret",
             "label": "OAuth2 client secret",
             "suffix": "ab3d",
+            "expires_at": None,
+            "expired": None,
         }
     ]

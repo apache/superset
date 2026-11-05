@@ -427,7 +427,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
           description: >-
             Returns the label and last characters of each sensitive field in
             the database's encrypted extra, so that a stored secret can be told
-            apart from another one without revealing it. The number of
+            apart from another one without revealing it. A JWT also gets the
+            expiry its unverified exp claim states. The number of
             characters is set by `ENCRYPTED_EXTRA_HINT_CHARS`; the list is empty
             when it is 0 or less.
           parameters:

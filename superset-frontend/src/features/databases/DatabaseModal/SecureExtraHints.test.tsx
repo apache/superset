@@ -26,6 +26,7 @@ import {
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
+import { supersetTheme } from '@apache-superset/core/theme';
 import SecureExtraHints, {
   resolveMaskedSecretFields,
 } from './SecureExtraHints';
@@ -73,6 +74,14 @@ const TOO_SHORT_TIP =
   'Only the ending of secrets with at least 20 characters is shown.';
 const countSlots = () =>
   document.querySelectorAll('.ant-input-show-count-suffix');
+// The severity icon in a revealed field's slot, if any.
+const slotIcon = (slot: Element) =>
+  within(slot as HTMLElement).queryByTestId('exclamation-circle');
+const TYPE_CLASSES = [
+  'ant-typography-secondary',
+  'ant-typography-warning',
+  'ant-typography-danger',
+];
 const suffixChildren = (block: HTMLElement) =>
   Array.from(block.querySelector('.ant-input-suffix')?.children ?? []);
 
@@ -112,6 +121,7 @@ const expectHiddenJwtField = () => {
 
 afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
+  jest.useRealTimers();
 });
 
 test('renders each declared field hidden with its final label and helper, without a request', () => {
@@ -338,6 +348,211 @@ test('a field without a matching hint says not available', async () => {
   expect(await screen.findByText('Not available')).toBeInTheDocument();
   expectShown(inputs()[0], '');
   expect(within(blocks()[0]).getByText(JWT_HELPER)).toBeInTheDocument();
+});
+
+const EXPIRY_TIP = "Read from the token's exp claim.";
+const expiringHint = {
+  ...hints[0],
+  expires_at: '2026-12-12T12:00:00+00:00',
+  expired: false,
+};
+const expiredHint = {
+  ...hints[0],
+  expires_at: '2026-11-03T12:00:00+00:00',
+  expired: true,
+};
+
+// Pins the clock to noon UTC on Nov 5, 2026 (07:00 in the jest timezone).
+const pinClock = () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  jest.setSystemTime(new Date('2026-11-05T12:00:00Z'));
+};
+
+test('a revealed JWT says when it expires in secondary text', async () => {
+  pinClock();
+  fetchMock.get(endpoint, { result: [expiringHint, hints[1]] });
+  render(<SecureExtraHints databaseId={7} minLength={20} fields={twoFields} />);
+
+  await userEvent.click(eyeOf(0));
+
+  const expiry = await screen.findByText('Expires Dec 12, 2026');
+  expect(countSlots()).toHaveLength(1);
+  expect(countSlots()[0]).toHaveTextContent(/^Expires Dec 12, 2026$/);
+  expect(within(blocks()[0]).getByText('Expires Dec 12, 2026')).toBe(expiry);
+  expect(expiry).toHaveClass('ant-typography-secondary');
+  expect(expiry).not.toHaveClass('ant-typography-danger');
+  expect(slotIcon(countSlots()[0])).not.toBeInTheDocument();
+  expectShown(inputs()[0], 'R0t8Q');
+});
+
+test('a revealed expired JWT says when it expired in danger text after an error icon', async () => {
+  fetchMock.get(endpoint, { result: [expiredHint] });
+  render(<SecureExtraHints databaseId={7} minLength={20} fields={fields} />);
+
+  await userEvent.click(showButtons()[0]);
+
+  const expiry = await screen.findByText('Expired Nov 3, 2026');
+  expect(countSlots()[0]).toHaveTextContent(/^Expired Nov 3, 2026$/);
+  expect(expiry).toHaveClass('ant-typography-danger');
+  expect(slotIcon(countSlots()[0])).toHaveStyle({
+    color: supersetTheme.colorError,
+  });
+  expect(screen.queryByText(/^Expires/)).not.toBeInTheDocument();
+});
+
+test('a revealed JWT expiring within 7 days says so in default text after a warning icon', async () => {
+  pinClock();
+  fetchMock.get(endpoint, {
+    result: [{ ...expiringHint, expires_at: '2026-11-08T12:00:00+00:00' }],
+  });
+  render(<SecureExtraHints databaseId={7} minLength={20} fields={fields} />);
+
+  await userEvent.click(showButtons()[0]);
+
+  const expiry = await screen.findByText('Expires Nov 8, 2026');
+  expect(expiry).toHaveClass('ant-typography');
+  TYPE_CLASSES.forEach(type => expect(expiry).not.toHaveClass(type));
+  const icon = slotIcon(countSlots()[0]);
+  expect(icon).toHaveStyle({ color: supersetTheme.colorWarning });
+  expect(icon).toHaveAttribute('aria-hidden', 'true');
+});
+
+test('a revealed JWT the browser clock passed 2 hours ago, not expired on the server, warns', async () => {
+  pinClock();
+  fetchMock.get(endpoint, {
+    result: [
+      {
+        ...expiringHint,
+        expires_at: '2026-11-05T10:00:00+00:00',
+        expired: false,
+      },
+    ],
+  });
+  render(<SecureExtraHints databaseId={7} minLength={20} fields={fields} />);
+
+  await userEvent.click(showButtons()[0]);
+
+  const expiry = await screen.findByText('Expires Nov 5, 2026');
+  TYPE_CLASSES.forEach(type => expect(expiry).not.toHaveClass(type));
+  expect(slotIcon(countSlots()[0])).toHaveStyle({
+    color: supersetTheme.colorWarning,
+  });
+});
+
+test('a revealed JWT the browser clock passed yesterday, not expired on the server, warns', async () => {
+  pinClock();
+  fetchMock.get(endpoint, {
+    result: [
+      {
+        ...expiringHint,
+        expires_at: '2026-11-04T12:00:00+00:00',
+        expired: false,
+      },
+    ],
+  });
+  render(<SecureExtraHints databaseId={7} minLength={20} fields={fields} />);
+
+  await userEvent.click(showButtons()[0]);
+
+  const expiry = await screen.findByText('Expires Nov 4, 2026');
+  TYPE_CLASSES.forEach(type => expect(expiry).not.toHaveClass(type));
+  expect(slotIcon(countSlots()[0])).toHaveStyle({
+    color: supersetTheme.colorWarning,
+  });
+});
+
+test('a revealed JWT with an unreadable expiry date shows no expiry', async () => {
+  fetchMock.get(endpoint, {
+    result: [{ ...expiringHint, expires_at: 'not a date', expired: false }],
+  });
+  render(<SecureExtraHints databaseId={7} minLength={20} fields={fields} />);
+
+  await userEvent.click(showButtons()[0]);
+
+  await revealedInput('R0t8Q');
+  expect(countSlots()).toHaveLength(0);
+  expect(screen.queryByText(/^Expire/)).not.toBeInTheDocument();
+});
+
+test('a revealed JWT expiring in 60 days keeps the secondary colour', async () => {
+  pinClock();
+  fetchMock.get(endpoint, {
+    result: [{ ...expiringHint, expires_at: '2027-01-04T12:00:00+00:00' }],
+  });
+  render(<SecureExtraHints databaseId={7} minLength={20} fields={fields} />);
+
+  await userEvent.click(showButtons()[0]);
+
+  const expiry = await screen.findByText('Expires Jan 4, 2027');
+  expect(expiry).toHaveClass('ant-typography-secondary');
+  expect(expiry).not.toHaveClass('ant-typography-warning');
+  expect(slotIcon(countSlots()[0])).not.toBeInTheDocument();
+});
+
+test('a revealed secret without an expiry leaves the slot empty', async () => {
+  fetchMock.get(endpoint, {
+    result: [{ ...hints[0], expires_at: null, expired: null }],
+  });
+  render(<SecureExtraHints databaseId={7} minLength={20} fields={fields} />);
+
+  await userEvent.click(showButtons()[0]);
+
+  await revealedInput('R0t8Q');
+  expect(countSlots()).toHaveLength(0);
+  expect(screen.queryByText(/^Expire/)).not.toBeInTheDocument();
+});
+
+test('hovering the expiry says it is read from the exp claim', async () => {
+  fetchMock.get(endpoint, { result: [expiringHint] });
+  render(<SecureExtraHints databaseId={7} minLength={20} fields={fields} />);
+
+  await userEvent.click(showButtons()[0]);
+  await userEvent.hover(await screen.findByText('Expires Dec 12, 2026'));
+
+  expect(
+    (await screen.findByText(EXPIRY_TIP)).closest('[role="tooltip"]'),
+  ).toBeInTheDocument();
+});
+
+test('a withheld ending still shows the expiry next to the too-short note', async () => {
+  fetchMock.get(endpoint, {
+    result: [{ ...expiringHint, suffix: null }],
+  });
+  render(<SecureExtraHints databaseId={7} minLength={20} fields={fields} />);
+
+  await userEvent.click(showButtons()[0]);
+
+  await screen.findByText('Too short');
+  expect(countSlots()).toHaveLength(1);
+  expect(countSlots()[0]).toHaveTextContent(/^Too shortExpires Dec 12, 2026$/);
+  expect(inputs()[0]).toHaveValue('');
+  await userEvent.hover(screen.getByText('Too short'));
+  expect(await screen.findByText(TOO_SHORT_TIP)).toBeInTheDocument();
+});
+
+test('a withheld ending of an expired secret still shows it expired', async () => {
+  fetchMock.get(endpoint, {
+    result: [{ ...expiredHint, suffix: null }],
+  });
+  render(<SecureExtraHints databaseId={7} minLength={20} fields={fields} />);
+
+  await userEvent.click(showButtons()[0]);
+
+  await screen.findByText('Too short');
+  expect(countSlots()[0]).toHaveTextContent(/^Too shortExpired Nov 3, 2026$/);
+  expect(inputs()[0]).toHaveValue('');
+});
+
+test('hiding a JWT drops its expiry', async () => {
+  fetchMock.get(endpoint, { result: [expiringHint] });
+  render(<SecureExtraHints databaseId={7} minLength={20} fields={fields} />);
+
+  await userEvent.click(showButtons()[0]);
+  await screen.findByText('Expires Dec 12, 2026');
+  await userEvent.click(hideButtons()[0]);
+
+  expect(countSlots()).toHaveLength(0);
+  expect(screen.queryByText(/^Expire/)).not.toBeInTheDocument();
 });
 
 test('a failed first eye warns under its field only and the second eye can still fetch', async () => {

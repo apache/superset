@@ -21,8 +21,15 @@ import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { SupersetClient } from '@superset-ui/core';
-import { Icons, Input, Tooltip } from '@superset-ui/core/components';
+import {
+  Icons,
+  Input,
+  Tooltip,
+  Typography,
+} from '@superset-ui/core/components';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { EncryptedExtraHint, EncryptedExtraSecretField } from '../types';
+import { isExpiringSoon } from './expiry';
 import { StyledInputContainer } from './styles';
 
 const BULLETS = '•'.repeat(20);
@@ -32,9 +39,11 @@ const MASK = 'XXXXXXXXXX';
 // that would draw a second box, so restore antd's affixed input defaults.
 // Inter's contextual alternates would restyle the bullets next to the ending.
 // The bullets are the prefix, flush with the value so they read as one run.
+// The note slot gives way before the eye does, so the eye stays reachable.
 const INPUT_STYLES = {
   input: { borderWidth: 0, padding: 0, fontVariantLigatures: 'no-contextual' },
   prefix: { marginInlineEnd: 0, fontVariantLigatures: 'no-contextual' },
+  count: { minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap' },
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -124,6 +133,11 @@ const SecureExtraHints = ({
       color: ${theme.colorIconHover};
     }
   `;
+  const expiryStyles = css`
+    display: inline-flex;
+    align-items: center;
+    gap: ${theme.sizeUnit}px;
+  `;
   const showIcon = <Icons.EyeOutlined iconSize="m" css={eyeIconStyles} />;
   const hideIcon = (
     <Icons.EyeInvisibleOutlined iconSize="m" css={eyeIconStyles} />
@@ -193,23 +207,63 @@ const SecureExtraHints = ({
     }
   };
 
-  // Shown on the right of a revealed field that has no ending to show.
+  // A JWT's expiry; the server decides whether it has passed.
+  const expiry = ({ expires_at: expiresAt, expired }: EncryptedExtraHint) => {
+    if (!expiresAt || !extendedDayjs(expiresAt).isValid()) {
+      return undefined;
+    }
+    const date = extendedDayjs(expiresAt).format('ll');
+    // The icon carries the severity; the text keeps a readable colour.
+    const soon = !expired && isExpiringSoon(expiresAt);
+    return (
+      <Tooltip title={t("Read from the token's exp claim.")}>
+        <span css={expiryStyles}>
+          {(expired || soon) && (
+            <Icons.ExclamationCircleFilled
+              iconSize="s"
+              iconColor={expired ? theme.colorError : theme.colorWarning}
+              aria-hidden
+            />
+          )}
+          {expired ? (
+            <Typography.Text type="danger">
+              {t('Expired %s', date)}
+            </Typography.Text>
+          ) : (
+            <Typography.Text type={soon ? undefined : 'secondary'}>
+              {t('Expires %s', date)}
+            </Typography.Text>
+          )}
+        </span>
+      </Tooltip>
+    );
+  };
+
+  // Shown on the right of a revealed field: why its ending is missing, and
+  // when it expires. The expiry reveals no characters, so a withheld ending
+  // never hides it.
   const note = (hint: EncryptedExtraHint | undefined) => {
     if (!hint) {
       return t('Not available');
     }
-    if (hint.suffix !== null) {
-      return undefined;
-    }
-    return (
+    const when = expiry(hint);
+    // Next to an expiry the note keeps only its head, so both fit before the eye.
+    const tooShort = hint.suffix === null && (
       <Tooltip
         title={t(
           'Only the ending of secrets with at least %s characters is shown.',
           minLength,
         )}
       >
-        <span>{t('Too short to show safely')}</span>
+        <span>{when ? t('Too short') : t('Too short to show safely')}</span>
       </Tooltip>
+    );
+    if (!tooShort && !when) return undefined;
+    return (
+      <span css={expiryStyles}>
+        {tooShort}
+        {when}
+      </span>
     );
   };
 
