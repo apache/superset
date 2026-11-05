@@ -33,6 +33,7 @@ from flask.testing import FlaskClient
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
+from werkzeug.test import TestResponse
 
 from superset import db
 from superset.commands.database.uploaders.base import UploadCommand
@@ -3157,6 +3158,33 @@ def test_a_removed_embedded_credential_round_trips_through_the_dialog(
     stored = session.get(Database, database_id)
     assert stored is not None
     assert json.loads(stored.encrypted_extra) == removed
+
+
+def test_available_databricks_includes_dynamic_form(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """An installed official Databricks driver exposes the connection form."""
+    from superset.db_engine_specs.databricks import DatabricksPythonConnectorEngineSpec
+
+    mocker.patch(
+        "superset.databases.api.get_available_engine_specs",
+        return_value={DatabricksPythonConnectorEngineSpec: {"databricks"}},
+    )
+
+    response: TestResponse = client.get("/api/v1/database/available/")
+
+    assert response.status_code == 200
+    assert response.json is not None
+    entry: dict[str, Any] = response.json["databases"][0]
+    assert entry["engine"] == "databricks"
+    assert entry["available_drivers"] == ["databricks"]
+    assert entry["default_driver"] == "databricks"
+    assert entry["parameters"]
+    assert {"host", "http_path_field", "access_token"} <= set(
+        entry["parameters"]["properties"]
+    )
 
 
 def test_available_hides_legacy_databricks(

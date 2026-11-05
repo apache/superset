@@ -27,10 +27,70 @@ import {
   type ChartCustomization,
 } from '@superset-ui/core';
 import {
+  isFilterWithoutScope,
   useChartCustomizationConfiguration,
   useIsFilterInScope,
   useSelectFiltersInScope,
 } from './state';
+
+const baseFilter: Filter = {
+  id: 'filter_scope_test',
+  name: 'Scope test',
+  filterType: 'filter_select',
+  type: NativeFilterType.NativeFilter,
+  scope: { rootPath: [], excluded: [] },
+  chartsInScope: [],
+  controlValues: {},
+  defaultDataMask: {},
+  cascadeParentIds: [],
+  targets: [{ column: { name: 'column_name' }, datasetId: 1 }],
+  description: '',
+};
+
+test('isFilterWithoutScope recognizes empty chart scope with any rootPath', () => {
+  expect(isFilterWithoutScope(baseFilter)).toBe(true);
+  expect(
+    isFilterWithoutScope({
+      ...baseFilter,
+      scope: { rootPath: ['ROOT_ID'], excluded: [] },
+    }),
+  ).toBe(true);
+});
+
+test('isFilterWithoutScope waits for scope calculation and ignores scoped filters', () => {
+  expect(isFilterWithoutScope({ ...baseFilter, chartsInScope: [123] })).toBe(
+    false,
+  );
+  expect(
+    isFilterWithoutScope({ ...baseFilter, chartsInScope: undefined }),
+  ).toBe(false);
+  const { chartsInScope: _chartsInScope, ...withoutChartScope } = baseFilter;
+  expect(isFilterWithoutScope(withoutChartScope)).toBe(false);
+});
+
+test('isFilterWithoutScope ignores dividers and chart customizations', () => {
+  const divider: Divider = {
+    id: 'divider_scope_test',
+    type: NativeFilterType.Divider,
+    title: 'Divider',
+    description: '',
+    chartsInScope: [],
+  };
+  const chartCustomization: ChartCustomization = {
+    id: 'customization_scope_test',
+    name: 'Customization',
+    type: ChartCustomizationType.ChartCustomization,
+    filterType: 'chart_customization_dynamic_groupby',
+    targets: [],
+    scope: { rootPath: [], excluded: [] },
+    chartsInScope: [],
+    controlValues: {},
+    defaultDataMask: {},
+  };
+
+  expect(isFilterWithoutScope(divider)).toBe(false);
+  expect(isFilterWithoutScope(chartCustomization)).toBe(false);
+});
 
 jest.mock('react-redux', () => {
   const actual = jest.requireActual('react-redux');

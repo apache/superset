@@ -77,6 +77,59 @@ assists people when migrating to a new version.
   shown each other's cached results; connections created in SQLAlchemy URI mode do
   not show the OAuth2 or embedded credential sections; and turning off **Impersonate
   logged in user** moves embedded viewers, and logged-in users, onto the base account.
+
+- Aborting or timing out an async chart-data query on Impala now cancels the
+  statement that is running. The cancel used to target the `USE <database>`
+  operation the driver runs when it opens a cursor, so the query ran to
+  completion, and without a database in the URL the task could not be aborted
+  at all. The cancel still goes through the coordinator's web UI
+  (`http://<host>:25000`), so the backend must reach that port, and a private or
+  internal coordinator needs `IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS = True`.
+  On engines whose chart-data cancel id is captured (Impala, and engines that
+  expose a session id when the cursor opens, such as PostgreSQL, MySQL,
+  Snowflake and Redshift), a chart-data task that is aborting starts no further
+  statements, such as a time comparison's offset query, and its partial result
+  is not cached. Engines whose cancel id only exists once a query is running,
+  such as Trino, still cannot cancel chart-data queries: their tasks stay
+  non-abortable, as before.
+
+- **Semantic-layer schema readiness and failures.** Both provider schema hooks
+  require keyword-only `readiness: SemanticCredentialReadiness` alongside
+  `transport`. This plain Enum is exported by `superset_core.semantic_layers`.
+  Discover metadata only when `readiness is SemanticCredentialReadiness.RESOLVED`
+  and required configuration fields are valid; otherwise return a static schema
+  without I/O. Do not interpret host masking placeholders. Upgrade host and
+  provider schema implementations together; omitted arguments fail explicitly.
+  `SemanticBackendError` signals execution or invalid-result faults with generic
+  host guidance (500); `ProviderRequestError` keeps safe transport detail (400),
+  and query refusal/completeness retain their separate meanings. Provider error
+  translations should suppress diagnostic chains. The semantic execution boundary
+  logs typed failures without diagnostic chains. Unknown failures retain their
+  type at ERROR and their full traceback/chain at DEBUG in server logs only. See the
+  [provider boundary guide](docs/developer_docs/extensions/semantic-provider-boundary.md).
+
+- **Semantic-layer SDK transport argument.** Provider implementations must accept
+  the required keyword-only `transport: ProviderTransport` in `from_configuration`,
+  `get_configuration_schema`, and `get_runtime_schema`. Superset supplies it even
+  for static schema discovery. Store it on the layer and pass it to views and HTTP
+  helpers; do not construct HTTP clients for provider endpoints. Every request now
+  requires an absolute monotonic deadline and a response byte cap. The default
+  host policy allows public HTTPS destinations only; the provider-specific
+  `SEMANTIC_LAYER_ALLOW_INTERNAL_HOSTS = True` setting also allows HTTP and internal
+  destinations. Both policies ignore environment proxies and preserve budgets and
+  TLS hostname verification. See the [provider transport guide](docs/developer_docs/extensions/semantic-provider-transport.md).
+
+- Semantic-view filters with an empty IN or NOT IN selection no longer fail with a
+  query validation error. They follow SQL semantics where the filter sits: an
+  empty IN matches no rows (grouped charts return no rows; an ungrouped total
+  returns one row, for example a count of 0), and an empty NOT IN matches every
+  row, including NULLs. Dataset charts still reject an empty selection. Semantic
+  provider adapters receive the empty `frozenset` and must render a constant or an
+  equivalent native predicate, never an empty SQL list; upgrade provider adapters
+  before, or together with, the host. The SDK conformance kit adds
+  `test_empty_membership` and `test_empty_membership_in_or_group`, derived from
+  the existing `identity` and `or` fixtures.
+
 - Dashboard and chart `viewers` can no longer be added through the API or the MCP
   `manage_dashboard_roles` tool while the `ENABLE_VIEWERS` feature flag is off; such
   requests are rejected with a 422. Enforcement of existing viewers is unchanged (a
@@ -196,13 +249,21 @@ assists people when migrating to a new version.
   Lab stop on Impala is delivered to the worker that is polling the query, which
   cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP
   cancel invalidated the handle the worker was still polling, so the run failed
-  instead of ending as stopped. When no worker is polling, the query is marked
-  stopped but Impala keeps running it and holds its admission slot until it
-  finishes or Impala closes it: for example when the worker has died or
-  restarted, or when the stop arrives while results are being fetched.
-  Operators who relied on the HTTP cancel to free admission slots in those cases
-  should rely on Impala's own query and session timeouts. Chart and MCP
-  cancellation still use the HTTP cancel.
+  instead of ending as stopped. The worker also checks for a stop between result
+  RPCs while it fetches, so a stop still reaches a query that Impala already
+  reports as finished, which a streaming `SELECT` does almost at once. The
+  worker checks between result RPCs, at most once per `DB_POLL_INTERVAL_SECONDS`
+  (5 seconds for Impala by default), and Impala returns each RPC within
+  `FETCH_ROWS_TIMEOUT_MS` (10 seconds by default), so such a stop takes effect
+  within about the sum of the two. Setting `FETCH_ROWS_TIMEOUT_MS=0` disables
+  that timeout and can delay a stop until the fetch returns.
+  When no worker is polling or fetching, for example because it has died or
+  restarted, the query is marked stopped but Impala keeps running it and holds
+  its admission slot until it finishes or Impala closes it. Impala checks for
+  cancellation between row batches, so a batch whose rows are slow to compute
+  runs to its end first. Operators who relied on the HTTP cancel to free
+  admission slots in those cases should rely on Impala's own query and session
+  timeouts. Chart and MCP cancellation still use the HTTP cancel.
 - `POST /api/v1/query/stop` returns HTTP 422 instead of 200 when the query
   has already finished or its worker has committed the target transaction.
   The response contains `message: "Could not cancel query"` and the recorded
@@ -245,8 +306,8 @@ assists people when migrating to a new version.
   omitted. Update provider adapters before, or together with, the host/SDK
   upgrade. Adapters must narrow `SemanticQuery.filters` and `GroupLimit.filters`
   members (`Filter | OrFilter`) before reading leaf attributes; `get_values`
-  remains `set[Filter] | None`. Empty membership and invalid NULL comparison
-  operands return query validation errors. Semantic result keys include a
+  remains `set[Filter] | None`. Invalid NULL comparison operands return query
+  validation errors. Semantic result keys include a
   filter-protocol version, and chart-backed annotation results also receive a new
   cache discriminator: expect a one-time cold cache after upgrading. See the
   [semantic filter contract](docs/developer_docs/extensions/semantic-filters.md)
@@ -650,7 +711,7 @@ the switch is on.
 `get_chart_data` returns `AccessDenied` when a query is refused for access, and
 `ValidationError` when a semantic layer provider rejects the query or Superset's
 query validation rejects it while it runs (for example, a semantic view refusing
-an empty `IN` filter), matching the chart-data API's 403 and 400. These were previously
+a comparison filter with a missing operand), matching the chart-data API's 403 and 400. These were previously
 reported as `DataError`.
 Clients that matched on `DataError` for these cases should handle the new types.
 On the saved-chart path these errors also no longer emit an error-level MCP log
