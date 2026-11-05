@@ -3402,6 +3402,50 @@ def test_ensure_totals_available_runs_the_totals_query_cancellably() -> None:
     query_context.get_query_result.assert_called_once_with(totals_query)
 
 
+def test_main_query_runs_inside_the_cancel_scope() -> None:
+    """The main query is wrapped so Stop cancels the warehouse query itself."""
+    from superset.common.query_object import QueryObject
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_query_context.client_id = "client-1"
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+    query_obj = QueryObject(datasource=mock_datasource, columns=["col1"])
+    cache = MagicMock(
+        is_loaded=False,
+        df=pd.DataFrame(),
+        error_message=None,
+        bq_memory_limited=False,
+    )
+    scope = MagicMock()
+
+    with (
+        patch(
+            "superset.common.query_context_processor.QueryCacheManager"
+        ) as cache_manager,
+        patch(
+            "superset.common.query_context_processor.cancellable_chart_query",
+            scope,
+        ),
+        patch.object(query_obj, "validate", return_value=None),
+        patch.object(processor, "query_cache_key", return_value="key"),
+        patch.object(processor, "get_cache_timeout", return_value=3600),
+        patch.object(
+            processor, "get_query_result", return_value=_stub_result()
+        ) as get_query_result,
+        patch.object(processor, "get_annotation_data", return_value={}),
+    ):
+        cache_manager.get.return_value = cache
+        processor.get_df_payload(query_obj)
+
+    scope.assert_called_once_with("client-1", mock_datasource.database)
+    scope.return_value.__enter__.assert_called_once()
+    get_query_result.assert_called_once_with(query_obj)
+
+
 def test_get_payload_result_scopes_the_run_for_cancellation() -> None:
     """The run-level scope wraps the whole payload, clearing the intent after."""
     query_context = MagicMock()

@@ -810,8 +810,8 @@ def test_notify_cursor_aborts_when_stop_lands_during_publish() -> None:
 def test_cancellable_chart_query_skips_a_statement_once_stopped() -> None:
     """A Stop recorded before a statement is submitted keeps it from running.
 
-    Applies to cursors on other databases too (e.g. an annotation layer's
-    source chart), which never publish a handle of their own.
+    Applies to cursors on other databases too, which never publish a handle of
+    their own.
     """
     from superset.tasks.query_cancel import (
         _cancel_requested_key,

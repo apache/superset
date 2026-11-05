@@ -298,9 +298,9 @@ class _StopSink:
     query object can execute several statements in turn (e.g. the grouping-sets
     fallback), each on whatever connection the pool hands out, and the handle
     must always name the operation that is executing right now. Cursors on other
-    databases (e.g. an annotation layer's source chart) never publish, since
-    their id would be cancelled against the wrong database, but a Stop still
-    keeps their statements from starting.
+    databases never publish, since their id would be cancelled against the wrong
+    database, but a Stop still keeps their statements from starting. Annotation
+    layer queries run after this scope ends, so a Stop does not reach them.
     """
 
     def __init__(self, user_id: int, client_id: str, database: "Database") -> None:

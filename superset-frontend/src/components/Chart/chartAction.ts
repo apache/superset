@@ -862,7 +862,9 @@ export function exploreJSON(
     // Identifies this run to the backend so Stop can cancel the database query
     // itself, not just abort the in-flight HTTP request. Matches SQL Lab's
     // client id shape (see `postStopQuery`) and the `query.client_id` column.
-    const clientId = nanoid(11);
+    // Only Explore offers Stop; dashboard charts carry a dashboard id, so they
+    // skip the id and the backend's per-query cancel bookkeeping.
+    const clientId = dashboardId ? undefined : nanoid(11);
     dispatch(
       chartUpdateStarted(
         controller,
