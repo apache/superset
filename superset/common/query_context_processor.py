@@ -714,6 +714,7 @@ class QueryContextProcessor:
                 )
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
                 export_coltypes = coltypes
+                formatted_numeric_positions: set[int] | None = None
                 if format_numeric_export:
                     # Every numeric column was rendered to display text above, so
                     # treat them as strings here; otherwise apply_column_types
@@ -725,9 +726,22 @@ class QueryContextProcessor:
                         else coltype
                         for coltype in coltypes
                     ]
+                    # Those columns hold text rendered from numbers, so a leading
+                    # ``-`` is a negative sign, not a formula: exempt them from
+                    # Excel formula quoting (matching the CSV writer) so a value
+                    # like "-3.50" is not escaped to the literal "'-3.50". Genuine
+                    # formula prefixes there, and every other column, still quote.
+                    formatted_numeric_positions = {
+                        idx
+                        for idx, coltype in enumerate(coltypes[: len(df.columns)])
+                        if coltype == GenericDataType.NUMERIC
+                    }
                 excel.apply_column_types(df, export_coltypes)
                 result = excel.df_to_excel(
-                    df, index=include_index, **current_app.config["EXCEL_EXPORT"]
+                    df,
+                    index=include_index,
+                    formatted_numeric_positions=formatted_numeric_positions,
+                    **current_app.config["EXCEL_EXPORT"],
                 )
             return result or ""
 

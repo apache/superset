@@ -164,6 +164,63 @@ def test_xlsx_quotes_formatted_formula_prefixed_value(app_context: None) -> None
     assert value == "'+1,234,567.89"
 
 
+# @AC-FR004-02
+@with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
+def test_xlsx_does_not_quote_formatted_negative_number(app_context: None) -> None:
+    # A formatted negative number must stay a plain negative, not be escaped into
+    # the literal text "'-3.50". The XLSX formula guard mirrors the CSV writer's
+    # ``_is_negative_number`` exemption, so a leading minus sign is left intact.
+    processor = _make_processor(
+        ChartDataResultFormat.XLSX,
+        {"column_config": {"amount": {"d3NumberFormat": ",.2f"}}},
+    )
+    df = pd.DataFrame({"amount": [-3.5]})
+
+    result = processor.get_data(df, [GenericDataType.NUMERIC])
+
+    value, data_type = _read_xlsx_raw_cell(result, row=2, col=1)
+    # Kept as text (so the trailing decimal survives) but without a quote prefix.
+    assert data_type == "s"
+    assert value == "-3.50"
+
+
+# @AC-FR004-02
+@with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
+def test_csv_does_not_escape_formatted_negative_number(app_context: None) -> None:
+    # CSV/XLSX parity: the same formatted negative is not escaped in CSV either.
+    processor = _make_processor(
+        ChartDataResultFormat.CSV,
+        {"column_config": {"amount": {"d3NumberFormat": ",.2f"}}},
+    )
+    df = pd.DataFrame({"amount": [-3.5]})
+
+    result = processor.get_data(df, [GenericDataType.NUMERIC])
+
+    amount_cells = pd.read_csv(io.StringIO(_csv_text(result)), dtype=str)[
+        "amount"
+    ].tolist()
+    assert amount_cells == ["-3.50"]
+
+
+# @AC-FR004-02
+@with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
+def test_xlsx_still_quotes_warehouse_formula_string(app_context: None) -> None:
+    # The negative-number exemption must not weaken the formula-injection guard:
+    # a genuine warehouse string that starts with a formula prefix is still
+    # quoted. ``label`` is a STRING column, so it is not number-formatted.
+    processor = _make_processor(
+        ChartDataResultFormat.XLSX,
+        {"column_config": {"amount": {"d3NumberFormat": ",.2f"}}},
+    )
+    df = pd.DataFrame({"label": ["=1+1"], "amount": [-3.5]})
+
+    result = processor.get_data(df, [GenericDataType.STRING, GenericDataType.NUMERIC])
+
+    label_value, label_type = _read_xlsx_raw_cell(result, row=2, col=1)
+    assert label_type == "s"
+    assert label_value == "'=1+1"
+
+
 # @AC-FR006-02
 def test_flag_off_csv_and_xlsx_byte_identical(app_context: None) -> None:
     form_data = {"column_config": {"amount": {"d3NumberFormat": ",.1f"}}}
@@ -440,9 +497,11 @@ def test_small_number_format_forwarded_to_export(app_context: None) -> None:
     result = processor.get_data(df, [GenericDataType.NUMERIC])
 
     text = _csv_text(result)
-    # Sub-one value rendered by the small-number format, the other by the main.
-    assert "12.5%" in text
-    assert "5" in text
+    # Parse the column so the assertion pins both cells exactly: the sub-one
+    # value takes the small-number format and the larger value the main format.
+    # (A bare ``"5" in text`` would already be satisfied by the ``12.5%`` cell.)
+    amount_cells = pd.read_csv(io.StringIO(text), dtype=str)["amount"].tolist()
+    assert amount_cells == ["12.5%", "5"]
 
 
 # @AC-FR001-01
