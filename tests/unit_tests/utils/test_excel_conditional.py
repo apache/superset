@@ -147,7 +147,8 @@ def test_cell_bars_use_neutral_color_when_color_pn_is_off() -> None:
         color_pn=False,
     )
     rule = next(
-        cf for _, cf in _cf_rules(load_workbook(io.BytesIO(styled)).active)
+        cf
+        for _, cf in _cf_rules(load_workbook(io.BytesIO(styled)).active)
         if cf.type == "dataBar"
     )
     assert str(rule.dataBar.color.rgb).endswith("BFBFBF")
@@ -162,7 +163,8 @@ def test_cell_bars_use_success_color_when_color_pn_is_on() -> None:
         color_pn=True,
     )
     rule = next(
-        cf for _, cf in _cf_rules(load_workbook(io.BytesIO(styled)).active)
+        cf
+        for _, cf in _cf_rules(load_workbook(io.BytesIO(styled)).active)
         if cf.type == "dataBar"
     )
     assert str(rule.dataBar.color.rgb).endswith("52C41A")
@@ -799,7 +801,8 @@ def test_polish_explore_xlsx_honors_column_show_cell_bars() -> None:
         },
     )
     data_bars = [
-        rng for rng, rule in _cf_rules(load_workbook(io.BytesIO(polished)).active)
+        rng
+        for rng, rule in _cf_rules(load_workbook(io.BytesIO(polished)).active)
         if rule.type == "dataBar"
     ]
     assert data_bars == ["B2:B3"]
