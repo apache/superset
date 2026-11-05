@@ -148,7 +148,9 @@ const getFormatter = (
  * only when the query has more than one metric; with a single metric the whole
  * tuple is dimensions. The query label suffix is kept when provided so
  * Query A and Query B stay distinguishable when they share a groupby value
- * (#38451).
+ * (#38451). Returns undefined when the dimension values join to an empty
+ * string (e.g. an empty-string group value), so the caller can keep the
+ * untruncated name and the series stays selectable in the legend.
  */
 function getTruncatedSeriesName({
   labelMapValues,
@@ -160,13 +162,16 @@ function getTruncatedSeriesName({
   hasMultipleMetrics: boolean;
   entryName: string;
   queryLabel?: string;
-}): string {
+}): string | undefined {
   const groupbyValues =
     labelMapValues && hasMultipleMetrics
       ? labelMapValues.slice(1)
       : (labelMapValues ?? []);
   const truncatedName =
     groupbyValues.length > 0 ? groupbyValues.join(', ') : entryName;
+  if (!truncatedName) {
+    return undefined;
+  }
   return queryLabel ? `${truncatedName} (${queryLabel})` : truncatedName;
 }
 
@@ -584,14 +589,18 @@ export default function transformProps(
     const labelMapValues = rawLabelMap?.[seriesName];
 
     let displayName: string;
+    const truncatedName =
+      !hasTimeComparison && truncateMetric && groupby.length > 0
+        ? getTruncatedSeriesName({
+            labelMapValues,
+            hasMultipleMetrics: hasMultipleMetricsA,
+            entryName,
+            queryLabel: showQueryIdentifiers ? 'Query A' : undefined,
+          })
+        : undefined;
 
-    if (!hasTimeComparison && truncateMetric && groupby.length > 0) {
-      displayName = getTruncatedSeriesName({
-        labelMapValues,
-        hasMultipleMetrics: hasMultipleMetricsA,
-        entryName,
-        queryLabel: showQueryIdentifiers ? 'Query A' : undefined,
-      });
+    if (truncatedName) {
+      displayName = truncatedName;
     } else if (groupby.length > 0) {
       // When we have groupby, format as "metric, dimension". Each series
       // belongs to the metric recorded in its label-map tuple
@@ -698,14 +707,18 @@ export default function transformProps(
     const labelMapValuesB = rawLabelMapB?.[seriesEntry];
 
     let displayName: string;
+    const truncatedName =
+      !hasTimeComparisonB && truncateMetricB && groupbyB.length > 0
+        ? getTruncatedSeriesName({
+            labelMapValues: labelMapValuesB,
+            hasMultipleMetrics: hasMultipleMetricsB,
+            entryName,
+            queryLabel: showQueryIdentifiers ? 'Query B' : undefined,
+          })
+        : undefined;
 
-    if (!hasTimeComparisonB && truncateMetricB && groupbyB.length > 0) {
-      displayName = getTruncatedSeriesName({
-        labelMapValues: labelMapValuesB,
-        hasMultipleMetrics: hasMultipleMetricsB,
-        entryName,
-        queryLabel: showQueryIdentifiers ? 'Query B' : undefined,
-      });
+    if (truncatedName) {
+      displayName = truncatedName;
     } else if (groupbyB.length > 0) {
       // When we have groupby, format as "metric, dimension". Each series
       // belongs to the metric recorded in its label-map tuple

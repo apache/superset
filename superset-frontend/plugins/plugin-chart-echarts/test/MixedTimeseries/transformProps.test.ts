@@ -2256,4 +2256,38 @@ describe('truncateMetric / truncateMetricB', () => {
 
     expect(truncated).toEqual(base);
   });
+
+  test('keeps the untruncated name for an empty-string group value', () => {
+    const labelMap = { ds: ['ds'], '': [''], boy: ['boy'] };
+    const rows = [
+      { '': 1, boy: 2, ds: 599616000000 },
+      { '': 3, boy: 4, ds: 599916000000 },
+    ];
+    const queries = [
+      createTestQueryData(rows, { label_map: labelMap }),
+      createTestQueryData(rows, { label_map: labelMap }),
+    ];
+    const chartProps = createEchartsTimeseriesTestChartProps<
+      EchartsMixedTimeseriesFormData,
+      EchartsMixedTimeseriesProps
+    >({
+      ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+      defaultQueriesData: queries,
+      formData: {
+        ...formData,
+        truncateMetric: true,
+        truncateMetricB: true,
+      },
+      queriesData: queries,
+    });
+    const seriesNames = (
+      transformProps(chartProps).echartOptions.series as SeriesOption[]
+    ).map(s => s.name);
+
+    // An empty truncated name would drop the series from the legend, so the
+    // "metric, dimension" form is kept for it.
+    expect(seriesNames).toContain('sum__num, ');
+    expect(seriesNames).not.toContain('');
+    expect(seriesNames).toContain('boy');
+  });
 });
