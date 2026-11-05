@@ -510,6 +510,70 @@ def test_saved_query_resync_uses_default_catalog_and_scopes_to_one_query(
         db.session.rollback()
 
 
+def test_saved_query_resync_leaves_same_id_table_chart_untouched(app: Any) -> None:
+    """Moving a saved query's catalog/schema only re-copies perms onto charts
+    whose ``datasource_type`` is ``saved_query``.
+
+    ``slices.datasource_id`` is not namespaced by type, so a table-backed chart
+    can share the saved query's numeric id; the resync UPDATE must not touch
+    its ``perm``/``catalog_perm``/``schema_perm``.
+    """
+    from superset.extensions import db
+    from superset.models.core import Database
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    database = Database(database_name="same_id_db", sqlalchemy_uri="sqlite://")
+    saved_query = SavedQuery(
+        label="Moving Query", catalog="c1", schema="s1", database=database
+    )
+
+    db.session.add_all([database, saved_query])
+    db.session.flush()
+
+    chart = Slice(
+        slice_name="On the moving saved query",
+        datasource_type=DatasourceType.SAVEDQUERY,
+        datasource_id=saved_query.id,
+        datasource_name="Moving Query",
+        viz_type="table",
+        params="{}",
+    )
+    same_id_table_chart = Slice(
+        slice_name="Unrelated table chart with the same id",
+        datasource_type=DatasourceType.TABLE,
+        datasource_id=saved_query.id,
+        datasource_name="unrelated",
+        viz_type="table",
+        params="{}",
+    )
+    db.session.add_all([chart, same_id_table_chart])
+    db.session.flush()
+
+    try:
+        table_perms_before = (
+            same_id_table_chart.perm,
+            same_id_table_chart.catalog_perm,
+            same_id_table_chart.schema_perm,
+        )
+
+        saved_query.catalog = "c2"
+        saved_query.schema = "s2"
+        db.session.flush()
+        db.session.expire(chart)
+        db.session.expire(same_id_table_chart)
+
+        assert chart.catalog_perm == "[same_id_db].[c2]"
+        assert chart.schema_perm == "[same_id_db].[c2].[s2]"
+        assert (
+            same_id_table_chart.perm,
+            same_id_table_chart.catalog_perm,
+            same_id_table_chart.schema_perm,
+        ) == table_perms_before
+    finally:
+        db.session.rollback()
+
+
 def test_saved_query_after_delete_detaches_dependent_slices(app: Any) -> None:
     """Deleting a saved query clears its charts' datasource reference and
     denormalized perm columns.
