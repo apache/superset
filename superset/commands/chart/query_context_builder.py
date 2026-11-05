@@ -48,14 +48,18 @@ two things are guarded here so synthesis never persists a context that returns
   classified non-derivable and left ``NULL`` so the chart keeps prompting a
   re-save rather than silently returning wrong data.
 * **Adhoc time range.** The canonical builder injects ``time_range="No filter"``
-  when a chart carries no top-level ``time_range``. At read time
+  on a query that carries no top-level ``time_range``. At read time
   ``QueryContextFactory._apply_filters`` would then overwrite a bound
   ``TEMPORAL_RANGE`` adhoc filter's value with ``"No filter"`` and count every
   date, so the injected sentinel is dropped when it would clobber a real range.
+  The decision is made per query, not per chart: the second query of a
+  ``mixed_timeseries`` chart is built from its own ``_b`` controls, so it can
+  carry the sentinel even when the first query has an explicit top-level range.
 
 Charts carrying dashboard-context filters (``extra_filters`` /
-``extra_form_data``) are also left ``NULL`` — the generic builder does not apply
-those the way the live chart does.
+``extra_form_data``, including the ``_b`` variants) are also left ``NULL`` — any
+non-empty value means the live chart applies an override (a native filter, a
+time-grain, a time range) the generic builder does not reproduce.
 
 The datasource is taken from the importer-resolved id/type **only**, never from
 ``params`` (ADR-014 authz/RLS): the synthesized context names the same real
@@ -117,25 +121,35 @@ def _is_builder_mapped(viz_type: str) -> bool:
     return viz_type in _BUILDER_MAPPED_VIZ or viz_type.startswith("echarts_timeseries")
 
 
+# Keys that carry dashboard-context overrides (native dashboard filters, URL
+# params, cross-filters, time-grain/time-range overrides). The ``_b`` variants
+# feed the *second* query of a ``mixed_timeseries`` chart. The canonical builder
+# applies none of these the way the live chart does.
+_DASHBOARD_CONTEXT_KEYS = (
+    "extra_filters",
+    "extra_filters_b",
+    "extra_form_data",
+    "extra_form_data_b",
+)
+
+
 def _has_dashboard_context_filters(params: dict[str, Any]) -> bool:
     """
-    Return True if ``params`` carries dashboard-context filters.
+    Return True if ``params`` carries any non-empty dashboard-context override.
 
-    ``extra_filters`` / ``extra_form_data`` are applied by the live chart (native
-    dashboard filters, URL params) in ways the generic builder does not reproduce,
-    so a chart carrying them is left non-derivable rather than synthesized with a
-    context that would drop those constraints (#33615 review).
+    ``extra_filters`` / ``extra_form_data`` (and their ``_b`` variants for the
+    second query of a ``mixed_timeseries`` chart) are applied by the live chart
+    (native dashboard filters, URL params, cross-filters) in ways the generic
+    builder does not reproduce. The guard treats *any* non-empty value as
+    non-derivable, not only ``filters``/``adhoc_filters``/``time_range``: an
+    ``extra_form_data`` carrying only ``time_grain_sqla`` (e.g. ``P1M`` over a
+    chart saved with ``P1D``) would otherwise be synthesized with the wrong
+    buckets, and a chart with only ``extra_filters_b`` / ``extra_form_data_b``
+    would have its second query synthesized unfiltered. Leave such a chart
+    ``NULL`` rather than persist a context that returns different rows than the
+    live chart (#33615 review).
     """
-    if params.get("extra_filters"):
-        return True
-    extra_form_data = params.get("extra_form_data")
-    if isinstance(extra_form_data, dict) and (
-        extra_form_data.get("filters")
-        or extra_form_data.get("adhoc_filters")
-        or extra_form_data.get("time_range")
-    ):
-        return True
-    return False
+    return any(params.get(key) for key in _DASHBOARD_CONTEXT_KEYS)
 
 
 def _preserve_adhoc_temporal_range(context: dict[str, Any]) -> None:
@@ -148,8 +162,12 @@ def _preserve_adhoc_temporal_range(context: dict[str, Any]) -> None:
     ``QueryContextFactory._apply_filters`` would overwrite that filter's value
     with ``"No filter"`` at read time and count every date. Removing the injected
     sentinel (only when a bound ``TEMPORAL_RANGE`` filter is present) leaves the
-    adhoc filter's own range intact. Called only when ``params`` had no explicit
-    top-level time range, so a genuinely unbounded chart is never touched.
+    adhoc filter's own range intact. Decided per query, not per chart: the second
+    query of a ``mixed_timeseries`` chart is built from its own ``_b`` controls,
+    so it can carry the injected sentinel even when the first query has an
+    explicit top-level range. A query that kept a real range (anything other than
+    the ``"No filter"`` sentinel), or that has no bound ``TEMPORAL_RANGE`` filter,
+    is never touched, so a genuinely unbounded query is left alone.
     """
     for query in context.get("queries") or []:
         if query.get("time_range") != "No filter":
@@ -207,13 +225,6 @@ def build_query_context_config(
     if _has_dashboard_context_filters(params):
         return None
 
-    # Whether the chart itself carries a top-level time range. If not, any
-    # ``time_range`` on the built query was injected by the canonical builder and
-    # must not clobber a bound ``TEMPORAL_RANGE`` adhoc filter (see below).
-    had_explicit_time_range = bool(
-        params.get("time_range") or params.get("since") or params.get("until")
-    )
-
     # The datasource is the importer-resolved id/type only; overwrite any
     # datasource carried in params and never trust it (ADR-014). The exported
     # ``slice_id`` is dropped here so the synthesized context — which embeds the
@@ -236,8 +247,13 @@ def build_query_context_config(
     if not context or not context.get("queries"):
         return None
 
-    if not had_explicit_time_range:
-        _preserve_adhoc_temporal_range(context)
+    # Drop any builder-injected ``time_range="No filter"`` that would clobber a
+    # bound ``TEMPORAL_RANGE`` adhoc filter. Decided per query (not per chart): a
+    # ``mixed_timeseries`` chart builds query B from its own ``_b`` controls, so
+    # query B can lack a top-level range and receive the sentinel even when query
+    # A carries an explicit one — the per-query guard inside the helper keeps a
+    # query that has a real range of its own untouched (#33615 review).
+    _preserve_adhoc_temporal_range(context)
 
     return context
 

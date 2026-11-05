@@ -53,8 +53,6 @@ from superset.utils.dict_import_export import (
 
 logger = logging.getLogger(__name__)
 
-logger = logging.getLogger(__name__)
-
 
 def filter_chart_annotations(
     chart_config: dict[str, Any],

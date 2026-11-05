@@ -59,11 +59,44 @@ def test_non_mapped_viz_type_is_non_derivable(viz_type: str) -> None:
             "extra_form_data": {"filters": [{"col": "country", "val": "US"}]},
         },
         {"viz_type": "table", "extra_form_data": {"time_range": "Last week"}},
+        # A non-filter override (only ``time_grain_sqla``) still changes the rows
+        # the live chart returns, so it must be non-derivable too (#33615 review).
+        {"viz_type": "table", "extra_form_data": {"time_grain_sqla": "P1M"}},
+        # The ``_b`` variants feed the second query of a ``mixed_timeseries``
+        # chart; synthesizing would leave that query unfiltered.
+        {
+            "viz_type": "mixed_timeseries",
+            "extra_filters_b": [{"col": "country", "val": "US"}],
+        },
+        {
+            "viz_type": "mixed_timeseries",
+            "extra_form_data_b": {"filters": [{"col": "country", "val": "US"}]},
+        },
     ],
 )
 def test_dashboard_context_filters_are_non_derivable(params: dict[str, Any]) -> None:
     """Charts carrying ``extra_filters`` / ``extra_form_data`` are left NULL."""
-    assert build_query_context_config(params, "table", 1, "table") is None
+    assert build_query_context_config(params, params["viz_type"], 1, "table") is None
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"viz_type": "table"},
+        # An *empty* override block is not an override: it must stay derivable.
+        {"viz_type": "table", "extra_filters": [], "extra_form_data": {}},
+        {"viz_type": "mixed_timeseries", "extra_form_data_b": {}},
+    ],
+)
+def test_empty_dashboard_context_blocks_stay_derivable(
+    params: dict[str, Any],
+) -> None:
+    """Absent or empty ``extra_*`` blocks do not force a chart non-derivable."""
+    from superset.commands.chart.query_context_builder import (
+        _has_dashboard_context_filters,
+    )
+
+    assert _has_dashboard_context_filters(params) is False
 
 
 def test_missing_datasource_and_datasourceless_viz_are_non_derivable() -> None:
@@ -153,6 +186,93 @@ def test_build_config_preserves_bound_temporal_range(app_context: None) -> None:
     temporal = [f for f in query.get("filters", []) if f.get("op") == "TEMPORAL_RANGE"]
     assert temporal
     assert temporal[0]["val"] == "2020-01-01 : 2020-02-01"
+
+
+def test_preserve_adhoc_temporal_range_is_per_query() -> None:
+    """
+    Preservation is decided per query, not per chart (#33615 review).
+
+    A ``mixed_timeseries`` context has query A with its own explicit range and
+    query B (built from the ``_b`` controls) carrying the builder's injected
+    ``"No filter"`` over a bound ``TEMPORAL_RANGE`` filter. A's real range must be
+    left intact while B's sentinel is dropped.
+    """
+    context = {
+        "queries": [
+            {
+                "time_range": "2021-01-01 : 2021-02-01",
+                "filters": [
+                    {
+                        "col": "ds",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2021-01-01 : 2021-02-01",
+                    }
+                ],
+            },
+            {
+                "time_range": "No filter",
+                "filters": [
+                    {
+                        "col": "ds",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2020-01-01 : 2020-02-01",
+                    }
+                ],
+            },
+        ]
+    }
+    _preserve_adhoc_temporal_range(context)
+    # Query A kept its real range; only query B's injected sentinel was dropped.
+    assert context["queries"][0]["time_range"] == "2021-01-01 : 2021-02-01"
+    assert "time_range" not in context["queries"][1]
+
+
+def test_build_config_preserves_temporal_range_per_query_not_per_chart(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Regression for the removed chart-wide ``had_explicit_time_range`` gate.
+
+    Query A has an explicit top-level range; query B (the ``_b`` series of a
+    ``mixed_timeseries`` chart) carries the builder's injected ``"No filter"``
+    over a bound ``TEMPORAL_RANGE`` of its own. The old gate skipped preservation
+    for *both* queries because the chart had a top-level range, so at read time
+    B's bound filter was overwritten with ``"No filter"`` and returned every date.
+    ``build_query_context_config`` must now preserve B regardless. The canonical
+    builder is stubbed so the assertion targets the gate, not the builder output.
+    """
+    built = {
+        "queries": [
+            {"time_range": "2021-01-01 : 2021-02-01", "filters": []},
+            {
+                "time_range": "No filter",
+                "filters": [
+                    {
+                        "col": "ds",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2020-01-01 : 2020-02-01",
+                    }
+                ],
+            },
+        ]
+    }
+    monkeypatch.setattr(
+        "superset.commands.chart.query_context_builder."
+        "build_query_context_from_form_data",
+        lambda *args, **kwargs: built,
+    )
+    params = {
+        "viz_type": "mixed_timeseries",
+        "metrics": ["count"],
+        # Query A's explicit top-level range — the condition the old gate keyed on.
+        "time_range": "2021-01-01 : 2021-02-01",
+    }
+
+    context = build_query_context_config(params, "mixed_timeseries", 1, "table")
+
+    assert context is not None
+    assert context["queries"][0]["time_range"] == "2021-01-01 : 2021-02-01"
+    assert "time_range" not in context["queries"][1]
 
 
 def test_build_config_keeps_explicit_top_level_time_range(app_context: None) -> None:

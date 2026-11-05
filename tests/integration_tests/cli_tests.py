@@ -675,3 +675,127 @@ def test_backfill_query_context_fills_only_null_contexts(app_context):
             if chart is not None:
                 db.session.delete(chart)
         db.session.commit()
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+def test_backfill_query_context_dry_run_writes_nothing(app_context):
+    """
+    ``--dry-run`` reports what it *would* change but writes nothing (#33615
+    review). A derivable NULL-context chart stays NULL and the summary is the
+    ``[dry-run] would update`` variant. Without this, deleting the two
+    ``if not dry_run`` guards in ``backfill_query_context`` would pass unnoticed
+    while a dry run silently wrote contexts.
+    """
+    import superset.cli.charts  # noqa: F811
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.slice import Slice
+    from superset.utils import json
+
+    table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
+    chart = Slice(
+        slice_name="qc-backfill-dryrun",
+        viz_type="table",
+        datasource_type="table",
+        datasource_id=table.id,
+        params=json.dumps(
+            {
+                "viz_type": "table",
+                "metrics": ["count"],
+                "datasource": f"{table.id}__table",
+            }
+        ),
+        query_context=None,
+    )
+    db.session.add(chart)
+    db.session.commit()
+
+    try:
+        runner = current_app.test_cli_runner()
+        response = runner.invoke(
+            superset.cli.charts.backfill_query_context, ("--dry-run",)
+        )
+
+        assert response.exit_code == 0, response.output
+        assert "[dry-run] would update" in response.output
+
+        # Re-load from the committed state (the command expunges what it touched).
+        reloaded = (
+            db.session.query(Slice).filter_by(slice_name="qc-backfill-dryrun").one()
+        )
+        assert reloaded.query_context is None
+    finally:
+        chart = (
+            db.session.query(Slice)
+            .filter_by(slice_name="qc-backfill-dryrun")
+            .one_or_none()
+        )
+        if chart is not None:
+            db.session.delete(chart)
+        db.session.commit()
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+def test_backfill_query_context_isolates_per_chart_errors(app_context):
+    """
+    A single malformed chart must not abort the whole backfill (#33615 review).
+
+    With ``--batch-size 1`` a chart whose ``params`` is invalid JSON lands in its
+    own batch ahead of a valid NULL-context chart. The per-chart ``except`` counts
+    it as an error and the run continues, so the bad chart stays NULL, the valid
+    one is filled, and the summary reports ``errors 1``. Deleting that handler
+    would abort on the bad chart with a traceback and leave the valid one
+    untouched.
+    """
+    import superset.cli.charts  # noqa: F811
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.slice import Slice
+    from superset.utils import json
+
+    table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
+
+    bad_chart = Slice(
+        slice_name="qc-backfill-bad",
+        viz_type="table",
+        datasource_type="table",
+        datasource_id=table.id,
+        params="{not valid json",
+        query_context=None,
+    )
+    good_chart = Slice(
+        slice_name="qc-backfill-good",
+        viz_type="table",
+        datasource_type="table",
+        datasource_id=table.id,
+        params=json.dumps(
+            {
+                "viz_type": "table",
+                "metrics": ["count"],
+                "datasource": f"{table.id}__table",
+            }
+        ),
+        query_context=None,
+    )
+    db.session.add_all([bad_chart, good_chart])
+    db.session.commit()
+
+    try:
+        runner = current_app.test_cli_runner()
+        response = runner.invoke(
+            superset.cli.charts.backfill_query_context, ("--batch-size", "1")
+        )
+
+        assert response.exit_code == 0, response.output
+        assert "errors 1." in response.output
+
+        bad = db.session.query(Slice).filter_by(slice_name="qc-backfill-bad").one()
+        good = db.session.query(Slice).filter_by(slice_name="qc-backfill-good").one()
+        # The malformed chart raised, was counted, and was left untouched ...
+        assert bad.query_context is None
+        # ... while the valid chart in a later batch was still filled.
+        assert good.query_context is not None
+    finally:
+        for name in ("qc-backfill-bad", "qc-backfill-good"):
+            chart = db.session.query(Slice).filter_by(slice_name=name).one_or_none()
+            if chart is not None:
+                db.session.delete(chart)
+        db.session.commit()
