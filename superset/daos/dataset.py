@@ -179,14 +179,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         """
         if not dataset_ids:
             return {"charts": [], "dashboards": []}
-        charts = (
-            db.session.query(Slice)
-            .filter(
-                Slice.datasource_id.in_(dataset_ids),
-                Slice.datasource_type == DatasourceType.TABLE,
-            )
-            .all()
-        )
+        charts = DatasetDAO.get_charts_for_datasets(dataset_ids)
         chart_ids = [chart.id for chart in charts]
 
         dashboards = (
@@ -211,6 +204,24 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 db.session.query(Dashboard).filter(Dashboard.id.in_(extra_ids)).all()
             )
         return {"charts": charts, "dashboards": dashboards}
+
+    @staticmethod
+    def get_charts_for_datasets(dataset_ids: list[int]) -> list[Slice]:
+        """
+        Return the charts built on any of the datasets. Callers that only need
+        charts should use this rather than ``get_related_objects``, which also
+        scans dashboard metadata.
+        """
+        if not dataset_ids:
+            return []
+        return (
+            db.session.query(Slice)
+            .filter(
+                Slice.datasource_id.in_(dataset_ids),
+                Slice.datasource_type == DatasourceType.TABLE,
+            )
+            .all()
+        )
 
     @staticmethod
     def _dashboard_ids_targeting_datasets(dataset_ids: list[int]) -> list[int]:

@@ -1371,3 +1371,34 @@ def test_related_objects_exclude_soft_deleted_dashboards(session: Session) -> No
     related = DatasetDAO.get_related_objects(dataset.id)
 
     assert related["dashboards"] == []
+
+
+def test_get_charts_for_datasets_returns_only_charts_on_the_datasets(
+    session: Session,
+) -> None:
+    from superset import db
+    from superset.models.slice import Slice
+
+    dataset = _related_dataset(session)
+    chart = Slice(
+        slice_name="on_dataset",
+        datasource_id=dataset.id,
+        datasource_type="table",
+        viz_type="table",
+    )
+    other_chart = Slice(
+        slice_name="elsewhere",
+        datasource_id=dataset.id + 1,
+        datasource_type="table",
+        viz_type="table",
+    )
+    db.session.add_all([chart, other_chart])
+    db.session.add(
+        _make_dashboard("filter_only", _native_filter_metadata(dataset.id)),
+    )
+    db.session.flush()
+
+    assert [c.id for c in DatasetDAO.get_charts_for_datasets([dataset.id])] == [
+        chart.id
+    ]
+    assert DatasetDAO.get_charts_for_datasets([]) == []
