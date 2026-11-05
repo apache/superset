@@ -444,17 +444,15 @@ test('load failure shows Retry', async () => {
 
   // A timeout is the same fail-closed state.
   const original = SupersetClient.get.bind(SupersetClient);
-  const getSpy = jest
-    .spyOn(SupersetClient, 'get')
-    .mockImplementation(request =>
-      request?.endpoint?.includes('/time_range_limits/')
-        ? Promise.reject({
-            error: 'Request timed out',
-            statusText: 'timeout',
-            timeout: 10000,
-          })
-        : original(request),
-    );
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockImplementation(request =>
+    request?.endpoint?.includes('/time_range_limits/')
+      ? Promise.reject({
+          error: 'Request timed out',
+          statusText: 'timeout',
+          timeout: 10000,
+        })
+      : original(request),
+  );
   setup({ extra: JSON.stringify({ time_range_limits: key(weeks(9)) }) });
   await openSettings();
   expect(
