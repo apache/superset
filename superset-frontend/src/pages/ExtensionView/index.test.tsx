@@ -93,6 +93,22 @@ test('resolves a view id containing a percent sign navigated to via encodeURICom
   expect(screen.getByText('Percent Content')).toBeInTheDocument();
 });
 
+test('resolves an escaped reserved character inside a view id as that character', () => {
+  // The router's decodeURI pass turns `%252F` into `%2F`, which is then
+  // indistinguishable from an encoded slash, so the id resolves with `/`.
+  disposables.push(
+    views.registerView(
+      { id: 'my-ext/literal/name', name: 'Literal' },
+      'global.settingsPanel',
+      () => <div>Literal Content</div>,
+    ),
+  );
+
+  renderAt(`/extensions/view/${encodeURIComponent('my-ext/literal%2Fname')}`);
+
+  expect(screen.getByText('Literal Content')).toBeInTheDocument();
+});
+
 test('uses the registered view name as the page heading', () => {
   disposables.push(
     views.registerView(

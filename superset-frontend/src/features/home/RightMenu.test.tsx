@@ -498,6 +498,52 @@ test('renders an extension-contributed item in the Settings dropdown', async () 
   }
 });
 
+test('shows an error toast when an extension Settings command throws', async () => {
+  const {
+    commands,
+    menus,
+    window: extensionWindow,
+  } = jest.requireActual('src/core');
+  const { GlobalLocations } = jest.requireActual('src/core/contributions');
+
+  const showErrorMessage = jest
+    .spyOn(extensionWindow, 'showErrorMessage')
+    .mockImplementation(() => {});
+  const disposeCommand = commands.registerCommand(
+    { id: 'test-ext.broken', title: 'Broken Extension Settings' },
+    () => {
+      throw new Error('Settings exploded');
+    },
+  );
+  const disposeMenuItem = menus.registerMenuItem(
+    { view: 'test-ext.settingsPanel', command: 'test-ext.broken' },
+    GlobalLocations.settings.menu,
+    'primary',
+  );
+
+  try {
+    const mockedProps = createProps();
+    resetUseSelectorMock();
+    render(<RightMenu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    await userEvent.hover(await screen.findByText(/Settings/i));
+    await userEvent.click(await screen.findByText('Broken Extension Settings'));
+
+    await waitFor(() =>
+      expect(showErrorMessage).toHaveBeenCalledWith('Settings exploded'),
+    );
+  } finally {
+    showErrorMessage.mockRestore();
+    disposeCommand.dispose();
+    disposeMenuItem.dispose();
+  }
+});
+
 test('shows logout button when not embedded', async () => {
   mockIsEmbedded.mockReturnValue(false);
   mockIsFeatureEnabled.mockReturnValue(false);
