@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -533,6 +533,12 @@ msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "vor %s Tag"
 msgstr[1] "vor %s Tagen"
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%s field"
@@ -1306,6 +1312,9 @@ msgstr "Es wird ein neues Diagramm erstellt."
 
 msgid "A new dashboard will be created."
 msgstr "Es wird ein neues Dashboard erstellt."
+
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
 
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
@@ -2970,12 +2979,6 @@ msgid "Are you sure you want to delete %s?"
 msgstr "Sind Sie sicher, dass Sie %s löschen möchten?"
 
 #, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-"Möchten Sie %s wirklich löschen? Dies kann nicht rückgängig gemacht "
-"werden."
-
-#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr "Möchten Sie die/das ausgewählte %s wirklich löschen?"
 
@@ -4160,6 +4163,9 @@ msgstr "Sehen Sie sich dieses Diagramm an: "
 msgid "Check out this dashboard: "
 msgstr "Schauen Sie sich dieses Dashboard an: "
 
+msgid "Check the value transform →"
+msgstr ""
+
 msgid "Check to force date partitions to have the same height"
 msgstr "Aktivieren, um zu erzwingen, dass Datumspartitionen die gleiche Höhe haben"
 
@@ -4171,6 +4177,11 @@ msgstr "Diagramme und Dashboards, die diesen Datensatz verwenden, werden geprüf
 
 msgid "Checking for affected charts and dashboards…"
 msgstr "Betroffene Diagramme und Dashboards werden geprüft…"
+
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
+msgstr ""
 
 msgid "Child label position"
 msgstr "Untergeordnete Beschriftungsposition"
@@ -4199,6 +4210,9 @@ msgstr "Neues Passwort wählen"
 
 msgid "Choose a number format"
 msgstr "Wählen Sie ein Zahlenformat"
+
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
 
 msgid "Choose a source"
 msgstr "Wählen Sie eine Quelle"
@@ -5162,6 +5176,12 @@ msgstr "Mit Kopfzeilen kopieren"
 msgid "Corner Radius"
 msgstr "Eckenradius"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "Korrelation"
 
@@ -5363,6 +5383,9 @@ msgstr "Neues Diagramm erstellen"
 
 msgid "Create or select schema..."
 msgstr "Schema erstellen oder auswählen…"
+
+msgid "Create semantic layer"
+msgstr ""
 
 msgid "Created"
 msgstr "Erstellt"
@@ -5849,6 +5872,12 @@ msgstr "Daten aktualisiert"
 
 msgid "Data type"
 msgstr "Datentyp"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "DataFrame mit mindestens eine Zeitreihe enhalten"
@@ -6385,11 +6414,8 @@ msgstr "Element löschen"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
-"Löschen oder verschieben Sie aktive Datensätze. Um archivierte Datensätze"
-" zu entfernen, öffnen Sie „Kürzlich archiviert“ und wählen Sie „Endgültig"
-" löschen“."
 
 msgid "Delete permanently"
 msgstr "Endgültig löschen"
@@ -6766,6 +6792,12 @@ msgstr "Deaktiviert die Drill-to-Detail-Funktion für diese Datenbank."
 
 msgid "Discard"
 msgstr "Verwerfen"
+
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Anzeigename"
@@ -7575,6 +7607,9 @@ msgstr "Neues Passwort eingeben"
 msgid "Enter a part of the object name"
 msgstr "Geben Sie einen Teil des Objektnamens ein"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Name des Alarms eingeben"
 
@@ -7590,8 +7625,14 @@ msgstr "Gruppennamen eingeben"
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Mindest- und Höchstwert für den Bereichsfilter eingeben"
 
+msgid "Enter one to three existing partition keys."
+msgstr ""
+
 msgid "Enter report name"
 msgstr "Name des Berichts"
+
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
 
 msgid ""
 "Enter the email address of your account and we will send you a link to "
@@ -7880,6 +7921,12 @@ msgstr ""
 "Bisheriges Minimum: %s Sekunden. Beim Bearbeiten wird es durch ganze "
 "Minuten ersetzt."
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr "Bearbeitungsmodus beenden"
 
@@ -8085,6 +8132,9 @@ msgstr "Ausdrücke"
 
 msgid "Expression cannot be empty"
 msgstr "Ausdruck darf nicht leer sein"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8578,6 +8628,19 @@ msgid ""
 msgstr ""
 "Filter auf die zugeordnete Spalte werden auf diese Spalte gespiegelt, "
 "damit die Engine Partitionen ausschließen kann."
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but with this"
+" transform they are not mirrored."
+msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
 msgstr "Filter auf diese Spalte werden auf die Partitionsspalte gespiegelt."
@@ -10395,6 +10458,12 @@ msgstr "Lade Filterwerte"
 msgid "Loading historical version · %s"
 msgstr "Historische Version wird geladen · %s"
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 msgid "Loading timezones..."
 msgstr "Lade Zeitzonen..."
 
@@ -10414,6 +10483,8 @@ msgstr "Lokales Design auf \"%s\" gesetzt"
 msgid "Locate the chart"
 msgstr "Suchen des Diagramms"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr "Protokoll"
 
@@ -10663,6 +10734,12 @@ msgstr "Farbe der Zeitverschiebung an die Originalserie anpassen"
 
 msgid "Match type"
 msgstr "Vergleichstyp"
+
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Matrixify"
 msgstr "Matrixify"
@@ -11424,6 +11501,12 @@ msgstr "Keine Filter verfügbar."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr "Keine Diagramme oder Dashboards hängen von den ausgewählten %s ab."
 
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
+msgstr ""
+
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 "Keine Farbzuordnungen definiert. Klicken Sie auf „+ Weitere hinzufügen“, "
@@ -11586,6 +11669,22 @@ msgstr "Keine gespeicherte Version zur Vorschau"
 
 msgid "No selection modes are available for this control."
 msgstr "Für dieses Steuerelement sind keine Auswahlmodi verfügbar."
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
+msgstr ""
 
 msgid "No sort (original order)"
 msgstr "Keine Sortierung (ursprüngliche Reihenfolge)"
@@ -12452,6 +12551,18 @@ msgstr "Partitionsfeld:"
 msgid "Partition filter mapping"
 msgstr "Partitionsfilter-Zuordnung"
 
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
+msgstr ""
+
+msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -13202,6 +13313,12 @@ msgstr "Rangliste"
 
 msgid "Ratio"
 msgstr "Verhältnis"
+
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
 
 msgid "Raw records"
 msgstr "Roheinträge"
@@ -14314,6 +14431,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Abfrage speichern"
 
+msgid "Save the dataset before validating against data."
+msgstr ""
+
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
 "saved columns, and this mapping uses one that has not been saved yet."
@@ -15114,6 +15234,9 @@ msgstr "Semantische Schicht existiert nicht"
 
 msgid "Semantic layer parameters are invalid."
 msgstr "Parameter der semantischen Schicht sind ungültig."
+
+msgid "Semantic layer setup guide"
+msgstr ""
 
 msgid "Semantic layer type"
 msgstr "Semantischer Schichtentyp"
@@ -16060,6 +16183,10 @@ msgstr "Quellkategorie"
 
 msgid "Source location"
 msgstr "Quellort"
+
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
 
 msgid "Sparkline"
 msgstr "Sparkline"
@@ -18055,6 +18182,9 @@ msgstr ""
 "die Transformation so, dass sie :value sowohl als Zeitstempel als auch "
 "als Text liest."
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -18069,6 +18199,9 @@ msgstr ""
 " sie, daher kann sie nicht für beide korrekt sein; Filter für diese "
 "Zuordnung werden nicht gespiegelt. Schreiben Sie die Transformation so, "
 "dass sie :value in beiden Formen auf dieselbe Weise liest."
+
+msgid "The transform matched the sampled rows, not the entire dataset."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -18732,6 +18865,17 @@ msgstr ""
 "Dies kann entweder eine IP-Adresse (z.B. 127.0.0.1) oder ein Domainname "
 "(z.B. mydatabase.com) sein."
 
+msgid "This cannot be undone."
+msgstr ""
+
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -19045,6 +19189,9 @@ msgstr ""
 "Dieser Filter wird für schnellere Abfragen zusätzlich auf eine "
 "Partitionsspalte angewendet. Das generierte SQL finden Sie unter „Abfrage"
 " anzeigen“."
+
+msgid "This filter isn't applied to any charts yet"
+msgstr ""
 
 #, python-format
 msgid "This filter might be incompatible with current %s"
@@ -19864,6 +20011,9 @@ msgstr "Dieser URL vertrauen und nicht mehr nachfragen"
 msgid "Try a different search term"
 msgstr "Versuchen Sie einen anderen Suchbegriff"
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 "Versuchen Sie, andere Filter anzuwenden oder sicherzustellen, dass Ihre "
@@ -20081,6 +20231,16 @@ msgstr "Die Spalten der ausgewählten Tabelle konnten nicht geladen werden."
 
 msgid "Unable to load dashboard"
 msgstr "Das Dashboard kann nicht geladen werden"
+
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr "Die Konfiguration von Alarmen und Berichten konnte nicht geladen werden."
@@ -20616,6 +20776,9 @@ msgstr "Gültig"
 msgid "Valid SQL expression"
 msgstr "Gültiger SQL-Ausdruck"
 
+msgid "Validate against data"
+msgstr ""
+
 msgid "Validate query"
 msgstr "Abfrage prüfen"
 
@@ -20628,6 +20791,9 @@ msgstr "Prüfe Verbindung für %s"
 
 msgid "Validating..."
 msgstr "Wird geprüft..."
+
+msgid "Validation inconclusive"
+msgstr ""
 
 msgid "Value"
 msgstr "Wert"
@@ -22293,6 +22459,9 @@ msgstr "wenige Sekunden"
 msgid "aggregate"
 msgstr "Aggregat"
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr "Alarmierungsbedingung"
 
@@ -22308,6 +22477,10 @@ msgstr "auch (doppelte) Diagramme kopieren"
 msgid "ancestor"
 msgstr "Vorfahr"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "Anmerkung"
 
@@ -22316,6 +22489,10 @@ msgstr "Anmerkungsebene"
 
 msgid "apple"
 msgstr "Apfel"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -22988,6 +23165,12 @@ msgstr "Abfragen"
 
 msgid "query"
 msgstr "Abfrage"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "zufällig"

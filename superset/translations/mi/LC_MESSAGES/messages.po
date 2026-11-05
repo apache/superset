@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -517,6 +517,12 @@ msgstr[1] ""
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "1 rā i mua"
+msgstr[1] ""
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
@@ -1244,6 +1250,9 @@ msgstr "Ka hangaia he kauwhata hou."
 
 msgid "A new dashboard will be created."
 msgstr "Ka hangaia he papatohu hou."
+
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
 
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
@@ -2870,10 +2879,6 @@ msgid "Are you sure you want to delete %s?"
 msgstr "Kei te tino hiahia koe ki te muku i %s?"
 
 #, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-
-#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr "Kei te tino hiahia koe ki te muku i %s kua tīpakohia?"
 
@@ -4106,6 +4111,9 @@ msgstr "Tirohia tēnei kauwhata: "
 msgid "Check out this dashboard: "
 msgstr "Tirohia tēnei papatohu: "
 
+msgid "Check the value transform →"
+msgstr ""
+
 msgid "Check to force date partitions to have the same height"
 msgstr "Pātia kia ōrite te teitei o ngā wāhanga rā"
 
@@ -4116,6 +4124,11 @@ msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
+msgstr ""
+
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
 msgstr ""
 
 msgid "Child label position"
@@ -4145,6 +4158,9 @@ msgstr ""
 
 msgid "Choose a number format"
 msgstr "Kōwhiria he hōputu tau"
+
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
 
 msgid "Choose a source"
 msgstr "Kōwhiria he puna"
@@ -5135,6 +5151,12 @@ msgstr "Me te pane-iti"
 msgid "Corner Radius"
 msgstr "Pūtoro Koki"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "Hononga"
 
@@ -5311,6 +5333,9 @@ msgstr "Hanga kauwhata hou"
 
 msgid "Create or select schema..."
 msgstr "Hanga, tīpako rānei i te hanga..."
+
+msgid "Create semantic layer"
+msgstr ""
 
 msgid "Created"
 msgstr "Kua Hangaia"
@@ -5821,6 +5846,12 @@ msgstr "Raraunga kua whakahouhia"
 
 msgid "Data type"
 msgstr "Momo raraunga"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "Me whai te DataFrame i te kotahi raupapa nui rawa"
@@ -6375,7 +6406,7 @@ msgstr "Muku tauira"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -6743,6 +6774,12 @@ msgstr ""
 
 msgid "Discard"
 msgstr "Whakarerea"
+
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Ingoa Whakaatu"
@@ -7588,6 +7625,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Mēnā ka whakakī i ngā ahanoa"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Tāuru ingoa matohi"
 
@@ -7606,8 +7646,14 @@ msgstr "Tāuru i te ingoa rōpū"
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Tāuruhia ngā uara iti rawa me ngā uara nui rawa mō te tātari āputa"
 
+msgid "Enter one to three existing partition keys."
+msgstr ""
+
 msgid "Enter report name"
 msgstr "Tāuru ingoa pūrongo"
+
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
 
 msgid ""
 "Enter the email address of your account and we will send you a link to "
@@ -7905,6 +7951,12 @@ msgstr "Rārangi raraunga kei te tīari"
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -8104,6 +8156,9 @@ msgstr "Kīanga SQL"
 #, fuzzy
 msgid "Expression cannot be empty"
 msgstr "kāore e taea te noho kau"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8610,6 +8665,19 @@ msgstr ""
 msgid ""
 "Filters on the mapped column are mirrored onto this column so the engine "
 "can prune partitions."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but with this"
+" transform they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -10492,6 +10560,12 @@ msgstr "Kōmaka uara tātari"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 #, fuzzy
 msgid "Loading timezones..."
 msgstr "E uta ana..."
@@ -10518,6 +10592,8 @@ msgstr "Kua tūtohuhia te āhua ā-rohe ki \"%s\""
 msgid "Locate the chart"
 msgstr "Kimihia te kauwhata"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "pūkete"
@@ -10778,6 +10854,12 @@ msgstr "Whakatau tae neke wā ki te raupapa taketake"
 #, fuzzy
 msgid "Match type"
 msgstr "Momo raraunga"
+
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11557,6 +11639,12 @@ msgstr "Kāore he tātari wātea."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
+msgstr ""
+
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 
@@ -11721,6 +11809,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12547,6 +12651,18 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
+msgstr ""
+
+msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -13326,6 +13442,12 @@ msgstr "Kōmaka"
 
 msgid "Ratio"
 msgstr "Ōwehenga"
+
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
 
 msgid "Raw records"
 msgstr "Rekoata mata"
@@ -14425,6 +14547,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Tiaki pātai"
 
+msgid "Save the dataset before validating against data."
+msgstr ""
+
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
 "saved columns, and this mapping uses one that has not been saved yet."
@@ -15283,6 +15408,9 @@ msgstr "Karekau te kauwhata"
 #, fuzzy
 msgid "Semantic layer parameters are invalid."
 msgstr "He muhu ngā tawhā papa tohu."
+
+msgid "Semantic layer setup guide"
+msgstr ""
 
 #, fuzzy
 msgid "Semantic layer type"
@@ -16251,6 +16379,10 @@ msgstr "Kāwai puna"
 #, fuzzy
 msgid "Source location"
 msgstr "Kāwai puna"
+
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
 
 msgid "Sparkline"
 msgstr "Rārangi Kōhā"
@@ -18170,6 +18302,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -18177,6 +18312,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -18787,6 +18925,17 @@ msgstr ""
 "Ka taea e tēnei te noho hei wāhitau IP (hei tauira 127.0.0.1), hei ingoa "
 "rohe rānei (hei tauira mydatabase.com)."
 
+msgid "This cannot be undone."
+msgstr ""
+
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -19058,6 +19207,9 @@ msgstr "Kāore e taea te noho kau te rārangi uara tātari"
 msgid ""
 "This filter is also applied to a partition column for faster queries. See"
 " \"View query\" for the generated SQL."
+msgstr ""
+
+msgid "This filter isn't applied to any charts yet"
 msgstr ""
 
 #, python-format
@@ -19879,6 +20031,9 @@ msgstr "Whakaaro pono ki tēnei URL, kaua anō e pātai"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 "Whakamātauhia te whakahaeretia o ngā tātari rerekē, te whakaū rānei he "
@@ -20104,6 +20259,16 @@ msgstr ""
 
 msgid "Unable to load dashboard"
 msgstr "Kāore e taea te uta i te papatohu"
+
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr ""
@@ -20634,12 +20799,12 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Ka whakamahi i ngā uara 25 tuatahi mehemea he nui ake ngā uara o te āhua."
 
-msgid "Valid"
-msgstr ""
-
 #, fuzzy
 msgid "Valid SQL expression"
 msgstr "Kīanga SQL"
+
+msgid "Validate against data"
+msgstr ""
 
 #, fuzzy
 msgid "Validate query"
@@ -20656,6 +20821,9 @@ msgstr "E manatoko ana i te hononga mō %s"
 #, fuzzy
 msgid "Validating..."
 msgstr "E uta ana..."
+
+msgid "Validation inconclusive"
+msgstr ""
 
 msgid "Value"
 msgstr "Uara"
@@ -22269,6 +22437,9 @@ msgstr "hēkona"
 msgid "aggregate"
 msgstr "whakaarotau"
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr "āhuatanga matohi"
 
@@ -22284,6 +22455,10 @@ msgstr "tārua hoki (tārua) ngā kauwhata"
 msgid "ancestor"
 msgstr "tūpuna"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "tohu"
 
@@ -22294,6 +22469,10 @@ msgstr "papa_tohu"
 #, fuzzy
 msgid "apple"
 msgstr "āporo"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -23031,6 +23210,12 @@ msgstr ""
 
 msgid "query"
 msgstr "pātai"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "matapōkere"
