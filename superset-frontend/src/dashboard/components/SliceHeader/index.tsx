@@ -214,12 +214,20 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
     );
 
+    // `state.charts[id]` itself can be missing, not just its
+    // `queriesResponse`. The chart slice is replaced wholesale whenever the
+    // dashboard is re-hydrated, so for the moment between a new layout
+    // arriving and its charts being resolved, a tile can be on the grid
+    // with no entry here at all. Two unguarded index reads then threw
+    // "Cannot read properties of undefined (reading 'queriesResponse')" and
+    // took the whole page down -- which is what caused two attempts at
+    // seeding the editor from the author's draft to be reverted.
     const firstQueryResponse = useSelector<RootState, QueryData | undefined>(
-      state => state.charts[slice.slice_id].queriesResponse?.[0],
+      state => state.charts[slice.slice_id]?.queriesResponse?.[0],
     );
 
     const secondQueryResponse = useSelector<RootState, QueryData | undefined>(
-      state => state.charts[slice.slice_id].queriesResponse?.[1],
+      state => state.charts[slice.slice_id]?.queriesResponse?.[1],
     );
 
     const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);

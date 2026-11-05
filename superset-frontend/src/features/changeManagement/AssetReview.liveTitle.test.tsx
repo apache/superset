@@ -49,7 +49,14 @@ const changeRequest = (asset_title: string | null) =>
 beforeEach(() => {
   mockUseAssetReview.mockReset();
   mockPreview.mockReset();
-  mockPreview.mockReturnValue({ canPreview: true, showing: false });
+  // The whole surface the hook returns. `toggle` is reached now that the
+  // author's own change opens on their changes rather than on live.
+  mockPreview.mockReturnValue({
+    canPreview: true,
+    showing: false,
+    busy: false,
+    toggle: jest.fn(),
+  });
 });
 
 test('the asset’s live title is reported to the host', async () => {

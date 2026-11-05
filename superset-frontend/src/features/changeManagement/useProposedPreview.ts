@@ -244,10 +244,21 @@ export function useProposedPreview(changeRequest: ChangeRequest | null) {
               dataMask: liveMaskRef.current,
               activeTabs: null,
               chartStates: null,
-              // A proposal is for looking at, not for editing: the grid on
-              // screen belongs to a change request, and dragging it would
-              // be editing a draft through a window onto it.
-              editMode: false,
+              // Keep whatever mode the host is in.
+              //
+              // This used to force view mode, on the reasoning that a
+              // proposal is for looking at and dragging it would be
+              // editing a draft through a window onto it. That reasoning
+              // belonged to the inverted model, where live was the
+              // author's working copy and the draft was the thing they
+              // peeked at. It is the other way round: the draft IS the
+              // working copy (mocks, author screens 1 and 2), so an author
+              // who is editing stays editing, and what they are editing is
+              // their own saved changes.
+              //
+              // A reviewer is never in edit mode, so this reads false for
+              // them exactly as before.
+              editMode: hostEditMode(store.getState()),
             }),
           );
         } else if (liveRef.current) {

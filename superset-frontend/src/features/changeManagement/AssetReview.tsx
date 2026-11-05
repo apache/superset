@@ -208,21 +208,53 @@ export default function AssetReview({
     }
   }, [liveTitle, onLiveTitle, previewing]);
 
-  // Pressing Edit while the preview is on would strand the author: the
-  // switch is withheld in edit mode, so they would be editing the proposal
-  // with no way back to live, the banner would tell them they were looking
-  // at the live version, and their next save would post the proposal as
-  // their own edit. Return to live first; the toggle keeps them in edit
-  // mode on the way back.
   const previewToggle = preview.toggle;
   const previewBusy = preview.busy;
+  const canPreview = preview.canPreview;
+
+  /**
+   * The author opens their own changes, not the live asset.
+   *
+   * "The author sees their draft when they open the asset, with a link to
+   * the current version" (SOW, mocks author screen 2). We had it the other
+   * way round: live by default, the draft behind a switch. That inversion
+   * is where the lost edits came from -- the canvas an author edited was
+   * the published dashboard, so their next save posted it over the draft
+   * they had been building.
+   *
+   * The overlay itself is unchanged; only which side rests on screen is.
+   * With the switch on, the banner already reads "Viewing your changes ·
+   * saved %s · viewers still see the live version", and turning it off
+   * still shows what viewers see -- exactly the two states screen 2
+   * describes.
+   *
+   * Once per change. Keyed on the request rather than a boolean so a
+   * second draft on the same page defaults too, while an author who
+   * deliberately switched to live is left alone.
+   */
+  const defaultedForRef = useRef<number | null>(null);
+  const isMyOpenChange = !!(
+    changeRequest?.is_open && changeRequest?.is_author
+  );
   useEffect(() => {
-    if (editing && previewing && !previewBusy) {
-      // Explicitly off. Called bare it relied on `undefined` reading as
-      // false, which worked and did not typecheck.
-      previewToggle(false);
-    }
-  }, [editing, previewing, previewBusy, previewToggle]);
+    if (assetType !== 'dashboard') return;
+    if (!isMyOpenChange || !canPreview || !changeRequest) return;
+    if (defaultedForRef.current === changeRequest.id) return;
+    if (previewing || previewBusy) return;
+    defaultedForRef.current = changeRequest.id;
+    reviewLog('preview: opening on your changes rather than live', {
+      ...requestFacts(changeRequest),
+    });
+    previewToggle(true);
+  }, [
+    assetType,
+    canPreview,
+    changeRequest,
+    isMyOpenChange,
+    previewBusy,
+    previewing,
+    previewToggle,
+  ]);
 
   // The edit header asks for review; this component owns the modal. The
   // request is held until the change the save produced has actually loaded,
