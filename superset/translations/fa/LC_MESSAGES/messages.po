@@ -10726,6 +10726,8 @@ msgstr "پوسته محلی به \"%s\" تنظیم شد"
 msgid "Locate the chart"
 msgstr "نقشه را پیدا کنید"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "لاگ"
@@ -19412,6 +19414,9 @@ msgstr "لیست مقادیر فیلتر نمی‌تواند خالی باشد"
 msgid ""
 "This filter is also applied to a partition column for faster queries. See"
 " \"View query\" for the generated SQL."
+msgstr ""
+
+msgid "This filter isn't applied to any charts yet"
 msgstr ""
 
 #, python-format

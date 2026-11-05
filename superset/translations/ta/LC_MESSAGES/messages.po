@@ -10022,6 +10022,8 @@ msgstr "உள்ளூர் தீம் \"%s\" என அமைக்கப�
 msgid "Locate the chart"
 msgstr "சார்ட்டைக் கண்டறியவும்"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr "பதிவு (Log)"
 
@@ -17902,6 +17904,9 @@ msgstr "இந்த வடிகட்டி அறிக்கையில் 
 msgid ""
 "This filter is also applied to a partition column for faster queries. See"
 " \"View query\" for the generated SQL."
+msgstr ""
+
+msgid "This filter isn't applied to any charts yet"
 msgstr ""
 
 #, python-format

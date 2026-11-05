@@ -11069,6 +11069,8 @@ msgstr "تم تعيين المظهر المحلي على \"%s\""
 msgid "Locate the chart"
 msgstr "حدد موقع المخطط"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "خشبة"
@@ -19888,6 +19890,9 @@ msgstr "لا يمكن أن تكون قائمة قيم التصفية فارغة"
 msgid ""
 "This filter is also applied to a partition column for faster queries. See"
 " \"View query\" for the generated SQL."
+msgstr ""
+
+msgid "This filter isn't applied to any charts yet"
 msgstr ""
 
 #, python-format

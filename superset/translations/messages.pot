@@ -8792,6 +8792,8 @@ msgstr ""
 msgid "Locate the chart"
 msgstr ""
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr ""
 
@@ -15464,6 +15466,12 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr ""
 
+msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
+msgstr ""
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr ""
 
@@ -15614,6 +15622,9 @@ msgid "This filter already exist on the report"
 msgstr ""
 
 msgid "This filter is also applied to a partition column for faster queries. See \"View query\" for the generated SQL."
+msgstr ""
+
+msgid "This filter isn't applied to any charts yet"
 msgstr ""
 
 #, python-format
