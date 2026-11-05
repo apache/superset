@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-04 19:58+0300\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -1799,6 +1799,12 @@ msgid "Added %s '%s'"
 msgstr ""
 
 #, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "Added '%s' dimension"
 msgstr ""
 
@@ -2413,6 +2419,10 @@ msgid "An error occurred while fetching function names."
 msgstr "در حین بازیابی نام‌های تابع، خطایی رخ داد."
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr ""
 
@@ -2890,6 +2900,9 @@ msgstr "آیا مطمئن هستید که می‌خواهید %s انتخاب‌
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "آیا از حذف یادداشت‌های انتخاب شده مطمئن هستید؟"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "آیا مطمئن هستید که می‌خواهید نمودارهای انتخاب‌شده را حذف کنید؟"
 
@@ -3002,6 +3015,9 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "فلش"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "یک مجموعه از پارامترها را به عنوان"
@@ -3148,6 +3164,9 @@ msgstr "بازگشت"
 
 msgid "Back to all"
 msgstr "بازگشت به همه"
+
+msgid "Back to current"
+msgstr ""
 
 msgid "Back to sign in"
 msgstr ""
@@ -3700,6 +3719,24 @@ msgstr "نمی‌توان پوشه‌ها را در پوشه‌های پیش‌�
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "نمی‌توان رشته زمان [%(human_readable)s] را تجزیه کرد"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 #, fuzzy
 msgid "Captcha"
 msgstr "چارت ایجاد کن"
@@ -3852,13 +3889,22 @@ msgstr "ویرایش شده توسط"
 msgid "Changed color palette"
 msgstr ""
 
+msgid "Changed details"
+msgstr ""
+
 #, python-format
 msgid "Changed filter on '%s'"
+msgstr ""
+
+msgid "Changed filter scopes"
 msgstr ""
 
 #, fuzzy
 msgid "Changed on"
 msgstr "تغییر"
+
+msgid "Changed settings"
+msgstr ""
 
 msgid "Changed the time range"
 msgstr ""
@@ -3895,6 +3941,9 @@ msgstr ""
 
 msgid "Changing this Dashboard is forbidden"
 msgstr "تغییر این داشبورد ممنوع است"
+
+msgid "Changing this canvas is forbidden"
+msgstr ""
 
 msgid "Changing this chart is forbidden"
 msgstr "تغییر این نمودار ممنوع است"
@@ -3933,6 +3982,9 @@ msgid "Changing this task is forbidden"
 msgstr "تغییر این مجموعه داده ممنوع است"
 
 msgid "Changing this theme is forbidden"
+msgstr ""
+
+msgid "Changing this widget is forbidden."
 msgstr ""
 
 msgid "Character to interpret as decimal point"
@@ -5234,6 +5286,11 @@ msgstr "نمی‌توان به پایگاه داده متصل شد: \"%(database
 msgid "Could not delete semantic views %s: %s"
 msgstr ""
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "نتوانستیم همه نمودارهای ذخیره شده را بارگذاری کنیم"
 
@@ -6449,6 +6506,12 @@ msgstr ""
 msgid "Delete annotation"
 msgstr "حذفی Annotate"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr ""
 
@@ -6523,6 +6586,12 @@ msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "لایه حاشیه‌نویسی %(num)d حذف شد"
 msgstr[1] "لایه‌های حاشیه‌نویسی %(num)d حذف شدند"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -7050,6 +7119,12 @@ msgstr ""
 msgid "Draft"
 msgstr "پیش‌نویس"
 
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
+
 #, python-format
 msgid "Drag %s folder"
 msgstr ""
@@ -7442,6 +7517,15 @@ msgstr "ویرایش هشدار"
 
 msgid "Edited"
 msgstr "ویرایش شده"
+
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Edited widget content"
+msgstr ""
 
 msgid "Editing 1 filter:"
 msgstr "ویرایش ۱ فیلتر:"
@@ -8780,7 +8864,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -10056,6 +10142,9 @@ msgstr "مسئله ۱۰۰۰ - مجموعه داده برای کوئری خیلی
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "مسئله ۱۰۰۱ - پایگاه داده تحت بار غیرمعمولی قرار دارد."
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -10656,6 +10745,15 @@ msgstr "لیست بروزرسانی شده"
 msgid "List view"
 msgstr "عدد را تقسیم کن"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "رندر زنده"
 
@@ -10694,6 +10792,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -11917,6 +12018,10 @@ msgstr ""
 msgid "No records found"
 msgstr "هیچ رکوردی یافت نشد"
 
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
+
 msgid "No results"
 msgstr "هیچ نتیجه‌ای یافت نشد"
 
@@ -12442,6 +12547,9 @@ msgstr ""
 msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
+msgstr ""
+
+msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -13072,6 +13180,9 @@ msgstr "ارتفاع پیکسل هر سری"
 msgid "Pixels"
 msgstr "پیکسل‌ها"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "ساده"
 
@@ -13458,6 +13569,9 @@ msgstr "برگه‌های به اشتراک گذاشته شده عمومی و خ
 msgid "Publicly shared sheets only"
 msgstr "فقط برگه‌های به اشتراک گذاشته شده عمومی"
 
+msgid "Publish"
+msgstr ""
+
 msgid "Published"
 msgstr "منتشر شده"
 
@@ -13622,6 +13736,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "رکوردهای خام"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 msgid "Re-pick fields"
 msgstr ""
 
@@ -13629,6 +13746,9 @@ msgid "Re-pick fields for this chart"
 msgstr ""
 
 msgid "Rearranged layout"
+msgstr ""
+
+msgid "Rearranged the layout"
 msgstr ""
 
 msgid ""
@@ -13852,6 +13972,12 @@ msgid "Removed %s '%s'"
 msgstr ""
 
 #, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "Removed '%s' dimension"
 msgstr ""
 
@@ -13888,6 +14014,10 @@ msgid "Rename tab"
 msgstr "تغییر نام تب"
 
 msgid "Renamed chart"
+msgstr ""
+
+#, python-format
+msgid "Renamed to “%s”"
 msgstr ""
 
 msgid "Render HTML"
@@ -14189,6 +14319,23 @@ msgid "Restore this version?"
 msgstr ""
 
 #, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Restored %s; %s widget no longer exists or is no longer yours to place, "
+"so it was left out."
+msgid_plural ""
+"Restored %s; %s widgets no longer exist or are no longer yours to place, "
+"so they were left out."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
+#, python-format
 msgid "Restored to '%s' version"
 msgstr ""
 
@@ -14200,12 +14347,21 @@ msgid "Restored version"
 msgstr ""
 
 #, python-format
+msgid "Restored version %s"
+msgstr ""
+
+#, python-format
 msgid "Restored version · %s"
 msgstr ""
 
 msgid ""
 "Restoring creates a new version. Your existing version history will not "
 "be lost."
+msgstr ""
+
+msgid ""
+"Restoring saves a new version, so no history is lost. Drafts started "
+"before the restore can no longer be published."
 msgstr ""
 
 msgid "Results"
@@ -16130,6 +16286,9 @@ msgstr ""
 msgid "Show the numbers along the value axis."
 msgstr ""
 
+msgid "Show the published canvas"
+msgstr ""
+
 #, fuzzy
 msgid "Show total"
 msgstr "نمایش مجموع"
@@ -16374,6 +16533,9 @@ msgid ""
 "after you opened it. Saving now would undo those changes, so it was "
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
+msgstr ""
+
+msgid "Something went wrong"
 msgstr ""
 
 msgid ""
@@ -17446,6 +17608,16 @@ msgstr "توضیحات به‌روزرسانی شده‌اند."
 msgid "The background color of the charts."
 msgstr "نام نمودار را اضافه کنید"
 
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
+#, python-format
+msgid "The canvas will be restored to %s."
+msgstr ""
+
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
@@ -17712,6 +17884,9 @@ msgstr "نام داشبورد را اضافه کنید"
 msgid "The distance between cells, in pixels"
 msgstr "فاصله بین سلول‌ها، به پیکسل"
 
+msgid "The draft changed since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
 "-1 to bypass the cache."
@@ -17754,6 +17929,16 @@ msgstr ""
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "خاصیت ویژگی برای استفاده در برچسب‌های نقطه"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -18655,6 +18840,12 @@ msgstr "نمایش مقدار بر روی نوار"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "شیوه چیدمان تیک‌ها بر روی محور X"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "عرض ایزولین به پیکسل"
 
@@ -18690,6 +18881,9 @@ msgid "Theme could not be created."
 msgstr ""
 
 msgid "Theme could not be updated."
+msgstr ""
+
+msgid "Theme does not exist"
 msgstr ""
 
 #, fuzzy
@@ -18879,6 +19073,10 @@ msgstr ""
 msgid "There was an issue cancelling the task: %s"
 msgstr ""
 
+#, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "There was an issue deleting %s"
 msgstr "یک مشکل در حذف وجود داشت: %s"
@@ -18906,6 +19104,10 @@ msgstr "مشکلی در حذف %s انتخاب‌شده وجود داشت: %s"
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "یک مشکل در حذف یادداشت‌های انتخاب‌شده وجود داشت: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -19128,6 +19330,12 @@ msgstr ""
 msgid "This cannot be undone."
 msgstr ""
 
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 #, python-format
 msgid ""
 "This change discards the value transform on %s. Once you save, filters on"
@@ -19143,8 +19351,20 @@ msgstr ""
 "این نمودار فیلترهای متقابل را به نمودارهایی اعمال می‌کند که "
 "مجموعه‌داده‌های آن‌ها شامل ستون‌هایی با همان نام است."
 
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "این نمودار به دامنه فیلتر دیگری منتقل شده است."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -19355,9 +19575,15 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "این عنصر را برای ترسیم روی نمودار تعریف می‌کند."
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid "This draft is no longer available"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
@@ -19600,6 +19826,9 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+msgid "This placement has no data binding."
+msgstr ""
+
 #, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
@@ -19736,6 +19965,9 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "این  مورد تریاژ شده توسط:"
 msgstr[1] ""
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -20430,6 +20662,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "امکان دریافت نماهای معنایی وجود ندارد. پیکربندی لایه را بررسی کنید."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "قادر به پیدا کردن چنین تعطیلاتی نیستم: [%(holiday)s]"
 
@@ -20710,6 +20946,9 @@ msgstr "مجموعه داده بدون عنوان"
 msgid "Untitled Query"
 msgstr "کوئری بدون عنوان"
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr ""
 
@@ -20721,6 +20960,9 @@ msgstr ""
 
 msgid "Untitled query"
 msgstr "کوئری بی‌عنوان"
+
+msgid "Untitled tab"
+msgstr ""
 
 #, fuzzy
 msgid "Unverified"
@@ -21138,6 +21380,10 @@ msgstr ""
 msgid "Version"
 msgstr "نسخه"
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 msgid "Version history"
 msgstr ""
 
@@ -21201,6 +21447,9 @@ msgstr "بیننده"
 msgid "Viewers"
 msgstr "بینندگان"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -21212,6 +21461,10 @@ msgstr ""
 "بینندگان فهرستی از موضوعاتی هستند که می‌توانند داشبورد را مشاهده کنند. "
 "اگر هیچ بیننده‌ای تعریف نشده باشد، داشبورد برای تمام کاربران دارای "
 "مجوزهای مناسب منبع داده قابل دسترسی است."
+
+#, python-format
+msgid "Viewing %s"
+msgstr ""
 
 msgid "Viewport"
 msgstr "نمایشگر"
@@ -21426,6 +21679,11 @@ msgstr "ما نمی‌توانیم ستون \"%(column_name)s\" را در خط %
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -21830,6 +22088,21 @@ msgstr "گزینه‌های ویکسار/داده‌های پرت"
 #, fuzzy
 msgid "Why do I need to create a database?"
 msgstr "آیا می‌خواهید یک پایگاه داده جدید اضافه کنید؟"
+
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
 
 msgid "Width"
 msgstr "عرض"
@@ -22752,6 +23025,9 @@ msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr "نمی‌تواند خالی باشد"
+
+msgid "canvases"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"

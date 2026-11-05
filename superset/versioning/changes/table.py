@@ -87,4 +87,5 @@ ENTITY_KIND_BY_CLASS_NAME: dict[str, str] = {
     "Slice": "chart",
     "Dashboard": "dashboard",
     "SqlaTable": "dataset",
+    "Canvas": "canvas",
 }

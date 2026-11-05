@@ -95,6 +95,7 @@ METADATA_ONLY_TOOLS = frozenset(
         "get_task_info",
         "get_theme_info",
         "get_user_info",
+        "get_widget_info",
         "health_check",
         "list_annotation_layers",
         "list_charts",
@@ -111,6 +112,7 @@ METADATA_ONLY_TOOLS = frozenset(
         "list_tasks",
         "list_themes",
         "list_users",
+        "list_widgets",
     }
 )
 

@@ -242,6 +242,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
         from superset.views.archived_assets import ArchivedAssetsView
+        from superset.views.canvas import CanvasView
         from superset.views.chart.views import SliceModelView
         from superset.views.core import Superset
         from superset.views.css_templates import CssTemplateModelView
@@ -277,6 +278,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.user_registrations import UserRegistrationsView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
         from superset.views.users_list import UsersListView
+        from superset.widgets.api import WidgetRestApi
 
         set_app_error_handlers(self.superset_app)
         self.register_request_handlers()
@@ -298,6 +300,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ChartDataRestApi)
         appbuilder.add_api(CssTemplateRestApi)
         appbuilder.add_api(ThemeRestApi)
+        appbuilder.add_api(WidgetRestApi)
         appbuilder.add_api(CurrentUserRestApi)
         appbuilder.add_api(UserRestApi)
         appbuilder.add_api(DashboardFilterStateRestApi)
@@ -319,6 +322,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(RLSRestApi)
         appbuilder.add_api(SavedQueryRestApi)
+        # Registered unconditionally so their permissions exist and roles can
+        # be prepared before CANVAS is turned on; they answer 404 while it's off.
+        from superset.canvas.api import CanvasRestApi
+        from superset.widgets.types_api import WidgetControlsRestApi
+
+        appbuilder.add_api(CanvasRestApi)
+        appbuilder.add_api(WidgetControlsRestApi)
         from superset.semantic_layers.api import (
             SemanticLayerRestApi,
             SemanticViewRestApi,
@@ -378,6 +388,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-dashboard",
             category="",
             category_icon="",
+        )
+        appbuilder.add_view(
+            CanvasView,
+            "Canvases",
+            label=_("Canvases"),
+            icon="fa-object-group",
+            category="",
+            category_icon="",
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled("CANVAS"),
         )
         appbuilder.add_view(
             SliceModelView,
@@ -873,6 +892,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from sqlalchemy_continuum import version_class
 
         from superset.connectors.sqla.models import SqlaTable
+        from superset.models.canvas import Canvas
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
         from superset.versioning.baseline import (
@@ -901,7 +921,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # M2M — go through Continuum's shadow tables. The JSON-snapshot
         # path that previously backed dataset / dashboard child diffs
         # has been removed (full-Continuum spike).
-        for model_cls in (Dashboard, Slice, SqlaTable):
+        for model_cls in (Dashboard, Slice, SqlaTable, Canvas):
             try:
                 version_class(model_cls)  # ensure Continuum wired this model
                 # Dedup guard: VERSIONED_MODELS is module-level state, and

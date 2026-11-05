@@ -236,6 +236,10 @@ Task Management (requires GLOBAL_TASK_FRAMEWORK feature flag):
 - list_tasks: List background tasks with status filtering and pagination
 - get_task_info: Get task details by integer ID or UUID
 
+Widgets (requires CANVAS feature flag):
+- list_widgets: List saved widgets with filtering and search (1-based pagination)
+- get_widget_info: Get a saved widget's type, description and props by ID or UUID
+
 System Information:
 - get_instance_info: Get instance-wide statistics, metadata, and current user identity
 - find_users: Resolve a person's name to user IDs for use as a filter value
@@ -813,6 +817,18 @@ from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
     list_annotation_layers,
     list_layer_annotations,
 )
+from superset.mcp_service.canvas.tool import (  # noqa: F401, E402
+    apply_canvas_draft_ops,
+    commit_canvas_draft,
+    create_canvas,
+    create_canvas_draft,
+    delete_canvas_draft,
+    get_canvas,
+    get_canvas_draft,
+    list_canvases,
+    preview_widget,
+    update_canvas,
+)
 from superset.mcp_service.catalog.tool import (  # noqa: F401, E402
     get_catalog,
 )
@@ -932,6 +948,14 @@ from superset.mcp_service.user.tool import (  # noqa: F401, E402
     get_user_info,
     list_users,
 )
+from superset.mcp_service.widget.tool import (  # noqa: F401, E402
+    get_widget_info,
+    list_widgets,
+)
+from superset.mcp_service.widgets.tool import (  # noqa: F401, E402
+    get_widget_control_schema,
+    list_widget_types,
+)
 
 #: Tool names exempt from the mcp_auth_hook protection check. Adding a tool
 #: here is a security-significant choice — review carefully. Entries are tools
@@ -1025,6 +1049,25 @@ def _remove_tool_quietly(tool_name: str, reason: str) -> None:
         pass
 
 
+# Removed while the CANVAS feature flag is off.
+CANVAS_TOOLS = (
+    "list_canvases",
+    "get_canvas",
+    "create_canvas",
+    "update_canvas",
+    "create_canvas_draft",
+    "get_canvas_draft",
+    "apply_canvas_draft_ops",
+    "commit_canvas_draft",
+    "delete_canvas_draft",
+    "preview_widget",
+    "list_widget_types",
+    "get_widget_control_schema",
+    "list_widgets",
+    "get_widget_info",
+)
+
+
 def _apply_config_guards(flask_app: Any) -> set[str]:
     """Remove tools whose backing features are administratively disabled.
 
@@ -1035,6 +1078,8 @@ def _apply_config_guards(flask_app: Any) -> set[str]:
       the GLOBAL_TASK_FRAMEWORK feature flag via feature_flag_manager so that
       all Superset enablement paths (DEFAULT_FEATURE_FLAGS, GET_FEATURE_FLAGS_FUNC,
       IS_FEATURE_ENABLED_FUNC, etc.) are respected.
+    - Canvas and widget tools: removed while the CANVAS feature flag is off,
+      as the canvas and widget APIs answer 404 then.
     """
     removed: set[str] = set()
 
@@ -1043,6 +1088,11 @@ def _apply_config_guards(flask_app: Any) -> set[str]:
     if not feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
         for tool_name in ("list_tasks", "get_task_info"):
             _remove_tool_quietly(tool_name, "GLOBAL_TASK_FRAMEWORK not enabled")
+            removed.add(tool_name)
+
+    if not feature_flag_manager.is_feature_enabled("CANVAS"):
+        for tool_name in CANVAS_TOOLS:
+            _remove_tool_quietly(tool_name, "CANVAS not enabled")
             removed.add(tool_name)
 
     return removed

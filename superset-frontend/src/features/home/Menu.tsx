@@ -222,6 +222,7 @@ export function Menu({
   enum Paths {
     Explore = '/explore',
     Dashboard = '/dashboard',
+    Canvas = '/canvas',
     Chart = '/chart',
     Datasets = '/tablemodelview',
     // The legacy FAB dataset list still lives at ``/tablemodelview/list/``,
@@ -238,6 +239,7 @@ export function Menu({
   // These are locale-independent, unlike the displayed labels, so matching the
   // active tab against them keeps highlighting working in every language.
   enum MenuKeys {
+    Canvases = 'Canvases',
     Dashboards = 'Dashboards',
     Charts = 'Charts',
     Datasets = 'Datasets',
@@ -252,6 +254,9 @@ export function Menu({
     switch (true) {
       case path.startsWith(Paths.Dashboard):
         setActiveTabs([MenuKeys.Dashboards]);
+        break;
+      case path === Paths.Canvas || path.startsWith(`${Paths.Canvas}/`):
+        setActiveTabs([MenuKeys.Canvases]);
         break;
       case path.startsWith(Paths.Chart) || path.startsWith(Paths.Explore):
         setActiveTabs([MenuKeys.Charts]);

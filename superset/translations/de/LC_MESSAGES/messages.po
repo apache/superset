@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-04 19:58+0300\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -1880,6 +1880,12 @@ msgid "Added %s '%s'"
 msgstr "%s '%s' hinzugefügt"
 
 #, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "Added '%s' dimension"
 msgstr "Dimension '%s' hinzugefügt"
 
@@ -2505,6 +2511,10 @@ msgstr "Beim Abrufen von Bearbeiter*innenwerten ist ein Fehler aufgetreten: %s"
 msgid "An error occurred while fetching function names."
 msgstr "Fehler bei Abruf von Funktionsnamen."
 
+#, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
 # pt, pt_BR, sl, zh]
 #, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
@@ -2985,6 +2995,9 @@ msgstr "Möchten Sie die/das ausgewählte %s wirklich löschen?"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "Möchten Sie die ausgewählten Anmerkungen wirklich löschen?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "Möchten Sie die ausgewählten Diagramme wirklich löschen?"
 
@@ -3088,6 +3101,9 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Pfeil"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Eines Satz von Parametern zuweisen"
@@ -3216,6 +3232,9 @@ msgstr "Zurück"
 
 msgid "Back to all"
 msgstr "Zurück zu allen"
+
+msgid "Back to current"
+msgstr ""
 
 msgid "Back to sign in"
 msgstr "Zurück zur Anmeldung"
@@ -3745,6 +3764,24 @@ msgstr "Ordner können nicht in Standardordnern verschachtelt werden"
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Zeitzeichenfolge [%(human_readable)s] kann nicht geparst werden"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 msgid "Captcha"
 msgstr "Captcha"
 
@@ -3889,12 +3926,21 @@ msgstr "Geändert durch"
 msgid "Changed color palette"
 msgstr "Farbpalette geändert"
 
+msgid "Changed details"
+msgstr ""
+
 #, python-format
 msgid "Changed filter on '%s'"
 msgstr "Filter für '%s' geändert"
 
+msgid "Changed filter scopes"
+msgstr ""
+
 msgid "Changed on"
 msgstr "Geändert am"
+
+msgid "Changed settings"
+msgstr ""
 
 msgid "Changed the time range"
 msgstr "Zeitraum geändert"
@@ -3929,6 +3975,9 @@ msgstr ""
 
 msgid "Changing this Dashboard is forbidden"
 msgstr "Das Ändern dieses Dashboards ist verboten"
+
+msgid "Changing this canvas is forbidden"
+msgstr ""
 
 msgid "Changing this chart is forbidden"
 msgstr "Das Ändern dieses Diagramms ist verboten"
@@ -3969,6 +4018,9 @@ msgstr "Das Ändern dieser Aufgabe ist verboten"
 
 msgid "Changing this theme is forbidden"
 msgstr "Das Ändern dieses Designs ist nicht erlaubt"
+
+msgid "Changing this widget is forbidden."
+msgstr ""
 
 msgid "Character to interpret as decimal point"
 msgstr "Zeichen, das als Dezimaltrenner zu interpretieren ist"
@@ -5224,6 +5276,11 @@ msgstr ""
 msgid "Could not delete semantic views %s: %s"
 msgstr "Semantische Ansichten %s konnten nicht gelöscht werden: %s"
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Nicht alle gespeicherten Diagramme konnten abgerufen werden"
 
@@ -6397,6 +6454,12 @@ msgstr "Alle Tokens löschen"
 msgid "Delete annotation"
 msgstr "Anmerkung löschen"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr "Komponente löschen"
 
@@ -6468,6 +6531,12 @@ msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "%(num)d Anmerkungsebene gelöscht"
 msgstr[1] "%(num)d Anmerkungsebenen gelöscht"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -6989,6 +7058,12 @@ msgstr ""
 msgid "Draft"
 msgstr "Entwurf"
 
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
+
 #, python-format
 msgid "Drag %s folder"
 msgstr "Ordner %s ziehen"
@@ -7356,6 +7431,15 @@ msgstr "Bearbeitbar"
 
 msgid "Edited"
 msgstr "Bearbeitet"
+
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Edited widget content"
+msgstr ""
 
 msgid "Editing 1 filter:"
 msgstr "Bearbeiten von einem 1 Filter:"
@@ -8634,7 +8718,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -9854,6 +9940,9 @@ msgstr "Problem 1000 - Die Datenquelle ist zu groß, um sie abzufragen."
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Problem 1001 - Die Datenbank ist ungewöhnlich belastet."
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 msgid ""
 "It won't be removed even if empty. It won't be shown in chart editing "
 "view if empty."
@@ -10427,6 +10516,15 @@ msgstr "Liste aktualisiert"
 msgid "List view"
 msgstr "Listenansicht"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Live-Darstellung"
 
@@ -10462,6 +10560,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -11622,6 +11723,10 @@ msgstr "Für diese Ausführung ist keine Anbieterabfrage verfügbar."
 msgid "No records found"
 msgstr "Keine Einträge gefunden"
 
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
+
 msgid "No results"
 msgstr "Keine Ergebnisse"
 
@@ -12173,6 +12278,9 @@ msgid ""
 msgstr ""
 "Es werden nur die ersten %s Werte aufgelistet. Tippen Sie, um alle zu "
 "durchsuchen, oder geben Sie einen nicht aufgelisteten Wert ein."
+
+msgid "Only you can see these changes until you publish them."
+msgstr ""
 
 msgid "Oops! An error occurred!"
 msgstr "Ups! Es ist ein Fehler aufgetreten!"
@@ -12789,6 +12897,9 @@ msgstr "Pixelhöhe jeder Serie"
 msgid "Pixels"
 msgstr "Pixel"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "Unformatiert"
 
@@ -13165,6 +13276,9 @@ msgstr "Öffentlich und privat geteilte Tabellen"
 msgid "Publicly shared sheets only"
 msgstr "Nur öffentlich geteilte Tabellen"
 
+msgid "Publish"
+msgstr ""
+
 msgid "Published"
 msgstr "Veröffentlicht"
 
@@ -13323,6 +13437,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "Roheinträge"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 msgid "Re-pick fields"
 msgstr ""
 
@@ -13331,6 +13448,9 @@ msgstr ""
 
 msgid "Rearranged layout"
 msgstr "Layout neu angeordnet"
+
+msgid "Rearranged the layout"
+msgstr ""
 
 msgid ""
 "Rebase each series to its percent change from a baseline point, like the "
@@ -13547,6 +13667,12 @@ msgid "Removed %s '%s'"
 msgstr "%s '%s' entfernt"
 
 #, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "Removed '%s' dimension"
 msgstr "Dimension '%s' entfernt"
 
@@ -13582,6 +13708,10 @@ msgstr "Registerkarte umbenennen"
 
 msgid "Renamed chart"
 msgstr "Diagramm umbenannt"
+
+#, python-format
+msgid "Renamed to “%s”"
+msgstr ""
 
 msgid "Render HTML"
 msgstr "HTML rendern"
@@ -13896,6 +14026,23 @@ msgid "Restore this version?"
 msgstr "Diese Version wiederherstellen?"
 
 #, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Restored %s; %s widget no longer exists or is no longer yours to place, "
+"so it was left out."
+msgid_plural ""
+"Restored %s; %s widgets no longer exist or are no longer yours to place, "
+"so they were left out."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
+#, python-format
 msgid "Restored to '%s' version"
 msgstr "Auf Version '%s' wiederhergestellt"
 
@@ -13907,6 +14054,10 @@ msgid "Restored version"
 msgstr "Wiederhergestellte Version"
 
 #, python-format
+msgid "Restored version %s"
+msgstr ""
+
+#, python-format
 msgid "Restored version · %s"
 msgstr "Wiederhergestellte Version · %s"
 
@@ -13916,6 +14067,11 @@ msgid ""
 msgstr ""
 "Beim Wiederherstellen wird eine neue Version erstellt. Ihr bisheriger "
 "Versionsverlauf bleibt erhalten."
+
+msgid ""
+"Restoring saves a new version, so no history is lost. Drafts started "
+"before the restore can no longer be published."
+msgstr ""
 
 msgid "Results"
 msgstr "Ergebnisse"
@@ -15755,6 +15911,9 @@ msgstr "Die Hauptteilstriche auf den Achsen anzeigen."
 msgid "Show the numbers along the value axis."
 msgstr "Die Zahlen entlang der Werteachse anzeigen."
 
+msgid "Show the published canvas"
+msgstr ""
+
 msgid "Show total"
 msgstr "Gesamtsumme anzeigen"
 
@@ -16007,6 +16166,9 @@ msgstr ""
 "diese Änderungen rückgängig gemacht, daher wurde der Vorgang abgebrochen."
 " Kopieren Sie Ihre Änderungen, schließen Sie diesen Dialog und öffnen Sie"
 " den Datensatz erneut, um sie erneut anzuwenden."
+
+msgid "Something went wrong"
+msgstr ""
 
 # pt, pt_BR, sl, zh]
 msgid ""
@@ -17047,6 +17209,16 @@ msgstr "Anmerkung wurde aktualisiert"
 msgid "The background color of the charts."
 msgstr "Die Hintergrundfarbe der Diagramme."
 
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
+#, python-format
+msgid "The canvas will be restored to %s."
+msgstr ""
+
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
@@ -17329,6 +17501,9 @@ msgstr "Der Anzeigename Ihres Dashboards"
 msgid "The distance between cells, in pixels"
 msgstr "Der Abstand zwischen Zellen in Pixel"
 
+msgid "The draft changed since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
 "-1 to bypass the cache."
@@ -17365,6 +17540,16 @@ msgstr ""
 
 msgid "The feature property to use for point labels"
 msgstr "Die zu verwendende Objekt-Eigenschaft für Punktbeschriftungen"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr "Die folgenden Diagramme konnten nicht exportiert werden:"
@@ -18363,6 +18548,12 @@ msgstr "Der sichtbare Titel der Ebene"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Die Art und Weise, wie die Ticks auf der x-Achse angeordnet sind"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "Die Breite der Isoline in Pixeln"
 
@@ -18395,6 +18586,9 @@ msgstr "Das Design konnte nicht erstellt werden."
 
 msgid "Theme could not be updated."
 msgstr "Das Design konnte nicht aktualisiert werden."
+
+msgid "Theme does not exist"
+msgstr ""
 
 msgid "Theme imported"
 msgstr "Design importiert"
@@ -18587,6 +18781,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr "Beim Abbrechen der Aufgabe ist ein Problem aufgetreten: %s"
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr "Beim Löschen von %s ist ein Problem aufgetreten"
 
@@ -18615,6 +18813,10 @@ msgstr "Beim Löschen der ausgewählten %s ist ein Problem aufgetreten: %s"
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "Beim Löschen der ausgewählten Anmerkungen ist ein Problem aufgetreten: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -18868,6 +19070,12 @@ msgstr ""
 msgid "This cannot be undone."
 msgstr ""
 
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 #, python-format
 msgid ""
 "This change discards the value transform on %s. Once you save, filters on"
@@ -18883,8 +19091,20 @@ msgstr ""
 "Dieses Diagramm wendet Kreuzfilter auf Diagramme an, deren Datensätze "
 "Spalten mit demselben Namen enthalten."
 
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "Dieses Diagramm wurde in einen anderen Filterbereich verschoben."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr ""
@@ -19127,12 +19347,18 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "Definiert das Element, das im Diagramm dargestellt werden soll"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
 msgstr ""
 "Diese Dimension ist mit der aktuellen Auswahl nicht kompatibel. Wählen "
 "Sie eine kompatible Dimension."
+
+msgid "This draft is no longer available"
+msgstr ""
 
 msgid ""
 "This email is already associated with an account. Please choose another "
@@ -19359,6 +19585,9 @@ msgstr ""
 "Summen und Zwischensummen anders aussehen als zuvor. Bitte prüfen Sie sie"
 " und bestätigen Sie dann diesen Hinweis oder speichern Sie das Diagramm."
 
+msgid "This placement has no data binding."
+msgstr ""
+
 #, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
@@ -19517,6 +19746,9 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "Dies wurde ausgelöst durch:"
 msgstr[1] "Dies kann ausgelöst werden durch:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 #, python-format
 msgid "This will abort (stop) the task for all %s subscriber(s)."
@@ -20198,6 +20430,10 @@ msgstr ""
 "Schichten-Konfiguration."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Kann einen solchen Feiertag nicht finden: [%(holiday)s]"
 
@@ -20471,6 +20707,9 @@ msgstr "Unbenannter Datensatz"
 msgid "Untitled Query"
 msgstr "Unbenannte Abfrage"
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr "Unbenanntes Diagramm"
 
@@ -20482,6 +20721,9 @@ msgstr "Unbenannter Datensatz"
 
 msgid "Untitled query"
 msgstr "Unbenannte Abfrage"
+
+msgid "Untitled tab"
+msgstr ""
 
 msgid "Unverified"
 msgstr "Nicht verifiziert"
@@ -20770,9 +21012,6 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Verwendet die ersten 25 Werte, falls die Dimension mehr enthält."
 
-msgid "Valid"
-msgstr "Gültig"
-
 msgid "Valid SQL expression"
 msgstr "Gültiger SQL-Ausdruck"
 
@@ -20912,6 +21151,10 @@ msgstr ""
 msgid "Version"
 msgstr "Version"
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 msgid "Version history"
 msgstr "Versionsverlauf"
 
@@ -20974,6 +21217,9 @@ msgstr "Betrachter*in"
 msgid "Viewers"
 msgstr "Betrachter*innen"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -20983,6 +21229,10 @@ msgstr ""
 "anzeigen können. Wenn keine Betrachter*innen definiert sind, ist das "
 "Dashboard für alle Benutzer*innen mit passenden "
 "Datenquellenberechtigungen zugänglich."
+
+#, python-format
+msgid "Viewing %s"
+msgstr ""
 
 msgid "Viewport"
 msgstr "Ansichtsfenster"
@@ -21196,6 +21446,11 @@ msgstr ""
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr "Die Spalte „%(column_name)s“ konnte nicht aufgelöst werden."
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -21627,6 +21882,21 @@ msgstr "Whisker/Ausreißer-Optionen"
 
 msgid "Why do I need to create a database?"
 msgstr "Warum muss ich eine Datenbank erstellen?"
+
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
 
 msgid "Width"
 msgstr "Breite"
@@ -22555,6 +22825,9 @@ msgstr[1] "kann nicht gelöscht werden, da noch %s Datensätze damit verknüpft 
 
 msgid "cannot be empty"
 msgstr "darf nicht leer sein"
+
+msgid "canvases"
+msgstr ""
 
 msgid "cell bar"
 msgstr "Zellenbalken"

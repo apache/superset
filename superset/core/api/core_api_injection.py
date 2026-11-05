@@ -42,6 +42,7 @@ def inject_dao_implementations() -> None:
     import superset_core.common.daos as core_common_dao_module
     import superset_core.queries.daos as core_queries_dao_module
     import superset_core.tasks.daos as core_tasks_dao_module
+    import superset_core.widgets.daos as core_widgets_dao_module
 
     from superset.daos.chart import ChartDAO as HostChartDAO
     from superset.daos.dashboard import DashboardDAO as HostDashboardDAO
@@ -58,6 +59,7 @@ def inject_dao_implementations() -> None:
     from superset.daos.tag import TagDAO as HostTagDAO
     from superset.daos.tasks import TaskDAO as HostTaskDAO
     from superset.daos.user import UserDAO as HostUserDAO
+    from superset.daos.widget import WidgetDAO as HostWidgetDAO
 
     # Replace abstract classes in common.daos with concrete implementations
     core_common_dao_module.DatasetDAO = HostDatasetDAO  # type: ignore[assignment,misc]
@@ -78,6 +80,9 @@ def inject_dao_implementations() -> None:
     # Replace abstract classes in tasks.daos
     core_tasks_dao_module.TaskDAO = HostTaskDAO  # type: ignore[assignment,misc]
 
+    # Replace abstract classes in widgets.daos
+    core_widgets_dao_module.WidgetDAO = HostWidgetDAO  # type: ignore[assignment,misc]
+
 
 def inject_model_implementations() -> None:
     """
@@ -89,6 +94,7 @@ def inject_model_implementations() -> None:
     import superset_core.common.models as core_common_models_module
     import superset_core.queries.models as core_queries_models_module
     import superset_core.tasks.models as core_tasks_models_module
+    import superset_core.widgets.models as core_widgets_models_module
     from flask_appbuilder.security.sqla.models import (
         Group as HostGroup,
         Role as HostRole,
@@ -104,6 +110,7 @@ def inject_model_implementations() -> None:
     from superset.models.tasks import Task as HostTask
     from superset.subjects.models import Subject as HostSubject
     from superset.tags.models import Tag as HostTag
+    from superset.widgets.models import Widget as HostWidget
 
     # In-place replacement in common.models
     core_common_models_module.Database = HostDatabase  # type: ignore[misc]
@@ -123,6 +130,9 @@ def inject_model_implementations() -> None:
 
     # In-place replacement in tasks.models
     core_tasks_models_module.Task = HostTask  # type: ignore[misc]
+
+    # In-place replacement in widgets.models
+    core_widgets_models_module.WidgetModel = HostWidget  # type: ignore[misc]
 
 
 def inject_query_implementations() -> None:
@@ -281,6 +291,92 @@ def inject_semantic_layer_implementations() -> None:
     core_sl_module.semantic_layer = semantic_layer_impl  # type: ignore[assignment]
 
 
+def inject_widget_implementations() -> None:
+    """
+    Replace the abstract widget decorator in ``superset_core.widgets.decorators``
+    with a concrete implementation that registers widget control sets in the
+    host registry, then register the built-in widgets.
+
+    Registration raises on a genuine ``widget_type`` collision (naming both the
+    existing and the new class) so a careless or malicious extension cannot
+    silently replace another widget's schema; extension registrations are
+    namespaced by publisher/name, mirroring semantic layers.
+
+    A widget whose static schema fails to build (see ``validate_control_schema``
+    below) raises the same way — deliberately: this is meant to be a loud,
+    fail-at-import check, not one an author can silently ship past. For a
+    built-in widget that failure aborts application startup (as any other
+    error importing ``superset.widgets.builtin`` would). For an
+    extension-registered widget, the raise unwinds through that extension's own
+    backend entrypoint import — `init_extensions`'s per-extension `try/except`
+    (in `superset/initialization/__init__.py`) catches it there, so one
+    broken widget's schema disables that whole extension's backend for this
+    process (any other widget or route the same entrypoint module would have
+    registered after it never runs), not just Superset overall or just the
+    one widget — the same containment boundary a collision in an extension's
+    own widget already has.
+
+    Built-ins are imported here — *after* the decorator is concrete — because
+    ``superset.widgets.types_api`` is imported during ``init_views()``, which runs
+    before this injection. This mirrors how the MCP layer imports its host tool
+    modules only after injecting ``@tool``.
+    """
+    import superset_core.widgets as core_widgets_pkg
+    import superset_core.widgets.decorators as core_widgets_decorators
+
+    from superset.widgets.registry import registry
+
+    def widget_impl(
+        widget_type: str,
+        name: str,
+        description: str | None = None,
+    ) -> Callable[[Any], Any]:
+        def decorator(cls: Any) -> Any:
+            if context := get_current_extension_context():
+                key = (
+                    f"extensions.{context.extension.publisher}."
+                    f"{context.extension.name}.{widget_type}"
+                )
+            else:
+                key = widget_type
+
+            existing = registry.get(key)
+            if existing is not None and existing is not cls:
+                raise ValueError(
+                    f"Widget type {key!r} is already registered by "
+                    f"{existing.__module__}.{existing.__qualname__}; "
+                    f"{cls.__module__}.{cls.__qualname__} cannot replace it."
+                )
+
+            cls.widget_type = key
+            cls.name = name
+            cls.description = description or ""
+            registry[key] = cls
+            try:
+                # Validate the static schema and dependency graph at import
+                # time. Runtime enrichers may perform permission-scoped data
+                # lookups, so they must wait until a request user exists.
+                cls.validate_control_schema()
+                cls.validate_contract()
+            except Exception:
+                registry.pop(key, None)
+                raise
+            return cls
+
+        return decorator
+
+    # Rebind on both the decorators module and the package re-export, so a
+    # consumer using either `from superset_core.widgets import widget` or
+    # `from superset_core.widgets.decorators import widget` resolves to the
+    # concrete implementation after injection.
+    core_widgets_decorators.widget = widget_impl  # type: ignore[assignment]
+    core_widgets_pkg.widget = widget_impl  # type: ignore[assignment]
+
+    # Register the built-in widgets now that the decorator is concrete (their
+    # module applies @widget at import time).
+    import superset.widgets.builtin  # noqa: F401  pylint: disable=unused-import
+
+
 def inject_storage_implementations() -> None:
     """
     Replace abstract storage classes in superset_core.extensions.storage with concrete
@@ -329,5 +425,6 @@ def initialize_core_api_dependencies() -> None:
     inject_task_implementations()
     inject_rest_api_implementations()
     inject_semantic_layer_implementations()
+    inject_widget_implementations()
     inject_storage_implementations()
     inject_extension_context()

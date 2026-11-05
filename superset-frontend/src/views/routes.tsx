@@ -148,6 +148,14 @@ const TaskList = lazyWithRetry(
   () => import(/* webpackChunkName: "TaskList" */ 'src/pages/TaskList'),
 );
 
+const CanvasList = lazyWithRetry(
+  () => import(/* webpackChunkName: "CanvasList" */ 'src/pages/CanvasList'),
+);
+
+const CanvasPage = lazyWithRetry(
+  () => import(/* webpackChunkName: "Canvas" */ 'src/pages/Canvas'),
+);
+
 const RolesList = lazyWithRetry(
   () => import(/* webpackChunkName: "RolesList" */ 'src/pages/RolesList'),
 );
@@ -284,6 +292,13 @@ export const routes: Routes = [
 if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
   routes.push({ path: RoutePaths.ALL_ENTITIES, Component: AllEntities });
   routes.push({ path: RoutePaths.TAGS, Component: Tags });
+}
+
+if (isFeatureEnabled(FeatureFlag.Canvas)) {
+  routes.push(
+    { path: RoutePaths.CANVAS_LIST, Component: CanvasList },
+    { path: RoutePaths.CANVAS, Component: CanvasPage },
+  );
 }
 
 // Recently-Archived view — gated by the soft-delete feature (T007).
