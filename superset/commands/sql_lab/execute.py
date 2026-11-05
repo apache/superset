@@ -40,7 +40,7 @@ from superset.sqllab.exceptions import (
     SqlLabException,
 )
 from superset.sqllab.execution_context_convertor import ExecutionContextConvertor
-from superset.sqllab.limiting_factor import LimitingFactor
+from superset.sqllab.utils import set_query_limit
 from superset.utils.decorators import transaction
 
 if TYPE_CHECKING:
@@ -263,21 +263,11 @@ class ExecuteSqlCommand(BaseCommand):
         )
 
     def _set_query_limit(self, rendered_query: str) -> None:
-        db_engine_spec = self._execution_context.database.db_engine_spec  # type: ignore
-        limits = [
-            db_engine_spec.get_limit_from_sql(rendered_query),
+        set_query_limit(
+            self._execution_context.query,
+            rendered_query,
             self._execution_context.limit,
-        ]
-        if limits[0] is None or limits[0] > limits[1]:  # type: ignore
-            self._execution_context.query.limiting_factor = LimitingFactor.DROPDOWN
-        elif limits[1] > limits[0]:  # type: ignore
-            self._execution_context.query.limiting_factor = LimitingFactor.QUERY
-        else:  # limits[0] == limits[1]
-            self._execution_context.query.limiting_factor = (
-                LimitingFactor.QUERY_AND_DROPDOWN
-            )
-        self._execution_context.query.limit = min(
-            lim for lim in limits if lim is not None
+            self._execution_context.database.db_engine_spec,  # type: ignore
         )
 
 

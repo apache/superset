@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-04 05:59-0500\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -1998,6 +1998,9 @@ msgstr ""
 msgid "An alert named \"%(name)s\" already exists"
 msgstr ""
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
@@ -2517,6 +2520,9 @@ msgstr ""
 msgid "Apply metrics on"
 msgstr ""
 
+msgid "Apply warnings to all SQL Lab users on this connection"
+msgstr ""
+
 msgid "April"
 msgstr ""
 
@@ -2683,6 +2689,10 @@ msgid "Associated alerts and reports"
 msgstr ""
 
 msgid "Asynchronous query execution"
+msgstr ""
+
+#, python-format
+msgid "At least %(value)s"
 msgstr ""
 
 msgid "Attribution"
@@ -2890,6 +2900,9 @@ msgstr ""
 msgid "Big Number with Trendline"
 msgstr ""
 
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
+
 msgid "Bins"
 msgstr ""
 
@@ -3042,6 +3055,9 @@ msgid "By key: use row names as sorting key"
 msgstr ""
 
 msgid "By value: use metric values as sorting key"
+msgstr ""
+
+msgid "Bytes"
 msgstr ""
 
 msgid "CC recipients"
@@ -6012,6 +6028,9 @@ msgstr ""
 msgid "Disable embedding?"
 msgstr ""
 
+msgid "Disable saved rule"
+msgstr ""
+
 msgid "Disabled"
 msgstr ""
 
@@ -6679,7 +6698,15 @@ msgstr ""
 msgid "Enable node dragging"
 msgstr ""
 
+msgid "Enable pre-run warnings"
+msgstr ""
+
 msgid "Enable query cost estimation"
+msgstr ""
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
 msgstr ""
 
 msgid "Enable row expansion in schemas"
@@ -6761,10 +6788,24 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr ""
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
 msgid "Enter a value transform before validating against data."
 msgstr ""
 
+msgid "Enter a warning threshold no greater than 9,007,199,254,740,991."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 msgid "Enter alert name"
+msgstr ""
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter duration in seconds"
@@ -6828,6 +6869,9 @@ msgid "Enter theme name"
 msgstr ""
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -6993,6 +7037,20 @@ msgid "Estimate selected query cost"
 msgstr ""
 
 msgid "Estimate the cost before running a query"
+msgstr ""
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
 msgstr ""
 
 msgid "Event"
@@ -7713,7 +7771,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -7776,6 +7836,9 @@ msgid "Fit data"
 msgstr ""
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 msgid ""
@@ -9354,6 +9417,15 @@ msgstr ""
 msgid "List view"
 msgstr ""
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr ""
 
@@ -9389,6 +9461,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -11518,6 +11593,9 @@ msgstr ""
 msgid "Plain"
 msgstr ""
 
+msgid "Planner cost is relative, not dollars or memory."
+msgstr ""
+
 msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
@@ -11923,6 +12001,12 @@ msgstr ""
 msgid "Query preview"
 msgstr ""
 
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
+
 msgid "Query was stopped"
 msgstr ""
 
@@ -12005,6 +12089,9 @@ msgid ""
 msgstr ""
 
 msgid "Raw records"
+msgstr ""
+
+msgid "Re-enter the access token when changing the connection destination."
 msgstr ""
 
 msgid "Re-pick fields"
@@ -12779,6 +12866,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -13065,6 +13155,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 msgid "Saving..."
@@ -15550,6 +15645,14 @@ msgid ""
 "call."
 msgstr ""
 
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr ""
 
@@ -15564,6 +15667,16 @@ msgid ""
 msgstr ""
 
 msgid "The feature property to use for point labels"
+msgstr ""
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
 msgstr ""
 
 msgid "The following charts could not be exported:"
@@ -15896,6 +16009,26 @@ msgid ""
 "properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid "The query cost warning threshold must be no greater than 9007199254740991."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr ""
 
@@ -15909,6 +16042,9 @@ msgid "The query has a syntax error."
 msgstr ""
 
 msgid "The query returned no data"
+msgstr ""
+
+msgid "The query warning response was invalid."
 msgstr ""
 
 #, python-format
@@ -15991,6 +16127,14 @@ msgstr ""
 
 #, python-format
 msgid "The sample row limit was reached. This %s may contain more rows."
+msgstr ""
+
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
 msgstr ""
 
 #, python-format
@@ -16306,6 +16450,9 @@ msgid "The view configuration must be a JSON object."
 msgstr ""
 
 msgid "The visible title of the layer"
+msgstr ""
+
+msgid "The warning audience setting must be a boolean."
 msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
@@ -16938,6 +17085,9 @@ msgid ""
 "this operator."
 msgstr ""
 
+msgid "This engine does not support pre-run warnings."
+msgstr ""
+
 #, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr ""
@@ -17035,6 +17185,11 @@ msgstr ""
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
+msgstr ""
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
 msgstr ""
 
 msgid "This markdown component has an error."
@@ -17251,6 +17406,9 @@ msgid "Threshold alpha level for determining significance"
 msgstr ""
 
 msgid "Threshold for Other"
+msgstr ""
+
+msgid "Threshold size unit"
 msgstr ""
 
 msgid "Threshold: "
@@ -18060,6 +18218,10 @@ msgstr ""
 msgid "Unverified"
 msgstr ""
 
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
+
 msgid "Update"
 msgstr ""
 
@@ -18476,6 +18638,9 @@ msgstr ""
 msgid "Viewers"
 msgstr ""
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -18613,6 +18778,24 @@ msgstr ""
 msgid "Warning"
 msgstr ""
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 msgid "Warning!"
 msgstr ""
 
@@ -18624,6 +18807,12 @@ msgstr ""
 msgid ""
 "Warning: ILIKE queries may be slow on large datasets as they cannot use "
 "indexes effectively."
+msgstr ""
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
 msgstr ""
 
 msgid "Was unable to check your query"
@@ -18654,6 +18843,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -18798,6 +18992,12 @@ msgstr ""
 msgid ""
 "When unchecked, colors from the selected color scheme will be used for "
 "time shifted series"
+msgstr ""
+
+msgid ""
+"When unchecked, only users with estimation permission receive warnings; "
+"other users run normally. This does not grant access to the manual "
+"estimator or to additional data."
 msgstr ""
 
 msgid ""
@@ -19794,6 +19994,9 @@ msgstr ""
 msgid "by using"
 msgstr ""
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -20368,6 +20571,9 @@ msgid "pivoted_xlsx"
 msgstr ""
 
 msgid "pixels"
+msgstr ""
+
+msgid "planner cost units"
 msgstr ""
 
 msgid "previous calendar month"

@@ -539,6 +539,16 @@ export default function sqlLabReducer(
       } catch (error) {
         // continue regardless of error
       }
+      // A tab closed during creation still needs its server copy deleted.
+      if (!state.queryEditors.some(qe => qe.id === action.oldQueryEditor!.id)) {
+        return {
+          ...state,
+          destroyedQueryEditors: {
+            ...state.destroyedQueryEditors,
+            [action.newQueryEditor!.tabViewId!]: Date.now(),
+          },
+        };
+      }
       // replace localStorage query editor with the server backed one
       return alterInArr(
         state,
@@ -567,6 +577,7 @@ export default function sqlLabReducer(
       );
     },
     [actions.MIGRATE_QUERY]() {
+      if (!state.queries[action.queryId!]) return state;
       const query = {
         ...state.queries[action.queryId!],
         // point query to migrated query editor

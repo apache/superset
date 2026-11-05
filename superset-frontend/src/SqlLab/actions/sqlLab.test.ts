@@ -2252,7 +2252,11 @@ describe('async actions', () => {
         ];
         const store = mockStore({
           sqlLab: {
-            queries,
+            queryEditors: [oldQueryEditor],
+            unsavedQueryEditor: {},
+            queries: Object.fromEntries(
+              queries.map(query => [query.id, query]),
+            ),
             tables,
           },
         });
@@ -2319,7 +2323,9 @@ describe('async actions', () => {
         };
         const store = mockStore({
           sqlLab: {
-            queries: [],
+            queryEditors: [oldQueryEditor],
+            unsavedQueryEditor: {},
+            queries: {},
             tables: [staleTable],
             databases: { 1: {}, 99: {} },
           },
@@ -2384,7 +2390,9 @@ describe('async actions', () => {
           };
           const store = mockStore({
             sqlLab: {
-              queries: [],
+              queryEditors: [oldQueryEditor],
+              unsavedQueryEditor: {},
+              queries: {},
               tables: [],
               databases: { 99: {} },
             },

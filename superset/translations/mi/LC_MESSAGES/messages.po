@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-04 05:59-0500\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -2222,6 +2222,9 @@ msgstr "I Puta He Hapa"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "Kei te tīari kē tētahi matohi ko \"%(name)s\" te ingoa\""
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
@@ -2816,6 +2819,9 @@ msgstr "Whakahaeretia ngā tātari"
 msgid "Apply metrics on"
 msgstr "Whakahaeretia ngā ine ki"
 
+msgid "Apply warnings to all SQL Lab users on this connection"
+msgstr ""
+
 msgid "April"
 msgstr "Paenga-whāwhā"
 
@@ -3009,6 +3015,10 @@ msgstr ""
 
 msgid "Asynchronous query execution"
 msgstr "Whakatutukitanga pātai kore-hangarite"
+
+#, python-format
+msgid "At least %(value)s"
+msgstr ""
 
 msgid "Attribution"
 msgstr "Whakatuakī"
@@ -3239,6 +3249,9 @@ msgstr "Tau Nui me te Whakatairite Wā"
 msgid "Big Number with Trendline"
 msgstr "Tau Nui me te Rārangi Ia"
 
+msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
+
 msgid "Bins"
 msgstr "Pouaka"
 
@@ -3424,6 +3437,9 @@ msgstr "Mā te kī: whakamahia ngā ingoa rārangi hei kī kōmaka"
 
 msgid "By value: use metric values as sorting key"
 msgstr "Mā te uara: whakamahia ngā uara ine hei kī kōmaka"
+
+msgid "Bytes"
+msgstr ""
 
 msgid "CC recipients"
 msgstr "Kaiwhakawhiti CC"
@@ -6764,6 +6780,9 @@ msgstr "Whakakore i te keri ki te taipitopito"
 msgid "Disable embedding?"
 msgstr "Whakakore i te tāmau?"
 
+msgid "Disable saved rule"
+msgstr ""
+
 msgid "Disabled"
 msgstr "Kua Whakakorehia"
 
@@ -7530,8 +7549,16 @@ msgstr "Whakamana matrixify"
 msgid "Enable node dragging"
 msgstr "Whakahohe pona tō"
 
+msgid "Enable pre-run warnings"
+msgstr ""
+
 msgid "Enable query cost estimation"
 msgstr "Whakahohe tauwhitinga utu pātai"
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
+msgstr ""
 
 msgid "Enable row expansion in schemas"
 msgstr "Whakahohe whakawhānuitanga rārangi i ngā hanga"
@@ -7625,11 +7652,25 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Mēnā ka whakakī i ngā ahanoa"
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
 msgid "Enter a value transform before validating against data."
+msgstr ""
+
+msgid "Enter a warning threshold no greater than 9,007,199,254,740,991."
+msgstr ""
+
+msgid "Enter a warning threshold."
 msgstr ""
 
 msgid "Enter alert name"
 msgstr "Tāuru ingoa matohi"
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
+msgstr ""
 
 msgid "Enter duration in seconds"
 msgstr "Tāuru roa i ngā hēkona"
@@ -7700,6 +7741,9 @@ msgid "Enter theme name"
 msgstr "Tāuru ingoa matohi"
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -7878,6 +7922,20 @@ msgstr "Tauwhitinga utu pātai kua tīpakohia"
 
 msgid "Estimate the cost before running a query"
 msgstr "Tauwhitinga te utu i mua i te whakahaere i tētahi pātai"
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
+msgstr ""
 
 msgid "Event"
 msgstr "Kaupapa"
@@ -8672,7 +8730,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -8746,6 +8806,9 @@ msgid "Fit data"
 msgstr "Hāngai raraunga"
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 msgid ""
@@ -10526,6 +10589,15 @@ msgstr "Rārangi kua whakahouhia"
 msgid "List view"
 msgstr "Rārangi Kaiwhakamahi"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Whakaatu ora"
 
@@ -10564,6 +10636,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -12911,6 +12986,9 @@ msgstr ""
 "Tēnā tirohia tō pātai mō ngā hapa wetereo i, tata ki \"%(syntax_error)s\""
 " rānei. Kātahi, whakamātauhia anō tō pātai."
 
+msgid "Planner cost is relative, not dollars or memory."
+msgstr ""
+
 msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
@@ -13364,6 +13442,12 @@ msgstr "Ingoa pātai"
 msgid "Query preview"
 msgstr "Arokite pātai"
 
+msgid "Query warning"
+msgstr ""
+
+msgid "Query warning check failed."
+msgstr ""
+
 msgid "Query was stopped"
 msgstr "I whakamutua te pātai"
 
@@ -13451,6 +13535,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Rekoata mata"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -14286,6 +14373,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -14599,6 +14689,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 msgid "Saving..."
@@ -17528,6 +17623,14 @@ msgid ""
 "call."
 msgstr "Ka wewetea te ahanoa engine_params ki te waea sqlalchemy.create_engine."
 
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "Te pūmahi hei tatau i ngā rahi katoa mai. \"EXP\" anake"
 
@@ -17550,6 +17653,16 @@ msgstr ""
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "Ko te āhuatanga o te tūemi hei whakamahi mō ngā tapanga tohu"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -17968,6 +18081,26 @@ msgid ""
 "properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid "The query cost warning threshold must be no greater than 9007199254740991."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "Kāore i taea te uta i te pātai"
 
@@ -17984,6 +18117,9 @@ msgstr "He hapa wetereo tō te pātai."
 
 msgid "The query returned no data"
 msgstr "Kāore i whakahoki raraunga te pātai"
+
+msgid "The query warning response was invalid."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -18088,6 +18224,14 @@ msgstr ""
 
 #, python-format
 msgid "The sample row limit was reached. This %s may contain more rows."
+msgstr ""
+
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
 msgstr ""
 
 #, python-format
@@ -18458,6 +18602,9 @@ msgstr ""
 
 msgid "The visible title of the layer"
 msgstr "Te taitara kite o te papa"
+
+msgid "The warning audience setting must be a boolean."
+msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Te huarahi ka whakatakotohia ai ngā tika i te tukutuku-X"
@@ -19176,6 +19323,9 @@ msgid ""
 "this operator."
 msgstr ""
 
+msgid "This engine does not support pre-run warnings."
+msgstr ""
+
 #, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr ""
@@ -19333,6 +19483,11 @@ msgid ""
 msgstr ""
 "Ka kawe tēnei hononga i a koe ki tētahi pae tukutuku ō waho. Kāore mātou "
 "e taea ana te tūtohu i te haumarutanga o ngā wāhi ō waho."
+
+msgid ""
+"This lower-bound estimate cannot establish whether usage is within the "
+"warning threshold."
+msgstr ""
 
 msgid "This markdown component has an error."
 msgstr "He hapa tā tēnei waeine markdown."
@@ -19587,6 +19742,9 @@ msgstr "Taumata paepae alpha mō te whakatau i te hiranga"
 #, fuzzy
 msgid "Threshold for Other"
 msgstr "Paepae"
+
+msgid "Threshold size unit"
+msgstr ""
 
 msgid "Threshold: "
 msgstr "Paepae: "
@@ -20515,6 +20673,10 @@ msgstr "Pātai kāore i taitarahia"
 msgid "Unverified"
 msgstr "Kāore i Tautuhia"
 
+#, python-format
+msgid "Up to %(value)s"
+msgstr ""
+
 msgid "Update"
 msgstr "Whakahou"
 
@@ -20996,6 +21158,9 @@ msgstr "Kaitiro"
 msgid "Viewers"
 msgstr "Ngā kaitiro"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -21174,6 +21339,24 @@ msgstr "Whare raraunga"
 msgid "Warning"
 msgstr "Whakatūpato"
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 msgid "Warning!"
 msgstr "Whakatūpato!"
 
@@ -21193,6 +21376,12 @@ msgid ""
 msgstr ""
 "Whakaaraara: Ko ngā pātai ILIKE ka āhua puhoi i runga i ngā kohinga "
 "raraunga nui nā te kore āhei ki te whakamahi aratohu mōhiotia."
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
+msgstr ""
 
 msgid "Was unable to check your query"
 msgstr "Kāore i taea te tirotiro i tō pātai"
@@ -21227,6 +21416,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -21402,6 +21596,12 @@ msgid ""
 msgstr ""
 "Ina kāore i pātia, ka whakamahia ngā tae mai i te kaupapa tae kua "
 "tīpakohia mō ngā raupapa kua nekehia te wā"
+
+msgid ""
+"When unchecked, only users with estimation permission receive warnings; "
+"other users run normally. This does not grant access to the manual "
+"estimator or to additional data."
+msgstr ""
 
 msgid ""
 "When unchecked, the \"Explore in Superset\" link is omitted from the "
@@ -22533,6 +22733,9 @@ msgstr "pātene (cmd + z) tae noa koe ka tiaki i ō huringa."
 msgid "by using"
 msgstr "mā te whakamahi i"
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -23185,6 +23388,9 @@ msgstr "Māmā"
 
 msgid "pixels"
 msgstr "pika"
+
+msgid "planner cost units"
+msgstr ""
 
 msgid "previous calendar month"
 msgstr "marama maramataka tōmua"
