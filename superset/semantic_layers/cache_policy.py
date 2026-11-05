@@ -107,6 +107,10 @@ _LOWER_BOUND_OPERATORS: frozenset[Operator] = frozenset(
 )
 
 
+def _is_empty_membership(value: object) -> bool:
+    return isinstance(value, (set, frozenset, tuple)) and not value
+
+
 def _implies_membership(new_filter: Filter, cached_values: object) -> bool:
     if not isinstance(cached_values, (set, frozenset, tuple)):
         return False
@@ -192,7 +196,10 @@ def implies(
     if cached_op is Operator.IS_NULL:
         return False
     if cached_op is Operator.IS_NOT_NULL:
-        return new_op is not Operator.IS_NULL
+        # An empty NOT IN is TRUE for NULL rows, so it proves no NULL exclusion.
+        return new_op is not Operator.IS_NULL and not (
+            new_op is Operator.NOT_IN and _is_empty_membership(new_value)
+        )
     if cached_op is Operator.EQUALS:
         return (
             new_op is Operator.EQUALS

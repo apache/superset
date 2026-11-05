@@ -63,8 +63,14 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchModuleError
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import Mapper, relationship
-from sqlalchemy.pool import NullPool
+from sqlalchemy.orm import (
+    Mapper,
+    object_session,
+    relationship,
+    Session,
+    SessionTransaction,
+)
+from sqlalchemy.pool import NullPool, QueuePool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
 from superset_core.common.models import Database as CoreDatabase
@@ -423,7 +429,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     @property
     def driver(self) -> str:
-        return self.url_object.get_driver_name()
+        try:
+            return self.url_object.get_driver_name()
+        except NoSuchModuleError:
+            # Driverless connections must still open in the URI repair form.
+            return ""
 
     @property
     def masked_encrypted_extra(self) -> str | None:
@@ -435,14 +445,14 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         # the sqlalchemy_uri
         # When returning the parameters we should use the masked SQLAlchemy URI and the
         # masked ``encrypted_extra`` to prevent exposing sensitive credentials.
-        masked_uri = make_url_safe(self.sqlalchemy_uri)
-        encrypted_config = {}
-        if (masked_encrypted_extra := self.masked_encrypted_extra) is not None:
-            with suppress(TypeError, json.JSONDecodeError):
-                encrypted_config = json.loads(masked_encrypted_extra)
         try:
-            parameters = self.db_engine_spec.get_parameters_from_uri(  # type: ignore
-                masked_uri,
+            make_url_safe(self.sqlalchemy_uri)
+            encrypted_config = {}
+            if (masked_encrypted_extra := self.masked_encrypted_extra) is not None:
+                with suppress(TypeError, json.JSONDecodeError):
+                    encrypted_config = json.loads(masked_encrypted_extra)
+            parameters = self.db_engine_spec.get_parameters_from_database(
+                self,
                 encrypted_extra=encrypted_config,
             )
         except Exception:  # pylint: disable=broad-except
@@ -462,13 +472,20 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
     def metadata_cache_timeout(self) -> dict[str, Any]:
         return self.get_extra().get("metadata_cache_timeout", {})
 
+    def _metadata_cache_timeout_value(self, key: str) -> int | None:
+        """Older database forms stored these timeouts as strings."""
+        try:
+            return int(self.metadata_cache_timeout[key])
+        except (KeyError, TypeError, ValueError):
+            return None
+
     @property
     def catalog_cache_enabled(self) -> bool:
         return "catalog_cache_timeout" in self.metadata_cache_timeout
 
     @property
     def catalog_cache_timeout(self) -> int | None:
-        return self.metadata_cache_timeout.get("catalog_cache_timeout")
+        return self._metadata_cache_timeout_value("catalog_cache_timeout")
 
     @property
     def schema_cache_enabled(self) -> bool:
@@ -476,7 +493,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     @property
     def schema_cache_timeout(self) -> int | None:
-        return self.metadata_cache_timeout.get("schema_cache_timeout")
+        return self._metadata_cache_timeout_value("schema_cache_timeout")
 
     @property
     def table_cache_enabled(self) -> bool:
@@ -484,7 +501,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     @property
     def table_cache_timeout(self) -> int | None:
-        return self.metadata_cache_timeout.get("table_cache_timeout")
+        return self._metadata_cache_timeout_value("table_cache_timeout")
 
     @property
     def default_schemas(self) -> list[str]:
@@ -671,6 +688,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                                 dbapi_connection: Any,
                                 connection_record: Any,  # pylint: disable=unused-argument
                             ) -> None:
+                                self.db_engine_spec.prepare_connection(dbapi_connection)
                                 cursor = dbapi_connection.cursor()
                                 try:
                                     from superset.sql.execution.cancellation import (
@@ -679,8 +697,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                                         query_executed,
                                     )
 
-                                    with cancellable_cursor(
-                                        self, cursor, catalog, schema
+                                    with (
+                                        self.db_engine_spec.cursor_context(cursor),
+                                        cancellable_cursor(
+                                            self, cursor, catalog, schema
+                                        ),
                                     ):
                                         for prequery in prequeries:
                                             check_query_deadline()
@@ -851,6 +872,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             ) as engine:
                 with check_for_oauth2(self):
                     with closing(engine.raw_connection()) as conn:
+                        self.db_engine_spec.prepare_connection(conn.dbapi_connection)
                         yield conn
 
         with self._open_with_oauth2_retry(open_connection) as conn:
@@ -1037,20 +1059,25 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             rows = None
             description = None
 
-            # Give an active GTF chart-data task a chance to capture an engine
-            # cancel id off the live cursor before the (blocking) execute below,
-            # so a concurrent abort/timeout can kill the query. No-op otherwise.
-            from superset.tasks.query_cancel import notify_cursor
-
-            notify_cursor(cursor)
-
             from superset.sql.execution.cancellation import (
                 cancellable_cursor,
                 check_query_deadline,
                 query_executed,
             )
+            from superset.tasks.query_cancel import (
+                CursorPhase,
+                notify_cursor,
+                tracked_cursor,
+            )
 
-            with cancellable_cursor(self, cursor, catalog, schema):
+            # Let an active GTF chart-data task follow the operation this cursor
+            # runs, so a concurrent abort/timeout can cancel it, and stop before
+            # the next fetch or statement once the abort is accepted. No-op
+            # otherwise.
+            with (
+                tracked_cursor(cursor, self),
+                cancellable_cursor(self, cursor, catalog, schema),
+            ):
                 for i, statement in enumerate(script.statements):
                     check_query_deadline()
                     # Execute a single statement as-is; statement.format()
@@ -1069,8 +1096,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         database=self,
                         object_ref=__name__,
                     ):
+                        notify_cursor(cursor, self, CursorPhase.SUBMITTING)
                         self.db_engine_spec.execute(cursor, sql_, self)
                         query_executed()
+                        notify_cursor(cursor, self, CursorPhase.SUBMITTED)
 
                     # Fetch results from last statement if requested
                     if fetch_last_result and i == len(script.statements) - 1:
@@ -1580,15 +1609,15 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     def has_view(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
-            connection = engine.connect()
-            try:
-                views = engine.dialect.get_view_names(
-                    connection=connection,
-                    schema=table.schema,
-                )
-            except Exception:  # pylint: disable=broad-except
-                logger.warning("Has view failed", exc_info=True)
-                views = []
+            with engine.connect() as connection:
+                try:
+                    views = engine.dialect.get_view_names(
+                        connection=connection,
+                        schema=table.schema,
+                    )
+                except Exception:  # pylint: disable=broad-except
+                    logger.warning("Has view failed", exc_info=True)
+                    views = []
 
         return table.table in views
 
@@ -1732,6 +1761,34 @@ sqla.event.listen(Database, "after_update", security_manager.database_after_upda
 sqla.event.listen(Database, "after_delete", security_manager.database_after_delete)
 
 
+# Key in ``Session.info`` holding the ids of databases whose engines were
+# evicted by the session's current transaction.
+_EVICTED_DATABASE_IDS_KEY = "superset_evicted_database_ids"
+
+
+def _retire_cached_engines(database_id: int) -> None:
+    """Drop the cached engines of a database and dispose those on a QueuePool.
+
+    Engines on pools whose disposal also closes checked-out connections
+    (``StaticPool``, ``SingletonThreadPool``) are not disposed, so that a query
+    running at that moment is not broken: their connection is released when the
+    engine is garbage collected. Connections of a ``QueuePool`` that are checked
+    out stay on its previous pool and are not released deterministically.
+    Disposal runs after the cache lock is released, and a failure to dispose
+    never propagates.
+    """
+    with _ENGINE_CACHE_LOCK:
+        stale = [k for k in _ENGINE_CACHE if k[0] == database_id]
+        evicted = [_ENGINE_CACHE.pop(k) for k in stale]
+    for engine in evicted:
+        if not isinstance(engine.pool, QueuePool):
+            continue
+        try:
+            engine.dispose()
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Failed to dispose an evicted engine", exc_info=True)
+
+
 def _evict_engine_cache(
     mapper: Mapper,
     connection: Connection,
@@ -1740,20 +1797,64 @@ def _evict_engine_cache(
     """Evict all cached engines for a database when it is updated or deleted.
 
     URL/kwargs changes already produce a new cache key, so stale engines are
-    never served to callers.  This eviction step is purely to reclaim memory:
-    without it, old engines for a renamed host or rotated password would linger
-    in _ENGINE_CACHE until the process restarted.
+    never served to callers.  Eviction reclaims memory (old engines for a
+    renamed host or rotated password would otherwise linger in _ENGINE_CACHE
+    until the process restarted). Engines on a ``QueuePool`` are also disposed,
+    which closes the connections their pool holds idle. Some databases, such as
+    DuckDB, allow only one configuration per database file per process, so an
+    idle connection kept by an engine with the previous settings would block
+    opening the edited ones. See ``_retire_cached_engines`` for which engines
+    are disposed.
+
+    This runs when the change is flushed, before it is known to commit. The id
+    is remembered on the session so that a rollback of that transaction evicts
+    again: engines built from the uncommitted settings in the meantime (e.g. to
+    sync permissions) must not outlive the settings they were built from.
     """
     if target.id is None:
         return
-    with _ENGINE_CACHE_LOCK:
-        stale = [k for k in _ENGINE_CACHE if k[0] == target.id]
-        for k in stale:
-            _ENGINE_CACHE.pop(k, None)
+    if session := object_session(target):
+        session.info.setdefault(_EVICTED_DATABASE_IDS_KEY, set()).add(target.id)
+    _retire_cached_engines(target.id)
+
+
+def _evict_engine_cache_on_rollback(
+    session: Session, previous_transaction: SessionTransaction
+) -> None:
+    """Evict again the engines of databases evicted by a rolled back transaction.
+
+    A rollback of a nested transaction (savepoint) evicts without forgetting the
+    ids, because the enclosing transaction may still roll back or commit.
+    """
+    outermost = previous_transaction.parent is None
+    ids = session.info.get(_EVICTED_DATABASE_IDS_KEY)
+    if not ids:
+        return
+    for database_id in list(ids):
+        try:
+            _retire_cached_engines(database_id)
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Failed to evict engines on rollback", exc_info=True)
+    if outermost:
+        ids.clear()
+
+
+def _forget_evicted_database_ids(session: Session) -> None:
+    """A committed change keeps its settings, so a later rollback must not evict.
+
+    ``after_commit`` also fires when a savepoint is released, while the
+    enclosing transaction can still roll back, so only an outermost commit
+    forgets the ids.
+    """
+    if session.in_nested_transaction():
+        return
+    session.info.pop(_EVICTED_DATABASE_IDS_KEY, None)
 
 
 sqla.event.listen(Database, "after_update", _evict_engine_cache)
 sqla.event.listen(Database, "after_delete", _evict_engine_cache)
+sqla.event.listen(Session, "after_soft_rollback", _evict_engine_cache_on_rollback)
+sqla.event.listen(Session, "after_commit", _forget_evicted_database_ids)
 
 
 class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):

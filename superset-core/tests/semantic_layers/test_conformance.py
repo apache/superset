@@ -82,7 +82,10 @@ def semantic_query_cases(
     month: Dimension = next(
         d for d in semantic_view.get_dimensions() if d.grain == Grains.MONTH
     )
-    total: Metric = next(iter(semantic_view.get_metrics()))
+    total: Metric = next(m for m in semantic_view.get_metrics() if m.name == "total")
+    count: Metric = next(
+        m for m in semantic_view.get_metrics() if m.name == "row_count"
+    )
     null: Filter = Filter(PredicateType.WHERE, category, Operator.IS_NULL, None)
     membership: Filter = Filter(
         PredicateType.WHERE, category, Operator.IN, frozenset({"A", "B"})
@@ -97,11 +100,14 @@ def semantic_query_cases(
     )
     return {
         "identity": (
-            SemanticQuery([total], [category], order=[(total, OrderDirection.ASC)]),
+            SemanticQuery(
+                [total, count], [category], order=[(total, OrderDirection.ASC)]
+            ),
             pa.table(
                 {
                     "category": pa.array([None, "C", "A", "B"], type=pa.string()),
                     "total": [4, 6, 7, 8],
+                    "row_count": [2, 1, 2, 1],
                 }
             ),
         ),
@@ -162,7 +168,7 @@ def semantic_capability_cases(
     category: Dimension = next(
         d for d in semantic_view.get_dimensions() if d.name == "category"
     )
-    total: Metric = next(iter(semantic_view.get_metrics()))
+    total: Metric = next(m for m in semantic_view.get_metrics() if m.name == "total")
     return {
         "ROW_OFFSET": (
             SemanticQuery(
@@ -251,6 +257,8 @@ class TestExampleConformance(SemanticProviderConformance):
         "import flask",
         "open('/conformance-schema-must-not-read')",
         "__import__('socket').create_connection(('localhost', 1))",
+        "transport.request('Test', 'GET', 'https://example.test', "
+        "budget=RequestBudget(deadline=1.0, max_bytes=1))",
     ],
 )
 def test_isolation_rejects_caught_attempts(
@@ -259,9 +267,15 @@ def test_isolation_rejects_caught_attempts(
     """A provider swallowing the tripwire exception must still fail its lane."""
     module: Path = tmp_path / "bad_schema_provider.py"
     module.write_text(
+        "from superset_core.semantic_layers.config import SemanticCredentialReadiness\n"
+        "from superset_core.semantic_layers.transport import "
+        "ProviderTransport, RequestBudget\n"
         "class Layer:\n"
         "    @classmethod\n"
-        "    def get_configuration_schema(cls, configuration=None):\n"
+        "    def get_configuration_schema(cls, configuration: object = None, *, "
+        "transport: ProviderTransport, readiness: SemanticCredentialReadiness) "
+        "-> dict[str, object]:\n"
+        "        assert readiness is SemanticCredentialReadiness.UNRESOLVED\n"
         "        try:\n"
         f"            {violation}\n"
         "        except (ImportError, AssertionError):\n"
@@ -645,4 +659,115 @@ def test_or_lane_rejects_non_host_fixture_shapes(
     with pytest.raises(AssertionError, match=diagnostic):
         SemanticProviderConformance().test_query_outputs(
             "or", semantic_view, {"or": (query, expected)}
+        )
+
+
+@pytest.mark.parametrize(
+    "mutation,operator",
+    [
+        ("drop_nulls", Operator.NOT_IN),
+        ("swap", Operator.IN),
+        ("swap", Operator.NOT_IN),
+        ("ignore", Operator.IN),
+        ("zero_rows", Operator.IN),
+        ("wrong_scalar", Operator.IN),
+        ("null_count", Operator.IN),
+    ],
+)
+def test_empty_membership_rejects_provider_mutations(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+    operator: Operator,
+) -> None:
+    """Reject lost NULLs, inverted constants, no-row answers and wrong scalars."""
+    import conformance_provider
+
+    predicate: Callable[[FilterExpression, list[object]], str] = (
+        conformance_provider._predicate
+    )
+    get_table: Callable[[SemanticQuery], SemanticResult] = semantic_view.get_table
+
+    def mutated_predicate(
+        expression: FilterExpression, parameters: list[object]
+    ) -> str:
+        if not (isinstance(expression, Filter) and expression.value == frozenset()):
+            return predicate(expression, parameters)
+        if mutation == "drop_nulls" and expression.operator == Operator.NOT_IN:
+            return "category IS NOT NULL"
+        if mutation == "swap":
+            return "(1 = 1)" if expression.operator == Operator.IN else "(1 = 0)"
+        if mutation == "ignore":
+            return "(1 = 1)"
+        return predicate(expression, parameters)
+
+    def mutated_table(query: SemanticQuery) -> SemanticResult:
+        result: SemanticResult = get_table(query)
+        if (
+            mutation in {"wrong_scalar", "null_count"}
+            and not query.dimensions
+            and any(
+                isinstance(item, Filter)
+                and item.operator == Operator.IN
+                and item.value == frozenset()
+                for item in query.filters or set()
+            )
+        ):
+            column: str = "total" if mutation == "wrong_scalar" else "row_count"
+            if column not in result.results.column_names:
+                return result
+            value: int | None = 0 if mutation == "wrong_scalar" else None
+            field: pa.Field = result.results.schema.field(column)
+            return replace(
+                result,
+                results=result.results.set_column(
+                    result.results.schema.get_field_index(column),
+                    field,
+                    pa.array([value], type=field.type),
+                ),
+            )
+        if mutation == "zero_rows" and any(
+            isinstance(item, Filter) and item.value == frozenset()
+            for item in query.filters or set()
+        ):
+            return replace(result, results=result.results.slice(0, 0))
+        return result
+
+    monkeypatch.setattr(conformance_provider, "_predicate", mutated_predicate)
+    monkeypatch.setattr(semantic_view, "get_table", mutated_table)
+    with pytest.raises(
+        AssertionError,
+        match="row_count: a count of no rows is 0"
+        if mutation == "null_count"
+        else None,
+    ):
+        SemanticProviderConformance().test_empty_membership(
+            operator, semantic_view, semantic_query_cases
+        )
+
+
+@pytest.mark.parametrize("operator", [Operator.IN, Operator.NOT_IN])
+def test_or_group_witness_rejects_dropped_empty_leaf(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    monkeypatch: pytest.MonkeyPatch,
+    operator: Operator,
+) -> None:
+    """A provider that treats an empty leaf as the opposite constant must fail."""
+    import conformance_provider
+
+    predicate: Callable[[FilterExpression, list[object]], str] = (
+        conformance_provider._predicate
+    )
+
+    def inverted(expression: FilterExpression, parameters: list[object]) -> str:
+        if isinstance(expression, Filter) and expression.value == frozenset():
+            return "(1 = 1)" if expression.operator == Operator.IN else "(1 = 0)"
+        return predicate(expression, parameters)
+
+    monkeypatch.setattr(conformance_provider, "_predicate", inverted)
+    with pytest.raises(AssertionError):
+        SemanticProviderConformance().test_empty_membership_in_or_group(
+            operator, semantic_view, semantic_query_cases
         )
