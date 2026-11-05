@@ -73,7 +73,9 @@ jest.mock('./utils/pathUtils', () => ({
   makeUrl: mockMakeUrl,
 }));
 jest.mock('./hooks/useLocale', () => ({
-  DAYJS_LOCALE_MAPPING: { zh_TW: 'zh-tw' },
+  toDayjsLocale: (localeCode: string) =>
+    ({ zh_TW: 'zh-tw' })[localeCode] ??
+    localeCode.toLowerCase().replace(/_/g, '-'),
 }));
 
 const bootstrapData = (

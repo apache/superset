@@ -21,14 +21,17 @@ cancel plumbing, so a GTF abort/timeout could only mark the task terminal while
 the warehouse query kept running. This module adds the missing seam:
 
 - ``capture_cancel_id`` registers a cursor sink for the duration of a task's
-  query; ``notify_cursor`` (called from ``get_df`` before the blocking execute)
-  hands the live cursor to that sink so the task can capture an engine cancel id
-  via ``db_engine_spec.get_cancel_query_id`` — the same contract SQL Lab uses.
-- ``cancel_chart_query`` kills the backend session over a *fresh* connection
+  query. ``get_df`` calls ``notify_cursor`` at each phase of a cursor's life
+  (see ``CursorPhase``), handing the sink the live cursor and its database so
+  the task can capture the cancel id of the operation that is running, via
+  ``db_engine_spec.get_cancel_query_id`` — the same contract SQL Lab uses.
+- ``cancel_chart_query`` cancels the warehouse query over a *fresh* connection
   (``db_engine_spec.cancel_query``), which unblocks the task's blocked ``get_df``.
 
-Only engines that return a cancel id before execution participate; others
-capture nothing and are simply not cancellable (the abort still frees the task).
+Engines that expose a cancel id before execution are captured when the cursor
+opens; engines that expose it only once a statement is submitted (Impala) are
+captured after each submission. Engines that expose none capture nothing and are
+simply not cancellable (the abort still frees the task).
 
 The same seam backs Explore's Stop button on the *synchronous* path. There the
 cancel has to arrive on a different request (and likely a different worker) than
@@ -50,8 +53,10 @@ from typing import Any, Callable, cast, Iterator, TYPE_CHECKING
 from flask import current_app
 from flask_babel import gettext as _
 
-from superset.exceptions import QueryObjectValidationError
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import QueryObjectValidationError, SupersetErrorException
 from superset.stats_logger import BaseStatsLogger
+from superset.utils.backports import StrEnum
 
 if TYPE_CHECKING:
     from flask import Flask
@@ -61,12 +66,50 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
+class CursorPhase(StrEnum):
+    """The points in a chart-data cursor's life at which the sink is notified."""
+
+    # The cursor exists and nothing has been submitted on it.
+    OPENED = "opened"
+    # A statement is about to be submitted.
+    SUBMITTING = "submitting"
+    # A statement was submitted; its results have not been fetched.
+    SUBMITTED = "submitted"
+    # The cursor's statements are over and they succeeded.
+    RELEASED = "released"
+    # The cursor's statements are over because one of them failed.
+    FAILED = "failed"
+
+
+class ChartQueryAbortedError(SupersetErrorException):
+    """Stops a chart-data task's remaining warehouse work once it is aborting.
+
+    The only exception ``notify_cursor`` lets a sink raise, and only before or
+    after a statement is submitted, or once a statement failed, so the task
+    neither fetches the results of an operation it is cancelling nor starts
+    another statement. A ``SupersetErrorException``, so the datasource's
+    ``query()`` re-raises it instead of turning it into a failed result that a
+    caller (e.g. a time comparison) would merge into a cached one.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            SupersetError(
+                message="The chart-data query task was aborted",
+                error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                level=ErrorLevel.WARNING,
+            )
+        )
+
+
 # Set by a chart-data task for the span of its query. When present,
-# Database._execute_sql_with_mutation_and_logging hands the sink the live cursor
-# before the blocking execute so the task can capture an engine cancel id.
-# Absent (None) for every other get_df caller, so this is a no-op elsewhere.
-_cancel_id_sink: ContextVar["Callable[[Any], None] | None"] = ContextVar(
-    "gtf_cancel_id_sink", default=None
+# Database._execute_sql_with_mutation_and_logging hands the sink each of its
+# cursors, with the cursor's database and phase, so the task can follow the
+# operation the cursor is running. Absent (None) for every other get_df caller,
+# so this is a no-op elsewhere.
+_cancel_id_sink: ContextVar["Callable[[Any, Database, CursorPhase], None] | None"] = (
+    ContextVar("gtf_cancel_id_sink", default=None)
 )
 
 
@@ -98,9 +141,11 @@ class ChartQueryStoppedError(QueryObjectValidationError):
 def capture_cancel_query_id(database: "Database", cursor: Any) -> "str | None":
     """Return an engine cancel id for a live cursor, or None if unsupported.
 
-    Only engines that expose a cancel id *before* execution return non-None here
-    (the seam is invoked before the blocking execute); others yield None and the
-    task simply stays non-cancellable.
+    Engines that expose a cancel id before execution
+    (``has_query_id_before_execute``) return it as soon as the cursor exists;
+    the others return the id of the cursor's last submitted operation, so they
+    are read once a statement has been submitted. Engines without cancel support
+    yield None and the task simply stays non-cancellable.
     """
     # The stand-in duck-types the attributes the engine specs read; cast so the
     # call type-checks against the Query the contract nominally expects.
@@ -109,7 +154,9 @@ def capture_cancel_query_id(database: "Database", cursor: Any) -> "str | None":
 
 
 @contextmanager
-def capture_cancel_id(sink: "Callable[[Any], None]") -> Iterator[None]:
+def capture_cancel_id(
+    sink: "Callable[[Any, Database, CursorPhase], None]",
+) -> Iterator[None]:
     """Register a cursor sink for the duration of a chart-data query execution."""
     token = _cancel_id_sink.set(sink)
     try:
@@ -118,22 +165,46 @@ def capture_cancel_id(sink: "Callable[[Any], None]") -> Iterator[None]:
         _cancel_id_sink.reset(token)
 
 
-def notify_cursor(cursor: Any) -> None:
-    """Hand the live cursor to the active sink, if any.
+def notify_cursor(
+    cursor: Any,
+    database: "Database",
+    phase: CursorPhase = CursorPhase.OPENED,
+) -> None:
+    """Hand the live cursor, its database and its phase to the active sink, if any.
 
-    Called from ``get_df`` before the query executes. Best-effort: a capture
-    failure must never break query execution — it only forfeits cancellability.
+    Called from ``get_df`` on the thread that runs the cursor. Best-effort: a
+    capture failure must never break query execution — it only forfeits
+    cancellability. The exception is ``ChartQueryAbortedError``, which a sink
+    raises to stop the task's remaining work once its abort is accepted.
     """
     sink = _cancel_id_sink.get()
     if sink is None:
         return
     try:
-        sink(cursor)
-    except ChartQueryStoppedError:
-        # Deliberate: abort the statement before it executes.
+        sink(cursor, database, phase)
+    except (ChartQueryAbortedError, ChartQueryStoppedError):
+        # Deliberate: stop the task's or the run's remaining work.
         raise
     except Exception:  # noqa: BLE001 pylint: disable=broad-except
         logger.warning("Cancel-id capture failed", exc_info=True)
+
+
+@contextmanager
+def tracked_cursor(cursor: Any, database: "Database") -> Iterator[None]:
+    """Notify the active sink that a cursor opened and, on exit, that it was released.
+
+    The release is notified however the cursor's statements end, so a task never
+    keeps the cancel id of an operation that is over.
+    """
+    notify_cursor(cursor, database)
+    phase = CursorPhase.RELEASED
+    try:
+        yield
+    except Exception:
+        phase = CursorPhase.FAILED
+        raise
+    finally:
+        notify_cursor(cursor, database, phase)
 
 
 def cancel_chart_query(
@@ -147,22 +218,23 @@ def cancel_chart_query(
     """Cancel a running chart-data warehouse query over a fresh connection.
 
     Runs ``db_engine_spec.cancel_query`` against a new connection to the same
-    database, terminating the backend session that the task's blocked ``get_df``
-    is waiting on. Invoked from the task's abort handler (on the abort-listener
-    thread), so it opens its own connection rather than touching the busy one.
-    Best-effort and fully logged; the task's terminal transition is authoritative.
+    database, terminating the backend session or operation that the task's
+    blocked ``get_df`` is waiting on. Invoked from the task's abort handler (on
+    the abort-listener thread), so it opens its own connection rather than
+    touching the busy one. Best-effort and fully logged; the task's terminal
+    transition is authoritative.
 
     :param database: the database the query is running against
-    :param cancel_query_id: engine cancel handle captured at query start
+    :param cancel_query_id: engine cancel handle captured for the running query
     :param app: Flask app for config/DB access from the background thread
     :returns: True if the engine reported the query cancelled
     """
     stats_logger: BaseStatsLogger = (app or current_app).config.get(
         "STATS_LOGGER", BaseStatsLogger()
     )
-    spec = database.db_engine_spec
-    stub = cast("Query", _CancellationQuery(database))
     try:
+        spec = database.db_engine_spec
+        stub = cast("Query", _CancellationQuery(database))
         with database.get_sqla_engine(catalog=catalog, schema=schema) as engine:
             with closing(engine.raw_connection()) as conn:
                 with closing(conn.cursor()) as cursor:
@@ -219,17 +291,89 @@ def _registry_ttl() -> int:
     return int(current_app.config.get("SUPERSET_WEBSERVER_TIMEOUT", 60))
 
 
+class _StopSink:
+    """The cursor sink behind ``cancellable_chart_query``.
+
+    Republishes the handle for every cursor rather than only the first: one
+    query object can execute several statements in turn (e.g. the grouping-sets
+    fallback), each on whatever connection the pool hands out, and the handle
+    must always name the operation that is executing right now. Cursors on other
+    databases (e.g. an annotation layer's source chart) never publish, since
+    their id would be cancelled against the wrong database, but a Stop still
+    keeps their statements from starting.
+    """
+
+    def __init__(self, user_id: int, client_id: str, database: "Database") -> None:
+        self._user_id = user_id
+        self._client_id = client_id
+        self._database = database
+        self._database_id = database.id
+        # Engines without an id before execution (Impala) expose the id of a
+        # single submitted operation, so it is read after each submission rather
+        # than once when the cursor opens; see ``CursorPhase``.
+        self._after_submission = not database.db_engine_spec.has_query_id_before_execute
+        self._published_id: str | None = None
+        self.captured = False
+
+    def __call__(
+        self, cursor: Any, cursor_database: "Database", phase: CursorPhase
+    ) -> None:
+        own = cursor_database.id == self._database_id
+        if phase == CursorPhase.OPENED:
+            if own and not self._after_submission:
+                self._publish(cursor)
+        elif phase == CursorPhase.SUBMITTING:
+            if own and self._after_submission:
+                self._retire()
+            # A Stop recorded before this statement had a handle to cancel is
+            # honoured by not running the statement at all.
+            if chart_query_cancel_requested(self._client_id):
+                raise ChartQueryStoppedError(_("Query was stopped"))
+        elif phase == CursorPhase.SUBMITTED:
+            if own and self._after_submission:
+                self._publish(cursor)
+        elif own:
+            self._retire()
+
+    def _publish(self, cursor: Any) -> None:
+        cancel_id = capture_cancel_query_id(self._database, cursor)
+        if cancel_id is None:
+            return
+        self.captured = True
+        self._published_id = cancel_id
+        _publish_cancel_handle(
+            self._user_id, self._client_id, self._database_id, cancel_id
+        )
+        # A Stop landing before the publish saw no handle to kill; recheck now
+        # that the handle is visible.
+        if chart_query_cancel_requested(self._client_id):
+            self._retire()
+            if self._after_submission:
+                # The statement was already submitted and keeps running on the
+                # warehouse unless it is cancelled here.
+                cancel_chart_query(self._database, cancel_id)
+            raise ChartQueryStoppedError(_("Query was stopped"))
+
+    def _retire(self) -> None:
+        # The operation the handle names is over: a Stop must never cancel it,
+        # least of all a pooled session that has moved on to other work.
+        if self._published_id is not None:
+            _discard_cancel_handle(self._user_id, self._client_id, self._published_id)
+            self._published_id = None
+
+
 @contextmanager
 def cancellable_chart_query(
     client_id: "str | None", database: "Database | None"
 ) -> Iterator[None]:
     """Let the requesting user cancel this synchronous chart query by ``client_id``.
 
-    Captures the engine cancel id off the live cursor (for engines that expose
-    one before execution) and publishes it so a concurrent Stop request — which
-    lands on a different worker while this one is blocked on the query — can kill
-    the backend session. Engines without cancel support capture nothing and the
-    query stays non-cancellable, exactly as before.
+    Captures the engine cancel id off the live cursor (when it opens, or after
+    each submission for engines that expose an id only then) and publishes it so
+    a concurrent Stop request — which lands on a different worker while this one
+    is blocked on the query — can cancel the running operation. Engines without
+    cancel support capture nothing and the query stays non-cancellable, exactly
+    as before.
 
     A no-op without a ``client_id``, without a database (e.g. the annotation
     datasource, which queries Superset's own metadata DB), or for an
@@ -251,41 +395,13 @@ def cancellable_chart_query(
         yield
         return
 
-    # Rebound as non-optional locals: mypy does not carry the narrowing above
-    # into the nested function below.
-    owner_id: int = user_id
-    query_id: str = client_id
-    target: "Database" = database
-    database_id = target.id
-    captured = False
-
-    def _sink(cursor: Any) -> None:
-        # Republish for every cursor rather than only the first: one query
-        # object can execute several statements in turn (e.g. the grouping-sets
-        # fallback), each on whatever connection the pool hands out, and the
-        # handle must always name the session that is executing right now.
-        nonlocal captured
-        # A Stop recorded before this statement had a handle to cancel is
-        # honoured by not running the statement at all.
-        if chart_query_cancel_requested(query_id):
-            raise ChartQueryStoppedError(_("Query was stopped"))
-        cancel_id = capture_cancel_query_id(target, cursor)
-        if cancel_id is None:
-            return
-        captured = True
-        _publish_cancel_handle(owner_id, query_id, database_id, cancel_id)
-        # A Stop landing between the check above and the publish saw no handle
-        # to kill; recheck now that the handle is visible.
-        if chart_query_cancel_requested(query_id):
-            _discard_cancel_handle(owner_id, query_id, cancel_id)
-            raise ChartQueryStoppedError(_("Query was stopped"))
-
+    sink = _StopSink(user_id, client_id, database)
     try:
-        with capture_cancel_id(_sink):
+        with capture_cancel_id(sink):
             yield
     finally:
-        if captured:
-            _discard_cancel_handle(owner_id, query_id)
+        if sink.captured:
+            _discard_cancel_handle(user_id, client_id)
 
 
 def _publish_cancel_handle(
