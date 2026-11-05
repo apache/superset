@@ -280,6 +280,38 @@ def test_stop_between_statements_discards_results(
     assert session.query(Query).one().status == "stopped"
 
 
+def test_stop_before_later_statement_is_not_a_failure(
+    mocker: MockerFixture, session: Session, database: Database
+) -> None:
+    """A Stop after statement 1 returns early and never reaches failure handling.
+
+    Statement 1 has a result when the Stop lands, so the partial result list is
+    non-empty; only a length comparison against the script's statements sees that
+    results are missing. Zipping them instead raises a ValueError that failure
+    handling turns into STOPPED, which a status assertion alone cannot tell apart.
+    """
+    calls: list[str] = []
+
+    def execute(cursor: Any, sql: str, db_: Database) -> None:
+        calls.append(sql)
+        stop_from_other_session(session)
+
+    mocker.patch.object(database.db_engine_spec, "execute", side_effect=execute)
+    execute_statements = mocker.spy(SQLExecutor, "_execute_statements")
+    record_failure = mocker.spy(SQLExecutor, "_record_failure")
+    result = database.execute("SELECT 1 AS one; SELECT 2 AS two")
+    assert len(calls) == 1
+    assert execute_statements.spy_return == []
+    record_failure.assert_not_called()
+    assert result.status == QueryStatus.STOPPED
+    assert result.statements == []
+    assert result.error_message is None
+    session.expire_all()
+    query = session.query(Query).one()
+    assert query.status == "stopped"
+    assert query.error_message is None
+
+
 def cached_result() -> QueryResult:
     """A populated cache hit, rather than an empty-iterating MagicMock."""
     return QueryResult(
