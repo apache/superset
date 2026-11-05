@@ -42,6 +42,7 @@ _semantic_view_schema = SemanticViewListSchema()
 _EDITORS_COLUMN = "editors"
 _CHANGED_BY_COLUMN = "changed_by"
 _CERTIFIED_COLUMN = "id"
+_SOURCE_TYPES = ("all", "database", "semantic_layer")
 # The columns the combined list has filtered on from the start, with the one
 # operator each is applied with.
 _LEGACY_OPERATORS = {
@@ -103,6 +104,20 @@ class _Filters:
         which is the rule settled for it in #43829.
         """
         return self.editors_filter is not None or self.certified_filter is True
+
+
+def _text(col: str, value: Any) -> str:
+    """Check that a filter value is text, which these columns are searched with."""
+    if not isinstance(value, str):
+        raise ValueError(f"Invalid value for filter column: {col}")
+    return value
+
+
+def _choice(col: str, value: Any, choices: tuple[str, ...]) -> str:
+    """Check that a filter value is one of the values the column accepts."""
+    if value not in choices:
+        raise ValueError(f"Invalid value for filter column: {col}")
+    return str(value)
 
 
 def _layer_uuid(col: str, value: Any) -> str:
@@ -412,15 +427,12 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         if opr != _LEGACY_OPERATORS[col]:
             raise ValueError(f"Filter operation: {opr} not allowed on column: {col}")
         if col == "source_type":
-            return {"source_type": value or "all"}
+            return {"source_type": _choice(col, value or "all", _SOURCE_TYPES)}
         if value is None:
             return {}
         if col == "table_name":
-            # A name search is text; a number or list would fail in the ILIKE
-            # escaping with a 500 instead of this 400.
-            if not isinstance(value, str):
-                raise ValueError(f"Invalid value for filter column: {col}")
-            return {"name_filter": value}
+            # A number or list would fail in the ILIKE escaping with a 500.
+            return {"name_filter": _text(col, value)}
         if col == "sql":
             if value != "semantic_view" and not isinstance(value, bool):
                 raise ValueError(f"Invalid value for filter column: {col}")
@@ -434,7 +446,8 @@ class GetCombinedDatasourceListCommand(BaseCommand):
             return {"database_id": _relation_id(col, value)}
         if col == "semantic_layer_uuid":
             return {"semantic_layer_uuid": _layer_uuid(col, value)}
-        return {"schema_filter": str(value)}
+        # A list would otherwise arrive as the literal "['main']" and match nothing.
+        return {"schema_filter": _text(col, value)}
 
     @staticmethod
     def _parse_relation_filter(col: str, opr: Any, value: Any) -> dict[str, Any]:

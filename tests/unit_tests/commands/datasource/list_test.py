@@ -642,6 +642,11 @@ def test_parse_filters_rejects_wrong_operator_on_every_known_column(
         # The layer uuid is bound to a UUID column, which only fails at query time.
         {"col": "semantic_layer_uuid", "opr": "eq", "value": "not-a-uuid"},
         {"col": "semantic_layer_uuid", "opr": "eq", "value": 5},
+        # A schema name is text, and the source is one of the three the list knows.
+        {"col": "schema", "opr": "eq", "value": ["main"]},
+        {"col": "schema", "opr": "eq", "value": 5},
+        {"col": "source_type", "opr": "eq", "value": "foo"},
+        {"col": "source_type", "opr": "eq", "value": ["database"]},
     ],
 )
 def test_parse_filters_rejects_malformed_values_on_known_columns(
