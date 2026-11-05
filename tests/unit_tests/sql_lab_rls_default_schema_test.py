@@ -36,6 +36,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
 from unittest.mock import MagicMock, patch
+from uuid import uuid4
 
 import pytest
 from flask import current_app, g
@@ -281,7 +282,7 @@ def _run_sql_lab(
     from superset.models.sql_lab import Query
 
     query = Query(
-        client_id="rls_schema",
+        client_id=uuid4().hex[:11],
         database=database,
         sql=sql,
         catalog=catalog,
@@ -1061,6 +1062,8 @@ def test_executor_cte_only_query_unaffected(
 
     assert result.error_message is None
     assert CLAUSE not in result.statements[0].executed_sql
+    denied = database.execute(SQL, options=QueryOptions(dry_run=True))
+    assert "Disallowed SQL tables" in (denied.error_message or "")
 
 
 @pytest.mark.parametrize("rls", [False, True])
@@ -1093,12 +1096,15 @@ def test_sql_lab_and_estimate_cte_only_query_unaffected(
     ):
         assert CLAUSE not in _estimate(database, sql)._apply_sql_security(sql)
 
+    for path in ("sql_lab", "estimate"):
+        assert _denied(path, database, session, mocker, "public.sales")
+
 
 @with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
 @pytest.mark.parametrize("adhoc", [False, True])
 @pytest.mark.parametrize("sql", CTE_ONLY_SQL)
 def test_datasource_cte_only_query_not_denied(
-    database: Database, mocker: MockerFixture, sql: str, adhoc: bool
+    database: Database, session: Session, mocker: MockerFixture, sql: str, adhoc: bool
 ) -> None:
     """
     A datasource's query and adhoc expressions reading only a CTE whose name a
@@ -1116,6 +1122,10 @@ def test_datasource_cte_only_query_not_denied(
         )
     else:
         datasource._raise_for_disallowed_sql(sql)
+
+    assert _denied(
+        "adhoc" if adhoc else "datasource", database, session, mocker, "public.sales"
+    )
 
 
 @pytest.mark.parametrize(
@@ -1281,11 +1291,12 @@ def _rls_sql(
     mocker: MockerFixture,
     sql: str = SQL,
     catalog: str | None = None,
+    schema: str | None = None,
 ) -> str:
-    """The SQL a query without a schema runs as (or is priced as) on ``path``."""
+    """The SQL a query runs as (or is priced as) on ``path``."""
     if path.startswith("executor"):
         mocker.patch.dict(current_app.config, {"SQL_QUERY_MUTATOR": None})
-        options = QueryOptions(catalog=catalog, dry_run=True)
+        options = QueryOptions(catalog=catalog, schema=schema, dry_run=True)
         if path == "executor_async":
             result = database.execute_async(sql, options=options).get_result()
         else:
@@ -1301,7 +1312,7 @@ def _rls_sql(
                 database,
                 session,
                 mocker,
-                None,
+                schema,
                 store_results=path == "sql_lab_celery",
                 sql=sql,
                 catalog=catalog,
@@ -1315,7 +1326,9 @@ def _rls_sql(
         ),
         patch.dict(current_app.config, {"DISALLOWED_SQL_TABLES": {}}),
     ):
-        return _estimate(database, sql, catalog=catalog)._apply_sql_security(sql)
+        return _estimate(
+            database, sql, schema=schema, catalog=catalog
+        )._apply_sql_security(sql)
 
 
 # The paths that check a query against ``DISALLOWED_SQL_TABLES``
@@ -1474,8 +1487,9 @@ def test_rls_shadowed_table_gets_only_its_own_rules(
 
 
 @with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+@pytest.mark.parametrize("holding_schema", ["analyst", "public"])
 def test_adhoc_and_cache_key_shadowed_table_gets_only_its_own_rules(
-    shadowed: Database,
+    shadowed: Database, mocker: MockerFixture, holding_schema: str
 ) -> None:
     """
     An adhoc sub-query and the RLS cache key, which resolve the search path without
@@ -1484,6 +1498,8 @@ def test_adhoc_and_cache_key_shadowed_table_gets_only_its_own_rules(
     from superset.models.helpers import validate_adhoc_subquery
     from superset.utils.rls import collect_rls_predicates_for_sql, get_rls_schema
 
+    _connect(mocker, "analyst", ["analyst", "public"], {"sales": holding_schema})
+    own, other = (WEST, CLAUSE) if holding_schema == "analyst" else (CLAUSE, WEST)
     adhoc = validate_adhoc_subquery(f"({SQL})", shadowed, None, "", "postgresql")
     keys = collect_rls_predicates_for_sql(
         SQL,
@@ -1493,15 +1509,16 @@ def test_adhoc_and_cache_key_shadowed_table_gets_only_its_own_rules(
         resolve_schema=lambda: get_rls_schema(shadowed, None, None, SQL),
     )
 
-    assert WEST in adhoc
-    assert CLAUSE not in adhoc
-    assert any(WEST in key for key in keys)
-    assert not any(CLAUSE in key for key in keys)
+    assert own in adhoc
+    assert other not in adhoc
+    assert any(own in key for key in keys)
+    assert not any(other in key for key in keys)
 
 
 @pytest.mark.parametrize("datasource", ["dataset", "query"])
+@pytest.mark.parametrize("holding_schema", ["analyst", "public"])
 def test_virtual_dataset_shadowed_table_gets_only_its_own_rules(
-    shadowed: Database, datasource: str
+    shadowed: Database, mocker: MockerFixture, datasource: str, holding_schema: str
 ) -> None:
     """
     A virtual dataset's SQL, and a SQL Lab query used as a datasource, give an
@@ -1510,6 +1527,8 @@ def test_virtual_dataset_shadowed_table_gets_only_its_own_rules(
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.sql_lab import Query
 
+    _connect(mocker, "analyst", ["analyst", "public"], {"sales": holding_schema})
+    own, other = (WEST, CLAUSE) if holding_schema == "analyst" else (CLAUSE, WEST)
     virtual = (
         SqlaTable(table_name="virtual", sql=SQL, schema=None, database=shadowed)
         if datasource == "dataset"
@@ -1519,8 +1538,8 @@ def test_virtual_dataset_shadowed_table_gets_only_its_own_rules(
     from_clause, _ = virtual.get_from_clause()
     sql = str(from_clause.compile(compile_kwargs={"literal_binds": True}))
 
-    assert WEST in sql
-    assert CLAUSE not in sql
+    assert own in sql
+    assert other not in sql
 
 
 @pytest.mark.parametrize("path", DENYLIST_PATHS)
@@ -1613,6 +1632,7 @@ def test_denylist_implicit_pg_catalog_table(
         ("SELECT * FROM no_rules", {}),
         # the table read has no rule, although one it shadows has
         (SQL, {"sales": "analyst"}),
+        (SQL, {"sales": "public"}),
     ],
 )
 def test_virtual_dataset_rls_failure_without_applicable_rule_continues(
@@ -1623,7 +1643,7 @@ def test_virtual_dataset_rls_failure_without_applicable_rule_continues(
 ) -> None:
     """
     When RLS can't be injected into a virtual dataset's SQL but no rule applies to
-    the tables it reads, the query still runs.
+    the tables it reads, the query still runs. An applicable rule fails closed.
     """
     from superset.connectors.sqla.models import SqlaTable
 
@@ -1636,6 +1656,13 @@ def test_virtual_dataset_rls_failure_without_applicable_rule_continues(
     virtual = SqlaTable(
         table_name="virtual", sql=sql, schema=None, database=user_schema_first
     )
+
+    if tables.get("sales") == "public":
+        from superset.exceptions import QueryObjectValidationError
+
+        with pytest.raises(QueryObjectValidationError):
+            virtual.get_from_clause()
+        return
 
     from_clause, _ = virtual.get_from_clause()
 
@@ -2148,6 +2175,17 @@ def test_denylist_table_naming_a_catalog_not_matched_in_the_query_schema(
         session,
         mocker,
         entry,
+        OTHER_CATALOG_SQL,
+        catalog="MAIN",
+        engine="snowflake",
+    )
+
+    assert _denied(
+        path,
+        cross_catalog,
+        session,
+        mocker,
+        "PUBLIC.SALES",
         OTHER_CATALOG_SQL,
         catalog="MAIN",
         engine="snowflake",
@@ -2669,12 +2707,14 @@ def test_denylist_table_naming_a_catalog_of_unknown_schema_other_engines(
 
 @pytest.mark.parametrize("path", RLS_PATHS)
 @pytest.mark.parametrize("sql_name", list(SAME_NAME_SQL))
+@pytest.mark.parametrize("schema", [None, "ANALYTICS"])
 def test_rls_tables_of_one_name_in_two_schemas_end_to_end(
     cross_catalog: Database,
     session: Session,
     mocker: MockerFixture,
     path: str,
     sql_name: str,
+    schema: str | None,
 ) -> None:
     """
     In a query running in ``OTHERDB``, the rule on ``OTHERDB.PUBLIC.SALES`` applies
@@ -2686,12 +2726,44 @@ def test_rls_tables_of_one_name_in_two_schemas_end_to_end(
     expected = (
         2
         if sql_name == "catalog_and_unqualified"
+        and schema is None
         and ("/PUBLIC" in cross_catalog.sqlalchemy_uri)
         else 1
     )
 
     executed_sql = _rls_sql(
-        path, cross_catalog, session, mocker, SAME_NAME_SQL[sql_name], catalog="OTHERDB"
+        path,
+        cross_catalog,
+        session,
+        mocker,
+        SAME_NAME_SQL[sql_name],
+        catalog="OTHERDB",
+        schema=schema,
     )
 
-    assert executed_sql.count(CLAUSE) == expected
+    protected, other = executed_sql.split("UNION ALL")
+    assert protected.count(CLAUSE) == 1
+    assert other.count(CLAUSE) == expected - 1
+
+
+def test_unknown_catalog_schema_and_search_path_share_all_applicable_rules(
+    other_engine_catalog: Database,
+) -> None:
+    """An unknown catalog schema cannot lose rules to a resolved bare reference."""
+    from superset.sql.parse import SQLScript
+    from superset.utils.rls import apply_rls, SearchPath
+
+    # Both references have an unresolved key schema, but only the catalog-only
+    # reference may read sales_s.SALES. Its rule must survive the shared key.
+    schema = SearchPath(other_engine_catalog, "OTHERDB", ["dbo", "sales_s"])
+    schema.record([Table("SALES")], {"SALES": ["dbo"]})
+    statement = SQLScript(
+        "SELECT region FROM OTHERDB..SALES UNION ALL SELECT region FROM SALES",
+        engine=other_engine_catalog.db_engine_spec.engine,
+    ).statements[0]
+
+    apply_rls(other_engine_catalog, "OTHERDB", schema, statement)
+
+    protected, other = statement.format().split("UNION ALL")
+    assert protected.count(CLAUSE) == 1
+    assert other.count(CLAUSE) == 1
