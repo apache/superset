@@ -24,6 +24,21 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Aborting or timing out an async chart-data query on Impala now cancels the
+  statement that is running. The cancel used to target the `USE <database>`
+  operation the driver runs when it opens a cursor, so the query ran to
+  completion, and without a database in the URL the task could not be aborted
+  at all. The cancel still goes through the coordinator's web UI
+  (`http://<host>:25000`), so the backend must reach that port, and a private or
+  internal coordinator needs `IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS = True`.
+  On engines whose chart-data cancel id is captured (Impala, and engines that
+  expose a session id when the cursor opens, such as PostgreSQL, MySQL,
+  Snowflake and Redshift), a chart-data task that is aborting starts no further
+  statements, such as a time comparison's offset query, and its partial result
+  is not cached. Engines whose cancel id only exists once a query is running,
+  such as Trino, still cannot cancel chart-data queries: their tasks stay
+  non-abortable, as before.
+
 - **Semantic-layer schema readiness and failures.** Both provider schema hooks
   require keyword-only `readiness: SemanticCredentialReadiness` alongside
   `transport`. This plain Enum is exported by `superset_core.semantic_layers`.
@@ -180,13 +195,21 @@ assists people when migrating to a new version.
   Lab stop on Impala is delivered to the worker that is polling the query, which
   cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP
   cancel invalidated the handle the worker was still polling, so the run failed
-  instead of ending as stopped. When no worker is polling, the query is marked
-  stopped but Impala keeps running it and holds its admission slot until it
-  finishes or Impala closes it: for example when the worker has died or
-  restarted, or when the stop arrives while results are being fetched.
-  Operators who relied on the HTTP cancel to free admission slots in those cases
-  should rely on Impala's own query and session timeouts. Chart and MCP
-  cancellation still use the HTTP cancel.
+  instead of ending as stopped. The worker also checks for a stop between result
+  RPCs while it fetches, so a stop still reaches a query that Impala already
+  reports as finished, which a streaming `SELECT` does almost at once. The
+  worker checks between result RPCs, at most once per `DB_POLL_INTERVAL_SECONDS`
+  (5 seconds for Impala by default), and Impala returns each RPC within
+  `FETCH_ROWS_TIMEOUT_MS` (10 seconds by default), so such a stop takes effect
+  within about the sum of the two. Setting `FETCH_ROWS_TIMEOUT_MS=0` disables
+  that timeout and can delay a stop until the fetch returns.
+  When no worker is polling or fetching, for example because it has died or
+  restarted, the query is marked stopped but Impala keeps running it and holds
+  its admission slot until it finishes or Impala closes it. Impala checks for
+  cancellation between row batches, so a batch whose rows are slow to compute
+  runs to its end first. Operators who relied on the HTTP cancel to free
+  admission slots in those cases should rely on Impala's own query and session
+  timeouts. Chart and MCP cancellation still use the HTTP cancel.
 - `POST /api/v1/query/stop` returns HTTP 422 instead of 200 when the query
   has already finished or its worker has committed the target transaction.
   The response contains `message: "Could not cancel query"` and the recorded

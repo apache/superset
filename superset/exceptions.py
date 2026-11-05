@@ -357,6 +357,10 @@ class SupersetCancelQueryException(SupersetException):
     status = 422
 
 
+class QueryStoppedException(SupersetException):
+    """An engine ended a query's execution because a stop was committed for it."""
+
+
 class QueryNotFoundException(SupersetException):
     status = 404
 
