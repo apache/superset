@@ -330,6 +330,16 @@ def execute_query(  # pylint: disable=too-many-statements, too-many-locals  # no
     database: Database = query.database
     db_engine_spec = database.db_engine_spec
 
+    with db_engine_spec.cursor_context(cursor):
+        return _execute_query(query, cursor, log_params)
+
+
+def _execute_query(
+    query: Query, cursor: Any, log_params: Optional[dict[str, Any]] = None
+) -> SupersetResultSet:
+    """Run a statement inside the engine's interruption-safe cursor scope."""
+    database = query.database
+    db_engine_spec = database.db_engine_spec
     try:
         log_query = app.config["QUERY_LOGGER"]
         if log_query:
@@ -903,6 +913,7 @@ def cancel_query(query: Query) -> bool:
         source=QuerySource.SQL_LAB,
     ) as engine:
         with closing(engine.raw_connection()) as conn:
+            query.database.db_engine_spec.prepare_connection(conn.dbapi_connection)
             with closing(conn.cursor()) as cursor:
                 return query.database.db_engine_spec.cancel_query(
                     cursor, query, cancel_query_id
