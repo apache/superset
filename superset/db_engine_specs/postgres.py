@@ -181,6 +181,30 @@ def _quote_identifier(name: str) -> str:
     return '"' + name.replace('"', '""') + '"'
 
 
+_ASCII_UPPER_TO_LOWER = {code: code + 32 for code in range(ord("A"), ord("Z") + 1)}
+# an identifier ``to_regclass`` reads as one name, folded the way a query's is
+_PLAIN_IDENTIFIER = re.compile(r"[^\W\d][\w$]*")
+
+
+def _table_spellings(name: str) -> list[str]:
+    """
+    The spellings of a table name to look up, each as ``to_regclass`` reads it.
+
+    A parsed reference no longer says whether its name was quoted, which decides
+    whether Postgres folds it. Folding an unquoted name lower-cases ASCII letters
+    only in a UTF-8 database, so ``str.lower`` would name a table (``venté``) the
+    query never reads (``ventÉ``). A name with other letters is also passed
+    unquoted, for Postgres to fold the way its encoding does.
+    """
+    spellings = [
+        _quote_identifier(name),
+        _quote_identifier(name.translate(_ASCII_UPPER_TO_LOWER)),
+    ]
+    if not name.isascii() and _PLAIN_IDENTIFIER.fullmatch(name):
+        spellings.append(name)
+    return utils.remove_duplicates(spellings)
+
+
 class PostgresBaseEngineSpec(BaseEngineSpec):
     """Abstract class for Postgres 'like' databases"""
 
@@ -795,17 +819,11 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         schemas Postgres searches, in order, including the ``pg_catalog`` it
         searches first when the path doesn't name it, and ``to_regclass`` resolves
         a table name the way a query does. A parsed reference no longer says
-        whether its name was quoted, which decides whether Postgres folds it to
-        lower case, so both spellings are looked up and every schema holding
-        either is returned.
+        whether its name was quoted, which decides whether Postgres folds it, so
+        both spellings are looked up (see ``_table_spellings``) and every schema
+        holding either is returned.
         """
-        spellings = {
-            table: [
-                _quote_identifier(name)
-                for name in utils.remove_duplicates([table, table.lower()])
-            ]
-            for table in tables
-        }
+        spellings = {table: _table_spellings(table) for table in tables}
         with database.get_raw_connection(catalog=catalog) as connection:
             cursor = connection.cursor()
             cursor.execute("SELECT pg_catalog.current_schemas(true)::text[]")

@@ -1009,6 +1009,41 @@ def test_get_search_path_without_tables(mocker: MockerFixture) -> None:
     assert cursor.return_value.execute.call_args.args[1] == (['"a""b"'],)
 
 
+@pytest.mark.parametrize(
+    "table, spellings",
+    [
+        # either spelling of an ASCII name, since it may have been quoted
+        ("Sales", ['"Sales"', '"sales"']),
+        ("sales", ['"sales"']),
+        # Postgres folds ASCII letters only: ``VENTÉ`` is read as ``ventÉ``, never
+        # the ``venté`` ``str.lower`` makes of it. The name is also passed unquoted
+        # for a database whose encoding folds other letters as well.
+        ("VENTÉ", ['"VENTÉ"', '"ventÉ"', "VENTÉ"]),
+        ("ventÉ", ['"ventÉ"', "ventÉ"]),
+        # a name ``to_regclass`` would read as several isn't passed unquoted
+        ("A.É", ['"A.É"', '"a.É"']),
+    ],
+)
+def test_get_search_path_folds_ascii_letters_only(
+    mocker: MockerFixture, table: str, spellings: list[str]
+) -> None:
+    """
+    DB Eng Specs (postgres): ``get_search_path`` looks a table up under the names
+    Postgres reads it as, folding ASCII letters only, so the schema it returns is
+    the one holding the table the query reads (a ``ventÉ`` in ``public`` isn't
+    shadowed by a ``venté`` in the user's schema).
+    """
+    database = _search_path_database(
+        mocker, (["pg_catalog", "analyst", "public"],), [('"ventÉ"', "public")]
+    )
+    cursor = database.get_raw_connection.return_value.__enter__.return_value.cursor
+
+    found = spec.get_search_path(database, None, [table])
+
+    assert cursor.return_value.execute.call_args.args[1] == (spellings,)
+    assert found[1] == ({table: ["public"]} if '"ventÉ"' in spellings else {})
+
+
 @pytest.mark.parametrize("search_path", [None, ("{analyst,public}",)])
 def test_get_search_path_unreadable(mocker: MockerFixture, search_path: Any) -> None:
     """

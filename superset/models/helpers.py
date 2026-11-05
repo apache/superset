@@ -131,6 +131,8 @@ from superset.exceptions import (
     AdvancedDataTypeResponseError,
     ColumnNotFoundException,
     InvalidPostProcessingError,
+    OAuth2Error,
+    OAuth2RedirectError,
     QueryClauseValidationException,
     QueryObjectValidationError,
     SupersetDisallowedSQLFunctionException,
@@ -202,6 +204,7 @@ from superset.utils.rls import (
     qualify_table,
     reads_unqualified_table,
     RLSSchema,
+    SearchPath,
 )
 
 
@@ -4321,14 +4324,26 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return self.db_engine_spec.get_text_clause(clause)
 
     def _get_rls_schema(self) -> RLSSchema:
-        """Resolve RLS tables with the same schema policy as SQL expressions."""
-        return get_rls_schema(
+        """
+        Resolve RLS tables with the same schema policy as SQL expressions.
+
+        The search path a dataset without a schema is read through is kept on the
+        instance, so its cache key and the query itself look each table up on it
+        once between them, rather than each connecting to the database.
+        """
+        key = (self.catalog, self.schema)
+        if (cached := getattr(self, "_rls_search_path", None)) and cached[0] == key:
+            return cached[1]
+        rls_schema = get_rls_schema(
             self.database,
             self.catalog,
             self.schema,
             self.sql or "",
             self.template_params_dict,
         )
+        if isinstance(rls_schema, SearchPath):
+            self._rls_search_path = (key, rls_schema)
+        return rls_schema
 
     def _get_filter_column(
         self,
@@ -4768,6 +4783,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 if rls_applied:
                     from_sql = parsed_script.format()
 
+            except (OAuth2RedirectError, OAuth2Error):
+                # the user has to sign in to the database to look up the tables
+                raise
             except Exception as ex:  # pylint: disable=broad-except
                 # A caught DB error can leave db.session in "pending rollback"
                 # state, which would poison unrelated queries later in this request.

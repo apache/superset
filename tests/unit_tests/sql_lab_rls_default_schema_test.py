@@ -650,23 +650,26 @@ def test_get_unqualified_table_schemas(
     "search_path, expected",
     [
         # a single schema is where every unqualified table is read from
-        (["public"], "public"),
-        ([], ""),
+        (["public"], ("public",)),
         # several need a table looked up to know which of them it's read from
         (["analyst", "public"], ("analyst", "public")),
-        # and when the connection can't be asked, none is known
+        # none is known when the path is empty, or the connection can't be asked
+        ([], None),
         (Exception("permission denied"), None),
     ],
 )
 def test_get_unqualified_table_schemas_without_statements(
+    mocker: MockerFixture,
     search_path: list[str] | Exception,
-    expected: str | tuple[str, ...] | None,
+    expected: tuple[str, ...] | None,
 ) -> None:
     """
-    Without the statements the search path is read without looking a table up.
+    Without the statements the search path is read when a table first needs it, not
+    before, and with that table.
     """
     from superset.utils.rls import get_unqualified_table_schemas, SearchPath
 
+    mocker.patch("superset.utils.rls.is_table_controlled", return_value=True)
     database = MagicMock()
     database.db_engine_spec.supports_dynamic_schema = True
     if isinstance(search_path, Exception):
@@ -676,12 +679,10 @@ def test_get_unqualified_table_schemas_without_statements(
 
     result = get_unqualified_table_schemas(database, "cat", None)
 
-    database.get_search_path.assert_called_once_with("cat", [])
-    if isinstance(expected, str):
-        assert result == expected
-    else:
-        assert isinstance(result, SearchPath)
-        assert result.schemas == expected
+    assert isinstance(result, SearchPath)
+    database.get_search_path.assert_not_called()
+    assert result.schemas_for("sales") == expected
+    database.get_search_path.assert_called_once_with("cat", ["sales"])
 
 
 @pytest.mark.parametrize(
@@ -1603,3 +1604,376 @@ def test_virtual_dataset_rls_failure_without_applicable_rule_continues(
     from_clause, _ = virtual.get_from_clause()
 
     assert "cannot apply" not in str(from_clause)
+
+
+# A table no rule, and no entry of the denylist below, is about
+UNCONTROLLED_SQL = "SELECT region, amount FROM unrelated"
+
+
+@pytest.mark.parametrize("path", RLS_PATHS)
+def test_rls_search_path_not_read_when_no_rule_could_match(
+    database: Database,
+    session: Session,
+    mocker: MockerFixture,
+    path: str,
+) -> None:
+    """
+    No rule is about a table named ``unrelated`` in any schema, so which schema an
+    unqualified one is read from doesn't matter: the connection isn't asked
+    for its search path, as it wasn't before the search path was taken into account.
+    """
+    get_search_path = mocker.spy(Database, "get_search_path")
+
+    executed_sql = _rls_sql(path, database, session, mocker, UNCONTROLLED_SQL)
+
+    assert CLAUSE not in executed_sql
+    get_search_path.assert_not_called()
+
+
+@pytest.mark.parametrize("path", RLS_PATHS)
+def test_rls_search_path_read_once_when_a_rule_could_match(
+    database: Database,
+    session: Session,
+    mocker: MockerFixture,
+    path: str,
+) -> None:
+    """
+    A rule is about ``sales`` in some schema, so the connection is asked which
+    schema an unqualified one is read from, once, and the rule applied.
+    """
+    get_search_path = mocker.spy(Database, "get_search_path")
+
+    assert CLAUSE in _rls_sql(path, database, session, mocker)
+
+    assert get_search_path.call_count == 1
+
+
+@pytest.mark.parametrize("path", DENYLIST_PATHS)
+@pytest.mark.parametrize("entry", ["public.secrets", "Archive.Secrets"])
+def test_denylist_search_path_not_read_when_no_entry_could_match(
+    database: Database,
+    session: Session,
+    mocker: MockerFixture,
+    path: str,
+    entry: str,
+) -> None:
+    """
+    No entry of the denylist names a table called ``unrelated`` in any schema, so
+    a query reading one doesn't open the connection to find which schema it's in.
+    """
+    get_search_path = mocker.spy(Database, "get_search_path")
+
+    assert not _denied(path, database, session, mocker, entry, UNCONTROLLED_SQL)
+
+    get_search_path.assert_not_called()
+
+
+@pytest.mark.parametrize("path", DENYLIST_PATHS)
+def test_denylist_search_path_read_when_an_entry_could_match(
+    database: Database,
+    session: Session,
+    mocker: MockerFixture,
+    path: str,
+) -> None:
+    """
+    An entry names ``sales`` in some schema, so the connection is asked which
+    schema an unqualified one is read from, and the entry matches it.
+    """
+    get_search_path = mocker.spy(Database, "get_search_path")
+
+    assert _denied(path, database, session, mocker, "public.sales")
+
+    assert get_search_path.call_count >= 1
+
+
+def test_virtual_dataset_search_path_not_read_when_no_rule_could_match(
+    database: Database, mocker: MockerFixture
+) -> None:
+    """
+    A virtual dataset without a schema reads no search path for tables no rule is
+    about, for its cache key or its query.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    get_search_path = mocker.spy(Database, "get_search_path")
+    connect = Database.get_raw_connection
+    virtual = SqlaTable(
+        table_name="virtual", sql=UNCONTROLLED_SQL, schema=None, database=database
+    )
+
+    assert virtual.get_inner_rls_cache_key() == []
+    virtual.get_from_clause()
+
+    get_search_path.assert_not_called()
+    connect.assert_not_called()  # type: ignore[attr-defined]
+
+
+def test_virtual_dataset_cache_key_and_query_read_search_path_once(
+    user_schema_first: Database, mocker: MockerFixture
+) -> None:
+    """
+    A virtual dataset's RLS cache key and its query look an unqualified table up on
+    the search path once between them, and agree on the rule that applies.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    get_search_path = mocker.spy(Database, "get_search_path")
+    virtual = SqlaTable(
+        table_name="virtual", sql=SQL, schema=None, database=user_schema_first
+    )
+
+    keys = virtual.get_inner_rls_cache_key()
+    from_clause, _ = virtual.get_from_clause()
+
+    assert any(CLAUSE in key for key in keys)
+    assert CLAUSE in str(from_clause)
+    assert get_search_path.call_count == 1
+
+
+def test_virtual_dataset_search_path_discovery_failure_fails_closed(
+    discovery_denied: Database,
+) -> None:
+    """
+    A virtual dataset whose search path can't be read still gets the rules of its
+    tables in any schema, in its cache key and its query.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    virtual = SqlaTable(
+        table_name="virtual", sql=SQL, schema=None, database=discovery_denied
+    )
+
+    keys = virtual.get_inner_rls_cache_key()
+    from_clause, _ = virtual.get_from_clause()
+
+    assert any(CLAUSE in key for key in keys)
+    assert CLAUSE in str(from_clause)
+
+
+def _oauth2_redirect() -> Exception:
+    from superset.exceptions import OAuth2RedirectError
+
+    return OAuth2RedirectError("https://idp/auth", "tab", "https://superset/oauth2")
+
+
+@pytest.fixture
+def needs_oauth2(database: Database, mocker: MockerFixture) -> Database:
+    """A connection that asks the user to sign in before it answers anything."""
+    _connect(mocker, "public", SEARCH_PATH, error=_oauth2_redirect())
+    return database
+
+
+@pytest.mark.parametrize("path", ["executor", "executor_async", "estimate"])
+def test_rls_search_path_oauth2_redirect_propagates(
+    needs_oauth2: Database,
+    session: Session,
+    mocker: MockerFixture,
+    path: str,
+) -> None:
+    """
+    A connection that needs the user to sign in prompts them to, rather than the
+    lookup falling back to matching a table in every schema.
+    """
+    from superset.exceptions import OAuth2RedirectError
+
+    with pytest.raises(OAuth2RedirectError):
+        _rls_sql(path, needs_oauth2, session, mocker)
+
+
+@pytest.mark.parametrize("store_results", [False, True])
+def test_sql_lab_rls_search_path_oauth2_redirect_prompts_sign_in(
+    needs_oauth2: Database,
+    session: Session,
+    mocker: MockerFixture,
+    store_results: bool,
+) -> None:
+    """
+    SQL Lab reports the redirect to sign in, and doesn't run the query.
+    """
+    from superset.errors import SupersetErrorType
+
+    with patch(
+        "superset.sql_lab.is_feature_enabled",
+        side_effect=lambda flag: flag == "RLS_IN_SQLLAB",
+    ):
+        executed, payload = _run_sql_lab(
+            needs_oauth2, session, mocker, None, store_results=store_results
+        )
+
+    assert executed == []
+    assert payload is not None
+    assert payload["errors"][0]["error_type"] == SupersetErrorType.OAUTH2_REDIRECT
+
+
+def test_denylist_search_path_oauth2_redirect_propagates(
+    needs_oauth2: Database, session: Session, mocker: MockerFixture
+) -> None:
+    """
+    The denylist check prompts the user to sign in too.
+    """
+    from superset.exceptions import OAuth2RedirectError
+
+    with pytest.raises(OAuth2RedirectError):
+        _denied("datasource", needs_oauth2, session, mocker, "public.sales")
+
+
+def test_virtual_dataset_oauth2_redirect_propagates(needs_oauth2: Database) -> None:
+    """
+    A virtual dataset's query and RLS cache key prompt the user to sign in, rather
+    than the redirect being reported as RLS that could not be applied, or keyed on
+    a per-viewer marker.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import OAuth2RedirectError
+
+    virtual = SqlaTable(
+        table_name="virtual", sql=SQL, schema=None, database=needs_oauth2
+    )
+
+    with pytest.raises(OAuth2RedirectError):
+        virtual.get_inner_rls_cache_key()
+    with pytest.raises(OAuth2RedirectError):
+        virtual.get_from_clause()
+
+
+def test_search_path_oauth2_errors_propagate(mocker: MockerFixture) -> None:
+    """
+    Both errors that ask the user to sign in propagate out of the lookup, while any
+    other failure leaves the schema unknown.
+    """
+    from superset.exceptions import OAuth2Error
+    from superset.utils.rls import get_unqualified_table_schemas, SearchPath
+
+    mocker.patch("superset.utils.rls.is_table_controlled", return_value=True)
+    database = MagicMock()
+    database.db_engine_spec.supports_dynamic_schema = True
+    statements = _statements(SQL)
+
+    for error in (_oauth2_redirect(), OAuth2Error("denied")):
+        database.get_search_path.side_effect = error
+        with pytest.raises(type(error)):
+            get_unqualified_table_schemas(database, None, None, statements)
+        with pytest.raises(type(error)):
+            SearchPath.deferred(database, None).schemas_for("sales")
+        with pytest.raises(type(error)):
+            SearchPath(database, None, ["a", "b"]).schemas_for("sales")
+
+    database.get_search_path.side_effect = ValueError("permission denied")
+    failed = get_unqualified_table_schemas(database, None, None, statements)
+    assert isinstance(failed, SearchPath)
+    assert failed.schemas is None
+    assert SearchPath.deferred(database, None).schemas_for("sales") is None
+
+
+@pytest.mark.parametrize(
+    "entry, name, controlled",
+    [
+        # an entry naming the table in some schema, whatever its case
+        ("public.secrets", "secrets", True),
+        ("Public.Secrets", "SECRETS", True),
+        ("db.public.secrets", "secrets", True),
+        # not one for another table, nor a bare one, which needs no schema
+        ("public.secrets", "sales_secrets", False),
+        ("secrets", "secrets", False),
+    ],
+)
+def test_is_table_controlled_by_denylist(
+    database: Database, mocker: MockerFixture, entry: str, name: str, controlled: bool
+) -> None:
+    """
+    Only a schema-qualified denylist entry makes the schema an unqualified table
+    is read from matter.
+    """
+    from superset.utils.rls import is_table_controlled
+
+    mocker.patch.dict(current_app.config, _denylist(entry))
+
+    assert is_table_controlled(database, None, name) is controlled
+
+
+def test_is_table_controlled_by_rls(database: Database) -> None:
+    """
+    A table is controlled when a dataset of its name, in any schema, has a rule;
+    Postgres folds the case of a name, so a dataset registered in lower case does.
+    """
+    from superset.utils.rls import is_table_controlled
+
+    assert is_table_controlled(database, None, "sales")
+    assert is_table_controlled(database, None, "Sales")
+    assert is_table_controlled(database, None, "unrelated") is False
+
+
+def test_is_table_controlled_when_rules_cannot_be_read(
+    database: Database, mocker: MockerFixture
+) -> None:
+    """
+    When the rules of a table can't be looked up, one is assumed to match.
+    """
+    from superset.utils.rls import is_table_controlled
+
+    mocker.patch(
+        "superset.utils.rls.get_predicates_for_table", side_effect=ValueError("boom")
+    )
+    rollback = mocker.patch("superset.utils.rls.db.session.rollback")
+
+    assert is_table_controlled(database, None, "unrelated")
+    rollback.assert_called_once()
+
+
+def test_search_path_skips_uncontrolled_tables(mocker: MockerFixture) -> None:
+    """
+    ``resolve`` looks up only the tables a control may match; the others are
+    unknown, which a control that can't match them in any schema ignores.
+    """
+    from superset.utils.rls import SearchPath
+
+    mocker.patch(
+        "superset.utils.rls.is_table_controlled",
+        side_effect=lambda database, catalog, table: table == "sales",
+    )
+    database = MagicMock()
+    database.get_search_path.return_value = (["analyst", "public"], {})
+    path = SearchPath.deferred(database, "cat")
+
+    assert path.schemas_for("other") is None
+    database.get_search_path.assert_not_called()
+    assert path.schemas_for("sales") == ("analyst", "public")
+    database.get_search_path.assert_called_once_with("cat", ["sales"])
+    assert path.schemas_for("other") is None
+    assert path.schemas_for("sales") == ("analyst", "public")
+    database.get_search_path.assert_called_once()
+
+
+def test_get_unqualified_table_schemas_skips_uncontrolled_tables(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A query reading only tables no control may match needs no search path, and so
+    no connection, on any dynamic-schema engine; the others are looked up with it.
+    """
+    from superset.utils.rls import get_unqualified_table_schemas, SearchPath
+
+    mocker.patch(
+        "superset.utils.rls.is_table_controlled",
+        side_effect=lambda database, catalog, table: table == "sales",
+    )
+    database = MagicMock()
+    database.db_engine_spec.supports_dynamic_schema = True
+    database.get_search_path.return_value = (["analyst", "public"], {})
+
+    assert (
+        get_unqualified_table_schemas(
+            database, None, None, _statements("SELECT * FROM a JOIN b ON 1 = 1")
+        )
+        == ""
+    )
+    database.get_search_path.assert_not_called()
+    database.get_inspector.assert_not_called()
+    database.get_raw_connection.assert_not_called()
+
+    result = get_unqualified_table_schemas(
+        database, None, None, _statements("SELECT * FROM a JOIN sales ON 1 = 1")
+    )
+
+    assert isinstance(result, SearchPath)
+    database.get_search_path.assert_called_once_with(None, ["sales"])

@@ -22,9 +22,11 @@ from collections.abc import Callable, Iterable
 from functools import partial
 from typing import Any, TYPE_CHECKING
 
+from flask import current_app
 from sqlalchemy import and_, func, or_, true
 
 from superset import db, security_manager
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.sql.parse import folds_unquoted_object_names, Table
 from superset.utils import json
 from superset.utils.core import get_user_id, remove_duplicates
@@ -67,7 +69,9 @@ class SearchPath:
     A connection searching several schemas reads the first table of the name it
     finds, so which schema that is isn't known without asking it (see
     ``Database.get_search_path``). Tables are looked up as they're needed, each at
-    most once, and a batch passed to ``resolve`` in one round trip.
+    most once, and a batch passed to ``resolve`` in one round trip. Asking
+    connects to the database, so a table no control could match in any schema
+    (see ``is_table_controlled``) isn't looked up at all.
     """
 
     def __init__(
@@ -84,28 +88,51 @@ class SearchPath:
         self.catalog = catalog
         self.schemas = None if schemas is None else tuple(schemas)
         self._tables: dict[str, tuple[str, ...] | None] = {}
+        self._discovered = True
+
+    @classmethod
+    def deferred(cls, database: Database, catalog: str | None) -> SearchPath:
+        """
+        A search path that's read from the connection when a table first needs it,
+        for a caller that doesn't know the tables it will be asked about.
+        """
+        search_path = cls(database, catalog, None)
+        search_path._discovered = False
+        return search_path
 
     def resolve(self, tables: Iterable[str]) -> None:
         """
         Look up the tables not looked up yet.
 
         A failed lookup leaves which schema they're read from unknown, rather than
-        guessing one (see ``schemas_for``).
+        guessing one (see ``schemas_for``). A failure to authenticate isn't one: the
+        user has to sign in, so it's raised.
         """
         missing = sorted(set(tables) - self._tables.keys())
-        if not missing:
+        controlled = [
+            table
+            for table in missing
+            if is_table_controlled(self.database, self.catalog, table)
+        ]
+        for table in set(missing) - set(controlled):
+            # no control matches a table of this name, whichever schema holds it
+            self._tables[table] = None
+        if not controlled:
             return
         found: dict[str, list[str]] = {}
-        if self.schemas is not None:
+        if not self._discovered or self.schemas is not None:
             try:
-                schemas, found = self.database.get_search_path(self.catalog, missing)
+                schemas, found = self.database.get_search_path(self.catalog, controlled)
                 self.schemas = tuple(schemas)
+            except (OAuth2RedirectError, OAuth2Error):
+                raise
             except Exception:  # pylint: disable=broad-except
                 logger.warning(
                     "Unable to look up tables on the search path", exc_info=True
                 )
                 self.schemas = None
-        self.record(missing, found)
+            self._discovered = True
+        self.record(controlled, found)
 
     def record(self, tables: Iterable[str], found: dict[str, list[str]]) -> None:
         """
@@ -129,6 +156,40 @@ class SearchPath:
         """
         self.resolve([table])
         return self._tables[table]
+
+
+def is_table_controlled(database: Database, catalog: str | None, table: str) -> bool:
+    """
+    Whether an RLS rule or a schema-qualified ``DISALLOWED_SQL_TABLES`` entry may
+    match a table of this name, in some schema.
+
+    Only then does the schema an unqualified table is read from matter, and finding
+    it out connects to the database. A bare denylist entry matches whatever the
+    schema, so it never needs the lookup. When this can't be told, a control is
+    assumed to match.
+    """
+    name = table.lower()
+    denylist = current_app.config.get("DISALLOWED_SQL_TABLES", {}).get(
+        database.db_engine_spec.engine, set()
+    )
+    if any(
+        "." in entry and entry.lower().rpartition(".")[2] == name for entry in denylist
+    ):
+        return True
+    try:
+        return bool(
+            get_predicates_for_table(
+                Table(table, catalog=catalog),
+                database,
+                database.get_default_catalog() if catalog else None,
+                any_schema=True,
+            )
+        )
+    except Exception:  # pylint: disable=broad-except
+        # a caught DB error can leave db.session in "pending rollback" state
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        logger.warning("Unable to look up the rules of a table", exc_info=True)
+        return True
 
 
 # The schema unqualified tables resolve to, or the search path they're read through.
@@ -176,8 +237,10 @@ def get_unqualified_table_schemas(
 
     :param schema: The per-query schema already resolved for execution, if any
     :param statements: The statements being checked. When given, the search path
-        is only read if one of them reads an unqualified table, and their tables
-        are looked up on it at the same time, since that connects to the database.
+        is only read if one of them reads an unqualified table that a control may
+        match (see ``is_table_controlled``), and those tables are looked up on it at
+        the same time, since that connects to the database. Without them, the
+        search path is read when a table first needs it (see ``SearchPath``).
     :returns: The schema, the search path when it has several, or an empty string
         when there's no unqualified table to resolve
     """
@@ -185,11 +248,20 @@ def get_unqualified_table_schemas(
         return schema
     if not database.db_engine_spec.supports_dynamic_schema:
         return ""
-    tables = sorted(unqualified_tables(statements)) if statements is not None else []
-    if statements is not None and not tables:
+    if statements is None:
+        # the tables aren't known, so the search path is read when one needs it
+        return SearchPath.deferred(database, catalog)
+    tables = [
+        table
+        for table in sorted(unqualified_tables(statements))
+        if is_table_controlled(database, catalog, table)
+    ]
+    if not tables:
         return ""
     try:
         schemas, found = database.get_search_path(catalog, tables)
+    except (OAuth2RedirectError, OAuth2Error):
+        raise
     except Exception:  # pylint: disable=broad-except
         logger.warning("Unable to read the search path", exc_info=True)
         return SearchPath(database, catalog, None)
@@ -205,10 +277,15 @@ def _rls_key_schema(schema: RLSSchema) -> str | None:
     """
     The schema ``apply_rls`` keys an unqualified table's rules under.
 
-    A table read through a search path is keyed without a schema, so it can't
-    share a key, and the rules, with a table the query qualifies with one.
+    A table read through a search path with several schemas is keyed without a
+    schema, so it can't share a key, and the rules, with a table the query
+    qualifies with one. With a single schema every unqualified table is read from
+    it, which is the key a known schema gives. The schemas are known once a table
+    on the path has been resolved.
     """
-    return schema if isinstance(schema, str) else None
+    if isinstance(schema, str):
+        return schema
+    return schema.schemas[0] if schema.schemas and len(schema.schemas) == 1 else None
 
 
 def qualify_table(
@@ -667,6 +744,9 @@ def collect_rls_predicates_for_sql(
                     for rule in table_rules
                 )
         return sorted(keys)
+    except (OAuth2RedirectError, OAuth2Error):
+        # the user has to sign in to the database to look up the tables
+        raise
     except Exception:
         # The block above is not only SQL parsing: `get_predicates_for_table`
         # queries `db.session` and `get_default_catalog()` builds an engine, so
