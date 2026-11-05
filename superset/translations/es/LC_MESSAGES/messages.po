@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -505,6 +505,12 @@ msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "Hace %s día"
 msgstr[1] "Hace %s días"
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%s field"
@@ -1209,14 +1215,12 @@ msgstr ""
 msgid "A metric to use for color"
 msgstr "Una métrica que se puede usar para el color"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy
 msgid ""
 "A multiplier applied to the point radius. Use this to uniformly scale all"
 " points."
 msgstr ""
-"Un multiplicador aplicado al radio del punto. Úselo para escalar "
-"uniformemente todos los puntos."
+"Un multiplicador aplicado al radio del punto. Úsalo para escalar todos "
+"los puntos por igual."
 
 msgid "A new chart and dashboard will be created."
 msgstr "Se crearán un nuevo gráfico y un nuevo panel de control."
@@ -1226,6 +1230,9 @@ msgstr "Se creará un nuevo gráfico."
 
 msgid "A new dashboard will be created."
 msgstr "Se creará un nuevo panel de control."
+
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
 
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
@@ -1452,9 +1459,8 @@ msgstr "Acerca de"
 msgid "Accept"
 msgstr ""
 
-#, fuzzy
 msgid "Access"
-msgstr "correcto"
+msgstr "Acceso"
 
 msgid "Access token"
 msgstr "Token de acceso"
@@ -1853,9 +1859,8 @@ msgstr "Análisis avanzados posprocesamiento"
 msgid "Advanced data type"
 msgstr "Tipo de datos avanzados"
 
-#, fuzzy
 msgid "Advanced settings"
-msgstr "Análisis avanzados"
+msgstr "Ajustes avanzados"
 
 msgid "Advanced-Analytics"
 msgstr "Análisis avanzados"
@@ -2847,10 +2852,6 @@ msgid "Are you sure you want to delete %s?"
 msgstr "¿Está seguro de que desea eliminar %s?"
 
 #, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-
-#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr "¿Seguro que quieres eliminar el %s seleccionado?"
 
@@ -3017,9 +3018,8 @@ msgstr ""
 msgid "Auto refresh set to %s seconds"
 msgstr "La frecuencia de actualización debe ser de al menos %s segundos"
 
-#, fuzzy
 msgid "Auto-detect"
-msgstr "Autocompletar"
+msgstr "Detección automática"
 
 msgid "Autocomplete"
 msgstr "Autocompletar"
@@ -4088,6 +4088,9 @@ msgstr "Revisa este gráfico: "
 msgid "Check out this dashboard: "
 msgstr "Revisa este panel de control: "
 
+msgid "Check the value transform →"
+msgstr ""
+
 msgid "Check to force date partitions to have the same height"
 msgstr "Marca para forzar que las particiones de fecha tengan la misma altura"
 
@@ -4098,6 +4101,11 @@ msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
+msgstr ""
+
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
 msgstr ""
 
 msgid "Child label position"
@@ -4127,6 +4135,9 @@ msgstr ""
 
 msgid "Choose a number format"
 msgstr "Elige un formato numérico"
+
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
 
 msgid "Choose a source"
 msgstr "Elige una fuente"
@@ -4213,7 +4224,7 @@ msgstr ""
 "datos Hive solo admite un único valor"
 
 msgid "Choose where to display values relative to the bars"
-msgstr ""
+msgstr "Elige dónde mostrar los valores respecto a las barras"
 
 msgid ""
 "Choose whether a country should be shaded by the metric, or assigned a "
@@ -4776,8 +4787,6 @@ msgstr ""
 msgid "Comma-separated text labels, one per range value"
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy
 msgid "Common (unit per pixel at zoom 0)"
 msgstr "Común (unidad por píxel en zoom 0)"
 
@@ -5107,6 +5116,12 @@ msgstr "Con un subencabezado"
 msgid "Corner Radius"
 msgstr "Radio de la esquina"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "Correlación"
 
@@ -5284,6 +5299,9 @@ msgstr "Crear nuevo gráfico"
 
 msgid "Create or select schema..."
 msgstr "Crear o seleccionar esquema..."
+
+msgid "Create semantic layer"
+msgstr ""
 
 msgid "Created"
 msgstr "Creado"
@@ -5803,6 +5821,12 @@ msgstr "Datos actualizados"
 
 msgid "Data type"
 msgstr "Tipo de datos"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "El marco de datos incluye al menos una serie"
@@ -6357,7 +6381,7 @@ msgstr "Eliminar plantilla"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -6725,6 +6749,12 @@ msgstr "Deshabilita la función de desglose a detalle para esta base de datos."
 
 msgid "Discard"
 msgstr "Descartar"
+
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Nombre a mostrar"
@@ -7459,13 +7489,11 @@ msgstr "Habilitar previsión"
 msgid "Enable graph roaming"
 msgstr "Habilitar itinerancia de gráficos"
 
-#, fuzzy
 msgid "Enable icons"
-msgstr "Columnas de la tabla"
+msgstr "Habilitar iconos"
 
-#, fuzzy
 msgid "Enable labels"
-msgstr "Etiquetas de intervalo"
+msgstr "Habilitar etiquetas"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
@@ -7565,9 +7593,11 @@ msgstr "Introduce un nombre para esta hoja"
 msgid "Enter a new password"
 msgstr ""
 
-#, fuzzy
 msgid "Enter a part of the object name"
-msgstr "Si se deben rellenar los objetos"
+msgstr "Introduce parte del nombre del objeto"
+
+msgid "Enter a value transform before validating against data."
+msgstr ""
 
 msgid "Enter alert name"
 msgstr "Introduce el nombre de la alerta"
@@ -7586,8 +7616,14 @@ msgstr "Introducir el nombre del grupo"
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Ingrese los valores mínimo y máximo para el filtro de rango"
 
+msgid "Enter one to three existing partition keys."
+msgstr ""
+
 msgid "Enter report name"
 msgstr "Introduce el nombre del informe"
+
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
 
 msgid ""
 "Enter the email address of your account and we will send you a link to "
@@ -7886,6 +7922,12 @@ msgstr "Conjunto de datos existente"
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -8083,6 +8125,9 @@ msgstr "Expresión"
 #, fuzzy
 msgid "Expression cannot be empty"
 msgstr "no puede estar vacío"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8581,6 +8626,19 @@ msgid ""
 "can prune partitions."
 msgstr ""
 
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but with this"
+" transform they are not mirrored."
+msgstr ""
+
 msgid "Filters on this column are mirrored onto the partition column."
 msgstr ""
 
@@ -8681,9 +8739,8 @@ msgstr "Flujo"
 msgid "Folder with content must have a name"
 msgstr "Los filtros para la comparación deben tener un valor"
 
-#, fuzzy
 msgid "Folders"
-msgstr "Filtros"
+msgstr "Carpetas"
 
 msgid "Font size"
 msgstr "Tamaño de fuente"
@@ -8867,15 +8924,13 @@ msgid "Formatted value"
 msgstr "Valor formateado"
 
 msgid "Formatting"
-msgstr "Formateando"
+msgstr "Formato"
 
-#, fuzzy
 msgid "Formatting column"
-msgstr "Formateando"
+msgstr "Columna a formatear"
 
-#, fuzzy
 msgid "Formatting object"
-msgstr "Formateando"
+msgstr "Elemento a formatear"
 
 msgid "Formula"
 msgstr "Fórmula"
@@ -9261,17 +9316,14 @@ msgstr "ISO 8601"
 msgid "ISO suffix / abbreviation"
 msgstr ""
 
-#, fuzzy
 msgid "Icon URL"
-msgstr "Copiar URL"
+msgstr "URL del icono"
 
-#, fuzzy
 msgid "Icon size"
-msgstr "Tamaño de fuente"
+msgstr "Tamaño del icono"
 
-#, fuzzy
 msgid "Icon size unit"
-msgstr "Tamaño de fuente"
+msgstr "Unidad del tamaño del icono"
 
 msgid "Id"
 msgstr "ID"
@@ -9523,51 +9575,41 @@ msgstr "Insertar URL de la capa"
 msgid "Insert Layer title"
 msgstr "Insertar título de la capa"
 
-#, fuzzy
 msgid "Inside"
-msgstr "Índice"
+msgstr "Interior"
 
 msgid "Inside Base"
-msgstr ""
+msgstr "Base interior"
 
 msgid "Inside Center"
-msgstr ""
+msgstr "Centro"
 
 msgid "Inside End"
-msgstr ""
+msgstr "Extremo interno"
 
-#, fuzzy
 msgid "Inside bottom"
-msgstr "inferior"
+msgstr "Interior abajo"
 
-#, fuzzy
 msgid "Inside bottom left"
-msgstr "Abajo a la izquierda"
+msgstr "Interior abajo a la izquierda"
 
-#, fuzzy
 msgid "Inside bottom right"
-msgstr "Abajo a la derecha"
+msgstr "Interior abajo a la derecha"
 
-#, fuzzy
 msgid "Inside left"
-msgstr "Anclar a la izquierda"
+msgstr "Interior izquierda"
 
-#, fuzzy
 msgid "Inside right"
-msgstr "Anclar a la derecha"
+msgstr "Interior derecha"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Inside top"
-msgstr "Interior superior"
+msgstr "Interior arriba"
 
-#, fuzzy
 msgid "Inside top left"
-msgstr "Arriba a la izquierda"
+msgstr "Interior arriba a la izquierda"
 
-#, fuzzy
 msgid "Inside top right"
-msgstr "Arriba a la derecha"
+msgstr "Interior arriba a la derecha"
 
 msgid "Intensity"
 msgstr "Intensidad"
@@ -9961,7 +10003,7 @@ msgid "Label Line"
 msgstr "Línea de la etiqueta"
 
 msgid "Label Position"
-msgstr ""
+msgstr "Posición de la etiqueta"
 
 msgid "Label Template"
 msgstr "Plantilla de etiqueta"
@@ -9976,9 +10018,8 @@ msgstr "La etiqueta ya existe"
 msgid "Label ascending"
 msgstr "valor ascendente"
 
-#, fuzzy
 msgid "Label color"
-msgstr "Color de relleno"
+msgstr "Color de la etiqueta"
 
 #, fuzzy
 msgid "Label descending"
@@ -9998,17 +10039,14 @@ msgstr ""
 msgid "Label position"
 msgstr "Posición de la etiqueta"
 
-#, fuzzy
 msgid "Label property name"
-msgstr "Nombre de la alerta"
+msgstr "Nombre de la propiedad de la etiqueta"
 
-#, fuzzy
 msgid "Label size"
-msgstr "Línea de la etiqueta"
+msgstr "Tamaño de la etiqueta"
 
-#, fuzzy
 msgid "Label size unit"
-msgstr "Línea de la etiqueta"
+msgstr "Unidad del tamaño de la etiqueta"
 
 msgid "Label threshold"
 msgstr "Umbral de la etiqueta"
@@ -10454,6 +10492,12 @@ msgstr "Ordenar valores de filtro"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 #, fuzzy
 msgid "Loading timezones..."
 msgstr "Cargando..."
@@ -10478,6 +10522,8 @@ msgstr "Tema local establecido en \"%s\""
 msgid "Locate the chart"
 msgstr "Localizar el gráfico"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "registro"
@@ -10741,6 +10787,12 @@ msgstr "Hacer coincidir el color del cambio de tiempo con la serie original"
 msgid "Match type"
 msgstr "Tipo de datos"
 
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
 msgid "Matrixify"
@@ -10766,7 +10818,7 @@ msgid "Max value"
 msgstr "Valor máximo"
 
 msgid "Max. features"
-msgstr "Características máx."
+msgstr "Entidades máx."
 
 msgid "Maximum"
 msgstr "Máximo"
@@ -10793,7 +10845,7 @@ msgid "Maximum folder nesting depth reached"
 msgstr "Se ha alcanzado la profundidad máxima de anidamiento de carpetas"
 
 msgid "Maximum number of features to fetch from service"
-msgstr "Número máximo de características a recuperar del servicio"
+msgstr "Número máximo de entidades que se obtienen del servicio"
 
 msgid "Maximum number of retry attempts (1–10)"
 msgstr ""
@@ -10881,9 +10933,8 @@ msgstr "Parámetros de metadatos"
 msgid "Metadata has been synced"
 msgstr "Los metadatos se han sincronizado"
 
-#, fuzzy
 msgid "Meters"
-msgstr "metros"
+msgstr "Metros"
 
 msgid "Method"
 msgstr "Método"
@@ -11521,6 +11572,12 @@ msgstr "No hay filtros disponibles."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
+msgstr ""
+
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 
@@ -11684,6 +11741,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12350,7 +12423,7 @@ msgid "Outer edge of Pie chart"
 msgstr "Borde exterior del gráfico tipo pastel"
 
 msgid "Outside End"
-msgstr ""
+msgstr "Extremo externo"
 
 msgid "Overlap"
 msgstr "Superponer"
@@ -12522,6 +12595,18 @@ msgid "Partition field:"
 msgstr ""
 
 msgid "Partition filter mapping"
+msgstr ""
+
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
+msgstr ""
+
+msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
 msgstr ""
 
 msgid ""
@@ -12935,10 +13020,8 @@ msgstr "Escala del radio del punto"
 msgid "Point Radius Unit"
 msgstr "Unidad del radio del punto"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy
 msgid "Point Radius Units"
-msgstr "Unidades del radio de punto"
+msgstr "Unidades del radio del punto"
 
 msgid "Point Size"
 msgstr "Tamaño del punto"
@@ -13003,7 +13086,7 @@ msgid "Position of row level subtotal"
 msgstr "Posición del subtotal a nivel de fila"
 
 msgid "Position of the data label relative to the data point"
-msgstr ""
+msgstr "Posición de la etiqueta de datos respecto al punto de datos"
 
 msgid "Powered by Apache Superset"
 msgstr "Desarrollado por Apache Superset"
@@ -13298,6 +13381,12 @@ msgstr "Clasificación"
 msgid "Ratio"
 msgstr "Proporción"
 
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
+
 msgid "Raw records"
 msgstr "Registros en bruto"
 
@@ -13391,9 +13480,8 @@ msgstr "Intervalo de actualización guardado"
 msgid "Refresh interval set for this session"
 msgstr "Guardar para esta sesión"
 
-#, fuzzy
 msgid "Refresh settings"
-msgstr "Ajustes de archivo"
+msgstr "Actualización automática"
 
 msgid "Refresh table schema"
 msgstr "Actualizar esquema de tabla"
@@ -13960,7 +14048,7 @@ msgid "Rich tooltip"
 msgstr "Información sobre herramientas mejorada"
 
 msgid "Right"
-msgstr "Derecho"
+msgstr "Derecha"
 
 msgid "Right Axis Metric"
 msgstr "Métrica del eje derecho"
@@ -14282,7 +14370,7 @@ msgid "STEP %(stepCurr)s OF %(stepLast)s"
 msgstr "PASO %(stepCurr)s DE %(stepLast)s"
 
 msgid "STRING"
-msgstr "CADENA"
+msgstr "TEXTO"
 
 msgid "SUN"
 msgstr "DOM"
@@ -14393,6 +14481,9 @@ msgstr ""
 
 msgid "Save query"
 msgstr "Guardar consulta"
+
+msgid "Save the dataset before validating against data."
+msgstr ""
 
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
@@ -14956,9 +15047,8 @@ msgstr ""
 msgid "Select layers to hide"
 msgstr "Selecciona el gráfico a usar"
 
-#, fuzzy
 msgid "Select object name"
-msgstr "Seleccionar asunto"
+msgstr "Seleccionar elemento"
 
 msgid ""
 "Select one or many metrics to display, that will be displayed in the "
@@ -15236,6 +15326,9 @@ msgstr "La capa semántica no existe"
 msgid "Semantic layer parameters are invalid."
 msgstr "Los parámetros de la capa semántica no son válidos."
 
+msgid "Semantic layer setup guide"
+msgstr ""
+
 msgid "Semantic layer type"
 msgstr "Tipo de capa semántica"
 
@@ -15354,9 +15447,8 @@ msgstr "Límite de la serie"
 msgid "Series name"
 msgstr "Nombre de la serie"
 
-#, fuzzy
 msgid "Series settings"
-msgstr "Ajustes de archivo"
+msgstr "Ajustes de series"
 
 msgid "Series style"
 msgstr "Estilo de la serie"
@@ -16196,6 +16288,10 @@ msgstr "Categoría de fuente"
 msgid "Source location"
 msgstr "Ubicación de origen"
 
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
+
 msgid "Sparkline"
 msgstr "Minigráfica"
 
@@ -16434,9 +16530,8 @@ msgstr "Estilo"
 msgid "Style the ends of the progress bar with a round cap"
 msgstr "Rematar los extremos de la barra de progreso con una tapa redonda"
 
-#, fuzzy
 msgid "Styling"
-msgstr "CADENA"
+msgstr "Estilo"
 
 #, fuzzy
 msgid "Subcategories"
@@ -16615,9 +16710,8 @@ msgstr ""
 "Error de sintaxis: entrada %(qualifier)s «%(input)s», se esperaba "
 "«%(expected)s»"
 
-#, fuzzy
 msgid "System"
-msgstr "transmitir"
+msgstr "Sistema"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
@@ -17129,9 +17223,8 @@ msgstr "El color de la isobanda"
 msgid "The color of the isoline"
 msgstr "El color de la isolínea"
 
-#, fuzzy
 msgid "The color of the point labels"
-msgstr "El color de la isolínea"
+msgstr "El color de las etiquetas de los puntos"
 
 msgid "The color scheme for rendering chart"
 msgstr "El esquema de color para el gráfico de renderización"
@@ -17372,10 +17465,8 @@ msgstr ""
 "incluyan en la ventana gráfica. PERSONALIZADO permite a los usuarios "
 "definir la extensión manualmente."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "The feature property to use for point labels"
-msgstr "La propiedad de elemento a usar para las etiquetas de puntos"
+msgstr "La propiedad de la entidad que se usa para las etiquetas de los puntos"
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -17434,9 +17525,8 @@ msgid ""
 "configuration: %(addresses)s"
 msgstr ""
 
-#, fuzzy
 msgid "The font size of the point labels"
-msgstr "Si se debe mostrar el puntero"
+msgstr "El tamaño de fuente de las etiquetas de los puntos"
 
 msgid "The function to use when aggregating points into groups"
 msgstr "La función a utilizar al agregar puntos en grupos"
@@ -17734,7 +17824,7 @@ msgstr ""
 "poder importarlas."
 
 msgid "The pattern of timestamp format. For strings use "
-msgstr "El patrón del formato de marca de tiempo. Para cadenas, usa "
+msgstr "El patrón del formato de marca de tiempo. Para columnas de texto, usa "
 
 msgid ""
 "The periodicity over which to pivot time. Each period becomes\n"
@@ -17857,15 +17947,13 @@ msgstr ""
 "sea una columna numérica o «Automática», que redimensiona el punto en "
 "función del clúster más grande"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy
 msgid ""
 "The radius of point features, in the units specified below. The final "
 "rendered size is this value multiplied by Point Radius Scale."
 msgstr ""
-"El radio de las entidades de punto, en las unidades especificadas a "
-"continuación. El tamaño final renderizado es este valor multiplicado por "
-"la escala del radio de punto."
+"El radio de las entidades de punto, en las unidades indicadas abajo. El "
+"tamaño final es este valor multiplicado por la escala del radio del "
+"punto."
 
 #, python-format
 msgid "The remaining %s will be moved to Recently Archived."
@@ -18022,9 +18110,8 @@ msgstr "La URL de servicio de la capa"
 msgid "The size of each cell in meters"
 msgstr "El tamaño de cada celda en metros"
 
-#, fuzzy
 msgid "The size of the point icons"
-msgstr "La anchura de la isolínea en píxeles"
+msgstr "El tamaño de los iconos de los puntos"
 
 msgid "The size of the square cell, in pixels"
 msgstr "El tamaño de la celda cuadrada, en píxeles"
@@ -18155,6 +18242,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -18162,6 +18252,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -18187,24 +18280,20 @@ msgstr "El tipo de capa"
 msgid "The type of visualization to display"
 msgstr "El tipo de visualización a mostrar"
 
-#, fuzzy
 msgid "The unit for icon size"
-msgstr "Tamaño de fuente del subtítulo"
+msgstr "La unidad del tamaño del icono"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "The unit for label size"
 msgstr "La unidad para el tamaño de etiqueta"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy
 msgid ""
 "The unit for point radius. Use \"pixels\" for consistent screen-space "
 "sizing regardless of zoom level."
 msgstr ""
-"La unidad para el radio de punto. Use \"píxeles\" para un tamaño "
-"consistente en el espacio de pantalla independientemente del nivel de "
-"zoom."
+"La unidad del radio del punto. Usa \"píxeles\" para que el tamaño en "
+"pantalla no cambie con el nivel de zoom."
 
 msgid "The unit of measure for the specified point radius"
 msgstr "La unidad de medida para el radio de punto especificado"
@@ -18332,9 +18421,8 @@ msgstr ""
 "El ancho de las líneas como valor fijo o ancho variable basado en una "
 "métrica."
 
-#, fuzzy
 msgid "Theme"
-msgstr "Hora/fecha"
+msgstr "Tema"
 
 msgid "Theme colors"
 msgstr ""
@@ -18356,9 +18444,8 @@ msgstr "No se ha encontrado la plantilla CSS."
 msgid "Theme parameters are invalid."
 msgstr ""
 
-#, fuzzy
 msgid "Themes"
-msgstr "Hora/fecha"
+msgstr "Temas"
 
 #, fuzzy
 msgid "Themes could not be deleted."
@@ -18782,6 +18869,17 @@ msgstr ""
 "Puede ser una dirección IP (por ejemplo, 127.0.0.1) o un nombre de "
 "dominio (por ejemplo, mibasededatos.com)."
 
+msgid "This cannot be undone."
+msgstr ""
+
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -19056,6 +19154,9 @@ msgstr "La lista de valores del filtro no puede estar vacía"
 msgid ""
 "This filter is also applied to a partition column for faster queries. See"
 " \"View query\" for the generated SQL."
+msgstr ""
+
+msgid "This filter isn't applied to any charts yet"
 msgstr ""
 
 #, python-format
@@ -19866,6 +19967,9 @@ msgstr "Confiar en esta URL y no volver a preguntar"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 "Intenta aplicar diferentes filtros o comprueba si tu fuente de datos "
@@ -20088,6 +20192,16 @@ msgstr ""
 #, -ERR:PROP-NOT-FOUND-
 msgid "Unable to load dashboard"
 msgstr "No se ha podido cargar el panel de control"
+
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr ""
@@ -20476,9 +20590,8 @@ msgid ""
 "segment. Leave empty to allow any domain."
 msgstr ""
 
-#, fuzzy
 msgid "Use gradient"
-msgstr "Granularidad temporal"
+msgstr "Usar gradiente"
 
 msgid "Use metric definition"
 msgstr ""
@@ -20611,12 +20724,12 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Usa los primeros 25 valores si la dimensión tiene más."
 
-msgid "Valid"
-msgstr ""
-
 #, fuzzy
 msgid "Valid SQL expression"
 msgstr "Expresión SQL"
+
+msgid "Validate against data"
+msgstr ""
 
 #, fuzzy
 msgid "Validate query"
@@ -20633,6 +20746,9 @@ msgstr "Validando conectividad para %s"
 #, fuzzy
 msgid "Validating..."
 msgstr "Cargando..."
+
+msgid "Validation inconclusive"
+msgstr ""
 
 msgid "Value"
 msgstr "Valor"
@@ -20680,7 +20796,7 @@ msgid "Value is required"
 msgstr "El valor es requerido"
 
 msgid "Value label position"
-msgstr ""
+msgstr "Posición de la etiqueta de valor"
 
 msgid "Value less than"
 msgstr "Valor menor que"
@@ -21450,9 +21566,8 @@ msgstr "Los familiares que se resaltarán al pasar el ratón por encima"
 msgid "Whisker/outlier options"
 msgstr "Opciones de bigotes/valores atípicos"
 
-#, fuzzy
 msgid "Why do I need to create a database?"
-msgstr "¿Quieres añadir una nueva base de datos?"
+msgstr "¿Por qué tengo que crear una base de datos?"
 
 msgid "Width"
 msgstr "Anchura"
@@ -22253,6 +22368,9 @@ msgstr "5 segundos"
 msgid "aggregate"
 msgstr "agregar"
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr "condición de la alerta"
 
@@ -22268,6 +22386,10 @@ msgstr "copiar también (duplicar) los gráficos"
 msgid "ancestor"
 msgstr "ancestro"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "anotación"
 
@@ -22278,6 +22400,10 @@ msgstr "annotation_layer"
 #, fuzzy
 msgid "apple"
 msgstr "manzana"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -22322,9 +22448,8 @@ msgstr "bfill"
 msgid "bolt"
 msgstr "bolt"
 
-#, fuzzy
 msgid "boolean"
-msgstr "BOOLEANO"
+msgstr "booleano"
 
 msgid "boolean type icon"
 msgstr "icono de tipo booleano"
@@ -22674,7 +22799,7 @@ msgid "formatted"
 msgstr "Fecha formateada"
 
 msgid "function type icon"
-msgstr "icono de tipo de función"
+msgstr "icono de tipo función"
 
 msgid "geohash (square)"
 msgstr "geohash (cuadrado)"
@@ -22825,9 +22950,8 @@ msgstr "metros"
 msgid "metric"
 msgstr "métrica"
 
-#, fuzzy
 msgid "metric type icon"
-msgstr "icono de tipo numérico"
+msgstr "icono de tipo métrica"
 
 msgid "min"
 msgstr "min"
@@ -22849,7 +22973,7 @@ msgid "more than {max} {name}"
 msgstr "más de {max} {name}"
 
 msgid "multi-value type icon"
-msgstr ""
+msgstr "icono de tipo multivalor"
 
 msgid "must have a value"
 msgstr "debe tener un valor"
@@ -22908,9 +23032,8 @@ msgstr "no se ha configurado ningún validador SQL para %(engine_spec)s"
 msgid "not containing"
 msgstr "No está en"
 
-#, fuzzy
 msgid "numeric"
-msgstr "NUMÉRICO"
+msgstr "numérico"
 
 msgid "numeric type icon"
 msgstr "icono de tipo numérico"
@@ -23006,6 +23129,12 @@ msgstr ""
 
 msgid "query"
 msgstr "consulta"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "aleatorio"
@@ -23118,12 +23247,11 @@ msgstr "detenido"
 msgid "stream"
 msgstr "transmitir"
 
-#, fuzzy
 msgid "string"
-msgstr "CADENA"
+msgstr "texto"
 
 msgid "string type icon"
-msgstr "icono de tipo de cadena"
+msgstr "icono de tipo texto"
 
 msgid "success"
 msgstr "correcto"
@@ -23171,13 +23299,11 @@ msgstr "textarea"
 msgid "the Handlebars chart documentation"
 msgstr "la documentación del gráfico Handlebars"
 
-#, fuzzy
 msgid "theme"
-msgstr "Hora/fecha"
+msgstr "tema"
 
-#, fuzzy
 msgid "timestamp"
-msgstr "Mostrar marca de tiempo"
+msgstr "marca de tiempo"
 
 msgid "to"
 msgstr "a"

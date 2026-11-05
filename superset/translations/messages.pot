@@ -1040,6 +1040,9 @@ msgstr ""
 msgid "A new dashboard will be created."
 msgstr ""
 
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
+
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
 msgstr ""
@@ -3372,6 +3375,9 @@ msgstr ""
 msgid "Check out this dashboard: "
 msgstr ""
 
+msgid "Check the value transform →"
+msgstr ""
+
 msgid "Check to force date partitions to have the same height"
 msgstr ""
 
@@ -3382,6 +3388,9 @@ msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
+msgstr ""
+
+msgid "Checks up to 50 rows per selected partition. Sampling cannot verify every row or future ingestion."
 msgstr ""
 
 msgid "Child label position"
@@ -4241,6 +4250,12 @@ msgstr ""
 msgid "Corner Radius"
 msgstr ""
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr ""
 
@@ -4817,6 +4832,12 @@ msgid "Data refreshed"
 msgstr ""
 
 msgid "Data type"
+msgstr ""
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
 msgstr ""
 
 msgid "DataFrame include at least one series"
@@ -5560,6 +5581,12 @@ msgstr ""
 msgid "Discard"
 msgstr ""
 
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
+
 msgid "Display Name"
 msgstr ""
 
@@ -6243,6 +6270,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr ""
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr ""
 
@@ -6258,7 +6288,13 @@ msgstr ""
 msgid "Enter minimum and maximum values for the range filter"
 msgstr ""
 
+msgid "Enter one to three existing partition keys."
+msgstr ""
+
 msgid "Enter report name"
+msgstr ""
+
+msgid "Enter stored epoch partition keys, not timestamps"
 msgstr ""
 
 msgid "Enter the email address of your account and we will send you a link to reset your password."
@@ -6530,6 +6566,12 @@ msgstr ""
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -6701,6 +6743,9 @@ msgid "Expression"
 msgstr ""
 
 msgid "Expression cannot be empty"
+msgstr ""
+
+msgid "Expression evaluated — data not checked"
 msgstr ""
 
 #, python-format
@@ -7131,6 +7176,15 @@ msgid "Filters on %(mapped)s will automatically apply an equivalent filter to %(
 msgstr ""
 
 msgid "Filters on the mapped column are mirrored onto this column so the engine can prune partitions."
+msgstr ""
+
+msgid "Filters on this column are mapped onto the partition column, but are not mirrored."
+msgstr ""
+
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgstr ""
+
+msgid "Filters on this column are mapped onto the partition field, but with this transform they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -8666,6 +8720,15 @@ msgstr ""
 msgid "List view"
 msgstr ""
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr ""
 
@@ -8703,6 +8766,9 @@ msgstr ""
 msgid "Loading semantic layers…"
 msgstr ""
 
+msgid "Loading the view shared with you…"
+msgstr ""
+
 msgid "Loading timezones..."
 msgstr ""
 
@@ -8722,6 +8788,8 @@ msgstr ""
 msgid "Locate the chart"
 msgstr ""
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr ""
 
@@ -8943,6 +9011,12 @@ msgstr ""
 
 msgid "Match type"
 msgstr ""
+
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Matrixify"
 msgstr ""
@@ -9618,6 +9692,10 @@ msgstr ""
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+#, python-format
+msgid "No checkable rows, or the query or transform failed, for partition keys: %(keys)s."
 msgstr ""
 
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
@@ -10453,6 +10531,16 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
+msgstr ""
+
+msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid "Partition pruning on %(mapped)s has not been confirmed. Preview its value transform to check it."
+msgstr ""
+
 msgid "Partitions whose height to parent height proportions are below this value are pruned"
 msgstr ""
 
@@ -11123,7 +11211,13 @@ msgstr ""
 msgid "Ratio"
 msgstr ""
 
+msgid "Raw epoch conversion does not specify the partition bucket. Use the expression that populates the partition key, including its hour or day rounding and timezone. Filters will not be mirrored."
+msgstr ""
+
 msgid "Raw records"
+msgstr ""
+
+msgid "Re-enter the access token when changing the connection destination."
 msgstr ""
 
 msgid "Re-pick fields"
@@ -12091,6 +12185,9 @@ msgid "Save or discard your unsaved changes to restore a version."
 msgstr ""
 
 msgid "Save query"
+msgstr ""
+
+msgid "Save the dataset before validating against data."
 msgstr ""
 
 msgid "Save the dataset to preview this mapping. The preview runs against the saved columns, and this mapping uses one that has not been saved yet."
@@ -13509,6 +13606,10 @@ msgstr ""
 msgid "Source location"
 msgstr ""
 
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
+
 msgid "Sparkline"
 msgstr ""
 
@@ -14397,6 +14498,16 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr ""
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -14848,8 +14959,14 @@ msgstr ""
 msgid "The transform could not read %(value)s written as text, which a filter typed as text sends, so its answer for the timestamp can only be checked by being a date or timestamp within a year of it. It answered %(typed)s, so filters on this mapping will not be mirrored. Write the transform so it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid "The transform gives a different partition value for a timestamp (%(typed)s) than for the same instant written as text (%(text)s). A time range and a filter typed as text both reach it, so it cannot be right for both; filters on this mapping will not be mirrored. Write the transform so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -15335,10 +15452,20 @@ msgstr ""
 msgid "This cannot be undone."
 msgstr ""
 
+#, python-format
+msgid "This change discards the value transform on %s. Once you save, filters on %s will no longer be applied to the partition column, so charts on this dataset can scan every partition and time out. Selecting %s again will not restore the transform."
+msgstr ""
+
 msgid "This chart applies cross-filters to charts whose datasets contain columns with the same name."
 msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
+msgstr ""
+
+msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
+msgstr ""
+
+msgid "This chart is archived or unavailable."
 msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -15491,6 +15618,9 @@ msgid "This filter already exist on the report"
 msgstr ""
 
 msgid "This filter is also applied to a partition column for faster queries. See \"View query\" for the generated SQL."
+msgstr ""
+
+msgid "This filter isn't applied to any charts yet"
 msgstr ""
 
 #, python-format
@@ -16223,6 +16353,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr ""
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr ""
 
@@ -16661,10 +16795,10 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr ""
 
-msgid "Valid"
+msgid "Valid SQL expression"
 msgstr ""
 
-msgid "Valid SQL expression"
+msgid "Validate against data"
 msgstr ""
 
 msgid "Validate query"
@@ -16678,6 +16812,9 @@ msgid "Validating connectivity for %s"
 msgstr ""
 
 msgid "Validating..."
+msgstr ""
+
+msgid "Validation inconclusive"
 msgstr ""
 
 msgid "Value"
@@ -16830,6 +16967,9 @@ msgstr ""
 msgid "Viewers"
 msgstr ""
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid "Viewers is a list of subjects who can view the dashboard. If no viewers are defined, the dashboard is accessible to all users with appropriate datasource permissions."
 msgstr ""
 
@@ -16972,6 +17112,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
