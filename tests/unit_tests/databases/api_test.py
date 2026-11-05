@@ -337,6 +337,7 @@ def test_database_connection(
             "engine_information": {
                 "oauth2_enabled": False,
                 "disable_ssh_tunneling": True,
+                "encrypted_extra_expirations": {},
                 "encrypted_extra_sensitive_fields": {
                     "$.service_account_info.private_key": (
                         "Service Account Private Key"
@@ -3523,6 +3524,68 @@ def test_available_includes_sensitive_field_labels(
         "$.connect_args.password": "Password",
         "$.oauth2_client_info.secret": "OAuth2 client secret",
     }
+
+
+@freeze_time("2026-11-05T12:00:00Z")
+def test_connection_lists_stored_secret_expirations(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    The connection endpoint says when each stored JWT expires; the plain GET, the
+    list and `available` carry no expirations.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    exp = int(datetime.fromisoformat("2026-11-10T12:00:00+00:00").timestamp())
+    token = jwt_with_claims({"sub": "service-account", "exp": exp})
+    add_druid_database(
+        session,
+        json.dumps({"connect_args": {"jwt": token, "password": "hunter2"}}),
+    )
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch(
+        "superset.databases.api.get_available_engine_specs",
+        return_value={DruidEngineSpec: {"pydruid"}},
+    )
+
+    response = client.get("/api/v1/database/1/connection")
+    assert response.status_code == 200
+    information = response.json["result"]["engine_information"]
+    assert information["encrypted_extra_expirations"] == {
+        "$.connect_args.jwt": {
+            "expires_at": "2026-11-10T12:00:00+00:00",
+            "expired": False,
+        },
+    }
+    assert token.encode() not in response.data
+    assert b"service-account" not in response.data
+
+    response = client.get("/api/v1/database/1")
+    assert response.status_code == 200
+    assert (
+        "encrypted_extra_expirations"
+        not in (response.json["result"]["engine_information"])
+    )
+    assert b"2026-11-10" not in response.data
+
+    response = client.get("/api/v1/database/")
+    assert response.status_code == 200
+    assert (
+        "encrypted_extra_expirations"
+        not in (response.json["result"][0]["engine_information"])
+    )
+    assert b"2026-11-10" not in response.data
+
+    response = client.get("/api/v1/database/available/")
+    assert response.status_code == 200
+    assert (
+        "encrypted_extra_expirations"
+        not in (response.json["databases"][0]["engine_information"])
+    )
 
 
 def test_connection_lists_stored_sensitive_fields(

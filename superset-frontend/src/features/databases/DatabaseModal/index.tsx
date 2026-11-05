@@ -77,6 +77,7 @@ import {
   DatabaseParameters,
 } from '../types';
 import ExtraOptions from './ExtraOptions';
+import StoredSecretExpiryAlert from './StoredSecretExpiryAlert';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {
@@ -720,6 +721,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
+  // Bumped to ask the Advanced tab to open and scroll to Secure extra.
+  const [secureExtraFocusRequest, setSecureExtraFocusRequest] = useState(0);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
   const [
     validationErrors,
@@ -1895,6 +1898,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const tabChange = (key: string) => setTabKey(key);
 
+  const goToSecureExtra = () => {
+    setTabKey(TABS_KEYS.ADVANCED);
+    setSecureExtraFocusRequest(request => request + 1);
+  };
+
   const renderStepTwoAlert = () => {
     const { hostname } = window.location;
     let ipAlert = connectionAlert?.REGIONAL_IPS?.default || '';
@@ -2223,6 +2231,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           />
         </TabHeader>
       </StyledStickyHeader>
+      <StoredSecretExpiryAlert
+        isEditMode={isEditMode}
+        sensitiveFields={
+          db?.engine_information?.encrypted_extra_sensitive_fields
+        }
+        expirations={db?.engine_information?.encrypted_extra_expirations}
+        onGoToSecureExtra={goToSecureExtra}
+      />
       <TabsStyled
         defaultActiveKey={DEFAULT_TAB_KEY}
         activeKey={tabKey}
@@ -2335,6 +2351,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <ExtraOptions
                 extraExtension={dbConfigExtraExtension}
                 db={db as DatabaseObject}
+                focusSecureExtra={secureExtraFocusRequest}
                 onInputChange={(e: CheckboxChangeEvent) => {
                   const { target } = e;
                   handleChangeWithValidation(ActionType.InputChange, {

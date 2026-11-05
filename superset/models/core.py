@@ -545,6 +545,24 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             )
         }
 
+    def stored_secret_expirations(self) -> dict[str, dict[str, Any]]:
+        """
+        Expiry of each JWT stored at a sensitive field of `encrypted_extra`.
+
+        Keyed by concrete path like `stored_sensitive_fields`, as
+        `{"expires_at": <ISO 8601 UTC>, "expired": <bool>}`, read from the token's
+        unverified `exp` claim. Other values, and a missing or malformed
+        `encrypted_extra`, give no entry.
+        """
+        try:
+            config = json.loads(self.encrypted_extra or "{}")
+        except (TypeError, json.JSONDecodeError):
+            return {}
+
+        return json.get_sensitive_field_expirations(
+            config, self.db_engine_spec.encrypted_extra_sensitive_field_paths()
+        )
+
     @classmethod
     def get_password_masked_url_from_uri(  # pylint: disable=invalid-name
         cls, uri: str

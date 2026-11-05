@@ -31,6 +31,7 @@ import {
   act,
 } from 'spec/helpers/testing-library';
 import { getExtensionsRegistry } from '@superset-ui/core';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import * as hooks from 'src/views/CRUD/hooks';
 import { DatabaseObject, ConfigurationMethod } from '../types';
@@ -3806,5 +3807,181 @@ test('editing reads the secret fields from the connection payload, not the plain
   } finally {
     resourceHook.mockRestore();
     fetchMock.clearHistory().removeRoutes();
+  }
+});
+
+// Noon, local time, on the calendar day this many days from today, which is
+// how the expiry warning counts days.
+const inCalendarDays = (days: number) =>
+  extendedDayjs().startOf('day').add(days, 'day').hour(12).toISOString();
+const EXPIRED_JWT = {
+  expires_at: '2026-11-03T12:00:00+00:00',
+  expired: true,
+};
+const EXPIRED_TEXT = 'The stored JWT Token expired on Nov 3, 2026.';
+const HINTS_ENDPOINT = 'glob:*/api/v1/database/*/encrypted_extra_hints/';
+
+// Opens the edit modal on a saved Druid database and waits for its payload,
+// without touching any tab or panel.
+const openEditModal = async (
+  expirations?: Record<string, { expires_at: string; expired: boolean }>,
+) => {
+  const saved = {
+    id: 10,
+    database_name: 'Token connection',
+    backend: 'druid',
+    configuration_method: ConfigurationMethod.SqlalchemyUri,
+    sqlalchemy_uri: 'druid://druid:8888/druid/v2/sql/',
+    masked_encrypted_extra: JSON.stringify({
+      connect_args: { jwt: 'XXXXXXXXXX', password: 'XXXXXXXXXX' },
+    }),
+  };
+  fetchMock.get(AVAILABLE_DB_ENDPOINT, { databases: [] });
+  fetchMock.get(HINTS_ENDPOINT, { result: [] });
+  fetchMock.get('glob:*/api/v1/database/10/connection', {
+    result: {
+      ...saved,
+      engine_information: {
+        encrypted_extra_sensitive_fields: {
+          '$.connect_args.jwt': 'JWT Token',
+          '$.connect_args.password': 'Password',
+        },
+        ...(expirations && { encrypted_extra_expirations: expirations }),
+      },
+    },
+  });
+  const resourceHook = jest
+    .spyOn(hooks, 'useSingleViewResource')
+    .mockImplementation(realUseSingleViewResource);
+  render(<DatabaseModal {...dbProps} databaseId={10} />, {
+    useRedux: true,
+    initialState: { common: { conf: { ENCRYPTED_EXTRA_HINT_CHARS: 5 } } },
+  });
+  expect(
+    await screen.findByDisplayValue('Token connection'),
+  ).toBeInTheDocument();
+  return () => {
+    resourceHook.mockRestore();
+    fetchMock.clearHistory().removeRoutes();
+  };
+};
+
+const expectNoExpiryWarning = () => {
+  expect(screen.getByRole('tab', { name: /basic/i })).toBeInTheDocument();
+  expect(screen.queryByText(/The stored .* expire/)).not.toBeInTheDocument();
+};
+
+test('editing a database with an expired stored JWT warns as soon as the modal opens', async () => {
+  const cleanup = await openEditModal({ '$.connect_args.jwt': EXPIRED_JWT });
+  try {
+    const alert = screen.getByText(EXPIRED_TEXT).closest('[role="alert"]');
+    expect(alert).toBeInTheDocument();
+    expect(alert?.className).toContain('ant-alert-error');
+    expect(
+      screen.getByRole('tab', { name: /basic/i, selected: true }),
+    ).toBeInTheDocument();
+    expect(fetchMock.callHistory.calls(HINTS_ENDPOINT)).toHaveLength(0);
+
+    await userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+    expect(screen.getByText(EXPIRED_TEXT)).toBeVisible();
+    expect(screen.getAllByText(EXPIRED_TEXT)).toHaveLength(1);
+  } finally {
+    cleanup();
+  }
+});
+
+test('editing a database whose stored JWT expires within 7 days warns as soon as the modal opens', async () => {
+  const expiresAt = inCalendarDays(5);
+  const cleanup = await openEditModal({
+    '$.connect_args.jwt': { expires_at: expiresAt, expired: false },
+  });
+  try {
+    const text = `The stored JWT Token expires in 5 days (${extendedDayjs(
+      expiresAt,
+    ).format('ll')}).`;
+    const alert = screen.getByText(text).closest('[role="alert"]');
+    expect(alert).toBeInTheDocument();
+
+    await userEvent.click(
+      within(alert as HTMLElement).getByRole('button', { name: /close/i }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByText(text)).not.toBeInTheDocument(),
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test('editing a database with several affected secrets lists them in one alert as soon as the modal opens', async () => {
+  const expiresAt = inCalendarDays(1);
+  const cleanup = await openEditModal({
+    '$.connect_args.jwt': EXPIRED_JWT,
+    '$.connect_args.password': { expires_at: expiresAt, expired: false },
+    '$.connect_args.token': {
+      expires_at: inCalendarDays(60),
+      expired: false,
+    },
+  });
+  try {
+    const alert = screen.getByText(EXPIRED_TEXT).closest('[role="alert"]');
+    expect(alert).toBeInTheDocument();
+    expect(
+      within(alert as HTMLElement).getByText(
+        `The stored Password expires in 1 day (${extendedDayjs(
+          expiresAt,
+        ).format('ll')}).`,
+      ),
+    ).toBeInTheDocument();
+    expect(alert?.textContent?.match(/The stored /g)).toHaveLength(2);
+    expect(screen.getAllByText(/The stored .* expire/)).toHaveLength(2);
+  } finally {
+    cleanup();
+  }
+});
+
+test('editing a database whose stored JWT expires in 8 days shows no expiry warning', async () => {
+  const cleanup = await openEditModal({
+    '$.connect_args.jwt': {
+      expires_at: inCalendarDays(8),
+      expired: false,
+    },
+  });
+  try {
+    expectNoExpiryWarning();
+  } finally {
+    cleanup();
+  }
+});
+
+test('editing a database without an expirations map shows no expiry warning', async () => {
+  const cleanup = await openEditModal();
+  try {
+    expectNoExpiryWarning();
+  } finally {
+    cleanup();
+  }
+});
+
+test('the expiry warning link opens Secure extra on the Advanced tab', async () => {
+  const cleanup = await openEditModal({ '$.connect_args.jwt': EXPIRED_JWT });
+  try {
+    expect(
+      screen.queryByTestId('secure-extra-expiry-note'),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Go to Secure extra' }),
+    );
+
+    expect(
+      screen.getByRole('tab', { name: /advanced/i, selected: true }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('security-label-test')).toBeVisible();
+    expect(
+      await screen.findByTestId('secure-extra-expiry-note'),
+    ).toHaveTextContent(EXPIRED_TEXT);
+  } finally {
+    cleanup();
   }
 });

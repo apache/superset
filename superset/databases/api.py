@@ -387,10 +387,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             "result": database_connection_schema.dump(database, many=False),
         }
         # editors get the sensitive fields stored for this database, not the
-        # engine's declared patterns
+        # engine's declared patterns, and when each stored JWT expires
         if database and (information := response["result"].get("engine_information")):
             information["encrypted_extra_sensitive_fields"] = (
                 database.stored_sensitive_fields()
+            )
+            information["encrypted_extra_expirations"] = (
+                database.stored_secret_expirations()
             )
         try:
             if database and database.ssh_tunnel:

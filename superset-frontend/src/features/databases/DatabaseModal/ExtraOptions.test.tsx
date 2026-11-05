@@ -22,8 +22,10 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import { t } from '@apache-superset/core/translation';
+import { supersetTheme } from '@apache-superset/core/theme';
 import * as ace from 'ace-builds';
 
 import ExtraOptions from './ExtraOptions';
@@ -439,4 +441,335 @@ test('the too short note uses four times the configured hint length', async () =
     'Only the ending of secrets with at least 20 characters is shown.',
   );
   fetchMock.clearHistory().removeRoutes();
+});
+
+const expiringDb = {
+  ...maskedDb,
+  engine_information: {
+    ...maskedDb.engine_information,
+    encrypted_extra_expirations: {
+      '$.connect_args.password': {
+        expires_at: '2026-11-10T13:00:00+00:00',
+        expired: false,
+      },
+      '$.connect_args.jwt': {
+        expires_at: '2026-11-03T12:00:00+00:00',
+        expired: true,
+      },
+    },
+  },
+};
+
+test('the secure extra note lists each stored token that expired or expires soon, with a severity icon', () => {
+  // Noon UTC on Nov 5, 2026 is 07:00 in the jest timezone.
+  jest.useFakeTimers();
+  jest.setSystemTime(new Date('2026-11-05T12:00:00Z'));
+  try {
+    // The note does not depend on the reveal being enabled.
+    renderSecurityPanel(expiringDb, 0);
+
+    const notes = screen.getAllByTestId('secure-extra-expiry-note');
+    expect(notes.map(note => note.textContent)).toEqual([
+      'The stored JWT Token expired on Nov 3, 2026.',
+      'The stored Password expires in 5 days (Nov 10, 2026).',
+    ]);
+    const [expiredNote, expiringNote] = notes;
+    expect(
+      screen.getByText('The stored JWT Token expired on Nov 3, 2026.'),
+    ).toHaveClass('ant-typography-danger');
+    expect(within(expiredNote).getByTestId('exclamation-circle')).toHaveStyle({
+      color: supersetTheme.colorError,
+    });
+    const expiringText = screen.getByText(
+      'The stored Password expires in 5 days (Nov 10, 2026).',
+    );
+    expect(expiringText).toHaveClass('ant-typography');
+    [
+      'ant-typography-secondary',
+      'ant-typography-warning',
+      'ant-typography-danger',
+    ].forEach(type => expect(expiringText).not.toHaveClass(type));
+    const expiringIcon = within(expiringNote).getByTestId('exclamation-circle');
+    expect(expiringIcon).toHaveStyle({ color: supersetTheme.colorWarning });
+    expect(expiringIcon).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.queryByText(/click Finish/)).not.toBeInTheDocument();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('the secure extra note is absent without expirations', () => {
+  renderSecurityPanel(maskedDb, 5);
+
+  expect(screen.getByText(t('Secure extra'))).toBeInTheDocument();
+  expect(
+    screen.queryByTestId('secure-extra-expiry-note'),
+  ).not.toBeInTheDocument();
+});
+
+const focusProps = {
+  db: maskedDb as unknown as DatabaseObject,
+  onInputChange: jest.fn(),
+  onTextChange: jest.fn(),
+  onEditorChange: jest.fn(),
+  onExtraInputChange: jest.fn(),
+  onExtraEditorChange: jest.fn(),
+  extraExtension: undefined,
+};
+
+type Layout = {
+  // Each takes the milliseconds since the mock was set up (fake clock).
+  editorTop?: (elapsed: number) => number;
+  scrollHeight?: (elapsed: number) => number;
+  // The scroll container's box, read by the correction pass.
+  containerBox?: { top: number; bottom: number };
+};
+
+const EDITOR_HEIGHT = 200;
+
+const isSecureExtra = (element: Element) =>
+  element.querySelector(':scope > .control-label')?.textContent ===
+  t('Secure extra');
+
+// Replaces scrollIntoView, which jsdom lacks, and reports the given layout for
+// the Secure extra container and the scroll container; other elements keep
+// jsdom's rect.
+const mockScrolling = (layout: Layout = {}) => {
+  const startedAt = Date.now();
+  const elapsed = () => Date.now() - startedAt;
+  const scrollIntoView = jest.fn();
+  const originalScroll = Element.prototype.scrollIntoView;
+  Element.prototype.scrollIntoView = scrollIntoView;
+  const originalRect = Element.prototype.getBoundingClientRect;
+  const rect = jest
+    .spyOn(Element.prototype, 'getBoundingClientRect')
+    .mockImplementation(function mockRect(this: Element) {
+      if (layout.editorTop && isSecureExtra(this)) {
+        return new DOMRect(0, layout.editorTop(elapsed()), 100, EDITOR_HEIGHT);
+      }
+      if (
+        layout.containerBox &&
+        this.getAttribute('data-test') === 'scroller'
+      ) {
+        const { top, bottom } = layout.containerBox;
+        return new DOMRect(0, top, 100, bottom - top);
+      }
+      return originalRect.call(this);
+    });
+  const scrollHeight = jest
+    .spyOn(Element.prototype, 'scrollHeight', 'get')
+    .mockImplementation(function mockHeight(this: Element) {
+      return layout.scrollHeight &&
+        this.getAttribute('data-test') === 'scroller'
+        ? layout.scrollHeight(elapsed())
+        : 0;
+    });
+  return {
+    scrollIntoView,
+    restore: () => {
+      Element.prototype.scrollIntoView = originalScroll;
+      rect.mockRestore();
+      scrollHeight.mockRestore();
+    },
+  };
+};
+
+// Renders the options inside a scrolling container, as the modal body is.
+const renderFocused = () =>
+  render(
+    <div data-test="scroller" style={{ overflowY: 'auto' }}>
+      <ExtraOptions {...focusProps} focusSecureExtra={1} />
+    </div>,
+    { useRedux: true },
+  );
+
+const FRAME_MS = 16;
+const advance = (ms: number) =>
+  act(() => {
+    jest.advanceTimersByTime(ms);
+  });
+const SMOOTH = { block: 'center', behavior: 'smooth' };
+
+test('a request to focus Secure extra expands the Security panel and scrolls to the editor', async () => {
+  const { scrollIntoView, restore } = mockScrolling();
+  try {
+    const { rerender } = render(
+      <ExtraOptions {...focusProps} focusSecureExtra={0} />,
+      { useRedux: true },
+    );
+    expect(screen.queryByText(t('Secure extra'))).not.toBeInTheDocument();
+
+    rerender(<ExtraOptions {...focusProps} focusSecureExtra={1} />);
+
+    expect(await screen.findByText(t('Secure extra'))).toBeInTheDocument();
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith(SMOOTH), {
+      timeout: 2000,
+    });
+    expect(scrollIntoView.mock.contexts[0]).toHaveTextContent(
+      t('Secure extra'),
+    );
+  } finally {
+    restore();
+  }
+});
+
+test('the scroll to Secure extra waits for the opening panel to stop growing', () => {
+  jest.useFakeTimers();
+  // 722 for 5 frames, then the panel grows to 1100 over 3 frames.
+  const { scrollIntoView, restore } = mockScrolling({
+    editorTop: () => 500,
+    scrollHeight: elapsed =>
+      Math.min(
+        1100,
+        722 + Math.max(0, Math.floor(elapsed / FRAME_MS) - 5) * 126,
+      ),
+  });
+  try {
+    renderFocused();
+
+    advance(384);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+
+    advance(48);
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(scrollIntoView).toHaveBeenCalledWith(SMOOTH);
+  } finally {
+    restore();
+    jest.useRealTimers();
+  }
+});
+
+test('the scroll to Secure extra waits for a late tab animation to finish', () => {
+  jest.useFakeTimers();
+  // Moves by 301 px at about 390 ms, after the minimum wait has nearly run.
+  const { scrollIntoView, restore } = mockScrolling({
+    editorTop: elapsed => (elapsed < 390 ? 801 : 500),
+    scrollHeight: elapsed => (elapsed < 400 ? 722 : 1100),
+  });
+  try {
+    renderFocused();
+
+    advance(432);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+
+    advance(64);
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(scrollIntoView).toHaveBeenCalledWith(SMOOTH);
+  } finally {
+    restore();
+    jest.useRealTimers();
+  }
+});
+
+test('the scroll to Secure extra waits the minimum time even when nothing moves', () => {
+  jest.useFakeTimers();
+  const { scrollIntoView, restore } = mockScrolling({
+    editorTop: () => 500,
+    scrollHeight: () => 1100,
+  });
+  try {
+    renderFocused();
+
+    advance(FRAME_MS * 4);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    advance(384 - FRAME_MS * 4);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+
+    advance(32);
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(scrollIntoView).toHaveBeenCalledWith(SMOOTH);
+  } finally {
+    restore();
+    jest.useRealTimers();
+  }
+});
+
+test('the scroll to Secure extra still happens at the limit when the layout never settles', () => {
+  jest.useFakeTimers();
+  const { scrollIntoView, restore } = mockScrolling({
+    editorTop: elapsed => 900 - elapsed,
+    scrollHeight: () => 1100,
+  });
+  try {
+    renderFocused();
+
+    advance(1184);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+
+    advance(32);
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(scrollIntoView).toHaveBeenCalledWith(SMOOTH);
+  } finally {
+    restore();
+    jest.useRealTimers();
+  }
+});
+
+test('a scroll that leaves the editor below the container is corrected once', () => {
+  jest.useFakeTimers();
+  // The editor stays at 600 to 800, below a container box that ends at 500.
+  const { scrollIntoView, restore } = mockScrolling({
+    editorTop: () => 600,
+    scrollHeight: () => 1100,
+    containerBox: { top: 0, bottom: 500 },
+  });
+  try {
+    renderFocused();
+    advance(432);
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+
+    advance(600);
+
+    expect(scrollIntoView).toHaveBeenCalledTimes(2);
+    expect(scrollIntoView).toHaveBeenLastCalledWith({
+      block: 'center',
+      behavior: 'auto',
+    });
+    advance(2000);
+    expect(scrollIntoView).toHaveBeenCalledTimes(2);
+  } finally {
+    restore();
+    jest.useRealTimers();
+  }
+});
+
+test('a scroll that brings the editor into the container is not corrected', () => {
+  jest.useFakeTimers();
+  const { scrollIntoView, restore } = mockScrolling({
+    editorTop: () => 100,
+    scrollHeight: () => 1100,
+    containerBox: { top: 0, bottom: 500 },
+  });
+  try {
+    renderFocused();
+    advance(432);
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+
+    advance(2000);
+
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+  } finally {
+    restore();
+    jest.useRealTimers();
+  }
+});
+
+test('a pending scroll to Secure extra is dropped on unmount', () => {
+  jest.useFakeTimers();
+  const { scrollIntoView, restore } = mockScrolling({
+    editorTop: () => 500,
+    scrollHeight: () => 1100,
+  });
+  try {
+    const { unmount } = renderFocused();
+    advance(200);
+
+    unmount();
+    advance(3000);
+
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  } finally {
+    restore();
+    jest.useRealTimers();
+  }
 });

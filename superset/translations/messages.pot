@@ -7513,6 +7513,9 @@ msgstr ""
 msgid "Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help."
 msgstr ""
 
+msgid "Go to Secure extra"
+msgstr ""
+
 msgid "Go to Welcome Page"
 msgstr ""
 
@@ -10582,6 +10585,9 @@ msgid "Paste"
 msgstr ""
 
 msgid "Paste Private Key here"
+msgstr ""
+
+msgid "Paste a new token into Secure extra and click Finish."
 msgstr ""
 
 msgid "Paste content of service credentials JSON file here"
@@ -14926,6 +14932,20 @@ msgid "The size of the square cell, in pixels"
 msgstr ""
 
 msgid "The slope to compute all sizes from. \"LINEAR\" only"
+msgstr ""
+
+#, python-format
+msgid "The stored %s expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The stored %s expires in %s day (%s)."
+msgid_plural "The stored %s expires in %s days (%s)."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "The stored %s expires today at %s."
 msgstr ""
 
 msgid "The submitted payload failed validation."
