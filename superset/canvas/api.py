@@ -762,9 +762,9 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         patch:
           summary: Apply operations to a canvas draft
           description: >-
-            The same operations as the definition route, validated the same
-            way, applied to the draft only. `revision` must be the draft's
-            current revision.
+            Operations on the canvas definition, validated in full and
+            applied to the draft only; the canvas changes when the draft is
+            committed. `revision` must be the draft's current revision.
           responses:
             200:
               description: The draft after the write
