@@ -236,21 +236,18 @@ export default function AssetReview({
   const isMyOpenChange = !!(
     changeRequest?.is_open && changeRequest?.is_author
   );
-  const seedAuthorsControls = preview.seedAuthorsControls;
   useEffect(() => {
+    // Dashboards only. Explore needs the same thing and cannot get it this
+    // way: seeding its controls after the page has built its store crashes
+    // the chart panel on an undefined `chartStatus`, which is the third
+    // time a post-load hydration has taken a page down in this feature.
+    // It needs the proposal at Explore's bootstrap, before the store is
+    // built, not laid over it afterwards.
+    if (assetType !== 'dashboard') return;
     if (!isMyOpenChange || !canPreview || !changeRequest) return;
     if (defaultedForRef.current === changeRequest.id) return;
     if (previewing || previewBusy) return;
     defaultedForRef.current = changeRequest.id;
-    // Two surfaces, one rule: the author works on their own change, not on
-    // the published asset. A dashboard's canvas is hydrated through the
-    // preview; Explore's controls are loaded directly, because the preview
-    // there is a read-only overlay that greys the controls out.
-    if (assetType === 'chart') {
-      seedAuthorsControls();
-      return;
-    }
-    if (assetType !== 'dashboard') return;
     reviewLog('preview: opening on your changes rather than live', {
       ...requestFacts(changeRequest),
     });
@@ -263,7 +260,6 @@ export default function AssetReview({
     previewBusy,
     previewing,
     previewToggle,
-    seedAuthorsControls,
   ]);
 
   // The edit header asks for review; this component owns the modal. The

@@ -30,13 +30,10 @@ import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import type { HydrateDashboardData } from 'src/dashboard/actions/hydrate';
 import {
   fetchDashboardHydrationData,
-  fetchExploreRehydrationData,
   type DashboardHydrationData,
 } from 'src/features/versionHistory/api';
-import { hydrateExplore } from 'src/explore/actions/hydrateExplore';
 import { resolveSnapshotCharts } from 'src/features/versionHistory/useDashboardVersionPreview';
 import { announceProposedChart } from './events';
-import { reviewLog } from './log';
 import { displayName } from './types';
 import { hasProposedChart, proposedChartFormData } from './proposedChart';
 import type { ChangeRequest } from './types';
@@ -310,61 +307,6 @@ export function useProposedPreview(changeRequest: ChangeRequest | null) {
   );
 
   /**
-   * Load the author's own draft into Explore's controls.
-   *
-   * Explore opens on the live chart. For the author of an open change that
-   * is the wrong chart: the controls beside it are what a save posts, so
-   * revising a change means tweaking one control on top of the published
-   * version and sending the result. Their earlier edits are not merged,
-   * they are replaced -- the same defect the dashboard canvas had, which
-   * was fixed by seeding it from the draft instead of from live.
-   *
-   * Deliberately not the preview switch. That announces a proposal for
-   * Explore to draw and greys the control panel out while it is up, which
-   * is right for a reviewer looking at someone else's work and useless to
-   * an author who needs to edit. The controls themselves have to carry the
-   * draft, which is what this does.
-   *
-   * Reuses version history's path, which loads a historical version into
-   * these same controls: fetch the slice's rehydration payload, then
-   * replace its form data with the proposal before handing it over. The
-   * slice and dataset halves come from the live fetch, so they cannot
-   * disagree with each other.
-   */
-  const seedAuthorsControls = useCallback(async () => {
-    if (!changeRequest || changeRequest.asset_type !== 'chart') return;
-    const proposed = proposedChartFormData(
-      store.getState().explore?.form_data,
-      changeRequest.proposed as JsonObject,
-    );
-    if (!proposed) return;
-    try {
-      const live = await fetchExploreRehydrationData(changeRequest.asset_id);
-      dispatch(
-        hydrateExplore({
-          ...live,
-          form_data: proposed,
-          // The author is revising a chart that exists, so Save means
-          // update it, not create another one.
-          saveAction: 'overwrite',
-        } as Parameters<typeof hydrateExplore>[0]),
-      );
-      reviewLog('explore: opened on your changes rather than live', {
-        chartId: changeRequest.asset_id,
-        requestId: changeRequest.id,
-      });
-    } catch (error) {
-      // Leave the live chart up and say so. The author is looking at a
-      // working page; replacing it with nothing would be worse than a
-      // banner that is behind until they reload.
-      reviewLog('explore: could not open on your changes', {
-        chartId: changeRequest.asset_id,
-        error: String(error),
-      });
-    }
-  }, [changeRequest, dispatch, store]);
-
-  /**
    * Tell Explore what to draw, and stop telling it when there is nothing.
    *
    * Keyed on the change itself, not only on the switch, because the switch
@@ -436,5 +378,5 @@ export function useProposedPreview(changeRequest: ChangeRequest | null) {
     [],
   );
 
-  return { canPreview, showing, busy, toggle: apply, seedAuthorsControls };
+  return { canPreview, showing, busy, toggle: apply };
 }

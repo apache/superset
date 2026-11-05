@@ -42,7 +42,6 @@ jest.mock('./ReviewBanner', () => () => <div data-test="banner" />);
 jest.mock('./WhatChangedPanel', () => () => null);
 
 const toggle = jest.fn();
-const seedAuthorsControls = jest.fn(async () => {});
 const mockPreview = jest.fn();
 jest.mock('./useProposedPreview', () => ({
   useProposedPreview: (...args: unknown[]) => mockPreview(...args),
@@ -65,7 +64,6 @@ const change = (over: Record<string, unknown> = {}) =>
 
 beforeEach(() => {
   toggle.mockReset();
-  seedAuthorsControls.mockReset();
   mockPreview.mockReset();
   mockUseAssetReview.mockReset();
   mockPreview.mockReturnValue({
@@ -73,7 +71,6 @@ beforeEach(() => {
     showing: false,
     busy: false,
     toggle,
-    seedAuthorsControls,
   });
   mockUseAssetReview.mockReturnValue({
     changeRequest: change(),
@@ -91,8 +88,6 @@ test('the author’s own open change opens showing their changes', async () => {
   mount();
 
   await waitFor(() => expect(toggle).toHaveBeenCalledWith(true));
-  // A dashboard has no Explore controls to seed.
-  expect(seedAuthorsControls).not.toHaveBeenCalled();
 });
 
 test('somebody else’s change does not', async () => {
@@ -131,25 +126,25 @@ test('it does not fight an author who switched to live themselves', async () => 
     showing: false,
     busy: false,
     toggle,
-    seedAuthorsControls,
   });
   rerender(<AssetReview assetType="dashboard" assetId={6} />);
 
   expect(toggle).toHaveBeenCalledTimes(1);
 });
 
-test('a chart loads the draft into Explore’s controls instead', async () => {
-  // Same rule, different surface. Explore renders from its controls, and
-  // the controls are what a save posts -- so seeding them is what stops a
-  // revision overwriting the draft (Samwise, "revising a sent-back chart
-  // change silently drops the author's earlier edits").
+test('a chart is left alone, for now', async () => {
+  // Explore needs the same thing and does not get it here. Seeding its
+  // controls after the page has built its store crashed the chart panel on
+  // an undefined `chartStatus` -- the third post-load hydration in this
+  // feature to take a page down. The proposal has to reach Explore at
+  // bootstrap instead.
   //
-  // Not the preview switch: that announces an overlay for Explore to draw
-  // and greys the control panel out while it is up, which is right for a
-  // reviewer and useless to an author who needs to edit.
+  // So this pins a known gap, not a desired behaviour: Samwise's High
+  // ("revising a sent-back chart change silently drops the author's
+  // earlier edits") is still open on charts.
   mount('chart');
 
-  await waitFor(() => expect(seedAuthorsControls).toHaveBeenCalled());
+  await waitFor(() => expect(mockPreview).toHaveBeenCalled());
   expect(toggle).not.toHaveBeenCalled();
 });
 
@@ -161,7 +156,6 @@ test('nothing happens when there is no overlay to show', async () => {
     showing: false,
     busy: false,
     toggle,
-    seedAuthorsControls,
   });
   mount();
 

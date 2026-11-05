@@ -133,6 +133,19 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const [modal, contextHolder] = Modal.useModal();
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [isLoadingDatasource, setIsLoadingDatasource] = useState(false);
+  /**
+   * Set once the author's draft has been folded into the form.
+   *
+   * The editor below keeps its own copy of the dataset from the moment it
+   * mounts, so folding the draft in afterwards changed this component's
+   * state and nothing on screen -- the fields went on showing live. This
+   * rekeys it so it remounts and reads the merged dataset.
+   *
+   * A remount rather than holding the modal closed until the draft arrives:
+   * gating the render on a request makes every open of this editor wait on
+   * one, including the opens that have no draft to wait for.
+   */
+  const [draftSeeded, setDraftSeeded] = useState(false);
 
   // Callers that read the dataset themselves (the dataset list) hand down the
   // ETag of that read. The rest — Explore, where `datasource` comes from the
@@ -173,30 +186,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         // carries only what the author changed, and the rest of the form
         // -- columns the server computed, the database, the ETag this save
         // will be guarded by -- has to come from the read it is guarding.
-        // Live first, and the ETag with it. The ETag belongs to this read
-        // and is what the save will be guarded by, so it must not wait on
-        // an unrelated request: a draft that is slow, or absent, would
-        // otherwise leave the form unguarded.
         setSeededSql(live.sql);
         setCurrentDatasource(live);
         setVersionEtag(etagHeader);
-        openChangeFor(datasource.id)
-          .then(proposed => {
-            if (cancelled || !proposed) return;
-            reviewLog('dataset: opened on your changes rather than live', {
-              datasetId: datasource.id,
-              fields: Object.keys(proposed),
-            });
-            setCurrentDatasource({ ...live, ...proposed });
-            if (typeof proposed.sql === 'string') {
-              setSeededSql(proposed.sql);
-            }
-          })
-          .catch(() => {
-            // No draft, or it could not be read. The live dataset is still
-            // the right thing to edit, and the gate refuses the save if it
-            // turns out to conflict.
-          });
       })
       .catch(() => {
         // The read failed outright, so there is no fresher snapshot to edit
@@ -212,6 +204,60 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       cancelled = true;
     };
   }, [datasource.id, etag, show]);
+  /**
+   * The author edits their own draft, not the published dataset.
+   *
+   * This editor seeded from live and gave no sign a draft existed, so an
+   * author with changes already saved saw none of them: the fields read as
+   * they do for everybody else. Their next save then posted those live
+   * values back over the draft, field by field, and the earlier work was
+   * gone with nothing said.
+   *
+   * Its own effect, deliberately. The first attempt put this inside the
+   * read above, which is guarded by `if (etag || ...) return` -- and the
+   * dataset list hands its ETag down, so the guard skipped the whole block
+   * and the overlay only ever ran when the modal was opened from Explore.
+   * Every route in needs it.
+   *
+   * Folded over whatever is in the form rather than replacing it: a draft
+   * carries only the fields the author changed, so the columns the server
+   * computed, the database and the rest have to stay. The merge is a
+   * functional update so it does not matter whether the live read above
+   * has landed yet.
+   */
+  useEffect(() => {
+    if (!show || !datasource.id) return undefined;
+    let cancelled = false;
+    openChangeFor(datasource.id)
+      .then(proposed => {
+        if (cancelled || !proposed) return;
+        reviewLog('dataset: opened on your changes rather than live', {
+          datasetId: datasource.id,
+          fields: Object.keys(proposed),
+        });
+        setCurrentDatasource(
+          current =>
+            ({
+              ...current,
+              ...proposed,
+            }) as typeof current,
+        );
+        if (typeof proposed.sql === 'string') {
+          setSeededSql(proposed.sql as string);
+        }
+        setDraftSeeded(true);
+      })
+      .catch(() => {
+        // No draft, or it could not be read. The live dataset is still the
+        // right thing to edit, and the gate refuses the save if it turns
+        // out to conflict.
+      })
+
+    return () => {
+      cancelled = true;
+    };
+  }, [datasource.id, show]);
+
   const baselineSql = seededSql ?? datasource.sql;
 
   const buildPayload = (datasource: Record<string, any>) => {
@@ -532,6 +578,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         <Loading />
       ) : (
         <DatasourceEditor
+          key={draftSeeded ? 'authors-draft' : 'live'}
           showLoadingForImport
           height={500}
           datasource={currentDatasource}
