@@ -1490,6 +1490,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     semanticViews: Dataset[],
   ) => {
     const parsed = await getClientErrorObject(error);
+    if (parsed.status !== 409) {
+      const names = semanticViews.map(view => view.table_name).join(', ');
+      addDangerToast(
+        t('There was an issue deleting %s: %s', names, parsed.error),
+      );
+      return;
+    }
     const { blocked_view_ids: blockedIds, blocked_views: details } =
       parsed as SemanticDeleteError & {
         blocked_view_ids?: number[];
@@ -1569,11 +1576,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         }
         if (datasets.length && results[0].status === 'fulfilled') {
           // The datasets went through even though the semantic views did not.
-          addSuccessToast(
-            softDelete
-              ? t('Archived %s item(s)', datasets.length)
-              : t('Deleted %s item(s)', datasets.length),
-          );
+          const message = softDelete
+            ? t('Archived %s item(s)', datasets.length)
+            : t('Deleted %s item(s)', datasets.length);
+          rememberArchivedType('dataset');
+          const toast: ToastContent = softDelete
+            ? archiveToastContent(message, 'dataset')
+            : { text: message };
+          addSuccessToast(toast.text, toast.options);
         }
         if (datasets.length && results[0].status === 'rejected') {
           addDangerToast(
