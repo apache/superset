@@ -41,7 +41,11 @@ from superset.common.query_actions import get_query_results_with_timing
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.connectors.sqla.models import SqlaTable
-from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion, SHOW_VALUES_AS_PERCENT_MODES
+from superset.constants import (
+    CACHE_DISABLED_TIMEOUT,
+    CacheRegion,
+    SHOW_VALUES_AS_PERCENT_MODES,
+)
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
