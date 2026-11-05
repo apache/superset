@@ -35,12 +35,13 @@ concurrency:
 
 jobs:
   backfill-translations:
+    name: Backfill translations
     if: github.repository == 'apache/superset'
     runs-on: ubuntu-26.04
     timeout-minutes: 240
     permissions:
-      contents: write
-      pull-requests: write
+      contents: write # push the automated backfill branch
+      pull-requests: write # find an open backfill PR, open a new one
     env:
       BRANCH: chore/backfill-translations-automated
     steps:
@@ -75,7 +76,7 @@ jobs:
 
       - name: Install translation tooling
         if: steps.pending.outputs.skip == 'false'
-        run: pip install babel==2.17.0 polib==1.2.0
+        run: pip install -r superset/translations/requirements.txt
 
       - name: Set up Node
         if: steps.pending.outputs.skip == 'false'
@@ -85,7 +86,12 @@ jobs:
 
       - name: Install Claude Code CLI
         if: steps.pending.outputs.skip == 'false'
-        run: npm install -g @anthropic-ai/claude-code@2.1.318
+        # Installed from a committed lockfile (version bumps come through
+        # Dependabot) so every package is integrity-checked.
+        working-directory: .github/tools/claude-code
+        run: |
+          npm ci
+          echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Build translation index
         if: steps.pending.outputs.skip == 'false'
