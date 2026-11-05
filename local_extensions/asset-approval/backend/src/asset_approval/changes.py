@@ -37,6 +37,7 @@ from typing import Any
 from uuid import UUID
 
 from superset.utils import json
+from superset.versioning.diff import DASHBOARD_JSON_METADATA_SAVE_DEFAULTS
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +111,75 @@ DERIVED_METADATA_KEYS = frozenset(
 #: round-trips to the same thing.
 LAYOUT_KEY = "positions"
 LAYOUT_COLUMN = "position_json"
+
+
+#: Entries the dashboard write seeds with a default when the stored
+#: metadata has never had them, mapped to that default.
+#:
+#: ``DashboardDAO.set_dash_metadata`` ends with
+#: ``md.setdefault(key, default_value)`` over its own ``metadata_defaults``
+#: (``superset/daos/dashboard.py``), plus ``md.setdefault(
+#: "timed_refresh_immune_slices", [])``. So a key the stored metadata lacks,
+#: stated by the body as exactly that default, is stored with the same value
+#: the write would have seeded whether the body mentioned it or not: it is
+#: not an edit to the dashboard, it is the shape being filled in.
+#:
+#: Read from core rather than copied. Every edit-mode save posts the whole
+#: set (``cleanedData.metadata`` in ``dashboardState.ts``), and core's
+#: version history already answers this exact question about this exact set
+#: -- a second table here would drift from both.
+#:
+#: Narrow on purpose, in three ways. Only a key the stored metadata does not
+#: have at all: a dashboard that holds ``refresh_frequency: 300`` and is sent
+#: ``0`` has had its refresh turned off, which is a change. Only the exact
+#: default, type included, so ``1`` is not ``True``. And only this table:
+#: everything else the body states is still compared as it always was.
+SEEDED_METADATA_DEFAULTS = DASHBOARD_JSON_METADATA_SAVE_DEFAULTS
+
+#: The dashboard-wide cross-filter scope, which no reader needs stored.
+#:
+#: ``getCrossFiltersConfiguration`` (``superset-frontend/src/dashboard/util/
+#: crossFilters.ts``) synthesises ``{scope: DEFAULT_CROSS_FILTER_SCOPING,
+#: chartsInScope: <every chart>}`` for a dashboard whose metadata has no
+#: global scope, and the backend's own ``_derive_cross_filter_scopes``
+#: (``superset/dashboards/filter_scope.py``) answers the same question the
+#: same way -- an absent global config means every chart. The default is
+#: therefore what absence already says, and the client writing it down is
+#: not the author scoping anything.
+#:
+#: Only the default. A ``rootPath`` that names a tab, or any ``excluded``
+#: list, is a scope somebody set, and a chart entering or leaving one is
+#: reviewable (Visa Q3) -- those still read as a change, which is why this
+#: key is not in ``DERIVED_METADATA_KEYS``.
+GLOBAL_CROSS_FILTER_KEY = "global_chart_configuration"
+WHOLE_DASHBOARD_ROOT = "ROOT_ID"
+
+
+def _is_the_whole_dashboard_scope(value: Any) -> bool:
+    """Whether this global cross-filter config only restates the default."""
+    config = _parsed(value)
+    if not isinstance(config, dict) or set(config) - {"scope", "chartsInScope"}:
+        return False
+    scope = _parsed(config.get("scope"))
+    if not isinstance(scope, dict) or set(scope) - {"rootPath", "excluded"}:
+        return False
+    return (
+        [str(step) for step in scope.get("rootPath") or []] == [WHOLE_DASHBOARD_ROOT]
+        and not scope.get("excluded")
+    )
+
+
+def _says_what_absence_already_says(key: str, value: Any) -> bool:
+    """Whether stating *key* as *value* adds nothing to not stating it.
+
+    Asked only of a key the stored metadata does not have.
+    """
+    if key == GLOBAL_CROSS_FILTER_KEY:
+        return _is_the_whole_dashboard_scope(value)
+    if key not in SEEDED_METADATA_DEFAULTS:
+        return False
+    seeded = SEEDED_METADATA_DEFAULTS[key]
+    return type(value) is type(seeded) and value == seeded
 
 
 #: Entries that hold a collection of ids rather than an ordered list.
@@ -307,6 +377,17 @@ def _metadata_differs(asset: Any, current: Any, proposed: Any) -> bool:
             was = getattr(asset, LAYOUT_COLUMN, None)
         now = after.get(key)
         if _is_nothing(was) and _is_nothing(now):
+            continue
+        if key == LAYOUT_KEY:
+            # Component by component, so a client that does not echo the
+            # entries the write assigns itself is not read as having moved
+            # the layout. The same comparison the "put back" sentence makes.
+            if not _same_layout(now, was):
+                return True
+            continue
+        if key not in before and _says_what_absence_already_says(key, now):
+            # Stating this adds nothing to the metadata not having it. See
+            # ``SEEDED_METADATA_DEFAULTS``.
             continue
         if _parsed(was) != _parsed(now):
             return True
@@ -901,10 +982,113 @@ def _layout_stated_by(body: dict[str, Any]) -> dict[str, Any] | None:
     return _layout_object(body.get(LAYOUT_COLUMN))
 
 
+#: The entry on a ``CHART`` layout node that the write assigns for itself.
+#:
+#: ``DashboardDAO.set_dash_metadata`` (``superset/daos/dashboard.py``) ends
+#: every layout-bearing save with
+#:
+#:     for obj in positions.values():
+#:         if (chart_id := _layout_chart_id(obj)) is not None:
+#:             obj["meta"]["uuid"] = uuid_map.get(chart_id)
+#:
+#: so the stored ``meta.uuid`` is the uuid of whichever ``Slice`` the node's
+#: ``chartId`` resolves to, whatever the body said about it -- and the same
+#: loop canonicalises ``meta.chartId`` to the integer
+#: ``_layout_chart_id`` read out of it.
+#:
+#: It is therefore not compared as stated. :func:`_as_stored_component`
+#: resolves it instead, which is the whole point: the author's browser
+#: happens to echo the uuid back, a REST or MCP client building the same
+#: layout by hand has no reason to, and both store the identical node. Read
+#: literally, every such body looked unlike live on every chart, so a
+#: restored chart was not counted as restored and its name never reached the
+#: sentence -- while the revert itself still happened.
+SERVER_ASSIGNED_CHART_META = "uuid"
+
+
+def _chart_reference(node: Any) -> int | None:
+    """The chart a layout node points at, read the way the write reads it.
+
+    Mirrors ``superset.daos.dashboard._layout_chart_id``: only a ``CHART``
+    node carries a chart, and a numeric *form* of the id counts as the id,
+    because that is the value the save canonicalises the node to. ``None``
+    for anything else, so a row, a tab or a malformed node is compared
+    exactly as it was before.
+    """
+    if not isinstance(node, dict) or node.get("type") != "CHART":
+        return None
+    meta = node.get("meta")
+    if not isinstance(meta, dict):
+        return None
+    value = meta.get("chartId")
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value) if value.is_integer() else None
+    if isinstance(value, str) and value.strip().lstrip("-").isdigit():
+        return int(value.strip())
+    return None
+
+
+def _as_stored_component(node: Any, live: Any) -> Any:
+    """One layout component as this save is going to store it.
+
+    Only the entries the write assigns are resolved, and only when the two
+    nodes point at the same chart -- at which point their stored uuids are
+    equal *by construction*, because both are ``uuid_map[chartId]``. So this
+    predicts the stored value rather than dropping a field: a node pointing
+    at a *different* chart keeps its own ``chartId``, differs on it, and is
+    not a component that was put back.
+
+    Everything else is left exactly as stated. A node edited to a third
+    value -- a resize, a rename, a background -- still differs from live,
+    which is the one thing this comparison must not lose.
+    """
+    chart = _chart_reference(node)
+    if chart is None or chart != _chart_reference(live):
+        return node
+    meta = {**node["meta"], "chartId": chart}
+    live_meta = live.get("meta")
+    if isinstance(live_meta, dict) and SERVER_ASSIGNED_CHART_META in live_meta:
+        meta[SERVER_ASSIGNED_CHART_META] = live_meta[SERVER_ASSIGNED_CHART_META]
+    else:
+        # A layout last written through the raw ``position_json`` path has no
+        # uuid on its nodes (``reconcile_position_json`` has no ``uuid_map``),
+        # so an echo that carries one is stating nothing either.
+        meta.pop(SERVER_ASSIGNED_CHART_META, None)
+    return {**node, "meta": meta}
+
+
+def _same_layout(stated: Any, live: Any) -> bool:
+    """Whether a stated layout says what the live one says.
+
+    Component by component, so the entries the write assigns itself are
+    resolved per node rather than compared as part of one blob. Two layouts
+    that are not both readable as objects are compared exactly as before,
+    because an unreadable layout is not something to be lenient about.
+    """
+    one, other = _layout_object(stated), _layout_object(live)
+    if one is None or other is None:
+        return bool(_parsed(stated) == _parsed(live))
+    if set(one) != set(other):
+        return False
+    return all(_same_component(one[key], other[key]) for key in one)
+
+
 def _same_component(one: Any, other: Any) -> bool:
+    """Whether a stated component says what the live one says.
+
+    ``other`` is the live side on both call sites, and is what the stated
+    node's server-assigned entries are resolved against.
+    """
     if one is _NOT_THERE or other is _NOT_THERE:
         return one is other
-    return bool(_parsed(one) == _parsed(other))
+    stated, live = _parsed(one), _parsed(other)
+    return bool(
+        _as_stored_component(stated, live) == _as_stored_component(live, live)
+    )
 
 
 def _layout_label(entry: dict[str, Any]) -> str:
@@ -920,6 +1104,49 @@ def _layout_label(entry: dict[str, Any]) -> str:
     kind = str(entry.get("type") or "component").lower()
     name = entry.get("name")
     return f"{drafted} {kind}: {name}" if name else f"{drafted} {kind}"
+
+
+#: The last thing left to say when naming the components failed outright.
+#:
+#: Only reached when ``api``'s naming raises. It used to be the answer for
+#: the ordinary case of a put-back container as well, and an author told "this
+#: save undid 1 layout change: changed arrangement" has been told that
+#: something went and not what, on a dashboard of forty tiles. A container
+#: is named by what it holds instead (:func:`_held_by_what_came_back`).
+UNNAMEABLE_LAYOUT_LABEL = "changed arrangement"
+
+
+def _held_by_what_came_back(
+    restored: list[str], drafted: dict[str, Any], put_back: dict[str, Any]
+) -> list[str]:
+    """Put-back containers, named by the components inside them.
+
+    A row, a column and a tabs strip have no name of their own: all that
+    differs on one is its list of children, and when the children themselves
+    sit in the same places ``_layout_components`` has nothing to show for it.
+    The charts underneath do have names, and the review panel already names
+    an unnamed container that way -- ``_holding`` is the panel's own
+    function, so the words the sentence uses are the words the author will
+    read beside it.
+
+    Named off ``put_back`` first, which is the live arrangement: a container
+    the draft had emptied holds what live put back into it. The draft is the
+    fallback for a container live does not have.
+    """
+    # ``api`` imports this module, so the import is local; see below.
+    from asset_approval.api import _component_type, _holding
+
+    labels = []
+    for key in sorted(restored, key=str):
+        node = put_back.get(key, drafted.get(key))
+        entry: dict[str, Any] = {
+            "kind": "changed",
+            "type": _component_type(key, node),
+        }
+        if name := (_holding(put_back, key) or _holding(drafted, key)):
+            entry["name"] = name
+        labels.append(_layout_label(entry))
+    return labels
 
 
 def layout_put_back(
@@ -973,13 +1200,17 @@ def layout_put_back(
         from asset_approval.api import _layout_components
 
         labels = [_layout_label(entry) for entry in _layout_components(drafted, put_back)]
+        if not labels:
+            # What came back was only containers -- a row's list of children,
+            # a column's -- which carry no name of their own. The components
+            # *inside* them do, so the container is named by what it holds,
+            # which is what the author can go and look at.
+            labels = _held_by_what_came_back(restored, drafted, put_back)
     except Exception:  # noqa: BLE001 -- naming is a courtesy; the count is not
         logger.warning("asset-approval: could not name the layout put back", exc_info=True)
-        labels = []
-    if not labels:
-        # What came back was only containers (a row's list of children), which
-        # carry no name of their own.
-        labels = ["changed arrangement"]
+        # One entry per component, so the count the sentence leads with is
+        # still the number that came back even when none could be named.
+        labels = [UNNAMEABLE_LAYOUT_LABEL] * len(restored)
 
     counts: dict[str, int] = {}
     for label in labels:
