@@ -1166,3 +1166,61 @@ def test_a_transform_on_a_column_added_in_the_same_request_is_cleared(
     }
     assert by_name["region_key"].partition_value_transform is None
     assert by_name["region_key"].partition_transform_is_monotonic is False
+
+
+def test_related_objects_include_dashboards_filtering_on_the_dataset(
+    session: Session,
+) -> None:
+    """
+    A dashboard whose native filter targets a dataset depends on it even when no
+    chart on the dashboard (or anywhere) is built on that dataset, so both the
+    single and bulk related-objects lookups must list it.
+    """
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+    from superset.models.dashboard import Dashboard
+    from superset.utils import json
+
+    Dashboard.metadata.create_all(session.get_bind())
+
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    filter_only_dataset = SqlaTable(
+        table_name="filter_only", schema="main", database=database
+    )
+    unused_dataset = SqlaTable(table_name="unused", schema="main", database=database)
+    db.session.add_all([database, filter_only_dataset, unused_dataset])
+    db.session.flush()
+
+    dashboard = Dashboard(
+        dashboard_title="filtered_dashboard",
+        slug="filtered-dashboard",
+        json_metadata=json.dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": "NATIVE_FILTER-1",
+                        "filterType": "filter_select",
+                        "targets": [
+                            {
+                                "datasetId": filter_only_dataset.id,
+                                "column": {"name": "category"},
+                            }
+                        ],
+                    }
+                ]
+            }
+        ),
+    )
+    db.session.add(dashboard)
+    db.session.flush()
+
+    single = DatasetDAO.get_related_objects(filter_only_dataset.id)
+    bulk = DatasetDAO.get_related_objects_for_datasets(
+        [filter_only_dataset.id, unused_dataset.id]
+    )
+
+    assert single["charts"] == []
+    assert [d.id for d in single["dashboards"]] == [dashboard.id]
+    assert [d.id for d in bulk["dashboards"]] == [dashboard.id]
+    assert DatasetDAO.get_related_objects(unused_dataset.id)["dashboards"] == []
