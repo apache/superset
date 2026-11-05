@@ -3126,3 +3126,30 @@ def test_apply_offset_before_limit_not_applied_to_hive_family() -> None:
     for spec in (HiveEngineSpec, SparkEngineSpec, DatabricksHiveEngineSpec):
         assert spec.offset_before_limit is False
         assert spec.apply_offset_before_limit(ansi_sql) == ansi_sql
+
+
+def test_apply_offset_before_limit_rewrites_only_trailing_clause() -> None:
+    """
+    Only the anchored trailing ``LIMIT n OFFSET m`` is rewritten; the rest of the
+    statement (including function calls and subqueries) is preserved verbatim.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    sql = (
+        "SELECT log(10, x) AS y\n"
+        "FROM (SELECT x FROM t LIMIT 5 OFFSET 1) s\n"
+        "LIMIT 50 OFFSET 100"
+    )
+    assert TrinoEngineSpec.apply_offset_before_limit(sql) == (
+        "SELECT log(10, x) AS y\n"
+        "FROM (SELECT x FROM t LIMIT 5 OFFSET 1) s"
+        " OFFSET 100 LIMIT 50"
+    )
+
+
+def test_apply_offset_before_limit_ignores_non_trailing_limit_offset() -> None:
+    """A ``LIMIT ... OFFSET`` that isn't at the end of the statement is untouched."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    sql = "SELECT x FROM (SELECT x FROM t LIMIT 5 OFFSET 1) s WHERE x > 0"
+    assert TrinoEngineSpec.apply_offset_before_limit(sql) == sql
