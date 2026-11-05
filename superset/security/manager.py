@@ -5204,6 +5204,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         sql: Optional[str] = None,
         catalog: Optional[str] = None,
         schema: Optional[str] = None,
+        form_data: Optional[dict[str, Any]] = None,
         template_params: Optional[dict[str, Any]] = None,
         force_dataset_match: bool = False,
         allow_query_authorship_bypass: bool = False,
@@ -5220,6 +5221,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param sql: The SQL string (requires database)
         :param catalog: Optional catalog name
         :param schema: Optional schema name
+        :param form_data: Optional form data for a datasource check that does
+            not arrive through a query context or viz object (e.g. the Explore
+            bootstrap, which authorizes a saved chart and then checks the
+            chart's datasource). Only the chart identity (``slice_id``) is
+            consumed, for the dashboard-membership grant; dashboard-scoped
+            grants that read ``dashboardId`` keep arriving via query contexts.
         :param template_params: Optional template parameters for Jinja templating
         :param force_dataset_match: When True, the historical
             ``catalog_access`` / ``schema_access`` fallthroughs in the
@@ -5701,14 +5708,51 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
 
         if datasource or query_context:
-            form_data = None
-
             if query_context:
                 datasource = query_context.datasource
                 form_data = query_context.form_data
 
             assert datasource
             self.raise_for_unsupported_guest_rls(datasource)
+
+            def has_dashboard_member_access() -> bool:
+                # Explore bootstrap (commands/explore/get.py) authorizes the
+                # chart first and reaches this branch with the chart's own
+                # datasource and no form_data. A user who can view a published
+                # dashboard containing the chart -- e.g. through a role
+                # assigned to the dashboard (dashboard RBAC) -- implicitly has
+                # read access to the chart's datasource, mirroring the
+                # datasource-based fallback that grants dashboard access.
+                # Only a direct slice_id lookup reaches this helper, so the
+                # check stays scoped to the chart already authorized above.
+                # Chart-data requests are excluded: they carry a
+                # parent_slice_id for drill/multi-layer charts and a
+                # dashboardId for their dashboard context, both of which the
+                # dashboardId leg above already authorizes precisely.
+                if not (
+                    form_data
+                    and (slice_id := form_data.get("slice_id"))
+                    and "dashboardId" not in form_data
+                    and "parent_slice_id" not in form_data
+                ):
+                    return False
+
+                if not (
+                    member_slc := self.session.query(Slice)
+                    .filter(Slice.id == slice_id)
+                    .one_or_none()
+                ):
+                    return False
+
+                if not _datasource_matches(
+                    datasource, member_slc.datasource_id, member_slc.datasource_type
+                ):
+                    return False
+
+                return any(
+                    dashboard_.published and self.is_viewer(dashboard_)
+                    for dashboard_ in member_slc.dashboards
+                )
 
             def has_promiscuous_chart_access() -> bool:
                 # Bound to the request's chart: the datasource must be its own.
@@ -5850,6 +5894,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # access if the user is a viewer or editor of the chart
                 # and promiscuous mode is enabled.
                 or has_promiscuous_chart_access()
+                # Dashboard membership: bypass datasource access if the
+                # chart belongs to a published dashboard the user can view
+                # (dashboard RBAC). Only reachable with a slice_id in
+                # form_data, which the Explore bootstrap
+                # path supplies for an already-authorized chart.
+                or has_dashboard_member_access()
             ):
                 raise SupersetSecurityException(
                     self.get_datasource_access_error_object(datasource)
@@ -5970,6 +6020,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 and self._guest_token_allows_dataset(
                     chart.datasource.id if chart.datasource else None
                 )
+            ):
+                return
+
+            # A viewer of a published dashboard containing the chart (e.g.
+            # through a role assigned to the dashboard) may read the chart:
+            # dashboard viewers already see the chart rendered in place, and
+            # opening it in Explore goes through this same check. Mirrors the
+            # viewers leg of the dashboard branch above, including the
+            # published gate. The chart's datasource is authorized separately
+            # by the dashboard-membership grant in the datasource branch.
+            if any(
+                dashboard_.published and self.is_viewer(dashboard_)
+                for dashboard_ in chart.dashboards
             ):
                 return
 
