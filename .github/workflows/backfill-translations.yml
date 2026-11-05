@@ -9,9 +9,8 @@ name: Backfill Translations
 # backfill_po.py (<model>)" comment so reviewers can find it; the script only
 # fills empty msgstr entries and never modifies an existing translation.
 #
-# Authenticates the Claude Code CLI with the CLAUDE_CODE_OAUTH_TOKEN secret
-# (generate one with `claude setup-token`). The CLI is invoked with all tools
-# disabled, so it can only return text.
+# Authenticates the Claude Code CLI with the ANTHROPIC_API_KEY secret. The CLI
+# is invoked with all tools disabled, so it can only return text.
 on:
   schedule:
     # Tuesdays, the day after the Monday catalog sync.
@@ -97,12 +96,12 @@ jobs:
         if: steps.pending.outputs.skip == 'false'
         working-directory: superset-frontend
         env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           INPUT_LANGUAGES: ${{ inputs.languages }}
           INPUT_MODEL: ${{ inputs.model }}
         run: |
-          if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
-            echo "::error::The CLAUDE_CODE_OAUTH_TOKEN secret is not set." >&2
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::The ANTHROPIC_API_KEY secret is not set." >&2
             exit 1
           fi
 
