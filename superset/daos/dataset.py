@@ -38,6 +38,10 @@ from superset.connectors.sqla.partition_mapping import (
 )
 from superset.constants import EPOCH_FORMATS
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
+from superset.dashboards.dataset_references import (
+    dashboard_dataset_ids,
+    parse_dashboard_metadata,
+)
 from superset.extensions import db, feature_flag_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -167,9 +171,11 @@ class DatasetDAO(BaseDAO[SqlaTable]):
     @staticmethod
     def get_related_objects_for_datasets(dataset_ids: list[int]) -> dict[str, Any]:
         """
-        Return the charts built on any of the datasets and the dashboards those
-        charts appear on. Each chart and dashboard is listed once even if it
-        depends on several of the datasets.
+        Return the charts built on any of the datasets and the dashboards that
+        depend on them, either through those charts or through a native filter
+        or display control targeting one of the datasets. Each chart and
+        dashboard is listed once even if it depends on several of the datasets
+        or in several ways.
         """
         if not dataset_ids:
             return {"charts": [], "dashboards": []}
@@ -192,7 +198,45 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             .distinct()
             .all()
         )
+        seen_ids = {dashboard.id for dashboard in dashboards}
+        extra_ids = [
+            dashboard_id
+            for dashboard_id in DatasetDAO._dashboard_ids_targeting_datasets(
+                dataset_ids
+            )
+            if dashboard_id not in seen_ids
+        ]
+        if extra_ids:
+            dashboards.extend(
+                db.session.query(Dashboard).filter(Dashboard.id.in_(extra_ids)).all()
+            )
         return {"charts": charts, "dashboards": dashboards}
+
+    @staticmethod
+    def _dashboard_ids_targeting_datasets(dataset_ids: list[int]) -> list[int]:
+        """
+        Ids of the dashboards whose native filters or display controls target
+        any of the datasets.
+
+        Targets live in ``json_metadata`` text, so a cheap ``LIKE`` prefilter
+        narrows the rows and the parsed metadata is then checked exactly.
+        Dashboards with missing or malformed metadata never match.
+        """
+        wanted = set(dataset_ids)
+        rows = (
+            db.session.query(Dashboard.id, Dashboard.json_metadata)
+            .filter(
+                Dashboard.json_metadata.like('%"datasetId"%'),
+                Dashboard.deleted_at.is_(None),
+            )
+            .order_by(Dashboard.id)
+            .all()
+        )
+        return [
+            dashboard_id
+            for dashboard_id, json_metadata in rows
+            if wanted & dashboard_dataset_ids(parse_dashboard_metadata(json_metadata))
+        ]
 
     @staticmethod
     def validate_table_exists(
