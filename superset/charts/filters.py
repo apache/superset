@@ -76,6 +76,9 @@ class ChartDatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-metho
 
     def apply(self, query: Query, value: object) -> Query:
         """Keep malformed identities from widening the chart list."""
+        # Saved Charts URLs used integer dataset IDs before typed identities.
+        if isinstance(value, int) and not isinstance(value, bool):
+            value = f"{value}__table"
         if not isinstance(value, str):
             return query.filter(false())
 

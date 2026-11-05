@@ -20,9 +20,13 @@
 from typing import Any
 from unittest.mock import MagicMock
 
+import prison
 import pytest
+from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from werkzeug.test import TestResponse
 
 
 @pytest.mark.parametrize("datasource_type", ["table", "semantic_view"])
@@ -55,7 +59,9 @@ def test_chart_datasource_filter_matches_id_and_type(datasource_type: str) -> No
         "7__table__extra",
         "99999999999999999999__table",
         None,
-        7,
+        True,
+        -7,
+        7.0,
     ],
 )
 def test_chart_datasource_filter_rejects_malformed_identity(identity: object) -> None:
@@ -76,6 +82,54 @@ def test_chart_datasource_filter_rejects_malformed_identity(identity: object) ->
         )
     )
     assert compiled == "0"
+
+
+@pytest.mark.parametrize(
+    "identity, expected",
+    [
+        (7, "table chart"),
+        ("7__table", "table chart"),
+        ("7__semantic_view", "semantic chart"),
+    ],
+)
+def test_chart_list_datasource_identity(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    session: Session,
+    semantic_layers_enabled: None,
+    identity: int | str,
+    expected: str,
+) -> None:
+    """The registered list operator separates same-ID sources and accepts old links."""
+    # Avoid app-init imports: models and API registration need the app fixture.
+    from superset.charts.api import ChartRestApi
+    from superset.models.slice import Slice
+
+    mocker.patch.object(ChartRestApi.datamodel, "_session", session)
+    mocker.patch(
+        "superset.security_manager.can_access_all_datasources", return_value=True
+    )
+    Slice.metadata.create_all(session.get_bind())
+    table_chart: Slice = Slice(
+        slice_name="table chart", datasource_id=7, datasource_type="table"
+    )
+    semantic_chart: Slice = Slice(
+        slice_name="semantic chart", datasource_id=7, datasource_type="semantic_view"
+    )
+    session.add_all([table_chart, semantic_chart])
+    session.flush()
+    query: str = prison.dumps(
+        {
+            "columns": ["id", "slice_name"],
+            "filters": [
+                {"col": "datasource_id", "opr": "chart_datasource", "value": identity}
+            ],
+        }
+    )
+    response: TestResponse = client.get("/api/v1/chart/", query_string={"q": query})
+    assert response.status_code == 200
+    assert [row["slice_name"] for row in response.json["result"]] == [expected]
 
 
 def test_chart_filter_scopes_guest_to_token_dashboards(mocker: MockerFixture) -> None:
