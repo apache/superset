@@ -51,6 +51,8 @@ import { DatasourceType, isDefined, SupersetClient } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import { Radio } from '@superset-ui/core/components/Radio';
+import { openChangeFor } from 'src/features/changeManagement/api';
+import { reviewLog } from 'src/features/changeManagement/log';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
@@ -242,6 +244,59 @@ const SaveModal = ({
     canOverwriteSlice() ? ChartStatusType.overwrite : ChartStatusType.saveas,
   );
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [modal, saveModalContextHolder] = Modal.useModal();
+
+  /**
+   * Ask before a save replaces changes the author has already stored.
+   *
+   * Explore opens on the live chart, not on the author's draft, so the
+   * controls beside it describe the published version. An author revising
+   * a change -- the journey a reviewer's "please adjust" sends them on --
+   * tweaks one control on top of live and saves, and because Explore posts
+   * every control rather than the ones that moved, the result replaces the
+   * draft instead of adding to it. Their earlier edits are gone and
+   * nothing says so. That is the defect as filed: "revising a sent-back
+   * chart change silently drops the author's earlier edits."
+   *
+   * The cure is for Explore to open on the draft, the way the dashboard
+   * canvas and the dataset editor now do. That needs the proposal in place
+   * before Explore builds its store; laying it over afterwards crashes the
+   * chart panel, which is why this is a confirmation and not a fix. What
+   * it buys is that the loss stops being silent: the author is told what
+   * is about to go and chooses.
+   *
+   * Only for an overwrite of a chart the author has an open change on. A
+   * new chart, a Save as, or somebody else's change all fall through.
+   */
+  const replacingAnExistingDraft = useCallback(async (): Promise<boolean> => {
+    const sliceId = slice?.slice_id;
+    if (!sliceId || action !== 'overwrite') return true;
+    let proposed: Record<string, unknown> | null = null;
+    try {
+      proposed = await openChangeFor(sliceId, 'chart');
+    } catch {
+      // The gate refuses or accepts this save on its own terms; a question
+      // we could not ask is not a reason to block the author.
+      return true;
+    }
+    if (!proposed) return true;
+    reviewLog('explore: warning that this save replaces a stored draft', {
+      chartId: sliceId,
+    });
+    return new Promise<boolean>(resolve => {
+      modal.confirm({
+        title: t('This replaces the changes you already saved'),
+        content: t(
+          'Explore opened on the live chart, not on your saved changes, so saving now replaces them rather than adding to them. Open What changed first if you want to see what you have stored.',
+        ),
+        okText: t('Replace my saved changes'),
+        okButtonProps: { danger: true },
+        cancelText: t('Cancel'),
+        onOk: () => resolve(true),
+        onCancel: () => resolve(false),
+      });
+    });
+  }, [action, modal, slice?.slice_id]);
   const [dashboard, setDashboard] = useState<
     { label: string; value: string | number } | undefined
   >(undefined);
@@ -467,6 +522,7 @@ const SaveModal = ({
 
   const saveOrOverwrite = useCallback(
     async (gotodash: boolean) => {
+      if (!(await replacingAnExistingDraft())) return;
       setIsLoading(true);
       const tableState = form_data?.table_state;
       const sliceId = slice?.slice_id;
@@ -917,6 +973,7 @@ const SaveModal = ({
       ) : (
         renderSaveChartModal()
       )}
+      {saveModalContextHolder}
     </StyledModal>
   );
 };
