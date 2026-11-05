@@ -1889,7 +1889,13 @@ provided hook context for caller identity rather than `g.user`.
 `query_id`, including failures and OAuth authentication errors after a run is
 created. Recorded runs include execution timestamps, the executed statement,
 status and row count. A worker deadline or client disconnect finishes the run as
-`timed_out`; a concurrent Stop keeps its `stopped` outcome.
+`timed_out`; a concurrent Stop keeps its `stopped` outcome. A Stop issued while
+the statement is running commits immediately: the run holds no pending metadata
+write while it waits for the warehouse. It does not cancel the warehouse query.
+
+When a worker deadline ends the tool call, the error reply names the run as
+`Query history id: <id>` if the run was recorded before the deadline. A reply
+for a call whose run was not yet recorded at that point carries no ID.
 
 Synchronous results-cache hits create a separate successful history entry marked
 as cached. Its executed statement is the cached run's last statement, including

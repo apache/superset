@@ -275,6 +275,35 @@ class _LimitedCursor:
         return row
 
 
+def _mutate_statement(database: Database, statement: str, is_split: bool) -> str:
+    """
+    Apply the SQL mutator and reject a statement it emptied.
+
+    :param database: Database model to execute against
+    :param statement: Statement to mutate
+    :param is_split: Whether `statement` is an individual split-out statement
+    :returns: The SQL to execute
+    :raises SupersetErrorException: If nothing executable remains
+    """
+    stmt_sql = database.mutate_sql_based_on_config(statement, is_split=is_split)
+    if not _has_executable_statements(stmt_sql, database.db_engine_spec.engine):
+        # A `SQL_QUERY_MUTATOR` that strips a statement down to nothing
+        # executable (whitespace or comments only) would otherwise be sent
+        # to the database engine as an empty query, surfacing a confusing
+        # engine-specific error instead of a clean one.
+        raise SupersetErrorException(
+            SupersetError(
+                message=__(
+                    "The SQL query mutator removed all executable "
+                    "statements from this query."
+                ),
+                error_type=SupersetErrorType.INVALID_SQL_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+    return stmt_sql
+
+
 def execute_sql_with_cursor(
     database: Database,
     cursor: Any,
@@ -314,6 +343,7 @@ def execute_sql_with_cursor(
         check_query_deadline,
         query_executed,
     )
+    from superset.sql.execution.utils import commit_query_unless_stopped
 
     total = len(statements)
     if total == 0:
@@ -329,32 +359,19 @@ def execute_sql_with_cursor(
 
         stmt_start_time = time.time()
 
-        # Apply SQL mutation
-        stmt_sql = database.mutate_sql_based_on_config(
-            statement,
-            is_split=is_split,
-        )
-        if not _has_executable_statements(stmt_sql, database.db_engine_spec.engine):
-            # A `SQL_QUERY_MUTATOR` that strips a statement down to nothing
-            # executable (whitespace or comments only) would otherwise be sent
-            # to the database engine as an empty query, surfacing a confusing
-            # engine-specific error instead of a clean one.
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__(
-                        "The SQL query mutator removed all executable "
-                        "statements from this query."
-                    ),
-                    error_type=SupersetErrorType.INVALID_SQL_ERROR,
-                    level=ErrorLevel.ERROR,
-                )
-            )
+        stmt_sql = _mutate_statement(database, statement, is_split)
 
         # Log query
         if log_query_fn:
             log_query_fn(stmt_sql, query.schema)
 
         query.executed_sql = stmt_sql
+        # Publish before the warehouse call. A staged write is flushed by the
+        # next metadata read and then holds the row lock for the whole call,
+        # which would make a concurrent Stop wait for the statement to finish.
+        if not commit_query_unless_stopped(query):
+            db.session.commit()  # pylint: disable=consider-using-transaction
+            return results
 
         # Execute - use custom function or default
         if execute_fn:
@@ -574,10 +591,11 @@ class SQLExecutor:
         """
         from superset_core.queries.types import (
             QueryOptions as QueryOptionsType,
-            QueryResult as QueryResultType,
             QueryStatus,
-            StatementResult,
         )
+
+        from superset.sql.execution.cancellation import report_query_recorded
+        from superset.sql.execution.utils import commit_query_unless_stopped
 
         opts: QueryOptionsType = options or QueryOptionsType()
         start_time = time.time()
@@ -600,30 +618,8 @@ class SQLExecutor:
 
             # DRY RUN: Return transformed SQL without execution
             if opts.dry_run:
-                total_execution_time_ms = (time.time() - start_time) * 1000
-                # Create a StatementResult for each statement in dry-run mode
-                original_sqls = [stmt.format() for stmt in original_script.statements]
-                transformed_sqls = [
-                    stmt.format() for stmt in transformed_script.statements
-                ]
-                dry_run_statements = [
-                    StatementResult(
-                        original_sql=orig_sql,
-                        executed_sql=trans_sql,
-                        data=None,
-                        row_count=0,
-                        execution_time_ms=0,
-                    )
-                    for orig_sql, trans_sql in zip(
-                        original_sqls, transformed_sqls, strict=True
-                    )
-                ]
-                return QueryResultType(
-                    status=QueryStatus.SUCCESS,
-                    statements=dry_run_statements,
-                    query_id=None,
-                    total_execution_time_ms=total_execution_time_ms,
-                    is_cached=False,
+                return self._dry_run_result(
+                    original_script, transformed_script, start_time
                 )
 
             # 4. Check cache
@@ -639,7 +635,17 @@ class SQLExecutor:
                 final_sql, opts, catalog, schema, status=QueryStatus.RUNNING
             )
             query_id = query.id
+            report_query_recorded(query_id)
             query.start_running_time = now_as_float()
+            # Publish it before executing, as SQL Lab does: left staged, the
+            # next metadata read flushes it and holds the row lock for the run.
+            if not commit_query_unless_stopped(query):
+                db.session.commit()  # pylint: disable=consider-using-transaction
+                stopped = self._create_error_result(
+                    QueryStatus.STOPPED, None, start_time
+                )
+                stopped.query_id = query_id
+                return stopped
 
             # 6. Execute with timeout
             timeout = opts.timeout_seconds or app.config.get("SQLLAB_TIMEOUT", 30)
@@ -690,13 +696,7 @@ class SQLExecutor:
         except (OAuth2RedirectError, OAuth2Error) as ex:
             # Let OAuth2 exceptions propagate so callers (MCP, API) can
             # handle them with context-appropriate responses.
-            result = self._record_failure(
-                query, query_id, QueryStatus.FAILED, str(ex), start_time
-            )
-            ex.query_id = result.query_id
-            if result.status == QueryStatus.STOPPED:
-                return result
-            raise
+            return self._record_oauth2_failure(ex, query, query_id, start_time)
         except Exception as ex:
             # A failed metadata flush expires Database as well as Query.
             # Do not load engine configuration before the failure helper rolls back.
@@ -718,6 +718,48 @@ class SQLExecutor:
                 "Query exceeded the timeout limit",
             )
             raise
+
+    def _dry_run_result(
+        self,
+        original_script: SQLScript,
+        transformed_script: SQLScript,
+        start_time: float,
+    ) -> QueryResult:
+        """
+        Build the result of a dry run: the transformed SQL, without execution.
+
+        :param original_script: SQLScript with original SQL
+        :param transformed_script: SQLScript with transformed SQL
+        :param start_time: Start time for calculating duration
+        :returns: Successful QueryResult with one StatementResult per statement
+        """
+        from superset_core.queries.types import (
+            QueryResult as QueryResultType,
+            QueryStatus,
+            StatementResult,
+        )
+
+        total_execution_time_ms = (time.time() - start_time) * 1000
+        # Create a StatementResult for each statement in dry-run mode
+        original_sqls = [stmt.format() for stmt in original_script.statements]
+        transformed_sqls = [stmt.format() for stmt in transformed_script.statements]
+        dry_run_statements = [
+            StatementResult(
+                original_sql=orig_sql,
+                executed_sql=trans_sql,
+                data=None,
+                row_count=0,
+                execution_time_ms=0,
+            )
+            for orig_sql, trans_sql in zip(original_sqls, transformed_sqls, strict=True)
+        ]
+        return QueryResultType(
+            status=QueryStatus.SUCCESS,
+            statements=dry_run_statements,
+            query_id=None,
+            total_execution_time_ms=total_execution_time_ms,
+            is_cached=False,
+        )
 
     def execute_async(
         self,
@@ -964,8 +1006,8 @@ class SQLExecutor:
             self.database, execute, can_retry=lambda: not query.progress
         )
 
-        # If execution was stopped or returned no results, return early
-        if not execution_results:
+        # A Stop ends execution early, before every statement has a result
+        if len(execution_results) < len(original_sqls):
             return []
 
         # Build StatementResult for each executed statement
@@ -1057,6 +1099,34 @@ class SQLExecutor:
             query_id=query_id,
             total_execution_time_ms=total_execution_time_ms,
         )
+
+    def _record_oauth2_failure(
+        self,
+        error: OAuth2RedirectError | OAuth2Error,
+        query: Query | None,
+        query_id: int | None,
+        start_time: float,
+    ) -> QueryResult:
+        """
+        Record an OAuth2 failure on the run, then re-raise it for the caller.
+
+        :param error: The OAuth2 exception being handled; it carries the run's ID
+        :param query: Query model of the run, or None if it failed before the
+            run was recorded
+        :param query_id: ID captured before execution can fail a metadata flush
+        :param start_time: Start time for calculating execution duration
+        :returns: STOPPED result if a concurrent Stop won the row
+        :raises OAuth2RedirectError | OAuth2Error: Otherwise, `error`
+        """
+        from superset_core.queries.types import QueryStatus
+
+        result = self._record_failure(
+            query, query_id, QueryStatus.FAILED, str(error), start_time
+        )
+        error.query_id = result.query_id
+        if result.status == QueryStatus.STOPPED:
+            return result
+        raise error
 
     def _record_failure(
         self,

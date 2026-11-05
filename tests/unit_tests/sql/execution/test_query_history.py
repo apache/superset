@@ -45,7 +45,7 @@ from superset.exceptions import (
 from superset.mcp_service.worker import WorkerDeadlineExceeded
 from superset.models.core import Database
 from superset.models.sql_lab import Query
-from superset.sql.execution.cancellation import cursor_scope
+from superset.sql.execution.cancellation import cursor_scope, query_recorded
 from superset.sql.execution.executor import SQLExecutor
 from superset.sql.parse import SQLScript
 
@@ -87,6 +87,19 @@ def test_run_history_fields(session: Session, database: Database) -> None:
     assert " ".join(query.executed_sql.split()) == "SELECT 1 AS one"
     assert query.rows == 1
     assert query.progress == 100
+
+
+def test_run_reports_its_history_id_to_the_execution_owner(
+    session: Session, database: Database
+) -> None:
+    """The owner learns the row's ID as soon as the run is recorded."""
+    reported: list[int] = []
+    token = query_recorded.set(reported.append)
+    try:
+        result = database.execute("SELECT 1 AS one")
+    finally:
+        query_recorded.reset(token)
+    assert reported == [result.query_id]
 
 
 def test_worker_deadline_finishes_history(
@@ -171,6 +184,100 @@ def test_concurrent_stop_wins(
     assert query.status == "stopped"
     assert query.end_time >= query.start_time
     assert query.error_message is None
+
+
+def stop_from_other_session(session: Session) -> Query:
+    """Commit a Stop from an independent session, as a separate request would."""
+    with Session(session.get_bind()) as other:
+        with (
+            patch.object(db, "session", other),
+            patch("superset.daos.query.get_user_id", return_value=None),
+            patch("superset.sql_lab.cancel_query", return_value=True),
+        ):
+            stopped = QueryDAO.stop_query(other.query(Query).one().client_id)
+            assert stopped.status == "stopped"
+            return stopped
+
+
+def test_stop_mid_statement_does_not_wait_for_execution(
+    mocker: MockerFixture, session: Session, database: Database
+) -> None:
+    """A Stop issued while the warehouse runs commits at once and wins.
+
+    No metadata write may be staged while the statement executes: a staged
+    write holds the row lock, so the Stop would wait for the whole run (on
+    SQLite, it fails with "database is locked").
+    """
+    stops: list[str] = []
+
+    def execute(cursor: Any, sql: str, db_: Database) -> None:
+        # Any metadata read here (token lookups, expired relationships)
+        # autoflushes whatever the run staged and holds its row lock.
+        assert session.query(Query).count() == 1
+        stops.append(stop_from_other_session(session).status)
+
+    mocker.patch.object(database.db_engine_spec, "execute", side_effect=execute)
+    result = database.execute("SELECT 1 AS one")
+    assert stops == ["stopped"]
+    assert result.status == QueryStatus.STOPPED
+    assert result.query_id is not None
+    assert not session.in_transaction()
+    session.expire_all()
+    query = session.query(Query).one()
+    assert query.status == "stopped"
+    assert query.start_running_time is not None
+    assert " ".join(query.executed_sql.split()) == "SELECT 1 AS one"
+
+
+def test_stop_before_running_time_is_published(
+    mocker: MockerFixture, session: Session, database: Database
+) -> None:
+    """A Stop that lands before the run starts is kept and nothing executes."""
+    create_query_record = SQLExecutor._create_query_record
+
+    def create_then_stop(*args: Any, **kwargs: Any) -> Query:
+        query = create_query_record(*args, **kwargs)
+        stop_from_other_session(session)
+        return query
+
+    mocker.patch.object(SQLExecutor, "_create_query_record", create_then_stop)
+    execute_statements = mocker.spy(SQLExecutor, "_execute_statements")
+    result = database.execute("SELECT 1 AS one")
+    assert result.status == QueryStatus.STOPPED
+    assert result.statements == []
+    assert result.error_message is None
+    assert result.query_id is not None
+    execute_statements.assert_not_called()
+    assert not session.in_transaction()
+    session.expire_all()
+    query = session.query(Query).one()
+    assert query.status == "stopped"
+    assert query.start_running_time is None
+
+
+@pytest.mark.parametrize("stop_in_statement", [1, 2])
+def test_stop_between_statements_discards_results(
+    mocker: MockerFixture,
+    session: Session,
+    database: Database,
+    stop_in_statement: int,
+) -> None:
+    """A Stop landed during one statement is seen before the next one starts."""
+    calls: list[str] = []
+
+    def execute(cursor: Any, sql: str, db_: Database) -> None:
+        calls.append(sql)
+        if len(calls) == stop_in_statement:
+            stop_from_other_session(session)
+
+    mocker.patch.object(database.db_engine_spec, "execute", side_effect=execute)
+    result = database.execute("SELECT 1 AS one; SELECT 2 AS two")
+    assert result.status == QueryStatus.STOPPED
+    assert result.statements == []
+    assert len(calls) == stop_in_statement
+    assert not session.in_transaction()
+    session.expire_all()
+    assert session.query(Query).one().status == "stopped"
 
 
 def cached_result() -> QueryResult:

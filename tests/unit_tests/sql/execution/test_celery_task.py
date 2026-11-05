@@ -1032,7 +1032,9 @@ def test_make_execute_fn(
     execute_fn = _make_execute_fn(mock_query, mock_database.db_engine_spec)
     execute_fn(mock_cursor, "SELECT * FROM users")
 
-    assert mock_query.executed_sql == "SELECT * FROM users"
+    mock_database.db_engine_spec.execute_with_cursor.assert_called_once_with(
+        mock_cursor, "SELECT * FROM users", mock_query
+    )
 
 
 @pytest.mark.parametrize(

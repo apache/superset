@@ -551,7 +551,8 @@ def _make_execute_fn(query: Query, db_engine_spec: Any) -> Any:
     """Create an execute function with stats timing."""
 
     def execute_with_stats(cursor: Any, sql: str) -> None:
-        query.executed_sql = sql
+        # `execute_sql_with_cursor` has already published `executed_sql`;
+        # assigning it again would stage a write held across the engine call.
         stats_logger = app.config["STATS_LOGGER"]
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
             db_engine_spec.execute_with_cursor(cursor, sql, query)

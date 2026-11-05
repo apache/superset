@@ -33,7 +33,7 @@ import sqlite3
 from contextlib import closing
 from itertools import islice
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import call, MagicMock
 
 import msgpack
 import pandas as pd
@@ -787,7 +787,8 @@ def test_execute_timeout_records_query(
     assert mock_query.status == QueryStatus.TIMED_OUT.value
     assert mock_query.error_message == "Query exceeded the timeout limit"
     assert mock_query.end_time is not None
-    commit.assert_called_once_with(mock_query)
+    # Once to publish the start of the run, once to record the timeout.
+    assert commit.call_args_list == [call(mock_query), call(mock_query)]
 
 
 @pytest.mark.parametrize("status", [QueryStatus.FAILED, QueryStatus.TIMED_OUT])

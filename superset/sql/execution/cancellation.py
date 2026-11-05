@@ -65,6 +65,20 @@ after_execute: ContextVar[Callable[[], None] | None] = ContextVar(
 )
 
 
+query_recorded: ContextVar[Callable[[int], None] | None] = ContextVar(
+    "warehouse_query_recorded", default=None
+)
+
+
+def report_query_recorded(query_id: int) -> None:
+    """Tell the execution owner which history row records the run.
+
+    The owner can then name the row in a reply it must give before the run ends.
+    """
+    if report := query_recorded.get():
+        report(query_id)
+
+
 def check_query_deadline() -> None:
     """Stop before metadata access or another statement after warehouse I/O."""
     if check := check_deadline.get():
