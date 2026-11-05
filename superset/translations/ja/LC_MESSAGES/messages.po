@@ -9485,6 +9485,8 @@ msgstr "ローカルテーマを「%s」に設定しました"
 msgid "Locate the chart"
 msgstr "チャートを配置"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr "ログ"
 
@@ -17101,6 +17103,9 @@ msgstr "このフィルターは既にレポート内に存在します"
 msgid ""
 "This filter is also applied to a partition column for faster queries. See"
 " \"View query\" for the generated SQL."
+msgstr ""
+
+msgid "This filter isn't applied to any charts yet"
 msgstr ""
 
 #, python-format

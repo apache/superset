@@ -10422,6 +10422,8 @@ msgstr "本地主题已设置为\"%s\""
 msgid "Locate the chart"
 msgstr "定位到图表"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "日志"
@@ -18806,6 +18808,9 @@ msgstr "此筛选器已存在于报表中"
 msgid ""
 "This filter is also applied to a partition column for faster queries. See"
 " \"View query\" for the generated SQL."
+msgstr ""
+
+msgid "This filter isn't applied to any charts yet"
 msgstr ""
 
 #, python-format

@@ -12876,6 +12876,8 @@ msgstr "Tema local definido como \"%s\""
 msgid "Locate the chart"
 msgstr "Localize o gráfico"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr "Registro"
 
@@ -23438,6 +23440,9 @@ msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
+msgid "This filter isn't applied to any charts yet"
+msgstr ""
+
 #, python-format
 msgid "This filter might be incompatible with current %s"
 msgstr "Este filtro pode ser incompatível com o%satual"

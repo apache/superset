@@ -17,7 +17,10 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import { DeckglLayerVisibilityTooltip } from './FilterControlShared';
+import {
+  DeckglLayerVisibilityTooltip,
+  OutOfScopeFilterToolTip,
+} from './FilterControlShared';
 
 test('renders DeckglLayerVisibilityTooltip with icon button', () => {
   render(<DeckglLayerVisibilityTooltip />);
@@ -30,5 +33,19 @@ test('shows tooltip content on hover for DeckglLayerVisibilityTooltip', async ()
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toHaveTextContent(
     'Choose layers to hide from all deck.gl Multiple Layer charts in this dashboard.',
+  );
+});
+
+test('makes the out-of-scope warning tooltip keyboard accessible', async () => {
+  render(<OutOfScopeFilterToolTip />);
+
+  const trigger = screen.getByRole('button', {
+    name: 'Warning',
+  });
+  await userEvent.tab();
+
+  expect(trigger).toHaveFocus();
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(
+    "This filter isn't applied to any charts yet",
   );
 });
