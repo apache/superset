@@ -51,6 +51,7 @@ from sqlalchemy import or_
 
 from superset import db, security_manager
 from asset_approval.models import ChangeRequest
+from asset_approval.types import ChangeStatus
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 
@@ -168,6 +169,27 @@ def can_approve(
     # And then the control itself: a *second editor* of this asset. Not a
     # role, by decision -- see the module docstring.
     return is_strict_editor(model, user_id)
+
+
+def in_review(change_request: ChangeRequest) -> bool:
+    """Whether the request is in front of a reviewer right now.
+
+    Only ``pending`` is. A draft the author has not submitted yet, one they
+    have taken back, and one another reviewer has sent back are all open but
+    nobody's to decide; an approved or discarded one is finished.
+
+    Deliberately *not* folded into :func:`can_approve`, which is the standing
+    question -- may this person decide this change at all -- and has to stay
+    blind to status. The reviewer actions authorize first, so that somebody
+    with no say over an asset cannot read its state off the refusal, and only
+    then say what the request did; a ``can_approve`` that knew the status
+    would turn "the author saved over this while you were reading it" back
+    into "you cannot approve this change".
+
+    What a client asks is this narrower question, and it was being answered
+    with the wider one: see ``api._approvable_now``.
+    """
+    return ChangeStatus(change_request.status) is ChangeStatus.PENDING
 
 
 def eligible_approvers(model: Any, exclude_user_id: int | None = None) -> list[User]:

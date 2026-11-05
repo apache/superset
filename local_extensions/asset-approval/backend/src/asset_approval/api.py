@@ -41,6 +41,7 @@ from asset_approval import lifecycle
 from asset_approval.eligibility import (
     can_approve,
     eligible_approvers,
+    in_review,
     is_strict_editor,
 )
 from asset_approval.exceptions import (
@@ -52,6 +53,7 @@ from asset_approval.exceptions import (
     NoEligibleApproverError,
     NothingToReviewError,
     ReplayFailedError,
+    RequestLeftReviewError,
     ReviewedVersionStaleError,
     ReviewNoteRequiredError,
     StaleBaselineError,
@@ -2119,6 +2121,30 @@ def serialize(change_request: ChangeRequest, asset: Any = None) -> dict[str, Any
     }
 
 
+def _approvable_now(
+    change_request: ChangeRequest, asset: Any, user_id: int | None
+) -> bool:
+    """Whether pressing Approve on this request would actually do anything.
+
+    ``can_approve`` answers who may decide this change, and nothing else:
+    not whether there is a decision to make. So a co-editor opening an asset
+    whose draft had never been submitted was served ``can_approve: true``
+    beside ``review_blocked: null``, and the Approve that was drawn from it
+    could only ever 409 -- "a button that can only fail is the same trap as
+    ``can_approve`` was before QA-07", which :func:`serialize` says in as
+    many words a few lines above the field that fell into it. An
+    already-decided row read the same way, and ``for_asset`` -- the banner on
+    the asset, which is a reviewer's ordinary route to a change -- serves
+    exactly this field.
+
+    Asked as two questions rather than one because the refusals have to come
+    in that order; see :func:`asset_approval.eligibility.in_review`.
+    """
+    return in_review(change_request) and can_approve(
+        change_request, asset, user_id
+    )
+
+
 def _may_see(change_request: ChangeRequest, asset: Any, user_id: int | None) -> bool:
     """Whether this user may read this change request at all.
 
@@ -2360,7 +2386,12 @@ class ChangeRequestRestApi(BaseSupersetApi):
                 # already computed for `for_me`, and `_may_see` has loaded the
                 # same asset.
                 payload = serialize(change_request, asset)
-                payload["can_approve"] = approvable
+                # The reader's standing right to decide this change, narrowed
+                # to "and it is waiting on you now" -- which is the question
+                # a button is drawn from. ``in_review`` rather than a second
+                # ``approvable_now`` call: the asset and the user are already
+                # settled above, and this loop runs per row.
+                payload["can_approve"] = approvable and in_review(change_request)
                 payload["is_author"] = change_request.author_fk == user_id
                 results.append(payload)
             visible += 1
@@ -2396,7 +2427,7 @@ class ChangeRequestRestApi(BaseSupersetApi):
             return self.response_403()
 
         payload = serialize(change_request, asset)
-        payload["can_approve"] = can_approve(change_request, asset, user_id)
+        payload["can_approve"] = _approvable_now(change_request, asset, user_id)
         payload["is_author"] = change_request.author_fk == user_id
         payload["eligible_approvers"] = [
             _user_brief(u)
@@ -2468,7 +2499,7 @@ class ChangeRequestRestApi(BaseSupersetApi):
             return self.response(200, result=None)
 
         payload = serialize(change_request, asset)
-        payload["can_approve"] = can_approve(change_request, asset, user_id)
+        payload["can_approve"] = _approvable_now(change_request, asset, user_id)
         payload["is_author"] = change_request.author_fk == user_id
         # The banner names who can approve, so the author is not left
         # guessing who to chase. Excludes the author, who never can.
@@ -2625,7 +2656,14 @@ class ChangeRequestRestApi(BaseSupersetApi):
     def request_changes(self, pk: int) -> FlaskResponse:
         body = request.get_json(silent=True) or {}
         return self._act(
-            lambda: lifecycle.request_changes(pk, body.get("review_note", "")),
+            lambda: lifecycle.request_changes(
+                pk,
+                body.get("review_note", ""),
+                # As ``approve`` takes it, and for the refusal only: a
+                # reviewer whose version was written over is told that,
+                # rather than being told the status (QA-93).
+                seen_revision=body.get("seen_revision"),
+            ),
             "Changes requested.",
             reload_pk=pk,
         )
@@ -2701,6 +2739,7 @@ class ChangeRequestRestApi(BaseSupersetApi):
         except (
             AuthorNoLongerEditorError,
             InvalidTransitionError,
+            RequestLeftReviewError,
             ReviewedVersionStaleError,
             StaleBaselineError,
         ) as ex:
@@ -2762,11 +2801,40 @@ def _by_key(items: Any, key: str) -> dict[str, Any]:
     return out
 
 
+def _archived_is_normal(change_request: Any) -> bool:
+    """Whether this request's asset being in the trash is expected.
+
+    Two kinds of request are *about* a soft-deleted asset, and reading
+    either one means reading past the visibility filter:
+
+    * a restore, whose whole premise is that the asset is archived. R3-01
+      fixed that direction;
+    * a delete, once it has been approved -- which is the same situation
+      arrived at from the other end, and was left behind. Approving a
+      delete soft-deletes the asset, so from that moment the request's own
+      asset could not be loaded: ``GET /change_request/<pk>`` answered 404
+      to the approver who had just pressed the button and to the author,
+      the row vanished from every list, and the approve response could not
+      even name what it had deleted (``asset_title: null``). Nothing was
+      lost -- the asset is recoverable and the request row is intact -- but
+      there was no longer any way to reach either of them, so an approved
+      delete could not be walked back (QA-93).
+
+    Reading is all this widens. Who may see a request is ``_may_see`` and
+    who may act on it is ``can_approve``, both decided separately and
+    neither given anything here.
+    """
+    return (
+        is_restore(change_request)
+        or Operation(change_request.operation) is Operation.DELETE
+    )
+
+
 def _asset_of(change_request: Any) -> Any:
     """The asset a change request is about.
 
-    ``include_deleted`` for a restore, because the whole point of one is
-    that the asset is archived. Without it every read path -- the queue,
+    ``include_deleted`` when the asset is allowed to be archived -- see
+    :func:`_archived_is_normal`. Without it every read path -- the queue,
     the request's own page, the per-asset lookup, the list tags, the bell
     -- loaded nothing and dropped the row, so a restore request was
     invisible to its own author: it could not be submitted, approved or
@@ -2776,7 +2844,7 @@ def _asset_of(change_request: Any) -> Any:
     return load_asset(
         AssetType(change_request.asset_type),
         change_request.asset_id,
-        include_deleted=is_restore(change_request),
+        include_deleted=_archived_is_normal(change_request),
     )
 
 

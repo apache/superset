@@ -44,6 +44,7 @@ from asset_approval.exceptions import (
     InvalidTransitionError,
     NoEligibleApproverError,
     NothingToReviewError,
+    RequestLeftReviewError,
     ReviewedVersionStaleError,
     ReviewNoteRequiredError,
     StaleBaselineError,
@@ -76,6 +77,49 @@ def revision_of(change_request: ChangeRequest) -> str | None:
     """
     changed_on = getattr(change_request, "changed_on", None)
     return changed_on.isoformat() if changed_on else None
+
+
+def _keep_the_revision(change_request: ChangeRequest) -> None:
+    """Hold ``changed_on`` still across a transition that writes no content.
+
+    ``changed_on`` is not only an audit column here: :func:`revision_of`
+    makes it *the* token for "the version of this request", the one an
+    approver quotes back, and the refusal a reviewer gets now turns on
+    whether it moved (see :func:`_refuse_a_request_that_moved`). For that to
+    mean anything it has to move when the content moves and only then --
+    which is what ``revision_of`` already claims: "the gate sets it on every
+    fold of a further edit into an open request".
+
+    A withdrawal and a request for changes write no content. Left to the
+    column's ``onupdate`` they moved the token anyway, so a reviewer still
+    holding the page was told their version was stale and sent to re-read a
+    payload byte-for-byte identical to the one they had just read.
+
+    ``flag_modified`` is what puts the column into the UPDATE at the value it
+    already has; a plain re-assignment of an equal value is "unchanged" to
+    the unit of work, so the column would be left out and ``onupdate`` would
+    fire after all.
+
+    It needs a mapped instance carrying a loaded value, and it refuses
+    anything else. There is nothing to hold still in that case either -- a
+    row with no revision has none to lose, and ``_refuse_a_request_that_moved``
+    never claims staleness without one -- so it is not worth failing a
+    withdrawal over.
+    """
+    from sqlalchemy.exc import (  # pylint: disable=import-outside-toplevel
+        InvalidRequestError,
+    )
+    from sqlalchemy.orm.attributes import (  # pylint: disable=import-outside-toplevel
+        flag_modified,
+    )
+
+    try:
+        flag_modified(change_request, "changed_on")
+    except (AttributeError, InvalidRequestError):
+        logger.debug(
+            "asset-approval: no revision to hold on change request %s",
+            getattr(change_request, "id", None),
+        )
 
 
 def _locked(change_request_id: int) -> ChangeRequest:
@@ -198,6 +242,67 @@ def _author_name(change_request: ChangeRequest) -> str | None:
     return full or getattr(author, "username", None)
 
 
+def _refuse_a_request_that_moved(
+    change_request: ChangeRequest, seen_revision: str | None, action: str
+) -> None:
+    """What the reviewer is told when the request moved under their page.
+
+    A reviewer's page is a page of one version of one request that is in
+    review. Both halves can stop being true while they read it, and the two
+    events are different:
+
+    * the author saved again, which folds into the open request, rewrites
+      the captured payload and takes it back out of review. The version the
+      reviewer read is gone, which is what
+      :class:`ReviewedVersionStaleError` says;
+    * the request merely left review -- the author withdrew it, or another
+      reviewer sent it back -- and nothing was written. There is no new
+      version to read, so :class:`RequestLeftReviewError` says where the
+      change went instead.
+
+    Both used to be answered by the status guard, which ran first and gave
+    the same ``InvalidTransitionError`` to each: "A change request that is
+    draft cannot be approved." Internal vocabulary, no author, nothing to
+    do, and the message written for the first case was unreachable (QA-93).
+
+    Staleness is only ever claimed on evidence: a revision the reviewer
+    quoted that the request no longer has. Without a quote there is nothing
+    to compare, so the answer falls to where the change is -- which is true
+    whichever event moved it.
+    """
+    current_revision = revision_of(change_request)
+    status = ChangeStatus(change_request.status)
+
+    if status is ChangeStatus.PENDING:
+        # Fail closed. This used to read ``if seen_revision and ...``, so a
+        # caller that simply left the field out skipped the check and
+        # published unread -- the one outcome the feature exists to prevent.
+        # Approving is an attestation to a particular version, and a caller
+        # that will not name the version it reviewed has not reviewed
+        # anything.
+        #
+        # The requirement is the server's own state, not the caller's
+        # choice: it applies exactly when there is a revision to quote. A
+        # request with no ``changed_on`` has nothing to attest to and is
+        # left alone.
+        if current_revision is not None and seen_revision != current_revision:
+            raise ReviewedVersionStaleError()
+        return
+
+    if change_request.is_open:
+        if (
+            seen_revision
+            and current_revision is not None
+            and seen_revision != current_revision
+        ):
+            raise ReviewedVersionStaleError()
+        raise RequestLeftReviewError(_author_name(change_request), action)
+
+    # Decided already: approved or discarded. Nothing is coming back to this
+    # reviewer, and the status is the whole of the answer.
+    raise InvalidTransitionError(change_request.status, action)
+
+
 def _announce_approval(
     change_request: ChangeRequest, note: str | None
 ) -> None:
@@ -291,20 +396,10 @@ def approve(
     asset = _asset_for(change_request)
     if not can_approve(change_request, asset, user_id):
         raise ApprovalForbiddenError()
-    if ChangeStatus(change_request.status) is not ChangeStatus.PENDING:
-        raise InvalidTransitionError(change_request.status, "approved")
-    # Fail closed. This used to read ``if seen_revision and ...``, so a
-    # caller that simply left the field out skipped the check and published
-    # unread -- the one outcome the feature exists to prevent. Approving is
-    # an attestation to a particular version, and a caller that will not name
-    # the version it reviewed has not reviewed anything.
-    #
-    # The requirement is the server's own state, not the caller's choice:
-    # it applies exactly when there is a revision to quote. A request with
-    # no ``changed_on`` has nothing to attest to and is left alone.
-    current_revision = revision_of(change_request)
-    if current_revision is not None and seen_revision != current_revision:
-        raise ReviewedVersionStaleError()
+    # The status and the revision are one question asked of one page, and
+    # asking them in this order is the whole of QA-93: the status guard used
+    # to run first and answer the author's save with its own vocabulary.
+    _refuse_a_request_that_moved(change_request, seen_revision, "approved")
 
     # The reviewer read the right version of the *request*; this asks
     # whether the request still fits the *asset*. Approving replays the
@@ -367,11 +462,21 @@ def approve(
 
 
 @transaction()
-def request_changes(change_request_id: int, review_note: str) -> ChangeRequest:
+def request_changes(
+    change_request_id: int,
+    review_note: str,
+    seen_revision: str | None = None,
+) -> ChangeRequest:
     """Send the change back to its author with a reason.
 
     Not a rejection: the record stays open and the author keeps working on
     it (Decision 3, Visa Q7).
+
+    :param seen_revision: the request's revision as it stood on the page the
+        reviewer pressed the button on, as ``approve`` takes it. Optional
+        here, because nothing is published either way: it only lets the
+        refusal tell a reviewer whose version was written over from one
+        whose request simply left review (QA-93).
     """
     change_request = _locked(change_request_id)
     user_id = get_user_id()
@@ -384,20 +489,27 @@ def request_changes(change_request_id: int, review_note: str) -> ChangeRequest:
         raise ApprovalForbiddenError("review")
     if not review_note or not review_note.strip():
         raise ReviewNoteRequiredError()
-    if ChangeStatus(change_request.status) is not ChangeStatus.PENDING:
-        raise InvalidTransitionError(change_request.status, "sent back")
+    _refuse_a_request_that_moved(change_request, seen_revision, "sent back")
 
     change_request.set_status(ChangeStatus.CHANGES_REQUESTED)
     change_request.reviewer_fk = user_id
     change_request.review_note = review_note.strip()
     change_request.decided_at = _now()
+    # The author's payload is untouched, so a second reviewer who still has
+    # the request open is looking at the current version of it.
+    _keep_the_revision(change_request)
     db.session.add(change_request)
     return change_request
 
 
 @transaction()
 def withdraw(change_request_id: int) -> ChangeRequest:
-    """Take a pending request back, so the author can keep editing."""
+    """Take a pending request back, so the author can keep editing.
+
+    Taking it back is not writing to it. Nothing the author has withdrawn
+    has changed yet, so a reviewer who still holds the page is holding the
+    current version of the request and must not be told otherwise.
+    """
     change_request = _locked(change_request_id)
     if change_request.author_fk != get_user_id():
         raise ApprovalForbiddenError("withdraw")
@@ -406,6 +518,7 @@ def withdraw(change_request_id: int) -> ChangeRequest:
 
     change_request.set_status(ChangeStatus.DRAFT)
     change_request.submitted_at = None
+    _keep_the_revision(change_request)
     db.session.add(change_request)
     return change_request
 

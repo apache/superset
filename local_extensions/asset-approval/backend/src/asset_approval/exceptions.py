@@ -300,6 +300,49 @@ class ReviewedVersionStaleError(ChangeManagementException):
         )
 
 
+class RequestLeftReviewError(ChangeManagementException):
+    """Deciding a change that is no longer in front of a reviewer.
+
+    The sibling of :class:`ReviewedVersionStaleError`, and the case it must
+    not be used for. A request can leave review two ways: its author saves
+    again, which rewrites the payload and makes the reviewer's page stale,
+    or it is simply taken out of review -- withdrawn by its author, or sent
+    back by another reviewer -- with nothing written at all. Only the first
+    is a stale version; telling the second group to "review the new version"
+    sends them to re-read the version they already read.
+
+    Both used to answer with ``InvalidTransitionError``: "A change request
+    that is draft cannot be approved." That is this module's own status
+    vocabulary, it names nobody, and it leaves the reviewer with nothing to
+    do (QA-93).
+    """
+
+    #: A conflict, not a bad request: the call was fine, the request moved.
+    status = 409
+
+    #: Phrased for the button the reviewer pressed, as
+    #: :class:`ApprovalForbiddenError` is.
+    ENDINGS = {
+        "approved": "so it cannot be approved",
+        "sent back": "so there is nothing to send back",
+    }
+
+    def __init__(self, author: str | None = None, action: str = "approved") -> None:
+        self.author = author
+        self.action = action
+        # Named if we have a name, because "the author" is who the reviewer
+        # has to go back to. Phrased as where the change *is* rather than as
+        # who moved it: an author's withdrawal and another reviewer's "request
+        # changes" both land here, and only the first is something the author
+        # did.
+        who = author or "its author"
+        ending = self.ENDINGS.get(action, self.ENDINGS["approved"])
+        super().__init__(
+            f"This change is back with {who} and is no longer in review, "
+            f"{ending}. It will reach you again when they request review."
+        )
+
+
 class AuthorNoLongerEditorError(ChangeManagementException):
     """Approving a change whose author has since lost edit access.
 
